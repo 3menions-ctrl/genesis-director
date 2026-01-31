@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { AppLoader } from '@/components/ui/app-loader';
+import { CinemaLoader } from '@/components/ui/CinemaLoader';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -144,22 +144,24 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return 'Almost there...';
   }, [authPhase, hasSessionInState, profile?.id]);
 
-  // Profile fetch error - show retry option
+  // Profile fetch error - show retry option with DARK THEME
   if (user?.id && profileError && !loading) {
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gradient-to-br from-background via-background to-secondary/20">
-        <div className="flex flex-col items-center gap-4 text-center max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-destructive/10 flex items-center justify-center">
-            <RefreshCw className="w-8 h-8 text-destructive" />
+      <div 
+        className="fixed inset-0 z-[100] flex items-center justify-center"
+        style={{ backgroundColor: '#030303' }}
+      >
+        <div className="flex flex-col items-center gap-4 text-center max-w-sm px-6">
+          <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+            <RefreshCw className="w-8 h-8 text-red-400" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-foreground mb-1">Failed to load profile</h2>
-            <p className="text-muted-foreground text-sm">{profileError}</p>
+            <h2 className="text-lg font-semibold text-white mb-1">Failed to load profile</h2>
+            <p className="text-zinc-400 text-sm">{profileError}</p>
           </div>
           <Button 
             onClick={retryProfileFetch}
-            variant="outline"
-            className="gap-2"
+            className="gap-2 bg-white text-black hover:bg-white/90"
           >
             <RefreshCw className="w-4 h-4" />
             Retry
@@ -170,25 +172,53 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   // CRITICAL STABILITY FIX:
-  // Show loader during loading state OR when waiting for session verification
+  // Show CINEMA LOADER during loading state OR when waiting for session verification
+  // Uses unified dark-themed loader to prevent white flashes
   // But skip if we've already rendered children (prevents navigation blink)
   if ((authPhase === 'initializing' || authPhase === 'verifying') && !hasRenderedChildren.current) {
-    return <AppLoader message={loadingMessage} />;
+    return (
+      <CinemaLoader 
+        message={loadingMessage} 
+        showProgress={true}
+        progress={authPhase === 'verifying' ? 50 : 20}
+        variant="fullscreen"
+      />
+    );
   }
 
   // Redirecting state - show loader instead of null to prevent flash
   if (authPhase === 'redirecting') {
-    return <AppLoader message="Redirecting to login..." />;
+    return (
+      <CinemaLoader 
+        message="Redirecting to login..." 
+        showProgress={false}
+        variant="fullscreen"
+      />
+    );
   }
 
   // Wait for profile on INITIAL mount only - never block navigation between routes
   if (user?.id && !profile?.id && isInitialMount && !hasRenderedChildren.current && authPhase === 'ready') {
-    return <AppLoader message={loadingMessage} />;
+    return (
+      <CinemaLoader 
+        message={loadingMessage} 
+        showProgress={true}
+        progress={70}
+        variant="fullscreen"
+      />
+    );
   }
 
   // If onboarding not completed, show loader while redirecting (instead of null)
   if (profile && !profile.onboarding_completed && location.pathname !== '/onboarding') {
-    return <AppLoader message="Setting up your account..." />;
+    return (
+      <CinemaLoader 
+        message="Setting up your account..." 
+        showProgress={true}
+        progress={90}
+        variant="fullscreen"
+      />
+    );
   }
 
   // Mark that we've successfully rendered children

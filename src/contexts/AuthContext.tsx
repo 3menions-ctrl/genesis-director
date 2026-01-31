@@ -168,15 +168,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
 
     // Helper to complete auth initialization with profile/admin data
-    // CRITICAL FIX: Returns the admin status so we can use it in diagnostics
-    const completeAuthInit = async (userId: string): Promise<boolean> => {
-      let adminStatus = false;
+    const completeAuthInit = async (userId: string) => {
       try {
-        const [profileData, fetchedAdminStatus] = await Promise.all([
+        const [profileData, adminStatus] = await Promise.all([
           fetchProfile(userId),
           checkAdminRole(userId)
         ]);
-        adminStatus = fetchedAdminStatus;
         if (mounted) {
           setProfile(profileData);
           setIsAdmin(adminStatus);
@@ -205,16 +202,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
           setIsAdmin(false);
         }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
-      // CRITICAL FIX: Set loading to false ONLY after ALL state updates are complete
-      // This was previously in a finally block which could race with state updates
-      if (mounted) {
-        setLoading(false);
-      }
-      return adminStatus;
     };
     
-    // Set up auth state listener FIRST (but don't control loading during init)
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         if (!mounted) return;
@@ -225,17 +220,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(newSession);
         setUser(newSession?.user ?? null);
         
-        // CRITICAL FIX: Skip ALL processing during initialization
-        // initSession will handle everything including loading state
-        if (isInitializing) {
-          return;
+        // CRITICAL: Only mark session as verified after we've processed the change
+        // This prevents race conditions where components check session before it's ready
+        if (!isInitializing) {
+          setIsSessionVerified(true);
         }
-        
-        // Handle auth state changes AFTER initialization is complete
-        setIsSessionVerified(true);
 
+        // Skip if this is during initialization - initSession will handle it
+        if (isInitializing) return;
+
+        // Handle auth state changes AFTER initialization
         if (newSession?.user) {
-          // Fetch profile and admin status - this also sets loading to false
+          // Fetch profile and admin status before setting loading to false
           await completeAuthInit(newSession.user.id);
         } else {
           setProfile(null);
@@ -269,27 +265,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           profileLoaded: false,
         }, 'initSession');
         
-        let adminStatus = false;
         if (existingSession?.user) {
-          // CRITICAL FIX: Await completeAuthInit which now also sets loading=false
-          adminStatus = await completeAuthInit(existingSession.user.id);
+          await completeAuthInit(existingSession.user.id);
         } else {
           setIsAdmin(false);
           setLoading(false);
         }
         
-        // CRITICAL FIX: Mark session as verified AFTER loading is set to false
-        // This ensures ProtectedRoute won't see loading=false before isSessionVerified=true
+        // CRITICAL: Mark session as verified AFTER all initialization is complete
+        // This ensures ProtectedRoute won't redirect prematurely
         setIsSessionVerified(true);
         
-        // Update diagnostics with final state (use the returned adminStatus, not stale closure)
+        // Update diagnostics with final state
         updateAuthState({
           user: !!existingSession?.user,
           session: !!existingSession,
           isSessionVerified: true,
           loading: false,
-          isAdmin: adminStatus,
-          profileLoaded: true,
+          isAdmin,
+          profileLoaded: !!profile,
         }, 'sessionVerified');
       } catch (err) {
         console.error('[AuthContext] Session init error:', err);

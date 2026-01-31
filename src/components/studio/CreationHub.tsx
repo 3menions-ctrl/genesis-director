@@ -131,11 +131,13 @@ interface CreationHubProps {
     genre?: string;
     mood?: string;
   }) => void;
+  /** Called when the hub's data dependencies are loaded and UI is ready */
+  onReady?: () => void;
   className?: string;
 }
 
 // CreationHub wrapped with forwardRef for animation contexts
-export const CreationHub = memo(forwardRef<HTMLDivElement, CreationHubProps>(function CreationHub({ onStartCreation, className }, ref) {
+export const CreationHub = memo(forwardRef<HTMLDivElement, CreationHubProps>(function CreationHub({ onStartCreation, onReady, className }, ref) {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const [selectedMode, setSelectedMode] = useState<VideoGenerationMode>('text-to-video');
@@ -172,6 +174,18 @@ export const CreationHub = memo(forwardRef<HTMLDivElement, CreationHubProps>(fun
   
   // Initialize clip count based on tier limits (default to max allowed or 5)
   const [clipCount, setClipCount] = useState(5);
+  
+  // Track if we've signaled ready to prevent multiple calls
+  const hasSignaledReady = useRef(false);
+  
+  // Signal ready when data dependencies are loaded
+  // This prevents premature dismissal of GlobalLoadingOverlay
+  useEffect(() => {
+    if (!templateLoading && !tierLoading && !hasSignaledReady.current) {
+      hasSignaledReady.current = true;
+      onReady?.();
+    }
+  }, [templateLoading, tierLoading, onReady]);
   
   // Update clip count when tier limits load
   useEffect(() => {

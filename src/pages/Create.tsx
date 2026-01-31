@@ -12,7 +12,7 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { useNavigationGuard } from '@/hooks/useNavigationGuard';
 import { usePageReady } from '@/contexts/NavigationLoadingContext';
 
-// Loading overlay component
+// Loading overlay component for creation in progress
 const LoadingOverlay = memo(function LoadingOverlay({ status }: { status: string }) {
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -31,6 +31,7 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
   const { user } = useAuth();
   const [isCreating, setIsCreating] = useState(false);
   const [creationStatus, setCreationStatus] = useState<string>('');
+  const [isHubReady, setIsHubReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const { markReady } = usePageReady();
   
@@ -48,10 +49,18 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
     }
   }, [ref]);
 
-  // Signal page is ready after initial render
+  // Signal page is ready ONLY after CreationHub data dependencies are loaded
+  // This prevents the GlobalLoadingOverlay from dismissing prematurely
   useEffect(() => {
-    markReady('create-page');
-  }, [markReady]);
+    if (isHubReady) {
+      markReady('create-page');
+    }
+  }, [isHubReady, markReady]);
+  
+  // Callback from CreationHub when its data is ready
+  const handleHubReady = useCallback(() => {
+    setIsHubReady(true);
+  }, []);
 
   const handleStartCreation = useCallback(async (config: {
     mode: VideoGenerationMode;
@@ -168,6 +177,7 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
       <div className="relative z-10 flex-1">
         <CreationHub 
           onStartCreation={handleStartCreation}
+          onReady={handleHubReady}
         />
       </div>
       

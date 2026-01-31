@@ -12,12 +12,7 @@ const DEFAULT_CREDITS: UserCredits = {
   remaining: 60,
 };
 
-const MOCK_LAYERS: AssetLayer[] = [
-  { id: 'layer-1', project_id: '1', layer_type: 'background_video', status: 'completed', z_index: 0, created_at: new Date().toISOString() },
-  { id: 'layer-2', project_id: '1', layer_type: 'character_video', status: 'completed', z_index: 1, created_at: new Date().toISOString() },
-  { id: 'layer-3', project_id: '1', layer_type: 'audio_narration', status: 'completed', z_index: 2, created_at: new Date().toISOString() },
-  { id: 'layer-4', project_id: '1', layer_type: 'overlay_metadata', status: 'idle', z_index: 3, created_at: new Date().toISOString() },
-];
+// PRODUCTION-READY: No mock layers - real data only from database
 
 interface StudioContextType {
   projects: Project[];
@@ -99,7 +94,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [credits, setCredits] = useState<UserCredits>(DEFAULT_CREDITS);
-  const [layers] = useState<AssetLayer[]>(MOCK_LAYERS);
+  const [layers] = useState<AssetLayer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   

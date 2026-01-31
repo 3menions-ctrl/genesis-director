@@ -21,16 +21,6 @@ interface ConsistencyScoreCardProps {
   className?: string;
 }
 
-// Demo metrics to show when no real data is available
-const DEMO_METRICS: Partial<ConsistencyMetrics> = {
-  color: 0.87,
-  motion: 0.82,
-  character: 0.91,
-  scene: 0.85,
-};
-
-const DEMO_SCORE = 0.86;
-
 export const ConsistencyScoreCard = memo(forwardRef<HTMLDivElement, ConsistencyScoreCardProps>(function ConsistencyScoreCard({
   score, 
   metrics,
@@ -38,10 +28,10 @@ export const ConsistencyScoreCard = memo(forwardRef<HTMLDivElement, ConsistencyS
   previousScore,
   className 
 }: ConsistencyScoreCardProps) {
-  // Use demo data if no real data is available
-  const activeScore = score !== undefined && score > 0 ? score : DEMO_SCORE;
-  const activeMetrics = metrics && Object.keys(metrics).length > 0 ? metrics : DEMO_METRICS;
-  const isDemo = (score === undefined || score === 0) && (!metrics || Object.keys(metrics).length === 0);
+  // PRODUCTION-READY: No demo data - show real metrics only
+  const hasRealData = score !== undefined && score > 0;
+  const activeScore = score || 0;
+  const activeMetrics = metrics || {};
 
   const getScoreColor = (value: number) => {
     if (value >= 0.85) return 'text-emerald-400';
@@ -92,7 +82,7 @@ export const ConsistencyScoreCard = memo(forwardRef<HTMLDivElement, ConsistencyS
             <Sparkles className="w-4 h-4 text-white/60" />
             <span className="text-sm font-medium text-white/80">
               Consistency Score
-              {isDemo && <span className="ml-1 text-xs text-amber-400">(Demo)</span>}
+              {!hasRealData && <span className="ml-1 text-xs text-muted-foreground">(Awaiting data)</span>}
             </span>
           </div>
           

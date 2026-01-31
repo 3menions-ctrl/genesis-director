@@ -21,25 +21,17 @@ interface CharacterIdentityStatusProps {
   className?: string;
 }
 
-// Demo data to show when no real characters are available
-const DEMO_CHARACTERS: CharacterProfile[] = [
-  { name: 'Main Character', appearance: 'Tall with dark hair, casual attire', verified: true, consistencyScore: 0.92 },
-  { name: 'Supporting Role', appearance: 'Medium build, business casual', verified: true, consistencyScore: 0.87 },
-];
-
-const DEMO_ANCHORS = ['Red jacket', 'Silver watch', 'Messenger bag'];
-
 export const CharacterIdentityStatus = memo(forwardRef<HTMLDivElement, CharacterIdentityStatusProps>(function CharacterIdentityStatus({
   characters = [], 
   identityBibleActive = false,
   nonFacialAnchors = [],
   className 
 }: CharacterIdentityStatusProps) {
-  // Use demo data if no real characters are available
-  const activeCharacters = characters.length > 0 ? characters : DEMO_CHARACTERS;
-  const activeAnchors = nonFacialAnchors.length > 0 ? nonFacialAnchors : DEMO_ANCHORS;
-  const isDemo = characters.length === 0;
-  const isActiveIdentity = identityBibleActive || isDemo;
+  // PRODUCTION-READY: No demo data - show real character data only
+  const hasRealData = characters.length > 0;
+  const activeCharacters = characters;
+  const activeAnchors = nonFacialAnchors;
+  const isActiveIdentity = identityBibleActive;
 
   const verifiedCount = activeCharacters.filter(c => c.verified).length;
   const avgConsistency = activeCharacters.length > 0
@@ -71,9 +63,8 @@ export const CharacterIdentityStatus = memo(forwardRef<HTMLDivElement, Character
           </div>
           <div>
             <h3 className="text-sm font-semibold text-white">Character Identity</h3>
-            <p className="text-xs text-white/50">
-              {isActiveIdentity ? 'Identity Bible active' : 'Using reference anchors'}
-              {isDemo && <span className="ml-1 text-amber-400">(Demo)</span>}
+            <p className="text-xs text-muted-foreground">
+              {isActiveIdentity ? 'Identity Bible active' : hasRealData ? 'Using reference anchors' : 'Awaiting character data'}
             </p>
           </div>
         </div>

@@ -19,20 +19,10 @@ interface SceneDNAPanelProps {
   className?: string;
 }
 
-// Demo data to show when no real data is available
-const DEMO_ANCHOR: SceneAnchor = {
-  dominantColors: ['#1a365d', '#2d3748', '#4a5568', '#718096'],
-  lighting: 'Golden hour, soft directional',
-  environment: 'Urban exterior, dusk',
-  cameraStyle: 'Cinematic wide angle',
-  objectAnchors: ['Street lamps', 'Concrete walls', 'Distant skyline'],
-  styleSignature: 'Neo-noir aesthetic'
-};
-
 export const SceneDNAPanel = memo(forwardRef<HTMLDivElement, SceneDNAPanelProps>(function SceneDNAPanel({ masterAnchor, isEstablished = false, className }, ref) {
-  // Use demo data if no real data is available
-  const activeAnchor = masterAnchor || DEMO_ANCHOR;
-  const isDemo = !masterAnchor;
+  // PRODUCTION-READY: No demo data - show real scene DNA only
+  const hasRealData = !!masterAnchor;
+  const activeAnchor: SceneAnchor = masterAnchor || {};
 
   const dnaElements = [
     { 
@@ -82,13 +72,13 @@ export const SceneDNAPanel = memo(forwardRef<HTMLDivElement, SceneDNAPanelProps>
           <span className="ml-auto px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-medium">
             Locked
           </span>
-        ) : isDemo ? (
-          <span className="ml-auto px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs">
-            Demo
-          </span>
-        ) : (
+        ) : hasRealData ? (
           <span className="ml-auto px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 text-xs">
             Active
+          </span>
+        ) : (
+          <span className="ml-auto px-2 py-0.5 rounded-full bg-muted/50 text-muted-foreground text-xs">
+            Pending
           </span>
         )}
       </div>

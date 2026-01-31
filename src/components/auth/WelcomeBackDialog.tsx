@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, memo, forwardRef } from 'react';
+import { useEffect, useState, useCallback, memo, forwardRef, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowRight, Zap } from 'lucide-react';
 
@@ -105,14 +105,22 @@ const LightRay = ({ angle, delay }: { angle: number; delay: number }) => (
 export const WelcomeBackDialog = memo(forwardRef<HTMLDivElement, WelcomeBackDialogProps>(function WelcomeBackDialog({ isOpen, onComplete, userName }, ref) {
   const [phase, setPhase] = useState<'entrance' | 'celebrate' | 'exit'>('entrance');
   const [showContent, setShowContent] = useState(false);
+  // CRITICAL: Prevent double-fire from auto-close timer + manual click
+  const isTransitioningRef = useRef(false);
 
   const handleComplete = useCallback(() => {
+    // Guard against double-fire
+    if (isTransitioningRef.current) return;
+    isTransitioningRef.current = true;
+    
     setPhase('exit');
     setTimeout(onComplete, 600);
   }, [onComplete]);
 
   useEffect(() => {
     if (isOpen) {
+      // Reset transition guard on open
+      isTransitioningRef.current = false;
       setPhase('entrance');
       setShowContent(false);
       

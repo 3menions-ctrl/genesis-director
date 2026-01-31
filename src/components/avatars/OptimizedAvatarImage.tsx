@@ -1,4 +1,4 @@
-import React, { useState, useCallback, memo, useRef, useEffect } from 'react';
+import React, { useState, useCallback, memo, useRef, useEffect, forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 import { User } from 'lucide-react';
 
@@ -14,15 +14,13 @@ interface OptimizedAvatarImageProps {
 }
 
 // Shimmer skeleton component for loading state - GPU accelerated
-const ShimmerSkeleton = memo(function ShimmerSkeleton({ 
-  className,
-  aspectRatio = 'portrait' 
-}: { 
+const ShimmerSkeleton = memo(forwardRef<HTMLDivElement, { 
   className?: string;
   aspectRatio?: 'square' | 'portrait';
-}) {
+}>(function ShimmerSkeleton({ className, aspectRatio = 'portrait' }, ref) {
   return (
     <div 
+      ref={ref}
       className={cn(
         "relative overflow-hidden bg-muted/20",
         aspectRatio === 'portrait' ? 'aspect-[2/3]' : 'aspect-square',
@@ -44,7 +42,8 @@ const ShimmerSkeleton = memo(function ShimmerSkeleton({
       </div>
     </div>
   );
-});
+}));
+ShimmerSkeleton.displayName = 'ShimmerSkeleton';
 
 // SVG/Initials fallback for failed loads
 const AvatarFallbackPlaceholder = memo(function AvatarFallbackPlaceholder({

@@ -6,7 +6,8 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback, memo, useMemo, forwardRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+// STABILITY: Removed AnimatePresence to prevent ref-injection conflicts
+import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Crown, Volume2, Loader2, Check, Sparkles, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AvatarTemplate } from '@/types/avatar-templates';
@@ -426,25 +427,24 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
           className="flex"
           style={{ gap: CARD_GAP }}
         >
-          <AnimatePresence mode="sync">
-            {visibleAvatars.map((avatar) => (
-              <VirtualAvatarCard
-                key={avatar.id}
-                avatar={avatar}
-                isSelected={selectedAvatar?.id === avatar.id}
-                isHovered={hoveredId === avatar.id}
-                onHoverStart={() => setHoveredId(avatar.id)}
-                onHoverEnd={() => setHoveredId(null)}
-                onClick={() => onAvatarClick(avatar)}
-                onVoicePreview={() => onVoicePreview(avatar)}
-                isPreviewingVoice={previewingVoice === avatar.id}
-                isVoiceReady={isVoiceReady(avatar)}
-                cardWidth={CARD_WIDTH}
-                isMobile={isMobile}
-                onImageLoad={onImageLoad ? () => onImageLoad(avatar.id) : undefined}
-              />
-            ))}
-          </AnimatePresence>
+          {/* STABILITY: Removed AnimatePresence to prevent ref-injection conflicts */}
+          {visibleAvatars.map((avatar) => (
+            <VirtualAvatarCard
+              key={avatar.id}
+              avatar={avatar}
+              isSelected={selectedAvatar?.id === avatar.id}
+              isHovered={hoveredId === avatar.id}
+              onHoverStart={() => setHoveredId(avatar.id)}
+              onHoverEnd={() => setHoveredId(null)}
+              onClick={() => onAvatarClick(avatar)}
+              onVoicePreview={() => onVoicePreview(avatar)}
+              isPreviewingVoice={previewingVoice === avatar.id}
+              isVoiceReady={isVoiceReady(avatar)}
+              cardWidth={CARD_WIDTH}
+              isMobile={isMobile}
+              onImageLoad={onImageLoad ? () => onImageLoad(avatar.id) : undefined}
+            />
+          ))}
         </div>
         
         {/* End spacer */}

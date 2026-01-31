@@ -331,6 +331,13 @@
 .animate-cinema-orbit { animation: cinema-orbit 6s linear infinite; }
 .animate-cinema-shimmer { animation: cinema-shimmer 2s linear infinite; }
 
+/* Fade in up animation - alternative to framer-motion */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up { animation: fade-in-up 0.4s ease-out forwards; }
+
 /* Staggered delays */
 .delay-0 { animation-delay: 0ms; }
 .delay-1 { animation-delay: 75ms; }

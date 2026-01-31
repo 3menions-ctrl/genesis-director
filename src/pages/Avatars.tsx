@@ -1,8 +1,13 @@
 /**
  * Avatars Page - Gatekeeper Loading Strategy
  * 
+ * STABILITY HARDENED VERSION:
+ * - Graceful timeout fallback to prevent infinite loading
+ * - Isolated error boundaries for each section
+ * - No framer-motion dependencies to prevent ref crashes
+ * 
  * Stays on loading screen until:
- * 1. useAvatarTemplates returns success
+ * 1. useAvatarTemplates returns success OR timeout (8s)
  * 2. Critical avatar images are pre-fetched and cached
  * 
  * Implements:
@@ -11,9 +16,8 @@
  * - onLoad-based opacity for image rendering
  */
 
-import { useState, useCallback, useEffect, useMemo, useRef, memo, forwardRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
-// STABILITY: Removed framer-motion to eliminate ref-injection crashes
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAvatarTemplatesQuery } from '@/hooks/useAvatarTemplatesQuery';
@@ -38,11 +42,17 @@ import { CinemaLoader } from '@/components/ui/CinemaLoader';
 
 // GATEKEEPER: Extract critical image URLs from templates
 function getCriticalImageUrls(templates: AvatarTemplate[], limit = 8): string[] {
+  // Guard against null/undefined templates
+  if (!templates || !Array.isArray(templates)) return [];
+  
   return templates
     .slice(0, limit)
-    .map(t => t.front_image_url || t.face_image_url)
+    .map(t => t?.front_image_url || t?.face_image_url)
     .filter((url): url is string => Boolean(url));
 }
+
+// STABILITY: Maximum time to wait before forcing render (prevents infinite loading)
+const GATEKEEPER_TIMEOUT_MS = 8000;
 
 const AvatarsContent = memo(function AvatarsContent() {
   const navigate = useNavigate();
@@ -55,6 +65,21 @@ const AvatarsContent = memo(function AvatarsContent() {
   const isMountedRef = useRef(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const gatekeeperCompleteRef = useRef(false);
+  
+  // ========== STABILITY: Timeout Fallback ==========
+  // Force render after timeout to prevent infinite loading state
+  const [forceRender, setForceRender] = useState(false);
+  
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (isMountedRef.current && !gatekeeperCompleteRef.current) {
+        console.warn('[Avatars] Gatekeeper timeout reached, forcing render');
+        setForceRender(true);
+      }
+    }, GATEKEEPER_TIMEOUT_MS);
+    
+    return () => clearTimeout(timeoutId);
+  }, []);
   
   // ========== Avatar Selection State ==========
   const [searchQuery, setSearchQuery] = useState('');
@@ -97,23 +122,31 @@ const AvatarsContent = memo(function AvatarsContent() {
   const { templates, isLoading: templatesLoading, isFetching, isSuccess, error } = useAvatarTemplatesQuery(filterConfig);
   
   // ========== GATEKEEPER: Image Preloading ==========
-  const criticalImageUrls = useMemo(() => getCriticalImageUrls(templates, 8), [templates]);
+  // Guard against undefined templates array
+  const safeTemplates = useMemo(() => templates || [], [templates]);
+  const criticalImageUrls = useMemo(() => getCriticalImageUrls(safeTemplates, 8), [safeTemplates]);
   
   const {
     isReady: imagesReady,
     progress: imageProgress,
   } = useImagePreloader({
     images: criticalImageUrls,
-    enabled: templates.length > 0 && !templatesLoading,
+    enabled: safeTemplates.length > 0 && !templatesLoading,
     minRequired: Math.min(5, criticalImageUrls.length),
-    timeout: 8000,
+    timeout: 6000, // Reduced to 6s, overall timeout is 8s
     concurrency: 4,
   });
   
   // Gatekeeper state: show loading until BOTH templates AND images are ready
-  // CRITICAL FIX: Wait for isSuccess to be true before showing content
-  // This prevents the 0-avatar flash during initial fetch race condition
-  const isGatekeeperLoading = authLoading || templatesLoading || isFetching || !isSuccess || (templates.length > 0 && !imagesReady);
+  // OR forceRender timeout has triggered (prevents infinite loading)
+  const isGatekeeperLoading = !forceRender && (
+    authLoading || 
+    templatesLoading || 
+    isFetching || 
+    !isSuccess || 
+    (safeTemplates.length > 0 && !imagesReady)
+  );
+  
   const gatekeeperProgress = templatesLoading || isFetching || !isSuccess
     ? 30 
     : Math.min(30 + (imageProgress * 0.7), 100);
@@ -157,8 +190,8 @@ const AvatarsContent = memo(function AvatarsContent() {
       gatekeeperCompleteRef.current = true;
       
       // Preload voices in background AFTER page is visible
-      if (templates.length > 0) {
-        const visibleAvatars = templates.slice(0, 5);
+      if (safeTemplates.length > 0) {
+        const visibleAvatars = safeTemplates.slice(0, 5);
         preloadVoices(visibleAvatars);
       }
       
@@ -379,7 +412,7 @@ const AvatarsContent = memo(function AvatarsContent() {
             <AvatarsCategoryTabs
               activeType={avatarTypeFilter}
               onTypeChange={setAvatarTypeFilter}
-              totalCount={templates.length}
+              totalCount={safeTemplates.length}
             />
           </div>
         </SafeComponent>
@@ -392,7 +425,7 @@ const AvatarsContent = memo(function AvatarsContent() {
               </div>
             ) : (
               <VirtualAvatarGallery
-                avatars={templates}
+                avatars={safeTemplates}
                 selectedAvatar={selectedAvatar}
                 onAvatarClick={handleAvatarClick}
                 onVoicePreview={handleVoicePreview}

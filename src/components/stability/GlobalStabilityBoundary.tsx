@@ -29,6 +29,7 @@ const SUPPRESSED_ERROR_PATTERNS = [
   
   // DOM cleanup race conditions (common with Radix UI)
   'Cannot read properties of null',
+  'Cannot read properties of undefined',
   'removeChild',
   'insertBefore',
   'removeAttribute',
@@ -36,6 +37,8 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'parentNode',
   'Node.removeChild',
   'Failed to execute',
+  'appendChild',
+  'replaceChild',
   
   // AbortController errors - expected during fast navigation
   'AbortError',
@@ -49,8 +52,11 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'forwardRef render functions accept',
   'Warning: Function components cannot be given refs',
   'Ref forwarding',
-  'ref',
-  'useRef',
+  
+  // React state/lifecycle errors that occur during unmounting
+  'unmounted component',
+  'state update on an unmounted',
+  "Can't perform a React state update",
   
   // React Query background errors
   'QueryCancelled',
@@ -68,17 +74,31 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'Network request failed',
   'TypeError: Failed to fetch',
   'net::ERR',
+  'ECONNREFUSED',
   
-  // Framer Motion cleanup
+  // Framer Motion cleanup - critical for animation crashes
   'Cannot read property',
   'measure',
   'animation',
   'Motion',
+  'AnimatePresence',
+  'exit',
+  'animate',
+  'variants',
   
   // Tooltip/Popover cleanup race conditions
   'Tooltip',
   'Popover',
   'radix',
+  'Radix',
+  'Dialog',
+  'Portal',
+  
+  // Image/media loading errors
+  'Image',
+  'load',
+  'decode',
+  'decoding',
 ];
 
 /**

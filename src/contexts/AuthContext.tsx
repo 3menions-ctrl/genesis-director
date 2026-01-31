@@ -179,6 +179,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (err) {
         console.error('[AuthContext] Failed to complete auth init:', err);
+        // CRITICAL: Even on error, set a fallback profile to prevent UI blocking
+        if (mounted) {
+          setProfile({
+            id: userId,
+            email: null,
+            display_name: 'User',
+            full_name: null,
+            avatar_url: null,
+            credits_balance: 60,
+            total_credits_purchased: 0,
+            total_credits_used: 0,
+            role: null,
+            use_case: null,
+            company: null,
+            onboarding_completed: true,
+            created_at: new Date().toISOString(),
+            preferences: null,
+            notification_settings: null,
+            auto_recharge_enabled: false,
+          });
+          setIsAdmin(false);
+        }
       } finally {
         if (mounted) {
           setLoading(false);
@@ -196,7 +218,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sessionRef.current = newSession;
         setSession(newSession);
         setUser(newSession?.user ?? null);
-        setIsSessionVerified(true);
+        
+        // CRITICAL: Only mark session as verified after we've processed the change
+        // This prevents race conditions where components check session before it's ready
+        if (!isInitializing) {
+          setIsSessionVerified(true);
+        }
 
         // Skip if this is during initialization - initSession will handle it
         if (isInitializing) return;
@@ -226,12 +253,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sessionRef.current = existingSession;
         setSession(existingSession);
         setUser(existingSession?.user ?? null);
-        setIsSessionVerified(true);
         
         if (existingSession?.user) {
           await completeAuthInit(existingSession.user.id);
         } else {
           setIsAdmin(false);
+          setLoading(false);
+        }
+        
+        // CRITICAL: Mark session as verified AFTER all initialization is complete
+        // This ensures ProtectedRoute won't redirect prematurely
+        setIsSessionVerified(true);
+      } catch (err) {
+        console.error('[AuthContext] Session init error:', err);
+        // Still mark as verified even on error to unblock UI
+        if (mounted) {
+          setIsSessionVerified(true);
           setLoading(false);
         }
       } finally {

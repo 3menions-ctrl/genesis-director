@@ -11,15 +11,16 @@ import { handleError } from '@/lib/errorHandler';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { useStabilityGuard, isAbortError } from '@/hooks/useStabilityGuard';
 import { usePageReady } from '@/contexts/NavigationLoadingContext';
+import { BrandLoadingSpinner } from '@/components/ui/UnifiedLoadingPage';
 
-// Loading overlay component for creation in progress
+// Loading overlay component for creation in progress - uses unified brand animation
 const LoadingOverlay = memo(function LoadingOverlay({ status }: { status: string }) {
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-      <div className="text-center space-y-4">
-        <div className="w-12 h-12 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
-        <p className="text-white/70 text-lg">{status || 'Starting creation...'}</p>
-        <p className="text-white/40 text-sm">This may take a moment</p>
+    <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 flex items-center justify-center">
+      <div className="text-center space-y-6">
+        <BrandLoadingSpinner size="lg" />
+        <p className="text-foreground text-lg font-medium">{status || 'Starting creation...'}</p>
+        <p className="text-muted-foreground text-sm">This may take a moment</p>
       </div>
     </div>
   );

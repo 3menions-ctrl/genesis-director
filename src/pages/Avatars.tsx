@@ -20,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/lib/errorHandler';
 import { ErrorBoundary, SafeComponent } from '@/components/ui/error-boundary';
 import { usePageReady } from '@/contexts/NavigationLoadingContext';
+import { UnifiedLoadingPage, BrandLoadingSpinner } from '@/components/ui/UnifiedLoadingPage';
 
 // Separated content for error boundary isolation
 // CRITICAL FIX: Removed forwardRef - not needed here and was causing crash during navigation
@@ -288,15 +289,15 @@ const AvatarsContent = memo(function AvatarsContent() {
   }, []);
 
   // EARLY RETURN AFTER ALL HOOKS - Only block on initial auth check
-  // CRITICAL: Must still attach mergedRef to prevent forwardRef crashes
+  // Use unified loading component for consistent visual language
   if (authLoading) {
     return (
-      <div ref={containerRef} className="relative min-h-screen flex flex-col bg-black overflow-hidden">
+      <div ref={containerRef} className="relative min-h-screen flex flex-col bg-background overflow-hidden">
         <AvatarsBackground />
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="w-12 h-12 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
-            <p className="text-white/50">Loading...</p>
+          <div className="text-center space-y-6">
+            <BrandLoadingSpinner size="md" />
+            <p className="text-muted-foreground text-sm">Loading avatars...</p>
           </div>
         </div>
       </div>
@@ -304,7 +305,7 @@ const AvatarsContent = memo(function AvatarsContent() {
   }
 
   return (
-    <div ref={containerRef} className="relative min-h-screen flex flex-col bg-black overflow-x-hidden" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+    <div ref={containerRef} className="relative min-h-screen flex flex-col bg-background overflow-x-hidden" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <SafeComponent name="AvatarsBackground" silent>
         <AvatarsBackground />
       </SafeComponent>
@@ -419,24 +420,18 @@ const AvatarsContent = memo(function AvatarsContent() {
         />
       </SafeComponent>
 
-      {/* Loading Overlay */}
+      {/* Loading Overlay - unified brand animation */}
       {isCreating && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-background/95 backdrop-blur-md z-50 flex items-center justify-center">
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             className="text-center space-y-6"
           >
-            <div className="relative w-20 h-20 mx-auto">
-              <div className="absolute inset-0 rounded-full border-2 border-violet-500/30 animate-ping" />
-              <div className="absolute inset-2 rounded-full border-2 border-violet-500/50 animate-pulse" />
-              <div className="absolute inset-4 rounded-full bg-violet-500/20 flex items-center justify-center">
-                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              </div>
-            </div>
+            <BrandLoadingSpinner size="lg" />
             <div>
-              <p className="text-white text-lg font-medium">{creationStatus || 'Starting creation...'}</p>
-              <p className="text-white/40 text-sm mt-2">Building character consistency profile...</p>
+              <p className="text-foreground text-lg font-medium">{creationStatus || 'Starting creation...'}</p>
+              <p className="text-muted-foreground text-sm mt-2">Building character consistency profile...</p>
             </div>
           </motion.div>
         </div>

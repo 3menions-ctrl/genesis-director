@@ -121,24 +121,20 @@ const fadeInVariants = {
 };
 
 // Memoized Feature Card component for performance
-const FeatureCard = memo(function FeatureCard({ 
-  feature, 
-  index 
-}: { 
-  feature: Feature; 
-  index: number;
-}) {
-  const isWide = index === 0 || index === 3;
-  
-  return (
-    <motion.div
-      custom={index}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-50px" }}
-      variants={cardVariants}
-      className={`group relative ${isWide ? 'lg:col-span-2' : ''}`}
-      style={{ willChange: 'transform, opacity' }}
+const FeatureCard = memo(forwardRef<HTMLDivElement, { feature: Feature; index: number }>(
+  function FeatureCard({ feature, index }, ref) {
+    const isWide = index === 0 || index === 3;
+    
+    return (
+      <motion.div
+        ref={ref}
+        custom={index}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-50px" }}
+        variants={cardVariants}
+        className={`group relative ${isWide ? 'lg:col-span-2' : ''}`}
+        style={{ willChange: 'transform, opacity' }}
     >
       {/* Ambient glow - CSS only, no JS animation */}
       <div 
@@ -225,26 +221,23 @@ const FeatureCard = memo(function FeatureCard({
           <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.05] to-transparent" />
         </div>
       </div>
-    </motion.div>
-  );
-});
+      </motion.div>
+    );
+  }
+));
 
 // Memoized Additional Feature component
-const AdditionalFeature = memo(function AdditionalFeature({ 
-  feature, 
-  index 
-}: { 
-  feature: typeof ADDITIONAL_FEATURES[0]; 
-  index: number;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 15 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: 0.1 + index * 0.05 }}
-      className="group relative"
-    >
+const AdditionalFeature = memo(forwardRef<HTMLDivElement, { feature: typeof ADDITIONAL_FEATURES[0]; index: number }>(
+  function AdditionalFeature({ feature, index }, ref) {
+    return (
+      <motion.div
+        ref={ref}
+        initial={{ opacity: 0, y: 15 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ delay: 0.1 + index * 0.05 }}
+        className="group relative"
+      >
       <div className="absolute -inset-1 rounded-2xl bg-white/[0.03] opacity-0 group-hover:opacity-100 blur-lg transition-opacity duration-500" />
       
       <div className="relative flex items-center gap-3 p-4 md:p-5 rounded-xl md:rounded-2xl overflow-hidden transition-all duration-300">
@@ -259,10 +252,11 @@ const AdditionalFeature = memo(function AdditionalFeature({
           <h4 className="text-sm font-medium text-white/90 truncate group-hover:text-white transition-colors">{feature.title}</h4>
           <p className="text-xs text-white/35 truncate group-hover:text-white/50 transition-colors">{feature.desc}</p>
         </div>
-      </div>
-    </motion.div>
-  );
-});
+        </div>
+      </motion.div>
+    );
+  }
+));
 
 const FeaturesShowcase = memo(forwardRef<HTMLElement, Record<string, never>>(
   function FeaturesShowcase(_, ref) {

@@ -13,25 +13,34 @@ const STALE_TIME = 5 * 60 * 1000;
 const GC_TIME = 30 * 60 * 1000;
 
 /**
- * Fetch avatar templates from database
+ * Fetch avatar templates from database with safety guards
  * Separated for reuse and testing
  */
 async function fetchAvatarTemplates(): Promise<AvatarTemplate[]> {
   console.log('[useAvatarTemplatesQuery] Fetching templates...');
   
-  const { data, error } = await supabase
-    .from('avatar_templates')
-    .select('*')
-    .eq('is_active', true)
-    .order('sort_order', { ascending: true });
+  try {
+    const { data, error } = await supabase
+      .from('avatar_templates')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true });
 
-  if (error) {
-    console.error('[useAvatarTemplatesQuery] Fetch error:', error.message);
+    if (error) {
+      console.error('[useAvatarTemplatesQuery] Fetch error:', error.message);
+      throw error;
+    }
+
+    // GUARD: Ensure we always return an array, never null/undefined
+    const templates = (data as unknown as AvatarTemplate[]) ?? [];
+    console.log('[useAvatarTemplatesQuery] Fetched', templates.length, 'templates');
+    return templates;
+  } catch (error) {
+    console.error('[useAvatarTemplatesQuery] Exception during fetch:', error);
+    // Return empty array instead of throwing to prevent crash
+    // The error state will still be set by React Query
     throw error;
   }
-
-  console.log('[useAvatarTemplatesQuery] Fetched', data?.length || 0, 'templates');
-  return (data as unknown as AvatarTemplate[]) || [];
 }
 
 /**

@@ -426,7 +426,7 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
           className="flex"
           style={{ gap: CARD_GAP }}
         >
-          <AnimatePresence mode="popLayout">
+          <AnimatePresence mode="sync">
             {visibleAvatars.map((avatar) => (
               <VirtualAvatarCard
                 key={avatar.id}

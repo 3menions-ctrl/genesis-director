@@ -9,18 +9,25 @@ interface ProtectedRouteProps {
   children: ReactNode;
 }
 
+// Loading states for the auth guard - prevents premature redirects
+type AuthLoadingState = 'initializing' | 'verifying' | 'ready' | 'redirecting';
+
 /**
- * ProtectedRoute with stability optimizations to prevent blinking:
- * 1. Tracks if children have ever rendered to prevent loader flashing on navigation
- * 2. Uses refs to avoid unnecessary re-renders
- * 3. Separates initial load from ongoing auth changes
- * 4. Shows loader during redirects instead of null to prevent flash
- * 5. CRITICAL: Never redirects until BOTH loading=false AND isSessionVerified=true
+ * ProtectedRoute with comprehensive stability optimizations:
+ * 1. THREE-PHASE loading: initializing → verifying → ready
+ * 2. NEVER redirects until auth is FULLY resolved (loading=false AND isSessionVerified=true)
+ * 3. Uses getValidSession() to avoid stale React state race conditions
+ * 4. Shows AppLoader during ALL intermediate states to prevent flickering
+ * 5. Tracks hasRenderedChildren to prevent loader flash on navigation between protected routes
+ * 6. 300ms buffer before redirect to handle async state propagation
  */
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, profile, loading, session, isSessionVerified, profileError, retryProfileFetch, getValidSession } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Track loading phase explicitly for debugging and stability
+  const [authPhase, setAuthPhase] = useState<AuthLoadingState>('initializing');
   
   // Track if we've already rendered children to prevent blink on navigation
   const hasRenderedChildren = useRef(false);
@@ -30,16 +37,32 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const initialPathRef = useRef(location.pathname);
   // Track redirect state to prevent double-redirects
   const isRedirectingRef = useRef(false);
+  // Track cleanup for all async operations
+  const cleanupRef = useRef<(() => void)[]>([]);
 
   // Memoize session check to prevent unnecessary recalculations
   // Use optional chaining for safety against null pointer crashes
   const hasSessionInState = useMemo(() => !!(session?.user?.id || user?.id), [session, user]);
+
+  // Update auth phase based on state - SINGLE SOURCE OF TRUTH
+  useEffect(() => {
+    if (loading) {
+      setAuthPhase('initializing');
+    } else if (!isSessionVerified) {
+      setAuthPhase('verifying');
+    } else if (isRedirectingRef.current) {
+      setAuthPhase('redirecting');
+    } else {
+      setAuthPhase('ready');
+    }
+  }, [loading, isSessionVerified]);
 
   // Mark initial mount complete after first render with valid session
   useEffect(() => {
     if (isSessionVerified && hasSessionInState && profile?.id) {
       // Small delay to ensure smooth transition
       const timer = setTimeout(() => setIsInitialMount(false), 50);
+      cleanupRef.current.push(() => clearTimeout(timer));
       return () => clearTimeout(timer);
     }
   }, [isSessionVerified, hasSessionInState, profile?.id]);
@@ -54,7 +77,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // Redirect to auth only when we're CERTAIN there's no session
   // CRITICAL: Must have loading=false AND isSessionVerified=true before redirecting
   // Uses getValidSession() to avoid stale closure issues
-  // ENHANCED: Added longer buffer to prevent race condition crashes during heavy page loads
+  // ENHANCED: 300ms buffer to prevent race condition crashes during heavy page loads
   useEffect(() => {
     // Prevent double redirects
     if (isRedirectingRef.current) return;
@@ -66,8 +89,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     if (session?.user?.id || user?.id) return;
     
     // ENHANCED: Longer buffer for state synchronization after login
-    // This prevents race condition where navigation guard triggers before
-    // session state propagates through React's render cycle
     const timeoutId = setTimeout(async () => {
       if (isRedirectingRef.current) return;
       
@@ -80,20 +101,23 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         return;
       }
       
-      // ADDITIONAL GUARD: Check if component is still mounted
-      // and hasn't been replaced by another route during the timeout
-      if (!document.body.contains(document.activeElement?.closest('[data-protected-route]') as Node)) {
-        console.debug('[ProtectedRoute] Component unmounted during timeout, skipping redirect');
-        return;
-      }
-      
       // No session confirmed - redirect to auth
       isRedirectingRef.current = true;
+      setAuthPhase('redirecting');
       navigate('/auth', { replace: true });
-    }, 250); // Increased from 150ms to 250ms for heavy pages like /avatars
+    }, 300); // Increased to 300ms for heavy pages
     
+    cleanupRef.current.push(() => clearTimeout(timeoutId));
     return () => clearTimeout(timeoutId);
   }, [loading, isSessionVerified, session?.user?.id, user?.id, navigate, getValidSession]);
+
+  // Cleanup all async operations on unmount
+  useEffect(() => {
+    return () => {
+      cleanupRef.current.forEach(cleanup => cleanup());
+      cleanupRef.current = [];
+    };
+  }, []);
 
   // Handle onboarding redirect
   useEffect(() => {
@@ -104,12 +128,15 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     }
   }, [user?.id, profile, loading, isSessionVerified, navigate, location.pathname]);
 
-  // Determine what message to show during loading
-  const getLoadingMessage = () => {
-    if (!hasSessionInState) return 'Authenticating...';
+  // Memoize loading message to prevent unnecessary re-renders
+  const loadingMessage = useMemo(() => {
+    if (authPhase === 'initializing') return 'Authenticating...';
+    if (authPhase === 'verifying') return 'Verifying session...';
+    if (authPhase === 'redirecting') return 'Redirecting...';
+    if (!hasSessionInState) return 'Checking credentials...';
     if (!profile?.id) return 'Loading your workspace...';
     return 'Almost there...';
-  };
+  }, [authPhase, hasSessionInState, profile?.id]);
 
   // Profile fetch error - show retry option
   if (user?.id && profileError && !loading) {
@@ -139,18 +166,18 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // CRITICAL STABILITY FIX:
   // Show loader during loading state OR when waiting for session verification
   // But skip if we've already rendered children (prevents navigation blink)
-  if ((loading || !isSessionVerified) && !hasRenderedChildren.current) {
-    return <AppLoader message={getLoadingMessage()} />;
+  if ((authPhase === 'initializing' || authPhase === 'verifying') && !hasRenderedChildren.current) {
+    return <AppLoader message={loadingMessage} />;
   }
 
-  // No user after loading = show loader while redirecting (instead of null)
-  if (!user?.id && !session?.user?.id && !loading && isSessionVerified) {
+  // Redirecting state - show loader instead of null to prevent flash
+  if (authPhase === 'redirecting') {
     return <AppLoader message="Redirecting to login..." />;
   }
 
   // Wait for profile on INITIAL mount only - never block navigation between routes
-  if (user?.id && !profile?.id && isInitialMount && !hasRenderedChildren.current && !loading) {
-    return <AppLoader message="Loading your workspace..." />;
+  if (user?.id && !profile?.id && isInitialMount && !hasRenderedChildren.current && authPhase === 'ready') {
+    return <AppLoader message={loadingMessage} />;
   }
 
   // If onboarding not completed, show loader while redirecting (instead of null)

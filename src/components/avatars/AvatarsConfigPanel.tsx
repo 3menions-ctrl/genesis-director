@@ -99,12 +99,25 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 </Label>
                 {selectedAvatar && (
                   <div className="flex items-center gap-2">
-                    <img 
-                      src={selectedAvatar.front_image_url || selectedAvatar.face_image_url} 
-                      alt={selectedAvatar.name}
-                      className="w-5 h-5 rounded-full object-cover border border-border"
-                    />
-                    <span className="text-xs text-muted-foreground">{selectedAvatar.name}</span>
+                    {/* Safe image rendering with fallback */}
+                    {selectedAvatar.front_image_url || selectedAvatar.face_image_url ? (
+                      <img 
+                        src={selectedAvatar.front_image_url || selectedAvatar.face_image_url} 
+                        alt={selectedAvatar.name || 'Avatar'}
+                        className="w-5 h-5 rounded-full object-cover border border-border"
+                        onError={(e) => {
+                          // Hide broken images
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-violet-500/20 flex items-center justify-center border border-border">
+                        <span className="text-[8px] text-violet-400 font-bold">
+                          {(selectedAvatar.name || 'A').charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <span className="text-xs text-muted-foreground">{selectedAvatar.name || 'Avatar'}</span>
                     <button
                       onClick={onClearAvatar}
                       className="text-xs text-muted-foreground hover:text-foreground underline"
@@ -233,12 +246,24 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 </Label>
                 {selectedAvatar && (
                   <div className="flex items-center gap-2 text-sm">
-                    <img 
-                      src={selectedAvatar.front_image_url || selectedAvatar.face_image_url} 
-                      alt={selectedAvatar.name}
-                      className="w-6 h-6 rounded-full object-cover border border-border"
-                    />
-                    <span className="text-foreground/70">{selectedAvatar.name}</span>
+                    {/* Safe image rendering with fallback */}
+                    {selectedAvatar.front_image_url || selectedAvatar.face_image_url ? (
+                      <img 
+                        src={selectedAvatar.front_image_url || selectedAvatar.face_image_url} 
+                        alt={selectedAvatar.name || 'Avatar'}
+                        className="w-6 h-6 rounded-full object-cover border border-border"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-violet-500/20 flex items-center justify-center border border-border">
+                        <span className="text-xs text-violet-400 font-bold">
+                          {(selectedAvatar.name || 'A').charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <span className="text-foreground/70">{selectedAvatar.name || 'Avatar'}</span>
                     <Button
                       variant="ghost"
                       size="sm"

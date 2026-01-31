@@ -6,8 +6,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback, memo, useMemo, forwardRef } from 'react';
-// STABILITY: Removed AnimatePresence to prevent ref-injection conflicts
-import { motion } from 'framer-motion';
+// STABILITY: Removed framer-motion entirely to prevent ref-injection conflicts
 import { ChevronLeft, ChevronRight, Crown, Volume2, Loader2, Check, Sparkles, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AvatarTemplate } from '@/types/avatar-templates';
@@ -81,179 +80,166 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
     const imageSrc = avatar.front_image_url || avatar.face_image_url;
 
     return (
-      <motion.div
+      <div
         ref={ref}
-        layout
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ 
-          opacity: imageLoaded ? 1 : 0.3, // Faint until image loads
-          scale: imageLoaded ? 1 : 0.98 
-        }}
-        transition={{ duration: 0.3 }}
-        onHoverStart={onHoverStart}
-        onHoverEnd={onHoverEnd}
         onClick={onClick}
+        onMouseEnter={onHoverStart}
+        onMouseLeave={onHoverEnd}
         className={cn(
           "relative flex-shrink-0 cursor-pointer transition-all duration-300",
           "rounded-2xl md:rounded-3xl overflow-hidden",
-          isSelected && "ring-2 ring-violet-500 ring-offset-2 ring-offset-black"
+          isSelected && "ring-2 ring-violet-500 ring-offset-2 ring-offset-black",
+          isHovered && !isSelected && "scale-[1.02]",
+          imageLoaded ? "opacity-100 scale-100" : "opacity-30 scale-[0.98]",
+          "animate-fade-in"
         )}
         style={{
           width: cardWidth,
           scrollSnapAlign: 'center',
-          transform: isHovered && !isSelected ? 'scale(1.02)' : 'scale(1)',
         }}
       >
-      {/* Card Background */}
-      <div className={cn(
-        "absolute inset-0 transition-all duration-300",
-        isSelected 
-          ? "bg-gradient-to-b from-violet-500/20 to-violet-900/30" 
-          : "bg-gradient-to-b from-white/[0.03] to-black/50",
-        "backdrop-blur-sm"
-      )} />
-      
-      {/* Avatar Image Container */}
-      <div className="relative aspect-[2/3] overflow-hidden bg-gradient-to-b from-black/30 to-black/80">
-        {/* Shimmer skeleton - visible until image loads */}
-        {!imageLoaded && (
-          <div className="absolute inset-0">
-            <ShimmerSkeleton aspectRatio="portrait" className="w-full h-full" />
-          </div>
-        )}
+        {/* Card Background */}
+        <div className={cn(
+          "absolute inset-0 transition-all duration-300",
+          isSelected 
+            ? "bg-gradient-to-b from-violet-500/20 to-violet-900/30" 
+            : "bg-gradient-to-b from-white/[0.03] to-black/50",
+          "backdrop-blur-sm"
+        )} />
         
-        {/* Actual image - only visible after onLoad */}
-        {imageSrc && !imageError && (
-          <motion.div
-            className="w-full h-full"
-            animate={{
-              scale: isHovered ? 1.05 : 1,
-              opacity: imageLoaded ? 1 : 0, // CRITICAL: opacity tied to onLoad
-            }}
-            transition={{ duration: 0.4 }}
-          >
-            <img
-              ref={imgRef}
-              src={imageSrc}
-              alt={avatar.name}
-              loading="lazy"
-              decoding="async"
-              onLoad={handleImageLoad}
-              onError={handleImageError}
-              className="w-full h-full object-cover object-top"
-            />
-          </motion.div>
-        )}
-        
-        {/* Fallback for failed images */}
-        {imageError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
-            <div className="text-center">
-              <User className="w-12 h-12 text-zinc-600 mx-auto mb-2" />
-              <span className="text-xs text-zinc-500">{avatar.name}</span>
+        {/* Avatar Image Container */}
+        <div className="relative aspect-[2/3] overflow-hidden bg-gradient-to-b from-black/30 to-black/80">
+          {/* Shimmer skeleton - visible until image loads */}
+          {!imageLoaded && (
+            <div className="absolute inset-0">
+              <ShimmerSkeleton aspectRatio="portrait" className="w-full h-full" />
             </div>
-          </div>
-        )}
-        
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent opacity-80" />
-        
-        {/* Selection indicator */}
-        {isSelected && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="absolute top-3 md:top-4 right-3 md:right-4 w-7 h-7 md:w-8 md:h-8 rounded-full bg-violet-500 flex items-center justify-center shadow-lg shadow-violet-500/50"
-          >
-            <Check className="w-4 h-4 md:w-5 md:h-5 text-white" />
-          </motion.div>
-        )}
-        
-        {/* Premium badge */}
-        {avatar.is_premium && (
-          <Badge className="absolute top-3 md:top-4 left-3 md:left-4 bg-gradient-to-r from-amber-500 to-amber-400 text-black text-[10px] md:text-xs px-2 py-0.5 md:py-1 shadow-lg">
-            <Crown className="w-2.5 h-2.5 md:w-3 md:h-3 mr-1" />
-            PRO
-          </Badge>
-        )}
-        
-        {/* Avatar type badge */}
-        {avatar.avatar_type && (
-          <div className={cn(
-            "absolute bottom-16 md:bottom-20 left-3 md:left-4 px-2 py-1 rounded-full text-[10px] md:text-xs font-medium",
-            avatar.avatar_type === 'realistic' 
-              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-              : "bg-violet-500/20 text-violet-300 border border-violet-500/30"
-          )}>
-            {avatar.avatar_type === 'realistic' ? 'Realistic' : 'Animated'}
-          </div>
-        )}
-        
-        {/* Voice preview button */}
-        {(isMobile || isHovered) && imageLoaded && (
-          <motion.button
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onVoicePreview();
-            }}
-            className={cn(
-              "absolute bottom-20 md:bottom-24 right-3 md:right-4 w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-colors shadow-lg",
-              isVoiceReady 
-                ? "bg-emerald-500/90 hover:bg-emerald-400 shadow-emerald-500/30" 
-                : "bg-violet-500/90 hover:bg-violet-400 shadow-violet-500/30"
-            )}
-            title={isVoiceReady ? "Voice ready - instant playback" : "Preview voice"}
-          >
-            {isPreviewingVoice ? (
-              <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-white animate-spin" />
-            ) : (
-              <Volume2 className="w-4 h-4 md:w-5 md:h-5 text-white" />
-            )}
-          </motion.button>
-        )}
-      </div>
-      
-      {/* Info Panel */}
-      <div className="relative p-3 md:p-5 space-y-1.5 md:space-y-2">
-        <div className="flex items-center justify-between">
-          <h4 className="font-semibold text-white text-sm md:text-lg truncate pr-2">{avatar.name}</h4>
-          {avatar.style && (
-            <span className="text-[10px] md:text-xs text-white/40 capitalize shrink-0">{avatar.style}</span>
+          )}
+          
+          {/* Actual image - CSS transitions for stability */}
+          {imageSrc && !imageError && (
+            <div
+              className={cn(
+                "w-full h-full transition-all duration-400",
+                isHovered && "scale-105",
+                imageLoaded ? "opacity-100" : "opacity-0"
+              )}
+            >
+              <img
+                ref={imgRef}
+                src={imageSrc}
+                alt={avatar.name}
+                loading="lazy"
+                decoding="async"
+                onLoad={handleImageLoad}
+                onError={handleImageError}
+                className="w-full h-full object-cover object-top"
+              />
+            </div>
+          )}
+          
+          {/* Fallback for failed images */}
+          {imageError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
+              <div className="text-center">
+                <User className="w-12 h-12 text-zinc-600 mx-auto mb-2" />
+                <span className="text-xs text-zinc-500">{avatar.name}</span>
+              </div>
+            </div>
+          )}
+          
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent opacity-80" />
+          
+          {/* Selection indicator */}
+          {isSelected && (
+            <div className="absolute top-3 md:top-4 right-3 md:right-4 w-7 h-7 md:w-8 md:h-8 rounded-full bg-violet-500 flex items-center justify-center shadow-lg shadow-violet-500/50 animate-scale-in">
+              <Check className="w-4 h-4 md:w-5 md:h-5 text-white" />
+            </div>
+          )}
+          
+          {/* Premium badge */}
+          {avatar.is_premium && (
+            <Badge className="absolute top-3 md:top-4 left-3 md:left-4 bg-gradient-to-r from-amber-500 to-amber-400 text-black text-[10px] md:text-xs px-2 py-0.5 md:py-1 shadow-lg">
+              <Crown className="w-2.5 h-2.5 md:w-3 md:h-3 mr-1" />
+              PRO
+            </Badge>
+          )}
+          
+          {/* Avatar type badge */}
+          {avatar.avatar_type && (
+            <div className={cn(
+              "absolute bottom-16 md:bottom-20 left-3 md:left-4 px-2 py-1 rounded-full text-[10px] md:text-xs font-medium",
+              avatar.avatar_type === 'realistic' 
+                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                : "bg-violet-500/20 text-violet-300 border border-violet-500/30"
+            )}>
+              {avatar.avatar_type === 'realistic' ? 'Realistic' : 'Animated'}
+            </div>
+          )}
+          
+          {/* Voice preview button - CSS transition instead of framer-motion */}
+          {(isMobile || isHovered) && imageLoaded && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onVoicePreview();
+              }}
+              className={cn(
+                "absolute bottom-20 md:bottom-24 right-3 md:right-4 w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all shadow-lg animate-fade-in",
+                isVoiceReady 
+                  ? "bg-emerald-500/90 hover:bg-emerald-400 shadow-emerald-500/30" 
+                  : "bg-violet-500/90 hover:bg-violet-400 shadow-violet-500/30"
+              )}
+              title={isVoiceReady ? "Voice ready - instant playback" : "Preview voice"}
+            >
+              {isPreviewingVoice ? (
+                <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-white animate-spin" />
+              ) : (
+                <Volume2 className="w-4 h-4 md:w-5 md:h-5 text-white" />
+              )}
+            </button>
           )}
         </div>
-        <p className="text-xs md:text-sm text-white/50 line-clamp-2">
-          {avatar.description || avatar.personality || 'Professional AI presenter'}
-        </p>
         
-        {/* Tags */}
-        {avatar.tags && avatar.tags.length > 0 && (
-          <div className="hidden sm:flex flex-wrap gap-1 pt-1 md:pt-2">
-            {avatar.tags.slice(0, 3).map((tag) => (
-              <span
-                key={`${avatar.id}-${tag}`}
-                className="text-[9px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded-full bg-white/[0.05] text-white/40 border border-white/[0.08]"
-              >
-                {tag}
-              </span>
-            ))}
+        {/* Info Panel */}
+        <div className="relative p-3 md:p-5 space-y-1.5 md:space-y-2">
+          <div className="flex items-center justify-between">
+            <h4 className="font-semibold text-white text-sm md:text-lg truncate pr-2">{avatar.name}</h4>
+            {avatar.style && (
+              <span className="text-[10px] md:text-xs text-white/40 capitalize shrink-0">{avatar.style}</span>
+            )}
           </div>
-        )}
-      </div>
-      
-        {/* Hover shine effect */}
-        <motion.div
-          className="absolute inset-0 pointer-events-none"
-          animate={{
-            background: isHovered
-              ? 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%, transparent 100%)'
-              : 'transparent'
+          <p className="text-xs md:text-sm text-white/50 line-clamp-2">
+            {avatar.description || avatar.personality || 'Professional AI presenter'}
+          </p>
+          
+          {/* Tags */}
+          {avatar.tags && avatar.tags.length > 0 && (
+            <div className="hidden sm:flex flex-wrap gap-1 pt-1 md:pt-2">
+              {avatar.tags.slice(0, 3).map((tag) => (
+                <span
+                  key={`${avatar.id}-${tag}`}
+                  className="text-[9px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded-full bg-white/[0.05] text-white/40 border border-white/[0.08]"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        
+        {/* Hover shine effect - CSS instead of motion */}
+        <div 
+          className={cn(
+            "absolute inset-0 pointer-events-none transition-opacity duration-300",
+            isHovered ? "opacity-100" : "opacity-0"
+          )}
+          style={{
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%, transparent 100%)'
           }}
-          transition={{ duration: 0.3 }}
         />
-      </motion.div>
+      </div>
     );
 }));
 

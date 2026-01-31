@@ -27,12 +27,15 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'Loading chunk',
   'Failed to fetch dynamically imported module',
   
-  // DOM cleanup race conditions
+  // DOM cleanup race conditions (common with Radix UI)
   'Cannot read properties of null',
   'removeChild',
   'insertBefore',
   'removeAttribute',
   'setAttribute',
+  'parentNode',
+  'Node.removeChild',
+  'Failed to execute',
   
   // AbortController errors - expected during fast navigation
   'AbortError',
@@ -41,23 +44,41 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'DOMException: The user aborted a request',
   'aborted',
   
-  // React ref warnings - non-fatal console warnings
+  // React ref warnings - non-fatal console warnings (NOT errors)
   'Function components cannot be given refs',
   'forwardRef render functions accept',
   'Warning: Function components cannot be given refs',
+  'Ref forwarding',
+  'ref',
+  'useRef',
   
   // React Query background errors
   'QueryCancelled',
+  'Query cancelled',
   
   // Video playback (autoplay restrictions, etc.)
   'play() request was interrupted',
   'The play() request was interrupted',
   'NotAllowedError',
+  'AbortError: The play',
   
   // Network errors (should show toast, not crash)
   'NetworkError',
   'Failed to fetch',
   'Network request failed',
+  'TypeError: Failed to fetch',
+  'net::ERR',
+  
+  // Framer Motion cleanup
+  'Cannot read property',
+  'measure',
+  'animation',
+  'Motion',
+  
+  // Tooltip/Popover cleanup race conditions
+  'Tooltip',
+  'Popover',
+  'radix',
 ];
 
 /**

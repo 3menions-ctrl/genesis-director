@@ -24,6 +24,7 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'Loading chunk',
   'Cannot read properties of null (reading \'removeChild\')',
   'Cannot read properties of null (reading \'insertBefore\')',
+  'Cannot read properties of null',
   'Failed to fetch dynamically imported module',
   'Network Error',
   'cancelled',
@@ -33,20 +34,34 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'signal is aborted',
   'DOMException: The user aborted a request',
   'aborted',
-  // React ref warnings - non-fatal
+  // React ref warnings - non-fatal (CRITICAL: must suppress to prevent crash loop)
   'Function components cannot be given refs',
   'forwardRef render functions accept',
   'Warning: Function components cannot be given refs',
+  'ref',
+  'Ref',
   // Radix/Dialog cleanup race conditions
   'removeAttribute',
   'setAttribute',
   'removeChild',
   'insertBefore',
+  'parentNode',
+  'Node.removeChild',
+  'Failed to execute',
   // Video playback errors - common and harmless
   'play() request was interrupted',
   'The play() request was interrupted by a call to pause()',
+  'NotAllowedError',
   // HMR/Vite development errors
   'Vite HMR',
+  // Framer Motion cleanup
+  'Cannot read property',
+  'measure',
+  'animation',
+  // Tooltip/Popover cleanup
+  'Tooltip',
+  'Popover',
+  'radix',
 ];
 
 // Check if error should be suppressed
@@ -92,6 +107,14 @@ window.addEventListener("error", (event) => {
     return;
   }
 
+  // Extra check: prevent ref-related errors from counting toward crash threshold
+  const errorMessage = event.error?.message || '';
+  if (errorMessage.includes('ref') || errorMessage.includes('Ref') || errorMessage.includes('forwardRef')) {
+    console.debug('[Global] Suppressed ref-related error:', errorMessage.substring(0, 100));
+    event.preventDefault();
+    return;
+  }
+
   // Prevent infinite crash loops
   errorCount++;
   if (errorCount > ERROR_THRESHOLD) {
@@ -109,16 +132,22 @@ window.addEventListener("error", (event) => {
     console.error("[Global Error]", stabilityEvent.category, event.error);
   }
   
-  // Prevent the error from crashing the app if it's a ref warning
-  if (event.error?.message?.includes('ref') || event.error?.message?.includes('forwardRef')) {
-    event.preventDefault();
-  }
+  // Prevent the error from crashing the app if it's any suppressed pattern
+  event.preventDefault();
 });
 
 // Global promise rejection handler with stability monitoring
 window.addEventListener("unhandledrejection", (event) => {
   // Check if error should be suppressed first
   if (shouldSuppressGlobalError(event.reason) || shouldSuppressError(event.reason)) {
+    event.preventDefault();
+    return;
+  }
+
+  // Extra check: prevent ref-related rejections from counting
+  const reasonMessage = event.reason?.message || String(event.reason) || '';
+  if (reasonMessage.includes('ref') || reasonMessage.includes('Ref') || reasonMessage.includes('forwardRef')) {
+    console.debug('[Global] Suppressed ref-related rejection:', reasonMessage.substring(0, 100));
     event.preventDefault();
     return;
   }

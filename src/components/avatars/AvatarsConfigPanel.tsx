@@ -94,8 +94,8 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-white flex items-center gap-2 text-sm font-medium">
-                  <Play className="w-3.5 h-3.5 text-violet-400" />
-                  Story Concept
+                  <Mic className="w-3.5 h-3.5 text-violet-400" />
+                  Script
                 </Label>
                 {selectedAvatar && (
                   <div className="flex items-center gap-2">
@@ -116,7 +116,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
               </div>
               <Textarea
                 placeholder={selectedAvatar 
-                  ? `What should ${selectedAvatar.name} do in this 10-second clip? Example: "Explores a witch's house, discovers ancient spell books, and finds a hidden potion..."`
+                  ? `Write what ${selectedAvatar.name} will say. Example: "Welcome to my channel! Today I'm going to show you something amazing..."`
                   : "Select an avatar above..."
                 }
                 value={prompt}
@@ -228,8 +228,8 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="text-white flex items-center gap-2 font-medium">
-                  <Play className="w-4 h-4 text-violet-400" />
-                  Story Concept
+                  <Mic className="w-4 h-4 text-violet-400" />
+                  Script
                 </Label>
                 {selectedAvatar && (
                   <div className="flex items-center gap-2 text-sm">
@@ -252,7 +252,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
               </div>
               <Textarea
                 placeholder={selectedAvatar 
-                  ? `What should ${selectedAvatar.name} do in this 10-second clip? Example: "Explores a witch's house, discovers ancient spell books, and finds a hidden potion..."`
+                  ? `Write what ${selectedAvatar.name} will say. Example: "Welcome to my channel! Today I'm going to show you something amazing..."`
                   : "First, select an avatar above..."
                 }
                 value={prompt}

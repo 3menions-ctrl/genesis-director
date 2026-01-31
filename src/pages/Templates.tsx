@@ -464,8 +464,22 @@ TemplateCard.displayName = 'TemplateCard';
 
 // Main content component separated for error boundary
 const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function TemplatesContent(_, ref) {
-  const navigate = useNavigate();
-  const { user } = useAuth();
+  // Hook resilience - wrap in try-catch with fallbacks
+  let navigate: ReturnType<typeof useNavigate>;
+  try {
+    navigate = useNavigate();
+  } catch {
+    navigate = () => {};
+  }
+  
+  let authData: { user: any };
+  try {
+    authData = useAuth();
+  } catch {
+    authData = { user: null };
+  }
+  const { user } = authData;
+  
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');

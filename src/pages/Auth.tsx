@@ -52,8 +52,21 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
       }
     }
   }, [ref]);
-  const navigate = useNavigate();
-  const { user, profile, loading: authLoading, signIn, signUp } = useAuth();
+  // Hook resilience - wrap in try-catch with fallbacks
+  let navigate: ReturnType<typeof useNavigate>;
+  try {
+    navigate = useNavigate();
+  } catch {
+    navigate = () => {};
+  }
+  
+  let authData: { user: any; profile: any; loading: boolean; signIn: any; signUp: any };
+  try {
+    authData = useAuth();
+  } catch {
+    authData = { user: null, profile: null, loading: false, signIn: async () => ({ error: new Error('Auth unavailable') }), signUp: async () => ({ error: new Error('Auth unavailable') }) };
+  }
+  const { user, profile, loading: authLoading, signIn, signUp } = authData;
   
   // Check URL params for mode (from creation teaser)
   const [searchParams] = useState(() => new URLSearchParams(window.location.search));

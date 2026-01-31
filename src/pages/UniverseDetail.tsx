@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo, forwardRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Globe, ArrowLeft, Users, Film, Calendar, Settings, 
@@ -18,13 +18,30 @@ import { UniverseActivityFeed } from '@/components/universes/UniverseActivityFee
 import { CharacterLendingPanel } from '@/components/universes/CharacterLendingPanel';
 import { UniverseChatPanel } from '@/components/social/UniverseChatPanel';
 import { EditUniverseDialog } from '@/components/universes/EditUniverseDialog';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 import type { Universe } from '@/types/universe';
 import { formatDistanceToNow } from 'date-fns';
 
-export default function UniverseDetail() {
+// Main content component with hook resilience
+const UniverseDetailContent = memo(function UniverseDetailContent() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { user } = useAuth();
+  
+  // Hook resilience - wrap in try-catch with fallbacks
+  let navigate: ReturnType<typeof useNavigate>;
+  try {
+    navigate = useNavigate();
+  } catch {
+    navigate = () => {};
+  }
+  
+  let authData: { user: any };
+  try {
+    authData = useAuth();
+  } catch {
+    authData = { user: null };
+  }
+  const { user } = authData;
+  
   const [editOpen, setEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -382,4 +399,15 @@ export default function UniverseDetail() {
       />
     </div>
   );
-}
+});
+
+// Wrapper with error boundary and forwardRef for AnimatePresence
+const UniverseDetail = memo(forwardRef<HTMLDivElement, object>(function UniverseDetail(_, ref) {
+  return (
+    <ErrorBoundary>
+      <UniverseDetailContent />
+    </ErrorBoundary>
+  );
+}));
+
+export default UniverseDetail;

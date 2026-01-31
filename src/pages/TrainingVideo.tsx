@@ -148,9 +148,29 @@ const WIZARD_STEPS = [
 
 // Main content component with forwardRef for ref compatibility
 const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function TrainingVideoContent(_, ref) {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const { credits } = useStudio();
+  // Hook resilience - wrap in try-catch with fallbacks
+  let navigate: ReturnType<typeof useNavigate>;
+  try {
+    navigate = useNavigate();
+  } catch {
+    navigate = () => {};
+  }
+  
+  let authData: { user: any };
+  try {
+    authData = useAuth();
+  } catch {
+    authData = { user: null };
+  }
+  const { user } = authData;
+  
+  let studioData: { credits: { total: number; used: number; remaining: number } };
+  try {
+    studioData = useStudio();
+  } catch {
+    studioData = { credits: { total: 0, used: 0, remaining: 0 } };
+  }
+  const { credits } = studioData;
   
   // Wizard state
   const [activeStep, setActiveStep] = useState(0);

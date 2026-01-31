@@ -132,7 +132,15 @@ interface CostSummary {
 }
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
+  // Hook resilience - wrap in try-catch with fallbacks
+  let authData: { user: any };
+  try {
+    authData = useAuth();
+  } catch {
+    authData = { user: null };
+  }
+  const { user } = authData;
+  
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');

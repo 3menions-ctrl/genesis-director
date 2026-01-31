@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, forwardRef, useRef, memo } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from 'lucide-react';
@@ -88,8 +88,7 @@ interface ExamplesGalleryProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const ExamplesGallery = memo(forwardRef<HTMLDivElement, ExamplesGalleryProps>(
-  function ExamplesGallery({ open, onOpenChange }, ref) {
+const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: ExamplesGalleryProps) {
   const { safeSetState, isMounted } = useMountGuard();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -152,7 +151,7 @@ const ExamplesGallery = memo(forwardRef<HTMLDivElement, ExamplesGalleryProps>(
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-none w-screen h-screen p-0 border-0 bg-black overflow-hidden rounded-none left-0 top-0 translate-x-0 translate-y-0 [&>button]:hidden">
         {/* Fullscreen Video - No boundaries */}
-        <div ref={ref} className="absolute inset-0">
+        <div className="absolute inset-0">
           {/* Loading state */}
           {!isLoaded && (
             <div className="absolute inset-0 bg-black flex items-center justify-center z-10">
@@ -295,6 +294,6 @@ const ExamplesGallery = memo(forwardRef<HTMLDivElement, ExamplesGalleryProps>(
       </DialogContent>
     </Dialog>
   );
-}));
+});
 
 export default ExamplesGallery;

@@ -194,5 +194,5 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // Mark that we've successfully rendered children
   hasRenderedChildren.current = true;
 
-  return <div data-protected-route="true">{children}</div>;
+  return <>{children}</>;
 }

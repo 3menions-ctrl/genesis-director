@@ -18,7 +18,7 @@ interface ProtectedRouteProps {
  * 5. CRITICAL: Never redirects until BOTH loading=false AND isSessionVerified=true
  */
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, profile, loading, session, isSessionVerified, profileError, retryProfileFetch } = useAuth();
+  const { user, profile, loading, session, isSessionVerified, profileError, retryProfileFetch, getValidSession } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -53,29 +53,38 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   // Redirect to auth only when we're CERTAIN there's no session
   // CRITICAL: Must have loading=false AND isSessionVerified=true before redirecting
-  const handleAuthRedirect = useCallback(() => {
+  // Uses getValidSession() to avoid stale closure issues
+  useEffect(() => {
     // Prevent double redirects
     if (isRedirectingRef.current) return;
     
     // STRICT GUARD: Only redirect when auth is fully resolved
     if (loading || !isSessionVerified) return;
     
-    // Additional 50ms buffer for state synchronization after login
-    const timeoutId = setTimeout(() => {
-      // Double-check state hasn't changed
-      if (!session?.user && !user && !loading && isSessionVerified) {
-        isRedirectingRef.current = true;
-        navigate('/auth', { replace: true });
+    // Already have a session in state - no redirect needed
+    if (session?.user?.id || user?.id) return;
+    
+    // Additional buffer for state synchronization after login
+    // Use getValidSession to get FRESH session, avoiding stale closure
+    const timeoutId = setTimeout(async () => {
+      if (isRedirectingRef.current) return;
+      
+      // Get fresh session directly from Supabase to avoid stale React state
+      const freshSession = await getValidSession();
+      
+      // If fresh session exists, don't redirect - state will catch up
+      if (freshSession?.user?.id) {
+        console.debug('[ProtectedRoute] Fresh session found, skipping redirect');
+        return;
       }
-    }, 100);
+      
+      // No session confirmed - redirect to auth
+      isRedirectingRef.current = true;
+      navigate('/auth', { replace: true });
+    }, 150);
     
     return () => clearTimeout(timeoutId);
-  }, [loading, isSessionVerified, session?.user, user, navigate]);
-
-  useEffect(() => {
-    const cleanup = handleAuthRedirect();
-    return cleanup;
-  }, [handleAuthRedirect]);
+  }, [loading, isSessionVerified, session?.user?.id, user?.id, navigate, getValidSession]);
 
   // Handle onboarding redirect
   useEffect(() => {

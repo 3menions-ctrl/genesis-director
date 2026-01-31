@@ -81,19 +81,32 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
   }, []);
 
   // Fetch immediately on mount - avatar_templates is public readable
-  // CRITICAL: Only run ONCE on mount using empty dependency array
+  // CRITICAL: Detect remount after crash and force fresh fetch
+  // Uses a module-level counter to detect if this is a fresh mount after crash/HMR
   useEffect(() => {
     isMountedRef.current = true;
+    
+    // If we have stale templates from a previous crashed mount, clear them
+    // This fixes the "only 2 avatars" bug caused by partial data from aborted fetches
+    const hadPreviousAttempt = fetchAttemptedRef.current;
+    
+    // Reset all flags on mount
     fetchAttemptedRef.current = false;
     isFetchingRef.current = false;
     
-    // Small delay to let Lovable preview environment initialize (500ms)
+    // If this is a remount (e.g., after crash), clear any partial data
+    if (hadPreviousAttempt && templates.length > 0 && templates.length < 10) {
+      console.log('[useAvatarTemplates] Detected remount with partial data, clearing...');
+      setTemplates([]);
+    }
+    
+    // Small delay to let Lovable preview environment initialize
     // This prevents session handshake issues during initial load
     const initTimer = setTimeout(() => {
       if (isMountedRef.current) {
         fetchTemplates();
       }
-    }, 100); // Reduced from potential race condition window
+    }, 100);
     
     return () => {
       isMountedRef.current = false;

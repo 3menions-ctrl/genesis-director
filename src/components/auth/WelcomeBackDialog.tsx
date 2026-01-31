@@ -138,6 +138,7 @@ export const WelcomeBackDialog = memo(forwardRef<HTMLDivElement, WelcomeBackDial
     <AnimatePresence>
       {isOpen && (
         <motion.div
+          ref={ref}
           className="fixed inset-0 z-[200] flex items-center justify-center overflow-hidden"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

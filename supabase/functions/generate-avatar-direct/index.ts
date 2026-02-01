@@ -353,7 +353,7 @@ serve(async (req) => {
 
     if (projectId) {
       // Create a shot record for the avatar clip
-      const { data: shot } = await supabase.from('shots').insert({
+      const { data: shot, error: shotError } = await supabase.from('shots').insert({
         project_id: projectId,
         shot_number: 1,
         description: script.substring(0, 200),
@@ -367,8 +367,16 @@ serve(async (req) => {
         duration_seconds: Math.ceil(audioDurationMs / 1000),
       }).select('id').single();
 
+      if (shotError) {
+        console.error("[AvatarDirect] Failed to create shot record:", shotError);
+        // Non-fatal - continue to update project status
+      } else {
+        console.log(`[AvatarDirect] Created shot record: ${shot?.id}`);
+      }
+
       // Update project to completed - set BOTH video_url and final_video_url for compatibility
-      await supabase.from('movie_projects').update({
+      // CRITICAL: Verify the update succeeds to prevent silent failures
+      const { data: updatedProject, error: updateError } = await supabase.from('movie_projects').update({
         status: 'completed',
         video_url: finalVideoUrl,
         final_video_url: finalVideoUrl,
@@ -381,7 +389,36 @@ serve(async (req) => {
           completedAt: new Date().toISOString(),
         },
         updated_at: new Date().toISOString(),
-      }).eq('id', projectId);
+      }).eq('id', projectId).select('id, status, video_url').single();
+
+      if (updateError) {
+        console.error("[AvatarDirect] ❌ CRITICAL: Failed to update project status:", updateError);
+        // Retry once
+        console.log("[AvatarDirect] Retrying project update...");
+        const { error: retryError } = await supabase.from('movie_projects').update({
+          status: 'completed',
+          video_url: finalVideoUrl,
+          final_video_url: finalVideoUrl,
+          voice_audio_url: audioUrl,
+          pipeline_stage: 'completed',
+          pipeline_state: {
+            stage: 'completed',
+            progress: 100,
+            message: 'Avatar video complete!',
+            completedAt: new Date().toISOString(),
+            retried: true,
+          },
+          updated_at: new Date().toISOString(),
+        }).eq('id', projectId);
+        
+        if (retryError) {
+          console.error("[AvatarDirect] ❌ CRITICAL: Retry also failed:", retryError);
+          throw new Error(`Failed to save completed video to database: ${retryError.message}`);
+        }
+        console.log("[AvatarDirect] ✅ Retry succeeded");
+      } else {
+        console.log(`[AvatarDirect] ✅ Project updated successfully: ${updatedProject?.id}, status: ${updatedProject?.status}, video_url set: ${!!updatedProject?.video_url}`);
+      }
     }
 
     return new Response(

@@ -546,9 +546,16 @@ ${request.environmentHints?.length ? `ENVIRONMENT: ${request.environmentHints.jo
 `}
 
 ${request.environmentPrompt ? `
-ENVIRONMENT DNA (MANDATORY - ALL clips MUST use this EXACT environment):
-${request.environmentPrompt}
-CRITICAL: Every clip MUST take place in this exact environment with this exact lighting and atmosphere. Copy this environment description to EVERY clip's locationDescription and lightingDescription fields.
+=======================================================================
+🎬 USER'S SCENE DESCRIPTION (HIGHEST PRIORITY - OVERRIDES REFERENCE IMAGE):
+=======================================================================
+"${request.environmentPrompt}"
+
+This is the user's EXPLICIT scene request. The character from the reference image 
+should be placed INTO THIS SCENE. Do NOT use the reference image's background.
+Use this EXACT environment for ALL clips' locationDescription field.
+Generate appropriate lighting for this scene in the lightingDescription field.
+=======================================================================
 ` : ''}
 
 ${request.characterLock ? `
@@ -582,9 +589,10 @@ Create ONE continuous scene with ${clipCount} progressive clips. Each clip = 5 s
 Total duration: ${targetSeconds} seconds.
 All clips in SAME location with SAME character appearance.
 Show progressive action: establish → initiate → develop → escalate → peak → settle.
-${request.environmentPrompt ? 'MANDATORY: Use the ENVIRONMENT DNA for ALL clips\' locationDescription and lightingDescription.' : ''}
-${mustPreserveContent ? 'CRITICAL: Use the user\'s EXACT narration/dialogue text - do not paraphrase.' : ''}
-${isImageToVideo ? 'CRITICAL: The character and environment MUST match the reference image exactly. Focus on describing the ACTIONS the user requested.' : ''}
+${request.environmentPrompt ? `MANDATORY: Use "${request.environmentPrompt}" as the scene/location for ALL clips - this is the user's explicit request and OVERRIDES any reference image background.` : ''}
+${mustPreserveContent ? 'CRITICAL: Use the user\'s EXACT narration/dialogue text in the "dialogue" field - copy it verbatim, do not paraphrase or rewrite.' : ''}
+${isImageToVideo && !request.environmentPrompt ? 'CRITICAL: The character and environment MUST match the reference image exactly. Focus on describing the ACTIONS the user requested.' : ''}
+${isImageToVideo && request.environmentPrompt ? 'CRITICAL: Use the character from the reference image but place them in the USER\'S REQUESTED SCENE (environmentPrompt). The character appearance is locked, but the location changes to match the user\'s scene description.' : ''}
 
 Output ONLY valid JSON with exactly ${clipCount} clips.`;
     }
@@ -674,6 +682,52 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
       lightingDescription: parsedClips[0].lightingDescription || request.environmentLock?.lighting || '',
     };
 
+    // =====================================================
+    // CRITICAL: User Narration Verbatim Distribution
+    // For avatar mode, the user's text MUST be spoken exactly as written
+    // Split it evenly across clips for TTS
+    // =====================================================
+    let userNarrationChunks: string[] = [];
+    if (mustPreserveContent && hasUserNarration && request.userNarration) {
+      const userText = request.userNarration.trim();
+      console.log(`[SmartScript] VERBATIM MODE: Distributing user narration (${userText.length} chars) across ${expectedClipCount} clips`);
+      
+      // Split by sentences or evenly if no sentences
+      const sentences = userText.match(/[^.!?]+[.!?]+/g) || [userText];
+      
+      if (sentences.length >= expectedClipCount) {
+        // Distribute sentences evenly
+        const perClip = Math.ceil(sentences.length / expectedClipCount);
+        for (let i = 0; i < expectedClipCount; i++) {
+          const start = i * perClip;
+          const chunk = sentences.slice(start, start + perClip).join(' ').trim();
+          userNarrationChunks.push(chunk);
+        }
+      } else {
+        // Fewer sentences than clips - put all in first clips, empty for rest
+        userNarrationChunks = sentences.map(s => s.trim());
+        while (userNarrationChunks.length < expectedClipCount) {
+          userNarrationChunks.push(''); // Remaining clips have no dialogue
+        }
+      }
+      
+      console.log(`[SmartScript] Narration chunks: ${userNarrationChunks.map(c => c.substring(0, 30) + '...').join(' | ')}`);
+    }
+    
+    // =====================================================
+    // CRITICAL: Environment Prompt Override
+    // If user specified a scene, it MUST replace any reference image environment
+    // =====================================================
+    let forcedLocation = lockFields.locationDescription;
+    let forcedLighting = lockFields.lightingDescription;
+    
+    if (request.environmentPrompt && request.environmentPrompt.trim().length > 0) {
+      console.log(`[SmartScript] SCENE OVERRIDE: Using user's environmentPrompt instead of reference image environment`);
+      forcedLocation = request.environmentPrompt.trim();
+      // Generate appropriate lighting from scene context
+      forcedLighting = `Natural lighting appropriate for: ${request.environmentPrompt.trim().substring(0, 50)}`;
+    }
+
     // Normalize and ENFORCE CONSISTENCY across all clips
     const normalizedClips: SceneClip[] = parsedClips.map((clip: any, index: number) => ({
       id: `clip_${String(index + 1).padStart(2, '0')}`,
@@ -687,8 +741,9 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
       nextAction: index < expectedClipCount - 1 ? (parsedClips[index + 1]?.currentAction || '') : '',
       // ENFORCE CONSISTENCY - same values for all clips
       characterDescription: lockFields.characterDescription,
-      locationDescription: lockFields.locationDescription,
-      lightingDescription: lockFields.lightingDescription,
+      // USE FORCED LOCATION/LIGHTING (from user's scene description if provided)
+      locationDescription: forcedLocation,
+      lightingDescription: forcedLighting,
       // Camera
       cameraScale: clip.cameraScale || 'medium',
       cameraAngle: clip.cameraAngle || 'eye-level',
@@ -699,8 +754,11 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
         type: 'continuous',
         hint: clip.transitionHint || `Continues into ${ACTION_PHASES[(index + 1) % ACTION_PHASES.length]} phase`,
       } : null,
-      // Content
-      dialogue: clip.dialogue || '',
+      // CRITICAL: Use user's verbatim text if preserveUserContent is true
+      // This overrides whatever the AI generated
+      dialogue: (mustPreserveContent && userNarrationChunks.length > index) 
+        ? userNarrationChunks[index] 
+        : (clip.dialogue || ''),
       mood: clip.mood || 'focused',
     }));
 

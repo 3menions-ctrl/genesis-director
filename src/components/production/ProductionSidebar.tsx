@@ -34,6 +34,27 @@ interface ProductionSidebarProps {
   onToggle: () => void;
 }
 
+// Extracted component to avoid ref forwarding conflict with AnimatePresence + Tooltip
+const CollapsedToggleButton = memo(function CollapsedToggleButton({ onToggle }: { onToggle: () => void }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="w-9 h-9 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl"
+          onClick={onToggle}
+        >
+          <PanelLeft className="w-4 h-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="right" className="bg-popover border-border">
+        Show Projects
+      </TooltipContent>
+    </Tooltip>
+  );
+});
+
 export const ProductionSidebar = memo(forwardRef<HTMLDivElement, ProductionSidebarProps>(function ProductionSidebar({ 
   projects, 
   activeProjectId, 
@@ -73,8 +94,8 @@ export const ProductionSidebar = memo(forwardRef<HTMLDivElement, ProductionSideb
       label: 'Queued',
       icon: Sparkles,
       gradient: 'from-zinc-500 to-zinc-600',
-      bgClass: 'bg-white/[0.04] border-white/[0.06]',
-      textClass: 'text-zinc-500',
+      bgClass: 'bg-muted/50 border-border',
+      textClass: 'text-muted-foreground',
     };
   };
   
@@ -88,25 +109,25 @@ export const ProductionSidebar = memo(forwardRef<HTMLDivElement, ProductionSideb
             animate={{ width: 240, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="h-full flex flex-col shrink-0 overflow-hidden border-r border-white/[0.06]"
+            className="h-full flex flex-col shrink-0 overflow-hidden border-r border-border"
           >
             {/* Glass background */}
-            <div className="absolute inset-0 bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 backdrop-blur-xl" />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/90 to-background/95 backdrop-blur-xl" />
             
             {/* Header */}
-            <div className="relative h-16 flex items-center justify-between px-4 border-b border-white/[0.06]">
+            <div className="relative h-16 flex items-center justify-between px-4 border-b border-border">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/[0.08] flex items-center justify-center">
-                  <Film className="w-4 h-4 text-white/60" />
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-muted/80 to-muted/20 border border-border flex items-center justify-center">
+                  <Film className="w-4 h-4 text-muted-foreground" />
                 </div>
-                <span className="text-xs font-semibold text-white/80 tracking-wide">
+                <span className="text-xs font-semibold text-foreground/80 tracking-wide">
                   Projects
                 </span>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="w-7 h-7 text-zinc-500 hover:text-white hover:bg-white/[0.06] rounded-lg"
+                className="w-7 h-7 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg"
                 onClick={onToggle}
               >
                 <PanelLeftClose className="w-4 h-4" />
@@ -129,8 +150,8 @@ export const ProductionSidebar = memo(forwardRef<HTMLDivElement, ProductionSideb
                         "w-full rounded-xl transition-all duration-200 p-3 text-left",
                         "border",
                         isActive 
-                          ? "bg-white/[0.06] border-white/[0.1]" 
-                          : "bg-transparent border-transparent hover:bg-white/[0.03] hover:border-white/[0.06]"
+                          ? "bg-muted/60 border-border" 
+                          : "bg-transparent border-transparent hover:bg-muted/30 hover:border-border"
                       )}
                     >
                       <div className="flex items-start gap-3">
@@ -150,12 +171,12 @@ export const ProductionSidebar = memo(forwardRef<HTMLDivElement, ProductionSideb
                         <div className="flex-1 min-w-0">
                           <p className={cn(
                             "text-xs font-medium truncate",
-                            isActive ? "text-white" : "text-zinc-400"
+                            isActive ? "text-foreground" : "text-muted-foreground"
                           )}>
                             {project.title}
                           </p>
                           <div className="flex items-center justify-between mt-1.5">
-                            <span className="text-[10px] text-zinc-600">{config.label}</span>
+                            <span className="text-[10px] text-muted-foreground/60">{config.label}</span>
                             <span className={cn(
                               "text-[10px] font-semibold tabular-nums",
                               config.textClass
@@ -164,7 +185,7 @@ export const ProductionSidebar = memo(forwardRef<HTMLDivElement, ProductionSideb
                             </span>
                           </div>
                           {/* Mini progress bar */}
-                          <div className="mt-2 h-1 rounded-full bg-white/[0.04] overflow-hidden">
+                          <div className="mt-2 h-1 rounded-full bg-muted/40 overflow-hidden">
                             <motion.div
                               className={cn("h-full bg-gradient-to-r", config.gradient)}
                               initial={{ width: 0 }}
@@ -181,25 +202,25 @@ export const ProductionSidebar = memo(forwardRef<HTMLDivElement, ProductionSideb
                 {/* Empty state */}
                 {projects.length === 0 && (
                   <div className="text-center py-12 px-4">
-                    <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mx-auto mb-3">
-                      <Film className="w-6 h-6 text-zinc-600" />
+                    <div className="w-12 h-12 rounded-2xl bg-muted/40 border border-border flex items-center justify-center mx-auto mb-3">
+                      <Film className="w-6 h-6 text-muted-foreground/60" />
                     </div>
-                    <p className="text-xs text-zinc-600">No projects in pipeline</p>
-                    <p className="text-[10px] text-zinc-700 mt-1">Start creating to see them here</p>
+                    <p className="text-xs text-muted-foreground/60">No projects in pipeline</p>
+                    <p className="text-[10px] text-muted-foreground/40 mt-1">Start creating to see them here</p>
                   </div>
                 )}
               </div>
             </ScrollArea>
 
             {/* Footer */}
-            <div className="relative border-t border-white/[0.06] p-3">
+            <div className="relative border-t border-border p-3">
               <Button
                 variant="ghost"
                 className={cn(
                   "w-full h-10 justify-start gap-3 px-3 rounded-xl",
-                  "text-xs text-zinc-500 hover:text-white",
-                  "bg-white/[0.02] hover:bg-white/[0.06]",
-                  "border border-transparent hover:border-white/[0.08]"
+                  "text-xs text-muted-foreground hover:text-foreground",
+                  "bg-muted/20 hover:bg-muted/50",
+                  "border border-transparent hover:border-border"
                 )}
                 onClick={() => navigate('/projects')}
               >
@@ -209,30 +230,16 @@ export const ProductionSidebar = memo(forwardRef<HTMLDivElement, ProductionSideb
             </div>
           </motion.aside>
         ) : (
-          /* Collapsed state */
+          /* Collapsed state - ref-safe structure for AnimatePresence compatibility */
           <motion.div
             key="toggle"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="h-full flex flex-col shrink-0 border-r border-white/[0.06] bg-zinc-950/80 backdrop-blur-xl"
+            className="h-full flex flex-col shrink-0 border-r border-border bg-background/80 backdrop-blur-xl"
           >
             <div className="h-16 flex items-center justify-center">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="w-9 h-9 text-zinc-500 hover:text-white hover:bg-white/[0.06] rounded-xl"
-                    onClick={onToggle}
-                  >
-                    <PanelLeft className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="bg-zinc-900 border-white/[0.1]">
-                  Show Projects
-                </TooltipContent>
-              </Tooltip>
+              <CollapsedToggleButton onToggle={onToggle} />
             </div>
           </motion.div>
         )}

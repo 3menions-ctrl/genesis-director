@@ -629,12 +629,21 @@ const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preReso
 
 // ============= MAIN COMPONENT =============
 
-// Content component - REMOVED forwardRef as it's not needed here and was causing
-// "Function components cannot be given refs" crashes in Radix Dialog contexts.
-// The ErrorBoundary wrapper doesn't pass refs, so forwardRef was causing false warnings.
-const ProjectsContent = memo(function ProjectsContent() {
+// Content component - forwardRef required for Radix Dialog compatibility
+// Uses callback ref pattern to merge forwarded ref with internal containerRef
+const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProjectsContent(_, ref) {
   // Internal ref for component's own DOM access
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Callback ref to merge forwarded ref with internal ref (synchronous, prevents crashes)
+  const mergedRef = useCallback((node: HTMLDivElement | null) => {
+    containerRef.current = node;
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    }
+  }, [ref]);
   // Mount tracking for async safety
   const isMountedRef = useRef(true);
   
@@ -1210,7 +1219,7 @@ const ProjectsContent = memo(function ProjectsContent() {
   const stitchingProjects = projects.filter(p => status(p) === 'stitching');
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-[#030303] relative overflow-x-hidden">
+    <div ref={mergedRef} className="min-h-screen bg-[#030303] relative overflow-x-hidden">
       {/* Premium Orange-Themed Animated Background */}
       <ProjectsBackground />
 
@@ -2009,7 +2018,9 @@ const ProjectsContent = memo(function ProjectsContent() {
       </Dialog>
     </div>
   );
-});
+}));
+
+ProjectsContent.displayName = 'ProjectsContent';
 
 // Wrapper with error boundary
 export default function Projects() {

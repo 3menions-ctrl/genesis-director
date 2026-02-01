@@ -212,6 +212,8 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
   );
 }));
 
+CreateContent.displayName = 'CreateContent';
+
 // Wrapper with error boundary
 export default function Create() {
   return (

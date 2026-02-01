@@ -32,6 +32,7 @@ interface PipelineRequest {
   colorGrading?: string;
   totalDuration?: number;
   clipCount?: number;
+  clipDuration?: number;
   qualityTier?: 'standard' | 'professional';
   skipCreditDeduction?: boolean;
   // Resume support
@@ -54,6 +55,12 @@ interface PipelineRequest {
   templateName?: string;
   // Video format
   aspectRatio?: '16:9' | '9:16' | '1:1';
+  // Avatar mode: User-provided speech/narration text (must be spoken verbatim)
+  userNarration?: string;
+  userDialogue?: string[];
+  preserveUserContent?: boolean;
+  isAvatarMode?: boolean;
+  characterVoiceMap?: Record<string, string>;
 }
 
 interface ExtractedCharacter {
@@ -748,6 +755,9 @@ async function runPreProduction(
         // STRICT REFERENCE MODE: Pass reference image analysis for image-to-video
         referenceImageAnalysis: request.referenceImageAnalysis,
         mode: mode,
+        // AVATAR MODE: Pass user's speech text as narration (verbatim TTS)
+        userNarration: request.userNarration,
+        preserveUserContent: request.preserveUserContent,
       });
       
       if (scriptResult.shots || scriptResult.clips) {
@@ -830,7 +840,15 @@ async function runPreProduction(
       };
     }
   } else if (request.concept && !request.manualPrompts) {
+    // Determine if this is avatar mode - user's prompt IS the speech text
+    const isAvatar = request.isAvatarMode === true;
+    const hasUserNarration = !!(request.userNarration && request.userNarration.trim().length > 0);
+    
     console.log(`[Hollywood] Generating script from concept (scene-based)...`);
+    console.log(`[Hollywood] Avatar mode: ${isAvatar}, has user narration: ${hasUserNarration}`);
+    if (hasUserNarration) {
+      console.log(`[Hollywood] User speech text (${request.userNarration!.length} chars): "${request.userNarration!.substring(0, 80)}..."`);
+    }
     
     // Determine if this is image-to-video mode
     const hasReferenceImage = !!request.referenceImageUrl || !!request.referenceImageAnalysis;
@@ -839,11 +857,13 @@ async function runPreProduction(
     console.log(`[Hollywood] Script generation mode: ${mode}, has reference analysis: ${!!request.referenceImageAnalysis}`);
     
     try {
+      // For avatar mode, pass the user's speech text as narration to preserve verbatim
+      
       const scriptResult = await callEdgeFunction('smart-script-generator', {
         topic: request.concept,
         synopsis: request.concept,
-        genre: request.genre || 'cinematic',
-        pacingStyle: 'moderate',
+        genre: request.genre || (isAvatar ? 'presentation' : 'cinematic'),
+        pacingStyle: isAvatar ? 'moderate' : 'moderate',
         targetDurationSeconds: state.clipCount * state.clipDuration,
         // CRITICAL: Pass explicit clip count and duration from user selection
         clipCount: state.clipCount,
@@ -856,6 +876,9 @@ async function runPreProduction(
         // STRICT REFERENCE MODE: Pass reference image analysis for image-to-video
         referenceImageAnalysis: request.referenceImageAnalysis,
         mode: mode,
+        // AVATAR MODE: Pass user's speech text as narration (verbatim TTS)
+        userNarration: request.userNarration,
+        preserveUserContent: request.preserveUserContent,
       });
       
       if (scriptResult.shots || scriptResult.clips) {

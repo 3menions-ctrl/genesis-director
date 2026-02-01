@@ -289,23 +289,17 @@ serve(async (req) => {
     // Route based on mode
     switch (mode) {
       case 'avatar':
-        // AVATAR v2.0: Full Hollywood Pipeline with Avatar Identity Injection
-        // The avatar(s) become the character reference(s) for multi-shot generation
-        return await handleAvatarCinematicMode({
+        // AVATAR DIRECT PATH - Bypasses Hollywood complexity for simple avatar videos
+        // User's exact script → TTS → Lip-sync video
+        // Scene description → Background generation (if provided)
+        return await handleAvatarDirectMode({
           projectId: projectId!,
           userId,
-          concept: prompt, // User's story/scene concept
+          script: prompt, // User's EXACT script to be spoken verbatim
           sceneDescription: request.sceneDescription,
-          avatarImageUrl: imageUrl,
-          voiceId: voiceId || 'onyx',
+          avatarImageUrl: imageUrl!,
+          voiceId: voiceId || 'bella',
           aspectRatio,
-          clipCount,
-          clipDuration,
-          enableNarration: request.enableNarration,
-          enableMusic: request.enableMusic,
-          characterBible: request.characterBible,
-          avatarTemplateId: request.avatarTemplateId,
-          avatarCast: request.avatarCast,
           supabase,
         });
 
@@ -366,16 +360,94 @@ serve(async (req) => {
 });
 
 /**
+ * AVATAR DIRECT MODE - Simple, world-class avatar pipeline
+ * 
+ * Direct path that ensures:
+ * 1. User's exact script is spoken VERBATIM (no AI modification)
+ * 2. User's scene description is used for background
+ * 3. True lip-sync via Wav2Lip
+ * 
+ * This bypasses Hollywood complexity for simple avatar videos.
+ */
+async function handleAvatarDirectMode(params: {
+  projectId: string;
+  userId: string;
+  script: string; // User's EXACT text to be spoken
+  sceneDescription?: string;
+  avatarImageUrl: string;
+  voiceId: string;
+  aspectRatio: string;
+  supabase: any;
+}) {
+  const { projectId, userId, script, sceneDescription, avatarImageUrl, voiceId, aspectRatio, supabase } = params;
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  console.log(`[ModeRouter/AvatarDirect] ═══════════════════════════════════════════════════`);
+  console.log(`[ModeRouter/AvatarDirect] DIRECT AVATAR PATH - No Hollywood complexity`);
+  console.log(`[ModeRouter/AvatarDirect] Script (verbatim): "${script.substring(0, 80)}..."`);
+  console.log(`[ModeRouter/AvatarDirect] Scene: "${sceneDescription?.substring(0, 50) || 'Using avatar background'}"`);
+  console.log(`[ModeRouter/AvatarDirect] ═══════════════════════════════════════════════════`);
+
+  // Update project status
+  await supabase.from('movie_projects').update({
+    status: 'generating',
+    pipeline_state: {
+      stage: 'init',
+      progress: 5,
+      message: 'Starting direct avatar pipeline...',
+    },
+  }).eq('id', projectId);
+
+  // Call the new direct avatar function
+  const directResponse = await fetch(`${supabaseUrl}/functions/v1/generate-avatar-direct`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${supabaseKey}`,
+    },
+    body: JSON.stringify({
+      script, // EXACT user text, no changes
+      avatarImageUrl,
+      voiceId,
+      sceneDescription,
+      projectId,
+      userId,
+      aspectRatio,
+    }),
+  });
+
+  if (!directResponse.ok) {
+    const error = await directResponse.text();
+    throw new Error(`Avatar direct pipeline failed: ${error}`);
+  }
+
+  const result = await directResponse.json();
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      projectId,
+      mode: 'avatar',
+      status: result.status || 'processing',
+      message: result.message || 'Creating your avatar video with your exact script...',
+      videoUrl: result.videoUrl,
+      audioUrl: result.audioUrl,
+      pipeline: 'avatar-direct',
+    }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
+/**
  * AVATAR CINEMATIC MODE v2.0 - Full Hollywood Pipeline with Avatar Identity
+ * (LEGACY - kept for multi-clip cinematic avatar videos)
  * 
  * Routes avatar requests through the full cinematic pipeline:
  * 1. Avatar's Character Bible becomes the Identity Bible for all shots
  * 2. Full script generation based on user's concept + scene description
  * 3. Multi-shot video generation with avatar appearing consistently in all scenes
  * 4. Optional narration (avatar's voice) and music
- * 
- * This allows avatars to be full "actors" - walking, running, interacting with
- * environments, not just talking heads.
  */
 async function handleAvatarCinematicMode(params: {
   projectId: string;

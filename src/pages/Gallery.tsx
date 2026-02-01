@@ -1,11 +1,14 @@
-import React, { useState, useEffect, useRef, useCallback, forwardRef, memo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, forwardRef, memo, useMemo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Pause, Volume2, VolumeX, X, ChevronLeft, ChevronRight, Film } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, X, ChevronLeft, ChevronRight, Film, Type, Image, User, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
+
+// Video category type
+type VideoCategory = 'all' | 'text-to-video' | 'image-to-video' | 'avatar';
 
 interface GalleryVideo {
   id: string;
@@ -13,6 +16,8 @@ interface GalleryVideo {
   thumbnail_url: string | null;
   video_url: string | null;
   all_clips?: string[];
+  category?: VideoCategory;
+  mode?: string | null;
 }
 
 interface ManifestClip {
@@ -28,13 +33,30 @@ interface VideoManifest {
 
 const ADMIN_USER_ID = 'd600868d-651a-46f6-a621-a727b240ac7c';
 
+// Category configuration
+const CATEGORIES: { id: VideoCategory; label: string; icon: React.ElementType; description: string }[] = [
+  { id: 'all', label: 'All Videos', icon: Sparkles, description: 'Browse our complete collection' },
+  { id: 'text-to-video', label: 'Text to Video', icon: Type, description: 'Transform words into cinematic scenes' },
+  { id: 'image-to-video', label: 'Image to Video', icon: Image, description: 'Bring static images to life' },
+  { id: 'avatar', label: 'AI Avatar', icon: User, description: 'Realistic talking avatars' },
+];
+
+// Helper to determine video category from project mode
+const getVideoCategory = (mode: string | null): VideoCategory => {
+  if (!mode) return 'text-to-video';
+  const lowerMode = mode.toLowerCase();
+  if (lowerMode.includes('avatar') || lowerMode.includes('talking')) return 'avatar';
+  if (lowerMode.includes('image') || lowerMode.includes('img2vid')) return 'image-to-video';
+  return 'text-to-video';
+};
+
 const useGalleryVideos = () => {
   return useQuery({
     queryKey: ['gallery-videos-admin'],
     queryFn: async (): Promise<GalleryVideo[]> => {
       const { data, error } = await supabase
         .from('movie_projects')
-        .select('id, video_url, thumbnail_url')
+        .select('id, video_url, thumbnail_url, mode, title')
         .eq('user_id', ADMIN_USER_ID)
         .eq('status', 'completed')
         .not('video_url', 'is', null)
@@ -47,6 +69,7 @@ const useGalleryVideos = () => {
       const videosWithClips = await Promise.all(
         data.map(async (project) => {
           const url = project.video_url || '';
+          const category = getVideoCategory(project.mode);
           
           if (url.endsWith('.json')) {
             try {
@@ -56,10 +79,12 @@ const useGalleryVideos = () => {
               if (manifest.clips && manifest.clips.length > 0) {
                 return {
                   id: project.id,
-                  title: '',
+                  title: project.title || '',
                   thumbnail_url: project.thumbnail_url,
                   video_url: manifest.clips[0].videoUrl,
                   all_clips: manifest.clips.map(c => c.videoUrl),
+                  category,
+                  mode: project.mode,
                 };
               }
             } catch (e) {
@@ -70,10 +95,12 @@ const useGalleryVideos = () => {
           if (url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.mov')) {
             return {
               id: project.id,
-              title: '',
+              title: project.title || '',
               thumbnail_url: project.thumbnail_url,
               video_url: url,
               all_clips: [url],
+              category,
+              mode: project.mode,
             };
           }
           
@@ -81,7 +108,7 @@ const useGalleryVideos = () => {
         })
       );
       
-      return videosWithClips.filter((v): v is GalleryVideo & { all_clips: string[] } => v !== null);
+      return videosWithClips.filter((v): v is NonNullable<typeof v> => v !== null);
     },
   });
 };
@@ -689,9 +716,37 @@ const GalleryContent = memo(function GalleryContent() {
   const [selectedVideo, setSelectedVideo] = useState<GalleryVideo | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [activeCategory, setActiveCategory] = useState<VideoCategory>('all');
   
   const { data: videos = [], isLoading } = useGalleryVideos();
   const { playTransition } = useAmbientSounds();
+  
+  // Filter videos by category
+  const filteredVideos = useMemo(() => {
+    if (activeCategory === 'all') return videos;
+    return videos.filter(v => v.category === activeCategory);
+  }, [videos, activeCategory]);
+  
+  // Get category counts
+  const categoryCounts = useMemo(() => {
+    const counts: Record<VideoCategory, number> = {
+      'all': videos.length,
+      'text-to-video': 0,
+      'image-to-video': 0,
+      'avatar': 0,
+    };
+    videos.forEach(v => {
+      if (v.category && v.category !== 'all') {
+        counts[v.category]++;
+      }
+    });
+    return counts;
+  }, [videos]);
+  
+  // Reset index when category changes
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [activeCategory]);
   
   // Access control
   useEffect(() => {
@@ -720,7 +775,7 @@ const GalleryContent = memo(function GalleryContent() {
       // Determine scroll direction (support both vertical and horizontal scroll)
       const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
       
-      if (delta > 20 && currentIndex < videos.length - 1) {
+      if (delta > 20 && currentIndex < filteredVideos.length - 1) {
         lastScrollTime.current = now;
         setCurrentIndex(prev => prev + 1);
         setScrollProgress(prev => prev + 0.1);
@@ -735,14 +790,14 @@ const GalleryContent = memo(function GalleryContent() {
     
     window.addEventListener('wheel', handleWheel, { passive: true });
     return () => window.removeEventListener('wheel', handleWheel);
-  }, [currentIndex, videos.length, selectedVideo, playTransition]);
+  }, [currentIndex, filteredVideos.length, selectedVideo, playTransition]);
   
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (selectedVideo) return;
       
-      if (e.key === 'ArrowRight' && currentIndex < videos.length - 1) {
+      if (e.key === 'ArrowRight' && currentIndex < filteredVideos.length - 1) {
         setCurrentIndex(prev => prev + 1);
         setScrollProgress(prev => prev + 0.1);
         playTransition();
@@ -755,10 +810,10 @@ const GalleryContent = memo(function GalleryContent() {
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, videos.length, selectedVideo, playTransition]);
+  }, [currentIndex, filteredVideos.length, selectedVideo, playTransition]);
   
   const goNext = () => {
-    if (currentIndex < videos.length - 1) {
+    if (currentIndex < filteredVideos.length - 1) {
       setCurrentIndex(prev => prev + 1);
       setScrollProgress(prev => prev + 0.1);
       playTransition();
@@ -771,6 +826,11 @@ const GalleryContent = memo(function GalleryContent() {
       setScrollProgress(prev => prev - 0.1);
       playTransition();
     }
+  };
+  
+  const handleCategoryChange = (category: VideoCategory) => {
+    setActiveCategory(category);
+    playTransition();
   };
   
   if (!hasAccess) {
@@ -797,14 +857,70 @@ const GalleryContent = memo(function GalleryContent() {
         <span className="text-sm font-medium">Back</span>
       </motion.button>
       
-      {/* Gallery title */}
+      {/* Gallery title & Category tabs */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="fixed top-6 left-1/2 -translate-x-1/2 z-40"
+        className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-4"
       >
         <h1 className="text-slate-400/50 text-sm tracking-[0.3em] uppercase font-light">Gallery</h1>
+        
+        {/* Category Navigation Tabs */}
+        <div className="flex items-center gap-1 p-1 bg-black/40 backdrop-blur-xl rounded-full border border-white/10">
+          {CATEGORIES.map((cat) => {
+            const Icon = cat.icon;
+            const isActive = activeCategory === cat.id;
+            const count = categoryCounts[cat.id];
+            
+            return (
+              <motion.button
+                key={cat.id}
+                onClick={() => handleCategoryChange(cat.id)}
+                className={cn(
+                  "relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300",
+                  isActive 
+                    ? "text-white" 
+                    : "text-zinc-500 hover:text-zinc-300"
+                )}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="activeCategory"
+                    className="absolute inset-0 bg-gradient-to-r from-blue-600/80 to-blue-500/60 rounded-full"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center gap-2">
+                  <Icon className="w-4 h-4" />
+                  <span className="hidden md:inline">{cat.label}</span>
+                  <span className={cn(
+                    "text-xs px-1.5 py-0.5 rounded-full",
+                    isActive ? "bg-white/20" : "bg-white/5"
+                  )}>
+                    {count}
+                  </span>
+                </span>
+              </motion.button>
+            );
+          })}
+        </div>
+        
+        {/* Active category description */}
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={activeCategory}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            transition={{ duration: 0.2 }}
+            className="text-zinc-500 text-xs"
+          >
+            {CATEGORIES.find(c => c.id === activeCategory)?.description}
+          </motion.p>
+        </AnimatePresence>
       </motion.div>
       
       {/* Loading */}
@@ -815,11 +931,11 @@ const GalleryContent = memo(function GalleryContent() {
       )}
       
       {/* Immersive video showcase */}
-      {!isLoading && videos.length > 0 && (
-        <div className="fixed inset-0 flex items-center justify-center">
+      {!isLoading && filteredVideos.length > 0 && (
+        <div className="fixed inset-0 flex items-center justify-center pt-24">
           {/* Video cards carousel */}
           <div className="relative flex items-center justify-center gap-4 md:gap-8">
-            {videos.map((video, index) => {
+            {filteredVideos.map((video, index) => {
               const distance = index - currentIndex;
               const isVisible = Math.abs(distance) <= 2;
               
@@ -862,7 +978,7 @@ const GalleryContent = memo(function GalleryContent() {
           </AnimatePresence>
           
           <AnimatePresence>
-            {currentIndex < videos.length - 1 && (
+            {currentIndex < filteredVideos.length - 1 && (
               <motion.button
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -877,7 +993,7 @@ const GalleryContent = memo(function GalleryContent() {
           
           {/* Progress indicator */}
           <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2">
-            {videos.map((_, idx) => (
+            {filteredVideos.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => {
@@ -895,10 +1011,36 @@ const GalleryContent = memo(function GalleryContent() {
           </div>
           
           {/* Video counter */}
-          <div className="fixed bottom-8 right-8 z-40">
+          <div className="fixed bottom-8 right-8 z-40 flex flex-col items-end gap-1">
             <span className="text-white/30 text-sm font-mono">
-              {String(currentIndex + 1).padStart(2, '0')} / {String(videos.length).padStart(2, '0')}
+              {String(currentIndex + 1).padStart(2, '0')} / {String(filteredVideos.length).padStart(2, '0')}
             </span>
+            {activeCategory !== 'all' && (
+              <span className="text-blue-400/50 text-xs">
+                {CATEGORIES.find(c => c.id === activeCategory)?.label}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+      
+      {/* Empty state for category */}
+      {!isLoading && filteredVideos.length === 0 && (
+        <div className="fixed inset-0 flex items-center justify-center pt-24">
+          <div className="text-center">
+            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+              {(() => {
+                const Icon = CATEGORIES.find(c => c.id === activeCategory)?.icon || Film;
+                return <Icon className="w-8 h-8 text-zinc-600" />;
+              })()}
+            </div>
+            <p className="text-zinc-500 text-sm mb-2">No videos in this category yet</p>
+            <button
+              onClick={() => handleCategoryChange('all')}
+              className="text-blue-400 text-sm hover:underline"
+            >
+              View all videos
+            </button>
           </div>
         </div>
       )}

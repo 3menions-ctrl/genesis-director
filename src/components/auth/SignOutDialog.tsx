@@ -1,4 +1,4 @@
-import { useState, memo, forwardRef } from 'react';
+import { useState, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -25,13 +25,14 @@ interface SignOutDialogProps {
   buttonText?: string;
 }
 
-export const SignOutDialog = memo(forwardRef<HTMLDivElement, SignOutDialogProps>(function SignOutDialog({ 
+// SignOutDialog - memo only, no forwardRef needed since AlertDialog doesn't accept refs
+export const SignOutDialog = memo(function SignOutDialog({ 
   children, 
   variant = 'ghost', 
   className,
   showIcon = true,
   buttonText = 'Sign Out'
-}, ref) {
+}: SignOutDialogProps) {
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -96,4 +97,6 @@ export const SignOutDialog = memo(forwardRef<HTMLDivElement, SignOutDialogProps>
       </AlertDialogContent>
     </AlertDialog>
   );
-}));
+});
+
+SignOutDialog.displayName = 'SignOutDialog';

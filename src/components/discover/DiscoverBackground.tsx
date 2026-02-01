@@ -17,7 +17,7 @@ const DiscoverBackground = memo(forwardRef<HTMLDivElement, Record<string, never>
   }, []);
 
   return (
-    <div className={`fixed inset-0 overflow-hidden pointer-events-none transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+    <div ref={ref} className={`fixed inset-0 overflow-hidden pointer-events-none transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
       {/* Deep black base */}
       <div className="absolute inset-0 bg-[#030303]" />
       

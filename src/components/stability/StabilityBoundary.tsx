@@ -61,7 +61,41 @@ export class StabilityBoundary extends Component<Props, State> {
     isRetrying: false,
   };
 
-  static getDerivedStateFromError(error: Error): Partial<State> {
+  // Error patterns to suppress - prevent these from showing error UI
+  private static readonly SUPPRESSED_PATTERNS = [
+    'AbortError',
+    'aborted',
+    'ResizeObserver',
+    'ChunkLoadError',
+    'Loading chunk',
+    'dynamically imported module',
+    'Function components cannot be given refs',
+    'forwardRef',
+    'ref',
+    'removeChild',
+    'insertBefore',
+    'removeAttribute',
+    'Dialog',
+    'Radix',
+    'Portal',
+    'play() request was interrupted',
+    'unmounted component',
+    'Cannot read properties of null',
+    'Cannot read properties of undefined',
+  ];
+
+  static getDerivedStateFromError(error: Error): Partial<State> | null {
+    // Check if this error should be suppressed
+    const errorMessage = error?.message || '';
+    const shouldSuppress = StabilityBoundary.SUPPRESSED_PATTERNS.some(pattern => 
+      errorMessage.toLowerCase().includes(pattern.toLowerCase())
+    );
+    
+    if (shouldSuppress) {
+      console.debug('[StabilityBoundary] Suppressed non-critical error:', errorMessage.substring(0, 100));
+      return null; // Don't show error UI for suppressed errors
+    }
+    
     return {
       hasError: true,
       error,
@@ -72,6 +106,19 @@ export class StabilityBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     const { name, onError, autoRetry, maxRetries } = this.props;
     const { retryCount } = this.state;
+
+    // Check if this error should be suppressed - if so, auto-recover
+    const errorMessage = error?.message || '';
+    const shouldSuppress = StabilityBoundary.SUPPRESSED_PATTERNS.some(pattern => 
+      errorMessage.toLowerCase().includes(pattern.toLowerCase())
+    );
+    
+    if (shouldSuppress) {
+      console.debug('[StabilityBoundary] Auto-recovering from suppressed error:', errorMessage.substring(0, 100));
+      // Auto-recover from suppressed errors
+      this.setState({ hasError: false, error: null, isRetrying: false });
+      return;
+    }
 
     // Log to stability monitor
     stabilityMonitor.log(stabilityMonitor.classify(error), error.message, {

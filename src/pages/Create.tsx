@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, memo, forwardRef } from 'react';
+import { useState, useCallback, useEffect, useRef, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import ClipsBackground from '@/components/clips/ClipsBackground';
@@ -12,6 +12,7 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { useStabilityGuard, isAbortError } from '@/hooks/useStabilityGuard';
 import { BrandLoadingSpinner } from '@/components/ui/UnifiedLoadingPage';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
+import { withSafePageRef } from '@/lib/withSafeRef';
 
 // Gatekeeper timeout - prevents infinite loading
 const GATEKEEPER_TIMEOUT_MS = 5000;
@@ -29,8 +30,8 @@ const LoadingOverlay = memo(function LoadingOverlay({ status }: { status: string
   );
 });
 
-// Main content component with forwardRef for AnimatePresence compatibility
-const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function CreateContent(_, ref) {
+// Main content component - wrapped with withSafePageRef for bulletproof ref handling
+function CreateContentInner() {
   // Hook resilience - wrap in try-catch with fallbacks
   let navigate: ReturnType<typeof useNavigate>;
   try {
@@ -180,7 +181,7 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
   const showLoader = !isHubReady && !gatekeeperTimeout;
 
   return (
-    <div ref={ref} className="relative min-h-screen flex flex-col">
+    <div className="relative min-h-screen flex flex-col">
       <ClipsBackground />
       
       {/* Gatekeeper loading screen */}
@@ -210,9 +211,10 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
       {isCreating && <LoadingOverlay status={creationStatus} />}
     </div>
   );
-}));
+}
 
-CreateContent.displayName = 'CreateContent';
+// Apply universal SafePageRef wrapper - absorbs refs injected by parent libraries
+const CreateContent = withSafePageRef(CreateContentInner, 'CreateContent');
 
 // Wrapper with error boundary
 export default function Create() {

@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect, useRef, useMemo, useCallback, memo, forwardRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, memo, forwardRef } from 'react';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { withSafePageRef } from '@/lib/withSafeRef';
 import { 
   Plus, Film, Play, Download, Trash2, Edit2,
   Loader2, Clock, Zap, Eye, Star, Heart, TrendingUp,
@@ -105,22 +106,9 @@ const formatTimeAgo = (dateString: string) => {
 
 // ============= MAIN COMPONENT =============
 
-// Content component - uses forwardRef to prevent "Function components cannot be given refs" crashes
-// when Radix Dialog components inject refs during rendering
-const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProjectsContent(_props, ref) {
-  // Internal ref for component's own DOM access
-  const internalRef = useRef<HTMLDivElement>(null);
-  
-  // Merged ref callback - runs synchronously during render to satisfy Radix
-  const mergedRef = useCallback((node: HTMLDivElement | null) => {
-    internalRef.current = node;
-    if (typeof ref === 'function') {
-      ref(node);
-    } else if (ref) {
-      (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
-    }
-  }, [ref]);
-  
+// Content component - wrapped with withSafePageRef for bulletproof ref handling
+// Absorbs refs injected by Radix Dialog components, preventing crashes
+function ProjectsContentInner() {
   // Mount tracking for async safety
   const isMountedRef = useRef(true);
   
@@ -702,7 +690,7 @@ const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
   const stitchingProjects = projects.filter(p => status(p) === 'stitching');
 
   return (
-    <div ref={mergedRef} className="min-h-screen bg-[#030303] relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#030303] relative overflow-x-hidden">
       {/* Premium Orange-Themed Animated Background */}
       <ProjectsBackground />
 
@@ -1501,9 +1489,10 @@ const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
       </Dialog>
     </div>
   );
-}));
+}
 
-ProjectsContent.displayName = 'ProjectsContent';
+// Apply universal SafePageRef wrapper - absorbs Radix ref injections safely
+const ProjectsContent = withSafePageRef(ProjectsContentInner, 'ProjectsContent');
 
 // Wrapper with error boundary
 export default function Projects() {

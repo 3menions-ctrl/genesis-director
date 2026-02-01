@@ -543,7 +543,10 @@ async function handleAvatarCinematicMode(params: {
   }).eq('id', projectId);
 
   // Route to Hollywood Pipeline with avatar identity injection
+  // CRITICAL: For avatar mode, the user's "concept" IS the speech/dialogue text
+  // It must be passed as userNarration to preserve it verbatim
   console.log(`[ModeRouter/AvatarCinematic] Routing to Hollywood Pipeline...`);
+  console.log(`[ModeRouter/AvatarCinematic] User's speech text (${concept.length} chars): "${concept.substring(0, 100)}..."`);
   
   const pipelineResponse = await fetch(`${supabaseUrl}/functions/v1/hollywood-pipeline`, {
     method: 'POST',
@@ -554,7 +557,11 @@ async function handleAvatarCinematicMode(params: {
     body: JSON.stringify({
       userId,
       projectId,
-      concept: fullConcept,
+      // For avatar mode, the concept becomes a brief scene description
+      // The actual speech is passed as userNarration
+      concept: sceneDescription 
+        ? `${sceneDescription}. Avatar speaking to camera.`
+        : `Avatar presentation: ${concept.substring(0, 100)}...`,
       referenceImageUrl,
       aspectRatio,
       clipCount,
@@ -569,6 +576,10 @@ async function handleAvatarCinematicMode(params: {
       environmentPrompt: sceneDescription, // Scene DNA for visual consistency
       isAvatarMode: true, // Flag for avatar-specific handling
       characterVoiceMap, // Map character names to voice IDs
+      // CRITICAL FIX: Pass user's script as explicit narration
+      // This tells smart-script-generator to use this text VERBATIM for TTS
+      userNarration: concept,
+      preserveUserContent: true,
     }),
   });
 

@@ -1,17 +1,17 @@
 /**
- * ManifestVideoPlayer v4 - HYDRATED BOOT SEQUENCE
+ * ManifestVideoPlayer v5 - MSE GAPLESS ENGINE INTEGRATION
  * 
  * Features:
- * - Dual video element switching for ZERO gap transitions
+ * - TRUE ZERO-GAP playback via MSE SourceBuffer (when supported)
+ * - Automatic fallback to dual video element switching
  * - HYDRATED BOOT: Waits for canplaythrough before any transition
- * - Graceful 16ms fallback if atomic switch fails
  * - Buffer status tracking for diagnostics
  * - Preloads next clip while current plays
  * - Triggers transition 0.15s BEFORE clip ends for zero gaps
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo, forwardRef } from 'react';
-import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Maximize2, Download, Loader2, Activity } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Maximize2, Download, Loader2, Activity, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { 
@@ -21,6 +21,14 @@ import {
   type BufferStatus,
   type BootState 
 } from '@/lib/videoEngine/HydratedBootSequence';
+import {
+  MSEGaplessEngine,
+  createMSEEngine,
+  detectMSESupport,
+  type MSEClip,
+  type MSEEngineState,
+} from '@/lib/videoEngine/MSEGaplessEngine';
+import { BlobPreloadCache } from '@/lib/videoEngine/BlobPreloadCache';
 
 interface ManifestClip {
   index: number;
@@ -54,6 +62,9 @@ const FALLBACK_TRANSITION_MS = 16; // One frame at 60fps for graceful fallback
 const TRANSITION_THRESHOLD = 0.15; // Trigger 150ms before clip ends
 const LOAD_TIMEOUT_MS = 8000; // 8 second timeout for canplaythrough
 
+// Detect MSE support once at module load
+const MSE_SUPPORT = detectMSESupport();
+
 // Double-RAF helper to ensure browser has painted before continuing
 function doubleRAF(callback: () => void) {
   requestAnimationFrame(() => {
@@ -70,7 +81,14 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   
-  // Dual video state for gapless playback
+  // MSE Engine state
+  const [useMSE, setUseMSE] = useState(MSE_SUPPORT.supported);
+  const [mseReady, setMseReady] = useState(false);
+  const mseVideoRef = useRef<HTMLVideoElement>(null);
+  const mseEngineRef = useRef<MSEGaplessEngine | null>(null);
+  const [mseEngineState, setMseEngineState] = useState<MSEEngineState | null>(null);
+  
+  // Dual video state for legacy fallback gapless playback
   const [activeVideoIndex, setActiveVideoIndex] = useState<0 | 1>(0);
   const [isCrossfading, setIsCrossfading] = useState(false);
   const [videoAOpacity, setVideoAOpacity] = useState(1);
@@ -139,9 +157,79 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
     loadManifest();
   }, [manifestUrl]);
 
-  // HYDRATED BOOT: Setup first clip with canplaythrough validation
+  // MSE ENGINE INITIALIZATION - when manifest is ready and MSE is supported
+  useEffect(() => {
+    if (!manifest || manifest.clips.length === 0) return;
+    if (!useMSE || !MSE_SUPPORT.supported) return;
+    if (mseEngineRef.current) return; // Already initialized
+    
+    const video = mseVideoRef.current;
+    if (!video) return;
+    
+    const initMSE = async () => {
+      setDiagnosticMessage('Initializing MSE engine...');
+      
+      try {
+        const mseClips: MSEClip[] = manifest.clips.map((clip, index) => ({
+          url: clip.videoUrl,
+          duration: clip.duration,
+          index,
+        }));
+        
+        const { engine, useFallback } = await createMSEEngine(video, mseClips, {
+          onStateChange: (state) => {
+            setMseEngineState(state);
+            setCurrentClipIndex(state.currentClipIndex);
+            setCurrentTime(state.currentTime);
+          },
+          onClipChange: (index) => {
+            console.log('[ManifestPlayer/MSE] Clip changed:', index);
+            setCurrentClipIndex(index);
+          },
+          onEnded: () => {
+            console.log('[ManifestPlayer/MSE] Playback ended');
+            setIsPlaying(false);
+            setCurrentClipIndex(0);
+            setCurrentTime(0);
+          },
+          onError: (error) => {
+            console.error('[ManifestPlayer/MSE] Engine error:', error);
+            // Fall back to legacy mode
+            setUseMSE(false);
+            setDiagnosticMessage('MSE failed, using legacy');
+          },
+        });
+        
+        mseEngineRef.current = engine;
+        
+        if (useFallback) {
+          console.log('[ManifestPlayer] MSE engine fell back to legacy');
+          setUseMSE(false);
+          setDiagnosticMessage('Using legacy playback');
+        } else {
+          setMseReady(true);
+          setDiagnosticMessage('MSE engine ready');
+          console.log('[ManifestPlayer] MSE engine initialized successfully');
+        }
+      } catch (err) {
+        console.warn('[ManifestPlayer] MSE init failed, falling back:', err);
+        setUseMSE(false);
+        setDiagnosticMessage('MSE failed, using legacy');
+      }
+    };
+    
+    initMSE();
+    
+    return () => {
+      mseEngineRef.current?.destroy();
+      mseEngineRef.current = null;
+    };
+  }, [manifest, useMSE]);
+
+  // LEGACY HYDRATED BOOT: Setup first clip with canplaythrough validation (when not using MSE)
   useEffect(() => {
     if (!manifest || manifest.clips.length === 0 || initialSetupDoneRef.current) return;
+    if (useMSE && MSE_SUPPORT.supported) return; // MSE handles its own initialization
 
     const videoA = videoARef.current;
     const videoB = videoBRef.current;
@@ -162,9 +250,9 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
         setVideoAStatus(status.canPlayThrough ? 'ready' : 'buffering');
         setBufferPercent(status.bufferedPercent);
         setDiagnosticMessage(`Clip 1 ready: ${status.bufferedPercent.toFixed(0)}% buffered`);
-        console.log('[ManifestPlayer] First clip hydrated:', status);
+        console.log('[ManifestPlayer/Legacy] First clip hydrated:', status);
       } catch (err) {
-        console.warn('[ManifestPlayer] First clip hydration warning:', err);
+        console.warn('[ManifestPlayer/Legacy] First clip hydration warning:', err);
         // Don't fail - the video might still be playable
         setVideoAStatus('ready');
         setDiagnosticMessage('Clip 1 loaded (partial)');
@@ -179,7 +267,7 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
         try {
           const statusB = await waitForCanPlayThrough(videoB, LOAD_TIMEOUT_MS);
           setVideoBStatus(statusB.canPlayThrough ? 'ready' : 'buffering');
-          console.log('[ManifestPlayer] Second clip preloaded:', statusB);
+          console.log('[ManifestPlayer/Legacy] Second clip preloaded:', statusB);
         } catch {
           setVideoBStatus('ready'); // Proceed anyway
         }
@@ -188,7 +276,7 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
     
     hydrateFirstClip();
     initialSetupDoneRef.current = true;
-  }, [manifest]);
+  }, [manifest, useMSE]);
 
   // Preload next clip into standby video when clip changes
   // NOTE: This is for manual skip navigation only - crossfade handles its own preloading
@@ -446,8 +534,21 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
     }
   }, [isPlaying, musicUrl, isMuted]);
 
-  // Play/Pause toggle
+  // Play/Pause toggle - MSE or legacy
   const togglePlay = useCallback(() => {
+    // MSE mode
+    if (useMSE && mseEngineRef.current && mseReady) {
+      if (isPlaying) {
+        mseEngineRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        mseEngineRef.current.play();
+        setIsPlaying(true);
+      }
+      return;
+    }
+    
+    // Legacy mode
     const activeVideo = getActiveVideo();
     if (!activeVideo) return;
     
@@ -458,17 +559,24 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
       activeVideo.play().catch(() => {});
       setIsPlaying(true);
     }
-  }, [isPlaying, getActiveVideo]);
+  }, [isPlaying, getActiveVideo, useMSE, mseReady]);
 
-  // Toggle mute on both videos and music
+  // Toggle mute on all videos and music
   const toggleMute = useCallback(() => {
     const newMuted = !isMuted;
     setIsMuted(newMuted);
     
+    // MSE mode
+    if (useMSE && mseEngineRef.current) {
+      mseEngineRef.current.setMuted(newMuted);
+    }
+    
+    // Legacy mode (also set for fallback)
     if (videoARef.current) videoARef.current.muted = newMuted;
     if (videoBRef.current) videoBRef.current.muted = newMuted;
+    if (mseVideoRef.current) mseVideoRef.current.muted = newMuted;
     if (musicRef.current) musicRef.current.volume = newMuted ? 0 : 0.5;
-  }, [isMuted]);
+  }, [isMuted, useMSE]);
 
   // Skip to specific clip
   const skipToClip = useCallback((index: number) => {
@@ -587,39 +695,57 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
 
   return (
     <div ref={containerRef} className={cn("relative bg-black rounded-xl overflow-hidden group", className)}>
-      {/* Dual Video Elements for Gapless Playback */}
-      <video
-        ref={videoARef}
-        className="absolute inset-0 w-full h-full object-contain"
-        style={{ 
-          opacity: videoAOpacity, 
-          zIndex: activeVideoIndex === 0 ? 2 : 1,
-          transition: `opacity ${CROSSFADE_FADEOUT_MS}ms ease-in-out`
-        }}
-        onTimeUpdate={activeVideoIndex === 0 ? handleTimeUpdate : undefined}
-        onEnded={activeVideoIndex === 0 ? handleClipEnded : undefined}
-        onPlay={activeVideoIndex === 0 ? () => setIsPlaying(true) : undefined}
-        onPause={activeVideoIndex === 0 ? () => setIsPlaying(false) : undefined}
-        muted={isMuted}
-        playsInline
-        preload="auto"
-      />
-      <video
-        ref={videoBRef}
-        className="absolute inset-0 w-full h-full object-contain"
-        style={{ 
-          opacity: videoBOpacity, 
-          zIndex: activeVideoIndex === 1 ? 2 : 1,
-          transition: `opacity ${CROSSFADE_FADEOUT_MS}ms ease-in-out`
-        }}
-        onTimeUpdate={activeVideoIndex === 1 ? handleTimeUpdate : undefined}
-        onEnded={activeVideoIndex === 1 ? handleClipEnded : undefined}
-        onPlay={activeVideoIndex === 1 ? () => setIsPlaying(true) : undefined}
-        onPause={activeVideoIndex === 1 ? () => setIsPlaying(false) : undefined}
-        muted={isMuted}
-        playsInline
-        preload="auto"
-      />
+      {/* MSE Video Element - TRUE GAPLESS PLAYBACK (when supported) */}
+      {useMSE && MSE_SUPPORT.supported && (
+        <video
+          ref={mseVideoRef}
+          className="absolute inset-0 w-full h-full object-contain"
+          style={{ zIndex: 2 }}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          muted={isMuted}
+          playsInline
+          preload="auto"
+        />
+      )}
+      
+      {/* Legacy Dual Video Elements for Fallback Gapless Playback */}
+      {(!useMSE || !MSE_SUPPORT.supported) && (
+        <>
+          <video
+            ref={videoARef}
+            className="absolute inset-0 w-full h-full object-contain"
+            style={{ 
+              opacity: videoAOpacity, 
+              zIndex: activeVideoIndex === 0 ? 2 : 1,
+              transition: `opacity ${CROSSFADE_FADEOUT_MS}ms ease-in-out`
+            }}
+            onTimeUpdate={activeVideoIndex === 0 ? handleTimeUpdate : undefined}
+            onEnded={activeVideoIndex === 0 ? handleClipEnded : undefined}
+            onPlay={activeVideoIndex === 0 ? () => setIsPlaying(true) : undefined}
+            onPause={activeVideoIndex === 0 ? () => setIsPlaying(false) : undefined}
+            muted={isMuted}
+            playsInline
+            preload="auto"
+          />
+          <video
+            ref={videoBRef}
+            className="absolute inset-0 w-full h-full object-contain"
+            style={{ 
+              opacity: videoBOpacity, 
+              zIndex: activeVideoIndex === 1 ? 2 : 1,
+              transition: `opacity ${CROSSFADE_FADEOUT_MS}ms ease-in-out`
+            }}
+            onTimeUpdate={activeVideoIndex === 1 ? handleTimeUpdate : undefined}
+            onEnded={activeVideoIndex === 1 ? handleClipEnded : undefined}
+            onPlay={activeVideoIndex === 1 ? () => setIsPlaying(true) : undefined}
+            onPause={activeVideoIndex === 1 ? () => setIsPlaying(false) : undefined}
+            muted={isMuted}
+            playsInline
+            preload="auto"
+          />
+        </>
+      )}
 
       {/* Continuous Background Music */}
       {musicUrl && (
@@ -745,24 +871,32 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
       {/* Diagnostic Overlay (optional - enabled via prop) */}
       {showDiagnostics && (
         <div className="absolute top-12 right-3 px-3 py-2 rounded bg-black/85 text-[10px] font-mono text-green-400 z-20 space-y-1 min-w-[180px]">
-          <div className="text-green-300 font-bold">🎬 Hydrated Boot</div>
+          <div className="text-green-300 font-bold flex items-center gap-1">
+            {useMSE && mseReady ? <Zap className="w-3 h-3" /> : null}
+            {useMSE && mseReady ? '🚀 MSE Gapless' : '🎬 Hydrated Boot'}
+          </div>
           <div className="border-t border-green-400/30 my-1" />
           <div>Active: Clip {currentClipIndex + 1}</div>
-          <div>Mode: {useFallbackTransition ? '⚠️ Fallback' : '✅ Atomic'}</div>
+          <div>Engine: {useMSE && mseReady ? '✅ MSE' : useFallbackTransition ? '⚠️ Fallback' : '✅ Atomic'}</div>
+          <div>MSE Support: {MSE_SUPPORT.supported ? '✅' : '❌'}</div>
           <div>Hi-Res Timers: {highResTimersRef.current ? '✅' : '⚠️'}</div>
-          <div className="border-t border-green-400/30 my-1" />
-          <div className="flex items-center gap-2">
-            <span className={videoAStatus === 'ready' ? 'text-green-400' : videoAStatus === 'loading' ? 'text-yellow-400' : 'text-red-400'}>
-              {videoAStatus === 'ready' ? '✅' : videoAStatus === 'loading' ? '⏳' : '❌'}
-            </span>
-            <span>Video A: {videoAStatus}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={videoBStatus === 'ready' ? 'text-green-400' : videoBStatus === 'loading' ? 'text-yellow-400' : 'text-red-400'}>
-              {videoBStatus === 'ready' ? '✅' : videoBStatus === 'loading' ? '⏳' : '❌'}
-            </span>
-            <span>Video B: {videoBStatus}</span>
-          </div>
+          {(!useMSE || !mseReady) && (
+            <>
+              <div className="border-t border-green-400/30 my-1" />
+              <div className="flex items-center gap-2">
+                <span className={videoAStatus === 'ready' ? 'text-green-400' : videoAStatus === 'loading' ? 'text-yellow-400' : 'text-red-400'}>
+                  {videoAStatus === 'ready' ? '✅' : videoAStatus === 'loading' ? '⏳' : '❌'}
+                </span>
+                <span>Video A: {videoAStatus}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={videoBStatus === 'ready' ? 'text-green-400' : videoBStatus === 'loading' ? 'text-yellow-400' : 'text-red-400'}>
+                  {videoBStatus === 'ready' ? '✅' : videoBStatus === 'loading' ? '⏳' : '❌'}
+                </span>
+                <span>Video B: {videoBStatus}</span>
+              </div>
+            </>
+          )}
           <div className="border-t border-green-400/30 my-1" />
           <div className="text-[9px] text-green-300/70">{diagnosticMessage}</div>
         </div>

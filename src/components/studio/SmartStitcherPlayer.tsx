@@ -1,10 +1,11 @@
 /**
- * SmartStitcherPlayer v5 - INSTANTANEOUS Gapless Playback with ForwardRef
+ * SmartStitcherPlayer v6 - MSE GAPLESS ENGINE INTEGRATION
  * 
  * Features:
- * - Dual video element switching for ZERO gap transitions
+ * - TRUE ZERO-GAP playback via MSE SourceBuffer (when supported)
+ * - Automatic fallback to dual video element switching
  * - Preloads next clip while current plays
- * - 50ms crossfade for INSTANT transitions
+ * - 50ms crossfade for INSTANT transitions (legacy mode)
  * - High-quality RAF-based stitching export
  * - Quality selector (720p/1080p/1440p)
  * - Works offline, no Cloud Run timeouts
@@ -45,6 +46,16 @@ import {
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import {
+  MSEGaplessEngine,
+  createMSEEngine,
+  detectMSESupport,
+  type MSEClip,
+  type MSEEngineState,
+} from '@/lib/videoEngine/MSEGaplessEngine';
+
+// Detect MSE support once at module load
+const MSE_SUPPORT = detectMSESupport();
 
 // Quality presets
 const QUALITY_PRESETS = {
@@ -180,7 +191,14 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   
-  // Dual video element state for gapless playback with crossfade
+  // MSE Engine state
+  const [useMSE, setUseMSE] = useState(MSE_SUPPORT.supported);
+  const [mseReady, setMseReady] = useState(false);
+  const mseVideoRef = useRef<HTMLVideoElement>(null);
+  const mseEngineRef = useRef<MSEGaplessEngine | null>(null);
+  const [mseEngineState, setMseEngineState] = useState<MSEEngineState | null>(null);
+  
+  // Dual video element state for legacy gapless playback with crossfade
   const [activeVideoIndex, setActiveVideoIndex] = useState<0 | 1>(0);
   const [isCrossfading, setIsCrossfading] = useState(false);
   const [videoAOpacity, setVideoAOpacity] = useState(1);
@@ -488,6 +506,83 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
     }
   }, [clips, isLoadingClips]); // Removed getActiveVideo/getStandbyVideo from deps to prevent re-runs on activeVideoIndex change
 
+  // MSE ENGINE INITIALIZATION - when clips are loaded and MSE is supported
+  useEffect(() => {
+    if (clips.length === 0 || isLoadingClips) return;
+    if (!useMSE || !MSE_SUPPORT.supported) return;
+    if (mseEngineRef.current) return; // Already initialized
+    if (useStitchedVideo) return; // Don't use MSE when stitched video is active
+    
+    const video = mseVideoRef.current;
+    if (!video) return;
+    
+    // Only proceed if we have loaded clips with blob URLs
+    const loadedClips = clips.filter(c => c.loaded && c.blobUrl);
+    if (loadedClips.length === 0) return;
+    
+    const initMSE = async () => {
+      console.log('[SmartStitcher/MSE] Initializing MSE engine with', loadedClips.length, 'clips');
+      
+      try {
+        const mseClips: MSEClip[] = loadedClips.map((clip, index) => ({
+          url: clip.blobUrl!, // Use blob URLs for CORS reliability
+          duration: clip.duration,
+          index,
+        }));
+        
+        const { engine, useFallback } = await createMSEEngine(video, mseClips, {
+          onStateChange: (state) => {
+            setMseEngineState(state);
+            setCurrentClipIndex(state.currentClipIndex);
+            setCurrentTime(state.currentTime);
+          },
+          onClipChange: (index) => {
+            console.log('[SmartStitcher/MSE] Clip changed:', index);
+            setCurrentClipIndex(index);
+          },
+          onEnded: () => {
+            console.log('[SmartStitcher/MSE] Playback ended');
+            setIsPlaying(false);
+            setCurrentClipIndex(0);
+            setCurrentTime(0);
+          },
+          onError: (error) => {
+            console.error('[SmartStitcher/MSE] Engine error:', error);
+            // Fall back to legacy mode
+            setUseMSE(false);
+          },
+        });
+        
+        mseEngineRef.current = engine;
+        
+        if (useFallback) {
+          console.log('[SmartStitcher] MSE engine fell back to legacy');
+          setUseMSE(false);
+        } else {
+          setMseReady(true);
+          console.log('[SmartStitcher] MSE engine initialized successfully');
+          
+          // Auto-play if pending
+          if (pendingPlayRef.current) {
+            pendingPlayRef.current = false;
+            engine.play();
+            setIsPlaying(true);
+          }
+        }
+      } catch (err) {
+        console.warn('[SmartStitcher] MSE init failed, falling back:', err);
+        setUseMSE(false);
+      }
+    };
+    
+    initMSE();
+    
+    return () => {
+      mseEngineRef.current?.destroy();
+      mseEngineRef.current = null;
+    };
+  }, [clips, isLoadingClips, useMSE, useStitchedVideo]);
+
   // Preload next clip into standby video when clip changes
   // NOTE: This is for manual skip navigation only - crossfade handles its own preloading
   useEffect(() => {
@@ -754,8 +849,9 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
     }
   }, [isPlaying, audioUrl, isMuted, isCrossfading]);
 
-  // Play/Pause toggle
+  // Play/Pause toggle - MSE or legacy
   const togglePlay = useCallback(() => {
+    // Stitched video mode
     if (useStitchedVideo) {
       const video = stitchedVideoRef.current;
       if (!video) return;
@@ -768,6 +864,19 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
       return;
     }
 
+    // MSE mode
+    if (useMSE && mseEngineRef.current && mseReady) {
+      if (isPlaying) {
+        mseEngineRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        mseEngineRef.current.play();
+        setIsPlaying(true);
+      }
+      return;
+    }
+
+    // Legacy mode
     const video = getActiveVideo();
     if (!video) return;
 
@@ -777,7 +886,7 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
       video.play().catch(() => {});
     }
     setIsPlaying(!isPlaying);
-  }, [isPlaying, useStitchedVideo, getActiveVideo]);
+  }, [isPlaying, useStitchedVideo, getActiveVideo, useMSE, mseReady]);
 
   // Skip to next/previous clip
   const skipNext = useCallback(() => {
@@ -1256,8 +1365,22 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
       onMouseMove={handleMouseMove}
       onMouseLeave={() => isPlaying && setShowControls(false)}
     >
-      {/* Dual Video Players for Gapless Playback with Crossfade */}
-      {!useStitchedVideo && (
+      {/* MSE Video Element - TRUE GAPLESS PLAYBACK (when supported) */}
+      {!useStitchedVideo && useMSE && MSE_SUPPORT.supported && (
+        <video
+          ref={mseVideoRef}
+          className="absolute inset-0 w-full h-full object-contain"
+          style={{ zIndex: 10 }}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          muted={isMuted}
+          playsInline
+          preload="auto"
+        />
+      )}
+      
+      {/* Legacy Dual Video Players for Fallback Gapless Playback with Crossfade */}
+      {!useStitchedVideo && (!useMSE || !MSE_SUPPORT.supported) && (
         <>
           {/* Video A */}
           <video
@@ -1464,7 +1587,20 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
                   <Button variant="ghost" size="icon" className="h-9 w-9 text-white hover:bg-white/20" onClick={skipNext}>
                     <SkipForward className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 text-white hover:bg-white/20" onClick={() => setIsMuted(!isMuted)}>
+                  <Button variant="ghost" size="icon" className="h-9 w-9 text-white hover:bg-white/20" onClick={() => {
+                    const newMuted = !isMuted;
+                    setIsMuted(newMuted);
+                    // MSE mode
+                    if (useMSE && mseEngineRef.current) {
+                      mseEngineRef.current.setMuted(newMuted);
+                    }
+                    // Legacy mode
+                    if (videoARef.current) videoARef.current.muted = newMuted;
+                    if (videoBRef.current) videoBRef.current.muted = newMuted;
+                    if (mseVideoRef.current) mseVideoRef.current.muted = newMuted;
+                    if (stitchedVideoRef.current) stitchedVideoRef.current.muted = newMuted;
+                    if (musicRef.current) musicRef.current.volume = newMuted ? 0 : 0.5;
+                  }}>
                     {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                   </Button>
                 </div>
@@ -1565,6 +1701,14 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* MSE Engine Badge */}
+      {!useStitchedVideo && useMSE && mseReady && (
+        <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-primary/20 backdrop-blur-sm rounded-lg px-2 py-1 z-30">
+          <Zap className="w-3 h-3 text-primary" />
+          <span className="text-[10px] font-medium text-primary">MSE Gapless</span>
+        </div>
+      )}
     </div>
   );
 });

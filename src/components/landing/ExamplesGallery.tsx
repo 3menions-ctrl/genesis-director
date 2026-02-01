@@ -1,12 +1,19 @@
 import { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, Film, Image, User, Sparkles, Loader2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, Film, Image, User, Sparkles, Loader2, AlertCircle } from 'lucide-react';
 import { useMountGuard } from '@/hooks/useNavigationGuard';
 import { useGalleryShowcase } from '@/hooks/useGalleryShowcase';
 import type { GalleryCategory } from '@/types/gallery-showcase';
+import { ManifestVideoPlayer } from '@/components/studio/ManifestVideoPlayer';
 
 type VideoCategory = 'all' | GalleryCategory;
+
+// Utility: Detect if URL is a manifest JSON
+function isManifestUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  return url.endsWith('.json') || url.includes('manifest_');
+}
 
 interface ShowcaseVideo {
   id: string;
@@ -45,6 +52,16 @@ interface ExamplesGalleryProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Helper component to trigger load state for ManifestVideoPlayer
+const LoadTrigger = memo(function LoadTrigger({ onLoad }: { onLoad: () => void }) {
+  useEffect(() => {
+    // Delay slightly to allow ManifestVideoPlayer to initialize
+    const timer = setTimeout(onLoad, 500);
+    return () => clearTimeout(timer);
+  }, [onLoad]);
+  return null;
+});
+
 const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: ExamplesGalleryProps) {
   const { safeSetState, isMounted } = useMountGuard();
   const { data: galleryItems, isLoading: isLoadingGallery } = useGalleryShowcase();
@@ -55,7 +72,9 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
   const [isMuted, setIsMuted] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [videoError, setVideoError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const manifestPlayerRef = useRef<HTMLDivElement>(null);
 
   // Transform database items to ShowcaseVideo format
   const allVideos: ShowcaseVideo[] = useMemo(() => {
@@ -77,10 +96,14 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
   
   const currentVideo = filteredVideos[currentIndex] || filteredVideos[0];
 
+  // Check if current video is a manifest
+  const isCurrentManifest = useMemo(() => isManifestUrl(currentVideo?.url), [currentVideo?.url]);
+
   const goToNext = useCallback(() => {
     if (!isMounted()) return;
     safeSetState(setIsLoaded, false);
     safeSetState(setProgress, 0);
+    safeSetState(setVideoError, null);
     safeSetState(setCurrentIndex, (prev) => (prev + 1) % filteredVideos.length);
   }, [isMounted, safeSetState, filteredVideos.length]);
 
@@ -88,6 +111,7 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
     if (!isMounted()) return;
     safeSetState(setIsLoaded, false);
     safeSetState(setProgress, 0);
+    safeSetState(setVideoError, null);
     safeSetState(setCurrentIndex, (prev) => (prev - 1 + filteredVideos.length) % filteredVideos.length);
   }, [isMounted, safeSetState, filteredVideos.length]);
 
@@ -164,29 +188,66 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
       <DialogContent className="max-w-none w-screen h-screen p-0 border-0 bg-black overflow-hidden rounded-none left-0 top-0 translate-x-0 translate-y-0 [&>button]:hidden">
         {/* Fullscreen Video - No boundaries */}
         <div className="absolute inset-0">
-          {/* Loading state */}
-          {!isLoaded && (
+          {/* Loading state - only show for non-manifest videos */}
+          {!isLoaded && !isCurrentManifest && !videoError && (
             <div className="absolute inset-0 bg-black flex items-center justify-center z-10">
               <div className="w-16 h-16 rounded-full border-2 border-white/20 border-t-white/80 animate-spin" />
             </div>
           )}
 
-          {/* Video fills entire screen */}
-          <video
-            ref={videoRef}
-            key={`${activeCategory}-${currentIndex}`}
-            autoPlay={isPlaying}
-            muted={isMuted}
-            playsInline
-            loop
-            onCanPlay={() => setIsLoaded(true)}
-            onTimeUpdate={handleTimeUpdate}
-            className={cn(
-              "absolute inset-0 w-full h-full object-cover transition-opacity duration-700",
-              isLoaded ? "opacity-100" : "opacity-0"
-            )}
-            src={currentVideo?.url}
-          />
+          {/* Error state */}
+          {videoError && (
+            <div className="absolute inset-0 bg-black flex flex-col items-center justify-center z-10 gap-4">
+              <AlertCircle className="w-12 h-12 text-red-400/60" />
+              <p className="text-white/60 text-sm max-w-xs text-center">{videoError}</p>
+              <button
+                onClick={goToNext}
+                className="px-4 py-2 rounded-full bg-white/10 text-white/80 hover:bg-white/20 transition-colors text-sm"
+              >
+                Try next video
+              </button>
+            </div>
+          )}
+
+          {/* Smart Video Player - ManifestVideoPlayer for .json URLs, native video for direct MP4s */}
+          {currentVideo && !videoError && (
+            isCurrentManifest ? (
+              <div 
+                key={`manifest-${activeCategory}-${currentIndex}`}
+                className="absolute inset-0 w-full h-full"
+              >
+                <ManifestVideoPlayer
+                  ref={manifestPlayerRef}
+                  manifestUrl={currentVideo.url}
+                  className="w-full h-full [&_video]:object-cover"
+                />
+                {/* Mark as loaded once ManifestVideoPlayer mounts */}
+                {!isLoaded && <LoadTrigger onLoad={() => setIsLoaded(true)} />}
+              </div>
+            ) : (
+              <video
+                ref={videoRef}
+                key={`video-${activeCategory}-${currentIndex}`}
+                autoPlay={isPlaying}
+                muted={isMuted}
+                playsInline
+                loop
+                crossOrigin="anonymous"
+                preload="auto"
+                onCanPlay={() => setIsLoaded(true)}
+                onTimeUpdate={handleTimeUpdate}
+                onError={(e) => {
+                  console.error('[ExamplesGallery] Video error:', e);
+                  setVideoError('Failed to load video');
+                }}
+                className={cn(
+                  "absolute inset-0 w-full h-full object-cover transition-opacity duration-700",
+                  isLoaded ? "opacity-100" : "opacity-0"
+                )}
+                src={currentVideo.url}
+              />
+            )
+          )}
 
           {/* Subtle vignette for depth */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.4)_100%)] pointer-events-none" />
@@ -287,37 +348,48 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
               <p className="text-white/60 text-sm md:text-xl max-w-2xl line-clamp-2 md:line-clamp-none">{currentVideo?.description}</p>
             </div>
 
-            {/* Controls row */}
-            <div className="flex items-center gap-2 md:gap-4">
-              {/* Play/Pause */}
-              <button
-                onClick={() => setIsPlaying(!isPlaying)}
-                className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all hover:scale-105"
-              >
-                {isPlaying ? <Pause className="w-4 h-4 md:w-6 md:h-6" /> : <Play className="w-4 h-4 md:w-6 md:h-6 ml-0.5" />}
-              </button>
-              
-              {/* Mute/Unmute */}
-              <button
-                onClick={() => {
-                  if (videoRef.current) {
-                    videoRef.current.muted = !videoRef.current.muted;
-                    setIsMuted(videoRef.current.muted);
-                  }
-                }}
-                className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all hover:scale-105"
-              >
-                {isMuted ? <VolumeX className="w-4 h-4 md:w-6 md:h-6" /> : <Volume2 className="w-4 h-4 md:w-6 md:h-6" />}
-              </button>
+            {/* Controls row - Only show for non-manifest videos (ManifestVideoPlayer has its own controls) */}
+            {!isCurrentManifest && (
+              <div className="flex items-center gap-2 md:gap-4">
+                {/* Play/Pause */}
+                <button
+                  onClick={() => {
+                    if (videoRef.current) {
+                      if (isPlaying) {
+                        videoRef.current.pause();
+                      } else {
+                        videoRef.current.play().catch(() => {});
+                      }
+                      setIsPlaying(!isPlaying);
+                    }
+                  }}
+                  className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all hover:scale-105"
+                >
+                  {isPlaying ? <Pause className="w-4 h-4 md:w-6 md:h-6" /> : <Play className="w-4 h-4 md:w-6 md:h-6 ml-0.5" />}
+                </button>
+                
+                {/* Mute/Unmute */}
+                <button
+                  onClick={() => {
+                    if (videoRef.current) {
+                      videoRef.current.muted = !videoRef.current.muted;
+                      setIsMuted(videoRef.current.muted);
+                    }
+                  }}
+                  className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all hover:scale-105"
+                >
+                  {isMuted ? <VolumeX className="w-4 h-4 md:w-6 md:h-6" /> : <Volume2 className="w-4 h-4 md:w-6 md:h-6" />}
+                </button>
 
-              {/* Progress bar */}
-              <div className="flex-1 h-1 md:h-1.5 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
-                <div 
-                  className="h-full bg-white transition-all duration-100"
-                  style={{ width: `${progress}%` }}
-                />
+                {/* Progress bar */}
+                <div className="flex-1 h-1 md:h-1.5 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
+                  <div 
+                    className="h-full bg-white transition-all duration-100"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -330,6 +402,7 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
                 onClick={() => {
                   setIsLoaded(false);
                   setProgress(0);
+                  setVideoError(null);
                   setCurrentIndex(i);
                 }}
                 className={cn(

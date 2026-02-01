@@ -2,12 +2,19 @@ import { useTheme } from "next-themes";
 import { Toaster as Sonner, toast } from "sonner";
 import { CheckCircle2, XCircle, AlertTriangle, Info, Loader2, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
+import { forwardRef } from "react";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
-// Animated icon wrapper with pulse effect
-const AnimatedIcon = ({ children, glowColor }: { children: React.ReactNode; glowColor: string }) => (
+interface AnimatedIconProps {
+  children: React.ReactNode;
+  glowColor: string;
+}
+
+// Animated icon wrapper with pulse effect - forwardRef to prevent Sonner ref warnings
+const AnimatedIcon = forwardRef<HTMLDivElement, AnimatedIconProps>(({ children, glowColor }, ref) => (
   <motion.div
+    ref={ref}
     initial={{ scale: 0, rotate: -180 }}
     animate={{ scale: 1, rotate: 0 }}
     transition={{ type: "spring", stiffness: 500, damping: 20 }}
@@ -29,7 +36,9 @@ const AnimatedIcon = ({ children, glowColor }: { children: React.ReactNode; glow
     />
     {children}
   </motion.div>
-);
+));
+
+AnimatedIcon.displayName = 'AnimatedIcon';
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme();

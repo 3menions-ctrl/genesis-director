@@ -279,96 +279,102 @@ const Navigation = memo(forwardRef<HTMLElement, {
 ));
 Navigation.displayName = 'Navigation';
 
-// Memoized Pricing Section
-const PricingSection = memo(function PricingSection({ onNavigate }: { onNavigate: (path: string) => void }) {
-  return (
-    <section id="pricing" className="relative z-10 py-24 px-6">
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.3 }}
-        className="max-w-4xl mx-auto"
-      >
-        <div className="relative group">
-          <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-blue-500/20 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-          
-          <div 
-            onClick={() => onNavigate('/pricing')}
-            className="relative rounded-3xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] p-12 md:p-16 cursor-pointer transition-all duration-500 overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-white/[0.02] to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-blue-500/[0.03] to-transparent rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-            
-            <div className="relative flex flex-col md:flex-row items-center justify-between gap-8">
-              <div className="text-center md:text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] mb-4">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span className="text-xs text-white/50">Simple pricing</span>
-                </div>
-                
-                <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-white mb-3">
-                  Pay once. Create forever.
-                </h2>
-                <p className="text-white/40 text-lg">
-                  No subscriptions. Credits that never expire.
-                </p>
-              </div>
-              
-              <div className="shrink-0">
-                <div className="group/btn relative">
-                  <div className="absolute -inset-1 bg-white/20 rounded-full blur-xl opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
-                  <Button
-                    size="lg"
-                    className="relative h-14 px-8 text-base font-medium rounded-full bg-white text-black hover:bg-white/90 shadow-[0_0_40px_rgba(255,255,255,0.1)] transition-all duration-300"
-                  >
-                    View Pricing
-                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-            
-            <div className="relative mt-10 pt-8 border-t border-white/[0.06] grid grid-cols-3 gap-4">
-              {PRICING_STATS.map((stat, i) => (
-                <PricingStat key={i} stat={stat} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </motion.div>
-    </section>
-  );
-});
-
-// Memoized Final CTA Section
-const FinalCTASection = memo(function FinalCTASection({ onNavigate }: { onNavigate: (path: string) => void }) {
-  return (
-    <section className="relative z-10 py-32 px-6">
-      <div className="max-w-3xl mx-auto text-center">
+// Memoized Pricing Section - forwardRef for parent ref compatibility
+const PricingSection = memo(forwardRef<HTMLElement, { onNavigate: (path: string) => void }>(
+  function PricingSection({ onNavigate }, ref) {
+    return (
+      <section ref={ref} id="pricing" className="relative z-10 py-24 px-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="max-w-4xl mx-auto"
         >
-          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-6">
-            Ready to create?
-          </h2>
-          <p className="text-lg text-white/40 mb-10 max-w-md mx-auto">
-            Join thousands of creators making videos with AI.
-          </p>
-          <Button
-            onClick={() => onNavigate('/auth?mode=signup')}
-            size="lg"
-            className="h-14 px-10 text-base font-medium rounded-full bg-white text-black hover:bg-white/90"
-          >
-            <Sparkles className="w-5 h-5 mr-2" />
-            Get Started Free
-          </Button>
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-blue-500/20 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            
+            <div 
+              onClick={() => onNavigate('/pricing')}
+              className="relative rounded-3xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] p-12 md:p-16 cursor-pointer transition-all duration-500 overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-white/[0.02] to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-blue-500/[0.03] to-transparent rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+              
+              <div className="relative flex flex-col md:flex-row items-center justify-between gap-8">
+                <div className="text-center md:text-left">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] mb-4">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span className="text-xs text-white/50">Simple pricing</span>
+                  </div>
+                  
+                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-white mb-3">
+                    Pay once. Create forever.
+                  </h2>
+                  <p className="text-white/40 text-lg">
+                    No subscriptions. Credits that never expire.
+                  </p>
+                </div>
+                
+                <div className="shrink-0">
+                  <div className="group/btn relative">
+                    <div className="absolute -inset-1 bg-white/20 rounded-full blur-xl opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
+                    <Button
+                      size="lg"
+                      className="relative h-14 px-8 text-base font-medium rounded-full bg-white text-black hover:bg-white/90 shadow-[0_0_40px_rgba(255,255,255,0.1)] transition-all duration-300"
+                    >
+                      View Pricing
+                      <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="relative mt-10 pt-8 border-t border-white/[0.06] grid grid-cols-3 gap-4">
+                {PRICING_STATS.map((stat, i) => (
+                  <PricingStat key={i} stat={stat} />
+                ))}
+              </div>
+            </div>
+          </div>
         </motion.div>
-      </div>
-    </section>
-  );
-});
+      </section>
+    );
+  }
+));
+PricingSection.displayName = 'PricingSection';
+
+// Memoized Final CTA Section - forwardRef for parent ref compatibility
+const FinalCTASection = memo(forwardRef<HTMLElement, { onNavigate: (path: string) => void }>(
+  function FinalCTASection({ onNavigate }, ref) {
+    return (
+      <section ref={ref} className="relative z-10 py-32 px-6">
+        <div className="max-w-3xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-6">
+              Ready to create?
+            </h2>
+            <p className="text-lg text-white/40 mb-10 max-w-md mx-auto">
+              Join thousands of creators making videos with AI.
+            </p>
+            <Button
+              onClick={() => onNavigate('/auth?mode=signup')}
+              size="lg"
+              className="h-14 px-10 text-base font-medium rounded-full bg-white text-black hover:bg-white/90"
+            >
+              <Sparkles className="w-5 h-5 mr-2" />
+              Get Started Free
+            </Button>
+          </motion.div>
+        </div>
+      </section>
+    );
+  }
+));
+FinalCTASection.displayName = 'FinalCTASection';
 
 // Main Landing Component
 export default function Landing() {

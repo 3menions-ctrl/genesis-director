@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, Film, Image, User, Sparkles } from 'lucide-react';
 import { useMountGuard } from '@/hooks/useNavigationGuard';
 
 // Import local thumbnails for instant loading
@@ -14,74 +14,121 @@ import fieryMajesty from '@/assets/thumbnails/fiery-majesty.jpg';
 import verdantGrove from '@/assets/thumbnails/verdant-grove.jpg';
 import wildHunt from '@/assets/thumbnails/wild-hunt.jpg';
 
-const SHOWCASE_VIDEOS = [
+type VideoCategory = 'all' | 'text-to-video' | 'image-to-video' | 'avatar';
+
+interface ShowcaseVideo {
+  url: string;
+  title: string;
+  description: string;
+  thumbnail: string;
+  category: VideoCategory;
+}
+
+const SHOWCASE_VIDEOS: ShowcaseVideo[] = [
+  // Text-to-Video examples
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4',
     title: 'Sunset Dreams on Winding Roads',
     description: 'A cinematic journey through golden-hour landscapes and endless horizons',
     thumbnail: sunsetDreams,
+    category: 'text-to-video',
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171376851.mp4',
     title: 'Soaring Above Snowy Serenity',
     description: 'A breathtaking aerial journey through pristine winter landscapes',
     thumbnail: snowySerenity,
+    category: 'text-to-video',
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_ed88401a-7a11-404c-acbc-55e375aee05d_1768166059131.mp4',
     title: 'Haunted Whispers of the Past',
     description: 'A chilling exploration of forgotten places and lost memories',
     thumbnail: illuminatedDreams,
+    category: 'text-to-video',
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768157346652.mp4',
     title: 'Whimsical Chocolate Adventures',
     description: 'A delightful journey through a world of sweet confections',
     thumbnail: chocolateAdventures,
+    category: 'text-to-video',
   },
+  // Image-to-Video examples
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_2e3503b6-a687-4d3e-bd97-9a1c264a7af2_1768153499834.mp4',
     title: 'Echoes of Desolation',
     description: 'A haunting exploration of abandoned landscapes and forgotten memories',
     thumbnail: verdantGrove,
+    category: 'image-to-video',
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_56f2b0ca-e570-4ab0-b73d-39318a6c2ea8_1768128683272.mp4',
     title: 'Illuminated Conversations',
     description: 'Light and shadow dance in meaningful dialogue',
     thumbnail: illuminatedDreams,
+    category: 'image-to-video',
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4',
     title: 'Silent Vigil in Ruined Valor',
     description: 'An epic tale of courage standing against the test of time',
     thumbnail: ruinedValor,
+    category: 'image-to-video',
   },
+  // Avatar examples
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_7434c756-78d3-4f68-8107-b205930027c4_1768120634478.mp4',
     title: 'Skyward Over Fiery Majesty',
     description: 'Drone cinematography capturing volcanic power from above',
     thumbnail: fieryMajesty,
+    category: 'avatar',
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_171d8bf6-2911-4c6a-b715-6ed0e93ff226_1768118838934.mp4',
     title: 'Editing Dreams in Motion',
     description: 'A cinematic ad showcasing creative video editing possibilities',
     thumbnail: wildHunt,
+    category: 'avatar',
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9ee134ca-5526-4e7f-9c10-1345f7b7b01f_1768109298602.mp4',
     title: 'Whispers of the Enchanted Jungle',
     description: 'Explore the magical depths of an untouched rainforest',
     thumbnail: verdantGrove,
+    category: 'avatar',
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_5d530ba0-a1e7-4954-8d90-05ffb5a346c2_1768108186067.mp4',
     title: 'Shadows of the Predator',
     description: "A thrilling wildlife documentary capturing nature's fierce beauty",
     thumbnail: wildHunt,
+    category: 'text-to-video',
   },
 ];
+
+const CATEGORY_CONFIG: Record<VideoCategory, { label: string; icon: typeof Film; description: string }> = {
+  'all': {
+    label: 'All Videos',
+    icon: Sparkles,
+    description: 'Browse our complete showcase',
+  },
+  'text-to-video': {
+    label: 'Text to Video',
+    icon: Film,
+    description: 'Transform your ideas into cinematic films',
+  },
+  'image-to-video': {
+    label: 'Image to Video',
+    icon: Image,
+    description: 'Bring your photos to life with motion',
+  },
+  'avatar': {
+    label: 'AI Avatar',
+    icon: User,
+    description: 'Create lifelike speaking avatars',
+  },
+};
 
 interface ExamplesGalleryProps {
   open: boolean;
@@ -90,6 +137,7 @@ interface ExamplesGalleryProps {
 
 const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: ExamplesGalleryProps) {
   const { safeSetState, isMounted } = useMountGuard();
+  const [activeCategory, setActiveCategory] = useState<VideoCategory>('all');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
@@ -97,21 +145,32 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
   const [progress, setProgress] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const currentVideo = SHOWCASE_VIDEOS[currentIndex];
+  const filteredVideos = activeCategory === 'all' 
+    ? SHOWCASE_VIDEOS 
+    : SHOWCASE_VIDEOS.filter(v => v.category === activeCategory);
+  
+  const currentVideo = filteredVideos[currentIndex] || filteredVideos[0];
 
   const goToNext = useCallback(() => {
     if (!isMounted()) return;
     safeSetState(setIsLoaded, false);
     safeSetState(setProgress, 0);
-    safeSetState(setCurrentIndex, (prev) => (prev + 1) % SHOWCASE_VIDEOS.length);
-  }, [isMounted, safeSetState]);
+    safeSetState(setCurrentIndex, (prev) => (prev + 1) % filteredVideos.length);
+  }, [isMounted, safeSetState, filteredVideos.length]);
 
   const goToPrev = useCallback(() => {
     if (!isMounted()) return;
     safeSetState(setIsLoaded, false);
     safeSetState(setProgress, 0);
-    safeSetState(setCurrentIndex, (prev) => (prev - 1 + SHOWCASE_VIDEOS.length) % SHOWCASE_VIDEOS.length);
-  }, [isMounted, safeSetState]);
+    safeSetState(setCurrentIndex, (prev) => (prev - 1 + filteredVideos.length) % filteredVideos.length);
+  }, [isMounted, safeSetState, filteredVideos.length]);
+
+  // Reset index when category changes
+  useEffect(() => {
+    setCurrentIndex(0);
+    setIsLoaded(false);
+    setProgress(0);
+  }, [activeCategory]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -134,6 +193,7 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
   // Reset on open
   useEffect(() => {
     if (open) {
+      setActiveCategory('all');
       setCurrentIndex(0);
       setIsPlaying(true);
       setIsLoaded(false);
@@ -145,6 +205,10 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
     const video = e.currentTarget;
     const progress = (video.currentTime / video.duration) * 100;
     setProgress(progress);
+  };
+
+  const handleCategoryChange = (category: VideoCategory) => {
+    setActiveCategory(category);
   };
 
   return (
@@ -162,7 +226,7 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
           {/* Video fills entire screen */}
           <video
             ref={videoRef}
-            key={currentIndex}
+            key={`${activeCategory}-${currentIndex}`}
             autoPlay={isPlaying}
             muted={isMuted}
             playsInline
@@ -173,7 +237,7 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
               "absolute inset-0 w-full h-full object-cover transition-opacity duration-700",
               isLoaded ? "opacity-100" : "opacity-0"
             )}
-            src={currentVideo.url}
+            src={currentVideo?.url}
           />
 
           {/* Subtle vignette for depth */}
@@ -183,7 +247,7 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
           <div className="absolute inset-x-0 bottom-0 h-80 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
           
           {/* Top gradient for controls */}
-          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/70 to-transparent pointer-events-none" />
         </div>
 
         {/* Close X button - Top right corner */}
@@ -196,10 +260,46 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
           <X className="w-7 h-7 text-white group-hover:scale-110 transition-transform" strokeWidth={2} />
         </button>
 
-        {/* Counter */}
+        {/* Category Tabs - Top center */}
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50">
+          <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/15">
+            {(Object.keys(CATEGORY_CONFIG) as VideoCategory[]).map((category) => {
+              const config = CATEGORY_CONFIG[category];
+              const Icon = config.icon;
+              const isActive = activeCategory === category;
+              const count = category === 'all' 
+                ? SHOWCASE_VIDEOS.length 
+                : SHOWCASE_VIDEOS.filter(v => v.category === category).length;
+              
+              return (
+                <button
+                  key={category}
+                  onClick={() => handleCategoryChange(category)}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-300",
+                    isActive 
+                      ? "bg-white text-black shadow-lg" 
+                      : "text-white/70 hover:text-white hover:bg-white/10"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="text-sm font-medium whitespace-nowrap">{config.label}</span>
+                  <span className={cn(
+                    "text-xs px-1.5 py-0.5 rounded-full",
+                    isActive ? "bg-black/10" : "bg-white/10"
+                  )}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Counter - Top left */}
         <div className="absolute top-6 left-6 z-50 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10">
           <span className="text-sm font-medium text-white/60">
-            <span className="text-white">{currentIndex + 1}</span> / {SHOWCASE_VIDEOS.length}
+            <span className="text-white">{currentIndex + 1}</span> / {filteredVideos.length}
           </span>
         </div>
 
@@ -221,9 +321,22 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
         {/* Video info overlay - Bottom */}
         <div className="absolute bottom-0 left-0 right-0 p-10 z-40">
           <div className="max-w-4xl">
+            {/* Category badge */}
+            <div className="mb-4">
+              {currentVideo && (
+                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-white/80 text-sm">
+                  {(() => {
+                    const Icon = CATEGORY_CONFIG[currentVideo.category].icon;
+                    return <Icon className="w-3.5 h-3.5" />;
+                  })()}
+                  {CATEGORY_CONFIG[currentVideo.category].label}
+                </span>
+              )}
+            </div>
+            
             <div className="animate-fade-in mb-6">
-              <h3 className="text-4xl lg:text-5xl font-bold text-white mb-3">{currentVideo.title}</h3>
-              <p className="text-white/60 text-xl max-w-2xl">{currentVideo.description}</p>
+              <h3 className="text-4xl lg:text-5xl font-bold text-white mb-3">{currentVideo?.title}</h3>
+              <p className="text-white/60 text-xl max-w-2xl">{currentVideo?.description}</p>
             </div>
 
             {/* Controls row */}
@@ -239,7 +352,6 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
               {/* Mute/Unmute */}
               <button
                 onClick={() => {
-                  // Directly control video element in user gesture context for browser policy compliance
                   if (videoRef.current) {
                     videoRef.current.muted = !videoRef.current.muted;
                     setIsMuted(videoRef.current.muted);
@@ -264,9 +376,9 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
         {/* Thumbnail strip at bottom */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50">
           <div className="flex items-center gap-3 p-2 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10">
-            {SHOWCASE_VIDEOS.slice(0, 8).map((video, i) => (
+            {filteredVideos.slice(0, 8).map((video, i) => (
               <button
-                key={i}
+                key={`${video.url}-${i}`}
                 onClick={() => {
                   setIsLoaded(false);
                   setProgress(0);

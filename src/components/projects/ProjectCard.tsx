@@ -430,12 +430,14 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
         )}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={(e) => e.stopPropagation()}
-                className="h-8 w-8 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-xl text-white/70 hover:text-white hover:bg-black/80 transition-all border border-white/10"
+                className="h-8 w-8 rounded-full bg-black/60 backdrop-blur-xl text-white/70 hover:text-white hover:bg-black/80 transition-all border border-white/10"
               >
                 <MoreVertical className="w-4 h-4" />
-              </button>
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44 rounded-xl bg-zinc-900 border-zinc-700 shadow-2xl backdrop-blur-2xl p-1.5">
               {hasVideo && (

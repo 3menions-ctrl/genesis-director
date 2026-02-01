@@ -254,15 +254,15 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
         <button 
           type="button"
           onClick={() => onOpenChange(false)}
-          className="absolute top-6 right-6 z-[9999] cursor-pointer w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center group hover:bg-white/20 transition-all"
+          className="absolute top-3 right-3 md:top-6 md:right-6 z-[9999] cursor-pointer w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center group hover:bg-white/20 transition-all"
           aria-label="Close gallery"
         >
-          <X className="w-7 h-7 text-white group-hover:scale-110 transition-transform" strokeWidth={2} />
+          <X className="w-5 h-5 md:w-7 md:h-7 text-white group-hover:scale-110 transition-transform" strokeWidth={2} />
         </button>
 
-        {/* Category Tabs - Top center */}
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50">
-          <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/15">
+        {/* Category Tabs - Top center, responsive for mobile */}
+        <div className="absolute top-14 md:top-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] md:w-auto">
+          <div className="flex items-center justify-center gap-1 md:gap-2 p-1 md:p-1.5 rounded-xl md:rounded-2xl bg-white/10 backdrop-blur-xl border border-white/15">
             {(Object.keys(CATEGORY_CONFIG) as VideoCategory[]).map((category) => {
               const config = CATEGORY_CONFIG[category];
               const Icon = config.icon;
@@ -276,16 +276,16 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
                   key={category}
                   onClick={() => handleCategoryChange(category)}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-300",
+                    "flex items-center gap-1 md:gap-2 px-2 py-1.5 md:px-4 md:py-2.5 rounded-lg md:rounded-xl transition-all duration-300",
                     isActive 
                       ? "bg-white text-black shadow-lg" 
                       : "text-white/70 hover:text-white hover:bg-white/10"
                   )}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span className="text-sm font-medium whitespace-nowrap">{config.label}</span>
+                  <Icon className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                  <span className="hidden md:inline text-sm font-medium whitespace-nowrap">{config.label}</span>
                   <span className={cn(
-                    "text-xs px-1.5 py-0.5 rounded-full",
+                    "text-[10px] md:text-xs px-1 md:px-1.5 py-0.5 rounded-full",
                     isActive ? "bg-black/10" : "bg-white/10"
                   )}>
                     {count}
@@ -297,8 +297,8 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
         </div>
 
         {/* Counter - Top left */}
-        <div className="absolute top-6 left-6 z-50 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10">
-          <span className="text-sm font-medium text-white/60">
+        <div className="absolute top-3 left-3 md:top-6 md:left-6 z-50 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10">
+          <span className="text-xs md:text-sm font-medium text-white/60">
             <span className="text-white">{currentIndex + 1}</span> / {filteredVideos.length}
           </span>
         </div>
@@ -306,47 +306,47 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
         {/* Navigation arrows */}
         <button
           onClick={goToPrev}
-          className="absolute left-8 top-1/2 -translate-y-1/2 z-50 w-16 h-16 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 transition-all hover:scale-110 group"
+          className="absolute left-2 md:left-8 top-1/2 -translate-y-1/2 z-50 w-10 h-10 md:w-16 md:h-16 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 transition-all hover:scale-110 group"
         >
-          <ChevronLeft className="w-7 h-7 group-hover:-translate-x-0.5 transition-transform" />
+          <ChevronLeft className="w-5 h-5 md:w-7 md:h-7 group-hover:-translate-x-0.5 transition-transform" />
         </button>
         
         <button
           onClick={goToNext}
-          className="absolute right-8 top-1/2 -translate-y-1/2 z-50 w-16 h-16 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 transition-all hover:scale-110 group"
+          className="absolute right-2 md:right-8 top-1/2 -translate-y-1/2 z-50 w-10 h-10 md:w-16 md:h-16 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 transition-all hover:scale-110 group"
         >
-          <ChevronRight className="w-7 h-7 group-hover:translate-x-0.5 transition-transform" />
+          <ChevronRight className="w-5 h-5 md:w-7 md:h-7 group-hover:translate-x-0.5 transition-transform" />
         </button>
 
         {/* Video info overlay - Bottom */}
-        <div className="absolute bottom-0 left-0 right-0 p-10 z-40">
+        <div className="absolute bottom-0 left-0 right-0 p-4 md:p-10 z-40 pb-24 md:pb-10">
           <div className="max-w-4xl">
             {/* Category badge */}
-            <div className="mb-4">
+            <div className="mb-2 md:mb-4">
               {currentVideo && (
-                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-white/80 text-sm">
+                <span className="inline-flex items-center gap-1.5 md:gap-2 px-2 py-1 md:px-3 md:py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-white/80 text-xs md:text-sm">
                   {(() => {
                     const Icon = CATEGORY_CONFIG[currentVideo.category].icon;
-                    return <Icon className="w-3.5 h-3.5" />;
+                    return <Icon className="w-3 h-3 md:w-3.5 md:h-3.5" />;
                   })()}
-                  {CATEGORY_CONFIG[currentVideo.category].label}
+                  <span className="hidden md:inline">{CATEGORY_CONFIG[currentVideo.category].label}</span>
                 </span>
               )}
             </div>
             
-            <div className="animate-fade-in mb-6">
-              <h3 className="text-4xl lg:text-5xl font-bold text-white mb-3">{currentVideo?.title}</h3>
-              <p className="text-white/60 text-xl max-w-2xl">{currentVideo?.description}</p>
+            <div className="animate-fade-in mb-4 md:mb-6">
+              <h3 className="text-xl md:text-4xl lg:text-5xl font-bold text-white mb-1 md:mb-3">{currentVideo?.title}</h3>
+              <p className="text-white/60 text-sm md:text-xl max-w-2xl line-clamp-2 md:line-clamp-none">{currentVideo?.description}</p>
             </div>
 
             {/* Controls row */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
               {/* Play/Pause */}
               <button
                 onClick={() => setIsPlaying(!isPlaying)}
-                className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all hover:scale-105"
+                className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all hover:scale-105"
               >
-                {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
+                {isPlaying ? <Pause className="w-4 h-4 md:w-6 md:h-6" /> : <Play className="w-4 h-4 md:w-6 md:h-6 ml-0.5" />}
               </button>
               
               {/* Mute/Unmute */}
@@ -357,13 +357,13 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
                     setIsMuted(videoRef.current.muted);
                   }
                 }}
-                className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all hover:scale-105"
+                className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all hover:scale-105"
               >
-                {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+                {isMuted ? <VolumeX className="w-4 h-4 md:w-6 md:h-6" /> : <Volume2 className="w-4 h-4 md:w-6 md:h-6" />}
               </button>
 
               {/* Progress bar */}
-              <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
+              <div className="flex-1 h-1 md:h-1.5 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
                 <div 
                   className="h-full bg-white transition-all duration-100"
                   style={{ width: `${progress}%` }}
@@ -373,8 +373,8 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
           </div>
         </div>
 
-        {/* Thumbnail strip at bottom */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50">
+        {/* Thumbnail strip at bottom - hidden on mobile to save space */}
+        <div className="hidden md:block absolute bottom-8 left-1/2 -translate-x-1/2 z-50">
           <div className="flex items-center gap-3 p-2 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10">
             {filteredVideos.slice(0, 8).map((video, i) => (
               <button

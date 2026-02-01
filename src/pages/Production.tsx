@@ -1320,7 +1320,11 @@ const ProductionContent = memo(function ProductionContent() {
               )}
 
               {/* Streamlined Production Dashboard - Real data only */}
-              {!['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && (
+              {/* Now also shown for avatar/specialized modes when clips exist - users need to see their generated clips */}
+              {(
+                !['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) || 
+                (clipResults.length > 0 && ['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode))
+              ) && (
                 <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
                   <Suspense fallback={<SectionLoader />}>
                     <ProductionDashboard

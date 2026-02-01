@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { withSafePageRef } from '@/lib/withSafeRef';
 import { 
   Film, Loader2, X, FileText, Users, Shield, Wand2, Sparkles
 } from 'lucide-react';
@@ -100,9 +101,9 @@ const STAGE_CONFIG: Array<{ name: string; shortName: string; icon: React.Element
 
 // ============= MAIN COMPONENT =============
 
-// Content component wrapped for error boundary with hook resilience
-// CRITICAL: Use standard memo() without forwardRef to prevent "Component is not a function" crash
-const ProductionContent = memo(function ProductionContent() {
+// Content component - wrapped with withSafePageRef for bulletproof ref handling
+// Absorbs refs injected by Radix components, preventing crashes
+function ProductionContentInner() {
   // Hook resilience - wrap in try-catch with fallbacks
   let navigate: ReturnType<typeof useNavigate>;
   try {
@@ -1411,7 +1412,10 @@ const ProductionContent = memo(function ProductionContent() {
       </AnimatePresence>
     </div>
   );
-});
+}
+
+// Apply universal SafePageRef wrapper - absorbs refs injected by parent libraries
+const ProductionContent = withSafePageRef(ProductionContentInner, 'ProductionContent');
 
 // Wrapper with error boundary
 export default function Production() {

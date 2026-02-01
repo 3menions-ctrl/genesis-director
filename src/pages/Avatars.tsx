@@ -522,7 +522,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
 
 AvatarsContent.displayName = 'AvatarsContent';
 
-// Wrapper with error boundary
+// Wrapper with error boundary - ref forwarding not needed as ErrorBoundary doesn't pass refs
 export default function Avatars() {
   return (
     <ErrorBoundary>

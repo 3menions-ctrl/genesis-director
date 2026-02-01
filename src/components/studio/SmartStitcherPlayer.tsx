@@ -1318,10 +1318,10 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
     setManualRetryTrigger(prev => prev + 1);
   }, []);
 
-  // Loading state
+  // Loading state - MUST use containerRef for forwardRef compatibility
   if (isLoadingClips) {
     return (
-      <div className={cn('flex flex-col items-center justify-center bg-black rounded-xl aspect-video', className)}>
+      <div ref={containerRef} className={cn('flex flex-col items-center justify-center bg-black rounded-xl aspect-video', className)}>
         <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
         <p className="text-sm text-white/70">Loading clips...</p>
         <div className="w-48 mt-3">
@@ -1334,10 +1334,10 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
     );
   }
 
-  // Error state with smart retry
+  // Error state with smart retry - MUST use containerRef for forwardRef compatibility
   if (loadError || (clips.length === 0 && !isLoadingClips)) {
     return (
-      <div className={cn('flex flex-col items-center justify-center bg-black rounded-xl aspect-video', className)}>
+      <div ref={containerRef} className={cn('flex flex-col items-center justify-center bg-black rounded-xl aspect-video', className)}>
         <AlertCircle className="w-10 h-10 text-destructive mb-4" />
         <p className="text-sm text-destructive text-center px-4">{loadError || 'No clips available'}</p>
         <p className="text-xs text-muted-foreground mt-2 text-center px-4">

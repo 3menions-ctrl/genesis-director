@@ -105,21 +105,11 @@ const formatTimeAgo = (dateString: string) => {
 
 // ============= MAIN COMPONENT =============
 
-// Content component - forwardRef required for Radix Dialog compatibility
-// Uses callback ref pattern to merge forwarded ref with internal containerRef
-const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProjectsContent(_, ref) {
+// Content component - standard memo component (no forwardRef needed since parent doesn't pass ref)
+// Radix Dialogs inside handle their own refs
+const ProjectsContent = memo(function ProjectsContent() {
   // Internal ref for component's own DOM access
   const containerRef = useRef<HTMLDivElement>(null);
-  
-  // Callback ref to merge forwarded ref with internal ref (synchronous, prevents crashes)
-  const mergedRef = useCallback((node: HTMLDivElement | null) => {
-    containerRef.current = node;
-    if (typeof ref === 'function') {
-      ref(node);
-    } else if (ref) {
-      (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
-    }
-  }, [ref]);
   // Mount tracking for async safety
   const isMountedRef = useRef(true);
   
@@ -701,7 +691,7 @@ const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
   const stitchingProjects = projects.filter(p => status(p) === 'stitching');
 
   return (
-    <div ref={mergedRef} className="min-h-screen bg-[#030303] relative overflow-x-hidden">
+    <div ref={containerRef} className="min-h-screen bg-[#030303] relative overflow-x-hidden">
       {/* Premium Orange-Themed Animated Background */}
       <ProjectsBackground />
 
@@ -1500,7 +1490,7 @@ const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
       </Dialog>
     </div>
   );
-}));
+});
 
 ProjectsContent.displayName = 'ProjectsContent';
 

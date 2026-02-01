@@ -367,16 +367,20 @@ serve(async (req) => {
         duration_seconds: Math.ceil(audioDurationMs / 1000),
       }).select('id').single();
 
-      // Update project to completed
+      // Update project to completed - set BOTH video_url and final_video_url for compatibility
       await supabase.from('movie_projects').update({
         status: 'completed',
+        video_url: finalVideoUrl,
         final_video_url: finalVideoUrl,
+        voice_audio_url: audioUrl,
+        pipeline_stage: 'completed',
         pipeline_state: {
           stage: 'completed',
           progress: 100,
           message: 'Avatar video complete!',
           completedAt: new Date().toISOString(),
         },
+        updated_at: new Date().toISOString(),
       }).eq('id', projectId);
     }
 

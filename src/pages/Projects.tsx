@@ -221,7 +221,8 @@ const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
   
   // BATCH RESOLVE: Fetch all clip URLs for projects that need them in ONE query
   useEffect(() => {
-    if (!hasLoadedOnce || projects.length === 0) return;
+    // Guard: Wait for user, hasLoadedOnce, and projects before resolving
+    if (!user || !hasLoadedOnce || !Array.isArray(projects) || projects.length === 0) return;
     
     const resolveClipUrls = async () => {
       // ALWAYS check video_clips for ALL completed projects to avoid expired Replicate URLs
@@ -271,19 +272,24 @@ const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
     };
     
     resolveClipUrls();
-  }, [hasLoadedOnce, projects]);
+  }, [user, hasLoadedOnce, projects]);
   
   // Auto-generate missing thumbnails when projects load
   useEffect(() => {
-    if (hasLoadedOnce && projects.length > 0) {
+    // Guard: Wait for user and valid projects array
+    if (!user || !hasLoadedOnce || !Array.isArray(projects) || projects.length === 0) return;
+    
+    try {
       const projectsNeedingThumbnails = projects.map(p => ({
         id: p.id,
         video_url: p.video_url,
         thumbnail_url: p.thumbnail_url
       }));
       generateMissingThumbnails(projectsNeedingThumbnails);
+    } catch (err) {
+      console.debug('[Projects] Thumbnail generation skipped:', err);
     }
-  }, [hasLoadedOnce, projects, generateMissingThumbnails]);
+  }, [user, hasLoadedOnce, projects, generateMissingThumbnails]);
 
 
   // Fetch training videos

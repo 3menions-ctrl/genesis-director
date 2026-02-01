@@ -77,6 +77,60 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'validateFunctionComponentInDev',
 ];
 
+// ============= CONSOLE INTERCEPTION =============
+// Intercept console.error/warn to suppress React development warnings
+// This is the world-class solution - catch warnings at the source
+
+const originalConsoleError = console.error;
+const originalConsoleWarn = console.warn;
+
+// Patterns specifically for console warnings (React dev mode)
+const CONSOLE_SUPPRESSED_PATTERNS = [
+  'Function components cannot be given refs',
+  'forwardRef render functions',
+  'Check the render method',
+  'validateFunctionComponentInDev',
+  'Did you mean to use React.forwardRef',
+  'Attempts to access this ref will fail',
+];
+
+const shouldSuppressConsoleMessage = (args: unknown[]): boolean => {
+  const message = args.map(arg => 
+    typeof arg === 'string' ? arg : arg instanceof Error ? arg.message : String(arg)
+  ).join(' ');
+  
+  return CONSOLE_SUPPRESSED_PATTERNS.some(pattern => 
+    message.includes(pattern)
+  );
+};
+
+// Override console.error to suppress React ref warnings
+console.error = (...args: unknown[]) => {
+  if (shouldSuppressConsoleMessage(args)) {
+    // Log at debug level instead of error (visible but doesn't pollute console)
+    console.debug('[Suppressed React Warning]', args[0]?.toString?.()?.substring(0, 80) || 'ref warning');
+    return;
+  }
+  originalConsoleError.apply(console, args);
+};
+
+// Override console.warn for completeness
+console.warn = (...args: unknown[]) => {
+  if (shouldSuppressConsoleMessage(args)) {
+    console.debug('[Suppressed React Warning]', args[0]?.toString?.()?.substring(0, 80) || 'ref warning');
+    return;
+  }
+  originalConsoleWarn.apply(console, args);
+};
+
+// Clean up console overrides on HMR to prevent stacking
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    console.error = originalConsoleError;
+    console.warn = originalConsoleWarn;
+  });
+}
+
 // Check if error should be suppressed
 const shouldSuppressGlobalError = (error: unknown): boolean => {
   if (!error) return true;

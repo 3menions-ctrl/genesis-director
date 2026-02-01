@@ -862,12 +862,12 @@ const GalleryContent = memo(function GalleryContent() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-4"
+        className="fixed top-4 right-4 md:right-auto md:left-1/2 md:-translate-x-1/2 z-40 flex flex-col items-end md:items-center gap-2 md:gap-4"
       >
         <h1 className="text-slate-400/50 text-sm tracking-[0.3em] uppercase font-light">Gallery</h1>
         
-        {/* Category Navigation Tabs */}
-        <div className="flex items-center gap-1 p-1 bg-black/40 backdrop-blur-xl rounded-full border border-white/10">
+        {/* Mobile: Compact icon-only tabs */}
+        <div className="flex items-center gap-1 p-1 bg-black/60 backdrop-blur-xl rounded-full border border-white/10">
           {CATEGORIES.map((cat) => {
             const Icon = cat.icon;
             const isActive = activeCategory === cat.id;
@@ -878,7 +878,9 @@ const GalleryContent = memo(function GalleryContent() {
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.id)}
                 className={cn(
-                  "relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300",
+                  "relative flex items-center gap-1.5 rounded-full text-sm font-medium transition-all duration-300",
+                  // Mobile: smaller padding, icon + count only
+                  "px-2.5 py-1.5 md:px-4 md:py-2",
                   isActive 
                     ? "text-white" 
                     : "text-zinc-500 hover:text-zinc-300"
@@ -893,8 +895,9 @@ const GalleryContent = memo(function GalleryContent() {
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}
-                <span className="relative z-10 flex items-center gap-2">
+                <span className="relative z-10 flex items-center gap-1.5">
                   <Icon className="w-4 h-4" />
+                  {/* Label: hidden on mobile, shown on md+ */}
                   <span className="hidden md:inline">{cat.label}</span>
                   <span className={cn(
                     "text-xs px-1.5 py-0.5 rounded-full",
@@ -908,7 +911,7 @@ const GalleryContent = memo(function GalleryContent() {
           })}
         </div>
         
-        {/* Active category description */}
+        {/* Active category description - hidden on mobile for space */}
         <AnimatePresence mode="wait">
           <motion.p
             key={activeCategory}
@@ -916,7 +919,7 @@ const GalleryContent = memo(function GalleryContent() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
             transition={{ duration: 0.2 }}
-            className="text-zinc-500 text-xs"
+            className="hidden md:block text-zinc-500 text-xs"
           >
             {CATEGORIES.find(c => c.id === activeCategory)?.description}
           </motion.p>

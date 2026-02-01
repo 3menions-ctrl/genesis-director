@@ -56,6 +56,7 @@ import { AdminContentModeration } from '@/components/admin/AdminContentModeratio
 import { AdminSystemConfig } from '@/components/admin/AdminSystemConfig';
 import { AdminMessageCenter } from '@/components/admin/AdminMessageCenter';
 import { AdminAvatarSeeder } from '@/components/admin/AdminAvatarSeeder';
+import { AdminGalleryManager } from '@/components/admin/AdminGalleryManager';
 
 interface ProfitData {
   date: string;
@@ -1054,6 +1055,9 @@ export default function AdminDashboard() {
 
       case 'avatars':
         return <AdminAvatarSeeder />;
+
+      case 'gallery':
+        return <AdminGalleryManager />;
 
       default:
         return null;

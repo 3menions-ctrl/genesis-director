@@ -1,111 +1,21 @@
-import { useState, useEffect, useCallback, useRef, memo } from 'react';
+import { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, Film, Image, User, Sparkles } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, Film, Image, User, Sparkles, Loader2 } from 'lucide-react';
 import { useMountGuard } from '@/hooks/useNavigationGuard';
+import { useGalleryShowcase } from '@/hooks/useGalleryShowcase';
+import type { GalleryCategory } from '@/types/gallery-showcase';
 
-// Import local thumbnails for instant loading
-import sunsetDreams from '@/assets/thumbnails/sunset-dreams.jpg';
-import snowySerenity from '@/assets/thumbnails/snowy-serenity.jpg';
-import chocolateAdventures from '@/assets/thumbnails/chocolate-adventures.jpg';
-import illuminatedDreams from '@/assets/thumbnails/illuminated-dreams.jpg';
-import ruinedValor from '@/assets/thumbnails/ruined-valor.jpg';
-import fieryMajesty from '@/assets/thumbnails/fiery-majesty.jpg';
-import verdantGrove from '@/assets/thumbnails/verdant-grove.jpg';
-import wildHunt from '@/assets/thumbnails/wild-hunt.jpg';
-
-type VideoCategory = 'all' | 'text-to-video' | 'image-to-video' | 'avatar';
+type VideoCategory = 'all' | GalleryCategory;
 
 interface ShowcaseVideo {
+  id: string;
   url: string;
   title: string;
   description: string;
-  thumbnail: string;
-  category: VideoCategory;
+  thumbnail: string | null;
+  category: GalleryCategory;
 }
-
-const SHOWCASE_VIDEOS: ShowcaseVideo[] = [
-  // Text-to-Video examples
-  {
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4',
-    title: 'Sunset Dreams on Winding Roads',
-    description: 'A cinematic journey through golden-hour landscapes and endless horizons',
-    thumbnail: sunsetDreams,
-    category: 'text-to-video',
-  },
-  {
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171376851.mp4',
-    title: 'Soaring Above Snowy Serenity',
-    description: 'A breathtaking aerial journey through pristine winter landscapes',
-    thumbnail: snowySerenity,
-    category: 'text-to-video',
-  },
-  {
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_ed88401a-7a11-404c-acbc-55e375aee05d_1768166059131.mp4',
-    title: 'Haunted Whispers of the Past',
-    description: 'A chilling exploration of forgotten places and lost memories',
-    thumbnail: illuminatedDreams,
-    category: 'text-to-video',
-  },
-  {
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768157346652.mp4',
-    title: 'Whimsical Chocolate Adventures',
-    description: 'A delightful journey through a world of sweet confections',
-    thumbnail: chocolateAdventures,
-    category: 'text-to-video',
-  },
-  // Image-to-Video examples
-  {
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_2e3503b6-a687-4d3e-bd97-9a1c264a7af2_1768153499834.mp4',
-    title: 'Echoes of Desolation',
-    description: 'A haunting exploration of abandoned landscapes and forgotten memories',
-    thumbnail: verdantGrove,
-    category: 'image-to-video',
-  },
-  {
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_56f2b0ca-e570-4ab0-b73d-39318a6c2ea8_1768128683272.mp4',
-    title: 'Illuminated Conversations',
-    description: 'Light and shadow dance in meaningful dialogue',
-    thumbnail: illuminatedDreams,
-    category: 'image-to-video',
-  },
-  {
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4',
-    title: 'Silent Vigil in Ruined Valor',
-    description: 'An epic tale of courage standing against the test of time',
-    thumbnail: ruinedValor,
-    category: 'image-to-video',
-  },
-  // Avatar examples
-  {
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_7434c756-78d3-4f68-8107-b205930027c4_1768120634478.mp4',
-    title: 'Skyward Over Fiery Majesty',
-    description: 'Drone cinematography capturing volcanic power from above',
-    thumbnail: fieryMajesty,
-    category: 'avatar',
-  },
-  {
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_171d8bf6-2911-4c6a-b715-6ed0e93ff226_1768118838934.mp4',
-    title: 'Editing Dreams in Motion',
-    description: 'A cinematic ad showcasing creative video editing possibilities',
-    thumbnail: wildHunt,
-    category: 'avatar',
-  },
-  {
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9ee134ca-5526-4e7f-9c10-1345f7b7b01f_1768109298602.mp4',
-    title: 'Whispers of the Enchanted Jungle',
-    description: 'Explore the magical depths of an untouched rainforest',
-    thumbnail: verdantGrove,
-    category: 'avatar',
-  },
-  {
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_5d530ba0-a1e7-4954-8d90-05ffb5a346c2_1768108186067.mp4',
-    title: 'Shadows of the Predator',
-    description: "A thrilling wildlife documentary capturing nature's fierce beauty",
-    thumbnail: wildHunt,
-    category: 'text-to-video',
-  },
-];
 
 const CATEGORY_CONFIG: Record<VideoCategory, { label: string; icon: typeof Film; description: string }> = {
   'all': {
@@ -137,6 +47,8 @@ interface ExamplesGalleryProps {
 
 const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: ExamplesGalleryProps) {
   const { safeSetState, isMounted } = useMountGuard();
+  const { data: galleryItems, isLoading: isLoadingGallery } = useGalleryShowcase();
+  
   const [activeCategory, setActiveCategory] = useState<VideoCategory>('all');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -145,9 +57,23 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
   const [progress, setProgress] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const filteredVideos = activeCategory === 'all' 
-    ? SHOWCASE_VIDEOS 
-    : SHOWCASE_VIDEOS.filter(v => v.category === activeCategory);
+  // Transform database items to ShowcaseVideo format
+  const allVideos: ShowcaseVideo[] = useMemo(() => {
+    if (!galleryItems) return [];
+    return galleryItems.map(item => ({
+      id: item.id,
+      url: item.video_url,
+      title: item.title,
+      description: item.description || '',
+      thumbnail: item.thumbnail_url,
+      category: item.category,
+    }));
+  }, [galleryItems]);
+
+  const filteredVideos = useMemo(() => {
+    if (activeCategory === 'all') return allVideos;
+    return allVideos.filter(v => v.category === activeCategory);
+  }, [allVideos, activeCategory]);
   
   const currentVideo = filteredVideos[currentIndex] || filteredVideos[0];
 
@@ -211,6 +137,28 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
     setActiveCategory(category);
   };
 
+  // If loading gallery data or no videos available
+  if (isLoadingGallery || allVideos.length === 0) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-none w-screen h-screen p-0 border-0 bg-black overflow-hidden rounded-none left-0 top-0 translate-x-0 translate-y-0 [&>button]:hidden">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+            <Loader2 className="w-12 h-12 text-white/60 animate-spin" />
+            <p className="text-white/60 text-sm">Loading gallery...</p>
+          </div>
+          <button 
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="absolute top-3 right-3 md:top-6 md:right-6 z-[9999] cursor-pointer w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center group hover:bg-white/20 transition-all"
+            aria-label="Close gallery"
+          >
+            <X className="w-5 h-5 md:w-7 md:h-7 text-white" strokeWidth={2} />
+          </button>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-none w-screen h-screen p-0 border-0 bg-black overflow-hidden rounded-none left-0 top-0 translate-x-0 translate-y-0 [&>button]:hidden">
@@ -268,8 +216,8 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
               const Icon = config.icon;
               const isActive = activeCategory === category;
               const count = category === 'all' 
-                ? SHOWCASE_VIDEOS.length 
-                : SHOWCASE_VIDEOS.filter(v => v.category === category).length;
+                ? allVideos.length 
+                : allVideos.filter(v => v.category === category).length;
               
               return (
                 <button
@@ -378,7 +326,7 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
           <div className="flex items-center gap-3 p-2 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10">
             {filteredVideos.slice(0, 8).map((video, i) => (
               <button
-                key={`${video.url}-${i}`}
+                key={`${video.id}-${i}`}
                 onClick={() => {
                   setIsLoaded(false);
                   setProgress(0);
@@ -391,11 +339,20 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
                     : "opacity-50 hover:opacity-80 hover:scale-105"
                 )}
               >
-                <img
-                  src={video.thumbnail}
-                  alt={video.title}
-                  className="w-full h-full object-cover"
-                />
+                {video.thumbnail ? (
+                  <img
+                    src={video.thumbnail}
+                    alt={video.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <video
+                    src={video.url}
+                    className="w-full h-full object-cover"
+                    muted
+                    preload="metadata"
+                  />
+                )}
                 {currentIndex === i && (
                   <div className="absolute inset-0 bg-white/10" />
                 )}

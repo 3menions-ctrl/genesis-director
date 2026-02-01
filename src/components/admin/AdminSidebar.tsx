@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
+  Film,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -31,6 +32,7 @@ const navItems = [
   { id: 'overview', label: 'Overview', icon: BarChart3, group: 'main' },
   { id: 'messages', label: 'Messages', icon: MessageSquare, group: 'main', badge: true },
   { id: 'users', label: 'Users', icon: Users, group: 'main' },
+  { id: 'gallery', label: 'Gallery', icon: Film, group: 'main' },
   { id: 'financials', label: 'Financials', icon: DollarSign, group: 'finance' },
   { id: 'costs', label: 'Cost Analysis', icon: Calculator, group: 'finance' },
   { id: 'projects', label: 'Projects', icon: FolderKanban, group: 'production' },

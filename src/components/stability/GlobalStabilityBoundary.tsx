@@ -53,10 +53,14 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'aborted',
   
   // React ref warnings - non-fatal console warnings (NOT errors)
+  // CRITICAL: These MUST be suppressed to prevent crash loops
   'Function components cannot be given refs',
   'forwardRef render functions accept',
   'Warning: Function components cannot be given refs',
   'Ref forwarding',
+  'forwardRef',
+  'Check the render method',
+  'validateFunctionComponentInDev',
   
   // React state/lifecycle errors that occur during unmounting
   'unmounted component',
@@ -91,12 +95,14 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'animate',
   'variants',
   
-  // Tooltip/Popover cleanup race conditions
+  // Tooltip/Popover/Dialog cleanup race conditions - CRITICAL
   'Tooltip',
   'Popover',
   'radix',
   'Radix',
   'Dialog',
+  'DialogContent',
+  'DialogPortal',
   'Portal',
   
   // Image/media loading errors

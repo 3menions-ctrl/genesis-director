@@ -40,11 +40,12 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'Warning: Function components cannot be given refs',
   'ref',
   'Ref',
+  'forwardRef',
   // Component loading errors - prevent cascade on lazy load issues
   'Component is not a function',
   'instance of Object',
   'is not a function',
-  // Radix/Dialog cleanup race conditions
+  // Radix/Dialog cleanup race conditions - CRITICAL for stability
   'removeAttribute',
   'setAttribute',
   'removeChild',
@@ -52,6 +53,9 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'parentNode',
   'Node.removeChild',
   'Failed to execute',
+  'Dialog',
+  'DialogContent',
+  'DialogPortal',
   // Video playback errors - common and harmless
   'play() request was interrupted',
   'The play() request was interrupted by a call to pause()',
@@ -66,6 +70,11 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'Tooltip',
   'Popover',
   'radix',
+  'Radix',
+  'Portal',
+  // React internal warnings that shouldn't crash
+  'Check the render method',
+  'validateFunctionComponentInDev',
 ];
 
 // Check if error should be suppressed

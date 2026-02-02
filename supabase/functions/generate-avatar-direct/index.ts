@@ -53,7 +53,7 @@ interface AvatarDirectRequest {
   userId?: string;
   aspectRatio?: string;
   clipCount?: number;
-  clipDuration?: number;
+  clipDuration?: number; // CRITICAL: User-requested duration per clip (default: 10s for avatars)
 }
 
 serve(async (req) => {
@@ -84,6 +84,7 @@ serve(async (req) => {
       projectId,
       aspectRatio = '16:9',
       clipCount = 1,
+      clipDuration = 10, // CRITICAL: Default 10s for avatar clips per business rule
     } = request;
 
     if (!script || !avatarImageUrl) {
@@ -100,10 +101,10 @@ serve(async (req) => {
     const minimaxVoice = VOICE_MAP[voiceId] || VOICE_MAP[voiceId.toLowerCase()] || 'bella';
 
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
-    console.log("[AvatarDirect] Starting MULTI-CLIP AVATAR pipeline v2.2 (Continuous Audio)");
+    console.log("[AvatarDirect] Starting MULTI-CLIP AVATAR pipeline v2.3 (Duration + Scene Fix)");
     console.log(`[AvatarDirect] Script (${script.length} chars): "${script.substring(0, 80)}..."`);
     console.log(`[AvatarDirect] Scene: "${sceneDescription || 'Professional studio setting'}"`);
-    console.log(`[AvatarDirect] Voice: ${minimaxVoice}, Clips: ${finalClipCount}`);
+    console.log(`[AvatarDirect] Voice: ${minimaxVoice}, Clips: ${finalClipCount} × ${clipDuration}s each`);
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
 
     if (projectId) {
@@ -297,8 +298,10 @@ serve(async (req) => {
       console.log(`[AvatarDirect] Clip ${clipNumber}: ✅ TTS (${Math.round(clipAudioDurationMs / 1000)}s)`);
 
       // Generate expressive animation with Kling
-      const audioDurationSec = Math.ceil(clipAudioDurationMs / 1000);
-      const videoDuration = audioDurationSec <= 5 ? 5 : 10;
+      // CRITICAL: Use user-requested clipDuration, not auto-calculated from audio
+      // Kling supports 5s or 10s durations - map accordingly
+      const videoDuration = clipDuration >= 10 ? 10 : 5;
+      console.log(`[AvatarDirect] Clip ${clipNumber}: Using ${videoDuration}s duration (requested: ${clipDuration}s)`);
       const actingPrompt = buildActingPrompt(segmentText, sceneDescription);
       
       const klingResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {

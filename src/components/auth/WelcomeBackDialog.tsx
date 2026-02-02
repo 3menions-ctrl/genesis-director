@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, memo, forwardRef, useRef } from 'react';
+import { useEffect, useState, useCallback, memo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowRight, Zap } from 'lucide-react';
 
@@ -8,96 +8,85 @@ interface WelcomeBackDialogProps {
   userName?: string;
 }
 
-// STABILITY: All animation subcomponents wrapped in forwardRef to prevent ref-injection crashes
-// when rendered inside AnimatePresence
+// STABILITY: Animation subcomponents use simple memo (no forwardRef needed - they don't receive refs)
 
 // Particle component for the epic effect
-const Particle = memo(forwardRef<HTMLDivElement, { delay: number; index: number }>(
-  function Particle({ delay, index }, ref) {
-    const angle = (index / 20) * Math.PI * 2;
-    const distance = 150 + Math.random() * 100;
-    
-    return (
-      <motion.div
-        ref={ref}
-        className="absolute w-1.5 h-1.5 rounded-full"
-        style={{
-          background: `linear-gradient(135deg, 
-            hsl(${200 + index * 8}, 80%, 70%), 
-            hsl(${220 + index * 5}, 90%, 80%))`,
-          boxShadow: `0 0 10px hsl(${200 + index * 8}, 80%, 70%)`,
-          left: '50%',
-          top: '50%',
-        }}
-        initial={{ 
-          x: 0, 
-          y: 0, 
-          opacity: 0, 
-          scale: 0 
-        }}
-        animate={{
-          x: [0, Math.cos(angle) * distance * 0.5, Math.cos(angle) * distance],
-          y: [0, Math.sin(angle) * distance * 0.5, Math.sin(angle) * distance],
-          opacity: [0, 1, 0],
-          scale: [0, 1.5, 0],
-        }}
-        transition={{
-          duration: 2,
-          delay: delay + 0.8,
-          ease: "easeOut",
-        }}
-      />
-    );
-  }
-));
-Particle.displayName = 'Particle';
+const Particle = memo(function Particle({ delay, index }: { delay: number; index: number }) {
+  const angle = (index / 20) * Math.PI * 2;
+  const distance = 150 + Math.random() * 100;
+  
+  return (
+    <motion.div
+      className="absolute w-1.5 h-1.5 rounded-full"
+      style={{
+        background: `linear-gradient(135deg, 
+          hsl(${200 + index * 8}, 80%, 70%), 
+          hsl(${220 + index * 5}, 90%, 80%))`,
+        boxShadow: `0 0 10px hsl(${200 + index * 8}, 80%, 70%)`,
+        left: '50%',
+        top: '50%',
+      }}
+      initial={{ 
+        x: 0, 
+        y: 0, 
+        opacity: 0, 
+        scale: 0 
+      }}
+      animate={{
+        x: [0, Math.cos(angle) * distance * 0.5, Math.cos(angle) * distance],
+        y: [0, Math.sin(angle) * distance * 0.5, Math.sin(angle) * distance],
+        opacity: [0, 1, 0],
+        scale: [0, 1.5, 0],
+      }}
+      transition={{
+        duration: 2,
+        delay: delay + 0.8,
+        ease: "easeOut",
+      }}
+    />
+  );
+});
 
-// Orbiting ring - forwardRef for AnimatePresence stability
-const OrbitRing = memo(forwardRef<HTMLDivElement, { size: number; duration: number; delay: number; opacity: number }>(
-  function OrbitRing({ size, duration, delay, opacity }, ref) {
-    return (
-      <motion.div
-        ref={ref}
-        className="absolute rounded-full border"
-        style={{
-          width: size,
-          height: size,
-          left: '50%',
-          top: '50%',
-          marginLeft: -size / 2,
-          marginTop: -size / 2,
-          borderColor: `rgba(255, 255, 255, ${opacity})`,
-        }}
-        initial={{ scale: 0, opacity: 0, rotate: 0 }}
-        animate={{ 
-          scale: [0, 1, 1.1, 1],
-          opacity: [0, opacity, opacity * 0.5, 0],
-          rotate: 360,
-        }}
-        transition={{
-          duration: duration,
-          delay: delay,
-          ease: "easeOut",
-        }}
-      />
-    );
-  }
-));
-OrbitRing.displayName = 'OrbitRing';
+// Orbiting ring
+const OrbitRing = memo(function OrbitRing({ size, duration, delay, opacity }: { size: number; duration: number; delay: number; opacity: number }) {
+  return (
+    <motion.div
+      className="absolute rounded-full border"
+      style={{
+        width: size,
+        height: size,
+        left: '50%',
+        top: '50%',
+        marginLeft: -size / 2,
+        marginTop: -size / 2,
+        borderColor: `rgba(255, 255, 255, ${opacity})`,
+      }}
+      initial={{ scale: 0, opacity: 0, rotate: 0 }}
+      animate={{ 
+        scale: [0, 1, 1.1, 1],
+        opacity: [0, opacity, opacity * 0.5, 0],
+        rotate: 360,
+      }}
+      transition={{
+        duration: duration,
+        delay: delay,
+        ease: "easeOut",
+      }}
+    />
+  );
+});
 
-// Light ray component - forwardRef for AnimatePresence stability
-const LightRay = memo(forwardRef<HTMLDivElement, { angle: number; delay: number }>(
-  function LightRay({ angle, delay }, ref) {
-    return (
-      <motion.div
-        ref={ref}
-        className="absolute origin-center"
-        style={{
-          width: 2,
-          height: 200,
-          left: '50%',
-          top: '50%',
-          background: 'linear-gradient(to top, transparent, rgba(255,255,255,0.3), transparent)',
+// Light ray component
+const LightRay = memo(function LightRay({ angle, delay }: { angle: number; delay: number }) {
+  return (
+    <motion.div
+      className="absolute origin-center"
+      style={{
+        width: 2,
+        height: 200,
+        left: '50%',
+        top: '50%',
+        background: 'linear-gradient(to top, transparent, rgba(255,255,255,0.3), transparent)',
           transform: `rotate(${angle}deg) translateY(-50%)`,
         }}
         initial={{ scaleY: 0, opacity: 0 }}
@@ -113,10 +102,9 @@ const LightRay = memo(forwardRef<HTMLDivElement, { angle: number; delay: number 
       />
     );
   }
-));
-LightRay.displayName = 'LightRay';
+);
 
-export const WelcomeBackDialog = memo(forwardRef<HTMLDivElement, WelcomeBackDialogProps>(function WelcomeBackDialog({ isOpen, onComplete, userName }, ref) {
+export const WelcomeBackDialog = memo(function WelcomeBackDialog({ isOpen, onComplete, userName }: WelcomeBackDialogProps) {
   const [phase, setPhase] = useState<'entrance' | 'celebrate' | 'exit'>('entrance');
   const [showContent, setShowContent] = useState(false);
   // CRITICAL: Prevent double-fire from auto-close timer + manual click
@@ -160,7 +148,6 @@ export const WelcomeBackDialog = memo(forwardRef<HTMLDivElement, WelcomeBackDial
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          ref={ref}
           className="fixed inset-0 z-[200] flex items-center justify-center overflow-hidden"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -369,4 +356,4 @@ export const WelcomeBackDialog = memo(forwardRef<HTMLDivElement, WelcomeBackDial
       )}
     </AnimatePresence>
   );
-}));
+});

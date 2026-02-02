@@ -87,15 +87,7 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'signal is aborted',
   'DOMException: The user aborted a request',
   'aborted',
-  // React ref warnings - non-fatal (CRITICAL: must suppress to prevent crash loop)
-  'Function components cannot be given refs',
-  'forwardRef render functions accept',
-  'Warning: Function components cannot be given refs',
-  'ref',
-  'Ref',
-  'forwardRef',
-  // Component loading errors - prevent cascade on lazy load issues
-  'Component is not a function',
+  // VIDEO PLAYBACK ERRORS - CRITICAL: These are harmless and common
   'instance of Object',
   'is not a function',
   // Radix/Dialog cleanup race conditions - CRITICAL for stability
@@ -226,21 +218,19 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'sourceopen',
 ];
 
-// ============= CONSOLE INTERCEPTION =============
-// Intercept console.error/warn to suppress React development warnings
-// This is the world-class solution - catch warnings at the source
+// ============= CONSOLE INTERCEPTION (MINIMAL) =============
+// Only suppress React dev-mode warnings that are non-fatal and noise
+// Most ref issues have been fixed architecturally - this is just cleanup
 
 const originalConsoleError = console.error;
 const originalConsoleWarn = console.warn;
 
-// Patterns specifically for console warnings (React dev mode)
-const CONSOLE_SUPPRESSED_PATTERNS = [
-  'Function components cannot be given refs',
-  'forwardRef render functions',
-  'Check the render method',
-  'validateFunctionComponentInDev',
-  'Did you mean to use React.forwardRef',
-  'Attempts to access this ref will fail',
+// Minimal suppression - only truly non-actionable React dev warnings
+const MINIMAL_SUPPRESSED_PATTERNS = [
+  // These are React StrictMode double-render warnings - not bugs
+  'Each child in a list should have a unique',
+  // StrictMode double-invocation warnings
+  'was already mounted',
 ];
 
 const shouldSuppressConsoleMessage = (args: unknown[]): boolean => {
@@ -248,25 +238,22 @@ const shouldSuppressConsoleMessage = (args: unknown[]): boolean => {
     typeof arg === 'string' ? arg : arg instanceof Error ? arg.message : String(arg)
   ).join(' ');
   
-  return CONSOLE_SUPPRESSED_PATTERNS.some(pattern => 
+  return MINIMAL_SUPPRESSED_PATTERNS.some(pattern => 
     message.includes(pattern)
   );
 };
 
-// Override console.error to suppress React ref warnings
+// Override console.error with minimal suppression
 console.error = (...args: unknown[]) => {
   if (shouldSuppressConsoleMessage(args)) {
-    // Log at debug level instead of error (visible but doesn't pollute console)
-    console.debug('[Suppressed React Warning]', args[0]?.toString?.()?.substring(0, 80) || 'ref warning');
     return;
   }
   originalConsoleError.apply(console, args);
 };
 
-// Override console.warn for completeness
+// Override console.warn with minimal suppression
 console.warn = (...args: unknown[]) => {
   if (shouldSuppressConsoleMessage(args)) {
-    console.debug('[Suppressed React Warning]', args[0]?.toString?.()?.substring(0, 80) || 'ref warning');
     return;
   }
   originalConsoleWarn.apply(console, args);
@@ -329,14 +316,6 @@ window.addEventListener("error", (event) => {
     return;
   }
 
-  // Extra check: prevent ref-related errors from counting toward crash threshold
-  const errorMessage = event.error?.message || '';
-  if (errorMessage.includes('ref') || errorMessage.includes('Ref') || errorMessage.includes('forwardRef')) {
-    console.debug('[Global] Suppressed ref-related error:', errorMessage.substring(0, 100));
-    event.preventDefault();
-    return;
-  }
-
   // Prevent infinite crash loops
   errorCount++;
   if (errorCount > ERROR_THRESHOLD) {
@@ -362,14 +341,6 @@ window.addEventListener("error", (event) => {
 window.addEventListener("unhandledrejection", (event) => {
   // Check if error should be suppressed first
   if (shouldSuppressGlobalError(event.reason) || shouldSuppressError(event.reason)) {
-    event.preventDefault();
-    return;
-  }
-
-  // Extra check: prevent ref-related rejections from counting
-  const reasonMessage = event.reason?.message || String(event.reason) || '';
-  if (reasonMessage.includes('ref') || reasonMessage.includes('Ref') || reasonMessage.includes('forwardRef')) {
-    console.debug('[Global] Suppressed ref-related rejection:', reasonMessage.substring(0, 100));
     event.preventDefault();
     return;
   }

@@ -68,18 +68,13 @@ const Alert = React.forwardRef<
 ));
 Alert.displayName = "Alert";
 
-const AlertTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(
-  ({ className, ...props }, ref) => (
-    <h5 ref={ref} className={cn("mb-1.5 font-medium leading-none tracking-tight text-white", className)} {...props} />
-  ),
-);
-AlertTitle.displayName = "AlertTitle";
+// Layout components - NO forwardRef needed (pure styling, never used with asChild)
+function AlertTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
+  return <h5 className={cn("mb-1.5 font-medium leading-none tracking-tight text-white", className)} {...props} />;
+}
 
-const AlertDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
-  ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("text-sm text-white/50 [&_p]:leading-relaxed", className)} {...props} />
-  ),
-);
-AlertDescription.displayName = "AlertDescription";
+function AlertDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
+  return <div className={cn("text-sm text-white/50 [&_p]:leading-relaxed", className)} {...props} />;
+}
 
 export { Alert, AlertTitle, AlertDescription };

@@ -680,8 +680,8 @@ function ProjectsContentInner() {
       {/* Navigation */}
       <AppHeader onCreateClick={handleCreateProject} />
 
-      {/* Main Content */}
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 pt-20">
+      {/* Main Content - MOBILE FIX: Reduced padding on mobile */}
+      <main className="relative z-10 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4 pt-16 sm:pt-20">
         
         {/* Loading state */}
         {(isLoadingProjects && !hasLoadedOnce) ? (
@@ -877,27 +877,28 @@ function ProjectsContentInner() {
                   <div className="hidden lg:block w-px h-10 bg-white/[0.08]" />
 
                   {/* Filter Controls */}
-                  <div className="flex items-center gap-3">
-                    {/* Status Filter Tabs - Orange themed */}
-                    <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                  {/* MOBILE FIX: Wrap filters in scrollable container on mobile */}
+                  <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
+                    {/* Status Filter Tabs - Orange themed, scrollable on mobile */}
+                    <div className="flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-lg sm:rounded-xl bg-white/[0.03] border border-white/[0.06] flex-shrink-0">
                       {[
                         { value: 'all', label: 'All', icon: Layers },
                         { value: 'completed', label: 'Ready', icon: Check },
-                        { value: 'processing', label: 'Processing', icon: Activity },
+                        { value: 'processing', label: 'Active', icon: Activity },
                         { value: 'failed', label: 'Failed', icon: AlertCircle },
                       ].map((filter) => (
                         <button
                           key={filter.value}
                           onClick={() => setStatusFilter(filter.value as any)}
                           className={cn(
-                            "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                            "flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition-all flex-shrink-0",
                             statusFilter === filter.value 
                               ? "bg-gradient-to-r from-orange-500/20 to-amber-500/20 text-orange-400 border border-orange-500/30" 
                               : "text-white/40 hover:text-white/70 hover:bg-white/[0.05]"
                           )}
                         >
-                          <filter.icon className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">{filter.label}</span>
+                          <filter.icon className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
+                          <span className="hidden xs:inline sm:inline">{filter.label}</span>
                         </button>
                       ))}
                     </div>
@@ -948,27 +949,27 @@ function ProjectsContentInner() {
                       </DropdownMenuContent>
                     </DropdownMenu>
 
-                    {/* View Mode Toggle - Orange themed */}
-                    <div className="flex items-center gap-0.5 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                    {/* View Mode Toggle - Orange themed, smaller on mobile */}
+                    <div className="flex items-center gap-0.5 p-0.5 sm:p-1 rounded-lg sm:rounded-xl bg-white/[0.03] border border-white/[0.06] flex-shrink-0">
                       <button
                         onClick={() => setViewMode('grid')}
                         className={cn(
-                          "p-2.5 rounded-lg transition-all",
+                          "p-1.5 sm:p-2.5 rounded-md sm:rounded-lg transition-all",
                           viewMode === 'grid' ? "bg-orange-500/20 text-orange-400" : "text-white/40 hover:text-white/70"
                         )}
                         title="Grid view"
                       >
-                        <Grid3X3 className="w-4 h-4" />
+                        <Grid3X3 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
                       </button>
                       <button
                         onClick={() => setViewMode('list')}
                         className={cn(
-                          "p-2.5 rounded-lg transition-all",
+                          "p-1.5 sm:p-2.5 rounded-md sm:rounded-lg transition-all",
                           viewMode === 'list' ? "bg-orange-500/20 text-orange-400" : "text-white/40 hover:text-white/70"
                         )}
                         title="List view"
                       >
-                        <LayoutList className="w-4 h-4" />
+                        <LayoutList className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
                       </button>
                     </div>
                   </div>
@@ -1453,25 +1454,25 @@ function ProjectsContentInner() {
         </DialogContent>
       </Dialog>
 
-      {/* Smart Stitcher Player Modal */}
+      {/* Smart Stitcher Player Modal - MOBILE FIX: Full-width on mobile */}
       <Dialog open={!!showBrowserStitcher} onOpenChange={() => setShowBrowserStitcher(null)}>
-        <DialogContent className="bg-zinc-950 border-zinc-800 max-w-5xl p-0 overflow-hidden">
-          <DialogHeader className="p-4 pb-0">
-            <DialogTitle className="flex items-center gap-2 text-white">
-              <MonitorPlay className="w-5 h-5 text-primary" />
+        <DialogContent className="bg-zinc-950 border-zinc-800 w-[95vw] max-w-5xl p-0 overflow-hidden rounded-xl sm:rounded-2xl">
+          <DialogHeader className="p-3 sm:p-4 pb-0">
+            <DialogTitle className="flex items-center gap-2 text-white text-sm sm:text-base">
+              <MonitorPlay className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
               Smart Video Player
             </DialogTitle>
-            <DialogDescription className="text-zinc-400">
-              Play all clips seamlessly • Export to single video
+            <DialogDescription className="text-zinc-400 text-xs sm:text-sm">
+              Play all clips seamlessly
             </DialogDescription>
           </DialogHeader>
           {showBrowserStitcher && (
-            <div className="p-4 pt-2">
+            <div className="p-2 sm:p-4 pt-2">
               <UniversalVideoPlayer
                 source={{ projectId: showBrowserStitcher }}
                 mode="inline"
                 autoPlay
-                className="aspect-video rounded-xl"
+                className="aspect-video rounded-lg sm:rounded-xl"
               />
             </div>
           )}

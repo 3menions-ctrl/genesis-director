@@ -40,17 +40,18 @@ const OrbitalStat = memo(forwardRef<HTMLDivElement, OrbitalStatProps>(function O
         )} 
       />
       
-      <div className="relative flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl hover:bg-white/[0.06] hover:border-white/[0.12] transition-all duration-300">
+      {/* MOBILE FIX: Smaller padding and icons on mobile */}
+      <div className="relative flex items-center gap-2 sm:gap-3 px-2.5 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl hover:bg-white/[0.06] hover:border-white/[0.12] transition-all duration-300">
         <div className={cn(
-          "w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br shadow-lg",
+          "w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center bg-gradient-to-br shadow-lg flex-shrink-0",
           colorClass
         )}>
-          <Icon className="w-5 h-5 text-black" />
+          <Icon className="w-4 sm:w-5 h-4 sm:h-5 text-black" />
         </div>
         
-        <div className="flex flex-col">
-          <span className="text-xl font-bold text-white tabular-nums">{value}</span>
-          <span className="text-[10px] text-white/40 uppercase tracking-widest font-medium">{label}</span>
+        <div className="flex flex-col min-w-0">
+          <span className="text-base sm:text-xl font-bold text-white tabular-nums">{value}</span>
+          <span className="text-[8px] sm:text-[10px] text-white/40 uppercase tracking-widest font-medium truncate">{label}</span>
         </div>
       </div>
     </div>
@@ -62,10 +63,10 @@ export const ProjectsHero = memo(forwardRef<HTMLDivElement, ProjectsHeroProps>(f
   return (
     <div
       ref={ref}
-      className="relative mb-8 animate-fade-in"
+      className="relative mb-4 sm:mb-8 animate-fade-in"
     >
-      {/* Hero container with premium glass effect */}
-      <div className="relative px-6 py-8 sm:px-8 sm:py-10 rounded-3xl overflow-hidden">
+      {/* Hero container with premium glass effect - MOBILE FIX: Reduced padding */}
+      <div className="relative px-4 sm:px-6 lg:px-8 py-5 sm:py-8 lg:py-10 rounded-2xl sm:rounded-3xl overflow-hidden">
         {/* Subtle inner gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-orange-500/[0.04] via-transparent to-amber-500/[0.02]" />
         
@@ -76,18 +77,19 @@ export const ProjectsHero = memo(forwardRef<HTMLDivElement, ProjectsHeroProps>(f
         <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-orange-500/10 blur-3xl" />
         <div className="absolute -bottom-20 -left-20 w-60 h-60 rounded-full bg-amber-500/5 blur-3xl" />
         
-        <div className="relative flex flex-col gap-8">
+        {/* MOBILE FIX: Reduced gap on mobile */}
+        <div className="relative flex flex-col gap-4 sm:gap-8">
           {/* Title section */}
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 sm:gap-4">
             <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
-                  <Sparkles className="w-5 h-5 text-black" />
+              <div className="flex items-center gap-2 sm:gap-3 mb-1.5 sm:mb-2">
+                <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
+                  <Sparkles className="w-4 sm:w-5 h-4 sm:h-5 text-black" />
                 </div>
-                <span className="text-xs font-medium uppercase tracking-[0.2em] text-orange-400/80">Your Creative Library</span>
+                <span className="text-[10px] sm:text-xs font-medium uppercase tracking-[0.15em] sm:tracking-[0.2em] text-orange-400/80">Your Library</span>
               </div>
               
-              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white">
                 <span className="bg-gradient-to-r from-white via-orange-100 to-white bg-clip-text text-transparent">
                   Projects
                 </span>
@@ -95,11 +97,12 @@ export const ProjectsHero = memo(forwardRef<HTMLDivElement, ProjectsHeroProps>(f
               
               {/* Animated underline - using CSS animation instead of motion */}
               <div 
-                className="h-0.5 bg-gradient-to-r from-orange-500 via-amber-500 to-transparent rounded-full mt-3 animate-scale-in origin-left"
-                style={{ maxWidth: 200 }}
+                className="h-0.5 bg-gradient-to-r from-orange-500 via-amber-500 to-transparent rounded-full mt-2 sm:mt-3 animate-scale-in origin-left"
+                style={{ maxWidth: 160 }}
               />
               
-              <p className="text-white/40 text-sm mt-3 max-w-md">
+              {/* Hide description on mobile to save space */}
+              <p className="hidden sm:block text-white/40 text-sm mt-3 max-w-md">
                 Manage, view, and download all your AI-generated cinematic videos
               </p>
             </div>
@@ -107,7 +110,7 @@ export const ProjectsHero = memo(forwardRef<HTMLDivElement, ProjectsHeroProps>(f
           
           {/* Stats row - premium orbital cards */}
           <div 
-            className="grid grid-cols-2 sm:grid-cols-4 gap-3 animate-fade-in"
+            className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 animate-fade-in"
             style={{ animationDelay: '0.3s' }}
           >
             <OrbitalStat 

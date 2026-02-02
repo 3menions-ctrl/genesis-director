@@ -7,25 +7,22 @@ const corsHeaders = {
 };
 
 /**
- * GENERATE-AVATAR-DIRECT - World-Class Avatar Pipeline v2.1
+ * GENERATE-AVATAR-DIRECT - World-Class Avatar Pipeline v3.0
  * 
- * EXPRESSIVE ACTING pipeline with MULTI-CLIP support that ensures:
- * 1. VERBATIM TTS - User's exact script is spoken word-for-word using avatar's voice
- * 2. SCENE COMPOSITING - Avatar placed in user-specified environment via Kling
- * 3. NATURAL ACTING - Kling generates expressive, human-like performance
- * 4. AUDIO SYNC - TTS audio merged with generated video
- * 5. MULTI-CLIP - Script can be split across multiple clips for longer content
+ * ASYNC JOB PATTERN - Permanent timeout fix:
+ * 1. Starts Kling prediction and returns IMMEDIATELY with job ID
+ * 2. Saves prediction IDs to database for watchdog polling
+ * 3. Watchdog handles completion polling (no Edge Function timeout)
+ * 4. Ensures verbatim TTS, scene compositing, and natural acting
  */
 
-// Voice mapping for MiniMax - supports all avatar template voices
+// Voice mapping for MiniMax
 const VOICE_MAP: Record<string, string> = {
-  // ElevenLabs legacy IDs mapped to MiniMax
   'onwK4e9ZLuTAKqWW03F9': 'onyx',
   'JBFqnCBsd6RMkjVDRZzb': 'echo',
   'EXAVITQu4vr4xnSDxMaL': 'nova',
   'pFZP5JQG7iQjIQuC4Bku': 'shimmer',
   'cjVigY5qzO86Huf0OWal': 'alloy',
-  // Direct voice names (avatar_templates use these)
   'onyx': 'onyx',
   'echo': 'echo',
   'fable': 'fable',
@@ -53,7 +50,7 @@ interface AvatarDirectRequest {
   userId?: string;
   aspectRatio?: string;
   clipCount?: number;
-  clipDuration?: number; // CRITICAL: User-requested duration per clip (default: 10s for avatars)
+  clipDuration?: number;
 }
 
 serve(async (req) => {
@@ -84,7 +81,7 @@ serve(async (req) => {
       projectId,
       aspectRatio = '16:9',
       clipCount = 1,
-      clipDuration = 10, // CRITICAL: Default 10s for avatar clips per business rule
+      clipDuration = 10,
     } = request;
 
     if (!script || !avatarImageUrl) {
@@ -101,7 +98,7 @@ serve(async (req) => {
     const minimaxVoice = VOICE_MAP[voiceId] || VOICE_MAP[voiceId.toLowerCase()] || 'bella';
 
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
-    console.log("[AvatarDirect] Starting MULTI-CLIP AVATAR pipeline v2.3 (Duration + Scene Fix)");
+    console.log("[AvatarDirect] Starting ASYNC AVATAR pipeline v3.0 (No Timeout)");
     console.log(`[AvatarDirect] Script (${script.length} chars): "${script.substring(0, 80)}..."`);
     console.log(`[AvatarDirect] Scene: "${sceneDescription || 'Professional studio setting'}"`);
     console.log(`[AvatarDirect] Voice: ${minimaxVoice}, Clips: ${finalClipCount} × ${clipDuration}s each`);
@@ -113,24 +110,23 @@ serve(async (req) => {
         pipeline_state: {
           stage: 'init',
           progress: 5,
-          message: `Generating ${finalClipCount} clip${finalClipCount > 1 ? 's' : ''} with continuous audio...`,
+          message: `Preparing ${finalClipCount} clip${finalClipCount > 1 ? 's' : ''}...`,
           totalClips: finalClipCount,
         },
       }).eq('id', projectId);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 1: Generate MASTER AUDIO TRACK for entire script (continuous playback)
-    // This ensures seamless audio across all clip transitions
+    // STEP 1: Generate MASTER AUDIO TRACK (fast - ~2-5s)
     // ═══════════════════════════════════════════════════════════════════════════
-    console.log("[AvatarDirect] Step 1: Generating MASTER AUDIO for entire script...");
+    console.log("[AvatarDirect] Step 1: Generating MASTER AUDIO...");
     
     if (projectId) {
       await supabase.from('movie_projects').update({
         pipeline_state: {
           stage: 'master_audio',
-          progress: 8,
-          message: 'Creating continuous audio track...',
+          progress: 10,
+          message: 'Creating audio track...',
           totalClips: finalClipCount,
         },
       }).eq('id', projectId);
@@ -165,7 +161,7 @@ serve(async (req) => {
     
     console.log(`[AvatarDirect] ✅ Master audio generated: ${Math.round(masterAudioDurationMs / 1000)}s`);
 
-    // Persist master audio to storage immediately
+    // Persist master audio to permanent storage
     let permanentMasterAudioUrl = masterAudioUrl;
     if (masterAudioUrl.includes('replicate.delivery') && projectId) {
       try {
@@ -194,7 +190,9 @@ serve(async (req) => {
       }
     }
 
-    // Pre-generate scene image once for all clips
+    // ═══════════════════════════════════════════════════════════════════════════
+    // STEP 2: Optional Scene Compositing (fast - ~5-10s)
+    // ═══════════════════════════════════════════════════════════════════════════
     let sharedAnimationStartImage = avatarImageUrl;
     
     if (sceneDescription?.trim()) {
@@ -238,36 +236,40 @@ serve(async (req) => {
       }
     }
 
-    // Generate each clip
-    const generatedClips: Array<{
-      videoUrl: string;
+    // ═══════════════════════════════════════════════════════════════════════════
+    // STEP 3: START ALL KLING PREDICTIONS (async - no waiting!)
+    // Store prediction IDs and let watchdog handle polling
+    // ═══════════════════════════════════════════════════════════════════════════
+    console.log("[AvatarDirect] Step 3: Starting Kling predictions ASYNC...");
+    
+    if (projectId) {
+      await supabase.from('movie_projects').update({
+        pipeline_state: {
+          stage: 'clip_generation',
+          progress: 20,
+          message: `Starting video generation for ${finalClipCount} clip(s)...`,
+          totalClips: finalClipCount,
+          currentClip: 1,
+        },
+      }).eq('id', projectId);
+    }
+
+    const pendingPredictions: Array<{
+      clipIndex: number;
+      predictionId: string;
+      segmentText: string;
       audioUrl: string;
       audioDurationMs: number;
-      segmentText: string;
-      clipIndex: number;
     }> = [];
 
+    // Generate TTS for each segment and start Kling predictions in parallel
     for (let clipIndex = 0; clipIndex < scriptSegments.length; clipIndex++) {
       const segmentText = scriptSegments[clipIndex];
       const clipNumber = clipIndex + 1;
       
       console.log(`[AvatarDirect] ═══ Clip ${clipNumber}/${finalClipCount} ═══`);
-      console.log(`[AvatarDirect] Segment: "${segmentText.substring(0, 60)}..."`);
 
-      if (projectId) {
-        const baseProgress = 10 + (clipIndex / finalClipCount) * 80;
-        await supabase.from('movie_projects').update({
-          pipeline_state: {
-            stage: 'clip_generation',
-            progress: Math.round(baseProgress),
-            message: `Generating clip ${clipNumber} of ${finalClipCount}...`,
-            totalClips: finalClipCount,
-            currentClip: clipNumber,
-          },
-        }).eq('id', projectId);
-      }
-
-      // Generate TTS for this segment
+      // Generate TTS for this segment (fast - ~1-2s)
       const voiceResponse = await fetch(`${supabaseUrl}/functions/v1/generate-voice`, {
         method: 'POST',
         headers: {
@@ -297,11 +299,8 @@ serve(async (req) => {
       
       console.log(`[AvatarDirect] Clip ${clipNumber}: ✅ TTS (${Math.round(clipAudioDurationMs / 1000)}s)`);
 
-      // Generate expressive animation with Kling
-      // CRITICAL: Use user-requested clipDuration, not auto-calculated from audio
-      // Kling supports 5s or 10s durations - map accordingly
+      // Start Kling prediction (async - returns immediately)
       const videoDuration = clipDuration >= 10 ? 10 : 5;
-      console.log(`[AvatarDirect] Clip ${clipNumber}: Using ${videoDuration}s duration (requested: ${clipDuration}s)`);
       const actingPrompt = buildActingPrompt(segmentText, sceneDescription);
       
       const klingResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
@@ -323,252 +322,114 @@ serve(async (req) => {
       });
 
       if (!klingResponse.ok) {
-        throw new Error(`Kling animation failed for clip ${clipNumber}`);
+        throw new Error(`Kling animation failed to start for clip ${clipNumber}`);
       }
 
       const klingPrediction = await klingResponse.json();
-      console.log(`[AvatarDirect] Clip ${clipNumber}: Kling started: ${klingPrediction.id}`);
+      console.log(`[AvatarDirect] Clip ${clipNumber}: Kling STARTED (async): ${klingPrediction.id}`);
 
-      // Poll for completion
-      let clipVideoUrl: string | null = klingPrediction.status === "succeeded" && klingPrediction.output
-        ? klingPrediction.output
-        : await pollForResult(klingPrediction.id, REPLICATE_API_KEY, 300);
-
-      if (!clipVideoUrl) {
-        throw new Error(`Video generation timed out for clip ${clipNumber}`);
-      }
-
-      console.log(`[AvatarDirect] Clip ${clipNumber}: ✅ Video generated`);
-
-      // Merge audio
-      let finalClipVideoUrl = clipVideoUrl;
-      try {
-        const mergedUrl = await mergeAudioWithVideo(clipVideoUrl, clipAudioUrl, REPLICATE_API_KEY);
-        if (mergedUrl) {
-          finalClipVideoUrl = mergedUrl;
-          console.log(`[AvatarDirect] Clip ${clipNumber}: ✅ Audio merged`);
-        }
-      } catch {
-        console.warn(`[AvatarDirect] Clip ${clipNumber}: Audio merge failed (non-fatal)`);
-      }
-
-      // Copy to permanent storage
-      if (finalClipVideoUrl.includes('replicate.delivery') && projectId) {
-        try {
-          const videoResponse = await fetch(finalClipVideoUrl);
-          if (videoResponse.ok) {
-            const videoBlob = await videoResponse.blob();
-            const videoBytes = new Uint8Array(await videoBlob.arrayBuffer());
-            
-            const fileName = `avatar_${projectId}_clip${clipNumber}_${Date.now()}.mp4`;
-            const storagePath = `avatar-videos/${projectId}/${fileName}`;
-            
-            const { error: uploadError } = await supabase.storage
-              .from('video-clips')
-              .upload(storagePath, videoBytes, {
-                contentType: 'video/mp4',
-                upsert: true,
-              });
-            
-            if (!uploadError) {
-              finalClipVideoUrl = `${supabaseUrl}/storage/v1/object/public/video-clips/${storagePath}`;
-              console.log(`[AvatarDirect] Clip ${clipNumber}: ✅ Saved to storage`);
-            }
-          }
-        } catch (storageError) {
-          console.warn(`[AvatarDirect] Clip ${clipNumber}: Storage failed (non-fatal):`, storageError);
-        }
-      }
-
-      generatedClips.push({
-        videoUrl: finalClipVideoUrl,
+      pendingPredictions.push({
+        clipIndex,
+        predictionId: klingPrediction.id,
+        segmentText,
         audioUrl: clipAudioUrl,
         audioDurationMs: clipAudioDurationMs,
-        segmentText,
-        clipIndex,
       });
-
-      // Create shot record
-      if (projectId) {
-        try {
-          await supabase.from('shots').insert({
-            project_id: projectId,
-            shot_number: clipNumber,
-            description: segmentText.substring(0, 200),
-            dialogue: segmentText,
-            video_url: finalClipVideoUrl,
-            audio_url: clipAudioUrl,
-            status: 'completed',
-            scene_number: 1,
-            start_time_ms: generatedClips.slice(0, clipIndex).reduce((sum, c) => sum + c.audioDurationMs, 0),
-            end_time_ms: generatedClips.slice(0, clipIndex).reduce((sum, c) => sum + c.audioDurationMs, 0) + clipAudioDurationMs,
-            duration_seconds: Math.ceil(clipAudioDurationMs / 1000),
-          });
-        } catch (shotError) {
-          console.warn(`[AvatarDirect] Clip ${clipNumber}: Shot record failed:`, shotError);
-        }
-      }
-
-      console.log(`[AvatarDirect] ═══ Clip ${clipNumber}/${finalClipCount} COMPLETE ═══\n`);
     }
 
-    // Complete
-    const primaryVideoUrl = generatedClips[0]?.videoUrl || '';
-    const totalDurationMs = generatedClips.reduce((sum, c) => sum + c.audioDurationMs, 0);
-
-    console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
-    console.log("[AvatarDirect] ✅ MULTI-CLIP AVATAR PIPELINE v2.2 COMPLETE");
-    console.log(`[AvatarDirect] Total clips: ${generatedClips.length}`);
-    console.log(`[AvatarDirect] Total duration: ${Math.round(totalDurationMs / 1000)}s`);
-    console.log(`[AvatarDirect] Master audio: ${permanentMasterAudioUrl.substring(0, 60)}...`);
-    console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
-
     // ═══════════════════════════════════════════════════════════════════════════
-    // CRITICAL: ATOMIC DB WRITE - Must happen BEFORE response to prevent orphaned completions
-    // If connection closes after this, the project is still marked complete
+    // STEP 4: SAVE PENDING STATE TO DATABASE
+    // Watchdog will poll and complete
     // ═══════════════════════════════════════════════════════════════════════════
+    console.log("[AvatarDirect] Step 4: Saving async job state to database...");
+
+    const asyncJobData = {
+      predictions: pendingPredictions,
+      masterAudioUrl: permanentMasterAudioUrl,
+      masterAudioDurationMs,
+      sceneImageUrl: sharedAnimationStartImage,
+      startedAt: new Date().toISOString(),
+      clipDuration,
+      aspectRatio,
+    };
+
     if (projectId) {
-      const completionData = {
-        status: 'completed',
-        video_url: primaryVideoUrl,
-        final_video_url: primaryVideoUrl,
-        voice_audio_url: permanentMasterAudioUrl,
-        video_clips: generatedClips.map(c => c.videoUrl),
-        pipeline_stage: 'completed',
+      await supabase.from('movie_projects').update({
         pipeline_state: {
-          stage: 'completed',
-          progress: 100,
-          message: `${generatedClips.length} clip${generatedClips.length > 1 ? 's' : ''} generated with continuous audio!`,
-          completedAt: new Date().toISOString(),
-          voiceUsed: minimaxVoice,
-          sceneApplied: !!sceneDescription,
-          totalClips: generatedClips.length,
-          totalDurationMs,
-          masterAudioUrl: permanentMasterAudioUrl,
-          masterAudioDurationMs: masterAudioDurationMs,
-          clips: generatedClips.map((c, idx) => ({
-            videoUrl: c.videoUrl,
-            audioUrl: c.audioUrl,
-            durationMs: c.audioDurationMs,
-            startTimeMs: generatedClips.slice(0, idx).reduce((sum, prev) => sum + prev.audioDurationMs, 0),
-          })),
+          stage: 'async_video_generation',
+          progress: 25,
+          message: `Video generation in progress (${finalClipCount} clips)...`,
+          totalClips: finalClipCount,
+          asyncJobData,
         },
+        pending_video_tasks: {
+          type: 'avatar_async',
+          predictions: pendingPredictions.map(p => ({
+            predictionId: p.predictionId,
+            clipIndex: p.clipIndex,
+            status: 'processing',
+            audioUrl: p.audioUrl,
+            audioDurationMs: p.audioDurationMs,
+          })),
+          masterAudioUrl: permanentMasterAudioUrl,
+          sceneImageUrl: sharedAnimationStartImage,
+          startedAt: new Date().toISOString(),
+        },
+        voice_audio_url: permanentMasterAudioUrl,
         updated_at: new Date().toISOString(),
-      };
-      
-      // Retry DB write up to 3 times to ensure completion is persisted
-      let dbWriteSuccess = false;
-      for (let attempt = 1; attempt <= 3 && !dbWriteSuccess; attempt++) {
-        try {
-          const { error: updateError } = await supabase
-            .from('movie_projects')
-            .update(completionData)
-            .eq('id', projectId);
-          
-          if (updateError) {
-            console.error(`[AvatarDirect] DB write attempt ${attempt}/3 failed:`, updateError.message);
-            if (attempt < 3) await new Promise(r => setTimeout(r, 500 * attempt));
-          } else {
-            dbWriteSuccess = true;
-            console.log(`[AvatarDirect] ✅ DB WRITE SUCCESS (attempt ${attempt})`);
-          }
-        } catch (dbError) {
-          console.error(`[AvatarDirect] DB write attempt ${attempt}/3 exception:`, dbError);
-          if (attempt < 3) await new Promise(r => setTimeout(r, 500 * attempt));
-        }
-      }
-      
-      if (!dbWriteSuccess) {
-        console.error("[AvatarDirect] ⚠️ CRITICAL: All DB write attempts failed - watchdog will recover");
-        // Write orphan marker to storage for watchdog detection
-        try {
-          const orphanMarker = JSON.stringify({
-            projectId,
-            videoUrl: primaryVideoUrl,
-            audioUrl: permanentMasterAudioUrl,
-            completedAt: new Date().toISOString(),
-            clips: generatedClips.map(c => c.videoUrl),
-          });
-          await supabase.storage
-            .from('video-clips')
-            .upload(`avatar-videos/${projectId}/_completion_marker.json`, orphanMarker, {
-              contentType: 'application/json',
-              upsert: true,
-            });
-          console.log("[AvatarDirect] Orphan marker written - watchdog will recover");
-        } catch (markerError) {
-          console.error("[AvatarDirect] Failed to write orphan marker:", markerError);
-        }
-      }
+      }).eq('id', projectId);
     }
 
-    // Response is now safe - DB is updated (or orphan marker exists for recovery)
+    console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
+    console.log("[AvatarDirect] ✅ ASYNC AVATAR PIPELINE v3.0 - JOB STARTED");
+    console.log(`[AvatarDirect] Started ${pendingPredictions.length} Kling predictions`);
+    console.log("[AvatarDirect] Watchdog will poll for completion and finalize");
+    console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
+
     return new Response(
       JSON.stringify({
         success: true,
-        videoUrl: primaryVideoUrl,
-        audioUrl: permanentMasterAudioUrl,
+        async: true,
+        message: `Avatar generation started - ${pendingPredictions.length} clips processing`,
+        predictionIds: pendingPredictions.map(p => p.predictionId),
+        projectId,
         masterAudioUrl: permanentMasterAudioUrl,
-        totalDurationMs,
-        voiceUsed: minimaxVoice,
-        sceneApplied: !!sceneDescription,
-        scriptUsed: script,
-        clipsGenerated: generatedClips.length,
-        clips: generatedClips.map((c, idx) => ({
-          videoUrl: c.videoUrl,
-          audioUrl: c.audioUrl,
-          durationMs: c.audioDurationMs,
-          startTimeMs: generatedClips.slice(0, idx).reduce((sum, prev) => sum + prev.audioDurationMs, 0),
-        })),
-        message: `${generatedClips.length} avatar clip${generatedClips.length > 1 ? 's' : ''} generated with continuous audio!`,
-        pipeline: "avatar-direct-v2.3-atomic-completion",
+        totalClips: pendingPredictions.length,
+        status: 'processing',
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
-
   } catch (error) {
-    console.error("[AvatarDirect] Error:", error);
-    
-    const request = await req.clone().json().catch(() => ({}));
-    if (request.projectId) {
-      await supabase.from('movie_projects').update({
-        status: 'failed',
-        pipeline_state: {
-          stage: 'failed',
-          progress: 0,
-          error: error instanceof Error ? error.message : "Unknown error",
-        },
-      }).eq('id', request.projectId);
-    }
-    
+    console.error("[AvatarDirect] Pipeline error:", error);
+
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error instanceof Error ? error.message : "Unknown error" 
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
   }
 });
 
 /**
  * Split script into segments for multi-clip generation
- * CRITICAL: Always returns EXACTLY targetCount segments, even for short scripts
- * If script has fewer sentences than targetCount, distribute sentences evenly
  */
 function splitScriptIntoSegments(script: string, targetCount: number): string[] {
   if (targetCount <= 1) return [script];
   
-  // Split by sentences (including last segment without punctuation)
   const sentences = script.match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g) || [script];
   const cleanSentences = sentences.map(s => s.trim()).filter(s => s.length > 0);
   
-  // If no valid sentences, return the whole script as targetCount segments
   if (cleanSentences.length === 0) {
     return Array(targetCount).fill(script);
   }
   
-  // If we have enough sentences, distribute them
   if (cleanSentences.length >= targetCount) {
     const segments: string[] = [];
     const sentencesPerSegment = Math.ceil(cleanSentences.length / targetCount);
@@ -582,7 +443,6 @@ function splitScriptIntoSegments(script: string, targetCount: number): string[] 
       }
     }
     
-    // Ensure we have exactly targetCount segments
     while (segments.length < targetCount) {
       segments.push(cleanSentences[cleanSentences.length - 1]);
     }
@@ -590,13 +450,9 @@ function splitScriptIntoSegments(script: string, targetCount: number): string[] 
     return segments;
   }
   
-  // IMPORTANT: If script has fewer sentences than targetCount,
-  // distribute sentences across clips (some clips may share content)
-  // This ensures user gets the number of clips they requested
+  // Distribute sentences evenly across target count
   const segments: string[] = [];
-  
   for (let i = 0; i < targetCount; i++) {
-    // Distribute sentences round-robin style
     const sentenceIndex = i % cleanSentences.length;
     segments.push(cleanSentences[sentenceIndex]);
   }
@@ -643,67 +499,6 @@ function getPerformanceStyle(tone: string): string {
       return "Mischievous smile, playful eyebrow raises, animated expressions, lighthearted energy.";
     default:
       return "Natural confident delivery, genuine facial expressions, professional yet personable energy.";
-  }
-}
-
-async function pollForResult(predictionId: string, apiKey: string, maxSeconds: number): Promise<string | null> {
-  for (let i = 0; i < maxSeconds; i++) {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
-      headers: { "Authorization": `Bearer ${apiKey}` },
-    });
-    
-    const status = await response.json();
-    
-    if (status.status === "succeeded") {
-      return Array.isArray(status.output) ? status.output[0] : status.output;
-    }
-    
-    if (status.status === "failed") {
-      console.error(`[AvatarDirect] Prediction ${predictionId} failed:`, status.error);
-      return null;
-    }
-    
-    if (i % 15 === 0) {
-      console.log(`[AvatarDirect] Polling ${predictionId}... (${i}s, status: ${status.status})`);
-    }
-  }
-  
-  return null;
-}
-
-async function mergeAudioWithVideo(videoUrl: string, audioUrl: string, apiKey: string): Promise<string | null> {
-  try {
-    const response = await fetch("https://api.replicate.com/v1/predictions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "Prefer": "wait=120",
-      },
-      body: JSON.stringify({
-        version: "684cc0e6bff2f0d3b748d7c386ab8a6fb7c5f6d2095a3a38d68d9d6a3a2cb2f6",
-        input: {
-          video: videoUrl,
-          audio: audioUrl,
-          audio_volume: 1.0,
-          video_volume: 0.0,
-        },
-      }),
-    });
-
-    if (!response.ok) return null;
-
-    const prediction = await response.json();
-    
-    if (prediction.status === "succeeded" && prediction.output) {
-      return prediction.output;
-    }
-    
-    return await pollForResult(prediction.id, apiKey, 60);
-  } catch {
-    return null;
   }
 }
 

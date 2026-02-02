@@ -44,11 +44,20 @@ export const VideoThumbnail = memo(forwardRef<HTMLDivElement, VideoThumbnailProp
   const [isHovered, setIsHovered] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
   const mountedRef = useRef(true);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Memoize whether we have a valid source
   const hasValidSrc = useMemo(() => Boolean(src && typeof src === 'string' && src.trim().length > 0), [src]);
+
+  // Detect touch device on mount
+  useEffect(() => {
+    const checkTouchDevice = () => {
+      setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    };
+    checkTouchDevice();
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -119,12 +128,16 @@ export const VideoThumbnail = memo(forwardRef<HTMLDivElement, VideoThumbnailProp
     };
   }, [hasValidSrc, isLoaded]);
 
-  const handleMouseEnter = useCallback(() => {
+  const handleInteractionStart = useCallback(() => {
     setIsHovered(true);
     const video = videoRef.current;
     if (video && !hasError && isLoaded) {
       try {
-        video.currentTime = 0;
+        // CRITICAL: iOS requires muted for autoplay
+        video.muted = true;
+        if (video.readyState >= 1 && isFinite(video.duration)) {
+          video.currentTime = 0;
+        }
         video.play().catch(() => {});
       } catch (e) {
         // Ignore playback errors
@@ -132,7 +145,7 @@ export const VideoThumbnail = memo(forwardRef<HTMLDivElement, VideoThumbnailProp
     }
   }, [hasError, isLoaded]);
 
-  const handleMouseLeave = useCallback(() => {
+  const handleInteractionEnd = useCallback(() => {
     setIsHovered(false);
     const video = videoRef.current;
     if (video) {
@@ -146,6 +159,17 @@ export const VideoThumbnail = memo(forwardRef<HTMLDivElement, VideoThumbnailProp
       }
     }
   }, []);
+
+  // Mouse event handlers (aliases)
+  const handleMouseEnter = handleInteractionStart;
+  const handleMouseLeave = handleInteractionEnd;
+
+  // Touch event handlers for iPad/mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!isHovered) {
+      handleInteractionStart();
+    }
+  }, [isHovered, handleInteractionStart]);
 
   // CRITICAL: Data guardrail - return placeholder for null/undefined sources
   if (!hasValidSrc) {
@@ -163,6 +187,7 @@ export const VideoThumbnail = memo(forwardRef<HTMLDivElement, VideoThumbnailProp
       onClick={onClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onTouchStart={isTouchDevice ? handleTouchStart : undefined}
     >
       {/* Loading skeleton - YouTube style gray placeholder */}
       <AnimatePresence>
@@ -191,6 +216,7 @@ export const VideoThumbnail = memo(forwardRef<HTMLDivElement, VideoThumbnailProp
           muted
           loop
           playsInline
+          crossOrigin="anonymous"
           preload="metadata"
         />
       ) : (

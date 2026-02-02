@@ -1454,7 +1454,7 @@ function ProjectsContentInner() {
         </DialogContent>
       </Dialog>
 
-      {/* Smart Video Player Modal - MOBILE FIX: Full-width on mobile */}
+      {/* Smart Video Player Modal - MOBILE OPTIMIZED: Full-screen on mobile */}
       {/* CRITICAL: Avatar projects use video_url directly, not video_clips table */}
       <Dialog open={!!showBrowserStitcher} onOpenChange={(open) => {
         if (!open) {
@@ -1462,18 +1462,18 @@ function ProjectsContentInner() {
           setSelectedProject(null);
         }
       }}>
-        <DialogContent className="bg-zinc-950 border-zinc-800 w-[95vw] max-w-5xl p-0 overflow-hidden rounded-xl sm:rounded-2xl">
-          <DialogHeader className="p-3 sm:p-4 pb-0">
-            <DialogTitle className="flex items-center gap-2 text-white text-sm sm:text-base">
-              <MonitorPlay className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-              {selectedProject?.name || 'Smart Video Player'}
+        <DialogContent className="bg-zinc-950 border-zinc-800 fixed inset-2 sm:inset-auto sm:relative w-auto sm:w-[95vw] max-w-5xl h-auto max-h-[90vh] p-0 overflow-hidden rounded-xl sm:rounded-2xl flex flex-col">
+          <DialogHeader className="p-3 sm:p-4 pb-2 shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-white text-sm sm:text-base pr-8">
+              <MonitorPlay className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0" />
+              <span className="truncate">{selectedProject?.name || 'Video Player'}</span>
             </DialogTitle>
             <DialogDescription className="text-zinc-400 text-xs sm:text-sm">
               {selectedProject?.mode === 'avatar' ? 'AI Avatar Video' : 'Play all clips seamlessly'}
             </DialogDescription>
           </DialogHeader>
           {showBrowserStitcher && (
-            <div className="p-2 sm:p-4 pt-2">
+            <div className="p-2 sm:p-4 pt-0 flex-1 min-h-0 flex items-center justify-center">
               {/* Avatar projects: use video_url directly. Others: fetch from video_clips */}
               {selectedProject?.mode === 'avatar' && selectedProject?.video_url ? (
                 <video
@@ -1482,7 +1482,7 @@ function ProjectsContentInner() {
                   autoPlay
                   playsInline
                   muted={false}
-                  className="w-full aspect-video rounded-lg sm:rounded-xl bg-black"
+                  className="w-full max-h-full aspect-video rounded-lg sm:rounded-xl bg-black object-contain"
                   crossOrigin="anonymous"
                   preload="auto"
                 />
@@ -1491,7 +1491,7 @@ function ProjectsContentInner() {
                   source={{ projectId: showBrowserStitcher }}
                   mode="inline"
                   autoPlay
-                  className="aspect-video rounded-lg sm:rounded-xl"
+                  className="w-full max-h-full aspect-video rounded-lg sm:rounded-xl"
                 />
               )}
             </div>

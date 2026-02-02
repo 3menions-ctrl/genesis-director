@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { ManifestVideoPlayer } from '@/components/studio/ManifestVideoPlayer';
+import { safePlay, safePause, safeSeek, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
 import type { VideoGenerationMode } from '@/types/video-modes';
 
 // Lazy load heavy components
@@ -403,19 +404,12 @@ const VideoCard = memo(forwardRef<HTMLDivElement, VideoCardProps>(function Video
       
       videoEl.muted = true;
       
-      // Function to attempt play
+      // STABILITY FIX: Use safe video operations pattern
       const attemptPlay = () => {
-        try {
-          if (!videoRef.current) return;
-          const v = videoRef.current;
-          if (v.readyState >= 1) {
-            const duration = v.duration;
-            if (isFinite(duration) && !isNaN(duration) && duration > 0) {
-              v.currentTime = 0;
-            }
-          }
-          v.play().catch(() => {});
-        } catch {}
+        if (!videoRef.current) return;
+        const v = videoRef.current;
+        safeSeek(v, 0);
+        safePlay(v);
       };
       
       // If video has enough data, play immediately
@@ -441,18 +435,11 @@ const VideoCard = memo(forwardRef<HTMLDivElement, VideoCardProps>(function Video
 
   const handleMouseLeave = useCallback(() => {
     setIsHovered(false);
-    try {
-      const videoEl = videoRef.current;
-      if (videoEl) {
-        videoEl.pause();
-        // Only seek if duration is valid
-        const duration = videoEl.duration;
-        if (isFinite(duration) && !isNaN(duration) && duration > 0) {
-          videoEl.currentTime = 0;
-        }
-      }
-    } catch {
-      // Silently ignore hover pause errors
+    // STABILITY FIX: Use safe video operations
+    const videoEl = videoRef.current;
+    if (videoEl) {
+      safePause(videoEl);
+      safeSeek(videoEl, 0);
     }
   }, []);
 

@@ -6,6 +6,7 @@ import { useMountGuard } from '@/hooks/useNavigationGuard';
 import { useGalleryShowcase } from '@/hooks/useGalleryShowcase';
 import type { GalleryCategory } from '@/types/gallery-showcase';
 import { ManifestVideoPlayer } from '@/components/studio/ManifestVideoPlayer';
+import { safePlay, safePause } from '@/lib/video/safeVideoOperations';
 
 type VideoCategory = 'all' | GalleryCategory;
 
@@ -245,9 +246,9 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
                 preload="auto"
                 onCanPlay={() => setIsLoaded(true)}
                 onLoadedData={() => {
-                  // Attempt autoplay when data is loaded
+                  // STABILITY FIX: Use safe play pattern
                   if (isPlaying && videoRef.current) {
-                    videoRef.current.play().catch(() => {});
+                    safePlay(videoRef.current);
                   }
                 }}
                 onTimeUpdate={handleTimeUpdate}
@@ -371,17 +372,16 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
                 {/* Play/Pause */}
                 <button
                   onClick={() => {
-                    try {
-                      if (videoRef.current) {
-                        if (isPlaying) {
-                          videoRef.current.pause();
-                        } else {
-                          videoRef.current.muted = true;
-                          videoRef.current.play().catch(() => {});
-                        }
-                        setIsPlaying(!isPlaying);
+                    // STABILITY FIX: Use safe video operations
+                    if (videoRef.current) {
+                      if (isPlaying) {
+                        safePause(videoRef.current);
+                      } else {
+                        videoRef.current.muted = true;
+                        safePlay(videoRef.current);
                       }
-                    } catch {}
+                      setIsPlaying(!isPlaying);
+                    }
                   }}
                   className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all hover:scale-105"
                 >

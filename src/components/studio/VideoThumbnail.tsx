@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect, memo, forwardRef, useMemo } f
 import { Play, Film } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { safePlay, safePause, safeSeek, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
 
 interface VideoThumbnailProps {
   src: string | null | undefined;
@@ -132,16 +133,10 @@ export const VideoThumbnail = memo(forwardRef<HTMLDivElement, VideoThumbnailProp
     setIsHovered(true);
     const video = videoRef.current;
     if (video && !hasError && isLoaded) {
-      try {
-        // CRITICAL: iOS requires muted for autoplay
-        video.muted = true;
-        if (video.readyState >= 1 && isFinite(video.duration)) {
-          video.currentTime = 0;
-        }
-        video.play().catch(() => {});
-      } catch (e) {
-        // Ignore playback errors
-      }
+      // STABILITY FIX: Use safe video operations
+      video.muted = true;
+      safeSeek(video, 0);
+      safePlay(video);
     }
   }, [hasError, isLoaded]);
 
@@ -149,14 +144,10 @@ export const VideoThumbnail = memo(forwardRef<HTMLDivElement, VideoThumbnailProp
     setIsHovered(false);
     const video = videoRef.current;
     if (video) {
-      try {
-        video.pause();
-        if (video.duration && isFinite(video.duration)) {
-          video.currentTime = Math.min(video.duration * 0.25, 2);
-        }
-      } catch (e) {
-        // Ignore pause/seek errors
-      }
+      // STABILITY FIX: Use safe video operations
+      safePause(video);
+      const thumbnailTime = isSafeVideoNumber(video.duration) ? Math.min(video.duration * 0.25, 2) : 0;
+      safeSeek(video, thumbnailTime);
     }
   }, []);
 

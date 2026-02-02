@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { Project } from '@/types/studio';
+import { safePlay, safePause, safeSeek, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
 
 // ============= HELPERS =============
 
@@ -172,29 +173,12 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
       // CRITICAL: iOS requires muted for autoplay
       video.muted = true;
       
-      // Function to attempt play - wrapped for safety
+      // Function to attempt play - STABILITY FIX: Use safe video operations
       const attemptPlay = () => {
         if (!isMountedRef.current || !videoRef.current) return;
-        
         const v = videoRef.current;
-        try {
-          // Reset to start - with safety check
-          if (v.readyState >= 1 && isFinite(v.duration)) {
-            v.currentTime = 0;
-          }
-          
-          // CRITICAL: Play must be called synchronously from user gesture on iOS
-          const playPromise = v.play();
-          if (playPromise !== undefined) {
-            playPromise.catch((err) => {
-              if (err?.name !== 'AbortError' && err?.name !== 'NotAllowedError') {
-                console.debug('[ProjectCard] Video play prevented:', err?.message);
-              }
-            });
-          }
-        } catch (err) {
-          console.debug('[ProjectCard] Play attempt error:', err);
-        }
+        safeSeek(v, 0);
+        safePlay(v);
       };
       
       // If video has enough data, play immediately
@@ -228,19 +212,12 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     const video = videoRef.current;
     if (!video) return;
     
-    try {
-      video.pause();
-      
-      // Only seek if duration is valid
-      const duration = video.duration;
-      if (isFinite(duration) && !isNaN(duration) && duration > 0) {
-        const targetTime = Math.min(duration * 0.1, 1);
-        if (isFinite(targetTime)) {
-          video.currentTime = targetTime;
-        }
-      }
-    } catch (err) {
-      console.debug('[ProjectCard] Interaction end error:', err);
+    // STABILITY FIX: Use safe video operations
+    safePause(video);
+    const duration = video.duration;
+    if (isSafeVideoNumber(duration)) {
+      const targetTime = Math.min(duration * 0.1, 1);
+      safeSeek(video, targetTime);
     }
   }, []);
   

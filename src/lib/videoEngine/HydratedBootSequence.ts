@@ -79,8 +79,8 @@ export function waitForCanPlayThrough(
         resolved = true;
         clearTimeout(timeoutId);
         cleanup();
-        const error = (e as ErrorEvent).message || 'Unknown video loading error';
-        console.error('[HydratedBoot] Video load error:', error);
+      const error = (e as ErrorEvent).message || 'Unknown video loading error';
+        console.debug('[HydratedBoot] Video load error:', error);
         reject(new Error(error));
       }
     };
@@ -156,11 +156,8 @@ export async function hydrateVideoBuffer(
   video.muted = true;
   video.playsInline = true;
   
-  // CRITICAL: Set crossOrigin carefully - some CDNs don't support CORS
-  // Only set if URL is from same origin or known CORS-enabled CDN
-  if (url.includes('supabase.co')) {
-    video.crossOrigin = 'anonymous';
-  }
+  // STABILITY FIX: crossOrigin removed entirely - Supabase/Replicate CDNs 
+  // don't support CORS headers for media, causing permanent loading failures
   
   // Set source and begin loading
   video.src = url;
@@ -170,7 +167,7 @@ export async function hydrateVideoBuffer(
     const status = await waitForCanPlayThrough(video, mergedConfig.loadTimeout);
     return { video, status };
   } catch (error) {
-    console.error('[HydratedBoot] Failed to hydrate:', error);
+    console.debug('[HydratedBoot] Failed to hydrate:', error);
     // Return with error state for graceful fallback
     return {
       video,
@@ -200,10 +197,14 @@ export function gracefulTransitionFallback(
   return new Promise((resolve) => {
     console.log('[HydratedBoot] Using graceful fallback transition:', fallbackMs, 'ms');
     
-    // Start incoming
+    // Start incoming - using safe play pattern
     incoming.style.opacity = '1';
     incoming.style.visibility = 'visible';
-    incoming.play().catch(() => {});
+    try {
+      if (incoming.readyState >= 1) {
+        incoming.play().catch(() => {});
+      }
+    } catch {}
     
     // Fade out outgoing over fallback duration
     if (outgoing) {

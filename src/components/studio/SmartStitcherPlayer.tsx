@@ -1412,17 +1412,34 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
             onPlay={() => activeVideoIndex === 0 && setIsPlaying(true)}
             onPause={() => activeVideoIndex === 0 && !isCrossfading && setIsPlaying(false)}
             onError={(e) => {
-              console.error('[SmartStitcher] Video A error:', e);
-              if (activeVideoIndex === 0 && currentClipIndex < clips.length - 1) {
-                console.log('[SmartStitcher] Attempting recovery by transitioning to next clip');
-                triggerTransitionRef.current?.();
+              // Prevent error from propagating and crashing
+              e.preventDefault?.();
+              e.stopPropagation?.();
+              
+              try {
+                const video = e.target as HTMLVideoElement;
+                const errorCode = video?.error?.code;
+                const errorMessage = video?.error?.message || 'Unknown error';
+                console.warn('[SmartStitcher] Video A error (code:', errorCode, '):', errorMessage);
+                
+                // Only attempt recovery for active video
+                if (activeVideoIndex === 0 && currentClipIndex < clips.length - 1) {
+                  console.log('[SmartStitcher] Attempting recovery by transitioning to next clip');
+                  triggerTransitionRef.current?.();
+                }
+              } catch (err) {
+                console.debug('[SmartStitcher] Error handler caught:', err);
               }
             }}
             onStalled={() => {
-              console.warn('[SmartStitcher] Video A stalled - attempting recovery');
-              const video = videoARef.current;
-              if (video && activeVideoIndex === 0 && isPlaying) {
-                video.play().catch(() => {});
+              try {
+                console.debug('[SmartStitcher] Video A stalled - attempting recovery');
+                const video = videoARef.current;
+                if (video && activeVideoIndex === 0 && isPlaying && video.readyState >= 2) {
+                  video.play().catch(() => {});
+                }
+              } catch (err) {
+                console.debug('[SmartStitcher] Stall recovery error:', err);
               }
             }}
             onWaiting={() => console.log('[SmartStitcher] Video A waiting for data')}
@@ -1446,17 +1463,34 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
             onPlay={() => activeVideoIndex === 1 && setIsPlaying(true)}
             onPause={() => activeVideoIndex === 1 && !isCrossfading && setIsPlaying(false)}
             onError={(e) => {
-              console.error('[SmartStitcher] Video B error:', e);
-              if (activeVideoIndex === 1 && currentClipIndex < clips.length - 1) {
-                console.log('[SmartStitcher] Attempting recovery by transitioning to next clip');
-                triggerTransitionRef.current?.();
+              // Prevent error from propagating and crashing
+              e.preventDefault?.();
+              e.stopPropagation?.();
+              
+              try {
+                const video = e.target as HTMLVideoElement;
+                const errorCode = video?.error?.code;
+                const errorMessage = video?.error?.message || 'Unknown error';
+                console.warn('[SmartStitcher] Video B error (code:', errorCode, '):', errorMessage);
+                
+                // Only attempt recovery for active video
+                if (activeVideoIndex === 1 && currentClipIndex < clips.length - 1) {
+                  console.log('[SmartStitcher] Attempting recovery by transitioning to next clip');
+                  triggerTransitionRef.current?.();
+                }
+              } catch (err) {
+                console.debug('[SmartStitcher] Error handler caught:', err);
               }
             }}
             onStalled={() => {
-              console.warn('[SmartStitcher] Video B stalled - attempting recovery');
-              const video = videoBRef.current;
-              if (video && activeVideoIndex === 1 && isPlaying) {
-                video.play().catch(() => {});
+              try {
+                console.debug('[SmartStitcher] Video B stalled - attempting recovery');
+                const video = videoBRef.current;
+                if (video && activeVideoIndex === 1 && isPlaying && video.readyState >= 2) {
+                  video.play().catch(() => {});
+                }
+              } catch (err) {
+                console.debug('[SmartStitcher] Stall recovery error:', err);
               }
             }}
             onWaiting={() => console.log('[SmartStitcher] Video B waiting for data')}

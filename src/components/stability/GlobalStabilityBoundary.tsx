@@ -71,11 +71,27 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'QueryCancelled',
   'Query cancelled',
   
-  // Video playback (autoplay restrictions, etc.)
+  // Video playback (autoplay restrictions, etc.) - CRITICAL FOR STABILITY
   'play() request was interrupted',
   'The play() request was interrupted',
   'NotAllowedError',
   'AbortError: The play',
+  'NotSupportedError',
+  'MEDIA_ERR',
+  'MediaError',
+  'The media resource',
+  'video element',
+  'Video',
+  'video playback',
+  'InvalidStateError',
+  'The element has no supported sources',
+  'MEDIA_ELEMENT_ERROR',
+  'HTMLMediaElement',
+  'playback error',
+  'decoding failed',
+  'decode error',
+  'DOMException: The element has no',
+  'DOMException: play()',
   
   // Network errors (should show toast, not crash)
   'NetworkError',

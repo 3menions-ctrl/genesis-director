@@ -621,7 +621,16 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
               muted={isMuted}
               playsInline
               onClick={togglePlay}
-              onError={() => setHasError(true)}
+              onError={(e) => {
+                // Prevent crash - gracefully handle video errors
+                e.preventDefault?.();
+                e.stopPropagation?.();
+                try {
+                  const video = e.target as HTMLVideoElement;
+                  console.debug('[Gallery] Video A error:', video?.error?.message || 'Unknown');
+                  setHasError(true);
+                } catch {}
+              }}
               onEnded={handleClipEnded}
               onTimeUpdate={handleTimeUpdate}
             />
@@ -635,7 +644,16 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
               muted={isMuted}
               playsInline
               onClick={togglePlay}
-              onError={() => setHasError(true)}
+              onError={(e) => {
+                // Prevent crash - gracefully handle video errors
+                e.preventDefault?.();
+                e.stopPropagation?.();
+                try {
+                  const video = e.target as HTMLVideoElement;
+                  console.debug('[Gallery] Video B error:', video?.error?.message || 'Unknown');
+                  setHasError(true);
+                } catch {}
+              }}
               onEnded={handleClipEnded}
               onTimeUpdate={handleTimeUpdate}
             />

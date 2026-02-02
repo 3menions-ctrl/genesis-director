@@ -241,7 +241,10 @@ export const FullscreenVideoPlayer = forwardRef<HTMLDivElement, FullscreenVideoP
       nextVideo.play().then(() => {
         executeInstantSwap();
       }).catch((err) => {
-        console.error('Video play failed:', err);
+        // Don't crash - just log and recover
+        if (err?.name !== 'AbortError' && err?.name !== 'NotAllowedError') {
+          console.debug('[FullscreenPlayer] Video play failed:', err?.message);
+        }
         setIsTransitioning(false);
         transitionTriggeredRef.current = false;
       });
@@ -627,6 +630,12 @@ export const FullscreenVideoPlayer = forwardRef<HTMLDivElement, FullscreenVideoP
         playsInline
         onClick={togglePlay}
         onPlay={() => setIsPlaying(true)}
+        onError={(e) => {
+          // Prevent crash - just log
+          e.preventDefault?.();
+          e.stopPropagation?.();
+          console.debug('[FullscreenPlayer] Video A error');
+        }}
       />
 
       {/* Video B Layer (for crossfade) */}
@@ -644,6 +653,12 @@ export const FullscreenVideoPlayer = forwardRef<HTMLDivElement, FullscreenVideoP
         playsInline
         onClick={togglePlay}
         onPlay={() => setIsPlaying(true)}
+        onError={(e) => {
+          // Prevent crash - just log
+          e.preventDefault?.();
+          e.stopPropagation?.();
+          console.debug('[FullscreenPlayer] Video B error');
+        }}
       />
 
       {/* Video C Layer (hidden preload buffer) */}

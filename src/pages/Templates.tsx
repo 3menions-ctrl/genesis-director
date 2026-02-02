@@ -543,7 +543,7 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
   return (
     <div ref={ref} className="min-h-screen bg-[#030303] text-white overflow-x-hidden">
       <TemplatesBackground />
-      <AppHeader showCreate={false} />
+      <AppHeader />
       
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Compact Header */}

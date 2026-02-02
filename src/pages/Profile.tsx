@@ -349,7 +349,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     return (
       <div className="min-h-screen bg-[#030303]">
         <ProfileBackground />
-        <AppHeader showCreate={false} />
+        <AppHeader />
         <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
           <Skeleton className="h-80 rounded-3xl bg-white/[0.03]" />
           <Skeleton className="h-32 rounded-2xl bg-white/[0.03]" />
@@ -404,7 +404,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         </DialogContent>
       </Dialog>
 
-      <AppHeader showCreate={false} />
+      <AppHeader />
 
       <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-8">
         

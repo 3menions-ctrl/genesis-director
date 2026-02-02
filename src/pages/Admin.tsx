@@ -1066,7 +1066,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/30">
-      <AppHeader showCreate={false} />
+      <AppHeader />
       
       <AdminSidebar 
         activeTab={activeTab} 

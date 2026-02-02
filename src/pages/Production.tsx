@@ -1180,7 +1180,7 @@ function ProductionContentInner() {
       <PipelineBackground />
       
       {/* App Header */}
-      <AppHeader showCreate={false} />
+      <AppHeader />
 
       {/* Main Layout */}
       <div className="relative z-10 flex-1 flex overflow-hidden">

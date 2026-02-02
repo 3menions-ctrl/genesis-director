@@ -706,7 +706,6 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
           muted={isMuted}
           playsInline
           preload="auto"
-          crossOrigin="anonymous"
         />
       )}
       
@@ -737,7 +736,6 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
             muted={isMuted}
             playsInline
             preload="auto"
-            crossOrigin="anonymous"
           />
           <video
             ref={videoBRef}
@@ -763,7 +761,6 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
             muted={isMuted}
             playsInline
             preload="auto"
-            crossOrigin="anonymous"
           />
         </>
       )}

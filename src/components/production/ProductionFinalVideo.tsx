@@ -94,9 +94,7 @@ export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFi
               controls 
               className="w-full h-full object-contain" 
               poster=""
-              muted
               playsInline
-              crossOrigin="anonymous"
               preload="auto"
             />
           )}

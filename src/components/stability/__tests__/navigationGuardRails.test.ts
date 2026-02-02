@@ -39,23 +39,24 @@ describe('Navigation Loading Coordination', () => {
   });
 
   describe('Create Page Pattern Compliance', () => {
-    it('should disable auto-complete since it manages own readiness', () => {
+    it('should use gatekeeper timeout pattern for forced visibility', () => {
       const createPath = path.join(process.cwd(), 'src/pages/Create.tsx');
       const content = fs.readFileSync(createPath, 'utf-8');
       
-      // Create page should disable auto-complete
-      expect(content.includes('disableAutoComplete()')).toBe(true);
+      // Create page should use gatekeeper timeout pattern to prevent infinite loading
+      expect(content.includes('GATEKEEPER_TIMEOUT_MS')).toBe(true);
+      expect(content.includes('gatekeeperTimeout')).toBe(true);
     });
 
-    it('should only markReady when CreationHub is ready', () => {
+    it('should track hub ready state for coordinated loading', () => {
       const createPath = path.join(process.cwd(), 'src/pages/Create.tsx');
       const content = fs.readFileSync(createPath, 'utf-8');
       
       // Should have isHubReady state
       expect(content.includes('isHubReady')).toBe(true);
       
-      // Should only call markReady when isHubReady is true
-      expect(content.includes('if (isHubReady)')).toBe(true);
+      // Should coordinate loading visibility with hub readiness OR gatekeeper timeout
+      expect(content.includes('!isHubReady && !gatekeeperTimeout')).toBe(true);
     });
 
     it('should pass onReady callback to CreationHub', () => {

@@ -3495,6 +3495,33 @@ export type Database = {
         }
         Relationships: []
       }
+      video_clips_public: {
+        Row: {
+          created_at: string | null
+          duration_seconds: number | null
+          id: string | null
+          project_id: string | null
+          shot_index: number | null
+          status: string | null
+          video_url: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_clips_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_clips_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       acquire_generation_lock: {

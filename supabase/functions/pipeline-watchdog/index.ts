@@ -105,7 +105,251 @@ serve(async (req) => {
       details: [],
     };
 
-    console.log("[Watchdog] Starting v4.1 pipeline recovery with guard rails...");
+    console.log("[Watchdog] Starting v5.0 pipeline recovery with ASYNC AVATAR POLLING...");
+
+    // ==================== PHASE 0-ASYNC: POLL ASYNC AVATAR PREDICTIONS ====================
+    // NEW: Poll Kling predictions started by generate-avatar-direct v3.0 async pattern
+    // This is the PERMANENT timeout fix - predictions run in background, watchdog completes them
+    const { data: asyncAvatarProjects } = await supabase
+      .from('movie_projects')
+      .select('id, title, status, mode, updated_at, user_id, pending_video_tasks, pipeline_state, voice_audio_url')
+      .eq('status', 'generating')
+      .eq('mode', 'avatar')
+      .limit(30);
+    
+    const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+    
+    for (const project of (asyncAvatarProjects || [])) {
+      const tasks = (project.pending_video_tasks || {}) as Record<string, any>;
+      
+      // Check if this is an async avatar job
+      if (tasks.type !== 'avatar_async' || !tasks.predictions) continue;
+      
+      console.log(`[Watchdog] 🎬 ASYNC AVATAR: Polling ${project.id} (${tasks.predictions.length} predictions)`);
+      
+      let allCompleted = true;
+      let anyFailed = false;
+      const completedClips: Array<{
+        clipIndex: number;
+        videoUrl: string;
+        audioUrl: string;
+      }> = [];
+      
+      for (const pred of tasks.predictions) {
+        if (pred.status === 'completed') {
+          completedClips.push({
+            clipIndex: pred.clipIndex,
+            videoUrl: pred.videoUrl,
+            audioUrl: pred.audioUrl,
+          });
+          continue;
+        }
+        
+        if (pred.status === 'failed') {
+          anyFailed = true;
+          continue;
+        }
+        
+        // Poll this prediction
+        try {
+          const pollResponse = await fetch(`https://api.replicate.com/v1/predictions/${pred.predictionId}`, {
+            headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` },
+          });
+          
+          if (!pollResponse.ok) {
+            allCompleted = false;
+            continue;
+          }
+          
+          const predictionStatus = await pollResponse.json();
+          
+          if (predictionStatus.status === 'succeeded' && predictionStatus.output) {
+            const videoUrl = Array.isArray(predictionStatus.output) 
+              ? predictionStatus.output[0] 
+              : predictionStatus.output;
+            
+            console.log(`[Watchdog] ✅ Clip ${pred.clipIndex + 1} COMPLETE: ${videoUrl.substring(0, 60)}...`);
+            
+            // Merge audio with video
+            let finalVideoUrl = videoUrl;
+            try {
+              const mergeResponse = await fetch("https://api.replicate.com/v1/predictions", {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+                  "Content-Type": "application/json",
+                  "Prefer": "wait=60",
+                },
+                body: JSON.stringify({
+                  version: "684cc0e6bff2f0d3b748d7c386ab8a6fb7c5f6d2095a3a38d68d9d6a3a2cb2f6",
+                  input: {
+                    video: videoUrl,
+                    audio: pred.audioUrl,
+                    audio_volume: 1.0,
+                    video_volume: 0.0,
+                  },
+                }),
+              });
+              
+              if (mergeResponse.ok) {
+                const mergeResult = await mergeResponse.json();
+                if (mergeResult.status === 'succeeded' && mergeResult.output) {
+                  finalVideoUrl = mergeResult.output;
+                  console.log(`[Watchdog] ✅ Clip ${pred.clipIndex + 1} audio merged`);
+                }
+              }
+            } catch (mergeError) {
+              console.warn(`[Watchdog] Audio merge failed (non-fatal):`, mergeError);
+            }
+            
+            // Save to permanent storage
+            try {
+              const videoResponse = await fetch(finalVideoUrl);
+              if (videoResponse.ok) {
+                const videoBlob = await videoResponse.blob();
+                const videoBytes = new Uint8Array(await videoBlob.arrayBuffer());
+                
+                const fileName = `avatar_${project.id}_clip${pred.clipIndex + 1}_${Date.now()}.mp4`;
+                const storagePath = `avatar-videos/${project.id}/${fileName}`;
+                
+                const { error: uploadError } = await supabase.storage
+                  .from('video-clips')
+                  .upload(storagePath, videoBytes, {
+                    contentType: 'video/mp4',
+                    upsert: true,
+                  });
+                
+                if (!uploadError) {
+                  finalVideoUrl = `${supabaseUrl}/storage/v1/object/public/video-clips/${storagePath}`;
+                  console.log(`[Watchdog] ✅ Clip ${pred.clipIndex + 1} saved to storage`);
+                }
+              }
+            } catch (storageError) {
+              console.warn(`[Watchdog] Storage failed (non-fatal):`, storageError);
+            }
+            
+            // Update prediction status
+            pred.status = 'completed';
+            pred.videoUrl = finalVideoUrl;
+            
+            completedClips.push({
+              clipIndex: pred.clipIndex,
+              videoUrl: finalVideoUrl,
+              audioUrl: pred.audioUrl,
+            });
+          } else if (predictionStatus.status === 'failed') {
+            console.error(`[Watchdog] ❌ Clip ${pred.clipIndex + 1} FAILED:`, predictionStatus.error);
+            pred.status = 'failed';
+            anyFailed = true;
+          } else {
+            // Still processing
+            allCompleted = false;
+            console.log(`[Watchdog] ⏳ Clip ${pred.clipIndex + 1} still processing: ${predictionStatus.status}`);
+          }
+        } catch (pollError) {
+          console.error(`[Watchdog] Poll error for ${pred.predictionId}:`, pollError);
+          allCompleted = false;
+        }
+      }
+      
+      // Update pending_video_tasks with latest status
+      await supabase.from('movie_projects').update({
+        pending_video_tasks: tasks,
+        pipeline_state: {
+          stage: allCompleted ? 'finalizing' : 'async_video_generation',
+          progress: allCompleted ? 90 : 25 + (completedClips.length / tasks.predictions.length) * 60,
+          message: allCompleted 
+            ? 'Finalizing video...' 
+            : `Generating clips (${completedClips.length}/${tasks.predictions.length})...`,
+          totalClips: tasks.predictions.length,
+          completedClips: completedClips.length,
+        },
+        updated_at: new Date().toISOString(),
+      }).eq('id', project.id);
+      
+      // If all completed, finalize the project
+      if (allCompleted && completedClips.length > 0) {
+        console.log(`[Watchdog] 🎉 ASYNC AVATAR COMPLETE: Finalizing ${project.id}`);
+        
+        // Sort clips by index
+        completedClips.sort((a, b) => a.clipIndex - b.clipIndex);
+        const primaryVideoUrl = completedClips[0].videoUrl;
+        
+        await supabase.from('movie_projects').update({
+          status: 'completed',
+          video_url: primaryVideoUrl,
+          final_video_url: primaryVideoUrl,
+          video_clips: completedClips.map(c => c.videoUrl),
+          pipeline_stage: 'completed',
+          pipeline_state: {
+            stage: 'completed',
+            progress: 100,
+            message: 'Avatar video complete!',
+            completedAt: new Date().toISOString(),
+            asyncCompletedByWatchdog: true,
+          },
+          pending_video_tasks: {
+            ...tasks,
+            status: 'completed',
+            completedAt: new Date().toISOString(),
+          },
+          updated_at: new Date().toISOString(),
+        }).eq('id', project.id);
+        
+        result.productionResumed++;
+        result.details.push({
+          projectId: project.id,
+          action: 'async_avatar_completed',
+          result: `${completedClips.length} clips finalized`,
+        });
+        console.log(`[Watchdog] ✅ ASYNC AVATAR ${project.id} COMPLETE!`);
+        continue;
+      }
+      
+      // Check for stalled async jobs (started > 10 min ago with no progress)
+      const startedAt = tasks.startedAt ? new Date(tasks.startedAt).getTime() : 0;
+      const asyncAge = Date.now() - startedAt;
+      const MAX_ASYNC_AGE_MS = 15 * 60 * 1000; // 15 minutes max
+      
+      if (asyncAge > MAX_ASYNC_AGE_MS && completedClips.length === 0) {
+        console.log(`[Watchdog] ❌ ASYNC AVATAR ${project.id} timed out after ${Math.round(asyncAge / 60000)}m`);
+        
+        // Mark failed and refund
+        await supabase.from('movie_projects').update({
+          status: 'failed',
+          pipeline_state: {
+            stage: 'error',
+            error: 'Avatar generation timed out',
+            failedAt: new Date().toISOString(),
+          },
+          updated_at: new Date().toISOString(),
+        }).eq('id', project.id);
+        
+        // Refund credits
+        try {
+          const estimatedCredits = tasks.predictions.length * 10;
+          await supabase.rpc('increment_credits', {
+            user_id_param: project.user_id,
+            amount_param: estimatedCredits,
+          });
+          
+          await supabase.from('credit_transactions').insert({
+            user_id: project.user_id,
+            amount: estimatedCredits,
+            transaction_type: 'refund',
+            description: `Auto-refund: Async avatar timeout (${project.title || project.id})`,
+            project_id: project.id,
+          });
+          
+          console.log(`[Watchdog] 💰 Refunded ${estimatedCredits} credits`);
+        } catch (refundError) {
+          console.error(`[Watchdog] Refund failed:`, refundError);
+        }
+        
+        result.projectsMarkedFailed++;
+        continue;
+      }
+    }
 
     // ==================== PHASE 0a: ORPHANED AVATAR COMPLETION RECOVERY ====================
     // CRITICAL FIX: Detect avatar projects where DB write failed but videos exist in storage

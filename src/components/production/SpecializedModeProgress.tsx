@@ -3,11 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Palette, Dices, CheckCircle2, XCircle, 
   Loader2, Play, RefreshCw, Download, ExternalLink,
-  Sparkles, Wand2, Film, Clock, Zap
+  Sparkles, Wand2, Film, Clock, Zap, X, Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface PipelineState {
   stage: string;
@@ -17,6 +19,8 @@ interface PipelineState {
   startedAt?: string;
   completedAt?: string;
   predictionId?: string;
+  currentClip?: number;
+  totalClips?: number;
 }
 
 interface SpecializedModeProgressProps {
@@ -26,6 +30,7 @@ interface SpecializedModeProgressProps {
   videoUrl?: string | null;
   onComplete?: () => void;
   onRetry?: () => void;
+  onCancel?: () => void;
 }
 
 const MODE_CONFIG = {
@@ -88,16 +93,46 @@ export function SpecializedModeProgress({
   videoUrl,
   onComplete,
   onRetry,
+  onCancel,
 }: SpecializedModeProgressProps) {
+  const navigate = useNavigate();
   const [isPolling, setIsPolling] = useState(false);
   const [localState, setLocalState] = useState<PipelineState>(pipelineState);
   const [localVideoUrl, setLocalVideoUrl] = useState(videoUrl);
   const [messageIndex, setMessageIndex] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [startTime] = useState(Date.now());
+  const [isCancelling, setIsCancelling] = useState(false);
   
   const config = MODE_CONFIG[mode];
   const Icon = config.icon;
+  
+  // Handle cancel with edge function
+  const handleCancel = async () => {
+    if (isCancelling) return;
+    setIsCancelling(true);
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+      
+      const { data, error } = await supabase.functions.invoke('cancel-project', {
+        body: { projectId, userId: user.id },
+      });
+      
+      if (error) throw error;
+      
+      toast.success('Project cancelled');
+      setLocalState(prev => ({ ...prev, stage: 'cancelled' }));
+      onCancel?.();
+      navigate('/projects');
+    } catch (err) {
+      console.error('Cancel error:', err);
+      toast.error('Failed to cancel project');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   // Refs for stable interval management - prevents flickering from state changes
   const messageIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -335,9 +370,19 @@ export function SpecializedModeProgress({
             <div className="flex-1">
               <h2 className="text-2xl font-bold text-white mb-1">{config.name}</h2>
               <p className="text-white/50">{config.description}</p>
+              
+              {/* Clip counter - show when generating */}
+              {(localState.totalClips && localState.totalClips > 0) && (
+                <div className="flex items-center gap-2 mt-2">
+                  <Film className="w-4 h-4 text-white/40" />
+                  <span className="text-white/60 text-sm">
+                    Clip {localState.currentClip || 1} of {localState.totalClips}
+                  </span>
+                </div>
+              )}
             </div>
             
-            {/* Status badge */}
+            {/* Status badge & Cancel */}
             <div className="flex flex-col items-end gap-2">
               {isComplete && (
                 <motion.div 
@@ -360,14 +405,32 @@ export function SpecializedModeProgress({
                 </motion.div>
               )}
               {isProcessing && (
-                <motion.div 
-                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.08] border border-white/[0.1]"
-                  animate={{ opacity: [1, 0.7, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                >
-                  <Loader2 className="w-4 h-4 text-white/70 animate-spin" />
-                  <span className="text-white/70 font-medium">Processing</span>
-                </motion.div>
+                <>
+                  <motion.div 
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.08] border border-white/[0.1]"
+                    animate={{ opacity: [1, 0.7, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    <Loader2 className="w-4 h-4 text-white/70 animate-spin" />
+                    <span className="text-white/70 font-medium">Processing</span>
+                  </motion.div>
+                  
+                  {/* Cancel button - visible while processing */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCancel}
+                    disabled={isCancelling}
+                    className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 gap-1.5"
+                  >
+                    {isCancelling ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <X className="w-3.5 h-3.5" />
+                    )}
+                    Cancel
+                  </Button>
+                </>
               )}
               
               {/* Elapsed time */}
@@ -521,13 +584,13 @@ export function SpecializedModeProgress({
           )}
 
           {/* Actions */}
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
             {isComplete && localVideoUrl && (
               <>
                 <Button
                   onClick={() => window.open(localVideoUrl, '_blank')}
                   className={cn(
-                    "flex-1 h-12 font-medium",
+                    "flex-1 min-w-[140px] h-11 sm:h-12 font-medium",
                     "bg-gradient-to-r text-white",
                     config.accentColor === 'amber' ? 'from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600' :
                     config.accentColor === 'emerald' ? 'from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600' : 
@@ -535,7 +598,7 @@ export function SpecializedModeProgress({
                   )}
                 >
                   <Play className="w-4 h-4 mr-2" />
-                  Play Full Video
+                  Play Video
                 </Button>
                 <Button
                   variant="outline"
@@ -545,10 +608,18 @@ export function SpecializedModeProgress({
                     link.download = `${mode}-video.mp4`;
                     link.click();
                   }}
-                  className="h-12 px-6 border-white/20 text-white hover:bg-white/10"
+                  className="h-11 sm:h-12 px-4 sm:px-6 border-white/20 text-white hover:bg-white/10"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Download
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate('/clips')}
+                  className="h-11 sm:h-12 px-4 text-white/70 hover:text-white hover:bg-white/10"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  View Clips
                 </Button>
               </>
             )}
@@ -556,7 +627,7 @@ export function SpecializedModeProgress({
             {isFailed && onRetry && (
               <Button
                 onClick={onRetry}
-                className="h-12 px-8 bg-white/10 text-white hover:bg-white/20 border border-white/10"
+                className="h-11 sm:h-12 px-6 sm:px-8 bg-white/10 text-white hover:bg-white/20 border border-white/10"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Retry Generation

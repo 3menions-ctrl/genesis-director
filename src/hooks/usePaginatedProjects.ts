@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Project } from '@/types/studio';
 import { useAuth } from '@/contexts/AuthContext';
 
-const PAGE_SIZE = 24; // Optimal for 3-column grid (8 rows)
+const PAGE_SIZE = 5; // Load 5 projects per page to prevent memory exhaustion
 
 export interface PaginatedProjectsResult {
   projects: Project[];

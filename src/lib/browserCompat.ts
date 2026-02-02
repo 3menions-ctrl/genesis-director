@@ -260,6 +260,29 @@ export const injectBrowserFixes = (): void => {
       .min-h-screen, .h-screen {
         min-height: -webkit-fill-available;
       }
+      
+      /* SAFARI CRASH FIX: Prevent video element crashes */
+      video {
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+      }
+      
+      /* SAFARI CRASH FIX: Prevent animation memory leaks */
+      @keyframes safari-safe-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+      .animate-pulse {
+        animation: safari-safe-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      
+      /* SAFARI CRASH FIX: Force compositing layers */
+      .fixed, .sticky, .absolute {
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
+      }
     `);
   }
 

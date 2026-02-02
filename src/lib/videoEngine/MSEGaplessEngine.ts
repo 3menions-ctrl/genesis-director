@@ -53,33 +53,54 @@ const MSE_MIME_TYPES = [
  * Detects if MediaSource Extensions are supported and finds best MIME type
  */
 export function detectMSESupport(): { supported: boolean; mimeType: string | null } {
-  // CRITICAL: Check for Safari iOS which has limited MSE support
-  const isIOSSafari = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-  if (isIOSSafari) {
-    console.warn('[MSEEngine] iOS Safari detected - MSE not fully supported, using fallback');
-    return { supported: false, mimeType: null };
-  }
-
-  if (typeof MediaSource === 'undefined') {
-    console.warn('[MSEEngine] MediaSource API not available');
-    return { supported: false, mimeType: null };
-  }
-
-  // CRITICAL: Also check if MediaSource.isTypeSupported exists
-  if (typeof MediaSource.isTypeSupported !== 'function') {
-    console.warn('[MSEEngine] MediaSource.isTypeSupported not available');
-    return { supported: false, mimeType: null };
-  }
-
+  // CRITICAL: Wrap entire detection in try-catch for Safari crash prevention
   try {
-    for (const mime of MSE_MIME_TYPES) {
-      if (MediaSource.isTypeSupported(mime)) {
-        console.log('[MSEEngine] Supported MIME type found:', mime);
-        return { supported: true, mimeType: mime };
+    // CRITICAL: Check for Safari iOS which has limited MSE support
+    const isIOSSafari = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    if (isIOSSafari) {
+      console.warn('[MSEEngine] iOS Safari detected - MSE not fully supported, using fallback');
+      return { supported: false, mimeType: null };
+    }
+
+    // SAFARI FIX: Additional check for Safari desktop which can crash on some MSE operations
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    const safariVersion = isSafari ? parseInt(navigator.userAgent.match(/Version\/(\d+)/)?.[1] || '0', 10) : 0;
+    
+    // Safari < 15 has very buggy MSE - force fallback
+    if (isSafari && safariVersion < 15) {
+      console.warn('[MSEEngine] Safari < 15 detected - using fallback for stability');
+      return { supported: false, mimeType: null };
+    }
+
+    if (typeof MediaSource === 'undefined') {
+      console.warn('[MSEEngine] MediaSource API not available');
+      return { supported: false, mimeType: null };
+    }
+
+    // CRITICAL: Also check if MediaSource.isTypeSupported exists
+    if (typeof MediaSource.isTypeSupported !== 'function') {
+      console.warn('[MSEEngine] MediaSource.isTypeSupported not available');
+      return { supported: false, mimeType: null };
+    }
+
+    // SAFARI FIX: Safari has issues with WebM, only use MP4 for Safari
+    const mimeTypesToCheck = isSafari 
+      ? MSE_MIME_TYPES.filter(mime => mime.startsWith('video/mp4'))
+      : MSE_MIME_TYPES;
+
+    for (const mime of mimeTypesToCheck) {
+      try {
+        if (MediaSource.isTypeSupported(mime)) {
+          console.log('[MSEEngine] Supported MIME type found:', mime);
+          return { supported: true, mimeType: mime };
+        }
+      } catch {
+        // Skip this MIME type if check crashes
+        continue;
       }
     }
   } catch (err) {
-    console.warn('[MSEEngine] Error checking MIME support:', err);
+    console.warn('[MSEEngine] MSE detection crashed (likely Safari):', err);
     return { supported: false, mimeType: null };
   }
 
@@ -344,36 +365,60 @@ export class MSEGaplessEngine {
    * Process the append queue (handles SourceBuffer async nature)
    */
   private processAppendQueue(): void {
-    if (this.isAppending || this.appendQueue.length === 0 || !this.sourceBuffer) {
-      return;
-    }
-
-    if (this.sourceBuffer.updating) {
-      return; // Wait for current update to finish
-    }
-
-    const clipIndex = this.appendQueue.shift()!;
-    const buffer = this.clipBuffers.get(clipIndex);
-
-    if (!buffer) {
-      console.warn('[MSEEngine] No buffer for clip', clipIndex);
-      this.processAppendQueue();
-      return;
-    }
-
+    // SAFARI FIX: Wrap entire method in try-catch to prevent crashes
     try {
+      if (this.isAppending || this.appendQueue.length === 0 || !this.sourceBuffer) {
+        return;
+      }
+
+      // SAFARI FIX: Check if sourceBuffer is still valid and not updating
+      if (this.sourceBuffer.updating) {
+        return; // Wait for current update to finish
+      }
+
+      // SAFARI FIX: Verify MediaSource is still open
+      if (this.mediaSource && this.mediaSource.readyState !== 'open') {
+        console.warn('[MSEEngine] MediaSource not open, skipping append');
+        return;
+      }
+
+      const clipIndex = this.appendQueue.shift()!;
+      const buffer = this.clipBuffers.get(clipIndex);
+
+      if (!buffer) {
+        console.warn('[MSEEngine] No buffer for clip', clipIndex);
+        this.processAppendQueue();
+        return;
+      }
+
+      // SAFARI FIX: Validate buffer before appending
+      if (buffer.byteLength === 0) {
+        console.warn('[MSEEngine] Empty buffer for clip', clipIndex);
+        this.processAppendQueue();
+        return;
+      }
+
       this.isAppending = true;
       this.sourceBuffer.appendBuffer(buffer);
       console.log('[MSEEngine] Appended clip', clipIndex);
     } catch (error) {
-      console.error('[MSEEngine] Append error for clip', clipIndex, error);
+      console.error('[MSEEngine] Append error:', error);
       this.isAppending = false;
       
+      const errorName = (error as Error)?.name;
+      
       // Handle QuotaExceededError by removing old buffer
-      if ((error as Error).name === 'QuotaExceededError') {
+      if (errorName === 'QuotaExceededError') {
         this.cleanupBuffer();
-        this.appendQueue.unshift(clipIndex); // Re-queue
-        setTimeout(() => this.processAppendQueue(), 100);
+        // Re-queue the clip that failed
+        const failedClip = this.appendQueue[0];
+        if (failedClip !== undefined) {
+          setTimeout(() => this.processAppendQueue(), 100);
+        }
+      } else if (errorName === 'InvalidStateError') {
+        // SAFARI FIX: Safari throws this when SourceBuffer is removed
+        console.warn('[MSEEngine] SourceBuffer invalid state - switching to fallback');
+        this.updateState({ usingFallback: true, status: 'error', errorMessage: 'Safari MSE error - using fallback' });
       } else {
         this.handleError(error instanceof Error ? error : new Error('Append failed'));
       }
@@ -435,43 +480,67 @@ export class MSEGaplessEngine {
     if (this.updateIntervalId) return;
 
     this.updateIntervalId = window.setInterval(() => {
-      if (!this.videoElement) return;
-
-      const currentTime = this.videoElement.currentTime;
-      
-      // Find current clip index based on time
-      let clipIndex = 0;
-      for (let i = 0; i < this.clipStartTimes.length; i++) {
-        if (currentTime >= this.clipStartTimes[i]) {
-          clipIndex = i;
-        } else {
-          break;
+      // SAFARI FIX: Wrap entire update in try-catch
+      try {
+        if (!this.videoElement) return;
+        
+        // SAFARI FIX: Check if element is still connected to DOM
+        if (!this.videoElement.isConnected) {
+          this.stopTimeUpdates();
+          return;
         }
-      }
 
-      // Check if clip changed
-      if (clipIndex !== this.state.currentClipIndex) {
-        this.callbacks.onClipChange?.(clipIndex);
-      }
+        // SAFARI FIX: Validate currentTime before using
+        const rawTime = this.videoElement.currentTime;
+        if (!isFinite(rawTime) || isNaN(rawTime)) {
+          return; // Skip this update cycle
+        }
+        const currentTime = Math.max(0, rawTime);
+        
+        // Find current clip index based on time
+        let clipIndex = 0;
+        for (let i = 0; i < this.clipStartTimes.length; i++) {
+          if (currentTime >= this.clipStartTimes[i]) {
+            clipIndex = i;
+          } else {
+            break;
+          }
+        }
 
-      // Calculate buffered percent
-      let bufferedPercent = 0;
-      if (this.videoElement.buffered.length > 0 && this.state.totalDuration > 0) {
-        const bufferedEnd = this.videoElement.buffered.end(this.videoElement.buffered.length - 1);
-        bufferedPercent = (bufferedEnd / this.state.totalDuration) * 100;
-      }
+        // Check if clip changed
+        if (clipIndex !== this.state.currentClipIndex) {
+          this.callbacks.onClipChange?.(clipIndex);
+        }
 
-      this.updateState({
-        currentTime,
-        currentClipIndex: clipIndex,
-        bufferedPercent,
-        status: this.videoElement.paused ? 'paused' : 'playing',
-      });
+        // Calculate buffered percent with SAFARI FIX for invalid values
+        let bufferedPercent = 0;
+        try {
+          if (this.videoElement.buffered.length > 0 && this.state.totalDuration > 0) {
+            const bufferedEnd = this.videoElement.buffered.end(this.videoElement.buffered.length - 1);
+            if (isFinite(bufferedEnd) && !isNaN(bufferedEnd)) {
+              bufferedPercent = Math.min(100, (bufferedEnd / this.state.totalDuration) * 100);
+            }
+          }
+        } catch {
+          // Safari can throw on buffered.end() access
+          bufferedPercent = this.state.bufferedPercent;
+        }
 
-      // Check for ended
-      if (this.videoElement.ended && this.state.status !== 'ended') {
-        this.updateState({ status: 'ended' });
-        this.callbacks.onEnded?.();
+        this.updateState({
+          currentTime,
+          currentClipIndex: clipIndex,
+          bufferedPercent,
+          status: this.videoElement.paused ? 'paused' : 'playing',
+        });
+
+        // Check for ended
+        if (this.videoElement.ended && this.state.status !== 'ended') {
+          this.updateState({ status: 'ended' });
+          this.callbacks.onEnded?.();
+        }
+      } catch (err) {
+        // SAFARI FIX: Prevent any time update error from crashing the app
+        console.debug('[MSEEngine] Time update error (suppressed):', err);
       }
     }, 100);
   }

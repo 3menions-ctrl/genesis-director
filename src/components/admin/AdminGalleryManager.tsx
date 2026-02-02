@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
 import { useGalleryShowcase, useAddGalleryItem, useUpdateGalleryItem, useDeleteGalleryItem, useReorderGalleryItems } from '@/hooks/useGalleryShowcase';
 import type { GalleryShowcaseItem, GalleryShowcaseInsert, GalleryCategory } from '@/types/gallery-showcase';
 import { cn } from '@/lib/utils';
@@ -181,11 +182,10 @@ export const AdminGalleryManager = memo(function AdminGalleryManager() {
                   {item.thumbnail_url ? (
                     <img src={item.thumbnail_url} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <video
+                    <PausedFrameVideo
                       src={item.video_url}
                       className="w-full h-full object-cover"
-                      muted
-                      preload="metadata"
+                      showLoader={false}
                     />
                   )}
                 </div>

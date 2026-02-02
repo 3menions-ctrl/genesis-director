@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
+import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
 import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
@@ -925,13 +926,10 @@ export default function Clips() {
                           {/* Thumbnail */}
                           <div className="relative w-16 h-10 rounded-lg overflow-hidden bg-black/50 flex-shrink-0 ring-1 ring-white/10">
                             {group.clips[0]?.video_url ? (
-                              <video 
+                              <PausedFrameVideo 
                                 src={group.clips[0].video_url}
                                 className="w-full h-full object-cover"
-                                muted
-                                playsInline
-                                preload="metadata"
-                                onLoadedData={(e) => { (e.target as HTMLVideoElement).currentTime = 0.5; }}
+                                showLoader={false}
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-white/5 to-transparent">

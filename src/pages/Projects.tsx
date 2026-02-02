@@ -11,6 +11,7 @@ import {
   Command, GraduationCap, MonitorPlay, Pin, ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
 import { safePlay, safePause, safeSeek } from '@/lib/video/safeVideoOperations';
 import { Input } from '@/components/ui/input';
 import {
@@ -1059,14 +1060,10 @@ function ProjectsContentInner() {
                           "bg-zinc-900 border border-white/[0.06]",
                           "group-hover:border-emerald-500/30 transition-all duration-300"
                         )}>
-                          <video
+                          <PausedFrameVideo
                             src={video.video_url}
                             className="w-full h-full object-cover"
-                            muted
-                            playsInline
-                            preload="metadata"
-                            onMouseEnter={(e) => safePlay(e.currentTarget)}
-                            onMouseLeave={(e) => { safePause(e.currentTarget); safeSeek(e.currentTarget, 0); }}
+                            showLoader={false}
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">

@@ -208,17 +208,25 @@ export function installSafeModeInterceptors(): () => void {
 
 /**
  * Enable safe mode automatically (called by crash forensics)
+ * @param reason - Why safe mode was enabled
+ * @param skipReload - If true, don't reload (prevents infinite loop during crash loop detection)
  */
-export function autoEnableSafeMode(reason: string): void {
+export function autoEnableSafeMode(reason: string, skipReload: boolean = false): void {
   if (typeof sessionStorage === 'undefined') return;
   
   try {
+    // Check if already enabled to prevent repeated reloads
+    const alreadyEnabled = sessionStorage.getItem('safe_mode_auto_enabled') === 'true';
+    
     sessionStorage.setItem('safe_mode_auto_enabled', 'true');
     sessionStorage.setItem('safe_mode_reason', reason);
     console.warn(`[SafeMode] Auto-enabled due to: ${reason}`);
     
-    // Reload to apply safe mode
-    window.location.reload();
+    // Only reload if not already enabled and skipReload is false
+    // CRITICAL: Avoid reload loops by checking if we're already in safe mode
+    if (!alreadyEnabled && !skipReload && !isSafeModeEnabled()) {
+      window.location.reload();
+    }
   } catch {
     // Storage unavailable
   }

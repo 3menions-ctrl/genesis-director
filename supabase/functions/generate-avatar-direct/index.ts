@@ -365,9 +365,10 @@ serve(async (req) => {
 
     // ═══════════════════════════════════════════════════════════════════════════
     // STEP 4: SAVE PENDING STATE TO DATABASE
-    // Watchdog will poll and complete
+    // CRITICAL: Persist ALL parameters so watchdog can recover correctly
     // ═══════════════════════════════════════════════════════════════════════════
     console.log("[AvatarDirect] Step 4: Saving async job state to database...");
+    console.log(`[AvatarDirect] Persisting: script=${script.length}chars, scene="${sceneDescription?.substring(0, 30) || 'none'}", duration=${clipDuration}s`);
 
     const asyncJobData = {
       predictions: pendingPredictions,
@@ -377,10 +378,15 @@ serve(async (req) => {
       startedAt: new Date().toISOString(),
       clipDuration,
       aspectRatio,
+      // CRITICAL: Persist original parameters for recovery
+      originalScript: script,
+      originalSceneDescription: sceneDescription || null,
     };
 
     if (projectId) {
-      await supabase.from('movie_projects').update({
+      const { error: updateError } = await supabase.from('movie_projects').update({
+        // CRITICAL: Save user's script to synopsis for reference
+        synopsis: script,
         pipeline_state: {
           stage: 'async_video_generation',
           progress: 25,
@@ -388,7 +394,7 @@ serve(async (req) => {
           totalClips: finalClipCount,
           asyncJobData,
         },
-      pending_video_tasks: {
+        pending_video_tasks: {
           type: 'avatar_async',
           predictions: pendingPredictions.map(p => ({
             predictionId: p.predictionId,
@@ -396,17 +402,27 @@ serve(async (req) => {
             status: 'processing',
             audioUrl: p.audioUrl,
             audioDurationMs: p.audioDurationMs,
+            segmentText: p.segmentText, // CRITICAL: Preserve segment text
           })),
           masterAudioUrl: permanentMasterAudioUrl,
           sceneImageUrl: sharedAnimationStartImage,
           sceneCompositingApplied: sceneCompositingApplied,
           sceneDescription: sceneDescription || null,
           clipDuration: clipDuration,
+          aspectRatio: aspectRatio,
+          // CRITICAL: Preserve full script for recovery/debugging
+          originalScript: script,
           startedAt: new Date().toISOString(),
         },
         voice_audio_url: permanentMasterAudioUrl,
         updated_at: new Date().toISOString(),
       }).eq('id', projectId);
+      
+      if (updateError) {
+        console.error("[AvatarDirect] ❌ Failed to save async state:", updateError);
+      } else {
+        console.log("[AvatarDirect] ✅ Async state saved successfully");
+      }
     }
 
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");

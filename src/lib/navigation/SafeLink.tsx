@@ -8,7 +8,7 @@
 import React, { memo, useCallback, MouseEvent, forwardRef, ReactNode } from 'react';
 import { Link, LinkProps, useLocation } from 'react-router-dom';
 import { navigationCoordinator } from './NavigationCoordinator';
-import { useSafeNavigation } from './hooks';
+import { useSafeNavigation } from './unifiedHooks';
 
 interface SafeLinkProps extends Omit<LinkProps, 'onClick'> {
   children: ReactNode;

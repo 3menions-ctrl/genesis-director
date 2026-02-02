@@ -1,5 +1,6 @@
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSafeNavigation, useRouteCleanup, useNavigationAbort } from '@/lib/navigation';
 import { 
   Film, Play, Download, Trash2, 
   Loader2, CheckCircle2, XCircle, Clock, ArrowLeft,
@@ -124,7 +125,10 @@ function CircularProgress({ value, size = 48, strokeWidth = 4, className }: {
 }
 
 export default function Clips() {
-  const navigate = useNavigate();
+  // Unified navigation - safe navigation with locking
+  const { navigate } = useSafeNavigation();
+  const { getSignal, isMounted, abort: abortRequests } = useNavigationAbort();
+  
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const projectIdFilter = searchParams.get('projectId');
@@ -137,6 +141,13 @@ export default function Clips() {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'pending' | 'failed'>('all');
+  
+  // Register cleanup when leaving this page
+  useRouteCleanup(() => {
+    abortRequests();
+    setSelectedClip(null);
+    setVideoModalOpen(false);
+  }, [abortRequests]);
   const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'duration'>('recent');
   const [projectStatus, setProjectStatus] = useState<string | null>(null);
   const [proFeatures, setProFeatures] = useState<ProjectProFeatures | null>(null);

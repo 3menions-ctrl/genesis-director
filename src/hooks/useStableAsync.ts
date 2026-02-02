@@ -1,16 +1,20 @@
 /**
  * useStableAsync - Production-grade async hook with full lifecycle management
  * 
+ * Now integrated with the unified navigation system for coordinated abort management.
+ * 
  * Features:
  * - Automatic cancellation on unmount
  * - Timeout protection
  * - Retry logic with exponential backoff
  * - Race condition prevention
  * - Error classification and handling
+ * - Coordinated with NavigationCoordinator for navigation-aware aborts
  */
 
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { stabilityMonitor } from '@/lib/stabilityMonitor';
+import { navigationCoordinator } from '@/lib/navigation';
 
 interface UseStableAsyncOptions {
   /** Timeout in milliseconds (default: 30000) */
@@ -81,12 +85,13 @@ export function useStableAsync<T = unknown>(
 
   const isMounted = useCallback(() => isMountedRef.current, []);
 
+  // Use coordinator-managed AbortController for navigation awareness
   const getSignal = useCallback(() => {
-    // Abort previous request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    abortControllerRef.current = new AbortController();
+    // Create via coordinator so it gets aborted on navigation
+    abortControllerRef.current = navigationCoordinator.createAbortController();
     return abortControllerRef.current.signal;
   }, []);
 

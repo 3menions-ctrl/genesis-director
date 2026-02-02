@@ -13,7 +13,7 @@ import { GlobalStabilityBoundary } from "@/components/stability/GlobalStabilityB
 import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
 import { DebugOverlay } from "@/components/diagnostics/DebugOverlay";
-import { NavigationGuardProvider } from "@/lib/navigation";
+import { NavigationGuardProvider, NavigationBridge } from "@/lib/navigation";
 
 // Lazy load all pages for code splitting
 const Landing = lazy(() => import("./pages/Landing"));
@@ -72,6 +72,7 @@ const App = () => (
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <NavigationLoadingProvider>
             <NavigationGuardProvider>
+            <NavigationBridge>
             <AuthProvider>
               <StudioProvider>
                 {/* Global Loading Overlay for smooth transitions */}
@@ -313,6 +314,7 @@ const App = () => (
                 <DebugOverlay />
               </StudioProvider>
             </AuthProvider>
+            </NavigationBridge>
             </NavigationGuardProvider>
           </NavigationLoadingProvider>
         </BrowserRouter>

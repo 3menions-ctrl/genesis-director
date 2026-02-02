@@ -93,6 +93,10 @@ interface SmartStitcherPlayerProps {
   projectId: string;
   clipUrls?: string[];
   audioUrl?: string;
+  /** Master audio URL for continuous playback (avatar multi-clip projects) */
+  masterAudioUrl?: string;
+  /** Whether this is an avatar project - mutes clip audio in favor of master track */
+  isAvatarProject?: boolean;
   onExportComplete?: (url: string) => void;
   className?: string;
   autoPlay?: boolean;
@@ -173,12 +177,20 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
     projectId,
     clipUrls: providedClipUrls,
     audioUrl,
+    masterAudioUrl,
+    isAvatarProject = false,
     onExportComplete,
     className,
     autoPlay = false,
   }, forwardedRef) {
   // Clip data
   const [clips, setClips] = useState<ClipData[]>([]);
+  
+  // Master audio state for avatar projects (continuous playback across clips)
+  const masterAudioRef = useRef<HTMLAudioElement>(null);
+  const [masterAudioLoaded, setMasterAudioLoaded] = useState(false);
+  // Resolved master audio URL (may come from manifest or props)
+  const [resolvedMasterAudioUrl, setResolvedMasterAudioUrl] = useState<string | null>(masterAudioUrl || null);
   const [isLoadingClips, setIsLoadingClips] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadProgress, setLoadProgress] = useState(0);
@@ -855,6 +867,26 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
     }
   }, [isPlaying, audioUrl, isMuted, isCrossfading]);
 
+  // Sync MASTER AUDIO for avatar projects - continuous playback across clips
+  useEffect(() => {
+    const masterAudio = masterAudioRef.current;
+    const effectiveMasterUrl = resolvedMasterAudioUrl || masterAudioUrl;
+    
+    if (!masterAudio || !effectiveMasterUrl || !isAvatarProject) return;
+
+    // Volume: full for master audio (it's the main voice track)
+    const targetVolume = isMuted ? 0 : 1.0;
+    masterAudio.volume = targetVolume;
+    
+    if (isPlaying) {
+      masterAudio.play().catch((err) => {
+        console.debug('[SmartStitcher] Master audio play failed:', err?.message);
+      });
+    } else {
+      masterAudio.pause();
+    }
+  }, [isPlaying, resolvedMasterAudioUrl, masterAudioUrl, isMuted, isAvatarProject]);
+
   // Play/Pause toggle - MSE or legacy
   const togglePlay = useCallback(() => {
     // Stitched video mode
@@ -1389,7 +1421,7 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
           style={{ zIndex: 10 }}
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
-          muted={isMuted}
+          muted={isMuted || (isAvatarProject && !!(resolvedMasterAudioUrl || masterAudioUrl))}
           playsInline
           preload="auto"
         />
@@ -1443,7 +1475,7 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
               }
             }}
             onWaiting={() => console.log('[SmartStitcher] Video A waiting for data')}
-            muted={isMuted}
+            muted={isMuted || (isAvatarProject && !!(resolvedMasterAudioUrl || masterAudioUrl))}
             playsInline
             preload="auto"
             crossOrigin="anonymous"
@@ -1494,7 +1526,7 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
               }
             }}
             onWaiting={() => console.log('[SmartStitcher] Video B waiting for data')}
-            muted={isMuted}
+            muted={isMuted || (isAvatarProject && !!(resolvedMasterAudioUrl || masterAudioUrl))}
             playsInline
             preload="auto"
             crossOrigin="anonymous"
@@ -1512,6 +1544,17 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
         />
       )}
 
+      {/* Master Audio Track for Avatar Projects - Seamless continuous playback */}
+      {(resolvedMasterAudioUrl || masterAudioUrl) && isAvatarProject && (
+        <audio
+          ref={masterAudioRef}
+          src={resolvedMasterAudioUrl || masterAudioUrl}
+          preload="auto"
+          onLoadedData={() => setMasterAudioLoaded(true)}
+          onError={(e) => console.debug('[SmartStitcher] Master audio load error:', e)}
+        />
+      )}
+
       {/* Stitched Video Player */}
       {useStitchedVideo && stitchState.url && (
         <video
@@ -1521,7 +1564,7 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
           onTimeUpdate={() => stitchedVideoRef.current && setCurrentTime(stitchedVideoRef.current.currentTime)}
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
-          muted={isMuted}
+          muted={isMuted || (isAvatarProject && !!(resolvedMasterAudioUrl || masterAudioUrl))}
           playsInline
           controls={false}
         />

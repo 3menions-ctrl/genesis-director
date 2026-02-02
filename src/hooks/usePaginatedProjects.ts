@@ -55,6 +55,10 @@ function mapDbProjectToProject(row: ProjectRow): Project {
     created_at: row.created_at,
     updated_at: row.updated_at,
     is_public: row.is_public,
+    // Include mode for avatar detection in video player
+    mode: row.mode || undefined,
+    source_image_url: row.source_image_url || undefined,
+    avatar_voice_id: row.avatar_voice_id || undefined,
     // These are lazy-loaded, not fetched upfront
     video_clips: undefined,
   };

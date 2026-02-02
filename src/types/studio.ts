@@ -49,6 +49,12 @@ export interface Project {
   pending_video_tasks?: PendingVideoTask[];
   is_public?: boolean;
   genre?: string;
+  // Project mode (avatar, text-to-video, motion-transfer, video-to-video, hollywood)
+  mode?: 'avatar' | 'text-to-video' | 'motion-transfer' | 'video-to-video' | 'hollywood' | string;
+  // Source assets for specialized modes
+  source_image_url?: string;
+  source_video_url?: string;
+  avatar_voice_id?: string;
 }
 
 export interface AssetLayer {

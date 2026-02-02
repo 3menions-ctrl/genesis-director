@@ -535,8 +535,8 @@ function ProjectsContentInner() {
   };
 
   const handlePlayVideo = async (project: Project) => {
-    // Always open UniversalVideoPlayer for any project that might have video content
-    // The player will fetch clips from the database if not available in the project object
+    // Store selected project for video modal - needed to determine video source type
+    setSelectedProject(project);
     setShowBrowserStitcher(project.id);
   };
 
@@ -1454,26 +1454,46 @@ function ProjectsContentInner() {
         </DialogContent>
       </Dialog>
 
-      {/* Smart Stitcher Player Modal - MOBILE FIX: Full-width on mobile */}
-      <Dialog open={!!showBrowserStitcher} onOpenChange={() => setShowBrowserStitcher(null)}>
+      {/* Smart Video Player Modal - MOBILE FIX: Full-width on mobile */}
+      {/* CRITICAL: Avatar projects use video_url directly, not video_clips table */}
+      <Dialog open={!!showBrowserStitcher} onOpenChange={(open) => {
+        if (!open) {
+          setShowBrowserStitcher(null);
+          setSelectedProject(null);
+        }
+      }}>
         <DialogContent className="bg-zinc-950 border-zinc-800 w-[95vw] max-w-5xl p-0 overflow-hidden rounded-xl sm:rounded-2xl">
           <DialogHeader className="p-3 sm:p-4 pb-0">
             <DialogTitle className="flex items-center gap-2 text-white text-sm sm:text-base">
               <MonitorPlay className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-              Smart Video Player
+              {selectedProject?.name || 'Smart Video Player'}
             </DialogTitle>
             <DialogDescription className="text-zinc-400 text-xs sm:text-sm">
-              Play all clips seamlessly
+              {selectedProject?.mode === 'avatar' ? 'AI Avatar Video' : 'Play all clips seamlessly'}
             </DialogDescription>
           </DialogHeader>
           {showBrowserStitcher && (
             <div className="p-2 sm:p-4 pt-2">
-              <UniversalVideoPlayer
-                source={{ projectId: showBrowserStitcher }}
-                mode="inline"
-                autoPlay
-                className="aspect-video rounded-lg sm:rounded-xl"
-              />
+              {/* Avatar projects: use video_url directly. Others: fetch from video_clips */}
+              {selectedProject?.mode === 'avatar' && selectedProject?.video_url ? (
+                <video
+                  src={selectedProject.video_url}
+                  controls
+                  autoPlay
+                  playsInline
+                  muted={false}
+                  className="w-full aspect-video rounded-lg sm:rounded-xl bg-black"
+                  crossOrigin="anonymous"
+                  preload="auto"
+                />
+              ) : (
+                <UniversalVideoPlayer
+                  source={{ projectId: showBrowserStitcher }}
+                  mode="inline"
+                  autoPlay
+                  className="aspect-video rounded-lg sm:rounded-xl"
+                />
+              )}
             </div>
           )}
         </DialogContent>

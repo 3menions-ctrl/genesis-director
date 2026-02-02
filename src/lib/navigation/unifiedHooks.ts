@@ -261,7 +261,7 @@ export function useSafeNavigation() {
 
   const safeNavigate = useCallback(async (
     to: string, 
-    options?: { replace?: boolean; skipLock?: boolean }
+    options?: { replace?: boolean; skipLock?: boolean; state?: unknown }
   ): Promise<boolean> => {
     if (pendingNavRef.current === to) return false;
 
@@ -279,7 +279,7 @@ export function useSafeNavigation() {
     pendingNavRef.current = to;
 
     try {
-      navigate(to, { replace: options?.replace });
+      navigate(to, { replace: options?.replace, state: options?.state });
       return true;
     } finally {
       requestAnimationFrame(() => {

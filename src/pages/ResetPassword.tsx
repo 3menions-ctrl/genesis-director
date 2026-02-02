@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Film, Lock, Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { z } from 'zod';
-import { Link } from 'react-router-dom';
+import { useSafeNavigation } from '@/lib/navigation';
 
 const passwordSchema = z.string()
   .min(6, 'Password must be at least 6 characters')
@@ -15,7 +15,7 @@ const passwordSchema = z.string()
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const { navigate } = useSafeNavigation();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);

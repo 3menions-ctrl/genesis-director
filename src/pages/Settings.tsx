@@ -1,7 +1,8 @@
 import { useState, useEffect, memo, forwardRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useSafeNavigation } from '@/lib/navigation';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,13 +30,8 @@ type SectionId = typeof SECTIONS[number]['id'];
 
 // Content component with hook resilience
 const SettingsContent = memo(function SettingsContent() {
-  // Hook resilience - wrap in try-catch with fallbacks
-  let navigate: ReturnType<typeof useNavigate>;
-  try {
-    navigate = useNavigate();
-  } catch {
-    navigate = () => {};
-  }
+  // Unified navigation - safe navigation with locking
+  const { navigate } = useSafeNavigation();
   
   let authData: { user: any; loading: boolean };
   try {
@@ -99,7 +95,7 @@ const SettingsContent = memo(function SettingsContent() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={() => window.history.back()}
             className="h-10 w-10 rounded-xl border border-white/10 text-white/60 hover:text-white hover:bg-white/5"
           >
             <ArrowLeft className="w-5 h-5" />

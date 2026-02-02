@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useSafeNavigation } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -54,7 +54,7 @@ const onboardingSchema = z.object({
 
 export default function Onboarding() {
   const { user, refreshProfile, loading: authLoading, isSessionVerified } = useAuth();
-  const navigate = useNavigate();
+  const { navigate } = useSafeNavigation();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);

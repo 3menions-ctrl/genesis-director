@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { Check, Zap, Crown, Building2, ArrowRight, Sparkles, Shield, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { useSafeNavigation } from '@/lib/navigation';
 
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 
@@ -81,13 +82,8 @@ const TRUST_POINTS = [
 ];
 
 export default function Pricing() {
-  // Hook resilience - wrap in try-catch with fallbacks
-  let navigate: ReturnType<typeof useNavigate>;
-  try {
-    navigate = useNavigate();
-  } catch {
-    navigate = () => {};
-  }
+  // Unified navigation - safe navigation with locking
+  const { navigate } = useSafeNavigation();
 
   return (
     <div className="min-h-screen bg-[#000] overflow-hidden relative">

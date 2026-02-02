@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useMemo, useCallback, memo, forwardRef, Suspense, lazy } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -81,13 +80,9 @@ const HeroFallback = () => <div className="pt-28 pb-12" />;
 
 // Main content component with hook resilience
 const DiscoverContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function DiscoverContent(_, ref) {
-  // Hook resilience - wrap in try-catch with fallbacks
-  let navigate: ReturnType<typeof useNavigate>;
-  try {
-    navigate = useNavigate();
-  } catch {
-    navigate = () => {};
-  }
+  // Unified navigation - safe navigation with locking
+  const { navigate } = useSafeNavigation();
+  const { getSignal, isMounted } = useNavigationAbort();
   
   let authData: { user: any };
   try {
@@ -102,10 +97,6 @@ const DiscoverContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [selectedVideo, setSelectedVideo] = useState<PublicVideo | null>(null);
   const [modeFilter, setModeFilter] = useState<VideoGenerationMode | 'all'>('all');
-  
-  // Navigation safety - abort on unmount
-  const { getSignal, isMounted } = useNavigationAbort();
-  const { navigate: safeNavigate } = useSafeNavigation();
   
   // Register cleanup when leaving this page
   useRouteCleanup(() => {

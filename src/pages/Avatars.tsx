@@ -20,8 +20,8 @@
  */
 
 import { useState, useCallback, useEffect, useMemo, useRef, memo, forwardRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useSafeNavigation, useRouteCleanup, useNavigationAbort } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import { useAvatarTemplatesQuery } from '@/hooks/useAvatarTemplatesQuery';
 import { useAvatarVoices } from '@/hooks/useAvatarVoices';
@@ -62,18 +62,16 @@ function getCriticalImageUrls(templates: AvatarTemplate[], limit = 8): string[] 
 const GATEKEEPER_TIMEOUT_MS = 5000;
 
 const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function AvatarsContent(_, ref) {
-  // ========== CRITICAL: Safe hook usage with try-catch ==========
-  let navigate: ReturnType<typeof useNavigate>;
+  // ========== Unified navigation - safe navigation with locking ==========
+  const { navigate } = useSafeNavigation();
+  const { abort: abortRequests } = useNavigationAbort();
   let authContext: ReturnType<typeof useAuth> | null = null;
   let tierLimits: ReturnType<typeof useTierLimits> | null = null;
   
-  try {
-    navigate = useNavigate();
-  } catch (e) {
-    console.error('[Avatars] useNavigate failed:', e);
-    // Fallback - create dummy navigate
-    navigate = (() => {}) as unknown as ReturnType<typeof useNavigate>;
-  }
+  // Register cleanup when leaving this page
+  useRouteCleanup(() => {
+    abortRequests();
+  }, [abortRequests]);
   
   try {
     authContext = useAuth();

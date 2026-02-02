@@ -180,7 +180,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         .from('movie_projects')
         .select('*')
         .eq('user_id', currentSession.user.id) // Explicit user_id filter
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false })
+        .limit(5); // Only load last 5 projects to prevent memory exhaustion
 
       // Check mount status after async operation
       if (!isMountedRef.current) return projects;

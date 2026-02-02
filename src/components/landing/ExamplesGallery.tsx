@@ -151,11 +151,21 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
     }
   }, [open]);
 
-  const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
-    const video = e.currentTarget;
-    const progress = (video.currentTime / video.duration) * 100;
-    setProgress(progress);
-  };
+  const handleTimeUpdate = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
+    try {
+      const video = e.currentTarget;
+      if (!video) return;
+      const duration = video.duration;
+      // CRITICAL: Guard against NaN/Infinity/0 duration crashes
+      if (!duration || !isFinite(duration) || isNaN(duration) || duration <= 0) return;
+      const progress = (video.currentTime / duration) * 100;
+      if (isFinite(progress) && !isNaN(progress)) {
+        setProgress(progress);
+      }
+    } catch {
+      // Silently ignore any errors during time update
+    }
+  }, []);
 
   const handleCategoryChange = (category: VideoCategory) => {
     setActiveCategory(category);

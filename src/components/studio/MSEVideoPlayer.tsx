@@ -194,34 +194,38 @@ export const MSEVideoPlayer = memo(forwardRef<HTMLDivElement, MSEVideoPlayerProp
     }
   }, [clips, autoPlay]);
 
-  // Play/Pause toggle
+  // Play/Pause toggle - HARDENED with try-catch
   const togglePlay = useCallback(() => {
-    if (engineState.usingFallback) {
-      const video = fallbackVideoARef.current;
-      if (!video) return;
+    try {
+      if (engineState.usingFallback) {
+        const video = fallbackVideoARef.current;
+        if (!video) return;
 
-      if (video.paused) {
-        video.play().catch(() => {});
-        musicRef.current?.play().catch(() => {});
-        setIsPlaying(true);
+        if (video.paused) {
+          video.play().catch(() => {});
+          musicRef.current?.play().catch(() => {});
+          setIsPlaying(true);
+        } else {
+          video.pause();
+          musicRef.current?.pause();
+          setIsPlaying(false);
+        }
       } else {
-        video.pause();
-        musicRef.current?.pause();
-        setIsPlaying(false);
-      }
-    } else {
-      const engine = engineRef.current;
-      if (!engine) return;
+        const engine = engineRef.current;
+        if (!engine) return;
 
-      if (isPlaying) {
-        engine.pause();
-        musicRef.current?.pause();
-        setIsPlaying(false);
-      } else {
-        engine.play();
-        musicRef.current?.play().catch(() => {});
-        setIsPlaying(true);
+        if (isPlaying) {
+          engine.pause();
+          musicRef.current?.pause();
+          setIsPlaying(false);
+        } else {
+          engine.play();
+          musicRef.current?.play().catch(() => {});
+          setIsPlaying(true);
+        }
       }
+    } catch {
+      // Silently handle any play/pause errors
     }
   }, [engineState.usingFallback, isPlaying]);
 
@@ -242,21 +246,30 @@ export const MSEVideoPlayer = memo(forwardRef<HTMLDivElement, MSEVideoPlayerProp
     }
   }, [isMuted, engineState.usingFallback]);
 
-  // Seek
+  // Seek - HARDENED with validation
   const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const percent = (e.clientX - rect.left) / rect.width;
-    const time = percent * engineState.totalDuration;
+    try {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const percent = (e.clientX - rect.left) / rect.width;
+      
+      // Validate percent and total duration
+      if (!isFinite(percent) || isNaN(percent)) return;
+      if (!isFinite(engineState.totalDuration) || engineState.totalDuration <= 0) return;
+      
+      const time = percent * engineState.totalDuration;
 
-    if (engineState.usingFallback) {
-      // For fallback, calculate which clip to jump to
-      // This is simplified - full implementation would track clip boundaries
-      const video = fallbackVideoARef.current;
-      if (video && video.duration) {
-        video.currentTime = percent * video.duration;
+      if (engineState.usingFallback) {
+        // For fallback, calculate which clip to jump to
+        // This is simplified - full implementation would track clip boundaries
+        const video = fallbackVideoARef.current;
+        if (video && video.duration && isFinite(video.duration) && video.duration > 0) {
+          video.currentTime = percent * video.duration;
+        }
+      } else {
+        engineRef.current?.seek(time);
       }
-    } else {
-      engineRef.current?.seek(time);
+    } catch {
+      // Silently handle seek errors
     }
   }, [engineState.totalDuration, engineState.usingFallback]);
 

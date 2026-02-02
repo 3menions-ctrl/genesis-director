@@ -6,9 +6,17 @@
  * - InvalidStateError when element is detached
  * - NotSupportedError for unsupported codecs
  * - NotAllowedError for autoplay policies
+ * - NaN/Infinity errors when duration is not ready
  * 
  * This module wraps all risky operations with proper error handling.
  */
+
+/**
+ * Check if a number is safe for video operations (finite, not NaN, positive)
+ */
+export function isSafeVideoNumber(value: unknown): value is number {
+  return typeof value === 'number' && isFinite(value) && !isNaN(value) && value >= 0;
+}
 
 /**
  * Safely attempt to play a video element
@@ -21,6 +29,12 @@ export async function safePlay(video: HTMLVideoElement | null): Promise<boolean>
     // Check if video is in a valid state
     if (video.readyState < 1) {
       console.debug('[SafeVideo] Video not ready for play (readyState:', video.readyState, ')');
+      return false;
+    }
+    
+    // Additional safety: check if video element is still in DOM
+    if (!video.isConnected) {
+      console.debug('[SafeVideo] Video element not in DOM');
       return false;
     }
     
@@ -41,8 +55,14 @@ export async function safePlay(video: HTMLVideoElement | null): Promise<boolean>
       return false;
     }
     
+    // InvalidStateError - element in wrong state
+    if (error?.name === 'InvalidStateError') {
+      console.debug('[SafeVideo] Invalid state for play');
+      return false;
+    }
+    
     // Other errors - log but don't crash
-    console.warn('[SafeVideo] Play failed:', error?.message || error);
+    console.debug('[SafeVideo] Play failed:', error?.message || error);
     return false;
   }
 }

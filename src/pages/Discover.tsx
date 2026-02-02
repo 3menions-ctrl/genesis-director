@@ -394,21 +394,38 @@ const VideoCard = memo(forwardRef<HTMLDivElement, VideoCardProps>(function Video
   }, [video.video_url, isManifest]);
 
   // Simple hover play/pause - no complex state dependencies
+  // HARDENED: All operations wrapped with try-catch and validation
   const handleMouseEnter = useCallback(() => {
     setIsHovered(true);
-    const videoEl = videoRef.current;
-    if (videoEl && videoUrl) {
-      videoEl.currentTime = 0;
-      videoEl.play().catch(() => {});
+    try {
+      const videoEl = videoRef.current;
+      if (videoEl && videoUrl && videoEl.readyState >= 1) {
+        // Only seek if duration is valid
+        const duration = videoEl.duration;
+        if (isFinite(duration) && !isNaN(duration) && duration > 0) {
+          videoEl.currentTime = 0;
+        }
+        videoEl.play().catch(() => {});
+      }
+    } catch {
+      // Silently ignore hover play errors
     }
   }, [videoUrl]);
 
   const handleMouseLeave = useCallback(() => {
     setIsHovered(false);
-    const videoEl = videoRef.current;
-    if (videoEl) {
-      videoEl.pause();
-      videoEl.currentTime = 0;
+    try {
+      const videoEl = videoRef.current;
+      if (videoEl) {
+        videoEl.pause();
+        // Only seek if duration is valid
+        const duration = videoEl.duration;
+        if (isFinite(duration) && !isNaN(duration) && duration > 0) {
+          videoEl.currentTime = 0;
+        }
+      }
+    } catch {
+      // Silently ignore hover pause errors
     }
   }, []);
 
@@ -576,13 +593,21 @@ const VideoModal = memo(forwardRef<HTMLDivElement, VideoModalProps>(function Vid
   }, [isMuted]);
 
   const togglePlayback = useCallback(() => {
-    if (videoRef.current) {
+    try {
+      const video = videoRef.current;
+      if (!video) return;
+      
       if (isVideoPlaying) {
-        videoRef.current.pause();
+        video.pause();
+        setIsVideoPlaying(false);
       } else {
-        videoRef.current.play();
+        video.play().catch(() => {
+          // If play fails, keep state as paused
+        });
+        setIsVideoPlaying(true);
       }
-      setIsVideoPlaying(!isVideoPlaying);
+    } catch {
+      // Silently ignore toggle errors
     }
   }, [isVideoPlaying]);
 

@@ -6,6 +6,7 @@
  * - All checkpoints (A0-A3) are reached
  * - No reload loops detected
  * - ChunkLoadErrors are handled gracefully
+ * - Safe mode activates on crash loop
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -23,6 +24,12 @@ import {
   clearRecoveryState,
   installChunkErrorInterceptor
 } from '@/lib/chunkLoadRecovery';
+import {
+  isSafeModeEnabled,
+  getSafeModeConfig,
+  getSafeModeStatus,
+  installSafeModeInterceptors
+} from '@/lib/safeMode';
 
 describe('Preview Stability', () => {
   
@@ -119,6 +126,37 @@ describe('Preview Stability', () => {
       cleanup();
     });
   });
+  
+  describe('Safe Mode', () => {
+    it('should detect safe mode from URL param', () => {
+      // Mock window.location
+      vi.stubGlobal('location', { 
+        search: '?safe=1',
+        href: 'http://localhost:3000/?safe=1'
+      });
+      
+      expect(isSafeModeEnabled()).toBe(true);
+      
+      vi.unstubAllGlobals();
+    });
+    
+    it('should return correct safe mode config when enabled', () => {
+      // getSafeModeConfig uses cached status, so we test the structure
+      const config = getSafeModeConfig();
+      
+      expect(config).toHaveProperty('enabled');
+      expect(config).toHaveProperty('disableVideoMount');
+      expect(config).toHaveProperty('disablePolling');
+      expect(config).toHaveProperty('disableMSE');
+    });
+    
+    it('should install timer interceptors in safe mode', () => {
+      // Test that installSafeModeInterceptors returns cleanup function
+      const cleanup = installSafeModeInterceptors();
+      expect(typeof cleanup).toBe('function');
+      cleanup();
+    });
+  });
 });
 
 describe('Preview Stability E2E Simulation', () => {
@@ -156,4 +194,54 @@ describe('Preview Stability E2E Simulation', () => {
     expect(a0?.timestamp).toBeGreaterThan(0);
     expect(a0?.passed).toBe(true);
   });
+  
+  it('should not crash when safe mode interceptors are installed', () => {
+    const cleanup = installSafeModeInterceptors();
+    
+    // Should be able to use setTimeout still (short delays allowed)
+    const id = setTimeout(() => {}, 100);
+    expect(id).toBeDefined();
+    
+    clearTimeout(id);
+    cleanup();
+  });
 });
+
+describe('Regression: Boot Stability', () => {
+  it('should reach checkpoint A3 without errors in simulation', async () => {
+    const errors: Error[] = [];
+    const originalError = console.error;
+    console.error = (...args) => {
+      if (args[0] instanceof Error) {
+        errors.push(args[0]);
+      }
+    };
+    
+    try {
+      const cleanup = initializeCrashForensics();
+      
+      markCheckpoint('A0');
+      markCheckpoint('A1');
+      markCheckpoint('A2');
+      markCheckpoint('A3');
+      
+      expect(allCheckpointsPassed()).toBe(true);
+      expect(errors.length).toBe(0);
+      
+      cleanup();
+    } finally {
+      console.error = originalError;
+    }
+  });
+  
+  it('should detect reload loop and flag for safe mode', () => {
+    // Simulate rapid crashes
+    recordCrashEvent('reload', { path: '/', message: 'crash 1' });
+    recordCrashEvent('reload', { path: '/', message: 'crash 2' });
+    recordCrashEvent('reload', { path: '/', message: 'crash 3' });
+    
+    // Should trigger crash loop detection
+    expect(isCrashLoopDetected()).toBe(true);
+  });
+});
+

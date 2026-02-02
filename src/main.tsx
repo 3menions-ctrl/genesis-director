@@ -15,6 +15,24 @@ import {
   isChunkLoadError,
   clearRecoveryState 
 } from "./lib/chunkLoadRecovery";
+// Safe Mode - MUST be imported before any heavy components
+import { 
+  getSafeModeStatus, 
+  installSafeModeInterceptors,
+  getSafeModeConfig 
+} from "./lib/safeMode";
+
+// ============= PHASE 1: SAFE MODE DETECTION (FIRST!) =============
+// This must happen before ANYTHING else
+const SAFE_MODE = getSafeModeStatus();
+const safeModeConfig = getSafeModeConfig();
+
+if (SAFE_MODE) {
+  console.warn('[SAFE MODE] ⚠️ Safe Mode is ACTIVE - heavy features disabled');
+  console.info('[SAFE MODE] Disabled features:', safeModeConfig);
+  // Install interceptors to block polling/timers
+  installSafeModeInterceptors();
+}
 
 // Apply browser-specific fixes immediately
 injectBrowserFixes();
@@ -28,7 +46,8 @@ if (process.env.NODE_ENV === 'development') {
   console.info('[BrowserCompat] Detected:', browserInfo.name, 'v' + browserInfo.version, {
     mobile: browserInfo.isMobile,
     iOS: browserInfo.isIOS,
-    safari: browserInfo.isSafari
+    safari: browserInfo.isSafari,
+    safeMode: SAFE_MODE
   });
 }
 
@@ -389,12 +408,12 @@ if ("serviceWorker" in navigator) {
 let cleanupDiagnostics: (() => void) | null = null;
 let cleanupForensics: (() => void) | null = null;
 
+// ALWAYS initialize crash forensics (even in production for Safe Mode)
+cleanupForensics = crashForensics.init();
+
 if (process.env.NODE_ENV === 'development') {
   cleanupDiagnostics = initializeDiagnostics();
   setStateSnapshotProvider(getCurrentSnapshot);
-  
-  // Initialize crash forensics
-  cleanupForensics = crashForensics.init();
 }
 
 // Clean up diagnostics, forensics, and chunk recovery on HMR
@@ -414,8 +433,14 @@ if (import.meta.hot) {
   });
 }
 
+// Log boot status
+console.info('[Boot] Starting React render...', { safeMode: SAFE_MODE });
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <App />
   </StrictMode>
 );
+
+// Mark boot complete
+console.info('[Boot] React render initiated');

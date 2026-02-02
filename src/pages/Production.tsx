@@ -409,11 +409,12 @@ function ProductionContentInner() {
       if (manifestUrl) {
         // Manifest URL is preferred - always points to permanent Supabase storage
         setFinalVideoUrl(manifestUrl);
-      } else if (project.video_url && !project.video_url.includes('replicate.delivery')) {
-        // Only use video_url if it's NOT a temporary Replicate URL
-        setFinalVideoUrl(project.video_url);
       } else if (project.video_url?.endsWith('.json')) {
         // It's already a manifest URL
+        setFinalVideoUrl(project.video_url);
+      } else if (project.video_url) {
+        // Use video_url directly - for avatar/specialized modes that don't use manifests
+        // Fresh Replicate URLs are valid for recently completed projects
         setFinalVideoUrl(project.video_url);
       }
       

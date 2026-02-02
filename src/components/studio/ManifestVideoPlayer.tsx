@@ -724,6 +724,15 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
             onEnded={activeVideoIndex === 0 ? handleClipEnded : undefined}
             onPlay={activeVideoIndex === 0 ? () => setIsPlaying(true) : undefined}
             onPause={activeVideoIndex === 0 ? () => setIsPlaying(false) : undefined}
+            onError={(e) => {
+              // Prevent crash - just log and recover
+              e.preventDefault?.();
+              e.stopPropagation?.();
+              try {
+                const video = e.target as HTMLVideoElement;
+                console.warn('[ManifestPlayer] Video A error:', video?.error?.message || 'Unknown');
+              } catch {}
+            }}
             muted={isMuted}
             playsInline
             preload="auto"
@@ -740,6 +749,15 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
             onEnded={activeVideoIndex === 1 ? handleClipEnded : undefined}
             onPlay={activeVideoIndex === 1 ? () => setIsPlaying(true) : undefined}
             onPause={activeVideoIndex === 1 ? () => setIsPlaying(false) : undefined}
+            onError={(e) => {
+              // Prevent crash - just log and recover
+              e.preventDefault?.();
+              e.stopPropagation?.();
+              try {
+                const video = e.target as HTMLVideoElement;
+                console.warn('[ManifestPlayer] Video B error:', video?.error?.message || 'Unknown');
+              } catch {}
+            }}
             muted={isMuted}
             playsInline
             preload="auto"

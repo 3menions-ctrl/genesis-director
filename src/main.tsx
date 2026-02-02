@@ -56,10 +56,24 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'Dialog',
   'DialogContent',
   'DialogPortal',
-  // Video playback errors - common and harmless
+  // VIDEO PLAYBACK ERRORS - CRITICAL: These are harmless and common
   'play() request was interrupted',
   'The play() request was interrupted by a call to pause()',
   'NotAllowedError',
+  'NotSupportedError',
+  'MEDIA_ERR',
+  'MediaError',
+  'The media resource',
+  'video element',
+  'Video',
+  'video playback',
+  'InvalidStateError',
+  'The element has no supported sources',
+  'MEDIA_ELEMENT_ERROR',
+  'HTMLMediaElement',
+  'playback error',
+  'decoding failed',
+  'decode error',
   // HMR/Vite development errors
   'Vite HMR',
   // Framer Motion cleanup

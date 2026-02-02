@@ -127,49 +127,77 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
   }, [project.video_url, project.video_clips, isDirectVideo, preResolvedClipUrl]);
 
   const handleVideoMetadataLoaded = useCallback(() => {
+    if (!isMountedRef.current) return;
     const video = videoRef.current;
-    if (!video || !isMountedRef.current) return;
-    if (!video.duration || !isFinite(video.duration) || video.duration <= 0) return;
+    if (!video) return;
+    
+    // Safe duration check
+    const duration = video.duration;
+    if (!duration || !isFinite(duration) || isNaN(duration) || duration <= 0) return;
     
     try {
-      const targetTime = Math.min(video.duration * 0.1, 1);
-      video.currentTime = targetTime;
-      setVideoLoaded(true);
-    } catch {
-      setVideoError(true);
+      const targetTime = Math.min(duration * 0.1, 1);
+      if (isFinite(targetTime) && targetTime >= 0) {
+        video.currentTime = targetTime;
+      }
+      if (isMountedRef.current) {
+        setVideoLoaded(true);
+      }
+    } catch (err) {
+      console.debug('[ProjectCard] Metadata load error:', err);
+      if (isMountedRef.current) {
+        setVideoError(true);
+      }
     }
   }, []);
 
   const handleMouseEnter = useCallback(() => {
+    if (!isMountedRef.current) return;
     setIsHovered(true);
+    
     const video = videoRef.current;
-    if (video && hasVideo && videoSrc) {
-      try {
+    if (!video || !hasVideo || !videoSrc) return;
+    
+    try {
+      // Only seek if duration is valid
+      const duration = video.duration;
+      if (isFinite(duration) && duration > 0) {
         video.currentTime = 0;
-        video.muted = true;
-        video.play().catch((err) => {
-          if (err?.name !== 'AbortError') {
-            console.debug('Video play prevented:', err?.message);
-          }
-        });
-      } catch {
-        // Ignore errors
       }
+      video.muted = true;
+      
+      // Use async-safe play
+      video.play().catch((err) => {
+        // AbortError is harmless - happens when play is interrupted
+        if (err?.name !== 'AbortError' && err?.name !== 'NotAllowedError') {
+          console.debug('[ProjectCard] Video play prevented:', err?.message);
+        }
+      });
+    } catch (err) {
+      console.debug('[ProjectCard] Mouse enter error:', err);
     }
   }, [hasVideo, videoSrc]);
 
   const handleMouseLeave = useCallback(() => {
+    if (!isMountedRef.current) return;
     setIsHovered(false);
+    
     const video = videoRef.current;
-    if (video) {
-      try {
-        video.pause();
-        if (video.duration && video.duration > 0 && isFinite(video.duration)) {
-          video.currentTime = Math.min(video.duration * 0.1, 1);
+    if (!video) return;
+    
+    try {
+      video.pause();
+      
+      // Only seek if duration is valid
+      const duration = video.duration;
+      if (isFinite(duration) && !isNaN(duration) && duration > 0) {
+        const targetTime = Math.min(duration * 0.1, 1);
+        if (isFinite(targetTime)) {
+          video.currentTime = targetTime;
         }
-      } catch {
-        // Ignore errors
       }
+    } catch (err) {
+      console.debug('[ProjectCard] Mouse leave error:', err);
     }
   }, []);
 

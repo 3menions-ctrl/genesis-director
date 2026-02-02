@@ -167,6 +167,8 @@ function ProductionContentInner() {
   const [pipelineState, setPipelineState] = useState<PipelineState | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
   const [degradationFlags, setDegradationFlags] = useState<DegradationFlag[]>([]);
+  const [avatarClips, setAvatarClips] = useState<Array<{ index: number; videoUrl: string; status: 'completed' | 'failed' | 'generating' }>>([]);
+  const [masterAudioUrl, setMasterAudioUrl] = useState<string | null>(null);
 
   // REMOVED: useSpring - causes continuous re-renders during progress updates
   // Progress animation is now handled in CSS for GPU acceleration
@@ -406,8 +408,40 @@ function ProductionContentInner() {
       // PRIORITY: Use manifest URL from pending_video_tasks if available (permanent storage)
       // Fallback to video_url only if no manifest exists
       const pendingTasksForVideo = parsePendingVideoTasks(project.pending_video_tasks);
+      const pendingTasksRaw = project.pending_video_tasks as Record<string, unknown> | null;
       const manifestUrl = pendingTasksForVideo?.manifestUrl;
       const isManifestMode = pendingTasksForVideo?.mode === 'manifest_playback';
+      
+      // Extract avatar clips from pending_video_tasks.predictions OR video_clips array
+      if (project.mode === 'avatar') {
+        const predictions = (pendingTasksRaw as any)?.predictions as Array<{ clipIndex: number; videoUrl?: string; status?: string }> | undefined;
+        const videoClipsArray = project.video_clips as string[] | undefined;
+        
+        if (predictions && predictions.length > 0) {
+          // Extract clips from predictions array (avatar pipeline format)
+          const clips = predictions
+            .filter((p: any) => p.videoUrl && p.status === 'completed')
+            .map((p: any) => ({
+              index: p.clipIndex ?? 0,
+              videoUrl: p.videoUrl as string,
+              status: 'completed' as const,
+            }))
+            .sort((a, b) => a.index - b.index);
+          setAvatarClips(clips);
+        } else if (videoClipsArray && videoClipsArray.length > 0) {
+          // Fallback to video_clips column
+          const clips = videoClipsArray.map((url, idx) => ({
+            index: idx,
+            videoUrl: url,
+            status: 'completed' as const,
+          }));
+          setAvatarClips(clips);
+        }
+        
+        // Extract master audio URL
+        const audioUrl = (pendingTasksRaw as any)?.masterAudioUrl;
+        if (audioUrl) setMasterAudioUrl(audioUrl);
+      }
       
       if (manifestUrl) {
         // Manifest URL is preferred - always points to permanent Supabase storage
@@ -1193,14 +1227,16 @@ function ProductionContentInner() {
               )}
               
               {/* Specialized Mode Progress - Avatar, Motion Transfer, Style Transfer */}
-              {['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && pipelineState && (
+              {['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && (pipelineState || avatarClips.length > 0 || finalVideoUrl) && (
                 <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
                   <Suspense fallback={<SectionLoader />}>
                     <SpecializedModeProgress
                       projectId={projectId!}
                       mode={projectMode as 'avatar' | 'motion-transfer' | 'video-to-video'}
-                      pipelineState={pipelineState}
+                      pipelineState={pipelineState || { stage: projectStatus === 'completed' ? 'completed' : 'processing', progress: projectStatus === 'completed' ? 100 : progress }}
                       videoUrl={finalVideoUrl}
+                      allClips={avatarClips}
+                      masterAudioUrl={masterAudioUrl}
                       onComplete={() => {
                         setProjectStatus('completed');
                         setProgress(100);

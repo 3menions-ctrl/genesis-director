@@ -182,13 +182,10 @@ const MenubarSeparator = React.forwardRef<
 ));
 MenubarSeparator.displayName = MenubarPrimitive.Separator.displayName;
 
-const MenubarShortcut = React.forwardRef<
-  HTMLSpanElement,
-  React.HTMLAttributes<HTMLSpanElement>
->(({ className, ...props }, ref) => (
-  <span ref={ref} className={cn("ml-auto text-xs tracking-widest text-muted-foreground", className)} {...props} />
-));
-MenubarShortcut.displayName = "MenubarShortcut";
+// Utility component - NO forwardRef needed (pure styling, never used with asChild)
+function MenubarShortcut({ className, ...props }: React.HTMLAttributes<HTMLSpanElement>) {
+  return <span className={cn("ml-auto text-xs tracking-widest text-muted-foreground", className)} {...props} />;
+}
 
 export {
   Menubar,

@@ -164,13 +164,10 @@ const DropdownMenuSeparator = React.forwardRef<
 ));
 DropdownMenuSeparator.displayName = DropdownMenuPrimitive.Separator.displayName;
 
-const DropdownMenuShortcut = React.forwardRef<
-  HTMLSpanElement,
-  React.HTMLAttributes<HTMLSpanElement>
->(({ className, ...props }, ref) => (
-  <span ref={ref} className={cn("ml-auto text-xs tracking-widest text-slate-500", className)} {...props} />
-));
-DropdownMenuShortcut.displayName = "DropdownMenuShortcut";
+// Utility component - NO forwardRef needed (pure styling, never used with asChild)
+function DropdownMenuShortcut({ className, ...props }: React.HTMLAttributes<HTMLSpanElement>) {
+  return <span className={cn("ml-auto text-xs tracking-widest text-slate-500", className)} {...props} />;
+}
 
 export {
   DropdownMenu,

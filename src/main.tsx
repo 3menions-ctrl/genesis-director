@@ -8,9 +8,20 @@ import { initializeDiagnostics, setStateSnapshotProvider, getCurrentSnapshot } f
 import { crashForensics } from "./lib/crashForensics";
 // Initialize cross-browser compatibility layer
 import { injectBrowserFixes, browserInfo } from "./lib/browserCompat";
+// ChunkLoadError recovery system
+import { 
+  installChunkErrorInterceptor, 
+  setupHMRRecovery, 
+  isChunkLoadError,
+  clearRecoveryState 
+} from "./lib/chunkLoadRecovery";
 
 // Apply browser-specific fixes immediately
 injectBrowserFixes();
+
+// Install chunk error recovery FIRST (before any errors can occur)
+const cleanupChunkRecovery = installChunkErrorInterceptor();
+setupHMRRecovery();
 
 // Log browser info for debugging
 if (process.env.NODE_ENV === 'development') {
@@ -254,6 +265,12 @@ if (import.meta.hot) {
 const shouldSuppressGlobalError = (error: unknown): boolean => {
   if (!error) return true;
   
+  // CRITICAL: Always suppress ChunkLoadErrors - handled by recovery system
+  if (isChunkLoadError(error)) {
+    console.debug('[Global] ChunkLoadError suppressed - recovery system handling');
+    return true;
+  }
+  
   const errorMessage = error instanceof Error 
     ? error.message 
     : typeof error === 'string' 
@@ -380,7 +397,7 @@ if (process.env.NODE_ENV === 'development') {
   cleanupForensics = crashForensics.init();
 }
 
-// Clean up diagnostics and forensics on HMR
+// Clean up diagnostics, forensics, and chunk recovery on HMR
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     if (cleanupDiagnostics) {
@@ -389,6 +406,11 @@ if (import.meta.hot) {
     if (cleanupForensics) {
       cleanupForensics();
     }
+    if (cleanupChunkRecovery) {
+      cleanupChunkRecovery();
+    }
+    // Clear chunk recovery state on HMR success
+    clearRecoveryState();
   });
 }
 

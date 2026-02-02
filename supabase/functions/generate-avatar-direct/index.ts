@@ -420,12 +420,15 @@ serve(async (req) => {
     console.log(`[AvatarDirect] Master audio: ${permanentMasterAudioUrl.substring(0, 60)}...`);
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CRITICAL: ATOMIC DB WRITE - Must happen BEFORE response to prevent orphaned completions
+    // If connection closes after this, the project is still marked complete
+    // ═══════════════════════════════════════════════════════════════════════════
     if (projectId) {
-      await supabase.from('movie_projects').update({
+      const completionData = {
         status: 'completed',
         video_url: primaryVideoUrl,
         final_video_url: primaryVideoUrl,
-        // CRITICAL: Use MASTER AUDIO for seamless playback across clips
         voice_audio_url: permanentMasterAudioUrl,
         video_clips: generatedClips.map(c => c.videoUrl),
         pipeline_stage: 'completed',
@@ -438,10 +441,8 @@ serve(async (req) => {
           sceneApplied: !!sceneDescription,
           totalClips: generatedClips.length,
           totalDurationMs,
-          // Master audio for seamless transitions
           masterAudioUrl: permanentMasterAudioUrl,
           masterAudioDurationMs: masterAudioDurationMs,
-          // Individual clips with timing info for syncing
           clips: generatedClips.map((c, idx) => ({
             videoUrl: c.videoUrl,
             audioUrl: c.audioUrl,
@@ -450,14 +451,59 @@ serve(async (req) => {
           })),
         },
         updated_at: new Date().toISOString(),
-      }).eq('id', projectId);
+      };
+      
+      // Retry DB write up to 3 times to ensure completion is persisted
+      let dbWriteSuccess = false;
+      for (let attempt = 1; attempt <= 3 && !dbWriteSuccess; attempt++) {
+        try {
+          const { error: updateError } = await supabase
+            .from('movie_projects')
+            .update(completionData)
+            .eq('id', projectId);
+          
+          if (updateError) {
+            console.error(`[AvatarDirect] DB write attempt ${attempt}/3 failed:`, updateError.message);
+            if (attempt < 3) await new Promise(r => setTimeout(r, 500 * attempt));
+          } else {
+            dbWriteSuccess = true;
+            console.log(`[AvatarDirect] ✅ DB WRITE SUCCESS (attempt ${attempt})`);
+          }
+        } catch (dbError) {
+          console.error(`[AvatarDirect] DB write attempt ${attempt}/3 exception:`, dbError);
+          if (attempt < 3) await new Promise(r => setTimeout(r, 500 * attempt));
+        }
+      }
+      
+      if (!dbWriteSuccess) {
+        console.error("[AvatarDirect] ⚠️ CRITICAL: All DB write attempts failed - watchdog will recover");
+        // Write orphan marker to storage for watchdog detection
+        try {
+          const orphanMarker = JSON.stringify({
+            projectId,
+            videoUrl: primaryVideoUrl,
+            audioUrl: permanentMasterAudioUrl,
+            completedAt: new Date().toISOString(),
+            clips: generatedClips.map(c => c.videoUrl),
+          });
+          await supabase.storage
+            .from('video-clips')
+            .upload(`avatar-videos/${projectId}/_completion_marker.json`, orphanMarker, {
+              contentType: 'application/json',
+              upsert: true,
+            });
+          console.log("[AvatarDirect] Orphan marker written - watchdog will recover");
+        } catch (markerError) {
+          console.error("[AvatarDirect] Failed to write orphan marker:", markerError);
+        }
+      }
     }
 
+    // Response is now safe - DB is updated (or orphan marker exists for recovery)
     return new Response(
       JSON.stringify({
         success: true,
         videoUrl: primaryVideoUrl,
-        // MASTER AUDIO for seamless playback
         audioUrl: permanentMasterAudioUrl,
         masterAudioUrl: permanentMasterAudioUrl,
         totalDurationMs,
@@ -472,7 +518,7 @@ serve(async (req) => {
           startTimeMs: generatedClips.slice(0, idx).reduce((sum, prev) => sum + prev.audioDurationMs, 0),
         })),
         message: `${generatedClips.length} avatar clip${generatedClips.length > 1 ? 's' : ''} generated with continuous audio!`,
-        pipeline: "avatar-direct-v2.2-continuous-audio",
+        pipeline: "avatar-direct-v2.3-atomic-completion",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

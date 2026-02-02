@@ -290,36 +290,26 @@ export function SpecializedModeProgress({
         config.gradient
       )} />
       
-      {/* Animated background particles */}
-      <div className="absolute inset-0 overflow-hidden">
+      {/* Animated background particles - CSS-based for stability */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {isProcessing && (
-          <>
+          <div className="relative w-full h-full">
             {[...Array(6)].map((_, i) => (
-              <motion.div
+              <div
                 key={i}
                 className={cn(
-                  "absolute w-1 h-1 rounded-full",
+                  "absolute w-1 h-1 rounded-full animate-float-up",
                   config.accentColor === 'amber' ? 'bg-amber-400/60' :
                   config.accentColor === 'emerald' ? 'bg-emerald-400/60' : 'bg-violet-400/60'
                 )}
-                initial={{ 
-                  x: Math.random() * 100 + '%', 
-                  y: '100%',
-                  opacity: 0 
-                }}
-                animate={{ 
-                  y: '-20%',
-                  opacity: [0, 1, 0],
-                }}
-                transition={{
-                  duration: 4 + Math.random() * 2,
-                  repeat: Infinity,
-                  delay: i * 0.5,
-                  ease: 'easeOut',
+                style={{
+                  left: `${10 + i * 15}%`,
+                  animationDelay: `${i * 0.5}s`,
+                  animationDuration: `${4 + i * 0.5}s`,
                 }}
               />
             ))}
-          </>
+          </div>
         )}
       </div>
       

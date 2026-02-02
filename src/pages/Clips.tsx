@@ -35,9 +35,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { FullscreenVideoPlayer } from '@/components/studio/FullscreenVideoPlayer';
-import { VideoThumbnail } from '@/components/studio/VideoThumbnail';
-import { SmartStitcherPlayer } from '@/components/studio/SmartStitcherPlayer';
+import { UniversalVideoPlayer } from '@/components/player';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRetryStitch } from '@/hooks/useRetryStitch';
 import { ConsistencyDashboard } from '@/components/studio/ConsistencyDashboard';
@@ -801,9 +799,9 @@ export default function Clips() {
                       >
                         <TableCell className="py-3">
                           <div className="relative">
-                            <VideoThumbnail
-                              src={clip.video_url}
-                              showTitleOnHover={false}
+                            <UniversalVideoPlayer
+                              source={{ urls: clip.video_url ? [clip.video_url] : [] }}
+                              mode="thumbnail"
                               onClick={() => clip.video_url && handlePlayClip(clip)}
                               className="w-24 h-14 rounded-lg overflow-hidden"
                               aspectRatio="video"
@@ -1028,10 +1026,10 @@ export default function Clips() {
                               >
                                 {/* Video Thumbnail */}
                                 <div className="relative">
-                                  <VideoThumbnail
-                                    src={clip.video_url}
-                                    showTitleOnHover={false}
-                                    duration={clip.duration_seconds || undefined}
+                                  <UniversalVideoPlayer
+                                    source={{ urls: clip.video_url ? [clip.video_url] : [] }}
+                                    mode="thumbnail"
+                                    hoverPreview
                                     onClick={() => clip.video_url && handlePlayClip(clip)}
                                   />
                                   
@@ -1131,8 +1129,9 @@ export default function Clips() {
 
       {/* Fullscreen Video Player */}
       {selectedClip && videoModalOpen && selectedClip.video_url && (
-        <FullscreenVideoPlayer
-          clips={[selectedClip.video_url]}
+        <UniversalVideoPlayer
+          source={{ urls: [selectedClip.video_url] }}
+          mode="fullscreen"
           onClose={() => setVideoModalOpen(false)}
           title={`Shot ${selectedClip.shot_index + 1}`}
         />
@@ -1154,14 +1153,11 @@ export default function Clips() {
           </DialogHeader>
           {showBrowserStitcher && (
             <div className="p-4 pt-2">
-              <SmartStitcherPlayer
-                projectId={showBrowserStitcher}
+              <UniversalVideoPlayer
+                source={{ urls: [] }}
+                mode="inline"
+                autoPlay
                 className="aspect-video rounded-lg"
-                onExportComplete={(videoUrl) => {
-                  console.log('Export complete:', videoUrl);
-                  // Optionally close and refresh
-                  setProjectsNeedingStitch(prev => prev.filter(p => p.id !== showBrowserStitcher));
-                }}
               />
             </div>
           )}

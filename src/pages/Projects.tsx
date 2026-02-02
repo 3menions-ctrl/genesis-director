@@ -37,11 +37,9 @@ import { cn } from '@/lib/utils';
 import { Project } from '@/types/studio';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { FullscreenVideoPlayer } from '@/components/studio/FullscreenVideoPlayer';
-import { ManifestVideoPlayer } from '@/components/studio/ManifestVideoPlayer';
+import { UniversalVideoPlayer } from '@/components/player';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { useProjectThumbnails } from '@/hooks/useProjectThumbnails';
-import { SmartStitcherPlayer } from '@/components/studio/SmartStitcherPlayer';
 
 // Extracted components
 import { 
@@ -1326,38 +1324,34 @@ function ProjectsContentInner() {
             </div>
           </div>
           
-          {/* Smart Stitcher Player - seamless transitions */}
-          {isManifestUrl(resolvedClips[0]) ? (
-            <ManifestVideoPlayer 
-              manifestUrl={resolvedClips[0]} 
-              className="w-full h-full" 
-            />
-          ) : (
-            <SmartStitcherPlayer
-              projectId={selectedProject.id}
-              clipUrls={resolvedClips}
-              className="w-full h-full"
-              autoPlay={true}
-            />
-          )}
+          {/* Universal Video Player - seamless transitions */}
+          <UniversalVideoPlayer
+            source={isManifestUrl(resolvedClips[0]) 
+              ? { manifestUrl: resolvedClips[0] } 
+              : { urls: resolvedClips }
+            }
+            mode="fullscreen"
+            autoPlay
+            onClose={() => {
+              setVideoModalOpen(false);
+              setResolvedClips([]);
+            }}
+            className="w-full h-full"
+          />
         </div>
       )}
 
       {/* Training Video Player Modal */}
       {trainingVideoModalOpen && selectedTrainingVideo && (
-        <FullscreenVideoPlayer
-          clips={[selectedTrainingVideo.video_url]}
+        <UniversalVideoPlayer
+          source={{ urls: [selectedTrainingVideo.video_url] }}
+          mode="fullscreen"
           title={selectedTrainingVideo.title}
           onClose={() => {
             setTrainingVideoModalOpen(false);
             setSelectedTrainingVideo(null);
           }}
           onDownload={() => {
-            if (selectedTrainingVideo.video_url) {
-              window.open(selectedTrainingVideo.video_url, '_blank');
-            }
-          }}
-          onOpenExternal={() => {
             if (selectedTrainingVideo.video_url) {
               window.open(selectedTrainingVideo.video_url, '_blank');
             }
@@ -1474,15 +1468,11 @@ function ProjectsContentInner() {
           </DialogHeader>
           {showBrowserStitcher && (
             <div className="p-4 pt-2">
-              <SmartStitcherPlayer
-                projectId={showBrowserStitcher}
+              <UniversalVideoPlayer
+                source={{ urls: [] }}
+                mode="inline"
+                autoPlay
                 className="aspect-video rounded-xl"
-                autoPlay={true}
-                onExportComplete={(url) => {
-                  setShowBrowserStitcher(null);
-                  refreshProjects();
-                  toast.success('Video exported and saved!');
-                }}
               />
             </div>
           )}

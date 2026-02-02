@@ -1,8 +1,8 @@
 import { memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Download, Play, Sparkles, ExternalLink } from 'lucide-react';
+import { CheckCircle2, Download, Sparkles, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ManifestVideoPlayer } from '@/components/studio/ManifestVideoPlayer';
+import { UniversalVideoPlayer } from '@/components/player';
 import { cn } from '@/lib/utils';
 
 interface ProductionFinalVideoProps {
@@ -86,18 +86,12 @@ export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFi
         
         {/* Video Player */}
         <div className="relative aspect-video bg-black/50">
-          {isManifest ? (
-            <ManifestVideoPlayer manifestUrl={videoUrl} className="w-full h-full" />
-          ) : (
-            <video 
-              src={videoUrl} 
-              controls 
-              className="w-full h-full object-contain" 
-              poster=""
-              playsInline
-              preload="auto"
-            />
-          )}
+          <UniversalVideoPlayer
+            source={isManifest ? { manifestUrl: videoUrl } : { urls: [videoUrl] }}
+            mode="inline"
+            controls={{ showDownload: !isManifest }}
+            className="w-full h-full"
+          />
         </div>
         
         {/* Bottom gradient fade */}

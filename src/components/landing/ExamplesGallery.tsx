@@ -5,7 +5,7 @@ import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, Film, Imag
 import { useMountGuard } from '@/hooks/useNavigationGuard';
 import { useGalleryShowcase } from '@/hooks/useGalleryShowcase';
 import type { GalleryCategory } from '@/types/gallery-showcase';
-import { ManifestVideoPlayer } from '@/components/studio/ManifestVideoPlayer';
+import { UniversalVideoPlayer } from '@/components/player';
 import { safePlay, safePause } from '@/lib/video/safeVideoOperations';
 
 type VideoCategory = 'all' | GalleryCategory;
@@ -220,19 +220,21 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
             </div>
           )}
 
-          {/* Smart Video Player - ManifestVideoPlayer for .json URLs, native video for direct MP4s */}
+          {/* Smart Video Player - UniversalVideoPlayer for .json URLs, native video for direct MP4s */}
           {currentVideo && !videoError && (
             isCurrentManifest ? (
               <div 
                 key={`manifest-${activeCategory}-${currentIndex}`}
                 className="absolute inset-0 w-full h-full"
               >
-                <ManifestVideoPlayer
-                  ref={manifestPlayerRef}
-                  manifestUrl={currentVideo.url}
+                <UniversalVideoPlayer
+                  source={{ manifestUrl: currentVideo.url }}
+                  mode="inline"
+                  autoPlay={isPlaying}
+                  muted={isMuted}
                   className="w-full h-full [&_video]:object-cover"
                 />
-                {/* Mark as loaded once ManifestVideoPlayer mounts */}
+                {/* Mark as loaded once UniversalVideoPlayer mounts */}
                 {!isLoaded && <LoadTrigger onLoad={() => setIsLoaded(true)} />}
               </div>
             ) : (

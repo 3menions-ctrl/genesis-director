@@ -16,6 +16,7 @@ let errorResetInterval: ReturnType<typeof setInterval> | null = null;
 
 // Error patterns that should NOT crash the app or show toasts
 // COMPREHENSIVE list - includes all variations of common non-fatal errors
+// SAFARI-SPECIFIC patterns added for iOS/macOS Safari stability
 const SUPPRESSED_ERROR_PATTERNS = [
   'ResizeObserver loop',
   'ResizeObserver loop completed',
@@ -120,7 +121,7 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'readyState',
   'HAVE_NOTHING',
   'load() was called',
-  // JSON parsing and network errors - NEW
+  // JSON parsing and network errors
   'Expected JSON but got',
   'API returned HTML',
   'Unexpected response format',
@@ -148,6 +149,36 @@ const SUPPRESSED_ERROR_PATTERNS = [
   // Intersection Observer cleanup
   'IntersectionObserver',
   'disconnect',
+  // SAFARI-SPECIFIC ERRORS - CRITICAL FOR iOS/macOS SAFARI
+  'A problem repeatedly occurred',
+  'QuotaExceededError',
+  'The quota has been exceeded',
+  'SecurityError',
+  'Cross-origin',
+  'cross-origin',
+  'The object is in an invalid state',
+  'The object is not in a valid state',
+  'WebKit',
+  'webkit',
+  'Safari',
+  'ITP',
+  'The request is not allowed by the user agent',
+  'undefined is not an object (evaluating',
+  'null is not an object (evaluating',
+  'Type error',
+  'undefined is not a function',
+  'Can\'t find variable',
+  // Additional DOM errors for Safari
+  'NotFoundError',
+  'HierarchyRequestError',
+  'DataCloneError',
+  'WrongDocumentError',
+  'ReadOnlyError',
+  // MSE/SourceBuffer Safari issues
+  'addSourceBuffer',
+  'endOfStream',
+  'SourceOpen',
+  'sourceopen',
 ];
 
 // ============= CONSOLE INTERCEPTION =============

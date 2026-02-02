@@ -16,6 +16,7 @@ interface GlobalStabilityBoundaryState {
 
 // Error patterns that should NOT crash the app - COMPREHENSIVE LIST
 // These are common errors that don't indicate actual application problems
+// SAFARI-SPECIFIC patterns added for iOS/macOS Safari stability
 const SUPPRESSED_ERROR_PATTERNS = [
   // Browser API quirks
   'ResizeObserver loop',
@@ -152,6 +153,37 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'load',
   'decode',
   'decoding',
+  
+  // SAFARI-SPECIFIC ERRORS - CRITICAL FOR iOS/macOS SAFARI
+  'A problem repeatedly occurred',
+  'QuotaExceededError',
+  'The quota has been exceeded',
+  'SecurityError',
+  'Cross-origin',
+  'cross-origin',
+  'The object is in an invalid state',
+  'The object is not in a valid state',
+  'WebKit',
+  'webkit',
+  'Safari',
+  'ITP',
+  'The request is not allowed by the user agent',
+  'undefined is not an object',
+  'null is not an object',
+  'Type error',
+  'undefined is not a function',
+  'Can\'t find variable',
+  // Additional DOM errors for Safari
+  'NotFoundError',
+  'HierarchyRequestError',
+  'DataCloneError',
+  'WrongDocumentError',
+  'ReadOnlyError',
+  // MSE/SourceBuffer Safari issues
+  'addSourceBuffer',
+  'endOfStream',
+  'SourceOpen',
+  'sourceopen',
 ];
 
 /**

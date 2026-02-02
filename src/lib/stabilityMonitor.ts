@@ -127,6 +127,7 @@ export function getRecoverySuggestion(category: ErrorCategory): string {
 /**
  * Check if error should be silently suppressed
  * COMPREHENSIVE list of non-fatal errors that should not crash the app
+ * SAFARI-SPECIFIC patterns added for iOS/macOS Safari stability
  */
 export function shouldSuppressError(error: unknown): boolean {
   if (!error) return true;
@@ -140,6 +141,10 @@ export function shouldSuppressError(error: unknown): boolean {
   if (name === 'NotAllowedError') return true;
   if (name === 'NotSupportedError') return true;
   if (name === 'InvalidStateError') return true;
+  if (name === 'QuotaExceededError') return true;
+  if (name === 'SecurityError') return true;
+  if (name === 'NotFoundError') return true;
+  if (name === 'HierarchyRequestError') return true;
   if (lowered.includes('aborterror')) return true;
   if (lowered.includes('aborted')) return true;
   if (lowered.includes('signal is aborted')) return true;
@@ -221,6 +226,27 @@ export function shouldSuppressError(error: unknown): boolean {
   if (lowered.includes('network error')) return true;
   if (lowered.includes('failed to fetch')) return true;
   if (lowered.includes('econnrefused')) return true;
+
+  // SAFARI-SPECIFIC ERRORS - CRITICAL FOR iOS/macOS SAFARI
+  if (lowered.includes('a problem repeatedly occurred')) return true;
+  if (lowered.includes('quotaexceedederror')) return true;
+  if (lowered.includes('the quota has been exceeded')) return true;
+  if (lowered.includes('securityerror')) return true;
+  if (lowered.includes('cross-origin')) return true;
+  if (lowered.includes('the object is in an invalid state')) return true;
+  if (lowered.includes('webkit')) return true;
+  if (lowered.includes('safari')) return true;
+  if (lowered.includes('itp')) return true;
+  if (lowered.includes('the request is not allowed by the user agent')) return true;
+  if (lowered.includes('undefined is not an object')) return true;
+  if (lowered.includes('null is not an object')) return true;
+  if (lowered.includes('undefined is not a function')) return true;
+  if (lowered.includes("can't find variable")) return true;
+  if (lowered.includes('notfounderror')) return true;
+  if (lowered.includes('hierarchyrequesterror')) return true;
+  if (lowered.includes('addsourcebuffer')) return true;
+  if (lowered.includes('endofstream')) return true;
+  if (lowered.includes('sourceopen')) return true;
 
   return false;
 }

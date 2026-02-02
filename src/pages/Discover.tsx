@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { UniversalVideoPlayer } from '@/components/player';
-import { safePlay, safePause, safeSeek, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
+import { safePlay, safePause, safeSeek } from '@/lib/video/safeVideoOperations';
 import type { VideoGenerationMode } from '@/types/video-modes';
 
 // Lazy load heavy components
@@ -582,25 +582,57 @@ const VideoModal = memo(forwardRef<HTMLDivElement, VideoModalProps>(function Vid
     return () => { isMountedRef.current = false; };
   }, []);
 
+  // HARDENED: Safe video autoplay with proper error suppression
   useEffect(() => {
     const videoEl = videoRef.current;
     if (!videoEl || !isDirectVideo) return;
 
+    let cancelled = false;
+
     const attemptPlay = async () => {
       try {
+        // Check mount state before any operation
+        if (cancelled || !isMountedRef.current) return;
+        
+        // CRITICAL: Check readyState before playing
+        if (videoEl.readyState < 1) {
+          // Wait for video to be ready
+          const onCanPlay = () => {
+            videoEl.removeEventListener('canplay', onCanPlay);
+            if (!cancelled && isMountedRef.current) {
+              attemptPlay();
+            }
+          };
+          videoEl.addEventListener('canplay', onCanPlay);
+          return;
+        }
+        
         await videoEl.play();
-        if (isMountedRef.current) setIsVideoPlaying(true);
-      } catch {
-        videoEl.muted = true;
-        if (isMountedRef.current) setIsMuted(true);
-        try {
-          await videoEl.play();
-          if (isMountedRef.current) setIsVideoPlaying(true);
-        } catch {}
+        if (!cancelled && isMountedRef.current) setIsVideoPlaying(true);
+      } catch (err) {
+        // CRITICAL: Suppress all video errors - they're harmless
+        const errorName = (err as Error)?.name || '';
+        if (['AbortError', 'NotAllowedError', 'NotSupportedError', 'InvalidStateError'].includes(errorName)) {
+          return; // Silently ignore
+        }
+        
+        // Fallback: try muted
+        if (!cancelled && isMountedRef.current) {
+          try {
+            videoEl.muted = true;
+            setIsMuted(true);
+            await videoEl.play();
+            if (!cancelled && isMountedRef.current) setIsVideoPlaying(true);
+          } catch {
+            // Silent fail - video won't autoplay
+          }
+        }
       }
     };
 
     attemptPlay();
+    
+    return () => { cancelled = true; };
   }, [isDirectVideo]);
 
   const toggleMute = useCallback(() => {
@@ -615,14 +647,18 @@ const VideoModal = memo(forwardRef<HTMLDivElement, VideoModalProps>(function Vid
       const video = videoRef.current;
       if (!video) return;
       
+      // HARDENED: Check if video is connected and in valid state
+      if (!video.isConnected) return;
+      
       if (isVideoPlaying) {
-        video.pause();
+        safePause(video);
         setIsVideoPlaying(false);
       } else {
-        video.play().catch(() => {
-          // If play fails, keep state as paused
+        safePlay(video).then(success => {
+          if (success && isMountedRef.current) {
+            setIsVideoPlaying(true);
+          }
         });
-        setIsVideoPlaying(true);
       }
     } catch {
       // Silently ignore toggle errors

@@ -550,29 +550,56 @@ serve(async (req) => {
 
 /**
  * Split script into segments for multi-clip generation
+ * CRITICAL: Always returns EXACTLY targetCount segments, even for short scripts
+ * If script has fewer sentences than targetCount, distribute sentences evenly
  */
 function splitScriptIntoSegments(script: string, targetCount: number): string[] {
   if (targetCount <= 1) return [script];
   
+  // Split by sentences (including last segment without punctuation)
   const sentences = script.match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g) || [script];
+  const cleanSentences = sentences.map(s => s.trim()).filter(s => s.length > 0);
   
-  if (sentences.length <= targetCount) {
-    return sentences.map(s => s.trim()).filter(s => s.length > 0);
+  // If no valid sentences, return the whole script as targetCount segments
+  if (cleanSentences.length === 0) {
+    return Array(targetCount).fill(script);
   }
   
-  const segments: string[] = [];
-  const sentencesPerSegment = Math.ceil(sentences.length / targetCount);
-  
-  for (let i = 0; i < targetCount && i * sentencesPerSegment < sentences.length; i++) {
-    const start = i * sentencesPerSegment;
-    const end = Math.min(start + sentencesPerSegment, sentences.length);
-    const segment = sentences.slice(start, end).join(' ').trim();
-    if (segment.length > 0) {
-      segments.push(segment);
+  // If we have enough sentences, distribute them
+  if (cleanSentences.length >= targetCount) {
+    const segments: string[] = [];
+    const sentencesPerSegment = Math.ceil(cleanSentences.length / targetCount);
+    
+    for (let i = 0; i < targetCount; i++) {
+      const start = i * sentencesPerSegment;
+      const end = Math.min(start + sentencesPerSegment, cleanSentences.length);
+      if (start < cleanSentences.length) {
+        const segment = cleanSentences.slice(start, end).join(' ').trim();
+        segments.push(segment);
+      }
     }
+    
+    // Ensure we have exactly targetCount segments
+    while (segments.length < targetCount) {
+      segments.push(cleanSentences[cleanSentences.length - 1]);
+    }
+    
+    return segments;
   }
   
-  return segments.length > 0 ? segments : [script];
+  // IMPORTANT: If script has fewer sentences than targetCount,
+  // distribute sentences across clips (some clips may share content)
+  // This ensures user gets the number of clips they requested
+  const segments: string[] = [];
+  
+  for (let i = 0; i < targetCount; i++) {
+    // Distribute sentences round-robin style
+    const sentenceIndex = i % cleanSentences.length;
+    segments.push(cleanSentences[sentenceIndex]);
+  }
+  
+  console.log(`[AvatarDirect] Script split: ${cleanSentences.length} sentences → ${targetCount} segments`);
+  return segments;
 }
 
 /**

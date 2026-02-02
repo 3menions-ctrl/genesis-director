@@ -107,10 +107,10 @@ serve(async (req) => {
 
     console.log("[Watchdog] Starting v4.1 pipeline recovery with guard rails...");
 
-    // ==================== PHASE 0a: AVATAR-MODE ZERO-CLIP RECOVERY ====================
-    // Critical fix: Avatar pipeline creates shots, not video_clips, so standard recovery fails
-    // Detect avatar-mode projects stuck in 'generating' with no clips and restart or fail them
-    const AVATAR_STUCK_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
+    // ==================== PHASE 0a: ORPHANED AVATAR COMPLETION RECOVERY ====================
+    // CRITICAL FIX: Detect avatar projects where DB write failed but videos exist in storage
+    // This catches the "connection closed before message completed" scenario
+    const AVATAR_STUCK_THRESHOLD_MS = 3 * 60 * 1000; // 3 minutes (reduced for faster recovery)
     
     const { data: avatarStuckProjects } = await supabase
       .from('movie_projects')
@@ -124,126 +124,226 @@ serve(async (req) => {
       const projectAge = Date.now() - new Date(project.updated_at).getTime();
       const pipelineState = project.pipeline_state as Record<string, any> || {};
       
-      // Check if any video_clips exist for this project
-      const { data: existingClips, count } = await supabase
-        .from('video_clips')
-        .select('id', { count: 'exact', head: true })
-        .eq('project_id', project.id);
+      console.log(`[Watchdog] 🎭 Avatar project ${project.id}: age=${Math.round(projectAge / 1000)}s, stage=${pipelineState.stage || 'unknown'}`);
       
-      const clipCount = count || 0;
-      
-      console.log(`[Watchdog] 🎭 Avatar project ${project.id}: ${clipCount} clips, age=${Math.round(projectAge / 1000)}s, stage=${pipelineState.stage || 'unknown'}`);
-      
-      // No clips after 5+ minutes = definitely stalled
-      if (clipCount === 0) {
-        // Check if we should retry or fail
-        const retryCount = pipelineState.watchdogRetryCount || 0;
-        const MAX_AVATAR_RETRIES = 2;
+      // ═══════════════════════════════════════════════════════════════════════════
+      // PRIORITY 1: Check for orphan completion marker (DB write failed but generation succeeded)
+      // ═══════════════════════════════════════════════════════════════════════════
+      try {
+        const markerPath = `avatar-videos/${project.id}/_completion_marker.json`;
+        const { data: markerData } = await supabase.storage
+          .from('video-clips')
+          .download(markerPath);
         
-        if (retryCount < MAX_AVATAR_RETRIES && project.source_image_url) {
-          // RETRY: Re-trigger the avatar pipeline
-          console.log(`[Watchdog] 🔄 Retrying avatar pipeline for ${project.id} (attempt ${retryCount + 1}/${MAX_AVATAR_RETRIES})`);
+        if (markerData) {
+          const markerText = await markerData.text();
+          const completionData = JSON.parse(markerText);
           
-          try {
-            // Update project with retry marker
-            await supabase
-              .from('movie_projects')
-              .update({
-                pipeline_state: {
-                  ...pipelineState,
-                  watchdogRetryCount: retryCount + 1,
-                  lastRetryAt: new Date().toISOString(),
-                  stage: 'retrying',
-                  progress: 5,
-                  message: `Retrying generation (attempt ${retryCount + 2})...`,
-                },
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', project.id);
-            
-            // Re-trigger avatar pipeline
-            const response = await fetch(`${supabaseUrl}/functions/v1/generate-avatar-direct`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${supabaseKey}`,
-              },
-              body: JSON.stringify({
-                projectId: project.id,
-                userId: project.user_id,
-                avatarImageUrl: project.source_image_url,
-                voiceId: project.avatar_voice_id || 'bella',
-                script: project.synopsis || 'Hello, I am your AI avatar.',
-                clipCount: pipelineState.totalClips || 1,
-              }),
-            });
-            
-            if (response.ok) {
-              result.productionResumed++;
-              result.details.push({
-                projectId: project.id,
-                action: 'avatar_pipeline_retry',
-                result: `Retry ${retryCount + 1}/${MAX_AVATAR_RETRIES}`,
-              });
-              console.log(`[Watchdog] ✅ Avatar pipeline retry triggered for ${project.id}`);
-            } else {
-              console.error(`[Watchdog] Avatar retry failed: ${response.status}`);
-            }
-          } catch (error) {
-            console.error(`[Watchdog] Avatar retry error:`, error);
-          }
-        } else {
-          // MAX RETRIES EXCEEDED: Mark as failed and refund credits
-          console.log(`[Watchdog] ❌ Avatar project ${project.id} failed after ${retryCount} retries - marking failed`);
+          console.log(`[Watchdog] 🎯 ORPHAN MARKER FOUND for ${project.id} - recovering from DB failure`);
           
-          await supabase
+          // Recover the project using the completion marker data
+          const { error: recoveryError } = await supabase
             .from('movie_projects')
             .update({
-              status: 'failed',
+              status: 'completed',
+              video_url: completionData.videoUrl,
+              final_video_url: completionData.videoUrl,
+              voice_audio_url: completionData.audioUrl,
+              video_clips: completionData.clips || [],
+              pipeline_stage: 'completed',
               pipeline_state: {
-                ...pipelineState,
-                stage: 'error',
-                error: 'Avatar generation failed - pipeline did not produce any clips',
-                failedAt: new Date().toISOString(),
-                watchdogFailure: true,
-              },
-              pending_video_tasks: {
-                stage: 'error',
-                error: 'Avatar generation timed out',
+                stage: 'completed',
+                progress: 100,
+                message: 'Recovered from orphaned completion',
+                completedAt: completionData.completedAt,
+                recoveredByWatchdog: true,
+                recoveredAt: new Date().toISOString(),
               },
               updated_at: new Date().toISOString(),
             })
             .eq('id', project.id);
           
-          // Refund credits for the failed generation
-          try {
-            const estimatedCredits = (pipelineState.totalClips || 1) * 10; // 10 credits per clip
-            await supabase.rpc('increment_credits', {
-              user_id_param: project.user_id,
-              amount_param: estimatedCredits,
-            });
+          if (!recoveryError) {
+            // Delete the marker after successful recovery
+            await supabase.storage
+              .from('video-clips')
+              .remove([markerPath]);
             
-            // Log refund transaction
-            await supabase.from('credit_transactions').insert({
-              user_id: project.user_id,
-              amount: estimatedCredits,
-              transaction_type: 'refund',
-              description: `Auto-refund: Avatar generation failed (${project.title || project.id})`,
-              project_id: project.id,
+            result.productionResumed++;
+            result.details.push({
+              projectId: project.id,
+              action: 'orphan_completion_recovered',
+              result: `DB failure recovered via completion marker`,
             });
-            
-            console.log(`[Watchdog] 💰 Refunded ${estimatedCredits} credits to user ${project.user_id}`);
-          } catch (refundError) {
-            console.error(`[Watchdog] Credit refund failed:`, refundError);
+            console.log(`[Watchdog] ✅ ORPHAN RECOVERY SUCCESS for ${project.id}`);
+            continue; // Skip other recovery attempts
           }
-          
-          result.projectsMarkedFailed++;
-          result.details.push({
-            projectId: project.id,
-            action: 'avatar_marked_failed',
-            result: `No clips after ${Math.round(projectAge / 60000)} minutes, credits refunded`,
-          });
         }
+      } catch (markerError) {
+        // No marker found, continue with normal recovery
+      }
+      
+      // ═══════════════════════════════════════════════════════════════════════════
+      // PRIORITY 2: Check if video files exist in storage even without marker
+      // ═══════════════════════════════════════════════════════════════════════════
+      try {
+        const { data: storageFiles } = await supabase.storage
+          .from('video-clips')
+          .list(`avatar-videos/${project.id}`, { limit: 10 });
+        
+        const videoFiles = (storageFiles || []).filter(f => f.name.endsWith('.mp4'));
+        const audioFiles = (storageFiles || []).filter(f => f.name.includes('master_audio') || f.name.endsWith('.mp3'));
+        
+        if (videoFiles.length > 0) {
+          console.log(`[Watchdog] 📁 Found ${videoFiles.length} video(s) in storage for ${project.id}`);
+          
+          // Video exists! Recover from storage
+          const videoUrl = `${supabaseUrl}/storage/v1/object/public/video-clips/avatar-videos/${project.id}/${videoFiles[0].name}`;
+          const audioUrl = audioFiles.length > 0 
+            ? `${supabaseUrl}/storage/v1/object/public/video-clips/avatar-videos/${project.id}/${audioFiles[0].name}`
+            : null;
+          
+          const { error: storageRecoveryError } = await supabase
+            .from('movie_projects')
+            .update({
+              status: 'completed',
+              video_url: videoUrl,
+              final_video_url: videoUrl,
+              voice_audio_url: audioUrl,
+              video_clips: videoFiles.map(f => `${supabaseUrl}/storage/v1/object/public/video-clips/avatar-videos/${project.id}/${f.name}`),
+              pipeline_stage: 'completed',
+              pipeline_state: {
+                stage: 'completed',
+                progress: 100,
+                message: 'Recovered from storage',
+                recoveredByWatchdog: true,
+                recoveredAt: new Date().toISOString(),
+                recoverySource: 'storage_scan',
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', project.id);
+          
+          if (!storageRecoveryError) {
+            result.productionResumed++;
+            result.details.push({
+              projectId: project.id,
+              action: 'storage_recovery',
+              result: `Recovered ${videoFiles.length} video(s) from storage`,
+            });
+            console.log(`[Watchdog] ✅ STORAGE RECOVERY SUCCESS for ${project.id}`);
+            continue;
+          }
+        }
+      } catch (storageError) {
+        console.warn(`[Watchdog] Storage scan failed for ${project.id}:`, storageError);
+      }
+      
+      // ═══════════════════════════════════════════════════════════════════════════
+      // PRIORITY 3: Standard retry/fail logic (no videos found)
+      // ═══════════════════════════════════════════════════════════════════════════
+      const retryCount = pipelineState.watchdogRetryCount || 0;
+      const MAX_AVATAR_RETRIES = 2;
+      
+      if (retryCount < MAX_AVATAR_RETRIES && project.source_image_url) {
+        console.log(`[Watchdog] 🔄 Retrying avatar pipeline for ${project.id} (attempt ${retryCount + 1}/${MAX_AVATAR_RETRIES})`);
+        
+        try {
+          await supabase
+            .from('movie_projects')
+            .update({
+              pipeline_state: {
+                ...pipelineState,
+                watchdogRetryCount: retryCount + 1,
+                lastRetryAt: new Date().toISOString(),
+                stage: 'retrying',
+                progress: 5,
+                message: `Retrying generation (attempt ${retryCount + 2})...`,
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', project.id);
+          
+          const response = await fetch(`${supabaseUrl}/functions/v1/generate-avatar-direct`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseKey}`,
+            },
+            body: JSON.stringify({
+              projectId: project.id,
+              userId: project.user_id,
+              avatarImageUrl: project.source_image_url,
+              voiceId: project.avatar_voice_id || 'bella',
+              script: project.synopsis || 'Hello, I am your AI avatar.',
+              clipCount: pipelineState.totalClips || 1,
+            }),
+          });
+          
+          if (response.ok) {
+            result.productionResumed++;
+            result.details.push({
+              projectId: project.id,
+              action: 'avatar_pipeline_retry',
+              result: `Retry ${retryCount + 1}/${MAX_AVATAR_RETRIES}`,
+            });
+            console.log(`[Watchdog] ✅ Avatar pipeline retry triggered for ${project.id}`);
+          } else {
+            console.error(`[Watchdog] Avatar retry failed: ${response.status}`);
+          }
+        } catch (error) {
+          console.error(`[Watchdog] Avatar retry error:`, error);
+        }
+      } else {
+        // MAX RETRIES EXCEEDED: Mark as failed and refund credits
+        console.log(`[Watchdog] ❌ Avatar project ${project.id} failed after ${retryCount} retries - marking failed`);
+        
+        await supabase
+          .from('movie_projects')
+          .update({
+            status: 'failed',
+            pipeline_state: {
+              ...pipelineState,
+              stage: 'error',
+              error: 'Avatar generation failed - no video produced',
+              failedAt: new Date().toISOString(),
+              watchdogFailure: true,
+            },
+            pending_video_tasks: {
+              stage: 'error',
+              error: 'Avatar generation timed out',
+            },
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', project.id);
+        
+        // Refund credits
+        try {
+          const estimatedCredits = (pipelineState.totalClips || 1) * 10;
+          await supabase.rpc('increment_credits', {
+            user_id_param: project.user_id,
+            amount_param: estimatedCredits,
+          });
+          
+          await supabase.from('credit_transactions').insert({
+            user_id: project.user_id,
+            amount: estimatedCredits,
+            transaction_type: 'refund',
+            description: `Auto-refund: Avatar generation failed (${project.title || project.id})`,
+            project_id: project.id,
+          });
+          
+          console.log(`[Watchdog] 💰 Refunded ${estimatedCredits} credits to user ${project.user_id}`);
+        } catch (refundError) {
+          console.error(`[Watchdog] Credit refund failed:`, refundError);
+        }
+        
+        result.projectsMarkedFailed++;
+        result.details.push({
+          projectId: project.id,
+          action: 'avatar_marked_failed',
+          result: `No video after ${Math.round(projectAge / 60000)} minutes, credits refunded`,
+        });
       }
     }
 

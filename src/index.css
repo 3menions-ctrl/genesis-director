@@ -290,6 +290,15 @@
 .animate-ripple { animation: ripple 2s ease-out infinite; }
 .animate-morph { animation: morph 8s ease-in-out infinite; }
 
+/* Float up animation for background particles */
+@keyframes float-up {
+  0% { transform: translateY(100%); opacity: 0; }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(-20%); opacity: 0; }
+}
+.animate-float-up { animation: float-up 4s ease-out infinite; }
+
 /* ═══════════════════════════════════════════════════════════════════
    CINEMA LOADER ANIMATIONS - Unified loading state
    ═══════════════════════════════════════════════════════════════════ */

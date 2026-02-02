@@ -583,13 +583,13 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             // First check for existing HLS playlist in project
             const { data: project } = await supabase
               .from('movie_projects')
-              .select('pending_video_tasks')
+              .select('pending_video_tasks, voice_audio_url')
               .eq('id', source.projectId)
               .single();
             
             const tasks = project?.pending_video_tasks as Record<string, unknown> | null;
             hlsUrl = tasks?.hlsPlaylistUrl as string | null;
-            audioUrl = tasks?.masterAudioUrl as string | null || source.masterAudioUrl || null;
+            audioUrl = tasks?.masterAudioUrl as string | null || source.masterAudioUrl || project?.voice_audio_url || null;
             
             // If on iOS and HLS available, use it
             if (useHLSNative && hlsUrl) {
@@ -604,7 +604,35 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               return;
             }
             
-            // Otherwise fetch clips for MSE/legacy
+            // iOS Safari with projectId but no HLS - generate server-side HLS playlist
+            if (useHLSNative) {
+              console.log('[UniversalPlayer] iOS detected without HLS - generating server-side playlist');
+              try {
+                const { data: hlsResult, error: hlsError } = await supabase.functions.invoke('generate-hls-playlist', {
+                  body: { projectId: source.projectId }
+                });
+                
+                if (!hlsError && hlsResult?.hlsPlaylistUrl) {
+                  logPlaybackPath('HLS_NATIVE', { 
+                    projectId: source.projectId, 
+                    hlsUrl: hlsResult.hlsPlaylistUrl,
+                    reason: 'Generated server-side HLS playlist for iOS'
+                  });
+                  setHlsPlaylistUrl(hlsResult.hlsPlaylistUrl);
+                  setMasterAudioUrl(audioUrl);
+                  setIsLoading(false);
+                  return;
+                } else {
+                  console.warn('[UniversalPlayer] HLS generation failed, falling back to legacy:', hlsError);
+                }
+              } catch (hlsGenError) {
+                console.warn('[UniversalPlayer] HLS generation error, using legacy:', hlsGenError);
+              }
+              // Fall through to legacy mode
+              setUseMSE(false);
+            }
+            
+            // Fetch clips for MSE/legacy
             const { data: dbClips, error: dbError } = await supabase
               .from('video_clips')
               .select('video_url, duration_seconds, shot_index')
@@ -647,73 +675,12 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             urls = source.urls;
             audioUrl = source.masterAudioUrl || null;
             
-            // CRITICAL: For iOS Safari with multiple clips, generate HLS playlist on-the-fly
+            // iOS Safari: Use legacy crossfade for direct URLs (server-side HLS needed for true gapless)
+            // NOTE: Client-side blob-based M3U8 doesn't work on iOS (blob URLs can't reference external segments)
             if (useHLSNative && urls.length > 1) {
-              try {
-                console.log('[UniversalPlayer] iOS detected with direct URLs - generating HLS playlist');
-                
-                // Generate HLS playlist client-side (simple M3U8)
-                // We need to estimate durations, so we'll load metadata first
-                const clipDurations = await Promise.all(
-                  urls.map(async (url) => {
-                    try {
-                      const video = document.createElement('video');
-                      video.preload = 'metadata';
-                      video.muted = true;
-                      video.crossOrigin = 'anonymous';
-                      
-                      return new Promise<number>((resolve) => {
-                        const timeout = setTimeout(() => resolve(5), 5000);
-                        video.onloadedmetadata = () => {
-                          clearTimeout(timeout);
-                          const dur = video.duration;
-                          resolve(isFinite(dur) && dur > 0 ? dur : 5);
-                        };
-                        video.onerror = () => {
-                          clearTimeout(timeout);
-                          resolve(5);
-                        };
-                        video.src = url;
-                      });
-                    } catch {
-                      return 5;
-                    }
-                  })
-                );
-                
-                if (!mountedRef.current) return;
-                
-                // Generate M3U8 content
-                const maxDuration = Math.ceil(Math.max(...clipDurations));
-                let hlsContent = `#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:${maxDuration}\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-PLAYLIST-TYPE:VOD\n`;
-                
-                urls.forEach((url, index) => {
-                  if (index > 0) {
-                    hlsContent += `#EXT-X-DISCONTINUITY\n`;
-                  }
-                  hlsContent += `#EXTINF:${clipDurations[index].toFixed(6)},\n`;
-                  hlsContent += `${url}\n`;
-                });
-                hlsContent += `#EXT-X-ENDLIST\n`;
-                
-                // Create blob URL for the M3U8
-                const hlsBlob = new Blob([hlsContent], { type: 'application/vnd.apple.mpegurl' });
-                const hlsBlobUrl = URL.createObjectURL(hlsBlob);
-                
-                logPlaybackPath('HLS_NATIVE', {
-                  reason: 'Generated client-side HLS from direct URLs',
-                  clipCount: urls.length,
-                  totalDuration: clipDurations.reduce((a, b) => a + b, 0),
-                });
-                
-                setHlsPlaylistUrl(hlsBlobUrl);
-                setMasterAudioUrl(audioUrl);
-                setIsLoading(false);
-                return;
-              } catch (hlsError) {
-                console.warn('[UniversalPlayer] Failed to generate HLS, falling back:', hlsError);
-                // Continue with legacy fallback
-              }
+              console.log('[UniversalPlayer] iOS detected with direct URLs - using legacy crossfade (no server HLS available)');
+              // Disable HLS mode, fall through to legacy crossfade
+              setUseMSE(false);
             }
           }
 

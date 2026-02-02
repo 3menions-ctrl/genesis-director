@@ -28,7 +28,7 @@ const DialogOverlay = React.forwardRef<
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 interface DialogContentProps extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
-  variant?: "default" | "fullscreen";
+  variant?: "default" | "fullscreen" | "sheet";
   hideCloseButton?: boolean;
 }
 
@@ -41,12 +41,19 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        variant === "fullscreen"
-          ? "fixed left-0 top-0 right-0 bottom-0 z-50 w-[100vw] h-[100dvh] min-h-[100vh] max-w-none max-h-none bg-black border-none p-0 m-0 rounded-none overflow-hidden duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
-          : "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 p-6 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] rounded-2xl bg-black/95 border border-white/[0.08] backdrop-blur-2xl",
+        // Fullscreen variant
+        variant === "fullscreen" &&
+          "fixed left-0 top-0 right-0 bottom-0 z-50 w-[100vw] h-[100dvh] min-h-[100vh] max-w-none max-h-none bg-black border-none p-0 m-0 rounded-none overflow-hidden duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        // Sheet variant (mobile bottom sheet)
+        variant === "sheet" &&
+          "fixed inset-x-0 bottom-0 z-50 w-full max-h-[90vh] rounded-t-2xl border-t border-white/[0.08] bg-black/95 backdrop-blur-2xl p-0 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom overflow-hidden",
+        // Default variant
+        variant === "default" &&
+          "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 p-6 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] rounded-2xl bg-black/95 border border-white/[0.08] backdrop-blur-2xl",
         className,
       )}
-      style={variant === "fullscreen" ? { width: '100vw', height: '100dvh', minHeight: '100vh' } : {
+      style={variant === "fullscreen" ? { width: '100vw', height: '100dvh', minHeight: '100vh' } : 
+             variant === "sheet" ? {} : {
         boxShadow: '0 0 60px rgba(255, 255, 255, 0.05), 0 25px 50px -12px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
       }}
       {...props}
@@ -54,6 +61,12 @@ const DialogContent = React.forwardRef<
       {/* Top shine line */}
       {variant !== "fullscreen" && (
         <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent pointer-events-none" />
+      )}
+      {/* Sheet drag handle */}
+      {variant === "sheet" && (
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-12 h-1 rounded-full bg-white/20" />
+        </div>
       )}
       {children}
       {!hideCloseButton && (

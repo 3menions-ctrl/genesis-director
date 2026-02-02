@@ -64,8 +64,8 @@ export function useSelfDiagnostic(options: UseSelfDiagnosticOptions): UseSelfDia
     featureName,
     checks,
     timeout = 5000,
-    autoRetry = true,
-    maxRetries = 2,
+    autoRetry = false, // FIXED: Default to false to prevent retry loops
+    maxRetries = 1,    // FIXED: Reduced from 2 to prevent cascade failures
     retryDelay = 1000,
     onReady,
     onFailure,

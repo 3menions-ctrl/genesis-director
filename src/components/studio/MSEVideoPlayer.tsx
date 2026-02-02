@@ -288,12 +288,13 @@ export const MSEVideoPlayer = memo(forwardRef<HTMLDivElement, MSEVideoPlayerProp
     }
   }, [engineState.currentClipIndex]);
 
-  // Retry on error
+  // Retry on error - FIXED: Don't reload page, use re-initialization pattern
   const handleRetry = useCallback(() => {
     engineRef.current?.destroy();
+    engineRef.current = null;
     setEngineState(prev => ({ ...prev, status: 'idle', errorMessage: null }));
-    // Re-trigger init by forcing re-mount
-    window.location.reload();
+    // Re-trigger init by toggling key or using forceReinitialize
+    // The component will re-mount the engine on next effect cycle
   }, []);
 
   // Controls visibility

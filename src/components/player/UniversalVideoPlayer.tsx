@@ -1413,12 +1413,16 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
           {isLoading && <LoadingSkeleton />}
         </AnimatePresence>
 
-        {/* Error */}
+        {/* Error - FIXED: Don't use window.location.reload() */}
         {error && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
             <Film className="w-12 h-12 text-muted-foreground/20" />
             <p className="text-muted-foreground text-sm">{error}</p>
-            <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+            <Button variant="outline" size="sm" onClick={() => {
+              // Reset state to trigger re-initialization instead of page reload
+              setError(null);
+              setIsLoading(true);
+            }}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Retry
             </Button>

@@ -47,7 +47,8 @@ import { usePaginatedProjects } from '@/hooks/usePaginatedProjects';
 import { 
   ProjectCard, 
   ProjectsBackground, 
-  ProjectsHero 
+  ProjectsHero,
+  MergeDownloadDialog,
 } from '@/components/projects';
 
 // STABILITY: motion/AnimatePresence disabled - replaced with CSS-only shims
@@ -192,6 +193,12 @@ function ProjectsContentInner() {
   const [retryingProjectId, setRetryingProjectId] = useState<string | null>(null);
   const [browserStitchingProjectId, setBrowserStitchingProjectId] = useState<string | null>(null);
   const [showBrowserStitcher, setShowBrowserStitcher] = useState<string | null>(null);
+  
+  // Merge download dialog state
+  const [mergeDownloadOpen, setMergeDownloadOpen] = useState(false);
+  const [mergeDownloadProject, setMergeDownloadProject] = useState<Project | null>(null);
+  const [mergeDownloadClips, setMergeDownloadClips] = useState<string[]>([]);
+  const [mergeDownloadAudioUrl, setMergeDownloadAudioUrl] = useState<string | null>(null);
   
   // Additional UI state (view/filter state already declared above for usePaginatedProjects)
   const [pinnedProjects, setPinnedProjects] = useState<Set<string>>(new Set());
@@ -557,6 +564,7 @@ function ProjectsContentInner() {
   };
 
   const handleDownloadAll = async (project: Project) => {
+    // Single video file (not manifest) - download directly
     if (project.video_url && !isManifestUrl(project.video_url)) {
       toast.info('Downloading video...');
       try {
@@ -577,31 +585,65 @@ function ProjectsContentInner() {
       return;
     }
     
-    const clips = project.video_clips || [];
-    if (clips.length === 0) {
+    // Multi-clip project - fetch clips and open merge dialog
+    let clipUrls = project.video_clips || [];
+    let masterAudioUrl: string | null = null;
+    
+    // If no clips array, try to fetch from database
+    if (clipUrls.length === 0) {
+      try {
+        const { data: clips } = await supabase
+          .from('video_clips')
+          .select('video_url, shot_index')
+          .eq('project_id', project.id)
+          .eq('status', 'completed')
+          .not('video_url', 'is', null)
+          .order('shot_index');
+        
+        if (clips && clips.length > 0) {
+          clipUrls = clips.map(c => c.video_url).filter(Boolean) as string[];
+        }
+      } catch (error) {
+        console.error('Failed to fetch clips:', error);
+      }
+    }
+    
+    if (clipUrls.length === 0) {
       toast.error('No clips to download');
       return;
     }
-
-    toast.info('Starting downloads...');
-    for (let i = 0; i < clips.length; i++) {
+    
+    // Check for master audio (avatar projects)
+    if (project.voice_audio_url) {
+      masterAudioUrl = project.voice_audio_url;
+    }
+    
+    // Single clip - download directly
+    if (clipUrls.length === 1) {
+      toast.info('Downloading video...');
       try {
-        const response = await fetch(clips[i]);
+        const response = await fetch(clipUrls[0]);
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${project.name}-clip-${i + 1}.mp4`;
+        a.download = `${project.name}-video.mp4`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        await new Promise(r => setTimeout(r, 500));
+        toast.success('Download complete!');
       } catch (error) {
-        window.open(clips[i], '_blank');
+        window.open(clipUrls[0], '_blank');
       }
+      return;
     }
-    toast.success('Downloads complete!');
+    
+    // Multiple clips - open merge dialog
+    setMergeDownloadProject(project);
+    setMergeDownloadClips(clipUrls);
+    setMergeDownloadAudioUrl(masterAudioUrl);
+    setMergeDownloadOpen(true);
   };
 
   const handleGoogleStitch = async (projectId: string) => {
@@ -1509,6 +1551,15 @@ function ProjectsContentInner() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Merge Download Dialog - combines multiple clips into single video */}
+      <MergeDownloadDialog
+        open={mergeDownloadOpen}
+        onOpenChange={setMergeDownloadOpen}
+        projectName={mergeDownloadProject?.name || 'Video'}
+        clipUrls={mergeDownloadClips}
+        masterAudioUrl={mergeDownloadAudioUrl}
+      />
     </div>
   );
 }

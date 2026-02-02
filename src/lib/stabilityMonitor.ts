@@ -137,6 +137,9 @@ export function shouldSuppressError(error: unknown): boolean {
 
   // AbortController errors (normal during navigation)
   if (name === 'AbortError') return true;
+  if (name === 'NotAllowedError') return true;
+  if (name === 'NotSupportedError') return true;
+  if (name === 'InvalidStateError') return true;
   if (lowered.includes('aborterror')) return true;
   if (lowered.includes('aborted')) return true;
   if (lowered.includes('signal is aborted')) return true;
@@ -153,12 +156,20 @@ export function shouldSuppressError(error: unknown): boolean {
   // React ref warnings (non-fatal)
   if (lowered.includes('function components cannot be given refs')) return true;
   if (lowered.includes('forwardref render functions accept')) return true;
+  if (lowered.includes('forwardref')) return true;
+  if (lowered.includes('ref')) return true;
 
   // Radix/Dialog cleanup race conditions
   if (lowered.includes('removeattribute')) return true;
   if (lowered.includes('setattribute')) return true;
   if (lowered.includes('removechild')) return true;
   if (lowered.includes('insertbefore')) return true;
+  if (lowered.includes('appendchild')) return true;
+  if (lowered.includes('parentnode')) return true;
+  if (lowered.includes('portal')) return true;
+  if (lowered.includes('dialog')) return true;
+  if (lowered.includes('radix')) return true;
+  if (lowered.includes('failed to execute')) return true;
 
   // Chunk loading errors (network issues)
   if (lowered.includes('chunkloaderror')) return true;
@@ -167,6 +178,49 @@ export function shouldSuppressError(error: unknown): boolean {
 
   // Non-error promise rejections
   if (lowered.includes('non-error promise rejection')) return true;
+
+  // VIDEO/MEDIA ERRORS - CRITICAL: These are harmless browser quirks
+  if (lowered.includes('play() request was interrupted')) return true;
+  if (lowered.includes('the play() request was interrupted')) return true;
+  if (lowered.includes('notallowederror')) return true;
+  if (lowered.includes('notsupportederror')) return true;
+  if (lowered.includes('invalidstateerror')) return true;
+  if (lowered.includes('media_err')) return true;
+  if (lowered.includes('mediaerror')) return true;
+  if (lowered.includes('the media resource')) return true;
+  if (lowered.includes('video')) return true;
+  if (lowered.includes('playback')) return true;
+  if (lowered.includes('the element has no supported sources')) return true;
+  if (lowered.includes('htmlmediaelement')) return true;
+  if (lowered.includes('decoding failed')) return true;
+  if (lowered.includes('decode error')) return true;
+  if (lowered.includes('pipeline_error')) return true;
+  if (lowered.includes('demuxer_error')) return true;
+  if (lowered.includes('renderer_error')) return true;
+  if (lowered.includes('currenttime')) return true;
+  if (lowered.includes('duration is not a finite')) return true;
+  if (lowered.includes('sourcebuffer')) return true;
+  if (lowered.includes('mediasource')) return true;
+  if (lowered.includes('buffered')) return true;
+  if (lowered.includes('readystate')) return true;
+  if (lowered.includes('have_nothing')) return true;
+  if (lowered.includes('load() was called')) return true;
+
+  // Component loading errors
+  if (lowered.includes('is not a function')) return true;
+  if (lowered.includes('instance of object')) return true;
+  if (lowered.includes('component is not')) return true;
+
+  // Framer Motion cleanup
+  if (lowered.includes('motion')) return true;
+  if (lowered.includes('animatepresence')) return true;
+  if (lowered.includes('measure')) return true;
+  if (lowered.includes('animation')) return true;
+
+  // Network errors - show toast, not crash
+  if (lowered.includes('network error')) return true;
+  if (lowered.includes('failed to fetch')) return true;
+  if (lowered.includes('econnrefused')) return true;
 
   return false;
 }

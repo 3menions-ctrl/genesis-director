@@ -153,11 +153,18 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     avatarType: avatarTypeFilter,
   }), [genderFilter, styleFilter, searchQuery, avatarTypeFilter]);
   
-  const { templates, isLoading: templatesLoading, isFetching, isSuccess, error } = useAvatarTemplatesQuery(filterConfig);
+  const { templates: rawTemplates, isLoading: templatesLoading, isFetching, isSuccess, error } = useAvatarTemplatesQuery(filterConfig);
+  
+  // ========== CRITICAL: Double-guard against undefined/null templates ==========
+  // This is the primary defense against crashes from malformed data
+  const templates = Array.isArray(rawTemplates) ? rawTemplates : [];
   
   // ========== GATEKEEPER: Image Preloading ==========
   // Guard against undefined templates array
-  const safeTemplates = useMemo(() => templates || [], [templates]);
+  const safeTemplates = useMemo(() => {
+    if (!templates || !Array.isArray(templates)) return [];
+    return templates.filter(t => t && typeof t === 'object' && t.id);
+  }, [templates]);
   const criticalImageUrls = useMemo(() => getCriticalImageUrls(safeTemplates, 8), [safeTemplates]);
   
   const {

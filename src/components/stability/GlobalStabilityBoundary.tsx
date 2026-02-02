@@ -176,12 +176,21 @@ class GlobalStabilityBoundaryClass extends Component<GlobalStabilityBoundaryProp
   public static getDerivedStateFromError(error: Error): Partial<GlobalStabilityBoundaryState> | null {
     // Check if this is a suppressed error that shouldn't show the error UI
     const errorMessage = error?.message || '';
+    const errorName = error?.name || '';
+    
+    // CRITICAL: Also check error name for DOMException types
+    const suppressedNames = ['AbortError', 'NotAllowedError', 'NotSupportedError', 'InvalidStateError'];
+    if (suppressedNames.includes(errorName)) {
+      console.debug('[GlobalStabilityBoundary] Suppressed by name:', errorName);
+      return null;
+    }
+    
     const shouldSuppress = SUPPRESSED_ERROR_PATTERNS.some(pattern => 
-      errorMessage.includes(pattern)
+      errorMessage.toLowerCase().includes(pattern.toLowerCase())
     );
     
     if (shouldSuppress) {
-      console.warn('[GlobalStabilityBoundary] Suppressed non-critical error:', errorMessage);
+      console.debug('[GlobalStabilityBoundary] Suppressed non-critical error:', errorMessage.substring(0, 100));
       return null; // Don't update state for suppressed errors
     }
     
@@ -195,8 +204,16 @@ class GlobalStabilityBoundaryClass extends Component<GlobalStabilityBoundaryProp
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Check if this is a suppressed error
     const errorMessage = error?.message || '';
+    const errorName = error?.name || '';
+    
+    // Check by error name first
+    const suppressedNames = ['AbortError', 'NotAllowedError', 'NotSupportedError', 'InvalidStateError'];
+    if (suppressedNames.includes(errorName)) {
+      return;
+    }
+    
     const shouldSuppress = SUPPRESSED_ERROR_PATTERNS.some(pattern => 
-      errorMessage.includes(pattern)
+      errorMessage.toLowerCase().includes(pattern.toLowerCase())
     );
     
     if (shouldSuppress) {

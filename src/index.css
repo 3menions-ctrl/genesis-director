@@ -1314,3 +1314,563 @@
     .xs\:hidden { display: none; }
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CROSS-BROWSER COMPATIBILITY LAYER
+   Comprehensive vendor prefixes and fallbacks for all major browsers
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Safari 100vh fix - accounts for address bar */
+@supports (-webkit-touch-callout: none) {
+  .min-h-screen {
+    min-height: -webkit-fill-available;
+  }
+  .h-screen {
+    height: -webkit-fill-available;
+  }
+}
+
+/* Firefox-specific scrollbar styling */
+@-moz-document url-prefix() {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(30 15% 50%) transparent;
+  }
+}
+
+/* Edge Legacy and IE11 fallbacks */
+@supports (-ms-ime-align: auto) {
+  .backdrop-blur-xl,
+  .backdrop-blur-lg,
+  .backdrop-blur-md {
+    background-color: rgba(10, 10, 10, 0.95);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   VENDOR PREFIXES - Comprehensive Browser Support
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Flexbox vendor prefixes for older browsers */
+.flex {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+}
+
+.inline-flex {
+  display: -webkit-inline-box;
+  display: -webkit-inline-flex;
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+}
+
+.flex-col {
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
+  -ms-flex-direction: column;
+  flex-direction: column;
+}
+
+.flex-wrap {
+  -webkit-flex-wrap: wrap;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+}
+
+.items-center {
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+.justify-center {
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+}
+
+.justify-between {
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+}
+
+/* Transform vendor prefixes */
+.transform {
+  -webkit-transform: var(--tw-transform);
+  -ms-transform: var(--tw-transform);
+  transform: var(--tw-transform);
+}
+
+/* Transition vendor prefixes */
+.transition,
+.transition-all,
+.transition-colors,
+.transition-opacity,
+.transition-transform {
+  -webkit-transition-property: var(--tw-transition-property, all);
+  -o-transition-property: var(--tw-transition-property, all);
+  transition-property: var(--tw-transition-property, all);
+  -webkit-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  -o-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-transition-duration: 150ms;
+  -o-transition-duration: 150ms;
+  transition-duration: 150ms;
+}
+
+/* Gradient text support for all browsers */
+.text-gradient,
+.text-shine,
+.bg-clip-text {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* User select prevention */
+.select-none {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Pointer events */
+.pointer-events-none {
+  pointer-events: none;
+}
+
+.pointer-events-auto {
+  pointer-events: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BACKDROP FILTER - Safari & Firefox Support
+   ═══════════════════════════════════════════════════════════════════ */
+
+.backdrop-blur-sm {
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.backdrop-blur {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.backdrop-blur-md {
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.backdrop-blur-lg {
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+.backdrop-blur-xl {
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+}
+
+.backdrop-blur-2xl {
+  -webkit-backdrop-filter: blur(40px);
+  backdrop-filter: blur(40px);
+}
+
+.backdrop-blur-3xl {
+  -webkit-backdrop-filter: blur(64px);
+  backdrop-filter: blur(64px);
+}
+
+/* Backdrop filter fallback for unsupported browsers */
+@supports not (backdrop-filter: blur(1px)) {
+  .backdrop-blur-sm,
+  .backdrop-blur,
+  .backdrop-blur-md,
+  .backdrop-blur-lg,
+  .backdrop-blur-xl,
+  .backdrop-blur-2xl,
+  .backdrop-blur-3xl {
+    background-color: rgba(10, 10, 10, 0.95);
+  }
+  
+  .glass-card,
+  .glass-card-dark,
+  .glass-panel,
+  .nav-glass {
+    background-color: rgba(255, 255, 255, 0.95);
+  }
+  
+  .dark .glass-card,
+  .dark .glass-card-dark,
+  .dark .glass-panel {
+    background-color: rgba(10, 10, 10, 0.95);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ASPECT RATIO - Fallback for older browsers
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Modern browsers with aspect-ratio support */
+@supports (aspect-ratio: 1/1) {
+  .aspect-video {
+    aspect-ratio: 16/9;
+  }
+  .aspect-square {
+    aspect-ratio: 1/1;
+  }
+  .aspect-\[2\/3\] {
+    aspect-ratio: 2/3;
+  }
+  .aspect-\[3\/2\] {
+    aspect-ratio: 3/2;
+  }
+  .aspect-\[4\/3\] {
+    aspect-ratio: 4/3;
+  }
+  .aspect-\[9\/16\] {
+    aspect-ratio: 9/16;
+  }
+}
+
+/* Fallback for browsers without aspect-ratio */
+@supports not (aspect-ratio: 1/1) {
+  .aspect-video {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%;
+  }
+  .aspect-video > * {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .aspect-square {
+    position: relative;
+    width: 100%;
+    padding-bottom: 100%;
+  }
+  .aspect-square > * {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .aspect-\[2\/3\] {
+    position: relative;
+    width: 100%;
+    padding-bottom: 150%;
+  }
+  .aspect-\[2\/3\] > * {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   GRID FALLBACKS - For older browsers
+   ═══════════════════════════════════════════════════════════════════ */
+
+@supports not (display: grid) {
+  .grid {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-flex-wrap: wrap;
+    -ms-flex-wrap: wrap;
+    flex-wrap: wrap;
+  }
+  
+  .grid > * {
+    -webkit-box-flex: 0;
+    -webkit-flex: 0 0 auto;
+    -ms-flex: 0 0 auto;
+    flex: 0 0 auto;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   GAP FALLBACKS - For browsers without gap support in flexbox
+   ═══════════════════════════════════════════════════════════════════ */
+
+@supports not (gap: 1rem) {
+  .gap-1 > * { margin: 0.125rem; }
+  .gap-2 > * { margin: 0.25rem; }
+  .gap-3 > * { margin: 0.375rem; }
+  .gap-4 > * { margin: 0.5rem; }
+  .gap-5 > * { margin: 0.625rem; }
+  .gap-6 > * { margin: 0.75rem; }
+  .gap-8 > * { margin: 1rem; }
+  .gap-10 > * { margin: 1.25rem; }
+  .gap-12 > * { margin: 1.5rem; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SCROLL BEHAVIOR - Smooth scrolling with fallbacks
+   ═══════════════════════════════════════════════════════════════════ */
+
+html {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safari iOS momentum scrolling */
+.overflow-auto,
+.overflow-scroll,
+.overflow-y-auto,
+.overflow-x-auto,
+.overflow-y-scroll,
+.overflow-x-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Scroll snap with vendor prefixes */
+.snap-x {
+  -webkit-scroll-snap-type: x mandatory;
+  -ms-scroll-snap-type: x mandatory;
+  scroll-snap-type: x mandatory;
+}
+
+.snap-y {
+  -webkit-scroll-snap-type: y mandatory;
+  -ms-scroll-snap-type: y mandatory;
+  scroll-snap-type: y mandatory;
+}
+
+.snap-start {
+  -webkit-scroll-snap-align: start;
+  -ms-scroll-snap-align: start;
+  scroll-snap-align: start;
+}
+
+.snap-center {
+  -webkit-scroll-snap-align: center;
+  -ms-scroll-snap-align: center;
+  scroll-snap-align: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TOUCH & INTERACTION OPTIMIZATION
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Remove tap highlight on mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Touch action for better mobile performance */
+html {
+  touch-action: manipulation;
+}
+
+/* Prevent callout on long-press (iOS) */
+img, a, button {
+  -webkit-touch-callout: none;
+}
+
+/* Improve touch targets for mobile */
+@media (max-width: 768px) {
+  button,
+  [role="button"],
+  a,
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+  }
+  
+  /* Prevent zoom on input focus for iOS */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   iOS SAFE AREA SUPPORT
+   ═══════════════════════════════════════════════════════════════════ */
+
+.safe-area-inset-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+.safe-area-inset-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.safe-area-inset-left {
+  padding-left: env(safe-area-inset-left, 0);
+}
+
+.safe-area-inset-right {
+  padding-right: env(safe-area-inset-right, 0);
+}
+
+/* Full safe area padding */
+.safe-area-all {
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   HIGH CONTRAST MODE SUPPORT
+   ═══════════════════════════════════════════════════════════════════ */
+
+@media (prefers-contrast: high) {
+  .glass-card,
+  .glass-card-dark,
+  .glass-panel {
+    border-width: 2px;
+    border-color: currentColor;
+  }
+  
+  button,
+  [role="button"] {
+    border: 2px solid currentColor;
+  }
+  
+  a:focus,
+  button:focus,
+  [role="button"]:focus {
+    outline: 3px solid currentColor;
+    outline-offset: 2px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DARK MODE COLOR SCHEME HINT
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  color-scheme: light dark;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PRINT STYLES
+   ═══════════════════════════════════════════════════════════════════ */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  * {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+  
+  a {
+    text-decoration: underline;
+  }
+  
+  a[href]::after {
+    content: " (" attr(href) ")";
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   FOCUS VISIBLE - Modern focus styling with fallback
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Fallback for browsers without :focus-visible */
+*:focus {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Modern browsers - only show focus for keyboard navigation */
+@supports selector(:focus-visible) {
+  *:focus {
+    outline: none;
+  }
+  
+  *:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ANIMATION PERFORMANCE - GPU Acceleration
+   ═══════════════════════════════════════════════════════════════════ */
+
+.gpu-accelerated {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000px;
+  perspective: 1000px;
+}
+
+/* Will-change hints for animations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+.will-change-auto {
+  will-change: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CONTAINER QUERIES FALLBACK
+   ═══════════════════════════════════════════════════════════════════ */
+
+@supports not (container-type: inline-size) {
+  /* Fallback to media queries for layouts that use container queries */
+  .container-responsive {
+    width: 100%;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CLAMP FALLBACK - For older browsers
+   ═══════════════════════════════════════════════════════════════════ */
+
+@supports not (font-size: clamp(1rem, 2vw, 2rem)) {
+  .text-responsive {
+    font-size: 1rem;
+  }
+  
+  @media (min-width: 768px) {
+    .text-responsive {
+      font-size: 1.25rem;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .text-responsive {
+      font-size: 1.5rem;
+    }
+  }
+}

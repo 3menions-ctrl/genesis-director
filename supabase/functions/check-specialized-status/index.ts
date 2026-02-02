@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { persistVideoToStorage, persistAudioToStorage } from "../_shared/video-persistence.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -81,12 +82,37 @@ serve(async (req) => {
     switch (prediction.status) {
       case 'succeeded':
         // Extract video URL from output
-        videoUrl = Array.isArray(prediction.output) 
+        let rawVideoUrl = Array.isArray(prediction.output) 
           ? prediction.output[0] 
           : prediction.output;
         
+        console.log(`[CheckSpecializedStatus] Raw video URL: ${rawVideoUrl}`);
+        
+        // CRITICAL: Persist video to permanent Supabase storage
+        const permanentUrl = await persistVideoToStorage(
+          supabase,
+          rawVideoUrl,
+          projectId,
+          { prefix: project.mode || 'specialized' }
+        );
+        
+        // Use permanent URL if persistence succeeded, otherwise keep original
+        videoUrl = permanentUrl || rawVideoUrl;
+        
+        // Also persist audio if available
+        if (currentState.audioUrl) {
+          const permanentAudioUrl = await persistAudioToStorage(
+            supabase,
+            currentState.audioUrl,
+            projectId
+          );
+          if (permanentAudioUrl) {
+            newState.audioUrl = permanentAudioUrl;
+          }
+        }
+        
         newState = {
-          ...currentState,
+          ...newState,
           stage: 'completed',
           progress: 100,
           completedAt: new Date().toISOString(),
@@ -94,7 +120,7 @@ serve(async (req) => {
         };
         newStatus = 'completed';
         
-        console.log(`[CheckSpecializedStatus] Success! Video URL: ${videoUrl}`);
+        console.log(`[CheckSpecializedStatus] ✅ Success! Permanent URL: ${videoUrl}`);
         break;
 
       case 'failed':

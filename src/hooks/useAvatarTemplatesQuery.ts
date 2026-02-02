@@ -54,7 +54,7 @@ export function useAvatarTemplatesQuery(filter?: AvatarTemplateFilter) {
   const queryClient = useQueryClient();
 
   const {
-    data: templates = [],
+    data,
     isLoading,
     error,
     refetch,
@@ -71,6 +71,14 @@ export function useAvatarTemplatesQuery(filter?: AvatarTemplateFilter) {
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
+  
+  // CRITICAL: Ensure templates is ALWAYS a valid array
+  // This is the last line of defense against crashes
+  const templates: AvatarTemplate[] = useMemo(() => {
+    if (!data) return [];
+    if (!Array.isArray(data)) return [];
+    return data.filter(item => item && typeof item === 'object' && item.id);
+  }, [data]);
   
   // Debug logging for navigation issues
   useEffect(() => {

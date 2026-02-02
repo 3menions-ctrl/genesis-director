@@ -7,19 +7,14 @@ const corsHeaders = {
 };
 
 /**
- * GENERATE-AVATAR-DIRECT - World-Class Avatar Pipeline v2.0
+ * GENERATE-AVATAR-DIRECT - World-Class Avatar Pipeline v2.1
  * 
- * EXPRESSIVE ACTING pipeline that ensures:
+ * EXPRESSIVE ACTING pipeline with MULTI-CLIP support that ensures:
  * 1. VERBATIM TTS - User's exact script is spoken word-for-word using avatar's voice
  * 2. SCENE COMPOSITING - Avatar placed in user-specified environment via Kling
  * 3. NATURAL ACTING - Kling generates expressive, human-like performance
  * 4. AUDIO SYNC - TTS audio merged with generated video
- * 
- * Architecture:
- * 1. Generate TTS audio from user's exact script (MiniMax Speech 2.6)
- * 2. Generate scene background + avatar composite prompt for Kling
- * 3. Kling generates EXPRESSIVE speaking animation with scene context
- * 4. Merge TTS audio with generated video
+ * 5. MULTI-CLIP - Script can be split across multiple clips for longer content
  */
 
 // Voice mapping for MiniMax - supports all avatar template voices
@@ -50,24 +45,15 @@ const VOICE_MAP: Record<string, string> = {
 };
 
 interface AvatarDirectRequest {
-  // User's EXACT script to be spoken (no AI modification)
   script: string;
-  
-  // Avatar face image URL
   avatarImageUrl: string;
-  
-  // Voice ID for TTS (should match avatar template's voice_id)
   voiceId?: string;
-  
-  // Scene/environment description (e.g., "a witch's house in the forest")
   sceneDescription?: string;
-  
-  // Project tracking
   projectId?: string;
   userId?: string;
-  
-  // Output configuration
   aspectRatio?: string;
+  clipCount?: number;
+  clipDuration?: number;
 }
 
 serve(async (req) => {
@@ -96,106 +82,55 @@ serve(async (req) => {
       voiceId = 'bella',
       sceneDescription,
       projectId,
-      userId,
       aspectRatio = '16:9',
+      clipCount = 1,
     } = request;
 
     if (!script || !avatarImageUrl) {
-      throw new Error("Both 'script' (exact text to speak) and 'avatarImageUrl' are required");
+      throw new Error("Both 'script' and 'avatarImageUrl' are required");
     }
 
+    // Split script into segments for multi-clip
+    const actualClipCount = Math.max(1, Math.min(clipCount, 10));
+    const scriptSegments = actualClipCount > 1 
+      ? splitScriptIntoSegments(script, actualClipCount)
+      : [script];
+    
+    const finalClipCount = scriptSegments.length;
+    const minimaxVoice = VOICE_MAP[voiceId] || VOICE_MAP[voiceId.toLowerCase()] || 'bella';
+
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
-    console.log("[AvatarDirect] Starting EXPRESSIVE ACTING pipeline v2.0");
-    console.log(`[AvatarDirect] Script (${script.length} chars): "${script.substring(0, 100)}..."`);
+    console.log("[AvatarDirect] Starting MULTI-CLIP AVATAR pipeline v2.1");
+    console.log(`[AvatarDirect] Script (${script.length} chars): "${script.substring(0, 80)}..."`);
     console.log(`[AvatarDirect] Scene: "${sceneDescription || 'Professional studio setting'}"`);
-    console.log(`[AvatarDirect] Voice: ${voiceId}, Aspect: ${aspectRatio}`);
+    console.log(`[AvatarDirect] Voice: ${minimaxVoice}, Clips: ${finalClipCount}`);
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
 
-    // Update project status if we have one
     if (projectId) {
       await supabase.from('movie_projects').update({
         status: 'generating',
         pipeline_state: {
-          stage: 'tts_generation',
-          progress: 10,
-          message: 'Generating speech from your script...',
-          scriptLength: script.length,
+          stage: 'init',
+          progress: 5,
+          message: `Generating ${finalClipCount} clip${finalClipCount > 1 ? 's' : ''}...`,
+          totalClips: finalClipCount,
         },
       }).eq('id', projectId);
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 1: Generate TTS from user's EXACT script using AVATAR'S VOICE
-    // ═══════════════════════════════════════════════════════════════════════════
-    console.log("[AvatarDirect] STEP 1: Generating TTS (verbatim script)...");
-    console.log(`[AvatarDirect] Input voiceId: "${voiceId}"`);
+    // Pre-generate scene image once for all clips
+    let sharedAnimationStartImage = avatarImageUrl;
     
-    // Map the voice ID to MiniMax voice - avatar templates use openai voice names
-    const minimaxVoice = VOICE_MAP[voiceId] || VOICE_MAP[voiceId.toLowerCase()] || 'bella';
-    console.log(`[AvatarDirect] Mapped to MiniMax voice: "${minimaxVoice}"`);
-    
-    const voiceResponse = await fetch(`${supabaseUrl}/functions/v1/generate-voice`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseKey}`,
-      },
-      body: JSON.stringify({
-        text: script, // EXACT user text, no changes
-        voiceId: minimaxVoice,
-        speed: 1.0,
-        projectId,
-      }),
-    });
-
-    if (!voiceResponse.ok) {
-      const errorText = await voiceResponse.text();
-      console.error("[AvatarDirect] TTS failed:", errorText);
-      throw new Error(`TTS generation failed: ${voiceResponse.status}`);
-    }
-
-    const voiceResult = await voiceResponse.json();
-    
-    if (!voiceResult.success || !voiceResult.audioUrl) {
-      throw new Error("TTS generation failed - no audio URL returned");
-    }
-
-    const audioUrl = voiceResult.audioUrl;
-    const audioDurationMs = voiceResult.durationMs || estimateDuration(script);
-    
-    console.log(`[AvatarDirect] ✅ TTS complete with voice "${minimaxVoice}": ${audioUrl.substring(0, 60)}...`);
-    console.log(`[AvatarDirect] Audio duration: ${Math.round(audioDurationMs / 1000)}s`);
-
-    // Update progress
-    if (projectId) {
-      await supabase.from('movie_projects').update({
-        pipeline_state: {
-          stage: 'animation_generation',
-          progress: 30,
-          message: 'Creating expressive speaking animation...',
-          audioUrl,
-          voiceUsed: minimaxVoice,
-        },
-      }).eq('id', projectId);
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 2: SCENE-FIRST PIPELINE - Generate avatar-in-scene image if scene requested
-    // This is the WORLD-CLASS solution for custom backgrounds
-    // ═══════════════════════════════════════════════════════════════════════════
-    let animationStartImage = avatarImageUrl;
-    
-    if (sceneDescription && sceneDescription.trim()) {
-      console.log("[AvatarDirect] STEP 2a: Scene-First Compositing...");
-      console.log(`[AvatarDirect] Scene requested: "${sceneDescription}"`);
+    if (sceneDescription?.trim()) {
+      console.log("[AvatarDirect] Pre-generating shared scene image...");
       
       if (projectId) {
         await supabase.from('movie_projects').update({
           pipeline_state: {
             stage: 'scene_compositing',
-            progress: 35,
-            message: 'Placing avatar in requested scene...',
-            sceneDescription,
+            progress: 8,
+            message: 'Creating scene for your avatar...',
+            totalClips: finalClipCount,
           },
         }).eq('id', projectId);
       }
@@ -218,248 +153,242 @@ serve(async (req) => {
         if (sceneResponse.ok) {
           const sceneResult = await sceneResponse.json();
           if (sceneResult.success && sceneResult.sceneImageUrl) {
-            animationStartImage = sceneResult.sceneImageUrl;
-            console.log(`[AvatarDirect] ✅ Scene-First compositing succeeded (${sceneResult.method})`);
-            console.log(`[AvatarDirect] Avatar-in-scene image: ${animationStartImage.substring(0, 60)}...`);
-          } else {
-            console.warn("[AvatarDirect] Scene compositing returned no image, using original avatar");
+            sharedAnimationStartImage = sceneResult.sceneImageUrl;
+            console.log("[AvatarDirect] ✅ Scene compositing succeeded");
           }
-        } else {
-          console.warn(`[AvatarDirect] Scene compositing failed (${sceneResponse.status}), using original avatar`);
         }
       } catch (sceneError) {
         console.warn("[AvatarDirect] Scene-First error (non-fatal):", sceneError);
-        // Continue with original avatar - scene will be in prompt only
       }
     }
-    
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 2b: Generate EXPRESSIVE speaking animation with Kling
-    // Now using the avatar-in-scene image as start_image for perfect backgrounds
-    // ═══════════════════════════════════════════════════════════════════════════
-    console.log("[AvatarDirect] STEP 2b: Generating expressive speaking animation (Kling)...");
-    
-    const audioDurationSec = Math.ceil(audioDurationMs / 1000);
-    // Kling supports 5s or 10s - choose based on audio length
-    const videoDuration = audioDurationSec <= 5 ? 5 : 10;
-    
-    // Build a rich, expressive prompt that captures the scene AND acting style
-    // The prompt instructs Kling to create natural, engaging performance
-    let actingPrompt = buildActingPrompt(script, sceneDescription);
-    
-    console.log(`[AvatarDirect] Animation start image: ${animationStartImage === avatarImageUrl ? 'original avatar' : 'avatar-in-scene'}`);
-    console.log(`[AvatarDirect] Acting prompt: "${actingPrompt.substring(0, 150)}..."`);
-    console.log(`[AvatarDirect] Video duration: ${videoDuration}s`);
-    
-    const klingResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${REPLICATE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        input: {
-          mode: "pro",
-          prompt: actingPrompt,
-          duration: videoDuration,
-          start_image: animationStartImage, // Now uses avatar-in-scene if available
-          aspect_ratio: aspectRatio,
-          negative_prompt: "static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless",
-        },
-      }),
-    });
 
-    if (!klingResponse.ok) {
-      const errorText = await klingResponse.text();
-      console.error("[AvatarDirect] Kling failed:", errorText);
-      throw new Error(`Kling animation failed: ${klingResponse.status} - ${errorText}`);
-    }
+    // Generate each clip
+    const generatedClips: Array<{
+      videoUrl: string;
+      audioUrl: string;
+      audioDurationMs: number;
+      segmentText: string;
+      clipIndex: number;
+    }> = [];
 
-    const klingPrediction = await klingResponse.json();
-    console.log(`[AvatarDirect] Kling prediction started: ${klingPrediction.id}`);
-
-    // Update progress
-    if (projectId) {
-      await supabase.from('movie_projects').update({
-        pipeline_state: {
-          stage: 'video_rendering',
-          progress: 50,
-          message: 'Rendering expressive performance (this takes 2-4 minutes)...',
-          predictionId: klingPrediction.id,
-          audioUrl,
-        },
-      }).eq('id', projectId);
-    }
-
-    // Poll for Kling completion (can take 2-4 minutes)
-    let videoUrl: string | null = null;
-    
-    if (klingPrediction.status === "succeeded" && klingPrediction.output) {
-      videoUrl = klingPrediction.output;
-    } else {
-      videoUrl = await pollForResult(klingPrediction.id, REPLICATE_API_KEY, 300); // 5 min timeout
-    }
-
-    if (!videoUrl) {
-      throw new Error("Video generation timed out - please try again");
-    }
-
-    console.log(`[AvatarDirect] ✅ Expressive video generated: ${videoUrl.substring(0, 60)}...`);
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 3: Merge TTS audio with generated video
-    // Uses ffmpeg to replace Kling's video audio with our TTS
-    // ═══════════════════════════════════════════════════════════════════════════
-    console.log("[AvatarDirect] STEP 3: Merging TTS audio with video...");
-    
-    if (projectId) {
-      await supabase.from('movie_projects').update({
-        pipeline_state: {
-          stage: 'audio_merge',
-          progress: 85,
-          message: 'Synchronizing voice with video...',
-          videoUrl,
-          audioUrl,
-        },
-      }).eq('id', projectId);
-    }
-
-    // Use ffmpeg via Replicate to merge audio
-    let finalVideoUrl = videoUrl;
-    
-    try {
-      const mergedUrl = await mergeAudioWithVideo(videoUrl, audioUrl, REPLICATE_API_KEY);
-      if (mergedUrl) {
-        finalVideoUrl = mergedUrl;
-        console.log(`[AvatarDirect] ✅ Audio merged: ${finalVideoUrl.substring(0, 60)}...`);
-      } else {
-        console.log("[AvatarDirect] Audio merge failed, using video as-is");
-      }
-    } catch (mergeError) {
-      console.warn("[AvatarDirect] Audio merge error (non-fatal):", mergeError);
-      // Non-fatal - video still plays, just without TTS audio synced
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 4: Copy to permanent Supabase storage (prevents URL expiration!)
-    // ═══════════════════════════════════════════════════════════════════════════
-    let permanentVideoUrl = finalVideoUrl;
-    
-    if (finalVideoUrl.includes('replicate.delivery') && projectId) {
-      console.log("[AvatarDirect] STEP 4: Copying video to permanent storage...");
+    for (let clipIndex = 0; clipIndex < scriptSegments.length; clipIndex++) {
+      const segmentText = scriptSegments[clipIndex];
+      const clipNumber = clipIndex + 1;
       
+      console.log(`[AvatarDirect] ═══ Clip ${clipNumber}/${finalClipCount} ═══`);
+      console.log(`[AvatarDirect] Segment: "${segmentText.substring(0, 60)}..."`);
+
+      if (projectId) {
+        const baseProgress = 10 + (clipIndex / finalClipCount) * 80;
+        await supabase.from('movie_projects').update({
+          pipeline_state: {
+            stage: 'clip_generation',
+            progress: Math.round(baseProgress),
+            message: `Generating clip ${clipNumber} of ${finalClipCount}...`,
+            totalClips: finalClipCount,
+            currentClip: clipNumber,
+          },
+        }).eq('id', projectId);
+      }
+
+      // Generate TTS for this segment
+      const voiceResponse = await fetch(`${supabaseUrl}/functions/v1/generate-voice`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({
+          text: segmentText,
+          voiceId: minimaxVoice,
+          speed: 1.0,
+          projectId,
+        }),
+      });
+
+      if (!voiceResponse.ok) {
+        throw new Error(`TTS generation failed for clip ${clipNumber}`);
+      }
+
+      const voiceResult = await voiceResponse.json();
+      
+      if (!voiceResult.success || !voiceResult.audioUrl) {
+        throw new Error(`TTS failed for clip ${clipNumber} - no audio`);
+      }
+
+      const clipAudioUrl = voiceResult.audioUrl;
+      const clipAudioDurationMs = voiceResult.durationMs || estimateDuration(segmentText);
+      
+      console.log(`[AvatarDirect] Clip ${clipNumber}: ✅ TTS (${Math.round(clipAudioDurationMs / 1000)}s)`);
+
+      // Generate expressive animation with Kling
+      const audioDurationSec = Math.ceil(clipAudioDurationMs / 1000);
+      const videoDuration = audioDurationSec <= 5 ? 5 : 10;
+      const actingPrompt = buildActingPrompt(segmentText, sceneDescription);
+      
+      const klingResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          input: {
+            mode: "pro",
+            prompt: actingPrompt,
+            duration: videoDuration,
+            start_image: sharedAnimationStartImage,
+            aspect_ratio: aspectRatio,
+            negative_prompt: "static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless",
+          },
+        }),
+      });
+
+      if (!klingResponse.ok) {
+        throw new Error(`Kling animation failed for clip ${clipNumber}`);
+      }
+
+      const klingPrediction = await klingResponse.json();
+      console.log(`[AvatarDirect] Clip ${clipNumber}: Kling started: ${klingPrediction.id}`);
+
+      // Poll for completion
+      let clipVideoUrl: string | null = klingPrediction.status === "succeeded" && klingPrediction.output
+        ? klingPrediction.output
+        : await pollForResult(klingPrediction.id, REPLICATE_API_KEY, 300);
+
+      if (!clipVideoUrl) {
+        throw new Error(`Video generation timed out for clip ${clipNumber}`);
+      }
+
+      console.log(`[AvatarDirect] Clip ${clipNumber}: ✅ Video generated`);
+
+      // Merge audio
+      let finalClipVideoUrl = clipVideoUrl;
       try {
-        const videoResponse = await fetch(finalVideoUrl);
-        if (videoResponse.ok) {
-          const videoBlob = await videoResponse.blob();
-          const videoArrayBuffer = await videoBlob.arrayBuffer();
-          const videoBytes = new Uint8Array(videoArrayBuffer);
-          
-          const fileName = `avatar_${projectId}_${Date.now()}.mp4`;
-          const storagePath = `avatar-videos/${projectId}/${fileName}`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from('video-clips')
-            .upload(storagePath, videoBytes, {
-              contentType: 'video/mp4',
-              upsert: true,
-            });
-          
-          if (!uploadError) {
-            permanentVideoUrl = `${supabaseUrl}/storage/v1/object/public/video-clips/${storagePath}`;
-            console.log(`[AvatarDirect] ✅ Video saved to permanent storage`);
-          } else {
-            console.warn(`[AvatarDirect] Storage upload failed:`, uploadError.message);
-          }
+        const mergedUrl = await mergeAudioWithVideo(clipVideoUrl, clipAudioUrl, REPLICATE_API_KEY);
+        if (mergedUrl) {
+          finalClipVideoUrl = mergedUrl;
+          console.log(`[AvatarDirect] Clip ${clipNumber}: ✅ Audio merged`);
         }
-      } catch (storageError) {
-        console.warn(`[AvatarDirect] Failed to copy to permanent storage:`, storageError);
+      } catch {
+        console.warn(`[AvatarDirect] Clip ${clipNumber}: Audio merge failed (non-fatal)`);
       }
-      
-      // Update finalVideoUrl to permanent URL
-      finalVideoUrl = permanentVideoUrl;
+
+      // Copy to permanent storage
+      if (finalClipVideoUrl.includes('replicate.delivery') && projectId) {
+        try {
+          const videoResponse = await fetch(finalClipVideoUrl);
+          if (videoResponse.ok) {
+            const videoBlob = await videoResponse.blob();
+            const videoBytes = new Uint8Array(await videoBlob.arrayBuffer());
+            
+            const fileName = `avatar_${projectId}_clip${clipNumber}_${Date.now()}.mp4`;
+            const storagePath = `avatar-videos/${projectId}/${fileName}`;
+            
+            const { error: uploadError } = await supabase.storage
+              .from('video-clips')
+              .upload(storagePath, videoBytes, {
+                contentType: 'video/mp4',
+                upsert: true,
+              });
+            
+            if (!uploadError) {
+              finalClipVideoUrl = `${supabaseUrl}/storage/v1/object/public/video-clips/${storagePath}`;
+              console.log(`[AvatarDirect] Clip ${clipNumber}: ✅ Saved to storage`);
+            }
+          }
+        } catch (storageError) {
+          console.warn(`[AvatarDirect] Clip ${clipNumber}: Storage failed (non-fatal):`, storageError);
+        }
+      }
+
+      generatedClips.push({
+        videoUrl: finalClipVideoUrl,
+        audioUrl: clipAudioUrl,
+        audioDurationMs: clipAudioDurationMs,
+        segmentText,
+        clipIndex,
+      });
+
+      // Create shot record
+      if (projectId) {
+        try {
+          await supabase.from('shots').insert({
+            project_id: projectId,
+            shot_number: clipNumber,
+            description: segmentText.substring(0, 200),
+            dialogue: segmentText,
+            video_url: finalClipVideoUrl,
+            audio_url: clipAudioUrl,
+            status: 'completed',
+            scene_number: 1,
+            start_time_ms: generatedClips.slice(0, clipIndex).reduce((sum, c) => sum + c.audioDurationMs, 0),
+            end_time_ms: generatedClips.slice(0, clipIndex).reduce((sum, c) => sum + c.audioDurationMs, 0) + clipAudioDurationMs,
+            duration_seconds: Math.ceil(clipAudioDurationMs / 1000),
+          });
+        } catch (shotError) {
+          console.warn(`[AvatarDirect] Clip ${clipNumber}: Shot record failed:`, shotError);
+        }
+      }
+
+      console.log(`[AvatarDirect] ═══ Clip ${clipNumber}/${finalClipCount} COMPLETE ═══\n`);
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // COMPLETE: Update project and return result
-    // ═══════════════════════════════════════════════════════════════════════════
+    // Complete
+    const primaryVideoUrl = generatedClips[0]?.videoUrl || '';
+    const primaryAudioUrl = generatedClips[0]?.audioUrl || '';
+    const totalDurationMs = generatedClips.reduce((sum, c) => sum + c.audioDurationMs, 0);
+
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
-    console.log("[AvatarDirect] ✅ EXPRESSIVE AVATAR PIPELINE COMPLETE");
-    console.log(`[AvatarDirect] Final video: ${finalVideoUrl}`);
-    console.log(`[AvatarDirect] Voice used: ${minimaxVoice}`);
+    console.log("[AvatarDirect] ✅ MULTI-CLIP AVATAR PIPELINE COMPLETE");
+    console.log(`[AvatarDirect] Total clips: ${generatedClips.length}`);
+    console.log(`[AvatarDirect] Total duration: ${Math.round(totalDurationMs / 1000)}s`);
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
 
     if (projectId) {
-      // Create a shot record for the avatar clip
-      const { data: shot, error: shotError } = await supabase.from('shots').insert({
-        project_id: projectId,
-        shot_number: 1,
-        description: script.substring(0, 200),
-        dialogue: script,
-        video_url: finalVideoUrl,
-        audio_url: audioUrl,
+      await supabase.from('movie_projects').update({
         status: 'completed',
-        scene_number: 1,
-        start_time_ms: 0,
-        end_time_ms: audioDurationMs,
-        duration_seconds: Math.ceil(audioDurationMs / 1000),
-      }).select('id').single();
-
-      if (shotError) {
-        console.error("[AvatarDirect] Failed to create shot record:", shotError);
-      } else {
-        console.log(`[AvatarDirect] Created shot record: ${shot?.id}`);
-      }
-
-      // Update project to completed with verification
-      const { data: updatedProject, error: updateError } = await supabase.from('movie_projects').update({
-        status: 'completed',
-        video_url: finalVideoUrl,
-        final_video_url: finalVideoUrl,
-        voice_audio_url: audioUrl,
+        video_url: primaryVideoUrl,
+        final_video_url: primaryVideoUrl,
+        voice_audio_url: primaryAudioUrl,
+        video_clips: generatedClips.map(c => c.videoUrl),
         pipeline_stage: 'completed',
         pipeline_state: {
           stage: 'completed',
           progress: 100,
-          message: 'Avatar video complete!',
+          message: `${generatedClips.length} clip${generatedClips.length > 1 ? 's' : ''} generated!`,
           completedAt: new Date().toISOString(),
           voiceUsed: minimaxVoice,
           sceneApplied: !!sceneDescription,
+          totalClips: generatedClips.length,
+          totalDurationMs,
+          clips: generatedClips.map(c => ({
+            videoUrl: c.videoUrl,
+            audioUrl: c.audioUrl,
+            durationMs: c.audioDurationMs,
+          })),
         },
         updated_at: new Date().toISOString(),
-      }).eq('id', projectId).select('id, status, video_url').single();
-
-      if (updateError) {
-        console.error("[AvatarDirect] ❌ Failed to update project:", updateError);
-        // Retry once
-        const { error: retryError } = await supabase.from('movie_projects').update({
-          status: 'completed',
-          video_url: finalVideoUrl,
-          final_video_url: finalVideoUrl,
-          voice_audio_url: audioUrl,
-          pipeline_stage: 'completed',
-          updated_at: new Date().toISOString(),
-        }).eq('id', projectId);
-        
-        if (retryError) {
-          console.error("[AvatarDirect] ❌ Retry also failed:", retryError);
-        }
-      } else {
-        console.log(`[AvatarDirect] ✅ Project updated: ${updatedProject?.id}`);
-      }
+      }).eq('id', projectId);
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        videoUrl: finalVideoUrl,
-        audioUrl,
-        audioDurationMs,
+        videoUrl: primaryVideoUrl,
+        audioUrl: primaryAudioUrl,
+        totalDurationMs,
         voiceUsed: minimaxVoice,
         sceneApplied: !!sceneDescription,
         scriptUsed: script,
-        message: "Avatar video generated with expressive acting!",
-        pipeline: "avatar-direct-v2",
+        clipsGenerated: generatedClips.length,
+        clips: generatedClips.map(c => ({
+          videoUrl: c.videoUrl,
+          audioUrl: c.audioUrl,
+          durationMs: c.audioDurationMs,
+        })),
+        message: `${generatedClips.length} avatar clip${generatedClips.length > 1 ? 's' : ''} generated!`,
+        pipeline: "avatar-direct-v2.1-multiclip",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -467,7 +396,6 @@ serve(async (req) => {
   } catch (error) {
     console.error("[AvatarDirect] Error:", error);
     
-    // Update project status on failure
     const request = await req.clone().json().catch(() => ({}));
     if (request.projectId) {
       await supabase.from('movie_projects').update({
@@ -491,71 +419,75 @@ serve(async (req) => {
 });
 
 /**
- * Build an expressive acting prompt that captures scene + performance style
- * This is the key to making avatars act like real humans
+ * Split script into segments for multi-clip generation
  */
-function buildActingPrompt(script: string, sceneDescription?: string): string {
-  // Analyze the script to determine emotional tone
-  const emotionalTone = analyzeEmotionalTone(script);
+function splitScriptIntoSegments(script: string, targetCount: number): string[] {
+  if (targetCount <= 1) return [script];
   
-  // Build the scene context
-  const sceneContext = sceneDescription && sceneDescription.trim()
-    ? `The scene takes place in ${sceneDescription.trim()}. `
-    : "Professional studio setting with soft lighting. ";
+  const sentences = script.match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g) || [script];
   
-  // Build the performance instruction based on script content
-  const performanceStyle = getPerformanceStyle(emotionalTone, script);
+  if (sentences.length <= targetCount) {
+    return sentences.map(s => s.trim()).filter(s => s.length > 0);
+  }
   
-  return `${sceneContext}The person in the frame is speaking directly to the camera, delivering this message: "${script.substring(0, 100)}${script.length > 100 ? '...' : ''}". ${performanceStyle} The performance should feel authentic, engaging, and human - like a charismatic presenter or actor delivering their lines with genuine emotion and connection to the audience.`;
+  const segments: string[] = [];
+  const sentencesPerSegment = Math.ceil(sentences.length / targetCount);
+  
+  for (let i = 0; i < targetCount && i * sentencesPerSegment < sentences.length; i++) {
+    const start = i * sentencesPerSegment;
+    const end = Math.min(start + sentencesPerSegment, sentences.length);
+    const segment = sentences.slice(start, end).join(' ').trim();
+    if (segment.length > 0) {
+      segments.push(segment);
+    }
+  }
+  
+  return segments.length > 0 ? segments : [script];
 }
 
 /**
- * Analyze the emotional tone of the script
+ * Build an expressive acting prompt
  */
+function buildActingPrompt(script: string, sceneDescription?: string): string {
+  const emotionalTone = analyzeEmotionalTone(script);
+  
+  const sceneContext = sceneDescription?.trim()
+    ? `The scene takes place in ${sceneDescription.trim()}. `
+    : "Professional studio setting with soft lighting. ";
+  
+  const performanceStyle = getPerformanceStyle(emotionalTone);
+  
+  return `${sceneContext}The person in the frame is speaking directly to the camera, delivering this message: "${script.substring(0, 100)}${script.length > 100 ? '...' : ''}". ${performanceStyle} The performance should feel authentic, engaging, and human.`;
+}
+
 function analyzeEmotionalTone(script: string): 'excited' | 'serious' | 'warm' | 'playful' | 'neutral' {
   const lower = script.toLowerCase();
   
-  if (lower.includes('!') || lower.includes('amazing') || lower.includes('incredible') || lower.includes('exciting')) {
-    return 'excited';
-  }
-  if (lower.includes('important') || lower.includes('serious') || lower.includes('critical') || lower.includes('warning')) {
-    return 'serious';
-  }
-  if (lower.includes('welcome') || lower.includes('thank') || lower.includes('love') || lower.includes('friend')) {
-    return 'warm';
-  }
-  if (lower.includes('fun') || lower.includes('joke') || lower.includes('haha') || lower.includes('😄') || lower.includes('lol')) {
-    return 'playful';
-  }
+  if (lower.includes('!') || lower.includes('amazing') || lower.includes('incredible')) return 'excited';
+  if (lower.includes('important') || lower.includes('serious') || lower.includes('critical')) return 'serious';
+  if (lower.includes('welcome') || lower.includes('thank') || lower.includes('love')) return 'warm';
+  if (lower.includes('fun') || lower.includes('joke') || lower.includes('haha')) return 'playful';
   
   return 'neutral';
 }
 
-/**
- * Get performance style instructions based on emotional tone
- */
-function getPerformanceStyle(tone: string, script: string): string {
+function getPerformanceStyle(tone: string): string {
   switch (tone) {
     case 'excited':
-      return "Eyes bright with enthusiasm, animated hand gestures, energetic head movements, beaming smile, leaning slightly forward with excitement. Speaking with passion and energy.";
+      return "Eyes bright with enthusiasm, animated hand gestures, energetic head movements, beaming smile.";
     case 'serious':
-      return "Focused, determined expression, measured deliberate movements, direct unwavering eye contact, nodding to emphasize key points. Speaking with authority and conviction.";
+      return "Focused expression, measured movements, direct eye contact, nodding to emphasize key points.";
     case 'warm':
-      return "Gentle welcoming smile, soft expressive eyes, relaxed natural posture, occasional appreciative nods, warmth radiating from the expression. Speaking with genuine kindness.";
+      return "Gentle welcoming smile, soft expressive eyes, relaxed natural posture.";
     case 'playful':
-      return "Mischievous smile, playful eyebrow raises, animated expressions, occasional head tilts and shoulder movements, lighthearted energy. Speaking with humor and fun.";
+      return "Mischievous smile, playful eyebrow raises, animated expressions, lighthearted energy.";
     default:
-      return "Natural confident delivery, genuine facial expressions that match the words, subtle emphatic gestures, professional yet personable energy. Speaking clearly and engagingly.";
+      return "Natural confident delivery, genuine facial expressions, professional yet personable energy.";
   }
 }
 
-/**
- * Poll Replicate for prediction result
- */
 async function pollForResult(predictionId: string, apiKey: string, maxSeconds: number): Promise<string | null> {
-  const maxAttempts = maxSeconds;
-  
-  for (let i = 0; i < maxAttempts; i++) {
+  for (let i = 0; i < maxSeconds; i++) {
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
@@ -578,16 +510,11 @@ async function pollForResult(predictionId: string, apiKey: string, maxSeconds: n
     }
   }
   
-  console.error(`[AvatarDirect] Polling timeout for ${predictionId}`);
   return null;
 }
 
-/**
- * Merge TTS audio with video using ffmpeg via Replicate
- */
 async function mergeAudioWithVideo(videoUrl: string, audioUrl: string, apiKey: string): Promise<string | null> {
   try {
-    // Use a simple video+audio merge model
     const response = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
@@ -596,20 +523,17 @@ async function mergeAudioWithVideo(videoUrl: string, audioUrl: string, apiKey: s
         "Prefer": "wait=120",
       },
       body: JSON.stringify({
-        version: "684cc0e6bff2f0d3b748d7c386ab8a6fb7c5f6d2095a3a38d68d9d6a3a2cb2f6", // ffmpeg model
+        version: "684cc0e6bff2f0d3b748d7c386ab8a6fb7c5f6d2095a3a38d68d9d6a3a2cb2f6",
         input: {
           video: videoUrl,
           audio: audioUrl,
           audio_volume: 1.0,
-          video_volume: 0.0, // Mute original video audio
+          video_volume: 0.0,
         },
       }),
     });
 
-    if (!response.ok) {
-      console.log("[AvatarDirect] Audio merge model not available, skipping");
-      return null;
-    }
+    if (!response.ok) return null;
 
     const prediction = await response.json();
     
@@ -617,18 +541,12 @@ async function mergeAudioWithVideo(videoUrl: string, audioUrl: string, apiKey: s
       return prediction.output;
     }
     
-    // Poll for result
-    const result = await pollForResult(prediction.id, apiKey, 60);
-    return result;
-  } catch (error) {
-    console.warn("[AvatarDirect] Audio merge failed:", error);
+    return await pollForResult(prediction.id, apiKey, 60);
+  } catch {
     return null;
   }
 }
 
-/**
- * Estimate audio duration based on text length (~150 WPM)
- */
 function estimateDuration(text: string): number {
   const words = text.length / 5;
   const minutes = words / 150;

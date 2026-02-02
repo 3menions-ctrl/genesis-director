@@ -289,9 +289,10 @@ serve(async (req) => {
     // Route based on mode
     switch (mode) {
       case 'avatar':
-        // AVATAR DIRECT PATH - Bypasses Hollywood complexity for simple avatar videos
+        // AVATAR DIRECT PATH - Bypasses Hollywood complexity for avatar videos
         // User's exact script → TTS → Lip-sync video
         // Scene description → Background generation (if provided)
+        // Now supports multi-clip generation via clipCount parameter
         return await handleAvatarDirectMode({
           projectId: projectId!,
           userId,
@@ -300,6 +301,8 @@ serve(async (req) => {
           avatarImageUrl: imageUrl!,
           voiceId: voiceId || 'bella',
           aspectRatio,
+          clipCount, // Pass clip count for multi-clip generation
+          clipDuration, // Pass clip duration for each segment
           supabase,
         });
 
@@ -377,16 +380,19 @@ async function handleAvatarDirectMode(params: {
   avatarImageUrl: string;
   voiceId: string;
   aspectRatio: string;
+  clipCount: number; // Number of clips to generate
+  clipDuration: number; // Duration per clip in seconds
   supabase: any;
 }) {
-  const { projectId, userId, script, sceneDescription, avatarImageUrl, voiceId, aspectRatio, supabase } = params;
+  const { projectId, userId, script, sceneDescription, avatarImageUrl, voiceId, aspectRatio, clipCount, clipDuration, supabase } = params;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   console.log(`[ModeRouter/AvatarDirect] ═══════════════════════════════════════════════════`);
-  console.log(`[ModeRouter/AvatarDirect] DIRECT AVATAR PATH - No Hollywood complexity`);
+  console.log(`[ModeRouter/AvatarDirect] DIRECT AVATAR PATH - Multi-clip Support`);
   console.log(`[ModeRouter/AvatarDirect] Script (verbatim): "${script.substring(0, 80)}..."`);
   console.log(`[ModeRouter/AvatarDirect] Scene: "${sceneDescription?.substring(0, 50) || 'Using avatar background'}"`);
+  console.log(`[ModeRouter/AvatarDirect] Clips: ${clipCount} × ${clipDuration}s`);
   console.log(`[ModeRouter/AvatarDirect] ═══════════════════════════════════════════════════`);
 
   // Update project status
@@ -414,6 +420,8 @@ async function handleAvatarDirectMode(params: {
       projectId,
       userId,
       aspectRatio,
+      clipCount, // Number of clips to generate
+      clipDuration, // Duration per clip in seconds
     }),
   });
 

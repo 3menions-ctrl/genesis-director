@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { persistVideoToStorage, persistAudioToStorage } from "../_shared/video-persistence.ts";
 
 const corsHeaders = {
@@ -8,20 +8,30 @@ const corsHeaders = {
 };
 
 /**
- * CHECK SPECIALIZED STATUS v2.0
+ * CHECK SPECIALIZED STATUS v3.0
  * 
  * Polls Replicate prediction status for specialized modes (avatar, motion-transfer, video-to-video)
  * 
- * CRITICAL FIX: For multi-clip avatar projects (type: 'avatar_async'), this function:
- * 1. Updates individual prediction status in pending_video_tasks
- * 2. Does NOT mark project as completed - that's the watchdog's job
- * 3. Lets watchdog handle final completion after ALL clips finish
+ * CRITICAL FIX v3.0: Race condition prevention for multi-clip avatar projects
+ * - Re-reads database after write to get true completion state
+ * - Prevents concurrent calls from overwriting each other's updates
  */
 
 interface StatusRequest {
   projectId: string;
   predictionId: string;
 }
+
+interface PredictionItem {
+  predictionId: string;
+  clipIndex: number;
+  status: string;
+  videoUrl?: string;
+  audioUrl?: string;
+}
+
+// deno-lint-ignore no-explicit-any
+type AnySupabaseClient = SupabaseClient<any, any, any>;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -79,149 +89,21 @@ serve(async (req) => {
       ? JSON.parse(project.pipeline_state) 
       : project.pipeline_state || {};
     
-    const pendingTasks = project.pending_video_tasks as Record<string, unknown> || {};
+    // deno-lint-ignore no-explicit-any
+    const pendingTasks = project.pending_video_tasks as Record<string, any> || {};
 
     // ═══════════════════════════════════════════════════════════════════════════
     // MULTI-CLIP AVATAR HANDLING (avatar_async type)
-    // For multi-clip projects, update individual prediction status only
-    // DO NOT mark project as completed - let watchdog handle that
+    // Uses atomic updates to prevent race conditions between concurrent predictions
     // ═══════════════════════════════════════════════════════════════════════════
     if (pendingTasks.type === 'avatar_async' && Array.isArray(pendingTasks.predictions)) {
-      console.log(`[CheckSpecializedStatus] MULTI-CLIP AVATAR detected (${(pendingTasks.predictions as unknown[]).length} clips)`);
-      
-      const predictions = pendingTasks.predictions as Array<{
-        predictionId: string;
-        clipIndex: number;
-        status: string;
-        videoUrl?: string;
-        audioUrl?: string;
-      }>;
-      
-      // Find the prediction we're checking
-      const targetPred = predictions.find(p => p.predictionId === predictionId);
-      if (!targetPred) {
-        console.warn(`[CheckSpecializedStatus] Prediction ${predictionId} not found in pending_video_tasks`);
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            status: prediction.status,
-            message: 'Prediction not tracked in this project',
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      let videoUrl: string | null = null;
-      
-      if (prediction.status === 'succeeded') {
-        const rawVideoUrl = Array.isArray(prediction.output) 
-          ? prediction.output[0] 
-          : prediction.output;
-        
-        // Persist to permanent storage
-        videoUrl = await persistVideoToStorage(
-          supabase,
-          rawVideoUrl,
-          projectId,
-          { prefix: `avatar_clip${targetPred.clipIndex}` }
-        ) || rawVideoUrl;
-        
-        targetPred.status = 'completed';
-        targetPred.videoUrl = videoUrl || undefined;
-        console.log(`[CheckSpecializedStatus] ✅ Clip ${targetPred.clipIndex + 1} SUCCEEDED: ${videoUrl?.substring(0, 60)}...`);
-      } else if (prediction.status === 'failed' || prediction.status === 'canceled') {
-        targetPred.status = 'failed';
-        console.log(`[CheckSpecializedStatus] ❌ Clip ${targetPred.clipIndex + 1} FAILED: ${prediction.error}`);
-      } else {
-        // Still processing - update status but don't complete
-        targetPred.status = prediction.status;
-      }
-      
-      // Count completed vs total
-      const completedCount = predictions.filter(p => p.status === 'completed').length;
-      const failedCount = predictions.filter(p => p.status === 'failed').length;
-      const totalCount = predictions.length;
-      const allDone = completedCount + failedCount === totalCount;
-      
-      console.log(`[CheckSpecializedStatus] Progress: ${completedCount}/${totalCount} completed, ${failedCount} failed`);
-      
-      // Calculate progress
-      const progress = allDone ? 95 : 25 + (completedCount / totalCount) * 65;
-      
-      // Update pending_video_tasks with latest prediction status
-      const updateData: Record<string, unknown> = {
-        pending_video_tasks: pendingTasks,
-        pipeline_state: {
-          ...currentState,
-          stage: allDone ? 'finalizing' : 'async_video_generation',
-          progress,
-          message: allDone 
-            ? 'Finalizing video...' 
-            : `Generating clips (${completedCount}/${totalCount})...`,
-          totalClips: totalCount,
-          completedClips: completedCount,
-        },
-        updated_at: new Date().toISOString(),
-      };
-      
-      // CRITICAL: Do NOT set status to 'completed' here!
-      // The watchdog will handle final completion and stitching
-      // Only mark completed if this is the LAST clip AND all succeeded
-      if (allDone && completedCount === totalCount && failedCount === 0) {
-        console.log(`[CheckSpecializedStatus] 🎉 ALL CLIPS COMPLETE - Triggering watchdog completion`);
-        
-        // Build video_clips array from completed predictions
-        const sortedClips = predictions
-          .filter(p => p.status === 'completed' && p.videoUrl)
-          .sort((a, b) => a.clipIndex - b.clipIndex);
-        
-        const videoClipsArray = sortedClips.map(p => p.videoUrl);
-        const primaryVideoUrl = videoClipsArray[0];
-        
-        updateData.status = 'completed';
-        updateData.video_url = primaryVideoUrl;
-        updateData.video_clips = videoClipsArray;
-        updateData.pipeline_state = {
-          ...currentState,
-          stage: 'completed',
-          progress: 100,
-          message: 'Video generation complete!',
-          completedAt: new Date().toISOString(),
-          totalClips: totalCount,
-          completedClips: completedCount,
-        };
-        
-        console.log(`[CheckSpecializedStatus] ✅ Project COMPLETED with ${videoClipsArray.length} clips`);
-      }
-      
-      const { error: updateError } = await supabase
-        .from('movie_projects')
-        .update(updateData)
-        .eq('id', projectId);
-      
-      if (updateError) {
-        console.error('[CheckSpecializedStatus] Update error:', updateError);
-      }
-      
-      return new Response(
-        JSON.stringify({
-          success: true,
-          projectId,
-          predictionId,
-          status: prediction.status,
-          progress,
-          stage: allDone ? 'finalizing' : 'async_video_generation',
-          message: allDone 
-            ? 'Finalizing video...' 
-            : `Generating clips (${completedCount}/${totalCount})...`,
-          videoUrl: targetPred.videoUrl || null,
-          clipIndex: targetPred.clipIndex,
-          isComplete: prediction.status === 'succeeded',
-          isFailed: prediction.status === 'failed' || prediction.status === 'canceled',
-          allClipsComplete: allDone && completedCount === totalCount,
-          error: prediction.status === 'failed' ? prediction.error : undefined,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      return await handleMultiClipAvatar(
+        supabase,
+        projectId,
+        predictionId,
+        prediction,
+        pendingTasks,
+        currentState
       );
     }
 
@@ -229,131 +111,13 @@ serve(async (req) => {
     // SINGLE-CLIP SPECIALIZED MODES (motion-transfer, video-to-video, single avatar)
     // Original behavior for single-prediction projects
     // ═══════════════════════════════════════════════════════════════════════════
-    let newState = { ...currentState };
-    let newStatus = project.status;
-    let videoUrl = null;
-
-    switch (prediction.status) {
-      case 'succeeded':
-        // Extract video URL from output
-        let rawVideoUrl = Array.isArray(prediction.output) 
-          ? prediction.output[0] 
-          : prediction.output;
-        
-        console.log(`[CheckSpecializedStatus] Raw video URL: ${rawVideoUrl}`);
-        
-        // CRITICAL: Persist video to permanent Supabase storage
-        const permanentUrl = await persistVideoToStorage(
-          supabase,
-          rawVideoUrl,
-          projectId,
-          { prefix: project.mode || 'specialized' }
-        );
-        
-        // Use permanent URL if persistence succeeded, otherwise keep original
-        videoUrl = permanentUrl || rawVideoUrl;
-        
-        // Also persist audio if available
-        if (currentState.audioUrl) {
-          const permanentAudioUrl = await persistAudioToStorage(
-            supabase,
-            currentState.audioUrl,
-            projectId
-          );
-          if (permanentAudioUrl) {
-            newState.audioUrl = permanentAudioUrl;
-          }
-        }
-        
-        newState = {
-          ...newState,
-          stage: 'completed',
-          progress: 100,
-          completedAt: new Date().toISOString(),
-          message: 'Video generation complete!',
-        };
-        newStatus = 'completed';
-        
-        console.log(`[CheckSpecializedStatus] ✅ Success! Permanent URL: ${videoUrl}`);
-        break;
-
-      case 'failed':
-      case 'canceled':
-        newState = {
-          ...currentState,
-          stage: 'failed',
-          progress: 0,
-          error: prediction.error || 'Generation failed',
-          message: prediction.error || 'Video generation failed',
-        };
-        newStatus = 'failed';
-        
-        console.log(`[CheckSpecializedStatus] Failed: ${prediction.error}`);
-        break;
-
-      case 'processing':
-        // Estimate progress based on logs if available
-        const logLength = prediction.logs?.length || 0;
-        const estimatedProgress = Math.min(85, 30 + Math.floor(logLength / 50));
-        
-        newState = {
-          ...currentState,
-          stage: 'processing',
-          progress: estimatedProgress,
-          message: getProcessingMessage(project.mode, estimatedProgress),
-        };
-        break;
-
-      case 'starting':
-        newState = {
-          ...currentState,
-          stage: 'starting',
-          progress: 15,
-          message: 'AI model is warming up...',
-        };
-        break;
-
-      default:
-        // Keep current state
-        break;
-    }
-
-    // Update project
-    const updateData: Record<string, unknown> = {
-      pipeline_state: newState,
-      status: newStatus,
-      updated_at: new Date().toISOString(),
-    };
-
-    if (videoUrl) {
-      updateData.video_url = videoUrl;
-    }
-
-    const { error: updateError } = await supabase
-      .from('movie_projects')
-      .update(updateData)
-      .eq('id', projectId);
-
-    if (updateError) {
-      console.error('[CheckSpecializedStatus] Update error:', updateError);
-    }
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        projectId,
-        predictionId,
-        status: prediction.status,
-        progress: newState.progress,
-        stage: newState.stage,
-        message: newState.message,
-        videoUrl,
-        audioUrl: currentState.audioUrl || project.voice_audio_url,
-        isComplete: prediction.status === 'succeeded',
-        isFailed: prediction.status === 'failed' || prediction.status === 'canceled',
-        error: prediction.status === 'failed' ? prediction.error : undefined,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    return await handleSingleClip(
+      supabase,
+      projectId,
+      predictionId,
+      prediction,
+      project,
+      currentState
     );
 
   } catch (error) {
@@ -367,6 +131,330 @@ serve(async (req) => {
     );
   }
 });
+
+/**
+ * Handle multi-clip avatar projects with race-condition-safe updates
+ */
+async function handleMultiClipAvatar(
+  supabase: AnySupabaseClient,
+  projectId: string,
+  predictionId: string,
+  prediction: { status: string; output?: string | string[]; error?: string },
+  // deno-lint-ignore no-explicit-any
+  pendingTasks: Record<string, any>,
+  // deno-lint-ignore no-explicit-any
+  currentState: Record<string, any>
+): Promise<Response> {
+  console.log(`[CheckSpecializedStatus] MULTI-CLIP AVATAR detected`);
+  
+  const predictions = pendingTasks.predictions as PredictionItem[];
+  
+  // Find the prediction index we're updating
+  const targetIndex = predictions.findIndex(p => p.predictionId === predictionId);
+  if (targetIndex === -1) {
+    console.warn(`[CheckSpecializedStatus] Prediction ${predictionId} not found in pending_video_tasks`);
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        status: prediction.status,
+        message: 'Prediction not tracked in this project',
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+  
+  const targetPred = predictions[targetIndex];
+  let videoUrl: string | null = null;
+  let newStatus = targetPred.status;
+  
+  if (prediction.status === 'succeeded') {
+    const rawVideoUrl = Array.isArray(prediction.output) 
+      ? prediction.output[0] 
+      : prediction.output;
+    
+    if (rawVideoUrl) {
+      // Persist to permanent storage
+      videoUrl = await persistVideoToStorage(
+        supabase,
+        rawVideoUrl,
+        projectId,
+        { prefix: `avatar_clip${targetPred.clipIndex}` }
+      ) || rawVideoUrl;
+    }
+    
+    newStatus = 'completed';
+    console.log(`[CheckSpecializedStatus] ✅ Clip ${targetPred.clipIndex + 1} SUCCEEDED: ${videoUrl?.substring(0, 60)}...`);
+  } else if (prediction.status === 'failed' || prediction.status === 'canceled') {
+    newStatus = 'failed';
+    console.log(`[CheckSpecializedStatus] ❌ Clip ${targetPred.clipIndex + 1} FAILED: ${prediction.error}`);
+  } else {
+    newStatus = prediction.status;
+  }
+  
+  // Update the prediction in the local array
+  predictions[targetIndex] = {
+    ...targetPred,
+    status: newStatus,
+    ...(videoUrl ? { videoUrl } : {}),
+  };
+  
+  // Write the updated predictions back to database
+  await supabase
+    .from('movie_projects')
+    .update({
+      pending_video_tasks: pendingTasks,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', projectId);
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RE-READ: Fetch fresh state to get true completion count after update
+  // This ensures we see ALL completed predictions, not just our own
+  // ═══════════════════════════════════════════════════════════════════════════
+  const { data: freshProject } = await supabase
+    .from('movie_projects')
+    .select('pending_video_tasks, pipeline_state')
+    .eq('id', projectId)
+    .single();
+  
+  // deno-lint-ignore no-explicit-any
+  const freshTasks = (freshProject?.pending_video_tasks || pendingTasks) as Record<string, any>;
+  const freshPredictions = (freshTasks.predictions || predictions) as PredictionItem[];
+  
+  // Count from FRESH data
+  const completedCount = freshPredictions.filter(p => p.status === 'completed').length;
+  const failedCount = freshPredictions.filter(p => p.status === 'failed').length;
+  const totalCount = freshPredictions.length;
+  const allDone = completedCount + failedCount === totalCount;
+  
+  console.log(`[CheckSpecializedStatus] Fresh progress: ${completedCount}/${totalCount} completed, ${failedCount} failed`);
+  
+  // Calculate progress
+  const progress = allDone ? 95 : 25 + (completedCount / totalCount) * 65;
+  
+  // Build pipeline state update
+  // deno-lint-ignore no-explicit-any
+  const pipelineStateUpdate: Record<string, any> = {
+    ...currentState,
+    stage: allDone ? 'finalizing' : 'async_video_generation',
+    progress,
+    message: allDone 
+      ? 'Finalizing video...' 
+      : `Generating clips (${completedCount}/${totalCount})...`,
+    totalClips: totalCount,
+    completedClips: completedCount,
+  };
+  
+  // Prepare final update
+  // deno-lint-ignore no-explicit-any
+  const updateData: Record<string, any> = {
+    pipeline_state: pipelineStateUpdate,
+    updated_at: new Date().toISOString(),
+  };
+  
+  // If ALL clips complete successfully, finalize the project
+  if (allDone && completedCount === totalCount && failedCount === 0) {
+    console.log(`[CheckSpecializedStatus] 🎉 ALL CLIPS COMPLETE - Finalizing project`);
+    
+    // Build video_clips array from fresh completed predictions
+    const sortedClips = freshPredictions
+      .filter(p => p.status === 'completed' && p.videoUrl)
+      .sort((a, b) => a.clipIndex - b.clipIndex);
+    
+    const videoClipsArray = sortedClips.map(p => p.videoUrl);
+    const primaryVideoUrl = videoClipsArray[0];
+    
+    updateData.status = 'completed';
+    updateData.video_url = primaryVideoUrl;
+    updateData.video_clips = videoClipsArray;
+    updateData.pipeline_state = {
+      ...pipelineStateUpdate,
+      stage: 'completed',
+      progress: 100,
+      message: 'Video generation complete!',
+      completedAt: new Date().toISOString(),
+    };
+    
+    console.log(`[CheckSpecializedStatus] ✅ Project COMPLETED with ${videoClipsArray.length} clips`);
+  }
+  
+  // Final update with completion state
+  const { error: updateError } = await supabase
+    .from('movie_projects')
+    .update(updateData)
+    .eq('id', projectId);
+  
+  if (updateError) {
+    console.error('[CheckSpecializedStatus] Update error:', updateError);
+  }
+  
+  const finalPipelineState = updateData.pipeline_state || pipelineStateUpdate;
+  
+  return new Response(
+    JSON.stringify({
+      success: true,
+      projectId,
+      predictionId,
+      status: prediction.status,
+      progress: finalPipelineState.progress,
+      stage: finalPipelineState.stage,
+      message: finalPipelineState.message,
+      videoUrl: videoUrl || null,
+      clipIndex: targetPred.clipIndex,
+      isComplete: prediction.status === 'succeeded',
+      isFailed: prediction.status === 'failed' || prediction.status === 'canceled',
+      allClipsComplete: allDone && completedCount === totalCount,
+      error: prediction.status === 'failed' ? prediction.error : undefined,
+    }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
+/**
+ * Handle single-clip specialized modes (motion-transfer, video-to-video, single avatar)
+ */
+async function handleSingleClip(
+  supabase: AnySupabaseClient,
+  projectId: string,
+  predictionId: string,
+  prediction: { status: string; output?: string | string[]; error?: string; logs?: string },
+  project: { mode?: string; status: string; voice_audio_url?: string },
+  // deno-lint-ignore no-explicit-any
+  currentState: Record<string, any>
+): Promise<Response> {
+  // deno-lint-ignore no-explicit-any
+  let newState: Record<string, any> = { ...currentState };
+  let newStatus = project.status;
+  let videoUrl: string | null = null;
+
+  switch (prediction.status) {
+    case 'succeeded': {
+      // Extract video URL from output
+      const rawVideoUrl = Array.isArray(prediction.output) 
+        ? prediction.output[0] 
+        : prediction.output;
+      
+      console.log(`[CheckSpecializedStatus] Raw video URL: ${rawVideoUrl}`);
+      
+      if (rawVideoUrl) {
+        // CRITICAL: Persist video to permanent Supabase storage
+        const permanentUrl = await persistVideoToStorage(
+          supabase,
+          rawVideoUrl,
+          projectId,
+          { prefix: project.mode || 'specialized' }
+        );
+        
+        // Use permanent URL if persistence succeeded, otherwise keep original
+        videoUrl = permanentUrl || rawVideoUrl;
+      }
+      
+      // Also persist audio if available
+      if (currentState.audioUrl) {
+        const permanentAudioUrl = await persistAudioToStorage(
+          supabase,
+          currentState.audioUrl as string,
+          projectId
+        );
+        if (permanentAudioUrl) {
+          newState.audioUrl = permanentAudioUrl;
+        }
+      }
+      
+      newState = {
+        ...newState,
+        stage: 'completed',
+        progress: 100,
+        completedAt: new Date().toISOString(),
+        message: 'Video generation complete!',
+      };
+      newStatus = 'completed';
+      
+      console.log(`[CheckSpecializedStatus] ✅ Success! Permanent URL: ${videoUrl}`);
+      break;
+    }
+
+    case 'failed':
+    case 'canceled':
+      newState = {
+        ...currentState,
+        stage: 'failed',
+        progress: 0,
+        error: prediction.error || 'Generation failed',
+        message: prediction.error || 'Video generation failed',
+      };
+      newStatus = 'failed';
+      
+      console.log(`[CheckSpecializedStatus] Failed: ${prediction.error}`);
+      break;
+
+    case 'processing': {
+      // Estimate progress based on logs if available
+      const logLength = prediction.logs?.length || 0;
+      const estimatedProgress = Math.min(85, 30 + Math.floor(logLength / 50));
+      
+      newState = {
+        ...currentState,
+        stage: 'processing',
+        progress: estimatedProgress,
+        message: getProcessingMessage(project.mode || '', estimatedProgress),
+      };
+      break;
+    }
+
+    case 'starting':
+      newState = {
+        ...currentState,
+        stage: 'starting',
+        progress: 15,
+        message: 'AI model is warming up...',
+      };
+      break;
+
+    default:
+      // Keep current state
+      break;
+  }
+
+  // Update project
+  // deno-lint-ignore no-explicit-any
+  const updateData: Record<string, any> = {
+    pipeline_state: newState,
+    status: newStatus,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (videoUrl) {
+    updateData.video_url = videoUrl;
+  }
+
+  const { error: updateError } = await supabase
+    .from('movie_projects')
+    .update(updateData)
+    .eq('id', projectId);
+
+  if (updateError) {
+    console.error('[CheckSpecializedStatus] Update error:', updateError);
+  }
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      projectId,
+      predictionId,
+      status: prediction.status,
+      progress: newState.progress,
+      stage: newState.stage,
+      message: newState.message,
+      videoUrl,
+      audioUrl: currentState.audioUrl || project.voice_audio_url,
+      isComplete: prediction.status === 'succeeded',
+      isFailed: prediction.status === 'failed' || prediction.status === 'canceled',
+      error: prediction.status === 'failed' ? prediction.error : undefined,
+    }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
 
 /**
  * Get contextual processing message based on mode and progress

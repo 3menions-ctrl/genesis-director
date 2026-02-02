@@ -389,24 +389,34 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
   }
 
   // ============= GRID VIEW =============
+  // MOBILE FIX: On touch devices, always show content (not hover-dependent)
+  const showContentOverlay = isTouchDevice || isHovered;
+  
   return (
     <div
       ref={ref}
-      className="group relative cursor-pointer animate-fade-in hover:-translate-y-2 transition-transform duration-300"
-      style={{ animationDelay: `${index * 0.06}s` }}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      className={cn(
+        "group relative cursor-pointer animate-fade-in transition-transform duration-300",
+        // Desktop: lift on hover; Mobile: no lift (causes jank)
+        !isTouchDevice && "hover:-translate-y-2"
+      )}
+      style={{ animationDelay: `${Math.min(index * 0.06, 0.3)}s` }}
+      onMouseEnter={!isTouchDevice ? handleMouseEnter : undefined}
+      onMouseLeave={!isTouchDevice ? handleMouseLeave : undefined}
       onTouchStart={isTouchDevice ? handleTouchStart : undefined}
       onTouchEnd={isTouchDevice ? handleTouchEnd : undefined}
       onClick={onPlay}
     >
-      {/* Glow effect on hover */}
-      <div className="absolute -inset-2 rounded-3xl bg-gradient-to-b from-foreground/10 via-foreground/5 to-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-700 pointer-events-none" />
+      {/* Glow effect on hover - desktop only */}
+      {!isTouchDevice && (
+        <div className="absolute -inset-2 rounded-3xl bg-gradient-to-b from-foreground/10 via-foreground/5 to-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-700 pointer-events-none" />
+      )}
       
       <div className={cn(
-        "relative overflow-hidden rounded-2xl transition-all duration-700",
+        "relative overflow-hidden rounded-2xl transition-all duration-500",
         "bg-zinc-900 border border-white/[0.06]",
-        hasVideo ? "aspect-video" : index % 3 === 0 ? "aspect-[4/5]" : index % 3 === 1 ? "aspect-square" : "aspect-video",
+        // MOBILE FIX: Always use aspect-video for consistency
+        "aspect-video",
         isHovered && "border-white/20 shadow-2xl shadow-black/50",
         isActive && "ring-2 ring-white/30"
       )}>
@@ -495,45 +505,50 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
           </div>
         )}
 
-        {/* Gradient overlays */}
+        {/* Gradient overlays - MOBILE FIX: Always visible on touch for readable text */}
         <div className={cn(
           "absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent transition-opacity duration-500",
-          isHovered ? "opacity-90" : "opacity-70"
+          // Mobile: always 80% opacity; Desktop: 70% idle, 90% hovered
+          isTouchDevice ? "opacity-80" : (isHovered ? "opacity-90" : "opacity-70")
         )} />
         
-        {/* Play button on hover */}
+        {/* Play button - shows on hover (desktop) or tap (mobile) */}
         {hasVideo && isHovered && (
           <div className="absolute inset-0 flex items-center justify-center z-10 animate-scale-in">
-            <div className="relative w-16 h-16 rounded-full bg-white/20 backdrop-blur-2xl flex items-center justify-center border border-white/40 shadow-lg hover:scale-110 active:scale-95 transition-transform">
-              <Play className="w-7 h-7 text-white ml-1" fill="currentColor" />
+            <div className="relative w-12 sm:w-16 h-12 sm:h-16 rounded-full bg-white/20 backdrop-blur-2xl flex items-center justify-center border border-white/40 shadow-lg hover:scale-110 active:scale-95 transition-transform">
+              <Play className="w-5 sm:w-7 h-5 sm:h-7 text-white ml-0.5 sm:ml-1" fill="currentColor" />
             </div>
           </div>
         )}
 
-        {/* Pin indicator */}
+        {/* Pin indicator - MOBILE: Smaller on mobile */}
         {isPinned && (
-          <div className="absolute top-3 left-3 z-20">
-            <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center shadow-lg">
-              <Pin className="w-3.5 h-3.5 text-black" />
+          <div className="absolute top-2 sm:top-3 left-2 sm:left-3 z-20">
+            <div className="w-5 sm:w-7 h-5 sm:h-7 rounded-md sm:rounded-lg bg-amber-500 flex items-center justify-center shadow-lg">
+              <Pin className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5 text-black" />
             </div>
           </div>
         )}
 
-        {/* Content overlay on hover */}
-        {isHovered && (
-          <div className="absolute bottom-0 left-0 right-0 p-4 z-20 animate-fade-in">
-            <div className="flex items-center gap-2 mb-2">{getStatusBadge()}</div>
-            <h3 className="font-bold text-white tracking-tight line-clamp-1 text-base drop-shadow-lg">
+        {/* Content overlay - MOBILE FIX: Always visible on touch devices */}
+        {showContentOverlay && (
+          <div className={cn(
+            "absolute bottom-0 left-0 right-0 p-3 sm:p-4 z-20",
+            // Mobile: no animation (always visible); Desktop: fade in
+            !isTouchDevice && "animate-fade-in"
+          )}>
+            <div className="flex items-center gap-2 mb-1.5 sm:mb-2">{getStatusBadge()}</div>
+            <h3 className="font-bold text-white tracking-tight line-clamp-1 text-sm sm:text-base drop-shadow-lg">
               {project.name}
             </h3>
-            <div className="flex items-center gap-3 mt-1.5 text-white/70 text-xs">
+            <div className="flex items-center gap-2 sm:gap-3 mt-1 sm:mt-1.5 text-white/70 text-[10px] sm:text-xs">
               <span className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
+                <Clock className="w-2.5 sm:w-3 h-2.5 sm:h-3" />
                 {formatTimeAgo(project.updated_at)}
               </span>
               {(project.video_clips?.length ?? 0) > 0 && (
                 <span className="flex items-center gap-1">
-                  <Film className="w-3 h-3" />
+                  <Film className="w-2.5 sm:w-3 h-2.5 sm:h-3" />
                   {project.video_clips?.length} clips
                 </span>
               )}
@@ -541,10 +556,11 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
           </div>
         )}
 
-        {/* Quick actions - top right */}
+        {/* Quick actions - MOBILE FIX: Always visible on touch devices */}
         <div className={cn(
-          "absolute top-3 right-3 z-30 flex items-center gap-1 transition-all duration-300",
-          isHovered ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"
+          "absolute top-2 sm:top-3 right-2 sm:right-3 z-30 flex items-center gap-1 transition-all duration-300",
+          // Mobile: always visible; Desktop: show on hover
+          isTouchDevice ? "opacity-100" : (isHovered ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2")
         )}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

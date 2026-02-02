@@ -1478,7 +1478,6 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
             muted={isMuted || (isAvatarProject && !!(resolvedMasterAudioUrl || masterAudioUrl))}
             playsInline
             preload="auto"
-            crossOrigin="anonymous"
           />
           
           {/* Video B */}
@@ -1529,7 +1528,6 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
             muted={isMuted || (isAvatarProject && !!(resolvedMasterAudioUrl || masterAudioUrl))}
             playsInline
             preload="auto"
-            crossOrigin="anonymous"
           />
         </>
       )}

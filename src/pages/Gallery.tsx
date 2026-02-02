@@ -441,7 +441,6 @@ const TiltVideoCard = forwardRef<HTMLDivElement, TiltVideoCardProps>(function Ti
                 playsInline
                 loop
                 preload="auto"
-                crossOrigin="anonymous"
                 onError={(e) => {
                   e.preventDefault?.();
                   e.stopPropagation?.();

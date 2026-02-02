@@ -242,7 +242,6 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
                 muted={isMuted}
                 playsInline
                 loop
-                crossOrigin="anonymous"
                 preload="auto"
                 onCanPlay={() => setIsLoaded(true)}
                 onLoadedData={() => {

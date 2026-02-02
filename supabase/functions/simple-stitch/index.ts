@@ -114,7 +114,7 @@ serve(async (req) => {
     // Get project details
     const { data: project } = await supabase
       .from('movie_projects')
-      .select('title, voice_audio_url, music_url, user_id, include_narration')
+      .select('title, voice_audio_url, music_url, user_id, include_narration, pipeline_state, mode')
       .eq('id', projectId)
       .single();
 
@@ -133,8 +133,19 @@ serve(async (req) => {
     const timestamp = Date.now();
     const includeNarration = project?.include_narration === true;
     
+    // Check for master audio in pipeline_state (avatar multi-clip projects)
+    const pipelineState = project?.pipeline_state as Record<string, unknown> | null;
+    const masterAudioUrl = pipelineState?.masterAudioUrl as string | undefined;
+    const isAvatarProject = project?.mode === 'avatar' || !!masterAudioUrl;
+    
+    // For avatar projects with master audio, use that for seamless playback
+    // Otherwise fall back to project voice_audio_url
+    const voiceAudioUrl = masterAudioUrl || (includeNarration ? (project?.voice_audio_url || null) : null);
+    
+    console.log(`[SimpleStitch] Audio config: isAvatar=${isAvatarProject}, masterAudio=${!!masterAudioUrl}, voiceUrl=${!!voiceAudioUrl}`);
+    
     const manifest = {
-      version: "2.0",
+      version: "2.1",
       projectId,
       mode: "client_side_concat",
       createdAt: new Date().toISOString(),
@@ -147,11 +158,16 @@ serve(async (req) => {
         transitionOut: 'fade',
       })),
       totalDuration,
-      voiceUrl: includeNarration ? (project?.voice_audio_url || null) : null,
+      // CRITICAL: Use master audio for seamless playback in avatar projects
+      voiceUrl: voiceAudioUrl,
+      masterAudioUrl: masterAudioUrl || null,
+      isAvatarProject,
       musicUrl: project?.music_url || null,
       audioConfig: {
-        includeNarration,
-        musicVolume: includeNarration ? 0.3 : 0.8,
+        includeNarration: includeNarration || isAvatarProject,
+        // Avatar projects should mute individual clip audio since we use master track
+        muteClipAudio: isAvatarProject && !!masterAudioUrl,
+        musicVolume: (includeNarration || isAvatarProject) ? 0.3 : 0.8,
         fadeIn: 1,
         fadeOut: 2,
       },

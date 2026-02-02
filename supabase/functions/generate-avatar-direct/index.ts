@@ -100,7 +100,7 @@ serve(async (req) => {
     const minimaxVoice = VOICE_MAP[voiceId] || VOICE_MAP[voiceId.toLowerCase()] || 'bella';
 
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
-    console.log("[AvatarDirect] Starting MULTI-CLIP AVATAR pipeline v2.1");
+    console.log("[AvatarDirect] Starting MULTI-CLIP AVATAR pipeline v2.2 (Continuous Audio)");
     console.log(`[AvatarDirect] Script (${script.length} chars): "${script.substring(0, 80)}..."`);
     console.log(`[AvatarDirect] Scene: "${sceneDescription || 'Professional studio setting'}"`);
     console.log(`[AvatarDirect] Voice: ${minimaxVoice}, Clips: ${finalClipCount}`);
@@ -112,23 +112,98 @@ serve(async (req) => {
         pipeline_state: {
           stage: 'init',
           progress: 5,
-          message: `Generating ${finalClipCount} clip${finalClipCount > 1 ? 's' : ''}...`,
+          message: `Generating ${finalClipCount} clip${finalClipCount > 1 ? 's' : ''} with continuous audio...`,
           totalClips: finalClipCount,
         },
       }).eq('id', projectId);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // STEP 1: Generate MASTER AUDIO TRACK for entire script (continuous playback)
+    // This ensures seamless audio across all clip transitions
+    // ═══════════════════════════════════════════════════════════════════════════
+    console.log("[AvatarDirect] Step 1: Generating MASTER AUDIO for entire script...");
+    
+    if (projectId) {
+      await supabase.from('movie_projects').update({
+        pipeline_state: {
+          stage: 'master_audio',
+          progress: 8,
+          message: 'Creating continuous audio track...',
+          totalClips: finalClipCount,
+        },
+      }).eq('id', projectId);
+    }
+
+    const masterVoiceResponse = await fetch(`${supabaseUrl}/functions/v1/generate-voice`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        text: script,
+        voiceId: minimaxVoice,
+        speed: 1.0,
+        projectId,
+      }),
+    });
+
+    if (!masterVoiceResponse.ok) {
+      throw new Error("Master TTS generation failed");
+    }
+
+    const masterVoiceResult = await masterVoiceResponse.json();
+    
+    if (!masterVoiceResult.success || !masterVoiceResult.audioUrl) {
+      throw new Error("Master TTS failed - no audio");
+    }
+
+    const masterAudioUrl = masterVoiceResult.audioUrl;
+    const masterAudioDurationMs = masterVoiceResult.durationMs || estimateDuration(script);
+    
+    console.log(`[AvatarDirect] ✅ Master audio generated: ${Math.round(masterAudioDurationMs / 1000)}s`);
+
+    // Persist master audio to storage immediately
+    let permanentMasterAudioUrl = masterAudioUrl;
+    if (masterAudioUrl.includes('replicate.delivery') && projectId) {
+      try {
+        const audioResponse = await fetch(masterAudioUrl);
+        if (audioResponse.ok) {
+          const audioBlob = await audioResponse.blob();
+          const audioBytes = new Uint8Array(await audioBlob.arrayBuffer());
+          
+          const audioFileName = `avatar_${projectId}_master_audio_${Date.now()}.mp3`;
+          const audioStoragePath = `avatar-videos/${projectId}/${audioFileName}`;
+          
+          const { error: audioUploadError } = await supabase.storage
+            .from('video-clips')
+            .upload(audioStoragePath, audioBytes, {
+              contentType: 'audio/mpeg',
+              upsert: true,
+            });
+          
+          if (!audioUploadError) {
+            permanentMasterAudioUrl = `${supabaseUrl}/storage/v1/object/public/video-clips/${audioStoragePath}`;
+            console.log("[AvatarDirect] ✅ Master audio saved to permanent storage");
+          }
+        }
+      } catch (audioStorageError) {
+        console.warn("[AvatarDirect] Master audio storage failed (non-fatal):", audioStorageError);
+      }
     }
 
     // Pre-generate scene image once for all clips
     let sharedAnimationStartImage = avatarImageUrl;
     
     if (sceneDescription?.trim()) {
-      console.log("[AvatarDirect] Pre-generating shared scene image...");
+      console.log("[AvatarDirect] Step 2: Pre-generating shared scene image...");
       
       if (projectId) {
         await supabase.from('movie_projects').update({
           pipeline_state: {
             stage: 'scene_compositing',
-            progress: 8,
+            progress: 15,
             message: 'Creating scene for your avatar...',
             totalClips: finalClipCount,
           },
@@ -336,13 +411,13 @@ serve(async (req) => {
 
     // Complete
     const primaryVideoUrl = generatedClips[0]?.videoUrl || '';
-    const primaryAudioUrl = generatedClips[0]?.audioUrl || '';
     const totalDurationMs = generatedClips.reduce((sum, c) => sum + c.audioDurationMs, 0);
 
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
-    console.log("[AvatarDirect] ✅ MULTI-CLIP AVATAR PIPELINE COMPLETE");
+    console.log("[AvatarDirect] ✅ MULTI-CLIP AVATAR PIPELINE v2.2 COMPLETE");
     console.log(`[AvatarDirect] Total clips: ${generatedClips.length}`);
     console.log(`[AvatarDirect] Total duration: ${Math.round(totalDurationMs / 1000)}s`);
+    console.log(`[AvatarDirect] Master audio: ${permanentMasterAudioUrl.substring(0, 60)}...`);
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
 
     if (projectId) {
@@ -350,22 +425,28 @@ serve(async (req) => {
         status: 'completed',
         video_url: primaryVideoUrl,
         final_video_url: primaryVideoUrl,
-        voice_audio_url: primaryAudioUrl,
+        // CRITICAL: Use MASTER AUDIO for seamless playback across clips
+        voice_audio_url: permanentMasterAudioUrl,
         video_clips: generatedClips.map(c => c.videoUrl),
         pipeline_stage: 'completed',
         pipeline_state: {
           stage: 'completed',
           progress: 100,
-          message: `${generatedClips.length} clip${generatedClips.length > 1 ? 's' : ''} generated!`,
+          message: `${generatedClips.length} clip${generatedClips.length > 1 ? 's' : ''} generated with continuous audio!`,
           completedAt: new Date().toISOString(),
           voiceUsed: minimaxVoice,
           sceneApplied: !!sceneDescription,
           totalClips: generatedClips.length,
           totalDurationMs,
-          clips: generatedClips.map(c => ({
+          // Master audio for seamless transitions
+          masterAudioUrl: permanentMasterAudioUrl,
+          masterAudioDurationMs: masterAudioDurationMs,
+          // Individual clips with timing info for syncing
+          clips: generatedClips.map((c, idx) => ({
             videoUrl: c.videoUrl,
             audioUrl: c.audioUrl,
             durationMs: c.audioDurationMs,
+            startTimeMs: generatedClips.slice(0, idx).reduce((sum, prev) => sum + prev.audioDurationMs, 0),
           })),
         },
         updated_at: new Date().toISOString(),
@@ -376,19 +457,22 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         videoUrl: primaryVideoUrl,
-        audioUrl: primaryAudioUrl,
+        // MASTER AUDIO for seamless playback
+        audioUrl: permanentMasterAudioUrl,
+        masterAudioUrl: permanentMasterAudioUrl,
         totalDurationMs,
         voiceUsed: minimaxVoice,
         sceneApplied: !!sceneDescription,
         scriptUsed: script,
         clipsGenerated: generatedClips.length,
-        clips: generatedClips.map(c => ({
+        clips: generatedClips.map((c, idx) => ({
           videoUrl: c.videoUrl,
           audioUrl: c.audioUrl,
           durationMs: c.audioDurationMs,
+          startTimeMs: generatedClips.slice(0, idx).reduce((sum, prev) => sum + prev.audioDurationMs, 0),
         })),
-        message: `${generatedClips.length} avatar clip${generatedClips.length > 1 ? 's' : ''} generated!`,
-        pipeline: "avatar-direct-v2.1-multiclip",
+        message: `${generatedClips.length} avatar clip${generatedClips.length > 1 ? 's' : ''} generated with continuous audio!`,
+        pipeline: "avatar-direct-v2.2-continuous-audio",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

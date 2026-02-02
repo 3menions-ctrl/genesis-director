@@ -32,6 +32,7 @@ import {
   type MSEClip,
   type MSEEngineState,
 } from '@/lib/videoEngine/MSEGaplessEngine';
+import { navigationCoordinator } from '@/lib/navigation';
 
 // ============================================================================
 // TYPES
@@ -473,6 +474,52 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
     const isTransitioningRef = useRef(false);
     const mountedRef = useRef(true);
+    const cleanupUnsubRef = useRef<(() => void) | null>(null);
+
+    // ========================================================================
+    // NAVIGATION CLEANUP REGISTRATION
+    // ========================================================================
+    
+    useEffect(() => {
+      mountedRef.current = true;
+      
+      // Register cleanup with navigation coordinator
+      cleanupUnsubRef.current = navigationCoordinator.registerGlobalCleanup(() => {
+        // Pause all videos on navigation
+        try {
+          if (mseVideoRef.current && !mseVideoRef.current.paused) {
+            mseVideoRef.current.pause();
+          }
+          if (videoARef.current && !videoARef.current.paused) {
+            videoARef.current.pause();
+          }
+          if (videoBRef.current && !videoBRef.current.paused) {
+            videoBRef.current.pause();
+          }
+          if (musicRef.current && !musicRef.current.paused) {
+            musicRef.current.pause();
+          }
+        } catch {
+          // Ignore errors on destroyed elements
+        }
+        
+        // Destroy MSE engine
+        if (mseEngineRef.current) {
+          mseEngineRef.current.destroy();
+          mseEngineRef.current = null;
+        }
+      });
+      
+      return () => {
+        mountedRef.current = false;
+        
+        // Unregister cleanup
+        if (cleanupUnsubRef.current) {
+          cleanupUnsubRef.current();
+          cleanupUnsubRef.current = null;
+        }
+      };
+    }, []);
 
     // ========================================================================
     // COMPUTED VALUES

@@ -25,6 +25,13 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'Cannot read properties of null (reading \'removeChild\')',
   'Cannot read properties of null (reading \'insertBefore\')',
   'Cannot read properties of null',
+  // CRITICAL: Network/Fetch failures - suppress to prevent cascade
+  'Load failed',
+  'TypeError: Load failed',
+  'Failed to fetch',
+  'NetworkError',
+  'net::ERR',
+  'fetch failed',
   'Failed to fetch dynamically imported module',
   'Network Error',
   'cancelled',

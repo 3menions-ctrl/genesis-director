@@ -116,13 +116,16 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'HAVE_NOTHING',
   'load() was called',
   
-  // Network errors (should show toast, not crash)
+  // Network errors (should show toast, not crash) - CRITICAL FOR STABILITY
   'NetworkError',
   'Failed to fetch',
   'Network request failed',
   'TypeError: Failed to fetch',
+  'TypeError: Load failed',
+  'Load failed',
   'net::ERR',
   'ECONNREFUSED',
+  'fetch failed',
   
   // Framer Motion cleanup - critical for animation crashes
   'Cannot read property',

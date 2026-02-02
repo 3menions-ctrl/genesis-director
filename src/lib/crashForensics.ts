@@ -127,8 +127,9 @@ export function allCheckpointsPassed(): boolean {
 // CRASH LOOP DETECTION
 // ============================================================================
 
-const CRASH_LOOP_THRESHOLD = 3;
-const CRASH_LOOP_WINDOW_MS = 10000;
+// INCREASED thresholds to prevent false positives from hydration warnings
+const CRASH_LOOP_THRESHOLD = 5; // Was 3 - too aggressive
+const CRASH_LOOP_WINDOW_MS = 15000; // Was 10000 - give more time for app to stabilize
 
 export function recordCrashEvent(type: CrashLoopEvent['type'], details?: { path?: string; message?: string }): void {
   const now = Date.now();
@@ -223,7 +224,56 @@ export function recordRouteChange(to: string): void {
 // ERROR TRACKING
 // ============================================================================
 
+// Error patterns that should NOT count toward crash loop detection
+// These are harmless warnings/errors that don't indicate real crashes
+const SUPPRESSED_CRASH_PATTERNS = [
+  // React ref warnings - NOT crashes
+  'Function components cannot be given refs',
+  'forwardRef render functions accept',
+  'Warning: Function components cannot be given refs',
+  'forwardRef',
+  'Check the render method',
+  // AbortController - expected during navigation
+  'AbortError',
+  'The operation was aborted',
+  'aborted',
+  // DOM cleanup race conditions
+  'removeChild',
+  'insertBefore',
+  'removeAttribute',
+  'Cannot read properties of null',
+  'Cannot read properties of undefined',
+  // Video playback - expected failures
+  'play() request was interrupted',
+  'NotAllowedError',
+  'NotSupportedError',
+  'MEDIA_ERR',
+  // Radix/Dialog cleanup
+  'Dialog',
+  'Portal',
+  'Radix',
+  // Network errors - handled by retry logic, not crashes
+  'Failed to fetch',
+  'NetworkError',
+  'Load failed',
+  // ResizeObserver - browser quirk, not a crash
+  'ResizeObserver',
+  // ChunkLoadError - handled by recovery system
+  'ChunkLoadError',
+  'Loading chunk',
+  'dynamically imported module',
+];
+
+function shouldSuppressCrashEvent(message: string): boolean {
+  if (!message) return true;
+  const lowerMessage = message.toLowerCase();
+  return SUPPRESSED_CRASH_PATTERNS.some(pattern => 
+    lowerMessage.includes(pattern.toLowerCase())
+  );
+}
+
 export function recordError(message: string, stack?: string): void {
+  // Always record in error log for debugging
   forensicsState.errors.push({
     timestamp: Date.now(),
     message,
@@ -235,7 +285,13 @@ export function recordError(message: string, stack?: string): void {
     forensicsState.errors.shift();
   }
   
-  recordCrashEvent('error', { message });
+  // CRITICAL: Only count toward crash loop if NOT a suppressed pattern
+  if (!shouldSuppressCrashEvent(message)) {
+    recordCrashEvent('error', { message });
+  } else {
+    console.debug('[CrashForensics] Suppressed non-critical error from crash count:', message.substring(0, 80));
+  }
+  
   persistState();
 }
 

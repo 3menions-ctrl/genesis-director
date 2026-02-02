@@ -218,6 +218,17 @@ export function autoEnableSafeMode(reason: string, skipReload: boolean = false):
     // Check if already enabled to prevent repeated reloads
     const alreadyEnabled = sessionStorage.getItem('safe_mode_auto_enabled') === 'true';
     
+    // CRITICAL: Check reload attempt count to prevent infinite loops
+    const reloadAttempts = parseInt(sessionStorage.getItem('safe_mode_reload_attempts') || '0', 10);
+    const MAX_RELOAD_ATTEMPTS = 2;
+    
+    if (reloadAttempts >= MAX_RELOAD_ATTEMPTS) {
+      console.warn(`[SafeMode] Max reload attempts (${MAX_RELOAD_ATTEMPTS}) reached - staying in current state to prevent loop`);
+      sessionStorage.setItem('safe_mode_auto_enabled', 'true');
+      sessionStorage.setItem('safe_mode_reason', `${reason} (reload prevented)`);
+      return; // DO NOT RELOAD - would cause infinite loop
+    }
+    
     sessionStorage.setItem('safe_mode_auto_enabled', 'true');
     sessionStorage.setItem('safe_mode_reason', reason);
     console.warn(`[SafeMode] Auto-enabled due to: ${reason}`);
@@ -225,6 +236,8 @@ export function autoEnableSafeMode(reason: string, skipReload: boolean = false):
     // Only reload if not already enabled and skipReload is false
     // CRITICAL: Avoid reload loops by checking if we're already in safe mode
     if (!alreadyEnabled && !skipReload && !isSafeModeEnabled()) {
+      // Increment reload counter before reload
+      sessionStorage.setItem('safe_mode_reload_attempts', String(reloadAttempts + 1));
       window.location.reload();
     }
   } catch {
@@ -241,6 +254,7 @@ export function clearAutoSafeMode(): void {
   try {
     sessionStorage.removeItem('safe_mode_auto_enabled');
     sessionStorage.removeItem('safe_mode_reason');
+    sessionStorage.removeItem('safe_mode_reload_attempts'); // Also clear reload counter
   } catch {
     // Storage unavailable
   }

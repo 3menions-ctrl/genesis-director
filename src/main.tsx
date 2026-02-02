@@ -74,6 +74,26 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'playback error',
   'decoding failed',
   'decode error',
+  // Additional video/media errors - EXPANDED COVERAGE
+  'Failed to load because no supported source was found',
+  'PIPELINE_ERROR_READ',
+  'PIPELINE_ERROR_DECODE',
+  'DEMUXER_ERROR',
+  'AUDIO_RENDERER_ERROR',
+  'VIDEO_RENDERER_ERROR',
+  'The play method is not allowed',
+  'The fetching process for the media resource',
+  'A network error caused the media download to fail',
+  'currentTime',
+  'duration is not a finite number',
+  'Cannot set property currentTime',
+  'seeking is not supported',
+  'The requested operation is not supported',
+  'SourceBuffer',
+  'MediaSource',
+  'buffered',
+  'The video playback was aborted',
+  'Uncaught (in promise) AbortError',
   // HMR/Vite development errors
   'Vite HMR',
   // Framer Motion cleanup
@@ -89,6 +109,10 @@ const SUPPRESSED_ERROR_PATTERNS = [
   // React internal warnings that shouldn't crash
   'Check the render method',
   'validateFunctionComponentInDev',
+  // ReadyState and loading errors
+  'readyState',
+  'HAVE_NOTHING',
+  'load() was called',
 ];
 
 // ============= CONSOLE INTERCEPTION =============

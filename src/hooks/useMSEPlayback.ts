@@ -340,26 +340,36 @@ export function useMSEPlayback(config: MSEPlaybackConfig): UseMSEPlaybackResult 
     }
   }, [isMSEActive, state.currentClipIndex, clips.length, activeFallbackIndex, isCrossfading, onClipChange, clips, log]);
 
-  // Controls
+  // Controls - HARDENED with try-catch wrappers
   const controls: MSEPlaybackControls = {
     play: async () => {
-      if (isMSEActive && engineRef.current) {
-        await engineRef.current.play();
-      } else {
-        const video = activeFallbackIndex === 0 ? fallbackVideoARef.current : fallbackVideoBRef.current;
-        await video?.play();
+      try {
+        if (isMSEActive && engineRef.current) {
+          await engineRef.current.play();
+        } else {
+          const video = activeFallbackIndex === 0 ? fallbackVideoARef.current : fallbackVideoBRef.current;
+          if (video && video.readyState >= 1) {
+            await video.play().catch(() => {});
+          }
+        }
+        setState(prev => ({ ...prev, status: 'playing' }));
+      } catch {
+        // Silently handle play errors
       }
-      setState(prev => ({ ...prev, status: 'playing' }));
     },
 
     pause: () => {
-      if (isMSEActive && engineRef.current) {
-        engineRef.current.pause();
-      } else {
-        const video = activeFallbackIndex === 0 ? fallbackVideoARef.current : fallbackVideoBRef.current;
-        video?.pause();
+      try {
+        if (isMSEActive && engineRef.current) {
+          engineRef.current.pause();
+        } else {
+          const video = activeFallbackIndex === 0 ? fallbackVideoARef.current : fallbackVideoBRef.current;
+          video?.pause();
+        }
+        setState(prev => ({ ...prev, status: 'paused' }));
+      } catch {
+        // Silently handle pause errors
       }
-      setState(prev => ({ ...prev, status: 'paused' }));
     },
 
     seek: (time: number) => {
@@ -370,22 +380,29 @@ export function useMSEPlayback(config: MSEPlaybackConfig): UseMSEPlaybackResult 
     },
 
     seekToClip: (index: number) => {
-      if (isMSEActive && engineRef.current) {
-        engineRef.current.seekToClip(index);
-      } else {
-        // For fallback, directly set the clip
-        setState(prev => ({ ...prev, currentClipIndex: index }));
-        const video = activeFallbackIndex === 0 ? fallbackVideoARef.current : fallbackVideoBRef.current;
-        if (video && blobCacheRef.current && clips[index]) {
-          const clip = blobCacheRef.current.peek(clips[index]);
-          if (clip) {
-            video.src = clip.blobUrl;
-            video.currentTime = 0;
-            video.load();
-            video.play().catch(() => {});
+      try {
+        if (isMSEActive && engineRef.current) {
+          engineRef.current.seekToClip(index);
+        } else {
+          // For fallback, directly set the clip
+          setState(prev => ({ ...prev, currentClipIndex: index }));
+          const video = activeFallbackIndex === 0 ? fallbackVideoARef.current : fallbackVideoBRef.current;
+          if (video && blobCacheRef.current && clips[index]) {
+            const clip = blobCacheRef.current.peek(clips[index]);
+            if (clip) {
+              video.src = clip.blobUrl;
+              // Only seek if video has valid state
+              if (video.readyState >= 1) {
+                video.currentTime = 0;
+              }
+              video.load();
+              video.play().catch(() => {});
+            }
           }
+          onClipChange?.(index);
         }
-        onClipChange?.(index);
+      } catch {
+        // Silently handle seek errors
       }
     },
 

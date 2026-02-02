@@ -259,17 +259,56 @@ serve(async (req) => {
       throw new Error(`Cannot resume from stage: ${stage}`);
     }
 
-    // Update project to completed
+    // Update project to completed - but first copy to permanent storage!
     if (finalVideoUrl) {
+      let permanentVideoUrl = finalVideoUrl;
+      
+      // Copy to permanent Supabase storage if it's a temporary Replicate URL
+      if (finalVideoUrl.includes('replicate.delivery')) {
+        console.log(`[ResumePipeline] Copying video to permanent storage...`);
+        
+        try {
+          const videoResponse = await fetch(finalVideoUrl);
+          if (videoResponse.ok) {
+            const videoBlob = await videoResponse.blob();
+            const videoArrayBuffer = await videoBlob.arrayBuffer();
+            const videoBytes = new Uint8Array(videoArrayBuffer);
+            
+            const fileName = `avatar_${projectId}_${Date.now()}.mp4`;
+            const storagePath = `avatar-videos/${projectId}/${fileName}`;
+            
+            const { error: uploadError } = await supabase.storage
+              .from('video-clips')
+              .upload(storagePath, videoBytes, {
+                contentType: 'video/mp4',
+                upsert: true,
+              });
+            
+            if (!uploadError) {
+              permanentVideoUrl = `${supabaseUrl}/storage/v1/object/public/video-clips/${storagePath}`;
+              console.log(`[ResumePipeline] ✅ Video copied to permanent storage: ${permanentVideoUrl}`);
+            } else {
+              console.warn(`[ResumePipeline] Storage upload failed, using original URL:`, uploadError.message);
+            }
+          } else {
+            console.warn(`[ResumePipeline] Could not fetch video for permanent storage (${videoResponse.status})`);
+          }
+        } catch (storageError) {
+          console.warn(`[ResumePipeline] Failed to copy to permanent storage:`, storageError);
+          // Continue with original URL as fallback
+        }
+      }
+      
       const { error: updateError } = await supabase.from('movie_projects').update({
         status: 'completed',
-        video_url: finalVideoUrl,
+        video_url: permanentVideoUrl,
         voice_audio_url: audioUrl || null,
         pipeline_state: {
           ...pipelineState,
           stage: 'completed',
           progress: 100,
-          videoUrl: finalVideoUrl,
+          videoUrl: permanentVideoUrl,
+          originalReplicateUrl: finalVideoUrl !== permanentVideoUrl ? finalVideoUrl : undefined,
           message: 'Video generation complete!',
           completedAt: new Date().toISOString(),
           recoveredBy: 'resume-avatar-pipeline',
@@ -286,14 +325,14 @@ serve(async (req) => {
       console.log(`[ResumePipeline] ═══════════════════════════════════════════════════════════`);
       console.log(`[ResumePipeline] ✅ Pipeline resumed successfully`);
       console.log(`[ResumePipeline] Action: ${action}`);
-      console.log(`[ResumePipeline] Final video: ${finalVideoUrl}`);
+      console.log(`[ResumePipeline] Final video: ${permanentVideoUrl}`);
       console.log(`[ResumePipeline] ═══════════════════════════════════════════════════════════`);
 
       return new Response(
         JSON.stringify({
           success: true,
           action,
-          videoUrl: finalVideoUrl,
+          videoUrl: permanentVideoUrl,
           audioUrl,
           message: 'Avatar video recovered successfully!',
         }),

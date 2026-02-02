@@ -341,6 +341,46 @@ serve(async (req) => {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // STEP 4: Copy to permanent Supabase storage (prevents URL expiration!)
+    // ═══════════════════════════════════════════════════════════════════════════
+    let permanentVideoUrl = finalVideoUrl;
+    
+    if (finalVideoUrl.includes('replicate.delivery') && projectId) {
+      console.log("[AvatarDirect] STEP 4: Copying video to permanent storage...");
+      
+      try {
+        const videoResponse = await fetch(finalVideoUrl);
+        if (videoResponse.ok) {
+          const videoBlob = await videoResponse.blob();
+          const videoArrayBuffer = await videoBlob.arrayBuffer();
+          const videoBytes = new Uint8Array(videoArrayBuffer);
+          
+          const fileName = `avatar_${projectId}_${Date.now()}.mp4`;
+          const storagePath = `avatar-videos/${projectId}/${fileName}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('video-clips')
+            .upload(storagePath, videoBytes, {
+              contentType: 'video/mp4',
+              upsert: true,
+            });
+          
+          if (!uploadError) {
+            permanentVideoUrl = `${supabaseUrl}/storage/v1/object/public/video-clips/${storagePath}`;
+            console.log(`[AvatarDirect] ✅ Video saved to permanent storage`);
+          } else {
+            console.warn(`[AvatarDirect] Storage upload failed:`, uploadError.message);
+          }
+        }
+      } catch (storageError) {
+        console.warn(`[AvatarDirect] Failed to copy to permanent storage:`, storageError);
+      }
+      
+      // Update finalVideoUrl to permanent URL
+      finalVideoUrl = permanentVideoUrl;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // COMPLETE: Update project and return result
     // ═══════════════════════════════════════════════════════════════════════════
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");

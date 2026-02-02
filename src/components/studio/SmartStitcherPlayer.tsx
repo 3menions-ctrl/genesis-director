@@ -356,6 +356,12 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
           setIsLoadingClips(false);
           return;
         }
+        
+        // Warn about temporary Replicate URLs (they expire!)
+        const hasReplicateUrls = urls.some(u => u.includes('replicate.delivery'));
+        if (hasReplicateUrls) {
+          console.warn('[SmartStitcher] ⚠️ Detected temporary replicate.delivery URLs - these may expire!');
+        }
 
         // Reset retry count on success
         setFetchRetryCount(0);
@@ -1334,14 +1340,24 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
     );
   }
 
+  // Check if error is likely from expired URLs
+  const isExpiredUrlError = loadError?.includes('HTTP') || 
+    loadError?.includes('Load failed') || 
+    clips.some(c => c.error?.includes('HTTP'));
+  
   // Error state with smart retry - MUST use containerRef for forwardRef compatibility
   if (loadError || (clips.length === 0 && !isLoadingClips)) {
     return (
       <div ref={containerRef} className={cn('flex flex-col items-center justify-center bg-black rounded-xl aspect-video', className)}>
         <AlertCircle className="w-10 h-10 text-destructive mb-4" />
-        <p className="text-sm text-destructive text-center px-4">{loadError || 'No clips available'}</p>
-        <p className="text-xs text-muted-foreground mt-2 text-center px-4">
-          Clips may still be generating. Click Retry to check again.
+        <p className="text-sm text-destructive text-center px-4">
+          {loadError || 'No clips available'}
+        </p>
+        <p className="text-xs text-muted-foreground mt-2 text-center px-4 max-w-md">
+          {isExpiredUrlError 
+            ? 'This video may have expired. Avatar videos with temporary URLs can expire. Try regenerating the video.'
+            : 'Clips may still be generating. Click Retry to check again.'
+          }
         </p>
         <Button 
           variant="outline" 

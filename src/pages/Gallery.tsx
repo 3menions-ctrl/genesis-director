@@ -348,17 +348,37 @@ const TiltVideoCard = forwardRef<HTMLDivElement, TiltVideoCardProps>(function Ti
     return () => { mounted = false; };
   }, [videoSrc]);
   
-  // Auto-play on hover
+  // Auto-play on hover with proper readyState checks
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid || !videoSrc) return;
     
     if (isHovered) {
-      vid.play().catch(() => {});
+      vid.muted = true;
+      
+      const attemptPlay = () => {
+        try {
+          if (!videoRef.current) return;
+          videoRef.current.play().catch(() => {});
+        } catch {}
+      };
+      
+      if (vid.readyState >= 3) {
+        attemptPlay();
+      } else {
+        const onCanPlay = () => {
+          vid.removeEventListener('canplay', onCanPlay);
+          attemptPlay();
+        };
+        vid.addEventListener('canplay', onCanPlay);
+        if (vid.readyState === 0) vid.load();
+      }
     } else {
-      vid.pause();
-      const targetTime = vid.duration && isFinite(vid.duration) ? Math.min(vid.duration * 0.1, 0.5) : 0;
-      vid.currentTime = targetTime;
+      try {
+        vid.pause();
+        const targetTime = vid.duration && isFinite(vid.duration) ? Math.min(vid.duration * 0.1, 0.5) : 0;
+        if (vid.readyState >= 1) vid.currentTime = targetTime;
+      } catch {}
     }
   }, [isHovered, videoSrc]);
   
@@ -406,12 +426,12 @@ const TiltVideoCard = forwardRef<HTMLDivElement, TiltVideoCardProps>(function Ti
           style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.4) 0%, rgba(148,163,184,0.3) 100%)' }}
         />
         
-        {/* Card frame */}
         <div className="relative w-full h-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10">
           {videoSrc ? (
             <>
               <video
                 ref={videoRef}
+                src={videoSrc}
                 className={cn(
                   "w-full h-full object-cover transition-all duration-700",
                   !thumbnailReady && "opacity-0",
@@ -420,7 +440,12 @@ const TiltVideoCard = forwardRef<HTMLDivElement, TiltVideoCardProps>(function Ti
                 muted
                 playsInline
                 loop
-                preload="metadata"
+                preload="auto"
+                crossOrigin="anonymous"
+                onError={(e) => {
+                  e.preventDefault?.();
+                  e.stopPropagation?.();
+                }}
               />
               
               {!thumbnailReady && (

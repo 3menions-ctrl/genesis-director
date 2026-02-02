@@ -255,6 +255,15 @@ serve(async (req) => {
           source_image_url: imageUrl || null,
           source_video_url: videoUrl || null,
           avatar_voice_id: voiceId || null,
+          // CRITICAL: Save the user's script to synopsis so it's not lost
+          synopsis: prompt || null,
+          // For avatar mode, also save scene description in pending_video_tasks
+          pending_video_tasks: mode === 'avatar' ? {
+            script: prompt,
+            sceneDescription: request.sceneDescription || null,
+            clipCount: clipCount,
+            clipDuration: clipDuration,
+          } : {},
           pipeline_state: {
             stage: 'init',
             progress: 0,

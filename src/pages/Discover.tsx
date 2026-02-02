@@ -493,7 +493,6 @@ const VideoCard = memo(forwardRef<HTMLDivElement, VideoCardProps>(function Video
                 loop
                 playsInline
                 preload="auto"
-                crossOrigin="anonymous"
                 onError={(e) => {
                   e.preventDefault?.();
                   e.stopPropagation?.();

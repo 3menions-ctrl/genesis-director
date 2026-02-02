@@ -73,34 +73,45 @@ export function useAdminAccess(): UseAdminAccessResult {
         return;
       }
 
-      // Step 3: Server-side admin role verification
+      // Step 3: Server-side admin role verification with timeout
       // This query is protected by RLS - users can only read their own roles
-      const { data, error: rpcError } = await supabase
+      const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
+        setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), 5000);
+      });
+      
+      const fetchPromise = supabase
         .from('user_roles')
         .select('role, granted_at')
         .eq('user_id', user.id)
         .eq('role', 'admin')
         .maybeSingle();
 
+      const result = await Promise.race([fetchPromise, timeoutPromise]);
+
       if (!mountedRef.current) return;
 
-      if (rpcError) {
-        console.error('[useAdminAccess] Error checking admin role:', rpcError);
-        setError('Failed to verify admin status');
+      if (result.error) {
+        // Silent handling for network errors - don't pollute console
+        const isNetworkError = result.error.message?.includes('Load failed') || 
+                               result.error.message?.includes('fetch') ||
+                               result.error.message === 'timeout';
+        if (!isNetworkError) {
+          console.debug('[useAdminAccess] Admin check issue:', result.error.message?.substring(0, 50));
+        }
+        // Don't set error state for network issues - just silently assume not admin
         setIsAdmin(false);
       } else {
-        const verified = !!data;
+        const verified = !!result.data;
         setIsAdmin(verified);
         setLastVerified(new Date());
         
         if (verified) {
-          console.info('[useAdminAccess] Admin status verified for user:', user.id.slice(0, 8));
+          console.debug('[useAdminAccess] Admin status verified');
         }
       }
-    } catch (err) {
-      console.error('[useAdminAccess] Admin check failed:', err);
+    } catch {
+      // Silent catch - network failures shouldn't log errors or show UI errors
       if (mountedRef.current) {
-        setError('Admin verification failed');
         setIsAdmin(false);
       }
     } finally {

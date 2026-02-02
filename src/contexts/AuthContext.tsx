@@ -104,20 +104,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (result.error) {
         if (result.error.message === 'timeout') {
-          console.warn('[AuthContext] Profile fetch timed out, using fallback');
+          console.debug('[AuthContext] Profile fetch timed out, using fallback');
           setProfileError(null); // Don't show error for timeout - we have fallback
           return createFallbackProfile();
         }
-        console.error('Error fetching profile:', result.error);
+        // CRITICAL: For network errors, use fallback silently instead of showing error UI
+        const isNetworkError = result.error.message?.includes('Load failed') || 
+                               result.error.message?.includes('fetch') ||
+                               result.error.message?.includes('network');
+        if (isNetworkError) {
+          console.debug('[AuthContext] Network error, using fallback profile');
+          setProfileError(null);
+          return createFallbackProfile();
+        }
+        console.debug('[AuthContext] Profile fetch error:', result.error.message?.substring(0, 50));
         setProfileError('Failed to load profile');
         return null;
       }
       
       setProfileError(null);
       return result.data as UserProfile;
-    } catch (err) {
-      console.error('Profile fetch failed:', err);
-      // Return fallback instead of null to prevent UI blocking
+    } catch {
+      // Silent catch with fallback - prevents crash cascade
+      console.debug('[AuthContext] Profile fetch exception, using fallback');
       return createFallbackProfile();
     }
   };
@@ -140,21 +149,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAdminRole = async (userId: string): Promise<boolean> => {
     try {
-      const { data, error } = await supabase
+      // Use Promise.race with timeout to prevent hanging on network issues
+      const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
+        setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), 5000);
+      });
+      
+      const fetchPromise = supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .eq('role', 'admin')
         .maybeSingle();
       
-      if (error) {
-        console.error('Error checking admin role:', error);
+      const result = await Promise.race([fetchPromise, timeoutPromise]);
+      
+      if (result.error) {
+        // Silent fail for network errors - don't log noise, just return false
+        if (result.error.message !== 'timeout') {
+          console.debug('[AuthContext] Admin check skipped:', result.error.message?.substring(0, 50));
+        }
         return false;
       }
       
-      return !!data;
-    } catch (err) {
-      console.error('Admin check failed:', err);
+      return !!result.data;
+    } catch {
+      // Silent catch - network failures shouldn't log errors
       return false;
     }
   };

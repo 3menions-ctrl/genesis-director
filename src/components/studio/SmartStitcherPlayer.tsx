@@ -46,6 +46,7 @@ import {
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { safePlay, safePause, safeSeek, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
 import {
   MSEGaplessEngine,
   createMSEEngine,
@@ -510,10 +511,8 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
       const attemptPlay = () => {
         if (videoA.readyState >= 2) {
           console.log('[SmartStitcher] Auto-playing first clip');
-          videoA.play().then(() => {
-            setIsPlaying(true);
-          }).catch((err) => {
-            console.warn('[SmartStitcher] Auto-play failed:', err);
+          safePlay(videoA).then((success) => {
+            if (success) setIsPlaying(true);
           });
         } else {
           // Video not ready yet, wait and retry
@@ -670,18 +669,16 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
         if (activeVideo) {
           // Try to nudge playback forward
           const currentTime = activeVideo.currentTime;
-          activeVideo.currentTime = currentTime + 0.01;
+          safeSeek(activeVideo, currentTime + 0.01);
           
           // If near the end, force transition
           const timeRemaining = activeVideo.duration - activeVideo.currentTime;
-          if (timeRemaining < 0.5 && currentClipIndex < clips.length - 1) {
+          if (isSafeVideoNumber(timeRemaining) && timeRemaining < 0.5 && currentClipIndex < clips.length - 1) {
             console.log('[SmartStitcher] Force triggering transition due to stall near end');
             triggerTransitionRef.current?.();
           } else {
             // Try to resume playback
-            activeVideo.play().catch(() => {
-              console.error('[SmartStitcher] Failed to resume after stall');
-            });
+            safePlay(activeVideo);
           }
         }
         
@@ -719,11 +716,11 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
     const currentActiveIndex = activeVideoIndex;
     
     if (standbyVideo && standbyVideo.readyState >= 2 && clips[nextIndex]?.blobUrl) {
-      standbyVideo.currentTime = 0;
+      safeSeek(standbyVideo, 0);
       standbyVideo.muted = isMuted;
       
       // Start playing standby while still invisible (preroll)
-      standbyVideo.play().catch(() => {});
+      safePlay(standbyVideo);
       
       // PHASE 1: TRUE OVERLAP - Both videos at 100% opacity simultaneously
       // Incoming appears at full opacity WHILE outgoing is still at full opacity
@@ -754,7 +751,7 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
           // PHASE 3: After fadeout completes, clean up
           setTimeout(() => {
             if (activeVideo) {
-              activeVideo.pause();
+              safePause(activeVideo);
             }
             
             setIsCrossfading(false);
@@ -836,7 +833,7 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
           firstVideo.load();
         } else {
           // Just seek to start instead of reloading
-          firstVideo.currentTime = 0;
+          safeSeek(firstVideo, 0);
         }
       }
     } else if (!isTransitioningRef.current && !isCrossfading) {
@@ -879,9 +876,7 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
     masterAudio.volume = targetVolume;
     
     if (isPlaying) {
-      masterAudio.play().catch((err) => {
-        console.debug('[SmartStitcher] Master audio play failed:', err?.message);
-      });
+      masterAudio.play().catch(() => {});
     } else {
       masterAudio.pause();
     }

@@ -14,6 +14,7 @@ import {
   type MSEEngineState,
 } from '@/lib/videoEngine/MSEGaplessEngine';
 import { BlobPreloadCache } from '@/lib/videoEngine/BlobPreloadCache';
+import { safePlay, safePause, safeSeek, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
 
 export interface MSEPlaybackConfig {
   clips: string[];
@@ -245,14 +246,14 @@ export function useMSEPlayback(config: MSEPlaybackConfig): UseMSEPlaybackResult 
           videoA.play().catch(() => {});
           setState(prev => ({ ...prev, status: 'playing' }));
         }
-      } catch (error) {
-        log('Fallback init failed:', error);
+      } catch (err) {
+        log('Fallback init failed:', err);
         setState(prev => ({
           ...prev,
           status: 'error',
-          errorMessage: error instanceof Error ? error.message : 'Failed to load clips',
+          errorMessage: err instanceof Error ? err.message : 'Failed to load clips',
         }));
-        onError?.(error instanceof Error ? error : new Error('Fallback init failed'));
+        onError?.(err instanceof Error ? err : new Error('Fallback init failed'));
       }
     };
 
@@ -280,8 +281,8 @@ export function useMSEPlayback(config: MSEPlaybackConfig): UseMSEPlaybackResult 
     log('Fallback transition to clip', nextIndex);
 
     if (standbyVideo && standbyVideo.readyState >= 2) {
-      standbyVideo.currentTime = 0;
-      standbyVideo.play().catch(() => {});
+      safeSeek(standbyVideo, 0);
+      safePlay(standbyVideo);
 
       // Phase 1: True overlap
       if (currentActiveIndex === 0) {
@@ -304,9 +305,9 @@ export function useMSEPlayback(config: MSEPlaybackConfig): UseMSEPlaybackResult 
             setState(prev => ({ ...prev, currentClipIndex: nextIndex }));
             onClipChange?.(nextIndex);
 
-            setTimeout(() => {
-              if (activeVideo) activeVideo.pause();
-              setIsCrossfading(false);
+          setTimeout(() => {
+            if (activeVideo) safePause(activeVideo);
+            setIsCrossfading(false);
 
               // Preload next clip
               const futureIndex = nextIndex + 1;
@@ -349,7 +350,7 @@ export function useMSEPlayback(config: MSEPlaybackConfig): UseMSEPlaybackResult 
         } else {
           const video = activeFallbackIndex === 0 ? fallbackVideoARef.current : fallbackVideoBRef.current;
           if (video && video.readyState >= 1) {
-            await video.play().catch(() => {});
+            await safePlay(video);
           }
         }
         setState(prev => ({ ...prev, status: 'playing' }));
@@ -364,7 +365,7 @@ export function useMSEPlayback(config: MSEPlaybackConfig): UseMSEPlaybackResult 
           engineRef.current.pause();
         } else {
           const video = activeFallbackIndex === 0 ? fallbackVideoARef.current : fallbackVideoBRef.current;
-          video?.pause();
+          if (video) safePause(video);
         }
         setState(prev => ({ ...prev, status: 'paused' }));
       } catch {
@@ -393,10 +394,10 @@ export function useMSEPlayback(config: MSEPlaybackConfig): UseMSEPlaybackResult 
               video.src = clip.blobUrl;
               // Only seek if video has valid state
               if (video.readyState >= 1) {
-                video.currentTime = 0;
+                safeSeek(video, 0);
               }
               video.load();
-              video.play().catch(() => {});
+              safePlay(video);
             }
           }
           onClipChange?.(index);

@@ -24,14 +24,23 @@ export function useClipRecovery(projectId: string | null, userId: string | null)
   const [isRecovering, setIsRecovering] = useState(false);
   const [lastRecovery, setLastRecovery] = useState<RecoveryResult | null>(null);
   const hasRunRef = useRef(false);
+  const isMountedRef = useRef(true);
+  
+  // Mount guard
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const checkAndRecoverClips = useCallback(async (): Promise<RecoveryResult> => {
-    if (!projectId || !userId) {
+    if (!projectId || !userId || !isMountedRef.current) {
       return { recovered: 0, checked: 0, errors: [] };
     }
 
     const result: RecoveryResult = { recovered: 0, checked: 0, errors: [] };
-    setIsRecovering(true);
+    if (isMountedRef.current) setIsRecovering(true);
 
     try {
       // Find clips stuck in "generating" for more than 2 minutes
@@ -44,8 +53,10 @@ export function useClipRecovery(projectId: string | null, userId: string | null)
         .eq('status', 'generating')
         .lt('updated_at', twoMinutesAgo);
 
+      if (!isMountedRef.current) return result;
+      
       if (error || !stuckClips || stuckClips.length === 0) {
-        setIsRecovering(false);
+        if (isMountedRef.current) setIsRecovering(false);
         return result;
       }
 
@@ -53,7 +64,7 @@ export function useClipRecovery(projectId: string | null, userId: string | null)
 
       // Check each stuck clip with a prediction ID
       for (const clip of stuckClips as StuckClip[]) {
-        if (!clip.veo_operation_name) continue;
+        if (!clip.veo_operation_name || !isMountedRef.current) continue;
         
         result.checked++;
 
@@ -74,7 +85,7 @@ export function useClipRecovery(projectId: string | null, userId: string | null)
           );
 
           if (statusError) {
-            console.error(`[ClipRecovery] Error checking clip ${clip.shot_index + 1}:`, statusError);
+            console.debug(`[ClipRecovery] Error checking clip ${clip.shot_index + 1}:`, statusError.message);
             result.errors.push(`Clip ${clip.shot_index + 1}: ${statusError.message}`);
             continue;
           }
@@ -88,11 +99,13 @@ export function useClipRecovery(projectId: string | null, userId: string | null)
             console.log(`[ClipRecovery] Clip ${clip.shot_index + 1} still processing`);
           }
         } catch (err) {
-          console.error(`[ClipRecovery] Recovery error for clip ${clip.shot_index + 1}:`, err);
+          console.debug(`[ClipRecovery] Recovery error for clip ${clip.shot_index + 1}:`, err);
           result.errors.push(`Clip ${clip.shot_index + 1}: ${err}`);
         }
       }
 
+      if (!isMountedRef.current) return result;
+      
       // If we recovered any clips, trigger continue-production to resume pipeline
       if (result.recovered > 0) {
         toast.success(`Recovered ${result.recovered} stuck clip(s)`, {
@@ -130,14 +143,14 @@ export function useClipRecovery(projectId: string | null, userId: string | null)
         }
       }
 
-      setLastRecovery(result);
+      if (isMountedRef.current) setLastRecovery(result);
       return result;
     } catch (err) {
-      console.error('[ClipRecovery] Error:', err);
+      console.debug('[ClipRecovery] Error:', err);
       result.errors.push(`${err}`);
       return result;
     } finally {
-      setIsRecovering(false);
+      if (isMountedRef.current) setIsRecovering(false);
     }
   }, [projectId, userId]);
 

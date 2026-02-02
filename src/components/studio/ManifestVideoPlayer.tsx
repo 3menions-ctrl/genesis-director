@@ -14,6 +14,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, forwardRef } from 'r
 import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Maximize2, Download, Loader2, Activity, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { safePlay, safePause, safeSeek, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
 import { 
   waitForCanPlayThrough, 
   validateTransitionReadiness,
@@ -341,11 +342,11 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
     });
     
     if (standbyVideo && (standbyVideo.readyState >= 2 || useGracefulFallback) && manifest.clips[nextIndex]) {
-      standbyVideo.currentTime = 0;
+      safeSeek(standbyVideo, 0);
       standbyVideo.muted = isMuted;
       
       // Start playing standby while still invisible (preroll)
-      standbyVideo.play().catch(() => {});
+      safePlay(standbyVideo);
       
       if (useGracefulFallback) {
         // GRACEFUL FALLBACK: Standard 16ms (one-frame) transition
@@ -370,7 +371,7 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
           setCurrentClipIndex(nextIndex);
           setIsPlaying(true);
           
-          if (activeVideo) activeVideo.pause();
+          if (activeVideo) safePause(activeVideo);
           
           // Preload next clip
           const futureClipIndex = nextIndex + 1;
@@ -410,7 +411,7 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
             
             // PHASE 3: After fadeout completes, clean up
             setTimeout(() => {
-              if (activeVideo) activeVideo.pause();
+              if (activeVideo) safePause(activeVideo);
               
               setIsCrossfading(false);
               
@@ -507,10 +508,10 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
       const firstVideo = videoARef.current;
       if (firstVideo && manifest.clips[0]) {
         if (firstVideo.src !== manifest.clips[0].videoUrl) {
-          firstVideo.src = manifest.clips[0].videoUrl;
+        firstVideo.src = manifest.clips[0].videoUrl;
           firstVideo.load();
         } else {
-          firstVideo.currentTime = 0;
+          safeSeek(firstVideo, 0);
         }
       }
     } else if (!isTransitioningRef.current && !isCrossfading) {
@@ -553,10 +554,10 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
     if (!activeVideo) return;
     
     if (isPlaying) {
-      activeVideo.pause();
+      safePause(activeVideo);
       setIsPlaying(false);
     } else {
-      activeVideo.play().catch(() => {});
+      safePlay(activeVideo);
       setIsPlaying(true);
     }
   }, [isPlaying, getActiveVideo, useMSE, mseReady]);
@@ -597,7 +598,7 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
       videoA.load();
       videoA.muted = isMuted;
       if (isPlaying) {
-        videoA.play().catch(() => {});
+        safePlay(videoA);
       }
     }
     
@@ -622,7 +623,7 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
   const skipPrev = useCallback(() => {
     if (currentClipIndex <= 0) {
       const activeVideo = getActiveVideo();
-      if (activeVideo) activeVideo.currentTime = 0;
+      if (activeVideo) safeSeek(activeVideo, 0);
       setCurrentTime(0);
       return;
     }

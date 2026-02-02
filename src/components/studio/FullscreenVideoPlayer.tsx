@@ -5,6 +5,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { safePlay, safePause, safeSeek, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
 
 interface FullscreenVideoPlayerProps {
   clips: string[];
@@ -165,7 +166,7 @@ export const FullscreenVideoPlayer = forwardRef<HTMLDivElement, FullscreenVideoP
         setVideoBSrc(nextSrc);
       }
       nextVideo.src = nextSrc;
-      nextVideo.currentTime = 0;
+      safeSeek(nextVideo, 0);
       nextVideo.volume = 0;
       nextVideo.muted = isMuted;
       nextVideo.load();
@@ -176,7 +177,7 @@ export const FullscreenVideoPlayer = forwardRef<HTMLDivElement, FullscreenVideoP
         setVideoBSrc(nextSrc);
       }
       nextVideo.src = nextSrc;
-      nextVideo.currentTime = 0;
+      safeSeek(nextVideo, 0);
       nextVideo.volume = 0;
       nextVideo.muted = isMuted;
       nextVideo.load();
@@ -211,8 +212,8 @@ export const FullscreenVideoPlayer = forwardRef<HTMLDivElement, FullscreenVideoP
             
             // PHASE 4: Clean up after fadeout completes
             setTimeout(() => {
-              currentVideo.pause();
-              currentVideo.currentTime = 0;
+              safePause(currentVideo);
+              safeSeek(currentVideo, 0);
               
               if (!isMuted) {
                 currentVideo.volume = 0;
@@ -238,15 +239,13 @@ export const FullscreenVideoPlayer = forwardRef<HTMLDivElement, FullscreenVideoP
     // Start transition immediately when video is ready
     const startTransition = () => {
       setIsWaitingForBuffer(false);
-      nextVideo.play().then(() => {
-        executeInstantSwap();
-      }).catch((err) => {
-        // Don't crash - just log and recover
-        if (err?.name !== 'AbortError' && err?.name !== 'NotAllowedError') {
-          console.debug('[FullscreenPlayer] Video play failed:', err?.message);
+      safePlay(nextVideo).then((success) => {
+        if (success) {
+          executeInstantSwap();
+        } else {
+          setIsTransitioning(false);
+          transitionTriggeredRef.current = false;
         }
-        setIsTransitioning(false);
-        transitionTriggeredRef.current = false;
       });
     };
 
@@ -295,13 +294,13 @@ export const FullscreenVideoPlayer = forwardRef<HTMLDivElement, FullscreenVideoP
     if (!activeVideoEl) return;
     
     if (activeVideoEl.paused) {
-      activeVideoEl.play();
-      music?.play();
+      safePlay(activeVideoEl);
+      if (music) music.play().catch(() => {});
       setIsPlaying(true);
     } else {
-      videoA?.pause();
-      videoB?.pause();
-      music?.pause();
+      safePause(videoA);
+      safePause(videoB);
+      if (music) music.pause();
       setIsPlaying(false);
     }
   }, []);
@@ -355,7 +354,7 @@ export const FullscreenVideoPlayer = forwardRef<HTMLDivElement, FullscreenVideoP
     const rect = progress.getBoundingClientRect();
     const percent = (e.clientX - rect.left) / rect.width;
     const newTime = percent * duration;
-    video.currentTime = newTime;
+    safeSeek(video, newTime);
     setCurrentTime(newTime);
     
     // Reset preload triggers when seeking
@@ -367,7 +366,8 @@ export const FullscreenVideoPlayer = forwardRef<HTMLDivElement, FullscreenVideoP
   const skip = useCallback((seconds: number) => {
     const video = activeVideoRef.current === 'A' ? videoARef.current : videoBRef.current;
     if (!video) return;
-    video.currentTime = Math.max(0, Math.min(duration, video.currentTime + seconds));
+    const newTime = Math.max(0, Math.min(duration, video.currentTime + seconds));
+    safeSeek(video, newTime);
   }, [duration]);
 
   // Toggle fullscreen - Safari/iOS compatible

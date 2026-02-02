@@ -6,6 +6,7 @@ import { useMountGuard } from '@/hooks/useNavigationGuard';
 import { useGalleryShowcase } from '@/hooks/useGalleryShowcase';
 import type { GalleryCategory } from '@/types/gallery-showcase';
 import { UniversalVideoPlayer } from '@/components/player';
+import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
 import { safePlay, safePause } from '@/lib/video/safeVideoOperations';
 
 type VideoCategory = 'all' | GalleryCategory;
@@ -441,11 +442,10 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <video
+                  <PausedFrameVideo
                     src={video.url}
                     className="w-full h-full object-cover"
-                    muted
-                    preload="metadata"
+                    showLoader={false}
                   />
                 )}
                 {currentIndex === i && (

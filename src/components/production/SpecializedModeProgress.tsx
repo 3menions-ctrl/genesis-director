@@ -6,6 +6,7 @@ import {
   Sparkles, Wand2, Film, Clock, Zap, X, Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -597,11 +598,10 @@ export function SpecializedModeProgress({
                     transition={{ delay: idx * 0.1 }}
                     className="rounded-xl overflow-hidden bg-black/50 ring-1 ring-white/[0.1] group relative"
                   >
-                    <video
+                    <PausedFrameVideo
                       src={clip.videoUrl}
                       controls
                       className="w-full aspect-video"
-                      poster="/placeholder.svg"
                     />
                     {/* Overlay with clip info and download */}
                     <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/90 to-transparent flex items-center justify-between">
@@ -635,11 +635,10 @@ export function SpecializedModeProgress({
               animate={{ opacity: 1, scale: 1 }}
               className="rounded-2xl overflow-hidden bg-black/50 mb-6 ring-1 ring-white/[0.1]"
             >
-              <video
+              <PausedFrameVideo
                 src={localVideoUrl}
                 controls
                 className="w-full aspect-video"
-                poster="/placeholder.svg"
               />
             </motion.div>
           )}

@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSafeNavigation, useRouteCleanup } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
 import { toast } from 'sonner';
 import { 
   User, Coins, History, Gift, ShoppingCart,
@@ -389,7 +390,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                       coverVideo === clip ? 'ring-2 ring-emerald-500' : 'hover:ring-1 hover:ring-white/30'
                     )}
                   >
-                    <video src={clip} className="w-full h-full object-cover" muted preload="metadata" />
+                    <PausedFrameVideo src={clip} className="w-full h-full object-cover" showLoader={false} />
                     {coverVideo === clip && (
                       <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
                         <Check className="w-3 h-3 text-black" />

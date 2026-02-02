@@ -13,6 +13,7 @@ import { GlobalStabilityBoundary } from "@/components/stability/GlobalStabilityB
 import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
 import { DebugOverlay } from "@/components/diagnostics/DebugOverlay";
+import { CrashForensicsOverlay } from "@/components/diagnostics/CrashForensicsOverlay";
 import { NavigationGuardProvider, NavigationBridge } from "@/lib/navigation";
 
 // Lazy load all pages for code splitting
@@ -312,6 +313,8 @@ const App = () => (
                 </Routes>
                 {/* Debug Overlay - Development only */}
                 <DebugOverlay />
+                {/* Crash Forensics Overlay - Development only */}
+                <CrashForensicsOverlay />
               </StudioProvider>
             </AuthProvider>
             </NavigationBridge>

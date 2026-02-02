@@ -5,7 +5,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { stabilityMonitor, shouldSuppressError } from "./lib/stabilityMonitor";
 import { initializeDiagnostics, setStateSnapshotProvider, getCurrentSnapshot } from "./lib/diagnostics";
-
+import { crashForensics } from "./lib/crashForensics";
 // Initialize cross-browser compatibility layer
 import { injectBrowserFixes, browserInfo } from "./lib/browserCompat";
 
@@ -370,16 +370,24 @@ if ("serviceWorker" in navigator) {
 
 // Initialize diagnostics in development mode
 let cleanupDiagnostics: (() => void) | null = null;
+let cleanupForensics: (() => void) | null = null;
+
 if (process.env.NODE_ENV === 'development') {
   cleanupDiagnostics = initializeDiagnostics();
   setStateSnapshotProvider(getCurrentSnapshot);
+  
+  // Initialize crash forensics
+  cleanupForensics = crashForensics.init();
 }
 
-// Clean up diagnostics on HMR
+// Clean up diagnostics and forensics on HMR
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     if (cleanupDiagnostics) {
       cleanupDiagnostics();
+    }
+    if (cleanupForensics) {
+      cleanupForensics();
     }
   });
 }

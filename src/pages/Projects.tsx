@@ -40,6 +40,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { UniversalVideoPlayer } from '@/components/player';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { useProjectThumbnails } from '@/hooks/useProjectThumbnails';
+import { usePaginatedProjects } from '@/hooks/usePaginatedProjects';
 
 // Extracted components
 import { 
@@ -141,28 +142,40 @@ function ProjectsContentInner() {
     studioData = useStudio();
   } catch {
     studioData = {
-      projects: [],
       activeProjectId: null,
       setActiveProjectId: () => {},
       createProject: () => Promise.resolve(),
       deleteProject: () => Promise.resolve(),
       updateProject: () => Promise.resolve(),
-      refreshProjects: () => Promise.resolve(),
-      isLoading: false,
-      hasLoadedOnce: true,
     };
   }
   const { 
-    projects, 
     activeProjectId, 
     setActiveProjectId, 
     createProject, 
     deleteProject, 
     updateProject, 
-    refreshProjects, 
-    isLoading: isLoadingProjects, 
-    hasLoadedOnce 
   } = studioData;
+  
+  // View & Filter State - declared BEFORE usePaginatedProjects so we can pass them
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'updated' | 'created' | 'name'>('updated');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'processing' | 'failed'>('all');
+  
+  // SERVER-SIDE PAGINATED PROJECTS - replaces loading all projects into memory
+  const {
+    projects,
+    isLoading: isLoadingProjects,
+    isLoadingMore,
+    hasMore,
+    totalCount,
+    loadMore,
+    refresh: refreshProjects,
+  } = usePaginatedProjects(sortBy, sortOrder, statusFilter, searchQuery);
+  
+  const hasLoadedOnce = !isLoadingProjects;
   
   // Thumbnail generation hook
   const { generateMissingThumbnails } = useProjectThumbnails();
@@ -179,12 +192,7 @@ function ProjectsContentInner() {
   const [browserStitchingProjectId, setBrowserStitchingProjectId] = useState<string | null>(null);
   const [showBrowserStitcher, setShowBrowserStitcher] = useState<string | null>(null);
   
-  // View & Filter State
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'updated' | 'created' | 'name'>('updated');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'processing' | 'failed'>('all');
+  // Additional UI state (view/filter state already declared above for usePaginatedProjects)
   const [pinnedProjects, setPinnedProjects] = useState<Set<string>>(new Set());
   const [showKeyboardHints, setShowKeyboardHints] = useState(false);
   
@@ -458,76 +466,26 @@ function ProjectsContentInner() {
     return false;
   };
 
-  // Filtered and sorted projects
+  // Filtered and sorted projects - now handled server-side by usePaginatedProjects
+  // Only client-side: pinned projects first
   const filteredProjects = useMemo(() => {
-    let result = projects.filter(hasVideoContent);
+    const result = projects.filter(hasVideoContent);
     
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(p => p.name.toLowerCase().includes(query));
-    }
-    
-    // Status filter
-    if (statusFilter !== 'all') {
-      result = result.filter(p => {
-        const s = status(p);
-        switch (statusFilter) {
-          case 'completed': return isPlayableProject(p);
-          case 'processing': return ['generating', 'rendering', 'stitching'].includes(s);
-          case 'failed': return s === 'stitching_failed' || s === 'failed';
-          default: return true;
-        }
-      });
-    }
-    
-    // Sort
-    result.sort((a, b) => {
-      let comparison = 0;
-      switch (sortBy) {
-        case 'updated':
-          comparison = new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-          break;
-        case 'created':
-          comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-          break;
-        case 'name':
-          comparison = a.name.localeCompare(b.name);
-          break;
-      }
-      return sortOrder === 'desc' ? comparison : -comparison;
-    });
-    
-    // Put pinned projects first
+    // Put pinned projects first (only client-side operation needed)
     const pinned = result.filter(p => pinnedProjects.has(p.id));
     const unpinned = result.filter(p => !pinnedProjects.has(p.id));
     return [...pinned, ...unpinned];
-  }, [projects, searchQuery, statusFilter, sortBy, sortOrder, pinnedProjects]);
+  }, [projects, pinnedProjects]);
   
-  // iOS SAFARI MEMORY FIX: Virtualize/paginate projects to prevent memory crash
-  const [displayLimit, setDisplayLimit] = useState(24);
-  const isIOSSafari = useMemo(() => {
-    if (typeof navigator === 'undefined') return false;
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    return isIOS && isSafari;
-  }, []);
+  // Projects to display - directly use filteredProjects (pagination is server-side now)
+  const displayedProjects = filteredProjects;
   
-  // On iOS Safari, limit initial render to prevent memory crash
-  const displayedProjects = useMemo(() => {
-    if (isIOSSafari) {
-      return filteredProjects.slice(0, displayLimit);
-    }
-    return filteredProjects;
-  }, [filteredProjects, displayLimit, isIOSSafari]);
-  
-  // Load more handler for iOS Safari
+  // Load more handler - uses server-side pagination
   const handleLoadMore = useCallback(() => {
-    setDisplayLimit(prev => Math.min(prev + 24, filteredProjects.length));
-  }, [filteredProjects.length]);
+    loadMore();
+  }, [loadMore]);
   
-  const hasMoreToLoad = isIOSSafari && displayLimit < filteredProjects.length;
+  const hasMoreToLoad = hasMore;
 
   // Stats
   const stats = useMemo(() => {
@@ -551,11 +509,9 @@ function ProjectsContentInner() {
     storytelling: { label: 'Storytelling', icon: Layers, color: 'text-cyan-400' },
   };
 
-  // Group projects by genre - iOS SAFARI FIX: Use displayedProjects for memory-safe rendering
+  // Group projects by genre - now using displayedProjects from server-side pagination
   const groupedProjects = useMemo(() => {
-    // Use displayedProjects (paginated for iOS Safari) instead of filteredProjects
-    const projectsToRender = isIOSSafari ? displayedProjects : filteredProjects;
-    const unpinnedProjects = projectsToRender.filter(p => !pinnedProjects.has(p.id));
+    const unpinnedProjects = displayedProjects.filter(p => !pinnedProjects.has(p.id));
     const groups: Record<string, Project[]> = {};
     
     unpinnedProjects.forEach(project => {
@@ -570,7 +526,7 @@ function ProjectsContentInner() {
     const sortedGenres = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length);
     
     return { groups, sortedGenres };
-  }, [filteredProjects, displayedProjects, pinnedProjects, isIOSSafari]);
+  }, [displayedProjects, pinnedProjects]);
 
   // Handlers
   const handleCreateProject = () => {
@@ -1302,10 +1258,11 @@ function ProjectsContentInner() {
                       <Button
                         onClick={handleLoadMore}
                         variant="outline"
+                        disabled={isLoadingMore}
                         className="gap-2 border-orange-500/30 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500/50"
                       >
-                        <Loader2 className="w-4 h-4" />
-                        Load More ({filteredProjects.length - displayLimit} remaining)
+                        {isLoadingMore ? <Loader2 className="w-4 h-4 animate-spin" /> : <Loader2 className="w-4 h-4" />}
+                        {isLoadingMore ? 'Loading...' : `Load More (${totalCount - displayedProjects.length} remaining)`}
                       </Button>
                     </div>
                   )}

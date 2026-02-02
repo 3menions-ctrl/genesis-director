@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
-import { ManifestVideoPlayer } from '@/components/studio/ManifestVideoPlayer';
+import { UniversalVideoPlayer } from '@/components/player';
 import { safePlay, safePause, safeSeek, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
 import type { VideoGenerationMode } from '@/types/video-modes';
 
@@ -742,7 +742,12 @@ const VideoModal = memo(forwardRef<HTMLDivElement, VideoModalProps>(function Vid
             </>
           ) : isManifest ? (
             <div className="w-full h-full">
-              <ManifestVideoPlayer manifestUrl={video.video_url!} className="w-full h-full" />
+              <UniversalVideoPlayer 
+                source={{ manifestUrl: video.video_url! }} 
+                mode="inline"
+                autoPlay
+                className="w-full h-full" 
+              />
             </div>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900">

@@ -7,12 +7,14 @@
  * - Memory signals
  * - Recent errors
  * - Safe mode status
+ * - Reload loop detection
  */
 
 import { useState, useEffect, useCallback, memo } from 'react';
-import { X, AlertTriangle, CheckCircle2, XCircle, Activity, Shield, RefreshCw } from 'lucide-react';
+import { X, AlertTriangle, CheckCircle2, XCircle, Activity, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { crashForensics, getOverlayData, type Checkpoint } from '@/lib/crashForensics';
+import { getSafeModeStatus, autoEnableSafeMode } from '@/lib/safeMode';
 import { cn } from '@/lib/utils';
 
 interface CrashForensicsOverlayProps {
@@ -20,14 +22,64 @@ interface CrashForensicsOverlayProps {
   alwaysShow?: boolean;
 }
 
+// Boot tracking for reload loop detection
+const BOOT_KEY = 'crash_forensics_boot_times';
+const BOOT_WINDOW_MS = 10000; // 10 seconds
+const BOOT_THRESHOLD = 3; // 3 boots in 10 seconds = crash loop
+
+function recordBoot(): { isLoop: boolean; count: number } {
+  const now = Date.now();
+  let boots: number[] = [];
+  
+  try {
+    const stored = sessionStorage.getItem(BOOT_KEY);
+    if (stored) {
+      boots = JSON.parse(stored);
+    }
+  } catch {}
+  
+  // Add current boot
+  boots.push(now);
+  
+  // Filter to only recent boots
+  boots = boots.filter(t => now - t < BOOT_WINDOW_MS);
+  
+  // Store back
+  try {
+    sessionStorage.setItem(BOOT_KEY, JSON.stringify(boots));
+  } catch {}
+  
+  return {
+    isLoop: boots.length >= BOOT_THRESHOLD,
+    count: boots.length,
+  };
+}
+
+// Check boot status on module load
+const bootStatus = typeof window !== 'undefined' ? recordBoot() : { isLoop: false, count: 0 };
+
+// If reload loop detected and not already in safe mode, auto-enable
+if (bootStatus.isLoop && !getSafeModeStatus() && typeof window !== 'undefined') {
+  console.error('[CrashForensics] RELOAD LOOP DETECTED - auto-enabling safe mode');
+  autoEnableSafeMode(`Reload loop detected: ${bootStatus.count} boots in 10 seconds`);
+}
+
 export const CrashForensicsOverlay = memo(function CrashForensicsOverlay({ 
   alwaysShow = false 
 }: CrashForensicsOverlayProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [data, setData] = useState(getOverlayData);
+  const isSafeMode = getSafeModeStatus();
   
-  // Only show in development or when explicitly enabled
-  const isEnabled = process.env.NODE_ENV === 'development' || alwaysShow;
+  // Only show in development or when explicitly enabled or in safe mode
+  const isEnabled = process.env.NODE_ENV === 'development' || alwaysShow || isSafeMode;
+  
+  // Safe mode redirect
+  const handleEnableSafeMode = useCallback(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('safe', '1');
+    window.location.href = url.toString();
+  }, []);
   
   // Update data periodically
   useEffect(() => {
@@ -40,26 +92,19 @@ export const CrashForensicsOverlay = memo(function CrashForensicsOverlay({
     return () => clearInterval(interval);
   }, [isOpen]);
   
-  // Check if we should auto-open (crash detected)
+  // Check if we should auto-open (crash detected or safe mode)
   useEffect(() => {
-    if (crashForensics.isCrashLoop() && isEnabled) {
+    if ((crashForensics.isCrashLoop() || isSafeMode || bootStatus.isLoop) && isEnabled) {
       setIsOpen(true);
     }
-  }, [isEnabled]);
-  
-  // Safe mode redirect
-  const handleEnableSafeMode = useCallback(() => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('safe', '1');
-    window.location.href = url.toString();
-  }, []);
+  }, [isEnabled, isSafeMode]);
   
   if (!isEnabled) return null;
   
   // Mini badge when closed
   if (!isOpen) {
     const hasErrors = data.errors.length > 0;
-    const hasCrashLoop = crashForensics.isCrashLoop();
+    const hasCrashLoop = crashForensics.isCrashLoop() || bootStatus.isLoop;
     const allPassed = crashForensics.allCheckpointsPassed();
     
     return (
@@ -67,35 +112,41 @@ export const CrashForensicsOverlay = memo(function CrashForensicsOverlay({
         onClick={() => setIsOpen(true)}
         className={cn(
           "fixed bottom-4 left-4 z-[9999] p-2 rounded-full shadow-lg transition-colors",
-          hasCrashLoop ? "bg-red-500 text-white animate-pulse" :
-          hasErrors ? "bg-orange-500 text-white" :
-          allPassed ? "bg-green-500 text-white" :
-          "bg-gray-700 text-white"
+          hasCrashLoop ? "bg-destructive text-destructive-foreground animate-pulse" :
+          isSafeMode ? "bg-warning text-warning-foreground" :
+          hasErrors ? "bg-destructive/80 text-destructive-foreground" :
+          allPassed ? "bg-primary text-primary-foreground" :
+          "bg-muted text-muted-foreground"
         )}
         title="Crash Forensics"
       >
-        <Activity className="w-4 h-4" />
+        {isSafeMode ? <Shield className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
         {(hasErrors || hasCrashLoop) && (
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full" />
+          <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full" />
         )}
       </button>
     );
   }
   
   return (
-    <div className="fixed bottom-4 left-4 z-[9999] w-96 max-h-[80vh] bg-gray-900/95 backdrop-blur-sm rounded-lg shadow-2xl border border-gray-700 overflow-hidden text-xs font-mono">
+    <div className="fixed bottom-4 left-4 z-[9999] w-96 max-h-[80vh] bg-background/95 backdrop-blur-sm rounded-lg shadow-2xl border border-border overflow-hidden text-xs font-mono">
       {/* Header */}
-      <div className="flex items-center justify-between p-2 bg-gray-800 border-b border-gray-700">
+      <div className="flex items-center justify-between p-2 bg-muted border-b border-border">
         <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4 text-cyan-400" />
-          <span className="font-bold text-white">Crash Forensics</span>
-          {data.safeMode && (
-            <span className="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-[10px]">
+          <Activity className="w-4 h-4 text-primary" />
+          <span className="font-bold text-foreground">Crash Forensics</span>
+          {isSafeMode && (
+            <span className="px-1.5 py-0.5 bg-warning/20 text-warning rounded text-[10px]">
               SAFE MODE
             </span>
           )}
+          {bootStatus.isLoop && (
+            <span className="px-1.5 py-0.5 bg-destructive/20 text-destructive rounded text-[10px]">
+              LOOP: {bootStatus.count}x
+            </span>
+          )}
         </div>
-        <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-white">
+        <button onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -104,7 +155,7 @@ export const CrashForensicsOverlay = memo(function CrashForensicsOverlay({
       <div className="overflow-y-auto max-h-[calc(80vh-40px)] p-2 space-y-3">
         {/* Checkpoints */}
         <section>
-          <h3 className="text-gray-400 mb-1 flex items-center gap-1">
+          <h3 className="text-muted-foreground mb-1 flex items-center gap-1">
             <CheckCircle2 className="w-3 h-3" />
             Boot Checkpoints
           </h3>
@@ -114,7 +165,7 @@ export const CrashForensicsOverlay = memo(function CrashForensicsOverlay({
                 key={cp.id}
                 className={cn(
                   "flex items-center gap-1 p-1 rounded",
-                  cp.passed ? "bg-green-500/20 text-green-400" : "bg-gray-700 text-gray-400"
+                  cp.passed ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
                 )}
               >
                 {cp.passed ? (
@@ -129,42 +180,46 @@ export const CrashForensicsOverlay = memo(function CrashForensicsOverlay({
         </section>
         
         {/* Crash Loop Status */}
-        {crashForensics.isCrashLoop() && (
-          <section className="p-2 bg-red-500/20 border border-red-500/50 rounded">
-            <div className="flex items-center gap-2 text-red-400 font-bold">
+        {(crashForensics.isCrashLoop() || bootStatus.isLoop) && (
+          <section className="p-2 bg-destructive/20 border border-destructive/50 rounded">
+            <div className="flex items-center gap-2 text-destructive font-bold">
               <AlertTriangle className="w-4 h-4" />
               CRASH LOOP DETECTED
             </div>
-            <p className="text-red-300 mt-1">
-              Multiple crashes detected in short succession.
+            <p className="text-destructive/80 mt-1">
+              {bootStatus.isLoop 
+                ? `${bootStatus.count} boots detected in 10 seconds`
+                : 'Multiple crashes detected in short succession.'}
             </p>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={handleEnableSafeMode}
-              className="mt-2 w-full text-xs h-7"
-            >
-              <Shield className="w-3 h-3 mr-1" />
-              Enable Safe Mode
-            </Button>
+            {!isSafeMode && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={handleEnableSafeMode}
+                className="mt-2 w-full text-xs h-7"
+              >
+                <Shield className="w-3 h-3 mr-1" />
+                Enable Safe Mode
+              </Button>
+            )}
           </section>
         )}
         
         {/* Memory Signals */}
         {data.memorySignals.length > 0 && (
           <section>
-            <h3 className="text-gray-400 mb-1">Memory Signals</h3>
-            <div className="grid grid-cols-2 gap-1 text-gray-300">
-              <div className="p-1 bg-gray-800 rounded">
+            <h3 className="text-muted-foreground mb-1">Memory Signals</h3>
+            <div className="grid grid-cols-2 gap-1 text-foreground">
+              <div className="p-1 bg-muted rounded">
                 DOM: {data.memorySignals[data.memorySignals.length - 1]?.domNodes || 0}
               </div>
-              <div className="p-1 bg-gray-800 rounded">
+              <div className="p-1 bg-muted rounded">
                 Videos: {data.memorySignals[data.memorySignals.length - 1]?.videoElements || 0}
               </div>
-              <div className="p-1 bg-gray-800 rounded">
+              <div className="p-1 bg-muted rounded">
                 Intervals: {data.memorySignals[data.memorySignals.length - 1]?.intervals || 0}
               </div>
-              <div className="p-1 bg-gray-800 rounded">
+              <div className="p-1 bg-muted rounded">
                 Timeouts: {data.memorySignals[data.memorySignals.length - 1]?.timeouts || 0}
               </div>
             </div>
@@ -174,14 +229,14 @@ export const CrashForensicsOverlay = memo(function CrashForensicsOverlay({
         {/* Recent Errors */}
         {data.errors.length > 0 && (
           <section>
-            <h3 className="text-gray-400 mb-1 flex items-center gap-1">
-              <XCircle className="w-3 h-3 text-red-400" />
+            <h3 className="text-muted-foreground mb-1 flex items-center gap-1">
+              <XCircle className="w-3 h-3 text-destructive" />
               Recent Errors ({data.errors.length})
             </h3>
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {data.errors.slice(-5).reverse().map((err, i) => (
-                <div key={i} className="p-1 bg-red-500/10 rounded text-red-300 break-words">
-                  <span className="text-gray-500">
+                <div key={i} className="p-1 bg-destructive/10 rounded text-destructive break-words">
+                  <span className="text-muted-foreground">
                     {new Date(err.timestamp).toLocaleTimeString()}
                   </span>{' '}
                   {err.message.substring(0, 100)}
@@ -195,11 +250,11 @@ export const CrashForensicsOverlay = memo(function CrashForensicsOverlay({
         {/* Route Changes */}
         {data.routeChanges.length > 0 && (
           <section>
-            <h3 className="text-gray-400 mb-1">Recent Routes</h3>
+            <h3 className="text-muted-foreground mb-1">Recent Routes</h3>
             <div className="space-y-0.5 max-h-20 overflow-y-auto">
               {data.routeChanges.slice(-5).reverse().map((r, i) => (
-                <div key={i} className="text-gray-300">
-                  <span className="text-gray-500">
+                <div key={i} className="text-foreground">
+                  <span className="text-muted-foreground">
                     {new Date(r.timestamp).toLocaleTimeString()}
                   </span>{' '}
                   {r.from} → {r.to}
@@ -210,7 +265,7 @@ export const CrashForensicsOverlay = memo(function CrashForensicsOverlay({
         )}
         
         {/* Session Info */}
-        <section className="text-gray-500 border-t border-gray-700 pt-2">
+        <section className="text-muted-foreground border-t border-border pt-2">
           Session: {data.sessionId}
         </section>
       </div>

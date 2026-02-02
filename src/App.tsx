@@ -1,9 +1,9 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { StudioProvider } from "@/contexts/StudioContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -15,6 +15,9 @@ import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/na
 import { DebugOverlay } from "@/components/diagnostics/DebugOverlay";
 import { CrashForensicsOverlay } from "@/components/diagnostics/CrashForensicsOverlay";
 import { NavigationGuardProvider, NavigationBridge } from "@/lib/navigation";
+import { SafeModeBanner } from "@/components/safeMode";
+import { crashForensics } from "@/lib/crashForensics";
+import { getSafeModeStatus } from "@/lib/safeMode";
 
 // Lazy load all pages for code splitting
 const Landing = lazy(() => import("./pages/Landing"));
@@ -49,6 +52,34 @@ const Gallery = lazy(() => import("./pages/Gallery"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Avatars = lazy(() => import("./pages/Avatars"));
 
+// Route change tracker component
+function RouteChangeTracker() {
+  const location = useLocation();
+  
+  useEffect(() => {
+    crashForensics.recordRoute(location.pathname);
+  }, [location.pathname]);
+  
+  return null;
+}
+
+// Boot checkpoint markers
+function BootCheckpointMarker() {
+  useEffect(() => {
+    // Mark A2 - first render
+    crashForensics.checkpoint('A2');
+    
+    // Mark A3 - hydration complete (after a tick)
+    const timer = setTimeout(() => {
+      crashForensics.checkpoint('A3');
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
+  return null;
+}
+
 
 
 const queryClient = new QueryClient({
@@ -63,14 +94,26 @@ const queryClient = new QueryClient({
 });
 
 // Error boundaries RE-ENABLED for production stability
-const App = () => (
+const App = () => {
+  // Mark A1 checkpoint - router setup begins
+  useEffect(() => {
+    crashForensics.checkpoint('A1');
+  }, []);
+  
+  return (
   <GlobalStabilityBoundary>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          {/* Safe Mode Banner - always visible when active */}
+          <SafeModeBanner />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            {/* Boot checkpoint markers */}
+            <BootCheckpointMarker />
+            {/* Route change tracker for forensics */}
+            <RouteChangeTracker />
           <NavigationLoadingProvider>
             <NavigationGuardProvider>
             <NavigationBridge>
@@ -313,8 +356,8 @@ const App = () => (
                 </Routes>
                 {/* Debug Overlay - Development only */}
                 <DebugOverlay />
-                {/* Crash Forensics Overlay - Development only */}
-                <CrashForensicsOverlay />
+                {/* Crash Forensics Overlay - Always available */}
+                <CrashForensicsOverlay alwaysShow={getSafeModeStatus()} />
               </StudioProvider>
             </AuthProvider>
             </NavigationBridge>
@@ -325,6 +368,7 @@ const App = () => (
     </QueryClientProvider>
     </ErrorBoundary>
   </GlobalStabilityBoundary>
-);
+  );
+};
 
 export default App;

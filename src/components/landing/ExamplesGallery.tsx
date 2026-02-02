@@ -245,9 +245,17 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
                 crossOrigin="anonymous"
                 preload="auto"
                 onCanPlay={() => setIsLoaded(true)}
+                onLoadedData={() => {
+                  // Attempt autoplay when data is loaded
+                  if (isPlaying && videoRef.current) {
+                    videoRef.current.play().catch(() => {});
+                  }
+                }}
                 onTimeUpdate={handleTimeUpdate}
                 onError={(e) => {
-                  console.error('[ExamplesGallery] Video error:', e);
+                  e.preventDefault?.();
+                  e.stopPropagation?.();
+                  console.warn('[ExamplesGallery] Video error handled');
                   setVideoError('Failed to load video');
                 }}
                 className={cn(
@@ -364,14 +372,17 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
                 {/* Play/Pause */}
                 <button
                   onClick={() => {
-                    if (videoRef.current) {
-                      if (isPlaying) {
-                        videoRef.current.pause();
-                      } else {
-                        videoRef.current.play().catch(() => {});
+                    try {
+                      if (videoRef.current) {
+                        if (isPlaying) {
+                          videoRef.current.pause();
+                        } else {
+                          videoRef.current.muted = true;
+                          videoRef.current.play().catch(() => {});
+                        }
+                        setIsPlaying(!isPlaying);
                       }
-                      setIsPlaying(!isPlaying);
-                    }
+                    } catch {}
                   }}
                   className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all hover:scale-105"
                 >

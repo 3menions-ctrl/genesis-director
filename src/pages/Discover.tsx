@@ -399,13 +399,40 @@ const VideoCard = memo(forwardRef<HTMLDivElement, VideoCardProps>(function Video
     setIsHovered(true);
     try {
       const videoEl = videoRef.current;
-      if (videoEl && videoUrl && videoEl.readyState >= 1) {
-        // Only seek if duration is valid
-        const duration = videoEl.duration;
-        if (isFinite(duration) && !isNaN(duration) && duration > 0) {
-          videoEl.currentTime = 0;
+      if (!videoEl || !videoUrl) return;
+      
+      videoEl.muted = true;
+      
+      // Function to attempt play
+      const attemptPlay = () => {
+        try {
+          if (!videoRef.current) return;
+          const v = videoRef.current;
+          if (v.readyState >= 1) {
+            const duration = v.duration;
+            if (isFinite(duration) && !isNaN(duration) && duration > 0) {
+              v.currentTime = 0;
+            }
+          }
+          v.play().catch(() => {});
+        } catch {}
+      };
+      
+      // If video has enough data, play immediately
+      if (videoEl.readyState >= 3) {
+        attemptPlay();
+      } else {
+        // Wait for video to be ready
+        const onCanPlay = () => {
+          videoEl.removeEventListener('canplay', onCanPlay);
+          attemptPlay();
+        };
+        videoEl.addEventListener('canplay', onCanPlay);
+        
+        // Also try loading if not started
+        if (videoEl.readyState === 0) {
+          videoEl.load();
         }
-        videoEl.play().catch(() => {});
       }
     } catch {
       // Silently ignore hover play errors
@@ -465,7 +492,12 @@ const VideoCard = memo(forwardRef<HTMLDivElement, VideoCardProps>(function Video
                 muted
                 loop
                 playsInline
-                preload="metadata"
+                preload="auto"
+                crossOrigin="anonymous"
+                onError={(e) => {
+                  e.preventDefault?.();
+                  e.stopPropagation?.();
+                }}
                 className={cn(
                   "absolute inset-0 w-full h-full object-cover rounded-xl transition-transform duration-300",
                   isHovered && "scale-105"

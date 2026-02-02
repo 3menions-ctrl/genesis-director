@@ -104,12 +104,20 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
   const isManifest = project.video_url && isManifestUrl(project.video_url);
   const hasVideo = Boolean(project.video_clips?.length || isDirectVideo || isManifest || status === 'completed');
   
-  // Detect touch device on mount
+  // Detect touch device and iOS Safari on mount
+  const [isIOSSafari, setIsIOSSafari] = useState(false);
   useEffect(() => {
-    const checkTouchDevice = () => {
-      setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    const checkDevice = () => {
+      const isTouchDev = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      setIsTouchDevice(isTouchDev);
+      
+      // Detect iOS Safari specifically (has severe memory constraints)
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      setIsIOSSafari(isIOS && isSafari);
     };
-    checkTouchDevice();
+    checkDevice();
   }, []);
   
   // Track mount state for async safety
@@ -403,27 +411,66 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
         isActive && "ring-2 ring-white/30"
       )}>
         
-        {/* Video/Thumbnail */}
+        {/* Video/Thumbnail - iOS SAFARI FIX: Only render video when hovered to save memory */}
         {hasVideo && videoSrc ? (
           <>
-            <video
-              ref={videoRef}
-              src={videoSrc}
-              className={cn(
-                "absolute inset-0 w-full h-full object-cover transition-all duration-700",
-                isHovered && "scale-105"
-              )}
-              loop
-              muted
-              playsInline
-              preload="auto"
-              onLoadedMetadata={handleVideoMetadataLoaded}
-              onError={(e) => {
-                e.preventDefault?.();
-                e.stopPropagation?.();
-                setVideoError(true);
-              }}
-            />
+            {/* iOS Safari: Only load video element when actually hovering to prevent memory crash */}
+            {isIOSSafari ? (
+              isHovered ? (
+                <video
+                  ref={videoRef}
+                  src={videoSrc}
+                  className={cn(
+                    "absolute inset-0 w-full h-full object-cover transition-all duration-700",
+                    isHovered && "scale-105"
+                  )}
+                  loop
+                  muted
+                  playsInline
+                  preload="none"
+                  onLoadedMetadata={handleVideoMetadataLoaded}
+                  onError={(e) => {
+                    e.preventDefault?.();
+                    e.stopPropagation?.();
+                    setVideoError(true);
+                  }}
+                />
+              ) : (
+                // Show thumbnail or placeholder for iOS when not hovered
+                project.thumbnail_url ? (
+                  <img 
+                    src={project.thumbnail_url} 
+                    alt={project.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
+                    <Film className="w-8 h-8 text-zinc-600" />
+                  </div>
+                )
+              )
+            ) : (
+              // Desktop: Keep existing behavior with preload="metadata" (not "auto")
+              <video
+                ref={videoRef}
+                src={videoSrc}
+                className={cn(
+                  "absolute inset-0 w-full h-full object-cover transition-all duration-700",
+                  isHovered && "scale-105"
+                )}
+                loop
+                muted
+                playsInline
+                preload="metadata"
+                onLoadedMetadata={handleVideoMetadataLoaded}
+                onError={(e) => {
+                  e.preventDefault?.();
+                  e.stopPropagation?.();
+                  setVideoError(true);
+                }}
+              />
+            )}
             
             {/* Cinematic bars on hover */}
             <div 

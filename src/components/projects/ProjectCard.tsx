@@ -96,11 +96,20 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
   const [isHovered, setIsHovered] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoError, setVideoError] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
   
   const status = project.status as string;
   const isDirectVideo = project.video_url && !isManifestUrl(project.video_url);
   const isManifest = project.video_url && isManifestUrl(project.video_url);
   const hasVideo = Boolean(project.video_clips?.length || isDirectVideo || isManifest || status === 'completed');
+  
+  // Detect touch device on mount
+  useEffect(() => {
+    const checkTouchDevice = () => {
+      setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    };
+    checkTouchDevice();
+  }, []);
   
   // Track mount state for async safety
   useEffect(() => {
@@ -151,7 +160,8 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     }
   }, []);
 
-  const handleMouseEnter = useCallback(() => {
+  // Unified interaction handler for both mouse and touch
+  const handleInteractionStart = useCallback(() => {
     if (!isMountedRef.current) return;
     setIsHovered(true);
     
@@ -159,19 +169,21 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     if (!video || !hasVideo || !videoSrc) return;
     
     try {
+      // CRITICAL: iOS requires muted for autoplay
       video.muted = true;
       
-      // Function to attempt play
+      // Function to attempt play - wrapped for safety
       const attemptPlay = () => {
         if (!isMountedRef.current || !videoRef.current) return;
         
         const v = videoRef.current;
         try {
-          // Reset to start
-          if (v.readyState >= 1) {
+          // Reset to start - with safety check
+          if (v.readyState >= 1 && isFinite(v.duration)) {
             v.currentTime = 0;
           }
           
+          // CRITICAL: Play must be called synchronously from user gesture on iOS
           const playPromise = v.play();
           if (playPromise !== undefined) {
             playPromise.catch((err) => {
@@ -194,7 +206,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
           video.removeEventListener('canplay', onCanPlay);
           attemptPlay();
         };
-        video.addEventListener('canplay', onCanPlay);
+        video.addEventListener('canplay', onCanPlay, { once: true });
         
         // Also try loading if not started
         if (video.readyState === 0) {
@@ -202,11 +214,14 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
         }
       }
     } catch (err) {
-      console.debug('[ProjectCard] Mouse enter error:', err);
+      console.debug('[ProjectCard] Interaction start error:', err);
     }
   }, [hasVideo, videoSrc]);
+  
+  // Alias for mouse events
+  const handleMouseEnter = handleInteractionStart;
 
-  const handleMouseLeave = useCallback(() => {
+  const handleInteractionEnd = useCallback(() => {
     if (!isMountedRef.current) return;
     setIsHovered(false);
     
@@ -225,8 +240,25 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
         }
       }
     } catch (err) {
-      console.debug('[ProjectCard] Mouse leave error:', err);
+      console.debug('[ProjectCard] Interaction end error:', err);
     }
+  }, []);
+  
+  // Alias for mouse events  
+  const handleMouseLeave = handleInteractionEnd;
+  
+  // Touch event handlers for iPad/mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    // On touch devices, first tap shows preview, second tap plays
+    if (!isHovered) {
+      e.preventDefault(); // Prevent click from firing immediately
+      handleInteractionStart();
+    }
+  }, [isHovered, handleInteractionStart]);
+  
+  const handleTouchEnd = useCallback(() => {
+    // Don't immediately hide on touch end - let user see the preview
+    // They can tap again to play or tap elsewhere to dismiss
   }, []);
 
   const getStatusBadge = () => {
@@ -379,6 +411,8 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
       style={{ animationDelay: `${index * 0.06}s` }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onTouchStart={isTouchDevice ? handleTouchStart : undefined}
+      onTouchEnd={isTouchDevice ? handleTouchEnd : undefined}
       onClick={onPlay}
     >
       {/* Glow effect on hover */}
@@ -405,6 +439,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
               loop
               muted
               playsInline
+              crossOrigin="anonymous"
               preload="auto"
               onLoadedMetadata={handleVideoMetadataLoaded}
               onError={(e) => {

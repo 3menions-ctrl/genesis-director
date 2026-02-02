@@ -31,6 +31,8 @@ interface ProjectRow {
   mode: string | null;
   genre: string;
   video_url: string | null;
+  video_clips: string[] | null;
+  voice_audio_url: string | null;
   thumbnail_url: string | null;
   created_at: string;
   updated_at: string;
@@ -59,8 +61,9 @@ function mapDbProjectToProject(row: ProjectRow): Project {
     mode: row.mode || undefined,
     source_image_url: row.source_image_url || undefined,
     avatar_voice_id: row.avatar_voice_id || undefined,
-    // These are lazy-loaded, not fetched upfront
-    video_clips: undefined,
+    // CRITICAL: Include video_clips and voice_audio_url for multi-clip avatar playback
+    video_clips: row.video_clips || undefined,
+    voice_audio_url: row.voice_audio_url || undefined,
   };
 }
 
@@ -95,7 +98,7 @@ export function usePaginatedProjects(
   const buildQuery = useCallback((currentOffset: number) => {
     let query = supabase
       .from('movie_projects')
-      .select('id, user_id, title, status, mode, genre, video_url, thumbnail_url, created_at, updated_at, likes_count, is_public, aspect_ratio, pipeline_state, source_image_url, avatar_voice_id, pending_video_tasks', { count: 'exact' })
+      .select('id, user_id, title, status, mode, genre, video_url, video_clips, voice_audio_url, thumbnail_url, created_at, updated_at, likes_count, is_public, aspect_ratio, pipeline_state, source_image_url, avatar_voice_id, pending_video_tasks', { count: 'exact' })
       .eq('user_id', user?.id)
       .range(currentOffset, currentOffset + PAGE_SIZE - 1);
     

@@ -13,7 +13,6 @@ import { AvatarTemplate } from '@/types/avatar-templates';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useVirtualScroll } from '@/hooks/useVirtualScroll';
 import { useSafeArray } from '@/components/stability/GlobalStabilityBoundary';
 import { ShimmerSkeleton } from './OptimizedAvatarImage';
 
@@ -262,27 +261,58 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  const [viewportWidth, setViewportWidth] = useState(0);
   
   // Responsive dimensions
   const CARD_WIDTH = isMobile ? 200 : 280;
   const CARD_GAP = isMobile ? 16 : 24;
   const ITEM_WIDTH = CARD_WIDTH + CARD_GAP;
   
-  // Virtual scroll configuration
-  const {
-    visibleRange,
-    containerRef: virtualContainerRef,
-    onScroll: virtualOnScroll,
-    totalSize,
-    offsetBefore,
-  } = useVirtualScroll({
-    totalItems: safeAvatars.length,
-    itemHeight: CARD_WIDTH, // Using width since it's horizontal
-    itemWidth: ITEM_WIDTH,
-    direction: 'horizontal',
-    overscan: 5, // FIXED: Increased from 3 to 5 to prevent blank cards during fast scroll
-    gap: CARD_GAP,
-  });
+  // Measure viewport for virtual scroll
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    const measure = () => {
+      setViewportWidth(container.clientWidth);
+    };
+    measure();
+    
+    const resizeObserver = new ResizeObserver(measure);
+    resizeObserver.observe(container);
+    return () => resizeObserver.disconnect();
+  }, []);
+  
+  // Calculate visible range directly (bypassing broken hook integration)
+  const { visibleRange, totalSize, offsetBefore } = useMemo(() => {
+    const scrollLeft = scrollContainerRef.current?.scrollLeft || 0;
+    const overscan = 5;
+    
+    // If no viewport measured yet, show all avatars (fallback)
+    if (viewportWidth === 0 || ITEM_WIDTH === 0) {
+      return {
+        visibleRange: safeAvatars.map((_, i) => i),
+        totalSize: safeAvatars.length * ITEM_WIDTH,
+        offsetBefore: 0,
+      };
+    }
+    
+    const start = Math.floor(scrollLeft / ITEM_WIDTH);
+    const visibleCount = Math.ceil(viewportWidth / ITEM_WIDTH);
+    const startWithOverscan = Math.max(0, start - overscan);
+    const endWithOverscan = Math.min(safeAvatars.length - 1, start + visibleCount + overscan);
+    
+    const range: number[] = [];
+    for (let i = startWithOverscan; i <= endWithOverscan; i++) {
+      range.push(i);
+    }
+    
+    return {
+      visibleRange: range,
+      totalSize: safeAvatars.length * ITEM_WIDTH - CARD_GAP,
+      offsetBefore: startWithOverscan * ITEM_WIDTH,
+    };
+  }, [viewportWidth, ITEM_WIDTH, CARD_GAP, safeAvatars.length]);
   
   // Cleanup
   useEffect(() => {
@@ -292,12 +322,16 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
     };
   }, []);
   
+  // Track scroll position for virtual scroll recalculation
+  const [scrollPosition, setScrollPosition] = useState(0);
+  
   // Check scroll state
   const checkScrollState = useCallback(() => {
     if (!mountedRef.current || !scrollContainerRef.current) return;
     const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
     setCanScrollLeft(scrollLeft > 0);
     setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    setScrollPosition(scrollLeft); // Trigger re-render for virtual scroll
   }, []);
   
   useEffect(() => {
@@ -309,8 +343,7 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
   // Scroll handlers
   const handleScroll = useCallback(() => {
     checkScrollState();
-    virtualOnScroll();
-  }, [checkScrollState, virtualOnScroll]);
+  }, [checkScrollState]);
   
   const scroll = useCallback((direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
@@ -322,7 +355,7 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
     }
   }, [ITEM_WIDTH]);
 
-  // Get visible avatars from virtual scroll
+  // Get visible avatars from calculated range
   const visibleAvatars = useMemo(() => {
     return visibleRange.map(index => safeAvatars[index]).filter(Boolean);
   }, [visibleRange, safeAvatars]);

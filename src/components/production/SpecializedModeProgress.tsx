@@ -23,11 +23,19 @@ interface PipelineState {
   totalClips?: number;
 }
 
+interface ClipInfo {
+  index: number;
+  videoUrl: string;
+  status: 'completed' | 'failed' | 'generating';
+}
+
 interface SpecializedModeProgressProps {
   projectId: string;
   mode: 'avatar' | 'motion-transfer' | 'video-to-video';
   pipelineState: PipelineState;
   videoUrl?: string | null;
+  allClips?: ClipInfo[];
+  masterAudioUrl?: string | null;
   onComplete?: () => void;
   onRetry?: () => void;
   onCancel?: () => void;
@@ -91,6 +99,8 @@ export function SpecializedModeProgress({
   mode,
   pipelineState,
   videoUrl,
+  allClips = [],
+  masterAudioUrl,
   onComplete,
   onRetry,
   onCancel,
@@ -99,6 +109,7 @@ export function SpecializedModeProgress({
   const [isPolling, setIsPolling] = useState(false);
   const [localState, setLocalState] = useState<PipelineState>(pipelineState);
   const [localVideoUrl, setLocalVideoUrl] = useState(videoUrl);
+  const [localClips, setLocalClips] = useState<ClipInfo[]>(allClips);
   const [messageIndex, setMessageIndex] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [startTime] = useState(Date.now());
@@ -256,9 +267,14 @@ export function SpecializedModeProgress({
   useEffect(() => {
     setLocalState(pipelineState);
     if (videoUrl) setLocalVideoUrl(videoUrl);
-  }, [pipelineState, videoUrl]);
+    if (allClips.length > 0) setLocalClips(allClips);
+  }, [pipelineState, videoUrl, allClips]);
 
-  const isComplete = localState.stage === 'completed' || !!localVideoUrl;
+  // Use clips from props or fallback to single video
+  const completedClips = localClips.filter(c => c.status === 'completed');
+  const hasMultipleClips = completedClips.length > 1;
+  
+  const isComplete = localState.stage === 'completed' || !!localVideoUrl || completedClips.length > 0;
   const isFailed = localState.stage === 'failed';
   const isProcessing = !isComplete && !isFailed;
   const progress = localState.progress || 0;
@@ -540,8 +556,80 @@ export function SpecializedModeProgress({
             </div>
           </div>
 
-          {/* Video Preview */}
-          {localVideoUrl && (
+          {/* Multi-Clip Gallery for avatar mode */}
+          {hasMultipleClips && isComplete && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-white font-medium flex items-center gap-2">
+                  <Film className="w-4 h-4" />
+                  All Clips ({completedClips.length})
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    // Download all clips
+                    for (const clip of completedClips) {
+                      const link = document.createElement('a');
+                      link.href = clip.videoUrl;
+                      link.download = `${mode}-clip-${clip.index + 1}.mp4`;
+                      link.click();
+                      await new Promise(r => setTimeout(r, 500)); // Stagger downloads
+                    }
+                  }}
+                  className="text-white/60 hover:text-white gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download All
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {completedClips.map((clip, idx) => (
+                  <motion.div
+                    key={clip.index}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="rounded-xl overflow-hidden bg-black/50 ring-1 ring-white/[0.1] group relative"
+                  >
+                    <video
+                      src={clip.videoUrl}
+                      controls
+                      className="w-full aspect-video"
+                      poster="/placeholder.svg"
+                    />
+                    {/* Overlay with clip info and download */}
+                    <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/90 to-transparent flex items-center justify-between">
+                      <span className="text-white/80 text-sm font-medium">Clip {clip.index + 1}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const link = document.createElement('a');
+                          link.href = clip.videoUrl;
+                          link.download = `${mode}-clip-${clip.index + 1}.mp4`;
+                          link.click();
+                        }}
+                        className="h-8 px-3 text-white/70 hover:text-white hover:bg-white/20 gap-1.5"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        Download
+                      </Button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Single Video Preview (for single-clip or legacy) */}
+          {!hasMultipleClips && localVideoUrl && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -575,7 +663,57 @@ export function SpecializedModeProgress({
 
           {/* Actions */}
           <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-            {isComplete && localVideoUrl && (
+            {/* Multi-clip actions */}
+            {isComplete && hasMultipleClips && (
+              <>
+                <Button
+                  onClick={() => {
+                    // Play first clip
+                    if (completedClips[0]?.videoUrl) {
+                      window.open(completedClips[0].videoUrl, '_blank');
+                    }
+                  }}
+                  className={cn(
+                    "flex-1 min-w-[140px] h-11 sm:h-12 font-medium",
+                    "bg-gradient-to-r text-white",
+                    config.accentColor === 'amber' ? 'from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600' :
+                    config.accentColor === 'emerald' ? 'from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600' : 
+                    'from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600'
+                  )}
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  Play First Clip
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    // Download all clips
+                    for (const clip of completedClips) {
+                      const link = document.createElement('a');
+                      link.href = clip.videoUrl;
+                      link.download = `${mode}-clip-${clip.index + 1}.mp4`;
+                      link.click();
+                      await new Promise(r => setTimeout(r, 500));
+                    }
+                  }}
+                  className="h-11 sm:h-12 px-4 sm:px-6 border-white/20 text-white hover:bg-white/10"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download All ({completedClips.length})
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate('/clips')}
+                  className="h-11 sm:h-12 px-4 text-white/70 hover:text-white hover:bg-white/10"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  View in Library
+                </Button>
+              </>
+            )}
+            
+            {/* Single clip actions */}
+            {isComplete && !hasMultipleClips && localVideoUrl && (
               <>
                 <Button
                   onClick={() => window.open(localVideoUrl, '_blank')}

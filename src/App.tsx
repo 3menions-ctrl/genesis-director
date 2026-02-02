@@ -13,6 +13,7 @@ import { GlobalStabilityBoundary } from "@/components/stability/GlobalStabilityB
 import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
 import { DebugOverlay } from "@/components/diagnostics/DebugOverlay";
+import { NavigationGuardProvider } from "@/lib/navigation";
 
 // Lazy load all pages for code splitting
 const Landing = lazy(() => import("./pages/Landing"));
@@ -70,6 +71,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <NavigationLoadingProvider>
+            <NavigationGuardProvider>
             <AuthProvider>
               <StudioProvider>
                 {/* Global Loading Overlay for smooth transitions */}
@@ -311,6 +313,7 @@ const App = () => (
                 <DebugOverlay />
               </StudioProvider>
             </AuthProvider>
+            </NavigationGuardProvider>
           </NavigationLoadingProvider>
         </BrowserRouter>
       </TooltipProvider>

@@ -17,6 +17,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { UniversalVideoPlayer } from '@/components/player';
 import { safePlay, safePause, safeSeek } from '@/lib/video/safeVideoOperations';
+import { useRouteCleanup, useNavigationAbort, useSafeNavigation } from '@/lib/navigation';
 import type { VideoGenerationMode } from '@/types/video-modes';
 
 // Lazy load heavy components
@@ -101,6 +102,18 @@ const DiscoverContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [selectedVideo, setSelectedVideo] = useState<PublicVideo | null>(null);
   const [modeFilter, setModeFilter] = useState<VideoGenerationMode | 'all'>('all');
+  
+  // Navigation safety - abort on unmount
+  const { getSignal, isMounted } = useNavigationAbort();
+  const { navigate: safeNavigate } = useSafeNavigation();
+  
+  // Register cleanup when leaving this page
+  useRouteCleanup(() => {
+    // Close any open modals
+    setSelectedVideo(null);
+    // Clear search state to prevent stale UI on return
+    setSearchQuery('');
+  }, []);
 
   const { data: videos, isLoading } = useQuery({
     queryKey: ['public-videos', sortBy],

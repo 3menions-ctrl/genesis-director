@@ -107,10 +107,23 @@ class NavigationCoordinatorImpl {
    * Begin navigation transition. Returns false if navigation is locked.
    */
   async beginNavigation(fromRoute: string, toRoute: string): Promise<boolean> {
-    // Prevent double-navigation
+    // SAFARI FIX: Allow same-route navigation (refresh/re-render)
+    if (fromRoute === toRoute) {
+      this.log('info', `Same-route navigation allowed: ${toRoute}`);
+      return true;
+    }
+    
+    // Prevent double-navigation to DIFFERENT routes
     if (this.state.isLocked) {
-      this.log('warn', `Navigation locked, rejecting: ${fromRoute} → ${toRoute}`);
-      return false;
+      // SAFARI FIX: Auto-unlock if locked for too long (Safari can get stuck)
+      const lockAge = performance.now() - this.state.startTime;
+      if (lockAge > 1500) {
+        this.log('warn', `Stale navigation lock detected (${lockAge.toFixed(0)}ms), force unlocking`);
+        this.forceUnlock();
+      } else {
+        this.log('warn', `Navigation locked, rejecting: ${fromRoute} → ${toRoute}`);
+        return false;
+      }
     }
 
     // Lock navigation
@@ -123,7 +136,7 @@ class NavigationCoordinatorImpl {
     };
     this.notifyListeners();
 
-    // Set safety timeout to auto-unlock
+    // Set safety timeout to auto-unlock (reduced for Safari responsiveness)
     this.lockTimeoutId = setTimeout(() => {
       this.log('warn', 'Navigation lock timeout, force unlocking');
       this.forceUnlock();

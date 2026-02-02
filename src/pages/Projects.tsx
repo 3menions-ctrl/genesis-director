@@ -503,6 +503,31 @@ function ProjectsContentInner() {
     const unpinned = result.filter(p => !pinnedProjects.has(p.id));
     return [...pinned, ...unpinned];
   }, [projects, searchQuery, statusFilter, sortBy, sortOrder, pinnedProjects]);
+  
+  // iOS SAFARI MEMORY FIX: Virtualize/paginate projects to prevent memory crash
+  const [displayLimit, setDisplayLimit] = useState(24);
+  const isIOSSafari = useMemo(() => {
+    if (typeof navigator === 'undefined') return false;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    return isIOS && isSafari;
+  }, []);
+  
+  // On iOS Safari, limit initial render to prevent memory crash
+  const displayedProjects = useMemo(() => {
+    if (isIOSSafari) {
+      return filteredProjects.slice(0, displayLimit);
+    }
+    return filteredProjects;
+  }, [filteredProjects, displayLimit, isIOSSafari]);
+  
+  // Load more handler for iOS Safari
+  const handleLoadMore = useCallback(() => {
+    setDisplayLimit(prev => Math.min(prev + 24, filteredProjects.length));
+  }, [filteredProjects.length]);
+  
+  const hasMoreToLoad = isIOSSafari && displayLimit < filteredProjects.length;
 
   // Stats
   const stats = useMemo(() => {
@@ -526,9 +551,11 @@ function ProjectsContentInner() {
     storytelling: { label: 'Storytelling', icon: Layers, color: 'text-cyan-400' },
   };
 
-  // Group projects by genre
+  // Group projects by genre - iOS SAFARI FIX: Use displayedProjects for memory-safe rendering
   const groupedProjects = useMemo(() => {
-    const unpinnedProjects = filteredProjects.filter(p => !pinnedProjects.has(p.id));
+    // Use displayedProjects (paginated for iOS Safari) instead of filteredProjects
+    const projectsToRender = isIOSSafari ? displayedProjects : filteredProjects;
+    const unpinnedProjects = projectsToRender.filter(p => !pinnedProjects.has(p.id));
     const groups: Record<string, Project[]> = {};
     
     unpinnedProjects.forEach(project => {
@@ -543,7 +570,7 @@ function ProjectsContentInner() {
     const sortedGenres = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length);
     
     return { groups, sortedGenres };
-  }, [filteredProjects, pinnedProjects]);
+  }, [filteredProjects, displayedProjects, pinnedProjects, isIOSSafari]);
 
   // Handlers
   const handleCreateProject = () => {
@@ -1268,6 +1295,20 @@ function ProjectsContentInner() {
                       </motion.section>
                     );
                   })}
+                  
+                  {/* iOS Safari Load More Button */}
+                  {hasMoreToLoad && (
+                    <div className="flex justify-center py-8">
+                      <Button
+                        onClick={handleLoadMore}
+                        variant="outline"
+                        className="gap-2 border-orange-500/30 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500/50"
+                      >
+                        <Loader2 className="w-4 h-4" />
+                        Load More ({filteredProjects.length - displayLimit} remaining)
+                      </Button>
+                    </div>
+                  )}
                 </>
               ) : null}
             </motion.div>

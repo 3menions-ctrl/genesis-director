@@ -439,7 +439,6 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
               loop
               muted
               playsInline
-              crossOrigin="anonymous"
               preload="auto"
               onLoadedMetadata={handleVideoMetadataLoaded}
               onError={(e) => {

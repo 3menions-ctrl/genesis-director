@@ -216,7 +216,6 @@ export const VideoThumbnail = memo(forwardRef<HTMLDivElement, VideoThumbnailProp
           muted
           loop
           playsInline
-          crossOrigin="anonymous"
           preload="metadata"
         />
       ) : (

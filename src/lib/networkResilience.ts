@@ -1,8 +1,9 @@
 /**
- * Network Resilience Layer v1.0
+ * Network Resilience Layer v2.0
  * 
  * Global interceptors with exponential backoff retry mechanism
- * for all Supabase function calls. Handles jitter and 504 timeouts.
+ * for all Supabase function calls. Handles jitter, 504 timeouts,
+ * and safe JSON parsing to prevent crashes from HTML error responses.
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -30,6 +31,10 @@ const RETRYABLE_ERRORS = [
   'Bad Gateway',
   'timeout',
   'ENOTFOUND',
+  // HTML error response patterns (should retry)
+  'Expected JSON but got',
+  'API returned HTML',
+  'Unexpected response format',
 ];
 
 // Error types that should NOT retry (terminal errors)
@@ -43,6 +48,92 @@ const NON_RETRYABLE_ERRORS = [
   'Invalid JWT',
   'session expired',
 ];
+
+/**
+ * Safely fetch JSON with Content-Type validation
+ * Prevents crashes when APIs return HTML instead of JSON
+ */
+export async function fetchJsonSafely<T>(
+  url: string, 
+  options?: RequestInit
+): Promise<{ data: T | null; error: Error | null }> {
+  try {
+    const response = await fetch(url, options);
+    const contentType = response.headers.get("content-type");
+
+    // Check if response is JSON
+    if (!contentType?.includes("application/json")) {
+      const textResponse = await response.text();
+      console.error("[NetworkResilience] Expected JSON but got:", contentType);
+      console.debug("[NetworkResilience] Response preview:", textResponse.substring(0, 200));
+
+      // Detect HTML responses (common for auth redirects, server errors, rate limiting)
+      if (textResponse.trim().startsWith("<!") || textResponse.includes("<html")) {
+        const error = new Error(
+          `API returned HTML instead of JSON. Status: ${response.status}. ` +
+          `This usually indicates: auth redirect, server error, or rate limiting.`
+        );
+        return { data: null, error };
+      }
+      
+      return { 
+        data: null, 
+        error: new Error(`Unexpected response format: ${contentType}`) 
+      };
+    }
+    
+    // Safely parse JSON
+    const text = await response.text();
+    if (!text || text.trim() === '') {
+      return { data: null, error: null }; // Empty response is valid
+    }
+    
+    try {
+      const data = JSON.parse(text) as T;
+      return { data, error: null };
+    } catch (parseError) {
+      console.error("[NetworkResilience] JSON parse error:", parseError);
+      return { 
+        data: null, 
+        error: new Error(`Failed to parse JSON response: ${parseError}`) 
+      };
+    }
+  } catch (fetchError) {
+    return { 
+      data: null, 
+      error: fetchError instanceof Error ? fetchError : new Error(String(fetchError)) 
+    };
+  }
+}
+
+/**
+ * Safe JSON parse that never throws
+ */
+export function safeJsonParse<T>(text: string): { data: T | null; error: Error | null } {
+  try {
+    // Handle empty/whitespace strings
+    if (!text || text.trim() === '') {
+      return { data: null, error: null };
+    }
+    
+    // Quick check for HTML before attempting parse
+    const trimmed = text.trim();
+    if (trimmed.startsWith('<!') || trimmed.toLowerCase().startsWith('<html')) {
+      return { 
+        data: null, 
+        error: new Error('Received HTML instead of JSON') 
+      };
+    }
+    
+    const data = JSON.parse(text) as T;
+    return { data, error: null };
+  } catch (err) {
+    return { 
+      data: null, 
+      error: err instanceof Error ? err : new Error('JSON parse failed') 
+    };
+  }
+}
 
 /**
  * Check if error is retryable
@@ -148,6 +239,7 @@ export async function invokeWithRetry<T = unknown>(
 
 /**
  * Create a resilient fetch wrapper for external APIs
+ * With automatic JSON validation and HTML detection
  */
 export async function fetchWithRetry(
   url: string,
@@ -155,9 +247,16 @@ export async function fetchWithRetry(
     maxRetries?: number;
     baseDelay?: number;
     onRetry?: (attempt: number, error: unknown) => void;
+    expectJson?: boolean;
   }
 ): Promise<Response> {
-  const { maxRetries = DEFAULT_MAX_RETRIES, baseDelay = BASE_DELAY_MS, onRetry, ...fetchOptions } = options || {};
+  const { 
+    maxRetries = DEFAULT_MAX_RETRIES, 
+    baseDelay = BASE_DELAY_MS, 
+    onRetry, 
+    expectJson = false,
+    ...fetchOptions 
+  } = options || {};
   
   let lastError: Error | null = null;
   
@@ -172,6 +271,28 @@ export async function fetchWithRetry(
         onRetry?.(attempt + 1, new Error(`HTTP ${response.status}`));
         await sleep(delay);
         continue;
+      }
+      
+      // If expecting JSON, validate content-type
+      if (expectJson) {
+        const contentType = response.headers.get("content-type");
+        if (!contentType?.includes("application/json")) {
+          // Clone response to check body without consuming it
+          const clonedResponse = response.clone();
+          const text = await clonedResponse.text();
+          
+          // If it's HTML, treat as retryable error (server might be temporarily down)
+          if (text.trim().startsWith("<!") || text.toLowerCase().includes("<html")) {
+            if (attempt < maxRetries) {
+              const delay = calculateDelay(attempt, baseDelay);
+              console.log(`[NetworkResilience] HTML response, retrying ${attempt + 1}/${maxRetries} for ${url}`);
+              onRetry?.(attempt + 1, new Error("Received HTML instead of JSON"));
+              await sleep(delay);
+              continue;
+            }
+            throw new Error(`API returned HTML instead of JSON (status ${response.status})`);
+          }
+        }
       }
       
       return response;

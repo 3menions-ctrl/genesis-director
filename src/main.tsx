@@ -113,6 +113,34 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'readyState',
   'HAVE_NOTHING',
   'load() was called',
+  // JSON parsing and network errors - NEW
+  'Expected JSON but got',
+  'API returned HTML',
+  'Unexpected response format',
+  'Unexpected token',
+  'Unexpected end of JSON',
+  'JSON.parse',
+  'JSON parse',
+  'SyntaxError',
+  // Permission errors (handled by auth flow, not crash)
+  'permission denied',
+  'Permission denied',
+  'PGRST',
+  '42501',
+  // Auth context errors (handled gracefully)
+  'auth context',
+  'session',
+  'Session',
+  // Touch/pointer events on unmounted elements
+  'touch event',
+  'pointer event',
+  'target is null',
+  // Image loading errors
+  'Failed to load image',
+  'Image load error',
+  // Intersection Observer cleanup
+  'IntersectionObserver',
+  'disconnect',
 ];
 
 // ============= CONSOLE INTERCEPTION =============

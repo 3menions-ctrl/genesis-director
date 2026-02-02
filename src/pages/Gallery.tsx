@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { safePlay, safePause, safeSeek, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
 
 // Video category type
 type VideoCategory = 'all' | 'text-to-video' | 'image-to-video' | 'avatar';
@@ -357,10 +358,9 @@ const TiltVideoCard = forwardRef<HTMLDivElement, TiltVideoCardProps>(function Ti
       vid.muted = true;
       
       const attemptPlay = () => {
-        try {
-          if (!videoRef.current) return;
-          videoRef.current.play().catch(() => {});
-        } catch {}
+        // STABILITY FIX: Use safe video operations
+        if (!videoRef.current) return;
+        safePlay(videoRef.current);
       };
       
       if (vid.readyState >= 3) {
@@ -374,11 +374,10 @@ const TiltVideoCard = forwardRef<HTMLDivElement, TiltVideoCardProps>(function Ti
         if (vid.readyState === 0) vid.load();
       }
     } else {
-      try {
-        vid.pause();
-        const targetTime = vid.duration && isFinite(vid.duration) ? Math.min(vid.duration * 0.1, 0.5) : 0;
-        if (vid.readyState >= 1) vid.currentTime = targetTime;
-      } catch {}
+      // STABILITY FIX: Use safe video operations
+      safePause(vid);
+      const targetTime = isSafeVideoNumber(vid.duration) ? Math.min(vid.duration * 0.1, 0.5) : 0;
+      safeSeek(vid, targetTime);
     }
   }, [isHovered, videoSrc]);
   

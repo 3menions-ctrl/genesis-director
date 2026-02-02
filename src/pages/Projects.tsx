@@ -11,6 +11,7 @@ import {
   Command, GraduationCap, MonitorPlay, Pin, ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { safePlay, safePause, safeSeek } from '@/lib/video/safeVideoOperations';
 import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
@@ -1081,8 +1082,8 @@ function ProjectsContentInner() {
                             muted
                             playsInline
                             preload="metadata"
-                            onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
-                            onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+                            onMouseEnter={(e) => safePlay(e.currentTarget)}
+                            onMouseLeave={(e) => { safePause(e.currentTarget); safeSeek(e.currentTarget, 0); }}
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">

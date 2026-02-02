@@ -18,7 +18,7 @@ const VIDEOS = [
 async function extractFrame(videoUrl: string, timeInSeconds: number = 1): Promise<Blob | null> {
   return new Promise((resolve) => {
     const video = document.createElement('video');
-    video.crossOrigin = 'anonymous';
+    // STABILITY FIX: crossOrigin removed - CDNs don't support CORS headers for media
     video.muted = true;
     video.preload = 'auto';
     
@@ -45,7 +45,7 @@ async function extractFrame(videoUrl: string, timeInSeconds: number = 1): Promis
     };
     
     video.onerror = () => {
-      console.error('Video load error for:', videoUrl);
+      console.debug('[extractFrame] Video load error for:', videoUrl?.substring(0, 60));
       resolve(null);
     };
     

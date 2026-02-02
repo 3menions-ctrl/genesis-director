@@ -59,12 +59,239 @@ serve(async (req) => {
     const cutoffTime = new Date(Date.now() - STUCK_THRESHOLD_MS).toISOString();
     const refundCutoff = new Date(Date.now() - MAX_AGE_FOR_REFUND_MS).toISOString();
 
-    // ==================== PHASE 1: STUCK PROJECTS ====================
+    // ==================== PHASE 0: STALLED AVATAR PIPELINES ====================
+    // Avatar projects stuck at any pipeline stage (audio_merge, video_rendering, etc.)
+    const { data: stalledAvatarProjects, error: avatarError } = await supabase
+      .from('movie_projects')
+      .select('id, user_id, title, status, updated_at, pipeline_state, mode, created_at')
+      .eq('status', 'generating')
+      .eq('mode', 'avatar')
+      .lt('updated_at', cutoffTime)
+      .order('updated_at', { ascending: true })
+      .limit(30);
+
+    if (avatarError) {
+      console.error("[ZombieCleanup] Error fetching stalled avatar projects:", avatarError);
+    }
+
+    for (const project of (stalledAvatarProjects || [])) {
+      const stuckDuration = Date.now() - new Date(project.updated_at).getTime();
+      const pipelineState = (project.pipeline_state || {}) as Record<string, unknown>;
+      const stage = pipelineState.stage as string;
+      
+      console.log(`[ZombieCleanup] Found stalled avatar project: ${project.id} at stage '${stage}' (stuck ${Math.round(stuckDuration / 1000)}s)`);
+      report.zombiesFound++;
+      
+      // Check if we have assets to recover (audio_merge stage has both video and audio)
+      const hasVideoUrl = !!pipelineState.videoUrl;
+      const hasAudioUrl = !!pipelineState.audioUrl;
+      
+      if (stage === 'audio_merge' && hasVideoUrl && hasAudioUrl) {
+        // RECOVERY PATH: Both assets exist, attempt to complete the project
+        console.log(`[ZombieCleanup] Attempting audio_merge recovery for ${project.id}`);
+        
+        try {
+          // Try to merge audio with video
+          const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+          
+          if (REPLICATE_API_KEY) {
+            const videoUrl = pipelineState.videoUrl as string;
+            const audioUrl = pipelineState.audioUrl as string;
+            
+            // Attempt quick merge with short timeout
+            const mergeResponse = await fetch("https://api.replicate.com/v1/predictions", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+                "Content-Type": "application/json",
+                "Prefer": "wait=30", // Short timeout for zombie cleanup
+              },
+              body: JSON.stringify({
+                version: "684cc0e6bff2f0d3b748d7c386ab8a6fb7c5f6d2095a3a38d68d9d6a3a2cb2f6",
+                input: {
+                  video: videoUrl,
+                  audio: audioUrl,
+                  audio_volume: 1.0,
+                  video_volume: 0.0,
+                },
+              }),
+            });
+            
+            if (mergeResponse.ok) {
+              const prediction = await mergeResponse.json();
+              let finalVideoUrl = videoUrl; // Fallback to video without merged audio
+              
+              if (prediction.status === "succeeded" && prediction.output) {
+                finalVideoUrl = prediction.output;
+                console.log(`[ZombieCleanup] ✅ Audio merge succeeded for ${project.id}`);
+              } else {
+                console.log(`[ZombieCleanup] Audio merge pending/failed, using video-only for ${project.id}`);
+              }
+              
+              // Mark project as completed with the video
+              await supabase.from('movie_projects').update({
+                status: 'completed',
+                video_url: finalVideoUrl,
+                voice_audio_url: audioUrl,
+                pipeline_state: {
+                  ...pipelineState,
+                  stage: 'completed',
+                  progress: 100,
+                  message: 'Video recovered by zombie cleanup',
+                  completedAt: new Date().toISOString(),
+                  recoveredBy: 'zombie-cleanup',
+                },
+                updated_at: new Date().toISOString(),
+              }).eq('id', project.id);
+              
+              report.projectsFailed++; // Count as handled
+              report.details.push({
+                entityType: 'project',
+                entityId: project.id,
+                userId: project.user_id,
+                stuckDuration: Math.round(stuckDuration / 1000),
+                action: 'recovered_audio_merge',
+                refundAmount: 0,
+              });
+              continue;
+            }
+          }
+        } catch (recoveryError) {
+          console.warn(`[ZombieCleanup] Recovery failed for ${project.id}:`, recoveryError);
+        }
+        
+        // Recovery failed - complete with video-only
+        const videoUrl = pipelineState.videoUrl as string;
+        await supabase.from('movie_projects').update({
+          status: 'completed',
+          video_url: videoUrl,
+          voice_audio_url: pipelineState.audioUrl as string,
+          pipeline_state: {
+            ...pipelineState,
+            stage: 'completed',
+            progress: 100,
+            message: 'Video completed (audio sync skipped)',
+            completedAt: new Date().toISOString(),
+            recoveredBy: 'zombie-cleanup-fallback',
+          },
+          updated_at: new Date().toISOString(),
+        }).eq('id', project.id);
+        
+        report.projectsFailed++;
+        report.details.push({
+          entityType: 'project',
+          entityId: project.id,
+          userId: project.user_id,
+          stuckDuration: Math.round(stuckDuration / 1000),
+          action: 'completed_video_only',
+          refundAmount: 0,
+        });
+        continue;
+      }
+      
+      if (stage === 'video_rendering' && hasAudioUrl) {
+        // Video rendering stalled - check if Replicate prediction is still running
+        const predictionId = pipelineState.predictionId as string;
+        if (predictionId) {
+          const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+          if (REPLICATE_API_KEY) {
+            try {
+              const statusRes = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+                headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` },
+              });
+              const prediction = await statusRes.json();
+              
+              if (prediction.status === "succeeded" && prediction.output) {
+                // Video is ready! Complete the project
+                const videoUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+                console.log(`[ZombieCleanup] ✅ Found completed prediction for ${project.id}`);
+                
+                await supabase.from('movie_projects').update({
+                  status: 'completed',
+                  video_url: videoUrl,
+                  voice_audio_url: pipelineState.audioUrl as string,
+                  pipeline_state: {
+                    ...pipelineState,
+                    stage: 'completed',
+                    progress: 100,
+                    videoUrl,
+                    message: 'Video recovered from completed prediction',
+                    completedAt: new Date().toISOString(),
+                    recoveredBy: 'zombie-cleanup-prediction',
+                  },
+                  updated_at: new Date().toISOString(),
+                }).eq('id', project.id);
+                
+                report.projectsFailed++;
+                report.details.push({
+                  entityType: 'project',
+                  entityId: project.id,
+                  userId: project.user_id,
+                  stuckDuration: Math.round(stuckDuration / 1000),
+                  action: 'recovered_from_prediction',
+                  refundAmount: 0,
+                });
+                continue;
+              }
+            } catch (predError) {
+              console.warn(`[ZombieCleanup] Prediction check failed for ${project.id}:`, predError);
+            }
+          }
+        }
+      }
+      
+      // No recovery possible - mark as failed with refund
+      const projectAge = Date.now() - new Date(project.created_at).getTime();
+      const eligibleForRefund = projectAge < MAX_AGE_FOR_REFUND_MS;
+      const refundAmount = eligibleForRefund ? 10 : 0; // Avatar projects use flat rate
+      
+      await supabase.from('movie_projects').update({
+        status: 'failed',
+        pipeline_state: {
+          ...pipelineState,
+          stage: 'failed',
+          error: `Avatar pipeline stalled at ${stage} stage`,
+          zombieCleanupAt: new Date().toISOString(),
+          stuckDuration: Math.round(stuckDuration / 1000),
+        },
+        updated_at: new Date().toISOString(),
+      }).eq('id', project.id);
+      
+      if (refundAmount > 0) {
+        await supabase.from('credit_transactions').insert({
+          user_id: project.user_id,
+          amount: refundAmount,
+          transaction_type: 'refund',
+          description: `Refund for stalled avatar: ${project.title || project.id}`,
+          project_id: project.id,
+        });
+        
+        await supabase.rpc('increment_credits', {
+          user_id_param: project.user_id,
+          amount_param: refundAmount,
+        });
+        
+        report.creditsRefunded += refundAmount;
+      }
+      
+      report.projectsFailed++;
+      report.details.push({
+        entityType: 'project',
+        entityId: project.id,
+        userId: project.user_id,
+        stuckDuration: Math.round(stuckDuration / 1000),
+        action: 'marked_failed',
+        refundAmount,
+      });
+    }
+
+    // ==================== PHASE 1: STUCK PROJECTS (STANDARD PIPELINE) ====================
     // Find projects stuck in generating/processing states
     const { data: stuckProjects, error: projectsError } = await supabase
       .from('movie_projects')
       .select('id, user_id, title, status, updated_at, pending_video_tasks, created_at, pipeline_stage')
       .in('status', ['generating', 'rendering', 'assembling', 'stitching'])
+      .neq('mode', 'avatar') // Skip avatar projects (handled in Phase 0)
       .lt('updated_at', cutoffTime)
       .order('updated_at', { ascending: true })
       .limit(50);

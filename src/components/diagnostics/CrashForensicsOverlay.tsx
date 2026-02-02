@@ -55,13 +55,25 @@ function recordBoot(): { isLoop: boolean; count: number } {
   };
 }
 
+/**
+ * Clear boot tracking - call when app successfully stabilizes
+ */
+function clearBootTracking(): void {
+  try {
+    sessionStorage.removeItem(BOOT_KEY);
+  } catch {}
+}
+
 // Check boot status on module load
 const bootStatus = typeof window !== 'undefined' ? recordBoot() : { isLoop: false, count: 0 };
 
-// If reload loop detected and not already in safe mode, auto-enable
+// If reload loop detected and not already in safe mode, set safe mode WITHOUT reload
+// CRITICAL: Using skipReload=true prevents infinite reload loops where the 
+// crash detection itself causes more crashes
 if (bootStatus.isLoop && !getSafeModeStatus() && typeof window !== 'undefined') {
-  console.error('[CrashForensics] RELOAD LOOP DETECTED - auto-enabling safe mode');
-  autoEnableSafeMode(`Reload loop detected: ${bootStatus.count} boots in 10 seconds`);
+  console.error('[CrashForensics] RELOAD LOOP DETECTED - enabling safe mode (no reload)');
+  // Set safe mode flag but DON'T reload - let this render complete in safe mode
+  autoEnableSafeMode(`Reload loop detected: ${bootStatus.count} boots in 10 seconds`, true);
 }
 
 export const CrashForensicsOverlay = memo(function CrashForensicsOverlay({ 
@@ -98,6 +110,19 @@ export const CrashForensicsOverlay = memo(function CrashForensicsOverlay({
       setIsOpen(true);
     }
   }, [isEnabled, isSafeMode]);
+  
+  // Clear boot tracking after app stabilizes (all checkpoints passed)
+  useEffect(() => {
+    const checkStability = () => {
+      if (crashForensics.allCheckpointsPassed()) {
+        clearBootTracking();
+      }
+    };
+    
+    // Check after a delay to ensure we've truly stabilized
+    const timer = setTimeout(checkStability, 5000);
+    return () => clearTimeout(timer);
+  }, []);
   
   if (!isEnabled) return null;
   

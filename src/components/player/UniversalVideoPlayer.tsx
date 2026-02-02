@@ -98,8 +98,6 @@ export interface UniversalVideoPlayerProps {
   onClose?: () => void;
   /** Callback when download is requested */
   onDownload?: () => void;
-  /** Callback when export completes (for stitching) */
-  onExportComplete?: (videoUrl: string) => void;
   /** Show hover preview (thumbnail mode) */
   hoverPreview?: boolean;
 }
@@ -670,26 +668,121 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
       };
     }, [clips, mode, useMSE, loop, onEnded]);
 
+    // Autoplay for MSE engine
+    useEffect(() => {
+      if (!useMSE || !mseReady || !autoPlay || mode === 'thumbnail') return;
+      if (mseEngineRef.current && !isPlaying) {
+        mseEngineRef.current.play();
+        setIsPlaying(true);
+      }
+    }, [mseReady, autoPlay, useMSE, mode, isPlaying]);
+
     // ========================================================================
-    // LEGACY FALLBACK: Dual-video setup
+    // LEGACY FALLBACK: Dual-video setup with crossfade transitions
     // ========================================================================
     
     useEffect(() => {
       if (clips.length === 0 || mode === 'thumbnail' || useMSE) return;
       
       const videoA = videoARef.current;
+      const videoB = videoBRef.current;
       if (!videoA || !clips[0]) return;
 
       videoA.src = clips[0].blobUrl || clips[0].url;
       videoA.load();
 
       // Preload second clip
-      const videoB = videoBRef.current;
       if (videoB && clips[1]) {
         videoB.src = clips[1].blobUrl || clips[1].url;
         videoB.load();
       }
-    }, [clips, mode, useMSE]);
+
+      // Handle clip transitions via timeupdate
+      const handleTimeUpdate = () => {
+        if (!mountedRef.current || isTransitioningRef.current) return;
+        
+        const active = activeVideoIndex === 0 ? videoA : videoB;
+        const duration = getSafeDuration(active);
+        const currentT = active.currentTime;
+        
+        // Trigger transition near end of clip
+        if (duration > 0 && currentT >= duration - TRANSITION_TRIGGER_OFFSET) {
+          const nextIndex = currentClipIndex + 1;
+          if (nextIndex < clips.length) {
+            isTransitioningRef.current = true;
+            
+            // Setup next video
+            const nextVideo = activeVideoIndex === 0 ? videoB : videoA;
+            const nextClip = clips[nextIndex];
+            if (nextVideo && nextClip) {
+              nextVideo.src = nextClip.blobUrl || nextClip.url;
+              nextVideo.load();
+              nextVideo.currentTime = 0;
+              
+              // Start crossfade
+              doubleRAF(() => {
+                if (!mountedRef.current) return;
+                
+                // True overlap phase (both at 100%)
+                if (activeVideoIndex === 0) {
+                  setVideoBOpacity(1);
+                } else {
+                  setVideoAOpacity(1);
+                }
+                
+                safePlay(nextVideo);
+                
+                // Fadeout phase after overlap
+                setTimeout(() => {
+                  if (!mountedRef.current) return;
+                  if (activeVideoIndex === 0) {
+                    setVideoAOpacity(0);
+                  } else {
+                    setVideoBOpacity(0);
+                  }
+                  
+                  safePause(active);
+                  setActiveVideoIndex(prev => prev === 0 ? 1 : 0);
+                  setCurrentClipIndex(nextIndex);
+                  isTransitioningRef.current = false;
+                }, CROSSFADE_OVERLAP_MS);
+              });
+            }
+          } else if (!loop) {
+            // End of all clips
+            setIsPlaying(false);
+            onEnded?.();
+          }
+        }
+        
+        // Update current time for progress bar
+        let elapsed = 0;
+        for (let i = 0; i < currentClipIndex; i++) {
+          elapsed += clips[i]?.duration || 0;
+        }
+        setCurrentTime(elapsed + currentT);
+      };
+
+      videoA.addEventListener('timeupdate', handleTimeUpdate);
+      videoB?.addEventListener('timeupdate', handleTimeUpdate);
+
+      return () => {
+        videoA.removeEventListener('timeupdate', handleTimeUpdate);
+        videoB?.removeEventListener('timeupdate', handleTimeUpdate);
+      };
+    }, [clips, mode, useMSE, activeVideoIndex, currentClipIndex, loop, onEnded]);
+
+    // Autoplay for legacy fallback
+    useEffect(() => {
+      if (useMSE || mode === 'thumbnail' || !autoPlay) return;
+      if (clips.length === 0 || isLoading) return;
+      
+      const video = activeVideoIndex === 0 ? videoARef.current : videoBRef.current;
+      if (video) {
+        safePlay(video);
+        setIsPlaying(true);
+      }
+    }, [clips, isLoading, useMSE, mode, autoPlay, activeVideoIndex]);
 
     // ========================================================================
     // PLAYBACK CONTROLS

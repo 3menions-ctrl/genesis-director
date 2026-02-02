@@ -3,11 +3,18 @@
  * 
  * Features:
  * - MSE-first gapless playback with legacy fallback
+ * - HLS native playback for iOS Safari (seamless, no gaps)
  * - Auto-detects source type (projectId, manifest, clips array, single video)
  * - Multiple display modes: inline, fullscreen, thumbnail, export
  * - Database fetching via projectId for multi-clip projects
  * - Unified controls with customizable visibility
  * - Safe video operations throughout
+ * 
+ * Playback Path Selection:
+ * - iOS Safari → HLS Native (via generate-hls-playlist)
+ * - Chrome/Firefox/Edge → MSE Gapless Engine
+ * - Safari Desktop < 15 → HLS Native or Legacy fallback
+ * - Other → Legacy dual-video crossfade
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo, forwardRef, memo } from 'react';
@@ -33,6 +40,12 @@ import {
   type MSEEngineState,
 } from '@/lib/videoEngine/MSEGaplessEngine';
 import { navigationCoordinator } from '@/lib/navigation';
+import { 
+  getPlatformCapabilities, 
+  logPlaybackPath, 
+  requiresHLSPlayback 
+} from '@/lib/video/platformDetection';
+import { HLSNativePlayer } from './HLSNativePlayer';
 
 // ============================================================================
 // TYPES
@@ -437,12 +450,21 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     }, [mode, controlsProp]);
 
     // ========================================================================
+    // PLATFORM DETECTION
+    // ========================================================================
+    
+    const platformCapabilities = useMemo(() => getPlatformCapabilities(), []);
+    const useHLSNative = platformCapabilities.preferredPlaybackMode === 'hls_native';
+    
+    // ========================================================================
     // STATE
     // ========================================================================
     
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [clips, setClips] = useState<{ url: string; blobUrl?: string; duration: number }[]>([]);
+    const [hlsPlaylistUrl, setHlsPlaylistUrl] = useState<string | null>(null);
+    const [masterAudioUrl, setMasterAudioUrl] = useState<string | null>(null);
     const [currentClipIndex, setCurrentClipIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isMuted, setIsMuted] = useState(initialMuted);
@@ -452,7 +474,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     const [isHovered, setIsHovered] = useState(false);
     
     // MSE state
-    const [useMSE, setUseMSE] = useState(MSE_SUPPORT.supported);
+    const [useMSE, setUseMSE] = useState(MSE_SUPPORT.supported && !useHLSNative);
     const [mseReady, setMseReady] = useState(false);
     const mseEngineRef = useRef<MSEGaplessEngine | null>(null);
     
@@ -553,9 +575,36 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
 
         try {
           let urls: string[] = [];
+          let hlsUrl: string | null = null;
+          let audioUrl: string | null = null;
 
           // Fetch from database if projectId provided
           if (source.projectId) {
+            // First check for existing HLS playlist in project
+            const { data: project } = await supabase
+              .from('movie_projects')
+              .select('pending_video_tasks')
+              .eq('id', source.projectId)
+              .single();
+            
+            const tasks = project?.pending_video_tasks as Record<string, unknown> | null;
+            hlsUrl = tasks?.hlsPlaylistUrl as string | null;
+            audioUrl = tasks?.masterAudioUrl as string | null || source.masterAudioUrl || null;
+            
+            // If on iOS and HLS available, use it
+            if (useHLSNative && hlsUrl) {
+              logPlaybackPath('HLS_NATIVE', { 
+                projectId: source.projectId, 
+                hlsUrl,
+                reason: 'iOS Safari detected with HLS playlist available'
+              });
+              setHlsPlaylistUrl(hlsUrl);
+              setMasterAudioUrl(audioUrl);
+              setIsLoading(false);
+              return;
+            }
+            
+            // Otherwise fetch clips for MSE/legacy
             const { data: dbClips, error: dbError } = await supabase
               .from('video_clips')
               .select('video_url, duration_seconds, shot_index')
@@ -573,8 +622,26 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
           // Parse manifest if provided
           else if (source.manifestUrl) {
             const manifest = await parseManifest(source.manifestUrl);
-            if (manifest?.clips) {
-              urls = manifest.clips.map(c => c.videoUrl);
+            if (manifest) {
+              // Check for HLS playlist in manifest
+              const hlsManifest = manifest as any;
+              if (useHLSNative && hlsManifest.hlsPlaylistUrl) {
+                logPlaybackPath('HLS_NATIVE', { 
+                  manifestUrl: source.manifestUrl,
+                  hlsUrl: hlsManifest.hlsPlaylistUrl,
+                  reason: 'iOS Safari detected with HLS manifest'
+                });
+                setHlsPlaylistUrl(hlsManifest.hlsPlaylistUrl);
+                setMasterAudioUrl(hlsManifest.masterAudioUrl || hlsManifest.voiceUrl || null);
+                setIsLoading(false);
+                return;
+              }
+              
+              if (manifest.clips) {
+                urls = manifest.clips.map(c => c.videoUrl);
+                audioUrl = (manifest as any).masterAudioUrl || (manifest as any).voiceUrl || null;
+                setMasterAudioUrl(audioUrl);
+              }
             }
           } else if (source.urls) {
             urls = source.urls;
@@ -587,6 +654,14 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             setIsLoading(false);
             return;
           }
+
+          // Log the selected playback path
+          const playbackPath = useMSE ? 'MSE_GAPLESS' : 'LEGACY_CROSSFADE';
+          logPlaybackPath(playbackPath, {
+            clipCount: urls.length,
+            platformMode: platformCapabilities.preferredPlaybackMode,
+            isMSESupported: platformCapabilities.supportsMSE,
+          });
 
           // Initialize clips with estimated duration
           const initialClips = urls.map(url => ({
@@ -1119,7 +1194,34 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     }
 
     // ========================================================================
-    // RENDER: Inline & Fullscreen Modes
+    // RENDER: HLS Native Mode (iOS Safari)
+    // ========================================================================
+    
+    if (hlsPlaylistUrl && useHLSNative) {
+      return (
+        <HLSNativePlayer
+          ref={ref}
+          hlsUrl={hlsPlaylistUrl}
+          masterAudioUrl={masterAudioUrl}
+          muteClipAudio={!!masterAudioUrl}
+          autoPlay={autoPlay}
+          muted={isMuted}
+          loop={loop}
+          className={cn(
+            mode === 'fullscreen' && "fixed inset-0 z-50",
+            className
+          )}
+          onEnded={onEnded}
+          onError={(err) => setError(err)}
+          onTimeUpdate={(time, dur) => {
+            setCurrentTime(time);
+          }}
+        />
+      );
+    }
+
+    // ========================================================================
+    // RENDER: Inline & Fullscreen Modes (MSE or Legacy)
     // ========================================================================
     
     return (
@@ -1151,6 +1253,13 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               <RefreshCw className="w-4 h-4 mr-2" />
               Retry
             </Button>
+          </div>
+        )}
+
+        {/* Playback Path Indicator (dev only) */}
+        {process.env.NODE_ENV === 'development' && !error && !isLoading && (
+          <div className="absolute top-2 left-2 px-2 py-1 bg-primary/80 text-primary-foreground text-xs rounded font-mono z-50">
+            {useMSE ? 'MSE_GAPLESS' : 'LEGACY_CROSSFADE'}
           </div>
         )}
 

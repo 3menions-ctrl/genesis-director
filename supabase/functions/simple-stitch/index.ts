@@ -144,11 +144,61 @@ serve(async (req) => {
     
     console.log(`[SimpleStitch] Audio config: isAvatar=${isAvatarProject}, masterAudio=${!!masterAudioUrl}, voiceUrl=${!!voiceAudioUrl}`);
     
+    // =========================================================================
+    // GENERATE HLS PLAYLIST FOR iOS SAFARI
+    // Creates an M3U8 file with discontinuity markers between clips
+    // =========================================================================
+    
+    let hlsPlaylistUrl: string | null = null;
+    try {
+      // Calculate max duration for target duration header
+      const maxClipDuration = Math.ceil(Math.max(...clipData.map(c => c.durationSeconds)));
+      
+      let hlsContent = `#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:${maxClipDuration}
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+`;
+
+      clipData.forEach((clip, index) => {
+        if (index > 0) {
+          // Discontinuity tag required between different source clips
+          hlsContent += `#EXT-X-DISCONTINUITY\n`;
+        }
+        hlsContent += `#EXTINF:${clip.durationSeconds.toFixed(6)},\n`;
+        hlsContent += `${clip.videoUrl}\n`;
+      });
+      
+      hlsContent += `#EXT-X-ENDLIST\n`;
+      
+      const hlsFileName = `hls_${projectId}_${timestamp}.m3u8`;
+      const hlsBytes = new TextEncoder().encode(hlsContent);
+      
+      await supabase.storage
+        .from('temp-frames')
+        .upload(hlsFileName, hlsBytes, { 
+          contentType: 'application/vnd.apple.mpegurl',
+          upsert: true 
+        });
+      
+      hlsPlaylistUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/${hlsFileName}`;
+      console.log(`[SimpleStitch] ✅ HLS playlist created: ${hlsPlaylistUrl}`);
+    } catch (hlsErr) {
+      console.warn("[SimpleStitch] HLS generation failed (non-fatal):", hlsErr);
+    }
+    
+    // =========================================================================
+    // CREATE JSON MANIFEST
+    // =========================================================================
+    
     const manifest = {
-      version: "2.1",
+      version: "2.2",
       projectId,
       mode: "client_side_concat",
       createdAt: new Date().toISOString(),
+      // HLS URL for iOS Safari native playback
+      hlsPlaylistUrl,
       clips: clipData.map((clip, index) => ({
         index,
         shotId: clip.shotId,
@@ -194,6 +244,7 @@ serve(async (req) => {
           progress: 100,
           mode: 'manifest_playback',
           manifestUrl,
+          hlsPlaylistUrl,
           clipCount: clips.length,
           totalDuration,
           completedAt: new Date().toISOString(),

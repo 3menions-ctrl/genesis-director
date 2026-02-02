@@ -10,7 +10,7 @@
  * - Reload loop detection
  */
 
-import { useState, useEffect, useCallback, memo } from 'react';
+import { useState, useEffect, useCallback, memo, forwardRef } from 'react';
 import { X, AlertTriangle, CheckCircle2, XCircle, Activity, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { crashForensics, getOverlayData, type Checkpoint } from '@/lib/crashForensics';
@@ -76,9 +76,8 @@ if (bootStatus.isLoop && !getSafeModeStatus() && typeof window !== 'undefined') 
   autoEnableSafeMode(`Reload loop detected: ${bootStatus.count} boots in 10 seconds`, true);
 }
 
-export const CrashForensicsOverlay = memo(function CrashForensicsOverlay({ 
-  alwaysShow = false 
-}: CrashForensicsOverlayProps) {
+export const CrashForensicsOverlay = memo(forwardRef<HTMLDivElement, CrashForensicsOverlayProps>(
+  function CrashForensicsOverlay({ alwaysShow = false }, _ref) {
   const [isOpen, setIsOpen] = useState(false);
   const [data, setData] = useState(getOverlayData);
   const isSafeMode = getSafeModeStatus();
@@ -296,6 +295,8 @@ export const CrashForensicsOverlay = memo(function CrashForensicsOverlay({
       </div>
     </div>
   );
-});
+}));
+
+CrashForensicsOverlay.displayName = 'CrashForensicsOverlay';
 
 export default CrashForensicsOverlay;

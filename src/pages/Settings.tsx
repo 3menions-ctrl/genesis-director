@@ -87,7 +87,7 @@ const SettingsContent = memo(function SettingsContent() {
         <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-tl from-white/[0.01] to-transparent blur-[100px]" />
       </div>
 
-      <AppHeader showCreate={false} />
+      <AppHeader />
 
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}

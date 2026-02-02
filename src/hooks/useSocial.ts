@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -53,6 +53,15 @@ export interface UserFollow {
 export function useSocial() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const isMountedRef = useRef(true);
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Fetch followers count
   const { data: followersCount } = useQuery({
@@ -65,7 +74,10 @@ export function useSocial() {
         .select('*', { count: 'exact', head: true })
         .eq('following_id', user.id);
       
-      if (error) throw error;
+      if (error) {
+        console.debug('[useSocial] Followers count error:', error.message);
+        return 0;
+      }
       return count ?? 0;
     },
     enabled: !!user,
@@ -82,7 +94,10 @@ export function useSocial() {
         .select('*', { count: 'exact', head: true })
         .eq('follower_id', user.id);
       
-      if (error) throw error;
+      if (error) {
+        console.debug('[useSocial] Following count error:', error.message);
+        return 0;
+      }
       return count ?? 0;
     },
     enabled: !!user,
@@ -90,17 +105,25 @@ export function useSocial() {
 
   // Check if following a user
   const checkFollowing = async (userId: string): Promise<boolean> => {
-    if (!user) return false;
+    if (!user || !isMountedRef.current) return false;
     
-    const { data, error } = await supabase
-      .from('user_follows')
-      .select('id')
-      .eq('follower_id', user.id)
-      .eq('following_id', userId)
-      .single();
-    
-    if (error && error.code !== 'PGRST116') throw error;
-    return !!data;
+    try {
+      const { data, error } = await supabase
+        .from('user_follows')
+        .select('id')
+        .eq('follower_id', user.id)
+        .eq('following_id', userId)
+        .single();
+      
+      if (!isMountedRef.current) return false;
+      if (error && error.code !== 'PGRST116') {
+        console.debug('[useSocial] Check following error:', error.message);
+        return false;
+      }
+      return !!data;
+    } catch {
+      return false;
+    }
   };
 
   // Follow mutation

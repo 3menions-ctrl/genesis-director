@@ -134,10 +134,18 @@ function doubleRAF(callback: () => void) {
 }
 
 async function fetchAsBlob(url: string, signal?: AbortSignal): Promise<string> {
-  const res = await fetch(url, { mode: 'cors', credentials: 'omit', signal });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const blob = await res.blob();
-  return URL.createObjectURL(blob);
+  try {
+    const res = await fetch(url, { mode: 'cors', credentials: 'omit', signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  } catch (err) {
+    // Re-throw AbortError to be handled by caller
+    if ((err as Error)?.name === 'AbortError') {
+      throw err;
+    }
+    throw new Error(`Failed to fetch blob: ${(err as Error)?.message || 'Unknown'}`);
+  }
 }
 
 function formatTime(seconds: number): string {
@@ -546,11 +554,24 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             return;
           }
 
-          // Load clip metadata
+          // Load clip metadata with HARDENED error handling
           const loadedClips = await Promise.all(
-            urls.map(async (url) => {
+            urls.map(async (url, index) => {
               try {
+                // CRITICAL: Check if still mounted before expensive operation
+                if (!mountedRef.current || controller.signal.aborted) {
+                  return { url, blobUrl: undefined, duration: 5 };
+                }
+                
                 const blobUrl = await fetchAsBlob(url, controller.signal);
+                
+                // Check mount state again after async operation
+                if (!mountedRef.current) {
+                  // Clean up blob URL if we're unmounted
+                  try { URL.revokeObjectURL(blobUrl); } catch {}
+                  return { url, blobUrl: undefined, duration: 5 };
+                }
+                
                 const video = document.createElement('video');
                 video.preload = 'metadata';
                 video.muted = true;
@@ -562,10 +583,11 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                   
                   video.onloadedmetadata = () => {
                     clearTimeout(timeout);
+                    const dur = video.duration;
                     resolve({ 
                       url, 
                       blobUrl, 
-                      duration: video.duration || 5 
+                      duration: isFinite(dur) && dur > 0 ? dur : 5 
                     });
                   };
                   video.onerror = () => {
@@ -574,7 +596,13 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                   };
                   video.src = blobUrl;
                 });
-              } catch {
+              } catch (err) {
+                // CRITICAL: Suppress AbortError and other fetch errors
+                const errorName = (err as Error)?.name || '';
+                if (errorName === 'AbortError' || !mountedRef.current) {
+                  return { url, blobUrl: undefined, duration: 5 };
+                }
+                console.debug('[UniversalPlayer] Clip load failed:', index, err);
                 return { url, blobUrl: undefined, duration: 5 };
               }
             })
@@ -589,6 +617,8 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             setIsPlaying(true);
           }
         } catch (err) {
+          // CRITICAL: Suppress AbortError completely
+          if ((err as Error)?.name === 'AbortError') return;
           if (!mountedRef.current) return;
           console.warn('[UniversalPlayer] Load error:', err);
           setError('Failed to load video');

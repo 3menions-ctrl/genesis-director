@@ -53,16 +53,34 @@ const MSE_MIME_TYPES = [
  * Detects if MediaSource Extensions are supported and finds best MIME type
  */
 export function detectMSESupport(): { supported: boolean; mimeType: string | null } {
+  // CRITICAL: Check for Safari iOS which has limited MSE support
+  const isIOSSafari = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+  if (isIOSSafari) {
+    console.warn('[MSEEngine] iOS Safari detected - MSE not fully supported, using fallback');
+    return { supported: false, mimeType: null };
+  }
+
   if (typeof MediaSource === 'undefined') {
     console.warn('[MSEEngine] MediaSource API not available');
     return { supported: false, mimeType: null };
   }
 
-  for (const mime of MSE_MIME_TYPES) {
-    if (MediaSource.isTypeSupported(mime)) {
-      console.log('[MSEEngine] Supported MIME type found:', mime);
-      return { supported: true, mimeType: mime };
+  // CRITICAL: Also check if MediaSource.isTypeSupported exists
+  if (typeof MediaSource.isTypeSupported !== 'function') {
+    console.warn('[MSEEngine] MediaSource.isTypeSupported not available');
+    return { supported: false, mimeType: null };
+  }
+
+  try {
+    for (const mime of MSE_MIME_TYPES) {
+      if (MediaSource.isTypeSupported(mime)) {
+        console.log('[MSEEngine] Supported MIME type found:', mime);
+        return { supported: true, mimeType: mime };
+      }
     }
+  } catch (err) {
+    console.warn('[MSEEngine] Error checking MIME support:', err);
+    return { supported: false, mimeType: null };
   }
 
   console.warn('[MSEEngine] No supported MIME types found');
@@ -609,21 +627,34 @@ export class MSEGaplessEngine {
 
 /**
  * Factory function to create and initialize an MSE engine
+ * HARDENED: Wrapped in try-catch to prevent Safari crashes
  */
 export async function createMSEEngine(
   videoElement: HTMLVideoElement,
   clips: MSEClip[],
   callbacks?: MSEEngineCallbacks
 ): Promise<{ engine: MSEGaplessEngine; useFallback: boolean }> {
-  const engine = new MSEGaplessEngine(callbacks);
-  const success = await engine.initialize(videoElement, clips);
-  
-  if (success) {
-    await engine.loadAllClips();
-  }
+  try {
+    const engine = new MSEGaplessEngine(callbacks);
+    const success = await engine.initialize(videoElement, clips);
+    
+    if (success) {
+      try {
+        await engine.loadAllClips();
+      } catch (loadError) {
+        console.warn('[MSEEngine] loadAllClips failed, using fallback:', loadError);
+        return { engine, useFallback: true };
+      }
+    }
 
-  return {
-    engine,
-    useFallback: !success,
-  };
+    return {
+      engine,
+      useFallback: !success,
+    };
+  } catch (err) {
+    // CRITICAL: Any MSE error should gracefully fall back
+    console.warn('[MSEEngine] createMSEEngine failed, using fallback:', err);
+    const fallbackEngine = new MSEGaplessEngine(callbacks);
+    return { engine: fallbackEngine, useFallback: true };
+  }
 }

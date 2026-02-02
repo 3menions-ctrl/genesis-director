@@ -27,8 +27,8 @@ export const RouteContainer = memo(forwardRef<HTMLDivElement, RouteContainerProp
       <div ref={ref}>
         <StabilityBoundary 
           name={routeName || 'Page'} 
-          autoRetry={true}
-          maxRetries={1}
+          autoRetry={false}  // DISABLED: Prevents retry loops during hydration issues
+          maxRetries={0}     // No automatic retries - user must click "Try Again"
         >
           <Suspense fallback={<AppLoader message={fallbackMessage} />}>
             {children}

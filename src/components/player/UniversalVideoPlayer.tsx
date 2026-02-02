@@ -833,6 +833,100 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     // LEGACY FALLBACK: Dual-video setup with crossfade transitions
     // ========================================================================
     
+    // CRITICAL: Transition to next clip (called by both timeupdate and onEnded)
+    const transitionToNextClip = useCallback(() => {
+      if (!mountedRef.current || isTransitioningRef.current) return;
+      
+      const videoA = videoARef.current;
+      const videoB = videoBRef.current;
+      if (!videoA || !videoB) return;
+      
+      const nextIndex = currentClipIndex + 1;
+      if (nextIndex < clips.length) {
+        isTransitioningRef.current = true;
+        
+        // Setup next video
+        const active = activeVideoIndex === 0 ? videoA : videoB;
+        const nextVideo = activeVideoIndex === 0 ? videoB : videoA;
+        const nextClip = clips[nextIndex];
+        
+        if (nextVideo && nextClip) {
+          nextVideo.src = nextClip.blobUrl || nextClip.url;
+          nextVideo.load();
+          nextVideo.currentTime = 0;
+          
+          // CRITICAL: Start next video playing BEFORE crossfade for gapless audio
+          const nextVideoCanPlay = () => {
+            nextVideo.removeEventListener('canplay', nextVideoCanPlay);
+            if (!mountedRef.current) return;
+            
+            // Start crossfade - True overlap phase (both at 100%)
+            if (activeVideoIndex === 0) {
+              setVideoBOpacity(1);
+            } else {
+              setVideoAOpacity(1);
+            }
+            
+            safePlay(nextVideo);
+            
+            // Fadeout phase after overlap
+            setTimeout(() => {
+              if (!mountedRef.current) return;
+              if (activeVideoIndex === 0) {
+                setVideoAOpacity(0);
+              } else {
+                setVideoBOpacity(0);
+              }
+              
+              safePause(active);
+              setActiveVideoIndex(prev => prev === 0 ? 1 : 0);
+              setCurrentClipIndex(nextIndex);
+              
+              // Preload the NEXT next clip (n+2) for even smoother transitions
+              const futureIndex = nextIndex + 1;
+              if (futureIndex < clips.length) {
+                const futureVideo = activeVideoIndex === 0 ? videoA : videoB;
+                const futureClip = clips[futureIndex];
+                if (futureVideo && futureClip) {
+                  futureVideo.src = futureClip.blobUrl || futureClip.url;
+                  futureVideo.load();
+                }
+              }
+              
+              isTransitioningRef.current = false;
+            }, CROSSFADE_OVERLAP_MS);
+          };
+          
+          // Listen for canplay to ensure smooth transition
+          nextVideo.addEventListener('canplay', nextVideoCanPlay, { once: true });
+          
+          // Fallback: If canplay doesn't fire within 500ms, proceed anyway
+          setTimeout(() => {
+            if (isTransitioningRef.current) {
+              nextVideo.removeEventListener('canplay', nextVideoCanPlay);
+              nextVideoCanPlay();
+            }
+          }, 500);
+        }
+      } else if (loop) {
+        // Loop back to first clip
+        setCurrentClipIndex(0);
+        setActiveVideoIndex(0);
+        if (videoA && clips[0]) {
+          videoA.src = clips[0].blobUrl || clips[0].url;
+          videoA.load();
+          videoA.currentTime = 0;
+          setVideoAOpacity(1);
+          setVideoBOpacity(0);
+          safePlay(videoA);
+        }
+      } else {
+        // End of all clips
+        setIsPlaying(false);
+        onEnded?.();
+      }
+    }, [clips, currentClipIndex, activeVideoIndex, loop, onEnded]);
+    
     useEffect(() => {
       if (clips.length === 0 || mode === 'thumbnail' || useMSE) return;
       
@@ -849,7 +943,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
         videoB.load();
       }
 
-      // Handle clip transitions via timeupdate
+      // Handle clip transitions via timeupdate (proactive trigger near end)
       const handleTimeUpdate = () => {
         if (!mountedRef.current || isTransitioningRef.current) return;
         
@@ -859,52 +953,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
         
         // Trigger transition near end of clip
         if (duration > 0 && currentT >= duration - TRANSITION_TRIGGER_OFFSET) {
-          const nextIndex = currentClipIndex + 1;
-          if (nextIndex < clips.length) {
-            isTransitioningRef.current = true;
-            
-            // Setup next video
-            const nextVideo = activeVideoIndex === 0 ? videoB : videoA;
-            const nextClip = clips[nextIndex];
-            if (nextVideo && nextClip) {
-              nextVideo.src = nextClip.blobUrl || nextClip.url;
-              nextVideo.load();
-              nextVideo.currentTime = 0;
-              
-              // Start crossfade
-              doubleRAF(() => {
-                if (!mountedRef.current) return;
-                
-                // True overlap phase (both at 100%)
-                if (activeVideoIndex === 0) {
-                  setVideoBOpacity(1);
-                } else {
-                  setVideoAOpacity(1);
-                }
-                
-                safePlay(nextVideo);
-                
-                // Fadeout phase after overlap
-                setTimeout(() => {
-                  if (!mountedRef.current) return;
-                  if (activeVideoIndex === 0) {
-                    setVideoAOpacity(0);
-                  } else {
-                    setVideoBOpacity(0);
-                  }
-                  
-                  safePause(active);
-                  setActiveVideoIndex(prev => prev === 0 ? 1 : 0);
-                  setCurrentClipIndex(nextIndex);
-                  isTransitioningRef.current = false;
-                }, CROSSFADE_OVERLAP_MS);
-              });
-            }
-          } else if (!loop) {
-            // End of all clips
-            setIsPlaying(false);
-            onEnded?.();
-          }
+          transitionToNextClip();
         }
         
         // Update current time for progress bar
@@ -914,15 +963,29 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
         }
         setCurrentTime(elapsed + currentT);
       };
+      
+      // CRITICAL: Handle onEnded as backup trigger for transitions
+      // This catches cases where timeupdate misses the trigger window
+      const handleEnded = () => {
+        if (!mountedRef.current) return;
+        console.log('[UniversalPlayer] Clip ended event fired, ensuring transition');
+        transitionToNextClip();
+      };
 
       videoA.addEventListener('timeupdate', handleTimeUpdate);
       videoB?.addEventListener('timeupdate', handleTimeUpdate);
+      
+      // CRITICAL: Add onEnded listeners as backup for gapless playback
+      videoA.addEventListener('ended', handleEnded);
+      videoB?.addEventListener('ended', handleEnded);
 
       return () => {
         videoA.removeEventListener('timeupdate', handleTimeUpdate);
         videoB?.removeEventListener('timeupdate', handleTimeUpdate);
+        videoA.removeEventListener('ended', handleEnded);
+        videoB?.removeEventListener('ended', handleEnded);
       };
-    }, [clips, mode, useMSE, activeVideoIndex, currentClipIndex, loop, onEnded]);
+    }, [clips, mode, useMSE, activeVideoIndex, currentClipIndex, loop, onEnded, transitionToNextClip]);
 
     // Autoplay for legacy fallback
     useEffect(() => {

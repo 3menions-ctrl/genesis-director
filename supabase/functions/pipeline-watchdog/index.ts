@@ -275,10 +275,9 @@ serve(async (req) => {
         completedClips.sort((a, b) => a.clipIndex - b.clipIndex);
         const primaryVideoUrl = completedClips[0].videoUrl;
         
-        await supabase.from('movie_projects').update({
+        const { error: updateError } = await supabase.from('movie_projects').update({
           status: 'completed',
           video_url: primaryVideoUrl,
-          final_video_url: primaryVideoUrl,
           video_clips: completedClips.map(c => c.videoUrl),
           pipeline_stage: 'completed',
           pipeline_state: {
@@ -295,6 +294,10 @@ serve(async (req) => {
           },
           updated_at: new Date().toISOString(),
         }).eq('id', project.id);
+        
+        if (updateError) {
+          console.error(`[Watchdog] ❌ Failed to complete project ${project.id}:`, updateError);
+        }
         
         result.productionResumed++;
         result.details.push({

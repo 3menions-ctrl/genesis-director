@@ -11,6 +11,7 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
@@ -475,8 +476,17 @@ const VideoCard = memo(forwardRef<HTMLDivElement, VideoCardProps>(function Video
               </div>
             )}
             
-            {/* Video element */}
-            {videoUrl && (
+            {/* Paused frame thumbnail - shows when not hovered */}
+            {videoUrl && !isHovered && (
+              <PausedFrameVideo
+                src={videoUrl}
+                className="absolute inset-0 w-full h-full object-cover rounded-xl"
+                showLoader={false}
+              />
+            )}
+            
+            {/* Interactive video element - shows on hover for playback */}
+            {videoUrl && isHovered && (
               <video
                 ref={videoRef}
                 src={videoUrl}
@@ -484,14 +494,12 @@ const VideoCard = memo(forwardRef<HTMLDivElement, VideoCardProps>(function Video
                 loop
                 playsInline
                 preload="auto"
+                autoPlay
                 onError={(e) => {
                   e.preventDefault?.();
                   e.stopPropagation?.();
                 }}
-                className={cn(
-                  "absolute inset-0 w-full h-full object-cover rounded-xl transition-transform duration-300",
-                  isHovered && "scale-105"
-                )}
+                className="absolute inset-0 w-full h-full object-cover rounded-xl scale-105 transition-transform duration-300"
               />
             )}
 

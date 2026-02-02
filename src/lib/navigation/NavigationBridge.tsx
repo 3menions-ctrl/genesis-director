@@ -9,9 +9,9 @@
  * When navigation completes, both systems finalize.
  */
 
-import React, { useEffect, useCallback, useRef, ReactNode } from 'react';
+import { useCallback, ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
-import { navigationCoordinator, NavigationState } from './NavigationCoordinator';
+import { navigationCoordinator } from './NavigationCoordinator';
 import { useNavigationLoading, usePageReady } from '@/contexts/NavigationLoadingContext';
 
 interface NavigationBridgeProps {
@@ -23,29 +23,9 @@ interface NavigationBridgeProps {
  * Place this inside both providers in App.tsx.
  */
 export function NavigationBridge({ children }: NavigationBridgeProps) {
-  const location = useLocation();
-  const prevPathRef = useRef(location.pathname);
-  const { startNavigation, completeNavigation, isHeavyRoute } = useNavigationLoading();
-
-  // Listen for route changes
-  useEffect(() => {
-    const prevPath = prevPathRef.current;
-    const currentPath = location.pathname;
-
-    if (prevPath !== currentPath) {
-      // Route changed
-      
-      // 1. Complete coordinator navigation (runs cleanups)
-      navigationCoordinator.completeNavigation();
-      
-      // 2. Trigger GC
-      navigationCoordinator.triggerGC();
-      
-      // 3. Update ref
-      prevPathRef.current = currentPath;
-    }
-  }, [location.pathname]);
-
+  // NOTE: Route change handling is done by NavigationGuardProvider
+  // This bridge only provides coordinated hooks for components
+  // DO NOT add route change listeners here - it causes duplicate calls
   return <>{children}</>;
 }
 
@@ -87,11 +67,10 @@ export function useCoordinatedReady() {
   const { markReady, disableAutoComplete } = usePageReady();
   
   const signalReady = useCallback((systemName?: string) => {
-    // Signal to loading context
+    // Signal to loading context only
+    // NOTE: Do NOT call navigationCoordinator.completeNavigation() here
+    // NavigationGuardProvider handles completion on route change
     markReady(systemName);
-    
-    // Complete navigation in coordinator
-    navigationCoordinator.completeNavigation();
   }, [markReady]);
   
   return { 

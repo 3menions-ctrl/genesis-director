@@ -161,16 +161,27 @@ class NavigationCoordinatorImpl {
   }
 
   /**
-   * Complete navigation transition
+   * Complete navigation transition (IDEMPOTENT)
+   * Only logs and resets if there's an active navigation to complete.
+   * Prevents duplicate completion calls from accumulating phantom times.
    */
   completeNavigation(): void {
+    // IDEMPOTENT GUARD: Only complete if we're actually navigating
+    if (this.state.phase === 'idle' && !this.state.isLocked) {
+      // Already idle - no-op to prevent duplicate logs
+      return;
+    }
+
     if (this.lockTimeoutId) {
       clearTimeout(this.lockTimeoutId);
       this.lockTimeoutId = null;
     }
 
-    const duration = performance.now() - this.state.startTime;
-    this.log('info', `Navigation completed in ${duration.toFixed(0)}ms`);
+    // Only log duration if we have a valid startTime (navigation was actually started)
+    if (this.state.startTime > 0) {
+      const duration = performance.now() - this.state.startTime;
+      this.log('info', `Navigation completed in ${duration.toFixed(0)}ms`);
+    }
 
     this.state = {
       phase: 'idle',

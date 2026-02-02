@@ -213,11 +213,12 @@ class GlobalStabilityBoundaryClass extends Component<GlobalStabilityBoundaryProp
     const errorMessage = error?.message || '';
     const errorName = error?.name || '';
     
-    // CRITICAL: Also check error name for DOMException types
-    const suppressedNames = ['AbortError', 'NotAllowedError', 'NotSupportedError', 'InvalidStateError'];
+    // CRITICAL: Also check error name for DOMException types - expanded list
+    const suppressedNames = ['AbortError', 'NotAllowedError', 'NotSupportedError', 'InvalidStateError', 'QuotaExceededError', 'SecurityError', 'NotFoundError', 'HierarchyRequestError'];
     if (suppressedNames.includes(errorName)) {
       console.debug('[GlobalStabilityBoundary] Suppressed by name:', errorName);
-      return null;
+      // CRITICAL: Return explicit reset to ensure UI doesn't show
+      return { hasError: false, error: null, errorInfo: null };
     }
     
     const shouldSuppress = SUPPRESSED_ERROR_PATTERNS.some(pattern => 
@@ -226,7 +227,8 @@ class GlobalStabilityBoundaryClass extends Component<GlobalStabilityBoundaryProp
     
     if (shouldSuppress) {
       console.debug('[GlobalStabilityBoundary] Suppressed non-critical error:', errorMessage.substring(0, 100));
-      return null; // Don't update state for suppressed errors
+      // CRITICAL: Return explicit reset to ensure UI doesn't show
+      return { hasError: false, error: null, errorInfo: null };
     }
     
     return { 
@@ -241,9 +243,12 @@ class GlobalStabilityBoundaryClass extends Component<GlobalStabilityBoundaryProp
     const errorMessage = error?.message || '';
     const errorName = error?.name || '';
     
-    // Check by error name first
-    const suppressedNames = ['AbortError', 'NotAllowedError', 'NotSupportedError', 'InvalidStateError'];
+    // Check by error name first - these are NEVER crashes
+    const suppressedNames = ['AbortError', 'NotAllowedError', 'NotSupportedError', 'InvalidStateError', 'QuotaExceededError', 'SecurityError', 'NotFoundError', 'HierarchyRequestError'];
     if (suppressedNames.includes(errorName)) {
+      console.debug('[GlobalStabilityBoundary] Suppressed by name (componentDidCatch):', errorName);
+      // CRITICAL FIX: Reset hasError state for suppressed errors to prevent showing error UI
+      this.setState({ hasError: false, error: null, errorInfo: null });
       return;
     }
     
@@ -252,10 +257,13 @@ class GlobalStabilityBoundaryClass extends Component<GlobalStabilityBoundaryProp
     );
     
     if (shouldSuppress) {
-      return; // Don't process suppressed errors
+      console.debug('[GlobalStabilityBoundary] Suppressed non-critical error (componentDidCatch):', errorMessage.substring(0, 80));
+      // CRITICAL FIX: Reset hasError state for suppressed errors to prevent showing error UI
+      this.setState({ hasError: false, error: null, errorInfo: null });
+      return; // Don't process suppressed errors - don't increment count
     }
 
-    // Increment error count for crash loop detection
+    // Only increment error count for REAL errors that weren't suppressed
     this.setState(prev => ({ 
       errorInfo, 
       errorCount: prev.errorCount + 1 

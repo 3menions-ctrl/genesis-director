@@ -173,8 +173,16 @@ interface SafeComponentProps {
 
 export const SafeComponent = forwardRef<HTMLDivElement, SafeComponentProps>(
   function SafeComponent({ children, name = 'Component', fallback, silent = false }, ref) {
+    // FIXED: Removed window.location.reload() to prevent crash loops
+    // Use a local retry state instead
+    const [retryKey, setRetryKey] = React.useState(0);
+    
+    const handleRetry = React.useCallback(() => {
+      setRetryKey(k => k + 1);
+    }, []);
+    
     return (
-      <div ref={ref} className="contents">
+      <div ref={ref} className="contents" key={retryKey}>
         <ErrorBoundary 
           fallback={fallback || (silent ? null : (
             <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
@@ -182,10 +190,10 @@ export const SafeComponent = forwardRef<HTMLDivElement, SafeComponentProps>(
                 {name} failed to load
               </p>
               <button 
-                onClick={() => window.location.reload()}
+                onClick={handleRetry}
                 className="mt-2 text-xs text-muted-foreground hover:text-foreground underline"
               >
-                Reload page
+                Try again
               </button>
             </div>
           ))}

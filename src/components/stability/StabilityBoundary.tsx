@@ -62,38 +62,94 @@ export class StabilityBoundary extends Component<Props, State> {
   };
 
   // Error patterns to suppress - prevent these from showing error UI
+  // COMPREHENSIVE LIST - must match GlobalStabilityBoundary and main.tsx
   private static readonly SUPPRESSED_PATTERNS = [
+    // AbortController - expected during navigation
     'AbortError',
     'aborted',
+    'The operation was aborted',
+    'signal is aborted',
+    // ResizeObserver - browser quirk
     'ResizeObserver',
+    // Chunk loading - handled by recovery system
     'ChunkLoadError',
     'Loading chunk',
     'dynamically imported module',
+    'Failed to fetch dynamically imported module',
+    // React ref warnings - NOT crashes
     'Function components cannot be given refs',
+    'forwardRef render functions accept',
     'forwardRef',
-    'ref',
+    'Check the render method',
+    'validateFunctionComponentInDev',
+    // DOM cleanup race conditions
     'removeChild',
     'insertBefore',
     'removeAttribute',
-    'Dialog',
-    'Radix',
-    'Portal',
-    'play() request was interrupted',
-    'unmounted component',
+    'setAttribute',
+    'appendChild',
+    'parentNode',
+    'Failed to execute',
     'Cannot read properties of null',
     'Cannot read properties of undefined',
+    // Radix/Dialog cleanup
+    'Dialog',
+    'DialogContent',
+    'DialogPortal',
+    'Radix',
+    'Portal',
+    'Tooltip',
+    'Popover',
+    // Video playback - CRITICAL
+    'play() request was interrupted',
+    'The play() request was interrupted',
+    'NotAllowedError',
+    'NotSupportedError',
+    'InvalidStateError',
+    'MEDIA_ERR',
+    'MediaError',
+    'HTMLMediaElement',
+    'The element has no supported sources',
+    'SourceBuffer',
+    'MediaSource',
+    // React lifecycle
+    'unmounted component',
+    'state update on an unmounted',
+    "Can't perform a React state update",
+    // Network errors
+    'Failed to fetch',
+    'NetworkError',
+    'Load failed',
+    'net::ERR',
+    // Safari-specific
+    'QuotaExceededError',
+    'SecurityError',
+    'WebKit',
+    'undefined is not an object',
+    'null is not an object',
   ];
 
   static getDerivedStateFromError(error: Error): Partial<State> | null {
     // Check if this error should be suppressed
     const errorMessage = error?.message || '';
+    const errorName = error?.name || '';
+    
+    // Check by error name first - DOMException types
+    const suppressedNames = ['AbortError', 'NotAllowedError', 'NotSupportedError', 'InvalidStateError', 'QuotaExceededError', 'SecurityError', 'NotFoundError'];
+    if (suppressedNames.includes(errorName)) {
+      console.debug('[StabilityBoundary] Suppressed by name:', errorName);
+      // CRITICAL: Explicitly reset to prevent error UI from showing
+      return { hasError: false, error: null, isRetrying: false };
+    }
+    
     const shouldSuppress = StabilityBoundary.SUPPRESSED_PATTERNS.some(pattern => 
       errorMessage.toLowerCase().includes(pattern.toLowerCase())
     );
     
     if (shouldSuppress) {
       console.debug('[StabilityBoundary] Suppressed non-critical error:', errorMessage.substring(0, 100));
-      return null; // Don't show error UI for suppressed errors
+      // CRITICAL: Explicitly reset to prevent error UI from showing
+      return { hasError: false, error: null, isRetrying: false };
     }
     
     return {

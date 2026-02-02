@@ -200,12 +200,33 @@ export function initializeDiagnostics(): () => void {
     return () => {};
   }
   
+  // Patterns to suppress from diagnostics logging (non-fatal warnings)
+  const SUPPRESSED_DIAGNOSTIC_PATTERNS = [
+    'Function components cannot be given refs',
+    'forwardRef render functions accept',
+    'Check the render method',
+    'validateFunctionComponentInDev',
+    'Each child in a list should have a unique',
+    'was already mounted',
+  ];
+  
+  const shouldSuppressDiagnostic = (message: string): boolean => {
+    return SUPPRESSED_DIAGNOSTIC_PATTERNS.some(pattern => message.includes(pattern));
+  };
+  
   // Intercept console.error
   originalConsoleError = console.error;
   console.error = (...args: unknown[]) => {
     const message = args.map(arg => 
       typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
     ).join(' ');
+    
+    // CRITICAL: Skip suppressed patterns to reduce noise
+    if (shouldSuppressDiagnostic(message)) {
+      // Still call original for dev visibility, but redirect to debug
+      console.debug('[Suppressed]', ...args);
+      return;
+    }
     
     const stack = args.find(arg => arg instanceof Error)?.stack;
     

@@ -7,8 +7,7 @@
  * - Keyboard shortcut support (Ctrl/Cmd + Shift + A)
  */
 
-import { memo, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { memo, useEffect } from 'react';
 import { Zap, Settings2, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWorkspaceMode, WorkspaceMode } from '@/contexts/WorkspaceModeContext';
@@ -116,12 +115,12 @@ export const WorkspaceModeToggle = memo(function WorkspaceModeToggle({
     );
   }
   
-  // Pill variant (default)
+  // Pill variant (default) - Uses standard button to avoid ref-forwarding issues with asChild
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <motion.button
+          <button
             onClick={toggleMode}
             className={cn(
               "relative flex items-center gap-1 p-1 rounded-full",
@@ -131,7 +130,7 @@ export const WorkspaceModeToggle = memo(function WorkspaceModeToggle({
             )}
           >
             {/* Quick button */}
-            <motion.div
+            <div
               className={cn(
                 "relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
                 mode === 'quick' ? 'text-white' : 'text-white/40'
@@ -143,10 +142,10 @@ export const WorkspaceModeToggle = memo(function WorkspaceModeToggle({
             >
               <Zap className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Quick</span>
-            </motion.div>
+            </div>
             
             {/* Advanced button */}
-            <motion.div
+            <div
               className={cn(
                 "relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
                 mode === 'advanced' ? 'text-white' : 'text-white/40'
@@ -158,23 +157,18 @@ export const WorkspaceModeToggle = memo(function WorkspaceModeToggle({
             >
               <Settings2 className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Advanced</span>
-            </motion.div>
+            </div>
             
-            {/* Sliding indicator */}
-            <motion.div
-              layoutId="workspace-mode-indicator"
+            {/* Sliding indicator - CSS transition instead of motion.div */}
+            <div
               className={cn(
-                "absolute top-1 bottom-1 rounded-full",
-                mode === 'quick' ? 'bg-emerald-500/30' : 'bg-violet-500/30'
+                "absolute top-1 bottom-1 rounded-full transition-all duration-300 ease-out",
+                mode === 'quick' 
+                  ? 'bg-emerald-500/30 left-1 w-[calc(50%-4px)]' 
+                  : 'bg-violet-500/30 left-[50%] w-[calc(50%-4px)]'
               )}
-              initial={false}
-              animate={{
-                left: mode === 'quick' ? 4 : '50%',
-                width: mode === 'quick' ? 'calc(50% - 4px)' : 'calc(50% - 4px)',
-              }}
-              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             />
-          </motion.button>
+          </button>
         </TooltipTrigger>
         <TooltipContent side="bottom">
           <p className="text-xs">
@@ -186,5 +180,4 @@ export const WorkspaceModeToggle = memo(function WorkspaceModeToggle({
     </TooltipProvider>
   );
 });
-
 export default WorkspaceModeToggle;

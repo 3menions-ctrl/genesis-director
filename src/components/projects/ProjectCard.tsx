@@ -159,20 +159,48 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     if (!video || !hasVideo || !videoSrc) return;
     
     try {
-      // Only seek if duration is valid
-      const duration = video.duration;
-      if (isFinite(duration) && duration > 0) {
-        video.currentTime = 0;
-      }
       video.muted = true;
       
-      // Use async-safe play
-      video.play().catch((err) => {
-        // AbortError is harmless - happens when play is interrupted
-        if (err?.name !== 'AbortError' && err?.name !== 'NotAllowedError') {
-          console.debug('[ProjectCard] Video play prevented:', err?.message);
+      // Function to attempt play
+      const attemptPlay = () => {
+        if (!isMountedRef.current || !videoRef.current) return;
+        
+        const v = videoRef.current;
+        try {
+          // Reset to start
+          if (v.readyState >= 1) {
+            v.currentTime = 0;
+          }
+          
+          const playPromise = v.play();
+          if (playPromise !== undefined) {
+            playPromise.catch((err) => {
+              if (err?.name !== 'AbortError' && err?.name !== 'NotAllowedError') {
+                console.debug('[ProjectCard] Video play prevented:', err?.message);
+              }
+            });
+          }
+        } catch (err) {
+          console.debug('[ProjectCard] Play attempt error:', err);
         }
-      });
+      };
+      
+      // If video has enough data, play immediately
+      if (video.readyState >= 3) {
+        attemptPlay();
+      } else {
+        // Wait for video to be ready
+        const onCanPlay = () => {
+          video.removeEventListener('canplay', onCanPlay);
+          attemptPlay();
+        };
+        video.addEventListener('canplay', onCanPlay);
+        
+        // Also try loading if not started
+        if (video.readyState === 0) {
+          video.load();
+        }
+      }
     } catch (err) {
       console.debug('[ProjectCard] Mouse enter error:', err);
     }
@@ -377,9 +405,13 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
               loop
               muted
               playsInline
-              preload="metadata"
+              preload="auto"
               onLoadedMetadata={handleVideoMetadataLoaded}
-              onError={() => setVideoError(true)}
+              onError={(e) => {
+                e.preventDefault?.();
+                e.stopPropagation?.();
+                setVideoError(true);
+              }}
             />
             
             {/* Cinematic bars on hover */}

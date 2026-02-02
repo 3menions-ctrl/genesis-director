@@ -1154,7 +1154,7 @@ export default function Clips() {
           {showBrowserStitcher && (
             <div className="p-4 pt-2">
               <UniversalVideoPlayer
-                source={{ urls: [] }}
+                source={{ projectId: showBrowserStitcher }}
                 mode="inline"
                 autoPlay
                 className="aspect-video rounded-lg"

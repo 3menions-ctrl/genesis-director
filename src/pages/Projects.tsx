@@ -452,7 +452,7 @@ function ProjectsContentInner() {
     // A project is playable if it has a final video or completed clips
     if (isStitchedMp4(p.video_url)) return true;
     if (p.video_url && isManifestUrl(p.video_url) && status(p) === 'completed') return true;
-    // Completed projects should always be playable (SmartStitcherPlayer will fetch clips from DB)
+    // Completed projects should always be playable (UniversalVideoPlayer will fetch clips from DB)
     if (p.status === 'completed') return true;
     return false;
   };
@@ -551,7 +551,7 @@ function ProjectsContentInner() {
   };
 
   const handlePlayVideo = async (project: Project) => {
-    // Always open SmartStitcherPlayer for any project that might have video content
+    // Always open UniversalVideoPlayer for any project that might have video content
     // The player will fetch clips from the database if not available in the project object
     setShowBrowserStitcher(project.id);
   };
@@ -1274,7 +1274,7 @@ function ProjectsContentInner() {
         )}
       </main>
 
-      {/* Video Player Modal - Use SmartStitcherPlayer for seamless transitions */}
+      {/* Video Player Modal - UniversalVideoPlayer for seamless transitions */}
       {videoModalOpen && selectedProject && !isLoadingClips && (
         <div className="fixed inset-0 z-50 bg-black flex flex-col">
           {/* Header controls */}
@@ -1469,7 +1469,7 @@ function ProjectsContentInner() {
           {showBrowserStitcher && (
             <div className="p-4 pt-2">
               <UniversalVideoPlayer
-                source={{ urls: [] }}
+                source={{ projectId: showBrowserStitcher }}
                 mode="inline"
                 autoPlay
                 className="aspect-video rounded-xl"

@@ -53,10 +53,10 @@ interface ExamplesGalleryProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// Helper component to trigger load state for ManifestVideoPlayer
+// Helper component to trigger load state for UniversalVideoPlayer
 const LoadTrigger = memo(function LoadTrigger({ onLoad }: { onLoad: () => void }) {
   useEffect(() => {
-    // Delay slightly to allow ManifestVideoPlayer to initialize
+    // Delay slightly to allow UniversalVideoPlayer to initialize
     const timer = setTimeout(onLoad, 500);
     return () => clearTimeout(timer);
   }, [onLoad]);
@@ -368,7 +368,7 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
               <p className="text-white/60 text-sm md:text-xl max-w-2xl line-clamp-2 md:line-clamp-none">{currentVideo?.description}</p>
             </div>
 
-            {/* Controls row - Only show for non-manifest videos (ManifestVideoPlayer has its own controls) */}
+            {/* Controls row - Only show for non-manifest videos (UniversalVideoPlayer has its own controls) */}
             {!isCurrentManifest && (
               <div className="flex items-center gap-2 md:gap-4">
                 {/* Play/Pause */}

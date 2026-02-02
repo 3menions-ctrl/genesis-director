@@ -1,17 +1,11 @@
 /**
  * UniversalVideoPlayer - Single unified video player for all contexts
  * 
- * Consolidates functionality from:
- * - SmartStitcherPlayer (MSE gapless stitching)
- * - ManifestVideoPlayer (manifest-based playback)
- * - FullscreenVideoPlayer (modal viewing)
- * - VideoThumbnail (hover preview)
- * - ProductionFinalVideo (export display)
- * 
  * Features:
  * - MSE-first gapless playback with legacy fallback
- * - Auto-detects source type (manifest, clips array, single video)
+ * - Auto-detects source type (projectId, manifest, clips array, single video)
  * - Multiple display modes: inline, fullscreen, thumbnail, export
+ * - Database fetching via projectId for multi-clip projects
  * - Unified controls with customizable visibility
  * - Safe video operations throughout
  */
@@ -26,6 +20,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   safePlay, safePause, safeSeek, isSafeVideoNumber, 
   getSafeDuration, isVideoPlayable, safeLoad 
@@ -45,6 +40,8 @@ import {
 export type PlayerMode = 'inline' | 'fullscreen' | 'thumbnail' | 'export';
 
 export interface VideoSource {
+  /** Project ID to fetch clips from database */
+  projectId?: string;
   /** Direct video URLs or clip array */
   urls?: string[];
   /** Manifest URL for JSON-based playback */
@@ -101,6 +98,8 @@ export interface UniversalVideoPlayerProps {
   onClose?: () => void;
   /** Callback when download is requested */
   onDownload?: () => void;
+  /** Callback when export completes (for stitching) */
+  onExportComplete?: (videoUrl: string) => void;
   /** Show hover preview (thumbnail mode) */
   hoverPreview?: boolean;
 }
@@ -479,7 +478,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     );
 
     const hasValidSource = useMemo(() => {
-      return (source.urls && source.urls.length > 0) || !!source.manifestUrl;
+      return (source.urls && source.urls.length > 0) || !!source.manifestUrl || !!source.projectId;
     }, [source]);
 
     // ========================================================================
@@ -502,8 +501,24 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
         try {
           let urls: string[] = [];
 
+          // Fetch from database if projectId provided
+          if (source.projectId) {
+            const { data: dbClips, error: dbError } = await supabase
+              .from('video_clips')
+              .select('video_url, duration_seconds, shot_index')
+              .eq('project_id', source.projectId)
+              .eq('status', 'completed')
+              .not('video_url', 'is', null)
+              .order('shot_index', { ascending: true });
+
+            if (dbError) {
+              console.warn('[UniversalPlayer] DB fetch error:', dbError);
+            } else if (dbClips && dbClips.length > 0) {
+              urls = dbClips.map(c => c.video_url!).filter(Boolean);
+            }
+          }
           // Parse manifest if provided
-          if (source.manifestUrl) {
+          else if (source.manifestUrl) {
             const manifest = await parseManifest(source.manifestUrl);
             if (manifest?.clips) {
               urls = manifest.clips.map(c => c.videoUrl);

@@ -3,6 +3,7 @@
  * 
  * This module exports a single player that handles all video playback needs:
  * - Multi-clip stitching with MSE gapless playback
+ * - Database-driven clip fetching via projectId
  * - Manifest-based project playback
  * - Fullscreen modal viewing
  * - Thumbnail previews with hover playback
@@ -12,7 +13,14 @@
  * ```tsx
  * import { UniversalVideoPlayer } from '@/components/player';
  * 
- * // Multi-clip stitching
+ * // Fetch clips from database by project ID
+ * <UniversalVideoPlayer 
+ *   source={{ projectId: 'uuid-here' }}
+ *   mode="inline"
+ *   autoPlay
+ * />
+ * 
+ * // Multi-clip stitching with direct URLs
  * <UniversalVideoPlayer 
  *   source={{ urls: ['clip1.mp4', 'clip2.mp4'] }}
  *   mode="inline"

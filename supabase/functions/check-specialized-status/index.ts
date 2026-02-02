@@ -8,10 +8,14 @@ const corsHeaders = {
 };
 
 /**
- * CHECK SPECIALIZED STATUS
+ * CHECK SPECIALIZED STATUS v2.0
  * 
  * Polls Replicate prediction status for specialized modes (avatar, motion-transfer, video-to-video)
- * Updates project pipeline_state and video_url when complete
+ * 
+ * CRITICAL FIX: For multi-clip avatar projects (type: 'avatar_async'), this function:
+ * 1. Updates individual prediction status in pending_video_tasks
+ * 2. Does NOT mark project as completed - that's the watchdog's job
+ * 3. Lets watchdog handle final completion after ALL clips finish
  */
 
 interface StatusRequest {
@@ -45,7 +49,7 @@ serve(async (req) => {
     // Fetch current project state
     const { data: project, error: projectError } = await supabase
       .from('movie_projects')
-      .select('mode, pipeline_state, status, voice_audio_url')
+      .select('mode, pipeline_state, status, voice_audio_url, pending_video_tasks')
       .eq('id', projectId)
       .single();
 
@@ -74,7 +78,157 @@ serve(async (req) => {
     const currentState = typeof project.pipeline_state === 'string' 
       ? JSON.parse(project.pipeline_state) 
       : project.pipeline_state || {};
+    
+    const pendingTasks = project.pending_video_tasks as Record<string, unknown> || {};
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // MULTI-CLIP AVATAR HANDLING (avatar_async type)
+    // For multi-clip projects, update individual prediction status only
+    // DO NOT mark project as completed - let watchdog handle that
+    // ═══════════════════════════════════════════════════════════════════════════
+    if (pendingTasks.type === 'avatar_async' && Array.isArray(pendingTasks.predictions)) {
+      console.log(`[CheckSpecializedStatus] MULTI-CLIP AVATAR detected (${(pendingTasks.predictions as unknown[]).length} clips)`);
+      
+      const predictions = pendingTasks.predictions as Array<{
+        predictionId: string;
+        clipIndex: number;
+        status: string;
+        videoUrl?: string;
+        audioUrl?: string;
+      }>;
+      
+      // Find the prediction we're checking
+      const targetPred = predictions.find(p => p.predictionId === predictionId);
+      if (!targetPred) {
+        console.warn(`[CheckSpecializedStatus] Prediction ${predictionId} not found in pending_video_tasks`);
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            status: prediction.status,
+            message: 'Prediction not tracked in this project',
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      let videoUrl: string | null = null;
+      
+      if (prediction.status === 'succeeded') {
+        const rawVideoUrl = Array.isArray(prediction.output) 
+          ? prediction.output[0] 
+          : prediction.output;
+        
+        // Persist to permanent storage
+        videoUrl = await persistVideoToStorage(
+          supabase,
+          rawVideoUrl,
+          projectId,
+          { prefix: `avatar_clip${targetPred.clipIndex}` }
+        ) || rawVideoUrl;
+        
+        targetPred.status = 'completed';
+        targetPred.videoUrl = videoUrl || undefined;
+        console.log(`[CheckSpecializedStatus] ✅ Clip ${targetPred.clipIndex + 1} SUCCEEDED: ${videoUrl?.substring(0, 60)}...`);
+      } else if (prediction.status === 'failed' || prediction.status === 'canceled') {
+        targetPred.status = 'failed';
+        console.log(`[CheckSpecializedStatus] ❌ Clip ${targetPred.clipIndex + 1} FAILED: ${prediction.error}`);
+      } else {
+        // Still processing - update status but don't complete
+        targetPred.status = prediction.status;
+      }
+      
+      // Count completed vs total
+      const completedCount = predictions.filter(p => p.status === 'completed').length;
+      const failedCount = predictions.filter(p => p.status === 'failed').length;
+      const totalCount = predictions.length;
+      const allDone = completedCount + failedCount === totalCount;
+      
+      console.log(`[CheckSpecializedStatus] Progress: ${completedCount}/${totalCount} completed, ${failedCount} failed`);
+      
+      // Calculate progress
+      const progress = allDone ? 95 : 25 + (completedCount / totalCount) * 65;
+      
+      // Update pending_video_tasks with latest prediction status
+      const updateData: Record<string, unknown> = {
+        pending_video_tasks: pendingTasks,
+        pipeline_state: {
+          ...currentState,
+          stage: allDone ? 'finalizing' : 'async_video_generation',
+          progress,
+          message: allDone 
+            ? 'Finalizing video...' 
+            : `Generating clips (${completedCount}/${totalCount})...`,
+          totalClips: totalCount,
+          completedClips: completedCount,
+        },
+        updated_at: new Date().toISOString(),
+      };
+      
+      // CRITICAL: Do NOT set status to 'completed' here!
+      // The watchdog will handle final completion and stitching
+      // Only mark completed if this is the LAST clip AND all succeeded
+      if (allDone && completedCount === totalCount && failedCount === 0) {
+        console.log(`[CheckSpecializedStatus] 🎉 ALL CLIPS COMPLETE - Triggering watchdog completion`);
+        
+        // Build video_clips array from completed predictions
+        const sortedClips = predictions
+          .filter(p => p.status === 'completed' && p.videoUrl)
+          .sort((a, b) => a.clipIndex - b.clipIndex);
+        
+        const videoClipsArray = sortedClips.map(p => p.videoUrl);
+        const primaryVideoUrl = videoClipsArray[0];
+        
+        updateData.status = 'completed';
+        updateData.video_url = primaryVideoUrl;
+        updateData.video_clips = videoClipsArray;
+        updateData.pipeline_state = {
+          ...currentState,
+          stage: 'completed',
+          progress: 100,
+          message: 'Video generation complete!',
+          completedAt: new Date().toISOString(),
+          totalClips: totalCount,
+          completedClips: completedCount,
+        };
+        
+        console.log(`[CheckSpecializedStatus] ✅ Project COMPLETED with ${videoClipsArray.length} clips`);
+      }
+      
+      const { error: updateError } = await supabase
+        .from('movie_projects')
+        .update(updateData)
+        .eq('id', projectId);
+      
+      if (updateError) {
+        console.error('[CheckSpecializedStatus] Update error:', updateError);
+      }
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          projectId,
+          predictionId,
+          status: prediction.status,
+          progress,
+          stage: allDone ? 'finalizing' : 'async_video_generation',
+          message: allDone 
+            ? 'Finalizing video...' 
+            : `Generating clips (${completedCount}/${totalCount})...`,
+          videoUrl: targetPred.videoUrl || null,
+          clipIndex: targetPred.clipIndex,
+          isComplete: prediction.status === 'succeeded',
+          isFailed: prediction.status === 'failed' || prediction.status === 'canceled',
+          allClipsComplete: allDone && completedCount === totalCount,
+          error: prediction.status === 'failed' ? prediction.error : undefined,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SINGLE-CLIP SPECIALIZED MODES (motion-transfer, video-to-video, single avatar)
+    // Original behavior for single-prediction projects
+    // ═══════════════════════════════════════════════════════════════════════════
     let newState = { ...currentState };
     let newStatus = project.status;
     let videoUrl = null;

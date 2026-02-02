@@ -6,6 +6,21 @@ import "./index.css";
 import { stabilityMonitor, shouldSuppressError } from "./lib/stabilityMonitor";
 import { initializeDiagnostics, setStateSnapshotProvider, getCurrentSnapshot } from "./lib/diagnostics";
 
+// Initialize cross-browser compatibility layer
+import { injectBrowserFixes, browserInfo } from "./lib/browserCompat";
+
+// Apply browser-specific fixes immediately
+injectBrowserFixes();
+
+// Log browser info for debugging
+if (process.env.NODE_ENV === 'development') {
+  console.info('[BrowserCompat] Detected:', browserInfo.name, 'v' + browserInfo.version, {
+    mobile: browserInfo.isMobile,
+    iOS: browserInfo.isIOS,
+    safari: browserInfo.isSafari
+  });
+}
+
 // Track error count to prevent infinite crash loops
 let errorCount = 0;
 const ERROR_THRESHOLD = 10;

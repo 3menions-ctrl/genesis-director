@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect, memo, forwardRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStudio } from '@/contexts/StudioContext';
+import { useSafeNavigation, useRouteCleanup, useNavigationAbort } from '@/lib/navigation';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -148,13 +148,14 @@ const WIZARD_STEPS = [
 
 // Main content component with forwardRef for ref compatibility
 const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function TrainingVideoContent(_, ref) {
-  // Hook resilience - wrap in try-catch with fallbacks
-  let navigate: ReturnType<typeof useNavigate>;
-  try {
-    navigate = useNavigate();
-  } catch {
-    navigate = () => {};
-  }
+  // Unified navigation - safe navigation with locking
+  const { navigate } = useSafeNavigation();
+  const { abort: abortRequests } = useNavigationAbort();
+  
+  // Register cleanup when leaving this page
+  useRouteCleanup(() => {
+    abortRequests();
+  }, [abortRequests]);
   
   let authData: { user: any };
   try {

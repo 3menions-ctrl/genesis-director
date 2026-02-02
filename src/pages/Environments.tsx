@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSafeNavigation } from '@/lib/navigation';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -421,7 +421,7 @@ function EnvironmentCard({
 }
 
 export default function Environments() {
-  const navigate = useNavigate();
+  const { navigate } = useSafeNavigation();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');

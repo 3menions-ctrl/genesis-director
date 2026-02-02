@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSafeNavigation, useRouteCleanup } from '@/lib/navigation';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -72,7 +73,7 @@ const TRANSITION_LABELS: Record<string, string> = {
 };
 
 export default function ScriptReview() {
-  const navigate = useNavigate();
+  const { navigate } = useSafeNavigation();
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('projectId');
   const { user } = useAuth();

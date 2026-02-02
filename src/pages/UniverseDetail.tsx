@@ -1,5 +1,6 @@
 import { useState, memo, forwardRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useSafeNavigation } from '@/lib/navigation';
 import { 
   Globe, ArrowLeft, Users, Film, Calendar, Settings, 
   MessageSquare, BookOpen, Clock, Share2, UserPlus, Sparkles 
@@ -26,13 +27,8 @@ import { formatDistanceToNow } from 'date-fns';
 const UniverseDetailContent = memo(function UniverseDetailContent() {
   const { id } = useParams<{ id: string }>();
   
-  // Hook resilience - wrap in try-catch with fallbacks
-  let navigate: ReturnType<typeof useNavigate>;
-  try {
-    navigate = useNavigate();
-  } catch {
-    navigate = () => {};
-  }
+  // Unified navigation - safe navigation with locking
+  const { navigate } = useSafeNavigation();
   
   let authData: { user: any };
   try {

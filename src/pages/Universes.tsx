@@ -1,5 +1,4 @@
 import { memo, forwardRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { CollaborativeMovieHub } from '@/components/genesis/CollaborativeMovieHub';
@@ -9,16 +8,12 @@ import UniversesBackground from '@/components/universes/UniversesBackground';
 import { motion } from 'framer-motion';
 import { SafeComponent, SilentBoundary } from '@/components/ui/error-boundary';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { useSafeNavigation } from '@/lib/navigation';
 
 // Main content component with hook resilience
 const UniversesContent = memo(function UniversesContent() {
-  // Hook resilience - wrap in try-catch with fallbacks
-  let navigate: ReturnType<typeof useNavigate>;
-  try {
-    navigate = useNavigate();
-  } catch {
-    navigate = () => {};
-  }
+  // Unified navigation - safe navigation with locking
+  const { navigate } = useSafeNavigation();
   
   let universesData: { universes: any[]; isLoading: boolean };
   try {

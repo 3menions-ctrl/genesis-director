@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, memo, useMemo, forwardRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { useSafeNavigation } from '@/lib/navigation';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
@@ -387,12 +387,8 @@ export default function Landing() {
   }
   const { user } = authData;
   
-  let navigate: ReturnType<typeof useNavigate>;
-  try {
-    navigate = useNavigate();
-  } catch {
-    navigate = () => {};
-  }
+  // Unified navigation - safe navigation with locking
+  const { navigate } = useSafeNavigation();
   
   const [showExamples, setShowExamples] = useState(false);
   const [showCinematicTransition, setShowCinematicTransition] = useState(false);

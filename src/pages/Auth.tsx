@@ -1,5 +1,5 @@
 import { useState, useEffect, forwardRef, useCallback, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Film, Mail, Lock, Loader2, User, ArrowRight } from 'lucide-react';
 import { z } from 'zod';
 import { PasswordStrength } from '@/components/ui/password-strength';
 import { WelcomeBackDialog } from '@/components/auth/WelcomeBackDialog';
+import { useSafeNavigation } from '@/lib/navigation';
 import landingAbstractBg from '@/assets/landing-abstract-bg.jpg';
 import authHeroImage from '@/assets/auth-hero.jpg';
 // Validation schemas
@@ -52,13 +53,8 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
       }
     }
   }, [ref]);
-  // Hook resilience - wrap in try-catch with fallbacks
-  let navigate: ReturnType<typeof useNavigate>;
-  try {
-    navigate = useNavigate();
-  } catch {
-    navigate = () => {};
-  }
+  // Unified navigation - safe navigation with locking
+  const { navigate } = useSafeNavigation();
   
   let authData: { user: any; profile: any; loading: boolean; signIn: any; signUp: any };
   try {

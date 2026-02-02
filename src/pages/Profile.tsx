@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, memo, forwardRef, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useSafeNavigation, useRouteCleanup } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
@@ -92,13 +93,8 @@ const darkCardHover = "hover:bg-white/[0.04] hover:-translate-y-0.5 transition-a
 
 // Main content component with hook resilience
 const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProfileContent(_, ref) {
-  // Hook resilience - wrap in try-catch with fallbacks
-  let navigate: ReturnType<typeof useNavigate>;
-  try {
-    navigate = useNavigate();
-  } catch {
-    navigate = () => {};
-  }
+  // Unified navigation - safe navigation with locking
+  const { navigate } = useSafeNavigation();
   
   let authData: { user: any; profile: any; loading: boolean; refreshProfile: () => void };
   try {

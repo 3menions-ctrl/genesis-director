@@ -1,7 +1,7 @@
-import { useNavigate } from 'react-router-dom';
 import React, { useState, useEffect, useRef, useMemo, useCallback, memo, forwardRef } from 'react';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { withSafePageRef } from '@/lib/withSafeRef';
+import { useSafeNavigation, useRouteCleanup, useNavigationAbort } from '@/lib/navigation';
 import { 
   Plus, Film, Play, Download, Trash2, Edit2,
   Loader2, Clock, Zap, Eye, Star, Heart, TrendingUp,
@@ -119,13 +119,14 @@ function ProjectsContentInner() {
     };
   }, []);
   
-  // Hook resilience - wrap in try-catch with fallbacks
-  let navigate: ReturnType<typeof useNavigate>;
-  try {
-    navigate = useNavigate();
-  } catch {
-    navigate = () => {};
-  }
+  // Unified navigation - safe navigation with locking
+  const { navigate } = useSafeNavigation();
+  const { abort: abortRequests } = useNavigationAbort();
+  
+  // Register cleanup when leaving this page
+  useRouteCleanup(() => {
+    abortRequests();
+  }, [abortRequests]);
   
   let authData: { user: any };
   try {

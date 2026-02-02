@@ -1,7 +1,7 @@
 import { useState, useEffect, memo, forwardRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSafeNavigation, useRouteCleanup } from '@/lib/navigation';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -464,13 +464,8 @@ TemplateCard.displayName = 'TemplateCard';
 
 // Main content component separated for error boundary
 const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function TemplatesContent(_, ref) {
-  // Hook resilience - wrap in try-catch with fallbacks
-  let navigate: ReturnType<typeof useNavigate>;
-  try {
-    navigate = useNavigate();
-  } catch {
-    navigate = () => {};
-  }
+  // Unified navigation - safe navigation with locking
+  const { navigate } = useSafeNavigation();
   
   let authData: { user: any };
   try {

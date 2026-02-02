@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef, useMemo, memo, Suspense, lazy } from 'react';
-import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
+import { useSearchParams, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { withSafePageRef } from '@/lib/withSafeRef';
+import { useSafeNavigation, useRouteCleanup, useNavigationAbort } from '@/lib/navigation';
 import { 
   Film, Loader2, X, FileText, Users, Shield, Wand2, Sparkles
 } from 'lucide-react';
@@ -104,13 +105,9 @@ const STAGE_CONFIG: Array<{ name: string; shortName: string; icon: React.Element
 // Content component - wrapped with withSafePageRef for bulletproof ref handling
 // Absorbs refs injected by Radix components, preventing crashes
 function ProductionContentInner() {
-  // Hook resilience - wrap in try-catch with fallbacks
-  let navigate: ReturnType<typeof useNavigate>;
-  try {
-    navigate = useNavigate();
-  } catch {
-    navigate = () => {};
-  }
+  // Unified navigation - safe navigation with locking
+  const { navigate } = useSafeNavigation();
+  const { getSignal, isMounted, abort: abortRequests } = useNavigationAbort();
   
   const [searchParams] = useSearchParams();
   const params = useParams();
@@ -127,6 +124,12 @@ function ProductionContentInner() {
   
   // Proactive clip recovery - checks for stuck clips on page load
   const { isRecovering: isRecoveringClips } = useClipRecovery(projectId || null, user?.id || null);
+  
+  // Register cleanup when leaving this page
+  useRouteCleanup(() => {
+    abortRequests();
+    console.debug('[Production] Cleanup: aborted pending requests');
+  }, [abortRequests]);
   
   // UI State - Sidebar starts collapsed for cleaner experience
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);

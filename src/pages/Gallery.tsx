@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback, forwardRef, memo, useMemo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Play, Pause, Volume2, VolumeX, X, ChevronLeft, ChevronRight, Film, Type, Image, User, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { safePlay, safePause, safeSeek, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
+import { useSafeNavigation, useRouteCleanup, useNavigationAbort } from '@/lib/navigation';
 
 // Video category type
 type VideoCategory = 'all' | 'text-to-video' | 'image-to-video' | 'avatar';
@@ -738,13 +739,9 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
 
 // Main Gallery component with hook resilience
 const GalleryContent = memo(function GalleryContent() {
-  // Hook resilience - wrap in try-catch with fallbacks
-  let navigate: ReturnType<typeof useNavigate>;
-  try {
-    navigate = useNavigate();
-  } catch {
-    navigate = () => {};
-  }
+  // Unified navigation - safe navigation with locking
+  const { navigate } = useSafeNavigation();
+  const { getSignal, isMounted } = useNavigationAbort();
   
   let location: ReturnType<typeof useLocation>;
   try {
@@ -761,6 +758,12 @@ const GalleryContent = memo(function GalleryContent() {
   
   const { data: videos = [], isLoading } = useGalleryVideos();
   const { playTransition } = useAmbientSounds();
+  
+  // Register cleanup when leaving this page
+  useRouteCleanup(() => {
+    setSelectedVideo(null);
+    sessionStorage.removeItem('gallery_access');
+  }, []);
   
   // Filter videos by category
   const filteredVideos = useMemo(() => {

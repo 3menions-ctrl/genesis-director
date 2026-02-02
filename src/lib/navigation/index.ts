@@ -59,6 +59,6 @@ export {
 // ============= UI Components =============
 export { SafeLink } from './SafeLink';
 
-// ============= Legacy Re-exports (for gradual migration) =============
-// Components using old hook imports will still work
-export { useNavigationState } from './hooks';
+// ============= Navigation State Hook =============
+// Re-export useNavigationState from unifiedHooks
+export { useNavigationState } from './unifiedHooks';

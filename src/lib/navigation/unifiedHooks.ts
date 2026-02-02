@@ -9,7 +9,7 @@
 
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { navigationCoordinator, CleanupFunction } from './NavigationCoordinator';
+import { navigationCoordinator, CleanupFunction, NavigationState } from './NavigationCoordinator';
 
 // ============= Core Mount Safety =============
 
@@ -298,6 +298,19 @@ export function useSafeNavigation() {
     emergencyNavigate,
     isLocked: navigationCoordinator.isLocked(),
   };
+}
+
+/**
+ * Subscribe to navigation state changes.
+ */
+export function useNavigationState(): NavigationState {
+  const [state, setState] = useState<NavigationState>(navigationCoordinator.getState());
+
+  useEffect(() => {
+    return navigationCoordinator.subscribe(setState);
+  }, []);
+
+  return state;
 }
 
 /**

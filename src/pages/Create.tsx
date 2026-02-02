@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useRef, memo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import ClipsBackground from '@/components/clips/ClipsBackground';
 import { CreationHub } from '@/components/studio/CreationHub';
@@ -9,7 +8,7 @@ import { VideoGenerationMode, VideoStylePreset } from '@/types/video-modes';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/lib/errorHandler';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
-import { useStabilityGuard, isAbortError } from '@/hooks/useStabilityGuard';
+import { useStabilityGuard, useSafeNavigation, useRouteCleanup, isAbortError } from '@/lib/navigation';
 import { BrandLoadingSpinner } from '@/components/ui/UnifiedLoadingPage';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
 import { withSafePageRef } from '@/lib/withSafeRef';
@@ -32,13 +31,8 @@ const LoadingOverlay = memo(function LoadingOverlay({ status }: { status: string
 
 // Main content component - wrapped with withSafePageRef for bulletproof ref handling
 function CreateContentInner() {
-  // Hook resilience - wrap in try-catch with fallbacks
-  let navigate: ReturnType<typeof useNavigate>;
-  try {
-    navigate = useNavigate();
-  } catch {
-    navigate = () => {};
-  }
+  // Unified navigation - safe navigation with locking
+  const { navigate } = useSafeNavigation();
   
   let authData: { user: any };
   try {
@@ -56,6 +50,14 @@ function CreateContentInner() {
   
   // Use comprehensive stability guard for safe async operations
   const { isMounted, getAbortController, safeSetState } = useStabilityGuard();
+  
+  // Register cleanup when leaving this page
+  useRouteCleanup(() => {
+    // Cancel any pending creation
+    if (isCreating) {
+      console.debug('[Create] Cleanup: cancelling pending creation');
+    }
+  }, [isCreating]);
   
   // Gatekeeper timeout - force visibility after 5s to prevent infinite loading
   useEffect(() => {

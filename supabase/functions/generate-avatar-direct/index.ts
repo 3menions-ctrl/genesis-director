@@ -180,10 +180,64 @@ serve(async (req) => {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 2: Generate EXPRESSIVE speaking animation with Kling
-    // Kling is superior to Wav2Lip for natural, human-like acting
+    // STEP 2: SCENE-FIRST PIPELINE - Generate avatar-in-scene image if scene requested
+    // This is the WORLD-CLASS solution for custom backgrounds
     // ═══════════════════════════════════════════════════════════════════════════
-    console.log("[AvatarDirect] STEP 2: Generating expressive speaking animation (Kling)...");
+    let animationStartImage = avatarImageUrl;
+    
+    if (sceneDescription && sceneDescription.trim()) {
+      console.log("[AvatarDirect] STEP 2a: Scene-First Compositing...");
+      console.log(`[AvatarDirect] Scene requested: "${sceneDescription}"`);
+      
+      if (projectId) {
+        await supabase.from('movie_projects').update({
+          pipeline_state: {
+            stage: 'scene_compositing',
+            progress: 35,
+            message: 'Placing avatar in requested scene...',
+            sceneDescription,
+          },
+        }).eq('id', projectId);
+      }
+      
+      try {
+        const sceneResponse = await fetch(`${supabaseUrl}/functions/v1/generate-avatar-scene`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({
+            avatarImageUrl,
+            sceneDescription,
+            aspectRatio,
+            placement: 'center',
+          }),
+        });
+
+        if (sceneResponse.ok) {
+          const sceneResult = await sceneResponse.json();
+          if (sceneResult.success && sceneResult.sceneImageUrl) {
+            animationStartImage = sceneResult.sceneImageUrl;
+            console.log(`[AvatarDirect] ✅ Scene-First compositing succeeded (${sceneResult.method})`);
+            console.log(`[AvatarDirect] Avatar-in-scene image: ${animationStartImage.substring(0, 60)}...`);
+          } else {
+            console.warn("[AvatarDirect] Scene compositing returned no image, using original avatar");
+          }
+        } else {
+          console.warn(`[AvatarDirect] Scene compositing failed (${sceneResponse.status}), using original avatar`);
+        }
+      } catch (sceneError) {
+        console.warn("[AvatarDirect] Scene-First error (non-fatal):", sceneError);
+        // Continue with original avatar - scene will be in prompt only
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // STEP 2b: Generate EXPRESSIVE speaking animation with Kling
+    // Now using the avatar-in-scene image as start_image for perfect backgrounds
+    // ═══════════════════════════════════════════════════════════════════════════
+    console.log("[AvatarDirect] STEP 2b: Generating expressive speaking animation (Kling)...");
     
     const audioDurationSec = Math.ceil(audioDurationMs / 1000);
     // Kling supports 5s or 10s - choose based on audio length
@@ -193,6 +247,7 @@ serve(async (req) => {
     // The prompt instructs Kling to create natural, engaging performance
     let actingPrompt = buildActingPrompt(script, sceneDescription);
     
+    console.log(`[AvatarDirect] Animation start image: ${animationStartImage === avatarImageUrl ? 'original avatar' : 'avatar-in-scene'}`);
     console.log(`[AvatarDirect] Acting prompt: "${actingPrompt.substring(0, 150)}..."`);
     console.log(`[AvatarDirect] Video duration: ${videoDuration}s`);
     
@@ -207,7 +262,7 @@ serve(async (req) => {
           mode: "pro",
           prompt: actingPrompt,
           duration: videoDuration,
-          start_image: avatarImageUrl,
+          start_image: animationStartImage, // Now uses avatar-in-scene if available
           aspect_ratio: aspectRatio,
           negative_prompt: "static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless",
         },

@@ -1474,8 +1474,22 @@ function ProjectsContentInner() {
           </DialogHeader>
           {showBrowserStitcher && (
             <div className="p-2 sm:p-4 pt-0 flex-1 min-h-0 flex items-center justify-center">
-              {/* Avatar projects: use video_url directly. Others: fetch from video_clips */}
-              {selectedProject?.mode === 'avatar' && selectedProject?.video_url ? (
+              {/* Avatar projects with multiple clips: use UniversalVideoPlayer with urls + masterAudioUrl */}
+              {/* Avatar projects with single clip: use simple video element */}
+              {/* Non-avatar projects: use UniversalVideoPlayer */}
+              {selectedProject?.mode === 'avatar' && 
+               selectedProject?.video_clips && 
+               selectedProject.video_clips.length > 1 ? (
+                <UniversalVideoPlayer
+                  source={{ 
+                    urls: selectedProject.video_clips,
+                    masterAudioUrl: selectedProject.voice_audio_url || undefined,
+                  }}
+                  mode="inline"
+                  autoPlay
+                  className="w-full max-h-full aspect-video rounded-lg sm:rounded-xl"
+                />
+              ) : selectedProject?.mode === 'avatar' && selectedProject?.video_url ? (
                 <video
                   src={selectedProject.video_url}
                   controls

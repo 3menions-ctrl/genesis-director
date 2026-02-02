@@ -194,9 +194,11 @@ serve(async (req) => {
     // STEP 2: Optional Scene Compositing (fast - ~5-10s)
     // ═══════════════════════════════════════════════════════════════════════════
     let sharedAnimationStartImage = avatarImageUrl;
+    let sceneCompositingApplied = false;
     
     if (sceneDescription?.trim()) {
       console.log("[AvatarDirect] Step 2: Pre-generating shared scene image...");
+      console.log(`[AvatarDirect] Scene description: "${sceneDescription}"`);
       
       if (projectId) {
         await supabase.from('movie_projects').update({
@@ -224,16 +226,37 @@ serve(async (req) => {
           }),
         });
 
+        const sceneResponseText = await sceneResponse.text();
+        console.log(`[AvatarDirect] Scene response status: ${sceneResponse.status}`);
+        
         if (sceneResponse.ok) {
-          const sceneResult = await sceneResponse.json();
-          if (sceneResult.success && sceneResult.sceneImageUrl) {
-            sharedAnimationStartImage = sceneResult.sceneImageUrl;
-            console.log("[AvatarDirect] ✅ Scene compositing succeeded");
+          try {
+            const sceneResult = JSON.parse(sceneResponseText);
+            if (sceneResult.success && sceneResult.sceneImageUrl) {
+              sharedAnimationStartImage = sceneResult.sceneImageUrl;
+              sceneCompositingApplied = true;
+              console.log(`[AvatarDirect] ✅ Scene compositing SUCCEEDED via ${sceneResult.method}`);
+              console.log(`[AvatarDirect] Scene image URL: ${sceneResult.sceneImageUrl.substring(0, 80)}...`);
+            } else {
+              console.error(`[AvatarDirect] ❌ Scene compositing returned success=false: ${sceneResult.error}`);
+            }
+          } catch (parseError) {
+            console.error(`[AvatarDirect] ❌ Scene response parse error: ${parseError}`);
+            console.error(`[AvatarDirect] Raw response: ${sceneResponseText.substring(0, 200)}`);
           }
+        } else {
+          console.error(`[AvatarDirect] ❌ Scene compositing HTTP error ${sceneResponse.status}: ${sceneResponseText.substring(0, 200)}`);
         }
       } catch (sceneError) {
-        console.warn("[AvatarDirect] Scene-First error (non-fatal):", sceneError);
+        console.error("[AvatarDirect] ❌ Scene-First exception:", sceneError);
       }
+      
+      // Log final decision
+      if (!sceneCompositingApplied) {
+        console.warn(`[AvatarDirect] ⚠️ SCENE COMPOSITING FAILED - Using original avatar image as fallback`);
+      }
+    } else {
+      console.log("[AvatarDirect] No scene description provided - using avatar image directly");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -300,7 +323,10 @@ serve(async (req) => {
       console.log(`[AvatarDirect] Clip ${clipNumber}: ✅ TTS (${Math.round(clipAudioDurationMs / 1000)}s)`);
 
       // Start Kling prediction (async - returns immediately)
-      const videoDuration = clipDuration >= 10 ? 10 : 5;
+      // CRITICAL FIX: Ensure 10-second duration is enforced (clipDuration defaults to 10 in interface)
+      // Only use 5s if explicitly set to less than 10
+      const videoDuration = (clipDuration && clipDuration >= 10) ? 10 : (clipDuration || 10);
+      console.log(`[AvatarDirect] Clip ${clipNumber}: Using ${videoDuration}s duration (requested: ${clipDuration}s)`);
       const actingPrompt = buildActingPrompt(segmentText, sceneDescription);
       
       const klingResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
@@ -362,7 +388,7 @@ serve(async (req) => {
           totalClips: finalClipCount,
           asyncJobData,
         },
-        pending_video_tasks: {
+      pending_video_tasks: {
           type: 'avatar_async',
           predictions: pendingPredictions.map(p => ({
             predictionId: p.predictionId,
@@ -373,6 +399,9 @@ serve(async (req) => {
           })),
           masterAudioUrl: permanentMasterAudioUrl,
           sceneImageUrl: sharedAnimationStartImage,
+          sceneCompositingApplied: sceneCompositingApplied,
+          sceneDescription: sceneDescription || null,
+          clipDuration: clipDuration,
           startedAt: new Date().toISOString(),
         },
         voice_audio_url: permanentMasterAudioUrl,

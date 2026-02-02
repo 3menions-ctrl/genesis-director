@@ -270,15 +270,24 @@ serve(async (req) => {
       // If all completed, finalize the project
       if (allCompleted && completedClips.length > 0) {
         console.log(`[Watchdog] 🎉 ASYNC AVATAR COMPLETE: Finalizing ${project.id}`);
+        console.log(`[Watchdog] Completed clips before sort: ${JSON.stringify(completedClips.map(c => ({ idx: c.clipIndex, url: c.videoUrl.substring(0, 50) })))}`);
         
-        // Sort clips by index
+        // Sort clips by index - CRITICAL for correct playback order
         completedClips.sort((a, b) => a.clipIndex - b.clipIndex);
-        const primaryVideoUrl = completedClips[0].videoUrl;
+        
+        // Build video_clips array from sorted completed clips
+        const videoClipsArray = completedClips.map(c => c.videoUrl);
+        const primaryVideoUrl = videoClipsArray[0];
+        
+        console.log(`[Watchdog] Final video_clips array (${videoClipsArray.length} items):`);
+        videoClipsArray.forEach((url, idx) => {
+          console.log(`[Watchdog]   Clip ${idx + 1}: ${url.substring(0, 80)}...`);
+        });
         
         const { error: updateError } = await supabase.from('movie_projects').update({
           status: 'completed',
           video_url: primaryVideoUrl,
-          video_clips: completedClips.map(c => c.videoUrl),
+          video_clips: videoClipsArray,
           pipeline_stage: 'completed',
           pipeline_state: {
             stage: 'completed',
@@ -286,6 +295,7 @@ serve(async (req) => {
             message: 'Avatar video complete!',
             completedAt: new Date().toISOString(),
             asyncCompletedByWatchdog: true,
+            totalClipsGenerated: videoClipsArray.length,
           },
           pending_video_tasks: {
             ...tasks,
@@ -297,6 +307,9 @@ serve(async (req) => {
         
         if (updateError) {
           console.error(`[Watchdog] ❌ Failed to complete project ${project.id}:`, updateError);
+          console.error(`[Watchdog] Update error details:`, JSON.stringify(updateError));
+        } else {
+          console.log(`[Watchdog] ✅ Database update succeeded for ${project.id}`);
         }
         
         result.productionResumed++;

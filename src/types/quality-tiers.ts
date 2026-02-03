@@ -4,6 +4,7 @@
 // - Extended: 15 credits per clip (clips 7+ OR duration >6 seconds)
 // 1 credit = $0.10
 
+// Single unified tier - all production is premium quality
 export type QualityTier = 'standard' | 'professional';
 
 export interface QualityTierConfig {
@@ -11,8 +12,6 @@ export interface QualityTierConfig {
   name: string;
   baseCredits: number;
   extendedCredits: number;
-  /** @deprecated Use baseCredits instead */
-  credits: number;
   description: string;
   features: string[];
   maxRetries: number; // Autonomous retries per shot
@@ -20,51 +19,37 @@ export interface QualityTierConfig {
   includesVisualDebugger: boolean;
 }
 
-// All production is premium quality - no cheap tier
+// Single premium tier configuration - all users get the same quality
+const PREMIUM_TIER_CONFIG: Omit<QualityTierConfig, 'id'> = {
+  name: 'Premium',
+  baseCredits: 10, // Clips 1-6, ≤6 seconds
+  extendedCredits: 15, // Clips 7+ OR >6 seconds
+  description: 'Zero-Waste quality with autonomous retries',
+  features: [
+    'Script-to-video generation',
+    'Voice synthesis with emotion',
+    'Frame chaining with motion vectors',
+    'Director Audit analysis',
+    'Visual Debugger loop',
+    'Up to 4 autonomous retries',
+    'Physics & identity validation',
+    'Zero-Waste guarantee',
+  ],
+  maxRetries: 4,
+  includesAudit: true,
+  includesVisualDebugger: true,
+};
+
+// Both tiers use identical config (legacy compatibility)
 export const QUALITY_TIERS: QualityTierConfig[] = [
-  {
-    id: 'standard',
-    name: 'Premium',
-    baseCredits: 10, // Clips 1-6, ≤6 seconds
-    extendedCredits: 15, // Clips 7+ OR >6 seconds
-    credits: 10, // Deprecated, use baseCredits
-    description: 'Zero-Waste quality with autonomous retries',
-    features: [
-      'Script-to-video generation',
-      'Voice synthesis with emotion',
-      'Frame chaining with motion vectors',
-      'Director Audit analysis',
-      'Visual Debugger loop',
-      'Up to 4 autonomous retries',
-      'Physics & identity validation',
-      'Zero-Waste guarantee',
-    ],
-    maxRetries: 4,
-    includesAudit: true,
-    includesVisualDebugger: true,
-  },
-  {
-    id: 'professional',
-    name: 'Premium',
-    baseCredits: 10,
-    extendedCredits: 15,
-    credits: 10, // Deprecated, use baseCredits
-    description: 'Zero-Waste quality with autonomous retries',
-    features: [
-      'Script-to-video generation',
-      'Voice synthesis with emotion',
-      'Frame chaining with motion vectors',
-      'Director Audit analysis',
-      'Visual Debugger loop',
-      'Up to 4 autonomous retries',
-      'Physics & identity validation',
-      'Zero-Waste guarantee',
-    ],
-    maxRetries: 4,
-    includesAudit: true,
-    includesVisualDebugger: true,
-  },
+  { id: 'standard', ...PREMIUM_TIER_CONFIG },
+  { id: 'professional', ...PREMIUM_TIER_CONFIG },
 ];
+
+// Helper to get tier config (always returns the same premium config)
+export function getTierConfig(tier: QualityTier = 'standard'): QualityTierConfig {
+  return QUALITY_TIERS.find(t => t.id === tier) ?? QUALITY_TIERS[0];
+}
 
 // Credit cost breakdown - Base rate (clips 1-6, ≤6 seconds)
 export const BASE_CREDIT_BREAKDOWN = {

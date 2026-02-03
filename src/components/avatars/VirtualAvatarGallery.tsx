@@ -135,7 +135,7 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
                 decoding="async"
                 onLoad={handleImageLoad}
                 onError={handleImageError}
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover object-center"
               />
             </div>
           )}

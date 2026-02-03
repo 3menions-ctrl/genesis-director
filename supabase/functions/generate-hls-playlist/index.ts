@@ -59,7 +59,16 @@ serve(async (req) => {
     }
 
     if (!clips || clips.length === 0) {
-      throw new Error("No completed clips found for this project");
+      // Return graceful response instead of error - project may be a draft
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "No completed clips found for this project",
+          reason: "draft_or_incomplete",
+          processingTimeMs: Date.now() - startTime,
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Select best clip per shot_index

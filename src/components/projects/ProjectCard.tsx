@@ -102,7 +102,24 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
   const status = project.status as string;
   const isDirectVideo = project.video_url && !isManifestUrl(project.video_url);
   const isManifest = project.video_url && isManifestUrl(project.video_url);
-  const hasVideo = Boolean(project.video_clips?.length || isDirectVideo || isManifest || status === 'completed');
+  
+  // Check for avatar-style video content in pending_video_tasks
+  const pendingTasks = project.pending_video_tasks as unknown as Record<string, unknown> | null;
+  const hasAvatarVideo = pendingTasks?.predictions 
+    ? Array.isArray(pendingTasks.predictions) && 
+      (pendingTasks.predictions as Array<{ videoUrl?: string; status?: string }>).some(
+        p => p.videoUrl && p.status === 'completed'
+      )
+    : false;
+  
+  // Determine if project actually has playable video content
+  const hasVideo = Boolean(
+    project.video_clips?.length || 
+    isDirectVideo || 
+    isManifest || 
+    hasAvatarVideo ||
+    (pendingTasks?.hlsPlaylistUrl) // HLS playlist available
+  );
   
   // Detect touch device and iOS Safari on mount
   const [isIOSSafari, setIsIOSSafari] = useState(false);
@@ -392,6 +409,16 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
   // MOBILE FIX: On touch devices, always show content (not hover-dependent)
   const showContentOverlay = isTouchDevice || isHovered;
   
+  // Handle card click - only play if video content exists, otherwise edit
+  const handleCardClick = useCallback(() => {
+    if (hasVideo) {
+      onPlay();
+    } else {
+      // No video - go to editor instead
+      onEdit();
+    }
+  }, [hasVideo, onPlay, onEdit]);
+  
   return (
     <div
       ref={ref}
@@ -405,7 +432,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
       onMouseLeave={!isTouchDevice ? handleMouseLeave : undefined}
       onTouchStart={isTouchDevice ? handleTouchStart : undefined}
       onTouchEnd={isTouchDevice ? handleTouchEnd : undefined}
-      onClick={onPlay}
+      onClick={handleCardClick}
     >
       {/* Glow effect on hover - desktop only */}
       {!isTouchDevice && (

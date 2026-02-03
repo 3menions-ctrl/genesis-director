@@ -41,6 +41,12 @@ const VOICE_MAP: Record<string, string> = {
   'default': 'bella',
 };
 
+interface CinematicModeConfig {
+  enabled: boolean;
+  movementType: 'static' | 'walking' | 'driving' | 'action' | 'random';
+  cameraAngle: 'static' | 'tracking' | 'dynamic' | 'random';
+}
+
 interface AvatarDirectRequest {
   script: string;
   avatarImageUrl: string;
@@ -51,6 +57,7 @@ interface AvatarDirectRequest {
   aspectRatio?: string;
   clipCount?: number;
   clipDuration?: number;
+  cinematicMode?: CinematicModeConfig;
 }
 
 serve(async (req) => {
@@ -82,6 +89,7 @@ serve(async (req) => {
       aspectRatio = '16:9',
       clipCount = 1,
       clipDuration = 10,
+      cinematicMode,
     } = request;
 
     if (!script || !avatarImageUrl) {
@@ -327,7 +335,7 @@ serve(async (req) => {
       // Only use 5s if explicitly set to less than 10
       const videoDuration = (clipDuration && clipDuration >= 10) ? 10 : (clipDuration || 10);
       console.log(`[AvatarDirect] Clip ${clipNumber}: Using ${videoDuration}s duration (requested: ${clipDuration}s)`);
-      const actingPrompt = buildActingPrompt(segmentText, sceneDescription);
+      const actingPrompt = buildActingPrompt(segmentText, sceneDescription, cinematicMode, clipIndex);
       
       const klingResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
         method: "POST",
@@ -507,9 +515,14 @@ function splitScriptIntoSegments(script: string, targetCount: number): string[] 
 }
 
 /**
- * Build an expressive acting prompt
+ * Build an expressive acting prompt with optional cinematic enhancements
  */
-function buildActingPrompt(script: string, sceneDescription?: string): string {
+function buildActingPrompt(
+  script: string, 
+  sceneDescription?: string, 
+  cinematicMode?: CinematicModeConfig, 
+  clipIndex: number = 0
+): string {
   const emotionalTone = analyzeEmotionalTone(script);
   
   const sceneContext = sceneDescription?.trim()
@@ -518,7 +531,103 @@ function buildActingPrompt(script: string, sceneDescription?: string): string {
   
   const performanceStyle = getPerformanceStyle(emotionalTone);
   
-  return `${sceneContext}The person in the frame is speaking directly to the camera, delivering this message: "${script.substring(0, 100)}${script.length > 100 ? '...' : ''}". ${performanceStyle} The performance should feel authentic, engaging, and human.`;
+  // Build cinematic enhancements if enabled
+  let cinematicEnhancements = "";
+  if (cinematicMode?.enabled) {
+    const movementPrompt = getCinematicMovement(cinematicMode.movementType, clipIndex);
+    const cameraPrompt = getCinematicCamera(cinematicMode.cameraAngle, clipIndex);
+    cinematicEnhancements = `${movementPrompt} ${cameraPrompt} `;
+  }
+  
+  // Base prompt for speaking
+  const baseAction = cinematicMode?.enabled
+    ? "The person is speaking while"
+    : "The person in the frame is speaking directly to the camera,";
+  
+  return `${sceneContext}${cinematicEnhancements}${baseAction} delivering this message: "${script.substring(0, 100)}${script.length > 100 ? '...' : ''}". ${performanceStyle} The performance should feel authentic, engaging, and human.`;
+}
+
+/**
+ * Get cinematic movement description based on mode
+ */
+function getCinematicMovement(movementType: string, clipIndex: number): string {
+  const MOVEMENT_PROMPTS: Record<string, string[]> = {
+    static: [
+      'standing confidently',
+      'seated comfortably',
+      'leaning casually against a surface',
+    ],
+    walking: [
+      'walking purposefully through the scene',
+      'strolling casually while speaking',
+      'walking and gesturing naturally',
+      'moving through the environment with confidence',
+      'walking at a relaxed pace, maintaining eye contact',
+    ],
+    driving: [
+      'seated in a moving car, city lights and buildings passing outside the window',
+      'in the passenger seat of a vehicle, scenery moving past behind them',
+      'driving while speaking, urban environment visible through the windshield',
+      'in a car at night, colorful streetlights streaking past',
+      'riding in a train compartment, landscape blurring outside the window',
+    ],
+    action: [
+      'jogging through the scene with athletic energy',
+      'climbing stairs with purpose and determination',
+      'moving quickly through a bustling crowd',
+      'running with focused determination',
+      'navigating through an active, dynamic environment',
+    ],
+  };
+
+  if (movementType === 'random') {
+    const types = ['walking', 'driving', 'action', 'static'];
+    const selectedType = types[clipIndex % types.length];
+    const prompts = MOVEMENT_PROMPTS[selectedType];
+    return prompts[Math.floor(Math.random() * prompts.length)];
+  }
+  
+  const prompts = MOVEMENT_PROMPTS[movementType] || MOVEMENT_PROMPTS['static'];
+  return prompts[Math.floor(Math.random() * prompts.length)];
+}
+
+/**
+ * Get cinematic camera description based on mode
+ */
+function getCinematicCamera(cameraAngle: string, clipIndex: number): string {
+  const CAMERA_PROMPTS: Record<string, string[]> = {
+    static: [
+      'static camera with professional framing',
+      'fixed camera angle, stable and steady shot',
+      'locked camera position maintaining consistent view',
+    ],
+    tracking: [
+      'smooth tracking shot following the subject',
+      'camera gliding alongside the movement seamlessly',
+      'dolly shot maintaining perfect framing throughout',
+      'steadicam following the action with fluid motion',
+    ],
+    dynamic: [
+      'cinematic camera work with subtle artistic movements',
+      'professional cinematography with gentle push-in effect',
+      'film-quality camera movement with elegant slow pans',
+      'documentary-style camera with natural organic motion',
+      'dramatic low-angle shot with slight upward tilt',
+      'over-the-shoulder perspective pulling back slowly',
+      'medium close-up with shallow depth of field',
+      'wide establishing shot transitioning to close-up',
+    ],
+  };
+
+  if (cameraAngle === 'random') {
+    const types = ['static', 'tracking', 'dynamic'];
+    const selectedType = types[Math.floor(Math.random() * types.length)];
+    const prompts = CAMERA_PROMPTS[selectedType];
+    return prompts[Math.floor(Math.random() * prompts.length)];
+  }
+  
+  const prompts = CAMERA_PROMPTS[cameraAngle] || CAMERA_PROMPTS['static'];
+  return prompts[Math.floor(Math.random() * prompts.length)];
 }
 
 function analyzeEmotionalTone(script: string): 'excited' | 'serious' | 'warm' | 'playful' | 'neutral' {

@@ -1,16 +1,30 @@
 import { memo, forwardRef } from 'react';
 import { 
-  Mic, Play, Zap, Loader2, Music, MapPin,
+  Mic, Play, Zap, Loader2, Music, MapPin, Video, Camera,
   RectangleHorizontal, RectangleVertical, Square
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AvatarTemplate } from '@/types/avatar-templates';
+import { CinematicModeConfig, MOVEMENT_PRESETS, CAMERA_PRESETS, MovementType, CameraAngle } from '@/types/cinematic-mode';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const ASPECT_RATIOS = [
   { id: '16:9', name: 'Landscape', icon: RectangleHorizontal, description: 'YouTube, TV' },
@@ -36,6 +50,8 @@ interface AvatarsConfigPanelProps {
   maxClips: number;
   enableMusic: boolean;
   onEnableMusicChange: (enabled: boolean) => void;
+  cinematicMode: CinematicModeConfig;
+  onCinematicModeChange: (config: CinematicModeConfig) => void;
   estimatedDuration: number;
   estimatedCredits: number;
   userCredits: number;
@@ -61,6 +77,8 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
   maxClips,
   enableMusic,
   onEnableMusicChange,
+  cinematicMode,
+  onCinematicModeChange,
   estimatedDuration,
   estimatedCredits,
   userCredits,
@@ -70,6 +88,19 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
   onClearAvatar,
   onCreate,
 }, ref) {
+  // Cinematic mode toggle handler
+  const handleCinematicToggle = (enabled: boolean) => {
+    onCinematicModeChange({ ...cinematicMode, enabled });
+  };
+
+  const handleMovementChange = (movementType: MovementType) => {
+    onCinematicModeChange({ ...cinematicMode, movementType });
+  };
+
+  const handleCameraChange = (cameraAngle: CameraAngle) => {
+    onCinematicModeChange({ ...cinematicMode, cameraAngle });
+  };
+
   return (
     // STABILITY: Replaced motion.div with CSS animations to prevent ref-injection crashes
     <div
@@ -191,7 +222,59 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 <Music className={cn("w-3.5 h-3.5", enableMusic ? "text-violet-400" : "text-white/30")} />
                 <Switch checked={enableMusic} onCheckedChange={onEnableMusicChange} className="scale-75" />
               </div>
+
+              {/* Cinematic Mode Toggle - Mobile */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Video className={cn("w-3.5 h-3.5", cinematicMode.enabled ? "text-emerald-400" : "text-white/30")} />
+                      <Switch checked={cinematicMode.enabled} onCheckedChange={handleCinematicToggle} className="scale-75" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p className="font-medium">Cinematic Mode</p>
+                    <p className="text-xs text-muted-foreground">Add dynamic movement and camera angles for a more realistic, cinematic feel</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
+
+            {/* Cinematic Options - Mobile (shown when enabled) */}
+            {cinematicMode.enabled && (
+              <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                <div className="flex items-center gap-2 shrink-0">
+                  <Label className="text-xs text-zinc-400 whitespace-nowrap">Movement:</Label>
+                  <Select value={cinematicMode.movementType} onValueChange={(v) => handleMovementChange(v as MovementType)}>
+                    <SelectTrigger className="h-7 w-24 text-xs bg-zinc-800 border-zinc-700">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(MOVEMENT_PRESETS).map(([key, preset]) => (
+                        <SelectItem key={key} value={key} className="text-xs">
+                          {preset.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Label className="text-xs text-zinc-400 whitespace-nowrap">Camera:</Label>
+                  <Select value={cinematicMode.cameraAngle} onValueChange={(v) => handleCameraChange(v as CameraAngle)}>
+                    <SelectTrigger className="h-7 w-24 text-xs bg-zinc-800 border-zinc-700">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(CAMERA_PRESETS).map(([key, preset]) => (
+                        <SelectItem key={key} value={key} className="text-xs">
+                          {preset.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
 
             {/* Create Button */}
             <div className="flex items-center justify-between gap-4">
@@ -343,7 +426,72 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 <Music className={cn("w-4 h-4", enableMusic ? "text-violet-400" : "text-white/30")} />
                 <Switch checked={enableMusic} onCheckedChange={onEnableMusicChange} />
               </div>
+
+              {/* Cinematic Mode - Desktop */}
+              <div className="space-y-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-2">
+                        <Video className={cn("w-4 h-4", cinematicMode.enabled ? "text-emerald-400" : "text-white/30")} />
+                        <Switch checked={cinematicMode.enabled} onCheckedChange={handleCinematicToggle} />
+                        <span className="text-xs text-zinc-400">Cinematic</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <p className="font-medium">Cinematic Mode</p>
+                      <p className="text-xs text-muted-foreground">Dynamic movement (walking, driving, action) with varying camera angles for realistic, film-quality videos</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </div>
+
+            {/* Cinematic Options Row - Desktop (shown when enabled) */}
+            {cinematicMode.enabled && (
+              <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/[0.08]">
+                <div className="flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs text-zinc-400">Movement:</span>
+                  <Select value={cinematicMode.movementType} onValueChange={(v) => handleMovementChange(v as MovementType)}>
+                    <SelectTrigger className="h-8 w-28 text-xs bg-zinc-800 border-zinc-700">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(MOVEMENT_PRESETS).map(([key, preset]) => (
+                        <SelectItem key={key} value={key}>
+                          <div>
+                            <div className="font-medium">{preset.label}</div>
+                            <div className="text-xs text-muted-foreground">{preset.description}</div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-zinc-400">Camera:</span>
+                  <Select value={cinematicMode.cameraAngle} onValueChange={(v) => handleCameraChange(v as CameraAngle)}>
+                    <SelectTrigger className="h-8 w-28 text-xs bg-zinc-800 border-zinc-700">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(CAMERA_PRESETS).map(([key, preset]) => (
+                        <SelectItem key={key} value={key}>
+                          <div>
+                            <div className="font-medium">{preset.label}</div>
+                            <div className="text-xs text-muted-foreground">{preset.description}</div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="text-xs text-emerald-400/70 italic">
+                  🎬 AI will vary movement & angles per clip
+                </div>
+              </div>
+            )}
 
             {/* Create Button & Cost */}
             <div className="flex flex-col items-end gap-2">

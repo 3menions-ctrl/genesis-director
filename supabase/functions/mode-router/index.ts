@@ -152,6 +152,12 @@ interface AvatarCastMember {
   isPrimary?: boolean; // Main protagonist
 }
 
+interface CinematicModeConfig {
+  enabled: boolean;
+  movementType: 'static' | 'walking' | 'driving' | 'action' | 'random';
+  cameraAngle: 'static' | 'tracking' | 'dynamic' | 'random';
+}
+
 interface ModeRouterRequest {
   mode: 'text-to-video' | 'image-to-video' | 'avatar' | 'video-to-video' | 'motion-transfer' | 'b-roll';
   userId: string;
@@ -177,6 +183,9 @@ interface ModeRouterRequest {
   
   // Avatar-specific: Scene/background description (e.g., "a witches house")
   sceneDescription?: string;
+  
+  // Avatar-specific: Cinematic mode for dynamic movement and camera
+  cinematicMode?: CinematicModeConfig;
   
   // Production controls
   aspectRatio: string;
@@ -312,6 +321,7 @@ serve(async (req) => {
           aspectRatio,
           clipCount, // Pass clip count for multi-clip generation
           clipDuration, // Pass clip duration for each segment
+          cinematicMode: request.cinematicMode, // Pass cinematic mode config
           supabase,
         });
 
@@ -391,9 +401,10 @@ async function handleAvatarDirectMode(params: {
   aspectRatio: string;
   clipCount: number; // Number of clips to generate
   clipDuration: number; // Duration per clip in seconds
+  cinematicMode?: CinematicModeConfig; // Cinematic mode for dynamic movement
   supabase: any;
 }) {
-  const { projectId, userId, script, sceneDescription, avatarImageUrl, voiceId, aspectRatio, clipCount, clipDuration, supabase } = params;
+  const { projectId, userId, script, sceneDescription, avatarImageUrl, voiceId, aspectRatio, clipCount, clipDuration, cinematicMode, supabase } = params;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -402,6 +413,7 @@ async function handleAvatarDirectMode(params: {
   console.log(`[ModeRouter/AvatarDirect] Script (verbatim): "${script.substring(0, 80)}..."`);
   console.log(`[ModeRouter/AvatarDirect] Scene: "${sceneDescription?.substring(0, 50) || 'Using avatar background'}"`);
   console.log(`[ModeRouter/AvatarDirect] Clips: ${clipCount} × ${clipDuration}s`);
+  console.log(`[ModeRouter/AvatarDirect] Cinematic: ${cinematicMode?.enabled ? `ON (${cinematicMode.movementType}/${cinematicMode.cameraAngle})` : 'OFF'}`);
   console.log(`[ModeRouter/AvatarDirect] ═══════════════════════════════════════════════════`);
 
   // Update project status
@@ -410,7 +422,9 @@ async function handleAvatarDirectMode(params: {
     pipeline_state: {
       stage: 'init',
       progress: 5,
-      message: 'Starting direct avatar pipeline...',
+      message: cinematicMode?.enabled 
+        ? 'Starting cinematic avatar pipeline...' 
+        : 'Starting direct avatar pipeline...',
     },
   }).eq('id', projectId);
 
@@ -431,6 +445,7 @@ async function handleAvatarDirectMode(params: {
       aspectRatio,
       clipCount, // Number of clips to generate
       clipDuration, // Duration per clip in seconds
+      cinematicMode, // Pass cinematic mode to generation
     }),
   });
 

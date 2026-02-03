@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Palette, Dices, CheckCircle2, XCircle, 
   Loader2, Play, RefreshCw, Download, ExternalLink,
-  Sparkles, Wand2, Film, Clock, Zap, X, Eye
+  Sparkles, Wand2, Film, Clock, Zap, X, Eye, PlayCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
+import { UniversalVideoPlayer } from '@/components/player';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -115,6 +116,7 @@ export function SpecializedModeProgress({
   const [elapsedTime, setElapsedTime] = useState(0);
   const [startTime] = useState(Date.now());
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showFullPlayer, setShowFullPlayer] = useState(false);
   
   const config = MODE_CONFIG[mode];
   const Icon = config.icon;
@@ -274,6 +276,11 @@ export function SpecializedModeProgress({
   // Use clips from props or fallback to single video
   const completedClips = localClips.filter(c => c.status === 'completed');
   const hasMultipleClips = completedClips.length > 1;
+  
+  // Determine if localVideoUrl is actually a playable video vs a manifest/JSON
+  const isPlayableVideoUrl = localVideoUrl && 
+    !localVideoUrl.endsWith('.json') && 
+    !localVideoUrl.includes('manifest');
   
   const isComplete = localState.stage === 'completed' || !!localVideoUrl || completedClips.length > 0;
   const isFailed = localState.stage === 'failed';
@@ -629,7 +636,8 @@ export function SpecializedModeProgress({
           )}
 
           {/* Single Video Preview (for single-clip or legacy) */}
-          {!hasMultipleClips && localVideoUrl && (
+          {/* Only show if: no multi-clips AND we have a playable video URL (not a manifest) */}
+          {!hasMultipleClips && isPlayableVideoUrl && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -666,12 +674,7 @@ export function SpecializedModeProgress({
             {isComplete && hasMultipleClips && (
               <>
                 <Button
-                  onClick={() => {
-                    // Play first clip
-                    if (completedClips[0]?.videoUrl) {
-                      window.open(completedClips[0].videoUrl, '_blank');
-                    }
-                  }}
+                  onClick={() => setShowFullPlayer(true)}
                   className={cn(
                     "flex-1 min-w-[140px] h-11 sm:h-12 font-medium",
                     "bg-gradient-to-r text-white",
@@ -680,8 +683,8 @@ export function SpecializedModeProgress({
                     'from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600'
                   )}
                 >
-                  <Play className="w-4 h-4 mr-2" />
-                  Play First Clip
+                  <PlayCircle className="w-4 h-4 mr-2" />
+                  Play All Clips
                 </Button>
                 <Button
                   variant="outline"
@@ -712,7 +715,7 @@ export function SpecializedModeProgress({
             )}
             
             {/* Single clip actions */}
-            {isComplete && !hasMultipleClips && localVideoUrl && (
+            {isComplete && !hasMultipleClips && isPlayableVideoUrl && (
               <>
                 <Button
                   onClick={() => window.open(localVideoUrl, '_blank')}
@@ -778,6 +781,58 @@ export function SpecializedModeProgress({
           </div>
         </div>
       </div>
+      
+      {/* Fullscreen Video Player Modal */}
+      <AnimatePresence>
+        {showFullPlayer && completedClips.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-black/95 flex items-center justify-center"
+            onClick={() => setShowFullPlayer(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative w-full max-w-5xl mx-4"
+              onClick={e => e.stopPropagation()}
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowFullPlayer(false)}
+                className="absolute -top-12 right-0 text-white hover:bg-white/10 z-10"
+              >
+                <X className="w-6 h-6" />
+              </Button>
+              
+              <UniversalVideoPlayer
+                source={{
+                  urls: completedClips.map(c => c.videoUrl),
+                  masterAudioUrl: masterAudioUrl || undefined,
+                }}
+                mode="fullscreen"
+                autoPlay
+                controls={{
+                  showPlayPause: true,
+                  showProgress: true,
+                  showVolume: true,
+                  showSkip: true,
+                  showFullscreen: true,
+                }}
+                onClose={() => setShowFullPlayer(false)}
+                className="rounded-xl overflow-hidden"
+              />
+              
+              <div className="mt-4 text-center text-white/60 text-sm">
+                Playing all {completedClips.length} clips with synchronized audio
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

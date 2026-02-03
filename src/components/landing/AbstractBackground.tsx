@@ -16,8 +16,8 @@ const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundPro
           style={{ backgroundImage: `url(${landingAbstractBg})` }}
         />
         
-        {/* Very subtle overlay to blend with page - keeping the black intact */}
-        <div className="absolute inset-0 bg-black/20" />
+        {/* Darker overlay to reduce line brightness and improve text readability */}
+        <div className="absolute inset-0 bg-black/50" />
         
         {/* Soft vignette for depth */}
         <div 

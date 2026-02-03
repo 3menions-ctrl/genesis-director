@@ -13,28 +13,61 @@ const corsHeaders = {
  * This model is always warm (~3s generation time) with 300+ voices.
  */
 
-// MiniMax voice mapping - these are ACTUAL MiniMax system voice IDs
+// Default speech rate - slightly slower for clearer articulation
+const DEFAULT_SPEED = 0.9;
+
+// MiniMax voice mapping - expanded voice library with diverse options
 const VOICE_MAP: Record<string, { minimaxVoice: string; description: string }> = {
-  // Male voices
+  // Male voices - Deep & Authoritative
   onyx: { minimaxVoice: 'English_ManWithDeepVoice', description: 'Deep male voice' },
-  adam: { minimaxVoice: 'English_expressive_narrator', description: 'Expressive narrator' },
-  echo: { minimaxVoice: 'English_Gentle-voiced_man', description: 'Gentle male voice' },
-  fable: { minimaxVoice: 'English_CaptivatingStoryteller', description: 'Captivating storyteller' },
-  michael: { minimaxVoice: 'English_Trustworth_Man', description: 'Trustworthy man' },
   george: { minimaxVoice: 'English_Deep-VoicedGentleman', description: 'Deep-voiced gentleman' },
+  michael: { minimaxVoice: 'English_Trustworth_Man', description: 'Trustworthy man' },
   
-  // Female voices  
+  // Male voices - Warm & Friendly
+  echo: { minimaxVoice: 'English_Gentle-voiced_man', description: 'Gentle male voice' },
+  adam: { minimaxVoice: 'English_expressive_narrator', description: 'Expressive narrator' },
+  fable: { minimaxVoice: 'English_CaptivatingStoryteller', description: 'Captivating storyteller' },
+  
+  // Male voices - Youthful & Energetic
+  marcus: { minimaxVoice: 'English_cheerful_man', description: 'Cheerful young man' },
+  tyler: { minimaxVoice: 'English_SunshineMan', description: 'Bright sunshine voice' },
+  jake: { minimaxVoice: 'English_Determined_Man', description: 'Determined speaker' },
+  
+  // Male voices - Professional
+  david: { minimaxVoice: 'English_ProfessionalMan', description: 'Professional business voice' },
+  james: { minimaxVoice: 'English_ReporterMan', description: 'News reporter style' },
+  
+  // Female voices - Confident & Strong
   nova: { minimaxVoice: 'English_ConfidentWoman', description: 'Confident woman' },
+  aria: { minimaxVoice: 'English_PowerfulWoman', description: 'Powerful executive voice' },
+  victoria: { minimaxVoice: 'English_AuthoritativeWoman', description: 'Authoritative speaker' },
+  
+  // Female voices - Warm & Friendly
   bella: { minimaxVoice: 'English_Upbeat_Woman', description: 'Upbeat woman' },
-  shimmer: { minimaxVoice: 'English_Wiselady', description: 'Wise lady' },
-  alloy: { minimaxVoice: 'English_SereneWoman', description: 'Serene woman' },
   sarah: { minimaxVoice: 'English_CalmWoman', description: 'Calm woman' },
-  jessica: { minimaxVoice: 'English_radiant_girl', description: 'Radiant girl' },
-  lily: { minimaxVoice: 'English_Graceful_Lady', description: 'Graceful lady' },
+  alloy: { minimaxVoice: 'English_SereneWoman', description: 'Serene woman' },
   emma: { minimaxVoice: 'English_Kind-heartedGirl', description: 'Kind-hearted girl' },
   
-  // Special voices
+  // Female voices - Elegant & Sophisticated
+  shimmer: { minimaxVoice: 'English_Wiselady', description: 'Wise lady' },
+  lily: { minimaxVoice: 'English_Graceful_Lady', description: 'Graceful lady' },
+  charlotte: { minimaxVoice: 'English_ElegantWoman', description: 'Elegant sophisticated voice' },
+  
+  // Female voices - Youthful & Energetic
+  jessica: { minimaxVoice: 'English_radiant_girl', description: 'Radiant girl' },
+  zoey: { minimaxVoice: 'English_BrightGirl', description: 'Bright energetic voice' },
+  mia: { minimaxVoice: 'English_LivelyGirl', description: 'Lively young voice' },
+  
+  // Female voices - Professional
+  rachel: { minimaxVoice: 'English_NewsWoman', description: 'News anchor voice' },
+  claire: { minimaxVoice: 'English_ProfessionalWoman', description: 'Professional business voice' },
+  
+  // Special voices - Narration
   narrator: { minimaxVoice: 'English_expressive_narrator', description: 'Expressive narrator' },
+  storyteller: { minimaxVoice: 'English_CaptivatingStoryteller', description: 'Storyteller voice' },
+  documentary: { minimaxVoice: 'English_DocumentaryNarrator', description: 'Documentary style' },
+  
+  // Default fallback
   default: { minimaxVoice: 'English_ConfidentWoman', description: 'Default voice' },
 };
 
@@ -234,10 +267,12 @@ serve(async (req) => {
       voiceSource = `voiceType:${voiceType}`;
     }
     
-    console.log(`[Voice] Generating: ${text.length} chars, voice: ${resolvedVoice}, source: ${voiceSource}`);
+    // Apply slightly slower default speed for clearer articulation
+    const finalSpeed = speed || DEFAULT_SPEED;
+    console.log(`[Voice] Generating: ${text.length} chars, voice: ${resolvedVoice}, speed: ${finalSpeed}, source: ${voiceSource}`);
 
     // Generate with MiniMax (always warm, ~3s)
-    const result = await generateWithMiniMax(text, resolvedVoice, speed || 1.0);
+    const result = await generateWithMiniMax(text, resolvedVoice, finalSpeed);
     
     if (!result) {
       throw new Error("Voice generation failed. Please try again.");

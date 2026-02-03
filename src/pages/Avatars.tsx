@@ -28,6 +28,7 @@ import { useAvatarTemplatesQuery } from '@/hooks/useAvatarTemplatesQuery';
 import { useAvatarVoices } from '@/hooks/useAvatarVoices';
 import { useImagePreloader } from '@/hooks/useImagePreloader';
 import { AvatarTemplate, AvatarType } from '@/types/avatar-templates';
+import { CinematicModeConfig, DEFAULT_CINEMATIC_CONFIG } from '@/types/cinematic-mode';
 import { AvatarPreviewModal } from '@/components/avatars/AvatarPreviewModal';
 import { VirtualAvatarGallery } from '@/components/avatars/VirtualAvatarGallery';
 import AvatarsBackground from '@/components/avatars/AvatarsBackground';
@@ -146,6 +147,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   const [clipCount, setClipCount] = useState(3);
   const [clipDuration, setClipDuration] = useState(10);
   const [enableMusic, setEnableMusic] = useState(true);
+  const [cinematicMode, setCinematicMode] = useState<CinematicModeConfig>(DEFAULT_CINEMATIC_CONFIG);
   
   // ========== Generation State ==========
   const [isCreating, setIsCreating] = useState(false);
@@ -343,6 +345,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
           characterBible,
           avatarTemplateId: selectedAvatar.id,
           sceneDescription: sceneDescription.trim() || undefined,
+          cinematicMode: cinematicMode.enabled ? cinematicMode : undefined,
         },
       });
       
@@ -387,7 +390,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         setCreationStatus('');
       }
     }
-  }, [user, selectedAvatar, prompt, sceneDescription, aspectRatio, clipCount, clipDuration, enableMusic, navigate, buildCharacterBible]);
+  }, [user, selectedAvatar, prompt, sceneDescription, aspectRatio, clipCount, clipDuration, enableMusic, cinematicMode, navigate, buildCharacterBible]);
   
   const handleClearFilters = useCallback(() => {
     setGenderFilter('all');
@@ -499,6 +502,8 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
           maxClips={maxClips}
           enableMusic={enableMusic}
           onEnableMusicChange={setEnableMusic}
+          cinematicMode={cinematicMode}
+          onCinematicModeChange={setCinematicMode}
           estimatedDuration={estimatedDuration}
           estimatedCredits={estimatedCredits}
           userCredits={userCredits}

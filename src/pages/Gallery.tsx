@@ -129,35 +129,9 @@ const useAmbientSounds = () => {
     };
   }, []);
   
-  const playTransition = useCallback(async () => {
-    // Generate and play a subtle transition sound using the generate-sfx endpoint
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-sfx`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ 
-            prompt: 'soft futuristic UI whoosh transition sound effect',
-            duration: 0.5
-          }),
-        }
-      );
-      
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        audio.volume = 0.08;
-        await audio.play();
-      }
-    } catch {
-      // Silent fail - ambient sounds are optional
-    }
+  const playTransition = useCallback(() => {
+    // Transition sound effect placeholder - edge function not deployed
+    // Silent no-op to prevent 404 errors
   }, []);
   
   return { playTransition };

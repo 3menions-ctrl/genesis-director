@@ -1496,7 +1496,8 @@ function ProjectsContentInner() {
       </Dialog>
 
       {/* Smart Video Player Modal - MOBILE OPTIMIZED: Full-screen on mobile */}
-      {/* CRITICAL: Avatar projects use video_url directly, not video_clips table */}
+      {/* ALL projects now use projectId source - UniversalVideoPlayer fetches clips from video_clips table */}
+      {/* This ensures permanent Supabase URLs are used, not expired Replicate delivery URLs */}
       <Dialog open={!!showBrowserStitcher} onOpenChange={(open) => {
         if (!open) {
           setShowBrowserStitcher(null);
@@ -1515,40 +1516,15 @@ function ProjectsContentInner() {
           </DialogHeader>
           {showBrowserStitcher && (
             <div className="p-2 sm:p-4 pt-0 flex-1 min-h-0 flex items-center justify-center">
-              {/* Avatar projects with multiple clips: use UniversalVideoPlayer with urls + masterAudioUrl */}
-              {/* Avatar projects with single clip: use simple video element */}
-              {/* Non-avatar projects: use UniversalVideoPlayer */}
-              {selectedProject?.mode === 'avatar' && 
-               selectedProject?.video_clips && 
-               selectedProject.video_clips.length > 1 ? (
-                <UniversalVideoPlayer
-                  source={{ 
-                    urls: selectedProject.video_clips,
-                    masterAudioUrl: selectedProject.voice_audio_url || undefined,
-                  }}
-                  mode="inline"
-                  autoPlay
-                  className="w-full max-h-full aspect-video rounded-lg sm:rounded-xl"
-                />
-              ) : selectedProject?.mode === 'avatar' && selectedProject?.video_url ? (
-                <video
-                  src={selectedProject.video_url}
-                  controls
-                  autoPlay
-                  playsInline
-                  muted={false}
-                  className="w-full max-h-full aspect-video rounded-lg sm:rounded-xl bg-black object-contain"
-                  crossOrigin="anonymous"
-                  preload="auto"
-                />
-              ) : (
-                <UniversalVideoPlayer
-                  source={{ projectId: showBrowserStitcher }}
-                  mode="inline"
-                  autoPlay
-                  className="w-full max-h-full aspect-video rounded-lg sm:rounded-xl"
-                />
-              )}
+              {/* UNIFIED: All projects use projectId source for reliable playback */}
+              {/* UniversalVideoPlayer fetches clips from video_clips table with permanent URLs */}
+              {/* For avatar projects, it also fetches masterAudioUrl from pipeline_state */}
+              <UniversalVideoPlayer
+                source={{ projectId: showBrowserStitcher }}
+                mode="inline"
+                autoPlay
+                className="w-full max-h-full aspect-video rounded-lg sm:rounded-xl"
+              />
             </div>
           )}
         </DialogContent>

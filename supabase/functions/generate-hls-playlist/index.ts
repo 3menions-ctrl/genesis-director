@@ -58,7 +58,55 @@ serve(async (req) => {
       throw new Error(`Failed to fetch clips: ${clipsError.message}`);
     }
 
+    // Check if we have clips, if not check for avatar-style videos in pending_video_tasks
+    let avatarClips: Array<{ id: string; shot_index: number; video_url: string; duration_seconds: number; quality_score: number | null }> = [];
+    
     if (!clips || clips.length === 0) {
+      // Fetch project to check for avatar-style videos
+      const { data: projectData, error: projectError } = await supabase
+        .from('movie_projects')
+        .select('pending_video_tasks, video_url')
+        .eq('id', projectId)
+        .single();
+      
+      if (!projectError && projectData?.pending_video_tasks) {
+        const tasks = projectData.pending_video_tasks as Record<string, unknown>;
+        const predictions = tasks.predictions as Array<{ videoUrl?: string; status?: string; clipIndex?: number }> | undefined;
+        
+        if (predictions && Array.isArray(predictions)) {
+          avatarClips = predictions
+            .filter(p => p.videoUrl && p.status === 'completed')
+            .map((p, idx) => ({
+              id: `avatar-clip-${idx}`,
+              shot_index: p.clipIndex ?? idx,
+              video_url: p.videoUrl as string,
+              duration_seconds: 10, // Avatar clips are typically 10s
+              quality_score: 1,
+            }));
+          
+          console.log(`[HLS-Playlist] Found ${avatarClips.length} avatar clips in pending_video_tasks`);
+        }
+        
+        // Also check for single video_url on project
+        if (avatarClips.length === 0 && projectData.video_url && typeof projectData.video_url === 'string') {
+          const videoUrl = projectData.video_url;
+          if (videoUrl.endsWith('.mp4') || videoUrl.endsWith('.webm') || videoUrl.includes('/video-clips/')) {
+            avatarClips = [{
+              id: 'avatar-single-clip',
+              shot_index: 0,
+              video_url: videoUrl,
+              duration_seconds: 10,
+              quality_score: 1,
+            }];
+            console.log(`[HLS-Playlist] Using project video_url as single clip`);
+          }
+        }
+      }
+    }
+
+    const allClips = (clips && clips.length > 0) ? clips : avatarClips;
+
+    if (allClips.length === 0) {
       // Return graceful response instead of error - project may be a draft
       return new Response(
         JSON.stringify({
@@ -72,8 +120,8 @@ serve(async (req) => {
     }
 
     // Select best clip per shot_index
-    const bestClipsMap = new Map<number, typeof clips[0]>();
-    for (const clip of clips) {
+    const bestClipsMap = new Map<number, typeof allClips[0]>();
+    for (const clip of allClips) {
       const existing = bestClipsMap.get(clip.shot_index);
       if (!existing) {
         bestClipsMap.set(clip.shot_index, clip);

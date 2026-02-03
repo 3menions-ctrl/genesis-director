@@ -10,23 +10,27 @@ import { motion } from 'framer-motion';
 const FAQS = [
   {
     question: 'How does it work?',
-    answer: 'Simply describe your video idea in text. Our AI generates professional video clips based on your description. You can then edit, combine, and export your final video.',
+    answer: 'Describe your video concept in text. Our AI generates video clips based on your description. You can regenerate clips until satisfied, then export your final video. Note: AI results vary and regeneration is normal—budget extra credits accordingly.',
   },
   {
-    question: 'What are credits?',
-    answer: 'Credits are used to generate video clips. Short clips (≤6 seconds) cost 10 credits each, while longer clips (10 seconds) cost 15 credits. You start with 60 free credits to try the platform.',
+    question: 'What are credits and how much do they cost?',
+    answer: 'Credits power video generation. 1 credit = $0.10. Short clips (≤6 seconds) cost 10 credits ($1); longer clips (>6 seconds) cost 15 credits ($1.50). New users get 60 free credits. Purchase packs start at $37 for 370 credits.',
+  },
+  {
+    question: 'Can I get a refund on credits?',
+    answer: 'No. ALL credit purchases are final and non-refundable. This includes unused credits, dissatisfaction with AI results, or account closure. Please use your 60 free credits to thoroughly test the platform before purchasing.',
+  },
+  {
+    question: 'What are the AI limitations I should know about?',
+    answer: 'AI video generation has inherent limitations: visual artifacts, character inconsistencies between scenes, unrealistic physics, and unexpected interpretations of prompts. Regenerating clips multiple times is normal and expected—not a bug. We cannot guarantee specific results.',
   },
   {
     question: 'Can I use videos commercially?',
-    answer: 'Yes. All videos you create are yours to use for any purpose, including commercial projects, social media, marketing, and more.',
+    answer: 'Yes. Videos you create are yours for any legal purpose, including commercial projects. However, you are responsible for reviewing content for accuracy and ensuring it meets legal requirements before publishing.',
   },
   {
-    question: 'What video quality is available?',
-    answer: 'We support HD (1080p) and 4K exports. Higher tier plans include access to 4K HDR exports for the best quality.',
-  },
-  {
-    question: 'How long are the generated clips?',
-    answer: 'Each clip can be 5 or 10 seconds long. You can combine multiple clips to create longer videos using our built-in editor.',
+    question: 'Do credits expire?',
+    answer: 'No. Purchased credits never expire and remain in your account indefinitely while your account is active.',
   },
 ];
 

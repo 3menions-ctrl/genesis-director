@@ -121,16 +121,28 @@ const Terms = () => {
             <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">5. Credits and Payments</h2>
               <p className="mb-4">
-                The Service operates on a credit-based and/or subscription model. By purchasing credits 
-                or subscribing to the Service, you agree that:
+                The Service operates on a credit-based payment model. By purchasing credits, you expressly 
+                acknowledge and agree to the following terms:
+              </p>
+              <p className="mb-4 p-4 bg-white/[0.03] rounded-xl border border-white/[0.1]">
+                <strong className="text-white">IMPORTANT - NO REFUND POLICY:</strong> ALL CREDIT PURCHASES 
+                ARE FINAL AND NON-REFUNDABLE. Credits cannot be refunded, transferred, or exchanged for cash 
+                once purchased. This policy applies regardless of whether credits have been used or remain 
+                unused in your account. By completing a purchase, you waive any right to a refund except 
+                where prohibited by applicable law.
               </p>
               <ul className="list-disc list-inside space-y-2 ml-4">
-                <li>Credits are required to generate content and are non-refundable except as required by applicable law</li>
-                <li>Unused credits may expire according to the terms disclosed at purchase</li>
-                <li>Pricing and credit packages are subject to change with reasonable notice</li>
-                <li>You are responsible for all charges incurred under your account</li>
-                <li>All payments are processed by third-party payment processors</li>
+                <li><strong className="text-white">Non-Refundable:</strong> All credit purchases are final sales. No refunds will be issued for any reason, including but not limited to: unused credits, dissatisfaction with AI-generated results, account termination, or service changes</li>
+                <li><strong className="text-white">No Expiration:</strong> Purchased credits do not expire and remain in your account indefinitely while your account is active</li>
+                <li><strong className="text-white">Credit Pricing:</strong> Each credit is valued at $0.10 USD. Video generation costs 10-15 credits per clip depending on duration (≤6 seconds: 10 credits; &gt;6 seconds: 15 credits)</li>
+                <li><strong className="text-white">Account Responsibility:</strong> You are solely responsible for all charges incurred under your account</li>
+                <li><strong className="text-white">Payment Processing:</strong> All payments are processed securely by Stripe. We do not store your payment card details</li>
+                <li><strong className="text-white">Price Changes:</strong> Pricing and credit packages are subject to change with reasonable notice. Changes will not affect previously purchased credits</li>
               </ul>
+              <p className="mt-4 text-white/80">
+                BY PURCHASING CREDITS, YOU ACKNOWLEDGE THAT YOU HAVE READ, UNDERSTOOD, AND AGREE TO THIS 
+                NO-REFUND POLICY. IF YOU DO NOT AGREE, DO NOT PURCHASE CREDITS.
+              </p>
             </section>
 
             <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">

@@ -78,7 +78,7 @@ const PRICING_TIERS = [
 const TRUST_POINTS = [
   { icon: <Shield className="w-5 h-5" />, text: 'Secure payments via Stripe' },
   { icon: <Clock className="w-5 h-5" />, text: 'Credits never expire' },
-  { icon: <Sparkles className="w-5 h-5" />, text: 'Cancel anytime' },
+  { icon: <Sparkles className="w-5 h-5" />, text: 'All sales final - no refunds' },
 ];
 
 export default function Pricing() {
@@ -324,7 +324,7 @@ export default function Pricing() {
             Start creating today
           </h2>
           <p className="text-lg text-white/40 mb-10 max-w-md mx-auto">
-            Get 50 free credits when you sign up. No credit card required.
+            Get 60 free credits when you sign up. No credit card required.
           </p>
           <Button
             onClick={() => navigate('/auth?mode=signup')}

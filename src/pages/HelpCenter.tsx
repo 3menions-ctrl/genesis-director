@@ -66,30 +66,40 @@ Download your finished video in multiple formats or share directly to social pla
       {
         id: 'understanding-credits',
         title: 'Understanding Credits',
-        description: 'How credits work and optimizing your usage',
-        readTime: '3 min',
+        description: 'How credits work and our pricing model',
+        readTime: '4 min',
+        popular: true,
         content: `
 ## Understanding Credits
 
-Credits are the currency of Apex. Here's everything you need to know.
+Credits are how you pay for video generation on Apex Studio.
 
-### How Credits Work
-- Each video generation consumes credits based on duration and quality
-- 5-second clip at standard quality: ~1 credit
-- 5-second clip at 4K quality: ~2 credits
+### Credit Pricing
+- **1 credit = $0.10 USD**
+- Short clips (≤6 seconds): **10 credits** per clip
+- Long clips (>6 seconds): **15 credits** per clip
 
-### Earning Credits
-- **Free tier**: 60 credits (one-time welcome bonus)
-- **Pro plan**: 500 credits monthly
-- **Enterprise**: Unlimited or custom
+### Getting Started
+- **Welcome Bonus**: New accounts receive 60 free credits
+- **Purchase Packs**: Buy credits in packages ($37, $100, or $250)
+- **No Expiration**: Credits never expire while your account is active
 
-### Optimizing Usage
-1. **Preview before generating**: Review your script carefully
-2. **Use templates**: Pre-built templates are more efficient
-3. **Batch similar content**: Generate related clips together
+### ⚠️ Important: No Refunds
+**All credit purchases are final and non-refundable.** Please use your free credits to test the platform before purchasing.
 
-### Purchasing More
-Visit Settings → Billing to purchase additional credit packs.
+### Credit Usage Tips
+1. **Use free credits first**: Test thoroughly before buying
+2. **Review scripts carefully**: Avoid regenerating due to typos
+3. **Start with shorter clips**: Use ≤6 second clips when possible (10 vs 15 credits)
+4. **Check AI limitations**: Understand what AI can and cannot do
+
+### AI Limitations Affect Results
+AI-generated videos may require regeneration due to:
+- Visual artifacts or inconsistencies
+- Character appearance variations
+- Unexpected interpretations of prompts
+
+Budget extra credits for potential regenerations. This is normal for AI video generation.
         `
       },
       {
@@ -257,87 +267,107 @@ If characters drift between clips:
   {
     id: 'billing-credits',
     title: 'Billing & Credits',
-    description: 'Manage subscriptions and payments',
+    description: 'Understand credit pricing and policies',
     icon: CreditCard,
     color: 'from-amber-500 to-orange-500',
     articles: [
       {
-        id: 'subscription-plans',
-        title: 'Subscription Plans',
-        description: 'Compare plans and find the right fit',
+        id: 'credit-pricing',
+        title: 'Credit Pricing & Packages',
+        description: 'Understand how credits work and our pricing',
         readTime: '4 min',
         content: `
-## Subscription Plans
+## Credit Pricing & Packages
 
-### Free Plan
-- 60 credits (one-time welcome bonus)
-- Standard quality
-- Community support
-- Watermarked exports
+### How Credits Work
+Apex Studio uses a **credit-based** payment system (not subscriptions). You purchase credits once and use them as needed.
 
-### Pro Plan ($29/month)
-- 500 credits/month
-- 4K quality
-- Priority processing
-- No watermarks
-- Email support
+**Credit Value**: 1 credit = $0.10 USD
 
-### Enterprise
-- Custom credit allocation
-- Dedicated support
-- API access
-- White-label options
-- Custom integrations
+### Video Generation Costs
+- **Short clips (≤6 seconds)**: 10 credits per clip ($1.00)
+- **Long clips (>6 seconds)**: 15 credits per clip ($1.50)
 
-### Switching Plans
-Upgrade or downgrade anytime from Settings → Billing.
+### Available Credit Packs
+
+**Starter Pack - $37**
+- 370 credits (~37 clips)
+- Perfect for trying the platform
+
+**Growth Pack - $100**
+- 1,000 credits (~100 clips)
+- Best value for regular creators
+
+**Agency Pack - $250**
+- 2,500 credits (~250 clips)
+- Ideal for teams and studios
+
+### New User Bonus
+New accounts receive **60 free credits** as a one-time welcome bonus to try the platform.
+
+### Credits Never Expire
+Your purchased credits remain in your account indefinitely while your account is active. No monthly limits or expiration dates.
         `
       },
       {
         id: 'payment-methods',
         title: 'Payment Methods',
-        description: 'Accepted payment options and billing',
+        description: 'Accepted payment options',
         readTime: '2 min',
         content: `
 ## Payment Methods
 
 ### Accepted Methods
-- Credit/Debit cards (Visa, Mastercard, Amex)
-- PayPal
+All payments are processed securely through **Stripe**:
+- Credit/Debit cards (Visa, Mastercard, Amex, Discover)
 - Apple Pay / Google Pay
-- Bank transfer (Enterprise only)
+- Link by Stripe
 
-### Billing Cycle
-- Monthly plans bill on the same day each month
-- Annual plans include 2 months free
-- Receipts sent via email automatically
+### Payment Security
+- We never store your card details
+- All transactions are encrypted
+- PCI-DSS compliant processing
 
-### Updating Payment
-1. Go to Settings → Billing
-2. Click "Update Payment Method"
-3. Enter new details
-4. Changes apply to next billing cycle
+### Receipts
+Email receipts are sent automatically after each purchase. You can also view your purchase history in Settings → Billing.
         `
       },
       {
         id: 'refund-policy',
         title: 'Refund Policy',
-        description: 'Our fair refund and cancellation policy',
+        description: 'Important information about our no-refund policy',
         readTime: '3 min',
+        popular: true,
         content: `
 ## Refund Policy
 
-### Subscription Refunds
-- Cancel within 14 days of initial purchase for full refund
-- Prorated refunds available for annual plans
-- No refunds for used credits
+### ⚠️ IMPORTANT: All Sales Are Final
 
-### Credit Pack Refunds
-- Unused credit packs: Full refund within 30 days
-- Partially used: Prorated based on remaining credits
+**ALL CREDIT PURCHASES ARE NON-REFUNDABLE.**
 
-### How to Request
-Contact cole@apex-studio.com with your order details.
+By purchasing credits, you acknowledge and agree that:
+
+1. **No Refunds**: Credits cannot be refunded under any circumstances, including:
+   - Unused credits in your account
+   - Dissatisfaction with AI-generated results
+   - Account closure or suspension
+   - Service changes or updates
+
+2. **No Transfers**: Credits cannot be transferred to other accounts or exchanged for cash.
+
+3. **No Exceptions**: This policy applies to all purchases regardless of the payment method used.
+
+### Why This Policy?
+AI video generation consumes significant computational resources. Once credits are purchased, those resources are allocated to your account. This policy allows us to offer competitive pricing.
+
+### Before You Buy
+- Use your 60 free welcome credits to test the platform
+- Review AI-generated samples in our gallery
+- Read our documentation on AI limitations
+- Ensure Apex Studio meets your needs before purchasing
+
+### Questions?
+Contact cole@apex-studio.com before purchasing if you have any concerns.
         `
       }
     ]
@@ -453,36 +483,54 @@ We're fully GDPR compliant. Contact cole@apex-studio.com for requests.
 ## Understanding AI Video Generation
 
 ### How It Works
-Apex Studio uses advanced third-party AI services, including **Google Veo**, to generate video content from your text descriptions and reference images.
+Apex Studio uses advanced third-party AI services to generate video content from your text descriptions and reference images. Our primary video generation is powered by **Kling AI** and other AI technology partners.
 
-### Important Limitations
+### ⚠️ Critical Limitations to Understand
 
-**AI Hallucinations**
-AI systems may occasionally produce unexpected or inaccurate outputs, known as "hallucinations." This can include:
-- Incorrect representations of described scenes
-- Unintended visual artifacts or distortions
-- Inconsistencies between clips
-- Characters or objects that differ from descriptions
+**Before purchasing credits, understand these AI limitations:**
 
-**What This Means for You**
-- Always review generated content before publishing
-- Do not rely on AI for factual accuracy
-- Expect to regenerate some clips for best results
-- Use reference images to improve consistency
+**AI "Hallucinations" Are Common**
+AI systems frequently produce unexpected or inaccurate outputs. This is NOT a bug—it's an inherent characteristic of current AI technology:
+- Characters may look different between scenes
+- Objects may appear, disappear, or transform unexpectedly
+- Hands, faces, and fine details often contain artifacts
+- Physics may not behave realistically
+- Text in videos is often illegible or nonsensical
+- Actions may not match your descriptions
+
+**Regeneration Is Normal**
+- Expect to regenerate clips multiple times to get acceptable results
+- Budget 2-4x the credits you think you need
+- Some prompts may never produce satisfactory results
+- AI cannot guarantee specific outcomes
+
+**No Guaranteed Results**
+- We cannot guarantee any specific output quality
+- AI interpretation of prompts varies unpredictably
+- Complex scenes and multiple characters are especially challenging
+- Results improve with experience but remain variable
 
 ### Third-Party Services
-Our video generation is powered by:
-- **Google Veo**: Primary video synthesis engine
+Our video generation relies on:
+- **Kling AI**: Primary video synthesis engine
 - **OpenAI**: Script and text enhancement
+- **ElevenLabs**: Voice synthesis
 - **Other AI Partners**: Supporting features
 
-These services operate under their own policies and may have their own content restrictions.
+These services operate under their own terms and may:
+- Have their own content restrictions
+- Experience downtime or service interruptions
+- Change capabilities without notice
 
-### Best Practices
-1. Review all content before publishing
-2. Regenerate clips that do not meet expectations
-3. Use clear, specific prompts for better results
-4. Keep expectations realistic about AI capabilities
+### Your Responsibilities
+1. **Review all content** before publishing or sharing
+2. **Never rely on AI** for factual accuracy
+3. **Budget for regeneration** - this is expected, not a defect
+4. **Use free credits first** to understand the platform
+5. **Accept inherent limitations** of AI technology
+
+### Credits Are Non-Refundable
+Because AI results vary and regeneration is normal, **all credit purchases are final**. Test thoroughly with your 60 free credits before buying.
         `
       },
       {

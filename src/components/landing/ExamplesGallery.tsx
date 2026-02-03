@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, Film, Image, User, Sparkles, Loader2, AlertCircle } from 'lucide-react';
-import { useMountGuard } from '@/hooks/useNavigationGuard';
+import { useMountSafe } from '@/lib/navigation';
 import { useGalleryShowcase } from '@/hooks/useGalleryShowcase';
 import type { GalleryCategory } from '@/types/gallery-showcase';
 import { UniversalVideoPlayer } from '@/components/player';
@@ -65,7 +65,7 @@ const LoadTrigger = memo(function LoadTrigger({ onLoad }: { onLoad: () => void }
 });
 
 const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: ExamplesGalleryProps) {
-  const { safeSetState, isMounted } = useMountGuard();
+  const { safeSetState, isMounted } = useMountSafe();
   const { data: galleryItems, isLoading: isLoadingGallery } = useGalleryShowcase();
   
   const [activeCategory, setActiveCategory] = useState<VideoCategory>('all');

@@ -9,7 +9,14 @@ const corsHeaders = {
  * MOTION TRANSFER - Pose Transfer Animation
  * 
  * Extracts motion from a source video and applies it to a target image/video.
- * Uses Kling v2.6 for high-quality motion-guided generation.
+ * Uses Kling AI native API for high-quality motion-guided generation.
+ * 
+ * NOTE: This is a placeholder implementation. Motion transfer requires
+ * specialized models (like MagicAnimate, Animate Anyone, etc.) that aren't
+ * currently available through our standard video generation pipeline.
+ * 
+ * Current behavior: Returns informative error directing users to avatar mode
+ * for similar functionality.
  */
 
 serve(async (req) => {
@@ -21,61 +28,39 @@ serve(async (req) => {
     const { sourceVideoUrl, targetImageUrl, mode = 'image' } = await req.json();
 
     if (!sourceVideoUrl) {
-      throw new Error("sourceVideoUrl is required");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "sourceVideoUrl is required" 
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     if (mode === 'image' && !targetImageUrl) {
-      throw new Error("targetImageUrl is required for image mode");
-    }
-
-    const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
-    if (!REPLICATE_API_KEY) {
-      throw new Error("REPLICATE_API_KEY is not configured");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "targetImageUrl is required for image mode" 
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     console.log(`[motion-transfer] Mode: ${mode}`);
     console.log(`[motion-transfer] Source video: ${sourceVideoUrl}`);
     console.log(`[motion-transfer] Target image: ${targetImageUrl}`);
 
-    // Use Kling v2.6 for motion-guided video generation
-    // The source video provides the motion reference
-    const response = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${REPLICATE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        input: {
-          mode: "pro",
-          prompt: "Follow the exact motion, pose, and movement from the reference video. Maintain the identity and appearance of the target subject while replicating the source movements precisely.",
-          start_image: targetImageUrl,
-          // Kling uses the motion from reference context
-          duration: 5,
-          aspect_ratio: "16:9",
-          negative_prompt: "different person, morphing, distortion, glitchy, unnatural movement",
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[motion-transfer] Kling API error:", errorText);
-      throw new Error(`Motion transfer failed: ${response.status}`);
-    }
-
-    const prediction = await response.json();
-    console.log(`[motion-transfer] Prediction created: ${prediction.id}`);
-
+    // Motion transfer is not currently supported
+    // Direct users to avatar mode which provides similar character animation
     return new Response(
       JSON.stringify({
-        success: true,
-        predictionId: prediction.id,
-        mode,
-        status: "processing",
-        message: "Transferring motion to target. Your character will perform the source movements.",
+        success: false,
+        error: "Motion transfer is temporarily unavailable",
+        suggestion: "Use Avatar mode for animated character videos. Select an avatar and it will be animated with AI-generated motion.",
+        alternativeMode: "avatar",
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {

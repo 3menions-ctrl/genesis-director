@@ -154,7 +154,8 @@ serve(async (req) => {
 });
 
 /**
- * Build a detailed scene prompt for character-in-environment generation
+ * Build a WORLD-CLASS scene prompt for character-in-environment generation
+ * Optimized for ultra-high quality, cinematic backgrounds
  */
 function buildScenePrompt(
   sceneDescription: string,
@@ -162,16 +163,46 @@ function buildScenePrompt(
   placement: string = "center"
 ): string {
   const positionText = 
-    placement === "left" ? "on the left side of the frame" :
-    placement === "right" ? "on the right side of the frame" :
-    "in the center of the frame";
+    placement === "left" ? "positioned on the left third of the frame following the rule of thirds" :
+    placement === "right" ? "positioned on the right third of the frame following the rule of thirds" :
+    "positioned centrally in the frame with balanced composition";
 
   const characterText = characterDescription 
-    ? `The person from the reference image, ${characterDescription}, is standing ${positionText}`
-    : `The person from the reference image is standing ${positionText}`;
+    ? `The person from the reference image, ${characterDescription}, is ${positionText}`
+    : `The person from the reference image is ${positionText}`;
 
-  // Build a cinematic scene description
-  return `A cinematic still frame. ${characterText}, in ${sceneDescription}. The person is facing the camera with a confident, professional expression, ready to speak. The lighting is natural and matches the environment. High quality, photorealistic, 8K resolution, professional cinematography.`;
+  // Build a CINEMA-QUALITY scene description with maximum detail
+  const qualityModifiers = [
+    "masterpiece quality",
+    "award-winning cinematography", 
+    "shot on ARRI Alexa 65",
+    "8K ultra high resolution",
+    "exceptional dynamic range",
+    "photorealistic rendering",
+    "professional color grading",
+    "volumetric lighting with natural light rays",
+    "cinema-grade depth of field",
+    "atmospheric perspective",
+  ].join(", ");
+
+  const lightingModifiers = [
+    "golden hour lighting",
+    "three-point professional lighting setup",
+    "soft diffused key light",
+    "subtle rim lighting for subject separation",
+    "ambient fill light matching environment",
+  ].join(", ");
+
+  const technicalModifiers = [
+    "sharp focus on subject",
+    "naturally blurred background with pleasing bokeh",
+    "rich saturated colors",
+    "film grain texture",
+    "no artifacts or distortions",
+    "clean professional composition",
+  ].join(", ");
+
+  return `A breathtaking cinematic still frame, ${qualityModifiers}. ${characterText}, immersed in ${sceneDescription}. The environment is rendered with extraordinary detail, depth, and atmosphere. ${lightingModifiers}. The person maintains perfect eye contact with the camera, exuding confidence and presence, ready to speak directly to the viewer. ${technicalModifiers}. The overall aesthetic matches Hollywood blockbuster production values.`;
 }
 
 /**
@@ -184,7 +215,64 @@ async function generateWithFluxKontext(
   aspectRatio: string,
   apiKey: string
 ): Promise<string> {
-  console.log("[AvatarScene] Attempting FLUX Kontext generation...");
+  console.log("[AvatarScene] Attempting FLUX Kontext Pro (max quality) generation...");
+
+  // Use FLUX Kontext Pro for maximum quality
+  const response = await fetch("https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      input: {
+        prompt: prompt,
+        input_image: referenceImageUrl,
+        aspect_ratio: aspectRatio,
+        output_format: "png",        // PNG for lossless quality
+        output_quality: 100,          // Maximum quality
+        safety_tolerance: 5,
+        guidance_scale: 4.5,          // Balanced guidance for quality
+        num_inference_steps: 50,      // More steps = higher quality
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    // Fallback to dev version if pro unavailable
+    if (response.status === 404 || response.status === 422) {
+      console.log("[AvatarScene] Pro not available, falling back to Kontext dev...");
+      return generateWithFluxKontextDev(referenceImageUrl, prompt, aspectRatio, apiKey);
+    }
+    throw new Error(`FLUX Kontext Pro API error: ${response.status} - ${errorText}`);
+  }
+
+  const prediction = await response.json();
+  
+  if (prediction.status === "succeeded" && prediction.output) {
+    return Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+  }
+
+  // Poll for result with extended timeout for higher quality
+  const result = await pollForImageResult(prediction.id, apiKey, 180);
+  if (!result) {
+    throw new Error("FLUX Kontext Pro generation timed out");
+  }
+  
+  return result;
+}
+
+/**
+ * Fallback to FLUX Kontext Dev with maximum quality settings
+ */
+async function generateWithFluxKontextDev(
+  referenceImageUrl: string,
+  prompt: string,
+  aspectRatio: string,
+  apiKey: string
+): Promise<string> {
+  console.log("[AvatarScene] Using FLUX Kontext Dev with max quality settings...");
 
   const response = await fetch("https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-dev/predictions", {
     method: "POST",
@@ -197,8 +285,8 @@ async function generateWithFluxKontext(
         prompt: prompt,
         input_image: referenceImageUrl,
         aspect_ratio: aspectRatio,
-        output_format: "jpg",
-        output_quality: 95,
+        output_format: "png",
+        output_quality: 100,
         safety_tolerance: 5,
       },
     }),
@@ -206,7 +294,7 @@ async function generateWithFluxKontext(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`FLUX Kontext API error: ${response.status} - ${errorText}`);
+    throw new Error(`FLUX Kontext Dev API error: ${response.status} - ${errorText}`);
   }
 
   const prediction = await response.json();
@@ -215,17 +303,16 @@ async function generateWithFluxKontext(
     return Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
   }
 
-  // Poll for result
-  const result = await pollForImageResult(prediction.id, apiKey, 120);
+  const result = await pollForImageResult(prediction.id, apiKey, 150);
   if (!result) {
-    throw new Error("FLUX Kontext generation timed out");
+    throw new Error("FLUX Kontext Dev generation timed out");
   }
   
   return result;
 }
 
 /**
- * Generate scene using FLUX Redux (character reference mode)
+ * Generate scene using FLUX Redux (character reference mode) with maximum quality
  */
 async function generateWithFluxRedux(
   referenceImageUrl: string,
@@ -233,7 +320,7 @@ async function generateWithFluxRedux(
   aspectRatio: string,
   apiKey: string
 ): Promise<string> {
-  console.log("[AvatarScene] Attempting FLUX Redux generation...");
+  console.log("[AvatarScene] Attempting FLUX Redux generation with max quality...");
 
   const response = await fetch("https://api.replicate.com/v1/models/black-forest-labs/flux-redux-dev/predictions", {
     method: "POST",
@@ -246,9 +333,10 @@ async function generateWithFluxRedux(
         prompt: prompt,
         redux_image: referenceImageUrl,
         aspect_ratio: aspectRatio,
-        output_format: "jpg",
-        output_quality: 95,
-        redux_strength: 0.8, // Strong character influence
+        output_format: "png",          // Lossless
+        output_quality: 100,            // Maximum
+        redux_strength: 0.85,           // Strong character preservation
+        num_inference_steps: 40,        // More steps for quality
       },
     }),
   });
@@ -264,7 +352,7 @@ async function generateWithFluxRedux(
     return Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
   }
 
-  const result = await pollForImageResult(prediction.id, apiKey, 120);
+  const result = await pollForImageResult(prediction.id, apiKey, 150);
   if (!result) {
     throw new Error("FLUX Redux generation timed out");
   }
@@ -273,8 +361,8 @@ async function generateWithFluxRedux(
 }
 
 /**
- * Generate scene using FLUX 1.1 Pro with image reference
- * This is the fallback method if Kontext/Redux unavailable
+ * Generate scene using FLUX 1.1 Pro Ultra with image reference
+ * This is the fallback method with maximum quality settings
  */
 async function generateWithFluxReference(
   referenceImageUrl: string,
@@ -282,9 +370,64 @@ async function generateWithFluxReference(
   aspectRatio: string,
   apiKey: string
 ): Promise<string> {
-  console.log("[AvatarScene] Attempting FLUX 1.1 Pro with reference...");
+  console.log("[AvatarScene] Attempting FLUX 1.1 Pro Ultra with max quality...");
 
-  // First, try using image_prompt (IP-Adapter style)
+  // Use FLUX 1.1 Pro Ultra for best possible fallback quality
+  const response = await fetch("https://api.replicate.com/v1/models/black-forest-labs/flux-1.1-pro-ultra/predictions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      input: {
+        prompt: prompt,
+        image_prompt: referenceImageUrl,
+        aspect_ratio: aspectRatio,
+        output_format: "png",
+        output_quality: 100,
+        prompt_upsampling: true,
+        safety_tolerance: 5,
+        raw: false,                     // Processed for best quality
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    // Fallback to standard 1.1 Pro if Ultra unavailable
+    if (response.status === 404 || response.status === 422) {
+      console.log("[AvatarScene] Ultra not available, using standard 1.1 Pro...");
+      return generateWithFluxProStandard(referenceImageUrl, prompt, aspectRatio, apiKey);
+    }
+    throw new Error(`FLUX 1.1 Pro Ultra API error: ${response.status} - ${errorText}`);
+  }
+
+  const prediction = await response.json();
+  
+  if (prediction.status === "succeeded" && prediction.output) {
+    return Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+  }
+
+  const result = await pollForImageResult(prediction.id, apiKey, 180);
+  if (!result) {
+    throw new Error("FLUX 1.1 Pro Ultra generation timed out");
+  }
+  
+  return result;
+}
+
+/**
+ * Standard FLUX 1.1 Pro fallback
+ */
+async function generateWithFluxProStandard(
+  referenceImageUrl: string,
+  prompt: string,
+  aspectRatio: string,
+  apiKey: string
+): Promise<string> {
+  console.log("[AvatarScene] Using standard FLUX 1.1 Pro...");
+
   const response = await fetch("https://api.replicate.com/v1/models/black-forest-labs/flux-1.1-pro/predictions", {
     method: "POST",
     headers: {
@@ -294,10 +437,10 @@ async function generateWithFluxReference(
     body: JSON.stringify({
       input: {
         prompt: prompt,
-        image_prompt: referenceImageUrl, // Character reference
+        image_prompt: referenceImageUrl,
         aspect_ratio: aspectRatio,
-        output_format: "jpg",
-        output_quality: 95,
+        output_format: "png",
+        output_quality: 100,
         prompt_upsampling: true,
         safety_tolerance: 5,
       },
@@ -315,7 +458,7 @@ async function generateWithFluxReference(
     return Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
   }
 
-  const result = await pollForImageResult(prediction.id, apiKey, 120);
+  const result = await pollForImageResult(prediction.id, apiKey, 150);
   if (!result) {
     throw new Error("FLUX 1.1 Pro generation timed out");
   }

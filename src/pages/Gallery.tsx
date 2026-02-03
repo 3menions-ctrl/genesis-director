@@ -692,7 +692,14 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
               </button>
               <button 
                 className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20 transition-all"
-                onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  const newMuted = !isMuted;
+                  setIsMuted(newMuted);
+                  // Immediately update video elements for instant feedback
+                  if (videoARef.current) videoARef.current.muted = newMuted;
+                  if (videoBRef.current) videoBRef.current.muted = newMuted;
+                }}
               >
                 {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
               </button>

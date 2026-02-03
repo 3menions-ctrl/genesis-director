@@ -1504,7 +1504,7 @@ function ProjectsContentInner() {
           setSelectedProject(null);
         }
       }}>
-        <DialogContent className="bg-zinc-950 border-zinc-800 fixed inset-2 sm:inset-auto sm:relative w-auto sm:w-[95vw] max-w-5xl h-auto max-h-[90vh] p-0 overflow-hidden rounded-xl sm:rounded-2xl flex flex-col">
+        <DialogContent className="bg-zinc-950 border-zinc-800 w-[95vw] max-w-5xl h-auto max-h-[90vh] p-0 overflow-hidden rounded-xl sm:rounded-2xl flex flex-col mx-auto left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 fixed">
           <DialogHeader className="p-3 sm:p-4 pb-2 shrink-0">
             <DialogTitle className="flex items-center gap-2 text-white text-sm sm:text-base pr-8">
               <MonitorPlay className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0" />
@@ -1515,7 +1515,7 @@ function ProjectsContentInner() {
             </DialogDescription>
           </DialogHeader>
           {showBrowserStitcher && (
-            <div className="p-2 sm:p-4 pt-0 flex-1 min-h-0 flex items-center justify-center">
+            <div className="p-2 sm:p-4 pt-0 flex-1 min-h-0 flex items-center justify-center w-full">
               {/* UNIFIED: All projects use projectId source for reliable playback */}
               {/* UniversalVideoPlayer fetches clips from video_clips table with permanent URLs */}
               {/* For avatar projects, it also fetches masterAudioUrl from pipeline_state */}
@@ -1523,7 +1523,7 @@ function ProjectsContentInner() {
                 source={{ projectId: showBrowserStitcher }}
                 mode="inline"
                 autoPlay
-                className="w-full max-h-full aspect-video rounded-lg sm:rounded-xl"
+                className="w-full h-full max-h-[calc(90vh-100px)] aspect-video rounded-lg sm:rounded-xl object-contain mx-auto"
               />
             </div>
           )}

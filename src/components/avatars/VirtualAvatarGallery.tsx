@@ -1,8 +1,9 @@
 /**
  * VirtualAvatarGallery - Memory-Optimized Avatar Gallery
  * 
- * Uses virtual scrolling to limit DOM nodes and reduce memory pressure
- * from high-resolution textures. Only renders visible avatars.
+ * Uses CHUNKED LOADING to prevent browser crashes from loading 120+ 
+ * high-resolution images simultaneously. Avatars load progressively
+ * in small batches to reduce memory pressure.
  */
 
 import React, { useState, useRef, useEffect, useCallback, memo, useMemo, forwardRef } from 'react';
@@ -15,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSafeArray } from '@/components/stability/GlobalStabilityBoundary';
 import { ShimmerSkeleton } from './OptimizedAvatarImage';
+import { useChunkedAvatars } from '@/hooks/useChunkedAvatars';
 
 interface VirtualAvatarGalleryProps {
   avatars: AvatarTemplate[];
@@ -258,6 +260,20 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
   // Data guardrail
   const safeAvatars = useSafeArray(avatars);
   
+  // CRITICAL: Chunked loading to prevent browser crashes
+  // Loads avatars progressively instead of all 120+ at once
+  const { 
+    visibleAvatars, 
+    isFullyLoaded, 
+    loadProgress,
+    totalCount 
+  } = useChunkedAvatars(safeAvatars, {
+    enabled: true,
+    initialSize: 12, // Start with 12 avatars
+    chunkSize: 8,    // Load 8 more at a time
+    chunkDelay: 150, // 150ms between chunks
+  });
+  
   const isMobile = useIsMobile();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const mountedRef = useRef(true);
@@ -285,10 +301,6 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
     resizeObserver.observe(container);
     return () => resizeObserver.disconnect();
   }, []);
-  
-  // SIMPLIFIED: Render all avatars directly to fix blank card issue
-  // With 123 avatars, virtualization is not necessary and was causing rendering bugs
-  const allAvatars = safeAvatars;
   
   // Cleanup
   useEffect(() => {
@@ -331,8 +343,8 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
     }
   }, [ITEM_WIDTH]);
 
-  // Use all avatars directly (no virtualization)
-  const displayAvatars = allAvatars;
+  // Use chunked avatars for progressive loading (prevents browser crashes)
+  const displayAvatars = visibleAvatars;
 
   if (isLoading) {
     return (
@@ -436,6 +448,24 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
           ))}
         </div>
       </div>
+      
+      {/* Loading progress indicator - shows while avatars are still loading */}
+      {!isFullyLoaded && (
+        <div className="flex items-center justify-center gap-3 mt-4 animate-fade-in">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.08]">
+            <Loader2 className="w-4 h-4 text-violet-400 animate-spin" />
+            <span className="text-xs text-white/50">
+              Loading avatars... {visibleAvatars.length}/{totalCount}
+            </span>
+            <div className="w-16 h-1 bg-white/10 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-violet-500 rounded-full transition-all duration-300"
+                style={{ width: `${loadProgress}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Mobile scroll indicators */}
       {isMobile && safeAvatars.length > 2 && (

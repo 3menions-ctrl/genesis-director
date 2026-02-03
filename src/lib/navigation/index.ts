@@ -19,6 +19,7 @@ export {
   type CleanupFunction,
   type NavigationPhase,
   type CoordinatorOptions,
+  type CleanupSummary,
 } from './NavigationCoordinator';
 
 // ============= Unified Hooks (consolidated from multiple files) =============
@@ -35,6 +36,10 @@ export {
   useNavigationAbort,
   useNavigationSafeAsync,
   useMediaCleanup,
+  
+  // Memory management
+  useComponentCleanup,
+  useNavigationMetrics,
   
   // Utilities
   isAbortError,

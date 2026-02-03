@@ -1,8 +1,10 @@
 /**
- * Navigation Loading Guard Rails Tests
+ * Navigation Loading Guard Rails Tests v2.0
  * 
  * These tests verify that the navigation loading coordination system
  * properly handles race conditions and ensures smooth page transitions.
+ * 
+ * v2.0: Added tests for BFCache, navigation queue, cleanup summary
  */
 
 import { describe, it, expect } from 'vitest';
@@ -156,6 +158,74 @@ describe('Race Condition Prevention Patterns', () => {
     
     // Should fallback to defaults
     expect(content.includes('DEFAULT_TIER_LIMITS')).toBe(true);
+  });
+});
+
+describe('NavigationCoordinator v2.0 Features', () => {
+  const coordinatorPath = path.join(process.cwd(), 'src/lib/navigation/NavigationCoordinator.ts');
+  
+  it('should have BFCache handlers for Safari', () => {
+    const content = fs.readFileSync(coordinatorPath, 'utf-8');
+    
+    // Should register pageshow/pagehide handlers
+    expect(content.includes('registerBFCacheHandlers')).toBe(true);
+    expect(content.includes("'pageshow'")).toBe(true);
+    expect(content.includes("'pagehide'")).toBe(true);
+    expect(content.includes('event.persisted')).toBe(true);
+  });
+
+  it('should have navigation queue for rapid navigation', () => {
+    const content = fs.readFileSync(coordinatorPath, 'utf-8');
+    
+    // Should have queue system
+    expect(content.includes('navigationQueue')).toBe(true);
+    expect(content.includes('queueNavigation')).toBe(true);
+    expect(content.includes('processQueue')).toBe(true);
+    expect(content.includes('maxQueueSize')).toBe(true);
+  });
+
+  it('should have listener limit to prevent memory leaks', () => {
+    const content = fs.readFileSync(coordinatorPath, 'utf-8');
+    
+    // Should check and limit listeners
+    expect(content.includes('maxListeners')).toBe(true);
+    expect(content.includes('this.listeners.size >= this.options.maxListeners')).toBe(true);
+  });
+
+  it('should have cleanup summary aggregation', () => {
+    const content = fs.readFileSync(coordinatorPath, 'utf-8');
+    
+    // Should have CleanupSummary type
+    expect(content.includes('CleanupSummary')).toBe(true);
+    expect(content.includes('successfulCleanups')).toBe(true);
+    expect(content.includes('failedCleanups')).toBe(true);
+    expect(content.includes('timedOutCleanups')).toBe(true);
+  });
+
+  it('should integrate with memoryManager for blob URL cleanup', () => {
+    const content = fs.readFileSync(coordinatorPath, 'utf-8');
+    
+    // Should import and use memoryManager
+    expect(content.includes("from '@/lib/memoryManager'")).toBe(true);
+    expect(content.includes('blobUrlTracker')).toBe(true);
+    expect(content.includes('blobUrlTracker.revokeAll()')).toBe(true);
+  });
+
+  it('should use Set instead of WeakSet for media elements (iterable)', () => {
+    const content = fs.readFileSync(coordinatorPath, 'utf-8');
+    
+    // Should use Set for registered elements (allows iteration)
+    expect(content.includes('registeredMediaElements = new Set<HTMLMediaElement>()')).toBe(true);
+  });
+
+  it('should have performance metrics tracking', () => {
+    const content = fs.readFileSync(coordinatorPath, 'utf-8');
+    
+    // Should track metrics
+    expect(content.includes('getMetrics')).toBe(true);
+    expect(content.includes('totalNavigations')).toBe(true);
+    expect(content.includes('averageNavigationTime')).toBe(true);
+    expect(content.includes('abortedRequests')).toBe(true);
   });
 });
 

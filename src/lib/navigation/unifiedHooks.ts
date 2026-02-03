@@ -1,13 +1,18 @@
 /**
- * Unified Navigation Hooks - Single Source of Truth
+ * Unified Navigation Hooks - Single Source of Truth v2.0
  * 
  * This module consolidates ALL stability/navigation hooks into one canonical API.
  * Replaces: useNavigationGuard, useStabilityGuard, useMountSafe, useMountGuard
  * 
  * MIGRATION: Import from '@/lib/navigation' instead of individual hook files
+ * 
+ * v2.0 Updates:
+ * - Added useComponentCleanup for memory management
+ * - Navigation metrics tracking
+ * - Improved cleanup summary aggregation
  */
 
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useCallback, useState, useId } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { navigationCoordinator, CleanupFunction, NavigationState } from './NavigationCoordinator';
 
@@ -464,6 +469,52 @@ export function isAbortError(error: unknown): boolean {
   }
   
   return false;
+}
+
+// ============= Component Cleanup =============
+
+/**
+ * Hook for automatic component cleanup on unmount.
+ * Integrates with NavigationCoordinator for blob URL tracking.
+ */
+export function useComponentCleanup(customCleanup?: () => void): string {
+  const componentId = useId();
+  
+  useEffect(() => {
+    return () => {
+      // Run custom cleanup
+      if (customCleanup) {
+        try {
+          customCleanup();
+        } catch (err) {
+          console.debug('[useComponentCleanup] Cleanup error:', err);
+        }
+      }
+      
+      // Clean up any blob URLs registered to this component
+      navigationCoordinator.cleanupComponent(componentId);
+    };
+  }, [componentId, customCleanup]);
+  
+  return componentId;
+}
+
+/**
+ * Hook to get navigation metrics for debugging.
+ */
+export function useNavigationMetrics() {
+  const [metrics, setMetrics] = useState(navigationCoordinator.getMetrics());
+  
+  useEffect(() => {
+    // Update metrics on navigation state changes
+    const unsubscribe = navigationCoordinator.subscribe(() => {
+      setMetrics(navigationCoordinator.getMetrics());
+    });
+    
+    return unsubscribe;
+  }, []);
+  
+  return metrics;
 }
 
 // ============= Legacy Aliases =============

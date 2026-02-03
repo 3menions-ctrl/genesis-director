@@ -515,7 +515,8 @@ function splitScriptIntoSegments(script: string, targetCount: number): string[] 
 }
 
 /**
- * Build an expressive acting prompt with optional cinematic enhancements
+ * Build a WORLD-CLASS expressive acting prompt with cinematic enhancements
+ * Optimized for maximum visual quality and realistic performance
  */
 function buildActingPrompt(
   script: string, 
@@ -525,26 +526,33 @@ function buildActingPrompt(
 ): string {
   const emotionalTone = analyzeEmotionalTone(script);
   
+  // Enhanced scene context with quality modifiers
   const sceneContext = sceneDescription?.trim()
-    ? `The scene takes place in ${sceneDescription.trim()}. `
-    : "Professional studio setting with soft lighting. ";
+    ? `Cinematic scene in ${sceneDescription.trim()}, shot with professional cinematography, natural lighting matching the environment, rich atmospheric depth. `
+    : "Professional studio with cinematic three-point lighting, soft diffused key light, subtle rim lighting, shallow depth of field. ";
   
   const performanceStyle = getPerformanceStyle(emotionalTone);
+  
+  // Quality baseline for all shots
+  const qualityBaseline = "Ultra high definition, film-quality, award-winning cinematography, natural skin tones, sharp focus on subject, pleasing background bokeh.";
   
   // Build cinematic enhancements if enabled
   let cinematicEnhancements = "";
   if (cinematicMode?.enabled) {
     const movementPrompt = getCinematicMovement(cinematicMode.movementType, clipIndex);
     const cameraPrompt = getCinematicCamera(cinematicMode.cameraAngle, clipIndex);
-    cinematicEnhancements = `${movementPrompt} ${cameraPrompt} `;
+    cinematicEnhancements = `${movementPrompt}. ${cameraPrompt}. `;
   }
   
   // Base prompt for speaking
   const baseAction = cinematicMode?.enabled
-    ? "The person is speaking while"
-    : "The person in the frame is speaking directly to the camera,";
+    ? "The person is speaking naturally while"
+    : "The person in the frame is speaking directly to the camera with full engagement,";
   
-  return `${sceneContext}${cinematicEnhancements}${baseAction} delivering this message: "${script.substring(0, 100)}${script.length > 100 ? '...' : ''}". ${performanceStyle} The performance should feel authentic, engaging, and human.`;
+  // Dynamic, realistic motion descriptors
+  const realisticMotion = "Lifelike fluid movements, natural micro-expressions, authentic lip sync, subtle breathing motion, realistic eye movements and blinks, genuine human presence.";
+  
+  return `${sceneContext}${cinematicEnhancements}${baseAction} delivering this message: "${script.substring(0, 100)}${script.length > 100 ? '...' : ''}". ${performanceStyle} ${realisticMotion} ${qualityBaseline}`;
 }
 
 /**

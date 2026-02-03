@@ -39,19 +39,41 @@ export function NavigationGuardProvider({ children }: NavigationGuardProviderPro
   }, []);
 
   // Detect route changes and trigger lifecycle
+  // IMPORTANT: We now delay completion for heavy routes to allow gatekeepers to finish
   useEffect(() => {
     const prevPath = prevLocationRef.current;
     const currentPath = location.pathname;
 
     if (prevPath !== currentPath) {
-      // Route changed - complete any pending navigation
-      navigationCoordinator.completeNavigation();
-      
-      // Trigger garbage collection hint
-      navigationCoordinator.triggerGC();
-      
-      // Update ref
+      // Update ref immediately to prevent duplicate processing
       prevLocationRef.current = currentPath;
+      
+      // Check if this is a heavy route that manages its own readiness
+      // Heavy routes: /avatars, /create, /production, /projects, etc.
+      const HEAVY_ROUTE_PREFIXES = ['/avatars', '/create', '/production', '/projects', '/discover', '/clips', '/templates', '/environments', '/universes'];
+      const isHeavyRoute = HEAVY_ROUTE_PREFIXES.some(prefix => 
+        currentPath === prefix || currentPath.startsWith(prefix + '/')
+      );
+      
+      if (isHeavyRoute) {
+        // For heavy routes, delay completion to allow gatekeepers to signal ready
+        // The gatekeeper or page itself will call markReady() which triggers completeNavigation()
+        // This prevents premature overlay dismissal and race conditions
+        const timer = setTimeout(() => {
+          // Only complete if still in navigating state (not already completed by page)
+          if (navigationCoordinator.isNavigating()) {
+            navigationCoordinator.completeNavigation();
+          }
+          // Always trigger GC
+          navigationCoordinator.triggerGC();
+        }, 800); // 800ms matches the minimum overlay duration
+        
+        return () => clearTimeout(timer);
+      } else {
+        // For non-heavy routes, complete immediately
+        navigationCoordinator.completeNavigation();
+        navigationCoordinator.triggerGC();
+      }
     }
   }, [location.pathname]);
 

@@ -79,6 +79,20 @@ const STITCHING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_STITCHING_ATTEMPTS = 3;
 const MAX_AGE_MS = 60 * 60 * 1000; // 60 minutes
 
+/**
+ * Build acting prompt for avatar frame-chaining
+ * Matches the format used in generate-avatar-direct
+ */
+function buildAvatarActingPrompt(segmentText: string, sceneDescription?: string): string {
+  const sceneContext = sceneDescription?.trim()
+    ? `Cinematic scene in ${sceneDescription.trim()}, shot with professional cinematography, natural lighting matching the environment. `
+    : "Professional studio with cinematic three-point lighting, soft diffused key light, subtle rim lighting. ";
+  
+  const qualityBaseline = "Ultra high definition, film-quality, natural skin tones, sharp focus on subject.";
+  
+  return `${sceneContext}The person in the frame is speaking directly to the camera with full engagement, delivering this message naturally: "${segmentText.trim()}" They show genuine expression and natural gestures while speaking. Mouth moves naturally in sync with speech. ${qualityBaseline}`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -150,7 +164,113 @@ serve(async (req) => {
           continue;
         }
         
-        // Poll this prediction
+        // FRAME-CHAINING: Handle pending clips (waiting for previous clip's frame)
+        if (pred.status === 'pending') {
+          // Check if previous clip is completed so we can start this one
+          const prevClipIndex = pred.clipIndex - 1;
+          const prevPred = tasks.predictions.find((p: { clipIndex: number }) => p.clipIndex === prevClipIndex);
+          
+          if (!prevPred || prevPred.status !== 'completed' || !prevPred.videoUrl) {
+            // Previous clip not ready yet
+            allCompleted = false;
+            console.log(`[Watchdog] ⏸️ Clip ${pred.clipIndex + 1} PENDING (waiting for clip ${prevClipIndex + 1})`);
+            continue;
+          }
+          
+          // Previous clip is complete - extract last frame and start this clip!
+          console.log(`[Watchdog] 🔗 FRAME-CHAINING: Starting clip ${pred.clipIndex + 1} from clip ${prevClipIndex + 1}'s last frame`);
+          
+          let startImageUrl = prevPred.startImageUrl; // Fallback to previous start image
+          
+          // Extract last frame from previous clip's video
+          try {
+            const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-last-frame`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseKey}`,
+              },
+              body: JSON.stringify({
+                videoUrl: prevPred.videoUrl,
+                projectId: project.id,
+                clipIndex: prevClipIndex,
+              }),
+            });
+            
+            if (frameResponse.ok) {
+              const frameResult = await frameResponse.json();
+              if (frameResult.success && frameResult.lastFrameUrl) {
+                startImageUrl = frameResult.lastFrameUrl;
+                console.log(`[Watchdog] ✅ Extracted last frame: ${startImageUrl.substring(0, 60)}...`);
+              } else {
+                console.warn(`[Watchdog] Frame extraction returned no URL, using fallback`);
+              }
+            } else {
+              console.warn(`[Watchdog] Frame extraction HTTP error ${frameResponse.status}`);
+            }
+          } catch (frameError) {
+            console.error(`[Watchdog] Frame extraction error:`, frameError);
+          }
+          
+          if (!startImageUrl) {
+            // Ultimate fallback - use scene image or first clip's start image
+            startImageUrl = tasks.sceneImageUrl || tasks.predictions[0]?.startImageUrl;
+            console.warn(`[Watchdog] Using ultimate fallback start image`);
+          }
+          
+          // Store the start image for this clip
+          pred.startImageUrl = startImageUrl;
+          
+          // Build acting prompt for this segment
+          const actingPrompt = buildAvatarActingPrompt(pred.segmentText, tasks.sceneDescription);
+          const videoDuration = tasks.clipDuration >= 10 ? 10 : (tasks.clipDuration || 10);
+          
+          // Start Kling prediction for this clip
+          try {
+            const klingResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                input: {
+                  mode: "pro",
+                  prompt: actingPrompt,
+                  duration: videoDuration,
+                  start_image: startImageUrl,
+                  aspect_ratio: tasks.aspectRatio || "16:9",
+                  negative_prompt: "static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless",
+                },
+              }),
+            });
+            
+            if (klingResponse.ok) {
+              const klingPrediction = await klingResponse.json();
+              pred.predictionId = klingPrediction.id;
+              pred.status = 'processing';
+              console.log(`[Watchdog] ✅ Clip ${pred.clipIndex + 1} STARTED with frame-chaining: ${klingPrediction.id}`);
+            } else {
+              console.error(`[Watchdog] Failed to start clip ${pred.clipIndex + 1}: ${klingResponse.status}`);
+              pred.status = 'failed';
+              anyFailed = true;
+            }
+          } catch (klingError) {
+            console.error(`[Watchdog] Kling API error:`, klingError);
+            pred.status = 'failed';
+            anyFailed = true;
+          }
+          
+          allCompleted = false;
+          continue;
+        }
+        
+        // PROCESSING: Poll this prediction
+        if (!pred.predictionId) {
+          allCompleted = false;
+          continue;
+        }
+        
         try {
           const pollResponse = await fetch(`https://api.replicate.com/v1/predictions/${pred.predictionId}`, {
             headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` },

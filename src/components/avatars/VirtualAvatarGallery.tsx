@@ -283,36 +283,9 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
     return () => resizeObserver.disconnect();
   }, []);
   
-  // Calculate visible range directly (bypassing broken hook integration)
-  const { visibleRange, totalSize, offsetBefore } = useMemo(() => {
-    const scrollLeft = scrollContainerRef.current?.scrollLeft || 0;
-    const overscan = 5;
-    
-    // If no viewport measured yet, show all avatars (fallback)
-    if (viewportWidth === 0 || ITEM_WIDTH === 0) {
-      return {
-        visibleRange: safeAvatars.map((_, i) => i),
-        totalSize: safeAvatars.length * ITEM_WIDTH,
-        offsetBefore: 0,
-      };
-    }
-    
-    const start = Math.floor(scrollLeft / ITEM_WIDTH);
-    const visibleCount = Math.ceil(viewportWidth / ITEM_WIDTH);
-    const startWithOverscan = Math.max(0, start - overscan);
-    const endWithOverscan = Math.min(safeAvatars.length - 1, start + visibleCount + overscan);
-    
-    const range: number[] = [];
-    for (let i = startWithOverscan; i <= endWithOverscan; i++) {
-      range.push(i);
-    }
-    
-    return {
-      visibleRange: range,
-      totalSize: safeAvatars.length * ITEM_WIDTH - CARD_GAP,
-      offsetBefore: startWithOverscan * ITEM_WIDTH,
-    };
-  }, [viewportWidth, ITEM_WIDTH, CARD_GAP, safeAvatars.length]);
+  // SIMPLIFIED: Render all avatars directly to fix blank card issue
+  // With 123 avatars, virtualization is not necessary and was causing rendering bugs
+  const allAvatars = safeAvatars;
   
   // Cleanup
   useEffect(() => {
@@ -355,10 +328,8 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
     }
   }, [ITEM_WIDTH]);
 
-  // Get visible avatars from calculated range
-  const visibleAvatars = useMemo(() => {
-    return visibleRange.map(index => safeAvatars[index]).filter(Boolean);
-  }, [visibleRange, safeAvatars]);
+  // Use all avatars directly (no virtualization)
+  const displayAvatars = allAvatars;
 
   if (isLoading) {
     return (
@@ -438,16 +409,12 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
           WebkitOverflowScrolling: 'touch',
         }}
       >
-        {/* Spacer for virtual scroll offset */}
-        <div style={{ minWidth: offsetBefore, flexShrink: 0 }} />
-        
-        {/* Render only visible avatars */}
+        {/* Render all avatars directly */}
         <div 
           className="flex"
           style={{ gap: CARD_GAP }}
         >
-          {/* STABILITY: Removed AnimatePresence to prevent ref-injection conflicts */}
-          {visibleAvatars.map((avatar) => (
+          {displayAvatars.map((avatar) => (
             <VirtualAvatarCard
               key={avatar.id}
               avatar={avatar}
@@ -465,9 +432,6 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
             />
           ))}
         </div>
-        
-        {/* End spacer */}
-        <div style={{ minWidth: Math.max(0, totalSize - offsetBefore - (visibleAvatars.length * ITEM_WIDTH)), flexShrink: 0 }} />
       </div>
       
       {/* Mobile scroll indicators */}

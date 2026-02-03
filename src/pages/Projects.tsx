@@ -1504,7 +1504,7 @@ function ProjectsContentInner() {
           setSelectedProject(null);
         }
       }}>
-        <DialogContent className="bg-zinc-950 border-zinc-800 w-[95vw] max-w-5xl h-auto max-h-[90vh] p-0 overflow-hidden rounded-xl sm:rounded-2xl flex flex-col mx-auto left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 fixed">
+        <DialogContent className="!left-[50%] !top-[50%] !-translate-x-1/2 !-translate-y-1/2 !transform bg-zinc-950 border-zinc-800 w-[92vw] sm:w-[95vw] max-w-5xl h-auto max-h-[85vh] sm:max-h-[90vh] p-0 overflow-hidden rounded-xl sm:rounded-2xl flex flex-col">
           <DialogHeader className="p-3 sm:p-4 pb-2 shrink-0">
             <DialogTitle className="flex items-center gap-2 text-white text-sm sm:text-base pr-8">
               <MonitorPlay className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0" />
@@ -1523,7 +1523,7 @@ function ProjectsContentInner() {
                 source={{ projectId: showBrowserStitcher }}
                 mode="inline"
                 autoPlay
-                className="w-full h-full max-h-[calc(90vh-100px)] aspect-video rounded-lg sm:rounded-xl object-contain mx-auto"
+                className="w-full h-auto max-h-[calc(85vh-100px)] sm:max-h-[calc(90vh-100px)] aspect-video rounded-lg sm:rounded-xl object-contain"
               />
             </div>
           )}

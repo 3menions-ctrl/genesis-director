@@ -22,6 +22,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef, memo, forwardRef } from 'react';
 import { toast } from 'sonner';
 import { useSafeNavigation, useRouteCleanup, useNavigationAbort } from '@/lib/navigation';
+import { usePageReady } from '@/contexts/NavigationLoadingContext';
 import { cn } from '@/lib/utils';
 import { useAvatarTemplatesQuery } from '@/hooks/useAvatarTemplatesQuery';
 import { useAvatarVoices } from '@/hooks/useAvatarVoices';
@@ -65,8 +66,15 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   // ========== Unified navigation - safe navigation with locking ==========
   const { navigate } = useSafeNavigation();
   const { abort: abortRequests } = useNavigationAbort();
+  const { markReady, disableAutoComplete } = usePageReady();
   let authContext: ReturnType<typeof useAuth> | null = null;
   let tierLimits: ReturnType<typeof useTierLimits> | null = null;
+  
+  // CRITICAL: Disable auto-complete immediately - this page manages its own readiness
+  // This prevents NavigationLoadingContext from dismissing the overlay prematurely
+  useEffect(() => {
+    disableAutoComplete();
+  }, [disableAutoComplete]);
   
   // Register cleanup when leaving this page
   useRouteCleanup(() => {
@@ -218,10 +226,14 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     };
   }, [stopPlayback]);
   
-  // ========== GATEKEEPER: Preload voices when ready ==========
+  // ========== GATEKEEPER: Signal readiness and preload voices when ready ==========
   useEffect(() => {
     if (!isGatekeeperLoading && !gatekeeperCompleteRef.current && isMountedRef.current) {
       gatekeeperCompleteRef.current = true;
+      
+      // CRITICAL: Signal to NavigationLoadingContext that we're ready
+      // This dismisses the global loading overlay properly
+      markReady('AvatarsPage');
       
       // Preload voices in background AFTER page is visible
       if (safeTemplates.length > 0) {
@@ -233,7 +245,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         }
       }
     }
-  }, [isGatekeeperLoading, safeTemplates, preloadVoices]);
+  }, [isGatekeeperLoading, safeTemplates, preloadVoices, markReady]);
   
   // ========== Handlers ==========
   const handleVoicePreview = useCallback(async (avatar: AvatarTemplate) => {

@@ -268,12 +268,16 @@ serve(async (req) => {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 3: SEQUENTIAL FRAME-CHAINED CLIP GENERATION
-    // CRITICAL: Generate clips one-by-one, using last frame of each clip
-    // as the start image for the next to ensure visual continuity
+    // STEP 3: SEQUENTIAL FRAME-CHAINED CLIP GENERATION (ASYNC WATCHDOG PATTERN)
+    // 
+    // ARCHITECTURE: Start only clip 1, watchdog chains subsequent clips
+    // - Clip 1 starts immediately with scene image
+    // - When clip 1 completes, watchdog extracts last frame → starts clip 2
+    // - When clip 2 completes, watchdog extracts last frame → starts clip 3
+    // - This ensures visual continuity without Edge Function timeout
     // ═══════════════════════════════════════════════════════════════════════════
-    console.log("[AvatarDirect] Step 3: Starting SEQUENTIAL frame-chained generation...");
-    console.log(`[AvatarDirect] Mode: ${finalClipCount > 1 ? 'SEQUENTIAL (frame-chaining for continuity)' : 'SINGLE CLIP'}`);
+    console.log("[AvatarDirect] Step 3: Starting FRAME-CHAINED generation (watchdog-driven)...");
+    console.log(`[AvatarDirect] Mode: ${finalClipCount > 1 ? 'SEQUENTIAL CHAINED (clip 1 now, watchdog chains rest)' : 'SINGLE CLIP'}`);
     
     if (projectId) {
       await supabase.from('movie_projects').update({
@@ -287,19 +291,13 @@ serve(async (req) => {
       }).eq('id', projectId);
     }
 
-    const pendingPredictions: Array<{
-      clipIndex: number;
-      predictionId: string;
+    // Pre-generate TTS for ALL segments upfront (fast - ~2s each)
+    // These will be used by watchdog when chaining subsequent clips
+    const allSegmentData: Array<{
       segmentText: string;
       audioUrl: string;
       audioDurationMs: number;
-      startImageUrl?: string;
-      status?: string;
-      videoUrl?: string;
     }> = [];
-
-    // Pre-generate TTS for all segments (fast, can be parallel)
-    const allSegmentTTS: Array<{ audioUrl: string; audioDurationMs: number }> = [];
     console.log("[AvatarDirect] Pre-generating TTS for all segments...");
     
     for (let clipIndex = 0; clipIndex < scriptSegments.length; clipIndex++) {
@@ -330,156 +328,87 @@ serve(async (req) => {
         throw new Error(`TTS failed for clip ${clipNumber} - no audio`);
       }
 
-      allSegmentTTS.push({
+      allSegmentData.push({
+        segmentText,
         audioUrl: voiceResult.audioUrl,
         audioDurationMs: voiceResult.durationMs || estimateDuration(segmentText),
       });
-      console.log(`[AvatarDirect] Clip ${clipNumber}: ✅ TTS ready (${Math.round(allSegmentTTS[clipIndex].audioDurationMs / 1000)}s)`);
+      console.log(`[AvatarDirect] Clip ${clipNumber}: ✅ TTS ready (${Math.round(allSegmentData[clipIndex].audioDurationMs / 1000)}s)`);
     }
 
-    // SEQUENTIAL GENERATION: Generate clips one at a time for frame continuity
-    let currentStartImage = sharedAnimationStartImage;
+    // START CLIP 1 ONLY - Watchdog will chain the rest
+    const clip1Data = allSegmentData[0];
+    const videoDuration = (clipDuration && clipDuration >= 10) ? 10 : (clipDuration || 10);
+    const actingPrompt = buildActingPrompt(clip1Data.segmentText, sceneDescription, cinematicMode, 0);
     
-    for (let clipIndex = 0; clipIndex < scriptSegments.length; clipIndex++) {
-      const segmentText = scriptSegments[clipIndex];
-      const clipNumber = clipIndex + 1;
-      const clipAudioUrl = allSegmentTTS[clipIndex].audioUrl;
-      const clipAudioDurationMs = allSegmentTTS[clipIndex].audioDurationMs;
-      
-      console.log(`[AvatarDirect] ═══ Clip ${clipNumber}/${finalClipCount} ═══`);
-      console.log(`[AvatarDirect] Start image: ${currentStartImage.substring(0, 60)}...`);
-
-      // Update progress for each clip
-      if (projectId) {
-        await supabase.from('movie_projects').update({
-          pipeline_state: {
-            stage: 'clip_generation',
-            progress: 20 + Math.floor((clipIndex / finalClipCount) * 50),
-            message: `Generating clip ${clipNumber} of ${finalClipCount}...`,
-            totalClips: finalClipCount,
-            currentClip: clipNumber,
-          },
-        }).eq('id', projectId);
-      }
-
-      // Build prompt for this clip
-      const videoDuration = (clipDuration && clipDuration >= 10) ? 10 : (clipDuration || 10);
-      const actingPrompt = buildActingPrompt(segmentText, sceneDescription, cinematicMode, clipIndex);
-      
-      // Start Kling prediction
-      const klingResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${REPLICATE_API_KEY}`,
-          "Content-Type": "application/json",
+    console.log(`[AvatarDirect] ═══ Starting Clip 1/${finalClipCount} ═══`);
+    console.log(`[AvatarDirect] Start image: ${sharedAnimationStartImage.substring(0, 60)}...`);
+    
+    const klingResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        input: {
+          mode: "pro",
+          prompt: actingPrompt,
+          duration: videoDuration,
+          start_image: sharedAnimationStartImage,
+          aspect_ratio: aspectRatio,
+          negative_prompt: "static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless",
         },
-        body: JSON.stringify({
-          input: {
-            mode: "pro",
-            prompt: actingPrompt,
-            duration: videoDuration,
-            start_image: currentStartImage,
-            aspect_ratio: aspectRatio,
-            negative_prompt: "static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless",
-          },
-        }),
-      });
+      }),
+    });
 
-      if (!klingResponse.ok) {
-        throw new Error(`Kling animation failed to start for clip ${clipNumber}`);
-      }
-
-      const klingPrediction = await klingResponse.json();
-      const predictionId = klingPrediction.id;
-      console.log(`[AvatarDirect] Clip ${clipNumber}: Kling STARTED: ${predictionId}`);
-
-      // Store prediction info
-      pendingPredictions.push({
-        clipIndex,
-        predictionId,
-        segmentText,
-        audioUrl: clipAudioUrl,
-        audioDurationMs: clipAudioDurationMs,
-        startImageUrl: currentStartImage,
-      });
-
-      // For multi-clip: Wait for this clip to complete and extract last frame
-      if (finalClipCount > 1 && clipIndex < scriptSegments.length - 1) {
-        console.log(`[AvatarDirect] Clip ${clipNumber}: Waiting for completion to extract last frame...`);
-        
-        // Poll for completion (max 5 minutes per clip)
-        const maxPollTime = 5 * 60 * 1000; // 5 minutes
-        const pollInterval = 5000; // 5 seconds
-        const startPollTime = Date.now();
-        let videoUrl: string | null = null;
-        
-        while (Date.now() - startPollTime < maxPollTime) {
-          await new Promise(resolve => setTimeout(resolve, pollInterval));
-          
-          const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
-            headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` },
-          });
-          
-          if (!statusResponse.ok) {
-            console.warn(`[AvatarDirect] Clip ${clipNumber}: Poll error, retrying...`);
-            continue;
-          }
-          
-          const status = await statusResponse.json();
-          
-          if (status.status === 'succeeded' && status.output) {
-            videoUrl = typeof status.output === 'string' ? status.output : status.output.video || status.output;
-            console.log(`[AvatarDirect] Clip ${clipNumber}: ✅ Completed!`);
-            break;
-          } else if (status.status === 'failed' || status.status === 'canceled') {
-            throw new Error(`Clip ${clipNumber} generation failed: ${status.error || 'Unknown error'}`);
-          }
-          
-          console.log(`[AvatarDirect] Clip ${clipNumber}: Still generating (${Math.round((Date.now() - startPollTime) / 1000)}s)...`);
-        }
-        
-        if (!videoUrl) {
-          throw new Error(`Clip ${clipNumber} timed out after 5 minutes`);
-        }
-        
-        // Extract last frame for next clip's continuity
-        console.log(`[AvatarDirect] Clip ${clipNumber}: Extracting last frame for continuity...`);
-        try {
-          const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-last-frame`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabaseKey}`,
-            },
-            body: JSON.stringify({
-              videoUrl,
-              projectId,
-              clipIndex,
-            }),
-          });
-          
-          if (frameResponse.ok) {
-            const frameResult = await frameResponse.json();
-            if (frameResult.success && frameResult.lastFrameUrl) {
-              currentStartImage = frameResult.lastFrameUrl;
-              console.log(`[AvatarDirect] Clip ${clipNumber}: ✅ Last frame extracted for clip ${clipNumber + 1}`);
-              console.log(`[AvatarDirect] New start image: ${currentStartImage.substring(0, 60)}...`);
-            } else {
-              console.warn(`[AvatarDirect] Clip ${clipNumber}: Frame extraction returned no URL, continuing with previous image`);
-            }
-          } else {
-            console.warn(`[AvatarDirect] Clip ${clipNumber}: Frame extraction failed, continuing with previous image`);
-          }
-        } catch (frameError) {
-          console.error(`[AvatarDirect] Clip ${clipNumber}: Frame extraction error:`, frameError);
-          // Continue with previous image as fallback
-        }
-        
-        // Update prediction status in our list
-        pendingPredictions[clipIndex].status = 'completed';
-        pendingPredictions[clipIndex].videoUrl = videoUrl;
-      }
+    if (!klingResponse.ok) {
+      throw new Error("Kling animation failed to start for clip 1");
     }
+
+    const klingPrediction = await klingResponse.json();
+    console.log(`[AvatarDirect] Clip 1: Kling STARTED: ${klingPrediction.id}`);
+
+    // Build predictions array - clip 1 is processing, rest are pending
+    const pendingPredictions: Array<{
+      clipIndex: number;
+      predictionId: string | null;
+      segmentText: string;
+      audioUrl: string;
+      audioDurationMs: number;
+      startImageUrl: string | null;
+      status: string;
+      videoUrl: string | null;
+    }> = [];
+
+    // Clip 1 - currently processing
+    pendingPredictions.push({
+      clipIndex: 0,
+      predictionId: klingPrediction.id,
+      segmentText: clip1Data.segmentText,
+      audioUrl: clip1Data.audioUrl,
+      audioDurationMs: clip1Data.audioDurationMs,
+      startImageUrl: sharedAnimationStartImage,
+      status: 'processing',
+      videoUrl: null,
+    });
+
+    // Clips 2+ - pending, will be started by watchdog after frame extraction
+    for (let i = 1; i < allSegmentData.length; i++) {
+      pendingPredictions.push({
+        clipIndex: i,
+        predictionId: null, // Will be set by watchdog
+        segmentText: allSegmentData[i].segmentText,
+        audioUrl: allSegmentData[i].audioUrl,
+        audioDurationMs: allSegmentData[i].audioDurationMs,
+        startImageUrl: null, // Will be set from previous clip's last frame
+        status: 'pending', // Waiting for previous clip to complete
+        videoUrl: null,
+      });
+    }
+
+    console.log(`[AvatarDirect] Prepared ${pendingPredictions.length} predictions (1 processing, ${pendingPredictions.length - 1} pending)`);
+
 
     // ═══════════════════════════════════════════════════════════════════════════
     // STEP 4: SAVE PENDING STATE TO DATABASE
@@ -517,10 +446,11 @@ serve(async (req) => {
           predictions: pendingPredictions.map(p => ({
             predictionId: p.predictionId,
             clipIndex: p.clipIndex,
-            status: 'processing',
+            status: p.status, // CRITICAL: Use actual status (processing vs pending)
             audioUrl: p.audioUrl,
             audioDurationMs: p.audioDurationMs,
-            segmentText: p.segmentText, // CRITICAL: Preserve segment text
+            segmentText: p.segmentText,
+            startImageUrl: p.startImageUrl, // Preserve start image for frame-chaining
           })),
           masterAudioUrl: permanentMasterAudioUrl,
           sceneImageUrl: sharedAnimationStartImage,

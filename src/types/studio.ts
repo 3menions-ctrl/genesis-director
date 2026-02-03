@@ -45,8 +45,8 @@ export interface Project {
   thumbnail_url?: string;
   // Pipeline metadata object (preferred) - contains clipDuration, clipCount, stage, etc.
   pending_video_tasks_obj?: PendingVideoTasks | null;
-  // Legacy array format - deprecated
-  pending_video_tasks?: PendingVideoTask[];
+  // Legacy array format OR object format from paginated queries
+  pending_video_tasks?: PendingVideoTask[] | Record<string, unknown>;
   is_public?: boolean;
   genre?: string;
   // Project mode (avatar, text-to-video, motion-transfer, video-to-video, hollywood)

@@ -46,24 +46,51 @@ interface ProjectRow {
 }
 
 function mapDbProjectToProject(row: ProjectRow): Project {
+  // Parse pending_video_tasks to check for actual video content
+  const pendingTasks = row.pending_video_tasks as Record<string, unknown> | null;
+  
+  // Determine actual video URL - prefer HLS/manifest from pending_video_tasks
+  let effectiveVideoUrl = row.video_url || undefined;
+  
+  // If video_url is empty but pending_video_tasks has HLS/manifest, use that
+  if (!effectiveVideoUrl && pendingTasks) {
+    if (pendingTasks.hlsPlaylistUrl) {
+      effectiveVideoUrl = pendingTasks.hlsPlaylistUrl as string;
+    } else if (pendingTasks.manifestUrl) {
+      effectiveVideoUrl = pendingTasks.manifestUrl as string;
+    }
+  }
+  
+  // Extract video_clips from pending_video_tasks.predictions if main array is empty
+  let effectiveVideoClips = row.video_clips || undefined;
+  if (!effectiveVideoClips?.length && pendingTasks?.predictions) {
+    const predictions = pendingTasks.predictions as Array<{ videoUrl?: string; status?: string }>;
+    const completedUrls = predictions
+      .filter(p => p.videoUrl && p.status === 'completed')
+      .map(p => p.videoUrl as string);
+    if (completedUrls.length > 0) {
+      effectiveVideoClips = completedUrls;
+    }
+  }
+  
   return {
     id: row.id,
-    studio_id: row.user_id, // Maps to studio_id in Project type
+    studio_id: row.user_id,
     name: row.title,
     status: row.status as any,
     genre: row.genre as any,
-    video_url: row.video_url || undefined,
+    video_url: effectiveVideoUrl,
     thumbnail_url: row.thumbnail_url || undefined,
     created_at: row.created_at,
     updated_at: row.updated_at,
     is_public: row.is_public,
-    // Include mode for avatar detection in video player
     mode: row.mode || undefined,
     source_image_url: row.source_image_url || undefined,
     avatar_voice_id: row.avatar_voice_id || undefined,
-    // CRITICAL: Include video_clips and voice_audio_url for multi-clip avatar playback
-    video_clips: row.video_clips || undefined,
+    video_clips: effectiveVideoClips,
     voice_audio_url: row.voice_audio_url || undefined,
+    // CRITICAL: Include pending_video_tasks for downstream hasVideo detection
+    pending_video_tasks: pendingTasks || undefined,
   };
 }
 

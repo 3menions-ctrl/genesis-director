@@ -1,5 +1,5 @@
 /**
- * NavigationCoordinator - World-Class Navigation System
+ * NavigationCoordinator - World-Class Navigation System v2.0
  * 
  * Central coordinator for navigation lifecycle management.
  * Prevents crashes by:
@@ -7,8 +7,12 @@
  * 2. Managing cleanup registry for route exit
  * 3. Coordinating video playback abort
  * 4. Providing safe navigation primitives
- * 5. Memory cleanup between routes
+ * 5. Memory cleanup between routes (integrated with memoryManager)
+ * 6. BFCache handling for Safari
+ * 7. Navigation queue for rapid navigation handling
  */
+
+import { blobUrlTracker, cleanupVideoElement, cleanupAudioElement } from '@/lib/memoryManager';
 
 type CleanupFunction = () => void | Promise<void>;
 type NavigationPhase = 'idle' | 'preparing' | 'transitioning' | 'completing';
@@ -25,6 +29,23 @@ interface CoordinatorOptions {
   lockTimeoutMs?: number;
   cleanupTimeoutMs?: number;
   enableLogging?: boolean;
+  maxListeners?: number;
+  maxQueueSize?: number;
+}
+
+interface CleanupSummary {
+  totalCleanups: number;
+  successfulCleanups: number;
+  failedCleanups: number;
+  timedOutCleanups: number;
+  errors: string[];
+}
+
+interface NavigationQueueItem {
+  fromRoute: string;
+  toRoute: string;
+  timestamp: number;
+  resolve: (canNavigate: boolean) => void;
 }
 
 class NavigationCoordinatorImpl {
@@ -38,21 +59,75 @@ class NavigationCoordinatorImpl {
 
   private cleanupRegistry = new Map<string, Set<CleanupFunction>>();
   private globalCleanups = new Set<CleanupFunction>();
-  private mediaElements = new WeakSet<HTMLMediaElement>();
+  private registeredMediaElements = new Set<HTMLMediaElement>(); // Changed from WeakSet to Set for iteration
   private activeAbortControllers = new Set<AbortController>();
   private listeners = new Set<(state: NavigationState) => void>();
   private lockTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private navigationQueue: NavigationQueueItem[] = [];
+  private isProcessingQueue = false;
+  private bfcacheHandlersRegistered = false;
+  
+  // Metrics for performance tracking
+  private metrics = {
+    totalNavigations: 0,
+    averageNavigationTime: 0,
+    totalCleanupTime: 0,
+    abortedRequests: 0,
+    cleanupErrors: 0,
+  };
   
   private options: Required<CoordinatorOptions> = {
     lockTimeoutMs: 3000,
     cleanupTimeoutMs: 1000,
     enableLogging: process.env.NODE_ENV === 'development',
+    maxListeners: 50,
+    maxQueueSize: 5,
   };
 
   constructor(options?: CoordinatorOptions) {
     if (options) {
       this.options = { ...this.options, ...options };
     }
+    
+    // Register BFCache handlers for Safari
+    this.registerBFCacheHandlers();
+  }
+
+  // ============= BFCache Handling (Safari) =============
+
+  /**
+   * Register handlers for Safari's Back/Forward Cache.
+   * Prevents stale state when user navigates back.
+   */
+  private registerBFCacheHandlers(): void {
+    if (this.bfcacheHandlersRegistered || typeof window === 'undefined') return;
+    
+    // pageshow fires when page is restored from BFCache
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted) {
+        // Page was restored from BFCache - reset coordinator state
+        this.log('info', 'Page restored from BFCache, resetting state');
+        this.forceUnlock();
+        this.state = {
+          phase: 'idle',
+          fromRoute: null,
+          toRoute: null,
+          startTime: 0,
+          isLocked: false,
+        };
+        this.notifyListeners();
+      }
+    });
+    
+    // pagehide fires when page might enter BFCache
+    window.addEventListener('pagehide', () => {
+      // Clean up before potentially entering BFCache
+      this.abortAllRequests();
+      this.abortAllMedia();
+    });
+    
+    this.bfcacheHandlersRegistered = true;
+    this.log('info', 'BFCache handlers registered');
   }
 
   // ============= State Management =============
@@ -68,10 +143,28 @@ class NavigationCoordinatorImpl {
   isLocked(): boolean {
     return this.state.isLocked;
   }
+  
+  getMetrics(): Readonly<typeof this.metrics> {
+    return { ...this.metrics };
+  }
 
   subscribe(listener: (state: NavigationState) => void): () => void {
+    // Guard against too many listeners (memory leak protection)
+    if (this.listeners.size >= this.options.maxListeners) {
+      this.log('warn', `Max listeners (${this.options.maxListeners}) reached. Possible memory leak.`);
+      // Remove oldest listener to make room (FIFO)
+      const firstListener = this.listeners.values().next().value;
+      if (firstListener) {
+        this.listeners.delete(firstListener);
+      }
+    }
+    
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
+  }
+  
+  getListenerCount(): number {
+    return this.listeners.size;
   }
 
   private notifyListeners(): void {
@@ -105,6 +198,7 @@ class NavigationCoordinatorImpl {
 
   /**
    * Begin navigation transition. Returns false if navigation is locked.
+   * Uses queue system for rapid navigation handling.
    */
   async beginNavigation(fromRoute: string, toRoute: string): Promise<boolean> {
     // SAFARI FIX: Allow same-route navigation (refresh/re-render)
@@ -113,19 +207,84 @@ class NavigationCoordinatorImpl {
       return true;
     }
     
-    // Prevent double-navigation to DIFFERENT routes
+    // If locked, queue navigation instead of rejecting immediately
     if (this.state.isLocked) {
-      // SAFARI FIX: Auto-unlock if locked for too long (Safari can get stuck)
+      // Check for stale lock
       const lockAge = performance.now() - this.state.startTime;
       if (lockAge > 1500) {
         this.log('warn', `Stale navigation lock detected (${lockAge.toFixed(0)}ms), force unlocking`);
         this.forceUnlock();
       } else {
-        this.log('warn', `Navigation locked, rejecting: ${fromRoute} → ${toRoute}`);
-        return false;
+        // Queue this navigation request
+        return this.queueNavigation(fromRoute, toRoute);
       }
     }
 
+    return this.executeNavigation(fromRoute, toRoute);
+  }
+  
+  /**
+   * Queue a navigation request for when current navigation completes.
+   */
+  private queueNavigation(fromRoute: string, toRoute: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      // Limit queue size to prevent memory issues
+      if (this.navigationQueue.length >= this.options.maxQueueSize) {
+        // Remove oldest queued item and reject it
+        const dropped = this.navigationQueue.shift();
+        if (dropped) {
+          this.log('info', `Queue full, dropping navigation to: ${dropped.toRoute}`);
+          dropped.resolve(false);
+        }
+      }
+      
+      this.navigationQueue.push({
+        fromRoute,
+        toRoute,
+        timestamp: performance.now(),
+        resolve,
+      });
+      
+      this.log('info', `Navigation queued: ${fromRoute} → ${toRoute} (queue size: ${this.navigationQueue.length})`);
+    });
+  }
+  
+  /**
+   * Process next item in navigation queue.
+   */
+  private async processQueue(): Promise<void> {
+    if (this.isProcessingQueue || this.state.isLocked) return;
+    
+    const nextNav = this.navigationQueue.shift();
+    if (!nextNav) return;
+    
+    this.isProcessingQueue = true;
+    
+    try {
+      // Check if this queued navigation is still valid (not too old)
+      const age = performance.now() - nextNav.timestamp;
+      if (age > 5000) {
+        this.log('warn', `Queued navigation expired (${age.toFixed(0)}ms old): ${nextNav.toRoute}`);
+        nextNav.resolve(false);
+        return;
+      }
+      
+      const canNavigate = await this.executeNavigation(nextNav.fromRoute, nextNav.toRoute);
+      nextNav.resolve(canNavigate);
+    } finally {
+      this.isProcessingQueue = false;
+      
+      // Process next in queue if available
+      if (this.navigationQueue.length > 0) {
+        this.processQueue();
+      }
+    }
+  }
+  
+  /**
+   * Execute the actual navigation (internal).
+   */
+  private async executeNavigation(fromRoute: string, toRoute: string): Promise<boolean> {
     // Lock navigation
     this.state = {
       phase: 'preparing',
@@ -135,6 +294,7 @@ class NavigationCoordinatorImpl {
       isLocked: true,
     };
     this.notifyListeners();
+    this.metrics.totalNavigations++;
 
     // Set safety timeout to auto-unlock (reduced for Safari responsiveness)
     this.lockTimeoutId = setTimeout(() => {
@@ -144,14 +304,21 @@ class NavigationCoordinatorImpl {
 
     this.log('info', `Navigation started: ${fromRoute} → ${toRoute}`);
 
-    // Run pre-navigation cleanup
-    await this.runCleanups(fromRoute);
+    // Run pre-navigation cleanup with summary
+    const cleanupSummary = await this.runCleanups(fromRoute);
+    if (cleanupSummary.failedCleanups > 0) {
+      this.log('warn', `Cleanup summary: ${cleanupSummary.successfulCleanups}/${cleanupSummary.totalCleanups} succeeded, ${cleanupSummary.failedCleanups} failed`);
+      if (cleanupSummary.errors.length > 0) {
+        this.log('warn', 'Cleanup errors:', cleanupSummary.errors.slice(0, 3).join('; '));
+      }
+    }
 
-    // Abort all media playback
+    // Abort all media playback (using registered elements + DOM query)
     this.abortAllMedia();
 
     // Abort all fetch requests
-    this.abortAllRequests();
+    const abortedCount = this.abortAllRequests();
+    this.metrics.abortedRequests += abortedCount;
 
     // Transition phase
     this.state.phase = 'transitioning';
@@ -181,6 +348,11 @@ class NavigationCoordinatorImpl {
     if (this.state.startTime > 0) {
       const duration = performance.now() - this.state.startTime;
       this.log('info', `Navigation completed in ${duration.toFixed(0)}ms`);
+      
+      // Update average navigation time
+      this.metrics.averageNavigationTime = 
+        (this.metrics.averageNavigationTime * (this.metrics.totalNavigations - 1) + duration) / 
+        this.metrics.totalNavigations;
     }
 
     this.state = {
@@ -191,6 +363,9 @@ class NavigationCoordinatorImpl {
       isLocked: false,
     };
     this.notifyListeners();
+    
+    // Process queued navigations
+    this.processQueue();
   }
 
   /**
@@ -208,6 +383,9 @@ class NavigationCoordinatorImpl {
       isLocked: false,
     };
     this.notifyListeners();
+    
+    // Process queued navigations after force unlock
+    this.processQueue();
   }
 
   // ============= Cleanup Registry =============
@@ -242,37 +420,66 @@ class NavigationCoordinatorImpl {
   }
 
   /**
-   * Run all cleanups for a route
+   * Run all cleanups for a route with aggregated summary
    */
-  private async runCleanups(routePath: string): Promise<void> {
+  private async runCleanups(routePath: string): Promise<CleanupSummary> {
     const routeCleanups = this.cleanupRegistry.get(routePath) || new Set();
     const allCleanups = [...routeCleanups, ...this.globalCleanups];
 
-    if (allCleanups.length === 0) return;
+    const summary: CleanupSummary = {
+      totalCleanups: allCleanups.length,
+      successfulCleanups: 0,
+      failedCleanups: 0,
+      timedOutCleanups: 0,
+      errors: [],
+    };
+
+    if (allCleanups.length === 0) return summary;
 
     this.log('info', `Running ${allCleanups.length} cleanup(s) for ${routePath}`);
+    const cleanupStartTime = performance.now();
 
-    // Run cleanups with timeout protection
+    // Run cleanups with timeout protection and result tracking
     const cleanupPromises = allCleanups.map(async (cleanup) => {
       try {
         const result = cleanup();
         if (result instanceof Promise) {
           await Promise.race([
-            result,
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Cleanup timeout')), this.options.cleanupTimeoutMs)
+            result.then(() => ({ status: 'success' as const })),
+            new Promise<{ status: 'timeout' }>((resolve) => 
+              setTimeout(() => resolve({ status: 'timeout' }), this.options.cleanupTimeoutMs)
             ),
-          ]);
+          ]).then((outcome) => {
+            if (outcome.status === 'timeout') {
+              summary.timedOutCleanups++;
+              summary.failedCleanups++;
+              summary.errors.push('Cleanup timed out');
+            } else {
+              summary.successfulCleanups++;
+            }
+          });
+        } else {
+          summary.successfulCleanups++;
         }
       } catch (err) {
-        this.log('warn', 'Cleanup error:', err);
+        summary.failedCleanups++;
+        this.metrics.cleanupErrors++;
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        summary.errors.push(errorMsg);
+        this.log('warn', 'Cleanup error:', errorMsg);
       }
     });
 
     await Promise.allSettled(cleanupPromises);
 
+    // Track cleanup time
+    const cleanupDuration = performance.now() - cleanupStartTime;
+    this.metrics.totalCleanupTime += cleanupDuration;
+
     // Clear route-specific cleanups after running
     this.cleanupRegistry.delete(routePath);
+
+    return summary;
   }
 
   // ============= Media Management =============
@@ -281,22 +488,57 @@ class NavigationCoordinatorImpl {
    * Register a media element for automatic cleanup
    */
   registerMediaElement(element: HTMLMediaElement): void {
-    this.mediaElements.add(element);
+    this.registeredMediaElements.add(element);
+    
+    // Auto-remove when element is removed from DOM
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.removedNodes.forEach((node) => {
+          if (node === element || (node instanceof Element && node.contains(element))) {
+            this.registeredMediaElements.delete(element);
+            observer.disconnect();
+          }
+        });
+      });
+    });
+    
+    if (element.parentNode) {
+      observer.observe(element.parentNode, { childList: true, subtree: true });
+    }
   }
 
   /**
-   * Abort all registered media playback
+   * Abort all registered AND DOM-queried media playback
    */
   abortAllMedia(): void {
-    // Query all video/audio elements in the document
-    const mediaElements = document.querySelectorAll('video, audio');
+    let abortedCount = 0;
     
-    mediaElements.forEach((el) => {
-      const media = el as HTMLMediaElement;
+    // First, handle registered elements (faster, more reliable)
+    this.registeredMediaElements.forEach((media) => {
       try {
-        // Pause playback
         if (!media.paused) {
           media.pause();
+        }
+        if (media instanceof HTMLVideoElement) {
+          cleanupVideoElement(media);
+        } else if (media instanceof HTMLAudioElement) {
+          cleanupAudioElement(media);
+        }
+        abortedCount++;
+      } catch {
+        // Element may be destroyed
+      }
+    });
+    this.registeredMediaElements.clear();
+    
+    // Also query DOM for any unregistered elements (fallback)
+    const domMediaElements = document.querySelectorAll('video, audio');
+    domMediaElements.forEach((el) => {
+      const media = el as HTMLMediaElement;
+      try {
+        if (!media.paused) {
+          media.pause();
+          abortedCount++;
         }
         // Reset source to stop buffering
         media.src = '';
@@ -306,7 +548,9 @@ class NavigationCoordinatorImpl {
       }
     });
 
-    this.log('info', `Aborted ${mediaElements.length} media element(s)`);
+    if (abortedCount > 0) {
+      this.log('info', `Aborted ${abortedCount} media element(s)`);
+    }
   }
 
   // ============= AbortController Management =============
@@ -327,13 +571,15 @@ class NavigationCoordinatorImpl {
   }
 
   /**
-   * Abort all active fetch requests
+   * Abort all active fetch requests. Returns count of aborted requests.
    */
-  abortAllRequests(): void {
+  abortAllRequests(): number {
     const count = this.activeAbortControllers.size;
     this.activeAbortControllers.forEach(controller => {
       try {
-        controller.abort();
+        if (!controller.signal.aborted) {
+          controller.abort();
+        }
       } catch {
         // Ignore
       }
@@ -343,24 +589,37 @@ class NavigationCoordinatorImpl {
     if (count > 0) {
       this.log('info', `Aborted ${count} request(s)`);
     }
+    
+    return count;
   }
 
   // ============= Memory Cleanup =============
 
   /**
-   * Run garbage collection hints
+   * Run garbage collection hints - now integrated with memoryManager
    */
   triggerGC(): void {
-    // Revoke any lingering blob URLs
-    if (typeof URL.revokeObjectURL === 'function') {
-      // Note: We'd need to track blob URLs to revoke them
-      // This is a placeholder for integration with memoryManager
+    // Revoke blob URLs via memoryManager
+    const blobCount = blobUrlTracker.getCount();
+    if (blobCount > 0) {
+      this.log('info', `Revoking ${blobCount} tracked blob URL(s)`);
+      blobUrlTracker.revokeAll();
     }
 
     // Force layout recalculation to release references
-    document.body.offsetHeight;
+    if (typeof document !== 'undefined') {
+      // Read to trigger recalc
+      void document.body.offsetHeight;
+    }
 
     this.log('info', 'GC hint triggered');
+  }
+  
+  /**
+   * Clean up resources for a specific component
+   */
+  cleanupComponent(componentId: string): void {
+    blobUrlTracker.revokeForComponent(componentId);
   }
 }
 
@@ -369,4 +628,4 @@ export const navigationCoordinator = new NavigationCoordinatorImpl();
 
 // Export class for testing
 export { NavigationCoordinatorImpl };
-export type { NavigationState, CleanupFunction, NavigationPhase, CoordinatorOptions };
+export type { NavigationState, CleanupFunction, NavigationPhase, CoordinatorOptions, CleanupSummary };

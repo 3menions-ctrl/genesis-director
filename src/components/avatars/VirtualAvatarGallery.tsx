@@ -107,7 +107,8 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
         )} />
         
         {/* Avatar Image Container */}
-        <div className="relative aspect-[2/3] overflow-hidden bg-gradient-to-b from-black/30 to-black/80">
+        {/* Fixed aspect ratio container - ensures all cards have identical height */}
+        <div className="relative aspect-[2/3] overflow-hidden bg-gradient-to-b from-black/30 to-black/80" style={{ minHeight: 0 }}>
           {/* Shimmer skeleton - visible until image loads */}
           {!imageLoaded && (
             <div className="absolute inset-0">
@@ -115,11 +116,11 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
             </div>
           )}
           
-          {/* Actual image - CSS transitions for stability */}
+          {/* Actual image - fixed height, centered with object-contain */}
           {imageSrc && !imageError && (
             <div
               className={cn(
-                "w-full h-full transition-all duration-400",
+                "absolute inset-0 flex items-center justify-center transition-all duration-400",
                 isHovered && "scale-105",
                 imageLoaded ? "opacity-100" : "opacity-0"
               )}
@@ -132,7 +133,7 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
                 decoding="async"
                 onLoad={handleImageLoad}
                 onError={handleImageError}
-                className="w-full h-full object-contain object-center"
+                className="max-w-full max-h-full object-contain"
               />
             </div>
           )}

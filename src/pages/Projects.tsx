@@ -477,7 +477,9 @@ function ProjectsContentInner() {
   // Filtered and sorted projects - now handled server-side by usePaginatedProjects
   // Only client-side: pinned projects first
   const filteredProjects = useMemo(() => {
-    const result = projects.filter(hasVideoContent);
+    // SHOW ALL PROJECTS - don't filter by hasVideoContent
+    // This ensures draft projects are visible in the library
+    const result = projects;
     
     // Put pinned projects first (only client-side operation needed)
     const pinned = result.filter(p => pinnedProjects.has(p.id));
@@ -495,9 +497,9 @@ function ProjectsContentInner() {
   
   const hasMoreToLoad = hasMore;
 
-  // Stats
+  // Stats - count ALL projects, not just those with video content
   const stats = useMemo(() => {
-    const allProjects = projects.filter(hasVideoContent);
+    const allProjects = projects; // Show all projects in stats
     const completed = allProjects.filter(isPlayableProject).length;
     const processing = allProjects.filter(p => ['generating', 'rendering', 'stitching'].includes(status(p))).length;
     const totalClips = allProjects.reduce((acc, p) => acc + (p.video_clips?.length || 0), 0);

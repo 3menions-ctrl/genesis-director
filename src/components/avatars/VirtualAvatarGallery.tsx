@@ -116,11 +116,11 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
             </div>
           )}
           
-          {/* Actual image - fixed height, centered with object-contain */}
+          {/* Actual image - scaled to fill container height, centered */}
           {imageSrc && !imageError && (
             <div
               className={cn(
-                "absolute inset-0 flex items-center justify-center transition-all duration-400",
+                "absolute inset-0 flex items-center justify-center overflow-hidden transition-all duration-400",
                 isHovered && "scale-105",
                 imageLoaded ? "opacity-100" : "opacity-0"
               )}
@@ -133,7 +133,7 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
                 decoding="async"
                 onLoad={handleImageLoad}
                 onError={handleImageError}
-                className="max-w-full max-h-full object-contain"
+                className="h-full w-auto min-w-full object-cover object-top"
               />
             </div>
           )}

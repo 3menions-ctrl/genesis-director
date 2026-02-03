@@ -583,7 +583,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             // First check for existing HLS playlist in project
             const { data: project } = await supabase
               .from('movie_projects')
-              .select('pending_video_tasks, voice_audio_url')
+              .select('pending_video_tasks, voice_audio_url, video_url')
               .eq('id', source.projectId)
               .single();
             
@@ -645,6 +645,31 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               console.warn('[UniversalPlayer] DB fetch error:', dbError);
             } else if (dbClips && dbClips.length > 0) {
               urls = dbClips.map(c => c.video_url!).filter(Boolean);
+            }
+            
+            // AVATAR FALLBACK: If no clips found, check pending_video_tasks for avatar-style videos
+            if (urls.length === 0 && tasks) {
+              // Check for avatar predictions array
+              const predictions = tasks.predictions as Array<{ videoUrl?: string; status?: string }> | undefined;
+              if (predictions && Array.isArray(predictions)) {
+                const avatarUrls = predictions
+                  .filter(p => p.videoUrl && p.status === 'completed')
+                  .map(p => p.videoUrl as string);
+                if (avatarUrls.length > 0) {
+                  urls = avatarUrls;
+                  console.log('[UniversalPlayer] Using avatar predictions for playback:', urls.length, 'clips');
+                }
+              }
+              
+              // Check for direct video_url on project (single clip avatar)
+              if (urls.length === 0 && project?.video_url && typeof project.video_url === 'string') {
+                // Ensure it's an actual video URL, not a manifest
+                const videoUrl = project.video_url;
+                if (videoUrl.endsWith('.mp4') || videoUrl.endsWith('.webm') || videoUrl.includes('/video-clips/')) {
+                  urls = [videoUrl];
+                  console.log('[UniversalPlayer] Using project video_url for playback');
+                }
+              }
             }
           }
           // Parse manifest if provided

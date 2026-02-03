@@ -604,8 +604,11 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               return;
             }
             
+            // Check if we have any video content before trying HLS generation
+            const hasVideoContent = tasks?.predictions || tasks?.hlsPlaylistUrl || project?.video_url;
+            
             // iOS Safari with projectId but no HLS - generate server-side HLS playlist
-            if (useHLSNative) {
+            if (useHLSNative && hasVideoContent) {
               console.log('[UniversalPlayer] iOS detected without HLS - generating server-side playlist');
               try {
                 const { data: hlsResult, error: hlsError } = await supabase.functions.invoke('generate-hls-playlist', {
@@ -623,12 +626,21 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                   setIsLoading(false);
                   return;
                 } else {
-                  console.warn('[UniversalPlayer] HLS generation failed, falling back to legacy:', hlsError);
+                  // Check if this is a "draft_or_incomplete" response - not an actual error
+                  const errorData = hlsError as Record<string, unknown> | null;
+                  if (errorData?.reason === 'draft_or_incomplete') {
+                    console.log('[UniversalPlayer] Project is draft/incomplete, skipping HLS');
+                  } else {
+                    console.warn('[UniversalPlayer] HLS generation failed, falling back to legacy:', hlsError);
+                  }
                 }
               } catch (hlsGenError) {
                 console.warn('[UniversalPlayer] HLS generation error, using legacy:', hlsGenError);
               }
               // Fall through to legacy mode
+              setUseMSE(false);
+            } else if (useHLSNative) {
+              console.log('[UniversalPlayer] iOS detected but no video content found, skipping HLS generation');
               setUseMSE(false);
             }
             

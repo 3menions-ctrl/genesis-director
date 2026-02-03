@@ -32,7 +32,8 @@ const LoadingOverlay = memo(function LoadingOverlay({ status }: { status: string
 // Main content component - wrapped with withSafePageRef for bulletproof ref handling
 function CreateContentInner() {
   // Unified navigation - safe navigation with locking
-  const { navigate } = useSafeNavigation();
+  // Use emergencyNavigate for post-creation redirect to bypass locks
+  const { navigate, emergencyNavigate } = useSafeNavigation();
   
   let authData: { user: any };
   try {
@@ -159,8 +160,9 @@ function CreateContentInner() {
       safeSetState(setCreationStatus, 'Redirecting to production...');
       toast.success(`${config.mode.replace(/-/g, ' ')} creation started!`);
       
-      // Navigate to production page to monitor progress
-      navigate(`/production/${data.projectId}`);
+      // Use emergencyNavigate to bypass any navigation locks after successful creation
+      // This ensures reliable redirect to production page
+      emergencyNavigate(`/production/${data.projectId}`);
     } catch (error) {
       // Ignore abort errors - expected during fast navigation
       if (isAbortError(error)) return;
@@ -177,7 +179,7 @@ function CreateContentInner() {
         safeSetState(setCreationStatus, '');
       }
     }
-  }, [user, navigate, isMounted, getAbortController, safeSetState]);
+  }, [user, navigate, emergencyNavigate, isMounted, getAbortController, safeSetState]);
 
   // Show loading screen until hub is ready OR gatekeeper times out
   const showLoader = !isHubReady && !gatekeeperTimeout;

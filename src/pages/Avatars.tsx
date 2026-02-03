@@ -65,7 +65,8 @@ const GATEKEEPER_TIMEOUT_MS = 5000;
 
 const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function AvatarsContent(_, ref) {
   // ========== Unified navigation - safe navigation with locking ==========
-  const { navigate } = useSafeNavigation();
+  // Use emergencyNavigate for post-creation redirect to bypass locks
+  const { navigate, emergencyNavigate } = useSafeNavigation();
   const { abort: abortRequests } = useNavigationAbort();
   const { markReady, disableAutoComplete } = usePageReady();
   let authContext: ReturnType<typeof useAuth> | null = null;
@@ -376,7 +377,8 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
       }
       
       toast.success('Avatar video creation started!');
-      navigate(`/production/${data.projectId}`);
+      // Use emergencyNavigate to bypass any navigation locks after successful creation
+      emergencyNavigate(`/production/${data.projectId}`);
     } catch (error) {
       // Ignore abort errors - expected during navigation
       if ((error as Error).name === 'AbortError') return;
@@ -390,7 +392,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         setCreationStatus('');
       }
     }
-  }, [user, selectedAvatar, prompt, sceneDescription, aspectRatio, clipCount, clipDuration, enableMusic, cinematicMode, navigate, buildCharacterBible]);
+  }, [user, selectedAvatar, prompt, sceneDescription, aspectRatio, clipCount, clipDuration, enableMusic, cinematicMode, navigate, emergencyNavigate, buildCharacterBible]);
   
   const handleClearFilters = useCallback(() => {
     setGenderFilter('all');

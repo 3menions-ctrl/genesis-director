@@ -225,7 +225,7 @@ export const OptimizedAvatarImage = memo(function OptimizedAvatarImage({
             filter: loadState === 'loaded' ? 'blur(0)' : 'blur(8px)',
           }}
           className={cn(
-            "w-full h-full object-cover object-top will-change-transform",
+            "w-full h-full object-contain object-center will-change-transform",
             "transition-all duration-500 ease-out"
           )}
         />

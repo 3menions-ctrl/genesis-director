@@ -666,7 +666,7 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
         )}
         
         {clips.length > 0 && !hasError && (
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3">
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-10">
             {totalClips > 1 && (
               <div className="flex items-center gap-1.5 mb-2">
                 {clips.map((_, idx) => (
@@ -694,6 +694,7 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
                 className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20 transition-all"
                 onClick={(e) => { 
                   e.stopPropagation(); 
+                  e.preventDefault();
                   const newMuted = !isMuted;
                   setIsMuted(newMuted);
                   // Immediately update video elements for instant feedback

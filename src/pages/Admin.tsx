@@ -56,6 +56,7 @@ import { AdminContentModeration } from '@/components/admin/AdminContentModeratio
 import { AdminSystemConfig } from '@/components/admin/AdminSystemConfig';
 import { AdminMessageCenter } from '@/components/admin/AdminMessageCenter';
 import { AdminAvatarSeeder } from '@/components/admin/AdminAvatarSeeder';
+import { AdminAvatarBatchV2 } from '@/components/admin/AdminAvatarBatchV2';
 import { AdminGalleryManager } from '@/components/admin/AdminGalleryManager';
 
 interface ProfitData {
@@ -1054,7 +1055,12 @@ export default function AdminDashboard() {
         return <AdminSystemConfig />;
 
       case 'avatars':
-        return <AdminAvatarSeeder />;
+        return (
+          <div className="space-y-6">
+            <AdminAvatarBatchV2 />
+            <AdminAvatarSeeder />
+          </div>
+        );
 
       case 'gallery':
         return <AdminGalleryManager />;

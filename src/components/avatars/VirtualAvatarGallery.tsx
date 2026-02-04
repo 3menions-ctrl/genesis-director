@@ -411,23 +411,24 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
         </div>
       )}
       
-      {/* Virtual Scroll Container - full width, scrolls from left */}
+      {/* Horizontal Scroll Container */}
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className={cn(
-          "flex overflow-x-auto scrollbar-hide py-4 md:py-8 w-full",
-          isMobile ? "px-4" : "px-8 md:px-12 lg:px-16"
-        )}
+        className="overflow-x-auto scrollbar-hide py-4 md:py-8"
         style={{
           scrollSnapType: 'x mandatory',
           WebkitOverflowScrolling: 'touch',
         }}
       >
-        {/* Inner flex container with gap */}
+        {/* Inner flex container - starts from left, scrolls right */}
         <div 
-          className="flex mx-auto"
-          style={{ gap: CARD_GAP }}
+          className="flex w-max"
+          style={{ 
+            gap: CARD_GAP,
+            paddingLeft: isMobile ? 16 : 48,
+            paddingRight: isMobile ? 16 : 48,
+          }}
         >
           {displayAvatars.map((avatar) => (
             <VirtualAvatarCard

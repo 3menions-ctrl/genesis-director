@@ -601,9 +601,10 @@ export function detectUserContent(text: string, explicitClipCount?: number): Det
   const wordCount = allText.split(/\s+/).filter(w => w.length > 0).length;
   
   // Average speaking rate: 150 words per minute = 2.5 words per second
-  // Kling 2.6: Each clip is 5 seconds = 12.5 words per clip comfortable pace
+  // Default clip duration: 5s for standard video, 10s for avatar mode (passed via explicitClipCount logic)
+  // Avatar mode should pre-calculate with 10s clips before calling this function
   const WORDS_PER_SECOND = 2.5;
-  const CLIP_DURATION = 5; // Kling 2.6: 5-second clips
+  const CLIP_DURATION = 10; // Updated: 10-second clips for avatar (Kling v2.6 max), adjust externally for other modes
   const WORDS_PER_CLIP = WORDS_PER_SECOND * CLIP_DURATION;
   
   const estimatedDurationSeconds = Math.max(30, Math.ceil(wordCount / WORDS_PER_SECOND));

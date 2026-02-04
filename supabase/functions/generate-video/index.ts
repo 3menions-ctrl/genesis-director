@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import {
+  checkContentSafety,
+  getSafetyNegativePrompts,
+} from "../_shared/content-safety.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -719,6 +723,7 @@ function buildConsistentPrompt(
   const negativePromptParts = [
     antiPhysicsNegative,
     colorNegative, // Add color degradation prevention
+    ...getSafetyNegativePrompts(), // Add NSFW content prevention
   ];
   
   if (inputNegativePrompt) {
@@ -726,7 +731,7 @@ function buildConsistentPrompt(
   }
   
   const finalNegative = negativePromptParts.join(", ");
-  console.log('[Anti-Physics + Anti-Color] Negative prompt terms:', finalNegative.split(',').length);
+  console.log('[Anti-Physics + Anti-Color + Safety] Negative prompt terms:', finalNegative.split(',').length);
 
   return {
     prompt: prompt.slice(0, 2000), // Vertex AI prompt limit
@@ -906,6 +911,24 @@ serve(async (req) => {
     if (!prompt) {
       throw new Error("Prompt is required");
     }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // CONTENT SAFETY CHECK - BLOCK NSFW/PORNOGRAPHIC CONTENT
+    // ═══════════════════════════════════════════════════════════════════
+    const safetyCheck = checkContentSafety(prompt);
+    if (!safetyCheck.isSafe) {
+      console.error(`[generate-video] ⛔ CONTENT BLOCKED - Category: ${safetyCheck.category}, Terms: ${safetyCheck.matchedTerms.slice(0, 3).join(', ')}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: safetyCheck.message,
+          blocked: true,
+          category: safetyCheck.category,
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    // ═══════════════════════════════════════════════════════════════════
 
     // Build enhanced prompt
     const { prompt: enhancedPrompt, negativePrompt } = buildConsistentPrompt(

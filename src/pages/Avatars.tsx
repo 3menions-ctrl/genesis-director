@@ -468,7 +468,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         </SafeComponent>
         
         <SafeComponent name="VirtualAvatarGallery">
-          <div className="mb-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <div className="mb-8 animate-fade-in w-full max-w-[1920px] mx-auto" style={{ animationDelay: '0.2s' }}>
             {error ? (
               <div className="text-center py-12 text-destructive max-w-7xl mx-auto px-6">
                 <p>{error}</p>

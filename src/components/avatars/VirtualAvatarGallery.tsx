@@ -379,7 +379,7 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
   }
 
   return (
-    <div className="relative group/gallery">
+    <div className="relative group/gallery w-full flex flex-col items-center">
       {/* Gradient fade edges */}
       <div className="absolute left-0 top-0 bottom-0 w-8 md:w-24 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
       <div className="absolute right-0 top-0 bottom-0 w-8 md:w-24 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
@@ -416,7 +416,7 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
         ref={scrollContainerRef}
         onScroll={handleScroll}
         className={cn(
-          "flex overflow-x-auto scrollbar-hide py-4 md:py-8",
+          "flex overflow-x-auto scrollbar-hide py-4 md:py-8 w-full justify-center",
           isMobile ? "px-4" : "px-12"
         )}
         style={{

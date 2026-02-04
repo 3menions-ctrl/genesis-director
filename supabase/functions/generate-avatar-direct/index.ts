@@ -102,6 +102,7 @@ serve(async (req) => {
       voiceId = 'bella',
       sceneDescription,
       projectId,
+      userId,
       aspectRatio = '16:9',
       clipCount = 1,
       clipDuration = 10,
@@ -405,7 +406,134 @@ serve(async (req) => {
     });
 
     if (!klingResponse.ok) {
-      throw new Error("Kling animation failed to start for clip 1");
+      const errorText = await klingResponse.text();
+      console.error(`[AvatarDirect] ❌ Kling API error ${klingResponse.status}: ${errorText}`);
+      
+      // Handle rate limits specifically - 429 from Replicate
+      if (klingResponse.status === 429) {
+        // Wait and retry once for rate limits
+        console.log(`[AvatarDirect] Rate limited by Kling API, waiting 15s and retrying...`);
+        await new Promise(resolve => setTimeout(resolve, 15000));
+        
+        const retryResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            input: {
+              mode: "pro",
+              prompt: actingPrompt,
+              duration: videoDuration,
+              start_image: sharedAnimationStartImage,
+              aspect_ratio: aspectRatio,
+              negative_prompt: "static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless",
+            },
+          }),
+        });
+        
+        if (!retryResponse.ok) {
+          const retryErrorText = await retryResponse.text();
+          throw new Error(`Kling animation failed after retry (${retryResponse.status}): ${retryErrorText.substring(0, 200)}`);
+        }
+        
+        // Continue with retry response
+        const klingPrediction = await retryResponse.json();
+        console.log(`[AvatarDirect] Clip 1: Kling STARTED after retry: ${klingPrediction.id}`);
+        
+        // Build predictions array - clip 1 is processing, rest are pending
+        const pendingPredictions: Array<{
+          clipIndex: number;
+          predictionId: string | null;
+          segmentText: string;
+          audioUrl: string;
+          audioDurationMs: number;
+          startImageUrl: string | null;
+          status: string;
+          videoUrl: string | null;
+        }> = [];
+
+        // Clip 1 - currently processing
+        pendingPredictions.push({
+          clipIndex: 0,
+          predictionId: klingPrediction.id,
+          segmentText: clip1Data.segmentText,
+          audioUrl: clip1Data.audioUrl,
+          audioDurationMs: clip1Data.audioDurationMs,
+          startImageUrl: sharedAnimationStartImage,
+          status: 'processing',
+          videoUrl: null,
+        });
+
+        // Clips 2+ - pending, will be started by watchdog after frame extraction
+        for (let i = 1; i < allSegmentData.length; i++) {
+          pendingPredictions.push({
+            clipIndex: i,
+            predictionId: null,
+            segmentText: allSegmentData[i].segmentText,
+            audioUrl: allSegmentData[i].audioUrl,
+            audioDurationMs: allSegmentData[i].audioDurationMs,
+            startImageUrl: null,
+            status: 'pending',
+            videoUrl: null,
+          });
+        }
+
+        // Store in pending_video_tasks for watchdog to monitor
+        const taskData = {
+          project_id: projectId,
+          user_id: userId,
+          task_type: 'avatar_multi_clip',
+          status: 'processing',
+          predictions: pendingPredictions,
+          master_audio_url: masterAudioUrl,
+          shared_scene_image: sharedAnimationStartImage,
+          scene_description: sceneDescription,
+          aspect_ratio: aspectRatio,
+          cinematic_mode: cinematicMode,
+          clip_duration: videoDuration,
+          total_clips: finalClipCount,
+          current_clip: 1,
+          created_at: new Date().toISOString(),
+        };
+
+        await supabase.from('pending_video_tasks').upsert({
+          id: projectId,
+          ...taskData,
+        });
+
+        // Update project status
+        if (projectId) {
+          await supabase.from('movie_projects').update({
+            status: 'generating',
+            pipeline_state: {
+              stage: 'video_generation',
+              progress: 25,
+              message: 'Video clip 1 generating (after retry)...',
+              totalClips: finalClipCount,
+              currentClip: 1,
+              predictionId: klingPrediction.id,
+              masterAudioUrl,
+            },
+            updated_at: new Date().toISOString(),
+          }).eq('id', projectId);
+        }
+
+        console.log(`[AvatarDirect] ✅ Pipeline started after rate limit retry`);
+        return new Response(
+          JSON.stringify({
+            success: true,
+            projectId,
+            predictionId: klingPrediction.id,
+            message: "Avatar generation started after retry (watchdog will complete)",
+            totalClips: finalClipCount,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      throw new Error(`Kling animation failed to start (${klingResponse.status}): ${errorText.substring(0, 200)}`);
     }
 
     const klingPrediction = await klingResponse.json();

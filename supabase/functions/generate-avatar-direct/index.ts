@@ -503,19 +503,49 @@ serve(async (req) => {
           ...taskData,
         });
 
-        // Update project status
+        // Update project status - CRITICAL: Include type: 'avatar_async' for multi-clip detection
         if (projectId) {
           await supabase.from('movie_projects').update({
             status: 'generating',
+            // CRITICAL: Save user's script to synopsis for reference
+            synopsis: script,
             pipeline_state: {
-              stage: 'video_generation',
+              stage: 'async_video_generation',
               progress: 25,
-              message: 'Video clip 1 generating (after retry)...',
+              message: `Video clip 1/${finalClipCount} generating (after retry)...`,
               totalClips: finalClipCount,
               currentClip: 1,
               predictionId: klingPrediction.id,
-              masterAudioUrl,
+              asyncJobData: {
+                predictions: pendingPredictions,
+                masterAudioUrl: masterAudioUrl,
+                sceneImageUrl: sharedAnimationStartImage,
+                clipDuration: videoDuration,
+                aspectRatio,
+              },
             },
+            // CRITICAL FIX: This was missing in retry path - check-specialized-status needs this!
+            pending_video_tasks: {
+              type: 'avatar_async',
+              predictions: pendingPredictions.map(p => ({
+                predictionId: p.predictionId,
+                clipIndex: p.clipIndex,
+                status: p.status,
+                audioUrl: p.audioUrl,
+                audioDurationMs: p.audioDurationMs,
+                segmentText: p.segmentText,
+                startImageUrl: p.startImageUrl,
+              })),
+              masterAudioUrl: masterAudioUrl,
+              sceneImageUrl: sharedAnimationStartImage,
+              sceneCompositingApplied: sceneCompositingApplied,
+              sceneDescription: sceneDescription || null,
+              clipDuration: videoDuration,
+              aspectRatio: aspectRatio,
+              originalScript: script,
+              startedAt: new Date().toISOString(),
+            },
+            voice_audio_url: masterAudioUrl,
             updated_at: new Date().toISOString(),
           }).eq('id', projectId);
         }

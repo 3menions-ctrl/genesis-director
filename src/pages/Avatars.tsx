@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { useAvatarTemplatesQuery } from '@/hooks/useAvatarTemplatesQuery';
 import { useAvatarVoices } from '@/hooks/useAvatarVoices';
 import { useImagePreloader } from '@/hooks/useImagePreloader';
+import { usePredictivePipeline } from '@/hooks/usePredictivePipeline';
 import { AvatarTemplate, AvatarType } from '@/types/avatar-templates';
 import { CinematicModeConfig, DEFAULT_CINEMATIC_CONFIG } from '@/types/cinematic-mode';
 import { AvatarPreviewModal } from '@/components/avatars/AvatarPreviewModal';
@@ -146,10 +147,42 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   const [prompt, setPrompt] = useState('');
   const [sceneDescription, setSceneDescription] = useState('');
   const [aspectRatio, setAspectRatio] = useState('16:9');
-  const [clipCount, setClipCount] = useState(3);
   const [clipDuration, setClipDuration] = useState(10);
   const [enableMusic, setEnableMusic] = useState(true);
   const [cinematicMode, setCinematicMode] = useState<CinematicModeConfig>(DEFAULT_CINEMATIC_CONFIG);
+  
+  // ========== ACCURATE CLIP COUNT - Auto-calculated from script ==========
+  // Uses 2.5 words/second speaking rate and 10-second avatar clips (Kling v2.6 max)
+  const { warmupState } = usePredictivePipeline(prompt, {
+    wordsPerSecond: 2.5,  // Standard speaking rate
+    debounceMs: 300,      // Quick updates as user types
+    minCharsToWarm: 20,   // Start calculating early
+  });
+  
+  // Clip count state - auto-updates from script analysis but allows manual override
+  const [clipCount, setClipCount] = useState(1);
+  const [hasManualClipOverride, setHasManualClipOverride] = useState(false);
+  
+  // Auto-update clip count when script changes (unless user manually overrode)
+  useEffect(() => {
+    if (!hasManualClipOverride && warmupState.clipCount > 0) {
+      const calculated = Math.min(warmupState.clipCount, tierLimits?.maxClips || 6);
+      setClipCount(calculated);
+    }
+  }, [warmupState.clipCount, hasManualClipOverride, tierLimits?.maxClips]);
+  
+  // Handle manual clip count change - sets override flag
+  const handleClipCountChange = useCallback((count: number) => {
+    setClipCount(count);
+    setHasManualClipOverride(true);
+  }, []);
+  
+  // Reset manual override when prompt changes significantly (new script = new calculation)
+  useEffect(() => {
+    if (prompt.length < 20) {
+      setHasManualClipOverride(false);
+    }
+  }, [prompt]);
   
   // ========== Generation State ==========
   const [isCreating, setIsCreating] = useState(false);
@@ -493,7 +526,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
           clipDuration={clipDuration}
           onClipDurationChange={setClipDuration}
           clipCount={clipCount}
-          onClipCountChange={setClipCount}
+          onClipCountChange={handleClipCountChange}
           maxClips={maxClips}
           enableMusic={enableMusic}
           onEnableMusicChange={setEnableMusic}

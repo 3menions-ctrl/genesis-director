@@ -132,7 +132,7 @@ function CreateContentInner() {
       if (!isMounted()) return;
 
       if (error || data?.error) {
-        const { handled } = handleEdgeFunctionError(
+        const { handled } = await handleEdgeFunctionError(
           error, 
           data, 
           (path) => navigate(path)

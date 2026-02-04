@@ -6,6 +6,7 @@
  */
 
 import { toast } from 'sonner';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 
 // ============= Error Types =============
 
@@ -32,77 +33,77 @@ export interface ParsedApiError {
  * Maps API error codes/patterns to user-friendly messages
  */
 const ERROR_MAPPINGS: Record<string, (data?: Record<string, unknown>) => UserFriendlyError> = {
-  // Active project conflict
+  // Active project conflict - friendly, reassuring message
   active_project_exists: (data) => ({
-    title: 'Project in Progress',
+    title: '🎬 Your Video is Generating',
     message: data?.existingProjectTitle 
-      ? `Your project "${data.existingProjectTitle}" is still being created. Please wait for it to complete or cancel it first.`
-      : 'You have a project in progress. Please wait for it to complete or cancel it first.',
-    severity: 'warning',
-    duration: 8000,
+      ? `"${data.existingProjectTitle}" is currently being created. You can only have one video generating at a time - we'll notify you when it's ready!`
+      : 'You already have a video being created. We only allow one at a time to ensure the best quality. Check your project to see the progress!',
+    severity: 'info',
+    duration: 10000,
   }),
   
   // Credit/payment issues
   insufficient_credits: () => ({
-    title: 'Not Enough Credits',
-    message: 'You need more credits to create this video. Visit your settings to purchase more.',
+    title: '💳 Need More Credits',
+    message: 'Top up your credits to continue creating amazing videos. Quick and easy!',
     severity: 'warning',
-    duration: 6000,
+    duration: 8000,
   }),
   
-  // Rate limiting
+  // Rate limiting - reassuring
   rate_limited: () => ({
-    title: 'Too Many Requests',
-    message: 'Please wait a moment before trying again. Our servers are processing your previous requests.',
+    title: '⏳ Just a Moment',
+    message: 'We\'re processing your requests. Give us a few seconds and try again!',
     severity: 'info',
     duration: 5000,
   }),
   
   // Authentication
   unauthorized: () => ({
-    title: 'Session Expired',
-    message: 'Please sign in again to continue.',
+    title: '🔐 Session Expired',
+    message: 'For your security, please sign in again to continue.',
     severity: 'warning',
     duration: 5000,
   }),
   
-  // Server errors
+  // Server errors - calming
   server_error: () => ({
-    title: 'Something Went Wrong',
-    message: 'We encountered a temporary issue. Please try again in a moment. If this continues, contact support.',
-    severity: 'error',
+    title: '🔧 Quick Hiccup',
+    message: 'Something unexpected happened on our end. Try again in a moment - we\'re on it!',
+    severity: 'warning',
     duration: 6000,
   }),
   
   // Network errors
   network_error: () => ({
-    title: 'Connection Issue',
-    message: 'Please check your internet connection and try again.',
+    title: '📶 Connection Lost',
+    message: 'Check your internet connection and try again. Your work is safe!',
     severity: 'warning',
     duration: 5000,
   }),
   
-  // Generation failures
+  // Generation failures - reassuring about refund
   generation_failed: () => ({
-    title: 'Generation Failed',
-    message: 'We couldn\'t complete your video. Your credits will be refunded automatically. Please try again.',
-    severity: 'error',
-    duration: 6000,
+    title: '🎬 Generation Hiccup',
+    message: 'This video didn\'t complete, but don\'t worry - your credits are automatically refunded. Try again!',
+    severity: 'info',
+    duration: 8000,
   }),
   
   // Timeout
   timeout: () => ({
-    title: 'Request Timed Out',
-    message: 'This is taking longer than expected. Please try again.',
+    title: '⏱️ Taking Too Long',
+    message: 'This is taking longer than expected. Please refresh and try again.',
     severity: 'warning',
     duration: 5000,
   }),
   
-  // API key/external service issues (internal - show generic message)
+  // API key/external service issues (internal - hide complexity)
   external_service_error: () => ({
-    title: 'Service Temporarily Unavailable',
-    message: 'Our video generation service is experiencing issues. Please try again in a few minutes.',
-    severity: 'error',
+    title: '🌐 Service Busy',
+    message: 'Our video engine is temporarily busy. Please try again in a few minutes - quality takes time!',
+    severity: 'info',
     duration: 6000,
   }),
 };
@@ -115,25 +116,44 @@ interface ErrorPattern {
 }
 
 const ERROR_PATTERNS: ErrorPattern[] = [
+  // Active project conflict - check first (highest priority for user experience)
   { pattern: 'active_project_exists', code: 'active_project_exists' },
+  { pattern: /project.*in progress/i, code: 'active_project_exists' },
+  { pattern: '409', code: 'active_project_exists' },
+  
+  // Credit/payment issues
   { pattern: /insufficient.?credit/i, code: 'insufficient_credits' },
   { pattern: '402', code: 'insufficient_credits' },
+  
+  // Rate limiting
   { pattern: /rate.?limit/i, code: 'rate_limited' },
   { pattern: '429', code: 'rate_limited' },
+  
+  // Authentication
   { pattern: '401', code: 'unauthorized' },
   { pattern: '403', code: 'unauthorized' },
   { pattern: /unauthorized/i, code: 'unauthorized' },
-  { pattern: '500', code: 'server_error' },
+  
+  // Server errors (lower priority - check after specific errors)
   { pattern: '502', code: 'server_error' },
   { pattern: '503', code: 'server_error' },
+  
+  // Network errors
   { pattern: /network.?error/i, code: 'network_error' },
   { pattern: /failed to fetch/i, code: 'network_error' },
+  
+  // Generation failures
   { pattern: /generation.?failed/i, code: 'generation_failed' },
   { pattern: /tts.?generation.?failed/i, code: 'external_service_error' },
   { pattern: /master.?tts/i, code: 'external_service_error' },
   { pattern: /replicate/i, code: 'external_service_error' },
+  
+  // Timeout
   { pattern: /timeout/i, code: 'timeout' },
   { pattern: /abort/i, code: 'timeout' },
+  
+  // Generic 500 - check LAST (after all specific patterns)
+  { pattern: '500', code: 'server_error' },
 ];
 
 // ============= Main Functions =============
@@ -241,20 +261,62 @@ export function showUserFriendlyError(
 
 /**
  * Handle edge function errors with user-friendly messages
+ * Now handles nested error data and extracts project info from various response formats
+ * Supports FunctionsHttpError which contains the response body in error.context
  */
-export function handleEdgeFunctionError(
+export async function handleEdgeFunctionError(
   error: unknown,
   data: Record<string, unknown> | null,
   navigate?: (path: string) => void
-): { handled: boolean; parsed: ParsedApiError | null } {
+): Promise<{ handled: boolean; parsed: ParsedApiError | null }> {
+  // Extract error info - could be in data directly, nested in error message, or in error.context
+  let errorData = data;
+  let existingProjectId = data?.existingProjectId as string | undefined;
+  let existingProjectTitle = data?.existingProjectTitle as string | undefined;
+  
+  // Handle FunctionsHttpError - the response body is in error.context
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const contextData = await error.context.json();
+      console.log('[UserFriendlyErrors] Extracted context from FunctionsHttpError:', contextData);
+      if (contextData) {
+        errorData = contextData;
+        existingProjectId = contextData.existingProjectId;
+        existingProjectTitle = contextData.existingProjectTitle;
+      }
+    } catch {
+      // Context parsing failed, continue with other methods
+    }
+  }
+  
+  // Check if error contains JSON with project info (for 500 wrapping 409)
+  if (!existingProjectId && error instanceof Error && error.message) {
+    try {
+      // Try to parse JSON from error message (e.g., "500: {json}")
+      const jsonMatch = error.message.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.error === 'active_project_exists' || parsed.existingProjectId) {
+          errorData = parsed;
+          existingProjectId = parsed.existingProjectId;
+          existingProjectTitle = parsed.existingProjectTitle;
+        }
+      }
+    } catch {
+      // Not JSON, continue with normal flow
+    }
+  }
+  
   // Check for specific error codes in data
-  if (data?.error === 'active_project_exists') {
-    const parsed = parseApiError(data, data);
-    toast.warning(parsed.userError.message, {
-      duration: 8000,
-      action: data.existingProjectId ? {
-        label: 'View Project',
-        onClick: () => navigate?.(`/production/${data.existingProjectId}`),
+  if (errorData?.error === 'active_project_exists' || existingProjectId) {
+    const parsed = parseApiError(errorData, errorData as Record<string, unknown>);
+    
+    // Use the improved info-style toast for active projects
+    toast.info(parsed.userError.message, {
+      duration: 10000,
+      action: existingProjectId ? {
+        label: '👀 View Progress',
+        onClick: () => navigate?.(`/production/${existingProjectId}`),
       } : undefined,
     });
     return { handled: true, parsed };

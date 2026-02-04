@@ -147,15 +147,78 @@ const SIZE_PROGRESSION = ['medium', 'medium_close', 'wide', 'close_up', 'medium_
 const LIGHTING_PROGRESSION = ['classic_key', 'rembrandt', 'golden_hour', 'chiaroscuro', 'rim_dramatic', 'overcast_soft', 'neon_accent', 'volumetric', 'blue_hour', 'classic_key'];
 const MOTION_PROGRESSION = ['gesture_expressive', 'walking_forward', 'subtle_shift', 'static_confident', 'walking_lateral', 'leaning_casual', 'gesture_expressive', 'seated_engaged', 'walking_forward', 'subtle_shift'];
 
+// ============================================================================
+// DYNAMIC SCENE PROGRESSION - Background changes for multi-clip narratives
+// ============================================================================
+
+const SCENE_JOURNEYS: Record<string, string[]> = {
+  professional: [
+    "modern executive office with floor-to-ceiling windows and city skyline view",
+    "sleek conference room with minimalist design and ambient lighting",
+    "stylish coffee shop with warm wood accents and natural light",
+    "upscale hotel lobby with marble floors and contemporary art",
+    "rooftop terrace overlooking the urban landscape at golden hour",
+  ],
+  creative: [
+    "artistic loft studio with exposed brick and creative installations",
+    "trendy gallery space with white walls and dramatic spotlights",
+    "bohemian café with eclectic décor and vintage furniture",
+    "outdoor urban art district with colorful murals",
+    "modern design studio with sleek workstations and inspiration boards",
+  ],
+  lifestyle: [
+    "cozy living room with warm lighting and comfortable seating",
+    "bright modern kitchen with marble countertops",
+    "peaceful garden patio with lush greenery and soft daylight",
+    "charming bookstore with wooden shelves and reading nooks",
+    "scenic walking path through a park with dappled sunlight",
+  ],
+  tech: [
+    "futuristic tech hub with holographic displays and neon accents",
+    "modern startup office with open floor plan and creative zones",
+    "sleek data center with server racks and blue lighting",
+    "innovation lab with prototype displays and collaborative spaces",
+    "high-rise observation deck with panoramic city views at dusk",
+  ],
+  cinematic: [
+    "dramatic film noir setting with venetian blinds and moody shadows",
+    "elegant theater backstage with velvet curtains and stage lights",
+    "atmospheric jazz lounge with dim lighting and vintage aesthetic",
+    "grand library with towering bookshelves and warm lamplight",
+    "art deco penthouse with city lights twinkling through windows",
+  ],
+};
+
+function detectJourneyType(baseScene: string | undefined): string {
+  if (!baseScene) return 'professional';
+  const lower = baseScene.toLowerCase();
+  if (lower.includes('tech') || lower.includes('future') || lower.includes('digital')) return 'tech';
+  if (lower.includes('art') || lower.includes('creative') || lower.includes('studio')) return 'creative';
+  if (lower.includes('home') || lower.includes('cozy') || lower.includes('casual')) return 'lifestyle';
+  if (lower.includes('film') || lower.includes('dramatic') || lower.includes('noir')) return 'cinematic';
+  return 'professional';
+}
+
+function getProgressiveScene(baseScene: string | undefined, clipIndex: number, totalClips: number): string {
+  if (totalClips < 3) {
+    return baseScene?.trim() || "professional studio with cinematic lighting";
+  }
+  const journeyType = detectJourneyType(baseScene);
+  const journey = SCENE_JOURNEYS[journeyType];
+  const sceneChangeCount = Math.min(journey.length, Math.ceil(totalClips / 2));
+  const sceneIndex = Math.floor((clipIndex / totalClips) * sceneChangeCount);
+  return journey[Math.min(sceneIndex, journey.length - 1)];
+}
+
 function selectPrompt(prompts: string[]): string {
   return prompts[Math.floor(Math.random() * prompts.length)];
 }
 
 /**
  * Build WORLD-CLASS acting prompt for avatar frame-chaining
- * Each clip gets unique cinematography for maximum visual variety
+ * Each clip gets unique cinematography + DYNAMIC SCENE PROGRESSION
  */
-function buildAvatarActingPrompt(segmentText: string, sceneDescription?: string, clipIndex: number = 0): string {
+function buildAvatarActingPrompt(segmentText: string, sceneDescription?: string, clipIndex: number = 0, totalClips: number = 1): string {
   const idx = clipIndex % 10;
   
   // Get unique style elements for this clip
@@ -171,13 +234,14 @@ function buildAvatarActingPrompt(segmentText: string, sceneDescription?: string,
   const lightingPrompt = selectPrompt(LIGHTING_STYLES[lightingKey] || LIGHTING_STYLES.classic_key);
   const motionPrompt = selectPrompt(SUBJECT_MOTION[motionKey] || SUBJECT_MOTION.gesture_expressive);
   
-  const sceneContext = sceneDescription?.trim()
-    ? `Cinematic scene in ${sceneDescription.trim()}, shot with professional cinematography.`
-    : "Professional studio with cinematic three-point lighting.";
+  // DYNAMIC SCENE PROGRESSION: Get progressive scene for this clip
+  const progressiveScene = getProgressiveScene(sceneDescription, clipIndex, totalClips);
+  const sceneContext = `Cinematic scene in ${progressiveScene}, shot with professional cinematography.`;
   
   const qualityBaseline = "Ultra-high definition, film-grain texture, natural skin tones, professional color grading, cinematic depth of field.";
   
-  console.log(`[Watchdog] Clip ${clipIndex + 1} Style: ${movementKey} + ${angleKey} + ${sizeKey}`);
+  console.log(`[Watchdog] Clip ${clipIndex + 1}/${totalClips} Style: ${movementKey} + ${angleKey} + ${sizeKey}`);
+  console.log(`[Watchdog] Clip ${clipIndex + 1}/${totalClips} Scene: ${progressiveScene.substring(0, 50)}...`);
   
   return `${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. The subject is ${motionPrompt}, speaking naturally: "${segmentText.trim().substring(0, 80)}${segmentText.length > 80 ? '...' : ''}". Lifelike fluid movements, natural micro-expressions, authentic lip sync, subtle breathing motion, realistic eye movements and blinks. ${qualityBaseline}`;
 }
@@ -310,8 +374,8 @@ serve(async (req) => {
           // Store the start image for this clip
           pred.startImageUrl = startImageUrl;
           
-          // Build WORLD-CLASS acting prompt for this segment with unique cinematography
-          const actingPrompt = buildAvatarActingPrompt(pred.segmentText, tasks.sceneDescription, pred.clipIndex);
+          // Build WORLD-CLASS acting prompt for this segment with unique cinematography + scene progression
+          const actingPrompt = buildAvatarActingPrompt(pred.segmentText, tasks.sceneDescription, pred.clipIndex, tasks.predictions.length);
           const videoDuration = tasks.clipDuration >= 10 ? 10 : (tasks.clipDuration || 10);
           
           // Start Kling prediction for this clip

@@ -1,5 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import {
+  resilientFetch,
+  calculateBackoff,
+  isRetryableError,
+  sleep,
+  RESILIENCE_CONFIG,
+} from "../_shared/network-resilience.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,14 +14,26 @@ const corsHeaders = {
 };
 
 /**
- * Voice Generation - MiniMax Speech 2.6 Turbo (Always Warm)
+ * Voice Generation - MiniMax Speech 2.6 Turbo (World-Class Reliability)
  * 
- * Uses minimax/speech-2.6-turbo on Replicate for fast, high-quality TTS.
- * This model is always warm (~3s generation time) with 300+ voices.
+ * HARDENED with:
+ * - Exponential backoff with jitter
+ * - Connection reset recovery
+ * - Rate limit detection and smart waiting
+ * - Timeout handling with graceful degradation
  */
 
 // Default speech rate - slightly slower for clearer articulation
 const DEFAULT_SPEED = 0.9;
+
+// TTS-specific resilience config
+const TTS_CONFIG = {
+  MAX_RETRIES: 4,
+  BASE_DELAY_MS: 2000,
+  MAX_POLL_ATTEMPTS: 40, // 40 seconds max polling
+  POLL_INTERVAL_MS: 1000,
+  RATE_LIMIT_WAIT_MS: 12000, // 12 seconds for TTS rate limits
+};
 
 // MiniMax voice mapping - using verified MiniMax voice IDs from their API
 // Reference: https://platform.minimax.io/docs/faq/system-voice-id
@@ -98,6 +117,9 @@ function detectEmotion(text: string): string {
   return 'auto'; // Let MiniMax choose
 }
 
+/**
+ * WORLD-CLASS TTS GENERATION with comprehensive error recovery
+ */
 async function generateWithMiniMax(
   text: string, 
   voiceId: string,
@@ -115,83 +137,153 @@ async function generateWithMiniMax(
   
   console.log(`[Voice-MiniMax] Starting: ${text.length} chars, voice: ${voiceConfig.minimaxVoice}, emotion: ${emotion}`);
   
-  try {
-    // Create prediction using model-specific endpoint
-    const createResponse = await fetch("https://api.replicate.com/v1/models/minimax/speech-2.6-turbo/predictions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${REPLICATE_API_KEY}`,
-        "Content-Type": "application/json",
-        "Prefer": "wait=60",
-      },
-      body: JSON.stringify({
-        input: {
-          text: text,
-          voice_id: voiceConfig.minimaxVoice,
-          speed: Math.max(0.5, Math.min(2.0, speed)),
-          emotion: emotion,
-        },
-      }),
-    });
-    
-    if (!createResponse.ok) {
-      const errorText = await createResponse.text();
-      console.error("[Voice-MiniMax] Create error:", errorText);
-      return null;
-    }
-    
-    const prediction = await createResponse.json();
-    console.log(`[Voice-MiniMax] Prediction created: ${prediction.id}`);
-    
-    // Poll for completion (MiniMax is fast, ~3-5 seconds)
-    const maxAttempts = 30;
-    for (let i = 0; i < maxAttempts; i++) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+  let lastError: Error | null = null;
+  let rateLimitRetries = 0;
+  
+  // OUTER RETRY LOOP: Handles connection resets, rate limits, and network errors
+  for (let attempt = 0; attempt < TTS_CONFIG.MAX_RETRIES; attempt++) {
+    try {
+      // Add delay between retries with exponential backoff
+      if (attempt > 0) {
+        const delayMs = calculateBackoff(attempt, TTS_CONFIG.BASE_DELAY_MS);
+        console.log(`[Voice-MiniMax] Retry ${attempt}/${TTS_CONFIG.MAX_RETRIES} after ${delayMs}ms...`);
+        await sleep(delayMs);
+      }
       
-      const statusResponse = await fetch(
-        `https://api.replicate.com/v1/predictions/${prediction.id}`,
+      // Create prediction using model-specific endpoint with resilient fetch
+      const createResponse = await resilientFetch(
+        "https://api.replicate.com/v1/models/minimax/speech-2.6-turbo/predictions",
         {
-          headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` },
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+            "Content-Type": "application/json",
+            "Prefer": "wait=60",
+          },
+          body: JSON.stringify({
+            input: {
+              text: text,
+              voice_id: voiceConfig.minimaxVoice,
+              speed: Math.max(0.5, Math.min(2.0, speed)),
+              emotion: emotion,
+            },
+          }),
+          maxRetries: 2, // Inner retries for this specific request
+          timeoutMs: 65000,
         }
       );
       
-      const status = await statusResponse.json();
-      
-      if (status.status === "succeeded") {
-        // MiniMax returns the audio URL directly
-        const audioUrl = typeof status.output === 'string' ? status.output : status.output?.url || status.output;
-        
-        if (!audioUrl) {
-          console.error("[Voice-MiniMax] No audio URL in output:", status.output);
-          return null;
+      // Handle rate limiting with smart wait
+      if (createResponse.status === 429) {
+        rateLimitRetries++;
+        if (rateLimitRetries <= 3) {
+          const retryAfter = createResponse.headers.get('Retry-After');
+          const waitMs = retryAfter 
+            ? Math.min(parseInt(retryAfter, 10) * 1000, 30000)
+            : TTS_CONFIG.RATE_LIMIT_WAIT_MS;
+          
+          console.log(`[Voice-MiniMax] Rate limited (429), waiting ${waitMs}ms (attempt ${rateLimitRetries}/3)...`);
+          await sleep(waitMs);
+          continue;
         }
-        
-        console.log(`[Voice-MiniMax] ✅ Success in ${i + 1}s: ${audioUrl.substring(0, 80)}...`);
-        
-        return {
-          audioUrl: audioUrl,
-          duration: estimateDuration(text),
-        };
-      }
-      
-      if (status.status === "failed") {
-        console.error("[Voice-MiniMax] Generation failed:", status.error);
+        console.error("[Voice-MiniMax] Max rate limit retries exceeded");
         return null;
       }
       
-      // Still processing
-      if (i % 5 === 0) {
-        console.log(`[Voice-MiniMax] Still processing... (${i}s)`);
+      if (!createResponse.ok) {
+        const errorText = await createResponse.text();
+        console.error(`[Voice-MiniMax] Create error ${createResponse.status}: ${errorText.substring(0, 200)}`);
+        
+        // Retry on server errors
+        if (createResponse.status >= 500) {
+          lastError = new Error(`Server error ${createResponse.status}`);
+          continue;
+        }
+        
+        return null;
       }
+      
+      const prediction = await createResponse.json();
+      console.log(`[Voice-MiniMax] Prediction created: ${prediction.id}`);
+      
+      // INNER POLLING LOOP with resilient polling
+      for (let pollAttempt = 0; pollAttempt < TTS_CONFIG.MAX_POLL_ATTEMPTS; pollAttempt++) {
+        await sleep(TTS_CONFIG.POLL_INTERVAL_MS);
+        
+        try {
+          const statusResponse = await resilientFetch(
+            `https://api.replicate.com/v1/predictions/${prediction.id}`,
+            {
+              headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` },
+              maxRetries: 2,
+              timeoutMs: 15000,
+            }
+          );
+          
+          if (!statusResponse.ok) {
+            console.warn(`[Voice-MiniMax] Poll request failed: ${statusResponse.status}`);
+            continue; // Keep polling
+          }
+          
+          const status = await statusResponse.json();
+          
+          if (status.status === "succeeded") {
+            // MiniMax returns the audio URL directly
+            const audioUrl = typeof status.output === 'string' ? status.output : status.output?.url || status.output;
+            
+            if (!audioUrl) {
+              console.error("[Voice-MiniMax] No audio URL in output:", status.output);
+              return null;
+            }
+            
+            console.log(`[Voice-MiniMax] ✅ Success in ${pollAttempt + 1}s: ${audioUrl.substring(0, 80)}...`);
+            
+            return {
+              audioUrl: audioUrl,
+              duration: estimateDuration(text),
+            };
+          }
+          
+          if (status.status === "failed") {
+            console.error("[Voice-MiniMax] Generation failed:", status.error);
+            lastError = new Error(status.error || 'Generation failed');
+            break; // Exit polling, try outer retry
+          }
+          
+          // Still processing - log every 5 polls
+          if (pollAttempt % 5 === 0) {
+            console.log(`[Voice-MiniMax] Still processing... (${pollAttempt}s)`);
+          }
+          
+        } catch (pollError) {
+          // Connection errors during polling - continue polling
+          if (isRetryableError(pollError as Error)) {
+            console.warn(`[Voice-MiniMax] Poll error (retrying): ${(pollError as Error).message}`);
+            continue;
+          }
+          throw pollError;
+        }
+      }
+      
+      console.error("[Voice-MiniMax] Polling timeout");
+      lastError = new Error('Polling timeout');
+      
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      // Check if this is a connection reset or network error - should retry
+      if (isRetryableError(lastError)) {
+        console.warn(`[Voice-MiniMax] Network error (will retry): ${lastError.message}`);
+        continue;
+      }
+      
+      console.error("[Voice-MiniMax] Unrecoverable error:", lastError);
+      return null;
     }
-    
-    console.error("[Voice-MiniMax] Timeout after 30s");
-    return null;
-    
-  } catch (error) {
-    console.error("[Voice-MiniMax] Error:", error);
-    return null;
   }
+  
+  console.error(`[Voice-MiniMax] All ${TTS_CONFIG.MAX_RETRIES} attempts failed. Last error: ${lastError?.message}`);
+  return null;
 }
 
 serve(async (req) => {

@@ -60,18 +60,25 @@ serve(async (req) => {
 
     // Check if we have clips, if not check for avatar-style videos in pending_video_tasks
     let avatarClips: Array<{ id: string; shot_index: number; video_url: string; duration_seconds: number; quality_score: number | null }> = [];
+    let expectedClipCount = 0;
+    let isAvatarMode = false;
     
     if (!clips || clips.length === 0) {
       // Fetch project to check for avatar-style videos
       const { data: projectData, error: projectError } = await supabase
         .from('movie_projects')
-        .select('pending_video_tasks, video_url')
+        .select('pending_video_tasks, video_url, mode')
         .eq('id', projectId)
         .single();
+      
+      isAvatarMode = projectData?.mode === 'avatar';
       
       if (!projectError && projectData?.pending_video_tasks) {
         const tasks = projectData.pending_video_tasks as Record<string, unknown>;
         const predictions = tasks.predictions as Array<{ videoUrl?: string; status?: string; clipIndex?: number }> | undefined;
+        
+        // CRITICAL: Track expected clip count to prevent premature completion
+        expectedClipCount = predictions?.length || 0;
         
         if (predictions && Array.isArray(predictions)) {
           avatarClips = predictions
@@ -84,7 +91,23 @@ serve(async (req) => {
               quality_score: 1,
             }));
           
-          console.log(`[HLS-Playlist] Found ${avatarClips.length} avatar clips in pending_video_tasks`);
+          console.log(`[HLS-Playlist] Found ${avatarClips.length}/${expectedClipCount} avatar clips in pending_video_tasks`);
+          
+          // CRITICAL FIX: Block HLS generation if not all clips are complete
+          if (isAvatarMode && expectedClipCount > 0 && avatarClips.length < expectedClipCount) {
+            console.log(`[HLS-Playlist] ⏸️ BLOCKING: Only ${avatarClips.length}/${expectedClipCount} clips ready - waiting for all clips`);
+            return new Response(
+              JSON.stringify({
+                success: false,
+                error: `Only ${avatarClips.length} of ${expectedClipCount} clips ready`,
+                reason: "clips_pending",
+                clipsReady: avatarClips.length,
+                clipsExpected: expectedClipCount,
+                processingTimeMs: Date.now() - startTime,
+              }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
         }
         
         // Also check for single video_url on project
@@ -144,6 +167,11 @@ serve(async (req) => {
       .select('voice_audio_url, music_url, include_narration, pipeline_state, mode')
       .eq('id', projectId)
       .single();
+
+    // Ensure isAvatarMode is set correctly (may not have been set if clips came from video_clips table)
+    if (project?.mode === 'avatar') {
+      isAvatarMode = true;
+    }
 
     const pipelineState = project?.pipeline_state as Record<string, unknown> | null;
     // Check both pipeline_state and voice_audio_url for master audio
@@ -228,25 +256,50 @@ serve(async (req) => {
 
     const manifestUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/${manifestFileName}`;
 
-    // Update project with HLS playlist URL
+    // Fetch existing pending_video_tasks to preserve watchdog metadata
+    const { data: existingProject } = await supabase
+      .from('movie_projects')
+      .select('pending_video_tasks, status')
+      .eq('id', projectId)
+      .single();
+    
+    const existingTasks = existingProject?.pending_video_tasks as Record<string, unknown> || {};
+    
+    // CRITICAL: For avatar mode, DO NOT mark complete - watchdog handles final completion
+    // HLS playlist just adds the manifest URL for playback reference
+    const shouldMarkComplete = !isAvatarMode || existingProject?.status === 'completed';
+    
+    // Merge HLS data into existing pending_video_tasks instead of overwriting
+    const updatedTasks = {
+      ...existingTasks,
+      stage: shouldMarkComplete ? 'complete' : existingTasks.stage,
+      progress: shouldMarkComplete ? 100 : existingTasks.progress,
+      mode: 'hls_native',
+      manifestUrl,
+      hlsPlaylistUrl: hlsUrl,
+      clipCount: orderedClips.length,
+      totalDuration,
+      hlsGeneratedAt: new Date().toISOString(),
+      ...(shouldMarkComplete ? { completedAt: new Date().toISOString() } : {}),
+    };
+    
+    // Build update payload - only mark completed if allowed
+    const updatePayload: Record<string, unknown> = {
+      video_url: manifestUrl,
+      pending_video_tasks: updatedTasks,
+      updated_at: new Date().toISOString(),
+    };
+    
+    if (shouldMarkComplete) {
+      updatePayload.status = 'completed';
+    }
+    
     await supabase
       .from('movie_projects')
-      .update({
-        status: 'completed',
-        video_url: manifestUrl,
-        pending_video_tasks: {
-          stage: 'complete',
-          progress: 100,
-          mode: 'hls_native',
-          manifestUrl,
-          hlsPlaylistUrl: hlsUrl,
-          clipCount: orderedClips.length,
-          totalDuration,
-          completedAt: new Date().toISOString(),
-        },
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq('id', projectId);
+    
+    console.log(`[HLS-Playlist] ✅ Updated project (marked complete: ${shouldMarkComplete})`);
 
     console.log(`[HLS-Playlist] ✅ Generated HLS playlist: ${hlsUrl}`);
     console.log(`[HLS-Playlist] ✅ Processing time: ${Date.now() - startTime}ms`);

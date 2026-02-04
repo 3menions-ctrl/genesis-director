@@ -615,8 +615,15 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             // Check if we have any video content before trying HLS generation
             const hasVideoContent = tasks?.predictions || tasks?.hlsPlaylistUrl || project?.video_url;
             
+            // Check if project is still generating (don't trigger HLS for incomplete projects)
+            const isStillGenerating = tasks?.stage === 'async_video_generation' || 
+              tasks?.type === 'avatar_async' ||
+              (tasks?.predictions && Array.isArray(tasks.predictions) && 
+                (tasks.predictions as Array<{ status?: string }>).some(p => p.status !== 'completed' && p.status !== 'failed'));
+            
             // iOS Safari with projectId but no HLS - generate server-side HLS playlist
-            if (useHLSNative && hasVideoContent) {
+            // CRITICAL: Don't generate HLS for projects still in progress
+            if (useHLSNative && hasVideoContent && !isStillGenerating) {
               console.log('[UniversalPlayer] iOS detected without HLS - generating server-side playlist');
               try {
                 const { data: hlsResult, error: hlsError } = await supabase.functions.invoke('generate-hls-playlist', {
@@ -634,10 +641,10 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                   setIsLoading(false);
                   return;
                 } else {
-                  // Check if this is a "draft_or_incomplete" response - not an actual error
-                  const errorData = hlsError as Record<string, unknown> | null;
-                  if (errorData?.reason === 'draft_or_incomplete') {
-                    console.log('[UniversalPlayer] Project is draft/incomplete, skipping HLS');
+                  // Check if this is a "draft_or_incomplete" or "clips_pending" response - not an actual error
+                  const errorReason = hlsResult?.reason || (hlsError as Record<string, unknown> | null)?.reason;
+                  if (errorReason === 'draft_or_incomplete' || errorReason === 'clips_pending') {
+                    console.log(`[UniversalPlayer] Project ${errorReason}, skipping HLS`);
                   } else {
                     console.warn('[UniversalPlayer] HLS generation failed, falling back to legacy:', hlsError);
                   }
@@ -646,6 +653,9 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                 console.warn('[UniversalPlayer] HLS generation error, using legacy:', hlsGenError);
               }
               // Fall through to legacy mode
+              setUseMSE(false);
+            } else if (useHLSNative && isStillGenerating) {
+              console.log('[UniversalPlayer] iOS detected but project still generating, waiting...');
               setUseMSE(false);
             } else if (useHLSNative) {
               console.log('[UniversalPlayer] iOS detected but no video content found, skipping HLS generation');

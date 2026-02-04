@@ -1,6 +1,8 @@
 /**
  * CrashForensicsOverlay - On-screen crash diagnostics
  * 
+ * ADMIN ONLY: Only visible to admin users for security.
+ * 
  * Displays:
  * - Boot checkpoints (A0-A3)
  * - Crash loop status
@@ -16,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { crashForensics, getOverlayData, type Checkpoint } from '@/lib/crashForensics';
 import { getSafeModeStatus, autoEnableSafeMode } from '@/lib/safeMode';
 import { cn } from '@/lib/utils';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 
 interface CrashForensicsOverlayProps {
   /** Always visible (for debugging) */
@@ -78,12 +81,13 @@ if (bootStatus.isLoop && !getSafeModeStatus() && typeof window !== 'undefined') 
 
 export const CrashForensicsOverlay = memo(forwardRef<HTMLDivElement, CrashForensicsOverlayProps>(
   function CrashForensicsOverlay({ alwaysShow = false }, _ref) {
+  const { isAdmin, loading: adminLoading } = useAdminAccess();
   const [isOpen, setIsOpen] = useState(false);
   const [data, setData] = useState(getOverlayData);
   const isSafeMode = getSafeModeStatus();
   
-  // Only show in development or when explicitly enabled or in safe mode
-  const isEnabled = process.env.NODE_ENV === 'development' || alwaysShow || isSafeMode;
+  // ADMIN ONLY: Only show to admin users (safe mode is the exception for recovery)
+  const isEnabled = (isAdmin && !adminLoading) || (isSafeMode && alwaysShow);
   
   // Safe mode redirect
   const handleEnableSafeMode = useCallback(() => {

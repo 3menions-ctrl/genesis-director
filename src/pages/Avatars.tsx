@@ -41,6 +41,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTierLimits } from '@/hooks/useTierLimits';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/lib/errorHandler';
+import { handleEdgeFunctionError, showUserFriendlyError } from '@/lib/userFriendlyErrors';
 import { ErrorBoundary, SafeComponent } from '@/components/ui/error-boundary';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
 
@@ -352,24 +353,15 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
       
       if (!isMountedRef.current) return;
       
-      if (error) {
-        if (error.message?.includes('402') || error.message?.includes('credits')) {
-          toast.error('Insufficient credits. Please purchase more credits.');
-          navigate('/settings?tab=billing');
-          return;
-        }
-        throw error;
-      }
-      
-      if (data?.error === 'active_project_exists') {
-        toast.error(data.message, {
-          duration: 8000,
-          action: {
-            label: 'View Project',
-            onClick: () => navigate(`/production/${data.existingProjectId}`),
-          },
-        });
-        return;
+      // Use centralized user-friendly error handling
+      if (error || data?.error) {
+        const { handled } = handleEdgeFunctionError(
+          error, 
+          data, 
+          (path) => navigate(path)
+        );
+        if (handled) return;
+        if (error) throw error;
       }
       
       if (!data?.projectId) {
@@ -385,7 +377,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
       if (!isMountedRef.current) return;
       
       console.error('Creation error:', error);
-      handleError(error, 'Avatar video creation', { showToast: true });
+      showUserFriendlyError(error, { navigate });
     } finally {
       if (isMountedRef.current) {
         setIsCreating(false);

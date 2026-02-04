@@ -36,11 +36,41 @@ let ffmpegInstance: FFmpeg | null = null;
 let ffmpegLoaded = false;
 
 /**
+ * Check if FFmpeg.wasm is supported on this browser
+ * FFmpeg.wasm requires SharedArrayBuffer which is NOT available on:
+ * - iOS Safari (any version)
+ * - Safari without COOP/COEP headers
+ * - Some older browsers
+ */
+function isFFmpegSupported(): boolean {
+  // Check for SharedArrayBuffer support (required by FFmpeg.wasm)
+  if (typeof SharedArrayBuffer === 'undefined') {
+    console.log('[FFmpeg] SharedArrayBuffer not available - FFmpeg.wasm not supported');
+    return false;
+  }
+  
+  // Check if we're on iOS (FFmpeg.wasm doesn't work on iOS even with SAB polyfills)
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && 
+                !(window as unknown as { MSStream?: unknown }).MSStream;
+  if (isIOS) {
+    console.log('[FFmpeg] iOS detected - FFmpeg.wasm not supported');
+    return false;
+  }
+  
+  return true;
+}
+
+/**
  * Initialize FFmpeg with WebAssembly binaries
  */
 async function getFFmpeg(onProgress?: (progress: MergeProgress) => void): Promise<FFmpeg> {
   if (ffmpegInstance && ffmpegLoaded) {
     return ffmpegInstance;
+  }
+
+  // Check browser support before attempting to load
+  if (!isFFmpegSupported()) {
+    throw new Error('UNSUPPORTED_BROWSER');
   }
 
   onProgress?.({
@@ -162,6 +192,11 @@ export async function mergeVideoClips(options: MergeOptions): Promise<MergeResul
         error: 'Failed to download video',
       };
     }
+  }
+
+  // Check if FFmpeg is supported - if not, use fallback for multi-clip
+  if (!isFFmpegSupported()) {
+    return await fallbackDownload(clipUrls, outputFilename, onProgress);
   }
 
   try {
@@ -300,6 +335,72 @@ export async function mergeVideoClips(options: MergeOptions): Promise<MergeResul
       error: errorMessage,
     };
   }
+}
+
+/**
+ * Fallback download for browsers that don't support FFmpeg.wasm (iOS Safari, etc.)
+ * Downloads the first clip directly since merging isn't possible
+ */
+async function fallbackDownload(
+  clipUrls: string[],
+  outputFilename: string,
+  onProgress?: (progress: MergeProgress) => void
+): Promise<MergeResult> {
+  console.log('[FFmpeg] Using fallback download for unsupported browser');
+  
+  onProgress?.({
+    stage: 'downloading',
+    progress: 10,
+    message: `Downloading ${clipUrls.length} clips...`,
+  });
+
+  try {
+    // For iOS/unsupported browsers, we'll download clips as a zip or sequentially
+    // For now, download the first clip and notify user about limitation
+    const response = await fetch(clipUrls[0]);
+    if (!response.ok) throw new Error('Failed to fetch video');
+    
+    const blob = await response.blob();
+    
+    onProgress?.({
+      stage: 'complete',
+      progress: 100,
+      message: clipUrls.length > 1 
+        ? 'Downloaded first clip. Video merging not supported on this device.'
+        : 'Download complete!',
+    });
+
+    // Adjust filename to indicate it's clip 1 if multiple clips
+    const adjustedFilename = clipUrls.length > 1 
+      ? outputFilename.replace('.mp4', '-clip1.mp4')
+      : outputFilename;
+
+    return {
+      success: true,
+      blob,
+      filename: adjustedFilename,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Download failed';
+    
+    onProgress?.({
+      stage: 'error',
+      progress: 0,
+      message: errorMessage,
+    });
+
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+}
+
+/**
+ * Check if browser supports video merging
+ */
+export function canMergeVideos(): boolean {
+  return isFFmpegSupported();
 }
 
 /**

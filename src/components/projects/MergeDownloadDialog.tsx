@@ -28,6 +28,7 @@ import {
   mergeVideoClips, 
   downloadBlob, 
   cleanupFFmpeg,
+  canMergeVideos,
   type MergeProgress 
 } from '@/lib/video/browserVideoMerger';
 import { cn } from '@/lib/utils';
@@ -50,6 +51,12 @@ export function MergeDownloadDialog({
   const [mergeProgress, setMergeProgress] = useState<MergeProgress | null>(null);
   const [isMerging, setIsMerging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [canMerge, setCanMerge] = useState(true);
+
+  // Check if merging is supported on this device
+  useEffect(() => {
+    setCanMerge(canMergeVideos());
+  }, []);
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -102,6 +109,24 @@ export function MergeDownloadDialog({
       setError(result.error || 'Failed to merge video');
     }
   }, [clipUrls, projectName, masterAudioUrl, onOpenChange]);
+
+  // Download individual clips (for iOS/unsupported browsers)
+  const handleDownloadIndividual = useCallback(async (index: number) => {
+    const url = clipUrls[index];
+    const sanitizedName = projectName
+      .replace(/[^a-zA-Z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .toLowerCase()
+      .slice(0, 50);
+
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      downloadBlob(blob, `${sanitizedName}-clip${index + 1}.mp4`);
+    } catch (err) {
+      setError(`Failed to download clip ${index + 1}`);
+    }
+  }, [clipUrls, projectName]);
 
   const getProgressIcon = () => {
     if (!mergeProgress) return <Film className="w-5 h-5" />;
@@ -217,8 +242,34 @@ export function MergeDownloadDialog({
             </div>
           )}
 
-          {/* Info Notice */}
-          {!isMerging && !error && mergeProgress?.stage !== 'complete' && (
+          {/* Info Notice - iOS/Unsupported Browser Warning */}
+          {!isMerging && !error && mergeProgress?.stage !== 'complete' && !canMerge && clipUrls.length > 1 && (
+            <div className="space-y-3">
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                <p className="text-xs text-amber-300">
+                  Video merging is not supported on this device. 
+                  You can download each clip individually below.
+                </p>
+              </div>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {clipUrls.map((_, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDownloadIndividual(index)}
+                    className="w-full justify-start gap-2 text-zinc-300 border-zinc-700 hover:bg-zinc-800"
+                  >
+                    <Download className="w-3 h-3" />
+                    Download Clip {index + 1}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Standard Info Notice */}
+          {!isMerging && !error && mergeProgress?.stage !== 'complete' && canMerge && (
             <div className="bg-violet-500/10 border border-violet-500/20 rounded-lg p-3">
               <p className="text-xs text-violet-300">
                 This will download and merge all clips in your browser. 
@@ -238,32 +289,34 @@ export function MergeDownloadDialog({
           >
             Cancel
           </Button>
-          <Button
-            onClick={handleMergeAndDownload}
-            disabled={isMerging || clipUrls.length === 0 || mergeProgress?.stage === 'complete'}
-            className={cn(
-              "bg-gradient-to-r from-violet-600 to-purple-600",
-              "hover:from-violet-500 hover:to-purple-500",
-              "text-white gap-2"
-            )}
-          >
-            {isMerging ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Merging...
-              </>
-            ) : mergeProgress?.stage === 'complete' ? (
-              <>
-                <CheckCircle2 className="w-4 h-4" />
-                Complete
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4" />
-                Merge & Download
-              </>
-            )}
-          </Button>
+          {canMerge && (
+            <Button
+              onClick={handleMergeAndDownload}
+              disabled={isMerging || clipUrls.length === 0 || mergeProgress?.stage === 'complete'}
+              className={cn(
+                "bg-gradient-to-r from-violet-600 to-purple-600",
+                "hover:from-violet-500 hover:to-purple-500",
+                "text-white gap-2"
+              )}
+            >
+              {isMerging ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Merging...
+                </>
+              ) : mergeProgress?.stage === 'complete' ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  Complete
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  Merge & Download
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

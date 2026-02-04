@@ -391,7 +391,7 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
   }
 
   return (
-    <div className="relative group/gallery w-full">
+    <div className="relative group/gallery w-full flex justify-center">
       {/* Gradient fade edges */}
       <div className="absolute left-0 top-0 bottom-0 w-8 md:w-24 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
       <div className="absolute right-0 top-0 bottom-0 w-8 md:w-24 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
@@ -423,24 +423,21 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
         </div>
       )}
       
-      {/* Horizontal Scroll Container - centers content when it fits, scrolls when it overflows */}
+      {/* Horizontal Scroll Container */}
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className={cn(
-          "overflow-x-auto scrollbar-hide py-4 md:py-8",
-          !contentOverflows && "flex justify-center" // Center when content fits
-        )}
+        className="w-full max-w-[1920px] overflow-x-auto scrollbar-hide py-4 md:py-8"
         style={{
           scrollSnapType: 'x mandatory',
           WebkitOverflowScrolling: 'touch',
         }}
       >
-        {/* Inner flex container - w-max only when scrolling needed */}
+        {/* Inner flex container */}
         <div 
           className={cn(
             "flex",
-            contentOverflows && "w-max" // Only use w-max when scrolling needed
+            contentOverflows ? "w-max" : "w-full justify-center"
           )}
           style={{ 
             gap: CARD_GAP,

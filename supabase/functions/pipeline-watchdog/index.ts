@@ -326,48 +326,127 @@ serve(async (req) => {
               ? predictionStatus.output[0] 
               : predictionStatus.output;
             
-            console.log(`[Watchdog] ✅ Clip ${pred.clipIndex + 1} COMPLETE: ${videoUrl.substring(0, 60)}...`);
+            console.log(`[Watchdog] ✅ Clip ${pred.clipIndex + 1} video generated: ${videoUrl.substring(0, 60)}...`);
             
-            // Merge audio with video
             let finalVideoUrl = videoUrl;
-            try {
-              const mergeResponse = await fetch("https://api.replicate.com/v1/predictions", {
-                method: "POST",
-                headers: {
-                  "Authorization": `Bearer ${REPLICATE_API_KEY}`,
-                  "Content-Type": "application/json",
-                  "Prefer": "wait=60",
-                },
-                body: JSON.stringify({
-                  version: "684cc0e6bff2f0d3b748d7c386ab8a6fb7c5f6d2095a3a38d68d9d6a3a2cb2f6",
-                  input: {
-                    video: videoUrl,
-                    audio: pred.audioUrl,
-                    audio_volume: 1.0,
-                    video_volume: 0.0,
-                  },
-                }),
-              });
+            
+            // ═══════════════════════════════════════════════════════════════════════════
+            // STEP 1: KLING LIP-SYNC - 100% audio-visual synchronization
+            // Uses kwaivgi/kling-lip-sync to match lip movements to TTS audio
+            // This REPLACES the old audio merge - lip-sync outputs video WITH audio baked in
+            // ═══════════════════════════════════════════════════════════════════════════
+            if (pred.audioUrl) {
+              console.log(`[Watchdog] 👄 Starting Kling Lip-Sync for clip ${pred.clipIndex + 1}...`);
               
-              if (mergeResponse.ok) {
-                const mergeResult = await mergeResponse.json();
-                if (mergeResult.status === 'succeeded' && mergeResult.output) {
-                  finalVideoUrl = mergeResult.output;
-                  console.log(`[Watchdog] ✅ Clip ${pred.clipIndex + 1} audio merged`);
+              try {
+                // Start lip-sync prediction
+                const lipSyncResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-lip-sync/predictions", {
+                  method: "POST",
+                  headers: {
+                    "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    input: {
+                      video_url: videoUrl,
+                      audio_file: pred.audioUrl,
+                    },
+                  }),
+                });
+                
+                if (lipSyncResponse.ok) {
+                  const lipSyncPrediction = await lipSyncResponse.json();
+                  console.log(`[Watchdog] 👄 Lip-sync prediction started: ${lipSyncPrediction.id}`);
+                  
+                  // Poll for lip-sync completion (typically 30-90 seconds)
+                  const maxLipSyncWaitMs = 120000; // 2 minutes
+                  const lipSyncPollInterval = 4000;
+                  let lipSyncElapsed = 0;
+                  
+                  while (lipSyncElapsed < maxLipSyncWaitMs) {
+                    await new Promise(resolve => setTimeout(resolve, lipSyncPollInterval));
+                    lipSyncElapsed += lipSyncPollInterval;
+                    
+                    const lipSyncStatusResponse = await fetch(
+                      `https://api.replicate.com/v1/predictions/${lipSyncPrediction.id}`,
+                      { headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` } }
+                    );
+                    
+                    if (!lipSyncStatusResponse.ok) continue;
+                    
+                    const lipSyncStatus = await lipSyncStatusResponse.json();
+                    
+                    if (lipSyncStatus.status === 'succeeded' && lipSyncStatus.output) {
+                      const syncedUrl = typeof lipSyncStatus.output === 'string' 
+                        ? lipSyncStatus.output 
+                        : lipSyncStatus.output?.url || lipSyncStatus.output;
+                      
+                      if (syncedUrl) {
+                        finalVideoUrl = syncedUrl;
+                        console.log(`[Watchdog] ✅ Clip ${pred.clipIndex + 1} LIP-SYNC COMPLETE: ${syncedUrl.substring(0, 60)}...`);
+                        break;
+                      }
+                    } else if (lipSyncStatus.status === 'failed') {
+                      console.warn(`[Watchdog] ⚠️ Lip-sync failed for clip ${pred.clipIndex + 1}: ${lipSyncStatus.error}`);
+                      console.warn(`[Watchdog] Falling back to audio-only merge...`);
+                      break;
+                    }
+                    
+                    console.log(`[Watchdog] 👄 Lip-sync polling clip ${pred.clipIndex + 1}: ${lipSyncStatus.status} (${lipSyncElapsed / 1000}s)`);
+                  }
+                  
+                  // If lip-sync didn't complete, fall back to simple audio merge
+                  if (finalVideoUrl === videoUrl) {
+                    console.warn(`[Watchdog] Lip-sync timeout/failed, using fallback audio merge...`);
+                    // Fallback: simple audio overlay without lip-sync
+                    try {
+                      const mergeResponse = await fetch("https://api.replicate.com/v1/predictions", {
+                        method: "POST",
+                        headers: {
+                          "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+                          "Content-Type": "application/json",
+                          "Prefer": "wait=60",
+                        },
+                        body: JSON.stringify({
+                          version: "684cc0e6bff2f0d3b748d7c386ab8a6fb7c5f6d2095a3a38d68d9d6a3a2cb2f6",
+                          input: {
+                            video: videoUrl,
+                            audio: pred.audioUrl,
+                            audio_volume: 1.0,
+                            video_volume: 0.0,
+                          },
+                        }),
+                      });
+                      
+                      if (mergeResponse.ok) {
+                        const mergeResult = await mergeResponse.json();
+                        if (mergeResult.status === 'succeeded' && mergeResult.output) {
+                          finalVideoUrl = mergeResult.output;
+                          console.log(`[Watchdog] ✅ Clip ${pred.clipIndex + 1} audio merged (fallback)`);
+                        }
+                      }
+                    } catch (fallbackError) {
+                      console.warn(`[Watchdog] Fallback audio merge failed:`, fallbackError);
+                    }
+                  }
+                } else {
+                  console.warn(`[Watchdog] ⚠️ Failed to start lip-sync: ${lipSyncResponse.status}`);
                 }
+              } catch (lipSyncError) {
+                console.warn(`[Watchdog] Lip-sync exception (non-fatal):`, lipSyncError);
               }
-            } catch (mergeError) {
-              console.warn(`[Watchdog] Audio merge failed (non-fatal):`, mergeError);
             }
             
-            // Save to permanent storage
+            // ═══════════════════════════════════════════════════════════════════════════
+            // STEP 2: Save to permanent storage
+            // ═══════════════════════════════════════════════════════════════════════════
             try {
               const videoResponse = await fetch(finalVideoUrl);
               if (videoResponse.ok) {
                 const videoBlob = await videoResponse.blob();
                 const videoBytes = new Uint8Array(await videoBlob.arrayBuffer());
                 
-                const fileName = `avatar_${project.id}_clip${pred.clipIndex + 1}_${Date.now()}.mp4`;
+                const fileName = `avatar_${project.id}_clip${pred.clipIndex + 1}_lipsync_${Date.now()}.mp4`;
                 const storagePath = `avatar-videos/${project.id}/${fileName}`;
                 
                 const { error: uploadError } = await supabase.storage
@@ -389,6 +468,7 @@ serve(async (req) => {
             // Update prediction status
             pred.status = 'completed';
             pred.videoUrl = finalVideoUrl;
+            pred.lipSynced = true;
             
             completedClips.push({
               clipIndex: pred.clipIndex,

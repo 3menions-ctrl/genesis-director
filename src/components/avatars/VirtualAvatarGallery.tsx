@@ -282,25 +282,37 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
   const [canScrollRight, setCanScrollRight] = useState(true);
   const [viewportWidth, setViewportWidth] = useState(0);
   
+  // CRITICAL: Track if content overflows viewport for conditional centering
+  const [contentOverflows, setContentOverflows] = useState(true);
+  
   // Responsive dimensions
   const CARD_WIDTH = isMobile ? 200 : 280;
   const CARD_GAP = isMobile ? 16 : 24;
   const ITEM_WIDTH = CARD_WIDTH + CARD_GAP;
+  const HORIZONTAL_PADDING = isMobile ? 32 : 96; // Total padding (left + right)
   
-  // Measure viewport for virtual scroll
+  // Measure viewport and detect overflow for conditional centering
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
     
     const measure = () => {
-      setViewportWidth(container.clientWidth);
+      const containerWidth = container.clientWidth;
+      setViewportWidth(containerWidth);
+      
+      // Calculate total content width including gaps and padding
+      const totalContentWidth = (visibleAvatars.length * CARD_WIDTH) + 
+        ((visibleAvatars.length - 1) * CARD_GAP) + HORIZONTAL_PADDING;
+      
+      // Content overflows if it's wider than container
+      setContentOverflows(totalContentWidth > containerWidth);
     };
     measure();
     
     const resizeObserver = new ResizeObserver(measure);
     resizeObserver.observe(container);
     return () => resizeObserver.disconnect();
-  }, []);
+  }, [visibleAvatars.length, CARD_WIDTH, CARD_GAP, HORIZONTAL_PADDING]);
   
   // Cleanup
   useEffect(() => {
@@ -411,19 +423,25 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
         </div>
       )}
       
-      {/* Horizontal Scroll Container */}
+      {/* Horizontal Scroll Container - centers content when it fits, scrolls when it overflows */}
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="overflow-x-auto scrollbar-hide py-4 md:py-8"
+        className={cn(
+          "overflow-x-auto scrollbar-hide py-4 md:py-8",
+          !contentOverflows && "flex justify-center" // Center when content fits
+        )}
         style={{
           scrollSnapType: 'x mandatory',
           WebkitOverflowScrolling: 'touch',
         }}
       >
-        {/* Inner flex container - starts from left, scrolls right */}
+        {/* Inner flex container - w-max only when scrolling needed */}
         <div 
-          className="flex w-max"
+          className={cn(
+            "flex",
+            contentOverflows && "w-max" // Only use w-max when scrolling needed
+          )}
           style={{ 
             gap: CARD_GAP,
             paddingLeft: isMobile ? 16 : 48,

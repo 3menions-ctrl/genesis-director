@@ -19,7 +19,7 @@ import type { ProFeaturesState, PipelineState, DegradationFlag } from '@/types/p
 import { getErrorMessage } from '@/types/error-handling';
 
 // CRITICAL: Import background directly - prevents flash on page load
-import PipelineBackground from '@/components/production/PipelineBackground';
+import ClipsBackground from '@/components/clips/ClipsBackground';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppLoader } from '@/components/ui/app-loader';
 import type { ScriptShot } from '@/components/studio/ScriptReviewPanel';
@@ -1176,8 +1176,8 @@ function ProductionContentInner() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Premium Green Pipeline Background - CRITICAL: Direct render, no lazy load */}
-      <PipelineBackground />
+      {/* Premium Purple Background - matches Clips page */}
+      <ClipsBackground />
       
       {/* App Header */}
       <AppHeader />

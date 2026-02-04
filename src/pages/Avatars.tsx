@@ -388,7 +388,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
       
       // Use centralized user-friendly error handling
       if (error || data?.error) {
-        const { handled } = handleEdgeFunctionError(
+        const { handled } = await handleEdgeFunctionError(
           error, 
           data, 
           (path) => navigate(path)

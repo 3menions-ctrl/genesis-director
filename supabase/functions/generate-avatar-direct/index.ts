@@ -151,20 +151,16 @@ serve(async (req) => {
       throw new Error("Both 'script' and 'avatarImageUrl' are required");
     }
 
-    // Split script into segments for multi-clip
-    const actualClipCount = Math.max(1, Math.min(clipCount, 10));
-    const scriptSegments = actualClipCount > 1 
-      ? splitScriptIntoSegments(script, actualClipCount)
-      : [script];
-    
-    const finalClipCount = scriptSegments.length;
+    // IMPORTANT: Clip count will be recalculated AFTER master audio generation
+    // to ensure enough clips to cover the full audio duration
+    const requestedClipCount = Math.max(1, Math.min(clipCount, 20)); // Allow up to 20 clips
     const minimaxVoice = VOICE_MAP[voiceId] || VOICE_MAP[voiceId.toLowerCase()] || 'bella';
 
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
-    console.log("[AvatarDirect] Starting ASYNC AVATAR pipeline v3.0 (No Timeout)");
+    console.log("[AvatarDirect] Starting ASYNC AVATAR pipeline v3.1 (Audio-Driven Clips)");
     console.log(`[AvatarDirect] Script (${script.length} chars): "${script.substring(0, 80)}..."`);
     console.log(`[AvatarDirect] Scene: "${sceneDescription || 'Professional studio setting'}"`);
-    console.log(`[AvatarDirect] Voice: ${minimaxVoice}, Clips: ${finalClipCount} × ${clipDuration}s each`);
+    console.log(`[AvatarDirect] Voice: ${minimaxVoice}, Requested clips: ${requestedClipCount}`);
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
 
     if (projectId) {
@@ -173,8 +169,8 @@ serve(async (req) => {
         pipeline_state: {
           stage: 'init',
           progress: 5,
-          message: `Preparing ${finalClipCount} clip${finalClipCount > 1 ? 's' : ''}...`,
-          totalClips: finalClipCount,
+          message: 'Preparing audio...',
+          totalClips: requestedClipCount,
         },
       }).eq('id', projectId);
     }
@@ -190,7 +186,7 @@ serve(async (req) => {
           stage: 'master_audio',
           progress: 10,
           message: 'Creating audio track...',
-          totalClips: finalClipCount,
+          totalClips: requestedClipCount,
         },
       }).eq('id', projectId);
     }
@@ -223,6 +219,29 @@ serve(async (req) => {
     const masterAudioDurationMs = masterVoiceResult.durationMs || estimateDuration(script);
     
     console.log(`[AvatarDirect] ✅ Master audio generated: ${Math.round(masterAudioDurationMs / 1000)}s`);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // AUDIO-DRIVEN CLIP COUNT: Calculate how many 10s clips needed to cover audio
+    // This ensures the video is ALWAYS long enough for the full audio track
+    // ═══════════════════════════════════════════════════════════════════════════
+    const masterAudioDurationSeconds = Math.ceil(masterAudioDurationMs / 1000);
+    const calculatedClipCount = Math.ceil(masterAudioDurationSeconds / 10); // Each clip is 10s max
+    
+    // Use the LARGER of: user-requested clips OR audio-required clips
+    // This guarantees enough video time for the full audio
+    const finalClipCount = Math.max(requestedClipCount, calculatedClipCount, 1);
+    
+    // Split script into the correct number of segments
+    const scriptSegments = finalClipCount > 1 
+      ? splitScriptIntoSegments(script, finalClipCount)
+      : [script];
+    
+    console.log(`[AvatarDirect] 🎬 AUDIO-DRIVEN CALCULATION:`);
+    console.log(`[AvatarDirect]    Audio duration: ${masterAudioDurationSeconds}s`);
+    console.log(`[AvatarDirect]    Required clips: ${calculatedClipCount} (to cover ${masterAudioDurationSeconds}s audio)`);
+    console.log(`[AvatarDirect]    Requested clips: ${requestedClipCount}`);
+    console.log(`[AvatarDirect]    FINAL clip count: ${finalClipCount}`);
+    console.log(`[AvatarDirect]    Script segments: ${scriptSegments.length}`);
 
     // Persist master audio to permanent storage
     let permanentMasterAudioUrl = masterAudioUrl;

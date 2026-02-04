@@ -339,7 +339,7 @@ serve(async (req) => {
     // START CLIP 1 ONLY - Watchdog will chain the rest
     const clip1Data = allSegmentData[0];
     const videoDuration = (clipDuration && clipDuration >= 10) ? 10 : (clipDuration || 10);
-    const actingPrompt = buildActingPrompt(clip1Data.segmentText, sceneDescription, cinematicMode, 0);
+    const actingPrompt = buildActingPrompt(clip1Data.segmentText, sceneDescription, cinematicMode, 0, finalClipCount);
     
     console.log(`[AvatarDirect] ═══ Starting Clip 1/${finalClipCount} ═══`);
     console.log(`[AvatarDirect] Start image: ${sharedAnimationStartImage.substring(0, 60)}...`);
@@ -788,6 +788,119 @@ const SUBJECT_MOTION: Record<string, string[]> = {
   ],
 };
 
+// ============================================================================
+// DYNAMIC SCENE PROGRESSION - Background changes for multi-clip narratives
+// ============================================================================
+
+// Scene journey templates - contextually flowing location sequences
+const SCENE_JOURNEYS: Record<string, string[]> = {
+  // Professional/Business journey
+  professional: [
+    "modern executive office with floor-to-ceiling windows and city skyline view",
+    "sleek conference room with minimalist design and ambient lighting",
+    "stylish coffee shop with warm wood accents and natural light",
+    "upscale hotel lobby with marble floors and contemporary art",
+    "rooftop terrace overlooking the urban landscape at golden hour",
+  ],
+  // Creative/Artistic journey
+  creative: [
+    "artistic loft studio with exposed brick and creative installations",
+    "trendy gallery space with white walls and dramatic spotlights",
+    "bohemian café with eclectic décor and vintage furniture",
+    "outdoor urban art district with colorful murals",
+    "modern design studio with sleek workstations and inspiration boards",
+  ],
+  // Lifestyle/Casual journey  
+  lifestyle: [
+    "cozy living room with warm lighting and comfortable seating",
+    "bright modern kitchen with marble countertops",
+    "peaceful garden patio with lush greenery and soft daylight",
+    "charming bookstore with wooden shelves and reading nooks",
+    "scenic walking path through a park with dappled sunlight",
+  ],
+  // Tech/Innovation journey
+  tech: [
+    "futuristic tech hub with holographic displays and neon accents",
+    "modern startup office with open floor plan and creative zones",
+    "sleek data center with server racks and blue lighting",
+    "innovation lab with prototype displays and collaborative spaces",
+    "high-rise observation deck with panoramic city views at dusk",
+  ],
+  // Cinematic/Dramatic journey
+  cinematic: [
+    "dramatic film noir setting with venetian blinds and moody shadows",
+    "elegant theater backstage with velvet curtains and stage lights",
+    "atmospheric jazz lounge with dim lighting and vintage aesthetic",
+    "grand library with towering bookshelves and warm lamplight",
+    "art deco penthouse with city lights twinkling through windows",
+  ],
+};
+
+/**
+ * Determine if scene changes should be used based on clip count
+ * - 1-2 clips: Keep same scene for continuity
+ * - 3-4 clips: Introduce 2 different scenes
+ * - 5+ clips: Full scene journey with multiple locations
+ */
+function shouldUseSceneProgression(clipCount: number): boolean {
+  return clipCount >= 3;
+}
+
+/**
+ * Get scene description for a specific clip in the sequence
+ * Creates a coherent visual journey across the video
+ */
+function getProgressiveScene(
+  baseScene: string | undefined,
+  clipIndex: number,
+  totalClips: number
+): string {
+  // For 1-2 clips, use the same scene throughout
+  if (totalClips < 3) {
+    return baseScene?.trim() || "professional studio with cinematic lighting";
+  }
+  
+  // Detect journey type from base scene description
+  const journeyType = detectJourneyType(baseScene);
+  const journey = SCENE_JOURNEYS[journeyType];
+  
+  // Calculate how many scene changes based on clip count
+  // 3-4 clips: 2 scenes, 5-6 clips: 3 scenes, 7+ clips: 4-5 scenes
+  const sceneChangeCount = Math.min(journey.length, Math.ceil(totalClips / 2));
+  
+  // Determine which scene this clip should use
+  const sceneIndex = Math.floor((clipIndex / totalClips) * sceneChangeCount);
+  const selectedScene = journey[Math.min(sceneIndex, journey.length - 1)];
+  
+  console.log(`[AvatarDirect] Clip ${clipIndex + 1}/${totalClips} → Scene ${sceneIndex + 1}/${sceneChangeCount}: ${selectedScene.substring(0, 50)}...`);
+  
+  return selectedScene;
+}
+
+/**
+ * Detect the appropriate journey type based on base scene description
+ */
+function detectJourneyType(baseScene: string | undefined): string {
+  if (!baseScene) return 'professional';
+  
+  const lower = baseScene.toLowerCase();
+  
+  if (lower.includes('tech') || lower.includes('future') || lower.includes('digital') || lower.includes('cyber')) {
+    return 'tech';
+  }
+  if (lower.includes('art') || lower.includes('creative') || lower.includes('studio') || lower.includes('gallery')) {
+    return 'creative';
+  }
+  if (lower.includes('home') || lower.includes('cozy') || lower.includes('casual') || lower.includes('garden')) {
+    return 'lifestyle';
+  }
+  if (lower.includes('film') || lower.includes('dramatic') || lower.includes('noir') || lower.includes('theater')) {
+    return 'cinematic';
+  }
+  
+  return 'professional';
+}
+
 // Clip style progression for variety
 const MOVEMENT_PROGRESSION = [
   'dolly_in', 'tracking_right', 'crane_up', 'orbit_left', 'dolly_out',
@@ -822,33 +935,35 @@ function selectPrompt(prompts: string[]): string {
 
 /**
  * Build a WORLD-CLASS cinematic prompt for maximum visual impact
- * Each clip gets a unique visual treatment
+ * Each clip gets a unique visual treatment + dynamic scene progression
  */
 function buildActingPrompt(
   script: string, 
   sceneDescription?: string, 
   cinematicMode?: CinematicModeConfig, 
-  clipIndex: number = 0
+  clipIndex: number = 0,
+  totalClips: number = 1
 ): string {
   const emotionalTone = analyzeEmotionalTone(script);
   const performanceStyle = getPerformanceStyle(emotionalTone);
   
   // Check if cinematic mode is enabled for full Hollywood treatment
   if (cinematicMode?.enabled) {
-    return buildWorldClassPrompt(script, sceneDescription, clipIndex, performanceStyle);
+    return buildWorldClassPrompt(script, sceneDescription, clipIndex, totalClips, performanceStyle);
   }
   
   // Even without cinematic mode, still provide variety between clips
-  return buildVarietyPrompt(script, sceneDescription, clipIndex, performanceStyle);
+  return buildVarietyPrompt(script, sceneDescription, clipIndex, totalClips, performanceStyle);
 }
 
 /**
- * Full Hollywood-grade cinematography prompt
+ * Full Hollywood-grade cinematography prompt with DYNAMIC SCENE PROGRESSION
  */
 function buildWorldClassPrompt(
   script: string,
-  sceneDescription: string | undefined,
+  baseSceneDescription: string | undefined,
   clipIndex: number,
+  totalClips: number,
   performanceStyle: string
 ): string {
   const idx = clipIndex % 10;
@@ -866,25 +981,27 @@ function buildWorldClassPrompt(
   const lightingPrompt = selectPrompt(LIGHTING_STYLES[lightingKey] || LIGHTING_STYLES.classic_key);
   const motionPrompt = selectPrompt(SUBJECT_MOTION[motionKey] || SUBJECT_MOTION.gesture_expressive);
   
-  const sceneContext = sceneDescription?.trim() 
-    ? `Cinematic scene set in ${sceneDescription.trim()}.`
-    : "Professional cinematic environment with depth and atmosphere.";
+  // DYNAMIC SCENE PROGRESSION: Get progressive scene for this clip
+  const progressiveScene = getProgressiveScene(baseSceneDescription, clipIndex, totalClips);
+  const sceneContext = `Cinematic scene set in ${progressiveScene}.`;
   
   const qualityBaseline = "Ultra-high definition 4K quality, subtle film-grain texture, natural skin tones, professional color grading, cinematic depth of field, award-winning cinematography.";
   
-  console.log(`[AvatarDirect] Clip ${clipIndex + 1} Style: ${movementKey} + ${angleKey} + ${sizeKey} + ${lightingKey}`);
+  console.log(`[AvatarDirect] Clip ${clipIndex + 1}/${totalClips} Style: ${movementKey} + ${angleKey} + ${sizeKey}`);
+  console.log(`[AvatarDirect] Clip ${clipIndex + 1}/${totalClips} Scene: ${progressiveScene.substring(0, 60)}...`);
   
   return `${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. The subject is ${motionPrompt}, speaking naturally: "${script.substring(0, 80)}${script.length > 80 ? '...' : ''}". ${performanceStyle} Lifelike fluid movements, natural micro-expressions, authentic lip sync, subtle breathing motion, realistic eye movements and blinks. ${qualityBaseline}`;
 }
 
 /**
  * Standard variety prompt (cinematic mode disabled)
- * Still ensures clips look different from each other
+ * Still ensures clips look different from each other with SCENE PROGRESSION
  */
 function buildVarietyPrompt(
   script: string,
-  sceneDescription: string | undefined,
+  baseSceneDescription: string | undefined,
   clipIndex: number,
+  totalClips: number,
   performanceStyle: string
 ): string {
   // Simpler variety cycle
@@ -907,11 +1024,13 @@ function buildVarietyPrompt(
   const angle = simpleAngles[clipIndex % simpleAngles.length];
   const motion = simpleMotion[clipIndex % simpleMotion.length];
   
-  const sceneContext = sceneDescription?.trim()
-    ? `Cinematic scene in ${sceneDescription.trim()}, shot with professional cinematography.`
-    : "Professional studio with cinematic three-point lighting.";
+  // DYNAMIC SCENE PROGRESSION: Get progressive scene for this clip
+  const progressiveScene = getProgressiveScene(baseSceneDescription, clipIndex, totalClips);
+  const sceneContext = `Cinematic scene in ${progressiveScene}, shot with professional cinematography.`;
   
   const qualityBaseline = "Ultra high definition, film-quality, natural skin tones, sharp focus on subject, pleasing background bokeh.";
+  
+  console.log(`[AvatarDirect] Clip ${clipIndex + 1}/${totalClips} (Standard) Scene: ${progressiveScene.substring(0, 60)}...`);
   
   return `${sceneContext} ${angle} of the person ${motion}: "${script.substring(0, 80)}${script.length > 80 ? '...' : ''}". ${performanceStyle} Lifelike fluid movements, natural micro-expressions, authentic lip sync. ${qualityBaseline}`;
 }

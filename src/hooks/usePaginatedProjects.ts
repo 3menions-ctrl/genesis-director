@@ -127,6 +127,8 @@ export function usePaginatedProjects(
       .from('movie_projects')
       .select('id, user_id, title, status, mode, genre, video_url, video_clips, voice_audio_url, thumbnail_url, created_at, updated_at, likes_count, is_public, aspect_ratio, pipeline_state, source_image_url, avatar_voice_id, pending_video_tasks', { count: 'exact' })
       .eq('user_id', user?.id)
+      // ALWAYS exclude draft projects - they're incomplete pipeline shells
+      .neq('status', 'draft')
       .range(currentOffset, currentOffset + PAGE_SIZE - 1);
     
     // Apply status filter

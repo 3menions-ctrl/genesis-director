@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import {
+  resilientFetch,
+  callEdgeFunction,
+  RESILIENCE_CONFIG,
+} from "../_shared/network-resilience.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -500,8 +505,9 @@ async function handleAvatarDirectMode(params: {
     },
   }).eq('id', projectId);
 
-  // Call the new direct avatar function
-  const directResponse = await fetch(`${supabaseUrl}/functions/v1/generate-avatar-direct`, {
+  // Call the new direct avatar function WITH RESILIENT FETCH
+  // This handles connection resets, rate limits, and network errors gracefully
+  const directResponse = await resilientFetch(`${supabaseUrl}/functions/v1/generate-avatar-direct`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -519,6 +525,8 @@ async function handleAvatarDirectMode(params: {
       clipDuration, // Duration per clip in seconds
       cinematicMode, // Pass cinematic mode to generation
     }),
+    maxRetries: 3,
+    timeoutMs: 90000, // 90 second timeout for the initial call (most work is async)
   });
 
   if (!directResponse.ok) {

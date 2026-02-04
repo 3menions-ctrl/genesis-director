@@ -674,15 +674,47 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                   console.log('[UniversalPlayer] Using avatar predictions for playback:', urls.length, 'clips');
                 }
               }
+            }
+            
+            // MANIFEST FALLBACK: If still no clips, check if video_url is a manifest and parse it
+            if (urls.length === 0 && project?.video_url && typeof project.video_url === 'string') {
+              const videoUrl = project.video_url;
               
-              // Check for direct video_url on project (single clip avatar)
-              if (urls.length === 0 && project?.video_url && typeof project.video_url === 'string') {
-                // Ensure it's an actual video URL, not a manifest
-                const videoUrl = project.video_url;
-                if (videoUrl.endsWith('.mp4') || videoUrl.endsWith('.webm') || videoUrl.includes('/video-clips/')) {
-                  urls = [videoUrl];
-                  console.log('[UniversalPlayer] Using project video_url for playback');
+              // If it's a manifest URL, parse it to get clip URLs
+              if (videoUrl.endsWith('.json')) {
+                console.log('[UniversalPlayer] video_url is manifest, parsing for clips...');
+                const manifest = await parseManifest(videoUrl);
+                if (manifest) {
+                  // Check for HLS playlist in manifest (iOS path)
+                  if (useHLSNative && (manifest as any).hlsPlaylistUrl) {
+                    logPlaybackPath('HLS_NATIVE', { 
+                      projectId: source.projectId,
+                      hlsUrl: (manifest as any).hlsPlaylistUrl,
+                      reason: 'Parsed HLS manifest from project video_url'
+                    });
+                    setHlsPlaylistUrl((manifest as any).hlsPlaylistUrl);
+                    setMasterAudioUrl((manifest as any).masterAudioUrl || (manifest as any).voiceUrl || audioUrl);
+                    setIsLoading(false);
+                    return;
+                  }
+                  
+                  // Extract clip URLs from manifest
+                  if (manifest.clips && manifest.clips.length > 0) {
+                    urls = manifest.clips.map(c => c.videoUrl).filter(Boolean);
+                    console.log('[UniversalPlayer] Extracted', urls.length, 'clips from manifest');
+                    
+                    // Also get audio from manifest if available
+                    if ((manifest as any).masterAudioUrl || (manifest as any).voiceUrl) {
+                      audioUrl = (manifest as any).masterAudioUrl || (manifest as any).voiceUrl;
+                      setMasterAudioUrl(audioUrl);
+                    }
+                  }
                 }
+              }
+              // Direct video URL (not manifest)
+              else if (videoUrl.endsWith('.mp4') || videoUrl.endsWith('.webm') || videoUrl.includes('/video-clips/')) {
+                urls = [videoUrl];
+                console.log('[UniversalPlayer] Using project video_url for playback');
               }
             }
             

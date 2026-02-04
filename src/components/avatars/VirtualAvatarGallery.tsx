@@ -376,6 +376,29 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
   // Use chunked avatars for progressive loading (prevents browser crashes)
   const displayAvatars = visibleAvatars;
 
+  // CENTERING FIX: Scroll selected avatar to center of viewport
+  useEffect(() => {
+    if (!selectedAvatar || !scrollContainerRef.current || !mountedRef.current) return;
+    
+    const container = scrollContainerRef.current;
+    const selectedIndex = displayAvatars.findIndex(a => a.id === selectedAvatar.id);
+    
+    if (selectedIndex === -1) return;
+    
+    // Calculate position to center the selected avatar
+    const itemTotalWidth = ITEM_WIDTH;
+    const selectedPosition = (selectedIndex * itemTotalWidth) + (centeringPadding || MIN_EDGE_PADDING);
+    const containerCenter = container.clientWidth / 2;
+    const cardCenter = CARD_WIDTH / 2;
+    const targetScroll = selectedPosition - containerCenter + cardCenter;
+    
+    // Smoothly scroll to center the selected avatar
+    container.scrollTo({
+      left: Math.max(0, targetScroll),
+      behavior: 'smooth'
+    });
+  }, [selectedAvatar?.id, displayAvatars, ITEM_WIDTH, CARD_WIDTH, centeringPadding, MIN_EDGE_PADDING]);
+
   if (isLoading) {
     return (
       <div className="flex gap-4 md:gap-6 px-4 md:px-12 py-4 md:py-8 overflow-hidden">
@@ -413,9 +436,15 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
 
   return (
     <div className="relative group/gallery w-full">
-      {/* Gradient fade edges */}
-      <div className="absolute left-0 top-0 bottom-0 w-8 md:w-24 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
-      <div className="absolute right-0 top-0 bottom-0 w-8 md:w-24 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
+      {/* Gradient fade edges - uses #030303 to match AvatarsBackground */}
+      <div 
+        className="absolute left-0 top-0 bottom-0 w-8 md:w-24 z-10 pointer-events-none" 
+        style={{ background: 'linear-gradient(to right, #030303, transparent)' }}
+      />
+      <div 
+        className="absolute right-0 top-0 bottom-0 w-8 md:w-24 z-10 pointer-events-none" 
+        style={{ background: 'linear-gradient(to left, #030303, transparent)' }}
+      />
       
       {/* Navigation Arrows */}
       {!isMobile && canScrollLeft && (

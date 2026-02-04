@@ -379,10 +379,10 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
   }
 
   return (
-    <div className="relative group/gallery w-full flex flex-col items-center">
+    <div className="relative group/gallery w-full">
       {/* Gradient fade edges */}
-      <div className="absolute left-0 top-0 bottom-0 w-8 md:w-24 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
-      <div className="absolute right-0 top-0 bottom-0 w-8 md:w-24 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
+      <div className="absolute left-0 top-0 bottom-0 w-8 md:w-24 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
+      <div className="absolute right-0 top-0 bottom-0 w-8 md:w-24 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
       
       {/* Navigation Arrows */}
       {!isMobile && canScrollLeft && (
@@ -391,7 +391,7 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
             variant="outline"
             size="icon"
             onClick={() => scroll('left')}
-            className="w-12 h-12 rounded-full bg-black/80 border-white/20 text-white hover:bg-black hover:border-white/40 backdrop-blur-sm shadow-xl"
+            className="w-12 h-12 rounded-full bg-background/80 border-border text-foreground hover:bg-background hover:border-border/80 backdrop-blur-sm shadow-xl"
           >
             <ChevronLeft className="w-6 h-6" />
           </Button>
@@ -404,29 +404,29 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
             variant="outline"
             size="icon"
             onClick={() => scroll('right')}
-            className="w-12 h-12 rounded-full bg-black/80 border-white/20 text-white hover:bg-black hover:border-white/40 backdrop-blur-sm shadow-xl"
+            className="w-12 h-12 rounded-full bg-background/80 border-border text-foreground hover:bg-background hover:border-border/80 backdrop-blur-sm shadow-xl"
           >
             <ChevronRight className="w-6 h-6" />
           </Button>
         </div>
       )}
       
-      {/* Virtual Scroll Container */}
+      {/* Virtual Scroll Container - full width, scrolls from left */}
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
         className={cn(
-          "flex overflow-x-auto scrollbar-hide py-4 md:py-8 w-full justify-center",
-          isMobile ? "px-4" : "px-12"
+          "flex overflow-x-auto scrollbar-hide py-4 md:py-8 w-full",
+          isMobile ? "px-4" : "px-8 md:px-12 lg:px-16"
         )}
         style={{
           scrollSnapType: 'x mandatory',
           WebkitOverflowScrolling: 'touch',
         }}
       >
-        {/* Render all avatars directly */}
+        {/* Inner flex container with gap */}
         <div 
-          className="flex"
+          className="flex mx-auto"
           style={{ gap: CARD_GAP }}
         >
           {displayAvatars.map((avatar) => (

@@ -7,20 +7,39 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
-// Fetch real avatars from database
+// Curated showcase avatars - diverse mix of animated characters, animals, and global personas
+const SHOWCASE_AVATAR_IDS = [
+  '4b0f0fcc-203a-4152-8d3c-ef12fd773583', // Captain Nova - superhero
+  '6b6a08e2-0820-4d38-9543-1b38e1f4c171', // Goldie - animated dog
+  '87c84f49-aa81-4e5e-8647-6ef6d9758982', // Flash - animated cheetah
+  '45a9a1d8-5fa1-4acc-b307-5d1e73c969cc', // Stripe Tiger - animated tiger
+  '75ba8ba0-0a6d-4290-961c-c363f3f4bfa4', // Commander Orion - astronaut
+  '0448f47b-a956-4a27-a838-55f7d1be5880', // Dr. Quantum - scientist
+  'a0dd97ed-675b-4161-8fb1-49d64f7ee5a0', // Blaze Phoenix - animated eagle
+  '1d2f62ad-bbc2-4104-8442-fb77eb1f612b', // Hoppy - animated bunny
+  '9dae305b-748a-40e9-8c93-fcd85f2cecf3', // Cleopatra - historical
+  '831a2fd7-9673-4dd5-9356-e317dde236c6', // Detective Morgan - mystery
+];
+
+// Fetch curated avatars from database
 const useShowcaseAvatars = () => {
   return useQuery({
-    queryKey: ['showcase-avatars'],
+    queryKey: ['showcase-avatars-curated'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('avatar_templates')
-        .select('id, name, face_image_url, thumbnail_url, description, gender, style, personality, tags')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true })
-        .limit(10);
+        .select('id, name, face_image_url, thumbnail_url, description, gender, style, personality, tags, avatar_type')
+        .in('id', SHOWCASE_AVATAR_IDS)
+        .eq('is_active', true);
       
       if (error) throw error;
-      return data || [];
+      
+      // Sort by the order in SHOWCASE_AVATAR_IDS
+      const sortedData = SHOWCASE_AVATAR_IDS
+        .map(id => data?.find(a => a.id === id))
+        .filter((a): a is NonNullable<typeof a> => a !== undefined);
+      
+      return sortedData;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -50,33 +69,47 @@ const getStyleGradient = (style: string | null, index: number): { gradient: stri
   return fallbacks[index % fallbacks.length];
 };
 
-// Get category from tags
-const getCategoryFromTags = (tags: string[] | null): string => {
-  if (!tags || tags.length === 0) return 'Avatar';
+// Get category from tags and avatar_type
+const getCategoryFromTags = (tags: string[] | null, avatarType: string | null): string => {
+  if (!tags || tags.length === 0) return avatarType === 'animated' ? 'Animated' : 'Avatar';
   
   // Check for specific keywords
   const tagStr = tags.join(' ').toLowerCase();
-  if (tagStr.includes('queen') || tagStr.includes('emperor') || tagStr.includes('empress') || tagStr.includes('warrior') || tagStr.includes('samurai')) {
-    return 'Historical';
-  }
-  if (tagStr.includes('influencer') || tagStr.includes('k-fashion')) {
-    return 'Influencer';
-  }
-  if (tagStr.includes('creative') || tagStr.includes('artistic')) {
-    return 'Creative';
-  }
-  if (tagStr.includes('educational')) {
-    return 'Educational';
-  }
-  if (tagStr.includes('casual')) {
-    return 'Lifestyle';
-  }
-  if (tagStr.includes('corporate')) {
-    return 'Business';
+  
+  // Animal characters
+  if (tagStr.includes('dog') || tagStr.includes('cat') || tagStr.includes('bunny') || 
+      tagStr.includes('tiger') || tagStr.includes('cheetah') || tagStr.includes('eagle') ||
+      tagStr.includes('fox') || tagStr.includes('bear') || tagStr.includes('owl') ||
+      tagStr.includes('horse') || tagStr.includes('dolphin') || tagStr.includes('gorilla')) {
+    return 'Animal';
   }
   
-  // Capitalize first tag
-  return tags[0].charAt(0).toUpperCase() + tags[0].slice(1);
+  // Superheroes and fantasy
+  if (tagStr.includes('superhero') || tagStr.includes('hero') || tagStr.includes('powerful')) {
+    return 'Superhero';
+  }
+  
+  // Sci-fi and space
+  if (tagStr.includes('astronaut') || tagStr.includes('space') || tagStr.includes('futuristic') || tagStr.includes('scientist')) {
+    return 'Sci-Fi';
+  }
+  
+  // Historical figures
+  if (tagStr.includes('queen') || tagStr.includes('emperor') || tagStr.includes('empress') || 
+      tagStr.includes('warrior') || tagStr.includes('samurai') || tagStr.includes('ancient') ||
+      tagStr.includes('egyptian') || tagStr.includes('roman')) {
+    return 'Historical';
+  }
+  
+  // Detective/Mystery
+  if (tagStr.includes('detective') || tagStr.includes('mystery')) {
+    return 'Mystery';
+  }
+  
+  // Default based on avatar type
+  if (avatarType === 'animated') return 'Animated';
+  
+  return 'Avatar';
 };
 
 interface AvatarCardProps {
@@ -89,6 +122,7 @@ interface AvatarCardProps {
     personality: string | null;
     style: string | null;
     tags: string[] | null;
+    avatar_type: string | null;
   };
   index: number;
 }
@@ -98,7 +132,7 @@ const AvatarCard = ({ avatar, index }: AvatarCardProps) => {
   const [imageLoaded, setImageLoaded] = React.useState(false);
   
   const { gradient } = getStyleGradient(avatar.style, index);
-  const category = getCategoryFromTags(avatar.tags);
+  const category = getCategoryFromTags(avatar.tags, avatar.avatar_type);
   const imageUrl = avatar.thumbnail_url || avatar.face_image_url;
   
   return (

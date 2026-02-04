@@ -554,9 +554,275 @@ function splitScriptIntoSegments(script: string, targetCount: number): string[] 
   return segments;
 }
 
+// ============================================================================
+// WORLD-CLASS CINEMATOGRAPHY ENGINE - Inline Implementation
+// ============================================================================
+
+const CAMERA_MOVEMENTS: Record<string, string[]> = {
+  dolly_in: [
+    "smooth dolly push-in toward the subject, building intimacy",
+    "gradual forward movement closing distance with emotional impact",
+    "elegant dolly approach revealing subtle details",
+  ],
+  dolly_out: [
+    "slow dolly pull-back revealing the full scene context",
+    "retreating camera movement expanding the visual scope",
+    "widening perspective dolly revealing environmental grandeur",
+  ],
+  tracking_left: [
+    "fluid lateral tracking shot moving left across the scene",
+    "smooth side-to-side camera glide following movement",
+    "parallel tracking with natural momentum",
+  ],
+  tracking_right: [
+    "elegant rightward tracking shot with steady momentum",
+    "horizontal camera motion sweeping across the frame",
+    "lateral dolly movement with cinematic fluidity",
+  ],
+  crane_up: [
+    "graceful crane shot rising above the subject",
+    "ascending camera movement revealing scope and scale",
+    "upward sweeping crane adding vertical dimension",
+  ],
+  crane_down: [
+    "descending crane shot landing on the subject",
+    "overhead camera lowering to intimate framing",
+    "sweeping downward reveal with dramatic effect",
+  ],
+  orbit_left: [
+    "subtle orbiting shot arcing counterclockwise around the subject",
+    "rotational camera movement revealing multiple angles",
+    "cinematic arc shot with fluid execution",
+  ],
+  orbit_right: [
+    "clockwise orbital movement around the subject",
+    "dynamic arc shot showcasing dimensional presence",
+    "rotating camera perspective with smooth execution",
+  ],
+  steadicam_follow: [
+    "professional steadicam following the subject organically",
+    "floating camera movement with natural breathing",
+    "smooth pursuit shot maintaining perfect framing",
+  ],
+  static_locked: [
+    "rock-solid locked-off shot with precise composition",
+    "perfectly stable static frame emphasizing performance",
+    "tripod-mounted stillness with intentional gravitas",
+  ],
+  push_focus: [
+    "subtle forward motion with shifting focus plane",
+    "gentle push-in with depth-of-field emphasis",
+    "approaching shot with cinematic focus transition",
+  ],
+};
+
+const CAMERA_ANGLES: Record<string, string[]> = {
+  eye_level_centered: [
+    "direct eye-level framing with centered composition",
+    "straight-on neutral angle at subject height",
+    "level camera placement for natural connection",
+  ],
+  eye_level_offset: [
+    "eye-level shot with subject positioned off-center using rule of thirds",
+    "level angle with asymmetrical composition creating visual interest",
+    "natural height camera with negative space emphasis",
+  ],
+  low_angle_subtle: [
+    "slightly low camera angle adding subtle authority",
+    "upward tilt from chest height enhancing presence",
+    "mild low angle conveying quiet confidence",
+  ],
+  low_angle_dramatic: [
+    "dramatic low angle shooting upward toward the subject",
+    "hero shot from below emphasizing power and stature",
+    "striking upward perspective with expansive framing",
+  ],
+  high_angle_gentle: [
+    "gentle high angle looking down with empathy",
+    "overhead perspective creating intimacy",
+    "elevated viewpoint with caring quality",
+  ],
+  three_quarter_left: [
+    "three-quarter angle from subject's left side",
+    "45-degree profile revealing depth and dimension",
+    "angled perspective showing facial contours",
+  ],
+  three_quarter_right: [
+    "three-quarter composition from subject's right",
+    "dimensional 45-degree angle with depth",
+    "sculptural perspective emphasizing form",
+  ],
+  dutch_subtle: [
+    "subtle dutch tilt adding dynamic tension",
+    "slight camera cant creating visual energy",
+    "mild angular tilt enhancing dynamism",
+  ],
+  over_shoulder_left: [
+    "over-the-shoulder shot from behind left side",
+    "OTS framing with subject facing right",
+    "shoulder-level perspective establishing spatial relationship",
+  ],
+  profile_silhouette: [
+    "striking profile shot with rim lighting",
+    "side-view silhouette with dramatic edge light",
+    "profile angle creating iconic composition",
+  ],
+};
+
+const SHOT_SIZES: Record<string, string[]> = {
+  wide: [
+    "full-body wide shot showing complete figure and surroundings",
+    "master shot establishing spatial relationships",
+    "wide framing with environmental storytelling",
+  ],
+  medium_wide: [
+    "medium-wide shot from knees up with comfortable headroom",
+    "cowboy shot showing gesture and environment balance",
+    "three-quarter body framing with context",
+  ],
+  medium: [
+    "classic medium shot from waist up",
+    "standard interview framing with expressive potential",
+    "mid-shot balancing subject and background",
+  ],
+  medium_close: [
+    "medium close-up from chest level",
+    "tighter framing emphasizing upper body expression",
+    "intimate mid-close capturing emotional nuance",
+  ],
+  close_up: [
+    "powerful close-up focusing on face and expression",
+    "tight facial framing with emotional intensity",
+    "intimate close shot capturing micro-expressions",
+  ],
+  extreme_close_up: [
+    "extreme close-up on eyes and expression for maximum intensity",
+    "ultra-tight framing on expressive features",
+    "macro-level emotional detail shot",
+  ],
+};
+
+const LIGHTING_STYLES: Record<string, string[]> = {
+  classic_key: [
+    "professional three-point lighting with dominant key light",
+    "balanced studio illumination with soft shadows",
+    "commercial-grade lighting setup with fill and rim",
+  ],
+  chiaroscuro: [
+    "dramatic chiaroscuro lighting with deep shadows and highlights",
+    "high-contrast illumination with painterly quality",
+    "sculptural light and shadow interplay",
+  ],
+  rembrandt: [
+    "Rembrandt lighting with characteristic modeling",
+    "classic portrait lighting creating depth and dimension",
+    "sculptural side-lighting with dramatic mood",
+  ],
+  golden_hour: [
+    "warm golden hour lighting with amber tones",
+    "magic hour glow with long atmospheric shadows",
+    "sunset-quality warm illumination",
+  ],
+  rim_dramatic: [
+    "dramatic rim lighting separating subject from background",
+    "edge-lit contour with glowing silhouette effect",
+    "backlit halo effect with subject definition",
+  ],
+  overcast_soft: [
+    "soft natural lighting without harsh shadows",
+    "diffused illumination with even coverage",
+    "gentle softbox quality light",
+  ],
+  volumetric: [
+    "atmospheric volumetric lighting with visible light rays",
+    "god-rays effect with hazy atmospheric depth",
+    "cinematic light beams cutting through space",
+  ],
+  neon_accent: [
+    "vibrant accent lighting with color contrast",
+    "contemporary colored edge lighting",
+    "modern stylized illumination with color pops",
+  ],
+  blue_hour: [
+    "cool twilight lighting with blue undertones",
+    "dusk ambiance with soft gradient sky tones",
+    "ethereal blue atmosphere",
+  ],
+};
+
+const SUBJECT_MOTION: Record<string, string[]> = {
+  static_confident: [
+    "standing with confident stillness and grounded presence",
+    "static but alive with subtle weight shifts",
+    "poised and centered with controlled energy",
+  ],
+  subtle_shift: [
+    "gentle weight shifts and natural micro-movements",
+    "subtle swaying with organic rhythm",
+    "living stillness with breathing motion",
+  ],
+  gesture_expressive: [
+    "expressive hand gestures punctuating speech naturally",
+    "animated gesticulation matching verbal emphasis",
+    "dynamic hand and arm movements for engagement",
+  ],
+  walking_forward: [
+    "walking purposefully toward camera while speaking",
+    "confident approach with maintained eye contact",
+    "forward stride with engaging presence",
+  ],
+  walking_lateral: [
+    "walking parallel to camera with natural gait",
+    "lateral movement through the scene while speaking",
+    "side-to-side traversal with dynamic energy",
+  ],
+  seated_engaged: [
+    "seated position with engaged forward lean",
+    "sitting comfortably with attentive posture",
+    "chair-based presence with expressive upper body",
+  ],
+  leaning_casual: [
+    "casually leaning against a surface with relaxed energy",
+    "comfortable lean position conveying accessibility",
+    "relaxed stance with grounded confidence",
+  ],
+};
+
+// Clip style progression for variety
+const MOVEMENT_PROGRESSION = [
+  'dolly_in', 'tracking_right', 'crane_up', 'orbit_left', 'dolly_out',
+  'steadicam_follow', 'tracking_left', 'crane_down', 'orbit_right', 'push_focus',
+];
+
+const ANGLE_PROGRESSION = [
+  'eye_level_offset', 'low_angle_subtle', 'three_quarter_left', 'high_angle_gentle',
+  'dutch_subtle', 'three_quarter_right', 'low_angle_dramatic', 'eye_level_centered',
+  'over_shoulder_left', 'profile_silhouette',
+];
+
+const SIZE_PROGRESSION = [
+  'medium', 'medium_close', 'wide', 'close_up', 'medium_wide',
+  'medium', 'extreme_close_up', 'medium_wide', 'close_up', 'wide',
+];
+
+const LIGHTING_PROGRESSION = [
+  'classic_key', 'rembrandt', 'golden_hour', 'chiaroscuro', 'rim_dramatic',
+  'overcast_soft', 'neon_accent', 'volumetric', 'blue_hour', 'classic_key',
+];
+
+const MOTION_PROGRESSION = [
+  'gesture_expressive', 'walking_forward', 'subtle_shift', 'static_confident',
+  'walking_lateral', 'leaning_casual', 'gesture_expressive', 'seated_engaged',
+  'walking_forward', 'subtle_shift',
+];
+
+function selectPrompt(prompts: string[]): string {
+  return prompts[Math.floor(Math.random() * prompts.length)];
+}
+
 /**
- * Build a WORLD-CLASS expressive acting prompt with cinematic enhancements
- * Optimized for maximum visual quality and realistic performance
+ * Build a WORLD-CLASS cinematic prompt for maximum visual impact
+ * Each clip gets a unique visual treatment
  */
 function buildActingPrompt(
   script: string, 
@@ -565,117 +831,89 @@ function buildActingPrompt(
   clipIndex: number = 0
 ): string {
   const emotionalTone = analyzeEmotionalTone(script);
-  
-  // Enhanced scene context with quality modifiers
-  const sceneContext = sceneDescription?.trim()
-    ? `Cinematic scene in ${sceneDescription.trim()}, shot with professional cinematography, natural lighting matching the environment, rich atmospheric depth. `
-    : "Professional studio with cinematic three-point lighting, soft diffused key light, subtle rim lighting, shallow depth of field. ";
-  
   const performanceStyle = getPerformanceStyle(emotionalTone);
   
-  // Quality baseline for all shots
-  const qualityBaseline = "Ultra high definition, film-quality, award-winning cinematography, natural skin tones, sharp focus on subject, pleasing background bokeh.";
-  
-  // Build cinematic enhancements if enabled
-  let cinematicEnhancements = "";
+  // Check if cinematic mode is enabled for full Hollywood treatment
   if (cinematicMode?.enabled) {
-    const movementPrompt = getCinematicMovement(cinematicMode.movementType, clipIndex);
-    const cameraPrompt = getCinematicCamera(cinematicMode.cameraAngle, clipIndex);
-    cinematicEnhancements = `${movementPrompt}. ${cameraPrompt}. `;
+    return buildWorldClassPrompt(script, sceneDescription, clipIndex, performanceStyle);
   }
   
-  // Base prompt for speaking
-  const baseAction = cinematicMode?.enabled
-    ? "The person is speaking naturally while"
-    : "The person in the frame is speaking directly to the camera with full engagement,";
-  
-  // Dynamic, realistic motion descriptors
-  const realisticMotion = "Lifelike fluid movements, natural micro-expressions, authentic lip sync, subtle breathing motion, realistic eye movements and blinks, genuine human presence.";
-  
-  return `${sceneContext}${cinematicEnhancements}${baseAction} delivering this message: "${script.substring(0, 100)}${script.length > 100 ? '...' : ''}". ${performanceStyle} ${realisticMotion} ${qualityBaseline}`;
+  // Even without cinematic mode, still provide variety between clips
+  return buildVarietyPrompt(script, sceneDescription, clipIndex, performanceStyle);
 }
 
 /**
- * Get cinematic movement description based on mode
+ * Full Hollywood-grade cinematography prompt
  */
-function getCinematicMovement(movementType: string, clipIndex: number): string {
-  const MOVEMENT_PROMPTS: Record<string, string[]> = {
-    static: [
-      'standing confidently',
-      'seated comfortably',
-      'leaning casually against a surface',
-    ],
-    walking: [
-      'walking purposefully through the scene',
-      'strolling casually while speaking',
-      'walking and gesturing naturally',
-      'moving through the environment with confidence',
-      'walking at a relaxed pace, maintaining eye contact',
-    ],
-    driving: [
-      'seated in a moving car, city lights and buildings passing outside the window',
-      'in the passenger seat of a vehicle, scenery moving past behind them',
-      'driving while speaking, urban environment visible through the windshield',
-      'in a car at night, colorful streetlights streaking past',
-      'riding in a train compartment, landscape blurring outside the window',
-    ],
-    action: [
-      'jogging through the scene with athletic energy',
-      'climbing stairs with purpose and determination',
-      'moving quickly through a bustling crowd',
-      'running with focused determination',
-      'navigating through an active, dynamic environment',
-    ],
-  };
-
-  if (movementType === 'random') {
-    const types = ['walking', 'driving', 'action', 'static'];
-    const selectedType = types[clipIndex % types.length];
-    const prompts = MOVEMENT_PROMPTS[selectedType];
-    return prompts[Math.floor(Math.random() * prompts.length)];
-  }
+function buildWorldClassPrompt(
+  script: string,
+  sceneDescription: string | undefined,
+  clipIndex: number,
+  performanceStyle: string
+): string {
+  const idx = clipIndex % 10;
   
-  const prompts = MOVEMENT_PROMPTS[movementType] || MOVEMENT_PROMPTS['static'];
-  return prompts[Math.floor(Math.random() * prompts.length)];
+  // Get unique style elements for this clip
+  const movementKey = MOVEMENT_PROGRESSION[idx];
+  const angleKey = ANGLE_PROGRESSION[idx];
+  const sizeKey = SIZE_PROGRESSION[idx];
+  const lightingKey = LIGHTING_PROGRESSION[idx];
+  const motionKey = MOTION_PROGRESSION[idx];
+  
+  const movementPrompt = selectPrompt(CAMERA_MOVEMENTS[movementKey] || CAMERA_MOVEMENTS.static_locked);
+  const anglePrompt = selectPrompt(CAMERA_ANGLES[angleKey] || CAMERA_ANGLES.eye_level_centered);
+  const sizePrompt = selectPrompt(SHOT_SIZES[sizeKey] || SHOT_SIZES.medium);
+  const lightingPrompt = selectPrompt(LIGHTING_STYLES[lightingKey] || LIGHTING_STYLES.classic_key);
+  const motionPrompt = selectPrompt(SUBJECT_MOTION[motionKey] || SUBJECT_MOTION.gesture_expressive);
+  
+  const sceneContext = sceneDescription?.trim() 
+    ? `Cinematic scene set in ${sceneDescription.trim()}.`
+    : "Professional cinematic environment with depth and atmosphere.";
+  
+  const qualityBaseline = "Ultra-high definition 4K quality, subtle film-grain texture, natural skin tones, professional color grading, cinematic depth of field, award-winning cinematography.";
+  
+  console.log(`[AvatarDirect] Clip ${clipIndex + 1} Style: ${movementKey} + ${angleKey} + ${sizeKey} + ${lightingKey}`);
+  
+  return `${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. The subject is ${motionPrompt}, speaking naturally: "${script.substring(0, 80)}${script.length > 80 ? '...' : ''}". ${performanceStyle} Lifelike fluid movements, natural micro-expressions, authentic lip sync, subtle breathing motion, realistic eye movements and blinks. ${qualityBaseline}`;
 }
 
 /**
- * Get cinematic camera description based on mode
+ * Standard variety prompt (cinematic mode disabled)
+ * Still ensures clips look different from each other
  */
-function getCinematicCamera(cameraAngle: string, clipIndex: number): string {
-  const CAMERA_PROMPTS: Record<string, string[]> = {
-    static: [
-      'static camera with professional framing',
-      'fixed camera angle, stable and steady shot',
-      'locked camera position maintaining consistent view',
-    ],
-    tracking: [
-      'smooth tracking shot following the subject',
-      'camera gliding alongside the movement seamlessly',
-      'dolly shot maintaining perfect framing throughout',
-      'steadicam following the action with fluid motion',
-    ],
-    dynamic: [
-      'cinematic camera work with subtle artistic movements',
-      'professional cinematography with gentle push-in effect',
-      'film-quality camera movement with elegant slow pans',
-      'documentary-style camera with natural organic motion',
-      'dramatic low-angle shot with slight upward tilt',
-      'over-the-shoulder perspective pulling back slowly',
-      'medium close-up with shallow depth of field',
-      'wide establishing shot transitioning to close-up',
-    ],
-  };
-
-  if (cameraAngle === 'random') {
-    const types = ['static', 'tracking', 'dynamic'];
-    const selectedType = types[Math.floor(Math.random() * types.length)];
-    const prompts = CAMERA_PROMPTS[selectedType];
-    return prompts[Math.floor(Math.random() * prompts.length)];
-  }
+function buildVarietyPrompt(
+  script: string,
+  sceneDescription: string | undefined,
+  clipIndex: number,
+  performanceStyle: string
+): string {
+  // Simpler variety cycle
+  const simpleAngles = [
+    "centered medium shot with balanced composition",
+    "slightly angled medium close-up with depth",
+    "comfortable wide shot with environmental context",
+    "intimate close-up with emotional focus",
+    "three-quarter medium shot with dimensional framing",
+  ];
   
-  const prompts = CAMERA_PROMPTS[cameraAngle] || CAMERA_PROMPTS['static'];
-  return prompts[Math.floor(Math.random() * prompts.length)];
+  const simpleMotion = [
+    "speaking naturally with expressive hand gestures",
+    "engaging warmly with authentic delivery",
+    "presenting confidently with clear diction",
+    "communicating thoughtfully with measured pace",
+    "delivering dynamically with natural energy",
+  ];
+  
+  const angle = simpleAngles[clipIndex % simpleAngles.length];
+  const motion = simpleMotion[clipIndex % simpleMotion.length];
+  
+  const sceneContext = sceneDescription?.trim()
+    ? `Cinematic scene in ${sceneDescription.trim()}, shot with professional cinematography.`
+    : "Professional studio with cinematic three-point lighting.";
+  
+  const qualityBaseline = "Ultra high definition, film-quality, natural skin tones, sharp focus on subject, pleasing background bokeh.";
+  
+  return `${sceneContext} ${angle} of the person ${motion}: "${script.substring(0, 80)}${script.length > 80 ? '...' : ''}". ${performanceStyle} Lifelike fluid movements, natural micro-expressions, authentic lip sync. ${qualityBaseline}`;
 }
 
 function analyzeEmotionalTone(script: string): 'excited' | 'serious' | 'warm' | 'playful' | 'neutral' {

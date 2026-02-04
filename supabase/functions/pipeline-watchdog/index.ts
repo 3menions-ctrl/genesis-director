@@ -29,6 +29,16 @@ import {
   releaseStaleCompletedLock,
   verifyAllStuckPredictions,
 } from "../_shared/pipeline-guard-rails.ts";
+import {
+  resilientFetch,
+  validateImageUrl,
+  createReplicatePrediction,
+  pollReplicatePrediction,
+  sleep,
+  calculateBackoff,
+  isRetryableError,
+  RESILIENCE_CONFIG,
+} from "../_shared/network-resilience.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,7 +46,13 @@ const corsHeaders = {
 };
 
 /**
- * Pipeline Watchdog Edge Function v4.0 - GUARD RAILS INTEGRATED
+ * Pipeline Watchdog Edge Function v5.0 - WORLD-CLASS RESILIENCE
+ * 
+ * HARDENED with:
+ * - Exponential backoff for all API calls
+ * - Connection reset recovery
+ * - Rate limit detection and smart waiting
+ * - Pre-flight image URL validation before Kling calls
  * 
  * Now handles:
  * 1. AUTOMATIC MUTEX RECOVERY: Releases stale locks proactively
@@ -258,45 +274,110 @@ serve(async (req) => {
             console.warn(`[Watchdog] Using ultimate fallback start image`);
           }
           
-          // Store the start image for this clip
+          // ═══════════════════════════════════════════════════════════════════════════
+          // VALIDATE START IMAGE BEFORE KLING CALL
+          // ═══════════════════════════════════════════════════════════════════════════
+          const imageValidation = await validateImageUrl(startImageUrl);
+          if (!imageValidation.valid) {
+            console.error(`[Watchdog] ❌ Start image for clip ${pred.clipIndex + 1} is invalid: ${imageValidation.error}`);
+            console.error(`[Watchdog] URL: ${startImageUrl}`);
+            
+            // Try fallback to scene image or first clip's start image
+            const fallbackImage = tasks.sceneImageUrl || tasks.predictions[0]?.startImageUrl;
+            if (fallbackImage) {
+              const fallbackValidation = await validateImageUrl(fallbackImage);
+              if (fallbackValidation.valid) {
+                startImageUrl = fallbackImage;
+                pred.startImageUrl = fallbackImage;
+                console.log(`[Watchdog] ⚠️ Using fallback image: ${fallbackImage.substring(0, 60)}...`);
+              } else {
+                pred.status = 'failed';
+                anyFailed = true;
+                console.error(`[Watchdog] ❌ Fallback image also invalid, marking clip as failed`);
+                continue;
+              }
+            } else {
+              pred.status = 'failed';
+              anyFailed = true;
+              continue;
+            }
+          }
+          
+          // Store the validated start image for this clip
           pred.startImageUrl = startImageUrl;
           
           // Build WORLD-CLASS acting prompt for this segment with unique cinematography + scene progression
           const actingPrompt = buildAvatarActingPrompt(pred.segmentText, tasks.sceneDescription, pred.clipIndex, tasks.predictions.length);
           const videoDuration = tasks.clipDuration >= 10 ? 10 : (tasks.clipDuration || 10);
           
-          // Start Kling prediction for this clip
-          try {
-            const klingResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
-              method: "POST",
-              headers: {
-                "Authorization": `Bearer ${REPLICATE_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                input: {
-                  mode: "pro",
-                  prompt: actingPrompt,
-                  duration: videoDuration,
-                  start_image: startImageUrl,
-                  aspect_ratio: tasks.aspectRatio || "16:9",
-                  negative_prompt: "static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless",
+          // Start Kling prediction for this clip WITH RESILIENT FETCH
+          let klingRetries = 0;
+          const maxKlingRetries = 3;
+          
+          while (klingRetries < maxKlingRetries) {
+            try {
+              // Add delay between retries with exponential backoff
+              if (klingRetries > 0) {
+                const delayMs = calculateBackoff(klingRetries, 5000);
+                console.log(`[Watchdog] Kling retry ${klingRetries}/${maxKlingRetries} in ${delayMs}ms...`);
+                await sleep(delayMs);
+              }
+              
+              const klingResponse = await resilientFetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+                  "Content-Type": "application/json",
                 },
-              }),
-            });
-            
-            if (klingResponse.ok) {
-              const klingPrediction = await klingResponse.json();
-              pred.predictionId = klingPrediction.id;
-              pred.status = 'processing';
-              console.log(`[Watchdog] ✅ Clip ${pred.clipIndex + 1} STARTED with frame-chaining: ${klingPrediction.id}`);
-            } else {
-              console.error(`[Watchdog] Failed to start clip ${pred.clipIndex + 1}: ${klingResponse.status}`);
+                body: JSON.stringify({
+                  input: {
+                    mode: "pro",
+                    prompt: actingPrompt,
+                    duration: videoDuration,
+                    start_image: startImageUrl,
+                    aspect_ratio: tasks.aspectRatio || "16:9",
+                    negative_prompt: "static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless",
+                  },
+                }),
+                maxRetries: 2,
+                timeoutMs: 30000,
+              });
+              
+              // Handle rate limiting
+              if (klingResponse.status === 429) {
+                klingRetries++;
+                console.warn(`[Watchdog] Rate limited by Kling API, will retry...`);
+                continue;
+              }
+              
+              if (klingResponse.ok) {
+                const klingPrediction = await klingResponse.json();
+                pred.predictionId = klingPrediction.id;
+                pred.status = 'processing';
+                console.log(`[Watchdog] ✅ Clip ${pred.clipIndex + 1} STARTED with frame-chaining: ${klingPrediction.id}`);
+                break; // Success!
+              } else {
+                const errorText = await klingResponse.text();
+                console.error(`[Watchdog] Failed to start clip ${pred.clipIndex + 1}: ${klingResponse.status} - ${errorText.substring(0, 100)}`);
+                klingRetries++;
+              }
+            } catch (klingError) {
+              console.error(`[Watchdog] Kling API error:`, klingError);
+              
+              // Retry on connection errors
+              if (isRetryableError(klingError as Error)) {
+                klingRetries++;
+                continue;
+              }
+              
               pred.status = 'failed';
               anyFailed = true;
+              break;
             }
-          } catch (klingError) {
-            console.error(`[Watchdog] Kling API error:`, klingError);
+          }
+          
+          // If all retries exhausted, mark as failed
+          if (klingRetries >= maxKlingRetries && pred.status !== 'processing') {
             pred.status = 'failed';
             anyFailed = true;
           }
@@ -312,11 +393,18 @@ serve(async (req) => {
         }
         
         try {
-          const pollResponse = await fetch(`https://api.replicate.com/v1/predictions/${pred.predictionId}`, {
-            headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` },
-          });
+          // Use resilient fetch for polling
+          const pollResponse = await resilientFetch(
+            `https://api.replicate.com/v1/predictions/${pred.predictionId}`,
+            {
+              headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` },
+              maxRetries: 2,
+              timeoutMs: 15000,
+            }
+          );
           
           if (!pollResponse.ok) {
+            console.warn(`[Watchdog] Poll failed for ${pred.predictionId}: ${pollResponse.status}`);
             allCompleted = false;
             continue;
           }
@@ -341,8 +429,8 @@ serve(async (req) => {
               console.log(`[Watchdog] 👄 Starting Kling Lip-Sync for clip ${pred.clipIndex + 1}...`);
               
               try {
-                // Start lip-sync prediction
-                const lipSyncResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-lip-sync/predictions", {
+                // Start lip-sync prediction WITH RESILIENT FETCH
+                const lipSyncResponse = await resilientFetch("https://api.replicate.com/v1/models/kwaivgi/kling-lip-sync/predictions", {
                   method: "POST",
                   headers: {
                     "Authorization": `Bearer ${REPLICATE_API_KEY}`,
@@ -354,6 +442,8 @@ serve(async (req) => {
                       audio_file: pred.audioUrl,
                     },
                   }),
+                  maxRetries: 2,
+                  timeoutMs: 30000,
                 });
                 
                 if (lipSyncResponse.ok) {
@@ -366,35 +456,45 @@ serve(async (req) => {
                   let lipSyncElapsed = 0;
                   
                   while (lipSyncElapsed < maxLipSyncWaitMs) {
-                    await new Promise(resolve => setTimeout(resolve, lipSyncPollInterval));
+                    await sleep(lipSyncPollInterval);
                     lipSyncElapsed += lipSyncPollInterval;
                     
-                    const lipSyncStatusResponse = await fetch(
-                      `https://api.replicate.com/v1/predictions/${lipSyncPrediction.id}`,
-                      { headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` } }
-                    );
-                    
-                    if (!lipSyncStatusResponse.ok) continue;
-                    
-                    const lipSyncStatus = await lipSyncStatusResponse.json();
-                    
-                    if (lipSyncStatus.status === 'succeeded' && lipSyncStatus.output) {
-                      const syncedUrl = typeof lipSyncStatus.output === 'string' 
-                        ? lipSyncStatus.output 
-                        : lipSyncStatus.output?.url || lipSyncStatus.output;
+                    try {
+                      const lipSyncStatusResponse = await resilientFetch(
+                        `https://api.replicate.com/v1/predictions/${lipSyncPrediction.id}`,
+                        { 
+                          headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` },
+                          maxRetries: 2,
+                          timeoutMs: 15000,
+                        }
+                      );
                       
-                      if (syncedUrl) {
-                        finalVideoUrl = syncedUrl;
-                        console.log(`[Watchdog] ✅ Clip ${pred.clipIndex + 1} LIP-SYNC COMPLETE: ${syncedUrl.substring(0, 60)}...`);
+                      if (!lipSyncStatusResponse.ok) continue;
+                      
+                      const lipSyncStatus = await lipSyncStatusResponse.json();
+                    
+                      if (lipSyncStatus.status === 'succeeded' && lipSyncStatus.output) {
+                        const syncedUrl = typeof lipSyncStatus.output === 'string' 
+                          ? lipSyncStatus.output 
+                          : lipSyncStatus.output?.url || lipSyncStatus.output;
+                        
+                        if (syncedUrl) {
+                          finalVideoUrl = syncedUrl;
+                          console.log(`[Watchdog] ✅ Clip ${pred.clipIndex + 1} LIP-SYNC COMPLETE: ${syncedUrl.substring(0, 60)}...`);
+                          break;
+                        }
+                      } else if (lipSyncStatus.status === 'failed') {
+                        console.warn(`[Watchdog] ⚠️ Lip-sync failed for clip ${pred.clipIndex + 1}: ${lipSyncStatus.error}`);
+                        console.warn(`[Watchdog] Falling back to audio-only merge...`);
                         break;
                       }
-                    } else if (lipSyncStatus.status === 'failed') {
-                      console.warn(`[Watchdog] ⚠️ Lip-sync failed for clip ${pred.clipIndex + 1}: ${lipSyncStatus.error}`);
-                      console.warn(`[Watchdog] Falling back to audio-only merge...`);
-                      break;
+                      
+                      console.log(`[Watchdog] 👄 Lip-sync polling clip ${pred.clipIndex + 1}: ${lipSyncStatus.status} (${lipSyncElapsed / 1000}s)`);
+                    } catch (pollError) {
+                      // Continue polling on transient errors
+                      console.warn(`[Watchdog] Lip-sync poll error (will retry): ${(pollError as Error).message}`);
+                      continue;
                     }
-                    
-                    console.log(`[Watchdog] 👄 Lip-sync polling clip ${pred.clipIndex + 1}: ${lipSyncStatus.status} (${lipSyncElapsed / 1000}s)`);
                   }
                   
                   // If lip-sync didn't complete, fall back to simple audio merge

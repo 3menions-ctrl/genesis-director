@@ -16,6 +16,15 @@ import {
   detectJourneyType,
   getProgressiveScene,
 } from "../_shared/world-class-cinematography.ts";
+import {
+  resilientFetch,
+  validateImageUrl,
+  callEdgeFunction,
+  createReplicatePrediction,
+  sleep,
+  calculateBackoff,
+  RESILIENCE_CONFIG,
+} from "../_shared/network-resilience.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,7 +32,13 @@ const corsHeaders = {
 };
 
 /**
- * GENERATE-AVATAR-DIRECT - World-Class Avatar Pipeline v3.0
+ * GENERATE-AVATAR-DIRECT - World-Class Avatar Pipeline v3.5
+ * 
+ * HARDENED with:
+ * - Pre-flight image URL validation before Kling calls
+ * - Exponential backoff with jitter for all network operations
+ * - Connection reset recovery
+ * - Rate limit detection and smart waiting
  * 
  * ASYNC JOB PATTERN - Permanent timeout fix:
  * 1. Starts Kling prediction and returns IMMEDIATELY with job ID
@@ -151,17 +166,40 @@ serve(async (req) => {
       throw new Error("Both 'script' and 'avatarImageUrl' are required");
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CRITICAL: Pre-flight image URL validation
+    // This prevents Kling API failures due to expired/invalid image URLs
+    // ═══════════════════════════════════════════════════════════════════════════
+    console.log("[AvatarDirect] Validating avatar image URL...");
+    const imageValidation = await validateImageUrl(avatarImageUrl);
+    
+    if (!imageValidation.valid) {
+      console.error(`[AvatarDirect] ❌ Avatar image URL validation FAILED: ${imageValidation.error}`);
+      console.error(`[AvatarDirect] URL: ${avatarImageUrl}`);
+      
+      // Update project with clear error message
+      if (projectId) {
+        await supabase.from('movie_projects').update({
+          status: 'failed',
+          last_error: `Avatar image is not accessible: ${imageValidation.error}. Please try again with a different avatar.`,
+        }).eq('id', projectId);
+      }
+      
+      throw new Error(`Avatar image URL is not accessible: ${imageValidation.error}. The image may have expired or been deleted.`);
+    }
+    console.log("[AvatarDirect] ✅ Avatar image URL is valid and accessible");
+
     // IMPORTANT: Clip count will be recalculated AFTER master audio generation
     // to ensure enough clips to cover the full audio duration
     const requestedClipCount = Math.max(1, Math.min(clipCount, 20)); // Allow up to 20 clips
     const minimaxVoice = VOICE_MAP[voiceId] || VOICE_MAP[voiceId.toLowerCase()] || 'bella';
 
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
-    console.log("[AvatarDirect] Starting ASYNC AVATAR pipeline v3.1 (Audio-Driven Clips)");
+    console.log("[AvatarDirect] Starting ASYNC AVATAR pipeline v3.5 (Hardened + Audio-Driven)");
     console.log(`[AvatarDirect] Script (${script.length} chars): "${script.substring(0, 80)}..."`);
     console.log(`[AvatarDirect] Scene: "${sceneDescription || 'Professional studio setting'}"`);
     console.log(`[AvatarDirect] Voice: ${minimaxVoice}, Requested clips: ${requestedClipCount}`);
-    console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
+    console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════")
 
     if (projectId) {
       await supabase.from('movie_projects').update({

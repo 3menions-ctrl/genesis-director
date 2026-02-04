@@ -394,11 +394,15 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
     if (selectedIndex === -1) return;
     
     // Calculate position to center the selected avatar
-    const itemTotalWidth = ITEM_WIDTH;
-    const selectedPosition = (selectedIndex * itemTotalWidth) + edgePadding;
-    const containerCenter = container.clientWidth / 2;
-    const cardCenter = CARD_WIDTH / 2;
-    const targetScroll = selectedPosition - containerCenter + cardCenter;
+    // The card's left edge position within the scroll content:
+    // edgePadding + (cardIndex * (CARD_WIDTH + CARD_GAP))
+    const cardLeftPosition = edgePadding + (selectedIndex * ITEM_WIDTH);
+    // Card center position
+    const cardCenterPosition = cardLeftPosition + (CARD_WIDTH / 2);
+    // Viewport center
+    const viewportCenter = container.clientWidth / 2;
+    // Scroll needed to center the card
+    const targetScroll = cardCenterPosition - viewportCenter;
     
     // Smoothly scroll to center the selected avatar
     container.scrollTo({

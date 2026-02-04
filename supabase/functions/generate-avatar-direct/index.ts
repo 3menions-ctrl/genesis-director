@@ -320,28 +320,54 @@ serve(async (req) => {
       const segmentText = scriptSegments[clipIndex];
       const clipNumber = clipIndex + 1;
       
-      const voiceResponse = await fetch(`${supabaseUrl}/functions/v1/generate-voice`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseKey}`,
-        },
-        body: JSON.stringify({
-          text: segmentText,
-          voiceId: minimaxVoice,
-          speed: 1.0,
-          projectId,
-        }),
-      });
-
-      if (!voiceResponse.ok) {
-        throw new Error(`TTS generation failed for clip ${clipNumber}`);
-      }
-
-      const voiceResult = await voiceResponse.json();
+      // Retry TTS with exponential backoff for rate limits
+      let voiceResult: { success: boolean; audioUrl?: string; durationMs?: number } | null = null;
+      const maxRetries = 3;
       
-      if (!voiceResult.success || !voiceResult.audioUrl) {
-        throw new Error(`TTS failed for clip ${clipNumber} - no audio`);
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        // Add delay between TTS requests to avoid rate limits (6 req/min = 10s apart)
+        if (clipIndex > 0 || attempt > 0) {
+          const waitTime = attempt > 0 ? Math.min(10000 * Math.pow(2, attempt), 30000) : 8000;
+          console.log(`[AvatarDirect] Waiting ${waitTime/1000}s before TTS request (rate limit protection)...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+        
+        const voiceResponse = await fetch(`${supabaseUrl}/functions/v1/generate-voice`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({
+            text: segmentText,
+            voiceId: minimaxVoice,
+            speed: 1.0,
+            projectId,
+          }),
+        });
+
+        if (voiceResponse.ok) {
+          voiceResult = await voiceResponse.json();
+          if (voiceResult?.success && voiceResult?.audioUrl) {
+            break; // Success!
+          }
+        }
+        
+        // Check for rate limit (429) or server error
+        const status = voiceResponse.status;
+        if (status === 429 && attempt < maxRetries - 1) {
+          console.warn(`[AvatarDirect] Clip ${clipNumber}: Rate limited (429), retry ${attempt + 1}/${maxRetries}...`);
+          continue;
+        } else if (status >= 500 && attempt < maxRetries - 1) {
+          console.warn(`[AvatarDirect] Clip ${clipNumber}: Server error (${status}), retry ${attempt + 1}/${maxRetries}...`);
+          continue;
+        } else if (!voiceResponse.ok) {
+          throw new Error(`TTS generation failed for clip ${clipNumber} (status: ${status})`);
+        }
+      }
+      
+      if (!voiceResult?.success || !voiceResult?.audioUrl) {
+        throw new Error(`TTS failed for clip ${clipNumber} after ${maxRetries} retries - no audio`);
       }
 
       allSegmentData.push({

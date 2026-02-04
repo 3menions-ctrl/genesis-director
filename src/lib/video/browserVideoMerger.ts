@@ -57,6 +57,13 @@ function isFFmpegSupported(): boolean {
     return false;
   }
   
+  // Check for cross-origin isolation (required for SharedArrayBuffer in modern browsers)
+  const isCrossOriginIsolated = typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated;
+  if (!isCrossOriginIsolated) {
+    console.log('[FFmpeg] Not cross-origin isolated - SharedArrayBuffer restricted');
+    return false;
+  }
+  
   return true;
 }
 
@@ -161,41 +168,14 @@ export async function mergeVideoClips(options: MergeOptions): Promise<MergeResul
     return { success: false, error: 'No clips provided' };
   }
 
-  // Single clip - just download directly
+  // Single clip - just download directly (this always works)
   if (clipUrls.length === 1 && !masterAudioUrl) {
-    try {
-      onProgress?.({
-        stage: 'downloading',
-        progress: 50,
-        message: 'Downloading video...',
-        currentClip: 1,
-        totalClips: 1,
-      });
-
-      const response = await fetch(clipUrls[0]);
-      const blob = await response.blob();
-
-      onProgress?.({
-        stage: 'complete',
-        progress: 100,
-        message: 'Download complete!',
-      });
-
-      return {
-        success: true,
-        blob,
-        filename: outputFilename,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: 'Failed to download video',
-      };
-    }
+    return await downloadSingleClip(clipUrls[0], outputFilename, onProgress);
   }
 
   // Check if FFmpeg is supported - if not, use fallback for multi-clip
   if (!isFFmpegSupported()) {
+    console.log('[FFmpeg] Using fallback download - FFmpeg not supported on this browser');
     return await fallbackDownload(clipUrls, outputFilename, onProgress);
   }
 
@@ -338,50 +318,43 @@ export async function mergeVideoClips(options: MergeOptions): Promise<MergeResul
 }
 
 /**
- * Fallback download for browsers that don't support FFmpeg.wasm (iOS Safari, etc.)
- * Downloads the first clip directly since merging isn't possible
+ * Download a single clip directly - always works on all browsers
  */
-async function fallbackDownload(
-  clipUrls: string[],
+async function downloadSingleClip(
+  url: string,
   outputFilename: string,
   onProgress?: (progress: MergeProgress) => void
 ): Promise<MergeResult> {
-  console.log('[FFmpeg] Using fallback download for unsupported browser');
-  
-  onProgress?.({
-    stage: 'downloading',
-    progress: 10,
-    message: `Downloading ${clipUrls.length} clips...`,
-  });
-
   try {
-    // For iOS/unsupported browsers, we'll download clips as a zip or sequentially
-    // For now, download the first clip and notify user about limitation
-    const response = await fetch(clipUrls[0]);
-    if (!response.ok) throw new Error('Failed to fetch video');
+    onProgress?.({
+      stage: 'downloading',
+      progress: 25,
+      message: 'Downloading video...',
+      currentClip: 1,
+      totalClips: 1,
+    });
+
+    const response = await fetch(url, { mode: 'cors' });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch video: ${response.status} ${response.statusText}`);
+    }
     
     const blob = await response.blob();
-    
+
     onProgress?.({
       stage: 'complete',
       progress: 100,
-      message: clipUrls.length > 1 
-        ? 'Downloaded first clip. Video merging not supported on this device.'
-        : 'Download complete!',
+      message: 'Download complete!',
     });
-
-    // Adjust filename to indicate it's clip 1 if multiple clips
-    const adjustedFilename = clipUrls.length > 1 
-      ? outputFilename.replace('.mp4', '-clip1.mp4')
-      : outputFilename;
 
     return {
       success: true,
       blob,
-      filename: adjustedFilename,
+      filename: outputFilename,
     };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Download failed';
+    console.error('[Download] Single clip download failed:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to download video';
     
     onProgress?.({
       stage: 'error',
@@ -394,6 +367,36 @@ async function fallbackDownload(
       error: errorMessage,
     };
   }
+}
+
+/**
+ * Fallback download for browsers that don't support FFmpeg.wasm (iOS Safari, etc.)
+ * Downloads the first clip directly since merging isn't possible
+ */
+async function fallbackDownload(
+  clipUrls: string[],
+  outputFilename: string,
+  onProgress?: (progress: MergeProgress) => void
+): Promise<MergeResult> {
+  console.log('[FFmpeg] Using fallback download for unsupported browser');
+  
+  // Just download the first clip
+  const adjustedFilename = clipUrls.length > 1 
+    ? outputFilename.replace('.mp4', '-clip1.mp4')
+    : outputFilename;
+    
+  const result = await downloadSingleClip(clipUrls[0], adjustedFilename, onProgress);
+  
+  // Update message if there were multiple clips
+  if (result.success && clipUrls.length > 1) {
+    onProgress?.({
+      stage: 'complete',
+      progress: 100,
+      message: 'Downloaded first clip. Use individual downloads for remaining clips.',
+    });
+  }
+  
+  return result;
 }
 
 /**

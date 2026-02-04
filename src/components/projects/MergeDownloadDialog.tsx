@@ -89,24 +89,30 @@ export function MergeDownloadDialog({
       .toLowerCase()
       .slice(0, 50);
 
-    const result = await mergeVideoClips({
-      clipUrls,
-      outputFilename: `${sanitizedName}-complete.mp4`,
-      masterAudioUrl,
-      onProgress: setMergeProgress,
-    });
+    try {
+      const result = await mergeVideoClips({
+        clipUrls,
+        outputFilename: `${sanitizedName}-complete.mp4`,
+        masterAudioUrl,
+        onProgress: setMergeProgress,
+      });
 
-    setIsMerging(false);
+      setIsMerging(false);
 
-    if (result.success && result.blob) {
-      downloadBlob(result.blob, result.filename || `${sanitizedName}-complete.mp4`);
-      
-      // Close dialog after short delay to show success state
-      setTimeout(() => {
-        onOpenChange(false);
-      }, 1500);
-    } else {
-      setError(result.error || 'Failed to merge video');
+      if (result.success && result.blob) {
+        downloadBlob(result.blob, result.filename || `${sanitizedName}-complete.mp4`);
+        
+        // Close dialog after short delay to show success state
+        setTimeout(() => {
+          onOpenChange(false);
+        }, 1500);
+      } else {
+        setError(result.error || 'Failed to download video');
+      }
+    } catch (err) {
+      console.error('[MergeDownload] Error:', err);
+      setIsMerging(false);
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     }
   }, [clipUrls, projectName, masterAudioUrl, onOpenChange]);
 

@@ -313,10 +313,12 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
       setContentOverflows(overflows);
       
       if (overflows) {
-        // When overflowing: calculate how many cards fit in the center view
-        // Add dynamic padding to center the first ~N visible cards
+        // When overflowing: calculate how many cards fit fully in the viewport
         const visibleCardsCount = Math.floor(availableWidth / ITEM_WIDTH);
-        const visibleContentWidth = (visibleCardsCount * CARD_WIDTH) + ((visibleCardsCount - 1) * CARD_GAP);
+        // Calculate the width of those cards
+        const visibleContentWidth = (visibleCardsCount * CARD_WIDTH) + 
+          Math.max(0, (visibleCardsCount - 1) * CARD_GAP);
+        // Calculate padding to center those visible cards
         const centerOffset = Math.max(MIN_EDGE_PADDING, (containerWidth - visibleContentWidth) / 2);
         setCenteringPadding(centerOffset);
       } else {
@@ -352,6 +354,9 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
     setScrollPosition(scrollLeft); // Trigger re-render for virtual scroll
   }, []);
   
+  // Initial centering ref - tracks if we've already centered on mount
+  const hasInitialCentered = useRef(false);
+  
   useEffect(() => {
     checkScrollState();
     window.addEventListener('resize', checkScrollState);
@@ -375,6 +380,9 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
 
   // Use chunked avatars for progressive loading (prevents browser crashes)
   const displayAvatars = visibleAvatars;
+  
+  // Edge padding uses dynamically calculated centering - moved before early returns
+  const edgePadding = centeringPadding || MIN_EDGE_PADDING;
 
   // CENTERING FIX: Scroll selected avatar to center of viewport
   useEffect(() => {
@@ -387,7 +395,7 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
     
     // Calculate position to center the selected avatar
     const itemTotalWidth = ITEM_WIDTH;
-    const selectedPosition = (selectedIndex * itemTotalWidth) + (centeringPadding || MIN_EDGE_PADDING);
+    const selectedPosition = (selectedIndex * itemTotalWidth) + edgePadding;
     const containerCenter = container.clientWidth / 2;
     const cardCenter = CARD_WIDTH / 2;
     const targetScroll = selectedPosition - containerCenter + cardCenter;
@@ -397,7 +405,37 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
       left: Math.max(0, targetScroll),
       behavior: 'smooth'
     });
-  }, [selectedAvatar?.id, displayAvatars, ITEM_WIDTH, CARD_WIDTH, centeringPadding, MIN_EDGE_PADDING]);
+  }, [selectedAvatar?.id, displayAvatars, ITEM_WIDTH, CARD_WIDTH, edgePadding]);
+  
+  // INITIAL CENTERING: On mount, scroll to center the visible cards for tablet viewports
+  useEffect(() => {
+    if (hasInitialCentered.current || !scrollContainerRef.current || !mountedRef.current) return;
+    if (displayAvatars.length === 0 || !contentOverflows) return;
+    
+    const container = scrollContainerRef.current;
+    const containerWidth = container.clientWidth;
+    
+    // Calculate how many cards fit fully in the viewport
+    const availableWidth = containerWidth - (MIN_EDGE_PADDING * 2);
+    const visibleCardsCount = Math.floor(availableWidth / ITEM_WIDTH);
+    
+    // Don't center if many cards fit (desktop) - only center for 2-3 visible cards (tablet)
+    if (visibleCardsCount > 3) return;
+    
+    // Calculate the width of visible cards
+    const visibleContentWidth = (visibleCardsCount * CARD_WIDTH) + 
+      Math.max(0, (visibleCardsCount - 1) * CARD_GAP);
+    
+    // Calculate scroll position to center visible cards
+    const idealVisibleStart = (containerWidth - visibleContentWidth) / 2;
+    const scrollOffset = edgePadding - idealVisibleStart;
+    
+    if (scrollOffset > 5) {
+      // Scroll to center the first N visible cards
+      container.scrollLeft = scrollOffset;
+      hasInitialCentered.current = true;
+    }
+  }, [displayAvatars.length, contentOverflows, ITEM_WIDTH, CARD_WIDTH, CARD_GAP, MIN_EDGE_PADDING, edgePadding]);
 
   if (isLoading) {
     return (
@@ -430,9 +468,6 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
       </div>
     );
   }
-
-  // Edge padding uses dynamically calculated centering
-  const edgePadding = centeringPadding || MIN_EDGE_PADDING;
 
   return (
     <div className="relative group/gallery w-full">
@@ -473,27 +508,25 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
         </div>
       )}
       
-      {/* Horizontal Scroll Container - full width, constrained max */}
+      {/* Horizontal Scroll Container - full width */}
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className={cn(
-          "overflow-x-auto scrollbar-hide py-4 md:py-8",
-          !contentOverflows && "flex justify-center" // Center container when content fits
-        )}
+        className="overflow-x-auto scrollbar-hide py-4 md:py-8"
         style={{
           scrollSnapType: 'x mandatory',
           WebkitOverflowScrolling: 'touch',
+          // CSS scroll-padding helps center snap points
+          scrollPaddingLeft: edgePadding,
+          scrollPaddingRight: edgePadding,
         }}
       >
-        {/* Inner flex container - centers content when few avatars, scrolls when many */}
+        {/* Inner flex container */}
         <div 
-          className={cn(
-            "flex",
-            contentOverflows && "w-max" // Force scrollable width only when needed
-          )}
+          className="flex"
           style={{ 
             gap: CARD_GAP,
+            width: 'max-content',
             paddingLeft: edgePadding,
             paddingRight: edgePadding,
           }}

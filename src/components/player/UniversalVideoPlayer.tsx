@@ -493,10 +493,12 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     const videoARef = useRef<HTMLVideoElement>(null);
     const videoBRef = useRef<HTMLVideoElement>(null);
     const musicRef = useRef<HTMLAudioElement>(null);
+    const masterAudioRef = useRef<HTMLAudioElement>(null);
     const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
     const isTransitioningRef = useRef(false);
     const mountedRef = useRef(true);
     const cleanupUnsubRef = useRef<(() => void) | null>(null);
+    const lastSyncTimeRef = useRef<number>(0);
 
     // ========================================================================
     // NAVIGATION CLEANUP REGISTRATION
@@ -683,6 +685,12 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                 }
               }
             }
+            
+            // Set master audio URL for MSE/Legacy playback (non-HLS path)
+            if (audioUrl) {
+              setMasterAudioUrl(audioUrl);
+              console.log('[UniversalPlayer] Master audio URL set for avatar sync:', audioUrl.substring(0, 60), '...');
+            }
           }
           // Parse manifest if provided
           else if (source.manifestUrl) {
@@ -711,6 +719,12 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
           } else if (source.urls) {
             urls = source.urls;
             audioUrl = source.masterAudioUrl || null;
+            
+            // Set master audio URL for direct URL playback
+            if (audioUrl) {
+              setMasterAudioUrl(audioUrl);
+              console.log('[UniversalPlayer] Master audio URL from source:', audioUrl.substring(0, 60), '...');
+            }
             
             // iOS Safari: Use legacy crossfade for direct URLs (server-side HLS needed for true gapless)
             // NOTE: Client-side blob-based M3U8 doesn't work on iOS (blob URLs can't reference external segments)
@@ -1143,6 +1157,105 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     }, [clips, isLoading, useMSE, mode, autoPlay, activeVideoIndex]);
 
     // ========================================================================
+    // MASTER AUDIO SYNC (for multi-clip avatar projects with continuous TTS)
+    // ========================================================================
+    
+    useEffect(() => {
+      if (!masterAudioUrl || mode === 'thumbnail' || useHLSNative) return;
+      
+      const masterAudio = masterAudioRef.current;
+      if (!masterAudio) return;
+      
+      // Setup master audio source
+      if (masterAudio.src !== masterAudioUrl) {
+        masterAudio.src = masterAudioUrl;
+        masterAudio.load();
+      }
+      
+      // Get active video based on mode
+      const getActiveVideo = () => {
+        if (useMSE && mseVideoRef.current) {
+          return mseVideoRef.current;
+        }
+        return activeVideoIndex === 0 ? videoARef.current : videoBRef.current;
+      };
+      
+      // Sync audio to video timeline
+      const syncAudioToVideo = () => {
+        if (!mountedRef.current || !masterAudio) return;
+        
+        const video = getActiveVideo();
+        if (!video) return;
+        
+        // Use currentTime from state (represents global timeline)
+        const globalTime = currentTime;
+        
+        // If video is playing, keep audio in sync
+        if (isPlaying && !video.paused) {
+          const drift = Math.abs(masterAudio.currentTime - globalTime);
+          
+          // Only resync if drift exceeds 150ms (avoid constant adjustments)
+          if (drift > 0.15) {
+            console.log('[MasterAudioSync] Correcting drift:', drift.toFixed(3), 's');
+            masterAudio.currentTime = globalTime;
+            lastSyncTimeRef.current = globalTime;
+          }
+          
+          // Ensure audio is playing
+          if (masterAudio.paused) {
+            masterAudio.play().catch(() => {});
+          }
+        } else {
+          // Video is paused, pause audio too
+          if (!masterAudio.paused) {
+            masterAudio.pause();
+          }
+        }
+      };
+      
+      // Initial sync
+      syncAudioToVideo();
+      
+      // Periodic sync check every 500ms
+      const syncInterval = setInterval(syncAudioToVideo, 500);
+      
+      return () => {
+        clearInterval(syncInterval);
+      };
+    }, [masterAudioUrl, mode, useHLSNative, useMSE, activeVideoIndex, isPlaying, currentTime]);
+    
+    // Sync master audio on play/pause
+    useEffect(() => {
+      if (!masterAudioUrl || mode === 'thumbnail' || useHLSNative) return;
+      
+      const masterAudio = masterAudioRef.current;
+      if (!masterAudio) return;
+      
+      if (isPlaying) {
+        // Sync position before playing
+        masterAudio.currentTime = currentTime;
+        masterAudio.play().catch(() => {});
+      } else {
+        masterAudio.pause();
+      }
+    }, [isPlaying, masterAudioUrl, mode, useHLSNative, currentTime]);
+    
+    // Sync master audio on seek
+    useEffect(() => {
+      if (!masterAudioUrl || mode === 'thumbnail' || useHLSNative) return;
+      
+      const masterAudio = masterAudioRef.current;
+      if (!masterAudio) return;
+      
+      // Debounce seek sync to avoid excessive updates
+      const timeSinceLastSync = Math.abs(currentTime - lastSyncTimeRef.current);
+      if (timeSinceLastSync > 0.5) {
+        masterAudio.currentTime = currentTime;
+        lastSyncTimeRef.current = currentTime;
+      }
+    }, [currentTime, masterAudioUrl, mode, useHLSNative]);
+
+    // ========================================================================
     // PLAYBACK CONTROLS
     // ========================================================================
     
@@ -1172,10 +1285,18 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
       const newMuted = !isMuted;
       setIsMuted(newMuted);
       
-      if (mseVideoRef.current) mseVideoRef.current.muted = newMuted;
-      if (videoARef.current) videoARef.current.muted = newMuted;
-      if (videoBRef.current) videoBRef.current.muted = newMuted;
-    }, [isMuted]);
+      // If using master audio, control that instead of video audio
+      if (masterAudioUrl && masterAudioRef.current) {
+        masterAudioRef.current.muted = newMuted;
+      }
+      
+      // Always mute video elements when using master audio (they have per-clip audio baked in)
+      // If not using master audio, toggle video mute normally
+      const shouldMuteVideo = masterAudioUrl ? true : newMuted;
+      if (mseVideoRef.current) mseVideoRef.current.muted = shouldMuteVideo;
+      if (videoARef.current) videoARef.current.muted = shouldMuteVideo;
+      if (videoBRef.current) videoBRef.current.muted = shouldMuteVideo;
+    }, [isMuted, masterAudioUrl]);
 
     const handleSeek = useCallback((time: number) => {
       if (useMSE && mseEngineRef.current) {
@@ -1473,34 +1594,44 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
           </div>
         )}
 
-        {/* MSE Video Element */}
+        {/* MSE Video Element - mute when using master audio */}
         {useMSE && !error && (
           <video
             ref={mseVideoRef}
             className="absolute inset-0 w-full h-full object-contain"
-            muted={isMuted}
+            muted={!!masterAudioUrl || isMuted}
             playsInline
           />
         )}
 
-        {/* Legacy Dual Video Elements */}
+        {/* Legacy Dual Video Elements - mute when using master audio */}
         {!useMSE && !error && (
           <>
             <video
               ref={videoARef}
               className="absolute inset-0 w-full h-full object-contain transition-opacity duration-[30ms]"
               style={{ opacity: videoAOpacity }}
-              muted={isMuted}
+              muted={!!masterAudioUrl || isMuted}
               playsInline
             />
             <video
               ref={videoBRef}
               className="absolute inset-0 w-full h-full object-contain transition-opacity duration-[30ms]"
               style={{ opacity: videoBOpacity }}
-              muted={isMuted}
+              muted={!!masterAudioUrl || isMuted}
               playsInline
             />
           </>
+        )}
+
+        {/* Master Audio Track (for multi-clip avatar sync) */}
+        {masterAudioUrl && !useHLSNative && (
+          <audio
+            ref={masterAudioRef}
+            preload="auto"
+            muted={isMuted}
+            style={{ display: 'none' }}
+          />
         )}
 
         {/* Background Music */}

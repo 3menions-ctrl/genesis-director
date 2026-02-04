@@ -834,6 +834,126 @@ const SCENE_JOURNEYS: Record<string, string[]> = {
     "grand library with towering bookshelves and warm lamplight",
     "art deco penthouse with city lights twinkling through windows",
   ],
+  // Education/Academic journey
+  education: [
+    "prestigious university lecture hall with wooden accents and natural light",
+    "intimate seminar room with whiteboard and scholarly atmosphere",
+    "grand academic library with arched windows and reading tables",
+    "modern research lab with scientific equipment and clean lines",
+    "campus courtyard with historic architecture and autumn leaves",
+  ],
+  // Medical/Healthcare journey
+  medical: [
+    "modern medical office with clean lines and calming blue accents",
+    "state-of-the-art hospital atrium with natural light and greenery",
+    "private consultation room with warm, reassuring décor",
+    "wellness center with zen-inspired minimalist design",
+    "outdoor healing garden with water features and serenity",
+  ],
+  // Legal/Corporate journey
+  legal: [
+    "distinguished law firm office with mahogany furniture and legal tomes",
+    "impressive courthouse rotunda with marble columns and natural light",
+    "private boardroom with panoramic views and leather seating",
+    "elegant client reception area with tasteful art and soft lighting",
+    "rooftop legal office with city skyline at twilight",
+  ],
+  // Finance/Banking journey
+  finance: [
+    "prestigious trading floor with multiple screens and dynamic energy",
+    "private wealth management office with refined elegance",
+    "modern bank headquarters lobby with architectural grandeur",
+    "exclusive client lounge with city views and premium finishes",
+    "historic financial district exterior with iconic architecture",
+  ],
+  // Fitness/Wellness journey
+  fitness: [
+    "modern gym facility with state-of-the-art equipment and mirrors",
+    "peaceful yoga studio with bamboo floors and soft natural light",
+    "outdoor training area with scenic mountain backdrop",
+    "luxury spa reception with calming water features",
+    "rooftop wellness deck overlooking the city at sunrise",
+  ],
+  // Travel/Adventure journey
+  travel: [
+    "luxury airport lounge with panoramic runway views",
+    "boutique hotel suite with floor-to-ceiling ocean views",
+    "exotic marketplace with vibrant colors and local atmosphere",
+    "scenic overlook at a dramatic coastal cliff",
+    "charming European café on a cobblestone street at sunset",
+  ],
+  // Food/Culinary journey
+  culinary: [
+    "professional chef's kitchen with stainless steel and copper accents",
+    "upscale restaurant dining room with elegant table settings",
+    "rustic farmhouse kitchen with exposed beams and natural warmth",
+    "outdoor farmers market with colorful produce displays",
+    "rooftop bar with city lights and craft cocktail atmosphere",
+  ],
+  // Nature/Outdoor journey
+  nature: [
+    "serene lakeside dock with morning mist and calm waters",
+    "lush forest clearing with dappled sunlight through trees",
+    "dramatic mountain peak overlook at golden hour",
+    "peaceful beach with gentle waves and sunset colors",
+    "botanical garden greenhouse with exotic plants and humid warmth",
+  ],
+  // Music/Entertainment journey
+  entertainment: [
+    "professional recording studio with soundproof walls and mixing boards",
+    "intimate concert venue with dramatic stage lighting",
+    "backstage dressing room with Hollywood-style mirror lights",
+    "rooftop party venue with city skyline and festive atmosphere",
+    "elegant gala ballroom with crystal chandeliers and formal décor",
+  ],
+  // Real Estate/Architecture journey
+  realestate: [
+    "stunning penthouse living room with floor-to-ceiling windows",
+    "modern kitchen showroom with premium appliances and finishes",
+    "luxurious master bedroom with designer furnishings",
+    "impressive home office with built-in shelving and city views",
+    "expansive backyard with pool and outdoor living space",
+  ],
+  // Fashion/Beauty journey
+  fashion: [
+    "high-end fashion boutique with minimalist displays and soft lighting",
+    "professional photo studio with backdrop and fashion lighting",
+    "luxury beauty salon with elegant mirrors and décor",
+    "designer atelier with fabric swatches and dress forms",
+    "fashion show backstage with models and creative chaos",
+  ],
+  // Spiritual/Mindfulness journey
+  spiritual: [
+    "peaceful meditation room with soft cushions and candles",
+    "zen garden with raked sand and carefully placed stones",
+    "ancient temple interior with warm amber lighting",
+    "mountain retreat cabin with panoramic nature views",
+    "sunrise yoga platform overlooking misty valleys",
+  ],
+  // Gaming/Esports journey
+  gaming: [
+    "professional esports arena with LED displays and team branding",
+    "high-end gaming setup with RGB lighting and multiple monitors",
+    "game development studio with concept art on walls",
+    "streaming room with professional audio setup and green screen",
+    "gaming lounge with arcade machines and neon accents",
+  ],
+  // Science/Research journey
+  science: [
+    "cutting-edge research laboratory with high-tech equipment",
+    "space mission control center with multiple displays",
+    "observatory dome with telescope and starry views",
+    "marine biology lab with aquarium tanks and specimens",
+    "clean room facility with advanced manufacturing equipment",
+  ],
+  // Luxury/Premium journey
+  luxury: [
+    "private jet interior with cream leather and champagne service",
+    "yacht deck with ocean views and premium furnishings",
+    "five-star hotel presidential suite with opulent décor",
+    "exclusive members club with velvet seating and cigar lounge",
+    "luxury car showroom with spotlit vehicles and marble floors",
+  ],
 };
 
 /**
@@ -885,17 +1005,81 @@ function detectJourneyType(baseScene: string | undefined): string {
   
   const lower = baseScene.toLowerCase();
   
-  if (lower.includes('tech') || lower.includes('future') || lower.includes('digital') || lower.includes('cyber')) {
+  // Tech/Innovation
+  if (lower.includes('tech') || lower.includes('future') || lower.includes('digital') || lower.includes('cyber') || lower.includes('startup') || lower.includes('coding')) {
     return 'tech';
   }
-  if (lower.includes('art') || lower.includes('creative') || lower.includes('studio') || lower.includes('gallery')) {
+  // Creative/Artistic
+  if (lower.includes('art') || lower.includes('creative') || lower.includes('gallery') || lower.includes('paint') || lower.includes('design')) {
     return 'creative';
   }
-  if (lower.includes('home') || lower.includes('cozy') || lower.includes('casual') || lower.includes('garden')) {
+  // Lifestyle/Casual
+  if (lower.includes('home') || lower.includes('cozy') || lower.includes('casual') || lower.includes('relax')) {
     return 'lifestyle';
   }
-  if (lower.includes('film') || lower.includes('dramatic') || lower.includes('noir') || lower.includes('theater')) {
+  // Cinematic/Dramatic
+  if (lower.includes('film') || lower.includes('dramatic') || lower.includes('noir') || lower.includes('theater') || lower.includes('movie')) {
     return 'cinematic';
+  }
+  // Education/Academic
+  if (lower.includes('school') || lower.includes('university') || lower.includes('education') || lower.includes('learn') || lower.includes('teach') || lower.includes('lecture') || lower.includes('academic')) {
+    return 'education';
+  }
+  // Medical/Healthcare
+  if (lower.includes('medical') || lower.includes('health') || lower.includes('hospital') || lower.includes('doctor') || lower.includes('clinic') || lower.includes('wellness')) {
+    return 'medical';
+  }
+  // Legal/Corporate
+  if (lower.includes('legal') || lower.includes('law') || lower.includes('court') || lower.includes('attorney') || lower.includes('corporate')) {
+    return 'legal';
+  }
+  // Finance/Banking
+  if (lower.includes('finance') || lower.includes('bank') || lower.includes('invest') || lower.includes('trading') || lower.includes('wealth') || lower.includes('money')) {
+    return 'finance';
+  }
+  // Fitness/Wellness
+  if (lower.includes('fitness') || lower.includes('gym') || lower.includes('workout') || lower.includes('yoga') || lower.includes('exercise') || lower.includes('sport')) {
+    return 'fitness';
+  }
+  // Travel/Adventure
+  if (lower.includes('travel') || lower.includes('adventure') || lower.includes('vacation') || lower.includes('hotel') || lower.includes('airport') || lower.includes('destination')) {
+    return 'travel';
+  }
+  // Food/Culinary
+  if (lower.includes('food') || lower.includes('culinary') || lower.includes('chef') || lower.includes('restaurant') || lower.includes('kitchen') || lower.includes('cook')) {
+    return 'culinary';
+  }
+  // Nature/Outdoor
+  if (lower.includes('nature') || lower.includes('outdoor') || lower.includes('forest') || lower.includes('mountain') || lower.includes('beach') || lower.includes('garden') || lower.includes('lake')) {
+    return 'nature';
+  }
+  // Music/Entertainment
+  if (lower.includes('music') || lower.includes('entertainment') || lower.includes('concert') || lower.includes('studio') || lower.includes('perform') || lower.includes('party')) {
+    return 'entertainment';
+  }
+  // Real Estate/Architecture
+  if (lower.includes('real estate') || lower.includes('property') || lower.includes('house') || lower.includes('architect') || lower.includes('interior')) {
+    return 'realestate';
+  }
+  // Fashion/Beauty
+  if (lower.includes('fashion') || lower.includes('beauty') || lower.includes('style') || lower.includes('boutique') || lower.includes('model') || lower.includes('runway')) {
+    return 'fashion';
+  }
+  // Spiritual/Mindfulness
+  if (lower.includes('spiritual') || lower.includes('meditation') || lower.includes('mindful') || lower.includes('zen') || lower.includes('temple') || lower.includes('retreat')) {
+    return 'spiritual';
+  }
+  // Gaming/Esports
+  if (lower.includes('gaming') || lower.includes('esport') || lower.includes('stream') || lower.includes('game') || lower.includes('arcade') || lower.includes('video game')) {
+    return 'gaming';
+  }
+  // Science/Research
+  if (lower.includes('science') || lower.includes('research') || lower.includes('lab') || lower.includes('experiment') || lower.includes('space') || lower.includes('discover')) {
+    return 'science';
+  }
+  // Luxury/Premium
+  if (lower.includes('luxury') || lower.includes('premium') || lower.includes('exclusive') || lower.includes('yacht') || lower.includes('private jet') || lower.includes('vip')) {
+    return 'luxury';
   }
   
   return 'professional';

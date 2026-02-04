@@ -187,15 +187,137 @@ const SCENE_JOURNEYS: Record<string, string[]> = {
     "grand library with towering bookshelves and warm lamplight",
     "art deco penthouse with city lights twinkling through windows",
   ],
+  education: [
+    "prestigious university lecture hall with wooden accents and natural light",
+    "intimate seminar room with whiteboard and scholarly atmosphere",
+    "grand academic library with arched windows and reading tables",
+    "modern research lab with scientific equipment and clean lines",
+    "campus courtyard with historic architecture and autumn leaves",
+  ],
+  medical: [
+    "modern medical office with clean lines and calming blue accents",
+    "state-of-the-art hospital atrium with natural light and greenery",
+    "private consultation room with warm, reassuring décor",
+    "wellness center with zen-inspired minimalist design",
+    "outdoor healing garden with water features and serenity",
+  ],
+  legal: [
+    "distinguished law firm office with mahogany furniture and legal tomes",
+    "impressive courthouse rotunda with marble columns and natural light",
+    "private boardroom with panoramic views and leather seating",
+    "elegant client reception area with tasteful art and soft lighting",
+    "rooftop legal office with city skyline at twilight",
+  ],
+  finance: [
+    "prestigious trading floor with multiple screens and dynamic energy",
+    "private wealth management office with refined elegance",
+    "modern bank headquarters lobby with architectural grandeur",
+    "exclusive client lounge with city views and premium finishes",
+    "historic financial district exterior with iconic architecture",
+  ],
+  fitness: [
+    "modern gym facility with state-of-the-art equipment and mirrors",
+    "peaceful yoga studio with bamboo floors and soft natural light",
+    "outdoor training area with scenic mountain backdrop",
+    "luxury spa reception with calming water features",
+    "rooftop wellness deck overlooking the city at sunrise",
+  ],
+  travel: [
+    "luxury airport lounge with panoramic runway views",
+    "boutique hotel suite with floor-to-ceiling ocean views",
+    "exotic marketplace with vibrant colors and local atmosphere",
+    "scenic overlook at a dramatic coastal cliff",
+    "charming European café on a cobblestone street at sunset",
+  ],
+  culinary: [
+    "professional chef's kitchen with stainless steel and copper accents",
+    "upscale restaurant dining room with elegant table settings",
+    "rustic farmhouse kitchen with exposed beams and natural warmth",
+    "outdoor farmers market with colorful produce displays",
+    "rooftop bar with city lights and craft cocktail atmosphere",
+  ],
+  nature: [
+    "serene lakeside dock with morning mist and calm waters",
+    "lush forest clearing with dappled sunlight through trees",
+    "dramatic mountain peak overlook at golden hour",
+    "peaceful beach with gentle waves and sunset colors",
+    "botanical garden greenhouse with exotic plants and humid warmth",
+  ],
+  entertainment: [
+    "professional recording studio with soundproof walls and mixing boards",
+    "intimate concert venue with dramatic stage lighting",
+    "backstage dressing room with Hollywood-style mirror lights",
+    "rooftop party venue with city skyline and festive atmosphere",
+    "elegant gala ballroom with crystal chandeliers and formal décor",
+  ],
+  realestate: [
+    "stunning penthouse living room with floor-to-ceiling windows",
+    "modern kitchen showroom with premium appliances and finishes",
+    "luxurious master bedroom with designer furnishings",
+    "impressive home office with built-in shelving and city views",
+    "expansive backyard with pool and outdoor living space",
+  ],
+  fashion: [
+    "high-end fashion boutique with minimalist displays and soft lighting",
+    "professional photo studio with backdrop and fashion lighting",
+    "luxury beauty salon with elegant mirrors and décor",
+    "designer atelier with fabric swatches and dress forms",
+    "fashion show backstage with models and creative chaos",
+  ],
+  spiritual: [
+    "peaceful meditation room with soft cushions and candles",
+    "zen garden with raked sand and carefully placed stones",
+    "ancient temple interior with warm amber lighting",
+    "mountain retreat cabin with panoramic nature views",
+    "sunrise yoga platform overlooking misty valleys",
+  ],
+  gaming: [
+    "professional esports arena with LED displays and team branding",
+    "high-end gaming setup with RGB lighting and multiple monitors",
+    "game development studio with concept art on walls",
+    "streaming room with professional audio setup and green screen",
+    "gaming lounge with arcade machines and neon accents",
+  ],
+  science: [
+    "cutting-edge research laboratory with high-tech equipment",
+    "space mission control center with multiple displays",
+    "observatory dome with telescope and starry views",
+    "marine biology lab with aquarium tanks and specimens",
+    "clean room facility with advanced manufacturing equipment",
+  ],
+  luxury: [
+    "private jet interior with cream leather and champagne service",
+    "yacht deck with ocean views and premium furnishings",
+    "five-star hotel presidential suite with opulent décor",
+    "exclusive members club with velvet seating and cigar lounge",
+    "luxury car showroom with spotlit vehicles and marble floors",
+  ],
 };
 
 function detectJourneyType(baseScene: string | undefined): string {
   if (!baseScene) return 'professional';
   const lower = baseScene.toLowerCase();
-  if (lower.includes('tech') || lower.includes('future') || lower.includes('digital')) return 'tech';
-  if (lower.includes('art') || lower.includes('creative') || lower.includes('studio')) return 'creative';
-  if (lower.includes('home') || lower.includes('cozy') || lower.includes('casual')) return 'lifestyle';
-  if (lower.includes('film') || lower.includes('dramatic') || lower.includes('noir')) return 'cinematic';
+  
+  if (lower.includes('tech') || lower.includes('future') || lower.includes('digital') || lower.includes('cyber') || lower.includes('startup') || lower.includes('coding')) return 'tech';
+  if (lower.includes('art') || lower.includes('creative') || lower.includes('gallery') || lower.includes('paint') || lower.includes('design')) return 'creative';
+  if (lower.includes('home') || lower.includes('cozy') || lower.includes('casual') || lower.includes('relax')) return 'lifestyle';
+  if (lower.includes('film') || lower.includes('dramatic') || lower.includes('noir') || lower.includes('theater') || lower.includes('movie')) return 'cinematic';
+  if (lower.includes('school') || lower.includes('university') || lower.includes('education') || lower.includes('learn') || lower.includes('teach') || lower.includes('lecture') || lower.includes('academic')) return 'education';
+  if (lower.includes('medical') || lower.includes('health') || lower.includes('hospital') || lower.includes('doctor') || lower.includes('clinic') || lower.includes('wellness')) return 'medical';
+  if (lower.includes('legal') || lower.includes('law') || lower.includes('court') || lower.includes('attorney') || lower.includes('corporate')) return 'legal';
+  if (lower.includes('finance') || lower.includes('bank') || lower.includes('invest') || lower.includes('trading') || lower.includes('wealth') || lower.includes('money')) return 'finance';
+  if (lower.includes('fitness') || lower.includes('gym') || lower.includes('workout') || lower.includes('yoga') || lower.includes('exercise') || lower.includes('sport')) return 'fitness';
+  if (lower.includes('travel') || lower.includes('adventure') || lower.includes('vacation') || lower.includes('hotel') || lower.includes('airport') || lower.includes('destination')) return 'travel';
+  if (lower.includes('food') || lower.includes('culinary') || lower.includes('chef') || lower.includes('restaurant') || lower.includes('kitchen') || lower.includes('cook')) return 'culinary';
+  if (lower.includes('nature') || lower.includes('outdoor') || lower.includes('forest') || lower.includes('mountain') || lower.includes('beach') || lower.includes('garden') || lower.includes('lake')) return 'nature';
+  if (lower.includes('music') || lower.includes('entertainment') || lower.includes('concert') || lower.includes('studio') || lower.includes('perform') || lower.includes('party')) return 'entertainment';
+  if (lower.includes('real estate') || lower.includes('property') || lower.includes('house') || lower.includes('architect') || lower.includes('interior')) return 'realestate';
+  if (lower.includes('fashion') || lower.includes('beauty') || lower.includes('style') || lower.includes('boutique') || lower.includes('model') || lower.includes('runway')) return 'fashion';
+  if (lower.includes('spiritual') || lower.includes('meditation') || lower.includes('mindful') || lower.includes('zen') || lower.includes('temple') || lower.includes('retreat')) return 'spiritual';
+  if (lower.includes('gaming') || lower.includes('esport') || lower.includes('stream') || lower.includes('game') || lower.includes('arcade') || lower.includes('video game')) return 'gaming';
+  if (lower.includes('science') || lower.includes('research') || lower.includes('lab') || lower.includes('experiment') || lower.includes('space') || lower.includes('discover')) return 'science';
+  if (lower.includes('luxury') || lower.includes('premium') || lower.includes('exclusive') || lower.includes('yacht') || lower.includes('private jet') || lower.includes('vip')) return 'luxury';
+  
   return 'professional';
 }
 

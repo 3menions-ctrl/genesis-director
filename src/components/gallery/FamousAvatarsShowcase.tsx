@@ -4,104 +4,102 @@ import { Crown, Star, Sparkles, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
-// Famous avatar data - mix of historical, animated, and realistic characters
-const FAMOUS_AVATARS = [
-  {
-    id: 'cleopatra',
-    name: 'Cleopatra',
-    category: 'Historical',
-    description: 'Queen of Egypt',
-    imageUrl: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=500&fit=crop&crop=face',
-    gradient: 'from-amber-500/20 via-yellow-500/10 to-orange-500/20',
-    accentColor: 'amber',
-  },
-  {
-    id: 'einstein',
-    name: 'Einstein',
-    category: 'Historical',
-    description: 'Genius Physicist',
-    imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=500&fit=crop&crop=face',
-    gradient: 'from-blue-500/20 via-cyan-500/10 to-teal-500/20',
-    accentColor: 'blue',
-  },
-  {
-    id: 'cat-wizard',
-    name: 'Whiskers',
-    category: 'Animated',
-    description: 'Mystical Feline',
-    imageUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400&h=500&fit=crop&crop=face',
-    gradient: 'from-purple-500/20 via-violet-500/10 to-fuchsia-500/20',
-    accentColor: 'purple',
-  },
-  {
-    id: 'samurai',
-    name: 'Kenji',
-    category: 'Historical',
-    description: 'Ancient Warrior',
-    imageUrl: 'https://images.unsplash.com/photo-1528164344705-47542687000d?w=400&h=500&fit=crop&crop=face',
-    gradient: 'from-red-500/20 via-rose-500/10 to-pink-500/20',
-    accentColor: 'red',
-  },
-  {
-    id: 'space-explorer',
-    name: 'Nova',
-    category: 'Sci-Fi',
-    description: 'Space Pioneer',
-    imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop&crop=face',
-    gradient: 'from-indigo-500/20 via-blue-500/10 to-cyan-500/20',
-    accentColor: 'indigo',
-  },
-  {
-    id: 'dragon-rider',
-    name: 'Draco',
-    category: 'Fantasy',
-    description: 'Dragon Master',
-    imageUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=500&fit=crop&crop=face',
-    gradient: 'from-emerald-500/20 via-green-500/10 to-teal-500/20',
-    accentColor: 'emerald',
-  },
-  {
-    id: 'cyber-punk',
-    name: 'Neon',
-    category: 'Sci-Fi',
-    description: 'Digital Rebel',
-    imageUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop&crop=face',
-    gradient: 'from-pink-500/20 via-fuchsia-500/10 to-purple-500/20',
-    accentColor: 'pink',
-  },
-  {
-    id: 'royal-owl',
-    name: 'Athena',
-    category: 'Animated',
-    description: 'Wise Guardian',
-    imageUrl: 'https://images.unsplash.com/photo-1543549790-8b5f4a028cfb?w=400&h=500&fit=crop&crop=face',
-    gradient: 'from-slate-500/20 via-gray-500/10 to-zinc-500/20',
-    accentColor: 'slate',
-  },
-  {
-    id: 'viking',
-    name: 'Ragnar',
-    category: 'Historical',
-    description: 'Norse Legend',
-    imageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=500&fit=crop&crop=face',
-    gradient: 'from-orange-500/20 via-amber-500/10 to-yellow-500/20',
-    accentColor: 'orange',
-  },
-  {
-    id: 'mermaid',
-    name: 'Marina',
-    category: 'Fantasy',
-    description: 'Ocean Spirit',
-    imageUrl: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=500&fit=crop&crop=face',
-    gradient: 'from-cyan-500/20 via-teal-500/10 to-blue-500/20',
-    accentColor: 'cyan',
-  },
-];
+// Fetch real avatars from database
+const useShowcaseAvatars = () => {
+  return useQuery({
+    queryKey: ['showcase-avatars'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('avatar_templates')
+        .select('id, name, face_image_url, thumbnail_url, description, gender, style, personality, tags')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+        .limit(10);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
 
-const AvatarCard = ({ avatar, index }: { avatar: typeof FAMOUS_AVATARS[0]; index: number }) => {
+// Map style to gradient and accent
+const getStyleGradient = (style: string | null, index: number): { gradient: string; accentColor: string } => {
+  const styleMap: Record<string, { gradient: string; accentColor: string }> = {
+    luxury: { gradient: 'from-amber-500/20 via-yellow-500/10 to-orange-500/20', accentColor: 'amber' },
+    corporate: { gradient: 'from-slate-500/20 via-zinc-500/10 to-gray-500/20', accentColor: 'slate' },
+    influencer: { gradient: 'from-pink-500/20 via-fuchsia-500/10 to-purple-500/20', accentColor: 'pink' },
+    creative: { gradient: 'from-violet-500/20 via-purple-500/10 to-indigo-500/20', accentColor: 'violet' },
+    educational: { gradient: 'from-blue-500/20 via-cyan-500/10 to-teal-500/20', accentColor: 'blue' },
+    casual: { gradient: 'from-emerald-500/20 via-green-500/10 to-teal-500/20', accentColor: 'emerald' },
+  };
+  
+  if (style && styleMap[style]) return styleMap[style];
+  
+  // Fallback gradients based on index
+  const fallbacks = [
+    { gradient: 'from-amber-500/20 via-yellow-500/10 to-orange-500/20', accentColor: 'amber' },
+    { gradient: 'from-blue-500/20 via-cyan-500/10 to-teal-500/20', accentColor: 'blue' },
+    { gradient: 'from-purple-500/20 via-violet-500/10 to-fuchsia-500/20', accentColor: 'purple' },
+    { gradient: 'from-emerald-500/20 via-green-500/10 to-teal-500/20', accentColor: 'emerald' },
+    { gradient: 'from-pink-500/20 via-fuchsia-500/10 to-rose-500/20', accentColor: 'pink' },
+  ];
+  return fallbacks[index % fallbacks.length];
+};
+
+// Get category from tags
+const getCategoryFromTags = (tags: string[] | null): string => {
+  if (!tags || tags.length === 0) return 'Avatar';
+  
+  // Check for specific keywords
+  const tagStr = tags.join(' ').toLowerCase();
+  if (tagStr.includes('queen') || tagStr.includes('emperor') || tagStr.includes('empress') || tagStr.includes('warrior') || tagStr.includes('samurai')) {
+    return 'Historical';
+  }
+  if (tagStr.includes('influencer') || tagStr.includes('k-fashion')) {
+    return 'Influencer';
+  }
+  if (tagStr.includes('creative') || tagStr.includes('artistic')) {
+    return 'Creative';
+  }
+  if (tagStr.includes('educational')) {
+    return 'Educational';
+  }
+  if (tagStr.includes('casual')) {
+    return 'Lifestyle';
+  }
+  if (tagStr.includes('corporate')) {
+    return 'Business';
+  }
+  
+  // Capitalize first tag
+  return tags[0].charAt(0).toUpperCase() + tags[0].slice(1);
+};
+
+interface AvatarCardProps {
+  avatar: {
+    id: string;
+    name: string;
+    face_image_url: string;
+    thumbnail_url: string | null;
+    description: string | null;
+    personality: string | null;
+    style: string | null;
+    tags: string[] | null;
+  };
+  index: number;
+}
+
+const AvatarCard = ({ avatar, index }: AvatarCardProps) => {
   const [isHovered, setIsHovered] = React.useState(false);
   const [imageLoaded, setImageLoaded] = React.useState(false);
+  
+  const { gradient } = getStyleGradient(avatar.style, index);
+  const category = getCategoryFromTags(avatar.tags);
+  const imageUrl = avatar.thumbnail_url || avatar.face_image_url;
   
   return (
     <motion.div
@@ -120,7 +118,7 @@ const AvatarCard = ({ avatar, index }: { avatar: typeof FAMOUS_AVATARS[0]; index
       <div className={cn(
         "relative aspect-[3/4] rounded-2xl overflow-hidden transition-all duration-500",
         "bg-gradient-to-br",
-        avatar.gradient,
+        gradient,
         isHovered ? "scale-[1.03] shadow-2xl shadow-white/5" : "shadow-xl shadow-black/20"
       )}>
         {/* Glass border effect */}
@@ -133,11 +131,11 @@ const AvatarCard = ({ avatar, index }: { avatar: typeof FAMOUS_AVATARS[0]; index
         
         {/* Avatar image */}
         <img 
-          src={avatar.imageUrl}
+          src={imageUrl}
           alt={avatar.name}
           onLoad={() => setImageLoaded(true)}
           className={cn(
-            "w-full h-full object-cover transition-all duration-700",
+            "w-full h-full object-cover object-top transition-all duration-700",
             isHovered ? "scale-110 brightness-110" : "scale-100 brightness-90",
             imageLoaded ? "opacity-100" : "opacity-0"
           )}
@@ -157,7 +155,7 @@ const AvatarCard = ({ avatar, index }: { avatar: typeof FAMOUS_AVATARS[0]; index
           "absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider",
           "bg-black/60 backdrop-blur-xl border border-white/20 text-white/80"
         )}>
-          {avatar.category}
+          {category}
         </div>
         
         {/* Premium star */}
@@ -182,8 +180,8 @@ const AvatarCard = ({ avatar, index }: { avatar: typeof FAMOUS_AVATARS[0]; index
             <h3 className="text-white font-bold text-lg mb-0.5 tracking-tight">
               {avatar.name}
             </h3>
-            <p className="text-white/60 text-sm">
-              {avatar.description}
+            <p className="text-white/60 text-sm line-clamp-1">
+              {avatar.personality || avatar.description || 'AI Avatar'}
             </p>
           </motion.div>
           
@@ -220,6 +218,19 @@ interface FamousAvatarsShowcaseProps {
 
 export const FamousAvatarsShowcase = ({ className }: FamousAvatarsShowcaseProps) => {
   const navigate = useNavigate();
+  const { data: avatars = [], isLoading } = useShowcaseAvatars();
+  
+  if (isLoading) {
+    return (
+      <div className={cn("relative py-16 px-6 md:px-12 flex items-center justify-center", className)}>
+        <div className="w-8 h-8 border-2 border-white/20 border-t-violet-400 rounded-full animate-spin" />
+      </div>
+    );
+  }
+  
+  if (avatars.length === 0) {
+    return null;
+  }
   
   return (
     <motion.section 
@@ -261,14 +272,14 @@ export const FamousAvatarsShowcase = ({ className }: FamousAvatarsShowcaseProps)
           transition={{ delay: 0.8 }}
           className="text-white/50 text-lg max-w-2xl mx-auto"
         >
-          Create stunning videos with legendary personas. From ancient royalty to futuristic explorers.
+          Create stunning videos with legendary personas. From ancient royalty to modern influencers.
         </motion.p>
       </div>
       
       {/* Avatar grid */}
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-          {FAMOUS_AVATARS.map((avatar, index) => (
+          {avatars.map((avatar, index) => (
             <AvatarCard key={avatar.id} avatar={avatar} index={index} />
           ))}
         </div>

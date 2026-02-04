@@ -352,61 +352,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }
     
     try {
-      // Find the project to get its video URLs before deletion
-      const projectToDelete = projects.find(p => p.id === projectId);
-      
-      // Delete the project from database first
-      const { error } = await supabase
-        .from('movie_projects')
-        .delete()
-        .eq('id', projectId);
+      // Use edge function for complete deletion (storage + clips + project)
+      const { data, error } = await supabase.functions.invoke('delete-project', {
+        body: { projectId, userId: currentSession.user.id },
+      });
 
-      if (error) throw error;
-
-      // Clean up video files from storage if they exist
-      if (projectToDelete) {
-        const videosToDelete: string[] = [];
-        
-        // Collect all video URLs
-        if (projectToDelete.video_clips?.length) {
-          videosToDelete.push(...projectToDelete.video_clips);
-        }
-        if (projectToDelete.video_url) {
-          videosToDelete.push(projectToDelete.video_url);
-        }
-        if (projectToDelete.voice_audio_url) {
-          videosToDelete.push(projectToDelete.voice_audio_url);
-        }
-        if (projectToDelete.thumbnail_url) {
-          videosToDelete.push(projectToDelete.thumbnail_url);
-        }
-        
-        // Extract storage paths and delete files (only for Supabase storage URLs)
-        for (const url of videosToDelete) {
-          if (!url) continue;
-          
-          try {
-            // Only process Supabase storage URLs
-            if (!url.includes('supabase.co/storage/v1/object/public/')) {
-              continue;
-            }
-            
-            // Parse the URL to get bucket and path
-            const urlObj = new URL(url);
-            const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)/);
-            
-            if (pathMatch) {
-              const bucket = pathMatch[1];
-              const path = decodeURIComponent(pathMatch[2]);
-              
-              if (bucket && path) {
-                await supabase.storage.from(bucket).remove([path]);
-              }
-            }
-          } catch {
-            // Silently fail if storage cleanup fails - non-critical
-          }
-        }
+      if (error || !data?.success) {
+        throw new Error(data?.error || error?.message || 'Deletion failed');
       }
 
       setProjects((prev) => prev.filter((p) => p.id !== projectId));
@@ -414,7 +366,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         const remaining = projects.filter(p => p.id !== projectId);
         setActiveProjectId(remaining[0]?.id || null);
       }
-      toast.success('Project and all videos permanently deleted');
+      
+      console.log('[StudioContext] Project fully deleted:', data.summary);
+      toast.success('Project and all files permanently deleted');
     } catch (err) {
       console.error('Error deleting project:', err);
       toast.error('Failed to delete project');

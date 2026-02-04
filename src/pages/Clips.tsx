@@ -453,16 +453,23 @@ export default function Clips() {
   };
 
   const handleDelete = async (clipId: string) => {
-    const { error } = await supabase
-      .from('video_clips')
-      .delete()
-      .eq('id', clipId);
+    // Use edge function for complete deletion (storage + database)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Please sign in to delete clips');
+      return;
+    }
 
-    if (error) {
+    const { data, error } = await supabase.functions.invoke('delete-clip', {
+      body: { clipId, userId: user.id },
+    });
+
+    if (error || !data?.success) {
+      console.error('Delete clip error:', error || data?.error);
       toast.error('Failed to delete clip');
     } else {
       setClips(prev => prev.filter(c => c.id !== clipId));
-      toast.success('Clip deleted');
+      toast.success('Clip permanently deleted');
     }
   };
 

@@ -7,18 +7,18 @@ const corsHeaders = {
 };
 
 /**
- * CANCEL PROJECT - Complete Project Cancellation & Cleanup
+ * DELETE PROJECT - Complete Project & Asset Removal
  * 
- * This function performs a FULL cancellation:
- * 1. Cancels any running Replicate predictions
- * 2. Deletes ALL storage files (videos, audio, thumbnails)
- * 3. Deletes ALL clips from database
- * 4. Marks the project as 'cancelled' with cleared state
+ * Performs FULL deletion:
+ * 1. Cancels any active Replicate predictions
+ * 2. Deletes ALL video clips from database
+ * 3. Deletes ALL storage files (videos, audio, thumbnails)
+ * 4. Deletes the project record
  * 
- * This ensures NO resources remain and no background processes continue.
+ * Nothing is left behind.
  */
 
-interface CancelRequest {
+interface DeleteRequest {
   projectId: string;
   userId: string;
 }
@@ -28,6 +28,7 @@ function extractStoragePath(url: string): { bucket: string; path: string } | nul
   if (!url) return null;
   
   try {
+    // Match Supabase storage URLs
     const supabaseMatch = url.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)/);
     if (supabaseMatch) {
       return {
@@ -36,6 +37,7 @@ function extractStoragePath(url: string): { bucket: string; path: string } | nul
       };
     }
     
+    // Match authenticated storage URLs
     const authMatch = url.match(/\/storage\/v1\/object\/authenticated\/([^/]+)\/(.+)/);
     if (authMatch) {
       return {
@@ -62,7 +64,7 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    const { projectId, userId }: CancelRequest = await req.json();
+    const { projectId, userId }: DeleteRequest = await req.json();
 
     if (!projectId || !userId) {
       return new Response(
@@ -71,9 +73,9 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[CancelProject] Starting FULL cancellation for project ${projectId}`);
+    console.log(`[DeleteProject] Starting FULL deletion for project ${projectId}`);
 
-    // 1. Fetch the project to get current state and prediction IDs
+    // 1. Verify project ownership
     const { data: project, error: projectError } = await supabase
       .from('movie_projects')
       .select('*')
@@ -88,29 +90,29 @@ serve(async (req) => {
       );
     }
 
-    const cancelledItems: string[] = [];
+    const deletionLog: string[] = [];
     const storageFilesToDelete: { bucket: string; paths: string[] }[] = [];
 
-    // 2. Collect prediction IDs from pipeline state
+    // 2. Cancel any active Replicate predictions
+    const predictionIds: string[] = [];
+    
+    // From pipeline_state
     const pipelineState = typeof project.pipeline_state === 'string' 
       ? JSON.parse(project.pipeline_state) 
       : project.pipeline_state;
-    
-    const predictionIds: string[] = [];
-    
     if (pipelineState?.predictionId) {
       predictionIds.push(pipelineState.predictionId);
     }
     
+    // From pending_video_tasks
     const pendingTasks = typeof project.pending_video_tasks === 'string'
       ? JSON.parse(project.pending_video_tasks)
       : project.pending_video_tasks;
-    
     if (pendingTasks?.predictionId) {
       predictionIds.push(pendingTasks.predictionId);
     }
 
-    // 3. Get ALL clips for this project
+    // 3. Get ALL clips for this project (any status)
     const { data: clips } = await supabase
       .from('video_clips')
       .select('*')
@@ -118,12 +120,12 @@ serve(async (req) => {
 
     if (clips) {
       for (const clip of clips) {
-        // Collect prediction IDs
+        // Collect prediction IDs from generating clips
         if (clip.veo_operation_name && ['pending', 'generating'].includes(clip.status)) {
           predictionIds.push(clip.veo_operation_name);
         }
         
-        // Collect storage URLs
+        // Collect storage URLs from clips
         if (clip.video_url) {
           const storage = extractStoragePath(clip.video_url);
           if (storage) {
@@ -147,6 +149,7 @@ serve(async (req) => {
           }
         }
       }
+      deletionLog.push(`Found ${clips.length} clips to delete`);
     }
 
     // 4. Collect project-level storage URLs
@@ -172,11 +175,11 @@ serve(async (req) => {
 
     // 5. Cancel all Replicate predictions
     if (replicateApiKey && predictionIds.length > 0) {
-      console.log(`[CancelProject] Cancelling ${predictionIds.length} Replicate predictions`);
+      console.log(`[DeleteProject] Cancelling ${predictionIds.length} predictions`);
       
       for (const predictionId of predictionIds) {
         try {
-          const cancelResponse = await fetch(
+          await fetch(
             `https://api.replicate.com/v1/predictions/${predictionId}/cancel`,
             {
               method: 'POST',
@@ -186,19 +189,14 @@ serve(async (req) => {
               },
             }
           );
-          
-          if (cancelResponse.ok) {
-            console.log(`[CancelProject] Cancelled prediction ${predictionId}`);
-            cancelledItems.push(`prediction:${predictionId}`);
-          }
+          deletionLog.push(`Cancelled prediction: ${predictionId}`);
         } catch (err) {
-          console.error(`[CancelProject] Error cancelling prediction ${predictionId}:`, err);
+          console.error(`[DeleteProject] Error cancelling prediction ${predictionId}:`, err);
         }
       }
     }
 
     // 6. Delete all storage files
-    let totalFilesDeleted = 0;
     for (const storageGroup of storageFilesToDelete) {
       try {
         if (storageGroup.paths.length > 0) {
@@ -207,78 +205,62 @@ serve(async (req) => {
             .remove(storageGroup.paths);
           
           if (!error) {
-            totalFilesDeleted += storageGroup.paths.length;
-            console.log(`[CancelProject] Deleted ${storageGroup.paths.length} files from ${storageGroup.bucket}`);
+            deletionLog.push(`Deleted ${storageGroup.paths.length} files from ${storageGroup.bucket}`);
+            console.log(`[DeleteProject] Deleted ${storageGroup.paths.length} files from ${storageGroup.bucket}`);
+          } else {
+            console.error(`[DeleteProject] Storage delete error:`, error);
           }
         }
       } catch (err) {
-        console.error(`[CancelProject] Error deleting from storage:`, err);
+        console.error(`[DeleteProject] Error deleting from ${storageGroup.bucket}:`, err);
       }
     }
-    if (totalFilesDeleted > 0) {
-      cancelledItems.push(`storage:${totalFilesDeleted} files`);
-    }
 
-    // 7. Delete ALL clips from database
+    // 7. Delete all clips from database
     if (clips && clips.length > 0) {
-      const { error: clipsError } = await supabase
+      const { error: clipsDeleteError } = await supabase
         .from('video_clips')
         .delete()
         .eq('project_id', projectId);
 
-      if (!clipsError) {
-        cancelledItems.push(`clips:${clips.length} deleted`);
-        console.log(`[CancelProject] Deleted ${clips.length} clips`);
+      if (!clipsDeleteError) {
+        deletionLog.push(`Deleted ${clips.length} clip records`);
+      } else {
+        console.error('[DeleteProject] Error deleting clips:', clipsDeleteError);
       }
     }
 
-    // 8. Update project status and clear all references
-    const { error: updateError } = await supabase
+    // 8. Delete the project record
+    const { error: projectDeleteError } = await supabase
       .from('movie_projects')
-      .update({
-        status: 'cancelled',
-        video_url: null,
-        voice_audio_url: null,
-        thumbnail_url: null,
-        music_url: null,
-        manifest_url: null,
-        pipeline_state: {
-          stage: 'cancelled',
-          progress: 0,
-          cancelledAt: new Date().toISOString(),
-          cancelledBy: userId,
-          message: 'Project cancelled - all resources deleted',
-        },
-        pending_video_tasks: null,
-        updated_at: new Date().toISOString(),
-      })
+      .delete()
       .eq('id', projectId)
       .eq('user_id', userId);
 
-    if (updateError) {
-      throw new Error(`Failed to update project: ${updateError.message}`);
+    if (projectDeleteError) {
+      throw new Error(`Failed to delete project: ${projectDeleteError.message}`);
     }
 
-    cancelledItems.push('project:cancelled');
-    console.log(`[CancelProject] Project ${projectId} FULLY cancelled and cleaned`);
+    deletionLog.push('Project record deleted');
+    console.log(`[DeleteProject] Project ${projectId} FULLY deleted`);
 
     return new Response(
       JSON.stringify({
         success: true,
         projectId,
-        message: 'Project cancelled. All files, clips, and predictions have been removed.',
-        cancelledItems,
+        message: 'Project completely deleted. All files and data removed.',
+        deletionLog,
         summary: {
-          predictionsCancelled: predictionIds.length,
           clipsDeleted: clips?.length || 0,
-          storageFilesDeleted: totalFilesDeleted,
+          predictionsKilled: predictionIds.length,
+          storageFilesDeleted: storageFilesToDelete.reduce((sum, g) => sum + g.paths.length, 0),
         },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {
-    console.error("[CancelProject] Error:", error);
+    console.error("[DeleteProject] Error:", error);
     return new Response(
       JSON.stringify({ 
         success: false, 

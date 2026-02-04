@@ -157,13 +157,13 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 }
                 value={prompt}
                 onChange={(e) => onPromptChange(e.target.value)}
-                className="min-h-[60px] md:min-h-[50px] bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 resize-none text-sm"
+                className="min-h-[100px] md:min-h-[80px] bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 resize-none text-sm"
                 disabled={!selectedAvatar}
               />
             </div>
 
-            {/* Scene/Environment Input - Mobile/Tablet - hidden on landscape tablet to save space */}
-            <div className="space-y-1.5 hidden portrait:block md:landscape:hidden">
+            {/* Scene/Environment Input - Mobile/Tablet */}
+            <div className="space-y-1.5">
               <Label className="text-zinc-300 flex items-center gap-2 text-xs font-medium">
                 <MapPin className="w-3 h-3 text-violet-400" />
                 Environment (optional)
@@ -172,7 +172,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 placeholder="e.g., a witch's house in the woods, a futuristic city..."
                 value={sceneDescription}
                 onChange={(e) => onSceneDescriptionChange(e.target.value)}
-                className="h-8 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 text-sm"
+                className="h-10 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 text-sm"
                 disabled={!selectedAvatar}
               />
             </div>

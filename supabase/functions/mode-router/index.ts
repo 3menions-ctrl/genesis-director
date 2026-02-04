@@ -247,6 +247,78 @@ serve(async (req) => {
 
     console.log(`[ModeRouter] ✓ No active projects, proceeding with creation`);
 
+    // =========================================================
+    // CREDIT DEDUCTION - Must happen BEFORE project creation
+    // Avatar mode bypasses hollywood-pipeline, so credits must be deducted here
+    // Text-to-video/cinematic routes to hollywood-pipeline which handles its own credits
+    // =========================================================
+    const requiresLocalCreditDeduction = mode === 'avatar' || mode === 'video-to-video' || mode === 'motion-transfer';
+    
+    if (requiresLocalCreditDeduction) {
+      // Calculate total credits needed using the same formula as hollywood-pipeline
+      // Base: 10 credits for clips 1-6 at ≤6s, Extended: 15 credits for clips 7+ OR >6s
+      const BASE_CREDITS = 10;
+      const EXTENDED_CREDITS = 15;
+      const BASE_CLIP_THRESHOLD = 6;
+      const BASE_DURATION_THRESHOLD = 6;
+      
+      let totalCredits = 0;
+      for (let i = 0; i < clipCount; i++) {
+        const isExtended = i >= BASE_CLIP_THRESHOLD || clipDuration > BASE_DURATION_THRESHOLD;
+        totalCredits += isExtended ? EXTENDED_CREDITS : BASE_CREDITS;
+      }
+      
+      console.log(`[ModeRouter] Credit check for ${mode}: ${clipCount} clips × ${clipDuration}s = ${totalCredits} credits required`);
+      
+      // Check if user has enough credits
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('credits_balance')
+        .eq('id', userId)
+        .single();
+      
+      if (profileError || !profile) {
+        console.error('[ModeRouter] Failed to fetch user profile:', profileError);
+        throw new Error('Failed to verify credit balance');
+      }
+      
+      if (profile.credits_balance < totalCredits) {
+        console.log(`[ModeRouter] INSUFFICIENT CREDITS: User has ${profile.credits_balance}, needs ${totalCredits}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: `Insufficient credits. Required: ${totalCredits}, Available: ${profile.credits_balance}`,
+            required: totalCredits,
+            available: profile.credits_balance,
+          }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // DEDUCT CREDITS UPFRONT
+      console.log(`[ModeRouter] Deducting ${totalCredits} credits from user ${userId}`);
+      const { error: deductError } = await supabase.rpc('deduct_credits', {
+        p_user_id: userId,
+        p_amount: totalCredits,
+        p_description: `Video generation: ${clipCount} clips × ${clipDuration}s`,
+        p_project_id: null, // Will be set after project creation
+        p_clip_duration: clipCount * clipDuration,
+      });
+      
+      if (deductError) {
+        console.error('[ModeRouter] Credit deduction failed:', deductError);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Failed to deduct credits. Please try again.',
+          }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      console.log(`[ModeRouter] ✓ Successfully deducted ${totalCredits} credits`);
+    }
+
     // Create or get project with full mode data
     let projectId = request.projectId;
     if (!projectId) {

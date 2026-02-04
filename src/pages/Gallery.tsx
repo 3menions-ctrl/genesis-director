@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { safePlay, safePause, safeSeek, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
 import { useSafeNavigation, useRouteCleanup, useNavigationAbort } from '@/lib/navigation';
+import { FamousAvatarsShowcase } from '@/components/gallery/FamousAvatarsShowcase';
 
 // Video category type
 type VideoCategory = 'all' | 'text-to-video' | 'image-to-video' | 'avatar';
@@ -725,6 +726,8 @@ const GalleryContent = memo(function GalleryContent() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [activeCategory, setActiveCategory] = useState<VideoCategory>('all');
+  const [showAvatarSection, setShowAvatarSection] = useState(false);
+  const avatarSectionRef = useRef<HTMLDivElement>(null);
   
   const { data: videos = [], isLoading } = useGalleryVideos();
   const { playTransition } = useAmbientSounds();
@@ -854,10 +857,19 @@ const GalleryContent = memo(function GalleryContent() {
       </div>
     );
   }
+  
+  const scrollToAvatars = () => {
+    setShowAvatarSection(true);
+    setTimeout(() => {
+      avatarSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
 
   return (
-    <div className="min-h-screen overflow-hidden">
-      <ImmersiveBackground scrollProgress={scrollProgress} />
+    <div className="min-h-screen overflow-y-auto overflow-x-hidden">
+      {/* Video Gallery Section - Full screen */}
+      <div className="min-h-screen relative">
+        <ImmersiveBackground scrollProgress={scrollProgress} />
       
       {/* Back button */}
       <motion.button
@@ -1062,15 +1074,37 @@ const GalleryContent = memo(function GalleryContent() {
         </div>
       )}
       
-      {/* Sign Up button */}
+      {/* Famous Avatars Showcase Section */}
+      {!selectedVideo && filteredVideos.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+          className="fixed bottom-0 left-0 right-0 z-30"
+        >
+          {/* Scroll indicator */}
+          <div className="flex flex-col items-center pb-4">
+            <motion.div
+              animate={{ y: [0, 8, 0] }}
+              transition={{ repeat: Infinity, duration: 1.5 }}
+              className="text-white/30 text-xs flex flex-col items-center gap-1"
+            >
+              <span>Scroll for Avatar Collection</span>
+              <ChevronLeft className="w-4 h-4 rotate-[-90deg]" />
+            </motion.div>
+          </div>
+        </motion.div>
+      )}
+      
+      {/* Button to scroll to avatars - replaces Sign Up button */}
       <motion.button
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.8 }}
-        onClick={() => navigate('/auth')}
-        className="fixed bottom-8 left-8 z-50 px-6 py-3 rounded-full bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 text-white/70 hover:text-white text-sm font-medium transition-all"
+        onClick={scrollToAvatars}
+        className="fixed bottom-8 left-8 z-50 px-6 py-3 rounded-full bg-gradient-to-r from-violet-600/80 to-fuchsia-600/80 hover:from-violet-500 hover:to-fuchsia-500 backdrop-blur-xl border border-white/20 text-white text-sm font-medium transition-all shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 hover:scale-105"
       >
-        Sign Up Free
+        View Avatar Collection
       </motion.button>
       
       {/* Fullscreen player */}
@@ -1082,6 +1116,17 @@ const GalleryContent = memo(function GalleryContent() {
           />
         )}
       </AnimatePresence>
+      </div>
+      
+      {/* Famous Avatars Section - Separate scrollable area */}
+      {showAvatarSection && (
+        <div 
+          ref={avatarSectionRef}
+          className="min-h-screen bg-black relative"
+        >
+          <FamousAvatarsShowcase />
+        </div>
+      )}
     </div>
   );
 });

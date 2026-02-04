@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { VideoGenerationMode, VideoStylePreset } from '@/types/video-modes';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/lib/errorHandler';
+import { handleEdgeFunctionError, showUserFriendlyError } from '@/lib/userFriendlyErrors';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { useStabilityGuard, useSafeNavigation, useRouteCleanup, isAbortError } from '@/lib/navigation';
 import { BrandLoadingSpinner } from '@/components/ui/UnifiedLoadingPage';
@@ -130,26 +131,14 @@ function CreateContentInner() {
       // Check if component is still mounted
       if (!isMounted()) return;
 
-      if (error) {
-        // Handle specific error types
-        if (error.message?.includes('402') || error.message?.includes('credits')) {
-          toast.error('Insufficient credits. Please purchase more credits to continue.');
-          navigate('/settings?tab=billing');
-          return;
-        }
-        throw error;
-      }
-
-      // Check for active project conflict (409 response)
-      if (data?.error === 'active_project_exists') {
-        toast.error(data.message, {
-          duration: 8000,
-          action: {
-            label: 'View Project',
-            onClick: () => navigate(`/production/${data.existingProjectId}`),
-          },
-        });
-        return;
+      if (error || data?.error) {
+        const { handled } = handleEdgeFunctionError(
+          error, 
+          data, 
+          (path) => navigate(path)
+        );
+        if (handled) return;
+        if (error) throw error;
       }
 
       if (!data?.projectId) {
@@ -169,10 +158,7 @@ function CreateContentInner() {
       if (!isMounted()) return;
       
       console.error('Creation error:', error);
-      handleError(error, 'Video creation', {
-        showToast: true,
-        onRetry: () => handleStartCreation(config),
-      });
+      showUserFriendlyError(error, { navigate });
     } finally {
       if (isMounted()) {
         safeSetState(setIsCreating, false);

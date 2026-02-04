@@ -1,11 +1,8 @@
 /**
- * DebugOverlay - Development-only diagnostic overlay
+ * DebugOverlay - Diagnostic overlay for admin users ONLY
  * 
  * ADMIN ONLY: Displays real-time console errors, state snapshots,
- * and critical failures before the preview reloads.
- * 
- * In development: visible to all developers
- * In production: restricted to admin users only
+ * and critical failures. Restricted to verified admin users in all environments.
  * 
  * Toggle with Ctrl+Shift+D (Cmd+Shift+D on Mac)
  */
@@ -33,10 +30,8 @@ export const DebugOverlay = memo(forwardRef<HTMLDivElement, DebugOverlayProps>(f
   const [filter, setFilter] = useState<'all' | 'error' | 'warning' | 'info'>('all');
   const scrollRef = useRef<HTMLDivElement>(null);
   
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  
-  // In production, only admins can access; in development, everyone can
-  const hasAccess = isDevelopment || isAdmin;
+  // ADMIN ONLY: Only admins can access debug overlay in ALL environments
+  const hasAccess = isAdmin && !adminLoading;
   
   // Keyboard shortcut to toggle (only if user has access)
   useEffect(() => {

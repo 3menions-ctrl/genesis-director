@@ -491,22 +491,31 @@ serve(async (req) => {
       }
       
       // Update pending_video_tasks with latest status
+      // Calculate if ALL clips are complete for accurate progress
+      const totalExpectedClips = tasks.predictions?.length || 0;
+      const isFullyComplete = completedClips.length === totalExpectedClips && totalExpectedClips > 0;
+      
       await supabase.from('movie_projects').update({
         pending_video_tasks: tasks,
         pipeline_state: {
-          stage: allCompleted ? 'finalizing' : 'async_video_generation',
-          progress: allCompleted ? 90 : 25 + (completedClips.length / tasks.predictions.length) * 60,
-          message: allCompleted 
+          stage: isFullyComplete ? 'finalizing' : 'async_video_generation',
+          progress: isFullyComplete ? 90 : 25 + (completedClips.length / Math.max(totalExpectedClips, 1)) * 60,
+          message: isFullyComplete 
             ? 'Finalizing video...' 
-            : `Generating clips (${completedClips.length}/${tasks.predictions.length})...`,
-          totalClips: tasks.predictions.length,
+            : `Generating clips (${completedClips.length}/${totalExpectedClips})...`,
+          totalClips: totalExpectedClips,
           completedClips: completedClips.length,
         },
         updated_at: new Date().toISOString(),
       }).eq('id', project.id);
       
       // If all completed, finalize the project
-      if (allCompleted && completedClips.length > 0) {
+      // CRITICAL FIX: Explicitly verify ALL clips are complete, not just that some completed
+      const expectedClipCount = tasks.predictions?.length || 0;
+      const allClipsComplete = completedClips.length === expectedClipCount && expectedClipCount > 0;
+      
+      if (allClipsComplete) {
+        console.log(`[Watchdog] ✅ ALL ${expectedClipCount} clips confirmed complete - finalizing`);
         console.log(`[Watchdog] 🎉 ASYNC AVATAR COMPLETE: Finalizing ${project.id}`);
         console.log(`[Watchdog] Completed clips before sort: ${JSON.stringify(completedClips.map(c => ({ idx: c.clipIndex, url: c.videoUrl.substring(0, 50) })))}`);
         

@@ -1,5 +1,22 @@
 // Shared utilities for script generation functions
-// Includes: retry logic, input validation, JSON recovery, content detection
+// Includes: retry logic, input validation, JSON recovery, content detection, CONTENT SAFETY
+
+import {
+  checkContentSafety,
+  checkMultipleContent,
+  getSafetyInstructions,
+  getSafetyNegativePrompts,
+  type ContentSafetyResult,
+} from "./content-safety.ts";
+
+// Re-export content safety for convenience
+export {
+  checkContentSafety,
+  checkMultipleContent,
+  getSafetyInstructions,
+  getSafetyNegativePrompts,
+  type ContentSafetyResult,
+};
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

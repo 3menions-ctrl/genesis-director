@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { checkContentSafety } from "../_shared/content-safety.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -64,6 +65,53 @@ serve(async (req) => {
     if (!text || !avatarImageUrl) {
       throw new Error("Both 'text' (script) and 'avatarImageUrl' are required");
     }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // CONTENT SAFETY CHECK - BLOCK NSFW/INAPPROPRIATE CONTENT
+    // ═══════════════════════════════════════════════════════════════════
+    const textSafety = checkContentSafety(text);
+    if (!textSafety.isSafe) {
+      console.error(`[generate-avatar] ⛔ CONTENT BLOCKED - ${textSafety.category}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: textSafety.message,
+          blocked: true,
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (sceneDescription) {
+      const sceneSafety = checkContentSafety(sceneDescription);
+      if (!sceneSafety.isSafe) {
+        console.error(`[generate-avatar] ⛔ SCENE BLOCKED - ${sceneSafety.category}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: sceneSafety.message,
+            blocked: true,
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+    
+    if (environmentPrompt) {
+      const envSafety = checkContentSafety(environmentPrompt);
+      if (!envSafety.isSafe) {
+        console.error(`[generate-avatar] ⛔ ENV BLOCKED - ${envSafety.category}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: envSafety.message,
+            blocked: true,
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+    // ═══════════════════════════════════════════════════════════════════
 
     const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");

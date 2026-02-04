@@ -11,6 +11,8 @@ import {
   calculateMaxTokens,
   extractUserIntent,
   validateScriptAgainstIntent,
+  checkMultipleContent,
+  getSafetyInstructions,
   type UserIntent,
 } from "../_shared/script-utils.ts";
 
@@ -63,6 +65,26 @@ serve(async (req) => {
 
   try {
     const requestData: StoryRequest = await req.json();
+    
+    // ═══════════════════════════════════════════════════════════════════
+    // CONTENT SAFETY CHECK - FIRST PRIORITY
+    // Block any NSFW, pornographic, or harmful content BEFORE processing
+    // ═══════════════════════════════════════════════════════════════════
+    const safetyCheck = checkMultipleContent([
+      requestData.topic,
+      requestData.synopsis,
+      requestData.userScript,
+      requestData.userNarration,
+      requestData.title,
+      ...(requestData.userDialogue || []),
+      ...(requestData.characters?.map(c => `${c.name} ${c.description} ${c.personality}`) || []),
+    ]);
+    
+    if (!safetyCheck.isSafe) {
+      console.error(`[generate-script] ⛔ CONTENT BLOCKED - Category: ${safetyCheck.category}, Terms: ${safetyCheck.matchedTerms.slice(0, 3).join(', ')}`);
+      return errorResponse(safetyCheck.message, 400);
+    }
+    // ═══════════════════════════════════════════════════════════════════
     
     // Input validation
     const topicValidation = validateInput(requestData.topic, { 

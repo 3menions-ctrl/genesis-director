@@ -285,13 +285,16 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
   // CRITICAL: Track if content overflows viewport for conditional centering
   const [contentOverflows, setContentOverflows] = useState(true);
   
+  // Dynamic centering padding - calculates left offset to center visible avatars
+  const [centeringPadding, setCenteringPadding] = useState(0);
+  
   // Responsive dimensions
   const CARD_WIDTH = isMobile ? 200 : 280;
   const CARD_GAP = isMobile ? 16 : 24;
   const ITEM_WIDTH = CARD_WIDTH + CARD_GAP;
-  const HORIZONTAL_PADDING = isMobile ? 32 : 96; // Total padding (left + right)
+  const MIN_EDGE_PADDING = isMobile ? 16 : 48; // Minimum padding at edges
   
-  // Measure viewport and detect overflow for conditional centering
+  // Measure viewport and calculate dynamic centering padding
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -300,19 +303,34 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
       const containerWidth = container.clientWidth;
       setViewportWidth(containerWidth);
       
-      // Calculate total content width including gaps and padding
-      const totalContentWidth = (visibleAvatars.length * CARD_WIDTH) + 
-        ((visibleAvatars.length - 1) * CARD_GAP) + HORIZONTAL_PADDING;
+      // Calculate total content width (cards + gaps only, no padding yet)
+      const contentWidth = (visibleAvatars.length * CARD_WIDTH) + 
+        ((visibleAvatars.length - 1) * CARD_GAP);
       
-      // Content overflows if it's wider than container
-      setContentOverflows(totalContentWidth > containerWidth);
+      // Content overflows if it's wider than container (accounting for minimum padding)
+      const availableWidth = containerWidth - (MIN_EDGE_PADDING * 2);
+      const overflows = contentWidth > availableWidth;
+      setContentOverflows(overflows);
+      
+      if (overflows) {
+        // When overflowing: calculate how many cards fit in the center view
+        // Add dynamic padding to center the first ~N visible cards
+        const visibleCardsCount = Math.floor(availableWidth / ITEM_WIDTH);
+        const visibleContentWidth = (visibleCardsCount * CARD_WIDTH) + ((visibleCardsCount - 1) * CARD_GAP);
+        const centerOffset = Math.max(MIN_EDGE_PADDING, (containerWidth - visibleContentWidth) / 2);
+        setCenteringPadding(centerOffset);
+      } else {
+        // When not overflowing: center the content naturally
+        const centerOffset = Math.max(MIN_EDGE_PADDING, (containerWidth - contentWidth) / 2);
+        setCenteringPadding(centerOffset);
+      }
     };
     measure();
     
     const resizeObserver = new ResizeObserver(measure);
     resizeObserver.observe(container);
     return () => resizeObserver.disconnect();
-  }, [visibleAvatars.length, CARD_WIDTH, CARD_GAP, HORIZONTAL_PADDING]);
+  }, [visibleAvatars.length, CARD_WIDTH, CARD_GAP, ITEM_WIDTH, MIN_EDGE_PADDING]);
   
   // Cleanup
   useEffect(() => {
@@ -390,8 +408,11 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
     );
   }
 
+  // Edge padding uses dynamically calculated centering
+  const edgePadding = centeringPadding || MIN_EDGE_PADDING;
+
   return (
-    <div className="relative group/gallery w-full flex justify-center">
+    <div className="relative group/gallery w-full">
       {/* Gradient fade edges */}
       <div className="absolute left-0 top-0 bottom-0 w-8 md:w-24 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
       <div className="absolute right-0 top-0 bottom-0 w-8 md:w-24 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
@@ -423,26 +444,29 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
         </div>
       )}
       
-      {/* Horizontal Scroll Container */}
+      {/* Horizontal Scroll Container - full width, constrained max */}
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="w-full max-w-[1920px] overflow-x-auto scrollbar-hide py-4 md:py-8"
+        className={cn(
+          "overflow-x-auto scrollbar-hide py-4 md:py-8",
+          !contentOverflows && "flex justify-center" // Center container when content fits
+        )}
         style={{
           scrollSnapType: 'x mandatory',
           WebkitOverflowScrolling: 'touch',
         }}
       >
-        {/* Inner flex container */}
+        {/* Inner flex container - centers content when few avatars, scrolls when many */}
         <div 
           className={cn(
             "flex",
-            contentOverflows ? "w-max" : "w-full justify-center"
+            contentOverflows && "w-max" // Force scrollable width only when needed
           )}
           style={{ 
             gap: CARD_GAP,
-            paddingLeft: isMobile ? 16 : 48,
-            paddingRight: isMobile ? 16 : 48,
+            paddingLeft: edgePadding,
+            paddingRight: edgePadding,
           }}
         >
           {displayAvatars.map((avatar) => (

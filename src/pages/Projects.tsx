@@ -154,7 +154,6 @@ function ProjectsContentInner() {
   const { 
     activeProjectId, 
     setActiveProjectId, 
-    createProject, 
     deleteProject, 
     updateProject, 
   } = studioData;
@@ -540,7 +539,8 @@ function ProjectsContentInner() {
 
   // Handlers
   const handleCreateProject = () => {
-    createProject();
+    // Just navigate to Create page - project creation is handled there
+    // when user actually submits their creation (no premature draft creation)
     navigate('/create');
   };
 

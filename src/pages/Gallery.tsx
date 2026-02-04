@@ -710,27 +710,28 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
 
 // Main Gallery component with hook resilience
 const GalleryContent = memo(function GalleryContent() {
-  // Unified navigation - safe navigation with locking
-  const { navigate } = useSafeNavigation();
-  const { getSignal, isMounted } = useNavigationAbort();
+  // CRITICAL: All hooks MUST be called unconditionally at the top
+  // React requires consistent hook order on every render
   
-  let location: ReturnType<typeof useLocation>;
-  try {
-    location = useLocation();
-  } catch {
-    location = { state: null, pathname: '/', search: '', hash: '', key: '' };
-  }
-  
+  // 1. All useState hooks first
   const [hasAccess, setHasAccess] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<GalleryVideo | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [activeCategory, setActiveCategory] = useState<VideoCategory>('all');
   const [showAvatarSection, setShowAvatarSection] = useState(false);
-  const avatarSectionRef = useRef<HTMLDivElement>(null);
   
+  // 2. All useRef hooks
+  const avatarSectionRef = useRef<HTMLDivElement>(null);
+  const lastScrollTime = useRef(0);
+  
+  // 3. Custom hooks (order must be stable)
+  const { navigate } = useSafeNavigation();
+  const { getSignal, isMounted } = useNavigationAbort();
+  const location = useLocation(); // No try-catch - it's in a Router context
   const { data: videos = [], isLoading } = useGalleryVideos();
   const { playTransition } = useAmbientSounds();
+  
   
   // Register cleanup when leaving this page
   useRouteCleanup(() => {
@@ -779,7 +780,7 @@ const GalleryContent = memo(function GalleryContent() {
   }, [location, navigate]);
   
   // Scroll/wheel navigation with debounce
-  const lastScrollTime = useRef(0);
+  // Scroll/wheel navigation with debounce
   const scrollThreshold = 300; // ms between scroll events
   
   useEffect(() => {

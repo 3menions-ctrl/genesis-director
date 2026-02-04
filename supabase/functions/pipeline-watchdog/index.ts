@@ -237,11 +237,13 @@ serve(async (req) => {
             
             if (frameResponse.ok) {
               const frameResult = await frameResponse.json();
-              if (frameResult.success && frameResult.lastFrameUrl) {
-                startImageUrl = frameResult.lastFrameUrl;
-                console.log(`[Watchdog] ✅ Extracted last frame: ${startImageUrl.substring(0, 60)}...`);
+              // extract-last-frame returns 'frameUrl', not 'lastFrameUrl'
+              const extractedFrame = frameResult.frameUrl || frameResult.lastFrameUrl;
+              if (frameResult.success && extractedFrame) {
+                startImageUrl = extractedFrame;
+                console.log(`[Watchdog] ✅ Extracted last frame (${frameResult.method}): ${startImageUrl.substring(0, 60)}...`);
               } else {
-                console.warn(`[Watchdog] Frame extraction returned no URL, using fallback`);
+                console.warn(`[Watchdog] Frame extraction returned no URL (success=${frameResult.success}), using fallback`);
               }
             } else {
               console.warn(`[Watchdog] Frame extraction HTTP error ${frameResponse.status}`);

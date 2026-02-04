@@ -465,6 +465,8 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     const [clips, setClips] = useState<{ url: string; blobUrl?: string; duration: number }[]>([]);
     const [hlsPlaylistUrl, setHlsPlaylistUrl] = useState<string | null>(null);
     const [masterAudioUrl, setMasterAudioUrl] = useState<string | null>(null);
+    // Track if clips have embedded lip-sync audio (should NOT use master audio overlay)
+    const [clipsAreLipSynced, setClipsAreLipSynced] = useState(false);
     const [currentClipIndex, setCurrentClipIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isMuted, setIsMuted] = useState(initialMuted);
@@ -680,14 +682,20 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             // AVATAR FALLBACK: If no clips found, check pending_video_tasks for avatar-style videos
             if (urls.length === 0 && tasks) {
               // Check for avatar predictions array
-              const predictions = tasks.predictions as Array<{ videoUrl?: string; status?: string }> | undefined;
+              const predictions = tasks.predictions as Array<{ videoUrl?: string; status?: string; lipSynced?: boolean }> | undefined;
               if (predictions && Array.isArray(predictions)) {
-                const avatarUrls = predictions
-                  .filter(p => p.videoUrl && p.status === 'completed')
-                  .map(p => p.videoUrl as string);
+                const completedPredictions = predictions.filter(p => p.videoUrl && p.status === 'completed');
+                const avatarUrls = completedPredictions.map(p => p.videoUrl as string);
                 if (avatarUrls.length > 0) {
                   urls = avatarUrls;
                   console.log('[UniversalPlayer] Using avatar predictions for playback:', urls.length, 'clips');
+                  
+                  // Check if ALL clips are lip-synced (have embedded audio)
+                  const allLipSynced = completedPredictions.every(p => p.lipSynced === true);
+                  if (allLipSynced) {
+                    setClipsAreLipSynced(true);
+                    console.log('[UniversalPlayer] All clips are lip-synced - using embedded video audio (no master audio overlay)');
+                  }
                 }
               }
             }
@@ -1209,7 +1217,8 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     // ========================================================================
     
     useEffect(() => {
-      if (!masterAudioUrl || mode === 'thumbnail' || useHLSNative) return;
+      // Skip master audio sync for lip-synced clips (they have embedded audio)
+      if (!masterAudioUrl || mode === 'thumbnail' || useHLSNative || clipsAreLipSynced) return;
       
       const masterAudio = masterAudioRef.current;
       if (!masterAudio) return;
@@ -1270,11 +1279,11 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
       return () => {
         clearInterval(syncInterval);
       };
-    }, [masterAudioUrl, mode, useHLSNative, useMSE, activeVideoIndex, isPlaying, currentTime]);
+    }, [masterAudioUrl, mode, useHLSNative, useMSE, activeVideoIndex, isPlaying, currentTime, clipsAreLipSynced]);
     
     // Sync master audio on play/pause
     useEffect(() => {
-      if (!masterAudioUrl || mode === 'thumbnail' || useHLSNative) return;
+      if (!masterAudioUrl || mode === 'thumbnail' || useHLSNative || clipsAreLipSynced) return;
       
       const masterAudio = masterAudioRef.current;
       if (!masterAudio) return;
@@ -1286,11 +1295,11 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
       } else {
         masterAudio.pause();
       }
-    }, [isPlaying, masterAudioUrl, mode, useHLSNative, currentTime]);
+    }, [isPlaying, masterAudioUrl, mode, useHLSNative, currentTime, clipsAreLipSynced]);
     
     // Sync master audio on seek
     useEffect(() => {
-      if (!masterAudioUrl || mode === 'thumbnail' || useHLSNative) return;
+      if (!masterAudioUrl || mode === 'thumbnail' || useHLSNative || clipsAreLipSynced) return;
       
       const masterAudio = masterAudioRef.current;
       if (!masterAudio) return;
@@ -1301,7 +1310,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
         masterAudio.currentTime = currentTime;
         lastSyncTimeRef.current = currentTime;
       }
-    }, [currentTime, masterAudioUrl, mode, useHLSNative]);
+    }, [currentTime, masterAudioUrl, mode, useHLSNative, clipsAreLipSynced]);
 
     // ========================================================================
     // PLAYBACK CONTROLS
@@ -1333,18 +1342,18 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
       const newMuted = !isMuted;
       setIsMuted(newMuted);
       
-      // If using master audio, control that instead of video audio
-      if (masterAudioUrl && masterAudioRef.current) {
+      // If using master audio overlay (and clips are NOT lip-synced), control the overlay
+      if (masterAudioUrl && masterAudioRef.current && !clipsAreLipSynced) {
         masterAudioRef.current.muted = newMuted;
       }
       
-      // Always mute video elements when using master audio (they have per-clip audio baked in)
-      // If not using master audio, toggle video mute normally
-      const shouldMuteVideo = masterAudioUrl ? true : newMuted;
+      // For lip-synced clips: toggle video mute normally (they have embedded audio)
+      // For non-lip-synced clips with master audio: always mute videos
+      const shouldMuteVideo = (masterAudioUrl && !clipsAreLipSynced) ? true : newMuted;
       if (mseVideoRef.current) mseVideoRef.current.muted = shouldMuteVideo;
       if (videoARef.current) videoARef.current.muted = shouldMuteVideo;
       if (videoBRef.current) videoBRef.current.muted = shouldMuteVideo;
-    }, [isMuted, masterAudioUrl]);
+    }, [isMuted, masterAudioUrl, clipsAreLipSynced]);
 
     const handleSeek = useCallback((time: number) => {
       if (useMSE && mseEngineRef.current) {
@@ -1647,33 +1656,33 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
           <video
             ref={mseVideoRef}
             className="absolute inset-0 w-full h-full object-contain"
-            muted={!!masterAudioUrl || isMuted}
+            muted={(masterAudioUrl && !clipsAreLipSynced) || isMuted}
             playsInline
           />
         )}
 
-        {/* Legacy Dual Video Elements - mute when using master audio */}
+        {/* Legacy Dual Video Elements - mute when using master audio (unless clips are lip-synced) */}
         {!useMSE && !error && (
           <>
             <video
               ref={videoARef}
               className="absolute inset-0 w-full h-full object-contain transition-opacity duration-[30ms]"
               style={{ opacity: videoAOpacity }}
-              muted={!!masterAudioUrl || isMuted}
+              muted={(masterAudioUrl && !clipsAreLipSynced) || isMuted}
               playsInline
             />
             <video
               ref={videoBRef}
               className="absolute inset-0 w-full h-full object-contain transition-opacity duration-[30ms]"
               style={{ opacity: videoBOpacity }}
-              muted={!!masterAudioUrl || isMuted}
+              muted={(masterAudioUrl && !clipsAreLipSynced) || isMuted}
               playsInline
             />
           </>
         )}
 
-        {/* Master Audio Track (for multi-clip avatar sync) */}
-        {masterAudioUrl && !useHLSNative && (
+        {/* Master Audio Track (for multi-clip avatar sync) - ONLY when clips are NOT lip-synced */}
+        {masterAudioUrl && !useHLSNative && !clipsAreLipSynced && (
           <audio
             ref={masterAudioRef}
             preload="auto"

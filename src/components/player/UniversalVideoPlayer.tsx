@@ -592,6 +592,12 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             const tasks = project?.pending_video_tasks as Record<string, unknown> | null;
             hlsUrl = tasks?.hlsPlaylistUrl as string | null;
             audioUrl = tasks?.masterAudioUrl as string | null || source.masterAudioUrl || project?.voice_audio_url || null;
+            console.log('[UniversalPlayer] 🎵 Audio resolution:', {
+              fromTasks: tasks?.masterAudioUrl ? 'YES' : 'NO',
+              fromSource: source.masterAudioUrl ? 'YES' : 'NO',
+              fromVoiceAudioUrl: project?.voice_audio_url ? 'YES' : 'NO',
+              resolved: audioUrl?.substring(0, 60) || 'NONE',
+            });
             
             // If on iOS and HLS available, use it
             if (useHLSNative && hlsUrl) {

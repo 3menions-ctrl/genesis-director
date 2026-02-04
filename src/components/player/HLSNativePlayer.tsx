@@ -57,8 +57,13 @@ export const HLSNativePlayer = memo(forwardRef<HTMLDivElement, HLSNativePlayerPr
     const audioRef = useRef<HTMLAudioElement>(null);
     const mountedRef = useRef(true);
     
-    // Log playback path on mount
+    // Log playback path on mount with detailed audio config
     useEffect(() => {
+      console.log('[HLSNative] 🎵 Audio Config:', {
+        masterAudioUrl: masterAudioUrl?.substring(0, 60) || 'NONE',
+        muteClipAudio,
+        willUseSeperateAudioTrack: !!masterAudioUrl,
+      });
       logPlaybackPath('HLS_NATIVE', { hlsUrl, masterAudioUrl, muteClipAudio });
       mountedRef.current = true;
       

@@ -79,18 +79,107 @@ const STITCHING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_STITCHING_ATTEMPTS = 3;
 const MAX_AGE_MS = 60 * 60 * 1000; // 60 minutes
 
+// ============================================================================
+// WORLD-CLASS CINEMATOGRAPHY ENGINE - Inline for Watchdog
+// ============================================================================
+
+const CAMERA_MOVEMENTS: Record<string, string[]> = {
+  dolly_in: ["smooth dolly push-in toward the subject, building intimacy", "gradual forward movement closing distance with emotional impact"],
+  dolly_out: ["slow dolly pull-back revealing the full scene context", "retreating camera movement expanding the visual scope"],
+  tracking_left: ["fluid lateral tracking shot moving left across the scene", "smooth side-to-side camera glide following movement"],
+  tracking_right: ["elegant rightward tracking shot with steady momentum", "horizontal camera motion sweeping across the frame"],
+  crane_up: ["graceful crane shot rising above the subject", "ascending camera movement revealing scope and scale"],
+  crane_down: ["descending crane shot landing on the subject", "overhead camera lowering to intimate framing"],
+  orbit_left: ["subtle orbiting shot arcing counterclockwise around the subject", "rotational camera movement revealing multiple angles"],
+  orbit_right: ["clockwise orbital movement around the subject", "dynamic arc shot showcasing dimensional presence"],
+  steadicam_follow: ["professional steadicam following the subject organically", "floating camera movement with natural breathing"],
+  static_locked: ["rock-solid locked-off shot with precise composition", "perfectly stable static frame emphasizing performance"],
+  push_focus: ["subtle forward motion with shifting focus plane", "gentle push-in with depth-of-field emphasis"],
+};
+
+const CAMERA_ANGLES: Record<string, string[]> = {
+  eye_level_centered: ["direct eye-level framing with centered composition", "level camera placement for natural connection"],
+  eye_level_offset: ["eye-level shot with subject positioned off-center using rule of thirds", "level angle with asymmetrical composition"],
+  low_angle_subtle: ["slightly low camera angle adding subtle authority", "upward tilt from chest height enhancing presence"],
+  low_angle_dramatic: ["dramatic low angle shooting upward toward the subject", "hero shot from below emphasizing power"],
+  high_angle_gentle: ["gentle high angle looking down with empathy", "overhead perspective creating intimacy"],
+  three_quarter_left: ["three-quarter angle from subject's left side", "45-degree profile revealing depth and dimension"],
+  three_quarter_right: ["three-quarter composition from subject's right", "dimensional 45-degree angle with depth"],
+  dutch_subtle: ["subtle dutch tilt adding dynamic tension", "slight camera cant creating visual energy"],
+  over_shoulder_left: ["over-the-shoulder shot from behind left side", "OTS framing with subject facing right"],
+  profile_silhouette: ["striking profile shot with rim lighting", "side-view silhouette with dramatic edge light"],
+};
+
+const SHOT_SIZES: Record<string, string[]> = {
+  wide: ["full-body wide shot showing complete figure and surroundings", "master shot establishing spatial relationships"],
+  medium_wide: ["medium-wide shot from knees up with comfortable headroom", "cowboy shot showing gesture and environment balance"],
+  medium: ["classic medium shot from waist up", "standard interview framing with expressive potential"],
+  medium_close: ["medium close-up from chest level", "tighter framing emphasizing upper body expression"],
+  close_up: ["powerful close-up focusing on face and expression", "tight facial framing with emotional intensity"],
+  extreme_close_up: ["extreme close-up on eyes and expression for maximum intensity", "ultra-tight framing on expressive features"],
+};
+
+const LIGHTING_STYLES: Record<string, string[]> = {
+  classic_key: ["professional three-point lighting with dominant key light", "balanced studio illumination with soft shadows"],
+  chiaroscuro: ["dramatic chiaroscuro lighting with deep shadows and highlights", "high-contrast illumination with painterly quality"],
+  rembrandt: ["Rembrandt lighting with characteristic modeling", "classic portrait lighting creating depth and dimension"],
+  golden_hour: ["warm golden hour lighting with amber tones", "magic hour glow with long atmospheric shadows"],
+  rim_dramatic: ["dramatic rim lighting separating subject from background", "edge-lit contour with glowing silhouette effect"],
+  overcast_soft: ["soft natural lighting without harsh shadows", "diffused illumination with even coverage"],
+  volumetric: ["atmospheric volumetric lighting with visible light rays", "cinematic light beams cutting through space"],
+  neon_accent: ["vibrant accent lighting with color contrast", "contemporary colored edge lighting"],
+  blue_hour: ["cool twilight lighting with blue undertones", "dusk ambiance with soft gradient sky tones"],
+};
+
+const SUBJECT_MOTION: Record<string, string[]> = {
+  static_confident: ["standing with confident stillness and grounded presence", "poised and centered with controlled energy"],
+  subtle_shift: ["gentle weight shifts and natural micro-movements", "subtle swaying with organic rhythm"],
+  gesture_expressive: ["expressive hand gestures punctuating speech naturally", "animated gesticulation matching verbal emphasis"],
+  walking_forward: ["walking purposefully toward camera while speaking", "confident approach with maintained eye contact"],
+  walking_lateral: ["walking parallel to camera with natural gait", "lateral movement through the scene while speaking"],
+  seated_engaged: ["seated position with engaged forward lean", "sitting comfortably with attentive posture"],
+  leaning_casual: ["casually leaning against a surface with relaxed energy", "relaxed stance with grounded confidence"],
+};
+
+const MOVEMENT_PROGRESSION = ['dolly_in', 'tracking_right', 'crane_up', 'orbit_left', 'dolly_out', 'steadicam_follow', 'tracking_left', 'crane_down', 'orbit_right', 'push_focus'];
+const ANGLE_PROGRESSION = ['eye_level_offset', 'low_angle_subtle', 'three_quarter_left', 'high_angle_gentle', 'dutch_subtle', 'three_quarter_right', 'low_angle_dramatic', 'eye_level_centered', 'over_shoulder_left', 'profile_silhouette'];
+const SIZE_PROGRESSION = ['medium', 'medium_close', 'wide', 'close_up', 'medium_wide', 'medium', 'extreme_close_up', 'medium_wide', 'close_up', 'wide'];
+const LIGHTING_PROGRESSION = ['classic_key', 'rembrandt', 'golden_hour', 'chiaroscuro', 'rim_dramatic', 'overcast_soft', 'neon_accent', 'volumetric', 'blue_hour', 'classic_key'];
+const MOTION_PROGRESSION = ['gesture_expressive', 'walking_forward', 'subtle_shift', 'static_confident', 'walking_lateral', 'leaning_casual', 'gesture_expressive', 'seated_engaged', 'walking_forward', 'subtle_shift'];
+
+function selectPrompt(prompts: string[]): string {
+  return prompts[Math.floor(Math.random() * prompts.length)];
+}
+
 /**
- * Build acting prompt for avatar frame-chaining
- * Matches the format used in generate-avatar-direct
+ * Build WORLD-CLASS acting prompt for avatar frame-chaining
+ * Each clip gets unique cinematography for maximum visual variety
  */
-function buildAvatarActingPrompt(segmentText: string, sceneDescription?: string): string {
+function buildAvatarActingPrompt(segmentText: string, sceneDescription?: string, clipIndex: number = 0): string {
+  const idx = clipIndex % 10;
+  
+  // Get unique style elements for this clip
+  const movementKey = MOVEMENT_PROGRESSION[idx];
+  const angleKey = ANGLE_PROGRESSION[idx];
+  const sizeKey = SIZE_PROGRESSION[idx];
+  const lightingKey = LIGHTING_PROGRESSION[idx];
+  const motionKey = MOTION_PROGRESSION[idx];
+  
+  const movementPrompt = selectPrompt(CAMERA_MOVEMENTS[movementKey] || CAMERA_MOVEMENTS.static_locked);
+  const anglePrompt = selectPrompt(CAMERA_ANGLES[angleKey] || CAMERA_ANGLES.eye_level_centered);
+  const sizePrompt = selectPrompt(SHOT_SIZES[sizeKey] || SHOT_SIZES.medium);
+  const lightingPrompt = selectPrompt(LIGHTING_STYLES[lightingKey] || LIGHTING_STYLES.classic_key);
+  const motionPrompt = selectPrompt(SUBJECT_MOTION[motionKey] || SUBJECT_MOTION.gesture_expressive);
+  
   const sceneContext = sceneDescription?.trim()
-    ? `Cinematic scene in ${sceneDescription.trim()}, shot with professional cinematography, natural lighting matching the environment. `
-    : "Professional studio with cinematic three-point lighting, soft diffused key light, subtle rim lighting. ";
+    ? `Cinematic scene in ${sceneDescription.trim()}, shot with professional cinematography.`
+    : "Professional studio with cinematic three-point lighting.";
   
-  const qualityBaseline = "Ultra high definition, film-quality, natural skin tones, sharp focus on subject.";
+  const qualityBaseline = "Ultra-high definition, film-grain texture, natural skin tones, professional color grading, cinematic depth of field.";
   
-  return `${sceneContext}The person in the frame is speaking directly to the camera with full engagement, delivering this message naturally: "${segmentText.trim()}" They show genuine expression and natural gestures while speaking. Mouth moves naturally in sync with speech. ${qualityBaseline}`;
+  console.log(`[Watchdog] Clip ${clipIndex + 1} Style: ${movementKey} + ${angleKey} + ${sizeKey}`);
+  
+  return `${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. The subject is ${motionPrompt}, speaking naturally: "${segmentText.trim().substring(0, 80)}${segmentText.length > 80 ? '...' : ''}". Lifelike fluid movements, natural micro-expressions, authentic lip sync, subtle breathing motion, realistic eye movements and blinks. ${qualityBaseline}`;
 }
 
 serve(async (req) => {
@@ -221,8 +310,8 @@ serve(async (req) => {
           // Store the start image for this clip
           pred.startImageUrl = startImageUrl;
           
-          // Build acting prompt for this segment
-          const actingPrompt = buildAvatarActingPrompt(pred.segmentText, tasks.sceneDescription);
+          // Build WORLD-CLASS acting prompt for this segment with unique cinematography
+          const actingPrompt = buildAvatarActingPrompt(pred.segmentText, tasks.sceneDescription, pred.clipIndex);
           const videoDuration = tasks.clipDuration >= 10 ? 10 : (tasks.clipDuration || 10);
           
           // Start Kling prediction for this clip

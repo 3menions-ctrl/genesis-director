@@ -32,28 +32,66 @@ const corsHeaders = {
  * 4. Ensures verbatim TTS, scene compositing, and natural acting
  */
 
-// Voice mapping for MiniMax
+// Voice mapping - complete voice library matching generate-voice function
+// Maps avatar voice_id to the actual voice used for TTS generation
 const VOICE_MAP: Record<string, string> = {
+  // Legacy ElevenLabs IDs (for backwards compatibility)
   'onwK4e9ZLuTAKqWW03F9': 'onyx',
   'JBFqnCBsd6RMkjVDRZzb': 'echo',
   'EXAVITQu4vr4xnSDxMaL': 'nova',
   'pFZP5JQG7iQjIQuC4Bku': 'shimmer',
   'cjVigY5qzO86Huf0OWal': 'alloy',
+  
+  // Male voices - Deep & Authoritative
   'onyx': 'onyx',
-  'echo': 'echo',
-  'fable': 'fable',
-  'nova': 'nova',
-  'shimmer': 'shimmer',
-  'alloy': 'alloy',
-  'bella': 'bella',
-  'adam': 'adam',
-  'michael': 'michael',
   'george': 'george',
+  'michael': 'michael',
+  
+  // Male voices - Warm & Friendly
+  'echo': 'echo',
+  'adam': 'adam',
+  'fable': 'fable',
+  
+  // Male voices - Youthful & Energetic
+  'marcus': 'marcus',
+  'tyler': 'tyler',
+  'jake': 'jake',
+  
+  // Male voices - Professional
+  'david': 'david',
+  'james': 'james',
+  
+  // Female voices - Confident & Strong
+  'nova': 'nova',
+  'aria': 'aria',
+  'victoria': 'victoria',
+  
+  // Female voices - Warm & Friendly
+  'bella': 'bella',
   'sarah': 'sarah',
-  'jessica': 'jessica',
-  'lily': 'lily',
+  'alloy': 'alloy',
   'emma': 'emma',
+  
+  // Female voices - Elegant & Sophisticated
+  'shimmer': 'shimmer',
+  'lily': 'lily',
+  'charlotte': 'charlotte',
+  
+  // Female voices - Youthful & Energetic
+  'jessica': 'jessica',
+  'zoey': 'zoey',
+  'mia': 'mia',
+  
+  // Female voices - Professional
+  'rachel': 'rachel',
+  'claire': 'claire',
+  
+  // Special voices - Narration
   'narrator': 'narrator',
+  'storyteller': 'storyteller',
+  'documentary': 'documentary',
+  
+  // Default fallback
   'default': 'bella',
 };
 

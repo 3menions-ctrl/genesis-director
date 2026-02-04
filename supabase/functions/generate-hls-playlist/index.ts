@@ -146,7 +146,9 @@ serve(async (req) => {
       .single();
 
     const pipelineState = project?.pipeline_state as Record<string, unknown> | null;
-    const masterAudioUrl = pipelineState?.masterAudioUrl as string | undefined;
+    // Check both pipeline_state and voice_audio_url for master audio
+    // Avatar mode stores master audio in voice_audio_url column
+    const masterAudioUrl = (pipelineState?.masterAudioUrl as string) || project?.voice_audio_url || undefined;
 
     // Calculate total duration
     const totalDuration = orderedClips.reduce((sum, c) => sum + (c.duration_seconds || 5), 0);

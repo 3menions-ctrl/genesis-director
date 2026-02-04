@@ -103,15 +103,16 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
 
   return (
     // STABILITY: Replaced motion.div with CSS animations to prevent ref-injection crashes
+    // Landscape tablets: more compact padding (p-3) to leave room for avatar notes
     <div
       ref={ref}
-      className="fixed bottom-0 left-0 right-0 z-40 p-4 md:p-6 animate-fade-in"
+      className="fixed bottom-0 left-0 right-0 z-40 p-3 md:p-4 lg:p-6 animate-fade-in"
       style={{ animationDelay: '0.4s' }}
     >
       <div className="max-w-5xl mx-auto">
-        <div className="p-4 md:p-6 rounded-2xl md:rounded-3xl bg-zinc-900 border border-white/[0.12] backdrop-blur-2xl shadow-2xl shadow-black/50">
-          {/* Mobile Layout */}
-          <div className="flex flex-col gap-4 lg:hidden">
+        <div className="p-3 md:p-4 lg:p-6 rounded-2xl md:rounded-3xl bg-zinc-900 border border-white/[0.12] backdrop-blur-2xl shadow-2xl shadow-black/50">
+          {/* Mobile/Tablet Layout - shown below lg breakpoint */}
+          <div className="flex flex-col gap-3 md:gap-2 lg:hidden">
             {/* Story/Script Input - Mobile (Primary) */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -156,13 +157,13 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 }
                 value={prompt}
                 onChange={(e) => onPromptChange(e.target.value)}
-                className="min-h-[80px] bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 resize-none text-sm"
+                className="min-h-[60px] md:min-h-[50px] bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 resize-none text-sm"
                 disabled={!selectedAvatar}
               />
             </div>
 
-            {/* Scene/Environment Input - Mobile */}
-            <div className="space-y-1.5">
+            {/* Scene/Environment Input - Mobile/Tablet - hidden on landscape tablet to save space */}
+            <div className="space-y-1.5 hidden portrait:block md:landscape:hidden">
               <Label className="text-zinc-300 flex items-center gap-2 text-xs font-medium">
                 <MapPin className="w-3 h-3 text-violet-400" />
                 Environment (optional)
@@ -171,7 +172,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 placeholder="e.g., a witch's house in the woods, a futuristic city..."
                 value={sceneDescription}
                 onChange={(e) => onSceneDescriptionChange(e.target.value)}
-                className="h-9 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 text-sm"
+                className="h-8 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 text-sm"
                 disabled={!selectedAvatar}
               />
             </div>

@@ -33,8 +33,6 @@ interface VideoManifest {
   totalDuration: number;
 }
 
-const ADMIN_USER_ID = 'd600868d-651a-46f6-a621-a727b240ac7c';
-
 // Category configuration
 const CATEGORIES: { id: VideoCategory; label: string; icon: React.ElementType; description: string }[] = [
   { id: 'all', label: 'All Videos', icon: Sparkles, description: 'Browse our complete collection' },
@@ -43,50 +41,40 @@ const CATEGORIES: { id: VideoCategory; label: string; icon: React.ElementType; d
   { id: 'avatar', label: 'AI Avatar', icon: User, description: 'Realistic talking avatars' },
 ];
 
-// Helper to determine video category from project mode
-const getVideoCategory = (mode: string | null): VideoCategory => {
-  if (!mode) return 'text-to-video';
-  const lowerMode = mode.toLowerCase();
-  if (lowerMode.includes('avatar') || lowerMode.includes('talking')) return 'avatar';
-  if (lowerMode.includes('image') || lowerMode.includes('img2vid')) return 'image-to-video';
-  return 'text-to-video';
-};
-
 const useGalleryVideos = () => {
   return useQuery({
-    queryKey: ['gallery-videos-admin'],
+    queryKey: ['gallery-videos-showcase'],
     queryFn: async (): Promise<GalleryVideo[]> => {
+      // Fetch from gallery_showcase table (admin-curated videos)
       const { data, error } = await supabase
-        .from('movie_projects')
-        .select('id, video_url, thumbnail_url, mode, title')
-        .eq('user_id', ADMIN_USER_ID)
-        .eq('status', 'completed')
-        .not('video_url', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(30);
+        .from('gallery_showcase')
+        .select('id, video_url, thumbnail_url, category, title')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
       
       if (error) throw error;
       if (!data || data.length === 0) return [];
       
       const videosWithClips = await Promise.all(
-        data.map(async (project) => {
-          const url = project.video_url || '';
-          const category = getVideoCategory(project.mode);
+        data.map(async (item) => {
+          const url = item.video_url || '';
+          // Map gallery_showcase category to VideoCategory
+          const category = (item.category as VideoCategory) || 'text-to-video';
           
-          if (url.endsWith('.json')) {
+          if (url.endsWith('.json') || url.includes('manifest_')) {
             try {
               const response = await fetch(url);
               const manifest: VideoManifest = await response.json();
               
               if (manifest.clips && manifest.clips.length > 0) {
                 return {
-                  id: project.id,
-                  title: project.title || '',
-                  thumbnail_url: project.thumbnail_url,
+                  id: item.id,
+                  title: item.title || '',
+                  thumbnail_url: item.thumbnail_url,
                   video_url: manifest.clips[0].videoUrl,
                   all_clips: manifest.clips.map(c => c.videoUrl),
                   category,
-                  mode: project.mode,
+                  mode: null,
                 };
               }
             } catch (e) {
@@ -96,13 +84,13 @@ const useGalleryVideos = () => {
           
           if (url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.mov')) {
             return {
-              id: project.id,
-              title: project.title || '',
-              thumbnail_url: project.thumbnail_url,
+              id: item.id,
+              title: item.title || '',
+              thumbnail_url: item.thumbnail_url,
               video_url: url,
               all_clips: [url],
               category,
-              mode: project.mode,
+              mode: null,
             };
           }
           

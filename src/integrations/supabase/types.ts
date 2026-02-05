@@ -2250,6 +2250,8 @@ export type Database = {
           company: string | null
           created_at: string
           credits_balance: number
+          deactivated_at: string | null
+          deactivation_reason: string | null
           display_name: string | null
           email: string | null
           full_name: string | null
@@ -2270,6 +2272,8 @@ export type Database = {
           company?: string | null
           created_at?: string
           credits_balance?: number
+          deactivated_at?: string | null
+          deactivation_reason?: string | null
           display_name?: string | null
           email?: string | null
           full_name?: string | null
@@ -2290,6 +2294,8 @@ export type Database = {
           company?: string | null
           created_at?: string
           credits_balance?: number
+          deactivated_at?: string | null
+          deactivation_reason?: string | null
           display_name?: string | null
           email?: string | null
           full_name?: string | null
@@ -3608,6 +3614,7 @@ export type Database = {
         Returns: Json
       }
       check_support_rate_limit: { Args: { p_email: string }; Returns: boolean }
+      deactivate_account: { Args: { p_reason?: string }; Returns: boolean }
       deduct_credits: {
         Args: {
           p_amount: number
@@ -3718,6 +3725,7 @@ export type Database = {
         Args: { p_context: Json; p_project_id: string }
         Returns: boolean
       }
+      reactivate_account: { Args: never; Returns: boolean }
       refund_production_credits:
         | {
             Args: { p_project_id: string; p_reason: string; p_shot_id: string }

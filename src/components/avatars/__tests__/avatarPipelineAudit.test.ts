@@ -24,15 +24,16 @@ describe('Avatar Pipeline Page Loading Audit', () => {
   describe('Avatars.tsx Loading Patterns', () => {
     const avatarsContent = readFile('src/pages/Avatars.tsx');
     
-    it('should use NavigationLoadingContext integration', () => {
-      expect(avatarsContent).toContain('usePageReady');
-      expect(avatarsContent).toContain('disableAutoComplete');
-      expect(avatarsContent).toContain('markReady');
+    it('should use centralized gatekeeper hook', () => {
+      expect(avatarsContent).toContain('useGatekeeperLoading');
+      expect(avatarsContent).toContain('GATEKEEPER_PRESETS.avatars');
+      expect(avatarsContent).toContain('gatekeeper.isLoading');
     });
     
-    it('should have gatekeeper timeout fallback', () => {
-      expect(avatarsContent).toContain('GATEKEEPER_TIMEOUT_MS');
-      expect(avatarsContent).toContain('forceRender');
+    it('should pass loading state to gatekeeper', () => {
+      expect(avatarsContent).toContain('authLoading');
+      expect(avatarsContent).toContain('dataLoading: templatesLoading');
+      expect(avatarsContent).toContain('imageProgress');
     });
     
     it('should use safe navigation patterns', () => {
@@ -59,8 +60,9 @@ describe('Avatar Pipeline Page Loading Audit', () => {
   describe('Create.tsx Loading Patterns', () => {
     const createContent = readFile('src/pages/Create.tsx');
     
-    it('should have gatekeeper timeout fallback', () => {
-      expect(createContent).toContain('GATEKEEPER_TIMEOUT_MS');
+    it('should use centralized gatekeeper hook', () => {
+      expect(createContent).toContain('useGatekeeperLoading');
+      expect(createContent).toContain('GATEKEEPER_PRESETS.create');
     });
     
     it('should use safe navigation patterns', () => {

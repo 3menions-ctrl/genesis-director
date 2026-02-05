@@ -22,7 +22,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef, memo, forwardRef } from 'react';
 import { toast } from 'sonner';
 import { useSafeNavigation, useRouteCleanup, useNavigationAbort } from '@/lib/navigation';
-import { usePageReady } from '@/contexts/NavigationLoadingContext';
 import { cn } from '@/lib/utils';
 import { useAvatarTemplatesQuery } from '@/hooks/useAvatarTemplatesQuery';
 import { useAvatarVoices } from '@/hooks/useAvatarVoices';
@@ -45,6 +44,7 @@ import { handleError } from '@/lib/errorHandler';
 import { handleEdgeFunctionError, showUserFriendlyError } from '@/lib/userFriendlyErrors';
 import { ErrorBoundary, SafeComponent } from '@/components/ui/error-boundary';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
+import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
 
 // GATEKEEPER: Extract critical image URLs from templates
 function getCriticalImageUrls(templates: AvatarTemplate[], limit = 8): string[] {
@@ -62,23 +62,13 @@ function getCriticalImageUrls(templates: AvatarTemplate[], limit = 8): string[] 
   }
 }
 
-// STABILITY: REDUCED timeout to 5s to fail faster and show content
-const GATEKEEPER_TIMEOUT_MS = 5000;
-
 const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function AvatarsContent(_, ref) {
   // ========== Unified navigation - safe navigation with locking ==========
   // Use emergencyNavigate for post-creation redirect to bypass locks
   const { navigate, emergencyNavigate } = useSafeNavigation();
   const { abort: abortRequests } = useNavigationAbort();
-  const { markReady, disableAutoComplete } = usePageReady();
   let authContext: ReturnType<typeof useAuth> | null = null;
   let tierLimits: ReturnType<typeof useTierLimits> | null = null;
-  
-  // CRITICAL: Disable auto-complete immediately - this page manages its own readiness
-  // This prevents NavigationLoadingContext from dismissing the overlay prematurely
-  useEffect(() => {
-    disableAutoComplete();
-  }, [disableAutoComplete]);
   
   // Register cleanup when leaving this page
   useRouteCleanup(() => {
@@ -107,23 +97,6 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   const abortControllerRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
   const containerRef = useRef<HTMLDivElement>(null);
-  const gatekeeperCompleteRef = useRef(false);
-  
-  // ========== STABILITY: Timeout Fallback ==========
-  // Force render after timeout to prevent infinite loading state
-  const [forceRender, setForceRender] = useState(false);
-  
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (isMountedRef.current && !gatekeeperCompleteRef.current) {
-        console.warn('[Avatars] Gatekeeper timeout reached, forcing render');
-        setForceRender(true);
-        gatekeeperCompleteRef.current = true;
-      }
-    }, GATEKEEPER_TIMEOUT_MS);
-    
-    return () => clearTimeout(timeoutId);
-  }, []);
   
   // ========== Avatar Selection State ==========
   const [searchQuery, setSearchQuery] = useState('');
@@ -221,17 +194,14 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     concurrency: 4,
   });
   
-  // SIMPLIFIED GATEKEEPER: Only wait for auth and basic template fetch
-  // Image preloading happens in background, forceRender is the ultimate fallback
-  const isGatekeeperLoading = !forceRender && (
-    authLoading || 
-    (templatesLoading && !isSuccess) // Only block if actively loading AND no cached success
-  );
-  
-  // Progress calculation simplified
-  const gatekeeperProgress = authLoading ? 20 : 
-    templatesLoading ? 50 : 
-    Math.min(50 + (imageProgress * 0.5), 100);
+  // CENTRALIZED GATEKEEPER - replaces inline timeout logic
+  const gatekeeper = useGatekeeperLoading({
+    ...GATEKEEPER_PRESETS.avatars,
+    authLoading,
+    dataLoading: templatesLoading,
+    dataSuccess: isSuccess,
+    imageProgress,
+  });
   
   // ========== Computed Values ==========
   const userCredits = useMemo(() => profile?.credits_balance ?? 0, [profile?.credits_balance]);
@@ -263,16 +233,10 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     };
   }, [stopPlayback]);
   
-  // ========== GATEKEEPER: Signal readiness and preload voices when ready ==========
+  // ========== Preload voices when gatekeeper completes ==========
   useEffect(() => {
-    if (!isGatekeeperLoading && !gatekeeperCompleteRef.current && isMountedRef.current) {
-      gatekeeperCompleteRef.current = true;
-      
-      // CRITICAL: Signal to NavigationLoadingContext that we're ready
-      // This dismisses the global loading overlay properly
-      markReady('AvatarsPage');
-      
-      // Preload voices in background AFTER page is visible
+    if (!gatekeeper.isLoading && isMountedRef.current) {
+      // Preload voices in background after page is visible
       if (safeTemplates.length > 0) {
         try {
           const visibleAvatars = safeTemplates.slice(0, 5);
@@ -282,7 +246,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         }
       }
     }
-  }, [isGatekeeperLoading, safeTemplates, preloadVoices, markReady]);
+  }, [gatekeeper.isLoading, safeTemplates, preloadVoices]);
   
   // ========== Handlers ==========
   const handleVoicePreview = useCallback(async (avatar: AvatarTemplate) => {
@@ -439,7 +403,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   }, []);
   
   // ========== GATEKEEPER LOADING STATE ==========
-  if (isGatekeeperLoading) {
+  if (gatekeeper.isLoading) {
     return (
       <div ref={ref || containerRef} className="relative min-h-screen flex flex-col bg-background overflow-hidden">
         <SafeComponent name="AvatarsBackground-loading" silent>
@@ -447,8 +411,8 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         </SafeComponent>
         <CinemaLoader
           isVisible={true}
-          message={authLoading ? 'Authenticating...' : templatesLoading ? 'Loading avatar library...' : 'Preparing...'}
-          progress={gatekeeperProgress}
+          message={getGatekeeperMessage(gatekeeper.phase, GATEKEEPER_PRESETS.avatars.messages)}
+          progress={gatekeeper.progress}
           showProgress={true}
           variant="fullscreen"
         />

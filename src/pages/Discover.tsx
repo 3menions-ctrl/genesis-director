@@ -349,6 +349,7 @@ const VideoCard = memo(forwardRef<HTMLDivElement, VideoCardProps>(function Video
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canplayListenerRef = useRef<(() => void) | null>(null);
   
   // CRITICAL: Synchronous ref merger to prevent AnimatePresence crashes
   const mergedRef = useCallback((node: HTMLDivElement | null) => {
@@ -422,10 +423,17 @@ const VideoCard = memo(forwardRef<HTMLDivElement, VideoCardProps>(function Video
         attemptPlay();
       } else {
         // Wait for video to be ready
+        // MEMORY FIX: Store listener reference for cleanup
         const onCanPlay = () => {
           videoEl.removeEventListener('canplay', onCanPlay);
+          canplayListenerRef.current = null;
           attemptPlay();
         };
+        // Remove any previous listener before adding new one
+        if (canplayListenerRef.current) {
+          videoEl.removeEventListener('canplay', canplayListenerRef.current);
+        }
+        canplayListenerRef.current = onCanPlay;
         videoEl.addEventListener('canplay', onCanPlay);
         
         // Also try loading if not started
@@ -440,8 +448,13 @@ const VideoCard = memo(forwardRef<HTMLDivElement, VideoCardProps>(function Video
 
   const handleMouseLeave = useCallback(() => {
     setIsHovered(false);
-    // STABILITY FIX: Use safe video operations
+    // MEMORY FIX: Clean up any pending canplay listener
     const videoEl = videoRef.current;
+    if (videoEl && canplayListenerRef.current) {
+      videoEl.removeEventListener('canplay', canplayListenerRef.current);
+      canplayListenerRef.current = null;
+    }
+    // STABILITY FIX: Use safe video operations
     if (videoEl) {
       safePause(videoEl);
       safeSeek(videoEl, 0);

@@ -42,6 +42,16 @@
      : video.video_url ? [video.video_url] : [];
    
    const totalClips = clips.length;
+  
+  // MEMORY FIX: Cleanup controls timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+        controlsTimeoutRef.current = null;
+      }
+    };
+  }, []);
    
    const getActiveVideoRef = useCallback(() => {
      return activeVideo === 'A' ? videoARef : videoBRef;

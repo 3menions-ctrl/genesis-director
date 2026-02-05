@@ -262,11 +262,11 @@ export class MSEGaplessEngine {
       this.sourceBuffer.mode = 'sequence'; // Auto-continue timestamps
       
       // Handle SourceBuffer events
-      this.sourceBuffer.addEventListener('updateend', () => this.processAppendQueue());
+      this.sourceBuffer.addEventListener('updateend', () => this.processAppendQueue(), { once: false });
       this.sourceBuffer.addEventListener('error', (e) => {
         console.error('[MSEEngine] SourceBuffer error:', e);
         this.handleError(new Error('SourceBuffer error'));
-      });
+      }, { once: true }); // Error should only trigger once
 
       console.log('[MSEEngine] Initialized successfully with', clips.length, 'clips');
       this.updateState({ status: 'loading' });
@@ -430,7 +430,19 @@ export class MSEGaplessEngine {
    */
   private waitForAppendComplete(): Promise<void> {
     return new Promise((resolve) => {
+      let iterationCount = 0;
+      const MAX_ITERATIONS = 600; // 30 seconds at 50ms intervals
+      
       const check = () => {
+        iterationCount++;
+        
+        // SAFETY: Prevent infinite polling
+        if (iterationCount >= MAX_ITERATIONS) {
+          console.warn('[MSEEngine] waitForAppendComplete timed out after 30s');
+          resolve();
+          return;
+        }
+        
         if (this.appendQueue.length === 0 && !this.isAppending) {
           // Ensure sourceBuffer is done updating
           if (this.sourceBuffer && !this.sourceBuffer.updating) {

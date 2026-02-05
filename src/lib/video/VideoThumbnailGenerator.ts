@@ -8,6 +8,7 @@
  */
 
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
+import { cleanupCanvasElement } from '@/lib/memoryManager';
 
 interface ThumbnailCacheSchema extends DBSchema {
   thumbnails: {
@@ -181,6 +182,8 @@ export async function extractThumbnail(
       video.removeEventListener('error', onError);
       video.src = '';
       video.load();
+      // SAFETY: Clean up canvas to release GPU memory
+      cleanupCanvasElement(canvas);
     };
     
     const onError = () => {
@@ -351,7 +354,12 @@ export function generatePlaceholder(
   ctx.textBaseline = 'middle';
   ctx.fillText(text, width / 2, height / 2);
   
-  return canvas.toDataURL('image/jpeg', 0.7);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+  
+  // SAFETY: Clean up canvas after extracting data URL
+  cleanupCanvasElement(canvas);
+  
+  return dataUrl;
 }
 
 /**

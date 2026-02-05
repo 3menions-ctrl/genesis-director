@@ -141,7 +141,7 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
 
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0 bg-[#000] border-white/[0.08] overflow-hidden">
+        <DialogContent className="max-w-4xl max-h-[85vh] p-0 bg-[#000] border-white/[0.08] overflow-hidden flex flex-col">
           {/* Accessible description for screen readers */}
           <DialogDescription className="sr-only">
             Purchase credits for video generation
@@ -162,8 +162,8 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
             <div className="absolute top-1/2 right-0 w-[300px] h-[300px] bg-purple-600/[0.07] rounded-full blur-[80px]" />
           </div>
 
-          <ScrollArea className="max-h-[90vh] relative z-10">
-            <div className="p-8 md:p-10">
+          <ScrollArea className="flex-1 min-h-0 relative z-10">
+            <div className="p-6 md:p-10">
               {/* Header */}
               <div className="text-center mb-10">
                 <motion.div

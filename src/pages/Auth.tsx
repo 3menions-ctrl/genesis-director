@@ -281,9 +281,9 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
         {/* Transparent container */}
         <div className="w-full max-w-md relative">
           {/* Mobile Logo */}
-          <div className="lg:hidden text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 mb-4 shadow-lg">
-              <span className="text-2xl font-display font-bold text-white">AS</span>
+            <div className="lg:hidden text-center mb-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 mb-4 shadow-lg">
+                <span className="text-2xl font-display font-bold text-white">A-S</span>
             </div>
             <h1 className="text-2xl font-display font-bold text-white">
               Apex-Studio

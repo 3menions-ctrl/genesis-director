@@ -182,8 +182,18 @@ export class BlobPreloadCache {
 
       if (response.body) {
         const reader = response.body.getReader();
+        let readCount = 0;
+        const MAX_READ_ITERATIONS = 50000; // Safety limit (~500MB at 10KB chunks)
 
         while (true) {
+          readCount++;
+          
+          // SAFETY: Prevent infinite loop on malformed streams
+          if (readCount >= MAX_READ_ITERATIONS) {
+            console.warn('[BlobCache] Stream read exceeded max iterations, truncating');
+            break;
+          }
+          
           const { done, value } = await reader.read();
           if (done) break;
 

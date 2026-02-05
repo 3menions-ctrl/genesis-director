@@ -4,6 +4,7 @@ import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 
 const TOAST_LIMIT = 1;
 const TOAST_REMOVE_DELAY = 1000000;
+const MAX_LISTENERS = 20; // Prevent unbounded listener growth
 
 type ToasterToast = ToastProps & {
   id: string;
@@ -167,6 +168,12 @@ function useToast() {
   const [state, setState] = React.useState<State>(memoryState);
 
   React.useEffect(() => {
+    // SAFETY: Prevent listener array from growing unbounded
+    if (listeners.length >= MAX_LISTENERS) {
+      console.warn('[Toast] Max listeners reached, removing oldest');
+      listeners.shift();
+    }
+    
     listeners.push(setState);
     return () => {
       const index = listeners.indexOf(setState);
@@ -174,7 +181,7 @@ function useToast() {
         listeners.splice(index, 1);
       }
     };
-  }, [state]);
+  }, []); // FIXED: Remove 'state' dependency - was causing re-registration on every state change
 
   return {
     ...state,

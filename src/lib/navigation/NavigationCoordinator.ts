@@ -538,7 +538,22 @@ class NavigationCoordinatorImpl {
     });
     
     if (element.parentNode) {
-      observer.observe(element.parentNode, { childList: true, subtree: true });
+      // SAFETY: Only observe if element is still connected
+      if (element.isConnected) {
+        observer.observe(element.parentNode, { childList: true, subtree: true });
+        
+        // Additional cleanup: periodic check for edge cases where MutationObserver misses removal
+        const cleanupCheckId = setInterval(() => {
+          if (!element.isConnected) {
+            this.registeredMediaElements.delete(element);
+            observer.disconnect();
+            clearInterval(cleanupCheckId);
+          }
+        }, 5000);
+        
+        // Store cleanup reference on element for manual cleanup if needed
+        (element as HTMLMediaElement & { _navCleanupId?: ReturnType<typeof setInterval> })._navCleanupId = cleanupCheckId;
+      }
     }
   }
 

@@ -135,20 +135,28 @@ export const OptimizedAvatarImage = memo(function OptimizedAvatarImage({
     const img = imgRef.current;
     if (!img) return;
 
-    observerRef.current = new IntersectionObserver(
+    // SAFETY: Disconnect any existing observer before creating new one
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+    
+    const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsInView(true);
-          observerRef.current?.disconnect();
+          observer.disconnect();
+          observerRef.current = null;
         }
       },
       { rootMargin: '200px', threshold: 0 }
     );
 
-    observerRef.current.observe(img);
+    observer.observe(img);
+    observerRef.current = observer;
 
     return () => {
-      observerRef.current?.disconnect();
+      observer.disconnect();
+      observerRef.current = null;
     };
   }, [priority, src]);
 

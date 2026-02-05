@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { 
   User, Camera, Mail, Building2, Briefcase, 
-  Save, Loader2, CheckCircle2, Edit3, Crown, AlertCircle
+  Save, Loader2, CheckCircle2, Edit3, Crown, AlertCircle, UserX, Power
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -36,6 +36,11 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
   const [newEmail, setNewEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [isChangingEmail, setIsChangingEmail] = useState(false);
+  
+  // Deactivation state
+  const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
+  const [deactivationReason, setDeactivationReason] = useState('');
+  const [isDeactivating, setIsDeactivating] = useState(false);
   
   const [formData, setFormData] = useState({
     display_name: '',
@@ -176,6 +181,30 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
       toast.error(error instanceof Error ? error.message : 'Failed to change email');
     } finally {
       setIsChangingEmail(false);
+    }
+  };
+
+  const handleDeactivateAccount = async () => {
+    if (!user) return;
+    
+    setIsDeactivating(true);
+    try {
+      const { error } = await supabase.rpc('deactivate_account', {
+        p_reason: deactivationReason.trim() || null
+      });
+
+      if (error) throw error;
+
+      toast.success('Your account has been deactivated');
+      setShowDeactivateDialog(false);
+      
+      // Sign out after deactivation
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Error deactivating account:', error);
+      toast.error('Failed to deactivate account');
+    } finally {
+      setIsDeactivating(false);
     }
   };
 
@@ -460,6 +489,38 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
         </div>
       </motion.div>
 
+      {/* Account Deactivation */}
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="relative rounded-2xl overflow-hidden border border-red-500/20 bg-red-500/[0.02] p-6"
+      >
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/30 to-transparent" />
+        
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
+            <UserX className="w-6 h-6 text-red-400" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-white">Deactivate Account</h3>
+            <p className="text-sm text-white/50 mt-1">
+              Temporarily disable your account. Your data will be preserved and you can reactivate anytime by signing back in.
+            </p>
+            <div className="mt-4">
+              <Button
+                onClick={() => setShowDeactivateDialog(true)}
+                variant="outline"
+                className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 hover:border-red-500/50"
+              >
+                <Power className="w-4 h-4 mr-2" />
+                Deactivate Account
+              </Button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
       {/* Email Change Dialog */}
       <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
         <DialogContent className="bg-black/95 backdrop-blur-2xl border-white/10">
@@ -525,6 +586,73 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
                 <Mail className="w-4 h-4 mr-2" />
               )}
               Send Confirmation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Deactivation Confirmation Dialog */}
+      <Dialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
+        <DialogContent className="bg-black/95 backdrop-blur-2xl border-red-500/20">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center">
+                <UserX className="w-5 h-5 text-red-400" />
+              </div>
+              <DialogTitle className="text-white">Deactivate Your Account</DialogTitle>
+            </div>
+            <DialogDescription className="text-white/60">
+              This will temporarily disable your account. You can reactivate it anytime by signing back in.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+              <div className="flex gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="text-sm text-amber-200/80">
+                  <p className="font-medium text-amber-300">What happens when you deactivate:</p>
+                  <ul className="mt-2 space-y-1 text-amber-200/70">
+                    <li>• Your profile will be hidden from other users</li>
+                    <li>• You won't receive any notifications</li>
+                    <li>• Your projects and credits are preserved</li>
+                    <li>• You can reactivate anytime by logging in</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-white/60">Reason for leaving (optional)</Label>
+              <Textarea
+                value={deactivationReason}
+                onChange={(e) => setDeactivationReason(e.target.value)}
+                placeholder="Help us improve by sharing why you're leaving..."
+                rows={3}
+                className="bg-white/[0.05] border-white/10 text-white placeholder:text-white/30 resize-none"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              onClick={() => setShowDeactivateDialog(false)}
+              variant="ghost"
+              className="text-white/60 hover:text-white"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeactivateAccount}
+              disabled={isDeactivating}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeactivating ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Power className="w-4 h-4 mr-2" />
+              )}
+              Deactivate Account
             </Button>
           </DialogFooter>
         </DialogContent>

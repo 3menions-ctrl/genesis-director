@@ -288,15 +288,51 @@ serve(async (req) => {
     
     console.log(`[RetryClip] Clip ${request.clipIndex} retry succeeded!`);
     
-    // 9. Clear retry state from project
+    // 9. Clear retry state and check if ALL clips are now complete
+    // CRITICAL: This reconciliation prevents "false failure" states
+    const { data: allClips } = await supabase
+      .from('video_clips')
+      .select('id, shot_index, status')
+      .eq('project_id', request.projectId)
+      .order('shot_index');
+    
+    const completedClips = allClips?.filter(c => c.status === 'completed').length || 0;
+    const failedClips = allClips?.filter(c => c.status === 'failed').length || 0;
+    const totalClipsCount = allClips?.length || 0;
+    
+    console.log(`[RetryClip] Status reconciliation: ${completedClips}/${totalClipsCount} completed, ${failedClips} failed`);
+    
+    // If ALL clips are now complete, trigger final assembly to fix any stale 'failed' status
+    if (totalClipsCount > 0 && completedClips === totalClipsCount) {
+      console.log(`[RetryClip] ✅ All clips complete - triggering final assembly for status reconciliation`);
+      
+      try {
+        await callEdgeFunction('final-assembly', {
+          projectId: request.projectId,
+          userId: request.userId,
+          forceReconcile: true, // Signal that this is a reconciliation call
+        });
+        console.log(`[RetryClip] ✓ Final assembly triggered successfully`);
+      } catch (assemblyErr) {
+        console.warn(`[RetryClip] ⚠️ Final assembly call failed, but clip retry succeeded:`, assemblyErr);
+        // Don't fail the retry - the clip itself succeeded
+      }
+    }
+    
+    // Update project state
     await supabase
       .from('movie_projects')
       .update({
         pending_video_tasks: {
           ...currentTasks,
           retryingClip: null,
+          lastReconciliation: new Date().toISOString(),
+          clipsCompleted: completedClips,
+          clipsFailed: failedClips,
           updatedAt: new Date().toISOString(),
         },
+        // CRITICAL: Clear error status if no more failed clips
+        ...(failedClips === 0 && project.status === 'failed' ? { status: 'generating' } : {}),
         updated_at: new Date().toISOString(),
       })
       .eq('id', request.projectId);
@@ -309,6 +345,12 @@ serve(async (req) => {
         clipIndex: request.clipIndex,
         videoUrl: clipResult.clipResult?.videoUrl,
         message: `Clip ${request.clipIndex + 1} regenerated successfully`,
+        reconciliation: {
+          totalClips: totalClipsCount,
+          completedClips,
+          failedClips,
+          allComplete: completedClips === totalClipsCount,
+        },
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

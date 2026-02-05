@@ -22,6 +22,7 @@ const corsHeaders = {
 interface FinalAssemblyRequest {
   projectId: string;
   userId?: string;
+  forceReconcile?: boolean; // When true, clear any previous error state
 }
 
 serve(async (req) => {
@@ -32,13 +33,13 @@ serve(async (req) => {
   const startTime = Date.now();
   
   try {
-    const { projectId, userId } = await req.json() as FinalAssemblyRequest;
+    const { projectId, userId, forceReconcile } = await req.json() as FinalAssemblyRequest;
 
     if (!projectId) {
       throw new Error("projectId is required");
     }
 
-    console.log(`[FinalAssembly] CHECKPOINT D: Stitching started for project: ${projectId}`);
+    console.log(`[FinalAssembly] CHECKPOINT D: Stitching started for project: ${projectId}${forceReconcile ? ' (RECONCILIATION MODE)' : ''}`);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -131,25 +132,36 @@ serve(async (req) => {
     console.log(`[FinalAssembly] - Clips: ${clipsProcessed}`);
     console.log(`[FinalAssembly] - Duration: ${totalDuration}s`);
 
-    // Step 4: Final status update (simple-stitch already does this, but ensure consistency)
+    // Step 4: Final status update with FORCED RECONCILIATION
+    // CRITICAL: This update MUST clear any previous 'failed' or 'error' status
+    // when all clips have successfully completed. This is the final authority.
+    const finalUpdate = {
+      status: 'completed',
+      pipeline_stage: 'complete',
+      video_url: manifestUrl,
+      pending_video_tasks: {
+        stage: 'complete',
+        progress: 100,
+        mode: 'manifest_playback',
+        manifestUrl,
+        clipCount: clipsProcessed,
+        totalDuration,
+        completedAt: new Date().toISOString(),
+        assemblyTimeMs: Date.now() - startTime,
+        reconciled: forceReconcile || false,
+        previousStatus: project.status, // Track what we're overwriting
+      },
+      updated_at: new Date().toISOString(),
+    };
+    
+    // Log if we're overwriting a failed/error status
+    if (project.status === 'failed' || project.status === 'error') {
+      console.log(`[FinalAssembly] ⚠️ RECONCILIATION: Overwriting '${project.status}' → 'completed' (${clipsProcessed} clips verified)`);
+    }
+    
     await supabase
       .from('movie_projects')
-      .update({
-        status: 'completed',
-        pipeline_stage: 'complete',
-        video_url: manifestUrl,
-        pending_video_tasks: {
-          stage: 'complete',
-          progress: 100,
-          mode: 'manifest_playback',
-          manifestUrl,
-          clipCount: clipsProcessed,
-          totalDuration,
-          completedAt: new Date().toISOString(),
-          assemblyTimeMs: Date.now() - startTime,
-        },
-        updated_at: new Date().toISOString(),
-      })
+      .update(finalUpdate)
       .eq('id', projectId);
 
     console.log(`[FinalAssembly] ✅ Assembly complete in ${Date.now() - startTime}ms`);

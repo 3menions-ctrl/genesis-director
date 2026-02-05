@@ -19,13 +19,11 @@ import { memo, useEffect, useRef, forwardRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 // Pre-computed light ray positions for deterministic animations
+// PERFORMANCE: Reduced from 6 to 3 light rays to cut animation load
 const LIGHT_RAYS = [
-  { left: '10%', rotate: -15, opacity: 0.06 },
-  { left: '25%', rotate: -8, opacity: 0.08 },
-  { left: '40%', rotate: -3, opacity: 0.1 },
-  { left: '55%', rotate: 2, opacity: 0.1 },
-  { left: '70%', rotate: 7, opacity: 0.08 },
-  { left: '85%', rotate: 12, opacity: 0.06 },
+  { left: '25%', rotate: -8, opacity: 0.06 },
+  { left: '50%', rotate: 0, opacity: 0.08 },
+  { left: '75%', rotate: 8, opacity: 0.06 },
 ];
 
 // Camera icon SVG component - pure React, no refs needed
@@ -146,12 +144,12 @@ export const CinemaLoader = memo(forwardRef<HTMLDivElement, CinemaLoaderProps>(
           }}
         />
         
-        {/* Animated light rays - purple themed */}
-        <div className="absolute inset-0 overflow-hidden">
+        {/* Animated light rays - PERFORMANCE: Reduced count, disabled on mobile */}
+        <div className="absolute inset-0 overflow-hidden hidden md:block">
           {LIGHT_RAYS.map((ray, i) => (
             <div
               key={i}
-              className="absolute w-px h-[200%] animate-cinema-ray will-change-transform"
+              className="absolute w-px h-[200%] animate-cinema-ray"
               style={{
                 left: ray.left,
                 top: '-50%',
@@ -163,9 +161,9 @@ export const CinemaLoader = memo(forwardRef<HTMLDivElement, CinemaLoaderProps>(
           ))}
         </div>
         
-        {/* Subtle ambient glow - purple */}
+        {/* Subtle ambient glow - purple - PERFORMANCE: Smaller on mobile */}
         <div 
-          className="absolute w-[600px] h-[600px] rounded-full pointer-events-none"
+          className="absolute w-[300px] h-[300px] md:w-[600px] md:h-[600px] rounded-full pointer-events-none"
           style={{
             background: 'radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, transparent 60%)',
             filter: 'blur(60px)',
@@ -181,14 +179,14 @@ export const CinemaLoader = memo(forwardRef<HTMLDivElement, CinemaLoaderProps>(
         >
           {/* Camera icon with animated rings */}
           <div className="relative">
-            {/* Outer pulsing ring */}
-            <div className="absolute inset-[-20px] rounded-full border border-white/[0.06] animate-cinema-ring-outer" />
+            {/* Outer pulsing ring - PERFORMANCE: Static on mobile */}
+            <div className="absolute inset-[-20px] rounded-full border border-white/[0.06] md:animate-cinema-ring-outer" />
             
-            {/* Middle rotating ring */}
-            <div className="absolute inset-[-12px] rounded-full border border-white/[0.08] animate-cinema-ring-middle" />
+            {/* Middle rotating ring - PERFORMANCE: Simplified animation */}
+            <div className="absolute inset-[-12px] rounded-full border border-white/[0.08] animate-pulse" />
             
-            {/* Inner glow ring */}
-            <div className="absolute inset-[-4px] rounded-full border border-white/[0.12] animate-cinema-ring-inner" />
+            {/* Inner glow ring - PERFORMANCE: Static border */}
+            <div className="absolute inset-[-4px] rounded-full border border-white/[0.12]" />
             
             {/* Main icon container - purple themed */}
             <div 
@@ -201,8 +199,8 @@ export const CinemaLoader = memo(forwardRef<HTMLDivElement, CinemaLoaderProps>(
               <CameraIcon />
             </div>
             
-            {/* Subtle rotating particle */}
-            <div className="absolute inset-0 animate-cinema-orbit">
+            {/* Subtle rotating particle - PERFORMANCE: Desktop only */}
+            <div className="absolute inset-0 hidden md:block md:animate-cinema-orbit">
               <div 
                 className="absolute w-1.5 h-1.5 rounded-full bg-white/30"
                 style={{ top: '-8px', left: '50%', transform: 'translateX(-50%)' }}
@@ -229,9 +227,9 @@ export const CinemaLoader = memo(forwardRef<HTMLDivElement, CinemaLoaderProps>(
                     background: 'linear-gradient(90deg, rgba(139, 92, 246, 0.9) 0%, rgba(168, 85, 247, 1) 50%, rgba(139, 92, 246, 0.9) 100%)',
                   }}
                 />
-                {/* Shimmer overlay */}
+                {/* Shimmer overlay - PERFORMANCE: Desktop only */}
                 <div 
-                  className="absolute inset-0 animate-cinema-shimmer"
+                  className="absolute inset-0 hidden md:block md:animate-cinema-shimmer"
                   style={{
                     background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)',
                   }}

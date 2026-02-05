@@ -137,8 +137,18 @@ async function fetchAsArrayBuffer(
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let loaded = 0;
+  let readCount = 0;
+  const MAX_READ_ITERATIONS = 50000; // Safety limit (~500MB at 10KB chunks)
 
   while (true) {
+    readCount++;
+    
+    // SAFETY: Prevent infinite loop on malformed streams
+    if (readCount >= MAX_READ_ITERATIONS) {
+      console.warn('[MSEEngine] fetchAsArrayBuffer exceeded max iterations, truncating');
+      break;
+    }
+    
     const { done, value } = await reader.read();
     if (done) break;
 

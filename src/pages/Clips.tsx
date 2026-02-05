@@ -41,6 +41,7 @@ import { UniversalVideoPlayer } from '@/components/player';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRetryStitch } from '@/hooks/useRetryStitch';
 import { ConsistencyDashboard } from '@/components/studio/ConsistencyDashboard';
+import { parsePendingVideoTasks, type PendingVideoTasks } from '@/types/pending-video-tasks';
 import {
   Table,
   TableBody,
@@ -66,6 +67,8 @@ interface VideoClip {
   project_id: string;
   project_title?: string;
   motion_vectors?: any;
+  // For avatar clips - indicates the clip came from pending_video_tasks
+  is_avatar_clip?: boolean;
 }
 
 interface ProjectProFeatures {
@@ -173,6 +176,7 @@ export default function Clips() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       
+      // 1. Load clips from video_clips table (standard projects)
       let query = supabase
         .from('video_clips')
         .select(`
@@ -220,17 +224,86 @@ export default function Clips() {
       if (error) {
         console.error('Error loading clips:', error);
         toast.error('Failed to load clips');
-      } else {
-        const clipsWithTitles = (data || []).map((clip: any) => ({
-          ...clip,
-          project_title: clip.movie_projects?.title || 'Video Creation'
-        }));
-        setClips(clipsWithTitles);
-        
-        if (projectIdFilter && clipsWithTitles.length > 0) {
-          setProjectTitle(clipsWithTitles[0].project_title);
-        }
+        setIsLoading(false);
+        return;
       }
+      
+      const clipsWithTitles: VideoClip[] = (data || []).map((clip: any) => ({
+        ...clip,
+        project_title: clip.movie_projects?.title || 'Video Creation',
+        is_avatar_clip: false,
+      }));
+      
+      // 2. Load avatar project clips from pending_video_tasks.predictions
+      // Avatar projects store clips differently - in the JSONB field, not video_clips table
+      let avatarQuery = supabase
+        .from('movie_projects')
+        .select('id, title, pending_video_tasks, created_at, updated_at')
+        .eq('user_id', session.user.id)
+        .eq('mode', 'avatar')
+        .in('status', ['completed', 'generating', 'producing'])
+        .order('updated_at', { ascending: false })
+        .limit(50);
+      
+      if (projectIdFilter) {
+        avatarQuery = avatarQuery.eq('id', projectIdFilter);
+      }
+      
+      const { data: avatarProjects, error: avatarError } = await avatarQuery;
+      
+      if (!avatarError && avatarProjects) {
+        const avatarClips: VideoClip[] = [];
+        
+        for (const project of avatarProjects) {
+          // Parse pending_video_tasks to extract predictions
+          const rawTasks = project.pending_video_tasks as any;
+          const predictions = rawTasks?.predictions as Array<{
+            clipIndex: number;
+            videoUrl?: string;
+            status?: string;
+            segmentText?: string;
+            audioDurationMs?: number;
+          }> | undefined;
+          
+          if (predictions && predictions.length > 0) {
+            for (const pred of predictions) {
+              if (pred.videoUrl) {
+                avatarClips.push({
+                  id: `avatar-${project.id}-${pred.clipIndex}`,
+                  prompt: pred.segmentText || `Avatar Clip ${pred.clipIndex + 1}`,
+                  status: pred.status === 'completed' ? 'completed' : (pred.status || 'pending'),
+                  video_url: pred.videoUrl,
+                  shot_index: pred.clipIndex,
+                  duration_seconds: pred.audioDurationMs ? Math.ceil(pred.audioDurationMs / 1000) : 10,
+                  created_at: project.created_at,
+                  completed_at: rawTasks?.completedAt || project.updated_at,
+                  error_message: null,
+                  project_id: project.id,
+                  project_title: project.title || 'Avatar Video',
+                  is_avatar_clip: true,
+                });
+              }
+            }
+          }
+        }
+        
+        // Merge avatar clips with standard clips, avoiding duplicates
+        const existingProjectIds = new Set(clipsWithTitles.map(c => c.project_id));
+        const newAvatarClips = avatarClips.filter(ac => {
+          // Only add if no clips from this project exist in video_clips table
+          const hasVideoClips = clipsWithTitles.some(c => c.project_id === ac.project_id);
+          return !hasVideoClips;
+        });
+        
+        clipsWithTitles.push(...newAvatarClips);
+      }
+      
+      setClips(clipsWithTitles);
+      
+      if (projectIdFilter && clipsWithTitles.length > 0) {
+        setProjectTitle(clipsWithTitles[0].project_title);
+      }
+      
       setIsLoading(false);
     };
 

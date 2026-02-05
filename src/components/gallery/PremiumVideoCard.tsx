@@ -3,6 +3,14 @@
  import { Play, Film, Sparkles } from 'lucide-react';
  import { cn } from '@/lib/utils';
  import { safePlay, safePause, safeSeek, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
+
+// Detect if we should reduce motion (iOS/reduced motion preference)
+const shouldReduceMotion = () => {
+  if (typeof window === 'undefined') return false;
+  const prefersReduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  return prefersReduced || isIOS;
+};
  
  type VideoCategory = 'all' | 'text-to-video' | 'image-to-video' | 'avatar';
  
@@ -42,6 +50,7 @@
    
    const category = video.category || 'all';
    const accent = CATEGORY_ACCENTS[category];
+  const reduceMotion = shouldReduceMotion();
    
    // Merge refs
    const mergedRef = useCallback((node: HTMLDivElement | null) => {
@@ -63,14 +72,17 @@
    
    // Animated border rotation
    useEffect(() => {
-     if (!isHovered) return;
+    // Skip border rotation animation on iOS to prevent performance issues
+    if (!isHovered || reduceMotion) return;
      const interval = setInterval(() => {
        setBorderRotation(prev => (prev + 1) % 360);
-     }, 20);
+    }, 50); // Slower interval for better performance
      return () => clearInterval(interval);
-   }, [isHovered]);
+  }, [isHovered, reduceMotion]);
    
    const handleMouseMove = (e: React.MouseEvent) => {
+    // Skip 3D tilt on iOS
+    if (reduceMotion) return;
      if (!cardRef.current) return;
      const rect = cardRef.current.getBoundingClientRect();
      const centerX = rect.left + rect.width / 2;
@@ -174,10 +186,10 @@
        initial={{ opacity: 0, scale: 0.85, y: 20 }}
        animate={{ 
          opacity: isActive ? 1 : 0.35, 
-         scale: isActive ? 1 : 0.8,
+          scale: isActive ? 1 : (reduceMotion ? 0.9 : 0.8),
          y: 0,
        }}
-       whileHover={{ scale: isActive ? 1.03 : 0.85 }}
+        whileHover={reduceMotion ? {} : { scale: isActive ? 1.03 : 0.85 }}
        transition={{ 
          duration: 0.6,
          ease: [0.16, 1, 0.3, 1],
@@ -187,13 +199,13 @@
        <motion.div
          className="relative w-[280px] h-[420px] md:w-[420px] md:h-[600px] rounded-2xl overflow-visible"
          style={{
-           rotateX: springRotateX,
-           rotateY: springRotateY,
+            rotateX: reduceMotion ? 0 : springRotateX,
+            rotateY: reduceMotion ? 0 : springRotateY,
            transformStyle: 'preserve-3d',
          }}
        >
          {/* Animated gradient border */}
-         <div 
+          {!reduceMotion && <div 
            className={cn(
              "absolute -inset-[2px] rounded-2xl transition-opacity duration-500",
              isHovered ? "opacity-100" : "opacity-0"
@@ -202,10 +214,10 @@
              background: `conic-gradient(from ${borderRotation}deg, ${accent.border}, ${accent.glow}, ${accent.border}, transparent, ${accent.border})`,
              filter: 'blur(1px)',
            }}
-         />
+          />}
          
          {/* Outer glow effect */}
-         <div 
+          {!reduceMotion && <div 
            className={cn(
              "absolute -inset-4 rounded-3xl blur-2xl transition-all duration-700",
              isHovered ? "opacity-70" : "opacity-0"
@@ -213,10 +225,10 @@
            style={{ 
              background: `radial-gradient(ellipse at center, ${accent.glow} 0%, transparent 70%)`,
            }}
-         />
+          />}
          
          {/* Holographic shine layer */}
-         <div 
+          {!reduceMotion && <div 
            className={cn(
              "absolute inset-0 rounded-2xl pointer-events-none z-10 transition-opacity duration-300",
              isHovered ? "opacity-100" : "opacity-0"
@@ -231,7 +243,7 @@
                transparent 100%
              )`,
            }}
-         />
+          />}
          
          {/* Main card container with glassmorphism */}
          <div className="relative w-full h-full rounded-2xl overflow-hidden bg-zinc-950/80 backdrop-blur-sm border border-white/[0.08]">
@@ -300,18 +312,18 @@
                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
              >
                {/* Pulse rings */}
-               <motion.div
+                {!reduceMotion && <motion.div
                  className="absolute inset-0 rounded-full"
                  style={{ border: `2px solid ${accent.glow}` }}
                  animate={{ scale: [1, 1.5, 1.5], opacity: [0.6, 0, 0] }}
                  transition={{ duration: 1.5, repeat: Infinity }}
-               />
-               <motion.div
+                />}
+                {!reduceMotion && <motion.div
                  className="absolute inset-0 rounded-full"
                  style={{ border: `2px solid ${accent.glow}` }}
                  animate={{ scale: [1, 1.8, 1.8], opacity: [0.4, 0, 0] }}
                  transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
-               />
+                />}
                
                {/* Main button */}
                <div 

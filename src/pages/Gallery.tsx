@@ -51,61 +51,70 @@ const useGalleryVideos = () => {
   return useQuery({
     queryKey: ['gallery-videos-showcase'],
     queryFn: async (): Promise<GalleryVideo[]> => {
-      // Fetch from gallery_showcase table (admin-curated videos)
-      const { data, error } = await supabase
-        .from('gallery_showcase')
-        .select('id, video_url, thumbnail_url, category, title')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true });
-      
-      if (error) throw error;
-      if (!data || data.length === 0) return [];
-      
-      const videosWithClips = await Promise.all(
-        data.map(async (item) => {
-          const url = item.video_url || '';
-          // Map gallery_showcase category to VideoCategory
-          const category = (item.category as VideoCategory) || 'text-to-video';
-          
-          if (url.endsWith('.json') || url.includes('manifest_')) {
-            try {
-              const response = await fetch(url);
-              const manifest: VideoManifest = await response.json();
-              
-              if (manifest.clips && manifest.clips.length > 0) {
-                return {
-                  id: item.id,
-                  title: item.title || '',
-                  thumbnail_url: item.thumbnail_url,
-                  video_url: manifest.clips[0].videoUrl,
-                  all_clips: manifest.clips.map(c => c.videoUrl),
-                  category,
-                  mode: null,
-                };
+      try {
+        // Fetch from gallery_showcase table (admin-curated videos)
+        const { data, error } = await supabase
+          .from('gallery_showcase')
+          .select('id, video_url, thumbnail_url, category, title')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true });
+        
+        if (error) throw error;
+        if (!data || data.length === 0) return [];
+        
+        const videosWithClips = await Promise.all(
+          data.map(async (item) => {
+            const url = item.video_url || '';
+            // Map gallery_showcase category to VideoCategory
+            const category = (item.category as VideoCategory) || 'text-to-video';
+            
+            if (url.endsWith('.json') || url.includes('manifest_')) {
+              try {
+                const response = await fetch(url);
+                if (!response.ok) return null;
+                const manifest: VideoManifest = await response.json();
+                
+                if (manifest.clips && manifest.clips.length > 0) {
+                  return {
+                    id: item.id,
+                    title: item.title || '',
+                    thumbnail_url: item.thumbnail_url,
+                    video_url: manifest.clips[0].videoUrl,
+                    all_clips: manifest.clips.map(c => c.videoUrl),
+                    category,
+                    mode: null,
+                  };
+                }
+              } catch (e) {
+                console.debug('Failed to fetch manifest:', e);
+                return null;
               }
-            } catch (e) {
-              console.error('Failed to fetch manifest:', e);
             }
-          }
-          
-          if (url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.mov')) {
-            return {
-              id: item.id,
-              title: item.title || '',
-              thumbnail_url: item.thumbnail_url,
-              video_url: url,
-              all_clips: [url],
-              category,
-              mode: null,
-            };
-          }
-          
-          return null;
-        })
-      );
-      
-      return videosWithClips.filter((v): v is NonNullable<typeof v> => v !== null);
+            
+            if (url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.mov')) {
+              return {
+                id: item.id,
+                title: item.title || '',
+                thumbnail_url: item.thumbnail_url,
+                video_url: url,
+                all_clips: [url],
+                category,
+                mode: null,
+              };
+            }
+            
+            return null;
+          })
+        );
+        
+        return videosWithClips.filter((v): v is NonNullable<typeof v> => v !== null);
+      } catch (error) {
+        console.error('Gallery fetch error:', error);
+        return []; // Return empty array instead of throwing to prevent crash
+      }
     },
+    retry: 1, // Limit retries to prevent infinite loops
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
 

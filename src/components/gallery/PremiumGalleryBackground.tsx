@@ -1,5 +1,13 @@
  import { memo } from 'react';
  import { motion } from 'framer-motion';
+
+// Detect if we should reduce motion (iOS/reduced motion preference)
+const shouldReduceMotion = () => {
+  if (typeof window === 'undefined') return false;
+  const prefersReduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  return prefersReduced || isIOS;
+};
  
  type VideoCategory = 'all' | 'text-to-video' | 'image-to-video' | 'avatar';
  
@@ -38,6 +46,11 @@
  }: PremiumGalleryBackgroundProps) {
    const parallaxY = scrollProgress * -50;
    const colors = CATEGORY_COLORS[activeCategory];
+  const reduceMotion = shouldReduceMotion();
+  
+  // Reduce particle count on iOS/reduced motion
+  const particleCount = reduceMotion ? 8 : 30;
+  const starCount = reduceMotion ? 15 : 50;
    
    return (
      <div className="fixed inset-0 overflow-hidden">
@@ -53,7 +66,7 @@
          <motion.div 
            className="absolute top-[10%] left-[15%] w-[600px] h-[600px] rounded-full blur-[120px]"
            style={{ background: `radial-gradient(circle, ${colors.primary} 0%, transparent 70%)` }}
-           animate={{
+          animate={reduceMotion ? {} : {
              x: [0, 50, 0],
              y: [0, 30, 0],
              scale: [1, 1.1, 1],
@@ -69,7 +82,7 @@
          <motion.div 
            className="absolute bottom-[15%] right-[10%] w-[500px] h-[500px] rounded-full blur-[100px]"
            style={{ background: `radial-gradient(circle, ${colors.secondary} 0%, transparent 70%)` }}
-           animate={{
+          animate={reduceMotion ? {} : {
              x: [0, -40, 0],
              y: [0, -50, 0],
              scale: [1, 1.15, 1],
@@ -86,7 +99,7 @@
          <motion.div 
            className="absolute top-[40%] left-[50%] w-[400px] h-[400px] rounded-full blur-[150px] opacity-30"
            style={{ background: `radial-gradient(circle, ${colors.primary} 0%, transparent 60%)` }}
-           animate={{
+          animate={reduceMotion ? {} : {
              x: [-200, -150, -200],
              y: [0, -30, 0],
            }}
@@ -98,29 +111,31 @@
          />
        </motion.div>
        
-       {/* Aurora effect layer */}
-       <motion.div 
-         className="absolute inset-0 opacity-20"
-         style={{ y: parallaxY * 0.3 }}
-       >
-         <div 
-           className="absolute inset-0"
-           style={{
-             background: `
-               linear-gradient(
-                 125deg,
-                 transparent 0%,
-                 ${colors.primary} 25%,
-                 transparent 50%,
-                 ${colors.secondary} 75%,
-                 transparent 100%
-               )
-             `,
-             backgroundSize: '400% 400%',
-             animation: 'aurora 15s ease infinite',
-           }}
-         />
-       </motion.div>
+      {/* Aurora effect layer - only on non-iOS */}
+      {!reduceMotion && (
+        <motion.div 
+          className="absolute inset-0 opacity-20"
+          style={{ y: parallaxY * 0.3 }}
+        >
+          <div 
+            className="absolute inset-0"
+            style={{
+              background: `
+                linear-gradient(
+                  125deg,
+                  transparent 0%,
+                  ${colors.primary} 25%,
+                  transparent 50%,
+                  ${colors.secondary} 75%,
+                  transparent 100%
+                )
+              `,
+              backgroundSize: '400% 400%',
+              animation: 'aurora 15s ease infinite',
+            }}
+          />
+        </motion.div>
+      )}
        
        {/* Grid overlay for depth */}
        <div 
@@ -169,46 +184,48 @@
          <line x1="0" y1="900" x2="1920" y2="900" stroke="url(#premiumSilverLine)" strokeWidth="0.5" />
        </motion.svg>
        
-       {/* Floating particles with depth */}
-       <motion.div 
-         className="absolute inset-0 pointer-events-none"
-         style={{ y: parallaxY * 0.6 }}
-       >
-         {[...Array(30)].map((_, i) => {
-           const size = 1 + (i % 3);
-           const depth = (i % 3) + 1;
-           return (
-             <motion.div
-               key={i}
-               className="absolute rounded-full"
-               style={{
-                 left: `${5 + (i * 3.2) % 90}%`,
-                 top: `${10 + (i * 5.7) % 80}%`,
-                 width: size,
-                 height: size,
-                 backgroundColor: i % 2 === 0 ? colors.accent : '#94a3b8',
-                 opacity: 0.1 + (0.1 / depth),
-                 filter: `blur(${depth - 1}px)`,
-               }}
-               animate={{
-                 opacity: [0.1 + (0.1 / depth), 0.3 + (0.1 / depth), 0.1 + (0.1 / depth)],
-                 scale: [1, 1.5, 1],
-                 y: [0, -10 * depth, 0],
-               }}
-               transition={{
-                 duration: 4 + (i % 4),
-                 repeat: Infinity,
-                 delay: i * 0.15,
-                 ease: "easeInOut",
-               }}
-             />
-           );
-         })}
-       </motion.div>
+      {/* Floating particles with depth - reduced count on iOS */}
+      {!reduceMotion && (
+        <motion.div 
+          className="absolute inset-0 pointer-events-none"
+          style={{ y: parallaxY * 0.6 }}
+        >
+          {[...Array(particleCount)].map((_, i) => {
+            const size = 1 + (i % 3);
+            const depth = (i % 3) + 1;
+            return (
+              <motion.div
+                key={i}
+                className="absolute rounded-full"
+                style={{
+                  left: `${5 + (i * 3.2) % 90}%`,
+                  top: `${10 + (i * 5.7) % 80}%`,
+                  width: size,
+                  height: size,
+                  backgroundColor: i % 2 === 0 ? colors.accent : '#94a3b8',
+                  opacity: 0.1 + (0.1 / depth),
+                  filter: `blur(${depth - 1}px)`,
+                }}
+                animate={{
+                  opacity: [0.1 + (0.1 / depth), 0.3 + (0.1 / depth), 0.1 + (0.1 / depth)],
+                  scale: [1, 1.5, 1],
+                  y: [0, -10 * depth, 0],
+                }}
+                transition={{
+                  duration: 4 + (i % 4),
+                  repeat: Infinity,
+                  delay: i * 0.15,
+                  ease: "easeInOut",
+                }}
+              />
+            );
+          })}
+        </motion.div>
+      )}
        
        {/* Star field layer */}
        <div className="absolute inset-0 pointer-events-none">
-         {[...Array(50)].map((_, i) => (
+        {[...Array(starCount)].map((_, i) => (
            <div
              key={`star-${i}`}
              className="absolute w-px h-px bg-white rounded-full"
@@ -216,7 +233,7 @@
                left: `${(i * 7.3) % 100}%`,
                top: `${(i * 11.7) % 100}%`,
                opacity: 0.1 + (i % 5) * 0.05,
-               animation: `twinkle ${3 + (i % 4)}s ease-in-out infinite`,
+              animation: reduceMotion ? 'none' : `twinkle ${3 + (i % 4)}s ease-in-out infinite`,
                animationDelay: `${i * 0.1}s`,
              }}
            />

@@ -28,15 +28,10 @@ export const AppLoader = forwardRef<HTMLDivElement, AppLoaderProps>(
     const progressRef = useRef(0);
     const displayMessage = message || CINEMATIC_MESSAGES[currentMessageIndex];
     
-    // PERFORMANCE: Check if GlobalLoadingOverlay is already showing
-    // to prevent duplicate CinemaLoader instances which crash Safari
-    let isGlobalLoading = false;
-    try {
-      const { state } = useNavigationLoading();
-      isGlobalLoading = state.isLoading;
-    } catch {
-      // Context not available (e.g., during SSR), proceed with local loader
-    }
+    // HOOKS FIX: useNavigationLoading must be called unconditionally
+    // This prevents "Rendered more hooks than previous render" errors
+    const { state: navState } = useNavigationLoading();
+    const isGlobalLoading = navState.isLoading;
 
     // Rotate through messages
     useEffect(() => {

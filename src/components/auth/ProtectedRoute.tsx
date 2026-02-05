@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigationLoading } from '@/contexts/NavigationLoadingContext';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { CinemaLoader } from '@/components/ui/CinemaLoader';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -181,8 +182,6 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
     if (navLoadingState.isLoading) {
       return <div className="fixed inset-0 bg-[#030303]" />;
     }
-    // Lazy import to prevent loading CinemaLoader when not needed
-    const CinemaLoader = require('@/components/ui/CinemaLoader').CinemaLoader;
     return (
       <CinemaLoader 
         message={loadingMessage} 
@@ -198,7 +197,6 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
     if (navLoadingState.isLoading) {
       return <div className="fixed inset-0 bg-[#030303]" />;
     }
-    const CinemaLoader = require('@/components/ui/CinemaLoader').CinemaLoader;
     return (
       <CinemaLoader 
         message="Redirecting to login..." 
@@ -213,7 +211,6 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
     if (navLoadingState.isLoading) {
       return <div className="fixed inset-0 bg-[#030303]" />;
     }
-    const CinemaLoader = require('@/components/ui/CinemaLoader').CinemaLoader;
     return (
       <CinemaLoader 
         message={loadingMessage} 
@@ -229,7 +226,6 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
     if (navLoadingState.isLoading) {
       return <div className="fixed inset-0 bg-[#030303]" />;
     }
-    const CinemaLoader = require('@/components/ui/CinemaLoader').CinemaLoader;
     return (
       <CinemaLoader 
         message="Setting up your account..." 

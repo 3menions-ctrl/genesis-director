@@ -128,8 +128,6 @@ function CreateContentInner() {
         },
       });
 
-      // Check if component is still mounted
-      if (!isMounted()) return;
 
       if (error || data?.error) {
         const { handled } = await handleEdgeFunctionError(
@@ -145,20 +143,23 @@ function CreateContentInner() {
         throw new Error('Failed to create project - no project ID returned from server');
       }
 
-      if (!isMounted()) return;
-      safeSetState(setCreationStatus, 'Redirecting to production...');
+      // Clear creating state BEFORE navigation to prevent stuck overlay
+      safeSetState(setIsCreating, false);
+      safeSetState(setCreationStatus, '');
+      
       toast.success(`${config.mode.replace(/-/g, ' ')} creation started!`);
       
       // Use emergencyNavigate to bypass any navigation locks after successful creation
-      // This ensures reliable redirect to production page
+      // CRITICAL: Always navigate even if component is unmounting - this ensures redirect happens
       emergencyNavigate(`/production/${data.projectId}`);
     } catch (error) {
       // Ignore abort errors - expected during fast navigation
       if (isAbortError(error)) return;
-      if (!isMounted()) return;
       
       console.error('Creation error:', error);
-      showUserFriendlyError(error, { navigate });
+      if (isMounted()) {
+        showUserFriendlyError(error, { navigate });
+      }
     } finally {
       if (isMounted()) {
         safeSetState(setIsCreating, false);

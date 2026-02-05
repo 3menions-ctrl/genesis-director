@@ -65,13 +65,14 @@ export function useCoordinatedNavigation() {
  */
 export function useCoordinatedReady() {
   const { markReady, disableAutoComplete } = usePageReady();
+  const location = useLocation();
   
   const signalReady = useCallback((systemName?: string) => {
     // Signal to loading context only
     // NOTE: Do NOT call navigationCoordinator.completeNavigation() here
     // NavigationGuardProvider handles completion on route change
     markReady(systemName);
-  }, [markReady]);
+  }, [markReady, location.pathname]);
   
   return { 
     signalReady, 

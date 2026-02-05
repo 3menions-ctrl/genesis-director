@@ -263,6 +263,7 @@ export function useSafeNavigation() {
   const navigate = useNavigate();
   const location = useLocation();
   const pendingNavRef = useRef<string | null>(null);
+  const componentId = useRef(`safeNav_${Date.now()}`).current;
 
   const safeNavigate = useCallback(async (
     to: string, 
@@ -294,9 +295,9 @@ export function useSafeNavigation() {
   }, [navigate, location.pathname]);
 
   const emergencyNavigate = useCallback((to: string) => {
-    navigationCoordinator.forceUnlock();
+    navigationCoordinator.forceUnlock(`useSafeNavigation:emergency:${componentId}`);
     navigate(to, { replace: true });
-  }, [navigate]);
+  }, [navigate, componentId]);
 
   return {
     navigate: safeNavigate,

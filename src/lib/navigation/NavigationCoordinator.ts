@@ -23,6 +23,7 @@ interface NavigationState {
   toRoute: string | null;
   startTime: number;
   isLocked: boolean;
+  completionSource: string | null; // Track who triggered completion for debugging
 }
 
 interface CoordinatorOptions {
@@ -55,7 +56,13 @@ class NavigationCoordinatorImpl {
     toRoute: null,
     startTime: 0,
     isLocked: false,
+    completionSource: null,
   };
+
+  // Guard against competing completion calls
+  private completionInProgress = false;
+  private lastCompletionTime = 0;
+  private static readonly COMPLETION_DEBOUNCE_MS = 50;
 
   private cleanupRegistry = new Map<string, Set<CleanupFunction>>();
   private globalCleanups = new Set<CleanupFunction>();
@@ -114,6 +121,7 @@ class NavigationCoordinatorImpl {
           toRoute: null,
           startTime: 0,
           isLocked: false,
+          completionSource: 'bfcache',
         };
         this.notifyListeners();
       }
@@ -292,6 +300,7 @@ class NavigationCoordinatorImpl {
       toRoute,
       startTime: performance.now(),
       isLocked: true,
+      completionSource: null,
     };
     this.notifyListeners();
     this.metrics.totalNavigations++;
@@ -332,12 +341,28 @@ class NavigationCoordinatorImpl {
    * Only logs and resets if there's an active navigation to complete.
    * Prevents duplicate completion calls from accumulating phantom times.
    */
-  completeNavigation(): void {
+  completeNavigation(source: string = 'unknown'): void {
+    // DEBOUNCE: Prevent competing completion calls within 50ms
+    const now = performance.now();
+    if (now - this.lastCompletionTime < NavigationCoordinatorImpl.COMPLETION_DEBOUNCE_MS) {
+      this.log('info', `Debounced duplicate completion from: ${source}`);
+      return;
+    }
+
     // IDEMPOTENT GUARD: Only complete if we're actually navigating
     if (this.state.phase === 'idle' && !this.state.isLocked) {
       // Already idle - no-op to prevent duplicate logs
       return;
     }
+
+    // GUARD: Prevent re-entry from competing hooks
+    if (this.completionInProgress) {
+      this.log('info', `Completion already in progress, ignoring call from: ${source}`);
+      return;
+    }
+
+    this.completionInProgress = true;
+    this.lastCompletionTime = now;
 
     if (this.lockTimeoutId) {
       clearTimeout(this.lockTimeoutId);
@@ -361,8 +386,12 @@ class NavigationCoordinatorImpl {
       toRoute: null,
       startTime: 0,
       isLocked: false,
+      completionSource: source,
     };
     this.notifyListeners();
+    
+    // Release completion guard after state update
+    this.completionInProgress = false;
     
     // Process queued navigations
     this.processQueue();
@@ -371,16 +400,22 @@ class NavigationCoordinatorImpl {
   /**
    * Force unlock navigation (emergency recovery)
    */
-  forceUnlock(): void {
+  forceUnlock(source: string = 'unknown'): void {
+    this.log('info', `Force unlock from: ${source}`);
+    
     if (this.lockTimeoutId) {
       clearTimeout(this.lockTimeoutId);
       this.lockTimeoutId = null;
     }
 
+    // Reset completion guard on force unlock
+    this.completionInProgress = false;
+
     this.state = {
       ...this.state,
       phase: 'idle',
       isLocked: false,
+      completionSource: `force:${source}`,
     };
     this.notifyListeners();
     

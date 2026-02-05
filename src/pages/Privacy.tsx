@@ -18,9 +18,9 @@ const Privacy = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
-              <span className="text-sm font-bold text-black">A</span>
+              <span className="text-sm font-bold text-black">A-S</span>
             </div>
-            <span className="text-base font-semibold text-white tracking-tight">Apex Studio</span>
+            <span className="text-base font-semibold text-white tracking-tight">Apex-Studio</span>
           </Link>
         </div>
       </nav>
@@ -42,7 +42,7 @@ const Privacy = () => {
             </Link>
             
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Privacy Policy</h1>
-            <p className="text-white/40 mb-12">Last updated: January 13, 2026</p>
+            <p className="text-white/40 mb-12">Last updated: February 5, 2026</p>
           </motion.div>
           
           <motion.div 
@@ -54,10 +54,10 @@ const Privacy = () => {
             <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">1. Introduction</h2>
               <p>
-                Apex-studio LLC ("Company," "we," "our," or "us"), a Missouri limited liability company, 
+                Apex-Studio LLC ("Company," "we," "our," or "us"), a Missouri limited liability company, 
                 is committed to protecting your privacy. This Privacy Policy explains how we collect, use, 
                 disclose, and safeguard your information when you use our AI-powered video generation 
-                software-as-a-service platform, Apex Studio (the "Service").
+                software-as-a-service platform, Apex-Studio (the "Service").
               </p>
               <p className="mt-4">
                 By accessing or using the Service, you agree to this Privacy Policy. If you do not agree 
@@ -189,7 +189,7 @@ const Privacy = () => {
               <h2 className="text-xl font-semibold text-white mb-4">8. International Data Transfers</h2>
               <p className="mb-4">
                 Your information may be transferred to and processed in countries other than your own, 
-                including the United States where Apex-studio LLC is based. When we transfer data 
+                including the United States where Apex-Studio LLC is based. When we transfer data 
                 internationally, we implement appropriate safeguards, including:
               </p>
               <ul className="list-disc list-inside space-y-2 ml-4">
@@ -343,7 +343,7 @@ const Privacy = () => {
                 please contact us:
               </p>
               <div className="space-y-2">
-                <p><strong className="text-white">Apex-studio LLC</strong></p>
+                <p><strong className="text-white">Apex-Studio LLC</strong></p>
                 <p>Email:{' '}
                   <a href="mailto:admincole@apex-studio.ai" className="text-white hover:underline">
                     admincole@apex-studio.ai

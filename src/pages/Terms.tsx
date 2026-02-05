@@ -18,9 +18,9 @@ const Terms = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
-              <span className="text-sm font-bold text-black">A</span>
+              <span className="text-sm font-bold text-black">A-S</span>
             </div>
-            <span className="text-base font-semibold text-white tracking-tight">Apex Studio</span>
+            <span className="text-base font-semibold text-white tracking-tight">Apex-Studio</span>
           </Link>
         </div>
       </nav>
@@ -42,7 +42,7 @@ const Terms = () => {
             </Link>
             
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Terms of Service</h1>
-            <p className="text-white/40 mb-12">Last updated: January 13, 2026</p>
+            <p className="text-white/40 mb-12">Last updated: February 5, 2026</p>
           </motion.div>
           
           <motion.div 

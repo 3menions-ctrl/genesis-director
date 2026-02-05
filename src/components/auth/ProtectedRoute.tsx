@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, useRef, useState, useMemo, useCallback, forwardRef, memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { CinemaLoader } from '@/components/ui/CinemaLoader';
+import { useNavigationLoading } from '@/contexts/NavigationLoadingContext';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -26,6 +26,7 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
   const { user, profile, loading, session, isSessionVerified, profileError, retryProfileFetch, getValidSession } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { state: navLoadingState } = useNavigationLoading();
   
   // Track loading phase explicitly for debugging and stability
   const [authPhase, setAuthPhase] = useState<AuthLoadingState>('initializing');
@@ -173,10 +174,15 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
   }
 
   // CRITICAL STABILITY FIX:
-  // Show CINEMA LOADER during loading state OR when waiting for session verification
-  // Uses unified dark-themed loader to prevent white flashes
-  // But skip if we've already rendered children (prevents navigation blink)
+  // DEFER to GlobalLoadingOverlay if it's already showing (prevents duplicate loaders)
+  // This prevents 2-4 concurrent CinemaLoader instances which crash Safari
   if ((authPhase === 'initializing' || authPhase === 'verifying') && !hasRenderedChildren.current) {
+    // If global overlay is showing, render a minimal placeholder instead of another CinemaLoader
+    if (navLoadingState.isLoading) {
+      return <div className="fixed inset-0 bg-[#030303]" />;
+    }
+    // Lazy import to prevent loading CinemaLoader when not needed
+    const CinemaLoader = require('@/components/ui/CinemaLoader').CinemaLoader;
     return (
       <CinemaLoader 
         message={loadingMessage} 
@@ -189,6 +195,10 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
 
   // Redirecting state - show loader instead of null to prevent flash
   if (authPhase === 'redirecting') {
+    if (navLoadingState.isLoading) {
+      return <div className="fixed inset-0 bg-[#030303]" />;
+    }
+    const CinemaLoader = require('@/components/ui/CinemaLoader').CinemaLoader;
     return (
       <CinemaLoader 
         message="Redirecting to login..." 
@@ -200,6 +210,10 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
 
   // Wait for profile on INITIAL mount only - never block navigation between routes
   if (user?.id && !profile?.id && isInitialMount && !hasRenderedChildren.current && authPhase === 'ready') {
+    if (navLoadingState.isLoading) {
+      return <div className="fixed inset-0 bg-[#030303]" />;
+    }
+    const CinemaLoader = require('@/components/ui/CinemaLoader').CinemaLoader;
     return (
       <CinemaLoader 
         message={loadingMessage} 
@@ -212,6 +226,10 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
 
   // If onboarding not completed, show loader while redirecting (instead of null)
   if (profile && !profile.onboarding_completed && location.pathname !== '/onboarding') {
+    if (navLoadingState.isLoading) {
+      return <div className="fixed inset-0 bg-[#030303]" />;
+    }
+    const CinemaLoader = require('@/components/ui/CinemaLoader').CinemaLoader;
     return (
       <CinemaLoader 
         message="Setting up your account..." 

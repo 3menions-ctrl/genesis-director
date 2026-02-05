@@ -8,6 +8,7 @@
 import { cn } from '@/lib/utils';
 import { forwardRef, useEffect, useState, useRef } from 'react';
 import { CinemaLoader } from './CinemaLoader';
+import { useNavigationLoading } from '@/contexts/NavigationLoadingContext';
 
 interface AppLoaderProps {
   message?: string;
@@ -26,6 +27,16 @@ export const AppLoader = forwardRef<HTMLDivElement, AppLoaderProps>(
     const [progress, setProgress] = useState(0);
     const progressRef = useRef(0);
     const displayMessage = message || CINEMATIC_MESSAGES[currentMessageIndex];
+    
+    // PERFORMANCE: Check if GlobalLoadingOverlay is already showing
+    // to prevent duplicate CinemaLoader instances which crash Safari
+    let isGlobalLoading = false;
+    try {
+      const { state } = useNavigationLoading();
+      isGlobalLoading = state.isLoading;
+    } catch {
+      // Context not available (e.g., during SSR), proceed with local loader
+    }
 
     // Rotate through messages
     useEffect(() => {
@@ -47,6 +58,11 @@ export const AppLoader = forwardRef<HTMLDivElement, AppLoaderProps>(
 
       return () => clearInterval(interval);
     }, []);
+
+    // If global overlay is showing, render minimal placeholder (defer to GlobalLoadingOverlay)
+    if (isGlobalLoading) {
+      return <div ref={ref} className="fixed inset-0 bg-[#030303]" />;
+    }
 
     return (
       <div ref={ref} className={cn("contents", className)}>

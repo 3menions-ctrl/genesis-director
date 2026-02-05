@@ -314,3 +314,113 @@ export async function updateFrameExtractionStatus(
     return false;
   }
 }
+
+/**
+ * STATUS RECONCILIATION UTILITY
+ * 
+ * Checks if project status matches clip reality and fixes discrepancies.
+ * This is the GUARD RAIL against "false failure" states.
+ * 
+ * Call this after any clip completion to ensure consistency.
+ */
+export async function reconcileProjectStatus(
+  supabase: SupabaseClient,
+  projectId: string
+): Promise<{
+  reconciled: boolean;
+  action?: string;
+  previousStatus?: string;
+  newStatus?: string;
+  clipStats?: { total: number; completed: number; failed: number; generating: number };
+}> {
+  try {
+    // Get current project status
+    const { data: project, error: projectError } = await supabase
+      .from('movie_projects')
+      .select('id, status, pipeline_stage')
+      .eq('id', projectId)
+      .maybeSingle();
+    
+    if (projectError || !project) {
+      console.error('[Mutex] Reconciliation failed - project not found:', projectError);
+      return { reconciled: false };
+    }
+    
+    // Get clip statuses
+    const { data: clips, error: clipsError } = await supabase
+      .from('video_clips')
+      .select('status')
+      .eq('project_id', projectId);
+    
+    if (clipsError || !clips || clips.length === 0) {
+      console.log('[Mutex] No clips to reconcile');
+      return { reconciled: false };
+    }
+    
+    const clipStats = {
+      total: clips.length,
+      completed: clips.filter(c => c.status === 'completed').length,
+      failed: clips.filter(c => c.status === 'failed').length,
+      generating: clips.filter(c => c.status === 'generating').length,
+    };
+    
+    console.log(`[Mutex] Reconciliation check: project='${project.status}', clips=${JSON.stringify(clipStats)}`);
+    
+    // RULE 1: If ALL clips completed but project shows failed/error → fix it
+    if (clipStats.completed === clipStats.total && 
+        (project.status === 'failed' || project.status === 'error')) {
+      console.log(`[Mutex] ⚠️ RECONCILIATION NEEDED: All ${clipStats.total} clips complete but project is '${project.status}'`);
+      
+      await supabase
+        .from('movie_projects')
+        .update({
+          status: 'stitching', // Trigger final assembly on next poll
+          pipeline_stage: 'stitching',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', projectId);
+      
+      return {
+        reconciled: true,
+        action: 'cleared_false_failure',
+        previousStatus: project.status,
+        newStatus: 'stitching',
+        clipStats,
+      };
+    }
+    
+    // RULE 2: If project is 'generating' but no clips are generating and some failed → mark appropriately
+    if (project.status === 'generating' && 
+        clipStats.generating === 0 && 
+        clipStats.failed > 0 && 
+        clipStats.completed < clipStats.total) {
+      console.log(`[Mutex] ⚠️ RECONCILIATION NEEDED: No clips generating but ${clipStats.failed} failed`);
+      
+      await supabase
+        .from('movie_projects')
+        .update({
+          status: 'failed',
+          pipeline_stage: 'generation_error',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', projectId);
+      
+      return {
+        reconciled: true,
+        action: 'marked_failed_correctly',
+        previousStatus: project.status,
+        newStatus: 'failed',
+        clipStats,
+      };
+    }
+    
+    // No reconciliation needed
+    return {
+      reconciled: false,
+      clipStats,
+    };
+  } catch (err) {
+    console.error('[Mutex] Reconciliation error:', err);
+    return { reconciled: false };
+  }
+}

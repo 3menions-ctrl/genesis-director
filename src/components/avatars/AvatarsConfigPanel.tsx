@@ -157,7 +157,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 }
                 value={prompt}
                 onChange={(e) => onPromptChange(e.target.value)}
-                className="min-h-[100px] md:min-h-[80px] bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 resize-none text-sm"
+                className="min-h-[140px] sm:min-h-[120px] md:min-h-[100px] bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 resize-none text-sm leading-relaxed"
                 disabled={!selectedAvatar}
               />
             </div>
@@ -168,11 +168,11 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 <MapPin className="w-3 h-3 text-violet-400" />
                 Environment (optional)
               </Label>
-              <Input
+              <Textarea
                 placeholder="e.g., a witch's house in the woods, a futuristic city..."
                 value={sceneDescription}
                 onChange={(e) => onSceneDescriptionChange(e.target.value)}
-                className="h-10 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 text-sm"
+                className="min-h-[80px] sm:min-h-[70px] bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 text-sm resize-none leading-relaxed"
                 disabled={!selectedAvatar}
               />
             </div>
@@ -357,7 +357,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 }
                 value={prompt}
                 onChange={(e) => onPromptChange(e.target.value)}
-                className="min-h-[70px] bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 resize-none"
+                className="min-h-[100px] bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 resize-none leading-relaxed"
                 disabled={!selectedAvatar}
               />
               
@@ -367,11 +367,11 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                   <MapPin className="w-3.5 h-3.5 text-violet-400" />
                   Environment
                 </Label>
-                <Input
+                <Textarea
                   placeholder="e.g., a witch's house in the woods, a futuristic city... (optional)"
                   value={sceneDescription}
                   onChange={(e) => onSceneDescriptionChange(e.target.value)}
-                  className="h-9 flex-1 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 text-sm"
+                  className="min-h-[60px] flex-1 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 text-sm resize-none leading-relaxed"
                   disabled={!selectedAvatar}
                 />
               </div>

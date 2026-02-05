@@ -516,7 +516,7 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="overflow-x-auto scrollbar-hide py-4 md:py-8"
+        className="overflow-x-auto overflow-y-hidden scrollbar-hide py-4 md:py-8 max-h-[60vh] md:max-h-[65vh] lg:max-h-[70vh]"
         style={{
           scrollSnapType: 'x mandatory',
           WebkitOverflowScrolling: 'touch',

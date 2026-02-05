@@ -36,8 +36,8 @@
        initial={{ opacity: 0, y: -20 }}
        animate={{ opacity: 1, y: 0 }}
        transition={{ delay: 0.5, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-3 md:gap-5"
-      >
+      className="fixed top-4 left-0 right-0 z-40 flex flex-col items-center gap-3 md:gap-5"
+    >
        {/* Premium gallery title */}
        <div className="flex items-center gap-3">
          <div className="h-px w-8 bg-gradient-to-r from-transparent to-white/20 hidden md:block" />

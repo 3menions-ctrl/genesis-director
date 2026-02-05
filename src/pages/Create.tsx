@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, memo } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { toast } from 'sonner';
 import ClipsBackground from '@/components/clips/ClipsBackground';
 import { CreationHub } from '@/components/studio/CreationHub';
@@ -13,9 +13,7 @@ import { useStabilityGuard, useSafeNavigation, useRouteCleanup, isAbortError } f
 import { BrandLoadingSpinner } from '@/components/ui/UnifiedLoadingPage';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
 import { withSafePageRef } from '@/lib/withSafeRef';
-
-// Gatekeeper timeout - prevents infinite loading
-const GATEKEEPER_TIMEOUT_MS = 5000;
+import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
 
 // Loading overlay component for creation in progress - uses unified brand animation
 const LoadingOverlay = memo(function LoadingOverlay({ status }: { status: string }) {
@@ -47,11 +45,16 @@ function CreateContentInner() {
   const [isCreating, setIsCreating] = useState(false);
   const [creationStatus, setCreationStatus] = useState<string>('');
   const [isHubReady, setIsHubReady] = useState(false);
-  const [gatekeeperTimeout, setGatekeeperTimeout] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   
   // Use comprehensive stability guard for safe async operations
   const { isMounted, getAbortController, safeSetState } = useStabilityGuard();
+  
+  // CENTRALIZED GATEKEEPER - replaces inline timeout logic
+  const gatekeeper = useGatekeeperLoading({
+    ...GATEKEEPER_PRESETS.create,
+    dataLoading: !isHubReady,
+    dataSuccess: isHubReady,
+  });
   
   // Register cleanup when leaving this page
   useRouteCleanup(() => {
@@ -60,17 +63,6 @@ function CreateContentInner() {
       console.debug('[Create] Cleanup: cancelling pending creation');
     }
   }, [isCreating]);
-  
-  // Gatekeeper timeout - force visibility after 5s to prevent infinite loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!isHubReady) {
-        console.warn('[Create] Gatekeeper timeout - forcing visibility');
-        setGatekeeperTimeout(true);
-      }
-    }, GATEKEEPER_TIMEOUT_MS);
-    return () => clearTimeout(timer);
-  }, [isHubReady]);
   
   // Callback from CreationHub when its data is ready
   const handleHubReady = useCallback(() => {
@@ -168,18 +160,15 @@ function CreateContentInner() {
     }
   }, [user, navigate, emergencyNavigate, isMounted, getAbortController, safeSetState]);
 
-  // Show loading screen until hub is ready OR gatekeeper times out
-  const showLoader = !isHubReady && !gatekeeperTimeout;
-
   return (
     <div className="relative min-h-screen flex flex-col">
       <ClipsBackground />
       
       {/* Gatekeeper loading screen */}
-      {showLoader && (
+      {gatekeeper.isLoading && (
         <CinemaLoader
           isVisible={true}
-          message="Preparing studio..."
+          message={getGatekeeperMessage(gatekeeper.phase, GATEKEEPER_PRESETS.create.messages)}
           variant="fullscreen"
         />
       )}
@@ -190,7 +179,7 @@ function CreateContentInner() {
       {/* Main Content - only render when ready or forced */}
       <div 
         className="relative z-10 flex-1"
-        style={{ opacity: showLoader ? 0 : 1, transition: 'opacity 0.3s ease-out' }}
+        style={{ opacity: gatekeeper.isLoading ? 0 : 1, transition: 'opacity 0.3s ease-out' }}
       >
         <CreationHub 
           onStartCreation={handleStartCreation}

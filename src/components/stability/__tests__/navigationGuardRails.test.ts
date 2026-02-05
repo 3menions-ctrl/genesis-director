@@ -41,13 +41,14 @@ describe('Navigation Loading Coordination', () => {
   });
 
   describe('Create Page Pattern Compliance', () => {
-    it('should use gatekeeper timeout pattern for forced visibility', () => {
+    it('should use centralized gatekeeper hook', () => {
       const createPath = path.join(process.cwd(), 'src/pages/Create.tsx');
       const content = fs.readFileSync(createPath, 'utf-8');
       
-      // Create page should use gatekeeper timeout pattern to prevent infinite loading
-      expect(content.includes('GATEKEEPER_TIMEOUT_MS')).toBe(true);
-      expect(content.includes('gatekeeperTimeout')).toBe(true);
+      // Create page should use centralized gatekeeper hook
+      expect(content.includes('useGatekeeperLoading')).toBe(true);
+      expect(content.includes('GATEKEEPER_PRESETS.create')).toBe(true);
+      expect(content.includes('gatekeeper.isLoading')).toBe(true);
     });
 
     it('should track hub ready state for coordinated loading', () => {
@@ -57,8 +58,8 @@ describe('Navigation Loading Coordination', () => {
       // Should have isHubReady state
       expect(content.includes('isHubReady')).toBe(true);
       
-      // Should coordinate loading visibility with hub readiness OR gatekeeper timeout
-      expect(content.includes('!isHubReady && !gatekeeperTimeout')).toBe(true);
+      // Should pass isHubReady to gatekeeper as dataSuccess
+      expect(content.includes('dataSuccess: isHubReady')).toBe(true);
     });
 
     it('should pass onReady callback to CreationHub', () => {

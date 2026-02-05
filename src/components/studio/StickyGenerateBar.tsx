@@ -1,6 +1,5 @@
-import { forwardRef, useState, useEffect } from 'react';
+ import { forwardRef, useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Sparkles, 
@@ -20,6 +19,12 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+ import { useNavigate } from 'react-router-dom';
+ import { 
+   getCreditWarningLevel,
+   TIPS_MESSAGES,
+   showOnce,
+ } from '@/lib/smartMessages';
 
 interface PipelineLog {
   time: string;
@@ -80,9 +85,20 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
   }, ref) {
   const [showLogs, setShowLogs] = useState(false);
   const [statusText, setStatusText] = useState('Initializing...');
+   const navigate = useNavigate();
+   const hasShownClipWarning = useRef(false);
   
   const hasInsufficientCredits = userCredits < estimatedCredits;
   const creditShortfall = Math.max(0, estimatedCredits - userCredits);
+   const creditLevel = getCreditWarningLevel(userCredits, estimatedCredits);
+   
+   // Show high clip count warning once when user has many clips
+   useEffect(() => {
+     if (!hasShownClipWarning.current && clipCount >= 8 && !isRunning) {
+       hasShownClipWarning.current = true;
+       showOnce(TIPS_MESSAGES.HIGH_CLIP_COUNT_WARNING(clipCount), navigate);
+     }
+   }, [clipCount, isRunning, navigate]);
   
   // Animate status text based on progress
   useEffect(() => {
@@ -300,7 +316,7 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
               {!isRunning && (
                 <div className="flex items-center gap-3">
                   {/* Insufficient credits warning */}
-                  {hasInsufficientCredits && (
+                   {(creditLevel === 'critical' || creditLevel === 'empty') && (
                     <motion.div
                       initial={{ opacity: 0, x: 10 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -313,8 +329,22 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
                     </motion.div>
                   )}
                   
+                   {/* Low credits warning (less urgent) */}
+                   {creditLevel === 'low' && (
+                     <motion.div
+                       initial={{ opacity: 0, x: 10 }}
+                       animate={{ opacity: 1, x: 0 }}
+                       className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20"
+                     >
+                       <AlertCircle className="w-4 h-4 text-amber-500" />
+                       <span className="text-sm text-amber-600 font-medium">
+                         Low credits: {userCredits} remaining
+                       </span>
+                     </motion.div>
+                   )}
+                   
                   {/* Buy Credits button when insufficient */}
-                  {hasInsufficientCredits && onBuyCredits && (
+                   {(creditLevel === 'critical' || creditLevel === 'empty') && onBuyCredits && (
                     <Button
                       variant="outline"
                       onClick={onBuyCredits}

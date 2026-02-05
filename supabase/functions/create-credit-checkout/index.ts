@@ -86,18 +86,9 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://genesis-director.lovable.app";
     
-    // Use business email for all checkout sessions
-    const businessEmail = "admincole@apex-studio.ai";
-    
-    // If existing customer, update their email first
-    if (customerId) {
-      await stripe.customers.update(customerId, { email: businessEmail });
-      logStep("Updated existing customer email", { customerId, email: businessEmail });
-    }
-    
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      customer_email: customerId ? undefined : businessEmail,
+      customer_email: customerId ? undefined : user.email,
       line_items: [
         {
           price: pkg.priceId,
@@ -113,10 +104,10 @@ serve(async (req) => {
         package_id: packageId,
       },
       customer_creation: customerId ? undefined : 'always',
-      payment_intent_data: {
-        description: 'Apex Studio Credit Pack',
-        receipt_email: businessEmail,
-      },
+      // Allow automatic tax calculation for international customers
+      automatic_tax: { enabled: false },
+      // Let Stripe handle billing address collection for international compliance
+      billing_address_collection: 'auto',
     });
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });

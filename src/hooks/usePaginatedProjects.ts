@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Project } from '@/types/studio';
 import { useAuth } from '@/contexts/AuthContext';
+import { debounce, createAsyncGuard } from '@/lib/concurrency/debounce';
 
 const PAGE_SIZE = 5; // Load 5 projects per page to prevent memory exhaustion
 
@@ -111,6 +112,7 @@ export function usePaginatedProjects(
   
   const isMountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const fetchGuardRef = useRef(createAsyncGuard());
   
   // Cleanup on unmount
   useEffect(() => {
@@ -160,9 +162,10 @@ export function usePaginatedProjects(
       return;
     }
     
-    // Cancel previous request
+    // Cancel previous request and reset guard
     abortControllerRef.current?.abort();
     abortControllerRef.current = new AbortController();
+    fetchGuardRef.current.reset();
     
     if (isRefresh) {
       setOffset(0);
@@ -191,7 +194,8 @@ export function usePaginatedProjects(
       console.log(`[usePaginatedProjects] Loaded ${mappedProjects.length} of ${count} projects`);
     } catch (err: any) {
       if (err.name !== 'AbortError' && isMountedRef.current) {
-        setError(err.message || 'Failed to load projects');
+        console.debug('[usePaginatedProjects] Fetch error (non-abort):', err.message);
+        // Don't set error state for transient failures - let user retry manually
       }
     } finally {
       if (isMountedRef.current) {
@@ -233,14 +237,35 @@ export function usePaginatedProjects(
   }, [user?.id, offset, isLoadingMore, hasMore, buildQuery]);
 
   // Refresh (reset pagination)
-  const refresh = useCallback(async () => {
-    await fetchProjects(true);
+  // DEBOUNCED: Prevent rapid-fire refreshes from realtime subscriptions
+  const debouncedRefreshRef = useRef(
+    debounce(() => {
+      fetchProjects(true);
+    }, 300)
+  );
+  
+  // Update debounced function when fetchProjects changes
+  useEffect(() => {
+    debouncedRefreshRef.current = debounce(() => {
+      fetchProjects(true);
+    }, 300);
   }, [fetchProjects]);
+  
+  const refresh = useCallback(async () => {
+    debouncedRefreshRef.current();
+  }, []);
 
   // Re-fetch when filters/sort change
   useEffect(() => {
     fetchProjects(true);
   }, [sortBy, sortOrder, statusFilter, searchQuery, user?.id]);
+  
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      debouncedRefreshRef.current.cancel();
+    };
+  }, []);
 
   return {
     projects,

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback, memo, forward
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { withSafePageRef } from '@/lib/withSafeRef';
 import { useSafeNavigation, useRouteCleanup, useNavigationAbort } from '@/lib/navigation';
+import { debounce } from '@/lib/concurrency/debounce';
 import { 
   Plus, Film, Play, Download, Trash2, Edit2,
   Loader2, Clock, Zap, Eye, Star, Heart, TrendingUp,
@@ -206,6 +207,9 @@ function ProjectsContentInner() {
   // Batch-resolved clip URLs to avoid N+1 queries in ProjectCard
   const [resolvedClipUrls, setResolvedClipUrls] = useState<Map<string, string>>(new Map());
   
+  // RACE CONDITION FIX: Track clip resolution calls to prevent stale state updates
+  const clipResolutionIdRef = useRef(0);
+  
   // Training videos state
   interface TrainingVideo {
     id: string;
@@ -227,6 +231,9 @@ function ProjectsContentInner() {
   useEffect(() => {
     // Guard: Wait for user, hasLoadedOnce, and projects before resolving
     if (!user || !hasLoadedOnce || !Array.isArray(projects) || projects.length === 0) return;
+    
+    // RACE CONDITION FIX: Track this call to prevent stale updates
+    const callId = ++clipResolutionIdRef.current;
     
     const resolveClipUrls = async () => {
       // ALWAYS check video_clips for ALL completed projects to avoid expired Replicate URLs
@@ -254,6 +261,12 @@ function ProjectsContentInner() {
           .eq('status', 'completed')
           .not('video_url', 'is', null)
           .order('shot_index', { ascending: true });
+        
+        // RACE CONDITION FIX: Abort if a newer call has started
+        if (clipResolutionIdRef.current !== callId) {
+          console.debug('[Projects] Clip resolution aborted - newer call in progress');
+          return;
+        }
         
         if (clips && clips.length > 0) {
           console.log('[Projects] Batch resolved clips:', clips.length, 'clips for', projectIds.length, 'projects');
@@ -428,6 +441,12 @@ function ProjectsContentInner() {
   useEffect(() => {
     if (!user) return;
     
+    // DEBOUNCED: Prevent rapid-fire refreshes from bursting realtime updates
+    const debouncedRefresh = debounce(() => {
+      console.debug('[Projects] Debounced realtime refresh triggered');
+      refreshProjects();
+    }, 500);
+    
     const channel = supabase
       .channel('projects_realtime')
       .on(
@@ -439,12 +458,13 @@ function ProjectsContentInner() {
           filter: `user_id=eq.${user.id}`,
         },
         () => {
-          refreshProjects();
+          debouncedRefresh();
         }
       )
       .subscribe();
 
     return () => {
+      debouncedRefresh.cancel();
       supabase.removeChannel(channel);
     };
   }, [user, refreshProjects]);

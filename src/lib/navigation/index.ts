@@ -78,3 +78,9 @@ export { SafeLink } from './SafeLink';
 // ============= Navigation State Hook =============
 // Re-export useNavigationState from unifiedHooks
 export { useNavigationState } from './unifiedHooks';
+
+// ============= Page Stability =============
+export { 
+  useStablePageMount, 
+  useRegisterCleanup,
+} from '@/hooks/useStablePageMount';

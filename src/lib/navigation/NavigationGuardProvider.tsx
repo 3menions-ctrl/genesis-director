@@ -62,7 +62,7 @@ export function NavigationGuardProvider({ children }: NavigationGuardProviderPro
         const timer = setTimeout(() => {
           // Only complete if still in navigating state (not already completed by page)
           if (navigationCoordinator.isNavigating()) {
-            navigationCoordinator.completeNavigation();
+            navigationCoordinator.completeNavigation('NavigationGuardProvider:heavy-timeout');
           }
           // Always trigger GC
           navigationCoordinator.triggerGC();
@@ -71,7 +71,7 @@ export function NavigationGuardProvider({ children }: NavigationGuardProviderPro
         return () => clearTimeout(timer);
       } else {
         // For non-heavy routes, complete immediately
-        navigationCoordinator.completeNavigation();
+        navigationCoordinator.completeNavigation('NavigationGuardProvider:light-route');
         navigationCoordinator.triggerGC();
       }
     }
@@ -79,8 +79,8 @@ export function NavigationGuardProvider({ children }: NavigationGuardProviderPro
 
   // Force complete navigation
   const forceComplete = useCallback(() => {
-    navigationCoordinator.forceUnlock();
-    navigationCoordinator.completeNavigation();
+    navigationCoordinator.forceUnlock('NavigationGuardProvider:forceComplete');
+    navigationCoordinator.completeNavigation('NavigationGuardProvider:forceComplete');
   }, []);
 
   // Register cleanup for current route
@@ -125,6 +125,7 @@ export function useNavigationGuardContext(): NavigationGuardContextType {
         toRoute: null,
         startTime: 0,
         isLocked: false,
+        completionSource: null,
       },
       isLocked: false,
       forceComplete: () => {},

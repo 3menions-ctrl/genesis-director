@@ -116,7 +116,7 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
   if (isComplete || isError) return null;
 
   return (
-    <div ref={ref} className="fixed bottom-0 left-0 right-0 z-50">
+    <div ref={ref} className="fixed bottom-0 left-0 right-0 z-50 pb-safe">
       {/* Expandable Logs Panel */}
       <AnimatePresence>
         {isRunning && showLogs && (

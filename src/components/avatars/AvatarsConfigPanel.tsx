@@ -106,7 +106,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
     // Landscape tablets: more compact padding (p-3) to leave room for avatar notes
     <div
       ref={ref}
-      className="fixed bottom-0 left-0 right-0 z-40 p-3 md:p-4 lg:p-6 animate-fade-in"
+      className="fixed bottom-0 left-0 right-0 z-40 p-3 md:p-4 lg:p-6 pb-safe landscape-compact animate-fade-in"
       style={{ animationDelay: '0.4s' }}
     >
       <div className="max-w-5xl mx-auto">

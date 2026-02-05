@@ -384,8 +384,6 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         },
       });
       
-      if (!isMountedRef.current) return;
-      
       // Use centralized user-friendly error handling
       if (error || data?.error) {
         const { handled } = await handleEdgeFunctionError(
@@ -401,16 +399,23 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         throw new Error('Failed to create project');
       }
       
+      // Clear creating state BEFORE navigation to prevent stuck overlay
+      setIsCreating(false);
+      setCreationStatus('');
+      
       toast.success('Avatar video creation started!');
+      
       // Use emergencyNavigate to bypass any navigation locks after successful creation
+      // CRITICAL: Always navigate even if component is unmounting - this ensures redirect happens
       emergencyNavigate(`/production/${data.projectId}`);
     } catch (error) {
       // Ignore abort errors - expected during navigation
       if ((error as Error).name === 'AbortError') return;
-      if (!isMountedRef.current) return;
       
       console.error('Creation error:', error);
-      showUserFriendlyError(error, { navigate });
+      if (isMountedRef.current) {
+        showUserFriendlyError(error, { navigate });
+      }
     } finally {
       if (isMountedRef.current) {
         setIsCreating(false);

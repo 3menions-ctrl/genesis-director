@@ -42,7 +42,7 @@ export const CreditsDisplay = memo(forwardRef<HTMLDivElement, CreditsDisplayProp
         </div>
 
         <p className="text-xs text-white/50 mb-4">
-          Sign in to get <span className="text-white font-semibold">60 free credits</span> — enough for 6 clips (~36 seconds of video).
+          Sign in to track your credits and start creating videos.
         </p>
 
         <Button

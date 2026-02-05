@@ -6,6 +6,9 @@
  * - Verifying critical assets are ready before dismissing
  * - Enforcing minimum display time to prevent flicker
  * - Progressive loading messages for user engagement
+ * 
+ * ARCHITECTURE: Uses centralized route config from routeConfig.ts
+ * to ensure sync with NavigationGuardProvider.
  */
 
 import React, { 
@@ -19,81 +22,14 @@ import React, {
 } from 'react';
 import { useLocation } from 'react-router-dom';
 import { updateNavigationState } from '@/lib/diagnostics/StateSnapshotMonitor';
+import { 
+  HEAVY_ROUTES, 
+  isHeavyRoute as checkHeavyRoute, 
+  getHeavyRouteConfig 
+} from '@/lib/navigation/routeConfig';
 
-// Define which routes require heavy loading
-const HEAVY_ROUTES: Record<string, {
-  messages: string[];
-  minDuration: number;
-}> = {
-  '/create': {
-    messages: [
-      'Initializing AI engine...',
-      'Loading creation tools...',
-      'Syncing your preferences...',
-      'Preparing studio environment...',
-    ],
-    minDuration: 800,
-  },
-  '/production': {
-    messages: [
-      'Loading production pipeline...',
-      'Initializing video engine...',
-      'Syncing clips data...',
-      'Preparing render context...',
-    ],
-    minDuration: 600,
-  },
-  '/avatars': {
-    messages: [
-      'Loading avatar library...',
-      'Initializing voice engine...',
-      'Preparing character models...',
-    ],
-    minDuration: 600,
-  },
-  '/projects': {
-    messages: [
-      'Loading your projects...',
-      'Syncing latest updates...',
-    ],
-    minDuration: 400,
-  },
-  '/universes': {
-    messages: [
-      'Loading story universes...',
-      'Syncing timeline data...',
-    ],
-    minDuration: 400,
-  },
-  '/discover': {
-    messages: [
-      'Loading community content...',
-      'Fetching latest creations...',
-    ],
-    minDuration: 400,
-  },
-  '/clips': {
-    messages: [
-      'Loading your clips...',
-      'Preparing video previews...',
-    ],
-    minDuration: 400,
-  },
-  '/templates': {
-    messages: [
-      'Loading template library...',
-      'Preparing previews...',
-    ],
-    minDuration: 400,
-  },
-  '/environments': {
-    messages: [
-      'Loading environments...',
-      'Preparing scene presets...',
-    ],
-    minDuration: 400,
-  },
-};
+// Re-export for consumers who need the raw config
+export { HEAVY_ROUTES };
 
 interface NavigationLoadingState {
   isLoading: boolean;
@@ -130,30 +66,9 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
   const autoCompleteDisabledRef = useRef(false);
   const minDurationRef = useRef<number>(800);
 
-  // Check if a route is considered "heavy"
+  // Use centralized route config - single source of truth
   const isHeavyRoute = useCallback((route: string): boolean => {
-    // Check exact match first
-    if (HEAVY_ROUTES[route]) return true;
-    
-    // Check prefix match (for routes like /production/:id)
-    return Object.keys(HEAVY_ROUTES).some(key => 
-      route.startsWith(key) && (route === key || route[key.length] === '/')
-    );
-  }, []);
-
-  // Get config for a route
-  const getRouteConfig = useCallback((route: string) => {
-    // Exact match
-    if (HEAVY_ROUTES[route]) return HEAVY_ROUTES[route];
-    
-    // Prefix match
-    for (const key of Object.keys(HEAVY_ROUTES)) {
-      if (route.startsWith(key) && (route === key || route[key.length] === '/')) {
-        return HEAVY_ROUTES[key];
-      }
-    }
-    
-    return null;
+    return checkHeavyRoute(route);
   }, []);
 
   // Disable auto-complete for pages that manage their own readiness
@@ -163,7 +78,7 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
 
   // Start navigation loading
   const startNavigation = useCallback((targetRoute: string) => {
-    const config = getRouteConfig(targetRoute);
+    const config = getHeavyRouteConfig(targetRoute);
     
     if (!config) {
       // Not a heavy route, no loading needed
@@ -210,7 +125,7 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
         progress: newProgress,
       }));
     }, messageInterval);
-  }, [getRouteConfig]);
+  }, []);
 
   // Complete navigation (called when page is ready)
   const completeNavigation = useCallback(() => {

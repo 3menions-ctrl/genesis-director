@@ -3,11 +3,15 @@
  * 
  * Provides navigation coordination context to the component tree.
  * Listens for route changes and triggers cleanup automatically.
+ * 
+ * ARCHITECTURE: Uses centralized route config from routeConfig.ts
+ * to ensure sync with NavigationLoadingContext.
  */
 
 import React, { createContext, useContext, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { navigationCoordinator, NavigationState } from './NavigationCoordinator';
+import { isHeavyRoute, HEAVY_ROUTE_COMPLETION_DELAY_MS } from './routeConfig';
 
 interface NavigationGuardContextType {
   /** Current navigation state */
@@ -48,14 +52,10 @@ export function NavigationGuardProvider({ children }: NavigationGuardProviderPro
       // Update ref immediately to prevent duplicate processing
       prevLocationRef.current = currentPath;
       
-      // Check if this is a heavy route that manages its own readiness
-      // Heavy routes: /avatars, /create, /production, /projects, etc.
-      const HEAVY_ROUTE_PREFIXES = ['/avatars', '/create', '/production', '/projects', '/discover', '/clips', '/templates', '/environments', '/universes'];
-      const isHeavyRoute = HEAVY_ROUTE_PREFIXES.some(prefix => 
-        currentPath === prefix || currentPath.startsWith(prefix + '/')
-      );
+      // Use centralized route config to check if heavy
+      const routeIsHeavy = isHeavyRoute(currentPath);
       
-      if (isHeavyRoute) {
+      if (routeIsHeavy) {
         // For heavy routes, delay completion to allow gatekeepers to signal ready
         // The gatekeeper or page itself will call markReady() which triggers completeNavigation()
         // This prevents premature overlay dismissal and race conditions
@@ -66,7 +66,7 @@ export function NavigationGuardProvider({ children }: NavigationGuardProviderPro
           }
           // Always trigger GC
           navigationCoordinator.triggerGC();
-        }, 800); // 800ms matches the minimum overlay duration
+        }, HEAVY_ROUTE_COMPLETION_DELAY_MS);
         
         return () => clearTimeout(timer);
       } else {

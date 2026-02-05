@@ -191,22 +191,25 @@ describe('Avatar Component Stability Audit', () => {
 
 describe('Navigation Flow Consistency', () => {
   describe('Heavy Route Configuration', () => {
+    // Route config is now centralized - check both files
+    const routeConfigContent = readFile('src/lib/navigation/routeConfig.ts');
     const navContextContent = readFile('src/contexts/NavigationLoadingContext.tsx');
     
     it('should include avatars as heavy route', () => {
-      expect(navContextContent).toContain("'/avatars'");
+      // Routes are defined in centralized config, but imported into context
+      expect(routeConfigContent || navContextContent).toContain("'/avatars'");
     });
     
     it('should include create as heavy route', () => {
-      expect(navContextContent).toContain("'/create'");
+      expect(routeConfigContent || navContextContent).toContain("'/create'");
     });
     
     it('should include production as heavy route', () => {
-      expect(navContextContent).toContain("'/production'");
+      expect(routeConfigContent || navContextContent).toContain("'/production'");
     });
     
     it('should include projects as heavy route', () => {
-      expect(navContextContent).toContain("'/projects'");
+      expect(routeConfigContent || navContextContent).toContain("'/projects'");
     });
     
     it('should have disableAutoComplete for self-managed pages', () => {

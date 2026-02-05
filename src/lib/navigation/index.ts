@@ -9,6 +9,7 @@
  * - UnifiedHooks: All stability/navigation hooks consolidated
  * - NavigationBridge: Syncs with NavigationLoadingContext for UI feedback
  * - SafeLink: Navigation-aware Link component
+ * - routeConfig: Centralized heavy route definitions
  */
 
 // ============= Core Coordinator =============
@@ -21,6 +22,16 @@ export {
   type CoordinatorOptions,
   type CleanupSummary,
 } from './NavigationCoordinator';
+
+// ============= Route Configuration =============
+export {
+  HEAVY_ROUTES,
+  HEAVY_ROUTE_PREFIXES,
+  HEAVY_ROUTE_COMPLETION_DELAY_MS,
+  isHeavyRoute,
+  getHeavyRouteConfig,
+  type HeavyRouteConfig,
+} from './routeConfig';
 
 // ============= Unified Hooks (consolidated from multiple files) =============
 export {

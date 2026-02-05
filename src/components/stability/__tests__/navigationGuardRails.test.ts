@@ -95,7 +95,8 @@ describe('Navigation Loading Coordination', () => {
 
 describe('Heavy Route Configuration', () => {
   it('should have proper min duration for Create route', () => {
-    const contextPath = path.join(process.cwd(), 'src/contexts/NavigationLoadingContext.tsx');
+    // Route config is now centralized in routeConfig.ts
+    const contextPath = path.join(process.cwd(), 'src/lib/navigation/routeConfig.ts');
     const content = fs.readFileSync(contextPath, 'utf-8');
     
     // Create route should have substantial min duration
@@ -104,7 +105,8 @@ describe('Heavy Route Configuration', () => {
   });
 
   it('should have progressive loading messages', () => {
-    const contextPath = path.join(process.cwd(), 'src/contexts/NavigationLoadingContext.tsx');
+    // Route config is now centralized in routeConfig.ts
+    const contextPath = path.join(process.cwd(), 'src/lib/navigation/routeConfig.ts');
     const content = fs.readFileSync(contextPath, 'utf-8');
     
     // Should have multiple messages for user engagement

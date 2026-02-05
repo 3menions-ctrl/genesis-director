@@ -552,7 +552,7 @@ export default function ScriptReview() {
         </ScrollArea>
 
         {/* Action Buttons - Fixed at bottom */}
-        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t border-border p-4">
+        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t border-border p-4 pb-safe landscape-compact">
           <div className="max-w-4xl mx-auto flex items-center justify-between">
             <Button variant="ghost" onClick={handleCancel} disabled={isSubmitting}>
               <X className="w-4 h-4 mr-2" />

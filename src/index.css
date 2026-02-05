@@ -2,6 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Safe area insets for notched devices */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom);
+  }
+  .mt-safe {
+    margin-top: env(safe-area-inset-top);
+  }
+}
+
+/* Landscape mode utilities */
+@media (orientation: landscape) and (max-height: 500px) {
+  .landscape-compact {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+  .landscape-hide {
+    display: none !important;
+  }
+  .landscape-smaller {
+    font-size: 0.75rem !important;
+  }
+}
+
 /* Utility: Hide scrollbar */
 .scrollbar-hide {
   -ms-overflow-style: none;

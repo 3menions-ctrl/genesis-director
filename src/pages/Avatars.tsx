@@ -452,8 +452,8 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         </SafeComponent>
         
         <SafeComponent name="VirtualAvatarGallery">
-          {/* Extra bottom margin (pb-40/pb-48) ensures avatar cards clear the fixed bottom config panel */}
-          <div className="mb-8 pb-48 md:pb-40 lg:pb-56 animate-fade-in w-full overflow-hidden" style={{ animationDelay: '0.2s' }}>
+          {/* Extra bottom padding ensures avatar cards fully clear the fixed bottom config panel */}
+          <div className="mb-8 pb-72 md:pb-80 lg:pb-96 animate-fade-in w-full overflow-hidden" style={{ animationDelay: '0.2s' }}>
             {error ? (
               <div className="text-center py-12 text-destructive max-w-7xl mx-auto px-6">
                 <p>{error}</p>

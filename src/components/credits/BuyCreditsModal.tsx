@@ -141,7 +141,10 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
 
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[85vh] p-0 bg-[#000] border-white/[0.08] overflow-hidden flex flex-col">
+        <DialogContent 
+          className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 !transform w-[92vw] max-w-4xl max-h-[85vh] p-0 bg-[#000] border-white/[0.08] overflow-hidden flex flex-col"
+          hideCloseButton
+        >
           {/* Accessible description for screen readers */}
           <DialogDescription className="sr-only">
             Purchase credits for video generation

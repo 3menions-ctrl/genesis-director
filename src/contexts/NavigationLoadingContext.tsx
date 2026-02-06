@@ -65,6 +65,9 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
   const readySystemsRef = useRef<Set<string>>(new Set());
   const autoCompleteDisabledRef = useRef(false);
   const minDurationRef = useRef<number>(800);
+  // FIX: Added refs for completion timeouts to prevent leaks
+  const completionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Use centralized route config - single source of truth
   const isHeavyRoute = useCallback((route: string): boolean => {
@@ -128,12 +131,21 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
   }, []);
 
   // Complete navigation (called when page is ready)
+  // FIX: Uses refs declared above to prevent memory leaks on unmount
   const completeNavigation = useCallback(() => {
     const elapsed = performance.now() - startTimeRef.current;
     const remaining = Math.max(0, minDurationRef.current - elapsed);
 
+    // Clear any existing timeouts first
+    if (completionTimeoutRef.current) {
+      clearTimeout(completionTimeoutRef.current);
+    }
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+    }
+
     // Ensure minimum duration has passed
-    setTimeout(() => {
+    completionTimeoutRef.current = setTimeout(() => {
       if (messageIntervalRef.current) {
         clearInterval(messageIntervalRef.current);
         messageIntervalRef.current = null;
@@ -145,7 +157,7 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
       }));
 
       // Brief delay at 100% before hiding
-      setTimeout(() => {
+      hideTimeoutRef.current = setTimeout(() => {
         setState({
           isLoading: false,
           targetRoute: null,
@@ -161,7 +173,7 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
         }, 'completeNavigation');
       }, 150);
     }, remaining);
-  }, []);
+  }, [location.pathname]);
 
   // Report a system as ready (for Promise.all verification)
   const reportReady = useCallback((systemName: string) => {
@@ -186,11 +198,17 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
     }
   }, [location.pathname, state.isLoading, state.targetRoute, completeNavigation]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount - FIX: Added cleanup for completion timeouts
   useEffect(() => {
     return () => {
       if (messageIntervalRef.current) {
         clearInterval(messageIntervalRef.current);
+      }
+      if (completionTimeoutRef.current) {
+        clearTimeout(completionTimeoutRef.current);
+      }
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
       }
     };
   }, []);

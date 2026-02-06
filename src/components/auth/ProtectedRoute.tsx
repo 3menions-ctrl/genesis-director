@@ -80,7 +80,7 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
   // Redirect to auth only when we're CERTAIN there's no session
   // CRITICAL: Must have loading=false AND isSessionVerified=true before redirecting
   // Uses getValidSession() to avoid stale closure issues
-  // ENHANCED: 500ms buffer to prevent race condition crashes during heavy page loads
+  // FIX: Added AbortController for proper cleanup on unmount
   useEffect(() => {
     // Prevent double redirects
     if (isRedirectingRef.current) return;
@@ -91,14 +91,20 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
     // Already have a session in state - no redirect needed
     if (session?.user?.id || user?.id) return;
     
+    // Create abort controller for this effect
+    const abortController = new AbortController();
+    
     // ENHANCED: Longer buffer for state synchronization after login
     // 500ms gives heavy pages time to complete their initialization
     const timeoutId = setTimeout(async () => {
-      if (isRedirectingRef.current) return;
+      if (isRedirectingRef.current || abortController.signal.aborted) return;
       
       try {
         // Get fresh session directly from Supabase to avoid stale React state
         const freshSession = await getValidSession();
+        
+        // Check abort status after async operation
+        if (abortController.signal.aborted) return;
         
         // If fresh session exists, don't redirect - state will catch up
         if (freshSession?.user?.id) {
@@ -116,8 +122,11 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
       }
     }, 500); // Increased to 500ms for heavy pages
     
-    cleanupRef.current.push(() => clearTimeout(timeoutId));
-    return () => clearTimeout(timeoutId);
+    // Cleanup function
+    return () => {
+      clearTimeout(timeoutId);
+      abortController.abort();
+    };
   }, [loading, isSessionVerified, session?.user?.id, user?.id, navigate, getValidSession]);
 
   // Cleanup all async operations on unmount

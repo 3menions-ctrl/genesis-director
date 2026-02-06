@@ -126,8 +126,8 @@ export function getRecoverySuggestion(category: ErrorCategory): string {
 
 /**
  * Check if error should be silently suppressed
- * COMPREHENSIVE list of non-fatal errors that should not crash the app
- * SAFARI-SPECIFIC patterns added for iOS/macOS Safari stability
+ * TIGHTENED list - only specific, unambiguous non-fatal errors
+ * FIX: Removed overly broad patterns that masked real crashes
  */
 export function shouldSuppressError(error: unknown): boolean {
   if (!error) return true;
@@ -138,116 +138,33 @@ export function shouldSuppressError(error: unknown): boolean {
 
   // AbortController errors (normal during navigation)
   if (name === 'AbortError') return true;
-  if (name === 'NotAllowedError') return true;
-  if (name === 'NotSupportedError') return true;
-  if (name === 'InvalidStateError') return true;
-  if (name === 'QuotaExceededError') return true;
-  if (name === 'SecurityError') return true;
-  if (name === 'NotFoundError') return true;
-  if (name === 'HierarchyRequestError') return true;
   if (lowered.includes('aborterror')) return true;
-  if (lowered.includes('aborted')) return true;
-  if (lowered.includes('signal is aborted')) return true;
   if (lowered.includes('the operation was aborted')) return true;
-  if (lowered.includes('the user aborted a request')) return true;
-
-  // Navigation cancellation
-  if (lowered.includes('navigation was cancelled')) return true;
-  if (lowered.includes('cancelled')) return true;
+  if (lowered.includes('signal is aborted')) return true;
 
   // ResizeObserver loop errors (browser quirk)
   if (lowered.includes('resizeobserver loop')) return true;
 
-  // React ref warnings (non-fatal) - CRITICAL: Must be specific to avoid over-suppression
-  if (lowered.includes('function components cannot be given refs')) return true;
-  if (lowered.includes('forwardref render functions accept')) return true;
-  // FIX: Removed overly broad 'forwardref' and 'ref' patterns that were suppressing real errors
-  // These caused legitimate "Cannot read property of undefined" errors to be suppressed
-  if (lowered.includes('a]d) as forwardref')) return true; // React internal warning format
-
-  // Radix/Dialog cleanup race conditions
-  if (lowered.includes('removeattribute')) return true;
-  if (lowered.includes('setattribute')) return true;
-  if (lowered.includes('removechild')) return true;
-  if (lowered.includes('insertbefore')) return true;
-  if (lowered.includes('appendchild')) return true;
-  if (lowered.includes('parentnode')) return true;
-  if (lowered.includes('portal')) return true;
-  if (lowered.includes('dialog')) return true;
-  if (lowered.includes('radix')) return true;
-  if (lowered.includes('failed to execute')) return true;
-
-  // Chunk loading errors (network issues)
+  // Chunk loading errors (network issues) - handled by recovery system
   if (lowered.includes('chunkloaderror')) return true;
   if (lowered.includes('loading chunk')) return true;
   if (lowered.includes('failed to fetch dynamically imported module')) return true;
 
-  // Non-error promise rejections
-  if (lowered.includes('non-error promise rejection')) return true;
-
-  // VIDEO/MEDIA ERRORS - CRITICAL: These are harmless browser quirks
+  // Video/Media playback interruptions - specific patterns only
   if (lowered.includes('play() request was interrupted')) return true;
   if (lowered.includes('the play() request was interrupted')) return true;
-  if (lowered.includes('notallowederror')) return true;
-  if (lowered.includes('notsupportederror')) return true;
-  if (lowered.includes('invalidstateerror')) return true;
-  if (lowered.includes('media_err')) return true;
-  if (lowered.includes('mediaerror')) return true;
-  if (lowered.includes('the media resource')) return true;
-  if (lowered.includes('video')) return true;
-  if (lowered.includes('playback')) return true;
-  if (lowered.includes('the element has no supported sources')) return true;
-  if (lowered.includes('htmlmediaelement')) return true;
-  if (lowered.includes('decoding failed')) return true;
-  if (lowered.includes('decode error')) return true;
-  if (lowered.includes('pipeline_error')) return true;
-  if (lowered.includes('demuxer_error')) return true;
-  if (lowered.includes('renderer_error')) return true;
-  if (lowered.includes('currenttime')) return true;
-  if (lowered.includes('duration is not a finite')) return true;
-  if (lowered.includes('sourcebuffer')) return true;
-  if (lowered.includes('mediasource')) return true;
-  if (lowered.includes('buffered')) return true;
-  if (lowered.includes('readystate')) return true;
-  if (lowered.includes('have_nothing')) return true;
-  if (lowered.includes('load() was called')) return true;
 
-  // Component loading errors
-  if (lowered.includes('is not a function')) return true;
-  if (lowered.includes('instance of object')) return true;
-  if (lowered.includes('component is not')) return true;
+  // React state updates on unmounted - warning, not crash
+  if (lowered.includes("can't perform a react state update on an unmounted")) return true;
+  if (lowered.includes('state update on an unmounted')) return true;
 
-  // Framer Motion cleanup
-  if (lowered.includes('motion')) return true;
-  if (lowered.includes('animatepresence')) return true;
-  if (lowered.includes('measure')) return true;
-  if (lowered.includes('animation')) return true;
-
-  // Network errors - show toast, not crash
-  if (lowered.includes('network error')) return true;
+  // Network failures - should show toast, not crash
   if (lowered.includes('failed to fetch')) return true;
-  if (lowered.includes('econnrefused')) return true;
+  if (lowered.includes('networkerror')) return true;
+  if (lowered.includes('load failed')) return true;
 
-  // SAFARI-SPECIFIC ERRORS - CRITICAL FOR iOS/macOS SAFARI
-  if (lowered.includes('a problem repeatedly occurred')) return true;
-  if (lowered.includes('quotaexceedederror')) return true;
-  if (lowered.includes('the quota has been exceeded')) return true;
-  if (lowered.includes('securityerror')) return true;
-  if (lowered.includes('cross-origin')) return true;
-  if (lowered.includes('the object is in an invalid state')) return true;
-  if (lowered.includes('webkit')) return true;
-  if (lowered.includes('safari')) return true;
-  if (lowered.includes('itp')) return true;
-  if (lowered.includes('the request is not allowed by the user agent')) return true;
-  if (lowered.includes('undefined is not an object')) return true;
-  if (lowered.includes('null is not an object')) return true;
-  if (lowered.includes('undefined is not a function')) return true;
-  if (lowered.includes("can't find variable")) return true;
-  if (lowered.includes('notfounderror')) return true;
-  if (lowered.includes('hierarchyrequesterror')) return true;
-  if (lowered.includes('addsourcebuffer')) return true;
-  if (lowered.includes('endofstream')) return true;
-  if (lowered.includes('sourceopen')) return true;
+  // Non-error promise rejections
+  if (lowered.includes('non-error promise rejection')) return true;
 
   return false;
 }

@@ -25,11 +25,65 @@ class ErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBoundaryStat
     errorInfo: null,
   };
 
-  public static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
+  // SUPPRESSED_NAMES - DOMException types that should not crash
+  private static readonly SUPPRESSED_NAMES = [
+    'AbortError',
+    'NotAllowedError',
+    'NotSupportedError',
+  ];
+  
+  // SUPPRESSED_PATTERNS - specific error messages to ignore
+  private static readonly SUPPRESSED_PATTERNS = [
+    'ResizeObserver loop',
+    'ChunkLoadError',
+    'play() request was interrupted',
+    'Failed to fetch',
+    'state update on an unmounted',
+  ];
+  
+  public static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> | null {
+    // Check if this error should be suppressed
+    const errorName = error?.name || '';
+    const errorMessage = error?.message || '';
+    
+    // Suppress by error name
+    if (ErrorBoundaryClass.SUPPRESSED_NAMES.includes(errorName)) {
+      console.debug('[ErrorBoundary] Suppressed by name:', errorName);
+      return null; // Don't update state - no error UI
+    }
+    
+    // Suppress by message pattern
+    const shouldSuppress = ErrorBoundaryClass.SUPPRESSED_PATTERNS.some(pattern =>
+      errorMessage.toLowerCase().includes(pattern.toLowerCase())
+    );
+    
+    if (shouldSuppress) {
+      console.debug('[ErrorBoundary] Suppressed by pattern:', errorMessage.substring(0, 80));
+      return null; // Don't update state - no error UI
+    }
+    
     return { hasError: true, error };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Check if suppressed - if so, reset state and return
+    const errorName = error?.name || '';
+    const errorMessage = error?.message || '';
+    
+    if (ErrorBoundaryClass.SUPPRESSED_NAMES.includes(errorName)) {
+      this.setState({ hasError: false, error: null, errorInfo: null });
+      return;
+    }
+    
+    const shouldSuppress = ErrorBoundaryClass.SUPPRESSED_PATTERNS.some(pattern =>
+      errorMessage.toLowerCase().includes(pattern.toLowerCase())
+    );
+    
+    if (shouldSuppress) {
+      this.setState({ hasError: false, error: null, errorInfo: null });
+      return;
+    }
+    
     console.error('[ErrorBoundary] Uncaught error:', error);
     console.error('[ErrorBoundary] Component stack:', errorInfo.componentStack);
     

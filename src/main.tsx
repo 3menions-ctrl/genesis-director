@@ -60,161 +60,53 @@ const ERROR_RESET_INTERVAL = 30000; // 30 seconds
 let errorResetInterval: ReturnType<typeof setInterval> | null = null;
 
 // Error patterns that should NOT crash the app or show toasts
-// COMPREHENSIVE list - includes all variations of common non-fatal errors
-// SAFARI-SPECIFIC patterns added for iOS/macOS Safari stability
+// FIX: TIGHTENED list - only specific, unambiguous non-fatal errors
+// Removed overly broad patterns that masked real crashes
 const SUPPRESSED_ERROR_PATTERNS = [
+  // ResizeObserver - browser quirk, never a real crash
   'ResizeObserver loop',
   'ResizeObserver loop completed',
-  'Non-Error promise rejection captured',
+  
+  // ChunkLoadError - handled by recovery system
   'ChunkLoadError',
   'Loading chunk',
-  // FIX: Added specific pattern for module import failures
   'Importing a module script failed',
   'error loading dynamically imported module',
-  // FIX: More specific null property patterns (not over-broad)
-  'Cannot read properties of null (reading \'removeChild\')',
-  'Cannot read properties of null (reading \'insertBefore\')',
-  'Cannot read properties of null (reading \'parentNode\')',
-  // CRITICAL: Network/Fetch failures - suppress to prevent cascade
-  'Load failed',
-  'TypeError: Load failed',
-  'Failed to fetch',
-  'NetworkError',
-  'net::ERR',
-  'fetch failed',
   'Failed to fetch dynamically imported module',
-  'Network Error',
-  'cancelled',
-  // AbortController errors - expected during navigation (all variants)
+  
+  // AbortController - expected during navigation
   'AbortError',
   'The operation was aborted',
   'signal is aborted',
   'DOMException: The user aborted a request',
-  'aborted',
-  // VIDEO PLAYBACK ERRORS - CRITICAL: These are harmless and common
-  'instance of Object',
-  'is not a function',
-  // Radix/Dialog cleanup race conditions - CRITICAL for stability
-  'removeAttribute',
-  'setAttribute',
-  'removeChild',
-  'insertBefore',
-  'parentNode',
-  'Node.removeChild',
-  'Failed to execute',
-  'Dialog',
-  'DialogContent',
-  'DialogPortal',
-  // VIDEO PLAYBACK ERRORS - CRITICAL: These are harmless and common
+  
+  // Network failures - should show toast, not crash
+  'Failed to fetch',
+  'NetworkError',
+  'net::ERR',
+  'fetch failed',
+  'TypeError: Load failed',
+  'Load failed',
+  
+  // Video/audio playback interruptions - harmless
   'play() request was interrupted',
-  'The play() request was interrupted by a call to pause()',
-  'NotAllowedError',
-  'NotSupportedError',
-  'MEDIA_ERR',
-  'MediaError',
-  'The media resource',
-  'video element',
-  'Video',
-  'video playback',
-  'InvalidStateError',
-  'The element has no supported sources',
-  'MEDIA_ELEMENT_ERROR',
-  'HTMLMediaElement',
-  'playback error',
-  'decoding failed',
-  'decode error',
-  // Additional video/media errors - EXPANDED COVERAGE
-  'Failed to load because no supported source was found',
-  'PIPELINE_ERROR_READ',
-  'PIPELINE_ERROR_DECODE',
-  'DEMUXER_ERROR',
-  'AUDIO_RENDERER_ERROR',
-  'VIDEO_RENDERER_ERROR',
-  'The play method is not allowed',
-  'The fetching process for the media resource',
-  'A network error caused the media download to fail',
-  'currentTime',
-  'duration is not a finite number',
-  'Cannot set property currentTime',
-  'seeking is not supported',
-  'The requested operation is not supported',
-  'SourceBuffer',
-  'MediaSource',
-  'buffered',
-  'The video playback was aborted',
-  'Uncaught (in promise) AbortError',
-  // HMR/Vite development errors
+  'The play() request was interrupted',
+  'NotAllowedError: play()',
+  'DOMException: play() failed',
+  
+  // React state updates on unmounted - warning, not crash
+  "Can't perform a React state update on an unmounted component",
+  'state update on an unmounted',
+  
+  // HMR/Vite development
   'Vite HMR',
-  // Framer Motion cleanup - FIX: More specific patterns only
-  'AnimatePresence cleanup',
-  // FIX: Removed overly broad patterns: 'Tooltip', 'Popover', 'radix', 'Radix', 'Portal'
-  // FIX: Removed 'Cannot read property', 'measure', 'animation' - too broad
-  // FIX: Removed 'Check the render method', 'validateFunctionComponentInDev' - should see real errors
-  // ReadyState and loading errors
-  'readyState',
-  'HAVE_NOTHING',
-  'load() was called',
-  'readyState',
-  'HAVE_NOTHING',
-  'load() was called',
-  // JSON parsing and network errors
-  'Expected JSON but got',
-  'API returned HTML',
-  'Unexpected response format',
+  
+  // JSON parsing from network - should show toast, not crash
   'Unexpected token',
   'Unexpected end of JSON',
-  'JSON.parse',
-  'JSON parse',
-  'SyntaxError',
-  // Permission errors (handled by auth flow, not crash)
-  'permission denied',
-  'Permission denied',
-  'PGRST',
-  '42501',
-  // Auth context errors (handled gracefully)
-  'auth context',
-  'session',
-  'Session',
-  // Touch/pointer events on unmounted elements
-  'touch event',
-  'pointer event',
-  'target is null',
-  // Image loading errors
-  'Failed to load image',
-  'Image load error',
-  // Intersection Observer cleanup
-  'IntersectionObserver',
-  'disconnect',
-  // SAFARI-SPECIFIC ERRORS - CRITICAL FOR iOS/macOS SAFARI
+  
+  // Safari BFCache restoration
   'A problem repeatedly occurred',
-  'QuotaExceededError',
-  'The quota has been exceeded',
-  'SecurityError',
-  'Cross-origin',
-  'cross-origin',
-  'The object is in an invalid state',
-  'The object is not in a valid state',
-  'WebKit',
-  'webkit',
-  'Safari',
-  'ITP',
-  'The request is not allowed by the user agent',
-  'undefined is not an object (evaluating',
-  'null is not an object (evaluating',
-  'Type error',
-  'undefined is not a function',
-  'Can\'t find variable',
-  // Additional DOM errors for Safari
-  'NotFoundError',
-  'HierarchyRequestError',
-  'DataCloneError',
-  'WrongDocumentError',
-  'ReadOnlyError',
-  // MSE/SourceBuffer Safari issues
-  'addSourceBuffer',
-  'endOfStream',
-  'SourceOpen',
-  'sourceopen',
 ];
 
 // ============= CONSOLE INTERCEPTION (MINIMAL) =============

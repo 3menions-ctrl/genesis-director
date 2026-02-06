@@ -87,34 +87,9 @@ function mapDbProject(dbProject: any): Project {
 }
 
 export function StudioProvider({ children }: { children: ReactNode }) {
-  // Use auth context directly - AuthProvider is guaranteed to be above StudioProvider in App.tsx
-  // CRITICAL: Wrap in try-catch to provide graceful fallback instead of crash
-  let authContext: ReturnType<typeof useAuth>;
-  try {
-    authContext = useAuth();
-  } catch (err) {
-    console.error('[StudioContext] Failed to access AuthContext:', err);
-    // Provide minimal fallback auth context to prevent cascade crash
-    authContext = {
-      user: null,
-      session: null,
-      profile: null,
-      loading: true,
-      isSessionVerified: false,
-      profileError: null,
-      isAdmin: false,
-      signIn: async () => ({ error: new Error('Auth not available') }),
-      signUp: async () => ({ error: new Error('Auth not available') }),
-      signInWithGoogle: async () => ({ error: new Error('Auth not available') }),
-      signOut: async () => {},
-      refreshProfile: async () => {},
-      retryProfileFetch: async () => {},
-      getValidSession: async () => null,
-      waitForSession: async () => null,
-    };
-  }
-  
-  const { user, profile, refreshProfile, loading: authLoading } = authContext;
+  // FIX: useAuth now returns a safe fallback if context is missing
+  // No try-catch needed - that violated React's hook rules
+  const { user, profile, refreshProfile, loading: authLoading } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [credits, setCredits] = useState<UserCredits>(DEFAULT_CREDITS);

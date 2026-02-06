@@ -61,65 +61,34 @@ export class StabilityBoundary extends Component<Props, State> {
     isRetrying: false,
   };
 
-  // Error patterns to suppress - prevent these from showing error UI
-  // COMPREHENSIVE LIST - must match GlobalStabilityBoundary and main.tsx
+  // Error patterns to suppress - TIGHTENED LIST
+  // FIX: Only specific, unambiguous non-fatal errors
   private static readonly SUPPRESSED_PATTERNS = [
     // AbortController - expected during navigation
     'AbortError',
-    'aborted',
     'The operation was aborted',
     'signal is aborted',
+    
     // ResizeObserver - browser quirk
-    'ResizeObserver',
-    // Chunk loading - handled by recovery system
+    'ResizeObserver loop',
+    
+    // ChunkLoadError - handled by recovery system
     'ChunkLoadError',
     'Loading chunk',
-    'dynamically imported module',
     'Failed to fetch dynamically imported module',
-    // FIX: Removed overly-broad 'forwardRef' and 'Check the render method' patterns
-    // These were suppressing legitimate component errors
-    // React ref warnings - NOT crashes (specific patterns only)
-    'Function components cannot be given refs',
-    'forwardRef render functions accept',
-    // DOM cleanup race conditions - specific patterns only
-    // FIX: Removed 'removeAttribute', 'setAttribute', 'appendChild', 'parentNode', 'Failed to execute'
-    // These were too broad and suppressed real errors
-    // FIX: More specific null/undefined patterns - avoid over-broad suppression
-    'Cannot read properties of null (reading \'removeChild\')',
-    'Cannot read properties of null (reading \'insertBefore\')',
-    'Cannot read properties of null (reading \'parentNode\')',
-    'Cannot read properties of undefined (reading \'removeChild\')',
-    // FIX: Removed overly-broad 'Dialog', 'Radix', 'Portal', 'Tooltip', 'Popover' patterns
-    // Only keep specific Radix cleanup patterns that are known race conditions
-    'DialogContent is being rendered',
-    'DialogPortal was closed',
-    // Video playback - CRITICAL
+    
+    // React state updates on unmounted
+    "Can't perform a React state update on an unmounted component",
+    'state update on an unmounted',
+    
+    // Video playback interruptions
     'play() request was interrupted',
     'The play() request was interrupted',
-    'NotAllowedError',
-    'NotSupportedError',
-    'InvalidStateError',
-    'MEDIA_ERR',
-    'MediaError',
-    'HTMLMediaElement',
-    'The element has no supported sources',
-    'SourceBuffer',
-    'MediaSource',
-    // React lifecycle
-    'unmounted component',
-    'state update on an unmounted',
-    "Can't perform a React state update",
-    // Network errors
+    
+    // Network failures - should show toast, not crash
     'Failed to fetch',
     'NetworkError',
     'Load failed',
-    'net::ERR',
-    // Safari-specific
-    'QuotaExceededError',
-    'SecurityError',
-    'WebKit',
-    'undefined is not an object',
-    'null is not an object',
   ];
 
   static getDerivedStateFromError(error: Error): Partial<State> | null {

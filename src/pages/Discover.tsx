@@ -85,13 +85,9 @@ const DiscoverContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
   const { navigate } = useSafeNavigation();
   const { getSignal, isMounted } = useNavigationAbort();
   
-  let authData: { user: any };
-  try {
-    authData = useAuth();
-  } catch {
-    authData = { user: null };
-  }
-  const { user } = authData;
+  // FIX: useAuth is now safe (returns fallback if context missing)
+  // Call unconditionally - no try-catch wrapper that violates hook rules
+  const { user } = useAuth();
   
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');

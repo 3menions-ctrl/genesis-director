@@ -14,164 +14,40 @@ interface GlobalStabilityBoundaryState {
   lastErrorTime: number;
 }
 
-// Error patterns that should NOT crash the app - COMPREHENSIVE LIST
-// These are common errors that don't indicate actual application problems
-// SAFARI-SPECIFIC patterns added for iOS/macOS Safari stability
+// Error patterns that should NOT crash the app - TIGHTENED LIST
+// FIX: Removed overly broad patterns that masked real crashes
+// Only specific, unambiguous non-fatal errors should be here
 const SUPPRESSED_ERROR_PATTERNS = [
-  // Browser API quirks
+  // Browser API quirks - these are never crashes
   'ResizeObserver loop',
   'ResizeObserver loop completed with undelivered notifications',
-  'Non-Error promise rejection captured',
   
-  // Code splitting / lazy loading
+  // ChunkLoadError - handled by dedicated recovery system
   'ChunkLoadError',
   'Loading chunk',
   'Failed to fetch dynamically imported module',
   
-  // Component loading errors - prevent cascade on lazy load issues
-  'Component is not a function',
-  'instance of Object',
-  'is not a function',
-  
-  // DOM cleanup race conditions - FIX: Made patterns more specific to avoid over-suppression
-  // These patterns were too broad and suppressed real crashes
-  'Cannot read properties of null (reading \'removeChild\')',
-  'Cannot read properties of null (reading \'insertBefore\')',
-  'Cannot read properties of null (reading \'parentNode\')',
-  'Cannot read properties of undefined (reading \'removeChild\')',
-  'Node.removeChild: The node to be removed',
-  
-  // AbortController errors - expected during fast navigation
+  // AbortController errors - expected during navigation
   'AbortError',
   'The operation was aborted',
   'signal is aborted',
-  'DOMException: The user aborted a request',
-  'aborted',
   
-  // React ref warnings - non-fatal console warnings (NOT errors)
-  // FIX: Made patterns more specific - removed overly broad patterns
-  'Function components cannot be given refs',
-  'forwardRef render functions accept',
-  'Warning: Function components cannot be given refs',
-  
-  // React state/lifecycle errors that occur during unmounting
+  // React state updates on unmounted - warning, not crash
   'unmounted component',
   'state update on an unmounted',
-  "Can't perform a React state update",
+  "Can't perform a React state update on an unmounted component",
   
-  // React Query background errors
-  'QueryCancelled',
-  'Query cancelled',
-  
-  // Video playback (autoplay restrictions, etc.) - CRITICAL FOR STABILITY
-  // FIX: Made patterns more specific - removed 'Video', 'video element', 'video playback' (too broad)
+  // Video playback interruptions - harmless
   'play() request was interrupted',
   'The play() request was interrupted',
-  'NotAllowedError',
-  'AbortError: The play',
-  'NotSupportedError: The operation',
-  'MEDIA_ERR_',
-  'MediaError:',
-  'The media resource indicated',
-  'InvalidStateError: The element',
-  'The element has no supported sources',
-  'MEDIA_ELEMENT_ERROR:',
-  'HTMLMediaElement:',
-  'decoding failed',
-  'decode error',
-  'DOMException: The element has no supported sources',
+  'NotAllowedError: play()',
   'DOMException: play() failed',
-  // Additional video/media errors - EXPANDED COVERAGE
-  'Failed to load because no supported source was found',
-  'PIPELINE_ERROR_READ',
-  'PIPELINE_ERROR_DECODE',
-  'DEMUXER_ERROR',
-  'AUDIO_RENDERER_ERROR',
-  'VIDEO_RENDERER_ERROR',
-  'The play method is not allowed',
-  'The fetching process for the media resource',
-  'A network error caused the media download to fail',
-  'currentTime',
-  'duration is not a finite number',
-  'Cannot set property currentTime',
-  'seeking is not supported',
-  'The requested operation is not supported',
-  'SourceBuffer',
-  'MediaSource',
-  'buffered',
-  'The video playback was aborted',
-  'Uncaught (in promise) AbortError',
-  'readyState',
-  'HAVE_NOTHING',
-  'load() was called',
   
-  // Network errors (should show toast, not crash) - CRITICAL FOR STABILITY
-  'NetworkError',
+  // Network failures - should show toast, not crash
   'Failed to fetch',
-  'Network request failed',
-  'TypeError: Failed to fetch',
-  'TypeError: Load failed',
-  'Load failed',
+  'NetworkError',
   'net::ERR',
-  'ECONNREFUSED',
-  'fetch failed',
-  
-  // Framer Motion cleanup - critical for animation crashes
-  'Cannot read property',
-  'measure',
-  'animation',
-  'Motion',
-  'AnimatePresence',
-  'exit',
-  'animate',
-  'variants',
-  
-  // Tooltip/Popover/Dialog cleanup race conditions - CRITICAL
-  'Tooltip',
-  'Popover',
-  'radix',
-  'Radix',
-  'Dialog',
-  'DialogContent',
-  'DialogPortal',
-  'Portal',
-  
-  // Image/media loading errors
-  'Image',
-  'load',
-  'decode',
-  'decoding',
-  
-  // SAFARI-SPECIFIC ERRORS - CRITICAL FOR iOS/macOS SAFARI
-  'A problem repeatedly occurred',
-  'QuotaExceededError',
-  'The quota has been exceeded',
-  'SecurityError',
-  'Cross-origin',
-  'cross-origin',
-  'The object is in an invalid state',
-  'The object is not in a valid state',
-  'WebKit',
-  'webkit',
-  'Safari',
-  'ITP',
-  'The request is not allowed by the user agent',
-  'undefined is not an object',
-  'null is not an object',
-  'Type error',
-  'undefined is not a function',
-  'Can\'t find variable',
-  // Additional DOM errors for Safari
-  'NotFoundError',
-  'HierarchyRequestError',
-  'DataCloneError',
-  'WrongDocumentError',
-  'ReadOnlyError',
-  // MSE/SourceBuffer Safari issues
-  'addSourceBuffer',
-  'endOfStream',
-  'SourceOpen',
-  'sourceopen',
+  'Load failed',
 ];
 
 /**

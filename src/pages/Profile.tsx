@@ -42,6 +42,7 @@ import { useRealAnalytics } from '@/hooks/useRealAnalytics';
 import { RealAnalyticsCards } from '@/components/analytics/RealAnalyticsCards';
 import ProfileBackground from '@/components/profile/ProfileBackground';
 import { ErrorBoundary, SafeComponent } from '@/components/ui/error-boundary';
+import { MessagesInbox } from '@/components/social/MessagesInbox';
 
 interface Transaction {
   id: string;
@@ -797,6 +798,9 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                     })}
                   </div>
                 </div>
+
+                {/* Messages Inbox */}
+                <MessagesInbox />
 
                 {/* Stats Summary - Transparent Card */}
                 <div className={cn("rounded-2xl p-5", glassCard)}>

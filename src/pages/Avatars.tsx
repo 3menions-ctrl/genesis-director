@@ -420,7 +420,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         <AppHeader />
       </SafeComponent>
       
-      <div className="relative z-10 flex-1 pb-48 md:pb-56 animate-fade-in">
+      <div className="relative z-10 flex-1 pb-4 md:pb-56 animate-fade-in">
         <SafeComponent name="AvatarsHero" fallback={<div className="pt-24 pb-8" />}>
           <AvatarsHero />
         </SafeComponent>
@@ -452,8 +452,8 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         </SafeComponent>
         
         <SafeComponent name="VirtualAvatarGallery">
-          {/* Extra bottom padding ensures avatar cards fully clear the fixed bottom config panel */}
-          <div className="mb-8 pb-72 md:pb-80 lg:pb-96 animate-fade-in w-full overflow-hidden" style={{ animationDelay: '0.2s' }}>
+          {/* Mobile: minimal padding since config panel flows below. Desktop: large padding for fixed panel */}
+          <div className="mb-8 pb-8 md:pb-80 lg:pb-96 animate-fade-in w-full overflow-hidden" style={{ animationDelay: '0.2s' }}>
             {error ? (
               <div className="text-center py-12 text-destructive max-w-7xl mx-auto px-6">
                 <p>{error}</p>
@@ -471,36 +471,71 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
             )}
           </div>
         </SafeComponent>
+        
+        {/* Mobile: Config panel is in-flow below avatars */}
+        <div className="md:hidden">
+          <SafeComponent name="AvatarsConfigPanel-mobile" fallback={<div className="h-32" />}>
+            <AvatarsConfigPanel
+              selectedAvatar={selectedAvatar}
+              prompt={prompt}
+              onPromptChange={setPrompt}
+              sceneDescription={sceneDescription}
+              onSceneDescriptionChange={setSceneDescription}
+              aspectRatio={aspectRatio}
+              onAspectRatioChange={setAspectRatio}
+              clipDuration={clipDuration}
+              onClipDurationChange={setClipDuration}
+              clipCount={clipCount}
+              onClipCountChange={handleClipCountChange}
+              maxClips={maxClips}
+              enableMusic={enableMusic}
+              onEnableMusicChange={setEnableMusic}
+              cinematicMode={cinematicMode}
+              onCinematicModeChange={setCinematicMode}
+              estimatedDuration={estimatedDuration}
+              estimatedCredits={estimatedCredits}
+              userCredits={userCredits}
+              hasInsufficientCredits={hasInsufficientCredits}
+              isCreating={isCreating}
+              isReadyToCreate={!!isReadyToCreate}
+              onClearAvatar={handleClearAvatar}
+              onCreate={handleCreate}
+            />
+          </SafeComponent>
+        </div>
       </div>
       
-      <SafeComponent name="AvatarsConfigPanel" fallback={<div className="fixed bottom-0 h-32" />}>
-        <AvatarsConfigPanel
-          selectedAvatar={selectedAvatar}
-          prompt={prompt}
-          onPromptChange={setPrompt}
-          sceneDescription={sceneDescription}
-          onSceneDescriptionChange={setSceneDescription}
-          aspectRatio={aspectRatio}
-          onAspectRatioChange={setAspectRatio}
-          clipDuration={clipDuration}
-          onClipDurationChange={setClipDuration}
-          clipCount={clipCount}
-          onClipCountChange={handleClipCountChange}
-          maxClips={maxClips}
-          enableMusic={enableMusic}
-          onEnableMusicChange={setEnableMusic}
-          cinematicMode={cinematicMode}
-          onCinematicModeChange={setCinematicMode}
-          estimatedDuration={estimatedDuration}
-          estimatedCredits={estimatedCredits}
-          userCredits={userCredits}
-          hasInsufficientCredits={hasInsufficientCredits}
-          isCreating={isCreating}
-          isReadyToCreate={!!isReadyToCreate}
-          onClearAvatar={handleClearAvatar}
-          onCreate={handleCreate}
-        />
-      </SafeComponent>
+      {/* Desktop: Fixed config panel at bottom */}
+      <div className="hidden md:block">
+        <SafeComponent name="AvatarsConfigPanel-desktop" fallback={<div className="fixed bottom-0 h-32" />}>
+          <AvatarsConfigPanel
+            selectedAvatar={selectedAvatar}
+            prompt={prompt}
+            onPromptChange={setPrompt}
+            sceneDescription={sceneDescription}
+            onSceneDescriptionChange={setSceneDescription}
+            aspectRatio={aspectRatio}
+            onAspectRatioChange={setAspectRatio}
+            clipDuration={clipDuration}
+            onClipDurationChange={setClipDuration}
+            clipCount={clipCount}
+            onClipCountChange={handleClipCountChange}
+            maxClips={maxClips}
+            enableMusic={enableMusic}
+            onEnableMusicChange={setEnableMusic}
+            cinematicMode={cinematicMode}
+            onCinematicModeChange={setCinematicMode}
+            estimatedDuration={estimatedDuration}
+            estimatedCredits={estimatedCredits}
+            userCredits={userCredits}
+            hasInsufficientCredits={hasInsufficientCredits}
+            isCreating={isCreating}
+            isReadyToCreate={!!isReadyToCreate}
+            onClearAvatar={handleClearAvatar}
+            onCreate={handleCreate}
+          />
+        </SafeComponent>
+      </div>
       
       <SafeComponent name="AvatarPreviewModal" silent>
         <AvatarPreviewModal

@@ -454,6 +454,26 @@ export function useProjectComments(projectId?: string) {
         });
       
       if (error) throw error;
+      
+      // Get project owner for notification
+      const { data: project } = await supabase
+        .from('movie_projects')
+        .select('user_id, title')
+        .eq('id', projectId)
+        .single();
+      
+      // Create notification for project owner (not for own comments)
+      if (project && project.user_id !== user.id) {
+        await supabase
+          .from('notifications')
+          .insert({
+            user_id: project.user_id,
+            type: 'comment',
+            title: 'New comment on your video',
+            body: content.substring(0, 100),
+            data: { commenter_id: user.id, project_id: projectId },
+          });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-comments', projectId] });

@@ -134,7 +134,7 @@ const DiscoverContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
   });
 
   const likeMutation = useMutation({
-    mutationFn: async ({ projectId, isLiked }: { projectId: string; isLiked: boolean }) => {
+    mutationFn: async ({ projectId, isLiked, ownerId }: { projectId: string; isLiked: boolean; ownerId?: string }) => {
       if (!user) throw new Error('Must be logged in to like');
       
       if (isLiked) {
@@ -149,6 +149,19 @@ const DiscoverContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
           .from('video_likes')
           .insert({ user_id: user.id, project_id: projectId });
         if (error) throw error;
+        
+        // Create notification for video owner (only on like, not unlike)
+        if (ownerId && ownerId !== user.id) {
+          await supabase
+            .from('notifications')
+            .insert({
+              user_id: ownerId,
+              type: 'like',
+              title: 'Someone liked your video!',
+              body: 'Your video received a new like',
+              data: { liker_id: user.id, project_id: projectId },
+            });
+        }
       }
     },
     onSuccess: () => {
@@ -160,13 +173,13 @@ const DiscoverContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
     },
   });
 
-  const handleLike = useCallback((e: React.MouseEvent, projectId: string, isLiked: boolean) => {
+  const handleLike = useCallback((e: React.MouseEvent, projectId: string, isLiked: boolean, ownerId?: string) => {
     e.stopPropagation();
     if (!user) {
       toast.error('Please log in to like videos');
       return;
     }
-    likeMutation.mutate({ projectId, isLiked });
+    likeMutation.mutate({ projectId, isLiked, ownerId });
   }, [user, likeMutation]);
 
   const filteredVideos = useMemo(() => {
@@ -274,7 +287,7 @@ const DiscoverContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
                 video={video}
                 onPlay={() => handleSelectVideo(video)}
                 isLiked={userLikes?.includes(video.id) || false}
-                onLike={(e) => handleLike(e, video.id, userLikes?.includes(video.id) || false)}
+                onLike={(e) => handleLike(e, video.id, userLikes?.includes(video.id) || false, video.user_id)}
               />
             ))}
           </motion.div>
@@ -317,7 +330,7 @@ const DiscoverContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
             formatGenre={formatGenre}
             onClose={handleCloseModal}
             isLiked={userLikes?.includes(selectedVideo.id) || false}
-            onLike={(e) => handleLike(e, selectedVideo.id, userLikes?.includes(selectedVideo.id) || false)}
+            onLike={(e) => handleLike(e, selectedVideo.id, userLikes?.includes(selectedVideo.id) || false, selectedVideo.user_id)}
           />
         )}
       </AnimatePresence>

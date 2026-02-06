@@ -97,7 +97,7 @@ export default function UserProfile() {
             {/* Avatar */}
             <Avatar className="w-24 h-24 sm:w-32 sm:h-32 ring-4 ring-white/10">
               <AvatarImage src={profile.avatar_url || undefined} />
-              <AvatarFallback className="text-3xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 text-emerald-400">
+              <AvatarFallback className="text-3xl bg-gradient-to-br from-violet-500/20 to-purple-600/20 text-violet-400">
                 {(profile.display_name || 'U').charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
@@ -132,7 +132,7 @@ export default function UserProfile() {
                   variant={profile.is_following ? "outline" : "default"}
                   className={cn(
                     "gap-2",
-                    !profile.is_following && "bg-emerald-600 hover:bg-emerald-700"
+                    !profile.is_following && "bg-violet-600 hover:bg-violet-700"
                   )}
                 >
                   {profile.is_following ? (
@@ -164,7 +164,7 @@ export default function UserProfile() {
         {/* Videos Grid */}
         <section>
           <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-            <Video className="w-5 h-5 text-emerald-400" />
+            <Video className="w-5 h-5 text-violet-400" />
             Public Videos
           </h2>
 
@@ -176,7 +176,7 @@ export default function UserProfile() {
             </div>
           ) : videos && videos.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <AnimatePresence mode="popLayout">
+              <AnimatePresence mode="sync">
                 {videos.map((video, index) => (
                   <motion.div
                     key={video.id}

@@ -433,8 +433,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string) => {
-    // Standardized redirect URL - let ProtectedRoute handle onboarding redirect
-    const redirectUrl = `${window.location.origin}/`;
+    // Redirect to auth callback page to handle email confirmation token
+    const redirectUrl = `${window.location.origin}/auth/callback`;
     const { data, error } = await supabase.auth.signUp({
       email,
       password,

@@ -23,6 +23,7 @@ import { getSafeModeStatus } from "@/lib/safeMode";
 const Landing = lazy(() => import("./pages/Landing"));
 const Projects = lazy(() => import("./pages/Projects"));
 const Auth = lazy(() => import("./pages/Auth"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
@@ -131,6 +132,11 @@ const App = () => {
                 <Route path="/auth" element={
                   <RouteContainer fallbackMessage="Loading authentication...">
                     <Auth />
+                  </RouteContainer>
+                } />
+                <Route path="/auth/callback" element={
+                  <RouteContainer fallbackMessage="Verifying...">
+                    <AuthCallback />
                   </RouteContainer>
                 } />
                 <Route path="/forgot-password" element={

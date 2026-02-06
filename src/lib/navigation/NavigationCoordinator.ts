@@ -113,17 +113,9 @@ class NavigationCoordinatorImpl {
     window.addEventListener('pageshow', (event) => {
       if (event.persisted) {
         // Page was restored from BFCache - reset coordinator state
+        // FIX: Only call forceUnlock which already does full state reset
         this.log('info', 'Page restored from BFCache, resetting state');
-        this.forceUnlock();
-        this.state = {
-          phase: 'idle',
-          fromRoute: null,
-          toRoute: null,
-          startTime: 0,
-          isLocked: false,
-          completionSource: 'bfcache',
-        };
-        this.notifyListeners();
+        this.forceUnlock('bfcache');
       }
     });
     
@@ -160,11 +152,8 @@ class NavigationCoordinatorImpl {
     // Guard against too many listeners (memory leak protection)
     if (this.listeners.size >= this.options.maxListeners) {
       this.log('warn', `Max listeners (${this.options.maxListeners}) reached. Possible memory leak.`);
-      // Remove oldest listener to make room (FIFO)
-      const firstListener = this.listeners.values().next().value;
-      if (firstListener) {
-        this.listeners.delete(firstListener);
-      }
+      // FIX: Don't evict existing listeners - could break critical subscriptions
+      // Instead, log warning and allow anyway (better than breaking functionality)
     }
     
     this.listeners.add(listener);
@@ -274,6 +263,7 @@ class NavigationCoordinatorImpl {
   
   /**
    * Process next item in navigation queue.
+   * FIX: Use setTimeout to prevent recursive stack overflow
    */
   private async processQueue(): Promise<void> {
     if (this.isProcessingQueue || this.state.isLocked) return;
@@ -297,9 +287,9 @@ class NavigationCoordinatorImpl {
     } finally {
       this.isProcessingQueue = false;
       
-      // Process next in queue if available
+      // FIX: Use setTimeout to break the call stack and prevent recursion
       if (this.navigationQueue.length > 0) {
-        this.processQueue();
+        setTimeout(() => this.processQueue(), 0);
       }
     }
   }
@@ -567,17 +557,18 @@ class NavigationCoordinatorImpl {
 
   /**
    * Abort all registered media playback
-   * FIX: Removed aggressive DOM query that could break unrelated players
+   * FIX: Collect elements to remove first, then process - avoids mutation during iteration
    */
   abortAllMedia(): void {
     let abortedCount = 0;
     
-    // Handle registered elements only - more reliable, less intrusive
-    this.registeredMediaElements.forEach((media) => {
+    // FIX: Collect elements to process first to avoid mutation during iteration
+    const elementsToProcess = Array.from(this.registeredMediaElements);
+    
+    elementsToProcess.forEach((media) => {
       try {
         // Only process if element is still connected to DOM
         if (!media.isConnected) {
-          this.registeredMediaElements.delete(media);
           return;
         }
         
@@ -591,8 +582,7 @@ class NavigationCoordinatorImpl {
         }
         abortedCount++;
       } catch {
-        // Element may be destroyed - remove from set
-        this.registeredMediaElements.delete(media);
+        // Element may be destroyed - ignore
       }
     });
     

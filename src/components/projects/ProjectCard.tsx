@@ -144,10 +144,55 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     return () => { isMountedRef.current = false; };
   }, []);
   
-  // Determine video source - prefer pre-resolved URLs
+  // Determine video source - prefer pre-resolved URLs, with robust fallback chain
+  const [selfResolvedClipUrl, setSelfResolvedClipUrl] = useState<string | null>(null);
+  
+  // Self-resolve clip URL if not provided by parent (fallback for race conditions)
+  useEffect(() => {
+    // Skip if we already have a URL from parent or self
+    if (preResolvedClipUrl || selfResolvedClipUrl) return;
+    // Skip if project already has direct video clips
+    if (project.video_clips?.length) return;
+    // Skip if not a manifest URL (direct video available)
+    if (isDirectVideo) return;
+    
+    // Fetch first clip for this project
+    const fetchClip = async () => {
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data } = await supabase
+          .from('video_clips')
+          .select('video_url')
+          .eq('project_id', project.id)
+          .eq('status', 'completed')
+          .not('video_url', 'is', null)
+          .order('shot_index', { ascending: true })
+          .limit(1);
+        
+        // Filter out replicate URLs and get the first valid one
+        const validClip = data?.find(clip => 
+          clip.video_url && !clip.video_url.includes('replicate.delivery')
+        );
+        
+        if (validClip?.video_url && isMountedRef.current) {
+          setSelfResolvedClipUrl(validClip.video_url);
+        }
+      } catch (err) {
+        // Silently fail - this is a fallback
+      }
+    };
+    
+    fetchClip();
+  }, [project.id, preResolvedClipUrl, selfResolvedClipUrl, project.video_clips, isDirectVideo]);
+  
   const videoSrc = useMemo(() => {
+    // Priority 1: Pre-resolved from parent (batch resolution)
     if (preResolvedClipUrl) return preResolvedClipUrl;
     
+    // Priority 2: Self-resolved as fallback
+    if (selfResolvedClipUrl) return selfResolvedClipUrl;
+    
+    // Priority 3: Project's video_clips array
     if (project.video_clips?.length) {
       const permanentClip = project.video_clips.find(url => 
         url && !url.includes('replicate.delivery')
@@ -156,11 +201,13 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
       return project.video_clips[0];
     }
     
+    // Priority 4: Direct video URL (non-manifest, non-replicate)
     if (isDirectVideo && project.video_url && !project.video_url.includes('replicate.delivery')) {
       return project.video_url;
     }
+    
     return null;
-  }, [project.video_url, project.video_clips, isDirectVideo, preResolvedClipUrl]);
+  }, [project.video_url, project.video_clips, isDirectVideo, preResolvedClipUrl, selfResolvedClipUrl]);
 
   const handleVideoMetadataLoaded = useCallback(() => {
     if (!isMountedRef.current) return;

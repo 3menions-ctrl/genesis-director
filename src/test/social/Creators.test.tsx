@@ -61,9 +61,14 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: any) => children,
 }));
 
-// Mock ProfileBackground
-vi.mock('@/components/profile/ProfileBackground', () => ({
-  default: () => <div data-testid="profile-background" />,
+// Mock CreatorsBackground
+vi.mock('@/components/creators/CreatorsBackground', () => ({
+  default: () => <div data-testid="creators-background" />,
+}));
+
+// Mock CreatorsHero
+vi.mock('@/components/creators/CreatorsHero', () => ({
+  CreatorsHero: () => <div data-testid="creators-hero" />,
 }));
 
 // Mock AppHeader

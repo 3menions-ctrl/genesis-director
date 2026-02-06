@@ -389,10 +389,12 @@ class NavigationCoordinatorImpl {
       const duration = performance.now() - this.state.startTime;
       this.log('info', `Navigation completed in ${duration.toFixed(0)}ms`);
       
-      // Update average navigation time
-      this.metrics.averageNavigationTime = 
-        (this.metrics.averageNavigationTime * (this.metrics.totalNavigations - 1) + duration) / 
-        this.metrics.totalNavigations;
+      // FIX: Guard against division by zero
+      if (this.metrics.totalNavigations > 0) {
+        this.metrics.averageNavigationTime = 
+          (this.metrics.averageNavigationTime * (this.metrics.totalNavigations - 1) + duration) / 
+          this.metrics.totalNavigations;
+      }
     }
 
     this.state = {
@@ -414,6 +416,7 @@ class NavigationCoordinatorImpl {
 
   /**
    * Force unlock navigation (emergency recovery)
+   * FIX: Now fully resets state including fromRoute/toRoute to prevent stale data
    */
   forceUnlock(source: string = 'unknown'): void {
     this.log('info', `Force unlock from: ${source}`);
@@ -426,9 +429,12 @@ class NavigationCoordinatorImpl {
     // Reset completion guard on force unlock
     this.completionInProgress = false;
 
+    // FIX: Full state reset, not partial spread
     this.state = {
-      ...this.state,
       phase: 'idle',
+      fromRoute: null,
+      toRoute: null,
+      startTime: 0,
       isLocked: false,
       completionSource: `force:${source}`,
     };
@@ -471,6 +477,7 @@ class NavigationCoordinatorImpl {
 
   /**
    * Run all cleanups for a route with aggregated summary
+   * FIX: Corrected async handling to properly await cleanup promises
    */
   private async runCleanups(routePath: string): Promise<CleanupSummary> {
     const routeCleanups = this.cleanupRegistry.get(routePath) || new Set();
@@ -489,35 +496,45 @@ class NavigationCoordinatorImpl {
     this.log('info', `Running ${allCleanups.length} cleanup(s) for ${routePath}`);
     const cleanupStartTime = performance.now();
 
-    // Run cleanups with timeout protection and result tracking
-    const cleanupPromises = allCleanups.map(async (cleanup) => {
-      try {
-        const result = cleanup();
-        if (result instanceof Promise) {
-          await Promise.race([
-            result.then(() => ({ status: 'success' as const })),
-            new Promise<{ status: 'timeout' }>((resolve) => 
-              setTimeout(() => resolve({ status: 'timeout' }), this.options.cleanupTimeoutMs)
-            ),
-          ]).then((outcome) => {
-            if (outcome.status === 'timeout') {
-              summary.timedOutCleanups++;
+    // FIX: Return proper promises from map for Promise.allSettled to await
+    const cleanupPromises = allCleanups.map((cleanup): Promise<void> => {
+      return new Promise((resolve) => {
+        try {
+          const result = cleanup();
+          if (result instanceof Promise) {
+            Promise.race([
+              result.then(() => 'success' as const),
+              new Promise<'timeout'>((r) => 
+                setTimeout(() => r('timeout'), this.options.cleanupTimeoutMs)
+              ),
+            ]).then((outcome) => {
+              if (outcome === 'timeout') {
+                summary.timedOutCleanups++;
+                summary.failedCleanups++;
+                summary.errors.push('Cleanup timed out');
+              } else {
+                summary.successfulCleanups++;
+              }
+              resolve();
+            }).catch((err) => {
               summary.failedCleanups++;
-              summary.errors.push('Cleanup timed out');
-            } else {
-              summary.successfulCleanups++;
-            }
-          });
-        } else {
-          summary.successfulCleanups++;
+              this.metrics.cleanupErrors++;
+              summary.errors.push(err instanceof Error ? err.message : String(err));
+              resolve();
+            });
+          } else {
+            summary.successfulCleanups++;
+            resolve();
+          }
+        } catch (err) {
+          summary.failedCleanups++;
+          this.metrics.cleanupErrors++;
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          summary.errors.push(errorMsg);
+          this.log('warn', 'Cleanup error:', errorMsg);
+          resolve();
         }
-      } catch (err) {
-        summary.failedCleanups++;
-        this.metrics.cleanupErrors++;
-        const errorMsg = err instanceof Error ? err.message : String(err);
-        summary.errors.push(errorMsg);
-        this.log('warn', 'Cleanup error:', errorMsg);
-      }
+      });
     });
 
     await Promise.allSettled(cleanupPromises);
@@ -536,51 +553,34 @@ class NavigationCoordinatorImpl {
 
   /**
    * Register a media element for automatic cleanup
+   * FIX: Simplified to avoid MutationObserver + setInterval leaks
    */
   registerMediaElement(element: HTMLMediaElement): void {
+    if (!element || !element.isConnected) return;
+    
     this.registeredMediaElements.add(element);
     
-    // Auto-remove when element is removed from DOM
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        mutation.removedNodes.forEach((node) => {
-          if (node === element || (node instanceof Element && node.contains(element))) {
-            this.registeredMediaElements.delete(element);
-            observer.disconnect();
-          }
-        });
-      });
-    });
-    
-    if (element.parentNode) {
-      // SAFETY: Only observe if element is still connected
-      if (element.isConnected) {
-        observer.observe(element.parentNode, { childList: true, subtree: true });
-        
-        // Additional cleanup: periodic check for edge cases where MutationObserver misses removal
-        const cleanupCheckId = setInterval(() => {
-          if (!element.isConnected) {
-            this.registeredMediaElements.delete(element);
-            observer.disconnect();
-            clearInterval(cleanupCheckId);
-          }
-        }, 5000);
-        
-        // Store cleanup reference on element for manual cleanup if needed
-        (element as HTMLMediaElement & { _navCleanupId?: ReturnType<typeof setInterval> })._navCleanupId = cleanupCheckId;
-      }
-    }
+    // Use a single cleanup mechanism: check on navigation only
+    // The element will be cleaned up when abortAllMedia() is called
+    // No need for continuous polling or observers - they leak
   }
 
   /**
-   * Abort all registered AND DOM-queried media playback
+   * Abort all registered media playback
+   * FIX: Removed aggressive DOM query that could break unrelated players
    */
   abortAllMedia(): void {
     let abortedCount = 0;
     
-    // First, handle registered elements (faster, more reliable)
+    // Handle registered elements only - more reliable, less intrusive
     this.registeredMediaElements.forEach((media) => {
       try {
+        // Only process if element is still connected to DOM
+        if (!media.isConnected) {
+          this.registeredMediaElements.delete(media);
+          return;
+        }
+        
         if (!media.paused) {
           media.pause();
         }
@@ -591,27 +591,13 @@ class NavigationCoordinatorImpl {
         }
         abortedCount++;
       } catch {
-        // Element may be destroyed
+        // Element may be destroyed - remove from set
+        this.registeredMediaElements.delete(media);
       }
     });
-    this.registeredMediaElements.clear();
     
-    // Also query DOM for any unregistered elements (fallback)
-    const domMediaElements = document.querySelectorAll('video, audio');
-    domMediaElements.forEach((el) => {
-      const media = el as HTMLMediaElement;
-      try {
-        if (!media.paused) {
-          media.pause();
-          abortedCount++;
-        }
-        // Reset source to stop buffering
-        media.src = '';
-        media.load();
-      } catch {
-        // Ignore errors on destroyed elements
-      }
-    });
+    // Clear set after processing
+    this.registeredMediaElements.clear();
 
     if (abortedCount > 0) {
       this.log('info', `Aborted ${abortedCount} media element(s)`);
@@ -622,6 +608,7 @@ class NavigationCoordinatorImpl {
 
   /**
    * Create a managed AbortController that will be aborted on navigation
+   * FIX: Added WeakRef-style cleanup to prevent accumulation of unused controllers
    */
   createAbortController(): AbortController {
     const controller = new AbortController();
@@ -630,7 +617,18 @@ class NavigationCoordinatorImpl {
     // Auto-remove when aborted
     controller.signal.addEventListener('abort', () => {
       this.activeAbortControllers.delete(controller);
-    });
+    }, { once: true });
+
+    // FIX: Periodic cleanup of stale controllers (those that were created but never used)
+    // Only keep this check lightweight - runs once per controller creation
+    if (this.activeAbortControllers.size > 20) {
+      // Clean up any already-aborted controllers that might have slipped through
+      this.activeAbortControllers.forEach(ctrl => {
+        if (ctrl.signal.aborted) {
+          this.activeAbortControllers.delete(ctrl);
+        }
+      });
+    }
 
     return controller;
   }

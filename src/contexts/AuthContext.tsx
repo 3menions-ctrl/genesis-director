@@ -540,7 +540,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    // FIX: Return safe fallback instead of throwing to prevent cascade crashes
+    // This can happen during SSR, testing, or edge cases during app initialization
+    console.warn('[useAuth] AuthContext not available, returning safe fallback');
+    return {
+      user: null,
+      session: null,
+      profile: null,
+      loading: true,
+      isSessionVerified: false,
+      profileError: null,
+      isAdmin: false,
+      signIn: async () => ({ error: new Error('Auth not initialized') }),
+      signUp: async () => ({ error: new Error('Auth not initialized') }),
+      signInWithGoogle: async () => ({ error: new Error('Auth not initialized') }),
+      signOut: async () => {},
+      refreshProfile: async () => {},
+      retryProfileFetch: async () => {},
+      getValidSession: async () => null,
+      waitForSession: async () => null,
+    } as AuthContextType;
   }
   return context;
 }

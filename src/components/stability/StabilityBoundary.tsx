@@ -76,33 +76,23 @@ export class StabilityBoundary extends Component<Props, State> {
     'Loading chunk',
     'dynamically imported module',
     'Failed to fetch dynamically imported module',
-    // React ref warnings - NOT crashes
+    // FIX: Removed overly-broad 'forwardRef' and 'Check the render method' patterns
+    // These were suppressing legitimate component errors
+    // React ref warnings - NOT crashes (specific patterns only)
     'Function components cannot be given refs',
     'forwardRef render functions accept',
-    'forwardRef',
-    'Check the render method',
-    'validateFunctionComponentInDev',
-    // DOM cleanup race conditions
-    'removeChild',
-    'insertBefore',
-    'removeAttribute',
-    'setAttribute',
-    'appendChild',
-    'parentNode',
-    'Failed to execute',
+    // DOM cleanup race conditions - specific patterns only
+    // FIX: Removed 'removeAttribute', 'setAttribute', 'appendChild', 'parentNode', 'Failed to execute'
+    // These were too broad and suppressed real errors
     // FIX: More specific null/undefined patterns - avoid over-broad suppression
     'Cannot read properties of null (reading \'removeChild\')',
     'Cannot read properties of null (reading \'insertBefore\')',
     'Cannot read properties of null (reading \'parentNode\')',
     'Cannot read properties of undefined (reading \'removeChild\')',
-    // Radix/Dialog cleanup
-    'Dialog',
-    'DialogContent',
-    'DialogPortal',
-    'Radix',
-    'Portal',
-    'Tooltip',
-    'Popover',
+    // FIX: Removed overly-broad 'Dialog', 'Radix', 'Portal', 'Tooltip', 'Popover' patterns
+    // Only keep specific Radix cleanup patterns that are known race conditions
+    'DialogContent is being rendered',
+    'DialogPortal was closed',
     // Video playback - CRITICAL
     'play() request was interrupted',
     'The play() request was interrupted',

@@ -158,11 +158,12 @@ export function shouldSuppressError(error: unknown): boolean {
   // ResizeObserver loop errors (browser quirk)
   if (lowered.includes('resizeobserver loop')) return true;
 
-  // React ref warnings (non-fatal)
+  // React ref warnings (non-fatal) - CRITICAL: Must be specific to avoid over-suppression
   if (lowered.includes('function components cannot be given refs')) return true;
   if (lowered.includes('forwardref render functions accept')) return true;
-  if (lowered.includes('forwardref')) return true;
-  if (lowered.includes('ref')) return true;
+  // FIX: Removed overly broad 'forwardref' and 'ref' patterns that were suppressing real errors
+  // These caused legitimate "Cannot read property of undefined" errors to be suppressed
+  if (lowered.includes('a]d) as forwardref')) return true; // React internal warning format
 
   // Radix/Dialog cleanup race conditions
   if (lowered.includes('removeattribute')) return true;

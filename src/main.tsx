@@ -145,20 +145,15 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'Uncaught (in promise) AbortError',
   // HMR/Vite development errors
   'Vite HMR',
-  // Framer Motion cleanup
-  'Cannot read property',
-  'measure',
-  'animation',
-  // Tooltip/Popover cleanup
-  'Tooltip',
-  'Popover',
-  'radix',
-  'Radix',
-  'Portal',
-  // React internal warnings that shouldn't crash
-  'Check the render method',
-  'validateFunctionComponentInDev',
+  // Framer Motion cleanup - FIX: More specific patterns only
+  'AnimatePresence cleanup',
+  // FIX: Removed overly broad patterns: 'Tooltip', 'Popover', 'radix', 'Radix', 'Portal'
+  // FIX: Removed 'Cannot read property', 'measure', 'animation' - too broad
+  // FIX: Removed 'Check the render method', 'validateFunctionComponentInDev' - should see real errors
   // ReadyState and loading errors
+  'readyState',
+  'HAVE_NOTHING',
+  'load() was called',
   'readyState',
   'HAVE_NOTHING',
   'load() was called',

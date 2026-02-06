@@ -489,15 +489,24 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
                 )
               )
             ) : (
-              // Desktop: Use PausedFrameVideo for proper paused-frame thumbnail
+              // Desktop: Prioritize thumbnail_url, fallback to PausedFrameVideo
               <>
-                {/* Paused frame thumbnail when not hovered */}
+                {/* Static thumbnail when not hovered - PRIORITY: DB thumbnail > PausedFrameVideo */}
                 {!isHovered && (
-                  <PausedFrameVideo
-                    src={videoSrc}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    showLoader={false}
-                  />
+                  project.thumbnail_url ? (
+                    <img 
+                      src={project.thumbnail_url} 
+                      alt={project.name}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <PausedFrameVideo
+                      src={videoSrc}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      showLoader={false}
+                    />
+                  )
                 )}
                 {/* Active video when hovered */}
                 {isHovered && (

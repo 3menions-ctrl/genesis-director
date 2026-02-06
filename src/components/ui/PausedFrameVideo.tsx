@@ -98,21 +98,11 @@ export const PausedFrameVideo = memo(function PausedFrameVideo({
     );
   }
 
-  // Check if URL is external (different origin) to apply CORS attribute
-  const isExternalUrl = (url: string): boolean => {
-    try {
-      return new URL(url).origin !== window.location.origin;
-    } catch {
-      return false;
-    }
-  };
-
   return (
     <div className={cn("relative", className)}>
       <video
         ref={videoRef}
         src={src}
-        crossOrigin={isExternalUrl(src) ? "anonymous" : undefined}
         className={cn(
           "w-full h-full transition-opacity duration-300",
           !frameReady && "opacity-0"

@@ -70,25 +70,6 @@ export default function Creators() {
           </div>
         </motion.div>
 
-        {/* Search */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="max-w-md mx-auto"
-        >
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
-            <Input
-              type="text"
-              placeholder="Search creators..."
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="pl-12 h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-white/40 rounded-xl focus:border-violet-500/50"
-            />
-          </div>
-        </motion.div>
-
         {/* Tabs */}
         <Tabs defaultValue={user ? "feed" : "discover"} className="space-y-6">
           <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 bg-white/[0.03] border border-white/[0.08]">

@@ -114,13 +114,9 @@ function ProductionContentInner() {
   // Support both /production/:projectId and /production?projectId=xxx
   const projectId = params.projectId || searchParams.get('projectId');
   
-  let authData: { user: any };
-  try {
-    authData = useAuth();
-  } catch {
-    authData = { user: null };
-  }
-  const { user } = authData;
+  // FIX: useAuth now returns safe fallback if context is missing
+  // No try-catch needed - that violated React's hook rules
+  const { user } = useAuth();
   
   // Proactive clip recovery - checks for stuck clips on page load
   const { isRecovering: isRecoveringClips } = useClipRecovery(projectId || null, user?.id || null);

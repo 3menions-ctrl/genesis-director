@@ -157,21 +157,10 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
     abortRequests();
   }, [abortRequests]);
   
-  let authData: { user: any };
-  try {
-    authData = useAuth();
-  } catch {
-    authData = { user: null };
-  }
-  const { user } = authData;
-  
-  let studioData: { credits: { total: number; used: number; remaining: number } };
-  try {
-    studioData = useStudio();
-  } catch {
-    studioData = { credits: { total: 0, used: 0, remaining: 0 } };
-  }
-  const { credits } = studioData;
+  // FIX: useAuth and useStudio now return safe fallbacks if context is missing
+  // No try-catch needed - that violated React's hook rules
+  const { user } = useAuth();
+  const { credits } = useStudio();
   
   // Wizard state
   const [activeStep, setActiveStep] = useState(0);

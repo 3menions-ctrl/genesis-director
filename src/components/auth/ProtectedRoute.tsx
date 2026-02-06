@@ -41,7 +41,9 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
   // Track redirect state to prevent double-redirects
   const isRedirectingRef = useRef(false);
   // Track cleanup for all async operations
-  const cleanupRef = useRef<(() => void)[]>([]);
+  const cleanupRef = useRef<Array<() => void>>([]);
+  // Track abort controller for session checks
+  const sessionCheckAbortRef = useRef<AbortController | null>(null);
 
   // Memoize session check to prevent unnecessary recalculations
   // Use optional chaining for safety against null pointer crashes
@@ -91,20 +93,26 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
     // Already have a session in state - no redirect needed
     if (session?.user?.id || user?.id) return;
     
-    // Create abort controller for this effect
-    const abortController = new AbortController();
+    // Abort any previous session check
+    if (sessionCheckAbortRef.current) {
+      sessionCheckAbortRef.current.abort();
+    }
+    
+    // Create new abort controller for this check
+    sessionCheckAbortRef.current = new AbortController();
+    const signal = sessionCheckAbortRef.current.signal;
     
     // ENHANCED: Longer buffer for state synchronization after login
     // 500ms gives heavy pages time to complete their initialization
     const timeoutId = setTimeout(async () => {
-      if (isRedirectingRef.current || abortController.signal.aborted) return;
+      if (isRedirectingRef.current || signal.aborted) return;
       
       try {
         // Get fresh session directly from Supabase to avoid stale React state
         const freshSession = await getValidSession();
         
         // Check abort status after async operation
-        if (abortController.signal.aborted) return;
+        if (signal.aborted) return;
         
         // If fresh session exists, don't redirect - state will catch up
         if (freshSession?.user?.id) {
@@ -117,6 +125,8 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
         setAuthPhase('redirecting');
         navigate('/auth', { replace: true });
       } catch (err) {
+        // Check if error is due to abort
+        if (err instanceof Error && err.name === 'AbortError') return;
         // If session check fails (network error), don't redirect - wait for retry
         console.warn('[ProtectedRoute] Session check failed, will retry:', err);
       }
@@ -125,7 +135,9 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
     // Cleanup function
     return () => {
       clearTimeout(timeoutId);
-      abortController.abort();
+      if (sessionCheckAbortRef.current) {
+        sessionCheckAbortRef.current.abort();
+      }
     };
   }, [loading, isSessionVerified, session?.user?.id, user?.id, navigate, getValidSession]);
 
@@ -134,6 +146,11 @@ export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProp
     return () => {
       cleanupRef.current.forEach(cleanup => cleanup());
       cleanupRef.current = [];
+      // Also abort any pending session checks
+      if (sessionCheckAbortRef.current) {
+        sessionCheckAbortRef.current.abort();
+        sessionCheckAbortRef.current = null;
+      }
     };
   }, []);
 

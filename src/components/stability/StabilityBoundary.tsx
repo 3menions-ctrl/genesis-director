@@ -44,7 +44,7 @@ interface State {
 }
 
 export class StabilityBoundary extends Component<Props, State> {
-  private retryTimeout: NodeJS.Timeout | null = null;
+  private retryTimeout: ReturnType<typeof setTimeout> | null = null;
 
   static defaultProps = {
     autoRetry: false,
@@ -97,7 +97,7 @@ export class StabilityBoundary extends Component<Props, State> {
     const errorName = error?.name || '';
     
     // Check by error name first - DOMException types
-    const suppressedNames = ['AbortError', 'NotAllowedError', 'NotSupportedError', 'InvalidStateError', 'QuotaExceededError', 'SecurityError', 'NotFoundError'];
+    const suppressedNames = ['AbortError', 'NotAllowedError', 'NotSupportedError', 'InvalidStateError', 'QuotaExceededError', 'SecurityError', 'NotFoundError', 'HierarchyRequestError'];
     if (suppressedNames.includes(errorName)) {
       console.debug('[StabilityBoundary] Suppressed by name:', errorName);
       // CRITICAL: Explicitly reset to prevent error UI from showing

@@ -33,13 +33,9 @@ const SettingsContent = memo(function SettingsContent() {
   // Unified navigation - safe navigation with locking
   const { navigate } = useSafeNavigation();
   
-  let authData: { user: any; loading: boolean };
-  try {
-    authData = useAuth();
-  } catch {
-    authData = { user: null, loading: false };
-  }
-  const { user, loading } = authData;
+  // FIX: useAuth now returns safe fallback if context is missing
+  // No try-catch needed - that violated React's hook rules
+  const { user, loading } = useAuth();
   
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeSection, setActiveSection] = useState<SectionId>(() => {

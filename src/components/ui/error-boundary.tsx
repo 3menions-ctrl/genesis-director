@@ -30,15 +30,25 @@ class ErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBoundaryStat
     'AbortError',
     'NotAllowedError',
     'NotSupportedError',
+    'InvalidStateError',
+    'QuotaExceededError',
+    'SecurityError',
+    'NotFoundError',
+    'HierarchyRequestError',
   ];
   
   // SUPPRESSED_PATTERNS - specific error messages to ignore
   private static readonly SUPPRESSED_PATTERNS = [
     'ResizeObserver loop',
     'ChunkLoadError',
+    'Loading chunk',
     'play() request was interrupted',
+    'The play() request was interrupted',
     'Failed to fetch',
     'state update on an unmounted',
+    'Load failed',
+    'NetworkError',
+    'net::ERR',
   ];
   
   public static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> | null {
@@ -49,7 +59,8 @@ class ErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBoundaryStat
     // Suppress by error name
     if (ErrorBoundaryClass.SUPPRESSED_NAMES.includes(errorName)) {
       console.debug('[ErrorBoundary] Suppressed by name:', errorName);
-      return null; // Don't update state - no error UI
+      // CRITICAL: Return explicit reset to prevent error UI
+      return { hasError: false, error: null, errorInfo: null };
     }
     
     // Suppress by message pattern
@@ -59,7 +70,8 @@ class ErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBoundaryStat
     
     if (shouldSuppress) {
       console.debug('[ErrorBoundary] Suppressed by pattern:', errorMessage.substring(0, 80));
-      return null; // Don't update state - no error UI
+      // CRITICAL: Return explicit reset to prevent error UI
+      return { hasError: false, error: null, errorInfo: null };
     }
     
     return { hasError: true, error };

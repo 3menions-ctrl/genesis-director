@@ -97,30 +97,14 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   // Unified navigation - safe navigation with locking
   const { navigate } = useSafeNavigation();
   
-  let authData: { user: any; profile: any; loading: boolean; refreshProfile: () => void };
-  try {
-    authData = useAuth();
-  } catch {
-    authData = { user: null, profile: null, loading: false, refreshProfile: () => {} };
-  }
-  const { user, profile, loading, refreshProfile } = authData;
+  // FIX: useAuth now returns safe fallback if context is missing
+  // No try-catch needed - that violated React's hook rules
+  const { user, profile, loading, refreshProfile } = useAuth();
   
-  // Wrap optional hooks in try-catch
-  let gamificationData: any = { stats: null, xpProgress: 0, leaderboard: [], leaderboardLoading: false, unlockedAchievements: [] };
-  try {
-    gamificationData = useGamification();
-  } catch {
-    console.warn('[Profile] useGamification failed, using fallback');
-  }
-  const { stats: gamificationStats, xpProgress, leaderboard, leaderboardLoading, unlockedAchievements } = gamificationData;
-  
-  let socialData: any = { followersCount: 0, followingCount: 0 };
-  try {
-    socialData = useSocial();
-  } catch {
-    console.warn('[Profile] useSocial failed, using fallback');
-  }
-  const { followersCount, followingCount } = socialData;
+  // FIX: useGamification and useSocial now have internal error handling
+  // No try-catch needed - that violated React's hook rules
+  const { stats: gamificationStats, xpProgress, leaderboard, leaderboardLoading, unlockedAchievements } = useGamification();
+  const { followersCount, followingCount } = useSocial();
   
   let analyticsData: any = { analytics: null, loading: false };
   try {

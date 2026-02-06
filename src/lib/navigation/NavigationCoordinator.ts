@@ -152,8 +152,13 @@ class NavigationCoordinatorImpl {
     // Guard against too many listeners (memory leak protection)
     if (this.listeners.size >= this.options.maxListeners) {
       this.log('warn', `Max listeners (${this.options.maxListeners}) reached. Possible memory leak.`);
-      // FIX: Don't evict existing listeners - could break critical subscriptions
-      // Instead, log warning and allow anyway (better than breaking functionality)
+      // Remove oldest listeners to make room (FIFO cleanup)
+      const iterator = this.listeners.values();
+      const oldest = iterator.next().value;
+      if (oldest) {
+        this.listeners.delete(oldest);
+        this.log('info', 'Evicted oldest listener to prevent unbounded growth');
+      }
     }
     
     this.listeners.add(listener);

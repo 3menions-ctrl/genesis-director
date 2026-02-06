@@ -132,32 +132,16 @@ function ProjectsContentInner() {
     abortRequests();
   }, [abortRequests]);
   
-  let authData: { user: any };
-  try {
-    authData = useAuth();
-  } catch {
-    authData = { user: null };
-  }
-  const { user } = authData;
+  // FIX: useAuth and useStudio now return safe fallbacks if context is missing
+  // No try-catch needed - that violated React's hook rules
+  const { user } = useAuth();
   
-  let studioData: any;
-  try {
-    studioData = useStudio();
-  } catch {
-    studioData = {
-      activeProjectId: null,
-      setActiveProjectId: () => {},
-      createProject: () => Promise.resolve(),
-      deleteProject: () => Promise.resolve(),
-      updateProject: () => Promise.resolve(),
-    };
-  }
   const { 
     activeProjectId, 
     setActiveProjectId, 
     deleteProject, 
     updateProject, 
-  } = studioData;
+  } = useStudio();
   
   // View & Filter State - declared BEFORE usePaginatedProjects so we can pass them
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');

@@ -15,13 +15,9 @@ const UniversesContent = memo(function UniversesContent() {
   // Unified navigation - safe navigation with locking
   const { navigate } = useSafeNavigation();
   
-  let universesData: { universes: any[]; isLoading: boolean };
-  try {
-    universesData = useUniverses();
-  } catch {
-    universesData = { universes: [], isLoading: false };
-  }
-  const { universes, isLoading } = universesData;
+  // FIX: useUniverses uses react-query which won't throw
+  // No try-catch needed - that violated React's hook rules
+  const { universes, isLoading } = useUniverses();
   
   const hasUniverses = !isLoading && universes && universes.length > 0;
 

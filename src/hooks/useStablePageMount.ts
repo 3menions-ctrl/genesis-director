@@ -148,16 +148,23 @@ export type { StablePageMountReturn };
     cleanupFnsRef.current = [];
   }, [abort]);
 
-  // FIX: Safely access abort signal with fallback
-  // The ref is guaranteed to be initialized above, but TypeScript needs explicit handling
-  const currentSignal = abortControllerRef.current?.signal;
+  // FIX: Safely access abort signal with robust fallback
+  // Uses memoized fallback to prevent creating new controllers on every render
+  const fallbackControllerRef = useRef<AbortController | null>(null);
   
-  // Create a static never-aborted signal as ultimate fallback
-  // This prevents null pointer crashes if somehow the controller is missing
-  const safeSignal = currentSignal || (() => {
-    const fallbackController = new AbortController();
-    return fallbackController.signal;
-  })();
+  const getSafeSignal = useCallback((): AbortSignal => {
+    // Try primary controller first
+    if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
+      return abortControllerRef.current.signal;
+    }
+    // Fall back to stable fallback controller
+    if (!fallbackControllerRef.current) {
+      fallbackControllerRef.current = new AbortController();
+    }
+    return fallbackControllerRef.current.signal;
+  }, []);
+  
+  const safeSignal = getSafeSignal();
 
   return {
     isMounted,

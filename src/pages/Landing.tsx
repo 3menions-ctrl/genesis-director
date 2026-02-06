@@ -378,14 +378,9 @@ FinalCTASection.displayName = 'FinalCTASection';
 
 // Main Landing Component
 export default function Landing() {
-  // Hook resilience - wrap in try-catch with fallbacks
-  let authData: { user: any };
-  try {
-    authData = useAuth();
-  } catch {
-    authData = { user: null };
-  }
-  const { user } = authData;
+  // FIX: useAuth now returns safe fallback if context is missing
+  // No try-catch needed - that violated React's hook rules
+  const { user } = useAuth();
   
   // Unified navigation - safe navigation with locking
   const { navigate } = useSafeNavigation();

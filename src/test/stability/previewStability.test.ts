@@ -60,7 +60,9 @@ describe('Preview Stability', () => {
   
   describe('Crash Loop Detection', () => {
     it('should detect rapid reload events', () => {
-      // Simulate 3 rapid reloads (threshold)
+      // Simulate 5 rapid reloads (threshold is 5, not 3)
+      recordCrashEvent('reload', { path: '/', message: 'test reload' });
+      recordCrashEvent('reload', { path: '/', message: 'test reload' });
       recordCrashEvent('reload', { path: '/', message: 'test reload' });
       recordCrashEvent('reload', { path: '/', message: 'test reload' });
       recordCrashEvent('reload', { path: '/', message: 'test reload' });
@@ -69,6 +71,9 @@ describe('Preview Stability', () => {
     });
     
     it('should detect navigation loops', () => {
+      // Threshold is 5 events
+      recordCrashEvent('navigation', { path: '/projects', message: 'loop' });
+      recordCrashEvent('navigation', { path: '/projects', message: 'loop' });
       recordCrashEvent('navigation', { path: '/projects', message: 'loop' });
       recordCrashEvent('navigation', { path: '/projects', message: 'loop' });
       recordCrashEvent('navigation', { path: '/projects', message: 'loop' });

@@ -71,10 +71,12 @@ describe('Crash Forensics Mode', () => {
     });
     
     it('should detect error crash loops', () => {
-      // Simulate 3 rapid errors
+      // Simulate 5 rapid errors (threshold is 5, not 3)
       crashForensics.recordError('Test error 1');
       crashForensics.recordError('Test error 2');
       crashForensics.recordError('Test error 3');
+      crashForensics.recordError('Test error 4');
+      crashForensics.recordError('Test error 5');
       
       expect(crashForensics.isCrashLoop()).toBe(true);
     });

@@ -9,3 +9,4 @@ export { WorldChatButton } from './WorldChatButton';
 export { VideoReactionsBar, MiniReactionsDisplay } from './VideoReactionsBar';
 export { VideoCommentsSection } from './VideoCommentsSection';
 export { DirectMessagePanel, MessageUserButton } from './DirectMessagePanel';
+export { MessagesInbox } from './MessagesInbox';

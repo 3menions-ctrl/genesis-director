@@ -137,7 +137,7 @@ serve(async (req) => {
     // when all clips have successfully completed. This is the final authority.
     const finalUpdate = {
       status: 'completed',
-      pipeline_stage: 'complete',
+      pipeline_stage: 'completed', // Use 'completed' not 'complete' to match DB constraint
       video_url: manifestUrl,
       pending_video_tasks: {
         stage: 'complete',

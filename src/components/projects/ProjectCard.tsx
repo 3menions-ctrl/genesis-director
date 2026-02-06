@@ -27,6 +27,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Project } from '@/types/studio';
 import { safePlay, safePause, safeSeek, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
+import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
 
 // ============= HELPERS =============
 
@@ -488,25 +489,38 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
                 )
               )
             ) : (
-              // Desktop: Keep existing behavior with preload="metadata" (not "auto")
-              <video
-                ref={videoRef}
-                src={videoSrc}
-                className={cn(
-                  "absolute inset-0 w-full h-full object-cover transition-all duration-700",
-                  isHovered && "scale-105"
+              // Desktop: Use PausedFrameVideo for proper paused-frame thumbnail
+              <>
+                {/* Paused frame thumbnail when not hovered */}
+                {!isHovered && (
+                  <PausedFrameVideo
+                    src={videoSrc}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    showLoader={false}
+                  />
                 )}
-                loop
-                muted
-                playsInline
-                preload="metadata"
-                onLoadedMetadata={handleVideoMetadataLoaded}
-                onError={(e) => {
-                  e.preventDefault?.();
-                  e.stopPropagation?.();
-                  setVideoError(true);
-                }}
-              />
+                {/* Active video when hovered */}
+                {isHovered && (
+                  <video
+                    ref={videoRef}
+                    src={videoSrc}
+                    className={cn(
+                      "absolute inset-0 w-full h-full object-cover transition-all duration-700",
+                      "scale-105"
+                    )}
+                    loop
+                    muted
+                    playsInline
+                    preload="metadata"
+                    onLoadedMetadata={handleVideoMetadataLoaded}
+                    onError={(e) => {
+                      e.preventDefault?.();
+                      e.stopPropagation?.();
+                      setVideoError(true);
+                    }}
+                  />
+                )}
+              </>
             )}
             
             {/* Cinematic bars on hover */}

@@ -72,8 +72,9 @@ export function DirectMessagePanel({
   const { data: recipientProfile } = useQuery({
     queryKey: ['user-profile', recipientId],
     queryFn: async () => {
+      // Use profiles_public view for security (hides email, financial data)
       const { data, error } = await supabase
-        .from('profiles')
+        .from('profiles_public')
         .select('display_name, avatar_url')
         .eq('id', recipientId)
         .single();

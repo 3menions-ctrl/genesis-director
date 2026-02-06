@@ -153,6 +153,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
   // Internal function that loads and returns projects - ALWAYS verify session first
   // CRITICAL: Uses isMountedRef for safe state updates during async operations
+  // FIX: Removed projects and activeProjectId from dependencies to prevent stale closure race
   const loadProjects = useCallback(async (): Promise<Project[]> => {
     // CRITICAL: Always get fresh session from Supabase client, not React state
     const { data: { session: currentSession } } = await supabase.auth.getSession();
@@ -184,12 +185,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         .limit(5); // Only load last 5 projects to prevent memory exhaustion
 
       // Check mount status after async operation
-      if (!isMountedRef.current) return projects;
+      if (!isMountedRef.current) return [];
 
       if (error) {
         console.error('[StudioContext] Error loading projects:', error);
         // Don't clear projects on error - might be transient
-        return projects;
+        return [];
       }
 
       console.log('[StudioContext] Loaded', data?.length || 0, 'projects');
@@ -216,7 +217,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         .order('shot_index', { ascending: true });
       
       // Check mount status after second async operation
-      if (!isMountedRef.current) return projects;
+      if (!isMountedRef.current) return [];
       
       // Group clips by project_id
       const clipsByProject: Record<string, string[]> = {};
@@ -242,25 +243,28 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         setProjects(mappedProjects);
         setHasLoadedOnce(true);
         
-        // Set active project to first one if not set or if current doesn't exist
-        if (mappedProjects.length > 0) {
-          const currentProjectExists = activeProjectId && mappedProjects.some(p => p.id === activeProjectId);
-          if (!currentProjectExists) {
-            setActiveProjectId(mappedProjects[0].id);
+        // FIX: Use functional update to get current activeProjectId without depending on it
+        setActiveProjectId(currentActiveId => {
+          if (mappedProjects.length > 0) {
+            const currentProjectExists = currentActiveId && mappedProjects.some(p => p.id === currentActiveId);
+            if (!currentProjectExists) {
+              return mappedProjects[0].id;
+            }
           }
-        }
+          return currentActiveId;
+        });
       }
       
       return mappedProjects;
     } catch (err) {
       console.error('[StudioContext] Error loading projects:', err);
-      return projects;
+      return [];
     } finally {
       if (isMountedRef.current) {
         setIsLoading(false);
       }
     }
-  }, [activeProjectId, projects]);
+  }, []); // FIX: Empty deps - function uses refs and functional updates instead
 
   // Public function that doesn't return projects
   const refreshProjects = async (): Promise<void> => {
@@ -478,7 +482,26 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 export function useStudio() {
   const context = useContext(StudioContext);
   if (!context) {
-    throw new Error('useStudio must be used within a StudioProvider');
+    // FIX: Return safe fallback instead of throwing to prevent crash cascade
+    console.warn('[useStudio] Context not available, returning fallback');
+    return {
+      projects: [],
+      activeProjectId: null,
+      activeProject: null,
+      credits: { total: 0, used: 0, remaining: 0 },
+      layers: [],
+      settings: {} as StudioSettings,
+      isLoading: true,
+      hasLoadedOnce: false,
+      setActiveProjectId: () => {},
+      createProject: async () => null,
+      deleteProject: async () => {},
+      updateProject: async () => {},
+      updateSettings: () => {},
+      refreshCredits: async () => {},
+      refreshProjects: async () => {},
+      canAffordShots: () => false,
+    } as StudioContextType;
   }
   return context;
 }

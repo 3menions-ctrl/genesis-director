@@ -404,12 +404,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // CRITICAL: Wait for session to be persisted to localStorage before returning
     // This prevents redirect loops where the app navigates before session is saved
+    // FIX: Added max iteration guard to prevent stack overflow on slow networks
     if (!error && data?.session) {
       // Wait for the session to propagate through the auth state listener
       // This ensures sessionRef and state are updated before navigation
       await new Promise<void>((resolve) => {
+        let iterations = 0;
+        const MAX_ITERATIONS = 40; // 40 * 50ms = 2 seconds max
+        
         const checkSession = () => {
+          iterations++;
           if (sessionRef.current?.access_token === data.session?.access_token) {
+            resolve();
+          } else if (iterations >= MAX_ITERATIONS) {
+            // Failsafe: resolve after max iterations to prevent infinite loop
+            console.warn('[AuthContext] Session sync timed out after max iterations');
             resolve();
           } else {
             setTimeout(checkSession, 50);
@@ -417,8 +426,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
         // Give a small initial delay for the listener to fire
         setTimeout(checkSession, 100);
-        // Failsafe: resolve after 2 seconds regardless
-        setTimeout(resolve, 2000);
       });
     }
     
@@ -437,17 +444,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     
     // Wait for session persistence if signup auto-confirms
+    // FIX: Added max iteration guard to prevent stack overflow
     if (!error && data?.session) {
       await new Promise<void>((resolve) => {
+        let iterations = 0;
+        const MAX_ITERATIONS = 40; // 40 * 50ms = 2 seconds max
+        
         const checkSession = () => {
+          iterations++;
           if (sessionRef.current?.access_token === data.session?.access_token) {
+            resolve();
+          } else if (iterations >= MAX_ITERATIONS) {
+            console.warn('[AuthContext] Session sync timed out after max iterations');
             resolve();
           } else {
             setTimeout(checkSession, 50);
           }
         };
         setTimeout(checkSession, 100);
-        setTimeout(resolve, 2000);
       });
     }
     

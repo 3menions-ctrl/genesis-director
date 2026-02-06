@@ -175,22 +175,38 @@ export function usePublicProfile(userId?: string) {
   };
 }
 
-// Discover creators (users with public videos)
+// Discover creators (users with public videos OR any registered user)
 export function useCreatorDiscovery(searchQuery?: string) {
   return useQuery({
     queryKey: ['creators', searchQuery],
     queryFn: async () => {
-      // First, get unique user_ids who have public videos
-      const { data: projectsData, error: projectsError } = await supabase
-        .from('movie_projects')
-        .select('user_id')
-        .eq('is_public', true)
-        .order('created_at', { ascending: false });
+      // Fetch all users from profiles_public view
+      let profilesQuery = supabase
+        .from('profiles_public')
+        .select('id, display_name, avatar_url')
+        .not('display_name', 'is', null);
+      
+      // Apply search filter at database level if possible
+      if (searchQuery?.trim()) {
+        profilesQuery = profilesQuery.ilike('display_name', `%${searchQuery.trim()}%`);
+      }
 
-      if (projectsError) {
-        console.debug('[useCreatorDiscovery] Projects error:', projectsError.message);
+      const { data: profilesData, error: profilesError } = await profilesQuery.limit(100);
+
+      if (profilesError) {
+        console.debug('[useCreatorDiscovery] Profiles error:', profilesError.message);
         return [];
       }
+
+      if (!profilesData?.length) return [];
+
+      // Get video counts for all these users
+      const userIds = profilesData.map(p => p.id);
+      const { data: projectsData } = await supabase
+        .from('movie_projects')
+        .select('user_id')
+        .in('user_id', userIds)
+        .eq('is_public', true);
 
       // Count videos per user
       const videoCountMap = new Map<string, number>();
@@ -200,38 +216,19 @@ export function useCreatorDiscovery(searchQuery?: string) {
         }
       });
 
-      const uniqueUserIds = Array.from(videoCountMap.keys());
-      if (uniqueUserIds.length === 0) return [];
-
-      // Now fetch profile data for these users from profiles_public view
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles_public')
-        .select('id, display_name, avatar_url')
-        .in('id', uniqueUserIds);
-
-      if (profilesError) {
-        console.debug('[useCreatorDiscovery] Profiles error:', profilesError.message);
-        return [];
-      }
-
       // Build creators list with video counts
-      let creators = profilesData?.map(profile => ({
+      let creators = profilesData.map(profile => ({
         id: profile.id,
         display_name: profile.display_name,
         avatar_url: profile.avatar_url,
         video_count: videoCountMap.get(profile.id) || 0,
-      })) || [];
+      }));
 
-      // Filter by search query
-      if (searchQuery?.trim()) {
-        const query = searchQuery.toLowerCase();
-        creators = creators.filter(c => 
-          c.display_name?.toLowerCase().includes(query)
-        );
-      }
-
-      // Sort by video count
-      creators.sort((a, b) => b.video_count - a.video_count);
+      // Sort by video count (users with videos first), then alphabetically
+      creators.sort((a, b) => {
+        if (b.video_count !== a.video_count) return b.video_count - a.video_count;
+        return (a.display_name || '').localeCompare(b.display_name || '');
+      });
 
       return creators.slice(0, 50);
     },

@@ -68,9 +68,13 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'Non-Error promise rejection captured',
   'ChunkLoadError',
   'Loading chunk',
+  // FIX: Added specific pattern for module import failures
+  'Importing a module script failed',
+  'error loading dynamically imported module',
+  // FIX: More specific null property patterns (not over-broad)
   'Cannot read properties of null (reading \'removeChild\')',
   'Cannot read properties of null (reading \'insertBefore\')',
-  'Cannot read properties of null',
+  'Cannot read properties of null (reading \'parentNode\')',
   // CRITICAL: Network/Fetch failures - suppress to prevent cascade
   'Load failed',
   'TypeError: Load failed',

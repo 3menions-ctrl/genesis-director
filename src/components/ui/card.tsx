@@ -48,8 +48,10 @@ function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElem
   return <h3 className={cn("text-xl font-semibold leading-none tracking-tight text-foreground", className)} {...props} />;
 }
 
-function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn("text-sm text-muted-foreground", className)} {...props} />;
+// FIX: Changed from <p> to <div> to allow nested block elements (icons, etc.)
+// This prevents "validateDOMNesting: <div> cannot appear as descendant of <p>" warnings
+function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("text-sm text-muted-foreground", className)} {...props} />;
 }
 
 function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

@@ -2294,6 +2294,7 @@ export type Database = {
           display_name: string | null
           email: string | null
           full_name: string | null
+          has_seen_welcome_video: boolean | null
           id: string
           notification_settings: Json | null
           onboarding_completed: boolean | null
@@ -2316,6 +2317,7 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           full_name?: string | null
+          has_seen_welcome_video?: boolean | null
           id: string
           notification_settings?: Json | null
           onboarding_completed?: boolean | null
@@ -2338,6 +2340,7 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           full_name?: string | null
+          has_seen_welcome_video?: boolean | null
           id?: string
           notification_settings?: Json | null
           onboarding_completed?: boolean | null

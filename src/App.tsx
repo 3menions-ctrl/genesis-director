@@ -10,6 +10,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppLoader } from "@/components/ui/app-loader";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { WorldChatButton } from "@/components/social/WorldChatButton";
+import { WelcomeVideoModal } from "@/components/welcome/WelcomeVideoModal";
 import { GlobalStabilityBoundary } from "@/components/stability/GlobalStabilityBoundary";
 import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
@@ -387,6 +388,8 @@ const App = () => {
                 <CrashForensicsOverlay alwaysShow={getSafeModeStatus()} />
                 {/* Global World Chat Button */}
                 <WorldChatButton />
+                {/* Welcome Video Modal - shows once for new users */}
+                <WelcomeVideoModal />
               </StudioProvider>
             </AuthProvider>
             </NavigationBridge>

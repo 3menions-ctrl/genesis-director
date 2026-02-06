@@ -196,9 +196,9 @@ export default function UserProfile() {
                         alt={video.title}
                         className="w-full h-full object-cover transition-transform group-hover:scale-105"
                       />
-                    ) : video.video_url ? (
+                    ) : (video as { first_clip_url?: string }).first_clip_url ? (
                       <PausedFrameVideo 
-                        src={video.video_url} 
+                        src={(video as { first_clip_url?: string }).first_clip_url!} 
                         className="w-full h-full object-cover"
                         showLoader={false}
                       />

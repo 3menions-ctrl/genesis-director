@@ -520,11 +520,22 @@ export function initializeCrashForensics(): () => void {
   // Intercept timers for memory tracking
   cleanupInterceptors = interceptTimers();
   
-  // Set up periodic memory signals
-  const memoryInterval = setInterval(() => {
+  // Set up periodic memory signals - FIX: Guard against re-registration
+  // This interval could accumulate if init is called multiple times (HMR)
+  let memoryInterval: ReturnType<typeof setInterval> | null = null;
+  
+  // Clear any existing interval first (safety for HMR)
+  if ((window as any).__crashForensicsMemoryInterval) {
+    clearInterval((window as any).__crashForensicsMemoryInterval);
+  }
+  
+  memoryInterval = setInterval(() => {
     captureMemorySignal();
     detectMemoryGrowth();
   }, 5000);
+  
+  // Store reference for cleanup on HMR
+  (window as any).__crashForensicsMemoryInterval = memoryInterval;
   
   // Global error handler integration
   const errorHandler = (event: ErrorEvent) => {
@@ -545,7 +556,14 @@ export function initializeCrashForensics(): () => void {
   }
   
   return () => {
-    clearInterval(memoryInterval);
+    if (memoryInterval) {
+      clearInterval(memoryInterval);
+    }
+    // Also clear the global reference
+    if ((window as any).__crashForensicsMemoryInterval) {
+      clearInterval((window as any).__crashForensicsMemoryInterval);
+      delete (window as any).__crashForensicsMemoryInterval;
+    }
     window.removeEventListener('error', errorHandler);
     window.removeEventListener('unhandledrejection', rejectionHandler);
     if (cleanupInterceptors) cleanupInterceptors();

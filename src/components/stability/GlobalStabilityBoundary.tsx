@@ -33,18 +33,13 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'instance of Object',
   'is not a function',
   
-  // DOM cleanup race conditions (common with Radix UI)
-  'Cannot read properties of null',
-  'Cannot read properties of undefined',
-  'removeChild',
-  'insertBefore',
-  'removeAttribute',
-  'setAttribute',
-  'parentNode',
-  'Node.removeChild',
-  'Failed to execute',
-  'appendChild',
-  'replaceChild',
+  // DOM cleanup race conditions - FIX: Made patterns more specific to avoid over-suppression
+  // These patterns were too broad and suppressed real crashes
+  'Cannot read properties of null (reading \'removeChild\')',
+  'Cannot read properties of null (reading \'insertBefore\')',
+  'Cannot read properties of null (reading \'parentNode\')',
+  'Cannot read properties of undefined (reading \'removeChild\')',
+  'Node.removeChild: The node to be removed',
   
   // AbortController errors - expected during fast navigation
   'AbortError',
@@ -54,14 +49,10 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'aborted',
   
   // React ref warnings - non-fatal console warnings (NOT errors)
-  // CRITICAL: These MUST be suppressed to prevent crash loops
+  // FIX: Made patterns more specific - removed overly broad patterns
   'Function components cannot be given refs',
   'forwardRef render functions accept',
   'Warning: Function components cannot be given refs',
-  'Ref forwarding',
-  'forwardRef',
-  'Check the render method',
-  'validateFunctionComponentInDev',
   
   // React state/lifecycle errors that occur during unmounting
   'unmounted component',
@@ -73,26 +64,23 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'Query cancelled',
   
   // Video playback (autoplay restrictions, etc.) - CRITICAL FOR STABILITY
+  // FIX: Made patterns more specific - removed 'Video', 'video element', 'video playback' (too broad)
   'play() request was interrupted',
   'The play() request was interrupted',
   'NotAllowedError',
   'AbortError: The play',
-  'NotSupportedError',
-  'MEDIA_ERR',
-  'MediaError',
-  'The media resource',
-  'video element',
-  'Video',
-  'video playback',
-  'InvalidStateError',
+  'NotSupportedError: The operation',
+  'MEDIA_ERR_',
+  'MediaError:',
+  'The media resource indicated',
+  'InvalidStateError: The element',
   'The element has no supported sources',
-  'MEDIA_ELEMENT_ERROR',
-  'HTMLMediaElement',
-  'playback error',
+  'MEDIA_ELEMENT_ERROR:',
+  'HTMLMediaElement:',
   'decoding failed',
   'decode error',
-  'DOMException: The element has no',
-  'DOMException: play()',
+  'DOMException: The element has no supported sources',
+  'DOMException: play() failed',
   // Additional video/media errors - EXPANDED COVERAGE
   'Failed to load because no supported source was found',
   'PIPELINE_ERROR_READ',

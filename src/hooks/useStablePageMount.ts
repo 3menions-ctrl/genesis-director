@@ -148,12 +148,22 @@ export type { StablePageMountReturn };
     cleanupFnsRef.current = [];
   }, [abort]);
 
-  // FIX: Use the ref directly - it's now guaranteed to be initialized
+  // FIX: Safely access abort signal with fallback
+  // The ref is guaranteed to be initialized above, but TypeScript needs explicit handling
+  const currentSignal = abortControllerRef.current?.signal;
+  
+  // Create a static never-aborted signal as ultimate fallback
+  // This prevents null pointer crashes if somehow the controller is missing
+  const safeSignal = currentSignal || (() => {
+    const fallbackController = new AbortController();
+    return fallbackController.signal;
+  })();
+
   return {
     isMounted,
     isMountedRef: isMountedRef as React.RefObject<boolean>,
     safeSetState,
-    abortSignal: abortControllerRef.current!.signal,
+    abortSignal: safeSignal,
     getAbortSignal, // Expose getter for cases where fresh signal is needed
     abort,
     cleanup,

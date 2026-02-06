@@ -2245,6 +2245,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "production_credit_phases_api_cost_log_id_fkey"
+            columns: ["api_cost_log_id"]
+            isOneToOne: false
+            referencedRelation: "api_cost_logs_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "production_credit_phases_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -3499,6 +3506,68 @@ export type Database = {
       }
     }
     Views: {
+      api_cost_logs_safe: {
+        Row: {
+          created_at: string | null
+          duration_seconds: number | null
+          id: string | null
+          operation: string | null
+          project_id: string | null
+          service: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string | null
+          operation?: string | null
+          project_id?: string | null
+          service?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string | null
+          operation?: string | null
+          project_id?: string | null
+          service?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_cost_logs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_cost_logs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_cost_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_cost_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_packages_public: {
         Row: {
           created_at: string | null
@@ -3528,6 +3597,68 @@ export type Database = {
           price_cents?: number | null
         }
         Relationships: []
+      }
+      credit_transactions_safe: {
+        Row: {
+          amount: number | null
+          clip_duration_seconds: number | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          project_id: string | null
+          transaction_type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          clip_duration_seconds?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          project_id?: string | null
+          transaction_type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          clip_duration_seconds?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          project_id?: string | null
+          transaction_type?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       leaderboard: {
         Row: {
@@ -3589,18 +3720,31 @@ export type Database = {
       profiles_public: {
         Row: {
           avatar_url: string | null
+          created_at: string | null
           display_name: string | null
           id: string | null
         }
         Insert: {
           avatar_url?: string | null
+          created_at?: string | null
           display_name?: string | null
           id?: string | null
         }
         Update: {
           avatar_url?: string | null
+          created_at?: string | null
           display_name?: string | null
           id?: string | null
+        }
+        Relationships: []
+      }
+      user_gamification_public: {
+        Row: {
+          avatar_url: string | null
+          display_name: string | null
+          level: number | null
+          user_id: string | null
+          xp_total: number | null
         }
         Relationships: []
       }

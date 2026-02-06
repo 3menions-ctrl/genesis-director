@@ -60,9 +60,9 @@ export default function VideoDetailPage() {
 
         if (videoError) throw videoError;
 
-        // Fetch creator profile
+        // Fetch creator profile (use public view for security)
         const { data: creatorData } = await supabase
-          .from('profiles')
+          .from('profiles_public')
           .select('id, display_name, avatar_url')
           .eq('id', videoData.user_id)
           .single();

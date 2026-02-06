@@ -48,8 +48,9 @@ export function useWorldChat() {
       
       if (userIds.length === 0) return [];
 
+      // Use profiles_public view for security (hides email, financial data)
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('profiles_public')
         .select('id, display_name, avatar_url')
         .in('id', userIds);
 

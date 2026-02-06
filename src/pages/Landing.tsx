@@ -279,17 +279,73 @@ const Navigation = memo(forwardRef<HTMLElement, {
 ));
 Navigation.displayName = 'Navigation';
 
+// Studio Storytelling Journey Video URL
+const STUDIO_VIDEO_URL = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/fc34967d-0fcc-4863-829e-29d2dee5e514/avatar_fc34967d-0fcc-4863-829e-29d2dee5e514_clip1_lipsync_1770421330974.mp4';
+
 // Memoized Pricing Section - forwardRef for parent ref compatibility
 const PricingSection = memo(forwardRef<HTMLElement, { onNavigate: (path: string) => void }>(
   function PricingSection({ onNavigate }, ref) {
+    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+    
+    const handlePlayVideo = useCallback(() => {
+      setIsVideoPlaying(true);
+      const video = document.getElementById('pricing-video') as HTMLVideoElement;
+      if (video) {
+        video.play().catch(console.error);
+      }
+    }, []);
+
     return (
       <section ref={ref} id="pricing" className="relative z-10 py-24 px-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="max-w-4xl mx-auto"
+          className="max-w-5xl mx-auto"
         >
+          {/* Video Showcase */}
+          <div className="mb-16">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/20 text-primary text-sm font-medium mb-4">
+                <Sparkles className="h-4 w-4" />
+                See it in action
+              </div>
+              <h3 className="text-2xl md:text-3xl font-semibold text-white mb-2">
+                Your Storytelling Journey
+              </h3>
+              <p className="text-white/40 max-w-md mx-auto">
+                Watch how creators bring their stories to life with AI-powered video
+              </p>
+            </div>
+            
+            <div className="relative aspect-video max-w-3xl mx-auto rounded-2xl overflow-hidden bg-black/50 border border-white/[0.08]">
+              <video
+                id="pricing-video"
+                src={STUDIO_VIDEO_URL}
+                className="w-full h-full object-contain"
+                playsInline
+                onPlay={() => setIsVideoPlaying(true)}
+                onPause={() => setIsVideoPlaying(false)}
+                onEnded={() => setIsVideoPlaying(false)}
+                controls={isVideoPlaying}
+              />
+              
+              {/* Play overlay */}
+              {!isVideoPlaying && (
+                <div 
+                  className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer transition-opacity hover:bg-black/30"
+                  onClick={handlePlayVideo}
+                >
+                  <div className="w-20 h-20 rounded-full bg-white/90 flex items-center justify-center shadow-lg shadow-white/20 transition-transform hover:scale-110">
+                    <svg className="w-8 h-8 text-black ml-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-blue-500/20 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
             

@@ -56,7 +56,7 @@ export type { StablePageMountReturn };
   * 
   * @param pageId - Identifier for debugging (e.g., 'AvatarsPage')
   */
- export function useStablePageMount(pageId: string): StablePageMountReturn {
+ export function useStablePageMount(pageId: string): StablePageMountReturn & { getAbortSignal: () => AbortSignal } {
    // CRITICAL: All hooks called unconditionally at top level
    const location = useLocation();
    const componentId = useId();
@@ -64,14 +64,22 @@ export type { StablePageMountReturn };
    const abortControllerRef = useRef<AbortController | null>(null);
    const cleanupFnsRef = useRef<(() => void)[]>([]);
    const isCleanedUpRef = useRef(false);
+   
+   // FIX: Create abort controller synchronously during ref initialization
+   // This ensures abortSignal is never null on first render
+   if (abortControllerRef.current === null) {
+     abortControllerRef.current = navigationCoordinator.createAbortController();
+   }
  
-   // Create managed abort controller on mount
+   // Manage lifecycle
    useEffect(() => {
      isMountedRef.current = true;
      isCleanedUpRef.current = false;
      
-     // Create abort controller via coordinator for navigation integration
-     abortControllerRef.current = navigationCoordinator.createAbortController();
+     // Ensure we have a valid controller (may have been aborted and needs refresh)
+     if (!abortControllerRef.current || abortControllerRef.current.signal.aborted) {
+       abortControllerRef.current = navigationCoordinator.createAbortController();
+     }
      
      return () => {
        isMountedRef.current = false;
@@ -140,21 +148,18 @@ export type { StablePageMountReturn };
     cleanupFnsRef.current = [];
   }, [abort]);
 
-  // FIX: Return stable abort signal from the controller created on mount
-  // Don't create new controllers on every render
-  const stableAbortSignal = abortControllerRef.current?.signal ?? new AbortController().signal;
-
+  // FIX: Use the ref directly - it's now guaranteed to be initialized
   return {
     isMounted,
     isMountedRef: isMountedRef as React.RefObject<boolean>,
     safeSetState,
-    abortSignal: stableAbortSignal,
+    abortSignal: abortControllerRef.current!.signal,
     getAbortSignal, // Expose getter for cases where fresh signal is needed
     abort,
     cleanup,
     componentId,
     currentPath: location.pathname,
-  } as StablePageMountReturn & { getAbortSignal: () => AbortSignal };
+  };
 }
  
  /**

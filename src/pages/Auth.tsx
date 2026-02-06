@@ -75,6 +75,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
   const [hasRedirected, setHasRedirected] = useState(false);
   const [hasPendingCreation, setHasPendingCreation] = useState(false);
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
+  const [pendingEmailConfirmation, setPendingEmailConfirmation] = useState<string | null>(null);
 
   // Check for pending creation on mount
   useEffect(() => {
@@ -165,6 +166,10 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
         if (error) {
           if (error.message.includes('Invalid login credentials')) {
             toast.error('Invalid email or password');
+          } else if (error.message.includes('Email not confirmed')) {
+            // User hasn't confirmed their email yet
+            setPendingEmailConfirmation(trimmedEmail);
+            toast.error('Please check your email and click the confirmation link before signing in.');
           } else {
             toast.error(error.message);
           }
@@ -181,7 +186,9 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
             toast.error(error.message);
           }
         } else {
-          toast.success('Account created! Let\'s set up your profile.');
+          // Show email confirmation pending state
+          setPendingEmailConfirmation(trimmedEmail);
+          toast.success('Account created! Check your email to confirm.');
         }
       }
     } catch {
@@ -288,6 +295,55 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
 
           {/* Glass container for form */}
           <div className="relative p-8 sm:p-10 rounded-3xl bg-black/40 backdrop-blur-xl border border-white/10 shadow-2xl">
+            {/* Email Confirmation Pending State */}
+            {pendingEmailConfirmation && (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-6">
+                  <Mail className="w-8 h-8 text-green-400" />
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-display font-bold text-white mb-3">
+                  Check your email
+                </h2>
+                <p className="text-white/70 mb-2">
+                  We sent a confirmation link to:
+                </p>
+                <p className="text-white font-medium mb-6">
+                  {pendingEmailConfirmation}
+                </p>
+                <p className="text-white/60 text-sm mb-8">
+                  Click the link in the email to activate your account, then come back here to sign in.
+                </p>
+                <div className="space-y-3">
+                  <Button
+                    onClick={() => {
+                      setPendingEmailConfirmation(null);
+                      setIsLogin(true);
+                      setPassword('');
+                      setConfirmPassword('');
+                    }}
+                    className="w-full h-12 bg-white text-black hover:bg-white/90 rounded-xl font-semibold"
+                  >
+                    I've confirmed my email
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPendingEmailConfirmation(null);
+                      setPassword('');
+                      setConfirmPassword('');
+                    }}
+                    className="text-sm text-white/60 hover:text-white transition-colors"
+                  >
+                    Use a different email
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Regular Form - only show when not pending email confirmation */}
+            {!pendingEmailConfirmation && (
+              <>
             {/* Glow effect */}
             
             {/* Pending Creation Banner */}
@@ -476,6 +532,8 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                 {' '}and{' '}
                 <Link to="/privacy" className="text-white/70 hover:underline">Privacy Policy</Link>
               </p>
+            )}
+              </>
             )}
           </div>
         </div>

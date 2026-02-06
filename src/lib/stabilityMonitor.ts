@@ -81,11 +81,10 @@ export function classifyError(error: unknown): ErrorCategory {
     return 'ASYNC_RACE';
   }
 
-  // Render errors
+  // Render errors - TIGHTENED: 'ref' alone is too broad
   if (
     lowered.includes('render') ||
-    lowered.includes('hydration') ||
-    lowered.includes('ref')
+    lowered.includes('hydration')
   ) {
     return 'RENDER';
   }

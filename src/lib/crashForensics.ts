@@ -226,42 +226,39 @@ export function recordRouteChange(to: string): void {
 
 // Error patterns that should NOT count toward crash loop detection
 // These are harmless warnings/errors that don't indicate real crashes
+// TIGHTENED: Removed overly broad patterns like 'Portal', 'Dialog', 'Radix'
+// that could mask legitimate component crashes
 const SUPPRESSED_CRASH_PATTERNS = [
   // React ref warnings - NOT crashes
   'Function components cannot be given refs',
   'forwardRef render functions accept',
   'Warning: Function components cannot be given refs',
-  'forwardRef',
   'Check the render method',
   // AbortController - expected during navigation
   'AbortError',
   'The operation was aborted',
-  'aborted',
-  // DOM cleanup race conditions
-  'removeChild',
-  'insertBefore',
-  'removeAttribute',
-  'Cannot read properties of null',
-  'Cannot read properties of undefined',
-  // Video playback - expected failures
+  'signal is aborted',
+  // Video playback - expected failures (specific patterns only)
   'play() request was interrupted',
-  'NotAllowedError',
-  'NotSupportedError',
-  'MEDIA_ERR',
-  // Radix/Dialog cleanup
-  'Dialog',
-  'Portal',
-  'Radix',
+  'The play() request was interrupted',
+  'NotAllowedError: play()',
+  'DOMException: play() failed',
   // Network errors - handled by retry logic, not crashes
   'Failed to fetch',
   'NetworkError',
   'Load failed',
+  'TypeError: Load failed',
   // ResizeObserver - browser quirk, not a crash
-  'ResizeObserver',
+  'ResizeObserver loop',
+  'ResizeObserver loop completed',
   // ChunkLoadError - handled by recovery system
   'ChunkLoadError',
   'Loading chunk',
   'dynamically imported module',
+  'Failed to fetch dynamically imported module',
+  // React state updates on unmounted - warning, not crash
+  'state update on an unmounted',
+  "Can't perform a React state update on an unmounted",
 ];
 
 function shouldSuppressCrashEvent(message: string): boolean {

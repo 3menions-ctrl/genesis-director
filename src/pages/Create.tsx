@@ -34,13 +34,9 @@ function CreateContentInner() {
   // Use emergencyNavigate for post-creation redirect to bypass locks
   const { navigate, emergencyNavigate } = useSafeNavigation();
   
-  let authData: { user: any };
-  try {
-    authData = useAuth();
-  } catch {
-    authData = { user: null };
-  }
-  const { user } = authData;
+  // FIX: useAuth now returns safe fallback if context is missing
+  // No try-catch needed - that violated React's hook rules
+  const { user } = useAuth();
   
   const [isCreating, setIsCreating] = useState(false);
   const [creationStatus, setCreationStatus] = useState<string>('');

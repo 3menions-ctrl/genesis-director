@@ -56,13 +56,9 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
   // Unified navigation - safe navigation with locking
   const { navigate } = useSafeNavigation();
   
-  let authData: { user: any; profile: any; loading: boolean; signIn: any; signUp: any };
-  try {
-    authData = useAuth();
-  } catch {
-    authData = { user: null, profile: null, loading: false, signIn: async () => ({ error: new Error('Auth unavailable') }), signUp: async () => ({ error: new Error('Auth unavailable') }) };
-  }
-  const { user, profile, loading: authLoading, signIn, signUp } = authData;
+  // FIX: useAuth now returns safe fallback if context is missing
+  // No try-catch needed - that violated React's hook rules
+  const { user, profile, loading: authLoading, signIn, signUp } = useAuth();
   
   // Check URL params for mode (from creation teaser)
   const [searchParams] = useState(() => new URLSearchParams(window.location.search));

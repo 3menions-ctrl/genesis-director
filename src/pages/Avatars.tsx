@@ -67,25 +67,15 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   // Use emergencyNavigate for post-creation redirect to bypass locks
   const { navigate, emergencyNavigate } = useSafeNavigation();
   const { abort: abortRequests } = useNavigationAbort();
-  let authContext: ReturnType<typeof useAuth> | null = null;
-  let tierLimits: ReturnType<typeof useTierLimits> | null = null;
+  // FIX: useAuth and useTierLimits now return safe fallbacks if context is missing
+  // No try-catch needed - that violated React's hook rules
+  const authContext = useAuth();
+  const tierLimits = useTierLimits();
   
   // Register cleanup when leaving this page
   useRouteCleanup(() => {
     abortRequests();
   }, [abortRequests]);
-  
-  try {
-    authContext = useAuth();
-  } catch (e) {
-    console.error('[Avatars] useAuth failed:', e);
-  }
-  
-  try {
-    tierLimits = useTierLimits();
-  } catch (e) {
-    console.error('[Avatars] useTierLimits failed:', e);
-  }
   
   // Extract values with fallbacks
   const user = authContext?.user ?? null;

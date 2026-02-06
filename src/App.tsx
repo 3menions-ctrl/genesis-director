@@ -52,6 +52,8 @@ const Create = lazy(() => import("./pages/Create"));
 const Gallery = lazy(() => import("./pages/Gallery"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Avatars = lazy(() => import("./pages/Avatars"));
+const Creators = lazy(() => import("./pages/Creators"));
+const UserProfile = lazy(() => import("./pages/UserProfile"));
 
 // Route change tracker component
 function RouteChangeTracker() {
@@ -329,8 +331,18 @@ const App = () => {
                   </RouteContainer>
                 } />
                 
-                {/* Social Hub - Redirect to Profile */}
-                <Route path="/social" element={<Navigate to="/profile" replace />} />
+                {/* Social Hub - Creators & Profiles */}
+                <Route path="/creators" element={
+                  <RouteContainer fallbackMessage="Loading creators...">
+                    <Creators />
+                  </RouteContainer>
+                } />
+                <Route path="/user/:userId" element={
+                  <RouteContainer fallbackMessage="Loading profile...">
+                    <UserProfile />
+                  </RouteContainer>
+                } />
+                <Route path="/social" element={<Navigate to="/creators" replace />} />
                 
                 {/* Legacy route redirects */}
                 <Route path="/long-video" element={<Navigate to="/create" replace />} />

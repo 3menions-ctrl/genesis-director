@@ -111,45 +111,51 @@ export type { StablePageMountReturn };
      }
    }, []);
  
-   // Get abort signal (creates new controller if needed)
-   const getAbortSignal = useCallback((): AbortSignal => {
-     if (!abortControllerRef.current || abortControllerRef.current.signal.aborted) {
-       abortControllerRef.current = navigationCoordinator.createAbortController();
-     }
-     return abortControllerRef.current.signal;
-   }, []);
- 
-   // Manual abort
-   const abort = useCallback(() => {
-     if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
-       abortControllerRef.current.abort();
-     }
-   }, []);
- 
-   // Cleanup function that can be returned from useEffect
-   const cleanup = useCallback(() => {
-     abort();
-     cleanupFnsRef.current.forEach(fn => {
-       try {
-         fn();
-       } catch {
-         // Ignore cleanup errors
-       }
-     });
-     cleanupFnsRef.current = [];
-   }, [abort]);
- 
-   return {
-     isMounted,
-     isMountedRef: isMountedRef as React.RefObject<boolean>,
-     safeSetState,
-     abortSignal: getAbortSignal(),
-     abort,
-     cleanup,
-     componentId,
-     currentPath: location.pathname,
-   };
- }
+  // FIX: Memoize abort signal getter - don't call it, return the function
+  // The caller should call getAbortSignal() when they need a signal
+  const getAbortSignal = useCallback((): AbortSignal => {
+    if (!abortControllerRef.current || abortControllerRef.current.signal.aborted) {
+      abortControllerRef.current = navigationCoordinator.createAbortController();
+    }
+    return abortControllerRef.current.signal;
+  }, []);
+
+  // Manual abort
+  const abort = useCallback(() => {
+    if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
+      abortControllerRef.current.abort();
+    }
+  }, []);
+
+  // Cleanup function that can be returned from useEffect
+  const cleanup = useCallback(() => {
+    abort();
+    cleanupFnsRef.current.forEach(fn => {
+      try {
+        fn();
+      } catch {
+        // Ignore cleanup errors
+      }
+    });
+    cleanupFnsRef.current = [];
+  }, [abort]);
+
+  // FIX: Return stable abort signal from the controller created on mount
+  // Don't create new controllers on every render
+  const stableAbortSignal = abortControllerRef.current?.signal ?? new AbortController().signal;
+
+  return {
+    isMounted,
+    isMountedRef: isMountedRef as React.RefObject<boolean>,
+    safeSetState,
+    abortSignal: stableAbortSignal,
+    getAbortSignal, // Expose getter for cases where fresh signal is needed
+    abort,
+    cleanup,
+    componentId,
+    currentPath: location.pathname,
+  } as StablePageMountReturn & { getAbortSignal: () => AbortSignal };
+}
  
  /**
   * Register a cleanup function to run on unmount

@@ -108,7 +108,7 @@ export default function Creators() {
                 </div>
               ) : feedVideos && feedVideos.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <AnimatePresence mode="popLayout">
+                <AnimatePresence mode="sync">
                     {feedVideos.map((video, index) => (
                       <motion.div
                         key={video.id}
@@ -207,7 +207,7 @@ export default function Creators() {
               </div>
             ) : creators && creators.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                <AnimatePresence mode="popLayout">
+                <AnimatePresence mode="sync">
                   {creators.map((creator, index) => (
                     <motion.div
                       key={creator.id}

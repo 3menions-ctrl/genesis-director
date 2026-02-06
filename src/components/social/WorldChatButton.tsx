@@ -1,10 +1,12 @@
 /**
  * WorldChatButton - Floating button that opens global chat panel
  * Premium dark glass aesthetic matching the Projects page
+ * Hidden on landing and auth pages
  */
 
 import { useState, useRef, useEffect, memo } from 'react';
 import { MessageCircle, X, Send, Loader2, Globe, Sparkles } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -14,6 +16,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
+// Routes where World Chat should be hidden
+const HIDDEN_ROUTES = ['/', '/auth', '/auth/callback', '/forgot-password', '/reset-password', '/onboarding'];
 const ChatMessage = memo(function ChatMessage({ 
   message, 
   isOwnMessage 
@@ -59,12 +63,16 @@ const ChatMessage = memo(function ChatMessage({
 
 export function WorldChatButton() {
   const { user } = useAuth();
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { messages, isLoading, sendMessage } = useWorldChat();
+
+  // Hide on certain routes
+  const isHidden = HIDDEN_ROUTES.includes(location.pathname);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -79,6 +87,11 @@ export function WorldChatButton() {
       inputRef.current.focus();
     }
   }, [isOpen]);
+
+  // Early return after all hooks
+  if (isHidden) {
+    return null;
+  }
 
   const handleSend = async () => {
     if (!inputValue.trim() || sendMessage.isPending) return;
@@ -161,6 +174,15 @@ export function WorldChatButton() {
                 {messages.length}
               </span>
             </div>
+            {/* Close Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsOpen(false)}
+              className="h-8 w-8 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-white/60 hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 

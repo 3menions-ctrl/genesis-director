@@ -190,7 +190,7 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
                   <SignOutDialog>
                     <DropdownMenuItem 
                       onSelect={(e) => e.preventDefault()}
-                      className="text-sm text-rose-400 hover:text-rose-300 focus:text-rose-300 focus:bg-rose-500/10 rounded-lg py-2.5 px-3 gap-2.5 cursor-pointer"
+                      className="text-sm text-rose-400 hover:text-rose-300 focus:text-rose-300 focus:bg-rose-500/10 rounded-lg py-2.5 px-3 gap-2.5 cursor-pointer flex items-center justify-center"
                     >
                       <LogOut className="w-4 h-4" />
                       Sign Out
@@ -293,7 +293,7 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
               )}
               <SignOutDialog>
                 <button
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all"
+                  className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all"
                 >
                   <LogOut className="w-4 h-4" />
                   Sign Out

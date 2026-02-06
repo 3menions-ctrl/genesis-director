@@ -29,7 +29,6 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Library', path: '/projects' },
   { label: 'Pipeline', path: '/production' },
   { label: 'Clips', path: '/clips' },
-  { label: 'Discover', path: '/discover' },
   { label: 'Creators', path: '/creators' },
 ];
 

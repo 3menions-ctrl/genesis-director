@@ -180,44 +180,47 @@ export function useCreatorDiscovery(searchQuery?: string) {
   return useQuery({
     queryKey: ['creators', searchQuery],
     queryFn: async () => {
-      // Get users who have public videos, ordered by video count
-      const { data, error } = await supabase
+      // First, get unique user_ids who have public videos
+      const { data: projectsData, error: projectsError } = await supabase
         .from('movie_projects')
-        .select('user_id, profiles_public!inner(id, display_name, avatar_url)')
+        .select('user_id')
         .eq('is_public', true)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.debug('[useCreatorDiscovery] Error:', error.message);
+      if (projectsError) {
+        console.debug('[useCreatorDiscovery] Projects error:', projectsError.message);
         return [];
       }
 
-      // Aggregate by user and count videos
-      const creatorMap = new Map<string, { 
-        id: string; 
-        display_name: string | null; 
-        avatar_url: string | null;
-        video_count: number;
-      }>();
-
-      data?.forEach(project => {
-        const profile = project.profiles_public as unknown as PublicProfile;
-        if (profile?.id) {
-          const existing = creatorMap.get(profile.id);
-          if (existing) {
-            existing.video_count++;
-          } else {
-            creatorMap.set(profile.id, {
-              id: profile.id,
-              display_name: profile.display_name,
-              avatar_url: profile.avatar_url,
-              video_count: 1,
-            });
-          }
+      // Count videos per user
+      const videoCountMap = new Map<string, number>();
+      projectsData?.forEach(project => {
+        if (project.user_id) {
+          videoCountMap.set(project.user_id, (videoCountMap.get(project.user_id) || 0) + 1);
         }
       });
 
-      let creators = Array.from(creatorMap.values());
+      const uniqueUserIds = Array.from(videoCountMap.keys());
+      if (uniqueUserIds.length === 0) return [];
+
+      // Now fetch profile data for these users from profiles_public view
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles_public')
+        .select('id, display_name, avatar_url')
+        .in('id', uniqueUserIds);
+
+      if (profilesError) {
+        console.debug('[useCreatorDiscovery] Profiles error:', profilesError.message);
+        return [];
+      }
+
+      // Build creators list with video counts
+      let creators = profilesData?.map(profile => ({
+        id: profile.id,
+        display_name: profile.display_name,
+        avatar_url: profile.avatar_url,
+        video_count: videoCountMap.get(profile.id) || 0,
+      })) || [];
 
       // Filter by search query
       if (searchQuery?.trim()) {
@@ -267,8 +270,7 @@ export function useFollowingFeed() {
           video_url,
           created_at,
           likes_count,
-          user_id,
-          profiles_public!inner(id, display_name, avatar_url)
+          user_id
         `)
         .in('user_id', followingIds)
         .eq('is_public', true)
@@ -276,13 +278,28 @@ export function useFollowingFeed() {
         .limit(30);
 
       if (videosError) {
-        console.debug('[useFollowingFeed] Error:', videosError.message);
+        console.debug('[useFollowingFeed] Videos error:', videosError.message);
         return [];
+      }
+
+      // Fetch creator profiles separately
+      const creatorIds = [...new Set(videos?.map(v => v.user_id).filter(Boolean) || [])];
+      
+      let profilesMap = new Map<string, PublicProfile>();
+      if (creatorIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles_public')
+          .select('id, display_name, avatar_url')
+          .in('id', creatorIds);
+        
+        profiles?.forEach(p => {
+          profilesMap.set(p.id, p as PublicProfile);
+        });
       }
 
       return videos?.map(v => ({
         ...v,
-        creator: v.profiles_public as unknown as PublicProfile,
+        creator: profilesMap.get(v.user_id) || { id: v.user_id, display_name: null, avatar_url: null },
       })) || [];
     },
     enabled: !!user,

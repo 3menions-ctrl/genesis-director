@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePublicProfile } from '@/hooks/usePublicProfile';
 import { AppHeader } from '@/components/layout/AppHeader';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
+import { MessageUserButton } from '@/components/social/DirectMessagePanel';
 import { 
   UserPlus, UserMinus, Video, Users, Heart, 
   Play, ArrowLeft, ExternalLink 
@@ -126,27 +127,34 @@ export default function UserProfile() {
 
               {/* Actions */}
               {!isOwnProfile && (
-                <Button
-                  onClick={handleFollow}
-                  disabled={followUser.isPending || unfollowUser.isPending}
-                  variant={profile.is_following ? "outline" : "default"}
-                  className={cn(
-                    "gap-2",
-                    !profile.is_following && "bg-violet-600 hover:bg-violet-700"
-                  )}
-                >
-                  {profile.is_following ? (
-                    <>
-                      <UserMinus className="w-4 h-4" />
-                      Following
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="w-4 h-4" />
-                      Follow
-                    </>
-                  )}
-                </Button>
+                <div className="flex items-center gap-3">
+                  <Button
+                    onClick={handleFollow}
+                    disabled={followUser.isPending || unfollowUser.isPending}
+                    variant={profile.is_following ? "outline" : "default"}
+                    className={cn(
+                      "gap-2",
+                      !profile.is_following && "bg-violet-600 hover:bg-violet-700"
+                    )}
+                  >
+                    {profile.is_following ? (
+                      <>
+                        <UserMinus className="w-4 h-4" />
+                        Following
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="w-4 h-4" />
+                        Follow
+                      </>
+                    )}
+                  </Button>
+                  <MessageUserButton 
+                    userId={userId!}
+                    userName={profile.display_name || undefined}
+                    userAvatar={profile.avatar_url || undefined}
+                  />
+                </div>
               )}
 
               {isOwnProfile && (

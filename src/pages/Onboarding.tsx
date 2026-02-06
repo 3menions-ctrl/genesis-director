@@ -457,54 +457,59 @@ export default function Onboarding() {
           </AnimatePresence>
 
           {/* Actions */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-border/50">
-            <div className="flex items-center gap-3">
-              {step > 1 && (
+          <div className="flex flex-col gap-4 mt-8 pt-6 border-t border-border/50">
+            {/* Primary actions row */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {step > 1 && (
+                  <Button
+                    onClick={handleBack}
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back
+                  </Button>
+                )}
+              </div>
+
+              {step < 3 ? (
                 <Button
-                  onClick={handleBack}
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all"
+                  onClick={handleNext}
+                  className="btn-primary h-10 px-5 gap-2"
                 >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back
+                  Continue
+                  <ArrowRight className="w-4 h-4" />
                 </Button>
-              )}
-              {step === 1 && (
-                <button
-                  onClick={handleSkip}
-                  disabled={loading}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium"
+              ) : (
+                <Button
+                  onClick={handleComplete}
+                  disabled={loading || !formData.useCase}
+                  className="btn-primary h-10 px-5 gap-2"
                 >
-                  Skip for now
-                </button>
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Get Started
+                    </>
+                  )}
+                </Button>
               )}
             </div>
 
-            {step < 3 ? (
-              <Button
-                onClick={handleNext}
-                className="btn-primary h-10 px-5 gap-2"
+            {/* Skip option - always visible and prominent */}
+            <div className="text-center">
+              <button
+                onClick={handleSkip}
+                disabled={loading}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium inline-flex items-center gap-1.5 px-4 py-2 rounded-lg hover:bg-secondary/50"
               >
-                Continue
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            ) : (
-              <Button
-                onClick={handleComplete}
-                disabled={loading || !formData.useCase}
-                className="btn-primary h-10 px-5 gap-2"
-              >
-                {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    Get Started
-                  </>
-                )}
-              </Button>
-            )}
+                Skip and start creating →
+              </button>
+            </div>
           </div>
         </div>
 

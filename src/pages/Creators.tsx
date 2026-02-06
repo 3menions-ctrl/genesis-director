@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreatorDiscovery, useFollowingFeed } from '@/hooks/usePublicProfile';
@@ -15,7 +15,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import ProfileBackground from '@/components/profile/ProfileBackground';
+import CreatorsBackground from '@/components/creators/CreatorsBackground';
+import { CreatorsHero } from '@/components/creators/CreatorsHero';
 
 const glassCard = "backdrop-blur-xl bg-white/[0.03] border border-white/[0.08]";
 
@@ -33,24 +34,40 @@ export default function Creators() {
     return () => clearTimeout(timeoutId);
   };
 
+  // Calculate stats for the hero
+  const totalCreators = creators?.length || 0;
+  const totalVideos = creators?.reduce((sum, c) => sum + c.video_count, 0) || 0;
+
   return (
     <div className="min-h-screen bg-[#030303] text-white">
-      <ProfileBackground />
+      <CreatorsBackground />
       <AppHeader />
 
       <main className="relative z-10 max-w-6xl mx-auto px-4 py-8 space-y-8">
-        {/* Header */}
+        {/* Premium Hero Header matching Clips page */}
+        <CreatorsHero 
+          title="Discover Creators"
+          subtitle="Find and follow talented creators, watch their latest videos, and get inspired"
+          stats={{ totalCreators, totalVideos }}
+        />
+
+        {/* Search */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center space-y-4"
+          transition={{ delay: 0.1 }}
+          className="max-w-md mx-auto"
         >
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-white via-white to-emerald-400 bg-clip-text text-transparent">
-            Discover Creators
-          </h1>
-          <p className="text-white/60 max-w-lg mx-auto">
-            Find and follow talented creators, watch their latest videos, and get inspired.
-          </p>
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+            <Input
+              type="text"
+              placeholder="Search creators..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-12 h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-white/40 rounded-xl focus:border-violet-500/50"
+            />
+          </div>
         </motion.div>
 
         {/* Search */}
@@ -67,7 +84,7 @@ export default function Creators() {
               placeholder="Search creators..."
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
-              className="pl-12 h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-white/40 rounded-xl focus:border-emerald-500/50"
+              className="pl-12 h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-white/40 rounded-xl focus:border-violet-500/50"
             />
           </div>
         </motion.div>
@@ -76,17 +93,17 @@ export default function Creators() {
         <Tabs defaultValue={user ? "feed" : "discover"} className="space-y-6">
           <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 bg-white/[0.03] border border-white/[0.08]">
             {user && (
-              <TabsTrigger value="feed" className="gap-2 data-[state=active]:bg-emerald-600">
+              <TabsTrigger value="feed" className="gap-2 data-[state=active]:bg-violet-600">
                 <Sparkles className="w-4 h-4" />
                 Your Feed
               </TabsTrigger>
             )}
-            <TabsTrigger value="discover" className="gap-2 data-[state=active]:bg-emerald-600">
+            <TabsTrigger value="discover" className="gap-2 data-[state=active]:bg-violet-600">
               <TrendingUp className="w-4 h-4" />
               {user ? 'Discover' : 'All Creators'}
             </TabsTrigger>
             {!user && (
-              <TabsTrigger value="discover" className="gap-2 data-[state=active]:bg-emerald-600" disabled>
+              <TabsTrigger value="discover" className="gap-2 data-[state=active]:bg-violet-600" disabled>
                 <Sparkles className="w-4 h-4" />
                 Sign in for Feed
               </TabsTrigger>
@@ -155,11 +172,11 @@ export default function Creators() {
                           >
                             <Avatar className="w-6 h-6">
                               <AvatarImage src={video.creator?.avatar_url || undefined} />
-                              <AvatarFallback className="text-xs bg-emerald-600/20 text-emerald-400">
+                              <AvatarFallback className="text-xs bg-violet-600/20 text-violet-400">
                                 {(video.creator?.display_name || 'U').charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="text-sm text-white/60 group-hover/creator:text-emerald-400 transition-colors">
+                            <span className="text-sm text-white/60 group-hover/creator:text-violet-400 transition-colors">
                               {video.creator?.display_name || 'Anonymous'}
                             </span>
                           </Link>
@@ -223,12 +240,12 @@ export default function Creators() {
                         className={cn(
                           "block p-6 rounded-2xl text-center transition-all hover:-translate-y-1",
                           glassCard,
-                          "hover:bg-white/[0.06] hover:border-emerald-500/30"
+                          "hover:bg-white/[0.06] hover:border-violet-500/30"
                         )}
                       >
                         <Avatar className="w-16 h-16 mx-auto mb-3 ring-2 ring-white/10">
                           <AvatarImage src={creator.avatar_url || undefined} />
-                          <AvatarFallback className="text-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 text-emerald-400">
+                          <AvatarFallback className="text-xl bg-gradient-to-br from-violet-500/20 to-purple-600/20 text-violet-400">
                             {(creator.display_name || 'U').charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>

@@ -90,8 +90,11 @@ export class StabilityBoundary extends Component<Props, State> {
     'appendChild',
     'parentNode',
     'Failed to execute',
-    'Cannot read properties of null',
-    'Cannot read properties of undefined',
+    // FIX: More specific null/undefined patterns - avoid over-broad suppression
+    'Cannot read properties of null (reading \'removeChild\')',
+    'Cannot read properties of null (reading \'insertBefore\')',
+    'Cannot read properties of null (reading \'parentNode\')',
+    'Cannot read properties of undefined (reading \'removeChild\')',
     // Radix/Dialog cleanup
     'Dialog',
     'DialogContent',

@@ -84,8 +84,8 @@ class NavigationCoordinatorImpl {
   };
   
   private options: Required<CoordinatorOptions> = {
-    lockTimeoutMs: 3000,
-    cleanupTimeoutMs: 1000,
+    lockTimeoutMs: 4000, // FIX: Increased from 3000ms to allow complex page transitions
+    cleanupTimeoutMs: 1500, // FIX: Increased from 1000ms for heavy cleanup operations
     enableLogging: process.env.NODE_ENV === 'development',
     maxListeners: 50,
     maxQueueSize: 5,
@@ -207,6 +207,8 @@ class NavigationCoordinatorImpl {
   /**
    * Begin navigation transition. Returns false if navigation is locked.
    * Uses queue system for rapid navigation handling.
+   * 
+   * FIX: Added duplicate navigation detection to prevent double-trigger crashes
    */
   async beginNavigation(fromRoute: string, toRoute: string): Promise<boolean> {
     // SAFARI FIX: Allow same-route navigation (refresh/re-render)
@@ -215,14 +217,27 @@ class NavigationCoordinatorImpl {
       return true;
     }
     
+    // FIX: Detect duplicate navigation attempts to the same target
+    // This prevents the double-navigation race condition seen in logs
+    if (this.state.isLocked && this.state.toRoute === toRoute) {
+      this.log('info', `Duplicate navigation to ${toRoute} detected, returning existing lock`);
+      return true; // Allow - already navigating there
+    }
+    
     // If locked, queue navigation instead of rejecting immediately
     if (this.state.isLocked) {
-      // Check for stale lock
+      // Check for stale lock - increased threshold for complex pages
       const lockAge = performance.now() - this.state.startTime;
-      if (lockAge > 1500) {
+      if (lockAge > 2000) { // FIX: Increased from 1500ms to 2000ms for complex pages
         this.log('warn', `Stale navigation lock detected (${lockAge.toFixed(0)}ms), force unlocking`);
         this.forceUnlock();
       } else {
+        // FIX: Check if already queued to same destination
+        const alreadyQueued = this.navigationQueue.some(q => q.toRoute === toRoute);
+        if (alreadyQueued) {
+          this.log('info', `Navigation to ${toRoute} already queued, skipping duplicate`);
+          return true;
+        }
         // Queue this navigation request
         return this.queueNavigation(fromRoute, toRoute);
       }

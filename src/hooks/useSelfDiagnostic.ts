@@ -80,13 +80,21 @@ export function useSelfDiagnostic(options: UseSelfDiagnosticOptions): UseSelfDia
   const retryCountRef = useRef(0);
   const hasCompletedRef = useRef(false);
   
+  // FIX: Memoize checks array to prevent infinite re-render loop
+  // The checks array identity must be stable or the useCallback will re-create runChecks
+  const checksRef = useRef(checks);
+  checksRef.current = checks;
+  
   const runChecks = useCallback(async () => {
     if (!isMountedRef.current) return;
     
     setIsChecking(true);
     const checkResults: DiagnosticResult[] = [];
     
-    for (const check of checks) {
+    // FIX: Use checksRef.current to avoid dependency on checks array identity
+    const currentChecks = checksRef.current;
+    
+    for (const check of currentChecks) {
       if (!isMountedRef.current) return;
       
       const startTime = performance.now();
@@ -126,10 +134,10 @@ export function useSelfDiagnostic(options: UseSelfDiagnosticOptions): UseSelfDia
     
     setResults(checkResults);
     
-    // Evaluate results
-    const requiredChecks = checks.filter(c => c.required);
+    // Evaluate results - FIX: Use currentChecks instead of checks
+    const requiredChecks = currentChecks.filter(c => c.required);
     const failedRequired = checkResults.filter(
-      (r, i) => checks[i].required && !r.passed
+      (r, i) => currentChecks[i]?.required && !r.passed
     );
     
     if (failedRequired.length === 0) {
@@ -142,7 +150,7 @@ export function useSelfDiagnostic(options: UseSelfDiagnosticOptions): UseSelfDia
     } else {
       // Some required checks failed
       const retryableFailures = failedRequired.filter(
-        (r, i) => checks.find(c => c.name === r.name)?.retryable !== false
+        (r) => currentChecks.find(c => c.name === r.name)?.retryable !== false
       );
       
       if (autoRetry && retryableFailures.length > 0 && retryCountRef.current < maxRetries) {
@@ -178,7 +186,9 @@ export function useSelfDiagnostic(options: UseSelfDiagnosticOptions): UseSelfDia
         onFailure?.(checkResults);
       }
     }
-  }, [checks, featureName, timeout, autoRetry, maxRetries, retryDelay, onReady, onFailure]);
+  // FIX: Removed 'checks' from dependencies - using checksRef.current instead
+  // This prevents infinite loops when checks array is recreated each render
+  }, [featureName, timeout, autoRetry, maxRetries, retryDelay, onReady, onFailure]);
   
   // Run checks on mount
   useEffect(() => {

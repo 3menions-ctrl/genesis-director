@@ -11,15 +11,15 @@ const corsHeaders = {
 // Pricing: $1 = 10 credits
 const CREDIT_PACKAGES: Record<string, { priceId: string; credits: number }> = {
   starter: {
-    priceId: "price_1SqjeMCZh4qZNjWWSGv3M7eu", // $37 for 370 credits
+    priceId: "price_1SxftaCh3vnsCadWTBmr53l1", // $37 for 370 credits
     credits: 370,
   },
   growth: {
-    priceId: "price_1SqjezCZh4qZNjWWbQZ9yEdx", // $99 for 1000 credits (1¢ discount)
+    priceId: "price_1SxfupCh3vnsCadWKOkv3IQP", // $99 for 1000 credits
     credits: 1000,
   },
   agency: {
-    priceId: "price_1SqjoHCZh4qZNjWWmdXoh3sm", // $249 for 2500 credits (1¢ discount)
+    priceId: "price_1SxfvpCh3vnsCadWXYrcFWHe", // $249 for 2500 credits
     credits: 2500,
   },
 };

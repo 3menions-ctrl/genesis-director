@@ -956,6 +956,87 @@ serve(async (req) => {
       }
     }
 
+    // ==================== PHASE 0b-FIX: FALSE FAILURE RECOVERY ====================
+    // CRITICAL: Find avatar projects marked 'failed' that actually have all videos
+    // This catches the race condition where a transient error set status='failed'
+    // but the video generation actually succeeded afterwards
+    console.log("[Watchdog] 🔍 Checking for false failure projects...");
+    
+    const { data: falseFailureProjects } = await supabase
+      .from('movie_projects')
+      .select('id, title, status, mode, pending_video_tasks, video_url, video_clips, user_id')
+      .eq('status', 'failed')
+      .eq('mode', 'avatar')
+      .gt('updated_at', new Date(Date.now() - 30 * 60 * 1000).toISOString()) // Last 30 mins
+      .limit(20);
+    
+    for (const project of (falseFailureProjects || [])) {
+      // deno-lint-ignore no-explicit-any
+      const tasks = (project.pending_video_tasks || {}) as Record<string, any>;
+      
+      // Only process async avatar jobs
+      if (tasks.type !== 'avatar_async' || !tasks.predictions) continue;
+      
+      // deno-lint-ignore no-explicit-any
+      const predictions = tasks.predictions as Array<{ clipIndex: number; videoUrl?: string; status: string }>;
+      const clipsWithVideo = predictions.filter(p => p.videoUrl && p.videoUrl.length > 0);
+      const totalClips = predictions.length;
+      
+      console.log(`[Watchdog] 🔍 FALSE FAILURE CHECK ${project.id}: ${clipsWithVideo.length}/${totalClips} clips have videos`);
+      
+      // If ALL clips have video URLs, this is a false failure - recover it!
+      if (clipsWithVideo.length === totalClips && totalClips > 0) {
+        console.log(`[Watchdog] ⚠️ FALSE FAILURE DETECTED: ${project.id} has all ${totalClips} videos but status='failed'`);
+        
+        // Sort clips and build video array
+        clipsWithVideo.sort((a, b) => a.clipIndex - b.clipIndex);
+        const videoClipsArray = clipsWithVideo.map(p => p.videoUrl!);
+        const primaryVideoUrl = videoClipsArray[0];
+        
+        // Fix the prediction statuses to match reality
+        const fixedPredictions = predictions.map(p => ({
+          ...p,
+          status: p.videoUrl ? 'completed' : p.status,
+        }));
+        
+        const { error: recoveryError } = await supabase
+          .from('movie_projects')
+          .update({
+            status: 'completed',
+            video_url: primaryVideoUrl,
+            video_clips: videoClipsArray,
+            pipeline_stage: 'completed',
+            pipeline_state: {
+              stage: 'completed',
+              progress: 100,
+              message: 'Video generation complete!',
+              completedAt: new Date().toISOString(),
+              recoveredFromFalseFailure: true,
+              recoveredByWatchdog: true,
+            },
+            pending_video_tasks: {
+              ...tasks,
+              predictions: fixedPredictions,
+              stage: 'complete',
+            },
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', project.id);
+        
+        if (!recoveryError) {
+          result.productionResumed++;
+          result.details.push({
+            projectId: project.id,
+            action: 'false_failure_recovered',
+            result: `Recovered ${totalClips} clips from false failure state`,
+          });
+          console.log(`[Watchdog] ✅ FALSE FAILURE RECOVERED: ${project.id} now completed with ${totalClips} clips`);
+        } else {
+          console.error(`[Watchdog] Failed to recover ${project.id}:`, recoveryError);
+        }
+      }
+    }
+
     // ==================== PHASE 0b: GLOBAL MUTEX SWEEP ====================
     // Find and release ALL stale mutexes across all generating projects
     const { data: lockedProjects } = await supabase

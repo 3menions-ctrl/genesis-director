@@ -252,16 +252,26 @@ async function handleMultiClipAvatar(
     updated_at: new Date().toISOString(),
   };
   
-  // If ALL clips complete successfully, finalize the project
-  if (allDone && completedCount === totalCount && failedCount === 0) {
-    console.log(`[CheckSpecializedStatus] 🎉 ALL CLIPS COMPLETE - Finalizing project`);
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CRITICAL FIX: Check for completion based on VIDEO URL PRESENCE, not status
+  // This prevents false "pipeline failed" errors when a clip had a transient
+  // failure but ultimately succeeded. The ground truth is: do we have all videos?
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  // Build video_clips array from predictions that have videoUrl (regardless of status flag)
+  const clipsWithVideo = freshPredictions
+    .filter(p => p.videoUrl && p.videoUrl.length > 0)
+    .sort((a, b) => a.clipIndex - b.clipIndex);
+  
+  const hasAllVideos = clipsWithVideo.length === totalCount;
+  
+  console.log(`[CheckSpecializedStatus] Video check: ${clipsWithVideo.length}/${totalCount} have video URLs`);
+  
+  // If ALL clips have video URLs, mark as completed regardless of status flags
+  if (hasAllVideos) {
+    console.log(`[CheckSpecializedStatus] 🎉 ALL CLIPS HAVE VIDEOS - Finalizing project (override any stale status)`);
     
-    // Build video_clips array from fresh completed predictions
-    const sortedClips = freshPredictions
-      .filter(p => p.status === 'completed' && p.videoUrl)
-      .sort((a, b) => a.clipIndex - b.clipIndex);
-    
-    const videoClipsArray = sortedClips.map(p => p.videoUrl);
+    const videoClipsArray = clipsWithVideo.map(p => p.videoUrl);
     const primaryVideoUrl = videoClipsArray[0];
     
     updateData.status = 'completed';
@@ -275,7 +285,42 @@ async function handleMultiClipAvatar(
       completedAt: new Date().toISOString(),
     };
     
+    // Also fix any stale status on individual predictions
+    const fixedPredictions = freshPredictions.map(p => ({
+      ...p,
+      status: p.videoUrl ? 'completed' : p.status,
+    }));
+    updateData.pending_video_tasks = {
+      ...freshTasks,
+      predictions: fixedPredictions,
+    };
+    
     console.log(`[CheckSpecializedStatus] ✅ Project COMPLETED with ${videoClipsArray.length} clips`);
+  } else if (allDone && completedCount === totalCount && failedCount === 0) {
+    // Fallback: original logic for clean completions (no videos yet persisted)
+    console.log(`[CheckSpecializedStatus] 🎉 ALL CLIPS COMPLETE (status-based) - Finalizing project`);
+    
+    const sortedClips = freshPredictions
+      .filter(p => p.status === 'completed' && p.videoUrl)
+      .sort((a, b) => a.clipIndex - b.clipIndex);
+    
+    const videoClipsArray = sortedClips.map(p => p.videoUrl);
+    const primaryVideoUrl = videoClipsArray[0];
+    
+    if (videoClipsArray.length > 0) {
+      updateData.status = 'completed';
+      updateData.video_url = primaryVideoUrl;
+      updateData.video_clips = videoClipsArray;
+      updateData.pipeline_state = {
+        ...pipelineStateUpdate,
+        stage: 'completed',
+        progress: 100,
+        message: 'Video generation complete!',
+        completedAt: new Date().toISOString(),
+      };
+      
+      console.log(`[CheckSpecializedStatus] ✅ Project COMPLETED with ${videoClipsArray.length} clips`);
+    }
   }
   
   // Final update with completion state

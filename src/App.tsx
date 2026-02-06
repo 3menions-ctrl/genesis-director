@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppLoader } from "@/components/ui/app-loader";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { WorldChatButton } from "@/components/social/WorldChatButton";
 import { GlobalStabilityBoundary } from "@/components/stability/GlobalStabilityBoundary";
 import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
@@ -54,6 +55,7 @@ const Pricing = lazy(() => import("./pages/Pricing"));
 const Avatars = lazy(() => import("./pages/Avatars"));
 const Creators = lazy(() => import("./pages/Creators"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
+const VideoDetail = lazy(() => import("./pages/VideoDetail"));
 
 // Route change tracker component
 function RouteChangeTracker() {
@@ -344,6 +346,13 @@ const App = () => {
                 } />
                 <Route path="/social" element={<Navigate to="/creators" replace />} />
                 
+                {/* Video Detail Page */}
+                <Route path="/video/:videoId" element={
+                  <RouteContainer fallbackMessage="Loading video...">
+                    <VideoDetail />
+                  </RouteContainer>
+                } />
+                
                 {/* Legacy route redirects */}
                 <Route path="/long-video" element={<Navigate to="/create" replace />} />
                 <Route path="/pipeline/*" element={<Navigate to="/create" replace />} />
@@ -376,6 +385,8 @@ const App = () => {
                 <DebugOverlay />
                 {/* Crash Forensics Overlay - Always available */}
                 <CrashForensicsOverlay alwaysShow={getSafeModeStatus()} />
+                {/* Global World Chat Button */}
+                <WorldChatButton />
               </StudioProvider>
             </AuthProvider>
             </NavigationBridge>

@@ -22,6 +22,7 @@ import { getErrorMessage } from '@/types/error-handling';
 import ClipsBackground from '@/components/clips/ClipsBackground';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppLoader } from '@/components/ui/app-loader';
+import { SimpleVideoPlayer } from '@/components/player';
 import type { ScriptShot } from '@/components/studio/ScriptReviewPanel';
 
 // Lazy load non-critical heavy components only
@@ -1472,7 +1473,7 @@ const transitionsData = useMemo(() =>
               className="relative max-w-4xl w-full aspect-video"
               onClick={(e) => e.stopPropagation()}
             >
-              <video src={selectedClipUrl} controls autoPlay className="w-full h-full rounded-xl" />
+              <SimpleVideoPlayer src={selectedClipUrl} autoPlay showControls controlsVisibility="always" className="w-full h-full rounded-xl" />
               <Button 
                 variant="ghost" 
                 size="icon" 

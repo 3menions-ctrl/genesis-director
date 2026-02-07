@@ -1436,6 +1436,49 @@ serve(async (req) => {
           .eq('project_id', project.id)
           .order('shot_index');
         
+        // ==================== CLIP STATUS RECONCILIATION ====================
+        // GUARD RAIL: Fix clips that have video_url but status is still 'generating'
+        // This happens when DB update races with video storage completion
+        const staleStatusClips = (clips || []).filter((c: { status: string; video_url: string | null }) => 
+          c.status === 'generating' && c.video_url
+        );
+        
+        if (staleStatusClips.length > 0) {
+          console.log(`[Watchdog] ⚠️ Found ${staleStatusClips.length} clips with stale status (have video but status='generating')`);
+          
+          for (const clip of staleStatusClips) {
+            try {
+              await supabase
+                .from('video_clips')
+                .update({
+                  status: 'completed',
+                  completed_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', clip.id);
+              
+              console.log(`[Watchdog] ✓ Reconciled clip ${clip.shot_index + 1}: status='generating' -> 'completed'`);
+              result.details.push({
+                projectId: project.id,
+                action: 'clip_status_reconciled',
+                result: `Clip ${clip.shot_index + 1} had video but stale 'generating' status - fixed`,
+              });
+            } catch (reconcileError) {
+              console.error(`[Watchdog] Failed to reconcile clip ${clip.shot_index + 1}:`, reconcileError);
+            }
+          }
+          
+          // Re-fetch clips after reconciliation
+          const { data: refreshedClips } = await supabase
+            .from('video_clips')
+            .select('id, shot_index, status, video_url, veo_operation_name, updated_at')
+            .eq('project_id', project.id)
+            .order('shot_index');
+          
+          // Use refreshed data for remaining logic
+          Object.assign(clips || [], refreshedClips || []);
+        }
+        
         const completedClips = (clips || []).filter((c: { status: string; video_url: string }) => 
           c.status === 'completed' && c.video_url
         );

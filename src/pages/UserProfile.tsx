@@ -210,6 +210,12 @@ export default function UserProfile() {
                         className="w-full h-full object-cover"
                         showLoader={false}
                       />
+                    ) : video.video_url ? (
+                      <PausedFrameVideo 
+                        src={video.video_url} 
+                        className="w-full h-full object-cover"
+                        showLoader={false}
+                      />
                     ) : (
                       <div className="w-full h-full bg-white/5 flex items-center justify-center">
                         <Video className="w-8 h-8 text-white/20" />
@@ -265,7 +271,14 @@ export default function UserProfile() {
                 src={selectedVideo}
                 controls
                 autoPlay
+                playsInline
+                muted
                 className="w-full h-full object-contain bg-black"
+                onPlay={(e) => {
+                  // Unmute after autoplay starts successfully
+                  const video = e.currentTarget;
+                  video.muted = false;
+                }}
               />
               <button
                 onClick={() => setSelectedVideo(null)}

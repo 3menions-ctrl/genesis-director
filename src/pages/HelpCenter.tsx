@@ -34,33 +34,49 @@ const HELP_CATEGORIES = [
         content: `
 ## Create Your First AI Video
 
-Welcome to Apex! This guide will walk you through creating your first AI-generated video in just a few minutes.
+Welcome to Apex Studio! This guide walks you through creating your first AI-generated video in minutes.
 
-### Step 1: Start a New Project
-Click the **"Create New"** button from your dashboard. You'll be prompted to choose a video type.
+### Step 1: Choose Your Creation Mode
 
-### Step 2: Write Your Script
-Enter your video concept or paste your script. Our AI will enhance it with:
-- Scene breakdowns
-- Visual descriptions
-- Pacing suggestions
+From the **Create** page, select your video generation mode:
+- **Text-to-Video**: Describe your vision and AI generates it
+- **Image-to-Video**: Animate a reference image into motion
+- **Avatar Mode**: Create professional talking head videos
 
-### Step 3: Choose Your Style
-Select from our curated styles or customize:
-- **Cinematic**: Hollywood-quality production
-- **Documentary**: Authentic, story-driven
-- **Commercial**: Polished advertising look
+### Step 2: Write Your Prompt
 
-### Step 4: Generate & Review
-Click **"Generate"** and watch your video come to life. You can:
-- Preview individual clips
-- Regenerate specific scenes
-- Adjust timing and pacing
+Enter a detailed description of your video. Be specific about:
+- Visual style and mood
+- Camera movements (slow pan, tracking shot, etc.)
+- Lighting conditions (golden hour, dramatic shadows)
+- Subject actions and emotions
 
-### Step 5: Export & Share
-Download your finished video in multiple formats or share directly to social platforms.
+**Example prompt:**
+> "A woman in a red dress walks through a neon-lit Tokyo street at night, cinematic lighting, slow tracking shot, rain reflections on pavement"
 
-> **Pro Tip**: Start with shorter videos (30-60 seconds) to get familiar with the platform before tackling longer projects.
+### Step 3: Configure Settings
+
+- **Clip Count**: Choose 1-20 clips (each 5-10 seconds)
+- **Clip Duration**: 5 seconds (10 credits) or 10 seconds (15 credits)
+- **Aspect Ratio**: 16:9 (landscape), 9:16 (portrait/mobile), or 1:1 (square)
+- **Narration**: Enable AI voiceover (optional)
+- **Music**: Add background music (optional)
+
+### Step 4: Generate & Monitor
+
+Click **"Generate Video"** to start production. Track progress on the Production page:
+- Watch individual clips render in real-time
+- Preview completed clips immediately
+- Regenerate any unsatisfactory clips
+
+### Step 5: Download & Share
+
+Once complete, download your video or share directly. Options include:
+- **Download All**: Merged video with audio
+- **Download Clips**: Individual segments
+- **Share Link**: Public sharing URL
+
+> **Pro Tip**: Start with 1-2 clips to test your prompt before committing to longer projects.
         `
       },
       {
@@ -72,34 +88,44 @@ Download your finished video in multiple formats or share directly to social pla
         content: `
 ## Understanding Credits
 
-Credits are how you pay for video generation on Apex Studio.
+Credits power all video generation on Apex Studio.
 
 ### Credit Pricing
-- **1 credit = $0.10 USD**
-- Short clips (≤6 seconds): **10 credits** per clip
-- Long clips (>6 seconds): **15 credits** per clip
+
+| Clip Type | Duration | Credits | Cost |
+|-----------|----------|---------|------|
+| Standard | ≤6 seconds | 10 | $1.00 |
+| Extended | >6 seconds | 15 | $1.50 |
+
+**1 credit = $0.10 USD**
 
 ### Getting Started
-- **Welcome Bonus**: New accounts receive 60 free credits
-- **Purchase Packs**: Buy credits in packages ($37, $100, or $250)
+- **Welcome Bonus**: New accounts receive **60 free credits**
 - **No Expiration**: Credits never expire while your account is active
+- **No Subscriptions**: Buy once, use whenever
+
+### Credit Packages
+
+| Package | Credits | Price | Best For |
+|---------|---------|-------|----------|
+| Starter | 370 | $37 | Testing |
+| Growth | 1,000 | $100 | Regular creators |
+| Agency | 2,500 | $250 | Teams & studios |
 
 ### ⚠️ Important: No Refunds
-**All credit purchases are final and non-refundable.** Please use your free credits to test the platform before purchasing.
 
-### Credit Usage Tips
-1. **Use free credits first**: Test thoroughly before buying
-2. **Review scripts carefully**: Avoid regenerating due to typos
-3. **Start with shorter clips**: Use ≤6 second clips when possible (10 vs 15 credits)
-4. **Check AI limitations**: Understand what AI can and cannot do
+**All credit purchases are final and non-refundable.**
 
-### AI Limitations Affect Results
-AI-generated videos may require regeneration due to:
-- Visual artifacts or inconsistencies
-- Character appearance variations
-- Unexpected interpretations of prompts
+- Use your 60 free credits to test first
+- Budget 2-4x credits for regenerations
+- AI results vary—this is normal
 
-Budget extra credits for potential regenerations. This is normal for AI video generation.
+### Credit-Saving Tips
+
+1. **Start short**: Test with 5-second clips (10 vs 15 credits)
+2. **Review scripts**: Fix typos before generating
+3. **Use reference images**: Better consistency = fewer regenerations
+4. **Check prompts**: Clear descriptions reduce unexpected results
         `
       },
       {
@@ -110,27 +136,42 @@ Budget extra credits for potential regenerations. This is normal for AI video ge
         content: `
 ## Workspace Overview
 
-Master the Apex interface to boost your productivity.
+Master the Apex Studio interface for maximum productivity.
 
-### Main Sections
+### Main Navigation
 
-**Dashboard**
-Your home base showing recent projects, quick actions, and usage stats.
+| Section | Purpose |
+|---------|---------|
+| **Create** | Text-to-video generation studio |
+| **Avatars** | Talking head video creation |
+| **Projects** | Your video library |
+| **Clips** | Individual clip gallery |
+| **Discover** | Community content feed |
+| **Creators** | Find and follow other creators |
 
-**Create**
-The video generation studio with script editing, style selection, and preview.
+### Project Dashboard
 
-**Projects**
-All your videos organized with filters, search, and folder structure.
+Your **Projects** page displays:
+- All video projects with thumbnails
+- Status indicators (generating, ready, failed)
+- Quick actions (play, download, delete)
+- Filter by status or date
 
-**Pipeline**
-Track video generation progress and manage the production queue.
+### Profile & Settings
+
+Access via your avatar menu:
+- **Profile**: Display name, avatar, bio
+- **Settings**: Billing, preferences, data export
+- **Help Center**: Documentation & support
 
 ### Keyboard Shortcuts
-- \`Cmd/Ctrl + N\`: New project
-- \`Cmd/Ctrl + S\`: Save
-- \`Space\`: Play/Pause preview
-- \`Esc\`: Close modals
+
+| Shortcut | Action |
+|----------|--------|
+| \`Space\` | Play/Pause video |
+| \`Esc\` | Close modal |
+| \`↑/↓\` | Volume control |
+| \`←/→\` | Seek video |
         `
       },
       {
@@ -143,94 +184,295 @@ Track video generation progress and manage the production queue.
 ## Quick Tips for Better Videos
 
 ### Writing Effective Prompts
-- Be specific about visual details
-- Describe camera movements explicitly
-- Include lighting and mood descriptors
 
-### Maintaining Consistency
-- Use the same style anchor throughout
-- Reference previous clips for continuity
-- Keep character descriptions consistent
+**DO:**
+- Be specific: "close-up shot of hands typing on keyboard"
+- Describe lighting: "soft golden hour light through window"
+- Include motion: "slow dolly forward toward subject"
+- Set mood: "peaceful, serene atmosphere"
 
-### Quality Settings
-- **Draft mode**: Fast previews, lower quality
-- **Standard**: Balanced quality and speed
-- **Cinema**: Maximum quality, longer render
+**DON'T:**
+- Be vague: "person doing something"
+- Request text: AI cannot reliably render readable text
+- Expect perfection: Plan for 2-3 regenerations
+
+### Maintaining Visual Consistency
+
+1. **Use reference images**: Upload a starting image for consistent style
+2. **Keep descriptions consistent**: Same character details across all clips
+3. **Match lighting**: Describe similar lighting in each scene
+4. **Limit scene changes**: Fewer locations = better continuity
+
+### Optimizing for Different Platforms
+
+| Platform | Aspect Ratio | Duration |
+|----------|--------------|----------|
+| YouTube | 16:9 | 30-60s |
+| TikTok/Reels | 9:16 | 15-30s |
+| Instagram | 1:1 or 9:16 | 15-30s |
+| LinkedIn | 16:9 | 30-60s |
+
+### Common Mistakes to Avoid
+
+- **Requesting text overlays**: Use editing software instead
+- **Complex multi-character scenes**: AI struggles with interactions
+- **Rapid action sequences**: Slower movements render better
+- **Expecting photorealism**: Embrace the AI aesthetic
         `
       }
     ]
   },
   {
     id: 'video-creation',
-    title: 'Video Creation',
-    description: 'Master the art of AI video generation',
+    title: 'Video Creation Modes',
+    description: 'Master all video generation methods',
     icon: Video,
     color: 'from-blue-500 to-indigo-500',
     articles: [
       {
-        id: 'script-writing',
-        title: 'Writing Effective Scripts',
-        description: 'Craft compelling scripts for AI generation',
-        readTime: '8 min',
+        id: 'text-to-video',
+        title: 'Text-to-Video Creation',
+        description: 'Generate videos from text descriptions',
+        readTime: '6 min',
         popular: true,
         content: `
-## Writing Effective Scripts
+## Text-to-Video Creation
 
-Great videos start with great scripts. Here's how to write for AI.
+Transform written descriptions into stunning AI-generated video content.
 
-### Structure Your Scenes
-Break your content into clear, visual scenes:
+### How It Works
 
+1. **Enter your prompt** describing the desired video
+2. **AI analyzes** your description for visual elements
+3. **Kling AI renders** each clip based on your specifications
+4. **Review & regenerate** any clips as needed
+5. **Download** your finished video
+
+### Writing Effective Prompts
+
+**Structure your prompt:**
 \`\`\`
-SCENE 1: Opening Hook (5 seconds)
-- Wide establishing shot of city skyline at sunset
-- Dramatic lighting, golden hour
-
-SCENE 2: Problem Statement (10 seconds)
-- Medium shot of person looking frustrated
-- Office environment, cool blue tones
+[SUBJECT] + [ACTION] + [ENVIRONMENT] + [STYLE] + [CAMERA]
 \`\`\`
 
-### Visual Language Tips
-- "Close-up" vs "Wide shot" matters
-- Describe lighting: "soft diffused light" or "dramatic shadows"
-- Include motion: "slow pan left" or "tracking shot following subject"
+**Example:**
+> "A young woman with long dark hair walks through a misty forest at dawn, cinematic film look, slow tracking shot following from behind"
 
-### Pacing Guidelines
-- Hook: 3-5 seconds
-- Introduction: 10-15 seconds
-- Main content: Vary based on complexity
-- Call-to-action: 5-10 seconds
+### Prompt Components
+
+| Component | Examples |
+|-----------|----------|
+| **Subject** | "A man in a suit", "A golden retriever", "Futuristic cityscape" |
+| **Action** | "walking slowly", "turning to face camera", "rain falling" |
+| **Environment** | "in a cozy coffee shop", "on a mountain peak", "underwater" |
+| **Style** | "cinematic", "anime-style", "vintage film grain" |
+| **Camera** | "slow pan left", "close-up", "aerial drone shot" |
+
+### Configuration Options
+
+- **Clip Count**: 1-20 clips per project
+- **Duration**: 5 seconds (recommended) or 10 seconds
+- **Aspect Ratio**: 16:9, 9:16, or 1:1
+- **Narration**: AI voiceover from your script
+- **Music**: Auto-generated background music
+
+### Best Practices
+
+✅ Start with single clips to test prompts
+✅ Use simple, clear descriptions
+✅ Describe camera movement explicitly
+✅ Include lighting and mood details
+
+❌ Avoid complex character interactions
+❌ Don't request readable text
+❌ Skip rapid motion sequences
         `
       },
       {
-        id: 'styles-and-moods',
-        title: 'Styles and Visual Moods',
-        description: 'Set the perfect tone for your content',
+        id: 'image-to-video',
+        title: 'Image-to-Video Animation',
+        description: 'Bring still images to life with AI animation',
         readTime: '5 min',
         content: `
-## Styles and Visual Moods
+## Image-to-Video Animation
 
-### Available Style Presets
+Animate your photos and images into dynamic video content.
 
-**Cinematic**
-Film-quality production with dramatic lighting, shallow depth of field, and professional color grading.
+### Getting Started
 
-**Documentary**
-Authentic, naturalistic look with steady camera work and observational style.
+1. **Upload your image** via the Create page
+2. **Describe the motion** you want to see
+3. **Choose duration** (5 or 10 seconds)
+4. **Generate** and watch your image come alive
 
-**Commercial**
-High-energy, polished aesthetic perfect for ads and promotional content.
+### Supported Image Types
 
-**Artistic**
-Creative, stylized visuals for unique brand expression.
+- **Photographs**: Real photos, portraits, landscapes
+- **Digital Art**: Illustrations, paintings, renders
+- **AI-Generated Images**: From Midjourney, DALL-E, etc.
+- **Screenshots**: Product shots, UI mockups
 
-### Customizing Moods
-Combine style presets with mood modifiers:
-- Warm, inviting
-- Cool, professional
-- Dramatic, intense
-- Soft, dreamy
+### Motion Prompt Tips
+
+Your prompt describes **what moves**, not what the image contains:
+
+**Good prompts:**
+- "Gentle breeze moves the hair, soft eye blink"
+- "Camera slowly zooms in on the subject"
+- "Clouds drift across the sky, water ripples"
+- "Person turns head slightly toward camera"
+
+**Bad prompts:**
+- "A woman standing in a field" (describes image, not motion)
+- "Make it look better" (too vague)
+
+### Animation Styles
+
+| Style | Description | Best For |
+|-------|-------------|----------|
+| **Subtle** | Gentle movements, breathing effects | Portraits, art |
+| **Dynamic** | Active motion, transformations | Action scenes |
+| **Cinematic** | Camera movements, depth effects | Landscapes, scenes |
+
+### Technical Requirements
+
+- **Format**: JPG, PNG, WebP
+- **Resolution**: Minimum 512x512, maximum 4096x4096
+- **Aspect Ratio**: Preserved from source image
+        `
+      },
+      {
+        id: 'avatar-videos',
+        title: 'Avatar Video Creation',
+        description: 'Create professional talking head videos',
+        readTime: '8 min',
+        popular: true,
+        content: `
+## Avatar Video Creation
+
+Create realistic talking head videos with AI avatars and your custom scripts.
+
+### What Are Avatar Videos?
+
+Avatar videos feature AI-generated presenters who speak your script with natural lip-sync, expressions, and gestures. Perfect for:
+- Training & educational content
+- Marketing videos
+- Social media content
+- Explainer videos
+- Personalized messages
+
+### Creating Your First Avatar Video
+
+1. **Navigate to Avatars** from the main menu
+2. **Browse the avatar library** and select a presenter
+3. **Write your script** (what the avatar will say)
+4. **Choose a voice** matching your avatar
+5. **Configure settings** (duration, background)
+6. **Generate** your video
+
+### Avatar Library
+
+Our library includes diverse avatars:
+- **Professional**: Business presenters, executives
+- **Casual**: Friendly, approachable hosts
+- **Creative**: Artists, influencers, creators
+- **Realistic**: Photo-realistic human avatars
+- **Stylized**: Animated, artistic styles
+
+### Voice Selection
+
+Each avatar can use various AI voices:
+- Match voice to avatar appearance
+- Multiple languages available
+- Adjust speaking speed and tone
+- Preview voices before generating
+
+### Script Best Practices
+
+**Writing for avatars:**
+- Keep sentences concise (5-15 words)
+- Use natural, conversational language
+- Include punctuation for proper pacing
+- Avoid technical jargon unless necessary
+
+**Example script:**
+> "Hi! I'm here to show you how easy it is to create AI videos. In just a few clicks, you'll have professional content ready to share."
+
+### Advanced Features
+
+- **Custom Backgrounds**: Upload your own backdrop
+- **Multi-Clip Projects**: Link multiple segments
+- **Scene Environments**: Choose preset locations
+- **Emotional Tones**: Happy, serious, excited moods
+        `
+      },
+      {
+        id: 'script-writing',
+        title: 'Writing Effective Scripts',
+        description: 'Craft compelling scripts for AI generation',
+        readTime: '7 min',
+        content: `
+## Writing Effective Scripts
+
+Great AI videos start with well-crafted scripts and prompts.
+
+### Script Structure
+
+Break content into clear visual scenes:
+
+\`\`\`
+CLIP 1: Opening Hook (5 seconds)
+- Wide establishing shot of city skyline at sunset
+- Dramatic lighting, golden hour glow
+
+CLIP 2: Introduction (5 seconds)
+- Medium shot of presenter in modern office
+- Professional lighting, shallow depth of field
+
+CLIP 3: Main Content (10 seconds)
+- Close-up of product being demonstrated
+- Clean white background, soft shadows
+\`\`\`
+
+### Visual Description Guidelines
+
+**Camera Terms:**
+- Wide shot, medium shot, close-up
+- Slow pan, tracking shot, static
+- Low angle, high angle, eye level
+- Dolly in, pull back, crane shot
+
+**Lighting Terms:**
+- Golden hour, blue hour
+- Soft diffused, hard shadows
+- Backlit, rim light
+- Natural, artificial, neon
+
+**Style Terms:**
+- Cinematic, documentary, commercial
+- Film grain, sharp digital
+- Warm palette, cool tones
+- Moody, bright, dramatic
+
+### Pacing Guidelines
+
+| Section | Duration | Purpose |
+|---------|----------|---------|
+| Hook | 3-5s | Grab attention |
+| Intro | 5-10s | Set context |
+| Body | Variable | Main content |
+| CTA | 5-10s | Call to action |
+
+### Common Script Mistakes
+
+❌ **Too vague**: "A nice scene with people"
+✅ **Specific**: "Three friends laughing at a café table, warm afternoon light"
+
+❌ **Too complex**: "Multiple characters having a conversation while walking"
+✅ **Simpler**: "Two people walking side by side, smiling"
+
+❌ **Expecting text**: "Show text saying 'Welcome!'"
+✅ **Alternative**: Add text in editing software post-production
         `
       },
       {
@@ -241,25 +483,264 @@ Combine style presets with mood modifiers:
         content: `
 ## Character Consistency
 
-Maintaining character appearance across multiple clips is crucial for professional results.
+Maintaining character appearance across multiple clips is challenging with AI. Here's how to maximize consistency.
 
 ### Using Reference Images
-Upload a reference image to lock in character appearance:
-1. Go to Project Settings
-2. Upload reference under "Character Bible"
-3. The AI will match features across all scenes
 
-### Description Best Practices
-Be extremely specific:
-- "Woman with shoulder-length auburn hair, green eyes, fair skin"
-- Include clothing details for each scene
-- Note distinguishing features
+The **most effective method** for consistency:
 
-### Troubleshooting
-If characters drift between clips:
-- Use the same style anchor
-- Regenerate problem clips with stronger references
-- Enable "Identity Lock" in advanced settings
+1. Upload a reference image when creating your project
+2. The AI anchors character appearance to this image
+3. Use the same reference across all clips in a project
+
+### Detailed Descriptions
+
+Be extremely specific and consistent:
+
+**Good character description:**
+> "A woman in her 30s with shoulder-length auburn hair, green eyes, fair skin with light freckles, wearing a navy blue blazer over a white blouse"
+
+**Use this EXACT description in every clip** of the project.
+
+### Consistency Factors
+
+| Factor | Impact | Tip |
+|--------|--------|-----|
+| Face | High | Describe key features |
+| Hair | High | Exact color and style |
+| Clothing | Medium | Consistent outfit |
+| Lighting | Medium | Match across scenes |
+| Environment | Low | Can vary more freely |
+
+### Reality Check
+
+**AI limitations mean:**
+- Characters may shift slightly between clips
+- Exact matches are not guaranteed
+- Some regeneration is normal
+- Perfect consistency requires editing software
+
+### Workarounds
+
+1. **Shorter projects**: Fewer clips = less drift
+2. **Static shots**: Less motion = better consistency
+3. **Post-editing**: Color grade to unify look
+4. **Accept variation**: Embrace AI's artistic interpretation
+        `
+      }
+    ]
+  },
+  {
+    id: 'production-workflow',
+    title: 'Production Workflow',
+    description: 'From creation to final export',
+    icon: Play,
+    color: 'from-purple-500 to-violet-500',
+    articles: [
+      {
+        id: 'production-monitor',
+        title: 'Understanding the Production Monitor',
+        description: 'Track your video generation in real-time',
+        readTime: '5 min',
+        popular: true,
+        content: `
+## Understanding the Production Monitor
+
+The Production page shows real-time progress of your video generation.
+
+### Production Stages
+
+| Stage | Description | Duration |
+|-------|-------------|----------|
+| **Initializing** | Setting up project | ~5 seconds |
+| **Generating** | AI rendering clips | 1-3 min per clip |
+| **Processing** | Finalizing assets | ~30 seconds |
+| **Ready** | Complete! | - |
+
+### Reading the Interface
+
+**Progress Bar**: Overall completion percentage
+**Clip Grid**: Visual status of each clip
+**Status Indicators**:
+- 🔵 Pending (queued)
+- 🟡 Generating (in progress)
+- 🟢 Completed (ready)
+- 🔴 Failed (needs regeneration)
+
+### Clip Actions
+
+For each completed clip:
+- **Preview**: Watch the clip
+- **Regenerate**: Try again with same prompt
+- **Download**: Save individual clip
+
+### Handling Failures
+
+If a clip fails:
+1. Click **"Retry"** to regenerate
+2. If repeated failures, try simplifying the prompt
+3. Contact support if issues persist
+
+### Time Estimates
+
+| Clips | 5-Second Each | 10-Second Each |
+|-------|---------------|----------------|
+| 1-2 | ~3-5 minutes | ~5-8 minutes |
+| 3-5 | ~8-12 minutes | ~12-18 minutes |
+| 6-10 | ~15-25 minutes | ~25-40 minutes |
+
+> **Note**: Times vary based on server load and prompt complexity.
+        `
+      },
+      {
+        id: 'regenerating-clips',
+        title: 'Regenerating Clips',
+        description: 'How to redo unsatisfactory clips',
+        readTime: '4 min',
+        content: `
+## Regenerating Clips
+
+Not happy with a clip? Here's how to regenerate.
+
+### When to Regenerate
+
+**Good reasons:**
+- Visual artifacts or glitches
+- Subject doesn't match description
+- Camera movement is wrong
+- Overall quality is poor
+
+**Consider NOT regenerating:**
+- Minor imperfections
+- Slight character variations (normal for AI)
+- "Not exactly what I imagined" (try adjusting expectations)
+
+### How to Regenerate
+
+1. Find the clip in your Production view
+2. Click the **refresh/retry** icon
+3. Wait for regeneration (same time as original)
+4. Review the new result
+
+### Regeneration Costs
+
+**Each regeneration costs credits:**
+- 5-second clip: 10 credits
+- 10-second clip: 15 credits
+
+**Budget accordingly!** Plan for 2-4x credits for regenerations.
+
+### Improving Regeneration Results
+
+If regenerating repeatedly:
+1. **Simplify the prompt**: Remove complex elements
+2. **Be more specific**: Add clearer descriptions
+3. **Reduce action**: Slower movements render better
+4. **Check reference image**: Ensure it's high quality
+        `
+      },
+      {
+        id: 'downloading-videos',
+        title: 'Downloading Your Videos',
+        description: 'Export options and formats',
+        readTime: '4 min',
+        content: `
+## Downloading Your Videos
+
+Multiple options for exporting your completed videos.
+
+### Download Options
+
+**Download All (Merged)**
+- Single video file with all clips combined
+- Includes audio (narration + music if enabled)
+- Processed in-browser for privacy
+- MP4 format
+
+**Download Individual Clips**
+- Save specific clips separately
+- Useful for editing in external software
+- No audio merging—clips only
+
+### Technical Specifications
+
+| Property | Value |
+|----------|-------|
+| Format | MP4 (H.264) |
+| Resolution | Up to 1080p |
+| Frame Rate | 24-30 fps |
+| Audio | AAC stereo |
+
+### Browser Compatibility
+
+**Full support (merged downloads):**
+- Chrome, Edge, Firefox (desktop)
+- Chrome for Android
+
+**Limited support:**
+- Safari (individual clips only)
+- iOS browsers (individual clips only)
+
+> **iOS/Safari users**: Download individual clips and merge using video editing apps.
+
+### Download Troubleshooting
+
+**Download not starting?**
+- Check popup blocker settings
+- Try a different browser
+- Ensure stable internet connection
+
+**Merged video missing audio?**
+- Verify narration/music was enabled
+- Try re-downloading
+- Download clips separately and merge externally
+        `
+      },
+      {
+        id: 'sharing-videos',
+        title: 'Sharing Your Videos',
+        description: 'Public sharing and social features',
+        readTime: '3 min',
+        content: `
+## Sharing Your Videos
+
+Share your creations with the Apex community and beyond.
+
+### Making Videos Public
+
+1. Go to your **Projects** page
+2. Find the completed video
+3. Toggle **"Make Public"** or use the share icon
+4. Copy the shareable link
+
+### Public Gallery
+
+Public videos appear in:
+- **Discover** feed for other users
+- Your public profile page
+- Gallery showcase (featured content)
+
+### Social Features
+
+**Interactions:**
+- ❤️ Likes from community members
+- 💬 Comments and discussions
+- 👤 Follower/Following system
+- 📤 Direct sharing options
+
+### Privacy Controls
+
+| Setting | Visibility |
+|---------|------------|
+| **Private** | Only you can see |
+| **Public** | Anyone with link + feed |
+
+### Best Practices
+
+- Add descriptive titles
+- Write engaging descriptions
+- Use relevant tags (if available)
+- Engage with community feedback
         `
       }
     ]
@@ -267,107 +748,134 @@ If characters drift between clips:
   {
     id: 'billing-credits',
     title: 'Billing & Credits',
-    description: 'Understand credit pricing and policies',
+    description: 'Pricing, payments, and refund policy',
     icon: CreditCard,
     color: 'from-amber-500 to-orange-500',
     articles: [
       {
         id: 'credit-pricing',
         title: 'Credit Pricing & Packages',
-        description: 'Understand how credits work and our pricing',
+        description: 'Detailed pricing breakdown',
         readTime: '4 min',
         content: `
 ## Credit Pricing & Packages
 
-### How Credits Work
-Apex Studio uses a **credit-based** payment system (not subscriptions). You purchase credits once and use them as needed.
+Apex Studio uses a credit-based system (no subscriptions).
 
-**Credit Value**: 1 credit = $0.10 USD
+### Credit Value
+
+**1 credit = $0.10 USD**
 
 ### Video Generation Costs
-- **Short clips (≤6 seconds)**: 10 credits per clip ($1.00)
-- **Long clips (>6 seconds)**: 15 credits per clip ($1.50)
 
-### Available Credit Packs
+| Clip Duration | Credits | USD Cost |
+|---------------|---------|----------|
+| ≤6 seconds | 10 | $1.00 |
+| >6 seconds | 15 | $1.50 |
 
-**Starter Pack - $37**
-- 370 credits (~37 clips)
-- Perfect for trying the platform
+### Credit Packages
 
-**Growth Pack - $100**
-- 1,000 credits (~100 clips)
-- Best value for regular creators
+| Package | Credits | Price | Per Credit |
+|---------|---------|-------|------------|
+| Starter | 370 | $37 | $0.10 |
+| Growth | 1,000 | $100 | $0.10 |
+| Agency | 2,500 | $250 | $0.10 |
 
-**Agency Pack - $250**
-- 2,500 credits (~250 clips)
-- Ideal for teams and studios
+### Free Credits
 
-### New User Bonus
-New accounts receive **60 free credits** as a one-time welcome bonus to try the platform.
+**New accounts receive 60 free credits** as a welcome bonus.
 
-### Credits Never Expire
-Your purchased credits remain in your account indefinitely while your account is active. No monthly limits or expiration dates.
+- Use these to test the platform
+- No expiration while account is active
+- Non-refundable, non-transferable
+
+### Why Credits?
+
+- **No monthly fees**: Pay only when you create
+- **No expiration**: Use at your own pace
+- **Predictable costs**: Know exactly what you're spending
+- **Fair pricing**: Same rate for everyone
         `
       },
       {
         id: 'payment-methods',
         title: 'Payment Methods',
-        description: 'Accepted payment options',
+        description: 'How to purchase credits',
         readTime: '2 min',
         content: `
 ## Payment Methods
 
+All payments processed securely through Stripe.
+
 ### Accepted Methods
-All payments are processed securely through **Stripe**:
-- Credit/Debit cards (Visa, Mastercard, Amex, Discover)
-- Apple Pay / Google Pay
-- Link by Stripe
+
+- **Credit/Debit Cards**: Visa, Mastercard, American Express, Discover
+- **Digital Wallets**: Apple Pay, Google Pay
+- **Link by Stripe**: Fast checkout with saved payment
 
 ### Payment Security
-- We never store your card details
-- All transactions are encrypted
-- PCI-DSS compliant processing
+
+✅ PCI-DSS Level 1 compliant
+✅ End-to-end encryption
+✅ We never store full card numbers
+✅ Secure payment processing
+
+### Purchasing Credits
+
+1. Go to **Settings → Billing**
+2. Select a credit package
+3. Complete checkout via Stripe
+4. Credits added instantly
 
 ### Receipts
-Email receipts are sent automatically after each purchase. You can also view your purchase history in Settings → Billing.
+
+- Emailed automatically after purchase
+- Available in Settings → Billing → Transaction History
+- Downloadable for business expenses
         `
       },
       {
         id: 'refund-policy',
         title: 'Refund Policy',
-        description: 'Important information about our no-refund policy',
+        description: 'Important: All sales are final',
         readTime: '3 min',
         popular: true,
         content: `
 ## Refund Policy
 
-### ⚠️ IMPORTANT: All Sales Are Final
+### ⚠️ ALL SALES ARE FINAL
 
-**ALL CREDIT PURCHASES ARE NON-REFUNDABLE.**
+**Credit purchases are non-refundable under any circumstances.**
 
-By purchasing credits, you acknowledge and agree that:
+### What This Means
 
-1. **No Refunds**: Credits cannot be refunded under any circumstances, including:
-   - Unused credits in your account
-   - Dissatisfaction with AI-generated results
-   - Account closure or suspension
-   - Service changes or updates
-
-2. **No Transfers**: Credits cannot be transferred to other accounts or exchanged for cash.
-
-3. **No Exceptions**: This policy applies to all purchases regardless of the payment method used.
+You **cannot** get a refund for:
+- Unused credits in your account
+- Dissatisfaction with AI-generated results
+- Account closure or suspension
+- Service changes or updates
+- "Changed my mind" requests
 
 ### Why This Policy?
-AI video generation consumes significant computational resources. Once credits are purchased, those resources are allocated to your account. This policy allows us to offer competitive pricing.
+
+1. **AI costs are incurred immediately** when you generate content
+2. **Credits allocate server resources** upon purchase
+3. **Competitive pricing** is possible because of this policy
+4. **Industry standard** for AI generation services
 
 ### Before You Buy
-- Use your 60 free welcome credits to test the platform
-- Review AI-generated samples in our gallery
-- Read our documentation on AI limitations
-- Ensure Apex Studio meets your needs before purchasing
+
+**Protect yourself:**
+
+1. ✅ Use your **60 free credits** to test thoroughly
+2. ✅ Review our **AI limitations** documentation
+3. ✅ Watch **sample videos** in the gallery
+4. ✅ Start with the **smallest package** if unsure
+5. ✅ Understand that **regeneration is normal**
 
 ### Questions?
-Contact cole@apex-studio.com before purchasing if you have any concerns.
+
+Contact **cole@apex-studio.com** BEFORE purchasing if you have concerns.
         `
       }
     ]
@@ -375,93 +883,81 @@ Contact cole@apex-studio.com before purchasing if you have any concerns.
   {
     id: 'account-security',
     title: 'Account & Security',
-    description: 'Protect your account and data',
+    description: 'Manage your account and data',
     icon: Shield,
     color: 'from-rose-500 to-pink-500',
     articles: [
       {
         id: 'account-settings',
         title: 'Account Settings',
-        description: 'Update profile, email, and preferences',
+        description: 'Update profile and preferences',
         readTime: '3 min',
         content: `
 ## Account Settings
 
 ### Profile Information
-Update your display name, avatar, and bio:
-1. Click your avatar in the top right
-2. Select "Profile"
-3. Edit your information
-4. Click "Save Changes"
+
+Update your public profile:
+1. Click your avatar → **Profile**
+2. Edit display name, avatar, bio
+3. Click **Save Changes**
 
 ### Email Preferences
-Control what notifications you receive:
-- Project updates
-- Weekly digest
+
+Control notifications:
+- Project completion alerts
+- Community activity
+- Product updates
 - Tips and tutorials
-- Product announcements
 
-### Data Export
-Download all your data:
-1. Settings → Privacy
-2. Click "Export My Data"
-3. Receive download link via email within 24 hours
-        `
-      },
-      {
-        id: 'password-security',
-        title: 'Password & Security',
-        description: 'Keep your account secure',
-        readTime: '4 min',
-        content: `
-## Password & Security
+### Settings Navigation
 
-### Password Requirements
-- Minimum 12 characters
-- Mix of uppercase and lowercase
-- At least one number
-- At least one special character
-
-### Two-Factor Authentication
-Add an extra layer of security:
-1. Settings → Security
-2. Enable 2FA
-3. Scan QR code with authenticator app
-4. Enter verification code
-
-### Session Management
-View and terminate active sessions:
-- See all logged-in devices
-- Revoke access to suspicious sessions
-- Force logout everywhere
+| Section | Contents |
+|---------|----------|
+| **Profile** | Name, avatar, bio |
+| **Billing** | Credits, transactions, packages |
+| **Privacy** | Data export, account deletion |
+| **Preferences** | Notifications, defaults |
         `
       },
       {
         id: 'data-privacy',
         title: 'Data & Privacy',
-        description: 'How we handle your information',
-        readTime: '5 min',
+        description: 'Your data rights and controls',
+        readTime: '4 min',
         content: `
 ## Data & Privacy
 
 ### What We Store
+
 - Account information (email, name)
-- Project data and generated content
+- Generated videos and projects
 - Usage analytics (anonymized)
+- Payment history
 
 ### Your Rights
-- Access your data anytime
-- Request deletion
-- Export all content
-- Opt out of analytics
 
-### Data Retention
-- Active accounts: Indefinite
-- Deleted accounts: 30-day grace period
-- Projects: Until you delete them
+✅ **Access**: Download your data anytime
+✅ **Export**: Request full data export
+✅ **Delete**: Remove your account and data
+✅ **Opt-out**: Control analytics and emails
+
+### Data Export
+
+1. Settings → Privacy
+2. Click **"Export My Data"**
+3. Receive download link via email (within 24 hours)
+
+### Account Deletion
+
+1. Settings → Privacy
+2. Click **"Delete Account"**
+3. Confirm deletion
+4. 30-day grace period before permanent removal
 
 ### GDPR Compliance
-We're fully GDPR compliant. Contact cole@apex-studio.com for requests.
+
+We're fully GDPR compliant. Contact **cole@apex-studio.com** for data requests.
         `
       }
     ]
@@ -469,98 +965,310 @@ We're fully GDPR compliant. Contact cole@apex-studio.com for requests.
   {
     id: 'ai-limitations',
     title: 'AI Technology & Limitations',
-    description: 'Understand how our AI works and its limitations',
+    description: 'Understand what AI can and cannot do',
     icon: Lightbulb,
     color: 'from-yellow-500 to-amber-500',
     articles: [
       {
         id: 'understanding-ai',
         title: 'Understanding AI Video Generation',
-        description: 'How our AI technology works and what to expect',
-        readTime: '5 min',
+        description: 'How our technology works and what to expect',
+        readTime: '6 min',
         popular: true,
         content: `
 ## Understanding AI Video Generation
 
 ### How It Works
-Apex Studio uses advanced third-party AI services to generate video content from your text descriptions and reference images. Our primary video generation is powered by **Kling AI** and other AI technology partners.
 
-### ⚠️ Critical Limitations to Understand
+Apex Studio uses advanced AI services to transform your text and images into video:
 
-**Before purchasing credits, understand these AI limitations:**
+1. **Your input** (text/image) is processed
+2. **AI models** interpret your description
+3. **Kling AI** renders the video frames
+4. **Post-processing** enhances quality
+5. **Your video** is delivered
 
-**AI "Hallucinations" Are Common**
-AI systems frequently produce unexpected or inaccurate outputs. This is NOT a bug—it's an inherent characteristic of current AI technology:
+### Technology Stack
+
+| Service | Purpose |
+|---------|---------|
+| **Kling AI** | Primary video synthesis |
+| **OpenAI** | Script enhancement |
+| **ElevenLabs** | Voice synthesis |
+
+### ⚠️ Critical Limitations
+
+**Before purchasing, understand these AI constraints:**
+
+### AI "Hallucinations"
+
+AI frequently produces unexpected results. This is **normal**, not a bug:
 - Characters may look different between scenes
-- Objects may appear, disappear, or transform unexpectedly
-- Hands, faces, and fine details often contain artifacts
+- Objects may appear, disappear, or transform
+- Hands, faces often contain artifacts
 - Physics may not behave realistically
-- Text in videos is often illegible or nonsensical
-- Actions may not match your descriptions
+- Text in videos is usually illegible
+- Actions may not match descriptions exactly
 
-**Regeneration Is Normal**
-- Expect to regenerate clips multiple times to get acceptable results
-- Budget 2-4x the credits you think you need
+### Regeneration Is Expected
+
+- Plan to regenerate clips 2-4 times
+- Budget extra credits accordingly
 - Some prompts may never produce satisfactory results
-- AI cannot guarantee specific outcomes
+- Perfect results are not guaranteed
 
-**No Guaranteed Results**
-- We cannot guarantee any specific output quality
-- AI interpretation of prompts varies unpredictably
-- Complex scenes and multiple characters are especially challenging
-- Results improve with experience but remain variable
+### Third-Party Dependencies
 
-### Third-Party Services
-Our video generation relies on:
-- **Kling AI**: Primary video synthesis engine
-- **OpenAI**: Script and text enhancement
-- **ElevenLabs**: Voice synthesis
-- **Other AI Partners**: Supporting features
-
-These services operate under their own terms and may:
-- Have their own content restrictions
-- Experience downtime or service interruptions
+Our video generation relies on external services that may:
+- Experience downtime
+- Have content restrictions
 - Change capabilities without notice
 
 ### Your Responsibilities
-1. **Review all content** before publishing or sharing
-2. **Never rely on AI** for factual accuracy
-3. **Budget for regeneration** - this is expected, not a defect
-4. **Use free credits first** to understand the platform
-5. **Accept inherent limitations** of AI technology
 
-### Credits Are Non-Refundable
-Because AI results vary and regeneration is normal, **all credit purchases are final**. Test thoroughly with your 60 free credits before buying.
+1. **Review all content** before publishing
+2. **Never rely on AI** for factual accuracy
+3. **Budget for regeneration**—this is expected
+4. **Use free credits first** to understand the platform
+5. **Accept inherent limitations** of current AI technology
         `
       },
       {
-        id: 'content-accuracy',
+        id: 'content-restrictions',
+        title: 'Content Restrictions',
+        description: 'What content is prohibited',
+        readTime: '3 min',
+        content: `
+## Content Restrictions
+
+### Prohibited Content
+
+The following content is **not allowed**:
+
+❌ Pornographic or sexually explicit material
+❌ Violence, gore, or disturbing imagery
+❌ Hate speech or discriminatory content
+❌ Content depicting real people without consent
+❌ Illegal activities or drug use
+❌ Misinformation or deepfakes intended to deceive
+❌ Copyright-infringing material
+❌ Content harmful to minors
+
+### AI Content Filters
+
+Our AI systems automatically filter:
+- Explicit content requests
+- Violence-related prompts
+- Certain sensitive topics
+
+Attempts to bypass filters may result in account suspension.
+
+### Reporting Violations
+
+Report inappropriate content: **cole@apex-studio.com**
+        `
+      },
+      {
+        id: 'accuracy-disclaimer',
         title: 'Content Accuracy Disclaimer',
-        description: 'Important information about AI-generated content',
+        description: 'AI cannot guarantee accuracy',
         readTime: '3 min',
         content: `
 ## Content Accuracy Disclaimer
 
 ### No Guarantee of Accuracy
+
 AI-generated content may contain:
 - Visual inaccuracies or artifacts
 - Inconsistencies with your prompts
-- Unexpected interpretations of descriptions
-- Elements that appear unrealistic
+- Unexpected interpretations
+- Unrealistic elements
+- Factual errors in any text
 
 ### Your Responsibility
-You are responsible for:
+
+**You are responsible for:**
 - Reviewing all generated content
 - Verifying accuracy before publishing
 - Ensuring content meets your standards
 - Compliance with applicable laws
+- Not representing AI content as human-created (if required)
 
 ### When to Regenerate
+
 Consider regenerating if:
-- Characters look different between scenes
+- Characters look significantly different
 - Actions don't match descriptions
-- Visual quality is below expectations
-- Unintended elements appear
+- Visual quality is below acceptable standards
+- Unintended or inappropriate elements appear
+
+### Final Review
+
+**Always watch your complete video before:**
+- Downloading for distribution
+- Sharing publicly
+- Using commercially
+- Publishing anywhere
+        `
+      }
+    ]
+  },
+  {
+    id: 'troubleshooting',
+    title: 'Troubleshooting',
+    description: 'Common issues and solutions',
+    icon: Settings,
+    color: 'from-gray-500 to-slate-500',
+    articles: [
+      {
+        id: 'video-not-playing',
+        title: 'Video Not Playing',
+        description: 'Fix playback issues',
+        readTime: '3 min',
+        content: `
+## Video Not Playing
+
+### Quick Fixes
+
+1. **Refresh the page** (Ctrl/Cmd + R)
+2. **Try a different browser** (Chrome recommended)
+3. **Check internet connection**
+4. **Clear browser cache**
+
+### Browser-Specific Issues
+
+**Safari:**
+- Some features limited on Safari
+- Try Chrome or Firefox for full support
+
+**Mobile:**
+- Ensure sufficient storage space
+- Try on WiFi instead of cellular
+
+### Video Shows Black Screen
+
+- Wait a few seconds—loading may be slow
+- Check if video is still generating
+- Try clicking the play button manually
+
+### Audio Not Working
+
+- Check device volume
+- Unmute the video player
+- Verify narration was enabled during creation
+        `
+      },
+      {
+        id: 'generation-stuck',
+        title: 'Generation Stuck or Failed',
+        description: 'Resolve generation issues',
+        readTime: '4 min',
+        content: `
+## Generation Stuck or Failed
+
+### If Generation Is Stuck
+
+**Wait it out:**
+- Complex videos can take 15-30+ minutes
+- Check the progress indicator
+- Don't refresh during generation
+
+**If truly stuck (>1 hour):**
+1. Refresh the page
+2. Check the Projects page—it may have completed
+3. Contact support if issue persists
+
+### If Generation Failed
+
+**Common causes:**
+- Content filtered by safety systems
+- Server overload (try again later)
+- Complex prompt the AI couldn't interpret
+
+**Solutions:**
+1. **Simplify your prompt**
+2. **Reduce clip count**
+3. **Try different wording**
+4. **Wait and retry**
+
+### Credits and Failures
+
+**Failed generations:**
+- Credits are only charged for successful clips
+- Partial completions charge for completed clips only
+- Contact support for billing issues
+        `
+      },
+      {
+        id: 'account-issues',
+        title: 'Account & Login Issues',
+        description: 'Access and authentication problems',
+        readTime: '3 min',
+        content: `
+## Account & Login Issues
+
+### Can't Log In
+
+1. **Check email address** for typos
+2. **Reset password** via "Forgot Password"
+3. **Check spam folder** for reset email
+4. **Try incognito/private browsing**
+
+### Account Locked
+
+If you see "account locked" or "too many attempts":
+- Wait 15-30 minutes
+- Try password reset
+- Contact support if persistent
+
+### Email Verification
+
+**Not receiving verification email?**
+1. Check spam/junk folder
+2. Add our email to contacts
+3. Request new verification email
+4. Try a different email address
+
+### Two Accounts
+
+If you accidentally created multiple accounts:
+- Credits cannot be merged
+- Contact support to close duplicates
+- Keep the account with credits/projects
+        `
+      },
+      {
+        id: 'contact-support',
+        title: 'Contacting Support',
+        description: 'How to get help',
+        readTime: '2 min',
+        content: `
+## Contacting Support
+
+### Email Support
+
+**cole@apex-studio.com**
+
+Include in your message:
+- Your account email
+- Project ID (if applicable)
+- Clear description of the issue
+- Screenshots if helpful
+
+### Response Time
+
+- Typical response: 24-48 hours
+- Complex issues may take longer
+- No weekend/holiday support
+
+### Before Contacting
+
+Check this Help Center first:
+- Search for your issue
+- Review troubleshooting guides
+- Check AI limitations documentation
+
+Many issues are covered here and can be resolved immediately!
         `
       }
     ]

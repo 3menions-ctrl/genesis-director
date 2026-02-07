@@ -108,29 +108,33 @@ export function usePublicProfile(userId?: string) {
         return [];
       }
 
-      // For videos without thumbnails, fetch the first clip's video URL
+      // For ALL videos, fetch the first clip's video URL for reliable playback
+      // movie_projects.video_url is often null, but video_clips contains actual content
       const videosWithClips = await Promise.all(
         (data || []).map(async (video) => {
-          // If no thumbnail, try to get first clip's video_url for preview
-          if (!video.thumbnail_url) {
-            const { data: clipData } = await supabase
-              .from('video_clips')
-              .select('video_url')
-              .eq('project_id', video.id)
-              .not('video_url', 'is', null)
-              .order('shot_index', { ascending: true })
-              .limit(1);
-            
-            const firstClipUrl = clipData?.[0]?.video_url;
-            if (firstClipUrl) {
-              return { ...video, first_clip_url: firstClipUrl };
-            }
-          }
-          return video;
+          // Always try to get the first clip URL for playback reliability
+          const { data: clipData } = await supabase
+            .from('video_clips')
+            .select('video_url')
+            .eq('project_id', video.id)
+            .not('video_url', 'is', null)
+            .order('shot_index', { ascending: true })
+            .limit(1);
+          
+          const firstClipUrl = clipData?.[0]?.video_url || null;
+          
+          // Determine best playable URL: first_clip_url > video_url
+          const playableUrl = firstClipUrl || video.video_url || null;
+          
+          return { 
+            ...video, 
+            first_clip_url: firstClipUrl,
+            playable_url: playableUrl, // The best URL to use for playback
+          };
         })
       );
 
-      return videosWithClips as (PublicVideo & { first_clip_url?: string })[];
+      return videosWithClips as (PublicVideo & { first_clip_url?: string; playable_url?: string })[];
     },
     enabled: !!userId,
   });

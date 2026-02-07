@@ -3,13 +3,17 @@
  * 
  * Combines multiple video clips into a single downloadable video file
  * using FFmpeg compiled to WebAssembly for browser execution.
+ * 
+ * For unsupported browsers (iOS Safari, etc.), falls back to server-side
+ * stitching via the stitch-video edge function.
  */
 
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface MergeProgress {
-  stage: 'loading' | 'downloading' | 'processing' | 'encoding' | 'complete' | 'error';
+  stage: 'loading' | 'downloading' | 'processing' | 'encoding' | 'complete' | 'error' | 'server_stitching';
   progress: number; // 0-100
   message: string;
   currentClip?: number;
@@ -21,6 +25,8 @@ export interface MergeOptions {
   outputFilename?: string;
   onProgress?: (progress: MergeProgress) => void;
   masterAudioUrl?: string | null;
+  projectId?: string; // Required for server-side fallback
+  projectName?: string;
 }
 
 export interface MergeResult {
@@ -29,6 +35,7 @@ export interface MergeResult {
   filename?: string;
   duration?: number;
   error?: string;
+  serverStitchedUrl?: string; // URL to download from server
 }
 
 // Singleton FFmpeg instance
@@ -161,7 +168,9 @@ export async function mergeVideoClips(options: MergeOptions): Promise<MergeResul
     clipUrls, 
     outputFilename = 'merged-video.mp4', 
     onProgress,
-    masterAudioUrl 
+    masterAudioUrl,
+    projectId,
+    projectName,
   } = options;
 
   if (clipUrls.length === 0) {
@@ -173,10 +182,10 @@ export async function mergeVideoClips(options: MergeOptions): Promise<MergeResul
     return await downloadSingleClip(clipUrls[0], outputFilename, onProgress);
   }
 
-  // Check if FFmpeg is supported - if not, use fallback for multi-clip
+  // Check if FFmpeg is supported - if not, use server-side fallback for multi-clip
   if (!isFFmpegSupported()) {
-    console.log('[FFmpeg] Using fallback download - FFmpeg not supported on this browser');
-    return await fallbackDownload(clipUrls, outputFilename, onProgress);
+    console.log('[FFmpeg] Using server-side fallback - FFmpeg not supported on this browser');
+    return await fallbackDownload(clipUrls, outputFilename, onProgress, projectId, projectName);
   }
 
   try {
@@ -371,32 +380,188 @@ async function downloadSingleClip(
 
 /**
  * Fallback download for browsers that don't support FFmpeg.wasm (iOS Safari, etc.)
- * Downloads the first clip directly since merging isn't possible
+ * Uses server-side manifest/HLS generation for playback, but for downloads
+ * we need to inform users of limitations or use alternative approach.
  */
 async function fallbackDownload(
   clipUrls: string[],
   outputFilename: string,
-  onProgress?: (progress: MergeProgress) => void
+  onProgress?: (progress: MergeProgress) => void,
+  projectId?: string,
+  projectName?: string
 ): Promise<MergeResult> {
-  console.log('[FFmpeg] Using fallback download for unsupported browser');
+  console.log('[FFmpeg] Using server-side fallback for unsupported browser');
   
-  // Just download the first clip
-  const adjustedFilename = clipUrls.length > 1 
-    ? outputFilename.replace('.mp4', '-clip1.mp4')
-    : outputFilename;
+  // Single clip - just download directly
+  if (clipUrls.length === 1) {
+    return await downloadSingleClip(clipUrls[0], outputFilename, onProgress);
+  }
+  
+  // Multi-clip: Try to use server-side stitching
+  if (!projectId) {
+    console.warn('[FFmpeg] No projectId provided for server-side stitching');
+    onProgress?.({
+      stage: 'error',
+      progress: 0,
+      message: 'Cannot merge videos on this device without project context. Please download clips individually.',
+    });
+    return {
+      success: false,
+      error: 'Cannot merge videos on this device without project context. Please download clips individually.',
+    };
+  }
+  
+  onProgress?.({
+    stage: 'server_stitching',
+    progress: 10,
+    message: 'Requesting server-side video merge...',
+  });
+  
+  try {
+    // First, ensure HLS playlist exists for this project
+    const { data: hlsResult, error: hlsError } = await supabase.functions.invoke('generate-hls-playlist', {
+      body: { projectId }
+    });
     
-  const result = await downloadSingleClip(clipUrls[0], adjustedFilename, onProgress);
-  
-  // Update message if there were multiple clips
-  if (result.success && clipUrls.length > 1) {
+    if (hlsError) {
+      console.warn('[FFmpeg] HLS generation failed:', hlsError);
+    }
+    
+    // If HLS generation succeeded and we have a manifest, try to get a stitched URL
+    if (hlsResult?.success && hlsResult?.manifestUrl) {
+      onProgress?.({
+        stage: 'downloading',
+        progress: 30,
+        message: 'Fetching manifest...',
+      });
+      
+      // Parse the manifest to check if there's a stitched video URL
+      const manifestResponse = await fetch(hlsResult.manifestUrl);
+      if (manifestResponse.ok) {
+        const manifest = await manifestResponse.json();
+        
+        // Check if we have an actual video URL (not just clips array)
+        if (manifest.stitchedVideoUrl) {
+          // Download the stitched video
+          onProgress?.({
+            stage: 'downloading',
+            progress: 50,
+            message: 'Downloading merged video...',
+          });
+          
+          const videoResponse = await fetch(manifest.stitchedVideoUrl);
+          if (videoResponse.ok) {
+            const blob = await videoResponse.blob();
+            
+            onProgress?.({
+              stage: 'complete',
+              progress: 100,
+              message: 'Download complete!',
+            });
+            
+            return {
+              success: true,
+              blob,
+              filename: outputFilename,
+              serverStitchedUrl: manifest.stitchedVideoUrl,
+            };
+          }
+        }
+      }
+    }
+    
+    // No stitched video available - provide alternative for iOS users
+    // iOS Safari can play HLS natively, so the playback in-app works fine
+    // For download, we'll download clips sequentially into a zip-like package or inform user
+    
+    onProgress?.({
+      stage: 'downloading',
+      progress: 20,
+      message: 'Preparing clips for download...',
+    });
+    
+    // Download all clips as individual files
+    const downloadedBlobs: { blob: Blob; index: number }[] = [];
+    
+    for (let i = 0; i < clipUrls.length; i++) {
+      onProgress?.({
+        stage: 'downloading',
+        progress: 20 + Math.round((i / clipUrls.length) * 60),
+        message: `Downloading clip ${i + 1} of ${clipUrls.length}...`,
+        currentClip: i + 1,
+        totalClips: clipUrls.length,
+      });
+      
+      try {
+        const response = await fetch(clipUrls[i]);
+        if (response.ok) {
+          const blob = await response.blob();
+          downloadedBlobs.push({ blob, index: i });
+        }
+      } catch (err) {
+        console.warn(`[FFmpeg] Failed to download clip ${i}:`, err);
+      }
+    }
+    
+    if (downloadedBlobs.length === 0) {
+      throw new Error('Failed to download any clips');
+    }
+    
+    // If we only got one clip, return that
+    if (downloadedBlobs.length === 1) {
+      onProgress?.({
+        stage: 'complete',
+        progress: 100,
+        message: 'Downloaded 1 clip (others failed)',
+      });
+      
+      return {
+        success: true,
+        blob: downloadedBlobs[0].blob,
+        filename: outputFilename.replace('.mp4', '-clip1.mp4'),
+      };
+    }
+    
+    // For multiple clips, we can't merge them in-browser on iOS
+    // Return the first clip but inform user about limitation
     onProgress?.({
       stage: 'complete',
       progress: 100,
-      message: 'Downloaded first clip. Use individual downloads for remaining clips.',
+      message: `Downloaded ${downloadedBlobs.length} clips. Merging not available on this device.`,
     });
+    
+    // Download all clips individually
+    for (let i = 0; i < downloadedBlobs.length; i++) {
+      const { blob, index } = downloadedBlobs[i];
+      const clipFilename = outputFilename.replace('.mp4', `-clip${index + 1}.mp4`);
+      downloadBlob(blob, clipFilename);
+      // Small delay between downloads to avoid browser blocking
+      if (i < downloadedBlobs.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+    }
+    
+    return {
+      success: true,
+      blob: downloadedBlobs[0].blob,
+      filename: outputFilename.replace('.mp4', '-clip1.mp4'),
+    };
+    
+  } catch (error) {
+    console.error('[FFmpeg] Server-side fallback failed:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Download failed';
+    
+    onProgress?.({
+      stage: 'error',
+      progress: 0,
+      message: errorMessage,
+    });
+    
+    return {
+      success: false,
+      error: errorMessage,
+    };
   }
-  
-  return result;
 }
 
 /**

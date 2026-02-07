@@ -237,37 +237,29 @@ const GalleryContent = memo(function GalleryContent() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentIndex, filteredVideos.length, selectedVideo]);
   
-  const goNext = () => {
+  const goNext = useCallback(() => {
     if (currentIndex < filteredVideos.length - 1) {
       setCurrentIndex(prev => prev + 1);
       setScrollProgress(prev => prev + 0.1);
     }
-  };
+  }, [currentIndex, filteredVideos.length]);
   
-  const goPrev = () => {
+  const goPrev = useCallback(() => {
     if (currentIndex > 0) {
       setCurrentIndex(prev => prev - 1);
       setScrollProgress(prev => prev - 0.1);
     }
-  };
+  }, [currentIndex]);
   
-  const handleCategoryChange = (category: VideoCategory) => {
+  const handleCategoryChange = useCallback((category: VideoCategory) => {
     setActiveCategory(category);
-  };
+  }, []);
   
-  const handleDotClick = (index: number) => {
+  const handleDotClick = useCallback((index: number) => {
     setCurrentIndex(index);
-  };
+  }, []);
   
-  if (!hasAccess) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-slate-500/30 border-t-blue-400 rounded-full animate-spin" />
-      </div>
-    );
-  }
-  
-  // STABILITY FIX: Added try-catch and requestAnimationFrame for safer scroll
+  // STABILITY FIX: useCallback MUST be called before any early returns (React Rules of Hooks)
   const scrollToAvatars = useCallback(() => {
     try {
       setShowAvatarSection(true);
@@ -281,6 +273,15 @@ const GalleryContent = memo(function GalleryContent() {
       console.debug('[Gallery] scrollToAvatars error:', e);
     }
   }, []);
+  
+  // Early return AFTER all hooks are called
+  if (!hasAccess) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-slate-500/30 border-t-blue-400 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen overflow-y-auto overflow-x-hidden">

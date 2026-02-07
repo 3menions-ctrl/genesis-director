@@ -614,13 +614,50 @@ function ProjectsContentInner() {
       }
     }
     
+    // If still no clips, check pending_video_tasks.predictions (avatar projects)
+    if (clipUrls.length === 0) {
+      try {
+        const { data: projectData } = await supabase
+          .from('movie_projects')
+          .select('pending_video_tasks, voice_audio_url')
+          .eq('id', project.id)
+          .single();
+        
+        if (projectData?.pending_video_tasks) {
+          const tasks = projectData.pending_video_tasks as Record<string, unknown>;
+          const predictions = tasks.predictions as Array<{ videoUrl?: string; status?: string; clipIndex?: number }> | undefined;
+          
+          if (predictions && Array.isArray(predictions)) {
+            // Extract completed clips, sorted by clipIndex
+            const completedPreds = predictions
+              .filter(p => p.videoUrl && p.status === 'completed')
+              .sort((a, b) => (a.clipIndex ?? 0) - (b.clipIndex ?? 0));
+            
+            clipUrls = completedPreds.map(p => p.videoUrl!).filter(Boolean);
+            
+            // Also grab master audio from tasks if available
+            if (tasks.masterAudioUrl) {
+              masterAudioUrl = tasks.masterAudioUrl as string;
+            }
+          }
+        }
+        
+        // Fallback to voice_audio_url if not set yet
+        if (!masterAudioUrl && projectData?.voice_audio_url) {
+          masterAudioUrl = projectData.voice_audio_url;
+        }
+      } catch (error) {
+        console.error('Failed to fetch avatar clips:', error);
+      }
+    }
+    
     if (clipUrls.length === 0) {
       toast.error('No clips to download');
       return;
     }
     
-    // Check for master audio (avatar projects)
-    if (project.voice_audio_url) {
+    // Check for master audio (avatar projects) - may already be set above
+    if (!masterAudioUrl && project.voice_audio_url) {
       masterAudioUrl = project.voice_audio_url;
     }
     
@@ -1538,6 +1575,7 @@ function ProjectsContentInner() {
       <MergeDownloadDialog
         open={mergeDownloadOpen}
         onOpenChange={setMergeDownloadOpen}
+        projectId={mergeDownloadProject?.id || ''}
         projectName={mergeDownloadProject?.name || 'Video'}
         clipUrls={mergeDownloadClips}
         masterAudioUrl={mergeDownloadAudioUrl}

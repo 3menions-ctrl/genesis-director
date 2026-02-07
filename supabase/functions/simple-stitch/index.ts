@@ -215,8 +215,8 @@ serve(async (req) => {
       musicUrl: project?.music_url || null,
       audioConfig: {
         includeNarration: includeNarration || isAvatarProject,
-        // Avatar projects should mute individual clip audio since we use master track
-        muteClipAudio: isAvatarProject && !!masterAudioUrl,
+        // CRITICAL: Always use embedded clip audio - no master audio overlay
+        muteClipAudio: false,
         musicVolume: (includeNarration || isAvatarProject) ? 0.3 : 0.8,
         fadeIn: 1,
         fadeOut: 2,

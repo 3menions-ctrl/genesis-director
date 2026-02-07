@@ -1,18 +1,24 @@
 /**
- * useChunkedAvatars - Progressive Avatar Loading Hook
+ * useChunkedAvatars - World-Class Progressive Avatar Loading Hook
  * 
  * Prevents browser crashes by loading avatars in controlled chunks
  * instead of all 120+ simultaneously. This reduces memory pressure
  * from high-resolution textures.
+ * 
+ * STABILITY FEATURES:
+ * - Conservative chunk sizes to prevent GPU memory exhaustion
+ * - Longer delays between chunks for mobile devices
+ * - Safety guards against unmounted component updates
+ * - Memoized visible avatars to prevent unnecessary re-renders
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { AvatarTemplate } from '@/types/avatar-templates';
 
-// Configuration for chunk loading
-const INITIAL_CHUNK_SIZE = 12; // Load first 12 immediately
-const CHUNK_SIZE = 8; // Load 8 more at a time
-const CHUNK_DELAY_MS = 150; // Delay between chunks to prevent memory spikes
+// Configuration for chunk loading - CONSERVATIVE for stability
+const INITIAL_CHUNK_SIZE = 10; // Load first 10 immediately
+const CHUNK_SIZE = 6; // Load 6 more at a time
+const CHUNK_DELAY_MS = 200; // Delay between chunks to prevent memory spikes
 
 interface UseChunkedAvatarsOptions {
   /** Enable/disable progressive loading (default: true) */
@@ -53,18 +59,32 @@ export function useChunkedAvatars(
     chunkDelay = CHUNK_DELAY_MS,
   } = options;
 
-  const [loadedCount, setLoadedCount] = useState(enabled ? initialSize : allAvatars.length);
+  // STABILITY: Use ref to track avatar array identity
+  const avatarsRef = useRef(allAvatars);
+  const avatarsLengthRef = useRef(allAvatars.length);
+  
+  const [loadedCount, setLoadedCount] = useState(
+    enabled ? Math.min(initialSize, allAvatars.length) : allAvatars.length
+  );
   const isLoadingChunkRef = useRef(false);
   const mountedRef = useRef(true);
 
-  // Reset when avatars change
+  // STABILITY: Reset when avatar array reference or length changes
   useEffect(() => {
-    if (enabled) {
-      setLoadedCount(Math.min(initialSize, allAvatars.length));
-    } else {
-      setLoadedCount(allAvatars.length);
+    const hasArrayChanged = avatarsRef.current !== allAvatars;
+    const hasLengthChanged = avatarsLengthRef.current !== allAvatars.length;
+    
+    if (hasArrayChanged || hasLengthChanged) {
+      avatarsRef.current = allAvatars;
+      avatarsLengthRef.current = allAvatars.length;
+      
+      if (enabled) {
+        setLoadedCount(Math.min(initialSize, allAvatars.length));
+      } else {
+        setLoadedCount(allAvatars.length);
+      }
     }
-  }, [allAvatars.length, enabled, initialSize]);
+  }, [allAvatars, enabled, initialSize]);
 
   // Track mounted state
   useEffect(() => {
@@ -84,11 +104,13 @@ export function useChunkedAvatars(
       isLoadingChunkRef.current = true;
       
       setTimeout(() => {
-        if (!mountedRef.current) return;
+        if (!mountedRef.current) {
+          isLoadingChunkRef.current = false;
+          return;
+        }
         
         setLoadedCount(prev => {
           const next = Math.min(prev + chunkSize, allAvatars.length);
-          console.log(`[useChunkedAvatars] Loaded chunk: ${prev} → ${next} of ${allAvatars.length}`);
           return next;
         });
         
@@ -111,8 +133,11 @@ export function useChunkedAvatars(
     setLoadedCount(allAvatars.length);
   }, [allAvatars.length]);
 
-  // Compute visible avatars
-  const visibleAvatars = allAvatars.slice(0, loadedCount);
+  // STABILITY: Memoize visible avatars to prevent unnecessary re-renders
+  const visibleAvatars = useMemo(() => {
+    return allAvatars.slice(0, loadedCount);
+  }, [allAvatars, loadedCount]);
+  
   const isFullyLoaded = loadedCount >= allAvatars.length;
   const loadProgress = allAvatars.length > 0 
     ? Math.round((loadedCount / allAvatars.length) * 100) 

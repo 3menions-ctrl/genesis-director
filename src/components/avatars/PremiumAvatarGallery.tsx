@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { OptimizedAvatarImage, ShimmerSkeleton } from './OptimizedAvatarImage';
 import { useSafeArray } from '@/components/stability/GlobalStabilityBoundary';
+import { useChunkedAvatars } from '@/hooks/useChunkedAvatars';
+import { shuffleAvatars } from '@/lib/utils/shuffleAvatars';
 
 interface PremiumAvatarGalleryProps {
   avatars: AvatarTemplate[];
@@ -200,6 +202,24 @@ export const PremiumAvatarGallery = memo(function PremiumAvatarGallery({
   // CRITICAL: Data guardrail - ensure avatars is always an array
   const safeAvatars = useSafeArray(avatars);
   
+  // STABILITY: Memoize shuffled avatars to prevent re-shuffle on every render
+  const shuffledAvatars = useMemo(() => {
+    if (safeAvatars.length === 0) return [];
+    return shuffleAvatars(safeAvatars);
+  }, [safeAvatars]);
+  
+  // WORLD-CLASS CHUNKED LOADING: Progressive loading to prevent crashes
+  const { 
+    visibleAvatars: displayAvatars, 
+    isFullyLoaded, 
+    loadProgress 
+  } = useChunkedAvatars(shuffledAvatars, {
+    enabled: true,
+    initialSize: 10,  // Start with 10 avatars
+    chunkSize: 5,     // Load 5 more at a time
+    chunkDelay: 250,  // 250ms between chunks
+  });
+  
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -208,6 +228,12 @@ export const PremiumAvatarGallery = memo(function PremiumAvatarGallery({
   const mountedRef = useRef(true);
   
   // Cleanup on unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -325,7 +351,7 @@ export const PremiumAvatarGallery = memo(function PremiumAvatarGallery({
           WebkitOverflowScrolling: 'touch',
         }}
       >
-        {safeAvatars.map((avatar, index) => (
+        {displayAvatars.map((avatar, index) => (
           <AvatarCard
             key={avatar.id}
             avatar={avatar}
@@ -344,10 +370,18 @@ export const PremiumAvatarGallery = memo(function PremiumAvatarGallery({
         ))}
       </div>
       
+      {/* Loading progress indicator */}
+      {!isFullyLoaded && loadProgress > 0 && loadProgress < 100 && (
+        <div className="flex items-center justify-center gap-2 mt-4 text-white/50 text-xs">
+          <Loader2 className="w-3 h-3 animate-spin" />
+          <span>Loading... {loadProgress}%</span>
+        </div>
+      )}
+      
       {/* Scroll indicator - Mobile only */}
-      {isMobile && safeAvatars.length > 2 && (
+      {isMobile && displayAvatars.length > 2 && (
         <div className="flex justify-center gap-1.5 mt-4">
-          {Array.from({ length: Math.min(5, Math.ceil(safeAvatars.length / 2)) }).map((_, i) => (
+          {Array.from({ length: Math.min(5, Math.ceil(displayAvatars.length / 2)) }).map((_, i) => (
             <div
               key={`indicator-${i}`}
               className="w-6 h-1 rounded-full bg-white/10"

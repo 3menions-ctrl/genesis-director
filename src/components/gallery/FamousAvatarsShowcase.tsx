@@ -19,17 +19,17 @@ const SHOWCASE_AVATAR_IDS = [
   '1d2f62ad-bbc2-4104-8442-fb77eb1f612b', // Hoppy - animated bunny
   '9dae305b-748a-40e9-8c93-fcd85f2cecf3', // Cleopatra - historical
   '831a2fd7-9673-4dd5-9356-e317dde236c6', // Detective Morgan - mystery
-  // Additional animated/fantasy/animal avatars
-  '2cedb6ff-00eb-478d-b4ad-a61c6db6d864', // Professor Sage - wizard
-  '7b0af2dc-130d-4c3f-b83d-001cf3cf4a34', // Robo-Max - robot AI
-  '9255ede0-6029-4051-9b14-046b70ceec4b', // Princess Aurora - fantasy
-  '5ba76e9a-1611-4a5b-9102-878832176e8c', // Luna Wolf - animated wolf
-  '39dcf0bb-ad36-43dc-810f-4ab1fc2a2f31', // Kodiak - bear animal
-  'f28059dc-5b47-43fb-a818-447562efff3c', // Ancient Turtle - turtle animal
-  '72f0b3eb-2dae-4331-8ec2-957c74a08b0e', // Pearl Dolphin - dolphin
-  'f7ef67b4-71db-42b5-9381-6c865b1bc59c', // Raja Leopard - leopard
-  'e3acb962-cc0c-49dc-b3a5-72e0f6ee7550', // Kong - gorilla
-  'a1360f5d-330b-4bf2-b503-eed6bf7f0e02', // Chef Gustavo - animated chef
+  // Additional realistic people avatars
+  '00c5e01b-c33d-489c-acb5-084e331c27ad', // Tyler Brooks - casual
+  'f58e92ea-ccb8-4814-90db-aa0185ec1fc3', // Kai Nakamura - gamer/tech
+  'af35dd90-8034-4cf8-93f3-58043c731852', // Mei Lin - casual cheerful
+  '0e6cd698-d396-4516-a551-036b3b99fb85', // Sarah Mitchell - business
+  '5c718366-324e-4a7f-a5e3-3f66a5f01bd8', // Jake Morrison - casual funny
+  '80aa6e91-570f-463f-b3dc-d9d634d57ccf', // Alex Turner - influencer
+  'e28915d1-2680-4e7d-80c2-7add5ff272f3', // James Park - entertainment
+  '6c5a5ed0-e37b-47df-92ca-661d3106c805', // Dr. Robert Hayes - academic
+  '748d6da8-28d8-4695-a67b-71373efd1c7b', // Luna Ramirez - creative
+  '58936142-0306-47e8-a7b6-4d41d8773140', // Jasper Stone - creative edgy
 ];
 
 // Fetch curated avatars from database

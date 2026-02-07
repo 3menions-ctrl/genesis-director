@@ -24,6 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTemplateEnvironment } from '@/hooks/useTemplateEnvironment';
 import { useTierLimits } from '@/hooks/useTierLimits';
 import { SafeComponent } from '@/components/ui/error-boundary';
+import { SimpleVideoPlayer } from '@/components/player';
 import {
   Select,
   SelectContent,
@@ -786,10 +787,10 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                           />
                         )}
                         {uploadedVideo && (
-                          <video 
+                          <SimpleVideoPlayer 
                             src={uploadedVideo} 
                             className="w-full h-48 object-cover"
-                            controls
+                            showControls
                           />
                         )}
                         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4">

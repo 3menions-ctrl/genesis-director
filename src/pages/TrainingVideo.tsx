@@ -22,6 +22,7 @@ import { CreditsDisplay } from '@/components/studio/CreditsDisplay';
 import TrainingBackground from '@/components/training/TrainingBackground';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { handleError } from '@/lib/errorHandler';
+import { SimpleVideoPlayer } from '@/components/player';
 
 // Import environment presets - Diverse variety for training videos
 import corporateBoardroomImg from '@/assets/environments/corporate-boardroom.jpg';
@@ -933,14 +934,18 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
               <div className="aspect-video bg-black/50 relative">
                 <AnimatePresence mode="wait">
                   {generatedVideoUrl ? (
-                    <motion.video
+                    <motion.div
                       key="video"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      src={generatedVideoUrl}
-                      controls
-                      className="w-full h-full object-cover"
-                    />
+                      className="w-full h-full"
+                    >
+                      <SimpleVideoPlayer
+                        src={generatedVideoUrl}
+                        showControls
+                        className="w-full h-full object-cover"
+                      />
+                    </motion.div>
                   ) : (
                     <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative w-full h-full">
                       <img src={getBackgroundImage()} alt="Background" className="absolute inset-0 w-full h-full object-cover" />

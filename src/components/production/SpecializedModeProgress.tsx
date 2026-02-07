@@ -570,7 +570,83 @@ export function SpecializedModeProgress({
             </div>
           </div>
 
-          {/* Multi-Clip Gallery for avatar mode */}
+          {/* Clip Status Grid - Show during generation */}
+          {mode === 'avatar' && localClips.length > 1 && !isComplete && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <Eye className="w-4 h-4 text-zinc-500" />
+                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                  Clip Status ({completedClips.length}/{localClips.length})
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2.5">
+                {localClips.map((clip) => {
+                  const statusStyles = {
+                    completed: {
+                      border: 'border-emerald-500/40',
+                      bg: 'bg-emerald-500/10',
+                      text: 'text-emerald-400',
+                    },
+                    generating: {
+                      border: 'border-amber-500/40',
+                      bg: 'bg-amber-500/10',
+                      text: 'text-amber-400',
+                    },
+                    failed: {
+                      border: 'border-rose-500/40',
+                      bg: 'bg-rose-500/10',
+                      text: 'text-rose-400',
+                    },
+                  };
+                  const style = statusStyles[clip.status] || statusStyles.generating;
+                  
+                  return (
+                    <div
+                      key={clip.index}
+                      className={cn(
+                        "relative w-12 h-12 rounded-xl overflow-hidden transition-all duration-300",
+                        "border-2 backdrop-blur-sm flex items-center justify-center",
+                        style.border,
+                        style.bg,
+                        clip.status === 'generating' && "animate-pulse",
+                        clip.status === 'completed' && "cursor-pointer hover:scale-105"
+                      )}
+                      onClick={() => {
+                        if (clip.status === 'completed' && clip.videoUrl) {
+                          window.open(clip.videoUrl, '_blank');
+                        }
+                      }}
+                      title={`Clip ${clip.index + 1} - ${clip.status}`}
+                    >
+                      <span className={cn("text-sm font-bold", style.text)}>
+                        {clip.index + 1}
+                      </span>
+                      {/* Status bar at bottom */}
+                      <div className="absolute bottom-0 left-0 right-0 h-1">
+                        {clip.status === 'completed' && <div className="h-full bg-emerald-500" />}
+                        {clip.status === 'generating' && (
+                          <div className="h-full bg-amber-500 animate-pulse" />
+                        )}
+                        {clip.status === 'failed' && <div className="h-full bg-rose-500" />}
+                      </div>
+                      {/* Play icon overlay for completed */}
+                      {clip.status === 'completed' && (
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/60">
+                          <Play className="w-4 h-4 text-white" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Multi-Clip Gallery for avatar mode - Show when complete */}
           {hasMultipleClips && isComplete && (
             <motion.div 
               initial={{ opacity: 0, y: 10 }}

@@ -19,17 +19,17 @@ const SHOWCASE_AVATAR_IDS = [
   '1d2f62ad-bbc2-4104-8442-fb77eb1f612b', // Hoppy - animated bunny
   '9dae305b-748a-40e9-8c93-fcd85f2cecf3', // Cleopatra - historical
   '831a2fd7-9673-4dd5-9356-e317dde236c6', // Detective Morgan - mystery
-  // Additional realistic avatars
-  '5ee5a0bd-30f7-411b-b7ed-45f54f44fc9c', // Hassan Al-Farsi - realistic
-  '4f436d2d-5d0a-4ab0-b8e7-d9c823620c79', // Sofia Reyes - realistic
-  '5b8487a2-31cf-429c-a043-edddcbaecd99', // Priya Nair - realistic
-  'dc825cfe-cd18-4899-b1d0-8d031d297abb', // Fatou Diallo - realistic
-  '9a5bd04e-e60e-4ddc-95ac-a638c8a1b48c', // João Silva - realistic
-  '8465eccd-7c41-43b7-b338-6bfded49d49d', // Min-Ji Park - realistic
-  '8b6e16fb-4439-425a-ae7e-6f8caacbfced', // Queen Amina - realistic historical
-  '42d042b4-0df1-4587-b318-0556a07648e5', // Takeda Shingen - realistic historical
-  'e944e483-1701-4f98-b8ad-c3f7596f03db', // Empress Wu Zetian - realistic historical
-  '1aacd2ef-62f8-458f-a710-ca7318ae4534', // Mansa Musa - realistic historical
+  // Additional animated/fantasy/animal avatars
+  '2cedb6ff-00eb-478d-b4ad-a61c6db6d864', // Professor Sage - wizard
+  '7b0af2dc-130d-4c3f-b83d-001cf3cf4a34', // Robo-Max - robot AI
+  '9255ede0-6029-4051-9b14-046b70ceec4b', // Princess Aurora - fantasy
+  '5ba76e9a-1611-4a5b-9102-878832176e8c', // Luna Wolf - animated wolf
+  '39dcf0bb-ad36-43dc-810f-4ab1fc2a2f31', // Kodiak - bear animal
+  'f28059dc-5b47-43fb-a818-447562efff3c', // Ancient Turtle - turtle animal
+  '72f0b3eb-2dae-4331-8ec2-957c74a08b0e', // Pearl Dolphin - dolphin
+  'f7ef67b4-71db-42b5-9381-6c865b1bc59c', // Raja Leopard - leopard
+  'e3acb962-cc0c-49dc-b3a5-72e0f6ee7550', // Kong - gorilla
+  'a1360f5d-330b-4bf2-b503-eed6bf7f0e02', // Chef Gustavo - animated chef
 ];
 
 // Fetch curated avatars from database

@@ -185,60 +185,70 @@ export default function UserProfile() {
           ) : videos && videos.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <AnimatePresence mode="sync">
-                {videos.map((video, index) => (
-                  <motion.div
-                    key={video.id}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ delay: index * 0.05 }}
-                    className={cn(
-                      "group relative aspect-video rounded-xl overflow-hidden cursor-pointer",
-                      glassCard
-                    )}
-                    onClick={() => setSelectedVideo(video.video_url)}
-                  >
-                    {video.thumbnail_url ? (
-                      <img 
-                        src={video.thumbnail_url} 
-                        alt={video.title}
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                      />
-                    ) : (video as { first_clip_url?: string }).first_clip_url ? (
-                      <PausedFrameVideo 
-                        src={(video as { first_clip_url?: string }).first_clip_url!} 
-                        className="w-full h-full object-cover"
-                        showLoader={false}
-                      />
-                    ) : video.video_url ? (
-                      <PausedFrameVideo 
-                        src={video.video_url} 
-                        className="w-full h-full object-cover"
-                        showLoader={false}
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-white/5 flex items-center justify-center">
-                        <Video className="w-8 h-8 text-white/20" />
-                      </div>
-                    )}
+                {videos.map((video, index) => {
+                  // Determine the best URL for playback
+                  const playableUrl = (video as { playable_url?: string }).playable_url 
+                    || (video as { first_clip_url?: string }).first_clip_url 
+                    || video.video_url;
+                  
+                  return (
+                    <motion.div
+                      key={video.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ delay: index * 0.05 }}
+                      className={cn(
+                        "group relative aspect-video rounded-xl overflow-hidden",
+                        playableUrl ? "cursor-pointer" : "cursor-not-allowed opacity-60",
+                        glassCard
+                      )}
+                      onClick={() => playableUrl && setSelectedVideo(playableUrl)}
+                    >
+                      {video.thumbnail_url ? (
+                        <img 
+                          src={video.thumbnail_url} 
+                          alt={video.title}
+                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        />
+                      ) : (video as { first_clip_url?: string }).first_clip_url ? (
+                        <PausedFrameVideo 
+                          src={(video as { first_clip_url?: string }).first_clip_url!} 
+                          className="w-full h-full object-cover"
+                          showLoader={false}
+                        />
+                      ) : video.video_url ? (
+                        <PausedFrameVideo 
+                          src={video.video_url} 
+                          className="w-full h-full object-cover"
+                          showLoader={false}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-white/5 flex items-center justify-center">
+                          <Video className="w-8 h-8 text-white/20" />
+                        </div>
+                      )}
 
-                    {/* Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="absolute bottom-0 left-0 right-0 p-3">
-                        <p className="text-white text-sm font-medium truncate">{video.title}</p>
-                        <div className="flex items-center gap-2 text-white/60 text-xs mt-1">
-                          <Heart className="w-3 h-3" />
-                          <span>{video.likes_count}</span>
+                      {/* Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute bottom-0 left-0 right-0 p-3">
+                          <p className="text-white text-sm font-medium truncate">{video.title}</p>
+                          <div className="flex items-center gap-2 text-white/60 text-xs mt-1">
+                            <Heart className="w-3 h-3" />
+                            <span>{video.likes_count}</span>
+                          </div>
                         </div>
+                        {playableUrl && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                              <Play className="w-5 h-5 text-white fill-white" />
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                          <Play className="w-5 h-5 text-white fill-white" />
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  );
+                })}
               </AnimatePresence>
             </div>
           ) : (

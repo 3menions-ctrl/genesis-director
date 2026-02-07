@@ -276,13 +276,19 @@ export function SpecializedModeProgress({
   // Use clips from props or fallback to single video
   const completedClips = localClips.filter(c => c.status === 'completed');
   const hasMultipleClips = completedClips.length > 1;
+  const totalExpectedClips = localState.totalClips || 1;
   
   // Determine if localVideoUrl is actually a playable video vs a manifest/JSON
   const isPlayableVideoUrl = localVideoUrl && 
     !localVideoUrl.endsWith('.json') && 
     !localVideoUrl.includes('manifest');
   
-  const isComplete = localState.stage === 'completed' || !!localVideoUrl || completedClips.length > 0;
+  // FIX: Only show complete when ALL clips are done, not just when one is done
+  // For multi-clip projects, completedClips.length must equal totalExpectedClips
+  const allClipsDone = completedClips.length >= totalExpectedClips && totalExpectedClips > 0;
+  const isComplete = localState.stage === 'completed' || 
+                     (isPlayableVideoUrl && mode !== 'avatar') || 
+                     (mode === 'avatar' && allClipsDone);
   const isFailed = localState.stage === 'failed';
   const isProcessing = !isComplete && !isFailed;
   const progress = localState.progress || 0;

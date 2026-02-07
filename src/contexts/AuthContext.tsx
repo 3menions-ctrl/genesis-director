@@ -16,6 +16,7 @@ interface UserProfile {
   role: string | null;
   use_case: string | null;
   company: string | null;
+  country: string | null;
   onboarding_completed: boolean;
   created_at: string;
   preferences: Record<string, unknown> | null;
@@ -80,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       role: null,
       use_case: null,
       company: null,
+      country: null,
       onboarding_completed: true, // Assume completed to prevent redirect loops
       created_at: new Date().toISOString(),
       preferences: null,
@@ -215,6 +217,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: null,
             use_case: null,
             company: null,
+            country: null,
             onboarding_completed: true,
             created_at: new Date().toISOString(),
             preferences: null,

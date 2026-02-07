@@ -2287,6 +2287,7 @@ export type Database = {
           auto_recharge_enabled: boolean | null
           avatar_url: string | null
           company: string | null
+          country: string | null
           created_at: string
           credits_balance: number
           deactivated_at: string | null
@@ -2310,6 +2311,7 @@ export type Database = {
           auto_recharge_enabled?: boolean | null
           avatar_url?: string | null
           company?: string | null
+          country?: string | null
           created_at?: string
           credits_balance?: number
           deactivated_at?: string | null
@@ -2333,6 +2335,7 @@ export type Database = {
           auto_recharge_enabled?: boolean | null
           avatar_url?: string | null
           company?: string | null
+          country?: string | null
           created_at?: string
           credits_balance?: number
           deactivated_at?: string | null

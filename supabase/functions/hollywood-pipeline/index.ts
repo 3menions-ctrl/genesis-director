@@ -3083,6 +3083,21 @@ async function runProduction(
         
         result = clipResult.clipResult;
         lastError = null;
+        
+        // =====================================================
+        // CRITICAL FIX: IMMEDIATE EXIT FROM CLIP LOOP
+        // When callback chaining is enabled (triggerNextClip=true),
+        // generate-single-clip will trigger continue-production when complete.
+        // We MUST exit the clip loop NOW to prevent processing clips 2-N
+        // before clip 1's video is ready (causing STRICT_CONTINUITY_FAILURE).
+        // The callback chain handles clips 2+ AFTER clip 1's frame is ready.
+        // =====================================================
+        console.log(`[Hollywood] ✓ Clip ${i + 1} started with callback chaining - exiting loop NOW`);
+        console.log(`[Hollywood] ✓ continue-production will handle clips ${i + 2}+ after this clip completes`);
+        
+        // Mark that we should exit the clip loop entirely
+        (state as any)._exitClipLoopNow = true;
+        
         break; // Success, exit retry loop
         
       } catch (error) {
@@ -3110,6 +3125,34 @@ async function runProduction(
           break;
         }
       }
+    }
+    
+    // =====================================================
+    // CRITICAL FIX: Exit clip loop immediately when callback chaining
+    // This prevents STRICT_CONTINUITY_FAILURE by not processing clips 2-N
+    // before clip 1's frame is extracted and ready
+    // =====================================================
+    if ((state as any)._exitClipLoopNow) {
+      console.log(`[Hollywood] ⚡ EXITING CLIP LOOP - callback chain active`);
+      
+      // Update DB to show production is in progress (async via callback)
+      await supabase.from('movie_projects').update({
+        status: 'generating',
+        pending_video_tasks: {
+          stage: 'production',
+          progress: 25,
+          clipsCompleted: 0,
+          clipCount: clips.length,
+          clipDuration: state.clipDuration || 5,
+          callbackChainActive: true,
+          startedAt: new Date().toISOString(),
+        },
+        updated_at: new Date().toISOString(),
+      }).eq('id', state.projectId);
+      
+      // Return immediately - callback chain handles the rest
+      state.progress = 25;
+      return state;
     }
     
     // =====================================================

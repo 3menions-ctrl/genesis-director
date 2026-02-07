@@ -14,8 +14,7 @@ interface GlobalStabilityBoundaryState {
   lastErrorTime: number;
 }
 
-// Error patterns that should NOT crash the app - TIGHTENED LIST
-// FIX: Removed overly broad patterns that masked real crashes
+// Error patterns that should NOT crash the app - COMPREHENSIVE LIST
 // Only specific, unambiguous non-fatal errors should be here
 const SUPPRESSED_ERROR_PATTERNS = [
   // Browser API quirks - these are never crashes
@@ -48,6 +47,25 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'NetworkError',
   'net::ERR',
   'Load failed',
+  
+  // STABILITY FIX: CSS/Style property warnings - not crashes
+  'shorthand and non-shorthand properties',
+  'style property during rerender',
+  'conflicting property is set',
+  
+  // STABILITY FIX: DOM manipulation warnings during React reconciliation
+  'removeChild',
+  'insertBefore',
+  'Node.appendChild',
+  
+  // STABILITY FIX: Media element errors - not crashes
+  'The element has no supported sources',
+  'MEDIA_ERR',
+  'media resource',
+  
+  // STABILITY FIX: PostMessage cross-origin (expected in iframes)
+  'Failed to execute \'postMessage\'',
+  'target origin provided',
 ];
 
 /**

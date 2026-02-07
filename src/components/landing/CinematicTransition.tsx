@@ -438,7 +438,9 @@ const CinematicTransition = memo(forwardRef<HTMLDivElement, CinematicTransitionP
                           filter: { duration: 2, delay: letterDelay + 0.4, ease: 'easeOut' },
                         }}
                         style={{
-                          background: phase === 'explode'
+                          // STABILITY FIX: Use backgroundImage instead of background to avoid
+                          // shorthand/longhand property conflict warnings with backgroundClip
+                          backgroundImage: phase === 'explode'
                             ? 'linear-gradient(180deg, #ffffff 0%, #f0f4ff 15%, #d0e0ff 40%, #a8c8ff 65%, #80b0ff 100%)'
                             : phase === 'logo'
                             ? 'linear-gradient(180deg, #ffffff 0%, #f5f8ff 20%, #dce8ff 45%, #c0d8ff 70%, #a0c4ff 100%)'
@@ -454,7 +456,8 @@ const CinematicTransition = memo(forwardRef<HTMLDivElement, CinematicTransitionP
                         <motion.span
                           className="absolute inset-0 pointer-events-none"
                           style={{
-                            background: 'linear-gradient(105deg, transparent 25%, rgba(255,255,255,0.6) 50%, transparent 75%)',
+                            // STABILITY FIX: Use backgroundImage to avoid shorthand conflict
+                            backgroundImage: 'linear-gradient(105deg, transparent 25%, rgba(255,255,255,0.6) 50%, transparent 75%)',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
                             backgroundClip: 'text',
@@ -494,7 +497,8 @@ const CinematicTransition = memo(forwardRef<HTMLDivElement, CinematicTransitionP
                   <span 
                     className="text-8xl md:text-[12rem] font-black tracking-[0.12em] md:tracking-[0.02em]"
                     style={{
-                      background: 'linear-gradient(180deg, rgba(160, 200, 255, 0.85) 0%, transparent 55%)',
+                      // STABILITY FIX: Use backgroundImage to avoid shorthand conflict
+                      backgroundImage: 'linear-gradient(180deg, rgba(160, 200, 255, 0.85) 0%, transparent 55%)',
                       WebkitBackgroundClip: 'text',
                       WebkitTextFillColor: 'transparent',
                       backgroundClip: 'text',

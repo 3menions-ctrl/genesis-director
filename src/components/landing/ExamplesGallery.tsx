@@ -16,6 +16,29 @@ function isManifestUrl(url: string | null | undefined): boolean {
   return url.endsWith('.json') || url.includes('manifest_');
 }
 
+// Parse manifest to extract HLS playlist URL
+interface ManifestData {
+  hlsPlaylistUrl?: string;
+  clips?: Array<{ videoUrl: string; duration?: number }>;
+  masterAudioUrl?: string;
+}
+
+async function parseManifestForHLS(manifestUrl: string): Promise<string | null> {
+  try {
+    const response = await fetch(manifestUrl);
+    if (!response.ok) return null;
+    const data: ManifestData = await response.json();
+    // Return HLS playlist URL if available
+    if (data.hlsPlaylistUrl) {
+      return data.hlsPlaylistUrl;
+    }
+    return null;
+  } catch {
+    console.warn('[ExamplesGallery] Failed to parse manifest:', manifestUrl);
+    return null;
+  }
+}
+
 interface ShowcaseVideo {
   id: string;
   url: string;
@@ -74,6 +97,8 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
   const [isLoaded, setIsLoaded] = useState(false);
   const [progress, setProgress] = useState(0);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [hlsUrl, setHlsUrl] = useState<string | null>(null);
+  const [isResolvingHLS, setIsResolvingHLS] = useState(false);
   const videoRef = useRef<SimpleVideoPlayerHandle>(null);
   const manifestPlayerRef = useRef<HTMLDivElement>(null);
 
@@ -105,6 +130,7 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
     safeSetState(setIsLoaded, false);
     safeSetState(setProgress, 0);
     safeSetState(setVideoError, null);
+    safeSetState(setHlsUrl, null);
     safeSetState(setCurrentIndex, (prev) => (prev + 1) % filteredVideos.length);
   }, [isMounted, safeSetState, filteredVideos.length]);
 
@@ -113,14 +139,40 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
     safeSetState(setIsLoaded, false);
     safeSetState(setProgress, 0);
     safeSetState(setVideoError, null);
+    safeSetState(setHlsUrl, null);
     safeSetState(setCurrentIndex, (prev) => (prev - 1 + filteredVideos.length) % filteredVideos.length);
   }, [isMounted, safeSetState, filteredVideos.length]);
+
+  // Resolve HLS URL from manifest when video changes
+  useEffect(() => {
+    if (!currentVideo?.url || !isCurrentManifest) {
+      setHlsUrl(null);
+      setIsResolvingHLS(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsResolvingHLS(true);
+    setHlsUrl(null);
+
+    parseManifestForHLS(currentVideo.url).then((resolvedUrl) => {
+      if (cancelled) return;
+      setHlsUrl(resolvedUrl);
+      setIsResolvingHLS(false);
+      if (resolvedUrl) {
+        console.log('[ExamplesGallery] Resolved HLS URL:', resolvedUrl.substring(0, 60));
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [currentVideo?.url, isCurrentManifest]);
 
   // Reset index when category changes
   useEffect(() => {
     setCurrentIndex(0);
     setIsLoaded(false);
     setProgress(0);
+    setHlsUrl(null);
   }, [activeCategory]);
 
   // Keyboard navigation
@@ -149,6 +201,8 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
       setIsPlaying(true);
       setIsLoaded(false);
       setProgress(0);
+      setHlsUrl(null);
+      setVideoError(null);
     }
   }, [open]);
 
@@ -196,8 +250,8 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
       <DialogContent className="max-w-none w-screen h-screen p-0 border-0 bg-black overflow-hidden rounded-none left-0 top-0 translate-x-0 translate-y-0 [&>button]:hidden">
         {/* Fullscreen Video - No boundaries */}
         <div className="absolute inset-0">
-          {/* Loading state - only show for non-manifest videos */}
-          {!isLoaded && !isCurrentManifest && !videoError && (
+          {/* Loading state */}
+          {(!isLoaded || isResolvingHLS) && !videoError && (
             <div className="absolute inset-0 bg-black flex items-center justify-center z-10">
               <div className="w-16 h-16 rounded-full border-2 border-white/20 border-t-white/80 animate-spin" />
             </div>
@@ -217,24 +271,45 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
             </div>
           )}
 
-          {/* Smart Video Player - UniversalVideoPlayer for .json URLs, native video for direct MP4s */}
+          {/* Video Player - Use HLS for manifest videos (seamless), SimpleVideoPlayer for direct MP4s */}
           {currentVideo && !videoError && (
+            // For manifest videos: use resolved HLS URL with SimpleVideoPlayer for seamless playback
             isCurrentManifest ? (
-              <div 
-                key={`manifest-${activeCategory}-${currentIndex}`}
-                className="absolute inset-0 w-full h-full"
-              >
-                <UniversalVideoPlayer
-                  source={{ manifestUrl: currentVideo.url }}
-                  mode="inline"
+              hlsUrl ? (
+                <SimpleVideoPlayer
+                  ref={videoRef}
+                  key={`hls-${activeCategory}-${currentIndex}`}
+                  src={hlsUrl}
                   autoPlay={isPlaying}
                   muted={isMuted}
-                  className="w-full h-full [&_video]:object-cover"
+                  loop
+                  showControls={false}
+                  onCanPlay={() => setIsLoaded(true)}
+                  onTimeUpdate={handleTimeUpdate}
+                  onError={() => setVideoError('Failed to load HLS stream')}
+                  className={cn(
+                    "absolute inset-0 w-full h-full object-cover transition-opacity duration-700",
+                    isLoaded ? "opacity-100" : "opacity-0"
+                  )}
                 />
-                {/* Mark as loaded once UniversalVideoPlayer mounts */}
-                {!isLoaded && <LoadTrigger onLoad={() => setIsLoaded(true)} />}
-              </div>
+              ) : !isResolvingHLS ? (
+                // Fallback to UniversalVideoPlayer if no HLS URL found
+                <div 
+                  key={`manifest-${activeCategory}-${currentIndex}`}
+                  className="absolute inset-0 w-full h-full"
+                >
+                  <UniversalVideoPlayer
+                    source={{ manifestUrl: currentVideo.url }}
+                    mode="inline"
+                    autoPlay={isPlaying}
+                    muted={isMuted}
+                    className="w-full h-full [&_video]:object-cover"
+                  />
+                  <LoadTrigger onLoad={() => setIsLoaded(true)} />
+                </div>
+              ) : null
             ) : (
+              // Direct MP4/video files - use SimpleVideoPlayer
               <SimpleVideoPlayer
                 ref={videoRef}
                 key={`video-${activeCategory}-${currentIndex}`}

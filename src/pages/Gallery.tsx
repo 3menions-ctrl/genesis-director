@@ -267,12 +267,20 @@ const GalleryContent = memo(function GalleryContent() {
     );
   }
   
-  const scrollToAvatars = () => {
-    setShowAvatarSection(true);
-    setTimeout(() => {
-      avatarSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
-  };
+  // STABILITY FIX: Added try-catch and requestAnimationFrame for safer scroll
+  const scrollToAvatars = useCallback(() => {
+    try {
+      setShowAvatarSection(true);
+      // Use requestAnimationFrame to ensure DOM is ready before scrolling
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          avatarSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 150);
+      });
+    } catch (e) {
+      console.debug('[Gallery] scrollToAvatars error:', e);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen overflow-y-auto overflow-x-hidden">

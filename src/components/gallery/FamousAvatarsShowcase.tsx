@@ -14,8 +14,7 @@ const INITIAL_CHUNK_SIZE = 8; // Load first 8 immediately (reduced from 10)
 const CHUNK_SIZE = 4; // Load 4 more at a time (reduced from 6)
 const CHUNK_DELAY_MS = 300; // Longer delay between chunks (increased from 200)
 
-// Curated showcase: 20 animated characters + 35 realistic humans (22 women, 13 men)
-// REDUCED from 65 to 55 avatars to prevent memory pressure and crashes
+// Curated showcase: 20 animated characters + 37 realistic humans (23 women, 14 men)
 const SHOWCASE_AVATAR_IDS = [
   // ========== 20 ANIMATED CHARACTERS ==========
   // Cute animals
@@ -41,8 +40,8 @@ const SHOWCASE_AVATAR_IDS = [
   '4c288d1e-a400-48fe-85fb-819b0738749c', // Olivia Brown - fitness
   '9bc97466-5bc1-4c6a-a6e2-3c7d9f8d5ea0', // Nina Volkov - fashion
   
-  // ========== 35 REALISTIC HUMANS ==========
-  // Women (22) - removed 5: Princess Aurora, Sofia Reyes, Mei Lin, Charlotte Hayes, Mia Reyes
+  // ========== 37 REALISTIC HUMANS ==========
+  // Women (23)
   'd2709e97-7118-4142-8c1d-3c4aac544ab4', // Amara Okafor - Nigerian creative
   '114aa466-a38b-484b-a40e-9eb92d62a15b', // Maya Johnson - African-American creative
   'ed82d806-b3a0-409c-8f59-f81dd2d70826', // Destiny Williams - African American casual
@@ -61,11 +60,12 @@ const SHOWCASE_AVATAR_IDS = [
   '637444ef-7642-4066-b798-07793d0db303', // Camila Vega - Brazilian influencer
   '64e111c5-48c3-4b0e-badf-e232f171940f', // Hannah Weber - German executive
   '7c2639af-f1a4-4d85-bd7c-b09966778f69', // Grace Holloway - American casual
+  '4f436d2d-5d0a-4ab0-b8e7-d9c823620c79', // Sofia Reyes - Hispanic creative
   // Beautiful Black Women
   'c7a2e3f1-8b4d-4c9e-a5f6-1d2e3f4a5b6c', // Zara Monroe - elegant casual
   'd8b3f402-9c5e-4d0f-b607-2e3f405a6b7c', // Nia Carter - glamorous influencer
   'e9c40503-0d6f-4e10-c708-3f4a5b6c7d8e', // Aaliyah Bennett - stylish creative
-  // Men (13) - removed 5: João Silva, James Park, Jasper Stone, Ryan Cooper, Brandon Nguyen
+  // Men (14)
   '00c5e01b-c33d-489c-acb5-084e331c27ad', // Tyler Brooks - African American casual
   '811080ff-0b63-4206-9c70-bd68e3db6783', // Kwame Mensah - Ghanaian casual
   'f58e92ea-ccb8-4814-90db-aa0185ec1fc3', // Kai Nakamura - Japanese influencer
@@ -79,6 +79,7 @@ const SHOWCASE_AVATAR_IDS = [
   '4a1d6892-5755-4433-a96d-315e13a3344d', // Hiroshi Tanaka - Japanese creative
   '5fd77fd4-1f0c-43a7-8cb4-180ba13d80a8', // Arjun Patel - Indian corporate
   '8701b822-e9f2-47f9-b788-35577595d21b', // Vikram Singh - Indian casual
+  'e28915d1-2680-4e7d-80c2-7add5ff272f3', // James Park - Korean casual
 ];
 
 // Type for showcase avatar data

@@ -7,24 +7,24 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
-// Curated showcase avatars - diverse mix with more women of color
+// Curated showcase avatars - diverse women + cute animated characters
 const SHOWCASE_AVATAR_IDS = [
-  '4b0f0fcc-203a-4152-8d3c-ef12fd773583', // Captain Nova - superhero
-  '301da6dd-f812-4b2e-94b9-e05cf58fed77', // Zara Williams - African American business woman
+  // Women of color (realistic)
   'dff866bc-ab57-4345-943c-ae0b19287dc5', // Maya Patel - British Indian influencer
   'cfa2e9df-2d08-46cd-9462-94684647c337', // Keisha Johnson - African American influencer
   'b0cd5260-0a3e-46f6-ae5d-52162ddb372b', // Camila Santos - Brazilian creative
-  '75ba8ba0-0a6d-4290-961c-c363f3f4bfa4', // Commander Orion - astronaut
-  '0448f47b-a956-4a27-a838-55f7d1be5880', // Dr. Quantum - scientist
-  '9dae305b-748a-40e9-8c93-fcd85f2cecf3', // Cleopatra - historical
-  '831a2fd7-9673-4dd5-9356-e317dde236c6', // Detective Morgan - mystery
-  // Additional realistic people avatars
-  'af35dd90-8034-4cf8-93f3-58043c731852', // Mei Lin - casual cheerful
-  '0e6cd698-d396-4516-a551-036b3b99fb85', // Sarah Mitchell - business
-  '80aa6e91-570f-463f-b3dc-d9d634d57ccf', // Alex Turner - influencer
-  '748d6da8-28d8-4695-a67b-71373efd1c7b', // Luna Ramirez - creative
-  '00c5e01b-c33d-489c-acb5-084e331c27ad', // Tyler Brooks - casual
-  'f58e92ea-ccb8-4814-90db-aa0185ec1fc3', // Kai Nakamura - gamer/tech
+  'd2709e97-7118-4142-8c1d-3c4aac544ab4', // Amara Okafor - Nigerian creative
+  '114aa466-a38b-484b-a40e-9eb92d62a15b', // Maya Johnson - African-American creative
+  'dc825cfe-cd18-4899-b1d0-8d031d297abb', // Fatou Diallo - Senegalese educational
+  '748d6da8-28d8-4695-a67b-71373efd1c7b', // Luna Ramirez - Hispanic creative
+  'af35dd90-8034-4cf8-93f3-58043c731852', // Mei Lin - Chinese casual
+  // Cute animated characters
+  '6b6a08e2-0820-4d38-9543-1b38e1f4c171', // Goldie - golden retriever
+  '1d2f62ad-bbc2-4104-8442-fb77eb1f612b', // Hoppy - bunny
+  // Additional diverse women
+  '743ccc7d-459f-4d40-baea-bb6f594bd874', // Aisha Mohammed - Egyptian luxury
+  '9dae305b-748a-40e9-8c93-fcd85f2cecf3', // Cleopatra - Egyptian Greek historical
+  'ed82d806-b3a0-409c-8f59-f81dd2d70826', // Destiny Williams - African American casual
 ];
 
 // Fetch curated avatars from database

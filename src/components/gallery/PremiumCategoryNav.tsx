@@ -74,21 +74,19 @@
                  whileHover={{ scale: 1.02 }}
                  whileTap={{ scale: 0.98 }}
                >
-                 {/* Active background with gradient */}
-                 {isActive && (
-                   <motion.div
-                     layoutId="premiumActiveCategory"
-                     className={cn(
-                       "absolute inset-0 rounded-full",
-                       "bg-gradient-to-r",
-                       cat.gradient
-                     )}
-                     style={{
-                       boxShadow: '0 4px 20px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
-                     }}
-                     transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                   />
-                 )}
+                {/* Active background with gradient - STABILITY: Removed layoutId which caused crashes */}
+                  {isActive && (
+                    <div
+                      className={cn(
+                        "absolute inset-0 rounded-full transition-all duration-200 ease-out",
+                        "bg-gradient-to-r",
+                        cat.gradient
+                      )}
+                      style={{
+                        boxShadow: '0 4px 20px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
+                      }}
+                    />
+                  )}
                  
                  {/* Hover glow for inactive */}
                  {!isActive && (

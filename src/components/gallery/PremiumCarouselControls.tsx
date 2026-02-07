@@ -90,16 +90,15 @@
                whileHover={{ scale: idx === currentIndex ? 1 : 1.3 }}
                whileTap={{ scale: 0.9 }}
              >
-               {/* Active glow */}
-               {idx === currentIndex && (
-                 <motion.div 
-                   layoutId="activeDot"
-                   className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-blue-400"
-                   style={{
-                     boxShadow: '0 0 20px rgba(59, 130, 246, 0.5)',
-                   }}
-                 />
-               )}
+              {/* Active glow - STABILITY: Removed layoutId which caused crashes */}
+                {idx === currentIndex && (
+                  <div 
+                    className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-200"
+                    style={{
+                      boxShadow: '0 0 20px rgba(59, 130, 246, 0.5)',
+                    }}
+                  />
+                )}
                
                {/* Inactive dot */}
                {idx !== currentIndex && (

@@ -7,29 +7,24 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
-// Curated showcase avatars - diverse mix of animated characters, animals, and global personas
+// Curated showcase avatars - diverse mix with more women of color
 const SHOWCASE_AVATAR_IDS = [
   '4b0f0fcc-203a-4152-8d3c-ef12fd773583', // Captain Nova - superhero
-  '6b6a08e2-0820-4d38-9543-1b38e1f4c171', // Goldie - animated dog
-  '87c84f49-aa81-4e5e-8647-6ef6d9758982', // Flash - animated cheetah
-  '45a9a1d8-5fa1-4acc-b307-5d1e73c969cc', // Stripe Tiger - animated tiger
+  '301da6dd-f812-4b2e-94b9-e05cf58fed77', // Zara Williams - African American business woman
+  'dff866bc-ab57-4345-943c-ae0b19287dc5', // Maya Patel - British Indian influencer
+  'cfa2e9df-2d08-46cd-9462-94684647c337', // Keisha Johnson - African American influencer
+  'b0cd5260-0a3e-46f6-ae5d-52162ddb372b', // Camila Santos - Brazilian creative
   '75ba8ba0-0a6d-4290-961c-c363f3f4bfa4', // Commander Orion - astronaut
   '0448f47b-a956-4a27-a838-55f7d1be5880', // Dr. Quantum - scientist
-  'a0dd97ed-675b-4161-8fb1-49d64f7ee5a0', // Blaze Phoenix - animated eagle
-  '1d2f62ad-bbc2-4104-8442-fb77eb1f612b', // Hoppy - animated bunny
   '9dae305b-748a-40e9-8c93-fcd85f2cecf3', // Cleopatra - historical
   '831a2fd7-9673-4dd5-9356-e317dde236c6', // Detective Morgan - mystery
   // Additional realistic people avatars
-  '00c5e01b-c33d-489c-acb5-084e331c27ad', // Tyler Brooks - casual
-  'f58e92ea-ccb8-4814-90db-aa0185ec1fc3', // Kai Nakamura - gamer/tech
   'af35dd90-8034-4cf8-93f3-58043c731852', // Mei Lin - casual cheerful
   '0e6cd698-d396-4516-a551-036b3b99fb85', // Sarah Mitchell - business
-  '5c718366-324e-4a7f-a5e3-3f66a5f01bd8', // Jake Morrison - casual funny
   '80aa6e91-570f-463f-b3dc-d9d634d57ccf', // Alex Turner - influencer
-  'e28915d1-2680-4e7d-80c2-7add5ff272f3', // James Park - entertainment
-  '6c5a5ed0-e37b-47df-92ca-661d3106c805', // Dr. Robert Hayes - academic
   '748d6da8-28d8-4695-a67b-71373efd1c7b', // Luna Ramirez - creative
-  '58936142-0306-47e8-a7b6-4d41d8773140', // Jasper Stone - creative edgy
+  '00c5e01b-c33d-489c-acb5-084e331c27ad', // Tyler Brooks - casual
+  'f58e92ea-ccb8-4814-90db-aa0185ec1fc3', // Kai Nakamura - gamer/tech
 ];
 
 // Fetch curated avatars from database

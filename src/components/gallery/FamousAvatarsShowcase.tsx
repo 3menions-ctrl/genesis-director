@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useChunkedAvatars } from '@/hooks/useChunkedAvatars';
+import { shuffleAvatarIds } from '@/lib/utils/shuffleAvatars';
 
 // Performance: Chunked loading configuration
 const INITIAL_CHUNK_SIZE = 10; // Load first 10 immediately
@@ -107,6 +108,9 @@ interface ShowcaseAvatar {
   gender?: string | null;
 }
 
+// Get shuffled avatar IDs (consistent per session)
+const SHUFFLED_AVATAR_IDS = shuffleAvatarIds(SHOWCASE_AVATAR_IDS);
+
 // Fetch curated avatars from database with error handling
 const useShowcaseAvatars = () => {
   return useQuery({
@@ -124,8 +128,8 @@ const useShowcaseAvatars = () => {
           return []; // Return empty instead of throwing to prevent crash
         }
         
-        // Sort by the order in SHOWCASE_AVATAR_IDS
-        const sortedData = SHOWCASE_AVATAR_IDS
+        // Sort by the SHUFFLED order for variety on each session
+        const sortedData = SHUFFLED_AVATAR_IDS
           .map(id => data?.find(a => a.id === id))
           .filter((a): a is NonNullable<typeof a> => a !== undefined);
         

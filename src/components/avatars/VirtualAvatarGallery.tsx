@@ -17,6 +17,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useSafeArray } from '@/components/stability/GlobalStabilityBoundary';
 import { ShimmerSkeleton } from './OptimizedAvatarImage';
 import { useChunkedAvatars } from '@/hooks/useChunkedAvatars';
+import { shuffleAvatars } from '@/lib/utils/shuffleAvatars';
 
 interface VirtualAvatarGalleryProps {
   avatars: AvatarTemplate[];
@@ -260,6 +261,9 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
   // Data guardrail
   const safeAvatars = useSafeArray(avatars);
   
+  // SHUFFLE: Randomize avatar order per session for variety
+  const shuffledAvatars = useMemo(() => shuffleAvatars(safeAvatars), [safeAvatars]);
+  
   // CRITICAL: Chunked loading to prevent browser crashes
   // Loads avatars progressively instead of all 120+ at once
   const { 
@@ -267,7 +271,7 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
     isFullyLoaded, 
     loadProgress,
     totalCount 
-  } = useChunkedAvatars(safeAvatars, {
+  } = useChunkedAvatars(shuffledAvatars, {
     enabled: true,
     initialSize: 12, // Start with 12 avatars
     chunkSize: 8,    // Load 8 more at a time

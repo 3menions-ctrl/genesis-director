@@ -597,8 +597,17 @@ serve(async (req) => {
       const totalExpectedClips = tasks.predictions?.length || 0;
       const isFullyComplete = completedClips.length === totalExpectedClips && totalExpectedClips > 0;
       
+      // Track progress timestamp for stall detection
+      const progressUpdate: Record<string, unknown> = {
+        ...tasks,
+      };
+      if (completedClips.length > (tasks.lastCompletedCount || 0)) {
+        progressUpdate.lastProgressAt = new Date().toISOString();
+        progressUpdate.lastCompletedCount = completedClips.length;
+      }
+      
       await supabase.from('movie_projects').update({
-        pending_video_tasks: tasks,
+        pending_video_tasks: progressUpdate,
         pipeline_state: {
           stage: isFullyComplete ? 'finalizing' : 'async_video_generation',
           progress: isFullyComplete ? 90 : 25 + (completedClips.length / Math.max(totalExpectedClips, 1)) * 60,
@@ -671,13 +680,37 @@ serve(async (req) => {
         continue;
       }
       
-      // Check for stalled async jobs (started > 10 min ago with no progress)
+      // Check for stalled async jobs with CLIP-AWARE TIMEOUT
+      // Multi-clip videos take 2-3 minutes per clip, so timeout scales with clip count
       const startedAt = tasks.startedAt ? new Date(tasks.startedAt).getTime() : 0;
       const asyncAge = Date.now() - startedAt;
-      const MAX_ASYNC_AGE_MS = 15 * 60 * 1000; // 15 minutes max
       
-      if (asyncAge > MAX_ASYNC_AGE_MS && completedClips.length === 0) {
-        console.log(`[Watchdog] ❌ ASYNC AVATAR ${project.id} timed out after ${Math.round(asyncAge / 60000)}m`);
+      // DYNAMIC TIMEOUT: Base 10 min + 3 min per clip (10 clips = 40 min max)
+      const totalExpectedClipsForTimeout = tasks.predictions?.length || 1;
+      const MAX_ASYNC_AGE_MS = (10 + totalExpectedClipsForTimeout * 3) * 60 * 1000;
+      
+      // Also check for no-progress stall: if no new clips completed in last 5 minutes
+      const lastProgressMs = tasks.lastProgressAt ? new Date(tasks.lastProgressAt).getTime() : startedAt;
+      const timeSinceProgress = Date.now() - lastProgressMs;
+      const STALL_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes with no new clip
+      
+      // Fail only if: exceeded dynamic max age AND no clips completed
+      // OR: exceeded stall threshold with partial completion (stuck mid-generation)
+      const isAbsoluteTimeout = asyncAge > MAX_ASYNC_AGE_MS && completedClips.length === 0;
+      const isStalled = timeSinceProgress > STALL_THRESHOLD_MS && completedClips.length > 0 && completedClips.length < totalExpectedClipsForTimeout;
+      
+      // For stalled projects, check if any predictions are still processing
+      let hasActivePredictions = false;
+      if (tasks.predictions) {
+        hasActivePredictions = tasks.predictions.some((p: { status: string }) => 
+          p.status === 'processing' || p.status === 'pending'
+        );
+      }
+      
+      // Don't fail if predictions are still active (Kling is slow but working)
+      if ((isAbsoluteTimeout || (isStalled && !hasActivePredictions))) {
+        console.log(`[Watchdog] ❌ ASYNC AVATAR ${project.id} timed out after ${Math.round(asyncAge / 60000)}m (max was ${Math.round(MAX_ASYNC_AGE_MS / 60000)}m)`);
+        console.log(`[Watchdog]    Completed: ${completedClips.length}/${totalExpectedClipsForTimeout}, hasActive: ${hasActivePredictions}`);
         
         // Mark failed and refund
         await supabase.from('movie_projects').update({
@@ -686,33 +719,39 @@ serve(async (req) => {
             stage: 'error',
             error: 'Avatar generation timed out',
             failedAt: new Date().toISOString(),
+            completedClipsBeforeTimeout: completedClips.length,
           },
           updated_at: new Date().toISOString(),
         }).eq('id', project.id);
         
-        // Refund credits
+        // Refund credits (only for clips that weren't generated)
         try {
-          const estimatedCredits = tasks.predictions.length * 10;
-          await supabase.rpc('increment_credits', {
-            user_id_param: project.user_id,
-            amount_param: estimatedCredits,
-          });
-          
-          await supabase.from('credit_transactions').insert({
-            user_id: project.user_id,
-            amount: estimatedCredits,
-            transaction_type: 'refund',
-            description: `Auto-refund: Async avatar timeout (${project.title || project.id})`,
-            project_id: project.id,
-          });
-          
-          console.log(`[Watchdog] 💰 Refunded ${estimatedCredits} credits`);
+          const failedClipCount = totalExpectedClipsForTimeout - completedClips.length;
+          const estimatedCredits = failedClipCount * 10;
+          if (estimatedCredits > 0) {
+            await supabase.rpc('increment_credits', {
+              user_id_param: project.user_id,
+              amount_param: estimatedCredits,
+            });
+            
+            await supabase.from('credit_transactions').insert({
+              user_id: project.user_id,
+              amount: estimatedCredits,
+              transaction_type: 'refund',
+              description: `Auto-refund: Async avatar timeout (${failedClipCount}/${totalExpectedClipsForTimeout} clips failed)`,
+              project_id: project.id,
+            });
+            
+            console.log(`[Watchdog] 💰 Refunded ${estimatedCredits} credits for ${failedClipCount} failed clips`);
+          }
         } catch (refundError) {
           console.error(`[Watchdog] Refund failed:`, refundError);
         }
         
         result.projectsMarkedFailed++;
         continue;
+      } else if (isStalled && hasActivePredictions) {
+        console.log(`[Watchdog] ⏳ Avatar ${project.id} stalled but has active predictions - continuing`);
       }
     }
 

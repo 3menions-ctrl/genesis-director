@@ -1141,7 +1141,7 @@ function ProductionContentInner() {
     [proFeatures?.consistencyScore, proFeatures?.continuityAnalysis?.score]
   );
 
-  const transitionsData = useMemo(() => 
+const transitionsData = useMemo(() => 
     proFeatures?.continuityAnalysis?.transitions?.map(t => ({
       fromIndex: t.fromIndex,
       toIndex: t.toIndex,
@@ -1150,6 +1150,45 @@ function ProductionContentInner() {
     })),
     [proFeatures?.continuityAnalysis?.transitions]
   );
+
+  // =====================================================
+  // CRITICAL FIX: Calculate progress from ACTUAL clip status
+  // NOT from database pending_video_tasks.progress (can be stale)
+  // This ensures progress bar matches reality: 2/6 clips = ~33%, not 100%
+  // =====================================================
+  const realTimeProgress = useMemo(() => {
+    // If project is fully complete with video, show 100%
+    if (projectStatus === 'completed' && finalVideoUrl) {
+      return 100;
+    }
+    
+    // If no clips expected yet, use database progress (early pipeline stages)
+    if (expectedClipCount === 0) {
+      return progress;
+    }
+    
+    // Calculate actual progress from clip completion status
+    const generatingClips = clipResults.filter(c => c.status === 'generating').length;
+    const pendingClips = clipResults.filter(c => c.status === 'pending').length;
+    
+    // Base progress: completed clips / total expected
+    // Reserve 0-85% for clip generation, 85-100% for stitching
+    const clipProgress = (completedClips / expectedClipCount) * 85;
+    
+    // Add partial progress for currently generating clips (~5% each while processing)
+    const generatingProgress = generatingClips * 2;
+    
+    // If stitching or later, show 85-95%
+    if (['stitching', 'post_production'].includes(projectStatus)) {
+      return 85 + Math.min(10, (Date.now() % 10000) / 1000); // Animate 85-95%
+    }
+    
+    const calculatedProgress = Math.min(clipProgress + generatingProgress, 85);
+    
+    // Only use database progress if it's less than calculated (early stages)
+    // This prevents the "100% but still rendering" issue
+    return Math.max(calculatedProgress, Math.min(progress, calculatedProgress + 5));
+  }, [projectStatus, finalVideoUrl, expectedClipCount, completedClips, clipResults, progress]);
 
   const failedClipsData = useMemo(() => 
     clipResults.filter(c => c.status === 'failed').map(c => ({
@@ -1229,7 +1268,7 @@ function ProductionContentInner() {
                     <SpecializedModeProgress
                       projectId={projectId!}
                       mode={projectMode as 'avatar' | 'motion-transfer' | 'video-to-video'}
-                      pipelineState={pipelineState || { stage: projectStatus === 'completed' ? 'completed' : 'processing', progress: projectStatus === 'completed' ? 100 : progress }}
+                      pipelineState={pipelineState || { stage: projectStatus === 'completed' ? 'completed' : 'processing', progress: projectStatus === 'completed' ? 100 : realTimeProgress }}
                       videoUrl={finalVideoUrl}
                       allClips={avatarClips}
                       masterAudioUrl={masterAudioUrl}
@@ -1340,7 +1379,7 @@ function ProductionContentInner() {
                   <Suspense fallback={<SectionLoader />}>
                     <CinematicPipelineProgress
                       stages={stages}
-                      progress={progress}
+                      progress={realTimeProgress}
                       isComplete={isComplete}
                       isError={isError}
                       isRunning={isRunning}
@@ -1363,7 +1402,7 @@ function ProductionContentInner() {
                   <Suspense fallback={<SectionLoader />}>
                     <ProductionDashboard
                       projectTitle={projectTitle}
-                      progress={progress}
+                      progress={realTimeProgress}
                       elapsedTime={elapsedTime}
                       isRunning={isRunning}
                       isComplete={isComplete}

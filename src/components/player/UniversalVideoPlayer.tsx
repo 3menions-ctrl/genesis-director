@@ -1345,15 +1345,32 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
       // If using master audio overlay (and clips are NOT lip-synced), control the overlay
       if (masterAudioUrl && masterAudioRef.current && !clipsAreLipSynced) {
         masterAudioRef.current.muted = newMuted;
+        
+        // CRITICAL FIX: When unmuting master audio, ensure it's actually playing
+        // iOS Safari requires user gesture to start audio - this is it
+        if (!newMuted && isPlaying) {
+          // Sync position and start playback
+          masterAudioRef.current.currentTime = currentTime;
+          masterAudioRef.current.play().catch((err) => {
+            console.warn('[UniversalPlayer] Master audio play failed:', err);
+          });
+        }
       }
       
       // For lip-synced clips: toggle video mute normally (they have embedded audio)
-      // For non-lip-synced clips with master audio: always mute videos
-      const shouldMuteVideo = (masterAudioUrl && !clipsAreLipSynced) ? true : newMuted;
-      if (mseVideoRef.current) mseVideoRef.current.muted = shouldMuteVideo;
-      if (videoARef.current) videoARef.current.muted = shouldMuteVideo;
-      if (videoBRef.current) videoBRef.current.muted = shouldMuteVideo;
-    }, [isMuted, masterAudioUrl, clipsAreLipSynced]);
+      // For non-lip-synced clips with master audio: always mute videos (audio comes from master audio element)
+      if (masterAudioUrl && !clipsAreLipSynced) {
+        // Videos always stay muted when using master audio overlay
+        if (mseVideoRef.current) mseVideoRef.current.muted = true;
+        if (videoARef.current) videoARef.current.muted = true;
+        if (videoBRef.current) videoBRef.current.muted = true;
+      } else {
+        // No master audio OR clips are lip-synced: control video mute directly
+        if (mseVideoRef.current) mseVideoRef.current.muted = newMuted;
+        if (videoARef.current) videoARef.current.muted = newMuted;
+        if (videoBRef.current) videoBRef.current.muted = newMuted;
+      }
+    }, [isMuted, masterAudioUrl, clipsAreLipSynced, isPlaying, currentTime]);
 
     const handleSeek = useCallback((time: number) => {
       if (useMSE && mseEngineRef.current) {

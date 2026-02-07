@@ -9,10 +9,46 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Film, User, Briefcase, Sparkles, ArrowRight, ArrowLeft, Check,
-  Video, Users, Building2, Rocket, Palette, GraduationCap, Loader2
+  Video, Users, Building2, Rocket, Palette, GraduationCap, Loader2, Globe
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// Popular countries list
+const COUNTRIES = [
+  { code: 'US', name: 'United States' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'AU', name: 'Australia' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'FR', name: 'France' },
+  { code: 'IN', name: 'India' },
+  { code: 'NG', name: 'Nigeria' },
+  { code: 'GH', name: 'Ghana' },
+  { code: 'KE', name: 'Kenya' },
+  { code: 'ZA', name: 'South Africa' },
+  { code: 'BR', name: 'Brazil' },
+  { code: 'MX', name: 'Mexico' },
+  { code: 'JP', name: 'Japan' },
+  { code: 'KR', name: 'South Korea' },
+  { code: 'SG', name: 'Singapore' },
+  { code: 'AE', name: 'United Arab Emirates' },
+  { code: 'NL', name: 'Netherlands' },
+  { code: 'ES', name: 'Spain' },
+  { code: 'IT', name: 'Italy' },
+  { code: 'PH', name: 'Philippines' },
+  { code: 'ID', name: 'Indonesia' },
+  { code: 'PK', name: 'Pakistan' },
+  { code: 'EG', name: 'Egypt' },
+  { code: 'OTHER', name: 'Other' },
+].sort((a, b) => a.name.localeCompare(b.name));
 
 const USE_CASES = [
   { id: 'content_creator', label: 'Content Creator', icon: Video, description: 'YouTube, TikTok, Social Media' },
@@ -65,6 +101,7 @@ export default function Onboarding() {
     role: '',
     useCase: '',
     company: '',
+    country: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -156,6 +193,7 @@ export default function Onboarding() {
         role: formData.role,
         use_case: formData.useCase,
         company: formData.company ? sanitizeText(formData.company) : null,
+        country: formData.country || null,
         onboarding_completed: true,
       };
 
@@ -367,6 +405,28 @@ export default function Onboarding() {
                     {errors.company && (
                       <p className="text-destructive text-xs font-medium">{errors.company}</p>
                     )}
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <Label htmlFor="country" className="text-foreground text-sm font-medium flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-muted-foreground" />
+                      Country <span className="text-muted-foreground font-normal">(optional)</span>
+                    </Label>
+                    <Select
+                      value={formData.country}
+                      onValueChange={(value) => setFormData({ ...formData, country: value })}
+                    >
+                      <SelectTrigger className="h-12 bg-secondary/50 border-border text-foreground focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200">
+                        <SelectValue placeholder="Select your country" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {COUNTRIES.map((country) => (
+                          <SelectItem key={country.code} value={country.code}>
+                            {country.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               )}

@@ -1,14 +1,17 @@
 import React, { memo, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Crown, Star, Sparkles, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Crown, Star, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { useChunkedAvatars } from '@/hooks/useChunkedAvatars';
 
-// Performance: Limit initial avatars to prevent animation overload
-const INITIAL_DISPLAY_COUNT = 15;
+// Performance: Chunked loading configuration
+const INITIAL_CHUNK_SIZE = 10; // Load first 10 immediately
+const CHUNK_SIZE = 6; // Load 6 more at a time
+const CHUNK_DELAY_MS = 200; // Delay between chunks
 
 // Curated showcase: 20 animated characters + 20 realistic humans (12 women, 8 men)
 const SHOWCASE_AVATAR_IDS = [
@@ -61,6 +64,20 @@ const SHOWCASE_AVATAR_IDS = [
   '80aa6e91-570f-463f-b3dc-d9d634d57ccf', // Alex Turner - Caucasian influencer
 ];
 
+// Type for showcase avatar data
+interface ShowcaseAvatar {
+  id: string;
+  name: string;
+  face_image_url: string;
+  thumbnail_url: string | null;
+  description: string | null;
+  personality: string | null;
+  style: string | null;
+  tags: string[] | null;
+  avatar_type: string | null;
+  gender?: string | null;
+}
+
 // Fetch curated avatars from database with error handling
 const useShowcaseAvatars = () => {
   return useQuery({
@@ -83,7 +100,7 @@ const useShowcaseAvatars = () => {
           .map(id => data?.find(a => a.id === id))
           .filter((a): a is NonNullable<typeof a> => a !== undefined);
         
-        return sortedData;
+        return sortedData as ShowcaseAvatar[];
       } catch (err) {
         console.error('[FamousAvatarsShowcase] Unexpected error:', err);
         return []; // Graceful degradation
@@ -288,15 +305,21 @@ interface FamousAvatarsShowcaseProps {
 export const FamousAvatarsShowcase = memo(function FamousAvatarsShowcase({ className }: FamousAvatarsShowcaseProps) {
   const navigate = useNavigate();
   const { data: avatars = [], isLoading, error } = useShowcaseAvatars();
-  const [showAll, setShowAll] = useState(false);
   
-  // Progressive loading: show limited avatars initially
-  const displayedAvatars = useMemo(() => {
-    if (showAll) return avatars;
-    return avatars.slice(0, INITIAL_DISPLAY_COUNT);
-  }, [avatars, showAll]);
+  // Use world-class chunked loading pattern to prevent crashes
+  const {
+    visibleAvatars,
+    isFullyLoaded,
+    loadProgress,
+    loadAll,
+  } = useChunkedAvatars(avatars as any, {
+    enabled: true,
+    initialSize: INITIAL_CHUNK_SIZE,
+    chunkSize: CHUNK_SIZE,
+    chunkDelay: CHUNK_DELAY_MS,
+  });
   
-  const hasMore = avatars.length > INITIAL_DISPLAY_COUNT && !showAll;
+  const hasMore = !isFullyLoaded && avatars.length > 0;
   
   if (isLoading) {
     return (
@@ -335,20 +358,30 @@ export const FamousAvatarsShowcase = memo(function FamousAvatarsShowcase({ class
         </p>
       </div>
       
-      {/* Avatar grid */}
+      {/* Avatar grid with progressive loading */}
       <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-          {displayedAvatars.map((avatar, index) => (
-            <AvatarCard key={avatar.id} avatar={avatar} index={index} />
-          ))}
-        </div>
+        {/* Progress indicator during chunked loading */}
+        {!isFullyLoaded && loadProgress > 0 && loadProgress < 100 && (
+          <div className="flex items-center justify-center gap-2 mb-4 text-white/50 text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Loading avatars... {loadProgress}%</span>
+          </div>
+        )}
+        
+        <AnimatePresence mode="popLayout">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+            {visibleAvatars.map((avatar, index) => (
+              <AvatarCard key={avatar.id} avatar={avatar as ShowcaseAvatar} index={index} />
+            ))}
+          </div>
+        </AnimatePresence>
         
         {/* Load More button */}
         {hasMore && (
           <div className="flex justify-center mt-8">
             <Button
               variant="outline"
-              onClick={() => setShowAll(true)}
+              onClick={loadAll}
               className="px-6 py-2 text-white/70 border-white/20 hover:bg-white/5 hover:text-white"
             >
               Show all {avatars.length} avatars

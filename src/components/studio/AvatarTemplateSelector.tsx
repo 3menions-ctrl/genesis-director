@@ -1,4 +1,4 @@
-import { useState, useCallback, memo, forwardRef, useRef, useEffect } from 'react';
+import { useState, useCallback, memo, forwardRef, useRef, useEffect, useMemo } from 'react';
 import { 
   User, Search, Volume2, Play, Check, 
   Loader2, X, Sparkles, Crown
@@ -10,6 +10,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useChunkedAvatars } from '@/hooks/useChunkedAvatars';
+import { shuffleAvatars } from '@/lib/utils/shuffleAvatars';
 import {
   Select,
   SelectContent,
@@ -45,6 +47,23 @@ export const AvatarTemplateSelector = memo(forwardRef<HTMLDivElement, AvatarTemp
     gender: genderFilter,
     style: styleFilter,
     search: searchQuery,
+  });
+  
+  // WORLD-CLASS CHUNKED LOADING: Stable shuffle + progressive loading
+  const shuffledTemplates = useMemo(() => {
+    if (!templates || templates.length === 0) return [];
+    return shuffleAvatars(templates);
+  }, [templates]);
+  
+  const {
+    visibleAvatars: displayTemplates,
+    isFullyLoaded,
+    loadProgress,
+  } = useChunkedAvatars(shuffledTemplates, {
+    enabled: true,
+    initialSize: 12,  // Start with 12 avatars
+    chunkSize: 8,     // Load 8 more at a time
+    chunkDelay: 150,  // 150ms between chunks (faster for small grid)
   });
 
   // Voice preview handler
@@ -198,11 +217,18 @@ export const AvatarTemplateSelector = memo(forwardRef<HTMLDivElement, AvatarTemp
         </div>
       )}
 
-      {/* Avatar Grid - CSS animations instead of framer-motion */}
+      {/* Avatar Grid - CSS animations + CHUNKED LOADING */}
       {!isLoading && !error && (
         <ScrollArea className="h-[400px] pr-4">
+          {/* Loading progress indicator */}
+          {!isFullyLoaded && loadProgress > 0 && loadProgress < 100 && (
+            <div className="flex items-center justify-center gap-2 mb-3 text-white/50 text-xs">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span>Loading avatars... {loadProgress}%</span>
+            </div>
+          )}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {templates.map((avatar, index) => (
+            {displayTemplates.map((avatar, index) => (
               <div
                 key={avatar.id}
                 className={cn(

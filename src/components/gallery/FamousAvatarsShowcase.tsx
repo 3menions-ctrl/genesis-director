@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Crown, Star, Sparkles, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -6,6 +6,9 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+
+// Performance: Limit initial avatars to prevent animation overload
+const INITIAL_DISPLAY_COUNT = 15;
 
 // Curated showcase: 20 animated characters + 20 realistic humans (12 women, 8 men)
 const SHOWCASE_AVATAR_IDS = [
@@ -58,27 +61,36 @@ const SHOWCASE_AVATAR_IDS = [
   '80aa6e91-570f-463f-b3dc-d9d634d57ccf', // Alex Turner - Caucasian influencer
 ];
 
-// Fetch curated avatars from database
+// Fetch curated avatars from database with error handling
 const useShowcaseAvatars = () => {
   return useQuery({
     queryKey: ['showcase-avatars-curated'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('avatar_templates')
-        .select('id, name, face_image_url, thumbnail_url, description, gender, style, personality, tags, avatar_type')
-        .in('id', SHOWCASE_AVATAR_IDS)
-        .eq('is_active', true);
-      
-      if (error) throw error;
-      
-      // Sort by the order in SHOWCASE_AVATAR_IDS
-      const sortedData = SHOWCASE_AVATAR_IDS
-        .map(id => data?.find(a => a.id === id))
-        .filter((a): a is NonNullable<typeof a> => a !== undefined);
-      
-      return sortedData;
+      try {
+        const { data, error } = await supabase
+          .from('avatar_templates')
+          .select('id, name, face_image_url, thumbnail_url, description, gender, style, personality, tags, avatar_type')
+          .in('id', SHOWCASE_AVATAR_IDS)
+          .eq('is_active', true);
+        
+        if (error) {
+          console.error('[FamousAvatarsShowcase] Query error:', error.message);
+          return []; // Return empty instead of throwing to prevent crash
+        }
+        
+        // Sort by the order in SHOWCASE_AVATAR_IDS
+        const sortedData = SHOWCASE_AVATAR_IDS
+          .map(id => data?.find(a => a.id === id))
+          .filter((a): a is NonNullable<typeof a> => a !== undefined);
+        
+        return sortedData;
+      } catch (err) {
+        console.error('[FamousAvatarsShowcase] Unexpected error:', err);
+        return []; // Graceful degradation
+      }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1, // Limit retries to prevent infinite loops
   });
 };
 
@@ -164,22 +176,27 @@ interface AvatarCardProps {
   index: number;
 }
 
-const AvatarCard = ({ avatar, index }: AvatarCardProps) => {
-  const [isHovered, setIsHovered] = React.useState(false);
-  const [imageLoaded, setImageLoaded] = React.useState(false);
+// Memoized avatar card to prevent unnecessary re-renders
+const AvatarCard = memo(function AvatarCard({ avatar, index }: AvatarCardProps) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   
-  const { gradient } = getStyleGradient(avatar.style, index);
-  const category = getCategoryFromTags(avatar.tags, avatar.avatar_type);
+  // Memoize computed values
+  const { gradient } = useMemo(() => getStyleGradient(avatar.style, index), [avatar.style, index]);
+  const category = useMemo(() => getCategoryFromTags(avatar.tags, avatar.avatar_type), [avatar.tags, avatar.avatar_type]);
   const imageUrl = avatar.thumbnail_url || avatar.face_image_url;
+  
+  // Limit stagger delay to prevent animation overload (max 0.5s stagger)
+  const animationDelay = Math.min(index * 0.05, 0.5);
   
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ 
-        delay: index * 0.08, 
-        duration: 0.5,
-        ease: [0.16, 1, 0.3, 1]
+        delay: animationDelay, 
+        duration: 0.4,
+        ease: 'easeOut'
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -187,7 +204,7 @@ const AvatarCard = ({ avatar, index }: AvatarCardProps) => {
     >
       {/* Card container */}
       <div className={cn(
-        "relative aspect-[3/4] rounded-2xl overflow-hidden transition-all duration-500",
+        "relative aspect-[3/4] rounded-2xl overflow-hidden transition-all duration-300",
         "bg-gradient-to-br",
         gradient,
         isHovered ? "scale-[1.03] shadow-2xl shadow-white/5" : "shadow-xl shadow-black/20"
@@ -204,22 +221,17 @@ const AvatarCard = ({ avatar, index }: AvatarCardProps) => {
         <img 
           src={imageUrl}
           alt={avatar.name}
+          loading="lazy"
           onLoad={() => setImageLoaded(true)}
           className={cn(
-            "w-full h-full object-cover object-top transition-all duration-700",
-            isHovered ? "scale-110 brightness-110" : "scale-100 brightness-90",
+            "w-full h-full object-cover object-top transition-all duration-500",
+            isHovered ? "scale-105 brightness-110" : "scale-100 brightness-90",
             imageLoaded ? "opacity-100" : "opacity-0"
           )}
         />
         
         {/* Gradient overlays */}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent opacity-80" />
-        <div className={cn(
-          "absolute inset-0 opacity-0 transition-opacity duration-500",
-          isHovered && "opacity-100"
-        )} style={{
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%)'
-        }} />
         
         {/* Category badge */}
         <div className={cn(
@@ -229,67 +241,62 @@ const AvatarCard = ({ avatar, index }: AvatarCardProps) => {
           {category}
         </div>
         
-        {/* Premium star */}
-        <motion.div 
-          initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ delay: index * 0.08 + 0.3, type: 'spring' }}
-          className="absolute top-3 right-3"
-        >
+        {/* Premium star - simplified, no staggered animation */}
+        <div className="absolute top-3 right-3">
           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/30">
             <Star className="w-3.5 h-3.5 text-white fill-white" />
           </div>
-        </motion.div>
+        </div>
         
         {/* Info panel */}
         <div className="absolute bottom-0 left-0 right-0 p-4">
-          <motion.div
-            initial={false}
-            animate={{ y: isHovered ? 0 : 8, opacity: isHovered ? 1 : 0.9 }}
-            transition={{ duration: 0.3 }}
-          >
+          <div className={cn(
+            "transition-all duration-300",
+            isHovered ? "translate-y-0 opacity-100" : "translate-y-1 opacity-90"
+          )}>
             <h3 className="text-white font-bold text-lg mb-0.5 tracking-tight">
               {avatar.name}
             </h3>
             <p className="text-white/60 text-sm line-clamp-1">
               {avatar.personality || avatar.description || 'AI Avatar'}
             </p>
-          </motion.div>
+          </div>
           
           {/* Hover action hint */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: isHovered ? 1 : 0, y: isHovered ? 0 : 10 }}
-            transition={{ duration: 0.2 }}
-            className="mt-3 flex items-center gap-2 text-xs text-white/50"
-          >
+          <div className={cn(
+            "mt-3 flex items-center gap-2 text-xs text-white/50 transition-all duration-200",
+            isHovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+          )}>
             <Sparkles className="w-3 h-3" />
             <span>Click to create with this avatar</span>
-          </motion.div>
+          </div>
         </div>
         
-        {/* Shine effect */}
-        <motion.div
-          initial={{ x: '-100%', opacity: 0 }}
-          animate={{ 
-            x: isHovered ? '200%' : '-100%',
-            opacity: isHovered ? 0.3 : 0
-          }}
-          transition={{ duration: 0.8 }}
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 pointer-events-none"
-        />
+        {/* Shine effect - only on hover, no motion animation */}
+        {isHovered && (
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 pointer-events-none animate-pulse" />
+        )}
       </div>
     </motion.div>
   );
-};
+});
 
 interface FamousAvatarsShowcaseProps {
   className?: string;
 }
 
-export const FamousAvatarsShowcase = ({ className }: FamousAvatarsShowcaseProps) => {
+export const FamousAvatarsShowcase = memo(function FamousAvatarsShowcase({ className }: FamousAvatarsShowcaseProps) {
   const navigate = useNavigate();
-  const { data: avatars = [], isLoading } = useShowcaseAvatars();
+  const { data: avatars = [], isLoading, error } = useShowcaseAvatars();
+  const [showAll, setShowAll] = useState(false);
+  
+  // Progressive loading: show limited avatars initially
+  const displayedAvatars = useMemo(() => {
+    if (showAll) return avatars;
+    return avatars.slice(0, INITIAL_DISPLAY_COUNT);
+  }, [avatars, showAll]);
+  
+  const hasMore = avatars.length > INITIAL_DISPLAY_COUNT && !showAll;
   
   if (isLoading) {
     return (
@@ -299,70 +306,59 @@ export const FamousAvatarsShowcase = ({ className }: FamousAvatarsShowcaseProps)
     );
   }
   
-  if (avatars.length === 0) {
+  // Graceful handling of errors or empty state
+  if (error || avatars.length === 0) {
     return null;
   }
   
   return (
-    <motion.section 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ delay: 0.5 }}
-      className={cn("relative py-16 px-6 md:px-12", className)}
-    >
+    <section className={cn("relative py-16 px-6 md:px-12", className)}>
       {/* Section background */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-violet-500/[0.02] to-transparent pointer-events-none" />
       
       {/* Header */}
       <div className="text-center mb-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl mb-6"
-        >
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl mb-6">
           <Crown className="w-4 h-4 text-amber-400" />
           <span className="text-sm text-white/70 font-medium">Premium Avatar Collection</span>
-        </motion.div>
+        </div>
         
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-          className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 tracking-tight"
-        >
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 tracking-tight">
           Iconic Characters,{' '}
           <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400 bg-clip-text text-transparent">
             Infinite Stories
           </span>
-        </motion.h2>
+        </h2>
         
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="text-white/50 text-lg max-w-2xl mx-auto"
-        >
+        <p className="text-white/50 text-lg max-w-2xl mx-auto">
           Create stunning videos with legendary personas. From ancient royalty to modern influencers.
-        </motion.p>
+        </p>
       </div>
       
       {/* Avatar grid */}
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-          {avatars.map((avatar, index) => (
+          {displayedAvatars.map((avatar, index) => (
             <AvatarCard key={avatar.id} avatar={avatar} index={index} />
           ))}
         </div>
+        
+        {/* Load More button */}
+        {hasMore && (
+          <div className="flex justify-center mt-8">
+            <Button
+              variant="outline"
+              onClick={() => setShowAll(true)}
+              className="px-6 py-2 text-white/70 border-white/20 hover:bg-white/5 hover:text-white"
+            >
+              Show all {avatars.length} avatars
+            </Button>
+          </div>
+        )}
       </div>
       
       {/* See More CTA */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.2 }}
-        className="flex justify-center mt-12"
-      >
+      <div className="flex justify-center mt-12">
         <Button
           onClick={() => navigate('/auth')}
           size="lg"
@@ -384,13 +380,13 @@ export const FamousAvatarsShowcase = ({ className }: FamousAvatarsShowcaseProps)
           {/* Button glow effect */}
           <div className="absolute inset-0 rounded-full bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 blur-xl opacity-50 group-hover:opacity-75 transition-opacity -z-10" />
         </Button>
-      </motion.div>
+      </div>
       
       {/* Decorative elements */}
       <div className="absolute top-1/4 left-0 w-64 h-64 bg-violet-500/10 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-0 w-64 h-64 bg-fuchsia-500/10 rounded-full blur-[100px] pointer-events-none" />
-    </motion.section>
+    </section>
   );
-};
+});
 
 export default FamousAvatarsShowcase;

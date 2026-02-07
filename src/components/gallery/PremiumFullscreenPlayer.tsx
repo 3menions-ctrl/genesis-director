@@ -9,7 +9,7 @@ import { memo, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, SkipForward, SkipBack } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { UniversalHLSPlayer, SimpleVideoPlayer } from '@/components/player';
+import { SimpleVideoPlayer } from '@/components/player';
 
 interface GalleryVideo {
   id: string;
@@ -17,6 +17,7 @@ interface GalleryVideo {
   thumbnail_url: string | null;
   video_url: string | null;
   all_clips?: string[];
+  hlsPlaylistUrl?: string | null; // HLS URL for seamless playback
   category?: string;
 }
 
@@ -29,8 +30,13 @@ export const PremiumFullscreenPlayer = memo(function PremiumFullscreenPlayer({
   video, 
   onClose 
 }: PremiumFullscreenPlayerProps) {
-  const [currentClipIndex, setCurrentClipIndex] = useState(0);
   const [showControls, setShowControls] = useState(true);
+  
+  // Prefer HLS playlist for seamless playback, fallback to individual clips
+  const hasHLS = !!video.hlsPlaylistUrl;
+  
+  // For non-HLS fallback: individual clip handling
+  const [currentClipIndex, setCurrentClipIndex] = useState(0);
   
   const clips = useMemo(() => 
     video.all_clips && video.all_clips.length > 0 
@@ -42,26 +48,27 @@ export const PremiumFullscreenPlayer = memo(function PremiumFullscreenPlayer({
   const totalClips = clips.length;
   const currentClipUrl = clips[currentClipIndex] || null;
   
-  // Determine if this is an HLS URL
-  const isHLS = currentClipUrl?.includes('.m3u8');
+  // Determine source: HLS for seamless, or fallback to current clip
+  const playbackUrl = hasHLS ? video.hlsPlaylistUrl : currentClipUrl;
+  const isHLS = playbackUrl?.includes('.m3u8');
   
   const handleNext = useCallback(() => {
-    if (totalClips > 1) {
+    if (!hasHLS && totalClips > 1) {
       setCurrentClipIndex((prev) => (prev + 1) % totalClips);
     }
-  }, [totalClips]);
+  }, [hasHLS, totalClips]);
   
   const handlePrev = useCallback(() => {
-    if (totalClips > 1) {
+    if (!hasHLS && totalClips > 1) {
       setCurrentClipIndex((prev) => (prev - 1 + totalClips) % totalClips);
     }
-  }, [totalClips]);
+  }, [hasHLS, totalClips]);
   
   const skipToClip = useCallback((index: number) => {
-    if (index >= 0 && index < totalClips) {
+    if (!hasHLS && index >= 0 && index < totalClips) {
       setCurrentClipIndex(index);
     }
-  }, [totalClips]);
+  }, [hasHLS, totalClips]);
   
   const handleMouseMove = useCallback(() => {
     setShowControls(true);
@@ -88,22 +95,22 @@ export const PremiumFullscreenPlayer = memo(function PremiumFullscreenPlayer({
         className="absolute inset-0 flex items-center justify-center p-4"
         onClick={(e) => e.stopPropagation()}
       >
-        {currentClipUrl ? (
+        {playbackUrl ? (
           <div className="relative w-full max-w-5xl aspect-video rounded-2xl overflow-hidden">
             {isHLS ? (
-              <UniversalHLSPlayer
-                hlsUrl={currentClipUrl}
+              <SimpleVideoPlayer
+                src={playbackUrl}
                 autoPlay
+                loop={hasHLS} // Loop if HLS (continuous stream)
                 showControls
-                showSkipButtons={totalClips > 1}
-                onEnded={handleNext}
-                title={video.title}
+                controlsVisibility="hover"
+                onEnded={hasHLS ? undefined : handleNext} // Only advance clips for non-HLS
                 className="w-full h-full"
-                aspectRatio="auto"
+                objectFit="contain"
               />
             ) : (
               <SimpleVideoPlayer
-                src={currentClipUrl}
+                src={playbackUrl}
                 autoPlay
                 showControls
                 controlsVisibility="hover"
@@ -111,6 +118,11 @@ export const PremiumFullscreenPlayer = memo(function PremiumFullscreenPlayer({
                 className="w-full h-full"
                 objectFit="contain"
               />
+            )}
+            {hasHLS && (
+              <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-green-500/20 border border-green-500/30 text-green-400 text-xs font-medium">
+                Seamless HLS
+              </div>
             )}
           </div>
         ) : (
@@ -123,9 +135,9 @@ export const PremiumFullscreenPlayer = memo(function PremiumFullscreenPlayer({
         )}
       </div>
       
-      {/* Clip navigation overlay */}
+      {/* Clip navigation overlay - Only show for non-HLS multi-clip videos */}
       <AnimatePresence>
-        {showControls && totalClips > 1 && (
+        {showControls && !hasHLS && totalClips > 1 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -197,6 +209,22 @@ export const PremiumFullscreenPlayer = memo(function PremiumFullscreenPlayer({
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* Title overlay for HLS videos */}
+      {hasHLS && showControls && (
+        <div className="absolute bottom-0 left-0 right-0 z-20 p-6">
+          <div className="bg-gradient-to-t from-black/80 to-transparent absolute inset-0 pointer-events-none" />
+          <div className="relative text-center">
+            <h2 className="text-white text-xl font-medium">{video.title}</h2>
+            {video.category && (
+              <p className="text-white/50 text-sm mt-1">
+                {video.category === 'text-to-video' ? 'Text to Video' : 
+                 video.category === 'image-to-video' ? 'Image to Video' : 'AI Avatar'}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
       
       {/* Close button */}
       <motion.button

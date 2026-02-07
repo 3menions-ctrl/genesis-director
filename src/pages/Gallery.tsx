@@ -24,6 +24,7 @@ interface GalleryVideo {
   thumbnail_url: string | null;
   video_url: string | null;
   all_clips?: string[];
+  hlsPlaylistUrl?: string | null; // HLS URL for seamless playback
   category?: VideoCategory;
   mode?: string | null;
 }
@@ -37,6 +38,7 @@ interface ManifestClip {
 interface VideoManifest {
   clips: ManifestClip[];
   totalDuration: number;
+  hlsPlaylistUrl?: string;
 }
 
 // Category configuration
@@ -81,6 +83,7 @@ const useGalleryVideos = () => {
                     thumbnail_url: item.thumbnail_url,
                     video_url: manifest.clips[0].videoUrl,
                     all_clips: manifest.clips.map(c => c.videoUrl),
+                    hlsPlaylistUrl: manifest.hlsPlaylistUrl || null, // Pass HLS URL for seamless playback
                     category,
                     mode: null,
                   };

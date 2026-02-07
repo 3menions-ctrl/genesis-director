@@ -6,6 +6,7 @@ import { ArrowRight, Sparkles } from 'lucide-react';
 import { lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { ErrorBoundaryWrapper } from '@/components/ui/error-boundary';
+import { SimpleVideoPlayer } from '@/components/player';
 
 // Lazy load heavy components
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
@@ -319,15 +320,13 @@ const PricingSection = memo(forwardRef<HTMLElement, { onNavigate: (path: string)
             </div>
             
             <div className="relative aspect-video max-w-3xl mx-auto rounded-2xl overflow-hidden bg-black/50 border border-white/[0.08]">
-              <video
-                id="pricing-video"
+              <SimpleVideoPlayer
                 src={STUDIO_VIDEO_URL}
                 className="w-full h-full object-contain"
-                playsInline
                 onPlay={() => setIsVideoPlaying(true)}
                 onPause={() => setIsVideoPlaying(false)}
                 onEnded={() => setIsVideoPlaying(false)}
-                controls={isVideoPlaying}
+                showControls={isVideoPlaying}
               />
               
               {/* Play overlay */}

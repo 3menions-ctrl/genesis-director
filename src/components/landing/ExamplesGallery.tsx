@@ -5,9 +5,8 @@ import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, Film, Imag
 import { useMountSafe } from '@/lib/navigation';
 import { useGalleryShowcase } from '@/hooks/useGalleryShowcase';
 import type { GalleryCategory } from '@/types/gallery-showcase';
-import { UniversalVideoPlayer } from '@/components/player';
+import { UniversalVideoPlayer, SimpleVideoPlayer, type SimpleVideoPlayerHandle } from '@/components/player';
 import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
-import { safePlay, safePause } from '@/lib/video/safeVideoOperations';
 
 type VideoCategory = 'all' | GalleryCategory;
 
@@ -75,7 +74,7 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
   const [isLoaded, setIsLoaded] = useState(false);
   const [progress, setProgress] = useState(0);
   const [videoError, setVideoError] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<SimpleVideoPlayerHandle>(null);
   const manifestPlayerRef = useRef<HTMLDivElement>(null);
 
   // Transform database items to ShowcaseVideo format
@@ -153,16 +152,13 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
     }
   }, [open]);
 
-  const handleTimeUpdate = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
+  const handleTimeUpdate = useCallback((currentTime: number, duration: number) => {
     try {
-      const video = e.currentTarget;
-      if (!video) return;
-      const duration = video.duration;
       // CRITICAL: Guard against NaN/Infinity/0 duration crashes
       if (!duration || !isFinite(duration) || isNaN(duration) || duration <= 0) return;
-      const progress = (video.currentTime / duration) * 100;
-      if (isFinite(progress) && !isNaN(progress)) {
-        setProgress(progress);
+      const progressPercent = (currentTime / duration) * 100;
+      if (isFinite(progressPercent) && !isNaN(progressPercent)) {
+        setProgress(progressPercent);
       }
     } catch {
       // Silently ignore any errors during time update
@@ -239,33 +235,21 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
                 {!isLoaded && <LoadTrigger onLoad={() => setIsLoaded(true)} />}
               </div>
             ) : (
-              <video
+              <SimpleVideoPlayer
                 ref={videoRef}
                 key={`video-${activeCategory}-${currentIndex}`}
+                src={currentVideo.url}
                 autoPlay={isPlaying}
                 muted={isMuted}
-                playsInline
                 loop
-                preload="auto"
+                showControls={false}
                 onCanPlay={() => setIsLoaded(true)}
-                onLoadedData={() => {
-                  // STABILITY FIX: Use safe play pattern
-                  if (isPlaying && videoRef.current) {
-                    safePlay(videoRef.current);
-                  }
-                }}
                 onTimeUpdate={handleTimeUpdate}
-                onError={(e) => {
-                  e.preventDefault?.();
-                  e.stopPropagation?.();
-                  console.warn('[ExamplesGallery] Video error handled');
-                  setVideoError('Failed to load video');
-                }}
+                onError={() => setVideoError('Failed to load video')}
                 className={cn(
                   "absolute inset-0 w-full h-full object-cover transition-opacity duration-700",
                   isLoaded ? "opacity-100" : "opacity-0"
                 )}
-                src={currentVideo.url}
               />
             )
           )}
@@ -375,13 +359,11 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
                 {/* Play/Pause */}
                 <button
                   onClick={() => {
-                    // STABILITY FIX: Use safe video operations
                     if (videoRef.current) {
                       if (isPlaying) {
-                        safePause(videoRef.current);
+                        videoRef.current.pause();
                       } else {
-                        videoRef.current.muted = true;
-                        safePlay(videoRef.current);
+                        videoRef.current.play();
                       }
                       setIsPlaying(!isPlaying);
                     }
@@ -394,9 +376,10 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
                 {/* Mute/Unmute */}
                 <button
                   onClick={() => {
-                    if (videoRef.current) {
-                      videoRef.current.muted = !videoRef.current.muted;
-                      setIsMuted(videoRef.current.muted);
+                    const videoEl = videoRef.current?.getVideoElement();
+                    if (videoEl) {
+                      videoEl.muted = !videoEl.muted;
+                      setIsMuted(videoEl.muted);
                     }
                   }}
                   className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all hover:scale-105"

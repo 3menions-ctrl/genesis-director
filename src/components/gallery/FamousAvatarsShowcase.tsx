@@ -1,5 +1,6 @@
 import React, { memo, useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+// STABILITY: Removed framer-motion AnimatePresence which caused ref-injection crashes
+// Using CSS animations instead for progressive loading
 import { Crown, Star, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -227,17 +228,18 @@ const AvatarCard = memo(function AvatarCard({ avatar, index }: AvatarCardProps) 
   const animationDelay = Math.min(index * 0.05, 0.5);
   
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ 
-        delay: animationDelay, 
-        duration: 0.4,
-        ease: 'easeOut'
-      }}
+    // STABILITY: Using CSS animations instead of framer-motion to prevent crashes
+    <div
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="group relative cursor-pointer"
+      className={cn(
+        "group relative cursor-pointer animate-fade-in",
+        imageLoaded ? "opacity-100" : "opacity-0"
+      )}
+      style={{
+        animationDelay: `${animationDelay}s`,
+        animationFillMode: 'forwards',
+      }}
     >
       {/* Card container */}
       <div className={cn(
@@ -314,7 +316,7 @@ const AvatarCard = memo(function AvatarCard({ avatar, index }: AvatarCardProps) 
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 pointer-events-none animate-pulse" />
         )}
       </div>
-    </motion.div>
+    </div>
   );
 });
 
@@ -398,13 +400,12 @@ export const FamousAvatarsShowcase = memo(function FamousAvatarsShowcase({ class
           </div>
         )}
         
-        <AnimatePresence mode="popLayout">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-            {visibleAvatars.map((avatar, index) => (
-              <AvatarCard key={avatar.id} avatar={avatar as ShowcaseAvatar} index={index} />
-            ))}
-          </div>
-        </AnimatePresence>
+        {/* STABILITY: Removed AnimatePresence which caused ref-injection crashes */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+          {visibleAvatars.map((avatar, index) => (
+            <AvatarCard key={avatar.id} avatar={avatar as ShowcaseAvatar} index={index} />
+          ))}
+        </div>
         
         {/* Load More button */}
         {hasMore && (

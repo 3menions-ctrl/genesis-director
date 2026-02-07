@@ -39,8 +39,8 @@ const SHOWCASE_AVATAR_IDS = [
   '4c288d1e-a400-48fe-85fb-819b0738749c', // Olivia Brown - fitness
   '9bc97466-5bc1-4c6a-a6e2-3c7d9f8d5ea0', // Nina Volkov - fashion
   
-  // ========== 20 REALISTIC HUMANS ==========
-  // 12 Women
+  // ========== 22 REALISTIC HUMANS ==========
+  // 14 Women (including 2 additional White/Hispanic)
   '301da6dd-f812-4b2e-94b9-e05cf58fed77', // Zara Williams - African American corporate
   'd2709e97-7118-4142-8c1d-3c4aac544ab4', // Amara Okafor - Nigerian creative
   '114aa466-a38b-484b-a40e-9eb92d62a15b', // Maya Johnson - African-American creative
@@ -53,6 +53,9 @@ const SHOWCASE_AVATAR_IDS = [
   '0e6cd698-d396-4516-a551-036b3b99fb85', // Sarah Mitchell - Caucasian corporate
   '5b8487a2-31cf-429c-a043-edddcbaecd99', // Priya Nair - South Indian creative
   '8465eccd-7c41-43b7-b338-6bfded49d49d', // Min-Ji Park - Korean influencer
+  // Additional White/Hispanic Women
+  'ecdab958-8b00-4871-925b-ed517215b7d4', // Ingrid Svensson - Swedish corporate
+  'de0f71de-03d2-4f82-bd40-7b8a32dd69de', // Sophia Williams - Mixed wellness
   // 8 Men
   '00c5e01b-c33d-489c-acb5-084e331c27ad', // Tyler Brooks - African American casual
   '811080ff-0b63-4206-9c70-bd68e3db6783', // Kwame Mensah - Ghanaian casual

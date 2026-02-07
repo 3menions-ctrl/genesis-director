@@ -9,12 +9,13 @@ import { useQuery } from '@tanstack/react-query';
 import { useChunkedAvatars } from '@/hooks/useChunkedAvatars';
 import { shuffleAvatarIds } from '@/lib/utils/shuffleAvatars';
 
-// Performance: Chunked loading configuration
-const INITIAL_CHUNK_SIZE = 10; // Load first 10 immediately
-const CHUNK_SIZE = 6; // Load 6 more at a time
-const CHUNK_DELAY_MS = 200; // Delay between chunks
+// Performance: Conservative chunked loading to prevent crashes
+const INITIAL_CHUNK_SIZE = 8; // Load first 8 immediately (reduced from 10)
+const CHUNK_SIZE = 4; // Load 4 more at a time (reduced from 6)
+const CHUNK_DELAY_MS = 300; // Longer delay between chunks (increased from 200)
 
-// Curated showcase: 20 animated characters + 45 realistic humans (27 women, 18 men)
+// Curated showcase: 20 animated characters + 35 realistic humans (22 women, 13 men)
+// REDUCED from 65 to 55 avatars to prevent memory pressure and crashes
 const SHOWCASE_AVATAR_IDS = [
   // ========== 20 ANIMATED CHARACTERS ==========
   // Cute animals
@@ -40,16 +41,13 @@ const SHOWCASE_AVATAR_IDS = [
   '4c288d1e-a400-48fe-85fb-819b0738749c', // Olivia Brown - fitness
   '9bc97466-5bc1-4c6a-a6e2-3c7d9f8d5ea0', // Nina Volkov - fashion
   
-  // ========== 45 REALISTIC HUMANS ==========
-  // Women (27) - includes 3 new beautiful Black women
-  '9255ede0-6029-4051-9b14-046b70ceec4b', // Princess Aurora - fantasy royalty
+  // ========== 35 REALISTIC HUMANS ==========
+  // Women (22) - removed 5: Princess Aurora, Sofia Reyes, Mei Lin, Charlotte Hayes, Mia Reyes
   'd2709e97-7118-4142-8c1d-3c4aac544ab4', // Amara Okafor - Nigerian creative
   '114aa466-a38b-484b-a40e-9eb92d62a15b', // Maya Johnson - African-American creative
   'ed82d806-b3a0-409c-8f59-f81dd2d70826', // Destiny Williams - African American casual
   '748d6da8-28d8-4695-a67b-71373efd1c7b', // Luna Ramirez - Hispanic creative
-  '4f436d2d-5d0a-4ab0-b8e7-d9c823620c79', // Sofia Reyes - Mexican influencer
   '119f769f-6f17-476b-86e9-0b3a80b9b2a5', // Elena Rodriguez - Hispanic corporate
-  'af35dd90-8034-4cf8-93f3-58043c731852', // Mei Lin - Chinese casual
   '0e6cd698-d396-4516-a551-036b3b99fb85', // Sarah Mitchell - Caucasian corporate
   '5b8487a2-31cf-429c-a043-edddcbaecd99', // Priya Nair - South Indian creative
   '8465eccd-7c41-43b7-b338-6bfded49d49d', // Min-Ji Park - Korean influencer
@@ -59,37 +57,26 @@ const SHOWCASE_AVATAR_IDS = [
   '0f84239c-dac3-4031-9850-220223c2f1d7', // Valentina Garcia - Spanish creative
   '9a0dfa86-f76b-4d28-8dde-473c96ca148e', // Emma Blackwood - British casual
   'b138bf24-3a44-48f0-a099-a2ad65673069', // Olivia Sterling - American executive
-  'd9ca58a5-b360-4a4c-85ef-4d72a4682500', // Charlotte Hayes - American wellness
   '5cdcfcc6-73ff-4ce6-9d90-e184ad9ddef5', // Ava Monroe - American influencer
-  '5772ba4b-fc41-402d-84f8-f25a7e408c3b', // Mia Reyes - Colombian artist
   '637444ef-7642-4066-b798-07793d0db303', // Camila Vega - Brazilian influencer
   '64e111c5-48c3-4b0e-badf-e232f171940f', // Hannah Weber - German executive
   '7c2639af-f1a4-4d85-bd7c-b09966778f69', // Grace Holloway - American casual
-  // NEW: 3 Beautiful Black Women
+  // Beautiful Black Women
   'c7a2e3f1-8b4d-4c9e-a5f6-1d2e3f4a5b6c', // Zara Monroe - elegant casual
   'd8b3f402-9c5e-4d0f-b607-2e3f405a6b7c', // Nia Carter - glamorous influencer
   'e9c40503-0d6f-4e10-c708-3f4a5b6c7d8e', // Aaliyah Bennett - stylish creative
-  // Men (18) - includes 11 athletic avatars
+  // Men (13) - removed 5: João Silva, James Park, Jasper Stone, Ryan Cooper, Brandon Nguyen
   '00c5e01b-c33d-489c-acb5-084e331c27ad', // Tyler Brooks - African American casual
   '811080ff-0b63-4206-9c70-bd68e3db6783', // Kwame Mensah - Ghanaian casual
-  '9a5bd04e-e60e-4ddc-95ac-a638c8a1b48c', // João Silva - Brazilian casual
   'f58e92ea-ccb8-4814-90db-aa0185ec1fc3', // Kai Nakamura - Japanese influencer
-  'e28915d1-2680-4e7d-80c2-7add5ff272f3', // James Park - Asian entertainment
   '80aa6e91-570f-463f-b3dc-d9d634d57ccf', // Alex Turner - Caucasian influencer
   '60ef02ce-8230-4cef-92b0-86d52024e9d3', // James Mitchell - corporate professional
-  '58936142-0306-47e8-a7b6-4d41d8773140', // Jasper Stone - casual creative
-  // Athletic Men (White)
   'a1fd1624-f2b8-4582-a386-54adb205a98e', // Marcus Stone - athletic casual
-  '0b636d7e-5536-4696-865d-8e77ef359a58', // Ryan Cooper - athletic casual
   '1a89cbdf-c077-4cfc-96ca-5dfe8b4aac96', // Derek Williams - athletic corporate
-  // Athletic Men (Black)
   '6d00c998-1c7c-4f18-921a-839b167cb28c', // Darius Jackson - athletic casual
   '197c274d-e966-4f74-a8ac-8bb12b2d659c', // Malcolm Davis - athletic casual
-  // Athletic Men (Asian)
   'b2461b71-af6f-45cf-b6cc-98a7adab8356', // Kevin Chen - Chinese corporate
   '4a1d6892-5755-4433-a96d-315e13a3344d', // Hiroshi Tanaka - Japanese creative
-  '38e48473-8ce8-4520-8c3a-8fb651d61f05', // Brandon Nguyen - Vietnamese corporate
-  // Athletic Men (Indian)
   '5fd77fd4-1f0c-43a7-8cb4-180ba13d80a8', // Arjun Patel - Indian corporate
   '8701b822-e9f2-47f9-b788-35577595d21b', // Vikram Singh - Indian casual
 ];
@@ -108,10 +95,8 @@ interface ShowcaseAvatar {
   gender?: string | null;
 }
 
-// Get shuffled avatar IDs (consistent per session)
-const SHUFFLED_AVATAR_IDS = shuffleAvatarIds(SHOWCASE_AVATAR_IDS);
-
 // Fetch curated avatars from database with error handling
+// CRITICAL: Shuffle is done inside useMemo in the component, not at module level
 const useShowcaseAvatars = () => {
   return useQuery({
     queryKey: ['showcase-avatars-curated'],
@@ -128,8 +113,8 @@ const useShowcaseAvatars = () => {
           return []; // Return empty instead of throwing to prevent crash
         }
         
-        // Sort by the SHUFFLED order for variety on each session
-        const sortedData = SHUFFLED_AVATAR_IDS
+        // Return data in curated order (shuffle happens in component with useMemo)
+        const sortedData = SHOWCASE_AVATAR_IDS
           .map(id => data?.find(a => a.id === id))
           .filter((a): a is NonNullable<typeof a> => a !== undefined);
         
@@ -139,8 +124,9 @@ const useShowcaseAvatars = () => {
         return []; // Graceful degradation
       }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes (increased for stability)
     retry: 1, // Limit retries to prevent infinite loops
+    refetchOnWindowFocus: false, // Prevent refetch causing re-renders
   });
 };
 
@@ -339,20 +325,30 @@ export const FamousAvatarsShowcase = memo(function FamousAvatarsShowcase({ class
   const navigate = useNavigate();
   const { data: avatars = [], isLoading, error } = useShowcaseAvatars();
   
+  // CRITICAL: Memoize shuffled avatars to prevent re-shuffle on every render
+  // Uses stable session seed for consistent ordering during navigation
+  const shuffledAvatars = useMemo(() => {
+    if (avatars.length === 0) return [];
+    return shuffleAvatarIds(avatars.map(a => a.id))
+      .map(id => avatars.find(a => a.id === id))
+      .filter((a): a is ShowcaseAvatar => a !== undefined);
+  }, [avatars]);
+  
   // Use world-class chunked loading pattern to prevent crashes
+  // STABILITY: Conservative settings to prevent memory pressure
   const {
     visibleAvatars,
     isFullyLoaded,
     loadProgress,
     loadAll,
-  } = useChunkedAvatars(avatars as any, {
+  } = useChunkedAvatars(shuffledAvatars as any, {
     enabled: true,
     initialSize: INITIAL_CHUNK_SIZE,
     chunkSize: CHUNK_SIZE,
     chunkDelay: CHUNK_DELAY_MS,
   });
   
-  const hasMore = !isFullyLoaded && avatars.length > 0;
+  const hasMore = !isFullyLoaded && shuffledAvatars.length > 0;
   
   if (isLoading) {
     return (
@@ -363,7 +359,7 @@ export const FamousAvatarsShowcase = memo(function FamousAvatarsShowcase({ class
   }
   
   // Graceful handling of errors or empty state
-  if (error || avatars.length === 0) {
+  if (error || shuffledAvatars.length === 0) {
     return null;
   }
   

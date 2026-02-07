@@ -261,11 +261,15 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
   // Data guardrail
   const safeAvatars = useSafeArray(avatars);
   
-  // SHUFFLE: Randomize avatar order per session for variety
-  const shuffledAvatars = useMemo(() => shuffleAvatars(safeAvatars), [safeAvatars]);
+  // CRITICAL: Stable shuffle using useMemo to prevent re-shuffle on every render
+  // Uses session seed for consistent ordering during navigation
+  const shuffledAvatars = useMemo(() => {
+    if (safeAvatars.length === 0) return [];
+    return shuffleAvatars(safeAvatars);
+  }, [safeAvatars]);
   
-  // CRITICAL: Chunked loading to prevent browser crashes
-  // Loads avatars progressively instead of all 120+ at once
+  // WORLD-CLASS CHUNKED LOADING: Progressive loading to prevent crashes
+  // Loads avatars in small batches to reduce memory pressure
   const { 
     visibleAvatars, 
     isFullyLoaded, 
@@ -274,8 +278,8 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
   } = useChunkedAvatars(shuffledAvatars, {
     enabled: true,
     initialSize: 12, // Start with 12 avatars
-    chunkSize: 8,    // Load 8 more at a time
-    chunkDelay: 150, // 150ms between chunks
+    chunkSize: 6,    // Load 6 more at a time (reduced for stability)
+    chunkDelay: 200, // 200ms between chunks (increased for stability)
   });
   
   const isMobile = useIsMobile();

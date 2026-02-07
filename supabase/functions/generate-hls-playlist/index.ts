@@ -238,7 +238,8 @@ serve(async (req) => {
       voiceUrl: masterAudioUrl || project?.voice_audio_url || null,
       musicUrl: project?.music_url || null,
       audioConfig: {
-        muteClipAudio: !!masterAudioUrl,
+        // CRITICAL: Always use embedded clip audio - no master audio overlay
+        muteClipAudio: false,
         musicVolume: project?.include_narration ? 0.3 : 0.8,
       },
     };

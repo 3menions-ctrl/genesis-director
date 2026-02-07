@@ -22,6 +22,7 @@ import { logPlaybackPath } from '@/lib/video/platformDetection';
 interface HLSNativePlayerProps {
   hlsUrl: string;
   masterAudioUrl?: string | null;
+  /** @deprecated No longer used - clips always use embedded audio */
   muteClipAudio?: boolean;
   autoPlay?: boolean;
   muted?: boolean;
@@ -36,7 +37,7 @@ export const HLSNativePlayer = memo(forwardRef<HTMLDivElement, HLSNativePlayerPr
   function HLSNativePlayer({
     hlsUrl,
     masterAudioUrl,
-    muteClipAudio = false,
+    muteClipAudio = false, // Ignored - always use embedded audio
     autoPlay = false,
     muted: initialMuted = false,
     loop = false,
@@ -47,7 +48,8 @@ export const HLSNativePlayer = memo(forwardRef<HTMLDivElement, HLSNativePlayerPr
   }, ref) {
     const [isLoading, setIsLoading] = useState(true);
     const [isPlaying, setIsPlaying] = useState(false);
-    const [isMuted, setIsMuted] = useState(initialMuted || muteClipAudio);
+    // CRITICAL: Always use embedded video audio, never mute based on muteClipAudio
+    const [isMuted, setIsMuted] = useState(initialMuted);
     const [error, setError] = useState<string | null>(null);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
@@ -57,20 +59,16 @@ export const HLSNativePlayer = memo(forwardRef<HTMLDivElement, HLSNativePlayerPr
     const audioRef = useRef<HTMLAudioElement>(null);
     const mountedRef = useRef(true);
     
-    // Log playback path on mount with detailed audio config
+    // Log playback path on mount
     useEffect(() => {
-      console.log('[HLSNative] 🎵 Audio Config:', {
-        masterAudioUrl: masterAudioUrl?.substring(0, 60) || 'NONE',
-        muteClipAudio,
-        willUseSeperateAudioTrack: !!masterAudioUrl,
-      });
-      logPlaybackPath('HLS_NATIVE', { hlsUrl, masterAudioUrl, muteClipAudio });
+      console.log('[HLSNative] 🎵 Using embedded video audio (no master audio overlay)');
+      logPlaybackPath('HLS_NATIVE', { hlsUrl });
       mountedRef.current = true;
       
       return () => {
         mountedRef.current = false;
       };
-    }, [hlsUrl, masterAudioUrl, muteClipAudio]);
+    }, [hlsUrl]);
     
     // Setup video event listeners
     useEffect(() => {
@@ -112,20 +110,11 @@ export const HLSNativePlayer = memo(forwardRef<HTMLDivElement, HLSNativePlayerPr
       const handlePlay = () => {
         if (!mountedRef.current) return;
         setIsPlaying(true);
-        
-        // Sync master audio if present
-        if (audioRef.current && masterAudioUrl) {
-          audioRef.current.currentTime = video.currentTime;
-          audioRef.current.play().catch(() => {});
-        }
       };
       
       const handlePause = () => {
         if (!mountedRef.current) return;
         setIsPlaying(false);
-        if (audioRef.current) {
-          audioRef.current.pause();
-        }
       };
       
       const handleEnded = () => {
@@ -176,23 +165,7 @@ export const HLSNativePlayer = memo(forwardRef<HTMLDivElement, HLSNativePlayerPr
       };
     }, [autoPlay, duration, lastBoundary, onEnded, onError, onTimeUpdate]);
     
-    // Sync audio with video
-    useEffect(() => {
-      const video = videoRef.current;
-      const audio = audioRef.current;
-      if (!video || !audio || !masterAudioUrl) return;
-      
-      const syncAudio = () => {
-        const drift = Math.abs(audio.currentTime - video.currentTime);
-        if (drift > 0.1) {
-          audio.currentTime = video.currentTime;
-          console.log(`[HLSNative] Audio sync corrected - drift was ${drift.toFixed(3)}s`);
-        }
-      };
-      
-      const intervalId = setInterval(syncAudio, 1000);
-      return () => clearInterval(intervalId);
-    }, [masterAudioUrl]);
+    // NOTE: Master audio sync removed - using embedded video audio only
     
     const togglePlayPause = useCallback(() => {
       const video = videoRef.current;
@@ -207,19 +180,12 @@ export const HLSNativePlayer = memo(forwardRef<HTMLDivElement, HLSNativePlayerPr
     
     const toggleMute = useCallback(() => {
       const video = videoRef.current;
-      const audio = audioRef.current;
       if (!video) return;
       
       const newMuted = !isMuted;
       setIsMuted(newMuted);
-      
-      // If using master audio, mute/unmute that instead of video
-      if (masterAudioUrl && audio) {
-        audio.muted = newMuted;
-      } else {
-        video.muted = newMuted;
-      }
-    }, [isMuted, masterAudioUrl]);
+      video.muted = newMuted;
+    }, [isMuted]);
     
     const requestFullscreen = useCallback(() => {
       const video = videoRef.current;
@@ -243,26 +209,18 @@ export const HLSNativePlayer = memo(forwardRef<HTMLDivElement, HLSNativePlayerPr
           className
         )}
       >
-        {/* Main video element */}
+        {/* Main video element - always use embedded audio */}
         <video
           ref={videoRef}
           className="w-full h-full object-contain"
           src={hlsUrl}
           playsInline
-          muted={muteClipAudio || isMuted}
+          muted={isMuted}
           loop={loop}
           preload="auto"
         />
         
-        {/* Master audio track (hidden) */}
-        {masterAudioUrl && (
-          <audio
-            ref={audioRef}
-            src={masterAudioUrl}
-            preload="auto"
-            muted={isMuted}
-          />
-        )}
+        {/* NOTE: Master audio overlay removed - using embedded video audio only */}
         
         {/* Loading overlay */}
         {isLoading && (

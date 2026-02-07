@@ -122,6 +122,12 @@ const MINIMAL_SUPPRESSED_PATTERNS = [
   'Each child in a list should have a unique',
   // StrictMode double-invocation warnings
   'was already mounted',
+  // STABILITY FIX: Style property conflicts during animation - cosmetic warning only
+  'shorthand and non-shorthand properties',
+  'style property during rerender',
+  'conflicting property is set',
+  // STABILITY FIX: Framer-motion ref warnings during animation - handled gracefully
+  'ref-forwarding component',
 ];
 
 const shouldSuppressConsoleMessage = (args: unknown[]): boolean => {

@@ -13,7 +13,7 @@ const INITIAL_CHUNK_SIZE = 10; // Load first 10 immediately
 const CHUNK_SIZE = 6; // Load 6 more at a time
 const CHUNK_DELAY_MS = 200; // Delay between chunks
 
-// Curated showcase: 20 animated characters + 20 realistic humans (12 women, 8 men)
+// Curated showcase: 20 animated characters + 32 realistic humans (24 women, 8 men)
 const SHOWCASE_AVATAR_IDS = [
   // ========== 20 ANIMATED CHARACTERS ==========
   // Cute animals
@@ -39,8 +39,8 @@ const SHOWCASE_AVATAR_IDS = [
   '4c288d1e-a400-48fe-85fb-819b0738749c', // Olivia Brown - fitness
   '9bc97466-5bc1-4c6a-a6e2-3c7d9f8d5ea0', // Nina Volkov - fashion
   
-  // ========== 22 REALISTIC HUMANS ==========
-  // 14 Women (including 2 additional White/Hispanic)
+  // ========== 32 REALISTIC HUMANS ==========
+  // 24 Women (12 existing + 2 additional + 10 new White/Hispanic)
   '301da6dd-f812-4b2e-94b9-e05cf58fed77', // Zara Williams - African American corporate
   'd2709e97-7118-4142-8c1d-3c4aac544ab4', // Amara Okafor - Nigerian creative
   '114aa466-a38b-484b-a40e-9eb92d62a15b', // Maya Johnson - African-American creative
@@ -53,9 +53,20 @@ const SHOWCASE_AVATAR_IDS = [
   '0e6cd698-d396-4516-a551-036b3b99fb85', // Sarah Mitchell - Caucasian corporate
   '5b8487a2-31cf-429c-a043-edddcbaecd99', // Priya Nair - South Indian creative
   '8465eccd-7c41-43b7-b338-6bfded49d49d', // Min-Ji Park - Korean influencer
-  // Additional White/Hispanic Women
+  // Additional White/Hispanic Women (previously added)
   'ecdab958-8b00-4871-925b-ed517215b7d4', // Ingrid Svensson - Swedish corporate
   'de0f71de-03d2-4f82-bd40-7b8a32dd69de', // Sophia Williams - Mixed wellness
+  // 10 NEW White/Hispanic Women (batch-v3)
+  '20634956-67cc-4f17-a86d-87e300bae47b', // Isabella Martinez - Hispanic professional
+  '0f84239c-dac3-4031-9850-220223c2f1d7', // Valentina Garcia - Spanish creative
+  '9a0dfa86-f76b-4d28-8dde-473c96ca148e', // Emma Blackwood - British casual
+  'b138bf24-3a44-48f0-a099-a2ad65673069', // Olivia Sterling - American executive
+  'd9ca58a5-b360-4a4c-85ef-4d72a4682500', // Charlotte Hayes - American wellness
+  '5cdcfcc6-73ff-4ce6-9d90-e184ad9ddef5', // Ava Monroe - American influencer
+  '5772ba4b-fc41-402d-84f8-f25a7e408c3b', // Mia Reyes - Colombian artist
+  '637444ef-7642-4066-b798-07793d0db303', // Camila Vega - Brazilian influencer
+  '64e111c5-48c3-4b0e-badf-e232f171940f', // Hannah Weber - German executive
+  '7c2639af-f1a4-4d85-bd7c-b09966778f69', // Grace Holloway - American casual
   // 8 Men
   '00c5e01b-c33d-489c-acb5-084e331c27ad', // Tyler Brooks - African American casual
   '811080ff-0b63-4206-9c70-bd68e3db6783', // Kwame Mensah - Ghanaian casual

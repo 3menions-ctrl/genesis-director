@@ -213,7 +213,21 @@ export function PipelineErrorBanner({
   const isStaleError = parsedError && totalClipCount > 0 && failedClipCount === 0 &&
     ['CONTINUITY_ERROR', 'PRODUCTION_INCOMPLETE', 'TIMEOUT'].includes(parsedError.code);
   
-  if (isDismissed || (!hasError && !hasDegradation) || allClipsComplete || isStaleError) return null;
+  // =====================================================
+  // CRITICAL: Never show STRICT_CONTINUITY_FAILURE errors
+  // These are internal pipeline states, NOT user-actionable
+  // The pipeline will auto-recover or refund automatically
+  // =====================================================
+  const isNonFatalPipelineError = parsedError?.code === 'CONTINUITY_ERROR' || 
+    (parsedError?.message && (
+      /STRICT_CONTINUITY_FAILURE/i.test(parsedError.message) ||
+      /no last frame/i.test(parsedError.message) ||
+      /frame extraction/i.test(parsedError.message) ||
+      /continuity.?failure/i.test(parsedError.message) ||
+      /production incomplete/i.test(parsedError.message)
+    ));
+  
+  if (isDismissed || (!hasError && !hasDegradation) || allClipsComplete || isStaleError || isNonFatalPipelineError) return null;
   
   const errorStyle = parsedError ? getErrorStyle(parsedError.code) : getErrorStyle('UNKNOWN');
   const Icon = errorStyle.icon;

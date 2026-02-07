@@ -14,6 +14,20 @@ import { FunctionsHttpError } from '@supabase/supabase-js';
 // These errors should be logged but NOT displayed to users
 
 const NON_FATAL_ERROR_PATTERNS = [
+  // =====================================================
+  // CRITICAL: Pipeline continuity errors - ALWAYS suppress
+  // These are internal recovery states, not user-actionable
+  // The pipeline will auto-recover or refund automatically
+  // =====================================================
+  /STRICT_CONTINUITY_FAILURE/i,
+  /continuity.?failure/i,
+  /no last frame/i,
+  /last frame.*url/i,
+  /frame extraction/i,
+  /production incomplete/i,
+  /generation.?locked/i,
+  /mutex/i,
+  
   // Network/connectivity issues - transient, will resolve
   /failed to fetch/i,
   /network.?error/i,

@@ -14,8 +14,7 @@ import { WelcomeVideoModal } from "@/components/welcome/WelcomeVideoModal";
 import { GlobalStabilityBoundary } from "@/components/stability/GlobalStabilityBoundary";
 import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
-import { DebugOverlay } from "@/components/diagnostics/DebugOverlay";
-import { CrashForensicsOverlay } from "@/components/diagnostics/CrashForensicsOverlay";
+import { AdminOnlyDiagnostics } from "@/components/diagnostics/AdminOnlyDiagnostics";
 import { NavigationGuardProvider, NavigationBridge } from "@/lib/navigation";
 import { SafeModeBanner } from "@/components/safeMode";
 import { crashForensics } from "@/lib/crashForensics";
@@ -382,10 +381,8 @@ const App = () => {
                   </RouteContainer>
                 } />
                 </Routes>
-                {/* Debug Overlay - Development only */}
-                <DebugOverlay />
-                {/* Crash Forensics Overlay - Always available */}
-                <CrashForensicsOverlay alwaysShow={getSafeModeStatus()} />
+                {/* Diagnostics - Admin console only */}
+                <AdminOnlyDiagnostics />
                 {/* Global World Chat Button */}
                 <WorldChatButton />
                 {/* Welcome Video Modal - shows once for new users */}

@@ -7,24 +7,55 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
-// Curated showcase avatars - diverse women + cute animated characters
+// Curated showcase: 20 animated characters + 20 realistic humans (12 women, 8 men)
 const SHOWCASE_AVATAR_IDS = [
-  // Women of color (realistic)
-  'dff866bc-ab57-4345-943c-ae0b19287dc5', // Maya Patel - British Indian influencer
-  'cfa2e9df-2d08-46cd-9462-94684647c337', // Keisha Johnson - African American influencer
-  'b0cd5260-0a3e-46f6-ae5d-52162ddb372b', // Camila Santos - Brazilian creative
+  // ========== 20 ANIMATED CHARACTERS ==========
+  // Cute animals
+  '6b6a08e2-0820-4d38-9543-1b38e1f4c171', // Goldie - golden retriever
+  '1d2f62ad-bbc2-4104-8442-fb77eb1f612b', // Hoppy - bunny
+  '434231a4-2b33-42f5-ab5c-1dba4a7adf46', // Foxy - fox
+  'c5a5248c-3017-439f-bc94-62d825e57df7', // Mittens - cat
+  '5ba76e9a-1611-4a5b-9102-878832176e8c', // Luna Wolf
+  'd98f1871-3863-4dee-b39f-4a72a5c21676', // Bandit - raccoon
+  'b8c7d1e6-76dd-4898-9051-0ea0e842f14a', // Bruno Bear
+  '87c84f49-aa81-4e5e-8647-6ef6d9758982', // Flash - cheetah
+  'b490d6bb-1747-48d8-87bb-cc649dcba84e', // Gallop - horse
+  '75563fd4-b9c7-49aa-abef-9e134d5e8947', // Leo Toon - lion
+  // Human animated characters
+  '4b0f0fcc-203a-4152-8d3c-ef12fd773583', // Captain Nova - superhero
+  '75ba8ba0-0a6d-4290-961c-c363f3f4bfa4', // Commander Orion - astronaut
+  '0448f47b-a956-4a27-a838-55f7d1be5880', // Dr. Quantum - scientist
+  '831a2fd7-9673-4dd5-9356-e317dde236c6', // Detective Morgan
+  '3b4b131c-4110-49ad-840a-23f38345aa0e', // Ninja Sakura
+  'a1360f5d-330b-4bf2-b503-eed6bf7f0e02', // Chef Gustavo
+  '21787b56-75f0-452a-992a-15d1b6fe18c9', // Emma Thompson - assistant
+  '437e0a31-919c-4e2f-b37e-481b252ae3b5', // Amara Johnson - creative
+  '4c288d1e-a400-48fe-85fb-819b0738749c', // Olivia Brown - fitness
+  '9bc97466-5bc1-4c6a-a6e2-3c7d9f8d5ea0', // Nina Volkov - fashion
+  
+  // ========== 20 REALISTIC HUMANS ==========
+  // 12 Women
+  '301da6dd-f812-4b2e-94b9-e05cf58fed77', // Zara Williams - African American corporate
   'd2709e97-7118-4142-8c1d-3c4aac544ab4', // Amara Okafor - Nigerian creative
   '114aa466-a38b-484b-a40e-9eb92d62a15b', // Maya Johnson - African-American creative
   'dc825cfe-cd18-4899-b1d0-8d031d297abb', // Fatou Diallo - Senegalese educational
-  '748d6da8-28d8-4695-a67b-71373efd1c7b', // Luna Ramirez - Hispanic creative
-  'af35dd90-8034-4cf8-93f3-58043c731852', // Mei Lin - Chinese casual
-  // Cute animated characters
-  '6b6a08e2-0820-4d38-9543-1b38e1f4c171', // Goldie - golden retriever
-  '1d2f62ad-bbc2-4104-8442-fb77eb1f612b', // Hoppy - bunny
-  // Additional diverse women
-  '743ccc7d-459f-4d40-baea-bb6f594bd874', // Aisha Mohammed - Egyptian luxury
-  '9dae305b-748a-40e9-8c93-fcd85f2cecf3', // Cleopatra - Egyptian Greek historical
   'ed82d806-b3a0-409c-8f59-f81dd2d70826', // Destiny Williams - African American casual
+  '748d6da8-28d8-4695-a67b-71373efd1c7b', // Luna Ramirez - Hispanic creative
+  '4f436d2d-5d0a-4ab0-b8e7-d9c823620c79', // Sofia Reyes - Mexican influencer
+  '119f769f-6f17-476b-86e9-0b3a80b9b2a5', // Elena Rodriguez - Hispanic corporate
+  'af35dd90-8034-4cf8-93f3-58043c731852', // Mei Lin - Chinese casual
+  '0e6cd698-d396-4516-a551-036b3b99fb85', // Sarah Mitchell - Caucasian corporate
+  '5b8487a2-31cf-429c-a043-edddcbaecd99', // Priya Nair - South Indian creative
+  '8465eccd-7c41-43b7-b338-6bfded49d49d', // Min-Ji Park - Korean influencer
+  // 8 Men
+  '00c5e01b-c33d-489c-acb5-084e331c27ad', // Tyler Brooks - African American casual
+  '811080ff-0b63-4206-9c70-bd68e3db6783', // Kwame Mensah - Ghanaian casual
+  'cbc982bd-143a-454d-9ba7-f6882f9296c1', // Kofi Asante - Ghanaian educational
+  '9a5bd04e-e60e-4ddc-95ac-a638c8a1b48c', // João Silva - Brazilian casual
+  'bfe0b55e-163c-41b2-a7a5-1884e972e596', // Raj Sharma - Indian educational
+  'f58e92ea-ccb8-4814-90db-aa0185ec1fc3', // Kai Nakamura - Japanese influencer
+  'e28915d1-2680-4e7d-80c2-7add5ff272f3', // James Park - Asian entertainment
+  '80aa6e91-570f-463f-b3dc-d9d634d57ccf', // Alex Turner - Caucasian influencer
 ];
 
 // Fetch curated avatars from database

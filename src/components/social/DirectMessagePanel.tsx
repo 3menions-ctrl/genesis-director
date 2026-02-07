@@ -241,10 +241,17 @@ export function MessageUserButton({
         Message
       </Button>
 
-      {/* DM Modal */}
+      {/* DM Modal - Fixed center positioning for all viewports */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-md h-[500px]">
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={(e) => {
+            // Close on backdrop click
+            if (e.target === e.currentTarget) setIsOpen(false);
+          }}
+        >
+          {/* Modal container - responsive sizing */}
+          <div className="relative w-[calc(100%-2rem)] max-w-md h-[min(500px,calc(100vh-4rem))] mx-4 my-4 animate-in fade-in zoom-in-95 duration-200">
             <DirectMessagePanel
               recipientId={userId}
               recipientName={userName}

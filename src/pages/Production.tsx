@@ -415,13 +415,15 @@ function ProductionContentInner() {
         const videoClipsArray = project.video_clips as string[] | undefined;
         
         if (predictions && predictions.length > 0) {
-          // Extract clips from predictions array (avatar pipeline format)
+          // Extract ALL clips from predictions array (not just completed ones)
+          // This allows the UI to show pending/generating clips during production
           const clips = predictions
-            .filter((p: any) => p.videoUrl && p.status === 'completed')
             .map((p: any) => ({
               index: p.clipIndex ?? 0,
-              videoUrl: p.videoUrl as string,
-              status: 'completed' as const,
+              videoUrl: p.videoUrl || '',
+              status: (p.status === 'completed' && p.videoUrl) ? 'completed' as const :
+                      (p.status === 'processing' || p.status === 'generating') ? 'generating' as const :
+                      p.status === 'failed' ? 'failed' as const : 'generating' as const,
             }))
             .sort((a, b) => a.index - b.index);
           setAvatarClips(clips);

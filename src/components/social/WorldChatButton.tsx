@@ -88,8 +88,13 @@ export function WorldChatButton() {
     }
   }, [isOpen]);
 
-  // Early return after all hooks - only show for authenticated users on allowed routes
-  if (isHidden || !user) {
+  // Early return after all hooks - hide on restricted routes AND require authentication
+  // Route check comes first to ensure landing page never shows chat regardless of auth state
+  if (isHidden) {
+    return null;
+  }
+  
+  if (!user) {
     return null;
   }
 

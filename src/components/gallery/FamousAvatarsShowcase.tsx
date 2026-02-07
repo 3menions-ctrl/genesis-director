@@ -40,11 +40,10 @@ const SHOWCASE_AVATAR_IDS = [
   '9bc97466-5bc1-4c6a-a6e2-3c7d9f8d5ea0', // Nina Volkov - fashion
   
   // ========== 32 REALISTIC HUMANS ==========
-  // 24 Women (12 existing + 2 additional + 10 new White/Hispanic)
-  '301da6dd-f812-4b2e-94b9-e05cf58fed77', // Zara Williams - African American corporate
+  // Women
+  '9255ede0-6029-4051-9b14-046b70ceec4b', // Princess Aurora - fantasy royalty
   'd2709e97-7118-4142-8c1d-3c4aac544ab4', // Amara Okafor - Nigerian creative
   '114aa466-a38b-484b-a40e-9eb92d62a15b', // Maya Johnson - African-American creative
-  'dc825cfe-cd18-4899-b1d0-8d031d297abb', // Fatou Diallo - Senegalese educational
   'ed82d806-b3a0-409c-8f59-f81dd2d70826', // Destiny Williams - African American casual
   '748d6da8-28d8-4695-a67b-71373efd1c7b', // Luna Ramirez - Hispanic creative
   '4f436d2d-5d0a-4ab0-b8e7-d9c823620c79', // Sofia Reyes - Mexican influencer
@@ -53,10 +52,8 @@ const SHOWCASE_AVATAR_IDS = [
   '0e6cd698-d396-4516-a551-036b3b99fb85', // Sarah Mitchell - Caucasian corporate
   '5b8487a2-31cf-429c-a043-edddcbaecd99', // Priya Nair - South Indian creative
   '8465eccd-7c41-43b7-b338-6bfded49d49d', // Min-Ji Park - Korean influencer
-  // Additional White/Hispanic Women (previously added)
   'ecdab958-8b00-4871-925b-ed517215b7d4', // Ingrid Svensson - Swedish corporate
   'de0f71de-03d2-4f82-bd40-7b8a32dd69de', // Sophia Williams - Mixed wellness
-  // 10 NEW White/Hispanic Women (batch-v3)
   '20634956-67cc-4f17-a86d-87e300bae47b', // Isabella Martinez - Hispanic professional
   '0f84239c-dac3-4031-9850-220223c2f1d7', // Valentina Garcia - Spanish creative
   '9a0dfa86-f76b-4d28-8dde-473c96ca148e', // Emma Blackwood - British casual
@@ -67,15 +64,15 @@ const SHOWCASE_AVATAR_IDS = [
   '637444ef-7642-4066-b798-07793d0db303', // Camila Vega - Brazilian influencer
   '64e111c5-48c3-4b0e-badf-e232f171940f', // Hannah Weber - German executive
   '7c2639af-f1a4-4d85-bd7c-b09966778f69', // Grace Holloway - American casual
-  // 8 Men
+  // Men
   '00c5e01b-c33d-489c-acb5-084e331c27ad', // Tyler Brooks - African American casual
   '811080ff-0b63-4206-9c70-bd68e3db6783', // Kwame Mensah - Ghanaian casual
-  'cbc982bd-143a-454d-9ba7-f6882f9296c1', // Kofi Asante - Ghanaian educational
   '9a5bd04e-e60e-4ddc-95ac-a638c8a1b48c', // João Silva - Brazilian casual
-  'bfe0b55e-163c-41b2-a7a5-1884e972e596', // Raj Sharma - Indian educational
   'f58e92ea-ccb8-4814-90db-aa0185ec1fc3', // Kai Nakamura - Japanese influencer
   'e28915d1-2680-4e7d-80c2-7add5ff272f3', // James Park - Asian entertainment
   '80aa6e91-570f-463f-b3dc-d9d634d57ccf', // Alex Turner - Caucasian influencer
+  '60ef02ce-8230-4cef-92b0-86d52024e9d3', // James Mitchell - corporate professional
+  '58936142-0306-47e8-a7b6-4d41d8773140', // Jasper Stone - casual creative
 ];
 
 // Type for showcase avatar data

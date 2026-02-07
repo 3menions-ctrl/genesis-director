@@ -88,8 +88,8 @@ export function WorldChatButton() {
     }
   }, [isOpen]);
 
-  // Early return after all hooks
-  if (isHidden) {
+  // Early return after all hooks - only show for authenticated users on allowed routes
+  if (isHidden || !user) {
     return null;
   }
 

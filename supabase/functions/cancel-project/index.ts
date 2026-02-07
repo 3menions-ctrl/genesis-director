@@ -150,12 +150,12 @@ serve(async (req) => {
     }
 
     // 4. Collect project-level storage URLs
+    // Note: Only include columns that exist in the movie_projects table
     const projectUrls = [
       project.video_url,
       project.voice_audio_url,
       project.thumbnail_url,
       project.music_url,
-      project.manifest_url,
     ].filter(Boolean);
 
     for (const url of projectUrls) {

@@ -3,9 +3,12 @@
  * 
  * Provides patterns for instant UI feedback while async operations complete.
  * Includes automatic rollback on failure and proper state reconciliation.
+ * 
+ * IMPORTANT: Non-fatal errors are logged but not shown to users.
  */
 
 import { toast } from 'sonner';
+import { isNonFatalError } from './userFriendlyErrors';
 
 interface OptimisticUpdateOptions<T> {
   /** The async operation to perform */
@@ -22,13 +25,15 @@ interface OptimisticUpdateOptions<T> {
   context?: string;
   /** Show toast on success */
   successMessage?: string;
-  /** Show toast on error (default: true) */
+  /** Show toast on error (default: true, but only for fatal errors) */
   showErrorToast?: boolean;
 }
 
 /**
  * Execute an async operation with optimistic UI update.
  * Immediately applies changes, then reconciles or rolls back based on result.
+ * 
+ * IMPORTANT: Only fatal errors are shown to users.
  */
 export async function optimisticUpdate<T>({
   operation,
@@ -70,8 +75,12 @@ export async function optimisticUpdate<T>({
     
     const errorMessage = error instanceof Error ? error.message : 'Operation failed';
     
-    if (showErrorToast) {
+    // CRITICAL: Only show toast for FATAL errors
+    // Non-fatal errors (network hiccups, rate limits, etc.) are logged but suppressed
+    if (showErrorToast && !isNonFatalError(error)) {
       toast.error(context ? `${context}: ${errorMessage}` : errorMessage);
+    } else {
+      console.debug(`[OptimisticUpdate] Suppressed non-fatal error:`, error);
     }
     
     if (onError) {

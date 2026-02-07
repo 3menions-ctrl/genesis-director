@@ -3,10 +3,102 @@
  * 
  * Transforms technical API errors into clear, actionable messages for consumers.
  * Provides consistent error handling across the application.
+ * 
+ * PRINCIPLE: Only show FATAL errors to users. Non-fatal errors are logged but suppressed.
  */
 
 import { toast } from 'sonner';
 import { FunctionsHttpError } from '@supabase/supabase-js';
+
+// ============= Non-Fatal Error Patterns =============
+// These errors should be logged but NOT displayed to users
+
+const NON_FATAL_ERROR_PATTERNS = [
+  // Network/connectivity issues - transient, will resolve
+  /failed to fetch/i,
+  /network.?error/i,
+  /net::ERR/i,
+  /load failed/i,
+  /connection.?reset/i,
+  /ECONNREFUSED/i,
+  
+  // Abort/cancel errors - expected during navigation
+  /abort/i,
+  /cancelled/i,
+  /canceled/i,
+  /signal is aborted/i,
+  
+  // Rate limiting - temporary
+  /rate.?limit/i,
+  /too many requests/i,
+  /429/,
+  
+  // Transient server issues
+  /502/,
+  /503/,
+  /504/,
+  /service.?unavailable/i,
+  /gateway.?timeout/i,
+  
+  // Video/media playback - handled by player
+  /play\(\).*interrupted/i,
+  /NotAllowedError.*play/i,
+  /PIPELINE_ERROR/i,
+  /MediaError/i,
+  
+  // Browser quirks
+  /ResizeObserver/i,
+  /ChunkLoadError/i,
+  /Loading chunk/i,
+  /dynamically imported module/i,
+  
+  // React lifecycle warnings
+  /unmounted component/i,
+  /state update on an unmounted/i,
+  /Cannot read properties of null/i,
+  
+  // External service hiccups - we have recovery
+  /replicate/i,
+  /tts.?generation.?failed/i,
+  /master.?tts/i,
+  /external.?service/i,
+  
+  // Timeout - has built-in retry
+  /timeout/i,
+  /timed out/i,
+  
+  // Generation issues - auto-refunded
+  /generation.?failed/i,
+  /generation.?hiccup/i,
+  
+  // DOM errors - never user-actionable
+  /removeChild/i,
+  /insertBefore/i,
+  /appendChild/i,
+  /HierarchyRequestError/i,
+  
+  // Empty or undefined errors
+  /^undefined$/i,
+  /^null$/i,
+  /^\s*$/,
+];
+
+/**
+ * Check if an error is non-fatal and should NOT be shown to users
+ */
+export function isNonFatalError(error: unknown): boolean {
+  if (!error) return true;
+  
+  const errorMessage = error instanceof Error 
+    ? error.message 
+    : typeof error === 'string' 
+      ? error 
+      : JSON.stringify(error);
+  
+  if (!errorMessage || errorMessage.trim() === '') return true;
+  
+  return NON_FATAL_ERROR_PATTERNS.some(pattern => pattern.test(errorMessage));
+}
 
 // ============= Error Types =============
 
@@ -19,6 +111,7 @@ export interface UserFriendlyError {
   };
   severity: 'info' | 'warning' | 'error';
   duration?: number;
+  isFatal: boolean; // NEW: Only fatal errors are shown to users
 }
 
 export interface ParsedApiError {
@@ -31,9 +124,10 @@ export interface ParsedApiError {
 
 /**
  * Maps API error codes/patterns to user-friendly messages
+ * isFatal determines if error is shown to users
  */
 const ERROR_MAPPINGS: Record<string, (data?: Record<string, unknown>) => UserFriendlyError> = {
-  // Active project conflict - friendly, reassuring message
+  // Active project conflict - friendly, reassuring message (SHOW - actionable)
   active_project_exists: (data) => ({
     title: '🎬 Your Video is Generating',
     message: data?.existingProjectTitle 
@@ -41,70 +135,79 @@ const ERROR_MAPPINGS: Record<string, (data?: Record<string, unknown>) => UserFri
       : 'You already have a video being created. We only allow one at a time to ensure the best quality. Check your project to see the progress!',
     severity: 'info',
     duration: 10000,
+    isFatal: true, // User needs to take action
   }),
   
-  // Credit/payment issues
+  // Credit/payment issues (SHOW - actionable)
   insufficient_credits: () => ({
     title: '💳 Need More Credits',
     message: 'Top up your credits to continue creating amazing videos. Quick and easy!',
     severity: 'warning',
     duration: 8000,
+    isFatal: true, // User needs to buy credits
   }),
   
-  // Rate limiting - reassuring
+  // Rate limiting - HIDE (will resolve on its own)
   rate_limited: () => ({
     title: '⏳ Just a Moment',
     message: 'We\'re processing your requests. Give us a few seconds and try again!',
     severity: 'info',
     duration: 5000,
+    isFatal: false, // Transient, will resolve
   }),
   
-  // Authentication
+  // Authentication (SHOW - actionable)
   unauthorized: () => ({
     title: '🔐 Session Expired',
     message: 'For your security, please sign in again to continue.',
     severity: 'warning',
     duration: 5000,
+    isFatal: true, // User needs to sign in
   }),
   
-  // Server errors - calming
+  // Server errors - HIDE (transient)
   server_error: () => ({
     title: '🔧 Quick Hiccup',
     message: 'Something unexpected happened on our end. Try again in a moment - we\'re on it!',
     severity: 'warning',
     duration: 6000,
+    isFatal: false, // Transient, has auto-recovery
   }),
   
-  // Network errors
+  // Network errors - HIDE (transient)
   network_error: () => ({
     title: '📶 Connection Lost',
     message: 'Check your internet connection and try again. Your work is safe!',
     severity: 'warning',
     duration: 5000,
+    isFatal: false, // Transient, will resolve
   }),
   
-  // Generation failures - reassuring about refund
+  // Generation failures - HIDE (auto-refunded)
   generation_failed: () => ({
     title: '🎬 Generation Hiccup',
     message: 'This video didn\'t complete, but don\'t worry - your credits are automatically refunded. Try again!',
     severity: 'info',
     duration: 8000,
+    isFatal: false, // Auto-refunded, no user action needed
   }),
   
-  // Timeout
+  // Timeout - HIDE (has retry)
   timeout: () => ({
     title: '⏱️ Taking Too Long',
     message: 'This is taking longer than expected. Please refresh and try again.',
     severity: 'warning',
     duration: 5000,
+    isFatal: false, // Has built-in retry logic
   }),
   
-  // API key/external service issues (internal - hide complexity)
+  // API key/external service issues - HIDE (internal)
   external_service_error: () => ({
     title: '🌐 Service Busy',
     message: 'Our video engine is temporarily busy. Please try again in a few minutes - quality takes time!',
     severity: 'info',
     duration: 6000,
+    isFatal: false, // Internal issue, has recovery
   }),
 };
 
@@ -206,6 +309,8 @@ export function parseApiError(
 
 /**
  * Show a user-friendly toast for an API error
+ * IMPORTANT: Only FATAL errors are shown to users
+ * Non-fatal errors are logged but suppressed from UI
  */
 export function showUserFriendlyError(
   error: unknown,
@@ -214,10 +319,24 @@ export function showUserFriendlyError(
     onAction?: () => void;
     actionLabel?: string;
     navigate?: (path: string) => void;
+    forceFatal?: boolean; // Override to force showing error
   }
 ): ParsedApiError {
   const parsed = parseApiError(error, options?.additionalData);
   const { userError } = parsed;
+  
+  // CRITICAL: Check if this is a non-fatal error that should be suppressed
+  // Non-fatal errors are logged but NOT shown to users
+  if (!userError.isFatal && !options?.forceFatal) {
+    console.debug('[UserFriendlyErrors] Suppressed non-fatal error:', parsed.code, error);
+    return parsed; // Return parsed but don't show toast
+  }
+  
+  // Also check against our pattern list for extra safety
+  if (isNonFatalError(error) && !options?.forceFatal) {
+    console.debug('[UserFriendlyErrors] Suppressed by pattern:', error);
+    return parsed;
+  }
   
   // Build action if applicable
   let action = userError.action;
@@ -243,7 +362,7 @@ export function showUserFriendlyError(
     }
   }
   
-  // Show toast
+  // Show toast - only for FATAL errors
   const toastFn = userError.severity === 'error' ? toast.error 
     : userError.severity === 'warning' ? toast.warning 
     : toast.info;
@@ -263,12 +382,20 @@ export function showUserFriendlyError(
  * Handle edge function errors with user-friendly messages
  * Now handles nested error data and extracts project info from various response formats
  * Supports FunctionsHttpError which contains the response body in error.context
+ * 
+ * IMPORTANT: Only FATAL errors are shown to users
  */
 export async function handleEdgeFunctionError(
   error: unknown,
   data: Record<string, unknown> | null,
   navigate?: (path: string) => void
 ): Promise<{ handled: boolean; parsed: ParsedApiError | null }> {
+  // First check: Is this a non-fatal error we should suppress entirely?
+  if (isNonFatalError(error) && !data?.existingProjectId) {
+    console.debug('[UserFriendlyErrors] Edge function error suppressed (non-fatal):', error);
+    return { handled: true, parsed: null };
+  }
+  
   // Extract error info - could be in data directly, nested in error message, or in error.context
   let errorData = data;
   let existingProjectId = data?.existingProjectId as string | undefined;
@@ -307,7 +434,7 @@ export async function handleEdgeFunctionError(
     }
   }
   
-  // Check for specific error codes in data
+  // Check for specific error codes in data (these ARE fatal - user needs to act)
   if (errorData?.error === 'active_project_exists' || existingProjectId) {
     const parsed = parseApiError(errorData, errorData as Record<string, unknown>);
     
@@ -322,7 +449,7 @@ export async function handleEdgeFunctionError(
     return { handled: true, parsed };
   }
   
-  // Handle general errors
+  // Handle general errors - showUserFriendlyError will filter non-fatal
   if (error) {
     const parsed = showUserFriendlyError(error, { navigate });
     return { handled: true, parsed };

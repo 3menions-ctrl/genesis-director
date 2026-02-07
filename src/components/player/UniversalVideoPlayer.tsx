@@ -618,10 +618,10 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             const hasVideoContent = tasks?.predictions || tasks?.hlsPlaylistUrl || project?.video_url;
             
             // Check if project is still generating (don't trigger HLS for incomplete projects)
-            const isStillGenerating = tasks?.stage === 'async_video_generation' || 
-              tasks?.type === 'avatar_async' ||
-              (tasks?.predictions && Array.isArray(tasks.predictions) && 
-                (tasks.predictions as Array<{ status?: string }>).some(p => p.status !== 'completed' && p.status !== 'failed'));
+            // FIX: Only block on stage OR incomplete predictions, NOT just avatar_async type
+            const hasIncompletePredictions = tasks?.predictions && Array.isArray(tasks.predictions) && 
+              (tasks.predictions as Array<{ status?: string }>).some(p => p.status !== 'completed' && p.status !== 'failed');
+            const isStillGenerating = tasks?.stage === 'async_video_generation' || hasIncompletePredictions;
             
             // iOS Safari with projectId but no HLS - generate server-side HLS playlist
             // CRITICAL: Don't generate HLS for projects still in progress

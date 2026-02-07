@@ -118,13 +118,19 @@ export default function Creators() {
                         transition={{ delay: index * 0.05 }}
                         className={cn("group rounded-2xl overflow-hidden", glassCard)}
                       >
-                        {/* Thumbnail */}
+                        {/* Thumbnail with fallback chain */}
                         <div className="relative aspect-video overflow-hidden">
                           {video.thumbnail_url ? (
                             <img 
                               src={video.thumbnail_url} 
                               alt={video.title}
                               className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            />
+                          ) : (video as { first_clip_url?: string }).first_clip_url ? (
+                            <PausedFrameVideo 
+                              src={(video as { first_clip_url?: string }).first_clip_url!} 
+                              className="w-full h-full object-cover"
+                              showLoader={false}
                             />
                           ) : video.video_url ? (
                             <PausedFrameVideo 

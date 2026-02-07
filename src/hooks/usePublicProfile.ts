@@ -301,8 +301,29 @@ export function useFollowingFeed() {
         return [];
       }
 
+      // For videos without thumbnails, fetch the first clip's video URL
+      const videosWithClips = await Promise.all(
+        (videos || []).map(async (video) => {
+          if (!video.thumbnail_url && !video.video_url) {
+            const { data: clipData } = await supabase
+              .from('video_clips')
+              .select('video_url')
+              .eq('project_id', video.id)
+              .not('video_url', 'is', null)
+              .order('shot_index', { ascending: true })
+              .limit(1);
+            
+            const firstClipUrl = clipData?.[0]?.video_url;
+            if (firstClipUrl) {
+              return { ...video, first_clip_url: firstClipUrl };
+            }
+          }
+          return video;
+        })
+      );
+
       // Fetch creator profiles separately
-      const creatorIds = [...new Set(videos?.map(v => v.user_id).filter(Boolean) || [])];
+      const creatorIds = [...new Set(videosWithClips?.map(v => v.user_id).filter(Boolean) || [])];
       
       let profilesMap = new Map<string, PublicProfile>();
       if (creatorIds.length > 0) {
@@ -316,7 +337,7 @@ export function useFollowingFeed() {
         });
       }
 
-      return videos?.map(v => ({
+      return videosWithClips?.map(v => ({
         ...v,
         creator: profilesMap.get(v.user_id) || { id: v.user_id, display_name: null, avatar_url: null },
       })) || [];

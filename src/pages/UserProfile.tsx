@@ -8,9 +8,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
 import { MessageUserButton } from '@/components/social/DirectMessagePanel';
+import { UniversalVideoPlayer } from '@/components/player';
 import { 
   UserPlus, UserMinus, Video, Users, Heart, 
-  Play, ArrowLeft, ExternalLink 
+  Play, ArrowLeft, ExternalLink, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -23,7 +24,7 @@ export default function UserProfile() {
   const { userId } = useParams<{ userId: string }>();
   const { user } = useAuth();
   const { profile, isLoading, videos, videosLoading, followUser, unfollowUser } = usePublicProfile(userId);
-  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [selectedVideoProject, setSelectedVideoProject] = useState<{ id: string; title: string } | null>(null);
 
   const isOwnProfile = user?.id === userId;
 
@@ -203,7 +204,7 @@ export default function UserProfile() {
                         playableUrl ? "cursor-pointer" : "cursor-not-allowed opacity-60",
                         glassCard
                       )}
-                      onClick={() => playableUrl && setSelectedVideo(playableUrl)}
+                      onClick={() => setSelectedVideoProject({ id: video.id, title: video.title })}
                     >
                       {video.thumbnail_url ? (
                         <img 
@@ -260,42 +261,42 @@ export default function UserProfile() {
         </section>
       </main>
 
-      {/* Video Modal */}
+      {/* Video Modal - Uses UniversalVideoPlayer for full multi-clip playback */}
       <AnimatePresence>
-        {selectedVideo && (
+        {selectedVideoProject && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90"
-            onClick={() => setSelectedVideo(null)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95"
+            onClick={() => setSelectedVideoProject(null)}
           >
             <motion.div
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="relative max-w-4xl w-full aspect-video rounded-2xl overflow-hidden"
+              className="relative max-w-4xl w-full aspect-video rounded-2xl overflow-hidden bg-black"
               onClick={e => e.stopPropagation()}
             >
-              <video
-                src={selectedVideo}
-                controls
+              {/* UniversalVideoPlayer handles multi-clip playback */}
+              <UniversalVideoPlayer
+                source={{ projectId: selectedVideoProject.id }}
+                mode="inline"
                 autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-contain bg-black"
-                onPlay={(e) => {
-                  // Unmute after autoplay starts successfully
-                  const video = e.currentTarget;
-                  video.muted = false;
-                }}
+                className="w-full h-full"
               />
               <button
-                onClick={() => setSelectedVideo(null)}
-                className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                onClick={() => setSelectedVideoProject(null)}
+                className="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/20 transition-colors"
               >
-                ×
+                <X className="w-5 h-5" />
               </button>
+              {/* Title overlay */}
+              <div className="absolute top-4 left-4 z-40">
+                <p className="text-white/80 text-sm font-medium bg-black/50 backdrop-blur-sm px-3 py-1 rounded-full">
+                  {selectedVideoProject.title}
+                </p>
+              </div>
             </motion.div>
           </motion.div>
         )}

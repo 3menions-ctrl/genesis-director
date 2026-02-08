@@ -1,15 +1,15 @@
 /**
- * PausedFrameVideo Component v2.0
+ * PausedFrameVideo Component v2.1
  * 
  * A video element that automatically shows a paused frame as the thumbnail
  * by seeking to a small offset when metadata loads. This ensures videos
  * display a meaningful poster frame instead of a blank/placeholder.
  * 
  * Key improvements:
- * - Uses crossOrigin="anonymous" for CORS-enabled Supabase CDN videos
+ * - NO crossOrigin attribute (causes CORS issues with Replicate/Supabase CDN)
  * - Faster fallback timeout (1.5s instead of 3s)
  * - Forces video.load() to trigger metadata fetch
- * - Better error recovery
+ * - Better error recovery with canplay fallback
  */
 
 import { memo, useRef, useState, useCallback, useEffect } from 'react';
@@ -24,11 +24,6 @@ interface PausedFrameVideoProps extends React.VideoHTMLAttributes<HTMLVideoEleme
   showLoader?: boolean;
   /** Fallback element when video fails to load */
   fallback?: React.ReactNode;
-}
-
-// Check if URL is from Supabase storage (supports CORS)
-function isSupabaseUrl(url: string): boolean {
-  return url.includes('supabase.co/storage') || url.includes('.supabase.co/');
 }
 
 export const PausedFrameVideo = memo(function PausedFrameVideo({
@@ -123,15 +118,12 @@ export const PausedFrameVideo = memo(function PausedFrameVideo({
   if (hasError) {
     return (
       fallback || (
-        <div className={cn("flex items-center justify-center bg-zinc-900", className)}>
-          <Film className="w-8 h-8 text-zinc-600" />
+        <div className={cn("flex items-center justify-center bg-muted", className)}>
+          <Film className="w-8 h-8 text-muted-foreground" />
         </div>
       )
     );
   }
-
-  // Determine if we should use crossOrigin (only for Supabase URLs)
-  const useCrossOrigin = isSupabaseUrl(src);
 
   return (
     <div className={cn("relative", className)}>
@@ -145,7 +137,7 @@ export const PausedFrameVideo = memo(function PausedFrameVideo({
         preload="metadata"
         muted
         playsInline
-        crossOrigin={useCrossOrigin ? "anonymous" : undefined}
+        // IMPORTANT: No crossOrigin attribute - causes CORS issues with CDNs
         onLoadedMetadata={handleLoadedMetadata}
         onSeeked={handleSeeked}
         onCanPlay={handleCanPlay}
@@ -155,8 +147,8 @@ export const PausedFrameVideo = memo(function PausedFrameVideo({
       
       {/* Loading spinner */}
       {showLoader && !frameReady && (
-        <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
-          <div className="w-5 h-5 border-2 border-zinc-700 border-t-zinc-400 rounded-full animate-spin" />
+        <div className="absolute inset-0 flex items-center justify-center bg-muted">
+          <div className="w-5 h-5 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
         </div>
       )}
     </div>

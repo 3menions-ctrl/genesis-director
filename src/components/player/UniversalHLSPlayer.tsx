@@ -71,9 +71,25 @@ export interface UniversalHLSPlayerProps {
 // ============================================================================
 
 /**
+ * Check if browser is Safari (desktop or iOS)
+ */
+function isSafariBrowser(): boolean {
+  const ua = navigator.userAgent;
+  // Safari: contains "Safari" but NOT "Chrome" or "Chromium"
+  const isSafari = /Safari/.test(ua) && !/Chrome|Chromium/.test(ua);
+  // iOS: iPhone, iPad, iPod
+  const isIOS = /iPad|iPhone|iPod/.test(ua);
+  return isSafari || isIOS;
+}
+
+/**
  * Check if browser has native HLS support (Safari, iOS)
+ * Only Safari truly supports native HLS - Chrome's partial support is unreliable
  */
 function hasNativeHLSSupport(): boolean {
+  // Only Safari/iOS should use native HLS - other browsers should use hls.js
+  if (!isSafariBrowser()) return false;
+  
   const video = document.createElement('video');
   return video.canPlayType('application/vnd.apple.mpegurl') !== '';
 }
@@ -86,11 +102,15 @@ function isHlsJsSupported(): boolean {
 }
 
 /**
- * Detect playback method
+ * Detect playback method - prefer hls.js for non-Safari browsers
  */
 export function detectHLSPlaybackMethod(): 'native' | 'hlsjs' | null {
-  if (hasNativeHLSSupport()) return 'native';
+  // Safari/iOS: Use native HLS (most reliable)
+  if (isSafariBrowser() && hasNativeHLSSupport()) return 'native';
+  // Chrome/Firefox/Edge: Use hls.js (most reliable)
   if (isHlsJsSupported()) return 'hlsjs';
+  // Fallback: Try native (unlikely to work well)
+  if (hasNativeHLSSupport()) return 'native';
   return null;
 }
 

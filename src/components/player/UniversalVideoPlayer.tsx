@@ -2,19 +2,20 @@
  * UniversalVideoPlayer - Single unified video player for all contexts
  * 
  * Features:
- * - MSE-first gapless playback with legacy fallback
- * - HLS native playback for iOS Safari (seamless, no gaps)
+ * - HLS-first playback strategy for ALL browsers (via hls.js)
+ * - MSE gapless fallback when HLS not available
  * - Auto-detects source type (projectId, manifest, clips array, single video)
  * - Multiple display modes: inline, fullscreen, thumbnail, export
  * - Database fetching via projectId for multi-clip projects
  * - Unified controls with customizable visibility
  * - Safe video operations throughout
  * 
- * Playback Path Selection:
- * - iOS Safari → HLS Native (via generate-hls-playlist)
- * - Chrome/Firefox/Edge → MSE Gapless Engine
- * - Safari Desktop < 15 → HLS Native or Legacy fallback
- * - Other → Legacy dual-video crossfade
+ * Playback Path Selection (Priority Order):
+ * 1. HLS (ALL browsers) - via UniversalHLSPlayer with hls.js
+ *    - Safari/iOS: Native HLS support
+ *    - Chrome/Firefox/Edge: hls.js library
+ * 2. MSE Gapless - for browsers without HLS playlist
+ * 3. Legacy crossfade - fallback for older browsers
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo, forwardRef, memo } from 'react';
@@ -46,6 +47,7 @@ import {
   requiresHLSPlayback 
 } from '@/lib/video/platformDetection';
 import { HLSNativePlayer } from './HLSNativePlayer';
+import { UniversalHLSPlayer } from './UniversalHLSPlayer';
 
 // ============================================================================
 // TYPES
@@ -450,11 +452,13 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     }, [mode, controlsProp]);
 
     // ========================================================================
-    // PLATFORM DETECTION
+    // PLATFORM DETECTION - HLS first for ALL browsers
     // ========================================================================
     
     const platformCapabilities = useMemo(() => getPlatformCapabilities(), []);
-    const useHLSNative = platformCapabilities.preferredPlaybackMode === 'hls_native';
+    // Use HLS for ALL browsers (Safari native, Chrome/Firefox via hls.js)
+    const useHLSPlayback = true; // HLS-first strategy for universal playback
+    const useHLSNative = platformCapabilities.preferredPlaybackMode === 'hls_native'; // Only iOS needs native
     
     // ========================================================================
     // STATE
@@ -601,12 +605,13 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               resolved: audioUrl?.substring(0, 60) || 'NONE',
             });
             
-            // If on iOS and HLS available, use it
-            if (useHLSNative && hlsUrl) {
-              logPlaybackPath('HLS_NATIVE', { 
+            // HLS FIRST: Try to use HLS for ALL browsers (not just iOS)
+            // This provides the most reliable cross-browser playback via hls.js
+            if (useHLSPlayback && hlsUrl) {
+              logPlaybackPath('HLS_UNIVERSAL', { 
                 projectId: source.projectId, 
                 hlsUrl,
-                reason: 'iOS Safari detected with HLS playlist available'
+                reason: 'HLS playlist available - using for all browsers via hls.js'
               });
               setHlsPlaylistUrl(hlsUrl);
               setMasterAudioUrl(audioUrl);
@@ -618,25 +623,24 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             const hasVideoContent = tasks?.predictions || tasks?.hlsPlaylistUrl || project?.video_url;
             
             // Check if project is still generating (don't trigger HLS for incomplete projects)
-            // FIX: Only block on stage OR incomplete predictions, NOT just avatar_async type
             const hasIncompletePredictions = tasks?.predictions && Array.isArray(tasks.predictions) && 
               (tasks.predictions as Array<{ status?: string }>).some(p => p.status !== 'completed' && p.status !== 'failed');
             const isStillGenerating = tasks?.stage === 'async_video_generation' || hasIncompletePredictions;
             
-            // iOS Safari with projectId but no HLS - generate server-side HLS playlist
+            // Generate HLS playlist for ALL browsers when content is ready
             // CRITICAL: Don't generate HLS for projects still in progress
-            if (useHLSNative && hasVideoContent && !isStillGenerating) {
-              console.log('[UniversalPlayer] iOS detected without HLS - generating server-side playlist');
+            if (useHLSPlayback && hasVideoContent && !isStillGenerating) {
+              console.log('[UniversalPlayer] Generating server-side HLS playlist for universal playback');
               try {
                 const { data: hlsResult, error: hlsError } = await supabase.functions.invoke('generate-hls-playlist', {
                   body: { projectId: source.projectId }
                 });
                 
                 if (!hlsError && hlsResult?.hlsPlaylistUrl) {
-                  logPlaybackPath('HLS_NATIVE', { 
+                  logPlaybackPath('HLS_UNIVERSAL', { 
                     projectId: source.projectId, 
                     hlsUrl: hlsResult.hlsPlaylistUrl,
-                    reason: 'Generated server-side HLS playlist for iOS'
+                    reason: 'Generated server-side HLS playlist for universal playback'
                   });
                   setHlsPlaylistUrl(hlsResult.hlsPlaylistUrl);
                   setMasterAudioUrl(audioUrl);
@@ -646,22 +650,19 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                   // Check if this is a "draft_or_incomplete" or "clips_pending" response - not an actual error
                   const errorReason = hlsResult?.reason || (hlsError as Record<string, unknown> | null)?.reason;
                   if (errorReason === 'draft_or_incomplete' || errorReason === 'clips_pending') {
-                    console.log(`[UniversalPlayer] Project ${errorReason}, skipping HLS`);
+                    console.log(`[UniversalPlayer] Project ${errorReason}, falling back to MSE/legacy`);
                   } else {
-                    console.warn('[UniversalPlayer] HLS generation failed, falling back to legacy:', hlsError);
+                    console.warn('[UniversalPlayer] HLS generation failed, falling back to MSE/legacy:', hlsError);
                   }
                 }
               } catch (hlsGenError) {
-                console.warn('[UniversalPlayer] HLS generation error, using legacy:', hlsGenError);
+                console.warn('[UniversalPlayer] HLS generation error, using MSE/legacy:', hlsGenError);
               }
-              // Fall through to legacy mode
-              setUseMSE(false);
-            } else if (useHLSNative && isStillGenerating) {
-              console.log('[UniversalPlayer] iOS detected but project still generating, waiting...');
-              setUseMSE(false);
-            } else if (useHLSNative) {
-              console.log('[UniversalPlayer] iOS detected but no video content found, skipping HLS generation');
-              setUseMSE(false);
+              // Fall through to MSE/legacy mode
+            } else if (useHLSPlayback && isStillGenerating) {
+              console.log('[UniversalPlayer] Project still generating, using MSE/legacy for now');
+            } else if (useHLSPlayback && !hasVideoContent) {
+              console.log('[UniversalPlayer] No video content found, skipping HLS generation');
             }
             
             // Fetch clips for MSE/legacy
@@ -1475,29 +1476,40 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     }
 
     // ========================================================================
-    // RENDER: HLS Native Mode (iOS Safari)
+    // RENDER: HLS Mode (ALL browsers via UniversalHLSPlayer with hls.js)
     // ========================================================================
     
-    if (hlsPlaylistUrl && useHLSNative) {
+    // Use UniversalHLSPlayer for ALL browsers when HLS playlist is available
+    // This uses hls.js for Chrome/Firefox and native HLS for Safari/iOS
+    if (hlsPlaylistUrl) {
       return (
-        <HLSNativePlayer
+        <div 
           ref={ref}
-        hlsUrl={hlsPlaylistUrl}
-          masterAudioUrl={null}
-          muteClipAudio={false}
-          autoPlay={autoPlay}
-          muted={isMuted}
-          loop={loop}
           className={cn(
             mode === 'fullscreen' && "fixed inset-0 z-50",
+            aspectRatio === 'video' && mode !== 'fullscreen' && 'aspect-video',
             className
           )}
-          onEnded={onEnded}
-          onError={(err) => setError(err)}
-          onTimeUpdate={(time, dur) => {
-            setCurrentTime(time);
-          }}
-        />
+        >
+          <UniversalHLSPlayer
+            hlsUrl={hlsPlaylistUrl}
+            masterAudioUrl={clipsAreLipSynced ? null : masterAudioUrl}
+            muteClipAudio={!!masterAudioUrl && !clipsAreLipSynced}
+            autoPlay={autoPlay}
+            muted={isMuted}
+            loop={loop}
+            className="w-full h-full"
+            aspectRatio="auto"
+            showControls={mode === 'inline' || mode === 'fullscreen'}
+            title={title}
+            onEnded={onEnded}
+            onError={(err) => setError(err)}
+            onTimeUpdate={(time, dur) => {
+              setCurrentTime(time);
+            }}
+            onClose={onClose}
+          />
+        </div>
       );
     }
 

@@ -2959,35 +2959,45 @@ async function runProduction(
           }
         } else {
           // =====================================================
-          // THE LAW: CLIP 2+ MUST USE PREVIOUS CLIP'S LAST FRAME
-          // NO EXCEPTIONS. NO FALLBACKS. FAILURE IS FATAL.
+          // CLIP 2+: USE 7-TIER FALLBACK CHAIN (NEVER FAIL)
+          // Priority: previousFrame -> goldenFrame -> sceneImage -> referenceImage -> degraded mode
           // =====================================================
+          
+          // Tier 1: Previous clip's actual last frame (highest fidelity)
           if (previousLastFrameUrl && isValidImageUrl(previousLastFrameUrl)) {
             useStartImage = previousLastFrameUrl;
-            console.log(`[Hollywood] Clip ${i + 1}: FRAME-CHAINED from clip ${i}'s last frame: ${previousLastFrameUrl?.substring(0, 60)}...`);
-          } else {
-            // FATAL ERROR: Cannot proceed without frame continuity
-            const errorDetails = previousLastFrameUrl 
-              ? `Invalid URL (video file or corrupted): ${previousLastFrameUrl.substring(0, 100)}`
-              : 'No last frame URL extracted from previous clip';
-            
-            console.error(`[Hollywood] ❌ STRICT_CONTINUITY_FAILURE: Clip ${i + 1} CANNOT proceed without valid frame from clip ${i}`);
-            console.error(`[Hollywood] Reason: ${errorDetails}`);
-            console.error(`[Hollywood] THE LAW: Each clip MUST use previous clip's last frame. No exceptions.`);
-            
-            // Update project with fatal error
-            await supabase.from('movie_projects').update({
-              status: 'failed',
-              last_error: `STRICT_CONTINUITY_FAILURE: Clip ${i + 1} requires valid last frame from clip ${i}. ${errorDetails}`,
-              pipeline_stage: 'failed',
-              updated_at: new Date().toISOString(),
-            }).eq('id', state.projectId);
-            
-            throw new Error(
-              `STRICT_CONTINUITY_FAILURE: The Law requires Clip ${i + 1} to use Clip ${i}'s last frame. ` +
-              `Frame extraction failed or returned invalid URL. ${errorDetails}. ` +
-              `Pipeline halted to preserve visual continuity.`
-            );
+            console.log(`[Hollywood] Clip ${i + 1}: ✓ FRAME-CHAINED (Tier 1) from clip ${i}'s last frame: ${previousLastFrameUrl?.substring(0, 60)}...`);
+          }
+          // Tier 2: Golden frame from clip 1 (preserves character identity)
+          else if (goldenFrameData?.frameUrl && isValidImageUrl(goldenFrameData.frameUrl)) {
+            useStartImage = goldenFrameData.frameUrl;
+            console.warn(`[Hollywood] Clip ${i + 1}: ⚠️ FALLBACK (Tier 2) to golden frame: ${goldenFrameData.frameUrl.substring(0, 60)}...`);
+          }
+          // Tier 3: Scene-specific image from user/generation
+          else if (sceneImageLookup[i] && isValidImageUrl(sceneImageLookup[i])) {
+            useStartImage = sceneImageLookup[i];
+            console.warn(`[Hollywood] Clip ${i + 1}: ⚠️ FALLBACK (Tier 3) to scene image: ${sceneImageLookup[i].substring(0, 60)}...`);
+          }
+          // Tier 4: First scene image (scene[0])
+          else if (sceneImageLookup[0] && isValidImageUrl(sceneImageLookup[0])) {
+            useStartImage = sceneImageLookup[0];
+            console.warn(`[Hollywood] Clip ${i + 1}: ⚠️ FALLBACK (Tier 4) to first scene image: ${sceneImageLookup[0].substring(0, 60)}...`);
+          }
+          // Tier 5: Original reference image
+          else if (referenceImageUrl && isValidImageUrl(referenceImageUrl)) {
+            useStartImage = referenceImageUrl;
+            console.warn(`[Hollywood] Clip ${i + 1}: ⚠️ FALLBACK (Tier 5) to reference image: ${referenceImageUrl.substring(0, 60)}...`);
+          }
+          // Tier 6: Identity bible image
+          else if (state.identityBible?.consistencyImageUrl && isValidImageUrl(state.identityBible.consistencyImageUrl)) {
+            useStartImage = state.identityBible.consistencyImageUrl;
+            console.warn(`[Hollywood] Clip ${i + 1}: ⚠️ FALLBACK (Tier 6) to identity bible: ${state.identityBible.consistencyImageUrl.substring(0, 60)}...`);
+          }
+          // Tier 7: DEGRADED MODE - proceed as text-to-video (no start image)
+          else {
+            useStartImage = undefined;
+            console.warn(`[Hollywood] Clip ${i + 1}: ⚠️ DEGRADED MODE (Tier 7) - proceeding as text-to-video (all fallbacks exhausted)`);
+            console.warn(`[Hollywood] Available sources: previousLastFrameUrl=${!!previousLastFrameUrl}, goldenFrame=${!!goldenFrameData?.frameUrl}, sceneImage=${!!sceneImageLookup[i]}, referenceImage=${!!referenceImageUrl}`);
           }
         }
         

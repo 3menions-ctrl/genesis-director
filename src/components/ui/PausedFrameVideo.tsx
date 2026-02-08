@@ -1,9 +1,15 @@
 /**
- * PausedFrameVideo Component
+ * PausedFrameVideo Component v2.0
  * 
  * A video element that automatically shows a paused frame as the thumbnail
  * by seeking to a small offset when metadata loads. This ensures videos
  * display a meaningful poster frame instead of a blank/placeholder.
+ * 
+ * Key improvements:
+ * - Uses crossOrigin="anonymous" for CORS-enabled Supabase CDN videos
+ * - Faster fallback timeout (1.5s instead of 3s)
+ * - Forces video.load() to trigger metadata fetch
+ * - Better error recovery
  */
 
 import { memo, useRef, useState, useCallback, useEffect } from 'react';
@@ -20,6 +26,11 @@ interface PausedFrameVideoProps extends React.VideoHTMLAttributes<HTMLVideoEleme
   fallback?: React.ReactNode;
 }
 
+// Check if URL is from Supabase storage (supports CORS)
+function isSupabaseUrl(url: string): boolean {
+  return url.includes('supabase.co/storage') || url.includes('.supabase.co/');
+}
+
 export const PausedFrameVideo = memo(function PausedFrameVideo({
   src,
   seekFraction = 0.1,
@@ -32,16 +43,24 @@ export const PausedFrameVideo = memo(function PausedFrameVideo({
   const [frameReady, setFrameReady] = useState(false);
   const [hasError, setHasError] = useState(false);
   const mountedRef = useRef(true);
+  const loadAttemptRef = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
   }, []);
 
-  // Reset state when src changes
+  // Reset state and trigger load when src changes
   useEffect(() => {
     setFrameReady(false);
     setHasError(false);
+    loadAttemptRef.current += 1;
+    
+    const video = videoRef.current;
+    if (video && src) {
+      // Force reload to trigger metadata fetch
+      video.load();
+    }
   }, [src]);
 
   const handleLoadedMetadata = useCallback(() => {
@@ -50,13 +69,15 @@ export const PausedFrameVideo = memo(function PausedFrameVideo({
 
     const duration = video.duration;
     if (!duration || !isFinite(duration) || isNaN(duration) || duration <= 0) {
+      // Duration not valid, just show current frame
       setFrameReady(true);
       return;
     }
 
     try {
       // Seek to fraction of video (usually 10%) to get a meaningful frame
-      const targetTime = Math.min(duration * seekFraction, 2); // Cap at 2 seconds
+      // Cap at 2 seconds max to avoid long seeks
+      const targetTime = Math.min(duration * seekFraction, 2);
       video.currentTime = targetTime;
     } catch (err) {
       console.debug('[PausedFrameVideo] Seek error:', err);
@@ -70,6 +91,13 @@ export const PausedFrameVideo = memo(function PausedFrameVideo({
     }
   }, []);
 
+  const handleCanPlay = useCallback(() => {
+    // If seeked event didn't fire, canplay is a good fallback
+    if (mountedRef.current && !frameReady) {
+      setFrameReady(true);
+    }
+  }, [frameReady]);
+
   const handleError = useCallback(() => {
     if (mountedRef.current) {
       setHasError(true);
@@ -77,14 +105,18 @@ export const PausedFrameVideo = memo(function PausedFrameVideo({
     }
   }, []);
 
-  // Fallback timeout to prevent infinite loading
+  // Faster fallback timeout to prevent long loading states
   useEffect(() => {
     if (frameReady) return;
+    
+    const currentAttempt = loadAttemptRef.current;
     const timeout = setTimeout(() => {
-      if (mountedRef.current) {
+      if (mountedRef.current && loadAttemptRef.current === currentAttempt) {
+        // Still on same load attempt, force ready state
         setFrameReady(true);
       }
-    }, 3000);
+    }, 1500); // Reduced from 3000ms to 1500ms for snappier UX
+    
     return () => clearTimeout(timeout);
   }, [frameReady, src]);
 
@@ -98,6 +130,9 @@ export const PausedFrameVideo = memo(function PausedFrameVideo({
     );
   }
 
+  // Determine if we should use crossOrigin (only for Supabase URLs)
+  const useCrossOrigin = isSupabaseUrl(src);
+
   return (
     <div className={cn("relative", className)}>
       <video
@@ -110,8 +145,10 @@ export const PausedFrameVideo = memo(function PausedFrameVideo({
         preload="metadata"
         muted
         playsInline
+        crossOrigin={useCrossOrigin ? "anonymous" : undefined}
         onLoadedMetadata={handleLoadedMetadata}
         onSeeked={handleSeeked}
+        onCanPlay={handleCanPlay}
         onError={handleError}
         {...props}
       />

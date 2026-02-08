@@ -167,6 +167,25 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
     const hlsRef = useRef<Hls | null>(null);
     const mountedRef = useRef(true);
     const retryCountRef = useRef(0);
+    const initializingRef = useRef(false);
+    
+    // Stable callback refs to prevent re-initialization loops
+    const onErrorRef = useRef(onError);
+    const onReadyRef = useRef(onReady);
+    const onEndedRef = useRef(onEnded);
+    const onPlayRef = useRef(onPlay);
+    const onPauseRef = useRef(onPause);
+    const onTimeUpdateRef = useRef(onTimeUpdate);
+    
+    // Keep refs in sync without triggering re-renders
+    useEffect(() => {
+      onErrorRef.current = onError;
+      onReadyRef.current = onReady;
+      onEndedRef.current = onEnded;
+      onPlayRef.current = onPlay;
+      onPauseRef.current = onPause;
+      onTimeUpdateRef.current = onTimeUpdate;
+    });
     
     // Expose imperative handle
     useImperativeHandle(ref, () => ({
@@ -194,10 +213,14 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
       };
     }, []);
     
-    // Initialize HLS playback
+    // Initialize HLS playback - only depends on hlsUrl
     useEffect(() => {
       const video = videoRef.current;
       if (!video || !hlsUrl) return;
+      
+      // Prevent concurrent initialization
+      if (initializingRef.current) return;
+      initializingRef.current = true;
       
       setIsLoading(true);
       setError(null);
@@ -224,6 +247,7 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
         setPlaybackMethod('native');
         video.src = hlsUrl;
         console.log('[UniversalHLS] Using NATIVE HLS playback (Safari/iOS)');
+        initializingRef.current = false;
       } else if (hlsJsSupport) {
         // Chrome/Firefox/Edge - use hls.js
         setPlaybackMethod('hlsjs');
@@ -242,9 +266,10 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
         
         hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
           console.log(`[UniversalHLS] Manifest parsed - ${data.levels.length} quality levels`);
+          initializingRef.current = false;
           if (mountedRef.current) {
             setIsLoading(false);
-            onReady?.();
+            onReadyRef.current?.();
             if (autoPlay) {
               safePlay(video);
             }
@@ -255,6 +280,7 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
           console.error('[UniversalHLS] HLS.js error:', data);
           
           if (data.fatal) {
+            initializingRef.current = false;
             switch (data.type) {
               case Hls.ErrorTypes.NETWORK_ERROR:
                 // Try to recover
@@ -264,7 +290,7 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
                   hls.startLoad();
                 } else {
                   setError('Network error - unable to load video');
-                  onError?.('Network error');
+                  onErrorRef.current?.('Network error');
                 }
                 break;
               case Hls.ErrorTypes.MEDIA_ERROR:
@@ -273,7 +299,7 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
                 break;
               default:
                 setError('Fatal playback error');
-                onError?.('Fatal error');
+                onErrorRef.current?.('Fatal error');
                 break;
             }
           }
@@ -291,17 +317,19 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
         console.log('[UniversalHLS] Using HLS.JS playback (Chrome/Firefox/Edge)');
       } else {
         // No HLS support at all - rare edge case
+        initializingRef.current = false;
         setError('Your browser does not support HLS video playback');
-        onError?.('HLS not supported');
+        onErrorRef.current?.('HLS not supported');
       }
       
       return () => {
+        initializingRef.current = false;
         if (hlsRef.current) {
           hlsRef.current.destroy();
           hlsRef.current = null;
         }
       };
-    }, [hlsUrl, autoPlay, onError, onReady]);
+    }, [hlsUrl, autoPlay, masterAudioUrl]);
     
     // Video event listeners
     useEffect(() => {
@@ -317,7 +345,8 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
         // For native HLS, this is when we're ready
         if (playbackMethod === 'native') {
           setIsLoading(false);
-          onReady?.();
+          initializingRef.current = false;
+          onReadyRef.current?.();
           if (autoPlay) {
             safePlay(video);
           }
@@ -328,7 +357,7 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
         if (!mountedRef.current) return;
         const time = video.currentTime;
         setCurrentTime(time);
-        onTimeUpdate?.(time, duration);
+        onTimeUpdateRef.current?.(time, duration);
         
         // Update buffered amount
         if (video.buffered.length > 0) {
@@ -340,7 +369,7 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
       const handlePlay = () => {
         if (!mountedRef.current) return;
         setIsPlaying(true);
-        onPlay?.();
+        onPlayRef.current?.();
         
         // Sync master audio
         if (audioRef.current && masterAudioUrl) {
@@ -352,7 +381,7 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
       const handlePause = () => {
         if (!mountedRef.current) return;
         setIsPlaying(false);
-        onPause?.();
+        onPauseRef.current?.();
         if (audioRef.current) {
           audioRef.current.pause();
         }
@@ -362,7 +391,7 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
         if (!mountedRef.current) return;
         setIsPlaying(false);
         console.log('[UniversalHLS] Playback ended');
-        onEnded?.();
+        onEndedRef.current?.();
       };
       
       const handleError = (e: Event) => {
@@ -373,7 +402,7 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
           console.error('[UniversalHLS] Native error:', errorMessage);
           setError(errorMessage);
           setIsLoading(false);
-          onError?.(errorMessage);
+          onErrorRef.current?.(errorMessage);
         }
       };
       
@@ -408,7 +437,7 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
         video.removeEventListener('waiting', handleWaiting);
         video.removeEventListener('canplay', handleCanPlay);
       };
-    }, [autoPlay, duration, masterAudioUrl, onEnded, onError, onPause, onPlay, onTimeUpdate, onReady, playbackMethod]);
+    }, [autoPlay, duration, masterAudioUrl, playbackMethod]);
     
     // Sync master audio with video
     useEffect(() => {

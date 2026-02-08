@@ -11,12 +11,13 @@ import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Search, Users, Video, Play, Heart, 
-  TrendingUp, Sparkles, Clock 
+  TrendingUp, Sparkles, Clock, X 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import CreatorsBackground from '@/components/creators/CreatorsBackground';
 import { CreatorsHero } from '@/components/creators/CreatorsHero';
+import { UniversalVideoPlayer } from '@/components/player';
 
 const glassCard = "backdrop-blur-xl bg-white/[0.03] border border-white/[0.08]";
 
@@ -24,6 +25,12 @@ export default function Creators() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [selectedVideo, setSelectedVideo] = useState<{
+    id: string;
+    title: string;
+    creator?: { display_name: string | null; avatar_url: string | null };
+  } | null>(null);
+  
   const { data: creators, isLoading: creatorsLoading } = useCreatorDiscovery(debouncedQuery);
   const { data: feedVideos, isLoading: feedLoading } = useFollowingFeed();
 
@@ -116,7 +123,12 @@ export default function Creators() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
                         transition={{ delay: index * 0.05 }}
-                        className={cn("group rounded-2xl overflow-hidden", glassCard)}
+                        className={cn("group rounded-2xl overflow-hidden cursor-pointer", glassCard)}
+                        onClick={() => setSelectedVideo({
+                          id: video.id,
+                          title: video.title,
+                          creator: video.creator,
+                        })}
                       >
                         {/* Thumbnail with fallback chain */}
                         <div className="relative aspect-video overflow-hidden">
@@ -156,6 +168,7 @@ export default function Creators() {
                           <Link 
                             to={`/user/${video.user_id}`}
                             className="flex items-center gap-2 group/creator"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <Avatar className="w-6 h-6">
                               <AvatarImage src={video.creator?.avatar_url || undefined} />
@@ -260,6 +273,55 @@ export default function Creators() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Video Player Modal - Uses UniversalVideoPlayer with projectId for multi-clip playback */}
+      <AnimatePresence>
+        {selectedVideo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+            onClick={() => setSelectedVideo(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative w-full max-w-4xl mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute -top-12 right-0 text-white hover:bg-white/10"
+                onClick={() => setSelectedVideo(null)}
+              >
+                <X className="w-6 h-6" />
+              </Button>
+
+              {/* Video title and creator */}
+              <div className="mb-4">
+                <h2 className="text-xl font-semibold text-white">{selectedVideo.title}</h2>
+                {selectedVideo.creator?.display_name && (
+                  <p className="text-white/60 text-sm">by {selectedVideo.creator.display_name}</p>
+                )}
+              </div>
+
+              {/* UniversalVideoPlayer with projectId for ALL clips */}
+              <div className="rounded-xl overflow-hidden bg-black aspect-video">
+                <UniversalVideoPlayer
+                  source={{ projectId: selectedVideo.id }}
+                  mode="inline"
+                  autoPlay
+                  className="w-full h-full"
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

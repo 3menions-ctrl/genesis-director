@@ -134,8 +134,10 @@ export default function UserProfile() {
                     disabled={followUser.isPending || unfollowUser.isPending}
                     variant={profile.is_following ? "outline" : "default"}
                     className={cn(
-                      "gap-2",
-                      !profile.is_following && "bg-violet-600 hover:bg-violet-700"
+                      "gap-2 text-white",
+                      profile.is_following 
+                        ? "border-white/20 hover:bg-white/10 hover:text-white" 
+                        : "bg-violet-600 hover:bg-violet-700"
                     )}
                   >
                     {profile.is_following ? (

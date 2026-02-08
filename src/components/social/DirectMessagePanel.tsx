@@ -234,7 +234,7 @@ export function MessageUserButton({
         onClick={() => setIsOpen(true)}
         variant="outline"
         className={cn(
-          "border-white/10 hover:bg-white/5",
+          "border-white/20 text-white hover:bg-white/10 hover:text-white",
           className
         )}
       >

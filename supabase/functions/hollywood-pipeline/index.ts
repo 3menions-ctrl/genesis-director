@@ -795,7 +795,7 @@ async function runPreProduction(
   // This is a specialized 3-clip narrative with mandatory structure:
   // Clip 1: Avatar inside the platform UI
   // Clip 2: Glass/screen shattering effect
-  // Clip 3: Avatar fully emerged, direct eye contact
+  // Clip 3: Avatar fully emerged, direct eye contact, SPEAKING the user's dialogue
   } else if (request.isBreakout && request.breakoutStartImageUrl && request.breakoutPlatform) {
     console.log(`[Hollywood] 🔥 BREAKOUT TEMPLATE DETECTED: ${request.breakoutPlatform}`);
     console.log(`[Hollywood] Using platform UI as starting frame: ${request.breakoutStartImageUrl.substring(0, 60)}...`);
@@ -807,7 +807,16 @@ async function runPreProduction(
     // Generate platform-specific breakout prompts
     const platformConfig = getBreakoutPlatformConfig(request.breakoutPlatform);
     
+    // User's dialogue - what the avatar will SAY after breaking through
+    // This comes from the prompt/concept field which user enters in the UI
+    const userDialogue = request.concept?.trim() || '';
+    const hasDialogue = userDialogue.length > 0;
+    
+    console.log(`[Hollywood] User dialogue for breakout: "${userDialogue.substring(0, 80)}${userDialogue.length > 80 ? '...' : ''}"`);
+    
     // Build the 3-clip breakout narrative with cinematic quality
+    // Clips 1 and 2 are silent (visual action only)
+    // Clip 3 has the user's dialogue when the avatar speaks after emerging
     const breakoutShots = [
       {
         id: 'breakout_1',
@@ -815,13 +824,13 @@ async function runPreProduction(
         description: `${platformConfig.clip1Prompt}. Ultra high resolution, photorealistic ${request.breakoutPlatform} interface with authentic UI elements. The character is visible within the digital frame, looking at the camera with building intensity. ${platformConfig.colorDescription}. Dramatic lighting with subtle glow from screen elements.`,
         durationSeconds: state.clipDuration,
         mood: 'tension',
-        dialogue: '',
+        dialogue: '', // Silent - visual buildup only
         sceneContext: {
           actionPhase: 'establish' as const,
           previousAction: '',
           currentAction: 'Character trapped inside social media interface, beginning to push against the digital boundary',
           nextAction: 'Screen will shatter as character breaks through',
-          characterDescription: request.concept || 'Confident character',
+          characterDescription: 'Confident character',
           locationDescription: `Inside ${request.breakoutPlatform} interface`,
           lightingDescription: platformConfig.lightingDescription,
         },
@@ -832,30 +841,30 @@ async function runPreProduction(
         description: `${platformConfig.clip2Prompt}. Dramatic glass shattering effect as character punches through the ${request.breakoutPlatform} interface. Shards of glass and digital fragments explode outward in slow motion. ${platformConfig.colorDescription}. Light bursts through the cracks. Powerful, confident movement. Cinematic action sequence quality.`,
         durationSeconds: state.clipDuration,
         mood: 'action',
-        dialogue: '',
+        dialogue: '', // Silent - action sequence
         sceneContext: {
           actionPhase: 'peak' as const,
           previousAction: 'Character was inside the interface',
           currentAction: 'Explosive breakout moment, shattering through the digital barrier',
           nextAction: 'Character will emerge fully into reality',
-          characterDescription: request.concept || 'Powerful character breaking free',
+          characterDescription: 'Powerful character breaking free',
           locationDescription: 'Breaking through digital interface',
           lightingDescription: platformConfig.shatterLightingDescription,
         },
       },
       {
         id: 'breakout_3',
-        title: 'Emerged',
-        description: `${platformConfig.clip3Prompt}. Character has fully emerged from the shattered ${request.breakoutPlatform} interface. Glass shards settling around them. Direct, confident eye contact with viewer. Powerful presence. ${platformConfig.colorDescription} light reflecting off glass fragments. Hero pose, commanding attention. Premium advertising quality.`,
+        title: 'Emerged & Speaking',
+        description: `${platformConfig.clip3Prompt}. Character has fully emerged from the shattered ${request.breakoutPlatform} interface. Glass shards settling around them. Direct, confident eye contact with viewer. ${hasDialogue ? 'Speaking directly to the audience with confidence.' : 'Powerful presence.'} ${platformConfig.colorDescription} light reflecting off glass fragments. Hero pose, commanding attention. Premium advertising quality.`,
         durationSeconds: state.clipDuration,
         mood: 'epic',
-        dialogue: '',
+        dialogue: userDialogue, // CRITICAL: User's actual dialogue goes here
         sceneContext: {
           actionPhase: 'settle' as const,
           previousAction: 'Character broke through the interface',
-          currentAction: 'Victorious emergence, direct connection with viewer',
+          currentAction: hasDialogue ? 'Delivering message directly to viewer after triumphant emergence' : 'Victorious emergence, direct connection with viewer',
           nextAction: '',
-          characterDescription: request.concept || 'Triumphant character',
+          characterDescription: 'Triumphant character speaking to camera',
           locationDescription: 'Reality, with shattered interface fragments',
           lightingDescription: platformConfig.lightingDescription,
         },
@@ -866,7 +875,7 @@ async function runPreProduction(
     
     // Store scene consistency for breakout
     state.sceneConsistency = {
-      character: request.concept || 'Confident, powerful character',
+      character: 'Confident, powerful character',
       location: `${request.breakoutPlatform} platform interface breakout`,
       lighting: platformConfig.lightingDescription,
     };
@@ -879,6 +888,12 @@ async function runPreProduction(
     
     // Store breakout metadata in environment prompt
     request.environmentPrompt = `${request.breakoutPlatform} social media interface environment. ${platformConfig.uiElements}. ${platformConfig.colorDescription}. Character breaking through digital barrier into reality.`;
+    
+    // CRITICAL: If user provided dialogue, enable narration for TTS generation
+    if (hasDialogue) {
+      request.includeVoice = true;
+      console.log(`[Hollywood] ✓ Breakout dialogue enabled for TTS: ${userDialogue.length} chars`);
+    }
     
     console.log(`[Hollywood] ✓ Breakout script generated: ${state.script.shots.length} shots with platform-specific prompts`);
     console.log(`[Hollywood] ✓ Reference image set to platform UI mockup`);

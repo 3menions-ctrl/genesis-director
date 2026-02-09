@@ -43,37 +43,52 @@ export interface BreakoutTemplateConfig {
   };
 }
 
+/**
+ * VIRAL-GRADE BREAKOUT TEMPLATES v2.0
+ * 
+ * Upgraded for world-class output:
+ * - Dynamic camera movements (never static)
+ * - Explosive VFX language
+ * - Strong motion direction
+ * - Identity lock enforcement
+ * - Cinematic lighting specifications
+ */
 export const BREAKOUT_TEMPLATES: Record<string, BreakoutTemplateConfig> = {
   'post-escape': {
     id: 'post-escape',
     effectType: 'post-escape',
     name: 'Post Escape',
-    description: 'Avatar trapped in a social post, presses against the glass, then SMASHES through into reality',
-    clip1Prompt: `Person physically TRAPPED INSIDE a social media post, pressing against glass from inside.
-      UI elements as separate depth layer. Hands pressed flat against barrier, intense eye contact.`,
-    clip2Prompt: `EXPLOSIVE BREAKTHROUGH: Glass and UI fragments SHATTER toward viewer in slow motion.
-      Character's arms emerging through broken barrier, dramatic volumetric lighting.`,
-    clip3Prompt: `Triumphant emergence: Standing confidently with shattered UI debris settling.
-      Direct eye contact, hero lighting, speaking to camera.`,
+    description: 'Avatar SMASHES through social media interface into reality with explosive glass-shattering action',
+    clip1Prompt: `CAMERA: Slow DOLLY PUSH-IN toward subject, claustrophobic tension.
+      Person TRAPPED INSIDE social post interface, pressing against glass barrier.
+      UI as SEPARATE DEPTH LAYER. Hands SLOWLY PRESSING harder, breath fogging glass.
+      Dramatic rim light, cyan UI glow. Eyes LOCKING on camera with building intensity.`,
+    clip2Prompt: `CAMERA: Dynamic TRACKING with DUTCH ANGLE for chaos.
+      Character SMASHES THROUGH with FULL BODY FORCE. Glass shards EXPLODING TOWARD VIEWER in 120fps slow-mo.
+      UI buttons SHATTERING into pixel fragments. Volumetric dust explosion.
+      EXPLOSIVE backlighting flooding through cracks.`,
+    clip3Prompt: `CAMERA: Hero CRANE SHOT rising to eye level - triumphant reveal.
+      POWERFUL STEP FORWARD toward camera. Shattered UI debris settling.
+      Premium hero lighting - key, fill, dramatic rim. Speaking with commanding conviction.`,
     visualElements: [
-      'Social post frame',
-      'Like button',
-      'Comment section',
-      'Glass shards',
-      'Digital debris'
+      'Shattering like buttons',
+      'Exploding comment icons',
+      'Glass shards with pixel debris',
+      'Volumetric light rays',
+      'Dynamic camera movement'
     ],
     colorPalette: {
-      primary: '#1877F2',
+      primary: '#0066FF',
       secondary: '#FFFFFF',
-      accent: '#42B72A'
+      accent: '#00D4FF'
     },
     aspectRatio: '1:1',
     clipStructure: {
       clipCount: 3,
       clipDescriptions: [
-        'Trapped behind social post glass, building tension',
-        'Glass shattering, UI fragments exploding toward viewer',
-        'Fully emerged, confident, speaking directly to camera'
+        'Claustrophobic trap - dolly push-in, building tension',
+        'Explosive breakthrough - tracking shot, glass shattering toward viewer',
+        'Triumphant emergence - crane shot, hero lighting, commanding presence'
       ]
     }
   },
@@ -82,19 +97,25 @@ export const BREAKOUT_TEMPLATES: Record<string, BreakoutTemplateConfig> = {
     id: 'scroll-grab',
     effectType: 'scroll-grab',
     name: 'Scroll Grab',
-    description: 'Avatar reaches OUT of vertical video and grabs the screen edge to pull themselves through',
-    clip1Prompt: `Person inside phone screen video, HAND reaching OUT toward viewer, pressing against screen boundary.
-      Neon pink and cyan glow. The hand creating 3D bulge in screen surface.`,
-    clip2Prompt: `Arm PUNCHES THROUGH screen, hand GRABBING device edge. Glass shattering with neon colors.
-      Character pulling themselves through, athletic movement, screen material stretching.`,
-    clip3Prompt: `Pulled fully OUT of phone, landing in dynamic pose. Shattered screen behind.
-      Neon reflections, influencer energy, speaking to camera with confidence.`,
+    description: 'Avatar PUNCHES through vertical video screen and GRABS the edge to pull themselves into reality',
+    clip1Prompt: `CAMERA: PUSH-IN with HANDHELD energy, viral urgency.
+      Person inside phone screen, HAND reaches OUT creating 3D BULGE in glass.
+      NEON PINK and CYAN rim glow. Fingers PRESSING harder, glass WARPING.
+      Mischievous eye contact, about-to-break-free energy.`,
+    clip2Prompt: `CAMERA: WHIP PAN following explosive action.
+      Fist SMASHING through in glass burst. Fingers GRIPPING phone bezel.
+      Body PULLING FORWARD with parkour energy. Screen TEARING like liquid crystal.
+      NEON fragments EXPLODING in dual-tone light trails.`,
+    clip3Prompt: `CAMERA: ORBIT RIGHT around subject with dynamic energy.
+      Athletic LANDING with slight crouch. Rising with confident SWAGGER.
+      Shattered phone behind, neon reflections on debris.
+      Speaking with influencer energy, commanding the frame.`,
     visualElements: [
-      'Phone screen edge',
-      'Vertical video UI',
-      'Neon reflections',
-      'Glass fragments',
-      'Hand bulge effect'
+      'Phone bezel grab',
+      'Neon pink/cyan explosion',
+      'Liquid crystal tear',
+      'Athletic movement',
+      'Orbit camera motion'
     ],
     colorPalette: {
       primary: '#00F2EA',
@@ -105,9 +126,9 @@ export const BREAKOUT_TEMPLATES: Record<string, BreakoutTemplateConfig> = {
     clipStructure: {
       clipCount: 3,
       clipDescriptions: [
-        'Hand reaching out of phone screen, pressing against barrier',
-        'Grabbing screen edge, pulling through with athletic motion',
-        'Emerged from phone, dynamic landing, speaking to camera'
+        'Hand pressing through screen - push-in, glass warping',
+        'Explosive grab and pull - whip pan, neon shattering',
+        'Dynamic landing - orbit shot, influencer energy'
       ]
     }
   },
@@ -116,19 +137,25 @@ export const BREAKOUT_TEMPLATES: Record<string, BreakoutTemplateConfig> = {
     id: 'freeze-walk',
     effectType: 'freeze-walk',
     name: 'Freeze & Walk',
-    description: 'Avatar freezes in a video call while others keep moving, then steps OUT of their box into 3D space',
-    clip1Prompt: `Video conference grid, ONE person FROZEN in grey-scale while others move in color.
-      The frozen person's eyes lock on camera, body beginning to glow at edges. Supernatural tension.`,
-    clip2Prompt: `Frozen person STEPS FORWARD, emerging from video box into 3D space.
-      Color returning as they become solid. Empty chair in box behind. Portal effect at boundary.`,
-    clip3Prompt: `Standing in 3D space in front of video call grid, others oblivious.
-      Confident stance, fading glow, speaking with authority. Corporate magic.`,
+    description: 'Avatar FREEZES in video call while others move, then STEPS OUT of their box into 3D reality',
+    clip1Prompt: `CAMERA: Slow PUSH-IN toward frozen figure, supernatural tension.
+      Video conference grid - ONE person FROZEN in GREYSCALE while others move in COLOR.
+      Eyes SLOWLY MOVING to lock on camera. Body GLOWING at edges.
+      Particles rising around silhouette. Uncanny knowing gaze.`,
+    clip2Prompt: `CAMERA: TRACKING SHOT following emergence, 2D to 3D perspective shift.
+      Frozen person STEPS FORWARD out of video box into real 3D space.
+      Color FLOODING BACK as they emerge. Portal GLOW at boundary.
+      Empty chair visible in their abandoned box.`,
+    clip3Prompt: `CAMERA: DOLLY BACK establishing composition, then SETTLE centered.
+      Confident STANCE in 3D space, video grid continuing behind.
+      Premium corporate lighting. Subtle glow fading.
+      Speaking with calm authority, commanding presence.`,
     visualElements: [
       'Video call grid',
-      'Participant boxes',
-      'Mute icons',
-      'Video controls',
-      '2D/3D boundary glow'
+      'Greyscale to color transformation',
+      'Portal glow boundary',
+      'Empty chair reveal',
+      'Dimensional stepping'
     ],
     colorPalette: {
       primary: '#4A5568',
@@ -139,9 +166,9 @@ export const BREAKOUT_TEMPLATES: Record<string, BreakoutTemplateConfig> = {
     clipStructure: {
       clipCount: 3,
       clipDescriptions: [
-        'Frozen in video call while others move, eyes locking on camera',
-        'Stepping out of video box into 3D space, color returning',
-        'Standing before video grid, speaking with authority'
+        'Supernatural freeze - push-in, greyscale with color contrast',
+        '2D to 3D emergence - tracking shot, portal glow',
+        'Corporate transcendence - dolly back, authority stance'
       ]
     }
   },
@@ -150,19 +177,27 @@ export const BREAKOUT_TEMPLATES: Record<string, BreakoutTemplateConfig> = {
     id: 'reality-rip',
     effectType: 'reality-rip',
     name: 'Reality Rip',
-    description: 'Reality TEARS like fabric, avatar silhouette emerges through the glowing rip with power',
-    clip1Prompt: `Dark void with glowing TEAR forming in reality fabric. Through the tear, silhouette visible, backlit.
-      Tear edges glowing with energy and digital glitches. Building power.`,
-    clip2Prompt: `Reality RIPS WIDE OPEN, person STEPS THROUGH with power. Energy crackling at tear edges.
-      Light exploding outward, body solid emerging from pure light. Godlike entrance.`,
-    clip3Prompt: `Standing in reality, tear sealing behind, energy wisps fading. Commanding superhero presence.
-      Direct intense eye contact, speaking with authority. MORE real than surroundings.`,
+    description: 'Avatar TEARS through the fabric of reality with godlike power and explosive light',
+    clip1Prompt: `CAMERA: Slow CRANE DOWN into void, godlike anticipation.
+      Pure darkness with glowing TEAR in reality fabric.
+      SILHOUETTE backlit through rift. Hands GRIPPING tear edges.
+      Energy CRACKLING, digital glitch fragments floating.
+      BLINDING backlight, near-total darkness contrast.`,
+    clip2Prompt: `CAMERA: EXPLOSIVE PUSH-IN through chaos.
+      Reality TEARS OPEN. Person SURGES through with godlike power.
+      Arms SPREADING wide. Energy EXPLODING outward.
+      SUPERNOVA light burst. Reality shards FLYING.
+      Body SOLIDIFYING - becoming MORE REAL than surroundings.`,
+    clip3Prompt: `CAMERA: HEROIC LOW ANGLE with TILT UP emphasizing power.
+      Powerful STANCE as tear SEALS behind. Energy wisps fading.
+      Subject MORE VIVID than reality. Floating light particles settling.
+      Speaking with world-changing authority.`,
     visualElements: [
-      'Reality tear',
-      'Glowing edges',
-      'Digital glitches',
-      'Light explosion',
-      'Reality fragments'
+      'Reality tear with energy',
+      'Supernova light burst',
+      'Digital glitch fragments',
+      'Godlike emergence',
+      'Low angle hero shot'
     ],
     colorPalette: {
       primary: '#FFFFFF',
@@ -173,9 +208,9 @@ export const BREAKOUT_TEMPLATES: Record<string, BreakoutTemplateConfig> = {
     clipStructure: {
       clipCount: 3,
       clipDescriptions: [
-        'Glowing tear forming in reality, silhouette visible through',
-        'Reality ripping open, stepping through with power',
-        'Emerged, tear sealing, speaking with commanding presence'
+        'Tear forming - crane down, silhouette backlit',
+        'Godlike emergence - push-in, supernova explosion',
+        'Powerful arrival - low angle, commanding presence'
       ]
     }
   },
@@ -184,19 +219,26 @@ export const BREAKOUT_TEMPLATES: Record<string, BreakoutTemplateConfig> = {
     id: 'aspect-escape',
     effectType: 'aspect-escape',
     name: 'Aspect Ratio Escape',
-    description: 'Avatar STEPS ACROSS the boundary between vertical and horizontal video formats',
-    clip1Prompt: `Vertical phone video format, person PUSHING against the format boundary.
-      Shoulder pressing against 9:16 edge, dimensional distortion where they push. Reality bending.`,
-    clip2Prompt: `STEPPING THROUGH aspect ratio boundary, one foot in vertical, body emerging into horizontal.
-      Boundary SHATTERING, vertical and horizontal realities colliding. Dimensional light at intersection.`,
-    clip3Prompt: `Standing in widescreen horizontal reality, escaped vertical confinement.
-      Shattered format lines fading. Full cinematic composition, confident eye contact, speaking to camera.`,
+    description: 'Avatar SHATTERS the boundary between vertical and horizontal video formats',
+    clip1Prompt: `CAMERA: Static then SUBTLE PUSH as tension builds.
+      Vertical 9:16 format - person PUSHING against aspect ratio edge.
+      Shoulder PRESSING, body STRAINING. Format BULGING from pressure.
+      Reality BENDING at boundary. Flat phone-lighting emphasizing limitation.`,
+    clip2Prompt: `CAMERA: DRAMATIC WHIP from vertical to horizontal.
+      FORMAT SHATTERS. Powerful STEP crossing 9:16 into 16:9.
+      Vertical frame BREAKING like glass around them.
+      Dimensional light where formats COLLIDE. Quality TRANSFORMATION visible.`,
+    clip3Prompt: `CAMERA: CINEMATIC TRACKING establishing widescreen freedom.
+      Arms SWEEPING to embrace full frame width.
+      Shattered 9:16 fragments FADING behind.
+      PREMIUM cinema lighting - Rembrandt key. Full cinematic movement.
+      Speaking with liberated confidence.`,
     visualElements: [
-      'Aspect ratio edges',
-      'Format distortion',
-      'Dimensional boundary',
-      'Shattered format lines',
-      'Reality collision'
+      'Aspect ratio barrier',
+      'Format shattering',
+      'Dimensional collision',
+      'Quality transformation',
+      'Widescreen liberation'
     ],
     colorPalette: {
       primary: '#3B82F6',
@@ -207,9 +249,9 @@ export const BREAKOUT_TEMPLATES: Record<string, BreakoutTemplateConfig> = {
     clipStructure: {
       clipCount: 3,
       clipDescriptions: [
-        'Pushing against vertical format boundary, dimension warping',
-        'Stepping through format boundary, realities colliding',
-        'Free in widescreen, format shards fading, speaking to camera'
+        'Format strain - push against 9:16 boundaries',
+        'Dimensional breakthrough - whip pan, format collision',
+        'Cinematic freedom - tracking shot, widescreen celebration'
       ]
     }
   }

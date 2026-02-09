@@ -5,12 +5,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+
 /**
  * SYNC MUSIC TO SCENES - World-Class Audio-Visual Synchronization
  * 
  * Analyzes scene content and creates a professional music scoring plan
  * with emotional beats, timing markers, and cue points for Hans Zimmer-level
  * synchronization between visuals and music.
+ * 
+ * NOW INTEGRATES with scene-music-analyzer for AI-powered scene understanding.
  */
 
 interface ShotInfo {
@@ -28,6 +33,7 @@ interface MusicSyncRequest {
   overallMood?: string;
   tempoPreference?: 'slow' | 'moderate' | 'fast' | 'dynamic';
   includeDialogueDucking?: boolean;
+  useAIAnalysis?: boolean; // NEW: Enable AI-powered scene analysis
 }
 
 interface EmotionalBeat {
@@ -114,10 +120,47 @@ serve(async (req) => {
 
   try {
     const request: MusicSyncRequest = await req.json();
-    const { shots, totalDuration, overallMood, tempoPreference, includeDialogueDucking } = request;
+    const { shots, totalDuration, overallMood, tempoPreference, includeDialogueDucking, useAIAnalysis } = request;
 
     console.log(`[MusicSync] Analyzing ${shots.length} shots for music synchronization`);
     console.log(`[MusicSync] Total duration: ${totalDuration}s, Mood: ${overallMood || 'cinematic'}`);
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // NEW: Use AI-powered scene-music-analyzer for more accurate recommendations
+    // ═══════════════════════════════════════════════════════════════════════════
+    let aiRecommendation: any = null;
+    if (useAIAnalysis !== false && shots.length > 0) {
+      try {
+        console.log(`[MusicSync] 🤖 Calling scene-music-analyzer for AI analysis...`);
+        
+        // Build combined scene description for AI analysis
+        const combinedDescription = shots.map(s => s.description || '').join('. ');
+        const combinedDialogue = shots.map(s => s.dialogue || '').filter(Boolean).join(' ');
+        
+        const analyzerResponse = await fetch(`${supabaseUrl}/functions/v1/scene-music-analyzer`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({
+            sceneDescription: combinedDescription.substring(0, 2000),
+            dialogueContent: combinedDialogue.substring(0, 1000),
+            projectGenre: overallMood,
+          }),
+        });
+        
+        if (analyzerResponse.ok) {
+          const analyzerResult = await analyzerResponse.json();
+          if (analyzerResult.success && analyzerResult.recommendation) {
+            aiRecommendation = analyzerResult.recommendation;
+            console.log(`[MusicSync] 🎵 AI recommends: ${aiRecommendation.sceneType}, ${aiRecommendation.referenceComposer}, ${aiRecommendation.intensity}`);
+          }
+        }
+      } catch (aiError) {
+        console.warn(`[MusicSync] AI analysis skipped:`, aiError);
+      }
+    }
 
     // Analyze each shot for emotional content
     const emotionalBeats: EmotionalBeat[] = [];
@@ -211,32 +254,49 @@ serve(async (req) => {
       description: 'Finale: Build to resolution',
     });
 
-    // Determine scene type and reference composer
-    const sceneType = MOOD_TO_SCENE_TYPE[overallMood || 'cinematic'] || 'adventure-journey';
-    const referenceComposer = MOOD_TO_COMPOSER[overallMood || 'cinematic'] || 'hans-zimmer';
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DETERMINE SCENE TYPE AND COMPOSER (AI-enhanced when available)
+    // ═══════════════════════════════════════════════════════════════════════════
     
-    // Determine overall intensity
+    // Prefer AI recommendations if available, fallback to rule-based
+    const sceneType = aiRecommendation?.sceneType 
+      || MOOD_TO_SCENE_TYPE[overallMood || 'cinematic'] 
+      || 'adventure-journey';
+    const referenceComposer = aiRecommendation?.referenceComposer 
+      || MOOD_TO_COMPOSER[overallMood || 'cinematic'] 
+      || 'hans-zimmer';
+    
+    // Determine overall intensity (use AI if available)
     const avgIntensity = emotionalBeats.reduce((sum, b) => sum + b.intensity, 0) / emotionalBeats.length;
-    let intensity: 'subtle' | 'moderate' | 'intense' | 'explosive' = 'moderate';
-    if (avgIntensity < 0.3) intensity = 'subtle';
-    else if (avgIntensity < 0.6) intensity = 'moderate';
-    else if (avgIntensity < 0.85) intensity = 'intense';
-    else intensity = 'explosive';
+    let intensity: 'subtle' | 'moderate' | 'intense' | 'explosive' = aiRecommendation?.intensity || 'moderate';
+    if (!aiRecommendation) {
+      if (avgIntensity < 0.3) intensity = 'subtle';
+      else if (avgIntensity < 0.6) intensity = 'moderate';
+      else if (avgIntensity < 0.85) intensity = 'intense';
+      else intensity = 'explosive';
+    }
 
-    // Determine tempo
+    // Determine tempo (use AI if available)
     let recommendedTempo = '90-110 BPM';
-    if (tempoPreference === 'slow') recommendedTempo = '60-80 BPM';
+    if (aiRecommendation?.tempo === 'slow') recommendedTempo = '60-80 BPM';
+    else if (aiRecommendation?.tempo === 'fast') recommendedTempo = '130-160 BPM';
+    else if (aiRecommendation?.tempo === 'variable') recommendedTempo = 'Variable 70-140 BPM';
+    else if (tempoPreference === 'slow') recommendedTempo = '60-80 BPM';
     else if (tempoPreference === 'fast') recommendedTempo = '130-160 BPM';
     else if (tempoPreference === 'dynamic') recommendedTempo = 'Variable 70-140 BPM';
     else if (overallMood === 'action' || overallMood === 'epic') recommendedTempo = '120-150 BPM';
     else if (overallMood === 'emotional' || overallMood === 'romantic') recommendedTempo = '65-85 BPM';
+    
+    // Get emotional arc from AI or build from beats
+    const emotionalArc = aiRecommendation?.emotionalArc 
+      || `${emotionalBeats[0]?.emotion || 'neutral'} → ${emotionalBeats[Math.floor(emotionalBeats.length / 2)]?.emotion || 'building'} → ${emotionalBeats[emotionalBeats.length - 1]?.emotion || 'resolution'}`;
 
     // Build the sync plan
     const plan: MusicSyncPlan = {
       emotionalBeats,
       musicCues,
       timingMarkers,
-      overallArc: `${emotionalBeats[0]?.emotion || 'neutral'} → ${emotionalBeats[Math.floor(emotionalBeats.length / 2)]?.emotion || 'building'} → ${emotionalBeats[emotionalBeats.length - 1]?.emotion || 'resolution'}`,
+      overallArc: emotionalArc,
       recommendedTempo,
       recommendedKey: intensity === 'explosive' ? 'D minor (power)' : intensity === 'subtle' ? 'C major (warmth)' : 'A minor (emotion)',
       peakMoment,
@@ -244,12 +304,18 @@ serve(async (req) => {
       sceneType,
       intensity,
     };
+    
+    // Add AI-enhanced prompt if available
+    const aiPromptEnhancement = aiRecommendation?.customPromptEnhancement || '';
 
-    // Build optimized music prompt for generate-music
-    const musicPrompt = buildMusicPrompt(plan, overallMood || 'cinematic', totalDuration);
+    // Build optimized music prompt for generate-music (with AI enhancement)
+    const musicPrompt = buildMusicPrompt(plan, overallMood || 'cinematic', totalDuration, aiPromptEnhancement);
 
     console.log(`[MusicSync] ✅ Plan created: ${emotionalBeats.length} beats, ${musicCues.length} cues`);
     console.log(`[MusicSync] Scene type: ${sceneType}, Composer: ${referenceComposer}, Intensity: ${intensity}`);
+    if (aiRecommendation) {
+      console.log(`[MusicSync] 🤖 AI-enhanced with: ${aiRecommendation.mood} mood, confidence: ${aiRecommendation.confidence}`);
+    }
 
     return new Response(
       JSON.stringify({
@@ -279,7 +345,7 @@ serve(async (req) => {
   }
 });
 
-function buildMusicPrompt(plan: MusicSyncPlan, mood: string, duration: number): string {
+function buildMusicPrompt(plan: MusicSyncPlan, mood: string, duration: number, aiEnhancement?: string): string {
   const parts: string[] = [];
   
   // Composer reference
@@ -307,6 +373,11 @@ function buildMusicPrompt(plan: MusicSyncPlan, mood: string, duration: number): 
   
   // Peak moment guidance
   parts.push(`peak climax at ${Math.round(plan.peakMoment)}s mark`);
+  
+  // AI-enhanced prompt addition (if available)
+  if (aiEnhancement && aiEnhancement.trim().length > 0) {
+    parts.push(aiEnhancement);
+  }
   
   // Production quality
   parts.push('professional Hollywood film score production, studio recorded quality');

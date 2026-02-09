@@ -72,16 +72,18 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
       <div className="bg-black/60 backdrop-blur-2xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="h-16 flex items-center justify-between">
-            {/* Logo - AS Monogram */}
+            {/* Logo */}
             <Link 
               to="/projects"
               className="flex items-center gap-3 group"
             >
               <div className="relative">
                 <div className="absolute inset-0 bg-white/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative w-10 h-10 rounded-xl bg-white flex items-center justify-center group-hover:bg-white/90 transition-all shadow-lg">
-                  <span className="text-lg font-black text-black tracking-tighter">A-S</span>
-                </div>
+                <img 
+                  src="/apex-studio-logo.png" 
+                  alt="Apex Studio" 
+                  className="relative w-10 h-10 object-contain group-hover:scale-105 transition-transform"
+                />
               </div>
               <span className="text-lg font-bold text-white tracking-tight hidden sm:block">Apex-Studio</span>
             </Link>

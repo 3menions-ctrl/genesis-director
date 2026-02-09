@@ -1,5 +1,6 @@
 import { forwardRef, memo } from 'react';
 import { Link } from 'react-router-dom';
+import { Logo } from '@/components/ui/Logo';
 
 const Footer = memo(forwardRef<HTMLElement, Record<string, never>>(
   function Footer(_, ref) {
@@ -8,12 +9,7 @@ const Footer = memo(forwardRef<HTMLElement, Record<string, never>>(
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start gap-12">
             {/* Brand */}
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-md bg-white flex items-center justify-center">
-                <span className="text-xs font-bold text-black">A-S</span>
-              </div>
-              <span className="text-sm font-medium text-white">Apex-Studio</span>
-            </div>
+            <Logo size="sm" showText textClassName="text-sm font-medium" />
 
             {/* Links */}
             <div className="flex flex-wrap gap-12 text-sm">

@@ -1,5 +1,6 @@
 import { memo, forwardRef } from 'react';
 import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/ui/Logo';
 
 const NAV_ITEMS = ['Features', 'Pricing', 'FAQ'] as const;
 
@@ -14,12 +15,7 @@ export const LandingNav = memo(forwardRef<HTMLElement, NavigationProps>(
     return (
       <nav ref={ref} className="fixed top-0 left-0 right-0 z-50 px-6 lg:px-12 py-5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
-              <span className="text-sm font-bold text-black">A-S</span>
-            </div>
-            <span className="text-base font-semibold text-white tracking-tight">Apex-Studio</span>
-          </div>
+          <Logo size="md" showText textClassName="text-base" />
 
           <div className="hidden md:flex items-center gap-8">
             {NAV_ITEMS.map((item) => (

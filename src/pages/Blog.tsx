@@ -5,6 +5,7 @@ import { ArrowLeft, Calendar, Clock, User, Tag, ChevronRight, Share2, BookOpen }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SafeMarkdownRenderer } from '@/components/content/SafeMarkdownRenderer';
+import { Logo } from '@/components/ui/Logo';
 
 // Import blog images
 import aiVideoEvolution from '@/assets/blog/ai-video-evolution.jpg';
@@ -405,10 +406,7 @@ export default function Blog() {
         <nav className="fixed top-0 left-0 right-0 z-50 px-6 lg:px-12 py-5">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
-                <span className="text-sm font-bold text-black">A-S</span>
-              </div>
-              <span className="text-base font-semibold text-white tracking-tight">Apex-Studio</span>
+              <Logo size="md" showText textClassName="text-base" />
             </Link>
           </div>
         </nav>
@@ -523,10 +521,7 @@ export default function Blog() {
       <nav className="fixed top-0 left-0 right-0 z-50 px-6 lg:px-12 py-5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
-                <span className="text-sm font-bold text-black">A-S</span>
-            </div>
-              <span className="text-base font-semibold text-white tracking-tight">Apex-Studio</span>
+            <Logo size="md" showText textClassName="text-base" />
           </Link>
 
           <div className="flex items-center gap-3">

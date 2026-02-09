@@ -39,18 +39,29 @@ export const TemplateAvatarSelector = memo(function TemplateAvatarSelector({
     return () => { mountedRef.current = false; };
   }, []);
 
-  const { templates, isLoading } = useAvatarTemplatesQuery({
-    search: searchQuery,
-  });
-
-  // Stable shuffle for consistent order
+  // Fetch ALL templates first, then filter client-side to avoid reference instability
+  const { allTemplates, isLoading } = useAvatarTemplatesQuery();
+  
+  // Stable shuffle - only recompute when allTemplates array identity changes
+  // allTemplates identity is stable from React Query cache
   const shuffledTemplates = useMemo(() => {
-    if (!templates || templates.length === 0) return [];
-    return shuffleAvatars(templates);
-  }, [templates]);
+    if (!allTemplates || allTemplates.length === 0) return [];
+    return shuffleAvatars(allTemplates);
+  }, [allTemplates]);
+  
+  // Client-side filtering on the already-shuffled list
+  const filteredTemplates = useMemo(() => {
+    if (!searchQuery.trim()) return shuffledTemplates;
+    const query = searchQuery.toLowerCase();
+    return shuffledTemplates.filter(avatar => 
+      avatar.name.toLowerCase().includes(query) ||
+      avatar.description?.toLowerCase().includes(query) ||
+      avatar.tags?.some(tag => tag.toLowerCase().includes(query))
+    );
+  }, [shuffledTemplates, searchQuery]);
 
   // Show first 20 avatars in compact mode, all in full mode
-  const displayTemplates = compact ? shuffledTemplates.slice(0, 20) : shuffledTemplates;
+  const displayTemplates = compact ? filteredTemplates.slice(0, 20) : filteredTemplates;
 
   const handleVoicePreview = useCallback(async (avatar: AvatarTemplate, e: React.MouseEvent) => {
     e.stopPropagation();

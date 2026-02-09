@@ -82,7 +82,7 @@ function CreateContentInner() {
     // Breakout template parameters
     isBreakout?: boolean;
     breakoutStartImageUrl?: string;
-    breakoutPlatform?: 'facebook' | 'youtube' | 'tiktok' | 'instagram';
+    breakoutPlatform?: string;
     // Avatar parameters for breakout templates
     avatarImageUrl?: string;
     avatarVoiceId?: string;

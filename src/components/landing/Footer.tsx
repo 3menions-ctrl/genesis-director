@@ -15,6 +15,7 @@ const Footer = memo(forwardRef<HTMLElement, Record<string, never>>(
             <div className="flex flex-wrap gap-12 text-sm">
               <div className="space-y-3">
                 <div className="text-white/30 text-xs uppercase tracking-wider">Product</div>
+                <Link to="/how-it-works" className="block text-white/50 hover:text-white transition-colors">How It Works</Link>
                 <a href="#pricing" className="block text-white/50 hover:text-white transition-colors">Pricing</a>
                 <a href="#faq" className="block text-white/50 hover:text-white transition-colors">FAQ</a>
               </div>

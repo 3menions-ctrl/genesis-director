@@ -1,8 +1,9 @@
 import { memo, forwardRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/ui/Logo';
 
-const NAV_ITEMS = ['Features', 'Pricing', 'FAQ'] as const;
+const SCROLL_ITEMS = ['Features', 'Pricing', 'FAQ'] as const;
 
 interface NavigationProps {
   onScrollToSection: (target: string) => void;
@@ -18,7 +19,7 @@ export const LandingNav = memo(forwardRef<HTMLElement, NavigationProps>(
           <Logo size="md" showText textClassName="text-base" />
 
           <div className="hidden md:flex items-center gap-8">
-            {NAV_ITEMS.map((item) => (
+            {SCROLL_ITEMS.map((item) => (
               <button 
                 key={item}
                 onClick={() => onScrollToSection(item.toLowerCase())}
@@ -27,6 +28,12 @@ export const LandingNav = memo(forwardRef<HTMLElement, NavigationProps>(
                 {item}
               </button>
             ))}
+            <Link
+              to="/how-it-works"
+              className="text-sm text-white/50 hover:text-white transition-colors"
+            >
+              How It Works
+            </Link>
           </div>
 
           <div className="flex items-center gap-3">

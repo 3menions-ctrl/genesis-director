@@ -61,6 +61,11 @@ interface PipelineRequest {
   preserveUserContent?: boolean;
   isAvatarMode?: boolean;
   characterVoiceMap?: Record<string, string>;
+  // Breakout template parameters - for platform UI shattering effect
+  // Avatar appears inside social media interface, then breaks through
+  isBreakout?: boolean;
+  breakoutStartImageUrl?: string; // Platform interface image (Facebook post, YouTube player, etc.)
+  breakoutPlatform?: 'facebook' | 'youtube' | 'tiktok' | 'instagram';
 }
 
 interface ExtractedCharacter {
@@ -193,6 +198,63 @@ interface PipelineState {
   };
   finalVideoUrl?: string;
   error?: string;
+}
+
+// =====================================================
+// BREAKOUT TEMPLATE PLATFORM CONFIGURATIONS
+// Platform-specific visual prompts for the 3-clip breakout narrative
+// =====================================================
+interface BreakoutPlatformConfig {
+  clip1Prompt: string;
+  clip2Prompt: string;
+  clip3Prompt: string;
+  colorDescription: string;
+  lightingDescription: string;
+  shatterLightingDescription: string;
+  uiElements: string;
+}
+
+function getBreakoutPlatformConfig(platform: 'facebook' | 'youtube' | 'tiktok' | 'instagram'): BreakoutPlatformConfig {
+  const configs: Record<string, BreakoutPlatformConfig> = {
+    facebook: {
+      clip1Prompt: 'Character trapped inside Facebook post interface, white card with blue header bar, profile picture circle visible, Like/Comment/Share buttons at bottom, pressing hands against the screen boundary',
+      clip2Prompt: 'Character punches through Facebook interface, glass shattering with blue lighting bursts, Facebook blue (#1877F2) light rays exploding outward',
+      clip3Prompt: 'Character emerged from shattered Facebook interface, glass shards with blue reflections settling, Facebook UI fragments visible',
+      colorDescription: 'Facebook blue (#1877F2) and white color scheme',
+      lightingDescription: 'Dramatic blue accent lighting from Facebook interface elements',
+      shatterLightingDescription: 'Explosive blue light bursting through cracks, white glass shards',
+      uiElements: 'Facebook blue header bar, profile picture circle, Like button with thumb icon, Comment button, Share button, white post card background',
+    },
+    youtube: {
+      clip1Prompt: 'Character inside YouTube video player interface, black player frame with red progress bar, play button visible, pressing against screen from within',
+      clip2Prompt: 'Character breaks through YouTube player screen, red neon light bursting through cracks, black glass and red progress bar shattering',
+      clip3Prompt: 'Character emerged from shattered YouTube player, red and black glass fragments, YouTube red light reflections on shards',
+      colorDescription: 'YouTube red (#FF0000) and dark interface color scheme',
+      lightingDescription: 'Red accent lighting from YouTube elements, dark cinematic background',
+      shatterLightingDescription: 'Red neon bursting through cracks, dramatic YouTube red glow',
+      uiElements: 'YouTube red progress bar, play/pause button, volume controls, fullscreen button, YouTube logo, black video player frame',
+    },
+    tiktok: {
+      clip1Prompt: 'Character inside TikTok vertical video interface, phone screen frame with right-side icons (heart, comment, share), music disc spinning at bottom, pushing against screen',
+      clip2Prompt: 'Character bursts through TikTok phone screen, neon pink (#FF0050) and cyan (#00F2EA) lights exploding, energetic dynamic breakout',
+      clip3Prompt: 'Character emerged from shattered TikTok interface, pink and cyan glass shards, colorful light reflections, trend-worthy confident pose',
+      colorDescription: 'TikTok cyan (#00F2EA) and pink (#FF0050) neon color scheme',
+      lightingDescription: 'Neon pink and cyan dual-tone lighting, energetic TikTok aesthetic',
+      shatterLightingDescription: 'Pink and cyan neon exploding through cracks, colorful glass reflections',
+      uiElements: 'Heart/like icon, comment bubble, share arrow, spinning music disc, username text, phone frame with notch',
+    },
+    instagram: {
+      clip1Prompt: 'Character inside Instagram post interface, square post with header showing profile picture and username, heart/comment/share icons at bottom, pressing against the frame',
+      clip2Prompt: 'Character elegantly breaks through Instagram post frame, gradient light (pink #E1306C, purple #833AB4, orange #F77737) bursting through cracks',
+      clip3Prompt: 'Character emerged from shattered Instagram post, gradient-colored glass fragments, Instagram brand colors reflecting, influencer-ready pose',
+      colorDescription: 'Instagram gradient (pink #E1306C, purple #833AB4, orange #F77737) color scheme',
+      lightingDescription: 'Elegant gradient lighting from Instagram brand colors',
+      shatterLightingDescription: 'Pink, purple, and orange gradient light explosion, stylish glass shattering',
+      uiElements: 'Profile picture circle, username header, three-dot menu, heart icon, comment icon, share/send icon, save/bookmark icon',
+    },
+  };
+  
+  return configs[platform] || configs.instagram;
 }
 
 // Kling 2.6: Configurable clip duration (5 or 10 seconds)
@@ -728,6 +790,98 @@ async function runPreProduction(
     }
     
     console.log(`[Hollywood] Template shots applied: ${state.script?.shots?.length || 0} shots with camera data`);
+    
+  // 1a-BREAKOUT. PLATFORM BREAKOUT TEMPLATE - avatar shatters through social media interface
+  // This is a specialized 3-clip narrative with mandatory structure:
+  // Clip 1: Avatar inside the platform UI
+  // Clip 2: Glass/screen shattering effect
+  // Clip 3: Avatar fully emerged, direct eye contact
+  } else if (request.isBreakout && request.breakoutStartImageUrl && request.breakoutPlatform) {
+    console.log(`[Hollywood] 🔥 BREAKOUT TEMPLATE DETECTED: ${request.breakoutPlatform}`);
+    console.log(`[Hollywood] Using platform UI as starting frame: ${request.breakoutStartImageUrl.substring(0, 60)}...`);
+    
+    // CRITICAL: Override clip count to exactly 3 for breakout narrative
+    const breakoutClipCount = 3;
+    state.clipCount = breakoutClipCount;
+    
+    // Generate platform-specific breakout prompts
+    const platformConfig = getBreakoutPlatformConfig(request.breakoutPlatform);
+    
+    // Build the 3-clip breakout narrative with cinematic quality
+    const breakoutShots = [
+      {
+        id: 'breakout_1',
+        title: 'Inside the Interface',
+        description: `${platformConfig.clip1Prompt}. Ultra high resolution, photorealistic ${request.breakoutPlatform} interface with authentic UI elements. The character is visible within the digital frame, looking at the camera with building intensity. ${platformConfig.colorDescription}. Dramatic lighting with subtle glow from screen elements.`,
+        durationSeconds: state.clipDuration,
+        mood: 'tension',
+        dialogue: '',
+        sceneContext: {
+          actionPhase: 'establish' as const,
+          previousAction: '',
+          currentAction: 'Character trapped inside social media interface, beginning to push against the digital boundary',
+          nextAction: 'Screen will shatter as character breaks through',
+          characterDescription: request.concept || 'Confident character',
+          locationDescription: `Inside ${request.breakoutPlatform} interface`,
+          lightingDescription: platformConfig.lightingDescription,
+        },
+      },
+      {
+        id: 'breakout_2',
+        title: 'The Breakout',
+        description: `${platformConfig.clip2Prompt}. Dramatic glass shattering effect as character punches through the ${request.breakoutPlatform} interface. Shards of glass and digital fragments explode outward in slow motion. ${platformConfig.colorDescription}. Light bursts through the cracks. Powerful, confident movement. Cinematic action sequence quality.`,
+        durationSeconds: state.clipDuration,
+        mood: 'action',
+        dialogue: '',
+        sceneContext: {
+          actionPhase: 'peak' as const,
+          previousAction: 'Character was inside the interface',
+          currentAction: 'Explosive breakout moment, shattering through the digital barrier',
+          nextAction: 'Character will emerge fully into reality',
+          characterDescription: request.concept || 'Powerful character breaking free',
+          locationDescription: 'Breaking through digital interface',
+          lightingDescription: platformConfig.shatterLightingDescription,
+        },
+      },
+      {
+        id: 'breakout_3',
+        title: 'Emerged',
+        description: `${platformConfig.clip3Prompt}. Character has fully emerged from the shattered ${request.breakoutPlatform} interface. Glass shards settling around them. Direct, confident eye contact with viewer. Powerful presence. ${platformConfig.colorDescription} light reflecting off glass fragments. Hero pose, commanding attention. Premium advertising quality.`,
+        durationSeconds: state.clipDuration,
+        mood: 'epic',
+        dialogue: '',
+        sceneContext: {
+          actionPhase: 'settle' as const,
+          previousAction: 'Character broke through the interface',
+          currentAction: 'Victorious emergence, direct connection with viewer',
+          nextAction: '',
+          characterDescription: request.concept || 'Triumphant character',
+          locationDescription: 'Reality, with shattered interface fragments',
+          lightingDescription: platformConfig.lightingDescription,
+        },
+      },
+    ];
+    
+    state.script = { shots: breakoutShots };
+    
+    // Store scene consistency for breakout
+    state.sceneConsistency = {
+      character: request.concept || 'Confident, powerful character',
+      location: `${request.breakoutPlatform} platform interface breakout`,
+      lighting: platformConfig.lightingDescription,
+    };
+    
+    // CRITICAL: Use breakoutStartImageUrl as the reference image for clip 1
+    // This ensures the video starts with the platform UI mockup
+    if (!request.referenceImageUrl) {
+      request.referenceImageUrl = request.breakoutStartImageUrl;
+    }
+    
+    // Store breakout metadata in environment prompt
+    request.environmentPrompt = `${request.breakoutPlatform} social media interface environment. ${platformConfig.uiElements}. ${platformConfig.colorDescription}. Character breaking through digital barrier into reality.`;
+    
+    console.log(`[Hollywood] ✓ Breakout script generated: ${state.script.shots.length} shots with platform-specific prompts`);
+    console.log(`[Hollywood] ✓ Reference image set to platform UI mockup`);
     
   // 1a. Generate script - use approved story if available (story-first flow)
   } else if (request.approvedStory) {

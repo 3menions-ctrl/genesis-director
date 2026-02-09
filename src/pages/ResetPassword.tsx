@@ -112,7 +112,7 @@ export default function ResetPassword() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 mb-4">
-            <img src="/apex-studio-logo.png" alt="Apex Studio" className="w-full h-full object-contain" />
+            <img src="/apex-studio-logo.png" alt="Apex Studio" className="w-14 h-14 object-contain" />
           </div>
           <h1 className="text-2xl font-display font-bold text-foreground">
             Reset Password

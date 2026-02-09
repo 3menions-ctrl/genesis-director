@@ -25,6 +25,8 @@ import { useTemplateEnvironment } from '@/hooks/useTemplateEnvironment';
 import { useTierLimits } from '@/hooks/useTierLimits';
 import { SafeComponent } from '@/components/ui/error-boundary';
 import { SimpleVideoPlayer } from '@/components/player';
+import { TemplateAvatarSelector } from './TemplateAvatarSelector';
+import { AvatarTemplate } from '@/types/avatar-templates';
 import {
   Select,
   SelectContent,
@@ -131,6 +133,15 @@ interface CreationHubProps {
     enableMusic: boolean;
     genre?: string;
     mood?: string;
+    // Breakout template parameters
+    isBreakout?: boolean;
+    breakoutStartImageUrl?: string;
+    breakoutPlatform?: string;
+    // Avatar parameters for breakout templates
+    avatarImageUrl?: string;
+    avatarVoiceId?: string;
+    avatarTemplateId?: string;
+    avatarName?: string;
   }) => void;
   /** Called when the hub's data dependencies are loaded and UI is ready */
   onReady?: () => void;
@@ -166,10 +177,16 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const [enableNarration, setEnableNarration] = useState(true);
   const [enableMusic, setEnableMusic] = useState(true);
   
+  // Avatar selection for breakout templates
+  const [selectedAvatar, setSelectedAvatar] = useState<AvatarTemplate | null>(null);
+  
   // Advanced options (for cinematic modes) - must be declared before effects that use them
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [genre, setGenre] = useState('cinematic');
   const [mood, setMood] = useState('epic');
+  
+  // Check if this is a breakout template that requires avatar selection
+  const isBreakoutTemplate = appliedSettings?.isBreakout === true;
   
   // Get tier limits to enforce clip count restrictions
   const { tierLimits, maxClips, isLoading: tierLoading } = useTierLimits();
@@ -306,29 +323,37 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const handleCreate = () => {
     if (!prompt.trim() && modeConfig?.requiresText) return;
     
+    // For breakout templates, require avatar selection
+    if (isBreakoutTemplate && !selectedAvatar) return;
+    
     // Build creation config with breakout settings if applicable
     const creationConfig: Parameters<typeof onStartCreation>[0] = {
-      mode: selectedMode,
+      mode: isBreakoutTemplate ? 'avatar' : selectedMode, // Breakout uses avatar mode
       prompt,
       style: selectedMode === 'video-to-video' ? selectedStyle : undefined,
       imageUrl: uploadedImage || undefined,
       videoUrl: uploadedVideo || undefined,
       aspectRatio,
-      clipCount,
-      clipDuration,
-      enableNarration,
+      clipCount: isBreakoutTemplate ? 3 : clipCount, // Breakout always 3 clips
+      clipDuration: isBreakoutTemplate ? 10 : clipDuration, // Breakout uses 10s clips
+      enableNarration: true,
       enableMusic,
       genre: supportsAdvancedOptions ? genre : undefined,
       mood: supportsAdvancedOptions ? mood : undefined,
     };
     
-    // If breakout template is applied, pass the start image and breakout flag
-    if (appliedSettings?.isBreakout && appliedSettings.startImageUrl) {
+    // If breakout template is applied, pass the start image, avatar, and breakout flag
+    if (isBreakoutTemplate && appliedSettings?.startImageUrl && selectedAvatar) {
       // For breakout templates, the start image is the platform interface
       // The avatar will appear to be inside this interface in clip 1
       (creationConfig as any).isBreakout = true;
       (creationConfig as any).breakoutStartImageUrl = appliedSettings.startImageUrl;
       (creationConfig as any).breakoutPlatform = appliedSettings.breakoutPlatform;
+      // Pass avatar data for the generation
+      (creationConfig as any).avatarImageUrl = selectedAvatar.front_image_url || selectedAvatar.face_image_url;
+      (creationConfig as any).avatarVoiceId = selectedAvatar.voice_id;
+      (creationConfig as any).avatarTemplateId = selectedAvatar.id;
+      (creationConfig as any).avatarName = selectedAvatar.name;
     }
     
     onStartCreation(creationConfig);
@@ -339,6 +364,8 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     if (modeConfig?.requiresText && !prompt.trim()) return false;
     if (modeConfig?.requiresImage && !uploadedImage) return false;
     if (modeConfig?.requiresVideo && !uploadedVideo) return false;
+    // For breakout templates, require avatar selection
+    if (isBreakoutTemplate && !selectedAvatar) return false;
     return true;
   };
 
@@ -765,8 +792,49 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
 
               {/* Input Section based on mode */}
               <div className="space-y-6">
+                {/* Avatar Selection for breakout templates */}
+                {isBreakoutTemplate && (
+                  <div className="space-y-4 p-5 rounded-2xl bg-violet-500/5 border border-violet-500/20">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
+                        <User className="w-5 h-5 text-violet-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-semibold text-white">Select Your Avatar</h4>
+                        <p className="text-sm text-white/50">
+                          Choose who will break through the {appliedSettings?.breakoutPlatform || 'screen'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <TemplateAvatarSelector
+                      selectedAvatar={selectedAvatar}
+                      onSelect={setSelectedAvatar}
+                      compact
+                    />
+                    
+                    {/* Template preview image */}
+                    {appliedSettings?.startImageUrl && (
+                      <div className="mt-4">
+                        <Label className="text-xs text-white/40 mb-2 block">Template Start Frame</Label>
+                        <div className="relative rounded-xl overflow-hidden border border-white/10">
+                          <img 
+                            src={appliedSettings.startImageUrl} 
+                            alt="Template start frame" 
+                            className="w-full h-32 object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          <div className="absolute bottom-2 left-2 text-xs text-white/70">
+                            {appliedSettings.templateName} template
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Image/Video Upload for modes that require it */}
-                {(modeConfig?.requiresImage || modeConfig?.requiresVideo) && (
+                {(modeConfig?.requiresImage || modeConfig?.requiresVideo) && !isBreakoutTemplate && (
                   <div className="space-y-3">
                     <Label className="text-sm text-white/60 font-medium">
                       {modeConfig.requiresVideo ? 'Upload Video' : 'Upload Image'}

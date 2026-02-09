@@ -2,8 +2,8 @@ import { memo, useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSafeNavigation } from '@/lib/navigation';
 
-// Nova Chen reference image for animation
-import novaReferenceImage from '@/assets/nova-chen-reference.png';
+// Hand breaking through glass image
+import handBreakingGlass from '@/assets/hand-breaking-glass.png';
 
 interface NovaConversionOverlayProps {
   isActive: boolean;
@@ -159,110 +159,141 @@ const NovaConversionOverlay = memo(function NovaConversionOverlay({
           </motion.div>
         )}
 
-        {/* Nova Chen Animated Character */}
+        {/* Hand Breaking Through the Fourth Wall */}
         <motion.div
-          className="absolute left-1/2 bottom-0 pointer-events-none"
+          className="absolute left-1/2 top-1/2 pointer-events-none"
           style={{ 
             x: '-50%',
+            y: '-50%',
             willChange: 'transform, opacity'
           }}
           initial={{ 
-            y: '100%',
-            scale: 0.3,
-            opacity: 0
+            scale: 0,
+            opacity: 0,
+            z: -500
           }}
           animate={{
-            y: phase === 'idle' ? '100%' : '0%',
-            scale: phase === 'idle' ? 0.3 : phase === 'walking-in' ? 0.6 : 1,
+            scale: phase === 'idle' ? 0 : phase === 'walking-in' ? 0.5 : phase === 'arrived' ? 0.8 : 1,
             opacity: phase === 'idle' ? 0 : 1,
+            z: phase === 'spotlight' ? 100 : 0,
           }}
           transition={{
             type: "spring",
-            stiffness: 60,
-            damping: 15,
-            duration: 1.5
+            stiffness: 100,
+            damping: 12,
+            duration: 1
           }}
         >
-          {/* Character glow effect */}
+          {/* Impact glow effect */}
           <motion.div
             className="absolute inset-0 blur-3xl pointer-events-none"
             style={{
-              background: 'radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, transparent 70%)',
+              background: 'radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, rgba(139, 92, 246, 0.2) 50%, transparent 70%)',
             }}
             animate={{
-              scale: phase === 'spotlight' ? 1.5 : 1,
-              opacity: phase === 'spotlight' ? 0.8 : 0.5
+              scale: phase === 'knocking' ? [1, 1.5, 1.2] : phase === 'spotlight' ? 1.5 : 1,
+              opacity: phase === 'knocking' ? [0.5, 1, 0.7] : phase === 'spotlight' ? 0.8 : 0.5
             }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.5 }}
           />
 
-          {/* Nova's animated image container */}
-          <div className="relative w-[280px] h-[420px] md:w-[350px] md:h-[525px]">
-            {/* The character image with knock animation */}
+          {/* The hand image with punch/break animation */}
+          <div className="relative w-[300px] h-[450px] md:w-[400px] md:h-[600px]">
             <motion.img
-              src={novaReferenceImage}
-              alt="Nova Chen"
-              className="w-full h-full object-contain drop-shadow-2xl"
+              src={handBreakingGlass}
+              alt="Hand breaking through screen"
+              className="w-full h-full object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]"
               animate={{
-                // Knock effect - slight forward lean and shake
-                rotateZ: phase === 'knocking' ? [0, -2, 2, -2, 2, 0] : 0,
-                scale: phase === 'knocking' ? [1, 1.02, 1, 1.02, 1] : 1,
-                y: phase === 'knocking' ? [0, -5, 0, -5, 0] : 0,
+                // Punch through effect
+                scale: phase === 'knocking' ? [1, 1.15, 1.05] : 1,
+                y: phase === 'knocking' ? [0, -30, -10] : 0,
+                rotateX: phase === 'knocking' ? [0, -10, -5] : 0,
               }}
               transition={{
-                duration: 0.6,
-                times: [0, 0.2, 0.4, 0.6, 0.8, 1],
-                ease: "easeInOut"
+                duration: 0.4,
+                ease: "easeOut"
               }}
             />
 
-            {/* Knocking hand overlay - appears during knock phase */}
-            {(phase === 'knocking') && (
-              <motion.div
-                className="absolute top-1/4 right-0 text-5xl"
-                initial={{ opacity: 0, x: 20, rotate: -30 }}
-                animate={{ 
-                  opacity: [0, 1, 1, 1, 0],
-                  x: [20, 0, 10, 0, 20],
-                  rotate: [-30, 0, -15, 0, -30]
-                }}
-                transition={{ 
-                  duration: 1.2,
-                  times: [0, 0.2, 0.4, 0.6, 1]
-                }}
-              >
-                ✊
-              </motion.div>
-            )}
-
-            {/* Pointing hand indicator - appears after knock */}
-            {(phase === 'pointing' || phase === 'spotlight') && (
-              <motion.div
-                className="absolute -top-4 -right-8"
-                initial={{ opacity: 0, scale: 0, rotate: -45 }}
-                animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                transition={{ type: "spring", stiffness: 200, damping: 15 }}
-              >
-                <div className="text-6xl">👆</div>
-              </motion.div>
+            {/* Floating glass shards */}
+            {(phase === 'knocking' || phase === 'pointing' || phase === 'spotlight') && (
+              <>
+                {[...Array(8)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute w-3 h-6 bg-gradient-to-br from-white/60 to-white/20 backdrop-blur-sm"
+                    style={{
+                      left: `${30 + Math.random() * 40}%`,
+                      top: `${20 + Math.random() * 40}%`,
+                      clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
+                    }}
+                    initial={{ opacity: 0, scale: 0, rotate: 0 }}
+                    animate={{ 
+                      opacity: [0, 1, 0.8],
+                      scale: [0, 1.2, 1],
+                      rotate: [0, 180 + i * 45, 360 + i * 45],
+                      x: (i % 2 === 0 ? 1 : -1) * (50 + i * 20),
+                      y: -30 - i * 15,
+                    }}
+                    transition={{ 
+                      duration: 1.5,
+                      delay: i * 0.05,
+                      ease: "easeOut"
+                    }}
+                  />
+                ))}
+              </>
             )}
           </div>
 
           {/* Speech bubble during pointing phase */}
           {(phase === 'pointing' || phase === 'spotlight') && (
             <motion.div
-              className="absolute -top-20 left-1/2 -translate-x-1/2 bg-white text-black px-5 py-3 rounded-2xl shadow-xl max-w-[220px]"
+              className="absolute -top-24 left-1/2 -translate-x-1/2 bg-white text-black px-6 py-4 rounded-2xl shadow-2xl max-w-[260px]"
               initial={{ opacity: 0, scale: 0, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.3 }}
             >
-              <span className="text-sm font-semibold text-center block">
-                Hey! Don't miss out – Sign up now! ✨
+              <span className="text-base font-bold text-center block">
+                🚀 Ready to create? Sign up now!
               </span>
               <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rotate-45" />
             </motion.div>
           )}
         </motion.div>
+
+        {/* Additional radial cracks from impact point */}
+        {(phase === 'knocking' || phase === 'pointing' || phase === 'spotlight') && (
+          <motion.div
+            className="absolute inset-0 pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2 }}
+          >
+            <svg className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px]" viewBox="0 0 400 400">
+              {/* Main radial cracks */}
+              <motion.path
+                d="M200,200 L280,80 M200,200 L320,150 M200,200 L340,220 M200,200 L300,300 M200,200 L200,340 M200,200 L100,320 M200,200 L60,250 M200,200 L80,160 M200,200 L120,80"
+                stroke="rgba(255,255,255,0.5)"
+                strokeWidth="2"
+                fill="none"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+              />
+              {/* Secondary smaller cracks */}
+              <motion.path
+                d="M280,80 L300,40 M280,80 L260,50 M320,150 L360,130 M340,220 L380,240 M300,300 L330,340 M100,320 L70,350 M60,250 L20,260 M80,160 L40,140 M120,80 L100,40"
+                stroke="rgba(255,255,255,0.3)"
+                strokeWidth="1"
+                fill="none"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={{ duration: 0.3, delay: 0.3 }}
+              />
+            </svg>
+          </motion.div>
+        )}
 
         {/* Spotlight on sign-up button */}
         {phase === 'spotlight' && buttonRect && (

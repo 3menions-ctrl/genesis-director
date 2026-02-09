@@ -249,6 +249,17 @@ interface BuiltInTemplate {
 }
 
 const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
+  /**
+   * WORLD-CLASS TEMPLATE LIBRARY v2.0
+   * 
+   * Every template upgraded with:
+   * - DYNAMIC CAMERA MOVEMENTS (dolly, tracking, crane, orbit, steadicam)
+   * - PROFESSIONAL LIGHTING (Rembrandt, chiaroscuro, three-point, practical)
+   * - SHOT SIZE PROGRESSION (emotional arc through framing)
+   * - MOTION DIRECTION (continuous movement, never static)
+   * - VIRAL HOOKS (attention-grabbing first 0.5 seconds)
+   */
+  
   // Quick Start Templates (matched to sidebar)
   {
     id: 'cinematic',
@@ -261,7 +272,12 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     targetDurationMinutes: 2,
     colorGrading: 'cinematic',
     environmentId: 'golden_hour_magic',
-    conceptPrompt: 'A cinematic masterpiece with Hollywood-quality visuals. Open with a sweeping establishing shot that sets the mood. Build atmosphere through carefully composed frames with dramatic lighting. Capture emotion through intimate character moments. Create tension with purposeful pacing and visual storytelling. End with a powerful, memorable final image.',
+    conceptPrompt: `CLIP 1: CAMERA - Sweeping CRANE DOWN from aerial establishing shot. Wide shot revealing location in GOLDEN HOUR light. Volumetric rays, atmospheric haze, DOLLY PUSH forward into scene.
+CLIP 2: CAMERA - TRACKING SHOT following subject with STEADICAM fluidity. MEDIUM WIDE framing, Rembrandt lighting sculpting features. Building atmosphere, subtle motion.
+CLIP 3: CAMERA - Slow DOLLY IN to MEDIUM CLOSE-UP. Intimate character moment, eyes catching light. Three-point lighting with dramatic rim separation.
+CLIP 4: CAMERA - ORBIT LEFT around subject, revealing new perspective. Tension building, chiaroscuro shadows. CLOSE-UP on expressive details.
+CLIP 5: CAMERA - Dynamic TRACKING with building momentum. Cross-cutting between perspectives. Peak emotional intensity, dramatic lighting shift.
+CLIP 6: CAMERA - CRANE UP to powerful final frame. Hero lighting from below. Memorable closing image, subject silhouetted against dramatic sky.`,
   },
   {
     id: 'commercial',
@@ -274,7 +290,11 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     targetDurationMinutes: 1,
     colorGrading: 'neutral',
     environmentId: 'white_studio',
-    conceptPrompt: 'A premium commercial that captures attention and drives action. Open with a hook that stops the scroll. Showcase the product or service with stunning visuals and dynamic motion. Highlight key benefits through clear, engaging storytelling. Build desire with lifestyle imagery. End with a strong call-to-action and brand moment.',
+    conceptPrompt: `CLIP 1: CAMERA - WHIP PAN to attention-grabbing hook. Split-second pattern interrupt. CLOSE-UP impact moment, high-key studio lighting. Stop-scroll energy.
+CLIP 2: CAMERA - Smooth ORBIT around product/subject with MACRO details. Premium textures catching light. Clean white studio, soft box illumination.
+CLIP 3: CAMERA - DOLLY TRACKING following dynamic movement. Lifestyle context, natural lighting blend. Subject interacting with product, authentic energy.
+CLIP 4: CAMERA - PUSH-IN to benefit reveal. Split-screen or quick-cut benefits montage. Building desire, uplifting energy, bright key light.
+CLIP 5: CAMERA - Hero CRANE SHOT for brand moment. Product/logo prominence with dramatic lighting. Strong CTA framing, confident final pose. Memorable brand signature.`,
   },
   {
     id: 'explainer',
@@ -287,7 +307,12 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     targetDurationMinutes: 2,
     colorGrading: 'neutral',
     environmentId: 'white_studio',
-    conceptPrompt: 'An engaging explainer video that simplifies the complex. Open with a relatable problem or question that hooks viewers. Break down concepts step-by-step using clear visuals and metaphors. Build understanding progressively from basics to key insights. Reinforce learning with practical examples. End with a clear summary and next steps.',
+    conceptPrompt: `CLIP 1: CAMERA - PUSH-IN on relatable problem visual. MEDIUM SHOT, clean lighting, hook question framing. Pattern interrupt that grabs attention.
+CLIP 2: CAMERA - DOLLY RIGHT with step-by-step reveal. Clean transitions, visual metaphor introduction. Bright, approachable three-point lighting.
+CLIP 3: CAMERA - OVERHEAD SHOT for process demonstration. Clear visual explanation, building complexity. Smooth tracking over details.
+CLIP 4: CAMERA - ORBIT showcasing concept from multiple angles. Progressive understanding, "aha moment" building. Dynamic framing.
+CLIP 5: CAMERA - CLOSE-UP on practical example. Real-world application, relatable context. Warm, inviting lighting.
+CLIP 6: CAMERA - PULL-BACK to summary reveal. Actionable takeaway, confident conclusion. Uplifting final frame with clear next step.`,
   },
   // Featured Templates
   {
@@ -301,7 +326,14 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     targetDurationMinutes: 2,
     colorGrading: 'cinematic',
     environmentId: 'white_studio',
-    conceptPrompt: 'A stunning product reveal with dramatic cinematic flair. Open with abstract close-ups in shadow, light catching edges and textures. Slow-motion reveals showcase premium craftsmanship. Build anticipation with quick cuts of intricate details. Climax with the full product bathed in spotlight, rotating elegantly. End with the brand moment.',
+    conceptPrompt: `CLIP 1: CAMERA - EXTREME CLOSE-UP in shadow, light catching edge. Dramatic chiaroscuro, mystery building. 120fps slow-motion, texture detail.
+CLIP 2: CAMERA - Slow ORBIT through volumetric light. Abstract angles, premium craftsmanship revealed. Gradual illumination increase.
+CLIP 3: CAMERA - MACRO DOLLY across intricate details. Surface textures, material quality. Studio lighting with accent spots.
+CLIP 4: CAMERA - WHIP PAN between feature highlights. Quick cuts, building anticipation. Dynamic energy with precise timing.
+CLIP 5: CAMERA - CRANE UP revealing full product. "Hero moment" lighting, 360-degree presentation beginning. Floating reveal aesthetic.
+CLIP 6: CAMERA - Smooth 360 ORBIT with product rotating. Full showcase, premium positioning. Clean infinity cove background.
+CLIP 7: CAMERA - LIFESTYLE TRACKING shot. Product in context, aspirational usage. Natural lighting blend with studio quality.
+CLIP 8: CAMERA - Final HERO FRAME with logo. Dramatic spotlight, brand signature. Memorable closing image, desire maximized.`,
   },
   {
     id: 'featured-2',
@@ -314,7 +346,18 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     targetDurationMinutes: 5,
     colorGrading: 'documentary',
     environmentId: 'golden_hour_magic',
-    conceptPrompt: 'An intimate documentary exploring a compelling human story. Open with atmospheric establishing shots. Weave between candid interview moments and evocative B-roll. Show the journey through struggle and perseverance. Capture authentic emotions and pivotal moments. End with reflection, growth, and hope.',
+    conceptPrompt: `CLIP 1: CAMERA - AERIAL DRONE establishing location. Golden hour atmosphere, CRANE DOWN into scene. Atmospheric, setting tone.
+CLIP 2: CAMERA - HANDHELD interview setup. Intimate MEDIUM CLOSE-UP, natural window light. Authentic eye contact, human connection.
+CLIP 3: CAMERA - STEADICAM B-roll following action. Verité style, documentary authenticity. Wide to medium progression.
+CLIP 4: CAMERA - CLOSE-UP on emotional detail. Hands, eyes, meaningful objects. Shallow depth creating intimacy.
+CLIP 5: CAMERA - TRACKING through environment. Location context, passing by life details. Building understanding of world.
+CLIP 6: CAMERA - Interview continuation, PUSH-IN for emphasis. Key revelation moment, emotional weight. Three-point with practical fill.
+CLIP 7: CAMERA - MONTAGE with varied angles. Multiple perspectives, time passage. Quick cuts building narrative.
+CLIP 8: CAMERA - Obstacle/challenge moment. Tension building, darker lighting. Struggle visualized authentically.
+CLIP 9: CAMERA - Turning point B-roll. Hope returning, light increasing. DOLLY movement suggesting progress.
+CLIP 10: CAMERA - Pivotal interview moment. CLOSE-UP on transformation realization. Emotional breakthrough, tears of growth.
+CLIP 11: CAMERA - Resolution B-roll. Achievement visualized, uplifting energy. CRANE UP with subject, triumphant.
+CLIP 12: CAMERA - Reflective final frame. Golden hour silhouette, peaceful resolution. Hopeful forward look, memorable close.`,
   },
   {
     id: 'featured-3',
@@ -326,7 +369,11 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     clipCount: 5,
     targetDurationMinutes: 1,
     colorGrading: 'warm',
-    conceptPrompt: 'Explosive social content designed to stop the scroll. Hook viewers instantly with something unexpected. Rapid-fire cuts with dynamic energy and bold visuals. Build momentum with escalating surprises. Deliver a satisfying payoff that demands replay and sharing.',
+    conceptPrompt: `CLIP 1: CAMERA - EXPLOSIVE WHIP PAN to unexpected moment. 0.3 second pattern interrupt. EXTREME CLOSE-UP on shocking/intriguing element. Maximum scroll-stopping energy.
+CLIP 2: CAMERA - HANDHELD rapid movement. Quick cuts, 1-2 seconds each. Building momentum, escalating surprise. Dynamic angles constantly shifting.
+CLIP 3: CAMERA - POV shot pulling viewer in. First-person involvement, immersive energy. Unexpected angle or reveal building.
+CLIP 4: CAMERA - Peak moment SLOW-MOTION. The payoff, satisfying climax. Impact frame, dramatic timing. The share-worthy moment.
+CLIP 5: CAMERA - Snappy FINAL FRAME with engagement hook. Call-to-action energy, "wait for part 2" or replay incentive. Memorable signature close.`,
   },
   {
     id: 'template-edu-1',
@@ -339,7 +386,14 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     targetDurationMinutes: 3,
     colorGrading: 'neutral',
     environmentId: 'white_studio',
-    conceptPrompt: 'An engaging educational explainer that simplifies complexity. Hook with a relatable problem or question. Break down concepts using visual metaphors and demonstrations. Progress from foundational ideas to deeper insights. Reinforce learning with clear examples. End with actionable takeaways.',
+    conceptPrompt: `CLIP 1: CAMERA - PUSH-IN on hook question visual. Pattern interrupt problem statement. Clean studio lighting, focus-drawing composition.
+CLIP 2: CAMERA - OVERHEAD demonstration shot. Foundation concept, visual metaphor. Clean tracking across materials.
+CLIP 3: CAMERA - DOLLY RIGHT revealing step 1. Clear progression, building blocks. Bright, approachable lighting.
+CLIP 4: CAMERA - ORBIT showing concept from new angle. Deeper understanding layer. Dynamic perspective shift.
+CLIP 5: CAMERA - CLOSE-UP on key detail. "This is important" emphasis. Spotlight with soft fill.
+CLIP 6: CAMERA - SPLIT-SCREEN comparison. Before/after or contrast reveal. Clear visual teaching moment.
+CLIP 7: CAMERA - TRACKING through practical example. Real-world application, relatable context. Natural lighting feel.
+CLIP 8: CAMERA - PULL-BACK to summary. Actionable takeaways, confident close. Uplifting final frame.`,
   },
   {
     id: 'template-story-1',
@@ -352,7 +406,16 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     targetDurationMinutes: 4,
     colorGrading: 'cinematic',
     environmentId: 'golden_hour_magic',
-    conceptPrompt: 'A cinematic short film with emotional depth. Establish the world and introduce a compelling protagonist. Present a challenge that tests their character. Build tension through obstacles and meaningful choices. Reach an emotionally charged climax. Resolve with transformation and resonance.',
+    conceptPrompt: `CLIP 1: CAMERA - CRANE establishing shot. World introduction, atmospheric tone-setting. Wide frame, cinematic aspect ratio feel.
+CLIP 2: CAMERA - TRACKING introducing protagonist. MEDIUM SHOT, character in environment. Subtle Rembrandt lighting, depth established.
+CLIP 3: CAMERA - PUSH-IN to emotional reveal. Character's goal or desire shown. Intimate framing, building connection.
+CLIP 4: CAMERA - Dynamic STEADICAM following challenge. Obstacle introduced, tension building. Lighting shifts cooler/darker.
+CLIP 5: CAMERA - CLOSE-UP reaction to setback. Emotional weight, character tested. Chiaroscuro shadows, internal conflict.
+CLIP 6: CAMERA - MONTAGE of struggle. Multiple angles, time compression. Building momentum, visual poetry.
+CLIP 7: CAMERA - Low ANGLE hero shot. Decision moment, choice being made. Dramatic underlighting, power position.
+CLIP 8: CAMERA - TRACKING climactic action. Peak intensity, stakes highest. Dynamic movement matching energy.
+CLIP 9: CAMERA - CLOSE-UP on resolution. Emotional payoff, transformation visible. Warm light returning, hope.
+CLIP 10: CAMERA - CRANE UP to final frame. Character transformed, new equilibrium. Golden hour silhouette, memorable close.`,
   },
   {
     id: 'template-noir-1',
@@ -365,7 +428,14 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     targetDurationMinutes: 3,
     colorGrading: 'noir',
     environmentId: 'neon_nights',
-    conceptPrompt: 'A neo-noir thriller dripping with atmosphere. Open on a solitary figure in neon-lit shadows. Reveal mystery through cryptic encounters and surveillance angles. Build paranoia with reflections and obscured faces. Maintain tension between predator and prey. End on an ambiguous, morally complex note.',
+    conceptPrompt: `CLIP 1: CAMERA - SLOW PUSH through noir shadows. Solitary figure, neon-lit silhouette. Venetian blind shadows, cigarette smoke atmosphere.
+CLIP 2: CAMERA - DUTCH ANGLE on mysterious arrival. Off-kilter framing, tension immediate. Harsh contrast, deep blacks.
+CLIP 3: CAMERA - TRACKING through rain-slicked streets. Reflections doubling reality. Neon reds and blues, urban noir palette.
+CLIP 4: CAMERA - CLOSE-UP on cryptic exchange. Eyes in shadow, partial face reveals. Building paranoia, who to trust.
+CLIP 5: CAMERA - SURVEILLANCE ANGLE from above. God's-eye suspicion view. Green-tinted, voyeuristic tension.
+CLIP 6: CAMERA - WHIP PAN following pursuit. Quick movement, predator/prey dynamic. Disorienting cuts, building fear.
+CLIP 7: CAMERA - CONFRONTATION low angle. Power dynamic shift, dramatic underlighting. Face half in shadow, moral ambiguity.
+CLIP 8: CAMERA - PULL-BACK to ambiguous ending. Resolution unclear, noir tradition. Lone figure in neon rain, haunting close.`,
   },
   {
     id: 'template-action-1',
@@ -378,7 +448,12 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     targetDurationMinutes: 2,
     colorGrading: 'cinematic',
     environmentId: 'neon_nights',
-    conceptPrompt: 'An adrenaline-fueled action montage with relentless energy. Start with tension before eruption. Explode into motion with rapid cuts and dynamic camera work. Alternate between wide action shots and intense close-ups. Escalate through obstacles and confrontations. Climax with a spectacular finale.',
+    conceptPrompt: `CLIP 1: CAMERA - STATIC tension building. Calm before storm, protagonist preparing. Deep focus, anticipation in stillness. Slight push.
+CLIP 2: CAMERA - EXPLOSIVE ACTION initiation. Sudden WHIP PAN, movement erupts. Quick cuts 0.5-1 second each. Adrenaline immediate.
+CLIP 3: CAMERA - TRACKING following chase/pursuit. STEADICAM speed, kinetic energy. Wide-medium alternation, geography clear.
+CLIP 4: CAMERA - IMPACT CLOSE-UPS intercut. Punches, explosions, collision moments. Slow-motion emphasis on key hits.
+CLIP 5: CAMERA - ESCALATING obstacle sequence. Bigger stakes, harder challenges. CRANE and DRONE shots for scale. Peak intensity.
+CLIP 6: CAMERA - HERO LANDING final pose. SLOW-MOTION climactic moment. LOW ANGLE power shot, victory/resolution. Dust settling, breathing heavy, triumphant.`,
   },
   {
     id: 'template-corp-1',
@@ -391,7 +466,14 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     targetDurationMinutes: 3,
     colorGrading: 'neutral',
     environmentId: 'white_studio',
-    conceptPrompt: 'A premium brand story that connects on a human level. Open with aspirational imagery of innovation and excellence. Introduce the brand mission through purposeful visuals. Showcase team collaboration and real impact. Highlight achievements with authentic moments. Close with a confident vision for the future.',
+    conceptPrompt: `CLIP 1: CAMERA - AERIAL establishing innovation hub. Modern architecture, aspirational energy. CRANE DOWN into workspace.
+CLIP 2: CAMERA - TRACKING through dynamic office. Team in motion, collaborative energy. Clean corporate lighting with warmth.
+CLIP 3: CAMERA - DOLLY to founder/leader interview. MEDIUM CLOSE-UP, authentic connection. Soft key with practical fill.
+CLIP 4: CAMERA - MONTAGE of real work moments. Candid collaboration, problem-solving energy. Multiple angles, documentary feel.
+CLIP 5: CAMERA - CLOSE-UP on meaningful details. Hands working, screens showing progress. Humanity in the process.
+CLIP 6: CAMERA - STEADICAM following client interaction. Real impact shown, testimonial energy. Natural lighting, authenticity.
+CLIP 7: CAMERA - TEAM gathering shot. Unity, shared purpose visible. Group energy, genuine smiles. Warm practical lighting.
+CLIP 8: CAMERA - HERO SHOT brand moment. Logo with team or product. Confident forward vision, inspiring close. Premium final frame.`,
   },
   {
     id: 'template-travel-1',
@@ -404,7 +486,14 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     targetDurationMinutes: 3,
     colorGrading: 'warm',
     environmentId: 'mountain_summit',
-    conceptPrompt: 'An immersive travel experience that ignites wanderlust. Open with breathtaking aerial landscapes. Journey through iconic locations and hidden gems. Capture authentic local encounters and cultural moments. Balance sweeping vistas with intimate details. End with a sunset reflection on the adventure.',
+    conceptPrompt: `CLIP 1: CAMERA - DRONE sweeping reveal. Breathtaking landscape, golden hour magic. Slow CRANE over terrain, wanderlust ignited.
+CLIP 2: CAMERA - TRACKING traveler arrival. First steps into new place, wonder on face. STEADICAM following authentic reaction.
+CLIP 3: CAMERA - MONTAGE of iconic locations. Quick cuts, 2-3 seconds each. Postcards coming to life, bucket list energy.
+CLIP 4: CAMERA - HANDHELD local encounter. Authentic cultural moment, genuine connection. Warm natural lighting, intimate vibe.
+CLIP 5: CAMERA - POV exploration shot. Walking through markets/streets/nature. Immersive viewer experience, you-are-there.
+CLIP 6: CAMERA - SLOW-MOTION magical moment. Unexpected beauty, travel serendipity. Sunset/wildlife/locals laughing.
+CLIP 7: CAMERA - WIDE establishing new scene. Hidden gem discovery, off-beaten-path. Dramatic landscape with tiny human scale.
+CLIP 8: CAMERA - SUNSET reflection close. Traveler silhouette, grateful contemplation. Golden hour magic, peaceful conclusion. Wanderlust fulfilled.`,
   },
   {
     id: 'template-music-1',
@@ -417,7 +506,16 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     targetDurationMinutes: 4,
     colorGrading: 'cinematic',
     environmentId: 'neon_nights',
-    conceptPrompt: 'A visually stunning music video with bold artistic direction. Open with an arresting visual hook. Sync movements and cuts to the rhythm. Build through escalating visual intensity. Feature striking compositions and lighting contrasts. Climax with the most powerful visual moment. End with a memorable final frame.',
+    conceptPrompt: `CLIP 1: CAMERA - STRIKING visual hook. Bold composition, arresting first frame. Beat drop anticipation, tension building.
+CLIP 2: CAMERA - SYNC cut to rhythm. Movement matching music, TRACKING with energy. Performance begins, dynamic lighting.
+CLIP 3: CAMERA - CLOSE-UP performance intensity. Face, hands, expressive details. Beat-matched cuts, 0.5-1 second timing.
+CLIP 4: CAMERA - WIDE choreography shot. Full movement visible, architectural framing. Neon accent lighting, club atmosphere.
+CLIP 5: CAMERA - ORBIT around artist. 360 perspective, building visual intensity. Strobe effects, fog machine atmosphere.
+CLIP 6: CAMERA - CREATIVE transition moment. Artistic visual effect, genre-appropriate. Slow-mo to real-time, visual surprise.
+CLIP 7: CAMERA - MONTAGE escalation. Faster cuts matching song build. Multiple locations/looks, peak energy approaching.
+CLIP 8: CAMERA - CLIMAX visual peak. Most striking composition, chorus energy. Maximum lighting drama, iconic frame.
+CLIP 9: CAMERA - BREAKDOWN cooldown. Slower cuts, emotional moment. Intimate close-up, vulnerability shown.
+CLIP 10: CAMERA - FINAL pose/frame. Memorable closer, signature moment. Artist silhouette or powerful stance. Fade or hard cut to black.`,
   },
   {
     id: 'template-food-1',
@@ -430,7 +528,12 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     targetDurationMinutes: 2,
     colorGrading: 'warm',
     environmentId: 'golden_hour_magic',
-    conceptPrompt: 'Mouthwatering food cinematography that awakens the senses. Open with steam rising in warm light. Showcase ingredients in their natural beauty. Capture the artistry of preparation with close-ups. Build anticipation with sizzling textures and vibrant colors. Climax with the final plated masterpiece. End with the first satisfying bite.',
+    conceptPrompt: `CLIP 1: CAMERA - CLOSE-UP steam rising. Warm backlight catching vapor, appetite trigger. 120fps slow-motion, sensory hook.
+CLIP 2: CAMERA - OVERHEAD ingredient showcase. Fresh produce, vibrant colors. Slow TRACKING across tableau. Natural window light.
+CLIP 3: CAMERA - TRACKING chef hands at work. Knife skills, technique beauty. Close-up cooking action, sizzle sounds implied.
+CLIP 4: CAMERA - MACRO texture details. Bubbling, caramelizing, texture close-ups. Satisfying food ASMR visuals.
+CLIP 5: CAMERA - ORBIT around finished dish. Final presentation, restaurant quality. SLOW DOLLY with steam, golden hour warmth.
+CLIP 6: CAMERA - FIRST BITE moment. CLOSE-UP on reaction, food pulling/breaking. Satisfying climax, desire maximized. Warm glow, comfort conclusion.`,
   },
   {
     id: 'template-tech-1',
@@ -443,7 +546,12 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     targetDurationMinutes: 2,
     colorGrading: 'cool',
     environmentId: 'white_studio',
-    conceptPrompt: 'A sleek tech showcase with futuristic aesthetics. Open with the device emerging from darkness. Highlight innovation through abstract light trails and reflections. Demonstrate features with clean, purposeful motion graphics. Show the product in lifestyle contexts. Build to a reveal of the complete ecosystem. End with the brand signature.',
+    conceptPrompt: `CLIP 1: CAMERA - DARKNESS to light reveal. Device edge catching first light. SLOW PUSH-IN, dramatic emergence. Futuristic anticipation.
+CLIP 2: CAMERA - ORBIT with light trails. Abstract tech aesthetic, circuit-board reflections. Cool blue accent lighting, premium feel.
+CLIP 3: CAMERA - CLOSE-UP feature demonstration. Screen animations, button interactions. Clean tracking across interface. Precise, intentional movement.
+CLIP 4: CAMERA - SPLIT-SCREEN capability showcase. Multiple features simultaneously. Dynamic motion graphics overlay. Innovation emphasis.
+CLIP 5: CAMERA - LIFESTYLE context shot. Device in real use, aspirational user. Natural lighting blend, authentic integration.
+CLIP 6: CAMERA - 360 ORBIT hero presentation. Full product glory, floating aesthetic. Brand logo integration, ecosystem hint. Futuristic conclusion, desire locked.`,
   },
   // Trending Templates
   {
@@ -456,7 +564,10 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     clipCount: 4,
     targetDurationMinutes: 1,
     colorGrading: 'cinematic',
-    conceptPrompt: 'An explosive viral hook that stops the scroll in 0.5 seconds. Open with something completely unexpected - a shocking reveal, an impossible moment, or an irresistible question. Build rapid momentum with quick cuts and escalating energy. Create a pattern interrupt that demands attention. Deliver a satisfying payoff that makes viewers want to share.',
+    conceptPrompt: `CLIP 1: CAMERA - IMPACT FRAME in 0.3 seconds. Unexpected visual/sound, pattern interrupt maximum. EXTREME CLOSE-UP on shocking element. Thumb-stopping energy.
+CLIP 2: CAMERA - RAPID-FIRE progression. 1-second cuts, escalating intensity. HANDHELD energy, chaotic but controlled. Building "what happens next."
+CLIP 3: CAMERA - REVEAL anticipation. Slow-motion tease, payoff approaching. Tension peaks, viewer committed. PUSH-IN to climax moment.
+CLIP 4: CAMERA - SATISFYING payoff. The moment they came for. HERO SHOT of result/reveal. Loop-back hook or "follow for part 2" energy.`,
   },
   {
     id: 'aesthetic-vlog',
@@ -469,7 +580,12 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     targetDurationMinutes: 2,
     colorGrading: 'warm',
     environmentId: 'golden_hour_magic',
-    conceptPrompt: 'A dreamy aesthetic vlog that captures the poetry of everyday moments. Open with soft morning light filtering through curtains. Flow through cozy rituals - coffee brewing, journaling, self-care moments. Use slow, intentional movements and warm color grading. Create ASMR-like atmosphere with ambient sounds. End with golden hour serenity.',
+    conceptPrompt: `CLIP 1: CAMERA - SOFT morning light filtering. SLOW DOLLY past curtains, gentle awakening. Warm tones, dreamy atmosphere. Peaceful beginning.
+CLIP 2: CAMERA - OVERHEAD coffee ritual. Steam rising, hands cradling mug. SLOW-MOTION pour, ASMR satisfaction. Cozy intimacy.
+CLIP 3: CAMERA - TRACKING through golden-lit space. Journaling, self-care details. Soft focus backgrounds, intentional living aesthetic.
+CLIP 4: CAMERA - CLOSE-UP meaningful moments. Textures, plants, cozy details. Natural window light, magazine-quality composition.
+CLIP 5: CAMERA - STEADICAM gentle movement. Transitional moments, creative work. Peaceful productivity, aspirational routine.
+CLIP 6: CAMERA - GOLDEN HOUR finale. Sunset glow, content reflection. Soft PUSH-IN to peaceful expression. Warmth and gratitude, perfect close.`,
   },
   {
     id: 'transformation',
@@ -481,7 +597,11 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     clipCount: 5,
     targetDurationMinutes: 1,
     colorGrading: 'cinematic',
-    conceptPrompt: 'A stunning transformation reveal that builds anticipation. Open with the "before" state in raw, authentic lighting. Build tension with preparation montage and hints of change. Use dramatic transitions - spins, camera whips, or creative reveals. Climax with the jaw-dropping transformation in glamorous lighting. End with confident, empowered energy.',
+    conceptPrompt: `CLIP 1: CAMERA - RAW "before" state. Harsh/flat lighting intentionally unflattering. Authentic starting point, relatable reality. MEDIUM SHOT honesty.
+CLIP 2: CAMERA - TRANSFORMATION montage. Quick cuts of process, building anticipation. CLOSE-UPS on changes happening. Time-lapse energy.
+CLIP 3: CAMERA - SPIN transition setup. Subject turning, camera WHIP PAN or creative wipe. Tension peak before reveal.
+CLIP 4: CAMERA - GLAMOROUS "after" reveal. DRAMATIC LIGHTING shift - now Rembrandt/hero lighting. Same subject TRANSFORMED. Jaw-drop moment.
+CLIP 5: CAMERA - CONFIDENT finale. Subject owning their glow-up. SLOW-MOTION celebration moment. Empowered energy, inspiring close. Share-worthy transformation.`,
   },
   {
     id: 'asmr-satisfying',
@@ -493,7 +613,12 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     clipCount: 6,
     targetDurationMinutes: 1,
     colorGrading: 'neutral',
-    conceptPrompt: 'Hypnotically satisfying content that triggers relaxation and wonder. Focus on perfect textures, smooth movements, and symmetrical compositions. Capture crisp ASMR moments - cutting, pouring, folding, organizing. Use macro close-ups and slow motion for maximum impact. Create a meditative rhythm that viewers watch on repeat.',
+    conceptPrompt: `CLIP 1: CAMERA - MACRO perfection shot. Symmetrical composition, perfect texture. SLOW PUSH-IN, meditative pace. Satisfying anticipation.
+CLIP 2: CAMERA - OVERHEAD process shot. Cutting/pouring/organizing action. Crisp ASMR moment, 120fps slow-motion. Perfectionist pleasure.
+CLIP 3: CAMERA - CLOSE-UP texture detail. Surface perfection, material beauty. Soft lighting, no harsh shadows. Hypnotic viewing.
+CLIP 4: CAMERA - SMOOTH motion sequence. Folding/stacking/arranging perfection. Symmetry completion, visual order. Deep satisfaction.
+CLIP 5: CAMERA - SLOW-MOTION climax. The most satisfying moment - perfect fit, clean cut, smooth pour. Peak ASMR energy.
+CLIP 6: CAMERA - PULL-BACK to completed perfection. Before/after reveal of order achieved. Meditative conclusion, loop-worthy finale.`,
   },
   {
     id: 'storytime',
@@ -505,7 +630,12 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     clipCount: 6,
     targetDurationMinutes: 2,
     colorGrading: 'cinematic',
-    conceptPrompt: 'A gripping storytime that hooks viewers from the first second. Open with a tantalizing teaser of the climax. Build the narrative with dramatic pauses and emotional beats. Use visual recreations and atmospheric B-roll. Create suspense with strategic reveals and plot twists. End with a powerful conclusion that resonates.',
+    conceptPrompt: `CLIP 1: CAMERA - TEASER of climax moment. Flash-forward hook, tension immediate. CLOSE-UP dramatic reaction. "Wait for this" energy, then rewind.
+CLIP 2: CAMERA - SETUP with direct address. MEDIUM SHOT storyteller, intimate framing. Warm lighting, trust-building eye contact. Story begins.
+CLIP 3: CAMERA - RECREATION B-roll. Dramatic visualization, moody lighting. Atmospheric scenes matching narration. Cinematic interpretation.
+CLIP 4: CAMERA - CLOSE-UP emotional beat. Dramatic pause, building tension. Lighting shift darker/moodier. "Then..." moment.
+CLIP 5: CAMERA - CLIMAX visualization. Peak drama, reveal moment. Quick cuts, dramatic lighting. The twist/resolution they came for.
+CLIP 6: CAMERA - REFLECTION close. Back to direct address, processing expression. PUSH-IN for final thought. Emotional landing, share-worthy conclusion.`,
   },
   {
     id: 'anime-style',
@@ -518,7 +648,14 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     targetDurationMinutes: 2,
     colorGrading: 'cinematic',
     environmentId: 'neon_nights',
-    conceptPrompt: 'An anime-inspired sequence with explosive visual energy. Open with a dramatic establishing shot and bold typography. Use dynamic camera movements - speed lines, impact frames, and dramatic zooms. Create intense action moments with quick cuts and freeze frames. Build to an epic climax with sakuga-style animation energy. End with a powerful pose or symbolic shot.',
+    conceptPrompt: `CLIP 1: CAMERA - DRAMATIC establishing with speed lines. Bold typography entrance, anime title card energy. Epic wide shot, stylized composition.
+CLIP 2: CAMERA - QUICK ZOOM to character introduction. Freeze frame on pose, name card flash. Stylized portrait moment.
+CLIP 3: CAMERA - SPEED LINE tracking. Dynamic movement, motion blur trails. Running/action sequence with anime physics.
+CLIP 4: CAMERA - IMPACT FRAME freeze. Action peak with radial lines. 1-2 frame hold, emphasis moment. Then explosive continuation.
+CLIP 5: CAMERA - 360 SAKUGA orbit. Fluid animation energy, highest quality frames. Character power-up or special moment.
+CLIP 6: CAMERA - RAPID MONTAGE. 0.5 second cuts, building to climax. Speed escalation, tension maximum.
+CLIP 7: CAMERA - SLOW-MOTION impact. The big hit/moment in 120fps. Debris flying, dramatic lighting. Peak anime energy.
+CLIP 8: CAMERA - HERO POSE final frame. Wind in hair/cape, dramatic upshot. Sunset/dramatic sky backdrop. Iconic anime ending.`,
   },
   {
     id: 'ugc-testimonial',
@@ -530,7 +667,10 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     clipCount: 4,
     targetDurationMinutes: 1,
     colorGrading: 'neutral',
-    conceptPrompt: 'An authentic UGC-style testimonial that feels real and relatable. Open with a casual, phone-filmed aesthetic. Share genuine enthusiasm with natural speech patterns. Show the product in real-life use with unstaged moments. Build credibility with specific benefits and personal experience. End with an authentic recommendation that converts.',
+    conceptPrompt: `CLIP 1: CAMERA - PHONE-FILMED aesthetic. Slightly imperfect framing, authentic feel. Direct address, genuine energy. "Hey, I need to tell you about..."
+CLIP 2: CAMERA - HANDHELD product in use. Real environment, not studio. Natural lighting, unstaged moments. Authentic demonstration.
+CLIP 3: CAMERA - CLOSE-UP genuine reaction. Enthusiasm not scripted, real emotion. Eye contact with camera, building trust. Specific benefit mentioned.
+CLIP 4: CAMERA - DIRECT recommendation close. Confident endorsement, authentic conviction. "You need to try this" energy. Natural CTA, conversion moment.`,
   },
   {
     id: 'how-to-tutorial',
@@ -543,7 +683,12 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     targetDurationMinutes: 3,
     colorGrading: 'neutral',
     environmentId: 'white_studio',
-    conceptPrompt: 'A clear, engaging tutorial that makes learning easy. Open with the end result to show what viewers will achieve. Break down each step with clean visuals and on-screen text. Use close-ups to highlight important details. Add helpful tips and common mistakes to avoid. End with the completed result and encouragement to try.',
+    conceptPrompt: `CLIP 1: CAMERA - RESULT preview hook. Finished outcome shown first. "Here's what you'll make" - PUSH-IN on impressive result.
+CLIP 2: CAMERA - OVERHEAD step 1. Clear demonstration, hands visible. Clean tracking, step text overlay zone. Bright, shadowless lighting.
+CLIP 3: CAMERA - ANGLE SHIFT step 2. Different perspective for clarity. DOLLY movement showing progress. Key detail CLOSE-UP.
+CLIP 4: CAMERA - COMMON MISTAKE callout. "Don't do this" moment. Helpful prevention, trust building. Quick comparison cut.
+CLIP 5: CAMERA - FINAL STEPS acceleration. Building to completion, momentum. Quicker cuts, progress satisfying.
+CLIP 6: CAMERA - REVEAL completed result. Ta-da moment, pride energy. ORBIT around finished work. Encouraging close, viewer can do this.`,
   },
   {
     id: 'podcast-clips',
@@ -555,7 +700,9 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     clipCount: 3,
     targetDurationMinutes: 1,
     colorGrading: 'neutral',
-    conceptPrompt: 'An engaging podcast clip optimized for social sharing. Open with a compelling sound bite that hooks attention. Feature dynamic waveform visuals or speaker footage. Use bold, animated captions that emphasize key moments. Build to the most quotable insight. End with a teaser for the full episode.',
+    conceptPrompt: `CLIP 1: CAMERA - HOOK sound bite moment. Most quotable 3-5 seconds first. Bold caption emphasis, attention immediate. PUSH-IN to speaker.
+CLIP 2: CAMERA - CONTEXT building. Setup for the insight, speaker engaged. Dynamic waveform or speaker footage. Caption highlighting key words.
+CLIP 3: CAMERA - PAYOFF insight delivery. The wisdom they came for. CLOSE-UP on speaker conviction. "Full episode" tease, follow CTA.`,
   },
   {
     id: 'team-intro',
@@ -568,7 +715,12 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     targetDurationMinutes: 2,
     colorGrading: 'neutral',
     environmentId: 'modern_minimalist',
-    conceptPrompt: 'A warm team introduction that humanizes your brand. Open with a dynamic montage of the team in action. Feature individual spotlights with names and roles. Capture authentic moments of collaboration and personality. Show the workspace and company culture. End with the full team together, projecting unity and expertise.',
+    conceptPrompt: `CLIP 1: CAMERA - DYNAMIC team action montage. Multiple angles, energy and collaboration. TRACKING through workspace, life in motion.
+CLIP 2: CAMERA - INDIVIDUAL spotlights. MEDIUM CLOSE-UP each person, name/role card. Consistent framing, personality showing. Warm key light.
+CLIP 3: CAMERA - CANDID collaboration moments. Unposed interaction, genuine teamwork. HANDHELD authenticity, documentary feel.
+CLIP 4: CAMERA - WORKSPACE reveal. DOLLY through environment, culture visible. Details that show personality. Natural lighting blend.
+CLIP 5: CAMERA - FUN MOMENT together. Genuine laughter, team chemistry. Builds humanity and approachability.
+CLIP 6: CAMERA - GROUP hero shot. Full team together, unified energy. Professional composition, confident stance. Brand values embodied, memorable close.`,
   },
   // 🔥 PREMIUM BREAKOUT EFFECTS ROW - Maximum Sales Impact Templates
   // These 5 templates are the first row shown to users. Each creates a stunning

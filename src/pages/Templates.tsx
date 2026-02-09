@@ -40,6 +40,10 @@ import podcastClipsImg from '@/assets/templates/podcast-clips.jpg';
 import brandStoryImg from '@/assets/templates/brand-story.jpg';
 import teamIntroImg from '@/assets/templates/team-intro.jpg';
 import breakTheScreenImg from '@/assets/templates/break-the-screen.jpg';
+import breakoutFacebookImg from '@/assets/templates/breakout-facebook.jpg';
+import breakoutYoutubeImg from '@/assets/templates/breakout-youtube.jpg';
+import breakoutTiktokImg from '@/assets/templates/breakout-tiktok.jpg';
+import breakoutInstagramImg from '@/assets/templates/breakout-instagram.jpg';
 
 interface Template {
   id: string;
@@ -69,6 +73,63 @@ const CATEGORIES = [
 
 // Trendy, viral-ready templates based on what people love making
 const BUILT_IN_TEMPLATES = [
+  // 🔥 PLATFORM BREAKOUT SERIES - Ultra High Conversion
+  {
+    id: 'breakout-facebook',
+    name: 'Facebook Breakout',
+    description: 'Avatar shatters through a Facebook post into reality',
+    category: 'trending',
+    thumbnail_url: breakoutFacebookImg,
+    use_count: 28700,
+    target_duration_minutes: 1,
+    clip_count: 3,
+    mood: 'epic',
+    genre: 'ad',
+    is_featured: true,
+    is_trending: true,
+  },
+  {
+    id: 'breakout-youtube',
+    name: 'YouTube Breakout',
+    description: 'Avatar bursts through YouTube player with dramatic red glow',
+    category: 'trending',
+    thumbnail_url: breakoutYoutubeImg,
+    use_count: 31200,
+    target_duration_minutes: 1,
+    clip_count: 3,
+    mood: 'epic',
+    genre: 'ad',
+    is_featured: true,
+    is_trending: true,
+  },
+  {
+    id: 'breakout-tiktok',
+    name: 'TikTok Breakout',
+    description: 'Avatar explodes through TikTok interface with neon energy',
+    category: 'trending',
+    thumbnail_url: breakoutTiktokImg,
+    use_count: 45600,
+    target_duration_minutes: 1,
+    clip_count: 3,
+    mood: 'action',
+    genre: 'ad',
+    is_featured: true,
+    is_trending: true,
+  },
+  {
+    id: 'breakout-instagram',
+    name: 'Instagram Breakout',
+    description: 'Avatar breaks through Instagram post with gradient glow',
+    category: 'trending',
+    thumbnail_url: breakoutInstagramImg,
+    use_count: 38900,
+    target_duration_minutes: 1,
+    clip_count: 3,
+    mood: 'epic',
+    genre: 'ad',
+    is_featured: true,
+    is_trending: true,
+  },
   // 🔥 TRENDING - Viral & Social
   {
     id: 'break-the-screen',

@@ -56,6 +56,7 @@ const Avatars = lazy(() => import("./pages/Avatars"));
 const Creators = lazy(() => import("./pages/Creators"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
 const VideoDetail = lazy(() => import("./pages/VideoDetail"));
+const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 
 // Route change tracker component
 function RouteChangeTracker() {
@@ -198,6 +199,11 @@ const App = () => {
                 <Route path="/pricing" element={
                   <RouteContainer>
                     <Pricing />
+                  </RouteContainer>
+                } />
+                <Route path="/how-it-works" element={
+                  <RouteContainer>
+                    <HowItWorks />
                   </RouteContainer>
                 } />
                 

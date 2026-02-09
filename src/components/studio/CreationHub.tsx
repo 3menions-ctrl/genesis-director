@@ -951,22 +951,27 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                   <div className="space-y-3">
                     <Label className="text-sm text-white/60 font-medium">
                       {isBreakoutTemplate 
-                        ? 'What should the avatar say?' 
+                        ? '💬 What should the avatar say?' 
                         : selectedMode === 'avatar' 
                           ? 'What should the avatar say?' 
                           : 'Describe your vision'}
                     </Label>
                     {isBreakoutTemplate && (
-                      <p className="text-xs text-white/40">
-                        This is the exact dialogue your avatar will speak after breaking through the screen.
-                      </p>
+                      <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/20">
+                        <p className="text-sm text-violet-300 font-medium mb-1">
+                          ✨ Enter your avatar's dialogue only
+                        </p>
+                        <p className="text-xs text-violet-400/70">
+                          The 3-clip breakout sequence (inside UI → shattering → emerged) is automatically generated. Just write what {selectedAvatar?.name || 'the avatar'} should SAY in the final clip.
+                        </p>
+                      </div>
                     )}
                     <Textarea
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
                       placeholder={
                         isBreakoutTemplate
-                          ? "Hey! I just broke through your screen to tell you about something amazing..."
+                          ? `Hey! I just broke through your screen to tell you about something amazing! Check out our new product...`
                           : selectedMode === 'text-to-video' 
                             ? "A cinematic drone shot over misty mountains at sunrise, golden light filtering through clouds..."
                             : selectedMode === 'avatar'

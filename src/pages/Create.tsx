@@ -79,6 +79,10 @@ function CreateContentInner() {
     enableMusic: boolean;
     genre?: string;
     mood?: string;
+    // Breakout template parameters
+    isBreakout?: boolean;
+    breakoutStartImageUrl?: string;
+    breakoutPlatform?: 'facebook' | 'youtube' | 'tiktok' | 'instagram';
   }) => {
     if (!user) {
       toast.error('Please sign in to create videos');
@@ -113,6 +117,10 @@ function CreateContentInner() {
           enableMusic: config.enableMusic,
           genre: config.genre,
           mood: config.mood,
+          // Breakout template parameters - for platform UI shattering effect
+          isBreakout: config.isBreakout,
+          breakoutStartImageUrl: config.breakoutStartImageUrl,
+          breakoutPlatform: config.breakoutPlatform,
         },
       });
 

@@ -198,6 +198,15 @@ interface ModeRouterRequest {
   clipDuration: number;
   enableNarration: boolean;
   enableMusic: boolean;
+  
+  // Genre/mood for cinematic styling
+  genre?: string;
+  mood?: string;
+  
+  // Breakout template parameters - for platform UI shattering effect
+  isBreakout?: boolean;
+  breakoutStartImageUrl?: string; // Platform interface image (Facebook post, YouTube player, etc.)
+  breakoutPlatform?: 'facebook' | 'youtube' | 'tiktok' | 'instagram';
 }
 
 serve(async (req) => {
@@ -211,10 +220,13 @@ serve(async (req) => {
 
   try {
     const request: ModeRouterRequest = await req.json();
-    const { mode, userId, prompt, imageUrl, videoUrl, stylePreset, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic } = request;
+    const { mode, userId, prompt, imageUrl, videoUrl, stylePreset, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, genre, mood, isBreakout, breakoutStartImageUrl, breakoutPlatform } = request;
 
     console.log(`[ModeRouter] Routing ${mode} request for user ${userId}`);
     console.log(`[ModeRouter] Config: ${clipCount} clips × ${clipDuration}s, aspect ${aspectRatio}`);
+    if (isBreakout) {
+      console.log(`[ModeRouter] BREAKOUT MODE: Platform=${breakoutPlatform}, StartImage=${breakoutStartImageUrl ? 'provided' : 'none'}`);
+    }
 
     // =========================================================
     // SINGLE PROJECT CONSTRAINT: Only one active project per user
@@ -442,6 +454,12 @@ serve(async (req) => {
           enableNarration,
           enableMusic,
           mode,
+          genre,
+          mood,
+          // Breakout template parameters - for platform UI shattering effect
+          isBreakout,
+          breakoutStartImageUrl,
+          breakoutPlatform,
           supabase,
         });
     }
@@ -947,13 +965,22 @@ async function handleCinematicMode(params: {
   enableNarration: boolean;
   enableMusic: boolean;
   mode: string;
+  genre?: string;
+  mood?: string;
+  // Breakout template parameters
+  isBreakout?: boolean;
+  breakoutStartImageUrl?: string;
+  breakoutPlatform?: 'facebook' | 'youtube' | 'tiktok' | 'instagram';
   supabase: any;
 }) {
-  const { projectId, userId, concept, referenceImageUrl, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, mode, supabase } = params;
+  const { projectId, userId, concept, referenceImageUrl, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, mode, genre, mood, isBreakout, breakoutStartImageUrl, breakoutPlatform, supabase } = params;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   console.log(`[ModeRouter/Cinematic] Starting full pipeline: ${clipCount} clips × ${clipDuration}s`);
+  if (isBreakout) {
+    console.log(`[ModeRouter/Cinematic] BREAKOUT TEMPLATE: ${breakoutPlatform}, using platform UI as first frame`);
+  }
 
   // Route to hollywood-pipeline with all parameters
   const pipelineResponse = await fetch(`${supabaseUrl}/functions/v1/hollywood-pipeline`, {
@@ -973,6 +1000,14 @@ async function handleCinematicMode(params: {
       includeVoice: enableNarration,
       includeMusic: enableMusic,
       qualityTier: 'professional',
+      genre,
+      mood,
+      // Breakout template parameters - for platform UI shattering effect
+      // The first clip will use breakoutStartImageUrl as the starting frame,
+      // with the avatar appearing inside the social media interface
+      isBreakout,
+      breakoutStartImageUrl,
+      breakoutPlatform,
     }),
   });
 
@@ -983,13 +1018,20 @@ async function handleCinematicMode(params: {
 
   const result = await pipelineResponse.json();
 
+  // Customize message for breakout templates
+  const breakoutMsg = isBreakout 
+    ? `Creating ${breakoutPlatform} breakout video - avatar will shatter through the interface!` 
+    : `Creating ${clipCount}-clip ${mode.replace(/-/g, ' ')} video with ${enableNarration ? 'narration' : 'no narration'}${enableMusic ? ' and music' : ''}.`;
+
   return new Response(
     JSON.stringify({
       success: true,
       projectId,
       mode,
       status: 'processing',
-      message: `Creating ${clipCount}-clip ${mode.replace(/-/g, ' ')} video with ${enableNarration ? 'narration' : 'no narration'}${enableMusic ? ' and music' : ''}.`,
+      message: breakoutMsg,
+      isBreakout,
+      breakoutPlatform,
       ...result,
     }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } }

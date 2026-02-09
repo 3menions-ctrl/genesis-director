@@ -1826,6 +1826,14 @@ async function runAssetCreation(
       // This ensures consistent voice per character across all clips
       const characterVoiceMap: Record<string, { voiceId: string; provider: string }> = {};
       
+      // BREAKOUT MODE: Pre-assign the avatar's voice for dialogue in clip 3
+      // In breakout templates, there's only one avatar speaking, use request.voiceId
+      if (request.isBreakout && request.voiceId) {
+        console.log(`[Hollywood] 🔥 BREAKOUT MODE: Using avatar voice "${request.voiceId}" for dialogue`);
+        characterVoiceMap['avatar'] = { voiceId: request.voiceId, provider: 'elevenlabs' };
+        characterVoiceMap['narrator'] = { voiceId: request.voiceId, provider: 'elevenlabs' };
+      }
+      
       // Pre-assign voices to all extracted characters
       if (state.extractedCharacters && state.extractedCharacters.length > 0) {
         console.log(`[Hollywood] Assigning voices to ${state.extractedCharacters.length} characters...`);
@@ -1901,9 +1909,10 @@ async function runAssetCreation(
           }
           
           // Get voice for this character
+          // PRIORITY: 1) Character-specific voice map, 2) Any character voice, 3) Request voiceId (avatar), 4) Default
           const voiceAssignment = characterVoiceMap[speakingCharacter] 
             || characterVoiceMap[Object.keys(characterVoiceMap)[0]] 
-            || { voiceId: 'nova', provider: 'openai' };
+            || { voiceId: request.voiceId || 'nova', provider: 'openai' };
           
           const shotIndex = state.script?.shots?.findIndex(s => s.id === shot.id) || 0;
           

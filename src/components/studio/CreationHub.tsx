@@ -327,8 +327,11 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     if (isBreakoutTemplate && !selectedAvatar) return;
     
     // Build creation config with breakout settings if applicable
+    // CRITICAL FIX: Breakout templates must use 'text-to-video' mode to route through
+    // handleCinematicMode which handles the isBreakout parameters correctly.
+    // Using 'avatar' mode routes to generate-avatar-direct which ignores breakout.
     const creationConfig: Parameters<typeof onStartCreation>[0] = {
-      mode: isBreakoutTemplate ? 'avatar' : selectedMode, // Breakout uses avatar mode
+      mode: isBreakoutTemplate ? 'text-to-video' : selectedMode, // Breakout routes through cinematic pipeline
       prompt,
       style: selectedMode === 'video-to-video' ? selectedStyle : undefined,
       imageUrl: uploadedImage || undefined,
@@ -338,8 +341,8 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       clipDuration: isBreakoutTemplate ? 10 : clipDuration, // Breakout uses 10s clips
       enableNarration: true,
       enableMusic,
-      genre: supportsAdvancedOptions ? genre : undefined,
-      mood: supportsAdvancedOptions ? mood : undefined,
+      genre: supportsAdvancedOptions || isBreakoutTemplate ? genre : undefined,
+      mood: supportsAdvancedOptions || isBreakoutTemplate ? mood : undefined,
     };
     
     // If breakout template is applied, pass the start image, avatar, and breakout flag
@@ -349,7 +352,8 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       (creationConfig as any).isBreakout = true;
       (creationConfig as any).breakoutStartImageUrl = appliedSettings.startImageUrl;
       (creationConfig as any).breakoutPlatform = appliedSettings.breakoutPlatform;
-      // Pass avatar data for the generation
+      // Pass avatar data for the generation - use as the reference image
+      (creationConfig as any).imageUrl = selectedAvatar.front_image_url || selectedAvatar.face_image_url;
       (creationConfig as any).avatarImageUrl = selectedAvatar.front_image_url || selectedAvatar.face_image_url;
       (creationConfig as any).avatarVoiceId = selectedAvatar.voice_id;
       (creationConfig as any).avatarTemplateId = selectedAvatar.id;
@@ -942,23 +946,34 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                   </div>
                 )}
 
-                {/* Text prompt */}
-                {modeConfig?.requiresText && (
+                {/* Text prompt - For breakout templates, this is the DIALOGUE the avatar speaks */}
+                {(modeConfig?.requiresText || isBreakoutTemplate) && (
                   <div className="space-y-3">
                     <Label className="text-sm text-white/60 font-medium">
-                      {selectedMode === 'avatar' ? 'What should the avatar say?' : 'Describe your vision'}
+                      {isBreakoutTemplate 
+                        ? 'What should the avatar say?' 
+                        : selectedMode === 'avatar' 
+                          ? 'What should the avatar say?' 
+                          : 'Describe your vision'}
                     </Label>
+                    {isBreakoutTemplate && (
+                      <p className="text-xs text-white/40">
+                        This is the exact dialogue your avatar will speak after breaking through the screen.
+                      </p>
+                    )}
                     <Textarea
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
                       placeholder={
-                        selectedMode === 'text-to-video' 
-                          ? "A cinematic drone shot over misty mountains at sunrise, golden light filtering through clouds..."
-                          : selectedMode === 'avatar'
-                          ? "Welcome to our product demo. Today I'll show you..."
-                          : selectedMode === 'image-to-video'
-                          ? "The character slowly turns to face the camera, wind blowing through their hair..."
-                          : "Describe the motion or style you want..."
+                        isBreakoutTemplate
+                          ? "Hey! I just broke through your screen to tell you about something amazing..."
+                          : selectedMode === 'text-to-video' 
+                            ? "A cinematic drone shot over misty mountains at sunrise, golden light filtering through clouds..."
+                            : selectedMode === 'avatar'
+                              ? "Welcome to our product demo. Today I'll show you..."
+                              : selectedMode === 'image-to-video'
+                                ? "The character slowly turns to face the camera, wind blowing through their hair..."
+                                : "Describe the motion or style you want..."
                       }
                       className="min-h-[140px] bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/25 resize-none rounded-xl focus:border-white/20 focus:ring-white/10 text-base"
                     />

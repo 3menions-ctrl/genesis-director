@@ -15,7 +15,6 @@ const FAQSection = lazy(() => import('@/components/landing/FAQSection'));
 const Footer = lazy(() => import('@/components/landing/Footer'));
 const FeaturesShowcase = lazy(() => import('@/components/landing/FeaturesShowcase'));
 const CinematicTransition = lazy(() => import('@/components/landing/CinematicTransition'));
-const NovaConversionOverlay = lazy(() => import('@/components/landing/NovaConversionOverlay'));
 // Optimized section loader with minimal footprint - forwardRef for AnimatePresence compatibility
 const SectionLoader = memo(forwardRef<HTMLDivElement, Record<string, never>>(
   function SectionLoader(_, ref) {
@@ -444,7 +443,6 @@ export default function Landing() {
   
   const [showExamples, setShowExamples] = useState(false);
   const [showCinematicTransition, setShowCinematicTransition] = useState(false);
-  const [showNovaOverlay, setShowNovaOverlay] = useState(false);
   
   // Ref for the sign-up button in the nav (for spotlight effect)
   const signUpButtonRef = useRef<HTMLButtonElement>(null);
@@ -493,55 +491,6 @@ export default function Landing() {
     setShowExamples(open);
   }, []);
 
-  const handleDismissNova = useCallback(() => {
-    setShowNovaOverlay(false);
-  }, []);
-
-  // Trigger Nova overlay after 8 seconds of inactivity (conversion optimization)
-  useEffect(() => {
-    // Only trigger for non-authenticated users
-    if (user) return;
-    
-    let inactivityTimer: NodeJS.Timeout;
-    let hasTriggered = false;
-    
-    const resetTimer = () => {
-      clearTimeout(inactivityTimer);
-      if (!hasTriggered && !showNovaOverlay) {
-        inactivityTimer = setTimeout(() => {
-          hasTriggered = true;
-          setShowNovaOverlay(true);
-        }, 8000); // 8 seconds of inactivity
-      }
-    };
-
-    // Also trigger on scroll past hero section
-    const handleScroll = () => {
-      const scrollY = window.scrollY;
-      const viewportHeight = window.innerHeight;
-      
-      // If user has scrolled past 80% of viewport and hasn't seen Nova
-      if (scrollY > viewportHeight * 0.8 && !hasTriggered && !showNovaOverlay) {
-        hasTriggered = true;
-        setShowNovaOverlay(true);
-      }
-    };
-
-    // Start timer
-    resetTimer();
-    
-    // Listen for user activity
-    window.addEventListener('mousemove', resetTimer);
-    window.addEventListener('keydown', resetTimer);
-    window.addEventListener('scroll', handleScroll);
-
-    return () => {
-      clearTimeout(inactivityTimer);
-      window.removeEventListener('mousemove', resetTimer);
-      window.removeEventListener('keydown', resetTimer);
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [user, showNovaOverlay]);
 
   // Memoized steps rendering
   const stepsContent = useMemo(() => (
@@ -554,16 +503,6 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-black overflow-hidden relative">
-      {/* Nova Chen Conversion Overlay - Fourth Wall Breaking */}
-      <ErrorBoundaryWrapper fallback={null}>
-        <Suspense fallback={null}>
-          <NovaConversionOverlay 
-            isActive={showNovaOverlay} 
-            onDismiss={handleDismissNova}
-            signUpButtonRef={signUpButtonRef}
-          />
-        </Suspense>
-      </ErrorBoundaryWrapper>
 
       {/* Cinematic Transition - with error boundary */}
       <ErrorBoundaryWrapper fallback={null}>

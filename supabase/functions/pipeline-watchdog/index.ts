@@ -118,6 +118,7 @@ const MAX_AGE_MS = 60 * 60 * 1000; // 60 minutes
 /**
  * Build WORLD-CLASS acting prompt for avatar frame-chaining
  * Each clip gets unique cinematography + DYNAMIC SCENE PROGRESSION
+ * CRITICAL: Enforces "ALREADY IN POSITION" - avatar starts IN the scene, not entering it
  */
 function buildAvatarActingPrompt(segmentText: string, sceneDescription?: string, clipIndex: number = 0, totalClips: number = 1): string {
   const idx = clipIndex % 10;
@@ -139,12 +140,15 @@ function buildAvatarActingPrompt(segmentText: string, sceneDescription?: string,
   const progressiveScene = getProgressiveScene(sceneDescription, clipIndex, totalClips);
   const sceneContext = `Cinematic scene in ${progressiveScene}, shot with professional cinematography.`;
   
+  // CRITICAL: "Already in position" enforcement for Kling animation
+  const positionEnforcement = "CRITICAL: Subject is ALREADY fully positioned in the environment from frame 1 - NOT walking in, NOT entering, NOT arriving. They are stationary and grounded, having already been present in this location.";
+  
   const qualityBaseline = "Ultra-high definition, film-grain texture, natural skin tones, professional color grading, cinematic depth of field.";
   
   console.log(`[Watchdog] Clip ${clipIndex + 1}/${totalClips} Style: ${movementKey} + ${angleKey} + ${sizeKey}`);
   console.log(`[Watchdog] Clip ${clipIndex + 1}/${totalClips} Scene: ${progressiveScene.substring(0, 50)}...`);
   
-  return `${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. The subject is ${motionPrompt}, speaking naturally: "${segmentText.trim().substring(0, 80)}${segmentText.length > 80 ? '...' : ''}". Lifelike fluid movements, natural micro-expressions, authentic lip sync, subtle breathing motion, realistic eye movements and blinks. ${qualityBaseline}`;
+  return `${positionEnforcement} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. The subject is ${motionPrompt}, speaking naturally: "${segmentText.trim().substring(0, 80)}${segmentText.length > 80 ? '...' : ''}". Lifelike fluid movements, natural micro-expressions, authentic lip sync, subtle breathing motion, realistic eye movements and blinks. ${qualityBaseline}`;
 }
 
 serve(async (req) => {

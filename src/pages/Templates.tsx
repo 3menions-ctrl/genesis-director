@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, forwardRef } from 'react';
+import { useState, useEffect, memo, forwardRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSafeNavigation, useRouteCleanup } from '@/lib/navigation';
@@ -12,7 +12,6 @@ import {
   ArrowRight, Star, Flame, Zap, Heart, Eye
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import TemplatesBackground from '@/components/templates/TemplatesBackground';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
@@ -75,9 +74,7 @@ const CATEGORIES = [
 
 // Trendy, viral-ready templates based on what people love making
 const BUILT_IN_TEMPLATES = [
-  // 🔥 PREMIUM BREAKOUT EFFECTS ROW - Maximum Sales Impact (TOP 5)
-  // These 5 templates MUST appear first. Each creates a stunning 3-clip narrative
-  // where the avatar breaks the fourth wall in creative ways.
+  // 🔥 PREMIUM BREAKOUT EFFECTS ROW
   {
     id: 'post-escape',
     name: 'Post Escape',
@@ -428,27 +425,31 @@ const BUILT_IN_TEMPLATES = [
 
 type TemplateItem = typeof BUILT_IN_TEMPLATES[0];
 
-// Wrap TemplateCard with forwardRef for Framer Motion compatibility
-const TemplateCard = forwardRef<HTMLDivElement, { 
-  template: TemplateItem;
-  onUse: () => void;
-  index?: number;
-}>(function TemplateCard({ 
+/**
+ * TemplateCard - STABILITY FIX: Uses CSS animations instead of Framer Motion
+ * 
+ * ROOT CAUSE: 26+ motion.div instances with individual animation state
+ * caused memory pressure and GPU exhaustion on mobile/constrained devices.
+ * CSS animations are GPU-composited and don't create JS object overhead.
+ */
+const TemplateCard = memo(function TemplateCard({ 
   template,
   onUse,
   index = 0,
-}, ref) {
+}: { 
+  template: TemplateItem;
+  onUse: () => void;
+  index?: number;
+}) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.03, ease: [0.16, 1, 0.3, 1] }}
+    <div
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={onUse}
-      className="group relative cursor-pointer"
+      className="group relative cursor-pointer animate-fade-in"
+      style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
     >
       {/* Compact Card */}
       <div className={cn(
@@ -462,6 +463,7 @@ const TemplateCard = forwardRef<HTMLDivElement, {
           <img 
             src={template.thumbnail_url} 
             alt={template.name}
+            loading="lazy"
             className={cn(
               "absolute inset-0 w-full h-full object-cover transition-transform duration-500",
               isHovered ? "scale-105" : "scale-100"
@@ -500,19 +502,20 @@ const TemplateCard = forwardRef<HTMLDivElement, {
             )}
           </div>
           
-          {/* Quick Use Button */}
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: isHovered ? 1 : 0, scale: isHovered ? 1 : 0.8 }}
-            transition={{ duration: 0.2 }}
+          {/* Quick Use Button - CSS transition instead of motion */}
+          <button
             onClick={(e) => {
               e.stopPropagation();
               onUse();
             }}
-            className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-lg"
+            className={cn(
+              "w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-lg",
+              "transition-all duration-200",
+              isHovered ? "opacity-100 scale-100" : "opacity-0 scale-75"
+            )}
           >
             <Play className="w-4 h-4 text-black ml-0.5" />
-          </motion.button>
+          </button>
         </div>
 
         {/* Bottom Content */}
@@ -547,7 +550,7 @@ const TemplateCard = forwardRef<HTMLDivElement, {
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 });
 
@@ -559,7 +562,6 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
   const { navigate } = useSafeNavigation();
   
   // FIX: useAuth now returns safe fallback if context is missing
-  // No try-catch needed - that violated React's hook rules
   const { user } = useAuth();
   
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -567,28 +569,36 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
 
-  useEffect(() => {
-    fetchTemplates();
+  // Cleanup on navigation away
+  useRouteCleanup(() => {
+    // No-op: lightweight page, no async to cancel
   }, []);
 
-  const fetchTemplates = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('project_templates')
-        .select('*')
-        .eq('is_public', true)
-        .order('use_count', { ascending: false })
-        .limit(50);
-      
-      if (error) throw error;
-      setTemplates(data || []);
-    } catch (err) {
-      console.error('Failed to fetch templates:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    let cancelled = false;
+    
+    const fetchTemplates = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('project_templates')
+          .select('*')
+          .eq('is_public', true)
+          .order('use_count', { ascending: false })
+          .limit(50);
+        
+        if (error) throw error;
+        if (!cancelled) setTemplates(data || []);
+      } catch (err) {
+        console.error('Failed to fetch templates:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    fetchTemplates();
+    return () => { cancelled = true; };
+  }, []);
 
   // Combine DB templates with built-in templates
   const allTemplates: TemplateItem[] = [...BUILT_IN_TEMPLATES, ...templates.map((t) => ({
@@ -622,10 +632,10 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
     return (b.use_count || 0) - (a.use_count || 0);
   });
 
-  const handleUseTemplate = (template: TemplateItem) => {
+  const handleUseTemplate = useCallback((template: TemplateItem) => {
     navigate(`/create?template=${template.id}`);
     toast.success(`Using "${template.name}" template`);
-  };
+  }, [navigate]);
 
   return (
     <div ref={ref} className="min-h-screen bg-[#030303] text-white overflow-x-hidden">
@@ -687,11 +697,7 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
 
         {/* Empty State */}
         {sortedTemplates.length === 0 && (
-          <motion.div 
-            className="text-center py-16"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
+          <div className="text-center py-16 animate-fade-in">
             <div className="w-12 h-12 rounded-xl bg-white/[0.05] flex items-center justify-center mx-auto mb-4">
               <Search className="w-6 h-6 text-white/40" />
             </div>
@@ -709,7 +715,7 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
             >
               Clear filters
             </Button>
-          </motion.div>
+          </div>
         )}
       </main>
     </div>

@@ -215,42 +215,79 @@ interface BreakoutPlatformConfig {
 }
 
 function getBreakoutPlatformConfig(platform: 'facebook' | 'youtube' | 'tiktok' | 'instagram'): BreakoutPlatformConfig {
+  // WORLD-CLASS BREAKOUT PROMPTS
+  // These prompts create hyper-realistic physical emergence effects where the character
+  // genuinely appears to break through the social media interface into reality.
+  // Key elements: 3D depth separation, physical UI interaction, glass/barrier physics, dramatic lighting
+  
   const configs: Record<string, BreakoutPlatformConfig> = {
     facebook: {
-      clip1Prompt: 'Character trapped inside Facebook post interface, white card with blue header bar, profile picture circle visible, Like/Comment/Share buttons at bottom, pressing hands against the screen boundary',
-      clip2Prompt: 'Character punches through Facebook interface, glass shattering with blue lighting bursts, Facebook blue (#1877F2) light rays exploding outward',
-      clip3Prompt: 'Character emerged from shattered Facebook interface, glass shards with blue reflections settling, Facebook UI fragments visible',
-      colorDescription: 'Facebook blue (#1877F2) and white color scheme',
-      lightingDescription: 'Dramatic blue accent lighting from Facebook interface elements',
-      shatterLightingDescription: 'Explosive blue light bursting through cracks, white glass shards',
-      uiElements: 'Facebook blue header bar, profile picture circle, Like button with thumb icon, Comment button, Share button, white post card background',
+      clip1Prompt: `Photorealistic scene: A real person physically BEHIND a Facebook mobile app interface, their body pressing against the inside of the screen like glass. 
+        The Facebook UI elements (Like, Comment, Repost buttons, "1.8K comments" text, profile info) are rendered as a SEPARATE LAYER in front of them at a different depth plane.
+        Character's hands are pressed flat against the invisible barrier, face close to camera with intense eye contact, creating condensation on the digital glass.
+        Lighting from behind creates rim light around character. The UI casts subtle shadows ON the character. Hyperrealistic, 8K quality, cinematic depth of field.`,
+      clip2Prompt: `Explosive moment: Character PHYSICALLY PUNCHES THROUGH the Facebook interface barrier. 
+        Actual glass shards and digital fragments explode TOWARD THE VIEWER in slow motion, with the Facebook UI elements (Like button, comment section) shattering into pieces.
+        Character's arms and upper body emerge through the broken screen, glass shards catching blue (#1877F2) light. 
+        Dramatic volumetric lighting, motion blur on glass fragments, photorealistic physics, Hollywood action movie quality, 3D depth with UI on separate breaking plane.`,
+      clip3Prompt: `Triumphant emergence: Character has fully broken through into reality, standing confidently with shattered Facebook interface fragments settling around them.
+        Broken UI elements (Like icon, comment bubbles, profile pictures) visible as scattered debris. Character makes direct, confident eye contact with viewer.
+        Glass shards with blue reflections still falling. Smoke/dust particles in air. Premium advertising cinematography, hero lighting, powerful presence.`,
+      colorDescription: 'Facebook blue (#1877F2) accent lighting with white interface elements and dramatic shadows',
+      lightingDescription: 'Cinematic rim lighting from behind screen, blue accent glow from Facebook UI, dramatic shadows creating 3D depth',
+      shatterLightingDescription: 'Explosive blue light bursting through cracks, volumetric rays, glass catching and refracting light',
+      uiElements: 'Facebook Like button with thumb icon, Comment button, Repost/Share button, comment count (1.8K comments), profile picture circle, username, three-dot menu, video player controls',
     },
     youtube: {
-      clip1Prompt: 'Character inside YouTube video player interface, black player frame with red progress bar, play button visible, pressing against screen from within',
-      clip2Prompt: 'Character breaks through YouTube player screen, red neon light bursting through cracks, black glass and red progress bar shattering',
-      clip3Prompt: 'Character emerged from shattered YouTube player, red and black glass fragments, YouTube red light reflections on shards',
-      colorDescription: 'YouTube red (#FF0000) and dark interface color scheme',
-      lightingDescription: 'Red accent lighting from YouTube elements, dark cinematic background',
-      shatterLightingDescription: 'Red neon bursting through cracks, dramatic YouTube red glow',
-      uiElements: 'YouTube red progress bar, play/pause button, volume controls, fullscreen button, YouTube logo, black video player frame',
+      clip1Prompt: `Photorealistic scene: A real person physically TRAPPED INSIDE a YouTube video player, pressing against the screen from within like behind glass.
+        YouTube UI elements (red progress bar, play button, subscriber count, video title) rendered as SEPARATE LAYER at different depth in front of character.
+        Character's palms flat against the invisible barrier, creating tension and building pressure. Red glow from progress bar illuminates their face from below.
+        Hyperrealistic, cinematic lighting, 8K quality, the character exists in 3D space BEHIND the flat YouTube interface.`,
+      clip2Prompt: `Explosive breakthrough: Character SMASHES through YouTube video player screen with dramatic force.
+        The red progress bar CRACKS AND SHATTERS, black player frame breaking apart with glass exploding toward viewer.
+        Red (#FF0000) neon light bursts through the cracks as character emerges. Slow motion glass physics, each shard catching red and white light.
+        Character pushing forward with power and determination. Hollywood action cinematography, volumetric lighting, photorealistic 3D depth.`,
+      clip3Prompt: `Powerful emergence: Character stands fully emerged from shattered YouTube player, commanding presence, direct eye contact.
+        Broken red progress bar fragments, shattered play button, black glass shards settling around them.
+        YouTube red reflections on glass debris. Smoke and particles. Hero pose, premium advertising quality, confident and powerful.`,
+      colorDescription: 'YouTube red (#FF0000) neon accents with dark cinematic blacks and dramatic contrast',
+      lightingDescription: 'Underlit red glow from progress bar, rim lighting, dark cinematic atmosphere with red accent',
+      shatterLightingDescription: 'Red neon explosion through cracks, volumetric red rays, high contrast dramatic lighting',
+      uiElements: 'YouTube red progress bar, play/pause button, volume slider, fullscreen button, YouTube logo, video title, view count, subscribe button',
     },
     tiktok: {
-      clip1Prompt: 'Character inside TikTok vertical video interface, phone screen frame with right-side icons (heart, comment, share), music disc spinning at bottom, pushing against screen',
-      clip2Prompt: 'Character bursts through TikTok phone screen, neon pink (#FF0050) and cyan (#00F2EA) lights exploding, energetic dynamic breakout',
-      clip3Prompt: 'Character emerged from shattered TikTok interface, pink and cyan glass shards, colorful light reflections, trend-worthy confident pose',
-      colorDescription: 'TikTok cyan (#00F2EA) and pink (#FF0050) neon color scheme',
-      lightingDescription: 'Neon pink and cyan dual-tone lighting, energetic TikTok aesthetic',
-      shatterLightingDescription: 'Pink and cyan neon exploding through cracks, colorful glass reflections',
-      uiElements: 'Heart/like icon, comment bubble, share arrow, spinning music disc, username text, phone frame with notch',
+      clip1Prompt: `Photorealistic vertical scene: A real person physically BEHIND a TikTok mobile screen, body pressed against the glass barrier from inside.
+        TikTok UI elements (heart icon, comment bubble, share arrow, spinning music disc, username) as SEPARATE LAYER in front at different depth.
+        Neon pink and cyan glow building, character's eyes locked on camera with growing intensity. Phone frame with notch visible as the boundary.
+        Hyperrealistic, energetic tension building, 8K quality, true 3D depth separation between character and UI overlay.`,
+      clip2Prompt: `Dynamic breakthrough: Character BURSTS through TikTok phone screen with explosive energy and style.
+        Glass shattering with PINK (#FF0050) and CYAN (#00F2EA) neon lights exploding outward in slow motion.
+        UI icons (heart, comments, share) flying apart as fragments. Character emerging with dynamic pose, athletic movement.
+        Colorful glass shards catching dual-tone neon light. Viral-worthy cinematography, action movie energy, photorealistic physics.`,
+      clip3Prompt: `Energetic landing: Character has fully emerged from shattered TikTok interface, landing in confident dynamic pose.
+        Pink and cyan glass fragments settling, broken TikTok icons scattered. Direct eye contact, influencer energy, commanding the frame.
+        Neon reflections on debris. Premium social media advertising quality, trend-worthy visual impact.`,
+      colorDescription: 'TikTok dual-tone neon: cyan (#00F2EA) and pink (#FF0050) creating vibrant energetic atmosphere',
+      lightingDescription: 'Neon pink and cyan rim lighting, energetic dual-tone glow, club-like atmosphere',
+      shatterLightingDescription: 'Pink and cyan neon explosion, colorful glass reflections, dynamic light trails',
+      uiElements: 'Heart/like icon with count, comment bubble, share arrow, spinning music disc at bottom, username with verified badge, TikTok logo',
     },
     instagram: {
-      clip1Prompt: 'Character inside Instagram post interface, square post with header showing profile picture and username, heart/comment/share icons at bottom, pressing against the frame',
-      clip2Prompt: 'Character elegantly breaks through Instagram post frame, gradient light (pink #E1306C, purple #833AB4, orange #F77737) bursting through cracks',
-      clip3Prompt: 'Character emerged from shattered Instagram post, gradient-colored glass fragments, Instagram brand colors reflecting, influencer-ready pose',
-      colorDescription: 'Instagram gradient (pink #E1306C, purple #833AB4, orange #F77737) color scheme',
-      lightingDescription: 'Elegant gradient lighting from Instagram brand colors',
-      shatterLightingDescription: 'Pink, purple, and orange gradient light explosion, stylish glass shattering',
-      uiElements: 'Profile picture circle, username header, three-dot menu, heart icon, comment icon, share/send icon, save/bookmark icon',
+      clip1Prompt: `Photorealistic scene: A real person physically BEHIND an Instagram post interface, pressed against the digital glass from inside.
+        Instagram UI elements (heart, comment, share, save icons, profile picture, username header) as SEPARATE LAYER at different depth plane in front.
+        Instagram gradient glow (pink, purple, orange) building around edges. Character creating tension against the barrier, intense eye contact.
+        Hyperrealistic, fashion photography quality, 8K resolution, clear 3D depth separation between character and UI overlay.`,
+      clip2Prompt: `Elegant breakthrough: Character BREAKS through Instagram post frame with stylish, confident motion.
+        Glass shattering with Instagram's signature GRADIENT (pink #E1306C, purple #833AB4, orange #F77737) light bursting through cracks.
+        UI elements (heart icon, comment bubble, bookmark) fragmenting beautifully. Glass shards catching gradient rainbow light.
+        Slow motion elegance, fashion-forward cinematography, photorealistic physics, premium visual quality.`,
+      clip3Prompt: `Influencer emergence: Character has fully emerged from shattered Instagram post, standing with confident style and presence.
+        Gradient-colored glass fragments settling around them, broken Instagram icons scattered artistically.
+        Direct eye contact, camera-ready confidence. Premium advertising cinematography, aspirational lifestyle quality, hero lighting.`,
+      colorDescription: 'Instagram signature gradient: pink (#E1306C) to purple (#833AB4) to orange (#F77737) creating premium aesthetic',
+      lightingDescription: 'Gradient rim lighting, fashion photography quality, soft yet dramatic, Instagram-worthy aesthetic',
+      shatterLightingDescription: 'Gradient light explosion through cracks, rainbow glass reflections, elegant visual drama',
+      uiElements: 'Profile picture with ring, username with verified badge, three-dot menu, heart icon, comment icon, share/send icon, save/bookmark icon, Stories interface',
     },
   };
   
@@ -814,58 +851,89 @@ async function runPreProduction(
     
     console.log(`[Hollywood] User dialogue for breakout: "${userDialogue.substring(0, 80)}${userDialogue.length > 80 ? '...' : ''}"`);
     
-    // Build the 3-clip breakout narrative with cinematic quality
+    // WORLD-CLASS BREAKOUT NARRATIVE
+    // Build the 3-clip breakout sequence with hyper-realistic physical emergence
+    // Key: Each clip maintains 3D depth separation between character and UI layer
     // Clips 1 and 2 are silent (visual action only)
     // Clip 3 has the user's dialogue when the avatar speaks after emerging
     const breakoutShots = [
       {
         id: 'breakout_1',
-        title: 'Inside the Interface',
-        description: `${platformConfig.clip1Prompt}. Ultra high resolution, photorealistic ${request.breakoutPlatform} interface with authentic UI elements. The character is visible within the digital frame, looking at the camera with building intensity. ${platformConfig.colorDescription}. Dramatic lighting with subtle glow from screen elements.`,
+        title: 'Trapped Behind the Interface',
+        description: `${platformConfig.clip1Prompt}
+          
+          CRITICAL VISUAL REQUIREMENTS:
+          - Character exists in 3D SPACE BEHIND the flat ${request.breakoutPlatform} interface
+          - UI elements are a SEPARATE DEPTH LAYER in front of the character
+          - Physical interaction: hands pressed flat against invisible digital glass barrier
+          - Tension building: character looking directly at camera with intensity
+          - ${platformConfig.lightingDescription}
+          
+          Style: Photorealistic, 8K quality, cinematic depth of field, premium advertising production value.`,
         durationSeconds: state.clipDuration,
         mood: 'tension',
         dialogue: '', // Silent - visual buildup only
         sceneContext: {
           actionPhase: 'establish' as const,
           previousAction: '',
-          currentAction: 'Character trapped inside social media interface, beginning to push against the digital boundary',
-          nextAction: 'Screen will shatter as character breaks through',
-          characterDescription: 'Confident character',
-          locationDescription: `Inside ${request.breakoutPlatform} interface`,
+          currentAction: 'Character physically trapped behind social media screen, pressing against digital glass barrier',
+          nextAction: 'Screen will shatter explosively as character breaks through',
+          characterDescription: 'Real person with photorealistic appearance, intense focused expression',
+          locationDescription: `Behind ${request.breakoutPlatform} interface, 3D depth separation from UI layer`,
           lightingDescription: platformConfig.lightingDescription,
         },
       },
       {
         id: 'breakout_2',
-        title: 'The Breakout',
-        description: `${platformConfig.clip2Prompt}. Dramatic glass shattering effect as character punches through the ${request.breakoutPlatform} interface. Shards of glass and digital fragments explode outward in slow motion. ${platformConfig.colorDescription}. Light bursts through the cracks. Powerful, confident movement. Cinematic action sequence quality.`,
+        title: 'The Shattering Breakthrough',
+        description: `${platformConfig.clip2Prompt}
+          
+          CRITICAL VISUAL REQUIREMENTS:
+          - Glass/screen PHYSICALLY SHATTERING with realistic physics
+          - Shards exploding TOWARD THE VIEWER in slow motion
+          - UI elements (buttons, icons) breaking into fragments
+          - ${platformConfig.shatterLightingDescription}
+          - Character's arms and body emerging through the broken barrier
+          - Volumetric light rays bursting through cracks
+          
+          Style: Hollywood action movie quality, slow motion physics, 8K photorealistic, dramatic volumetric lighting.`,
         durationSeconds: state.clipDuration,
         mood: 'action',
         dialogue: '', // Silent - action sequence
         sceneContext: {
           actionPhase: 'peak' as const,
-          previousAction: 'Character was inside the interface',
-          currentAction: 'Explosive breakout moment, shattering through the digital barrier',
-          nextAction: 'Character will emerge fully into reality',
-          characterDescription: 'Powerful character breaking free',
-          locationDescription: 'Breaking through digital interface',
+          previousAction: 'Character was pressing against digital barrier',
+          currentAction: 'Explosive moment of breakthrough, glass shattering toward camera, light bursting through',
+          nextAction: 'Character will land in reality with glass debris settling',
+          characterDescription: 'Powerful figure breaking free with force and determination',
+          locationDescription: 'The barrier between digital and real shattering explosively',
           lightingDescription: platformConfig.shatterLightingDescription,
         },
       },
       {
         id: 'breakout_3',
-        title: 'Emerged & Speaking',
-        description: `${platformConfig.clip3Prompt}. Character has fully emerged from the shattered ${request.breakoutPlatform} interface. Glass shards settling around them. Direct, confident eye contact with viewer. ${hasDialogue ? 'Speaking directly to the audience with confidence.' : 'Powerful presence.'} ${platformConfig.colorDescription} light reflecting off glass fragments. Hero pose, commanding attention. Premium advertising quality.`,
+        title: 'Emerged Into Reality',
+        description: `${platformConfig.clip3Prompt}
+          
+          CRITICAL VISUAL REQUIREMENTS:
+          - Character FULLY EMERGED in reality, standing confidently
+          - Shattered UI fragments (${platformConfig.uiElements}) scattered as debris around them
+          - Glass shards still settling, catching light
+          - Direct eye contact with viewer, commanding presence
+          - ${hasDialogue ? 'Character speaking directly to camera with confidence and authority.' : 'Powerful hero presence.'}
+          - ${platformConfig.colorDescription} reflecting off glass debris
+          
+          Style: Premium advertising cinematography, hero lighting, aspirational quality, 8K photorealistic.`,
         durationSeconds: state.clipDuration,
         mood: 'epic',
         dialogue: userDialogue, // CRITICAL: User's actual dialogue goes here
         sceneContext: {
           actionPhase: 'settle' as const,
-          previousAction: 'Character broke through the interface',
-          currentAction: hasDialogue ? 'Delivering message directly to viewer after triumphant emergence' : 'Victorious emergence, direct connection with viewer',
+          previousAction: 'Character explosively broke through the digital barrier',
+          currentAction: hasDialogue ? 'Delivering message directly to viewer with triumphant confidence' : 'Victorious presence, direct connection with viewer',
           nextAction: '',
-          characterDescription: 'Triumphant character speaking to camera',
-          locationDescription: 'Reality, with shattered interface fragments',
+          characterDescription: 'Triumphant hero figure, confident and commanding',
+          locationDescription: 'Reality, surrounded by shattered interface debris',
           lightingDescription: platformConfig.lightingDescription,
         },
       },
@@ -873,10 +941,10 @@ async function runPreProduction(
     
     state.script = { shots: breakoutShots };
     
-    // Store scene consistency for breakout
+    // Store scene consistency for breakout - maintain character and lighting across all 3 clips
     state.sceneConsistency = {
-      character: 'Confident, powerful character',
-      location: `${request.breakoutPlatform} platform interface breakout`,
+      character: 'Same photorealistic person throughout all clips, consistent appearance and clothing',
+      location: `${request.breakoutPlatform} platform interface breakout sequence with consistent debris and lighting`,
       lighting: platformConfig.lightingDescription,
     };
     

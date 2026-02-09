@@ -11,6 +11,7 @@ interface GlassShardProps {
 
 export function GlassShard({ shard, isShattered, isFading }: GlassShardProps) {
   const meshRef = useRef<THREE.Mesh>(null);
+  const edgesRef = useRef<THREE.LineSegments>(null);
   const progressRef = useRef(0);
   const startTimeRef = useRef<number | null>(null);
   const initialRotation = useRef(new THREE.Euler(0, 0, 0));
@@ -28,13 +29,13 @@ export function GlassShard({ shard, isShattered, isFading }: GlassShardProps) {
     }
     shape.closePath();
     
-    // Extrude for thickness
+    // Extrude for thickness - thinner for premium feel
     const extrudeSettings = {
       depth: shard.thickness,
       bevelEnabled: true,
-      bevelThickness: 0.002,
-      bevelSize: 0.002,
-      bevelSegments: 1
+      bevelThickness: 0.001,
+      bevelSize: 0.001,
+      bevelSegments: 2
     };
     
     const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
@@ -43,43 +44,58 @@ export function GlassShard({ shard, isShattered, isFading }: GlassShardProps) {
     return geometry;
   }, [shard.vertices, shard.thickness]);
 
-  // Glass material with realistic properties
+  // Premium glass material with color tinting
   const material = useMemo(() => {
+    // Slight purple/blue tint for premium feel
+    const tintStrength = shard.size === 'large' ? 0.02 : 0.01;
+    const tintHue = shard.id % 2 === 0 ? 0.75 : 0.68; // Purple or blue tint
+    
     return new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color(0xffffff),
+      color: new THREE.Color().setHSL(tintHue, 0.1, 0.98),
       metalness: 0.0,
-      roughness: 0.05,
-      transmission: 0.92,
-      thickness: 0.5,
-      ior: 1.5, // Index of refraction for glass
+      roughness: 0.02,
+      transmission: 0.95,
+      thickness: 0.3,
+      ior: 1.52,
       clearcoat: 1.0,
-      clearcoatRoughness: 0.1,
+      clearcoatRoughness: 0.05,
       reflectivity: 1.0,
       transparent: true,
       opacity: 1,
       side: THREE.DoubleSide,
-      envMapIntensity: 2.0,
+      envMapIntensity: 3.0,
+      attenuationColor: new THREE.Color().setHSL(tintHue, 0.3, 0.9),
+      attenuationDistance: 0.5,
     });
-  }, []);
+  }, [shard.id, shard.size]);
 
-  // Edge highlight material
+  // Edge material - glowing edges
   const edgeMaterial = useMemo(() => {
-    return new THREE.MeshBasicMaterial({
+    return new THREE.LineBasicMaterial({
       color: new THREE.Color(0xffffff),
       transparent: true,
-      opacity: 0.6,
+      opacity: 0.8,
+      linewidth: 1,
     });
   }, []);
 
+  const edgesGeometry = useMemo(() => {
+    return new THREE.EdgesGeometry(geometry, 20);
+  }, [geometry]);
+
   useFrame((state, delta) => {
-    if (!meshRef.current) return;
+    if (!meshRef.current || !edgesRef.current) return;
     
     if (!isShattered) {
       // Reset to initial position
       meshRef.current.position.set(shard.initialPosition.x, shard.initialPosition.y, shard.initialPosition.z);
       meshRef.current.rotation.set(0, 0, shard.initialRotation);
       meshRef.current.scale.setScalar(1);
+      edgesRef.current.position.copy(meshRef.current.position);
+      edgesRef.current.rotation.copy(meshRef.current.rotation);
+      edgesRef.current.scale.copy(meshRef.current.scale);
       material.opacity = 1;
+      edgeMaterial.opacity = 0.8;
       progressRef.current = 0;
       startTimeRef.current = null;
       return;
@@ -94,45 +110,49 @@ export function GlassShard({ shard, isShattered, isFading }: GlassShardProps) {
     const elapsed = state.clock.elapsedTime - startTimeRef.current - shard.delay;
     if (elapsed < 0) return;
 
-    // Easing function for natural motion
-    const easeOutExpo = (t: number) => t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
-    const easeOutQuart = (t: number) => 1 - Math.pow(1 - t, 4);
+    // Premium easing functions
+    const easeOutExpo = (t: number) => t === 1 ? 1 : 1 - Math.pow(2, -12 * t);
+    const easeOutQuint = (t: number) => 1 - Math.pow(1 - t, 5);
     
-    // Animation progress (slower = 4 seconds total)
-    const duration = 4.0;
+    // Animation progress (5 seconds for premium slow-mo feel)
+    const duration = 5.0;
     progressRef.current = Math.min(1, elapsed / duration);
     const easedProgress = easeOutExpo(progressRef.current);
-    const rotationProgress = easeOutQuart(progressRef.current);
+    const rotationProgress = easeOutQuint(progressRef.current);
 
-    // Physics-based position update
-    const gravity = 0.8;
+    // Physics-based position with natural deceleration
     const t = elapsed;
+    const gravity = 0.6;
     
-    // Initial velocity from explosion
-    const velocityX = shard.velocity.x * 1.5;
-    const velocityY = shard.velocity.y * 1.5 - gravity * t * 0.3; // Add gravity
-    const velocityZ = shard.velocity.z * 2;
+    // Initial velocity from explosion - slower for dramatic effect
+    const velocityX = shard.velocity.x * 1.2;
+    const velocityY = shard.velocity.y * 1.2 - gravity * t * 0.2;
+    const velocityZ = shard.velocity.z * 1.8;
     
-    // Position with deceleration
-    const decel = Math.exp(-t * 0.5);
+    // Exponential deceleration for natural feel
+    const decel = Math.exp(-t * 0.4);
     meshRef.current.position.x = shard.initialPosition.x + velocityX * t * decel;
-    meshRef.current.position.y = shard.initialPosition.y + velocityY * t * decel - 0.5 * gravity * t * t * 0.1;
+    meshRef.current.position.y = shard.initialPosition.y + velocityY * t * decel - 0.5 * gravity * t * t * 0.08;
     meshRef.current.position.z = shard.initialPosition.z + velocityZ * t * decel;
 
-    // Rotation with spin
-    const spinSpeed = shard.spinSpeed;
+    // Smooth rotation with natural spin decay
+    const spinDecay = Math.exp(-t * 0.3);
+    const spinSpeed = shard.spinSpeed * spinDecay;
     meshRef.current.rotation.x = initialRotation.current.x + shard.rotationAxis.x * rotationProgress * spinSpeed;
     meshRef.current.rotation.y = initialRotation.current.y + shard.rotationAxis.y * rotationProgress * spinSpeed;
     meshRef.current.rotation.z = initialRotation.current.z + shard.rotationAxis.z * rotationProgress * spinSpeed;
 
-    // Scale down slightly as shards fly away
-    const scaleDown = 1 - progressRef.current * 0.2;
-    meshRef.current.scale.setScalar(scaleDown);
+    // Sync edge lines
+    edgesRef.current.position.copy(meshRef.current.position);
+    edgesRef.current.rotation.copy(meshRef.current.rotation);
+    edgesRef.current.scale.copy(meshRef.current.scale);
 
-    // Fade out in hold phase
-    if (isFading && progressRef.current > 0.5) {
-      const fadeProgress = (progressRef.current - 0.5) / 0.5;
-      material.opacity = 1 - fadeProgress;
+    // Elegant fade out
+    if (isFading && progressRef.current > 0.4) {
+      const fadeProgress = (progressRef.current - 0.4) / 0.6;
+      const fadeEased = easeOutQuint(fadeProgress);
+      material.opacity = 1 - fadeEased;
+      edgeMaterial.opacity = 0.8 * (1 - fadeEased);
     }
   });
 
@@ -145,9 +165,9 @@ export function GlassShard({ shard, isShattered, isFading }: GlassShardProps) {
         position={[shard.initialPosition.x, shard.initialPosition.y, shard.initialPosition.z]}
         rotation={[0, 0, shard.initialRotation]}
       />
-      {/* Edge highlight for glass edge effect */}
       <lineSegments
-        geometry={new THREE.EdgesGeometry(geometry, 30)}
+        ref={edgesRef}
+        geometry={edgesGeometry}
         material={edgeMaterial}
         position={[shard.initialPosition.x, shard.initialPosition.y, shard.initialPosition.z]}
         rotation={[0, 0, shard.initialRotation]}

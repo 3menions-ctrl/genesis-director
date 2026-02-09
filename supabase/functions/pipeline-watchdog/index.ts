@@ -642,6 +642,78 @@ serve(async (req) => {
           console.log(`[Watchdog]   Clip ${idx + 1}: ${url.substring(0, 80)}...`);
         });
         
+        // ═══════════════════════════════════════════════════════════════════════════
+        // NEW: Generate world-class background music for avatar projects
+        // ═══════════════════════════════════════════════════════════════════════════
+        let musicUrl: string | null = null;
+        try {
+          const totalDuration = completedClips.length * (tasks.clipDuration || 6);
+          console.log(`[Watchdog] 🎵 Generating Hans Zimmer-level music for avatar (${totalDuration}s)...`);
+          
+          // Analyze script for mood if available
+          const script = tasks.originalScript || project.synopsis || '';
+          let detectedMood = 'cinematic';
+          let sceneType = 'adventure-journey';
+          let intensity: 'subtle' | 'moderate' | 'intense' = 'moderate';
+          
+          // Simple mood detection from script content
+          const scriptLower = script.toLowerCase();
+          if (scriptLower.match(/love|romance|heart|together/)) {
+            detectedMood = 'romantic';
+            sceneType = 'romantic-love';
+            intensity = 'moderate';
+          } else if (scriptLower.match(/happy|excited|joy|celebrate|amazing/)) {
+            detectedMood = 'uplifting';
+            sceneType = 'triumph-victory';
+            intensity = 'intense';
+          } else if (scriptLower.match(/important|announce|launch|reveal|introducing/)) {
+            detectedMood = 'epic';
+            sceneType = 'adventure-journey';
+            intensity = 'intense';
+          } else if (scriptLower.match(/calm|peace|relax|mindful|gentle/)) {
+            detectedMood = 'calm';
+            sceneType = 'emotional-revelation';
+            intensity = 'subtle';
+          } else if (scriptLower.match(/urgent|hurry|fast|quick|now/)) {
+            detectedMood = 'action';
+            sceneType = 'action-chase';
+            intensity = 'intense';
+          }
+          
+          const musicResponse = await fetch(`${supabaseUrl}/functions/v1/generate-music`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseKey}`,
+            },
+            body: JSON.stringify({
+              projectId: project.id,
+              duration: totalDuration + 2,
+              mood: detectedMood,
+              genre: 'hybrid',
+              sceneType,
+              intensity,
+              referenceComposer: 'hans-zimmer',
+              prompt: `Background music for avatar speaking: ${script.substring(0, 100)}`,
+            }),
+          });
+          
+          if (musicResponse.ok) {
+            const musicResult = await musicResponse.json();
+            if (musicResult.musicUrl) {
+              musicUrl = musicResult.musicUrl;
+              console.log(`[Watchdog] 🎵 Music generated: ${musicUrl.substring(0, 60)}...`);
+              
+              // Update project with music URL
+              await supabase.from('movie_projects').update({
+                music_url: musicUrl,
+              }).eq('id', project.id);
+            }
+          }
+        } catch (musicError) {
+          console.warn(`[Watchdog] Music generation skipped:`, musicError);
+        }
+        
         const { error: updateError } = await supabase.from('movie_projects').update({
           status: 'completed',
           video_url: primaryVideoUrl,
@@ -654,11 +726,13 @@ serve(async (req) => {
             completedAt: new Date().toISOString(),
             asyncCompletedByWatchdog: true,
             totalClipsGenerated: videoClipsArray.length,
+            hasMusic: !!musicUrl,
           },
           pending_video_tasks: {
             ...tasks,
             status: 'completed',
             completedAt: new Date().toISOString(),
+            musicUrl,
           },
           updated_at: new Date().toISOString(),
         }).eq('id', project.id);
@@ -674,7 +748,7 @@ serve(async (req) => {
         result.details.push({
           projectId: project.id,
           action: 'async_avatar_completed',
-          result: `${completedClips.length} clips finalized`,
+          result: `${completedClips.length} clips finalized${musicUrl ? ' with music' : ''}`,
         });
         console.log(`[Watchdog] ✅ ASYNC AVATAR ${project.id} COMPLETE!`);
         continue;

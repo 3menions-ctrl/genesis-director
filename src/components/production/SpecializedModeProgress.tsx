@@ -28,7 +28,7 @@ interface PipelineState {
 interface ClipInfo {
   index: number;
   videoUrl: string;
-  status: 'completed' | 'failed' | 'generating';
+  status: 'completed' | 'failed' | 'generating' | 'pending';
 }
 
 interface SpecializedModeProgressProps {
@@ -590,19 +590,28 @@ export function SpecializedModeProgress({
                       border: 'border-emerald-500/40',
                       bg: 'bg-emerald-500/10',
                       text: 'text-emerald-400',
+                      label: 'Complete',
                     },
                     generating: {
                       border: 'border-amber-500/40',
                       bg: 'bg-amber-500/10',
                       text: 'text-amber-400',
+                      label: 'Generating',
+                    },
+                    pending: {
+                      border: 'border-zinc-600/40',
+                      bg: 'bg-zinc-700/20',
+                      text: 'text-zinc-500',
+                      label: 'Waiting',
                     },
                     failed: {
                       border: 'border-rose-500/40',
                       bg: 'bg-rose-500/10',
                       text: 'text-rose-400',
+                      label: 'Failed',
                     },
                   };
-                  const style = statusStyles[clip.status] || statusStyles.generating;
+                  const style = statusStyles[clip.status] || statusStyles.pending;
                   
                   return (
                     <div
@@ -613,6 +622,7 @@ export function SpecializedModeProgress({
                         style.border,
                         style.bg,
                         clip.status === 'generating' && "animate-pulse",
+                        clip.status === 'pending' && "opacity-50",
                         clip.status === 'completed' && "cursor-pointer hover:scale-105"
                       )}
                       onClick={() => {
@@ -620,7 +630,7 @@ export function SpecializedModeProgress({
                           window.open(clip.videoUrl, '_blank');
                         }
                       }}
-                      title={`Clip ${clip.index + 1} - ${clip.status}`}
+                      title={`Clip ${clip.index + 1} - ${style.label}`}
                     >
                       <span className={cn("text-sm font-bold", style.text)}>
                         {clip.index + 1}
@@ -631,6 +641,7 @@ export function SpecializedModeProgress({
                         {clip.status === 'generating' && (
                           <div className="h-full bg-amber-500 animate-pulse" />
                         )}
+                        {clip.status === 'pending' && <div className="h-full bg-zinc-600" />}
                         {clip.status === 'failed' && <div className="h-full bg-rose-500" />}
                       </div>
                       {/* Play icon overlay for completed */}

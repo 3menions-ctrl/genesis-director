@@ -164,7 +164,7 @@ function ProductionContentInner() {
   const [pipelineState, setPipelineState] = useState<PipelineState | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
   const [degradationFlags, setDegradationFlags] = useState<DegradationFlag[]>([]);
-  const [avatarClips, setAvatarClips] = useState<Array<{ index: number; videoUrl: string; status: 'completed' | 'failed' | 'generating' }>>([]);
+  const [avatarClips, setAvatarClips] = useState<Array<{ index: number; videoUrl: string; status: 'completed' | 'failed' | 'generating' | 'pending' }>>([]);
   const [masterAudioUrl, setMasterAudioUrl] = useState<string | null>(null);
 
   // REMOVED: useSpring - causes continuous re-renders during progress updates
@@ -421,9 +421,12 @@ function ProductionContentInner() {
             .map((p: any) => ({
               index: p.clipIndex ?? 0,
               videoUrl: p.videoUrl || '',
+              // Map backend statuses correctly: only ONE clip should be 'generating' at a time
+              // 'pending' clips are waiting in queue, 'processing' is actively generating
               status: (p.status === 'completed' && p.videoUrl) ? 'completed' as const :
                       (p.status === 'processing' || p.status === 'generating') ? 'generating' as const :
-                      p.status === 'failed' ? 'failed' as const : 'generating' as const,
+                      p.status === 'failed' ? 'failed' as const : 
+                      p.status === 'pending' ? 'pending' as const : 'pending' as const,
             }))
             .sort((a, b) => a.index - b.index);
           setAvatarClips(clips);

@@ -769,6 +769,29 @@ function ProductionContentInner() {
             toast.info('Script ready! Review and approve to continue.');
           }
         }
+        
+        // REALTIME: Update avatar clips from predictions array
+        // This ensures the UI reflects clip completion in real-time
+        const pendingTasksRaw = project.pending_video_tasks as Record<string, unknown> | null;
+        const predictions = (pendingTasksRaw as any)?.predictions as Array<{ clipIndex: number; videoUrl?: string; status?: string }> | undefined;
+        
+        if (predictions && predictions.length > 0) {
+          const clips = predictions
+            .map((p: any) => ({
+              index: p.clipIndex ?? 0,
+              videoUrl: p.videoUrl || '',
+              status: (p.status === 'completed' && p.videoUrl) ? 'completed' as const :
+                      (p.status === 'processing' || p.status === 'generating') ? 'generating' as const :
+                      p.status === 'failed' ? 'failed' as const : 
+                      p.status === 'pending' ? 'pending' as const : 'pending' as const,
+            }))
+            .sort((a, b) => a.index - b.index);
+          setAvatarClips(clips);
+          
+          // Update completed clip count for progress calculation
+          const completedCount = clips.filter(c => c.status === 'completed').length;
+          setCompletedClips(completedCount);
+        }
       })
       .subscribe();
 

@@ -19,13 +19,13 @@ function seededRandom(seed: number) {
   return x - Math.floor(x);
 }
 
-// Generate irregular polygon vertices
+// Generate irregular polygon vertices - more organic shapes
 function generatePolygonVertices(
   seed: number, 
   baseSize: number, 
-  irregularity: number = 0.4
+  irregularity: number = 0.5
 ): { x: number; y: number }[] {
-  const sides = Math.floor(seededRandom(seed * 1.1) * 3) + 3; // 3-5 sides
+  const sides = Math.floor(seededRandom(seed * 1.1) * 4) + 3; // 3-6 sides
   const vertices: { x: number; y: number }[] = [];
   
   for (let i = 0; i < sides; i++) {
@@ -33,8 +33,8 @@ function generatePolygonVertices(
     const radiusVariation = 1 - irregularity + seededRandom(seed * (i + 2)) * irregularity * 2;
     const radius = baseSize * radiusVariation;
     
-    // Add slight angle variation for more organic shape
-    const angleVariation = (seededRandom(seed * (i + 10)) - 0.5) * 0.4;
+    // Organic angle variation
+    const angleVariation = (seededRandom(seed * (i + 10)) - 0.5) * 0.5;
     const finalAngle = angle + angleVariation;
     
     vertices.push({
@@ -46,29 +46,37 @@ function generatePolygonVertices(
   return vertices;
 }
 
-// Calculate velocity based on position from center
+// Calculate velocity based on position - more dramatic explosion
 function calculateVelocity(
   position: THREE.Vector3, 
   seed: number,
-  isCenter: boolean
+  zone: string
 ): THREE.Vector3 {
   const distFromCenter = Math.sqrt(position.x * position.x + position.y * position.y);
   
-  // Direction away from center
+  // Direction away from center with slight randomness
   const dirX = position.x === 0 ? (seededRandom(seed * 5) - 0.5) : position.x / (distFromCenter || 1);
   const dirY = position.y === 0 ? (seededRandom(seed * 6) - 0.5) : position.y / (distFromCenter || 1);
   
-  // Speed based on distance (closer = faster explosion)
-  const baseSpeed = isCenter ? 2.5 : 1.5;
-  const speedVariation = seededRandom(seed * 7) * 0.8 + 0.6;
-  const speed = baseSpeed * speedVariation * (1 + (1 - distFromCenter) * 0.5);
+  // Speed based on zone - center is most explosive
+  const zoneMultiplier = {
+    'center': 3.0,
+    'inner': 2.2,
+    'mid': 1.6,
+    'outer': 1.2,
+    'edge': 0.9
+  }[zone] || 1.5;
   
-  // Z velocity (toward camera) - center pieces fly more toward camera
-  const zSpeed = isCenter ? (1.5 + seededRandom(seed * 8) * 1.5) : (0.8 + seededRandom(seed * 8) * 0.8);
+  const speedVariation = seededRandom(seed * 7) * 0.6 + 0.7;
+  const speed = zoneMultiplier * speedVariation;
+  
+  // Z velocity - dramatic forward explosion
+  const zBase = zone === 'center' ? 2.0 : zone === 'inner' ? 1.5 : 1.0;
+  const zSpeed = zBase + seededRandom(seed * 8) * 1.2;
   
   return new THREE.Vector3(
-    dirX * speed + (seededRandom(seed * 9) - 0.5) * 0.5,
-    dirY * speed + (seededRandom(seed * 10) - 0.5) * 0.5,
+    dirX * speed + (seededRandom(seed * 9) - 0.5) * 0.4,
+    dirY * speed + (seededRandom(seed * 10) - 0.5) * 0.4,
     zSpeed
   );
 }
@@ -76,13 +84,13 @@ function calculateVelocity(
 export function generateShardData(count: number): ShardData[] {
   const shards: ShardData[] = [];
   
-  // Define zones: center (explosive), inner ring, outer ring, edges
+  // Define zones with more refined distribution
   const zones = [
-    { name: 'center', count: Math.floor(count * 0.15), radius: 0.3, size: 'medium' as const },
-    { name: 'inner', count: Math.floor(count * 0.25), radius: 0.8, size: 'large' as const },
-    { name: 'mid', count: Math.floor(count * 0.3), radius: 1.5, size: 'medium' as const },
-    { name: 'outer', count: Math.floor(count * 0.2), radius: 2.5, size: 'large' as const },
-    { name: 'edge', count: Math.floor(count * 0.1), radius: 3.5, size: 'small' as const },
+    { name: 'center', count: Math.floor(count * 0.12), radiusMin: 0, radiusMax: 0.25, size: 'medium' as const },
+    { name: 'inner', count: Math.floor(count * 0.20), radiusMin: 0.2, radiusMax: 0.6, size: 'large' as const },
+    { name: 'mid', count: Math.floor(count * 0.28), radiusMin: 0.5, radiusMax: 1.2, size: 'medium' as const },
+    { name: 'outer', count: Math.floor(count * 0.25), radiusMin: 1.0, radiusMax: 2.0, size: 'large' as const },
+    { name: 'edge', count: Math.floor(count * 0.15), radiusMin: 1.8, radiusMax: 3.0, size: 'medium' as const },
   ];
   
   let id = 0;
@@ -91,41 +99,41 @@ export function generateShardData(count: number): ShardData[] {
     for (let i = 0; i < zone.count; i++) {
       const seed = id * 137.5 + 42;
       
-      // Position within zone
-      const angle = seededRandom(seed) * Math.PI * 2;
-      const radiusMin = zone.name === 'center' ? 0 : zone.radius * 0.6;
-      const radiusMax = zone.radius;
-      const radius = radiusMin + seededRandom(seed * 2) * (radiusMax - radiusMin);
+      // Position within zone - golden ratio spiral for natural distribution
+      const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+      const angle = id * goldenAngle + seededRandom(seed) * 0.3;
+      const radius = zone.radiusMin + seededRandom(seed * 2) * (zone.radiusMax - zone.radiusMin);
       
       const x = Math.cos(angle) * radius;
       const y = Math.sin(angle) * radius;
       
-      // Size based on zone with variation
+      // Size variation
       const sizeMultiplier = {
-        'large': 0.25 + seededRandom(seed * 3) * 0.15,
-        'medium': 0.15 + seededRandom(seed * 3) * 0.1,
-        'small': 0.08 + seededRandom(seed * 3) * 0.06,
-        'tiny': 0.03 + seededRandom(seed * 3) * 0.03
+        'large': 0.22 + seededRandom(seed * 3) * 0.12,
+        'medium': 0.12 + seededRandom(seed * 3) * 0.08,
+        'small': 0.06 + seededRandom(seed * 3) * 0.04,
+        'tiny': 0.025 + seededRandom(seed * 3) * 0.025
       };
       
       const baseSize = sizeMultiplier[zone.size];
       
-      // Generate shard
+      // Calculate delay based on distance from center - ripple effect
+      const distanceDelay = Math.sqrt(x * x + y * y) * 0.08;
+      
       const shard: ShardData = {
         id,
-        vertices: generatePolygonVertices(seed, baseSize),
-        thickness: 0.008 + seededRandom(seed * 4) * 0.012,
+        vertices: generatePolygonVertices(seed, baseSize, 0.5),
+        thickness: 0.006 + seededRandom(seed * 4) * 0.01,
         initialPosition: new THREE.Vector3(x, y, 0),
         initialRotation: seededRandom(seed * 5) * Math.PI * 2,
-        velocity: calculateVelocity(new THREE.Vector3(x, y, 0), seed, zone.name === 'center'),
+        velocity: calculateVelocity(new THREE.Vector3(x, y, 0), seed, zone.name),
         rotationAxis: new THREE.Vector3(
           seededRandom(seed * 11) - 0.5,
           seededRandom(seed * 12) - 0.5,
           seededRandom(seed * 13) - 0.5
         ).normalize(),
-        spinSpeed: 3 + seededRandom(seed * 14) * 8,
-        delay: zone.name === 'center' ? seededRandom(seed * 15) * 0.05 : 
-               0.05 + seededRandom(seed * 15) * 0.15 * (zones.indexOf(zone) + 1),
+        spinSpeed: 2 + seededRandom(seed * 14) * 6,
+        delay: distanceDelay + seededRandom(seed * 15) * 0.05,
         size: zone.size
       };
       
@@ -134,34 +142,34 @@ export function generateShardData(count: number): ShardData[] {
     }
   }
   
-  // Add extra tiny debris particles
-  const debrisCount = Math.floor(count * 0.3);
+  // Add micro debris - more particles for premium feel
+  const debrisCount = Math.floor(count * 0.4);
   for (let i = 0; i < debrisCount; i++) {
     const seed = (id + i) * 137.5 + 999;
     
     const angle = seededRandom(seed) * Math.PI * 2;
-    const radius = seededRandom(seed * 2) * 1.5;
+    const radius = seededRandom(seed * 2) * 1.2;
     const x = Math.cos(angle) * radius;
     const y = Math.sin(angle) * radius;
     
     const debris: ShardData = {
       id: id + i,
-      vertices: generatePolygonVertices(seed, 0.02 + seededRandom(seed * 3) * 0.02),
-      thickness: 0.003 + seededRandom(seed * 4) * 0.005,
+      vertices: generatePolygonVertices(seed, 0.015 + seededRandom(seed * 3) * 0.015, 0.6),
+      thickness: 0.002 + seededRandom(seed * 4) * 0.004,
       initialPosition: new THREE.Vector3(x, y, 0),
       initialRotation: seededRandom(seed * 5) * Math.PI * 2,
       velocity: new THREE.Vector3(
-        (seededRandom(seed * 6) - 0.5) * 4,
-        (seededRandom(seed * 7) - 0.5) * 4,
-        2 + seededRandom(seed * 8) * 3
+        (seededRandom(seed * 6) - 0.5) * 3.5,
+        (seededRandom(seed * 7) - 0.5) * 3.5,
+        1.5 + seededRandom(seed * 8) * 2.5
       ),
       rotationAxis: new THREE.Vector3(
         seededRandom(seed * 11) - 0.5,
         seededRandom(seed * 12) - 0.5,
         seededRandom(seed * 13) - 0.5
       ).normalize(),
-      spinSpeed: 10 + seededRandom(seed * 14) * 15,
-      delay: seededRandom(seed * 15) * 0.1,
+      spinSpeed: 8 + seededRandom(seed * 14) * 12,
+      delay: seededRandom(seed * 15) * 0.08,
       size: 'tiny'
     };
     

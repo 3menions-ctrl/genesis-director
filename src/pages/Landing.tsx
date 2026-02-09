@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, memo, useMemo, forwardRef } from 'react';
+import { useState, useEffect, useCallback, memo, useMemo, forwardRef, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useSafeNavigation } from '@/lib/navigation';
@@ -15,7 +15,7 @@ const FAQSection = lazy(() => import('@/components/landing/FAQSection'));
 const Footer = lazy(() => import('@/components/landing/Footer'));
 const FeaturesShowcase = lazy(() => import('@/components/landing/FeaturesShowcase'));
 const CinematicTransition = lazy(() => import('@/components/landing/CinematicTransition'));
-
+const NovaConversionOverlay = lazy(() => import('@/components/landing/NovaConversionOverlay'));
 // Optimized section loader with minimal footprint - forwardRef for AnimatePresence compatibility
 const SectionLoader = memo(forwardRef<HTMLDivElement, Record<string, never>>(
   function SectionLoader(_, ref) {
@@ -234,8 +234,9 @@ PricingStat.displayName = 'PricingStat';
 const Navigation = memo(forwardRef<HTMLElement, { 
   onScrollToSection: (target: string) => void;
   onNavigate: (path: string) => void;
+  signUpButtonRef?: React.RefObject<HTMLButtonElement>;
 }>(
-  function Navigation({ onScrollToSection, onNavigate }, ref) {
+  function Navigation({ onScrollToSection, onNavigate, signUpButtonRef }, ref) {
     return (
       <nav ref={ref} className="fixed top-0 left-0 right-0 z-50 px-6 lg:px-12 py-5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -267,6 +268,7 @@ const Navigation = memo(forwardRef<HTMLElement, {
               Sign in
             </Button>
             <Button
+              ref={signUpButtonRef}
               onClick={() => onNavigate('/auth?mode=signup')}
               className="h-9 px-5 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90"
             >
@@ -442,6 +444,10 @@ export default function Landing() {
   
   const [showExamples, setShowExamples] = useState(false);
   const [showCinematicTransition, setShowCinematicTransition] = useState(false);
+  const [showNovaOverlay, setShowNovaOverlay] = useState(false);
+  
+  // Ref for the sign-up button in the nav (for spotlight effect)
+  const signUpButtonRef = useRef<HTMLButtonElement>(null);
 
   // Redirect authenticated users
   useEffect(() => {
@@ -487,6 +493,56 @@ export default function Landing() {
     setShowExamples(open);
   }, []);
 
+  const handleDismissNova = useCallback(() => {
+    setShowNovaOverlay(false);
+  }, []);
+
+  // Trigger Nova overlay after 8 seconds of inactivity (conversion optimization)
+  useEffect(() => {
+    // Only trigger for non-authenticated users
+    if (user) return;
+    
+    let inactivityTimer: NodeJS.Timeout;
+    let hasTriggered = false;
+    
+    const resetTimer = () => {
+      clearTimeout(inactivityTimer);
+      if (!hasTriggered && !showNovaOverlay) {
+        inactivityTimer = setTimeout(() => {
+          hasTriggered = true;
+          setShowNovaOverlay(true);
+        }, 8000); // 8 seconds of inactivity
+      }
+    };
+
+    // Also trigger on scroll past hero section
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      const viewportHeight = window.innerHeight;
+      
+      // If user has scrolled past 80% of viewport and hasn't seen Nova
+      if (scrollY > viewportHeight * 0.8 && !hasTriggered && !showNovaOverlay) {
+        hasTriggered = true;
+        setShowNovaOverlay(true);
+      }
+    };
+
+    // Start timer
+    resetTimer();
+    
+    // Listen for user activity
+    window.addEventListener('mousemove', resetTimer);
+    window.addEventListener('keydown', resetTimer);
+    window.addEventListener('scroll', handleScroll);
+
+    return () => {
+      clearTimeout(inactivityTimer);
+      window.removeEventListener('mousemove', resetTimer);
+      window.removeEventListener('keydown', resetTimer);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [user, showNovaOverlay]);
+
   // Memoized steps rendering
   const stepsContent = useMemo(() => (
     <div className="grid md:grid-cols-3 gap-8 md:gap-4">
@@ -498,6 +554,17 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-black overflow-hidden relative">
+      {/* Nova Chen Conversion Overlay - Fourth Wall Breaking */}
+      <ErrorBoundaryWrapper fallback={null}>
+        <Suspense fallback={null}>
+          <NovaConversionOverlay 
+            isActive={showNovaOverlay} 
+            onDismiss={handleDismissNova}
+            signUpButtonRef={signUpButtonRef}
+          />
+        </Suspense>
+      </ErrorBoundaryWrapper>
+
       {/* Cinematic Transition - with error boundary */}
       <ErrorBoundaryWrapper fallback={null}>
         <Suspense fallback={null}>
@@ -517,8 +584,12 @@ export default function Landing() {
         </Suspense>
       </ErrorBoundaryWrapper>
 
-      {/* Navigation - memoized */}
-      <Navigation onScrollToSection={scrollToSection} onNavigate={handleNavigate} />
+      {/* Navigation - memoized with ref for sign-up button */}
+      <Navigation 
+        onScrollToSection={scrollToSection} 
+        onNavigate={handleNavigate} 
+        signUpButtonRef={signUpButtonRef}
+      />
 
       {/* Hero Section */}
       <section className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6">

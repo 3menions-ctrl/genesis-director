@@ -2181,12 +2181,20 @@ async function runAssetCreation(
           console.log(`[Hollywood] Detected ${syncResult.plan.emotionalBeats?.length || 0} emotional beats`);
           console.log(`[Hollywood] Created ${syncResult.plan.timingMarkers?.length || 0} timing markers`);
           
+          // Use world-class music generation with full parameters from sync plan
           const musicResult = await callEdgeFunction('generate-music', {
             prompt: syncResult.musicPrompt,
             mood: request.musicMood || request.mood || 'cinematic',
             genre: 'hybrid',
             duration: state.clipCount * state.clipDuration + 2,
             projectId: state.projectId,
+            // NEW: World-class Hans Zimmer-level parameters
+            sceneType: syncResult.plan?.sceneType || 'adventure-journey',
+            intensity: syncResult.plan?.intensity || 'moderate',
+            tempo: syncResult.plan?.recommendedTempo?.includes('60-80') ? 'slow' 
+              : syncResult.plan?.recommendedTempo?.includes('130') ? 'fast' : 'moderate',
+            referenceComposer: syncResult.plan?.referenceComposer || 'hans-zimmer',
+            emotionalArc: syncResult.plan?.overallArc,
           });
           
           if (musicResult.musicUrl) {
@@ -2206,11 +2214,18 @@ async function runAssetCreation(
         // SAFEGUARD: Fallback to direct music generation if sync failed
         if (!musicGenerated) {
           console.log(`[Hollywood] Attempting direct music generation fallback...`);
+          // Fallback with world-class parameters
           const musicResult = await callEdgeFunction('generate-music', {
             mood: request.musicMood || request.mood || 'cinematic',
             genre: 'hybrid',
             duration: state.clipCount * state.clipDuration + 2,
             projectId: state.projectId,
+            // NEW: Default to Hans Zimmer epic style for fallback
+            sceneType: request.mood === 'action' ? 'action-chase' 
+              : request.mood === 'emotional' ? 'emotional-revelation' 
+              : 'adventure-journey',
+            intensity: 'moderate',
+            referenceComposer: 'hans-zimmer',
           });
           
           if (musicResult.musicUrl) {

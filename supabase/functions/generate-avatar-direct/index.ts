@@ -878,6 +878,7 @@ function buildActingPrompt(
 
 /**
  * Full Hollywood-grade cinematography prompt with DYNAMIC SCENE PROGRESSION
+ * CRITICAL: Enforces "ALREADY IN POSITION" - avatar starts IN the scene, not entering it
  */
 function buildWorldClassPrompt(
   script: string,
@@ -905,17 +906,21 @@ function buildWorldClassPrompt(
   const progressiveScene = getProgressiveScene(baseSceneDescription, clipIndex, totalClips);
   const sceneContext = `Cinematic scene set in ${progressiveScene}.`;
   
+  // CRITICAL: "Already in position" enforcement for Kling animation
+  const positionEnforcement = "IMPORTANT: The subject is ALREADY fully positioned in the environment from the first frame - NOT walking in, NOT entering, NOT arriving. They are stationary and grounded, having already been present in this location.";
+  
   const qualityBaseline = "Ultra-high definition 4K quality, subtle film-grain texture, natural skin tones, professional color grading, cinematic depth of field, award-winning cinematography.";
   
   console.log(`[AvatarDirect] Clip ${clipIndex + 1}/${totalClips} Style: ${movementKey} + ${angleKey} + ${sizeKey}`);
   console.log(`[AvatarDirect] Clip ${clipIndex + 1}/${totalClips} Scene: ${progressiveScene.substring(0, 60)}...`);
   
-  return `${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. The subject is ${motionPrompt}, speaking naturally: "${script.substring(0, 80)}${script.length > 80 ? '...' : ''}". ${performanceStyle} Lifelike fluid movements, natural micro-expressions, authentic lip sync, subtle breathing motion, realistic eye movements and blinks. ${qualityBaseline}`;
+  return `${positionEnforcement} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. The subject is ${motionPrompt}, speaking naturally: "${script.substring(0, 80)}${script.length > 80 ? '...' : ''}". ${performanceStyle} Lifelike fluid movements, natural micro-expressions, authentic lip sync, subtle breathing motion, realistic eye movements and blinks. ${qualityBaseline}`;
 }
 
 /**
  * Standard variety prompt (cinematic mode disabled)
  * Still ensures clips look different from each other with SCENE PROGRESSION
+ * CRITICAL: Enforces "ALREADY IN POSITION" - avatar starts IN the scene, not entering it
  */
 function buildVarietyPrompt(
   script: string,
@@ -924,7 +929,7 @@ function buildVarietyPrompt(
   totalClips: number,
   performanceStyle: string
 ): string {
-  // Simpler variety cycle
+  // Simpler variety cycle - all enforce "already positioned"
   const simpleAngles = [
     "centered medium shot with balanced composition",
     "slightly angled medium close-up with depth",
@@ -933,12 +938,13 @@ function buildVarietyPrompt(
     "three-quarter medium shot with dimensional framing",
   ];
   
+  // CRITICAL: All motions explicitly state "already positioned"
   const simpleMotion = [
-    "speaking naturally with expressive hand gestures",
-    "engaging warmly with authentic delivery",
-    "presenting confidently with clear diction",
-    "communicating thoughtfully with measured pace",
-    "delivering dynamically with natural energy",
+    "already positioned, speaking naturally with expressive hand gestures",
+    "already in place, engaging warmly with authentic delivery",
+    "already situated, presenting confidently with clear diction",
+    "already positioned, communicating thoughtfully with measured pace",
+    "already grounded, delivering dynamically with natural energy",
   ];
   
   const angle = simpleAngles[clipIndex % simpleAngles.length];
@@ -948,11 +954,14 @@ function buildVarietyPrompt(
   const progressiveScene = getProgressiveScene(baseSceneDescription, clipIndex, totalClips);
   const sceneContext = `Cinematic scene in ${progressiveScene}, shot with professional cinematography.`;
   
+  // CRITICAL: "Already in position" enforcement
+  const positionEnforcement = "IMPORTANT: Subject is ALREADY in position from frame 1 - NOT walking in, NOT entering. Stationary and grounded.";
+  
   const qualityBaseline = "Ultra high definition, film-quality, natural skin tones, sharp focus on subject, pleasing background bokeh.";
   
   console.log(`[AvatarDirect] Clip ${clipIndex + 1}/${totalClips} (Standard) Scene: ${progressiveScene.substring(0, 60)}...`);
   
-  return `${sceneContext} ${angle} of the person ${motion}: "${script.substring(0, 80)}${script.length > 80 ? '...' : ''}". ${performanceStyle} Lifelike fluid movements, natural micro-expressions, authentic lip sync. ${qualityBaseline}`;
+  return `${positionEnforcement} ${sceneContext} ${angle} of the person ${motion}: "${script.substring(0, 80)}${script.length > 80 ? '...' : ''}". ${performanceStyle} Lifelike fluid movements, natural micro-expressions, authentic lip sync. ${qualityBaseline}`;
 }
 
 function analyzeEmotionalTone(script: string): 'excited' | 'serious' | 'warm' | 'playful' | 'neutral' {

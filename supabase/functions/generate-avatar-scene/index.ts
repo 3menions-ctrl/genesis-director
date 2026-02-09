@@ -157,19 +157,32 @@ serve(async (req) => {
  * Build a WORLD-CLASS scene prompt for character-in-environment generation
  * Optimized for ultra-high quality, cinematic backgrounds
  */
+/**
+ * Build a WORLD-CLASS scene prompt for character-in-environment generation
+ * CRITICAL: Enforces "ALREADY IN POSITION" semantics - avatar starts IN the scene, not entering it
+ */
 function buildScenePrompt(
   sceneDescription: string,
   characterDescription?: string,
   placement: string = "center"
 ): string {
   const positionText = 
-    placement === "left" ? "positioned on the left third of the frame following the rule of thirds" :
-    placement === "right" ? "positioned on the right third of the frame following the rule of thirds" :
-    "positioned centrally in the frame with balanced composition";
+    placement === "left" ? "ALREADY positioned on the left third of the frame, fully settled and grounded" :
+    placement === "right" ? "ALREADY positioned on the right third of the frame, fully settled and grounded" :
+    "ALREADY positioned centrally in the frame, fully settled and grounded";
+
+  // CRITICAL: "Already in position" enforcement - no entering, walking in, or arriving
+  const alreadyInSceneEnforcement = [
+    "The person is ALREADY fully present in the environment",
+    "NOT entering or arriving",
+    "NOT walking into frame",
+    "The scene captures them mid-moment, fully situated",
+    "They have been here - this is their natural position",
+  ].join(". ");
 
   const characterText = characterDescription 
-    ? `The person from the reference image, ${characterDescription}, is ${positionText}`
-    : `The person from the reference image is ${positionText}`;
+    ? `The person from the reference image, ${characterDescription}, is ${positionText}. ${alreadyInSceneEnforcement}`
+    : `The person from the reference image is ${positionText}. ${alreadyInSceneEnforcement}`;
 
   // Build a CINEMA-QUALITY scene description with maximum detail
   const qualityModifiers = [
@@ -202,7 +215,8 @@ function buildScenePrompt(
     "clean professional composition",
   ].join(", ");
 
-  return `A breathtaking cinematic still frame, ${qualityModifiers}. ${characterText}, immersed in ${sceneDescription}. The environment is rendered with extraordinary detail, depth, and atmosphere. ${lightingModifiers}. The person maintains perfect eye contact with the camera, exuding confidence and presence, ready to speak directly to the viewer. ${technicalModifiers}. The overall aesthetic matches Hollywood blockbuster production values.`;
+  // CRITICAL: Final prompt reinforces static, already-positioned state
+  return `A breathtaking cinematic still frame, ${qualityModifiers}. ${characterText}, completely immersed in ${sceneDescription}. The environment is rendered with extraordinary detail, depth, and atmosphere. ${lightingModifiers}. The person maintains perfect eye contact with the camera, exuding confidence and presence, ready to speak directly to the viewer. They are STATIONARY and GROUNDED - no motion blur, no movement artifacts. ${technicalModifiers}. The overall aesthetic matches Hollywood blockbuster production values.`;
 }
 
 /**

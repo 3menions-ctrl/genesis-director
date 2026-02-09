@@ -250,41 +250,33 @@ export const LIGHTING_STYLES: Record<string, string[]> = {
 // MOTION DYNAMICS LIBRARY - Subject Movement
 // ============================================================================
 
+// CRITICAL: All motions enforce "ALREADY IN POSITION" - no entering/walking into scenes
+// Avatars must start fully situated in their environment from frame 1
 export const SUBJECT_MOTION: Record<string, string[]> = {
   static_confident: [
-    "standing with confident stillness and grounded presence",
-    "static but alive with subtle weight shifts",
-    "poised and centered with controlled energy",
+    "already positioned, standing with confident stillness and grounded presence",
+    "already in place, static but alive with subtle weight shifts",
+    "already situated, poised and centered with controlled energy",
   ],
   subtle_shift: [
-    "gentle weight shifts and natural micro-movements",
-    "subtle swaying with organic rhythm",
-    "living stillness with breathing motion",
+    "already positioned, with gentle weight shifts and natural micro-movements",
+    "already in place, with subtle swaying and organic rhythm",
+    "already situated, with living stillness and breathing motion",
   ],
   gesture_expressive: [
-    "expressive hand gestures punctuating speech",
-    "animated gesticulation matching verbal emphasis",
-    "dynamic hand and arm movements for engagement",
-  ],
-  walking_forward: [
-    "walking purposefully toward camera while speaking",
-    "confident approach with maintained eye contact",
-    "forward stride with engaging presence",
-  ],
-  walking_lateral: [
-    "walking parallel to camera with natural gait",
-    "lateral movement through the scene while speaking",
-    "side-to-side traversal with dynamic energy",
+    "already positioned, using expressive hand gestures punctuating speech",
+    "already in place, with animated gesticulation matching verbal emphasis",
+    "already situated, with dynamic hand and arm movements for engagement",
   ],
   seated_engaged: [
-    "seated position with engaged forward lean",
-    "sitting comfortably with attentive posture",
-    "chair-based presence with expressive upper body",
+    "already seated with engaged forward lean",
+    "already sitting comfortably with attentive posture",
+    "already positioned in chair with expressive upper body",
   ],
   leaning_casual: [
-    "casually leaning against a surface with relaxed energy",
-    "comfortable lean position conveying accessibility",
-    "relaxed stance with grounded confidence",
+    "already leaning casually against a surface with relaxed energy",
+    "already positioned in comfortable lean conveying accessibility",
+    "already in relaxed stance with grounded confidence",
   ],
 };
 
@@ -460,10 +452,12 @@ export const LIGHTING_PROGRESSION = [
   'overcast_soft', 'neon_accent', 'volumetric', 'blue_hour', 'classic_key',
 ];
 
+// CRITICAL: No walking/movement into scene - avatars must START already positioned
+// Walking motions removed to ensure avatars begin IN their environment, not moving into it
 export const MOTION_PROGRESSION = [
-  'gesture_expressive', 'walking_forward', 'subtle_shift', 'static_confident',
-  'walking_lateral', 'leaning_casual', 'gesture_expressive', 'seated_engaged',
-  'walking_forward', 'subtle_shift',
+  'gesture_expressive', 'subtle_shift', 'static_confident', 'gesture_expressive',
+  'leaning_casual', 'subtle_shift', 'gesture_expressive', 'seated_engaged',
+  'static_confident', 'subtle_shift',
 ];
 
 // ============================================================================

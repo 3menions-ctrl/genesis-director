@@ -1,6 +1,7 @@
 import { memo, useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSafeNavigation } from '@/lib/navigation';
+import { SilentBoundary } from '@/components/stability/SafeComponent';
 
 // Lazy load the 3D glass component for performance
 const GlassShatter3D = lazy(() => import('./GlassShatter3D'));
@@ -118,13 +119,15 @@ const NovaConversionOverlay = memo(function NovaConversionOverlay({
           }}
         />
 
-        {/* 3D Glass Shatter Effect */}
-        <Suspense fallback={null}>
-          <GlassShatter3D 
-            isShattered={isShattered} 
-            intensity={phase === 'shatter' ? 1 : 0} 
-          />
-        </Suspense>
+        {/* 3D Glass Shatter Effect - wrapped in SilentBoundary for graceful degradation */}
+        <SilentBoundary name="GlassShatter3D">
+          <Suspense fallback={null}>
+            <GlassShatter3D 
+              isShattered={isShattered} 
+              intensity={phase === 'shatter' ? 1 : 0} 
+            />
+          </Suspense>
+        </SilentBoundary>
 
         {/* Impact flash */}
         {phase === 'impact' && (

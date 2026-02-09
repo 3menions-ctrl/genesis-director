@@ -18,6 +18,7 @@ const FAQSection = lazy(() => import('@/components/landing/FAQSection'));
 const Footer = lazy(() => import('@/components/landing/Footer'));
 const FeaturesShowcase = lazy(() => import('@/components/landing/FeaturesShowcase'));
 const CinematicTransition = lazy(() => import('@/components/landing/CinematicTransition'));
+const ScreenCrashOverlay = lazy(() => import('@/components/landing/ScreenCrashOverlay'));
 
 // Loading fallbacks
 const SectionLoader = memo(forwardRef<HTMLDivElement, Record<string, never>>(
@@ -52,6 +53,9 @@ const BackgroundFallback = memo(forwardRef<HTMLDivElement, Record<string, never>
 ));
 BackgroundFallback.displayName = 'BackgroundFallback';
 
+// Inactivity timeout in milliseconds
+const INACTIVITY_TIMEOUT = 10000;
+
 // Main Landing Component
 export default function Landing() {
   const { user } = useAuth();
@@ -59,7 +63,9 @@ export default function Landing() {
   
   const [showExamples, setShowExamples] = useState(false);
   const [showCinematicTransition, setShowCinematicTransition] = useState(false);
+  const [showScreenCrash, setShowScreenCrash] = useState(false);
   const signUpButtonRef = useRef<HTMLButtonElement>(null);
+  const hasTriggeredCrash = useRef(false);
 
   // Redirect authenticated users
   useEffect(() => {
@@ -67,6 +73,36 @@ export default function Landing() {
       navigate('/projects');
     }
   }, [user, navigate]);
+
+  // Inactivity detection - trigger screen crash after 10 seconds
+  useEffect(() => {
+    // Only for non-authenticated users who haven't seen it
+    if (user || hasTriggeredCrash.current) return;
+
+    let inactivityTimer: NodeJS.Timeout;
+
+    const resetTimer = () => {
+      clearTimeout(inactivityTimer);
+      if (!hasTriggeredCrash.current && !showScreenCrash) {
+        inactivityTimer = setTimeout(() => {
+          hasTriggeredCrash.current = true;
+          setShowScreenCrash(true);
+        }, INACTIVITY_TIMEOUT);
+      }
+    };
+
+    // Start timer
+    resetTimer();
+
+    // Reset on user activity
+    const events = ['mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+    events.forEach(event => window.addEventListener(event, resetTimer));
+
+    return () => {
+      clearTimeout(inactivityTimer);
+      events.forEach(event => window.removeEventListener(event, resetTimer));
+    };
+  }, [user, showScreenCrash]);
 
   // Navigation handlers
   const scrollToSection = useCallback((target: string) => {
@@ -89,8 +125,22 @@ export default function Landing() {
     setShowExamples(open);
   }, []);
 
+  const handleDismissScreenCrash = useCallback(() => {
+    setShowScreenCrash(false);
+  }, []);
+
   return (
     <div className="min-h-screen bg-black overflow-hidden relative">
+      {/* Screen Crash Conversion Overlay */}
+      <ErrorBoundaryWrapper fallback={null}>
+        <Suspense fallback={null}>
+          <ScreenCrashOverlay 
+            isActive={showScreenCrash} 
+            onDismiss={handleDismissScreenCrash}
+          />
+        </Suspense>
+      </ErrorBoundaryWrapper>
+
       {/* Cinematic Transition */}
       <ErrorBoundaryWrapper fallback={null}>
         <Suspense fallback={null}>

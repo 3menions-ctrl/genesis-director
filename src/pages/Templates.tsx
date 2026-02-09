@@ -39,6 +39,7 @@ import musicVideoImg from '@/assets/templates/music-video.jpg';
 import podcastClipsImg from '@/assets/templates/podcast-clips.jpg';
 import brandStoryImg from '@/assets/templates/brand-story.jpg';
 import teamIntroImg from '@/assets/templates/team-intro.jpg';
+import breakTheScreenImg from '@/assets/templates/break-the-screen.jpg';
 
 interface Template {
   id: string;
@@ -69,6 +70,20 @@ const CATEGORIES = [
 // Trendy, viral-ready templates based on what people love making
 const BUILT_IN_TEMPLATES = [
   // 🔥 TRENDING - Viral & Social
+  {
+    id: 'break-the-screen',
+    name: 'Break the Screen',
+    description: 'Character breaks out of social media platforms - ultimate pattern interrupt',
+    category: 'trending',
+    thumbnail_url: breakTheScreenImg,
+    use_count: 32100,
+    target_duration_minutes: 1,
+    clip_count: 5,
+    mood: 'epic',
+    genre: 'ad',
+    is_featured: true,
+    is_trending: true,
+  },
   {
     id: 'viral-hook',
     name: 'Viral Hook Opener',

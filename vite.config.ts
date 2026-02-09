@@ -76,11 +76,6 @@ export default defineConfig(({ mode }) => ({
       "react/jsx-dev-runtime",
       "react-router-dom",
       "framer-motion",
-      // Three.js / React Three Fiber - CRITICAL for 3D stability
-      "three",
-      "@react-three/fiber",
-      "@react-three/drei",
-      // Radix UI
       "@radix-ui/react-dialog",
       "@radix-ui/react-dropdown-menu",
       "@radix-ui/react-tooltip",
@@ -138,14 +133,6 @@ export default defineConfig(({ mode }) => ({
   },
   // Optimize deps
   optimizeDeps: {
-    include: [
-      "react", 
-      "react-dom", 
-      "react-router-dom", 
-      "@tanstack/react-query",
-      "three",
-      "@react-three/fiber",
-      "@react-three/drei",
-    ],
+    include: ["react", "react-dom", "react-router-dom", "@tanstack/react-query"],
   },
 }));

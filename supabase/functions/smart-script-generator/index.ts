@@ -12,6 +12,17 @@ import {
   type DetectedContent,
 } from "../_shared/script-utils.ts";
 
+// Multi-character support types
+interface CharacterCast {
+  id: string;
+  name: string;
+  appearance: string;
+  voiceId: string;
+  role: 'protagonist' | 'supporting' | 'antagonist' | 'background' | 'narrator';
+  referenceImageUrl?: string;
+  characterBible?: any;
+}
+
 interface SmartScriptRequest {
   topic: string;
   synopsis?: string;
@@ -78,6 +89,11 @@ interface SmartScriptRequest {
   };
   // Mode flag to enforce strict adherence
   mode?: 'text-to-video' | 'image-to-video' | 'b-roll';
+  
+  // MULTI-CHARACTER SUPPORT - World-class scene composition
+  multiCharacterMode?: boolean;
+  characterCast?: CharacterCast[];
+  sceneType?: 'monologue' | 'dialogue' | 'group' | 'interview' | 'narrative';
 }
 
 interface SceneClip {
@@ -108,6 +124,13 @@ interface SceneClip {
   // Dialogue/narration
   dialogue: string;
   mood: string;
+  
+  // MULTI-CHARACTER SUPPORT
+  charactersInScene?: string[];           // Which characters appear in this clip
+  characterActions?: Record<string, string>; // Actions per character
+  characterDialogue?: Record<string, string>; // Dialogue per character
+  focusCharacter?: string;                // Primary character for this clip
+  interactionType?: 'solo' | 'dialogue' | 'group';
 }
 
 const ACTION_PHASES = ['establish', 'initiate', 'develop', 'escalate', 'peak', 'settle'] as const;
@@ -232,7 +255,18 @@ serve(async (req) => {
     
     const mustPreserveContent = !voiceDisabled && (request.preserveUserContent || hasUserNarration || hasUserDialogue);
     
+    // MULTI-CHARACTER MODE: Detect if we have multiple characters to work with
+    const isMultiCharacter = request.multiCharacterMode && request.characterCast && request.characterCast.length > 1;
+    const characterCast = request.characterCast || [];
+    const sceneType = request.sceneType || 'monologue';
+    
+    if (isMultiCharacter) {
+      console.log(`[SmartScript] 🎭 MULTI-CHARACTER MODE: ${characterCast.length} characters, scene type: ${sceneType}`);
+      characterCast.forEach(c => console.log(`[SmartScript]    - ${c.name} (${c.role}): ${c.appearance.substring(0, 50)}...`));
+    }
+    
     console.log(`[SmartScript] Generating EXACTLY ${clipCount} clips for continuous scene, preserveContent: ${mustPreserveContent}, voiceDisabled: ${voiceDisabled}`);
+
 
     // =====================================================
     // STRICT REFERENCE ADHERENCE: For image-to-video mode
@@ -376,13 +410,52 @@ Distribute the user's narration/dialogue across the ${clipCount} clips appropria
 Include the user's exact text in the "dialogue" field of each clip.
 ` : ''}
 
+${isMultiCharacter ? `
+=======================================================================
+🎭 MULTI-CHARACTER SCENE COMPOSITION (WORLD-CLASS)
+=======================================================================
+
+This scene features ${characterCast.length} DISTINCT CHARACTERS who must appear together:
+
+${characterCast.map((c, i) => `
+CHARACTER ${i + 1} - ${c.name} (${c.role.toUpperCase()}):
+- Appearance: ${c.appearance}
+${c.role === 'protagonist' ? '- PRIMARY FOCUS: Most screen time, drives the narrative' : ''}
+${c.role === 'supporting' ? '- SECONDARY FOCUS: Interacts with protagonist, adds depth' : ''}
+${c.role === 'antagonist' ? '- CREATES TENSION: Opposition or conflict element' : ''}
+`).join('')}
+
+SCENE TYPE: ${sceneType.toUpperCase()}
+${sceneType === 'dialogue' ? '- Two characters in conversation, cut between them OR frame together' : ''}
+${sceneType === 'group' ? '- Multiple characters in same frame, interacting as ensemble' : ''}
+${sceneType === 'interview' ? '- Interview format with speaker and listener in frame' : ''}
+${sceneType === 'narrative' ? '- Narrator describes while characters perform actions' : ''}
+
+MULTI-CHARACTER COMPOSITION RULES:
+1. ESTABLISH SPATIAL RELATIONSHIPS: Show where each character is positioned
+2. VISUAL DISTINCTION: Each character must be clearly distinguishable
+3. INTERACTION FRAMING: Use two-shots for dialogue, wide shots for groups
+4. CHARACTER FOCUS: Each clip should have a "focusCharacter" for camera priority
+5. DIALOGUE ATTRIBUTION: In "characterDialogue" specify who says what
+6. ACTION ATTRIBUTION: In "characterActions" specify what each character does
+
+CINEMATOGRAPHY FOR MULTI-CHARACTER:
+- Two-Shot: Both characters in frame for important exchanges
+- Over-the-Shoulder: Character A visible, focused on Character B speaking
+- Reaction Shot: Cut to character reacting to what's being said
+- Wide Master: Establish all characters' positions in scene
+- Medium Singles: Individual character moments within the scene
+
+=======================================================================
+` : ''}
+
 OUTPUT FORMAT (STRICT JSON):
 {
   "clips": [
     {
       "index": 0,
       "title": "Evocative clip title (3-5 words)",
-      "description": "Detailed VISUAL description optimized for Kling AI: shot type + subject action + camera movement + environmental details. Be specific about motion direction, speed, and physical actions.${voiceDisabled ? ' NO dialogue or speech.' : ''}",
+      "description": "Detailed VISUAL description optimized for Kling AI: shot type + subject action + camera movement + environmental details. Be specific about motion direction, speed, and physical actions.${voiceDisabled ? ' NO dialogue or speech.' : ''}${isMultiCharacter ? ' INCLUDE ALL CHARACTERS in scene as appropriate.' : ''}",
       "durationSeconds": 5,
       "actionPhase": "establish|initiate|develop|escalate|peak|settle",
       "previousAction": "What happened in previous clip (empty for clip 0)",
@@ -397,7 +470,12 @@ OUTPUT FORMAT (STRICT JSON):
       "motionDirection": "Specific direction: left-to-right, toward-camera, ascending, circular, etc.",
       "transitionHint": "Visual element connecting to next clip (motion, gaze, gesture)",
       "dialogue": "${voiceDisabled ? 'MUST BE EMPTY' : "Narration or speech - USE USER'S EXACT WORDS if provided"}",
-      "mood": "Emotional tone: tense, hopeful, melancholic, triumphant, mysterious, etc."
+      "mood": "Emotional tone: tense, hopeful, melancholic, triumphant, mysterious, etc."${isMultiCharacter ? `,
+      "charactersInScene": ["List character names present in this clip"],
+      "focusCharacter": "Name of primary character for camera focus",
+      "characterActions": {"CharacterName": "What this character does in this clip"},
+      "characterDialogue": {"CharacterName": "What this character says in this clip"},
+      "interactionType": "solo|dialogue|group"` : ''}
     }
   ]
 }

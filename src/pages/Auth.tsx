@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { PasswordStrength } from '@/components/ui/password-strength';
 import { WelcomeBackDialog } from '@/components/auth/WelcomeBackDialog';
 import { useSafeNavigation } from '@/lib/navigation';
+import { Logo } from '@/components/ui/Logo';
 import landingAbstractBg from '@/assets/landing-abstract-bg.jpg';
 import authHeroImage from '@/assets/auth-hero.jpg';
 // Validation schemas
@@ -259,10 +260,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
         <div className="relative z-10 p-12 xl:p-16 w-full h-full flex flex-col justify-between">
           {/* Top: Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-2xl bg-black/40 backdrop-blur-xl flex items-center justify-center border border-white/20 shadow-2xl">
-              <span className="text-2xl font-display font-bold text-white">A-S</span>
-            </div>
-            <span className="text-2xl font-display font-bold text-white drop-shadow-lg">Apex-Studio</span>
+            <Logo size="xl" showText textClassName="text-2xl font-display font-bold drop-shadow-lg" />
           </div>
           
           {/* Bottom: Tagline */}
@@ -285,9 +283,9 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
         <div className="w-full max-w-md relative">
           {/* Mobile Logo */}
             <div className="lg:hidden text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 mb-4 shadow-lg">
-                <span className="text-2xl font-display font-bold text-white">A-S</span>
-            </div>
+              <div className="inline-flex items-center justify-center mb-4">
+                <Logo size="xl" />
+              </div>
             <h1 className="text-2xl font-display font-bold text-white">
               Apex-Studio
             </h1>

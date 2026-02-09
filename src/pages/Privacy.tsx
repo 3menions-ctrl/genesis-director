@@ -2,6 +2,7 @@ import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { lazy, Suspense } from "react";
+import { Logo } from "@/components/ui/Logo";
 
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 
@@ -17,10 +18,7 @@ const Privacy = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 px-6 lg:px-12 py-5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
-              <span className="text-sm font-bold text-black">A-S</span>
-            </div>
-            <span className="text-base font-semibold text-white tracking-tight">Apex-Studio</span>
+            <Logo size="md" showText textClassName="text-base" />
           </Link>
         </div>
       </nav>

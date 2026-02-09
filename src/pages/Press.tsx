@@ -26,12 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-const Logo = ({ className = "w-9 h-9" }: { className?: string }) => (
-  <div className={`${className} rounded-xl bg-glossy-black flex items-center justify-center shadow-obsidian`}>
-    <span className="text-base font-bold text-white">AS</span>
-  </div>
-);
+import { Logo } from "@/components/ui/Logo";
 
 const HERO_STATS = [
   { value: "AI", label: "Powered Generation", icon: Brain, color: "from-violet-500 to-purple-600" },
@@ -183,7 +178,7 @@ export default function Press() {
           <Link to="/" className="flex items-center gap-3 group">
             <div className="relative">
               <div className="absolute inset-0 bg-primary/20 rounded-xl blur-lg group-hover:blur-xl transition-all" />
-              <Logo className="w-9 h-9 relative" />
+              <Logo size="lg" className="relative" />
             </div>
             <span className="font-bold text-xl">Apex Studio</span>
           </Link>
@@ -292,9 +287,7 @@ export default function Press() {
                 </h2>
                 <div className="text-center">
                   <div className="inline-flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center text-white font-bold text-lg">
-                      AS
-                    </div>
+                    <img src="/apex-studio-logo.png" alt="Apex Studio" className="w-12 h-12 object-contain" />
                     <div className="text-left">
                       <div className="font-semibold">Apex Studio</div>
                       <div className="text-sm text-muted-foreground">apex-studio.ai</div>

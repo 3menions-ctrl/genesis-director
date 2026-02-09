@@ -302,9 +302,9 @@ describe('Redirect Loop Prevention', () => {
 
       return (
         <div>
-          <div data-testid="login">Login</div>
+          <div data-testid="login-page">Login Page</div>
           <button onClick={handleLogin} disabled={isLoggingIn}>
-            {isLoggingIn ? 'Logging in...' : 'Login'}
+            {isLoggingIn ? 'Logging in...' : 'Sign In'}
           </button>
         </div>
       );
@@ -325,9 +325,9 @@ describe('Redirect Loop Prevention', () => {
       </QueryClientProvider>
     );
 
-    expect(screen.getByTestId('login')).toBeInTheDocument();
+    expect(screen.getByTestId('login-page')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('Login'));
+    fireEvent.click(screen.getByText('Sign In'));
 
     await waitFor(() => {
       expect(screen.getByTestId('protected')).toBeInTheDocument();

@@ -2,8 +2,8 @@ import { memo, useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSafeNavigation } from '@/lib/navigation';
 
-// Nova Chen's avatar image
-const NOVA_CHEN_IMAGE = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/avatars/nova-chen-front-1769751508375.png';
+// Nova Chen knocking video
+import novaKnockingVideo from '@/assets/nova-chen-knocking.mp4';
 
 interface NovaConversionOverlayProps {
   isActive: boolean;
@@ -159,41 +159,31 @@ const NovaConversionOverlay = memo(function NovaConversionOverlay({
           </motion.div>
         )}
 
-        {/* Nova Chen Avatar */}
+        {/* Nova Chen Video */}
         <motion.div
-          className="absolute left-1/2 pointer-events-none"
+          className="absolute left-1/2 bottom-0 pointer-events-none"
           style={{ 
             x: '-50%',
             willChange: 'transform, opacity'
           }}
           initial={{ 
-            bottom: -400,
-            scale: 0.5,
+            y: '100%',
             opacity: 0
           }}
           animate={{
-            bottom: phase === 'walking-in' ? 80 : 
-                   phase === 'arrived' ? 100 :
-                   phase === 'knocking' ? 110 :
-                   phase === 'pointing' ? 120 :
-                   phase === 'spotlight' ? 120 : -400,
-            scale: phase === 'walking-in' ? 0.8 :
-                   phase === 'arrived' ? 1 :
-                   phase === 'knocking' ? 1.05 :
-                   phase === 'pointing' ? 1 :
-                   phase === 'spotlight' ? 1 : 0.5,
+            y: phase === 'idle' ? '100%' : '0%',
             opacity: phase === 'idle' ? 0 : 1,
           }}
           transition={{
             type: "spring",
-            stiffness: 100,
+            stiffness: 80,
             damping: 20,
-            duration: 1
+            duration: 1.2
           }}
         >
-          {/* Avatar glow effect */}
+          {/* Video glow effect */}
           <motion.div
-            className="absolute inset-0 rounded-full blur-3xl"
+            className="absolute inset-0 blur-3xl pointer-events-none"
             style={{
               background: 'radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, transparent 70%)',
             }}
@@ -204,29 +194,18 @@ const NovaConversionOverlay = memo(function NovaConversionOverlay({
             transition={{ duration: 0.8 }}
           />
 
-          {/* Nova's image container */}
-          <motion.div
-            className="relative w-[280px] h-[280px] md:w-[350px] md:h-[350px]"
-            animate={{
-              // Knock animation - quick forward movement
-              y: phase === 'knocking' ? [0, -15, 0, -10, 0] : 0,
-              rotateZ: phase === 'pointing' ? -5 : 0,
-            }}
-            transition={{
-              y: { duration: 0.6, times: [0, 0.2, 0.4, 0.6, 1] },
-              rotateZ: { duration: 0.5 }
-            }}
-          >
-            {/* Circular frame with glow */}
-            <div className="absolute inset-0 rounded-full overflow-hidden border-4 border-white/20 shadow-[0_0_60px_rgba(139,92,246,0.5)]">
-              <img
-                src={NOVA_CHEN_IMAGE}
-                alt="Nova Chen"
-                className="w-full h-full object-cover"
-              />
-            </div>
+          {/* Nova's video container */}
+          <div className="relative w-[300px] h-[500px] md:w-[400px] md:h-[700px]">
+            <video
+              src={novaKnockingVideo}
+              className="w-full h-full object-cover rounded-t-3xl"
+              autoPlay
+              muted
+              playsInline
+              loop={false}
+            />
 
-            {/* Pointing hand indicator */}
+            {/* Pointing hand indicator - appears after video plays */}
             {(phase === 'pointing' || phase === 'spotlight') && (
               <motion.div
                 className="absolute -top-4 -right-8"
@@ -237,26 +216,12 @@ const NovaConversionOverlay = memo(function NovaConversionOverlay({
                 <div className="text-6xl">👆</div>
               </motion.div>
             )}
-          </motion.div>
-
-          {/* Speech bubble during knock phase */}
-          {phase === 'knocking' && (
-            <motion.div
-              className="absolute -top-20 left-1/2 -translate-x-1/2 bg-white text-black px-4 py-2 rounded-2xl shadow-xl"
-              initial={{ opacity: 0, scale: 0, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            >
-              <span className="text-sm font-semibold whitespace-nowrap">*knock knock* 👋</span>
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rotate-45" />
-            </motion.div>
-          )}
+          </div>
 
           {/* Speech bubble during pointing phase */}
           {(phase === 'pointing' || phase === 'spotlight') && (
             <motion.div
-              className="absolute -top-24 left-1/2 -translate-x-1/2 bg-white text-black px-5 py-3 rounded-2xl shadow-xl max-w-[200px]"
+              className="absolute -top-20 left-1/2 -translate-x-1/2 bg-white text-black px-5 py-3 rounded-2xl shadow-xl max-w-[220px]"
               initial={{ opacity: 0, scale: 0, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.3 }}

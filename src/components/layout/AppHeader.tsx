@@ -19,6 +19,7 @@ import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 import { NotificationBell } from '@/components/social/NotificationBell';
 import { UserStatsBar } from '@/components/social/UserStatsBar';
 import { NavigationLink, useNavigationWithLoading } from '@/components/navigation';
+import logoImage from '@/assets/apex-studio-logo.png';
 
 interface NavItem {
   label: string;
@@ -80,7 +81,7 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
               <div className="relative">
                 <div className="absolute inset-0 bg-white/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                 <img 
-                  src="/apex-studio-logo.png" 
+                  src={logoImage} 
                   alt="Apex Studio" 
                   className="relative w-10 h-10 object-contain group-hover:scale-105 transition-transform"
                 />

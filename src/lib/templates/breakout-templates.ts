@@ -1,191 +1,215 @@
 /**
- * Platform Breakout Template Configurations
+ * Premium Breakout Effect Template Configurations
  * 
- * These templates define the visual environment and prompts for
- * avatar "breakout" effects where characters burst through social media UIs.
+ * These templates define 5 high-impact visual effects where avatars
+ * break through barriers/formats into reality - maximum sales impact.
  */
+
+export type BreakoutEffectType = 
+  | 'post-escape' 
+  | 'scroll-grab' 
+  | 'freeze-walk' 
+  | 'reality-rip' 
+  | 'aspect-escape';
 
 export interface BreakoutTemplateConfig {
   id: string;
-  platform: 'facebook' | 'youtube' | 'tiktok' | 'instagram' | 'twitter' | 'linkedin';
+  effectType: BreakoutEffectType;
   name: string;
   description: string;
   
-  // Visual environment prompts for FLUX image generation
-  environmentPrompt: string;
+  // Visual environment prompts for video generation
+  clip1Prompt: string; // The Trap
+  clip2Prompt: string; // The Break
+  clip3Prompt: string; // The Emergence
   
-  // Animation prompts for Kling
-  breakoutAnimationPrompt: string;
+  // Effect-specific visual elements
+  visualElements: string[];
   
-  // Platform-specific UI elements to include
-  uiElements: string[];
-  
-  // Color palette for the platform
+  // Color palette for the effect
   colorPalette: {
     primary: string;
     secondary: string;
     accent: string;
   };
   
-  // Aspect ratio (vertical for TikTok/Reels, square for posts, etc.)
-  aspectRatio: '9:16' | '16:9' | '1:1' | '4:5';
+  // Aspect ratio recommendation
+  aspectRatio: '9:16' | '16:9' | '1:1';
   
-  // Suggested clip structure
+  // Clip structure (always 3 for breakout)
   clipStructure: {
-    clipCount: number;
-    clipDescriptions: string[];
+    clipCount: 3;
+    clipDescriptions: [string, string, string];
   };
 }
 
 export const BREAKOUT_TEMPLATES: Record<string, BreakoutTemplateConfig> = {
-  'breakout-facebook': {
-    id: 'breakout-facebook',
-    platform: 'facebook',
-    name: 'Facebook Post Breakout',
-    description: 'Avatar breaks through a Facebook post card into reality',
-    environmentPrompt: `Facebook post interface environment: white card with blue header bar, 
-      profile picture circle in top left, username and timestamp text, 
-      Like/Comment/Share buttons at bottom, the post card is cracking and shattering 
-      with glass shards flying outward, dramatic blue lighting from the breaking point,
-      dark moody background behind the interface, volumetric light rays`,
-    breakoutAnimationPrompt: `Character punches through glass screen, shattering the Facebook interface,
-      glass shards explode outward in slow motion, dramatic entrance into reality,
-      confident powerful movement, looking directly at camera after breaking through`,
-    uiElements: [
-      'Facebook blue header bar',
-      'Profile picture circle',
-      'Like button with thumb icon',
-      'Comment button',
-      'Share button',
-      'Post card white background'
+  'post-escape': {
+    id: 'post-escape',
+    effectType: 'post-escape',
+    name: 'Post Escape',
+    description: 'Avatar trapped in a social post, presses against the glass, then SMASHES through into reality',
+    clip1Prompt: `Person physically TRAPPED INSIDE a social media post, pressing against glass from inside.
+      UI elements as separate depth layer. Hands pressed flat against barrier, intense eye contact.`,
+    clip2Prompt: `EXPLOSIVE BREAKTHROUGH: Glass and UI fragments SHATTER toward viewer in slow motion.
+      Character's arms emerging through broken barrier, dramatic volumetric lighting.`,
+    clip3Prompt: `Triumphant emergence: Standing confidently with shattered UI debris settling.
+      Direct eye contact, hero lighting, speaking to camera.`,
+    visualElements: [
+      'Social post frame',
+      'Like button',
+      'Comment section',
+      'Glass shards',
+      'Digital debris'
     ],
     colorPalette: {
-      primary: '#1877F2', // Facebook blue
+      primary: '#1877F2',
       secondary: '#FFFFFF',
-      accent: '#42B72A' // Facebook green
+      accent: '#42B72A'
     },
     aspectRatio: '1:1',
     clipStructure: {
       clipCount: 3,
       clipDescriptions: [
-        'Avatar trapped inside Facebook post, looking at camera, beginning to push against the screen',
-        'Glass cracking, hands breaking through the interface, dramatic shatter effect',
-        'Avatar fully emerged, glass shards settling, direct confident eye contact with viewer'
+        'Trapped behind social post glass, building tension',
+        'Glass shattering, UI fragments exploding toward viewer',
+        'Fully emerged, confident, speaking directly to camera'
       ]
     }
   },
   
-  'breakout-youtube': {
-    id: 'breakout-youtube',
-    platform: 'youtube',
-    name: 'YouTube Player Breakout',
-    description: 'Avatar breaks through a YouTube video player into reality',
-    environmentPrompt: `YouTube video player interface environment: black player frame with 
-      red progress bar at bottom, play/pause button, volume slider, fullscreen icon,
-      YouTube logo in bottom right, the video player is cracking and shattering
-      with dramatic red and white lighting, glass shards flying outward,
-      dark cinematic background, the red progress bar glowing intensely`,
-    breakoutAnimationPrompt: `Character pushes through YouTube player screen from inside the video,
-      red neon light bursting through cracks, glass exploding outward,
-      dramatic slow motion emergence, hands gripping broken screen edges,
-      powerful confident stance after breaking free`,
-    uiElements: [
-      'YouTube red progress bar',
-      'Play/pause button',
-      'Volume controls',
-      'Fullscreen button',
-      'YouTube logo',
-      'Black video player frame'
+  'scroll-grab': {
+    id: 'scroll-grab',
+    effectType: 'scroll-grab',
+    name: 'Scroll Grab',
+    description: 'Avatar reaches OUT of vertical video and grabs the screen edge to pull themselves through',
+    clip1Prompt: `Person inside phone screen video, HAND reaching OUT toward viewer, pressing against screen boundary.
+      Neon pink and cyan glow. The hand creating 3D bulge in screen surface.`,
+    clip2Prompt: `Arm PUNCHES THROUGH screen, hand GRABBING device edge. Glass shattering with neon colors.
+      Character pulling themselves through, athletic movement, screen material stretching.`,
+    clip3Prompt: `Pulled fully OUT of phone, landing in dynamic pose. Shattered screen behind.
+      Neon reflections, influencer energy, speaking to camera with confidence.`,
+    visualElements: [
+      'Phone screen edge',
+      'Vertical video UI',
+      'Neon reflections',
+      'Glass fragments',
+      'Hand bulge effect'
     ],
     colorPalette: {
-      primary: '#FF0000', // YouTube red
-      secondary: '#282828', // YouTube dark
-      accent: '#FFFFFF'
-    },
-    aspectRatio: '16:9',
-    clipStructure: {
-      clipCount: 3,
-      clipDescriptions: [
-        'Avatar inside video player, pressing hands against screen, red glow building',
-        'Screen cracking with red light bursting through, avatar pushing forward',
-        'Explosive breakout moment, glass shattering, avatar stepping into reality'
-      ]
-    }
-  },
-  
-  'breakout-tiktok': {
-    id: 'breakout-tiktok',
-    platform: 'tiktok',
-    name: 'TikTok Video Breakout',
-    description: 'Avatar breaks through a TikTok video interface into reality',
-    environmentPrompt: `TikTok vertical video interface environment: phone screen frame with
-      right-side icons (heart, comment bubble, share arrow, spinning music disc),
-      username and caption text at bottom left, the phone screen is cracking,
-      neon pink and cyan lighting matching TikTok branding, glass shards flying,
-      dark background with colorful light leaks, dynamic vertical composition`,
-    breakoutAnimationPrompt: `Character breaks through vertical phone screen in dynamic pose,
-      pink and cyan neon lights bursting through cracks, energetic movement,
-      glass exploding with colorful reflections, trend-worthy dramatic entrance,
-      landing in confident pose facing camera`,
-    uiElements: [
-      'Heart/like icon',
-      'Comment bubble',
-      'Share arrow',
-      'Spinning music disc',
-      'Username text',
-      'Phone frame with notch'
-    ],
-    colorPalette: {
-      primary: '#00F2EA', // TikTok cyan
-      secondary: '#FF0050', // TikTok pink
+      primary: '#00F2EA',
+      secondary: '#FF0050',
       accent: '#FFFFFF'
     },
     aspectRatio: '9:16',
     clipStructure: {
       clipCount: 3,
       clipDescriptions: [
-        'Avatar in TikTok video format, beginning to push against screen, neon glow building',
-        'Screen shattering with pink and cyan light explosion, dramatic break moment',
-        'Avatar bursting through in dynamic pose, landing with confident energy'
+        'Hand reaching out of phone screen, pressing against barrier',
+        'Grabbing screen edge, pulling through with athletic motion',
+        'Emerged from phone, dynamic landing, speaking to camera'
       ]
     }
   },
   
-  'breakout-instagram': {
-    id: 'breakout-instagram',
-    platform: 'instagram',
-    name: 'Instagram Post Breakout',
-    description: 'Avatar breaks through an Instagram post into reality',
-    environmentPrompt: `Instagram post interface environment: square post with header showing
-      profile picture, username, three-dot menu, bottom row of heart, comment, 
-      send, save icons, the post frame is cracking with gradient pink/purple/orange
-      light bursting through matching Instagram's brand gradient, glass shards,
-      dark moody background, elegant breaking effect`,
-    breakoutAnimationPrompt: `Character elegantly breaks through Instagram post frame,
-      gradient colored light (pink, purple, orange) bursting through cracks,
-      stylish confident emergence, glass reflecting rainbow gradient,
-      fashion-forward pose after breaking free, direct eye contact`,
-    uiElements: [
-      'Profile picture circle',
-      'Username header',
-      'Three-dot menu',
-      'Heart icon',
-      'Comment icon',
-      'Share/send icon',
-      'Save/bookmark icon'
+  'freeze-walk': {
+    id: 'freeze-walk',
+    effectType: 'freeze-walk',
+    name: 'Freeze & Walk',
+    description: 'Avatar freezes in a video call while others keep moving, then steps OUT of their box into 3D space',
+    clip1Prompt: `Video conference grid, ONE person FROZEN in grey-scale while others move in color.
+      The frozen person's eyes lock on camera, body beginning to glow at edges. Supernatural tension.`,
+    clip2Prompt: `Frozen person STEPS FORWARD, emerging from video box into 3D space.
+      Color returning as they become solid. Empty chair in box behind. Portal effect at boundary.`,
+    clip3Prompt: `Standing in 3D space in front of video call grid, others oblivious.
+      Confident stance, fading glow, speaking with authority. Corporate magic.`,
+    visualElements: [
+      'Video call grid',
+      'Participant boxes',
+      'Mute icons',
+      'Video controls',
+      '2D/3D boundary glow'
     ],
     colorPalette: {
-      primary: '#E1306C', // Instagram pink
-      secondary: '#833AB4', // Instagram purple
-      accent: '#F77737' // Instagram orange
+      primary: '#4A5568',
+      secondary: '#FFFFFF',
+      accent: '#FFD700'
+    },
+    aspectRatio: '16:9',
+    clipStructure: {
+      clipCount: 3,
+      clipDescriptions: [
+        'Frozen in video call while others move, eyes locking on camera',
+        'Stepping out of video box into 3D space, color returning',
+        'Standing before video grid, speaking with authority'
+      ]
+    }
+  },
+  
+  'reality-rip': {
+    id: 'reality-rip',
+    effectType: 'reality-rip',
+    name: 'Reality Rip',
+    description: 'Reality TEARS like fabric, avatar silhouette emerges through the glowing rip with power',
+    clip1Prompt: `Dark void with glowing TEAR forming in reality fabric. Through the tear, silhouette visible, backlit.
+      Tear edges glowing with energy and digital glitches. Building power.`,
+    clip2Prompt: `Reality RIPS WIDE OPEN, person STEPS THROUGH with power. Energy crackling at tear edges.
+      Light exploding outward, body solid emerging from pure light. Godlike entrance.`,
+    clip3Prompt: `Standing in reality, tear sealing behind, energy wisps fading. Commanding superhero presence.
+      Direct intense eye contact, speaking with authority. MORE real than surroundings.`,
+    visualElements: [
+      'Reality tear',
+      'Glowing edges',
+      'Digital glitches',
+      'Light explosion',
+      'Reality fragments'
+    ],
+    colorPalette: {
+      primary: '#FFFFFF',
+      secondary: '#000000',
+      accent: '#FFD700'
     },
     aspectRatio: '1:1',
     clipStructure: {
       clipCount: 3,
       clipDescriptions: [
-        'Avatar inside Instagram post, stylishly posed, beginning to press against frame',
-        'Frame cracking with gradient light explosion, elegant breaking motion',
-        'Avatar stepping through broken frame, glass settling, influencer-ready pose'
+        'Glowing tear forming in reality, silhouette visible through',
+        'Reality ripping open, stepping through with power',
+        'Emerged, tear sealing, speaking with commanding presence'
+      ]
+    }
+  },
+  
+  'aspect-escape': {
+    id: 'aspect-escape',
+    effectType: 'aspect-escape',
+    name: 'Aspect Ratio Escape',
+    description: 'Avatar STEPS ACROSS the boundary between vertical and horizontal video formats',
+    clip1Prompt: `Vertical phone video format, person PUSHING against the format boundary.
+      Shoulder pressing against 9:16 edge, dimensional distortion where they push. Reality bending.`,
+    clip2Prompt: `STEPPING THROUGH aspect ratio boundary, one foot in vertical, body emerging into horizontal.
+      Boundary SHATTERING, vertical and horizontal realities colliding. Dimensional light at intersection.`,
+    clip3Prompt: `Standing in widescreen horizontal reality, escaped vertical confinement.
+      Shattered format lines fading. Full cinematic composition, confident eye contact, speaking to camera.`,
+    visualElements: [
+      'Aspect ratio edges',
+      'Format distortion',
+      'Dimensional boundary',
+      'Shattered format lines',
+      'Reality collision'
+    ],
+    colorPalette: {
+      primary: '#3B82F6',
+      secondary: '#FFFFFF',
+      accent: '#8B5CF6'
+    },
+    aspectRatio: '16:9',
+    clipStructure: {
+      clipCount: 3,
+      clipDescriptions: [
+        'Pushing against vertical format boundary, dimension warping',
+        'Stepping through format boundary, realities colliding',
+        'Free in widescreen, format shards fading, speaking to camera'
       ]
     }
   }
@@ -199,55 +223,28 @@ export function getBreakoutTemplate(templateId: string): BreakoutTemplateConfig 
 }
 
 /**
- * Check if a template ID is a breakout template
+ * Check if a template ID is a premium breakout template
  */
 export function isBreakoutTemplate(templateId: string): boolean {
-  return templateId.startsWith('breakout-');
+  return templateId in BREAKOUT_TEMPLATES;
 }
 
 /**
- * Get all breakout templates as an array
+ * Get all breakout templates as an array (for UI rendering)
  */
 export function getAllBreakoutTemplates(): BreakoutTemplateConfig[] {
   return Object.values(BREAKOUT_TEMPLATES);
 }
 
 /**
- * Generate the full environment prompt for FLUX image generation
- * combining the template config with the selected avatar
+ * Get breakout template IDs in display order (for maximum sales impact)
  */
-export function generateBreakoutEnvironmentPrompt(
-  templateId: string,
-  avatarDescription?: string
-): string {
-  const template = getBreakoutTemplate(templateId);
-  if (!template) return '';
-  
-  const avatarPart = avatarDescription 
-    ? `${avatarDescription} character` 
-    : 'Stylish confident person';
-  
-  return `${avatarPart} trapped inside ${template.platform} interface. 
-    ${template.environmentPrompt}
-    Cinematic lighting, ultra high resolution, professional advertising quality,
-    the character is about to break through the digital barrier into reality.`;
-}
-
-/**
- * Generate the animation prompt for Kling video generation
- */
-export function generateBreakoutAnimationPrompt(
-  templateId: string,
-  avatarDescription?: string
-): string {
-  const template = getBreakoutTemplate(templateId);
-  if (!template) return '';
-  
-  const avatarPart = avatarDescription 
-    ? `${avatarDescription}` 
-    : 'The character';
-  
-  return `${avatarPart} ${template.breakoutAnimationPrompt}
-    Dramatic cinematic quality, slow motion glass shattering effect,
-    professional advertising production value, impactful brand moment.`;
+export function getBreakoutTemplateOrder(): BreakoutEffectType[] {
+  return [
+    'post-escape',
+    'scroll-grab', 
+    'freeze-walk',
+    'reality-rip',
+    'aspect-escape'
+  ];
 }

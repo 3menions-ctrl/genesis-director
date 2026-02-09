@@ -39,11 +39,13 @@ import musicVideoImg from '@/assets/templates/music-video.jpg';
 import podcastClipsImg from '@/assets/templates/podcast-clips.jpg';
 import brandStoryImg from '@/assets/templates/brand-story.jpg';
 import teamIntroImg from '@/assets/templates/team-intro.jpg';
-import breakTheScreenImg from '@/assets/templates/break-the-screen.jpg';
-import breakoutFacebookImg from '@/assets/templates/breakout-facebook.jpg';
-import breakoutYoutubeImg from '@/assets/templates/breakout-youtube.jpg';
-import breakoutTiktokImg from '@/assets/templates/breakout-tiktok.jpg';
-import breakoutInstagramImg from '@/assets/templates/breakout-instagram.jpg';
+
+// 🔥 NEW 5 PREMIUM BREAKOUT EFFECT THUMBNAILS
+import postEscapeImg from '@/assets/templates/post-escape.jpg';
+import scrollGrabImg from '@/assets/templates/scroll-grab.jpg';
+import freezeWalkImg from '@/assets/templates/freeze-walk.jpg';
+import realityRipImg from '@/assets/templates/reality-rip.jpg';
+import aspectEscapeImg from '@/assets/templates/aspect-escape.jpg';
 
 interface Template {
   id: string;
@@ -73,78 +75,85 @@ const CATEGORIES = [
 
 // Trendy, viral-ready templates based on what people love making
 const BUILT_IN_TEMPLATES = [
-  // 🔥 PLATFORM BREAKOUT SERIES - Ultra High Conversion
+  // 🔥 PREMIUM BREAKOUT EFFECTS ROW - Maximum Sales Impact (TOP 5)
+  // These 5 templates MUST appear first. Each creates a stunning 3-clip narrative
+  // where the avatar breaks the fourth wall in creative ways.
   {
-    id: 'breakout-facebook',
-    name: 'Facebook Breakout',
-    description: 'Avatar shatters through a Facebook post into reality',
+    id: 'post-escape',
+    name: 'Post Escape',
+    description: 'Avatar trapped in a social post, presses against glass, then SMASHES through into reality',
     category: 'trending',
-    thumbnail_url: breakoutFacebookImg,
-    use_count: 28700,
+    thumbnail_url: postEscapeImg,
+    use_count: 52400,
     target_duration_minutes: 1,
     clip_count: 3,
     mood: 'epic',
     genre: 'ad',
     is_featured: true,
     is_trending: true,
+    is_breakout: true,
   },
   {
-    id: 'breakout-youtube',
-    name: 'YouTube Breakout',
-    description: 'Avatar bursts through YouTube player with dramatic red glow',
+    id: 'scroll-grab',
+    name: 'Scroll Grab',
+    description: 'Avatar reaches OUT of vertical video and grabs the screen edge to pull themselves through',
     category: 'trending',
-    thumbnail_url: breakoutYoutubeImg,
-    use_count: 31200,
-    target_duration_minutes: 1,
-    clip_count: 3,
-    mood: 'epic',
-    genre: 'ad',
-    is_featured: true,
-    is_trending: true,
-  },
-  {
-    id: 'breakout-tiktok',
-    name: 'TikTok Breakout',
-    description: 'Avatar explodes through TikTok interface with neon energy',
-    category: 'trending',
-    thumbnail_url: breakoutTiktokImg,
-    use_count: 45600,
+    thumbnail_url: scrollGrabImg,
+    use_count: 48900,
     target_duration_minutes: 1,
     clip_count: 3,
     mood: 'action',
     genre: 'ad',
     is_featured: true,
     is_trending: true,
+    is_breakout: true,
   },
   {
-    id: 'breakout-instagram',
-    name: 'Instagram Breakout',
-    description: 'Avatar breaks through Instagram post with gradient glow',
+    id: 'freeze-walk',
+    name: 'Freeze & Walk',
+    description: 'Avatar freezes in a video call while others keep moving, then steps OUT of their box into 3D space',
     category: 'trending',
-    thumbnail_url: breakoutInstagramImg,
-    use_count: 38900,
+    thumbnail_url: freezeWalkImg,
+    use_count: 41200,
+    target_duration_minutes: 1,
+    clip_count: 3,
+    mood: 'mysterious',
+    genre: 'ad',
+    is_featured: true,
+    is_trending: true,
+    is_breakout: true,
+  },
+  {
+    id: 'reality-rip',
+    name: 'Reality Rip',
+    description: 'Reality TEARS like fabric, avatar silhouette emerges through the glowing rip with power',
+    category: 'trending',
+    thumbnail_url: realityRipImg,
+    use_count: 39700,
     target_duration_minutes: 1,
     clip_count: 3,
     mood: 'epic',
     genre: 'ad',
     is_featured: true,
     is_trending: true,
+    is_breakout: true,
   },
-  // 🔥 TRENDING - Viral & Social
   {
-    id: 'break-the-screen',
-    name: 'Break the Screen',
-    description: 'Character breaks out of social media platforms - ultimate pattern interrupt',
+    id: 'aspect-escape',
+    name: 'Aspect Ratio Escape',
+    description: 'Avatar STEPS ACROSS the boundary between vertical and horizontal video formats',
     category: 'trending',
-    thumbnail_url: breakTheScreenImg,
-    use_count: 32100,
+    thumbnail_url: aspectEscapeImg,
+    use_count: 36500,
     target_duration_minutes: 1,
-    clip_count: 5,
-    mood: 'epic',
+    clip_count: 3,
+    mood: 'action',
     genre: 'ad',
     is_featured: true,
     is_trending: true,
+    is_breakout: true,
   },
+  // 🔥 TRENDING - Viral & Social
   {
     id: 'viral-hook',
     name: 'Viral Hook Opener',
@@ -471,13 +480,19 @@ const TemplateCard = forwardRef<HTMLDivElement, {
         {/* Top Badges */}
         <div className="absolute top-2 left-2 right-2 flex items-center justify-between z-10">
           <div className="flex gap-1.5">
-            {template.is_trending && (
+            {template.is_breakout && (
+              <Badge className="bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white border-0 text-[10px] px-1.5 py-0.5 font-semibold shadow-lg">
+                <Zap className="w-2.5 h-2.5 mr-0.5" />
+                Premium
+              </Badge>
+            )}
+            {template.is_trending && !template.is_breakout && (
               <Badge className="bg-orange-500 text-white border-0 text-[10px] px-1.5 py-0.5 font-semibold">
                 <Flame className="w-2.5 h-2.5 mr-0.5" />
                 Hot
               </Badge>
             )}
-            {template.is_featured && !template.is_trending && (
+            {template.is_featured && !template.is_trending && !template.is_breakout && (
               <Badge className="bg-amber-500 text-black border-0 text-[10px] px-1.5 py-0.5 font-semibold">
                 <Star className="w-2.5 h-2.5 mr-0.5" />
                 Featured

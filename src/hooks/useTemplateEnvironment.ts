@@ -2,7 +2,27 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { 
+  getBreakoutTemplate, 
+  isBreakoutTemplate,
+  generateBreakoutEnvironmentPrompt,
+  generateBreakoutAnimationPrompt,
+  BreakoutTemplateConfig
+} from '@/lib/templates/breakout-templates';
 
+// Import breakout template images
+import breakoutFacebookImg from '@/assets/templates/breakout-facebook.jpg';
+import breakoutYoutubeImg from '@/assets/templates/breakout-youtube.jpg';
+import breakoutTiktokImg from '@/assets/templates/breakout-tiktok.jpg';
+import breakoutInstagramImg from '@/assets/templates/breakout-instagram.jpg';
+
+// Map breakout template IDs to their start images
+const BREAKOUT_START_IMAGES: Record<string, string> = {
+  'breakout-facebook': breakoutFacebookImg,
+  'breakout-youtube': breakoutYoutubeImg,
+  'breakout-tiktok': breakoutTiktokImg,
+  'breakout-instagram': breakoutInstagramImg,
+};
 // Environment DNA structure matching Environments page
 interface EnvironmentDNA {
   id: string;
@@ -224,6 +244,8 @@ interface BuiltInTemplate {
   colorGrading: string;
   environmentId?: string;
   conceptPrompt: string;
+  isBreakout?: boolean; // For platform breakout templates that use special start images
+  startImageUrl?: string; // Pre-configured start image for video generation
 }
 
 const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
@@ -548,6 +570,79 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     environmentId: 'modern_minimalist',
     conceptPrompt: 'A warm team introduction that humanizes your brand. Open with a dynamic montage of the team in action. Feature individual spotlights with names and roles. Capture authentic moments of collaboration and personality. Show the workspace and company culture. End with the full team together, projecting unity and expertise.',
   },
+  // 🔥 PLATFORM BREAKOUT SERIES - Avatar breaks through social media interfaces
+  {
+    id: 'breakout-facebook',
+    name: 'Facebook Breakout',
+    description: 'Avatar performs inside a Facebook post, then shatters through the interface into reality',
+    category: 'trending',
+    genre: 'ad',
+    mood: 'epic',
+    clipCount: 3,
+    targetDurationMinutes: 1,
+    colorGrading: 'cinematic',
+    isBreakout: true,
+    startImageUrl: breakoutFacebookImg,
+    conceptPrompt: `CLIP 1: Avatar trapped inside Facebook post interface, looking at camera, beginning to push against the screen from inside the video player area. The Facebook UI elements (like button, comments, shares) are visible around them.
+
+CLIP 2: Glass cracking dramatically as avatar's hands break through the Facebook interface, shards exploding outward with blue light bursting through the cracks. Dramatic slow-motion shatter effect.
+
+CLIP 3: Avatar fully emerged from the broken Facebook post, glass shards settling around them, direct confident eye contact with viewer. They've broken free from the digital world into reality.`,
+  },
+  {
+    id: 'breakout-youtube',
+    name: 'YouTube Breakout',
+    description: 'Avatar performs inside YouTube player, then bursts through with dramatic red glow',
+    category: 'trending',
+    genre: 'ad',
+    mood: 'epic',
+    clipCount: 3,
+    targetDurationMinutes: 1,
+    colorGrading: 'cinematic',
+    isBreakout: true,
+    startImageUrl: breakoutYoutubeImg,
+    conceptPrompt: `CLIP 1: Avatar inside YouTube video player, pressing hands against the screen from within. Red progress bar glowing at bottom, YouTube UI elements visible. Building tension.
+
+CLIP 2: Screen cracking with red neon light bursting through cracks, avatar pushing forward through the YouTube player. Glass exploding outward with dramatic red and white lighting.
+
+CLIP 3: Explosive breakout moment complete, avatar stepping confidently into reality from the shattered YouTube interface. Powerful stance, looking directly at camera.`,
+  },
+  {
+    id: 'breakout-tiktok',
+    name: 'TikTok Breakout',
+    description: 'Avatar performs inside TikTok video, then explodes through with neon energy',
+    category: 'trending',
+    genre: 'ad',
+    mood: 'action',
+    clipCount: 3,
+    targetDurationMinutes: 1,
+    colorGrading: 'cinematic',
+    isBreakout: true,
+    startImageUrl: breakoutTiktokImg,
+    conceptPrompt: `CLIP 1: Avatar in TikTok vertical video format, beginning to push against screen. Neon pink and cyan glow building. TikTok UI icons (heart, comment, share) visible on the right side.
+
+CLIP 2: Screen shattering with pink and cyan neon light explosion. Energetic, dynamic break moment with glass fragments catching the colorful light.
+
+CLIP 3: Avatar bursting through in dynamic pose, landing with confident energy facing camera. They've broken free from the TikTok interface into the real world.`,
+  },
+  {
+    id: 'breakout-instagram',
+    name: 'Instagram Breakout',
+    description: 'Avatar performs inside Instagram post, then breaks through with gradient glow',
+    category: 'trending',
+    genre: 'ad',
+    mood: 'epic',
+    clipCount: 3,
+    targetDurationMinutes: 1,
+    colorGrading: 'cinematic',
+    isBreakout: true,
+    startImageUrl: breakoutInstagramImg,
+    conceptPrompt: `CLIP 1: Avatar inside Instagram post frame, stylishly posed, beginning to press against the frame. Instagram UI elements visible (heart, comment, share icons). Gradient light starting to glow.
+
+CLIP 2: Frame cracking with gradient light explosion (pink, purple, orange matching Instagram's brand). Elegant breaking motion with glass reflecting rainbow gradient.
+
+CLIP 3: Avatar stepping through the broken Instagram frame, glass settling. Influencer-ready confident pose, direct eye contact with viewer. Successfully broken into reality.`,
+  },
 ];
 
 // Convert environment DNA to a comprehensive prompt string
@@ -620,6 +715,10 @@ export interface AppliedSettings {
   characterTemplates?: TemplateCharacter[];
   environmentLock?: TemplateEnvironmentLock;
   pacingStyle?: string;
+  // Breakout template specific
+  isBreakout?: boolean;
+  startImageUrl?: string; // Platform interface image for first clip
+  breakoutPlatform?: 'facebook' | 'youtube' | 'tiktok' | 'instagram';
 }
 
 export function useTemplateEnvironment() {
@@ -648,6 +747,15 @@ export function useTemplateEnvironment() {
           }
         }
         
+        // Determine breakout platform from template ID
+        let breakoutPlatform: 'facebook' | 'youtube' | 'tiktok' | 'instagram' | undefined;
+        if (builtIn.isBreakout) {
+          if (builtIn.id.includes('facebook')) breakoutPlatform = 'facebook';
+          else if (builtIn.id.includes('youtube')) breakoutPlatform = 'youtube';
+          else if (builtIn.id.includes('tiktok')) breakoutPlatform = 'tiktok';
+          else if (builtIn.id.includes('instagram')) breakoutPlatform = 'instagram';
+        }
+        
         const settings: AppliedSettings = {
           concept: builtIn.conceptPrompt,
           mood: builtIn.mood,
@@ -657,10 +765,15 @@ export function useTemplateEnvironment() {
           environmentPrompt: envPrompt,
           templateName: builtIn.name,
           environmentName: envName || undefined,
+          // Breakout-specific settings
+          isBreakout: builtIn.isBreakout,
+          startImageUrl: builtIn.startImageUrl,
+          breakoutPlatform,
         };
         
         setAppliedSettings(settings);
-        toast.success(`Template "${builtIn.name}" loaded`);
+        const breakoutNote = builtIn.isBreakout ? ' (Breakout mode enabled)' : '';
+        toast.success(`Template "${builtIn.name}" loaded${breakoutNote}`);
         return settings;
       }
 

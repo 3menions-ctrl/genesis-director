@@ -306,7 +306,8 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const handleCreate = () => {
     if (!prompt.trim() && modeConfig?.requiresText) return;
     
-    onStartCreation({
+    // Build creation config with breakout settings if applicable
+    const creationConfig: Parameters<typeof onStartCreation>[0] = {
       mode: selectedMode,
       prompt,
       style: selectedMode === 'video-to-video' ? selectedStyle : undefined,
@@ -319,7 +320,18 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       enableMusic,
       genre: supportsAdvancedOptions ? genre : undefined,
       mood: supportsAdvancedOptions ? mood : undefined,
-    });
+    };
+    
+    // If breakout template is applied, pass the start image and breakout flag
+    if (appliedSettings?.isBreakout && appliedSettings.startImageUrl) {
+      // For breakout templates, the start image is the platform interface
+      // The avatar will appear to be inside this interface in clip 1
+      (creationConfig as any).isBreakout = true;
+      (creationConfig as any).breakoutStartImageUrl = appliedSettings.startImageUrl;
+      (creationConfig as any).breakoutPlatform = appliedSettings.breakoutPlatform;
+    }
+    
+    onStartCreation(creationConfig);
   };
 
   const isReadyToCreate = () => {

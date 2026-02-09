@@ -1,6 +1,6 @@
-import { useRef, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { Environment, Float } from '@react-three/drei';
+import { useRef, useMemo, useEffect } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import { Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import { GlassShard } from './GlassShard';
 import { generateShardData, ShardData } from './shardGenerator';
@@ -13,9 +13,20 @@ interface GlassShatterSceneProps {
 export function GlassShatterScene({ isShattered, isFading }: GlassShatterSceneProps) {
   const groupRef = useRef<THREE.Group>(null);
   const timeRef = useRef(0);
+  const { gl } = useThree();
   
   // Generate shard data once - more shards for premium feel
-  const shards = useMemo(() => generateShardData(120), []);
+  const shards = useMemo(() => generateShardData(100), []);
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Force dispose of WebGL resources
+      if (gl) {
+        gl.dispose();
+      }
+    };
+  }, [gl]);
   
   // Subtle scene rotation for depth
   useFrame((_, delta) => {
@@ -38,7 +49,6 @@ export function GlassShatterScene({ isShattered, isFading }: GlassShatterScenePr
         angle={0.5}
         penumbra={0.8}
         color="#ffffff"
-        castShadow
       />
       
       {/* Accent light - purple from left */}
@@ -98,35 +108,29 @@ function DustParticles() {
   const startTimeRef = useRef<number | null>(null);
   
   const { geometry, material } = useMemo(() => {
-    const count = 200;
+    const count = 150;
     const positions = new Float32Array(count * 3);
     const velocities = new Float32Array(count * 3);
-    const sizes = new Float32Array(count);
     
     for (let i = 0; i < count; i++) {
-      // Start from center
       positions[i * 3] = (Math.random() - 0.5) * 0.5;
       positions[i * 3 + 1] = (Math.random() - 0.5) * 0.5;
       positions[i * 3 + 2] = Math.random() * 0.5;
       
-      // Random velocities
       velocities[i * 3] = (Math.random() - 0.5) * 2;
       velocities[i * 3 + 1] = (Math.random() - 0.5) * 2;
       velocities[i * 3 + 2] = Math.random() * 3;
-      
-      sizes[i] = 0.01 + Math.random() * 0.02;
     }
     
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geo.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
-    geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
     
     const mat = new THREE.PointsMaterial({
-      size: 0.015,
+      size: 0.012,
       color: 0xffffff,
       transparent: true,
-      opacity: 0.6,
+      opacity: 0.5,
       sizeAttenuation: true,
       blending: THREE.AdditiveBlending,
     });
@@ -154,52 +158,38 @@ function DustParticles() {
     
     particlesRef.current.geometry.attributes.position.needsUpdate = true;
     
-    // Fade out
     if (elapsed > 2) {
-      material.opacity = Math.max(0, 0.6 * (1 - (elapsed - 2) / 2));
+      material.opacity = Math.max(0, 0.5 * (1 - (elapsed - 2) / 2));
     }
   });
 
   return <points ref={particlesRef} geometry={geometry} material={material} />;
 }
 
-// Procedural crack lines emanating from center
+// Procedural crack lines
 function CrackLines() {
-  const linesRef = useRef<THREE.Group>(null);
-  
   const lines = useMemo(() => {
-    const result: { angle: number; length: number; branches: { startT: number; angle: number; length: number }[] }[] = [];
-    const count = 32;
+    const result: { angle: number; length: number }[] = [];
+    const count = 24;
     
     for (let i = 0; i < count; i++) {
       const baseAngle = (i / count) * Math.PI * 2;
       const angleVariation = (Math.random() - 0.5) * 0.25;
-      const angle = baseAngle + angleVariation;
-      const length = 4 + Math.random() * 3;
-      
-      const branches: { startT: number; angle: number; length: number }[] = [];
-      const branchCount = Math.floor(Math.random() * 4) + 2;
-      for (let b = 0; b < branchCount; b++) {
-        branches.push({
-          startT: 0.2 + Math.random() * 0.6,
-          angle: angle + (Math.random() - 0.5) * 1.4,
-          length: 0.3 + Math.random() * 1.8
-        });
-      }
-      
-      result.push({ angle, length, branches });
+      result.push({ 
+        angle: baseAngle + angleVariation, 
+        length: 3 + Math.random() * 2 
+      });
     }
     return result;
   }, []);
 
   return (
-    <group ref={linesRef} position={[0, 0, 0.02]}>
+    <group position={[0, 0, 0.02]}>
       {lines.map((line, i) => (
         <CrackLine 
           key={i} 
           angle={line.angle} 
-          length={line.length} 
-          branches={line.branches}
+          length={line.length}
           delay={i * 0.015}
         />
       ))}
@@ -210,63 +200,41 @@ function CrackLines() {
 interface CrackLineProps {
   angle: number;
   length: number;
-  branches: { startT: number; angle: number; length: number }[];
   delay: number;
 }
 
-function CrackLine({ angle, length, branches, delay }: CrackLineProps) {
-  const groupRef = useRef<THREE.Group>(null);
+function CrackLine({ angle, length, delay }: CrackLineProps) {
+  const lineRef = useRef<THREE.Line>(null);
   const progressRef = useRef(0);
   const startTimeRef = useRef<number | null>(null);
-  const opacityRef = useRef(1);
 
-  const { mainLine, branchLines, material } = useMemo(() => {
-    // Main crack line
-    const mainPoints: THREE.Vector3[] = [];
-    const segments = 25;
+  const { geometry, material } = useMemo(() => {
+    const points: THREE.Vector3[] = [];
+    const segments = 20;
     
     for (let i = 0; i <= segments; i++) {
       const t = i / segments;
       const x = Math.cos(angle) * t * length;
       const y = Math.sin(angle) * t * length;
-      const wave = Math.sin(t * 10) * 0.03 * t;
+      const wave = Math.sin(t * 8) * 0.02 * t;
       const perpX = -Math.sin(angle) * wave;
       const perpY = Math.cos(angle) * wave;
-      mainPoints.push(new THREE.Vector3(x + perpX, y + perpY, 0));
+      points.push(new THREE.Vector3(x + perpX, y + perpY, 0));
     }
     
-    const mainGeo = new THREE.BufferGeometry().setFromPoints(mainPoints);
-    const mainLineObj = new THREE.Line(mainGeo, undefined);
-    
-    // Branch lines
-    const branchLinesArr = branches.map(branch => {
-      const branchPoints: THREE.Vector3[] = [];
-      const startX = Math.cos(angle) * branch.startT * length;
-      const startY = Math.sin(angle) * branch.startT * length;
-      const branchSegments = 12;
-      
-      for (let i = 0; i <= branchSegments; i++) {
-        const t = i / branchSegments;
-        const x = startX + Math.cos(branch.angle) * t * branch.length;
-        const y = startY + Math.sin(branch.angle) * t * branch.length;
-        branchPoints.push(new THREE.Vector3(x, y, 0));
-      }
-      
-      const branchGeo = new THREE.BufferGeometry().setFromPoints(branchPoints);
-      return new THREE.Line(branchGeo, undefined);
-    });
-
+    const geo = new THREE.BufferGeometry().setFromPoints(points);
     const mat = new THREE.LineBasicMaterial({
       color: 0xffffff,
       transparent: true,
-      opacity: 0.9,
-      linewidth: 1,
+      opacity: 0.7,
     });
-
-    return { mainLine: mainLineObj, branchLines: branchLinesArr, material: mat };
-  }, [angle, length, branches]);
+    
+    return { geometry: geo, material: mat };
+  }, [angle, length]);
 
   useFrame((state) => {
+    if (!lineRef.current) return;
+    
     if (startTimeRef.current === null) {
       startTimeRef.current = state.clock.elapsedTime;
     }
@@ -276,33 +244,14 @@ function CrackLine({ angle, length, branches, delay }: CrackLineProps) {
     
     progressRef.current = Math.min(1, elapsed * 2.5);
     
-    // Animate main line
-    const mainDrawRange = Math.floor(progressRef.current * 25);
-    mainLine.geometry.setDrawRange(0, mainDrawRange + 1);
+    const drawRange = Math.floor(progressRef.current * 20);
+    geometry.setDrawRange(0, drawRange + 1);
     
-    // Animate branches
-    branchLines.forEach((line, i) => {
-      if (progressRef.current > branches[i].startT) {
-        const branchProgress = (progressRef.current - branches[i].startT) / (1 - branches[i].startT);
-        const drawRange = Math.floor(Math.min(1, branchProgress * 1.5) * 12);
-        line.geometry.setDrawRange(0, drawRange + 1);
-      }
-    });
-    
-    // Fade out
     const fadeStart = 2;
     if (elapsed > fadeStart) {
-      opacityRef.current = Math.max(0, 0.9 * (1 - (elapsed - fadeStart) / 2.5));
-      material.opacity = opacityRef.current;
+      material.opacity = Math.max(0, 0.7 * (1 - (elapsed - fadeStart) / 2));
     }
   });
 
-  return (
-    <group ref={groupRef}>
-      <primitive object={mainLine} material={material} />
-      {branchLines.map((line, i) => (
-        <primitive key={i} object={line} material={material} />
-      ))}
-    </group>
-  );
+  return <primitive ref={lineRef} object={new THREE.Line(geometry, material)} />;
 }

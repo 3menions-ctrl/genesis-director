@@ -1,10 +1,46 @@
 import { memo, useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Canvas } from '@react-three/fiber';
-import { GlassShatterScene } from './glass-shatter/GlassShatterScene';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Zap, ArrowRight } from 'lucide-react';
+import { Zap, ArrowRight } from 'lucide-react';
 import { useSafeNavigation } from '@/lib/navigation';
+import { SilentBoundary } from '@/components/ui/error-boundary';
+
+// Lazy load the heavy 3D scene
+const GlassShatterScene = memo(function GlassShatterSceneLazy({
+  isShattered, 
+  isFading 
+}: { 
+  isShattered: boolean; 
+  isFading: boolean;
+}) {
+  const [SceneComponent, setSceneComponent] = useState<React.ComponentType<{
+    isShattered: boolean;
+    isFading: boolean;
+  }> | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    
+    import('./glass-shatter/GlassShatterScene')
+      .then(module => {
+        if (mounted) {
+          setSceneComponent(() => module.GlassShatterScene);
+        }
+      })
+      .catch(() => {
+        // Silently fail - animation will just not show
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (!SceneComponent) return null;
+  
+  return <SceneComponent isShattered={isShattered} isFading={isFading} />;
+});
 
 interface ScreenCrashOverlayProps {
   isActive: boolean;
@@ -18,13 +54,15 @@ const ScreenCrashOverlay = memo(function ScreenCrashOverlay({
   onDismiss
 }: ScreenCrashOverlayProps) {
   const [phase, setPhase] = useState<Phase>('idle');
+  const [canvasError, setCanvasError] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const { navigate } = useSafeNavigation();
 
-  // Animation sequence
+  // Reset state when inactive
   useEffect(() => {
     if (!isActive) {
       setPhase('idle');
+      setCanvasError(false);
       return;
     }
 
@@ -38,7 +76,9 @@ const ScreenCrashOverlay = memo(function ScreenCrashOverlay({
     // Show CTA after shards disperse
     timers.push(setTimeout(() => setPhase('cta'), 3500));
 
-    return () => timers.forEach(clearTimeout);
+    return () => {
+      timers.forEach(clearTimeout);
+    };
   }, [isActive]);
 
   const handleLetsGo = useCallback(() => {
@@ -51,6 +91,10 @@ const ScreenCrashOverlay = memo(function ScreenCrashOverlay({
       onDismiss();
     }
   }, [onDismiss, phase]);
+
+  const handleCanvasError = useCallback(() => {
+    setCanvasError(true);
+  }, []);
 
   if (!isActive) return null;
 
@@ -97,33 +141,75 @@ const ScreenCrashOverlay = memo(function ScreenCrashOverlay({
           </>
         )}
 
-        {/* 3D Glass Shatter Scene */}
-        <motion.div 
-          className="absolute inset-0"
-          animate={{ 
-            opacity: phase === 'cta' ? 0.15 : 1,
-          }}
-          transition={{ duration: 1.5, ease: 'easeOut' }}
-        >
-          <Canvas
-            camera={{ position: [0, 0, 5], fov: 55 }}
-            gl={{ 
-              antialias: true, 
-              alpha: true,
-              powerPreference: 'high-performance',
-              toneMapping: 3, // ACESFilmicToneMapping
-              toneMappingExposure: 1.2,
+        {/* 3D Glass Shatter Scene - with error boundary */}
+        {!canvasError && (
+          <motion.div 
+            className="absolute inset-0"
+            animate={{ 
+              opacity: phase === 'cta' ? 0.15 : 1,
             }}
-            dpr={[1, 2]}
+            transition={{ duration: 1.5, ease: 'easeOut' }}
           >
-            <Suspense fallback={null}>
-              <GlassShatterScene 
-                isShattered={phase === 'shatter' || phase === 'cta'} 
-                isFading={phase === 'cta'}
+            <SilentBoundary>
+              <Canvas
+                camera={{ position: [0, 0, 5], fov: 55 }}
+                gl={{ 
+                  antialias: true, 
+                  alpha: true,
+                  powerPreference: 'high-performance',
+                  failIfMajorPerformanceCaveat: false,
+                }}
+                dpr={[1, 1.5]}
+                frameloop={phase === 'cta' ? 'demand' : 'always'}
+                onCreated={({ gl }) => {
+                  // Handle context loss gracefully
+                  gl.domElement.addEventListener('webglcontextlost', (e) => {
+                    e.preventDefault();
+                    setCanvasError(true);
+                  }, false);
+                }}
+              >
+                <Suspense fallback={null}>
+                  <GlassShatterScene 
+                    isShattered={phase === 'shatter' || phase === 'cta'} 
+                    isFading={phase === 'cta'}
+                  />
+                </Suspense>
+              </Canvas>
+            </SilentBoundary>
+          </motion.div>
+        )}
+
+        {/* Fallback visual if canvas fails */}
+        {canvasError && (phase === 'shatter' || phase === 'cta') && (
+          <motion.div
+            className="absolute inset-0 pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            {/* Simple CSS-based shatter effect as fallback */}
+            {Array.from({ length: 20 }).map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-16 h-16 border border-white/20"
+                style={{
+                  left: `${20 + (i % 5) * 15}%`,
+                  top: `${20 + Math.floor(i / 5) * 15}%`,
+                  clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
+                }}
+                initial={{ x: 0, y: 0, opacity: 0.8, rotate: 0 }}
+                animate={{ 
+                  x: (Math.random() - 0.5) * 400,
+                  y: (Math.random() - 0.5) * 400,
+                  opacity: 0,
+                  rotate: Math.random() * 360,
+                }}
+                transition={{ duration: 2, ease: 'easeOut', delay: i * 0.02 }}
               />
-            </Suspense>
-          </Canvas>
-        </motion.div>
+            ))}
+          </motion.div>
+        )}
 
         {/* Epic CTA Section */}
         {phase === 'cta' && (

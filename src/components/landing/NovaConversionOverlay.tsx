@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useCallback, useRef } from 'react';
+import { memo, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSafeNavigation } from '@/lib/navigation';
 
@@ -19,14 +19,26 @@ type AnimationPhase =
   | 'pointing' 
   | 'spotlight';
 
+// Pre-computed shard positions to avoid Math.random() during render
+// This prevents infinite re-render loops
+const GLASS_SHARDS = Array.from({ length: 8 }, (_, i) => ({
+  id: i,
+  left: 30 + (i * 5) + (i % 3) * 3, // Deterministic spread pattern
+  top: 20 + (i * 4) + (i % 2) * 5,
+  xDirection: i % 2 === 0 ? 1 : -1,
+  xOffset: 50 + i * 20,
+  yOffset: -30 - i * 15,
+  rotateEnd: 360 + i * 45,
+}));
+
 /**
- * Nova Chen breaks the fourth wall - conversion optimization overlay
+ * Fourth wall breaking conversion overlay
  * 
  * Sequence:
- * 1. Nova walks in from bottom/behind the screen
- * 2. Arrives at center and "knocks" on the screen (ripple effect)
+ * 1. Hand punches in from behind the screen
+ * 2. Glass cracks appear with floating shards
  * 3. Points to the sign up button
- * 4. Everything dims except Nova and the sign up button
+ * 4. Everything dims except the sign up button (spotlight)
  * 5. Click outside = dismiss, click sign up = navigate
  */
 const NovaConversionOverlay = memo(function NovaConversionOverlay({
@@ -215,29 +227,29 @@ const NovaConversionOverlay = memo(function NovaConversionOverlay({
               }}
             />
 
-            {/* Floating glass shards */}
+            {/* Floating glass shards - using pre-computed positions */}
             {(phase === 'knocking' || phase === 'pointing' || phase === 'spotlight') && (
               <>
-                {[...Array(8)].map((_, i) => (
+                {GLASS_SHARDS.map((shard) => (
                   <motion.div
-                    key={i}
+                    key={shard.id}
                     className="absolute w-3 h-6 bg-gradient-to-br from-white/60 to-white/20 backdrop-blur-sm"
                     style={{
-                      left: `${30 + Math.random() * 40}%`,
-                      top: `${20 + Math.random() * 40}%`,
+                      left: `${shard.left}%`,
+                      top: `${shard.top}%`,
                       clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
                     }}
                     initial={{ opacity: 0, scale: 0, rotate: 0 }}
                     animate={{ 
                       opacity: [0, 1, 0.8],
                       scale: [0, 1.2, 1],
-                      rotate: [0, 180 + i * 45, 360 + i * 45],
-                      x: (i % 2 === 0 ? 1 : -1) * (50 + i * 20),
-                      y: -30 - i * 15,
+                      rotate: [0, 180 + shard.id * 45, shard.rotateEnd],
+                      x: shard.xDirection * shard.xOffset,
+                      y: shard.yOffset,
                     }}
                     transition={{ 
                       duration: 1.5,
-                      delay: i * 0.05,
+                      delay: shard.id * 0.05,
                       ease: "easeOut"
                     }}
                   />

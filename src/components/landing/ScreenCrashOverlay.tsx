@@ -1,10 +1,23 @@
+/**
+ * ScreenCrashOverlay - STABILITY FIX v2
+ * 
+ * ROOT CAUSE: Three.js Canvas + Framer Motion infinite repeat animations
+ * caused GPU memory exhaustion and browser tab crashes on navigation.
+ * 
+ * FIXES:
+ * 1. Dispose WebGL renderer explicitly on unmount/navigation
+ * 2. Replace infinite repeat FM animations with CSS @keyframes
+ * 3. Set frameloop='demand' when not actively animating
+ * 4. Cap particle count and use CSS instead of motion.div
+ */
+
 import { memo, useState, useEffect, useCallback, useRef, Suspense } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Canvas } from '@react-three/fiber';
 import { Button } from '@/components/ui/button';
 import { Zap, ArrowRight } from 'lucide-react';
 import { useSafeNavigation } from '@/lib/navigation';
 import { SilentBoundary } from '@/components/ui/error-boundary';
+import { cn } from '@/lib/utils';
 
 // Lazy load the heavy 3D scene
 const GlassShatterScene = memo(function GlassShatterSceneLazy({
@@ -56,13 +69,25 @@ const ScreenCrashOverlay = memo(function ScreenCrashOverlay({
   const [phase, setPhase] = useState<Phase>('idle');
   const [canvasError, setCanvasError] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const rendererRef = useRef<any>(null);
   const { navigate } = useSafeNavigation();
 
-  // Reset state when inactive
+  // Reset state when inactive + CRITICAL: dispose WebGL context
   useEffect(() => {
     if (!isActive) {
       setPhase('idle');
       setCanvasError(false);
+      
+      // STABILITY FIX: Explicitly dispose WebGL renderer on deactivation
+      if (rendererRef.current) {
+        try {
+          rendererRef.current.dispose();
+          rendererRef.current.forceContextLoss();
+        } catch {
+          // ignore
+        }
+        rendererRef.current = null;
+      }
       return;
     }
 
@@ -81,6 +106,21 @@ const ScreenCrashOverlay = memo(function ScreenCrashOverlay({
     };
   }, [isActive]);
 
+  // STABILITY FIX: Dispose WebGL on unmount (navigation away)
+  useEffect(() => {
+    return () => {
+      if (rendererRef.current) {
+        try {
+          rendererRef.current.dispose();
+          rendererRef.current.forceContextLoss();
+        } catch {
+          // ignore
+        }
+        rendererRef.current = null;
+      }
+    };
+  }, []);
+
   const handleLetsGo = useCallback(() => {
     navigate('/auth?mode=signup');
     onDismiss();
@@ -92,326 +132,191 @@ const ScreenCrashOverlay = memo(function ScreenCrashOverlay({
     }
   }, [onDismiss, phase]);
 
-  const handleCanvasError = useCallback(() => {
-    setCanvasError(true);
-  }, []);
-
   if (!isActive) return null;
 
   return (
-    <AnimatePresence>
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-[100] cursor-pointer"
+      onClick={handleOverlayClick}
+    >
+      {/* Premium deep black void */}
       <div
-        ref={overlayRef}
-        className="fixed inset-0 z-[100] cursor-pointer"
-        onClick={handleOverlayClick}
-      >
-        {/* Premium deep black void with subtle gradient */}
-        <motion.div
-          className="absolute inset-0"
-          style={{
-            background: 'radial-gradient(ellipse at 50% 50%, #0a0a0f 0%, #030303 50%, #000000 100%)',
-          }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: phase !== 'idle' ? 1 : 0 }}
-          transition={{ duration: 0.4 }}
-        />
-
-        {/* Impact flash - white with purple tinge */}
-        {phase === 'impact' && (
-          <>
-            <motion.div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,1) 0%, rgba(168,85,247,0.4) 40%, transparent 70%)',
-              }}
-              initial={{ opacity: 0, scale: 0.2 }}
-              animate={{ opacity: [0, 1, 0], scale: [0.2, 1.8, 2.5] }}
-              transition={{ duration: 0.12, times: [0, 0.5, 1] }}
-            />
-            {/* Secondary purple flash */}
-            <motion.div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: 'radial-gradient(circle at 50% 50%, rgba(139,92,246,0.6) 0%, transparent 50%)',
-              }}
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: [0, 0.8, 0], scale: [0.5, 2, 3] }}
-              transition={{ duration: 0.15, times: [0, 0.4, 1], delay: 0.02 }}
-            />
-          </>
+        className={cn(
+          "absolute inset-0 transition-opacity duration-400",
+          phase !== 'idle' ? "opacity-100" : "opacity-0"
         )}
+        style={{
+          background: 'radial-gradient(ellipse at 50% 50%, #0a0a0f 0%, #030303 50%, #000000 100%)',
+        }}
+      />
 
-        {/* 3D Glass Shatter Scene - with error boundary */}
-        {!canvasError && (
-          <motion.div 
-            className="absolute inset-0"
-            animate={{ 
-              opacity: phase === 'cta' ? 0.15 : 1,
-            }}
-            transition={{ duration: 1.5, ease: 'easeOut' }}
-          >
-            <SilentBoundary>
-              <Canvas
-                camera={{ position: [0, 0, 5], fov: 55 }}
-                gl={{ 
-                  antialias: true, 
-                  alpha: true,
-                  powerPreference: 'high-performance',
-                  failIfMajorPerformanceCaveat: false,
-                }}
-                dpr={[1, 1.5]}
-                frameloop={phase === 'cta' ? 'demand' : 'always'}
-                onCreated={({ gl }) => {
-                  // Handle context loss gracefully
-                  gl.domElement.addEventListener('webglcontextlost', (e) => {
-                    e.preventDefault();
-                    setCanvasError(true);
-                  }, false);
-                }}
-              >
-                <Suspense fallback={null}>
-                  <GlassShatterScene 
-                    isShattered={phase === 'shatter' || phase === 'cta'} 
-                    isFading={phase === 'cta'}
-                  />
-                </Suspense>
-              </Canvas>
-            </SilentBoundary>
-          </motion.div>
-        )}
+      {/* Impact flash - CSS animation instead of FM */}
+      {phase === 'impact' && (
+        <div className="absolute inset-0 pointer-events-none animate-flash-impact" />
+      )}
 
-        {/* Fallback visual if canvas fails */}
-        {canvasError && (phase === 'shatter' || phase === 'cta') && (
-          <motion.div
-            className="absolute inset-0 pointer-events-none"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            {/* Simple CSS-based shatter effect as fallback */}
-            {Array.from({ length: 20 }).map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute w-16 h-16 border border-white/20"
-                style={{
-                  left: `${20 + (i % 5) * 15}%`,
-                  top: `${20 + Math.floor(i / 5) * 15}%`,
-                  clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
-                }}
-                initial={{ x: 0, y: 0, opacity: 0.8, rotate: 0 }}
-                animate={{ 
-                  x: (Math.random() - 0.5) * 400,
-                  y: (Math.random() - 0.5) * 400,
-                  opacity: 0,
-                  rotate: Math.random() * 360,
-                }}
-                transition={{ duration: 2, ease: 'easeOut', delay: i * 0.02 }}
-              />
-            ))}
-          </motion.div>
-        )}
-
-        {/* Epic CTA Section */}
-        {phase === 'cta' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            {/* Outer glow ring */}
-            <motion.div
-              className="absolute w-[800px] h-[800px] rounded-full pointer-events-none"
-              style={{
-                background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, rgba(139,92,246,0.04) 40%, transparent 70%)',
-                filter: 'blur(60px)',
+      {/* 3D Glass Shatter Scene - with error boundary */}
+      {!canvasError && (
+        <div 
+          className={cn(
+            "absolute inset-0 transition-opacity duration-1500",
+            phase === 'cta' ? "opacity-15" : "opacity-100"
+          )}
+        >
+          <SilentBoundary>
+            <Canvas
+              camera={{ position: [0, 0, 5], fov: 55 }}
+              gl={{ 
+                antialias: true, 
+                alpha: true,
+                powerPreference: 'high-performance',
+                failIfMajorPerformanceCaveat: false,
               }}
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-            />
-
-            {/* Inner white glow */}
-            <motion.div
-              className="absolute w-[400px] h-[400px] rounded-full pointer-events-none"
-              style={{
-                background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%)',
-                filter: 'blur(30px)',
-              }}
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            />
-
-            {/* Animated expanding rings */}
-            {[0, 1, 2, 3].map((ring) => (
-              <motion.div
-                key={ring}
-                className="absolute rounded-full pointer-events-none"
-                style={{
-                  width: 180,
-                  height: 180,
-                  border: '1px solid',
-                  borderColor: `rgba(139, 92, 246, ${0.4 - ring * 0.08})`,
-                }}
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ 
-                  scale: [0.8, 2 + ring * 0.5, 2.5 + ring * 0.6], 
-                  opacity: [0, 0.6, 0] 
-                }}
-                transition={{ 
-                  duration: 3, 
-                  delay: 0.4 + ring * 0.3,
-                  ease: 'easeOut',
-                  repeat: Infinity,
-                  repeatDelay: 0.5
-                }}
-              />
-            ))}
-
-            {/* Tagline */}
-            <motion.p
-              className="text-white/40 text-sm uppercase tracking-[0.3em] font-medium mb-6"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.8 }}
-            >
-              Break through
-            </motion.p>
-
-            {/* Main CTA Button */}
-            <motion.div
-              className="pointer-events-auto relative"
-              initial={{ scale: 0, opacity: 0, y: 40 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              transition={{ 
-                duration: 1, 
-                delay: 0.4,
-                ease: [0.16, 1, 0.3, 1]
+              dpr={[1, 1.5]}
+              frameloop={phase === 'cta' ? 'demand' : 'always'}
+              onCreated={({ gl }) => {
+                // STABILITY FIX: Store renderer ref for cleanup
+                rendererRef.current = gl;
+                
+                // Handle context loss gracefully
+                gl.domElement.addEventListener('webglcontextlost', (e) => {
+                  e.preventDefault();
+                  setCanvasError(true);
+                }, false);
               }}
             >
-              {/* Button glow */}
-              <motion.div
-                className="absolute inset-0 rounded-full blur-2xl"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(139,92,246,0.5) 0%, rgba(59,130,246,0.3) 100%)',
-                }}
-                animate={{
-                  scale: [1, 1.1, 1],
-                  opacity: [0.6, 0.8, 0.6],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-              />
-              
-              <motion.div
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.98 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-              >
-                <Button
-                  onClick={handleLetsGo}
-                  className="relative h-16 md:h-20 px-12 md:px-16 text-xl md:text-2xl font-bold rounded-full overflow-hidden group"
-                  style={{
-                    background: 'linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%)',
-                    color: '#0a0a0f',
-                    boxShadow: '0 0 60px rgba(255,255,255,0.4), 0 0 120px rgba(139,92,246,0.3), inset 0 1px 0 rgba(255,255,255,0.8)',
-                  }}
-                >
-                  {/* Animated gradient overlay */}
-                  <motion.div
-                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    style={{
-                      background: 'linear-gradient(135deg, rgba(139,92,246,0.1) 0%, rgba(59,130,246,0.1) 100%)',
-                    }}
-                  />
-                  
-                  {/* Shine sweep */}
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12"
-                    initial={{ x: '-200%' }}
-                    animate={{ x: '200%' }}
-                    transition={{ 
-                      duration: 2.5, 
-                      repeat: Infinity, 
-                      repeatDelay: 2,
-                      ease: 'easeInOut'
-                    }}
-                  />
-                  
-                  {/* Button content */}
-                  <span className="relative flex items-center gap-3 md:gap-4">
-                    <Zap className="w-6 h-6 md:w-7 md:h-7" style={{ fill: 'currentColor' }} />
-                    <span className="tracking-wide">Let's Go!</span>
-                    <motion.div
-                      animate={{ x: [0, 4, 0] }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                    >
-                      <ArrowRight className="w-6 h-6 md:w-7 md:h-7" />
-                    </motion.div>
-                  </span>
-                </Button>
-              </motion.div>
-            </motion.div>
-
-            {/* Subtitle */}
-            <motion.p
-              className="mt-8 text-white/30 text-base md:text-lg font-light tracking-wide"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8, duration: 0.8 }}
-            >
-              Create videos that shatter expectations
-            </motion.p>
-
-            {/* Floating sparkle particles */}
-            {Array.from({ length: 16 }).map((_, i) => {
-              const angle = (i / 16) * Math.PI * 2;
-              const distance = 120 + (i % 3) * 30;
-              return (
-                <motion.div
-                  key={i}
-                  className="absolute w-1 h-1 rounded-full pointer-events-none"
-                  style={{
-                    background: i % 2 === 0 ? '#a855f7' : '#ffffff',
-                    boxShadow: i % 2 === 0 ? '0 0 6px #a855f7' : '0 0 4px #ffffff',
-                  }}
-                  initial={{ 
-                    x: 0, 
-                    y: 0, 
-                    opacity: 0,
-                    scale: 0
-                  }}
-                  animate={{ 
-                    x: Math.cos(angle) * distance,
-                    y: Math.sin(angle) * distance,
-                    opacity: [0, 1, 0],
-                    scale: [0, 1.5, 0]
-                  }}
-                  transition={{ 
-                    duration: 2.5,
-                    delay: 0.6 + i * 0.08,
-                    repeat: Infinity,
-                    repeatDelay: 1.5,
-                    ease: 'easeOut'
-                  }}
+              <Suspense fallback={null}>
+                <GlassShatterScene 
+                  isShattered={phase === 'shatter' || phase === 'cta'} 
+                  isFading={phase === 'cta'}
                 />
-              );
-            })}
-          </div>
-        )}
+              </Suspense>
+            </Canvas>
+          </SilentBoundary>
+        </div>
+      )}
 
-        {/* Dismiss hint */}
-        {phase === 'cta' && (
-          <motion.p
-            className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/15 text-sm pointer-events-none"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 2 }}
-          >
-            Click anywhere to dismiss
-          </motion.p>
-        )}
-      </div>
-    </AnimatePresence>
+      {/* Fallback visual if canvas fails - CSS only, no FM */}
+      {canvasError && (phase === 'shatter' || phase === 'cta') && (
+        <div className="absolute inset-0 pointer-events-none animate-fade-in">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-16 h-16 border border-white/20 animate-shard-fly"
+              style={{
+                left: `${20 + (i % 4) * 15}%`,
+                top: `${20 + Math.floor(i / 4) * 20}%`,
+                clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
+                animationDelay: `${i * 40}ms`,
+                '--shard-x': `${(Math.random() - 0.5) * 400}px`,
+                '--shard-y': `${(Math.random() - 0.5) * 400}px`,
+                '--shard-rotate': `${Math.random() * 360}deg`,
+              } as React.CSSProperties}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Epic CTA Section - CSS animations instead of FM infinite repeats */}
+      {phase === 'cta' && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          {/* Outer glow ring - CSS animation */}
+          <div 
+            className="absolute w-[800px] h-[800px] rounded-full pointer-events-none animate-scale-in"
+            style={{
+              background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, rgba(139,92,246,0.04) 40%, transparent 70%)',
+              filter: 'blur(60px)',
+            }}
+          />
+
+          {/* Animated expanding rings - CSS keyframe instead of FM repeat:Infinity */}
+          {[0, 1, 2].map((ring) => (
+            <div
+              key={ring}
+              className="absolute rounded-full pointer-events-none animate-ring-expand"
+              style={{
+                width: 180,
+                height: 180,
+                border: '1px solid',
+                borderColor: `rgba(139, 92, 246, ${0.4 - ring * 0.1})`,
+                animationDelay: `${0.4 + ring * 0.3}s`,
+              }}
+            />
+          ))}
+
+          {/* Tagline */}
+          <p className="text-white/40 text-sm uppercase tracking-[0.3em] font-medium mb-6 animate-fade-in"
+             style={{ animationDelay: '0.2s' }}>
+            Break through
+          </p>
+
+          {/* Main CTA Button */}
+          <div className="pointer-events-auto relative animate-scale-in" style={{ animationDelay: '0.4s' }}>
+            {/* Button glow - CSS pulse instead of FM repeat */}
+            <div
+              className="absolute inset-0 rounded-full blur-2xl animate-pulse-glow"
+              style={{
+                background: 'linear-gradient(135deg, rgba(139,92,246,0.5) 0%, rgba(59,130,246,0.3) 100%)',
+              }}
+            />
+            
+            <Button
+              onClick={handleLetsGo}
+              className="relative h-16 md:h-20 px-12 md:px-16 text-xl md:text-2xl font-bold rounded-full overflow-hidden group hover:scale-[1.03] active:scale-[0.98] transition-transform"
+              style={{
+                background: 'linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%)',
+                color: '#0a0a0f',
+                boxShadow: '0 0 60px rgba(255,255,255,0.4), 0 0 120px rgba(139,92,246,0.3), inset 0 1px 0 rgba(255,255,255,0.8)',
+              }}
+            >
+              {/* Shine sweep - CSS animation */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12 animate-shine-sweep" />
+              
+              {/* Button content */}
+              <span className="relative flex items-center gap-3 md:gap-4">
+                <Zap className="w-6 h-6 md:w-7 md:h-7" style={{ fill: 'currentColor' }} />
+                <span className="tracking-wide">Let's Go!</span>
+                <ArrowRight className="w-6 h-6 md:w-7 md:h-7 animate-arrow-bounce" />
+              </span>
+            </Button>
+          </div>
+
+          {/* Subtitle */}
+          <p className="mt-8 text-white/30 text-base md:text-lg font-light tracking-wide animate-fade-in"
+             style={{ animationDelay: '0.8s' }}>
+            Create videos that shatter expectations
+          </p>
+
+          {/* Sparkle particles - CSS only, reduced count */}
+          {Array.from({ length: 8 }).map((_, i) => {
+            const angle = (i / 8) * Math.PI * 2;
+            const distance = 120 + (i % 3) * 30;
+            return (
+              <div
+                key={i}
+                className="absolute w-1 h-1 rounded-full pointer-events-none animate-sparkle-float"
+                style={{
+                  background: i % 2 === 0 ? '#a855f7' : '#ffffff',
+                  boxShadow: i % 2 === 0 ? '0 0 6px #a855f7' : '0 0 4px #ffffff',
+                  '--sparkle-x': `${Math.cos(angle) * distance}px`,
+                  '--sparkle-y': `${Math.sin(angle) * distance}px`,
+                  animationDelay: `${0.6 + i * 0.12}s`,
+                } as React.CSSProperties}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* Dismiss hint */}
+      {phase === 'cta' && (
+        <p className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/15 text-sm pointer-events-none animate-fade-in"
+           style={{ animationDelay: '2s' }}>
+          Click anywhere to dismiss
+        </p>
+      )}
+    </div>
   );
 });
 

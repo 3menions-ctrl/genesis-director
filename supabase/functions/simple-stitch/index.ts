@@ -111,12 +111,21 @@ serve(async (req) => {
       console.warn(`[SimpleStitch] ⚠️ WARNING: ${lowQualityClips.length} clip(s) below quality threshold (${MINIMUM_QUALITY_THRESHOLD})`);
     }
 
-    // Get project details
+    // Get project details including pro_features_data for musicSyncPlan
     const { data: project } = await supabase
       .from('movie_projects')
-      .select('title, voice_audio_url, music_url, user_id, include_narration, pipeline_state, mode')
+      .select('title, voice_audio_url, music_url, user_id, include_narration, pipeline_state, mode, pro_features_data')
       .eq('id', projectId)
       .single();
+
+    // Extract music sync plan for dialogue ducking and volume automation
+    const proFeatures = project?.pro_features_data as Record<string, unknown> | null;
+    const musicSyncPlan = proFeatures?.musicSyncPlan as {
+      timingMarkers?: Array<{ timestamp: number; shotId: string; hasDialogue: boolean; recommendedVolume: number }>;
+      musicCues?: Array<{ timestamp: number; type: string; description: string; targetMood?: string }>;
+      intensity?: string;
+      referenceComposer?: string;
+    } | null;
 
     // Prepare clip data
     const clipData: ClipData[] = clips.map((clip: { id: string; video_url: string; duration_seconds: number }) => ({
@@ -192,34 +201,83 @@ serve(async (req) => {
     // CREATE JSON MANIFEST
     // =========================================================================
     
+    // =========================================================================
+    // BUILD VOLUME AUTOMATION KEYFRAMES FROM MUSIC SYNC PLAN
+    // This implements dialogue ducking - music fades during speech
+    // =========================================================================
+    const volumeAutomation: Array<{ timestamp: number; musicVolume: number; reason: string }> = [];
+    
+    if (musicSyncPlan?.timingMarkers) {
+      for (const marker of musicSyncPlan.timingMarkers) {
+        volumeAutomation.push({
+          timestamp: marker.timestamp,
+          musicVolume: marker.hasDialogue ? 0.2 : 0.7, // Duck to 20% during dialogue
+          reason: marker.hasDialogue ? 'dialogue_ducking' : 'normal',
+        });
+      }
+      console.log(`[SimpleStitch] ✅ Volume automation: ${volumeAutomation.length} keyframes for dialogue ducking`);
+    }
+    
+    // Build music cue markers for potential frontend visualization
+    const musicCueMarkers = musicSyncPlan?.musicCues?.map(cue => ({
+      timestamp: cue.timestamp,
+      type: cue.type,
+      description: cue.description,
+    })) || [];
+    
     const manifest = {
-      version: "2.2",
+      version: "2.3", // Bumped for volume automation support
       projectId,
       mode: "client_side_concat",
       createdAt: new Date().toISOString(),
       // HLS URL for iOS Safari native playback
       hlsPlaylistUrl,
-      clips: clipData.map((clip, index) => ({
-        index,
-        shotId: clip.shotId,
-        videoUrl: clip.videoUrl,
-        duration: clip.durationSeconds,
-        startTime: clipData.slice(0, index).reduce((sum, c) => sum + c.durationSeconds, 0),
-        transitionOut: 'fade',
-      })),
+      clips: clipData.map((clip, index) => {
+        const clipStartTime = clipData.slice(0, index).reduce((sum, c) => sum + c.durationSeconds, 0);
+        
+        // Find volume automation for this clip's timestamp
+        const clipVolumeMarker = volumeAutomation.find(
+          v => v.timestamp >= clipStartTime && v.timestamp < clipStartTime + clip.durationSeconds
+        );
+        
+        return {
+          index,
+          shotId: clip.shotId,
+          videoUrl: clip.videoUrl,
+          duration: clip.durationSeconds,
+          startTime: clipStartTime,
+          transitionOut: 'fade',
+          // Per-clip volume hint from sync plan
+          musicVolumeHint: clipVolumeMarker?.musicVolume ?? 0.7,
+          hasDialogue: clipVolumeMarker?.reason === 'dialogue_ducking',
+        };
+      }),
       totalDuration,
       // CRITICAL: Use master audio for seamless playback in avatar projects
       voiceUrl: voiceAudioUrl,
       masterAudioUrl: masterAudioUrl || null,
       isAvatarProject,
       musicUrl: project?.music_url || null,
+      // NEW: Volume automation keyframes for real-time ducking
+      volumeAutomation,
+      // NEW: Music cue markers for visual sync (swells, drops, transitions)
+      musicCueMarkers,
+      // NEW: Scoring metadata from sync plan
+      scoringMetadata: musicSyncPlan ? {
+        intensity: musicSyncPlan.intensity,
+        referenceComposer: musicSyncPlan.referenceComposer,
+        cueCount: musicCueMarkers.length,
+      } : null,
       audioConfig: {
         includeNarration: includeNarration || isAvatarProject,
         // CRITICAL: Always use embedded clip audio - no master audio overlay
         muteClipAudio: false,
+        // Base music volume - will be modulated by volumeAutomation
         musicVolume: (includeNarration || isAvatarProject) ? 0.3 : 0.8,
         fadeIn: 1,
         fadeOut: 2,
+        // Enable real-time dialogue ducking when volumeAutomation is present
+        enableDialogueDucking: volumeAutomation.length > 0,
       },
     };
 

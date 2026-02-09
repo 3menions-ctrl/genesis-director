@@ -2181,6 +2181,33 @@ async function runAssetCreation(
           console.log(`[Hollywood] Detected ${syncResult.plan.emotionalBeats?.length || 0} emotional beats`);
           console.log(`[Hollywood] Created ${syncResult.plan.timingMarkers?.length || 0} timing markers`);
           
+          // ═══════════════════════════════════════════════════════════════════════════
+          // PERSIST MUSIC SYNC PLAN TO DATABASE FOR DOWNSTREAM CONSUMPTION
+          // This enables simple-stitch and the frontend to access timing data
+          // ═══════════════════════════════════════════════════════════════════════════
+          try {
+            const { data: currentProFeatures } = await supabase
+              .from('movie_projects')
+              .select('pro_features_data')
+              .eq('id', state.projectId)
+              .single();
+            
+            await supabase
+              .from('movie_projects')
+              .update({
+                pro_features_data: {
+                  ...(currentProFeatures?.pro_features_data || {}),
+                  musicSyncPlan: syncResult.plan,
+                  musicSyncPlanCreatedAt: new Date().toISOString(),
+                },
+              })
+              .eq('id', state.projectId);
+            
+            console.log(`[Hollywood] ✅ Persisted musicSyncPlan to pro_features_data`);
+          } catch (persistErr) {
+            console.warn(`[Hollywood] Failed to persist musicSyncPlan:`, persistErr);
+          }
+          
           // Use world-class music generation with full parameters from sync plan
           const musicResult = await callEdgeFunction('generate-music', {
             prompt: syncResult.musicPrompt,

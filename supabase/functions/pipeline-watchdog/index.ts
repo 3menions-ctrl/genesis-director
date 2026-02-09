@@ -643,44 +643,29 @@ serve(async (req) => {
         });
         
         // ═══════════════════════════════════════════════════════════════════════════
-        // NEW: Generate world-class background music for avatar projects
+        // WORLD-CLASS MUSIC: Route through sync-music-to-scenes for AI-enhanced scoring
+        // This ensures avatar projects get the same Hans Zimmer-level treatment as hollywood-pipeline
         // ═══════════════════════════════════════════════════════════════════════════
         let musicUrl: string | null = null;
+        let musicSyncPlan: any = null;
         try {
           const totalDuration = completedClips.length * (tasks.clipDuration || 6);
-          console.log(`[Watchdog] 🎵 Generating Hans Zimmer-level music for avatar (${totalDuration}s)...`);
+          console.log(`[Watchdog] 🎵 Generating AI-enhanced music for avatar (${totalDuration}s)...`);
           
-          // Analyze script for mood if available
           const script = tasks.originalScript || project.synopsis || '';
-          let detectedMood = 'cinematic';
-          let sceneType = 'adventure-journey';
-          let intensity: 'subtle' | 'moderate' | 'intense' = 'moderate';
           
-          // Simple mood detection from script content
-          const scriptLower = script.toLowerCase();
-          if (scriptLower.match(/love|romance|heart|together/)) {
-            detectedMood = 'romantic';
-            sceneType = 'romantic-love';
-            intensity = 'moderate';
-          } else if (scriptLower.match(/happy|excited|joy|celebrate|amazing/)) {
-            detectedMood = 'uplifting';
-            sceneType = 'triumph-victory';
-            intensity = 'intense';
-          } else if (scriptLower.match(/important|announce|launch|reveal|introducing/)) {
-            detectedMood = 'epic';
-            sceneType = 'adventure-journey';
-            intensity = 'intense';
-          } else if (scriptLower.match(/calm|peace|relax|mindful|gentle/)) {
-            detectedMood = 'calm';
-            sceneType = 'emotional-revelation';
-            intensity = 'subtle';
-          } else if (scriptLower.match(/urgent|hurry|fast|quick|now/)) {
-            detectedMood = 'action';
-            sceneType = 'action-chase';
-            intensity = 'intense';
-          }
+          // Build shot data for sync-music-to-scenes
+          const shotData = completedClips.map((clip: any, idx: number) => ({
+            id: `avatar_shot_${idx}`,
+            description: tasks.segmentText?.[idx] || script.substring(idx * 50, (idx + 1) * 50) || `Avatar speaking clip ${idx + 1}`,
+            dialogue: tasks.segmentText?.[idx] || script,
+            durationSeconds: tasks.clipDuration || 6,
+            mood: 'avatar',
+          }));
           
-          const musicResponse = await fetch(`${supabaseUrl}/functions/v1/generate-music`, {
+          // CENTRALIZED: Call sync-music-to-scenes for AI analysis + music generation
+          console.log(`[Watchdog] 🤖 Calling sync-music-to-scenes for AI-powered scoring...`);
+          const syncResponse = await fetch(`${supabaseUrl}/functions/v1/sync-music-to-scenes`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -688,26 +673,109 @@ serve(async (req) => {
             },
             body: JSON.stringify({
               projectId: project.id,
-              duration: totalDuration + 2,
-              mood: detectedMood,
-              genre: 'hybrid',
-              sceneType,
-              intensity,
-              referenceComposer: 'hans-zimmer',
-              prompt: `Background music for avatar speaking: ${script.substring(0, 100)}`,
+              shots: shotData,
+              totalDuration,
+              overallMood: 'avatar',
+              tempoPreference: 'moderate',
+              includeDialogueDucking: true, // Critical for avatar - always duck music during speech
+              useAIAnalysis: true,
             }),
           });
           
-          if (musicResponse.ok) {
-            const musicResult = await musicResponse.json();
-            if (musicResult.musicUrl) {
-              musicUrl = musicResult.musicUrl;
-              console.log(`[Watchdog] 🎵 Music generated: ${musicUrl.substring(0, 60)}...`);
+          if (syncResponse.ok) {
+            const syncResult = await syncResponse.json();
+            if (syncResult.success && syncResult.plan) {
+              musicSyncPlan = syncResult.plan;
+              console.log(`[Watchdog] 🎵 Music sync plan created: ${musicSyncPlan.musicCues?.length || 0} cues, ${musicSyncPlan.timingMarkers?.length || 0} markers`);
+              console.log(`[Watchdog] Scene type: ${musicSyncPlan.sceneType}, Composer: ${musicSyncPlan.referenceComposer}`);
               
-              // Update project with music URL
-              await supabase.from('movie_projects').update({
-                music_url: musicUrl,
-              }).eq('id', project.id);
+              // Now generate music with the AI-enhanced parameters
+              const musicResponse = await fetch(`${supabaseUrl}/functions/v1/generate-music`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseKey}`,
+                },
+                body: JSON.stringify({
+                  projectId: project.id,
+                  duration: totalDuration + 2,
+                  prompt: syncResult.musicPrompt,
+                  mood: 'cinematic',
+                  genre: 'hybrid',
+                  sceneType: musicSyncPlan.sceneType || 'adventure-journey',
+                  intensity: musicSyncPlan.intensity || 'moderate',
+                  referenceComposer: musicSyncPlan.referenceComposer || 'hans-zimmer',
+                  emotionalArc: musicSyncPlan.overallArc,
+                }),
+              });
+              
+              if (musicResponse.ok) {
+                const musicResult = await musicResponse.json();
+                if (musicResult.musicUrl) {
+                  musicUrl = musicResult.musicUrl;
+                  console.log(`[Watchdog] 🎵 AI-enhanced music generated: ${musicUrl.substring(0, 60)}...`);
+                  
+                  // Persist music sync plan for dialogue ducking
+                  await supabase.from('movie_projects').update({
+                    music_url: musicUrl,
+                    pro_features_data: {
+                      musicSyncPlan,
+                      musicSyncPlanCreatedAt: new Date().toISOString(),
+                    },
+                  }).eq('id', project.id);
+                }
+              }
+            }
+          }
+          
+          // Fallback to direct generation if sync-music-to-scenes fails
+          if (!musicUrl) {
+            console.log(`[Watchdog] Sync failed, falling back to direct music generation...`);
+            
+            const scriptLower = script.toLowerCase();
+            let detectedMood = 'cinematic';
+            let sceneType = 'adventure-journey';
+            let intensity: 'subtle' | 'moderate' | 'intense' = 'moderate';
+            
+            if (scriptLower.match(/love|romance|heart|together/)) {
+              detectedMood = 'romantic';
+              sceneType = 'romantic-love';
+            } else if (scriptLower.match(/happy|excited|joy|celebrate|amazing/)) {
+              detectedMood = 'uplifting';
+              sceneType = 'triumph-victory';
+              intensity = 'intense';
+            } else if (scriptLower.match(/important|announce|launch|reveal|introducing/)) {
+              detectedMood = 'epic';
+              sceneType = 'adventure-journey';
+              intensity = 'intense';
+            }
+            
+            const musicResponse = await fetch(`${supabaseUrl}/functions/v1/generate-music`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseKey}`,
+              },
+              body: JSON.stringify({
+                projectId: project.id,
+                duration: totalDuration + 2,
+                mood: detectedMood,
+                genre: 'hybrid',
+                sceneType,
+                intensity,
+                referenceComposer: 'hans-zimmer',
+              }),
+            });
+            
+            if (musicResponse.ok) {
+              const musicResult = await musicResponse.json();
+              if (musicResult.musicUrl) {
+                musicUrl = musicResult.musicUrl;
+                console.log(`[Watchdog] 🎵 Fallback music generated: ${musicUrl.substring(0, 60)}...`);
+                await supabase.from('movie_projects').update({
+                  music_url: musicUrl,
+                }).eq('id', project.id);
+              }
             }
           }
         } catch (musicError) {

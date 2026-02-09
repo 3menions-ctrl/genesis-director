@@ -83,6 +83,11 @@ function CreateContentInner() {
     isBreakout?: boolean;
     breakoutStartImageUrl?: string;
     breakoutPlatform?: 'facebook' | 'youtube' | 'tiktok' | 'instagram';
+    // Avatar parameters for breakout templates
+    avatarImageUrl?: string;
+    avatarVoiceId?: string;
+    avatarTemplateId?: string;
+    avatarName?: string;
   }) => {
     if (!user) {
       toast.error('Please sign in to create videos');
@@ -100,28 +105,41 @@ function CreateContentInner() {
       if (!isMounted()) return;
       safeSetState(setCreationStatus, 'Creating project...');
       
+      // Build the request body
+      const requestBody: Record<string, unknown> = {
+        mode: config.mode,
+        userId: user.id,
+        prompt: config.prompt?.trim(),
+        imageUrl: config.imageUrl,
+        videoUrl: config.videoUrl,
+        stylePreset: config.style,
+        voiceId: config.voiceId,
+        aspectRatio: config.aspectRatio,
+        clipCount: config.clipCount,
+        clipDuration: config.clipDuration,
+        enableNarration: config.enableNarration,
+        enableMusic: config.enableMusic,
+        genre: config.genre,
+        mood: config.mood,
+        // Breakout template parameters - for platform UI shattering effect
+        isBreakout: config.isBreakout,
+        breakoutStartImageUrl: config.breakoutStartImageUrl,
+        breakoutPlatform: config.breakoutPlatform,
+      };
+      
+      // Add avatar parameters if this is a breakout template with avatar
+      if (config.isBreakout && config.avatarImageUrl) {
+        requestBody.avatarImageUrl = config.avatarImageUrl;
+        requestBody.voiceId = config.avatarVoiceId;
+        requestBody.avatarTemplateId = config.avatarTemplateId;
+        requestBody.avatarName = config.avatarName;
+        // Use the avatar image as the reference for character consistency
+        requestBody.imageUrl = config.avatarImageUrl;
+      }
+      
       // All modes use mode-router now
       const { data, error } = await supabase.functions.invoke('mode-router', {
-        body: {
-          mode: config.mode,
-          userId: user.id,
-          prompt: config.prompt?.trim(),
-          imageUrl: config.imageUrl,
-          videoUrl: config.videoUrl,
-          stylePreset: config.style,
-          voiceId: config.voiceId,
-          aspectRatio: config.aspectRatio,
-          clipCount: config.clipCount,
-          clipDuration: config.clipDuration,
-          enableNarration: config.enableNarration,
-          enableMusic: config.enableMusic,
-          genre: config.genre,
-          mood: config.mood,
-          // Breakout template parameters - for platform UI shattering effect
-          isBreakout: config.isBreakout,
-          breakoutStartImageUrl: config.breakoutStartImageUrl,
-          breakoutPlatform: config.breakoutPlatform,
-        },
+        body: requestBody,
       });
 
 

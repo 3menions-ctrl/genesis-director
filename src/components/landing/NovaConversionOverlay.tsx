@@ -2,8 +2,8 @@ import { memo, useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSafeNavigation } from '@/lib/navigation';
 
-// Nova Chen knocking video
-import novaKnockingVideo from '@/assets/nova-chen-knocking.mp4';
+// Nova Chen reference image for animation
+import novaReferenceImage from '@/assets/nova-chen-reference.png';
 
 interface NovaConversionOverlayProps {
   isActive: boolean;
@@ -159,7 +159,7 @@ const NovaConversionOverlay = memo(function NovaConversionOverlay({
           </motion.div>
         )}
 
-        {/* Nova Chen Video */}
+        {/* Nova Chen Animated Character */}
         <motion.div
           className="absolute left-1/2 bottom-0 pointer-events-none"
           style={{ 
@@ -168,20 +168,22 @@ const NovaConversionOverlay = memo(function NovaConversionOverlay({
           }}
           initial={{ 
             y: '100%',
+            scale: 0.3,
             opacity: 0
           }}
           animate={{
             y: phase === 'idle' ? '100%' : '0%',
+            scale: phase === 'idle' ? 0.3 : phase === 'walking-in' ? 0.6 : 1,
             opacity: phase === 'idle' ? 0 : 1,
           }}
           transition={{
             type: "spring",
-            stiffness: 80,
-            damping: 20,
-            duration: 1.2
+            stiffness: 60,
+            damping: 15,
+            duration: 1.5
           }}
         >
-          {/* Video glow effect */}
+          {/* Character glow effect */}
           <motion.div
             className="absolute inset-0 blur-3xl pointer-events-none"
             style={{
@@ -194,18 +196,46 @@ const NovaConversionOverlay = memo(function NovaConversionOverlay({
             transition={{ duration: 0.8 }}
           />
 
-          {/* Nova's video container */}
-          <div className="relative w-[300px] h-[500px] md:w-[400px] md:h-[700px]">
-            <video
-              src={novaKnockingVideo}
-              className="w-full h-full object-cover rounded-t-3xl"
-              autoPlay
-              muted
-              playsInline
-              loop={false}
+          {/* Nova's animated image container */}
+          <div className="relative w-[280px] h-[420px] md:w-[350px] md:h-[525px]">
+            {/* The character image with knock animation */}
+            <motion.img
+              src={novaReferenceImage}
+              alt="Nova Chen"
+              className="w-full h-full object-contain drop-shadow-2xl"
+              animate={{
+                // Knock effect - slight forward lean and shake
+                rotateZ: phase === 'knocking' ? [0, -2, 2, -2, 2, 0] : 0,
+                scale: phase === 'knocking' ? [1, 1.02, 1, 1.02, 1] : 1,
+                y: phase === 'knocking' ? [0, -5, 0, -5, 0] : 0,
+              }}
+              transition={{
+                duration: 0.6,
+                times: [0, 0.2, 0.4, 0.6, 0.8, 1],
+                ease: "easeInOut"
+              }}
             />
 
-            {/* Pointing hand indicator - appears after video plays */}
+            {/* Knocking hand overlay - appears during knock phase */}
+            {(phase === 'knocking') && (
+              <motion.div
+                className="absolute top-1/4 right-0 text-5xl"
+                initial={{ opacity: 0, x: 20, rotate: -30 }}
+                animate={{ 
+                  opacity: [0, 1, 1, 1, 0],
+                  x: [20, 0, 10, 0, 20],
+                  rotate: [-30, 0, -15, 0, -30]
+                }}
+                transition={{ 
+                  duration: 1.2,
+                  times: [0, 0.2, 0.4, 0.6, 1]
+                }}
+              >
+                ✊
+              </motion.div>
+            )}
+
+            {/* Pointing hand indicator - appears after knock */}
             {(phase === 'pointing' || phase === 'spotlight') && (
               <motion.div
                 className="absolute -top-4 -right-8"

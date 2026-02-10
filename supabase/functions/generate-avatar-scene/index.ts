@@ -184,7 +184,7 @@ function buildScenePrompt(
     ? `The person from the reference image, ${characterDescription}, is ${positionText}. ${alreadyInSceneEnforcement}`
     : `The person from the reference image is ${positionText}. ${alreadyInSceneEnforcement}`;
 
-  // Build a CINEMA-QUALITY scene description with maximum detail
+  // Build a VIBRANT, HIGH-ENERGY scene description
   const qualityModifiers = [
     "masterpiece quality",
     "award-winning cinematography", 
@@ -192,31 +192,32 @@ function buildScenePrompt(
     "8K ultra high resolution",
     "exceptional dynamic range",
     "photorealistic rendering",
-    "professional color grading",
-    "volumetric lighting with natural light rays",
+    "vibrant professional color grading",
+    "bright natural lighting with soft light rays",
     "cinema-grade depth of field",
-    "atmospheric perspective",
+    "clear atmospheric perspective",
   ].join(", ");
 
   const lightingModifiers = [
-    "golden hour lighting",
+    "bright warm natural lighting",
     "three-point professional lighting setup",
-    "soft diffused key light",
+    "soft bright key light illuminating the face",
     "subtle rim lighting for subject separation",
-    "ambient fill light matching environment",
+    "warm ambient fill light matching environment",
   ].join(", ");
 
   const technicalModifiers = [
     "sharp focus on subject",
     "naturally blurred background with pleasing bokeh",
-    "rich saturated colors",
-    "film grain texture",
+    "rich vibrant saturated colors",
+    "clean crisp image quality",
     "no artifacts or distortions",
     "clean professional composition",
+    "bright and inviting atmosphere",
   ].join(", ");
 
-  // CRITICAL: Final prompt reinforces static, already-positioned state
-  return `A breathtaking cinematic still frame, ${qualityModifiers}. ${characterText}, completely immersed in ${sceneDescription}. The environment is rendered with extraordinary detail, depth, and atmosphere. ${lightingModifiers}. The person maintains perfect eye contact with the camera, exuding confidence and presence, ready to speak directly to the viewer. They are STATIONARY and GROUNDED - no motion blur, no movement artifacts. ${technicalModifiers}. The overall aesthetic matches Hollywood blockbuster production values.`;
+  // CRITICAL: Final prompt reinforces static, already-positioned state with POSITIVE energy
+  return `A breathtaking vibrant cinematic still frame, ${qualityModifiers}. ${characterText}, completely immersed in ${sceneDescription}. The environment is rendered with extraordinary detail, depth, and a bright inviting atmosphere. ${lightingModifiers}. The person maintains perfect eye contact with the camera, exuding confidence, warmth, and positive energy, ready to speak directly to the viewer. They are STATIONARY and GROUNDED - no motion blur, no movement artifacts. ${technicalModifiers}. The overall aesthetic is bright, polished, and uplifting with Hollywood production values.`;
 }
 
 /**

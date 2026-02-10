@@ -597,13 +597,9 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             
             const tasks = project?.pending_video_tasks as Record<string, unknown> | null;
             hlsUrl = tasks?.hlsPlaylistUrl as string | null;
-            audioUrl = tasks?.masterAudioUrl as string | null || source.masterAudioUrl || project?.voice_audio_url || null;
-            console.log('[UniversalPlayer] 🎵 Audio resolution:', {
-              fromTasks: tasks?.masterAudioUrl ? 'YES' : 'NO',
-              fromSource: source.masterAudioUrl ? 'YES' : 'NO',
-              fromVoiceAudioUrl: project?.voice_audio_url ? 'YES' : 'NO',
-              resolved: audioUrl?.substring(0, 60) || 'NONE',
-            });
+            // EMBEDDED AUDIO: No master audio overlay - clips use their native embedded audio
+            audioUrl = null;
+            console.log('[UniversalPlayer] 🎵 EMBEDDED AUDIO mode - using clip native audio, no master overlay');
             
             // HLS FIRST: Try to use HLS for ALL browsers (not just iOS)
             // This provides the most reliable cross-browser playback via hls.js
@@ -1493,8 +1489,8 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
         >
           <UniversalHLSPlayer
             hlsUrl={hlsPlaylistUrl}
-            masterAudioUrl={clipsAreLipSynced ? null : masterAudioUrl}
-            muteClipAudio={!!masterAudioUrl && !clipsAreLipSynced}
+            masterAudioUrl={null}
+            muteClipAudio={false}
             autoPlay={autoPlay}
             muted={isMuted}
             loop={loop}

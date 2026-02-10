@@ -9,6 +9,7 @@ import {
   errorResponse,
   successResponse,
   calculateMaxTokens,
+  checkMultipleContent,
   type DetectedContent,
 } from "../_shared/script-utils.ts";
 
@@ -144,6 +145,24 @@ serve(async (req) => {
 
   try {
     const request: SmartScriptRequest = await req.json();
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CONTENT SAFETY CHECK - Block harmful content before script generation
+    // ═══════════════════════════════════════════════════════════════════════════
+    const contentSafetyCheck = checkMultipleContent([
+      request.topic,
+      request.synopsis,
+      request.approvedScene,
+      request.userNarration,
+      request.userScript,
+      request.environmentPrompt,
+      ...(request.userDialogue || []),
+    ]);
+    if (!contentSafetyCheck.isSafe) {
+      console.error(`[SmartScript] ⛔ CONTENT BLOCKED - ${contentSafetyCheck.category}`);
+      return errorResponse(contentSafetyCheck.message, 400);
+    }
+    console.log(`[SmartScript] ✅ Content safety check passed`);
     
     // Input validation
     const topicValidation = validateInput(request.topic, { 

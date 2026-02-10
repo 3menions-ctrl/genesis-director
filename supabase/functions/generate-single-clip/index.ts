@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { checkContentSafety } from "../_shared/content-safety.ts";
 import {
   acquireGenerationLock,
   releaseGenerationLock,
@@ -500,6 +501,18 @@ serve(async (req) => {
 
     if (!projectId || !prompt) {
       throw new Error("projectId and prompt are required");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CONTENT SAFETY CHECK - Final defense layer at clip generation
+    // ═══════════════════════════════════════════════════════════════════════════
+    const safetyCheck = checkContentSafety(prompt);
+    if (!safetyCheck.isSafe) {
+      console.error(`[SingleClip] ⛔ CONTENT BLOCKED - ${safetyCheck.category}: ${safetyCheck.matchedTerms.slice(0, 3).join(', ')}`);
+      return new Response(
+        JSON.stringify({ success: false, error: safetyCheck.message, blocked: true }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     console.log(`[SingleClip] Starting generation for project ${projectId}, shot ${shotIndex}`);

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { checkMultipleContent } from "../_shared/content-safety.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6153,6 +6154,34 @@ serve(async (req) => {
     if (!isResuming && !request.concept && !request.manualPrompts) {
       throw new Error("Either 'concept' or 'manualPrompts' is required");
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CONTENT SAFETY CHECK - BLOCK ALL NSFW/EXPLICIT/ILLEGAL CONTENT
+    // This is the CORE pipeline - nothing generates without safety clearance
+    // ═══════════════════════════════════════════════════════════════════════════
+    const safetyCheck = checkMultipleContent([
+      request.concept,
+      request.userNarration,
+      request.environmentPrompt,
+      request.approvedStory,
+      request.storyTitle,
+      ...(request.manualPrompts || []),
+      ...(request.userDialogue || []),
+    ]);
+    
+    if (!safetyCheck.isSafe) {
+      console.error(`[Hollywood] ⛔ CONTENT BLOCKED - Category: ${safetyCheck.category}, Terms: ${safetyCheck.matchedTerms.slice(0, 3).join(', ')}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: safetyCheck.message,
+          blocked: true,
+          category: safetyCheck.category,
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    console.log(`[Hollywood] ✅ Content safety check passed`);
     
     // FAIL-SAFE #1: Fetch user tier limits from database
     console.log(`[Hollywood] Fetching tier limits for user ${request.userId}...`);

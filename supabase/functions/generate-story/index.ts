@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { checkMultipleContent } from "../_shared/content-safety.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -189,6 +190,23 @@ serve(async (req) => {
 
     if (!request.prompt || request.prompt.trim().length < 3) {
       throw new Error("Please provide a story prompt");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CONTENT SAFETY CHECK - Block harmful content before story generation
+    // ═══════════════════════════════════════════════════════════════════════════
+    const safetyCheck = checkMultipleContent([
+      request.prompt,
+      request.userNarration,
+      request.userScript,
+      ...(request.userDialogue || []),
+    ]);
+    if (!safetyCheck.isSafe) {
+      console.error(`[GenerateStory] ⛔ CONTENT BLOCKED - ${safetyCheck.category}`);
+      return new Response(
+        JSON.stringify({ success: false, error: safetyCheck.message, blocked: true }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // AUTO-DETECT dialogue and narration from user's prompt

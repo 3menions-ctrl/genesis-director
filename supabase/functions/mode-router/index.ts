@@ -5,6 +5,7 @@ import {
   callEdgeFunction,
   RESILIENCE_CONFIG,
 } from "../_shared/network-resilience.ts";
+import { checkMultipleContent } from "../_shared/content-safety.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -227,6 +228,32 @@ serve(async (req) => {
     if (isBreakout) {
       console.log(`[ModeRouter] BREAKOUT MODE: Platform=${breakoutPlatform}, StartImage=${breakoutStartImageUrl ? 'provided' : 'none'}`);
     }
+
+    // =========================================================
+    // CONTENT SAFETY CHECK - BLOCK ALL NSFW/EXPLICIT/ILLEGAL CONTENT
+    // This is the GATEWAY for all generation modes - nothing passes without safety check
+    // =========================================================
+    const safetyCheck = checkMultipleContent([
+      prompt,
+      request.sceneDescription,
+      stylePreset,
+      genre,
+      mood,
+    ]);
+    
+    if (!safetyCheck.isSafe) {
+      console.error(`[ModeRouter] ⛔ CONTENT BLOCKED - Category: ${safetyCheck.category}, Terms: ${safetyCheck.matchedTerms.slice(0, 3).join(', ')}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: safetyCheck.message,
+          blocked: true,
+          category: safetyCheck.category,
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    console.log(`[ModeRouter] ✅ Content safety check passed`);
 
     // =========================================================
     // SINGLE PROJECT CONSTRAINT: Only one active project per user

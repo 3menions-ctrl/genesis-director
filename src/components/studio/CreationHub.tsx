@@ -13,6 +13,8 @@ import { ActiveProjectBanner } from './ActiveProjectBanner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { checkMultipleContent } from '@/lib/contentSafety';
+import { toast } from 'sonner';
 import { CreationModeCard } from './CreationModeCard';
 import { VideoGenerationMode, VIDEO_MODES, STYLE_PRESETS, VideoStylePreset } from '@/types/video-modes';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -322,6 +324,13 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
 
   const handleCreate = () => {
     if (!prompt.trim() && modeConfig?.requiresText) return;
+    
+    // CLIENT-SIDE CONTENT SAFETY CHECK - First defense layer
+    const safetyResult = checkMultipleContent(prompt);
+    if (!safetyResult.isSafe) {
+      toast.error(safetyResult.message || 'This content violates our community guidelines. Please revise your prompt.');
+      return;
+    }
     
     // For breakout templates, require avatar selection
     if (isBreakoutTemplate && !selectedAvatar) return;

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { checkMultipleContent } from "../_shared/content-safety.ts";
 import {
   CAMERA_MOVEMENTS,
   CAMERA_ANGLES,
@@ -165,6 +166,25 @@ serve(async (req) => {
     if (!script || !avatarImageUrl) {
       throw new Error("Both 'script' and 'avatarImageUrl' are required");
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CONTENT SAFETY CHECK - BLOCK ALL NSFW/EXPLICIT/ILLEGAL CONTENT
+    // ═══════════════════════════════════════════════════════════════════════════
+    const safetyCheck = checkMultipleContent([script, sceneDescription]);
+    if (!safetyCheck.isSafe) {
+      console.error(`[AvatarDirect] ⛔ CONTENT BLOCKED - Category: ${safetyCheck.category}, Terms: ${safetyCheck.matchedTerms.slice(0, 3).join(', ')}`);
+      if (projectId) {
+        await supabase.from('movie_projects').update({
+          status: 'failed',
+          last_error: safetyCheck.message,
+        }).eq('id', projectId);
+      }
+      return new Response(
+        JSON.stringify({ success: false, error: safetyCheck.message, blocked: true }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    console.log("[AvatarDirect] ✅ Content safety check passed");
 
     // ═══════════════════════════════════════════════════════════════════════════
     // CRITICAL: Pre-flight image URL validation

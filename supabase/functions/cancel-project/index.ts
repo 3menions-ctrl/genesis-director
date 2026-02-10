@@ -241,7 +241,6 @@ serve(async (req) => {
         voice_audio_url: null,
         thumbnail_url: null,
         music_url: null,
-        manifest_url: null,
         pipeline_state: {
           stage: 'cancelled',
           progress: 0,

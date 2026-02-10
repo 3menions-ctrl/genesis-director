@@ -495,7 +495,7 @@ serve(async (req) => {
           duration: videoDuration,
           start_image: sharedAnimationStartImage,
           aspect_ratio: aspectRatio,
-          negative_prompt: "static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless",
+          negative_prompt: "static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast",
         },
       }),
     });
@@ -523,7 +523,7 @@ serve(async (req) => {
               duration: videoDuration,
               start_image: sharedAnimationStartImage,
               aspect_ratio: aspectRatio,
-              negative_prompt: "static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless",
+              negative_prompt: "static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast",
             },
           }),
         });
@@ -909,7 +909,7 @@ function buildWorldClassPrompt(
   // CRITICAL: "Already in position" enforcement for Kling animation
   const positionEnforcement = "IMPORTANT: The subject is ALREADY fully positioned in the environment from the first frame - NOT walking in, NOT entering, NOT arriving. They are stationary and grounded, having already been present in this location.";
   
-  const qualityBaseline = "Ultra-high definition 4K quality, subtle film-grain texture, natural skin tones, professional color grading, cinematic depth of field, award-winning cinematography.";
+  const qualityBaseline = "Ultra-high definition 4K quality, clean crisp image, natural skin tones, bright vibrant colors, professional color grading, cinematic depth of field, warm inviting lighting, award-winning cinematography.";
   
   console.log(`[AvatarDirect] Clip ${clipIndex + 1}/${totalClips} Style: ${movementKey} + ${angleKey} + ${sizeKey}`);
   console.log(`[AvatarDirect] Clip ${clipIndex + 1}/${totalClips} Scene: ${progressiveScene.substring(0, 60)}...`);
@@ -957,7 +957,7 @@ function buildVarietyPrompt(
   // CRITICAL: "Already in position" enforcement
   const positionEnforcement = "IMPORTANT: Subject is ALREADY in position from frame 1 - NOT walking in, NOT entering. Stationary and grounded.";
   
-  const qualityBaseline = "Ultra high definition, film-quality, natural skin tones, sharp focus on subject, pleasing background bokeh.";
+  const qualityBaseline = "Ultra high definition, bright vibrant colors, natural skin tones, sharp focus on subject, warm inviting lighting, pleasing background bokeh.";
   
   console.log(`[AvatarDirect] Clip ${clipIndex + 1}/${totalClips} (Standard) Scene: ${progressiveScene.substring(0, 60)}...`);
   

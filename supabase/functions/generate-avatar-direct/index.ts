@@ -189,10 +189,8 @@ serve(async (req) => {
     }
     console.log("[AvatarDirect] ✅ Avatar image URL is valid and accessible");
 
-    // IMPORTANT: Clip count will be recalculated AFTER master audio generation
-    // to ensure enough clips to cover the full audio duration
-    const requestedClipCount = Math.max(1, Math.min(clipCount, 20)); // Allow up to 20 clips
-    const minimaxVoice = VOICE_MAP[voiceId] || VOICE_MAP[voiceId.toLowerCase()] || 'bella';
+    // Clip count driven by user request (no audio-driven calculation)
+    const requestedClipCount = Math.max(1, Math.min(clipCount, 20));
 
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
     console.log("[AvatarDirect] Starting ASYNC AVATAR pipeline v3.5 (Hardened + Audio-Driven)");
@@ -207,108 +205,30 @@ serve(async (req) => {
         pipeline_state: {
           stage: 'init',
           progress: 5,
-          message: 'Preparing audio...',
+          message: 'Preparing video generation...',
           totalClips: requestedClipCount,
         },
       }).eq('id', projectId);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 1: Generate MASTER AUDIO TRACK (fast - ~2-5s)
+    // EMBEDDED AUDIO STRATEGY: Kling generates videos with native audio.
+    // No separate TTS generation needed - clips use their own embedded audio.
+    // Clip count is driven by user request, not audio duration.
     // ═══════════════════════════════════════════════════════════════════════════
-    console.log("[AvatarDirect] Step 1: Generating MASTER AUDIO...");
+    console.log("[AvatarDirect] Using EMBEDDED AUDIO strategy - Kling native audio, no TTS overlay");
     
-    if (projectId) {
-      await supabase.from('movie_projects').update({
-        pipeline_state: {
-          stage: 'master_audio',
-          progress: 10,
-          message: 'Creating audio track...',
-          totalClips: requestedClipCount,
-        },
-      }).eq('id', projectId);
-    }
-
-    const masterVoiceResponse = await fetch(`${supabaseUrl}/functions/v1/generate-voice`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseKey}`,
-      },
-      body: JSON.stringify({
-        text: script,
-        voiceId: minimaxVoice,
-        speed: 1.0,
-        projectId,
-      }),
-    });
-
-    if (!masterVoiceResponse.ok) {
-      throw new Error("Master TTS generation failed");
-    }
-
-    const masterVoiceResult = await masterVoiceResponse.json();
+    const finalClipCount = Math.max(requestedClipCount, 1);
     
-    if (!masterVoiceResult.success || !masterVoiceResult.audioUrl) {
-      throw new Error("Master TTS failed - no audio");
-    }
-
-    const masterAudioUrl = masterVoiceResult.audioUrl;
-    const masterAudioDurationMs = masterVoiceResult.durationMs || estimateDuration(script);
-    
-    console.log(`[AvatarDirect] ✅ Master audio generated: ${Math.round(masterAudioDurationMs / 1000)}s`);
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // AUDIO-DRIVEN CLIP COUNT: Calculate how many 10s clips needed to cover audio
-    // This ensures the video is ALWAYS long enough for the full audio track
-    // ═══════════════════════════════════════════════════════════════════════════
-    const masterAudioDurationSeconds = Math.ceil(masterAudioDurationMs / 1000);
-    const calculatedClipCount = Math.ceil(masterAudioDurationSeconds / 10); // Each clip is 10s max
-    
-    // Use the LARGER of: user-requested clips OR audio-required clips
-    // This guarantees enough video time for the full audio
-    const finalClipCount = Math.max(requestedClipCount, calculatedClipCount, 1);
-    
-    // Split script into the correct number of segments
+    // Split script into segments for multi-clip prompt variation
     const scriptSegments = finalClipCount > 1 
       ? splitScriptIntoSegments(script, finalClipCount)
       : [script];
     
-    console.log(`[AvatarDirect] 🎬 AUDIO-DRIVEN CALCULATION:`);
-    console.log(`[AvatarDirect]    Audio duration: ${masterAudioDurationSeconds}s`);
-    console.log(`[AvatarDirect]    Required clips: ${calculatedClipCount} (to cover ${masterAudioDurationSeconds}s audio)`);
+    console.log(`[AvatarDirect] 🎬 CLIP CALCULATION:`);
     console.log(`[AvatarDirect]    Requested clips: ${requestedClipCount}`);
     console.log(`[AvatarDirect]    FINAL clip count: ${finalClipCount}`);
     console.log(`[AvatarDirect]    Script segments: ${scriptSegments.length}`);
-
-    // Persist master audio to permanent storage
-    let permanentMasterAudioUrl = masterAudioUrl;
-    if (masterAudioUrl.includes('replicate.delivery') && projectId) {
-      try {
-        const audioResponse = await fetch(masterAudioUrl);
-        if (audioResponse.ok) {
-          const audioBlob = await audioResponse.blob();
-          const audioBytes = new Uint8Array(await audioBlob.arrayBuffer());
-          
-          const audioFileName = `avatar_${projectId}_master_audio_${Date.now()}.mp3`;
-          const audioStoragePath = `avatar-videos/${projectId}/${audioFileName}`;
-          
-          const { error: audioUploadError } = await supabase.storage
-            .from('video-clips')
-            .upload(audioStoragePath, audioBytes, {
-              contentType: 'audio/mpeg',
-              upsert: true,
-            });
-          
-          if (!audioUploadError) {
-            permanentMasterAudioUrl = `${supabaseUrl}/storage/v1/object/public/video-clips/${audioStoragePath}`;
-            console.log("[AvatarDirect] ✅ Master audio saved to permanent storage");
-          }
-        }
-      } catch (audioStorageError) {
-        console.warn("[AvatarDirect] Master audio storage failed (non-fatal):", audioStorageError);
-      }
-    }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // STEP 2: Optional Scene Compositing (fast - ~5-10s)
@@ -403,76 +323,9 @@ serve(async (req) => {
       }).eq('id', projectId);
     }
 
-    // Pre-generate TTS for ALL segments upfront (fast - ~2s each)
-    // These will be used by watchdog when chaining subsequent clips
-    const allSegmentData: Array<{
-      segmentText: string;
-      audioUrl: string;
-      audioDurationMs: number;
-    }> = [];
-    console.log("[AvatarDirect] Pre-generating TTS for all segments...");
-    
-    for (let clipIndex = 0; clipIndex < scriptSegments.length; clipIndex++) {
-      const segmentText = scriptSegments[clipIndex];
-      const clipNumber = clipIndex + 1;
-      
-      // Retry TTS with exponential backoff for rate limits
-      let voiceResult: { success: boolean; audioUrl?: string; durationMs?: number } | null = null;
-      const maxRetries = 3;
-      
-      for (let attempt = 0; attempt < maxRetries; attempt++) {
-        // Add delay between TTS requests to avoid rate limits (6 req/min = 10s apart)
-        if (clipIndex > 0 || attempt > 0) {
-          const waitTime = attempt > 0 ? Math.min(10000 * Math.pow(2, attempt), 30000) : 8000;
-          console.log(`[AvatarDirect] Waiting ${waitTime/1000}s before TTS request (rate limit protection)...`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-        }
-        
-        const voiceResponse = await fetch(`${supabaseUrl}/functions/v1/generate-voice`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${supabaseKey}`,
-          },
-          body: JSON.stringify({
-            text: segmentText,
-            voiceId: minimaxVoice,
-            speed: 1.0,
-            projectId,
-          }),
-        });
-
-        if (voiceResponse.ok) {
-          voiceResult = await voiceResponse.json();
-          if (voiceResult?.success && voiceResult?.audioUrl) {
-            break; // Success!
-          }
-        }
-        
-        // Check for rate limit (429) or server error
-        const status = voiceResponse.status;
-        if (status === 429 && attempt < maxRetries - 1) {
-          console.warn(`[AvatarDirect] Clip ${clipNumber}: Rate limited (429), retry ${attempt + 1}/${maxRetries}...`);
-          continue;
-        } else if (status >= 500 && attempt < maxRetries - 1) {
-          console.warn(`[AvatarDirect] Clip ${clipNumber}: Server error (${status}), retry ${attempt + 1}/${maxRetries}...`);
-          continue;
-        } else if (!voiceResponse.ok) {
-          throw new Error(`TTS generation failed for clip ${clipNumber} (status: ${status})`);
-        }
-      }
-      
-      if (!voiceResult?.success || !voiceResult?.audioUrl) {
-        throw new Error(`TTS failed for clip ${clipNumber} after ${maxRetries} retries - no audio`);
-      }
-
-      allSegmentData.push({
-        segmentText,
-        audioUrl: voiceResult.audioUrl,
-        audioDurationMs: voiceResult.durationMs || estimateDuration(segmentText),
-      });
-      console.log(`[AvatarDirect] Clip ${clipNumber}: ✅ TTS ready (${Math.round(allSegmentData[clipIndex].audioDurationMs / 1000)}s)`);
-    }
+    // EMBEDDED AUDIO: No TTS pre-generation needed - Kling produces native audio
+    // Just prepare segment data for prompts
+    const allSegmentData: Array<{ segmentText: string }> = scriptSegments.map(text => ({ segmentText: text }));
 
     // START CLIP 1 ONLY - Watchdog will chain the rest
     const clip1Data = allSegmentData[0];
@@ -542,8 +395,6 @@ serve(async (req) => {
           clipIndex: number;
           predictionId: string | null;
           segmentText: string;
-          audioUrl: string;
-          audioDurationMs: number;
           startImageUrl: string | null;
           status: string;
           videoUrl: string | null;
@@ -554,8 +405,6 @@ serve(async (req) => {
           clipIndex: 0,
           predictionId: klingPrediction.id,
           segmentText: clip1Data.segmentText,
-          audioUrl: clip1Data.audioUrl,
-          audioDurationMs: clip1Data.audioDurationMs,
           startImageUrl: sharedAnimationStartImage,
           status: 'processing',
           videoUrl: null,
@@ -567,8 +416,6 @@ serve(async (req) => {
             clipIndex: i,
             predictionId: null,
             segmentText: allSegmentData[i].segmentText,
-            audioUrl: allSegmentData[i].audioUrl,
-            audioDurationMs: allSegmentData[i].audioDurationMs,
             startImageUrl: null,
             status: 'pending',
             videoUrl: null,
@@ -582,7 +429,6 @@ serve(async (req) => {
           task_type: 'avatar_multi_clip',
           status: 'processing',
           predictions: pendingPredictions,
-          master_audio_url: masterAudioUrl,
           shared_scene_image: sharedAnimationStartImage,
           scene_description: sceneDescription,
           aspect_ratio: aspectRatio,
@@ -591,6 +437,7 @@ serve(async (req) => {
           total_clips: finalClipCount,
           current_clip: 1,
           created_at: new Date().toISOString(),
+          embeddedAudioOnly: true,
         };
 
         await supabase.from('pending_video_tasks').upsert({
@@ -613,25 +460,22 @@ serve(async (req) => {
               predictionId: klingPrediction.id,
               asyncJobData: {
                 predictions: pendingPredictions,
-                masterAudioUrl: masterAudioUrl,
                 sceneImageUrl: sharedAnimationStartImage,
                 clipDuration: videoDuration,
                 aspectRatio,
+                embeddedAudioOnly: true,
               },
             },
-            // CRITICAL FIX: This was missing in retry path - check-specialized-status needs this!
             pending_video_tasks: {
               type: 'avatar_async',
+              embeddedAudioOnly: true,
               predictions: pendingPredictions.map(p => ({
                 predictionId: p.predictionId,
                 clipIndex: p.clipIndex,
                 status: p.status,
-                audioUrl: p.audioUrl,
-                audioDurationMs: p.audioDurationMs,
                 segmentText: p.segmentText,
                 startImageUrl: p.startImageUrl,
               })),
-              masterAudioUrl: masterAudioUrl,
               sceneImageUrl: sharedAnimationStartImage,
               sceneCompositingApplied: sceneCompositingApplied,
               sceneDescription: sceneDescription || null,
@@ -640,7 +484,6 @@ serve(async (req) => {
               originalScript: script,
               startedAt: new Date().toISOString(),
             },
-            voice_audio_url: masterAudioUrl,
             updated_at: new Date().toISOString(),
           }).eq('id', projectId);
         }
@@ -669,8 +512,6 @@ serve(async (req) => {
       clipIndex: number;
       predictionId: string | null;
       segmentText: string;
-      audioUrl: string;
-      audioDurationMs: number;
       startImageUrl: string | null;
       status: string;
       videoUrl: string | null;
@@ -681,8 +522,6 @@ serve(async (req) => {
       clipIndex: 0,
       predictionId: klingPrediction.id,
       segmentText: clip1Data.segmentText,
-      audioUrl: clip1Data.audioUrl,
-      audioDurationMs: clip1Data.audioDurationMs,
       startImageUrl: sharedAnimationStartImage,
       status: 'processing',
       videoUrl: null,
@@ -692,12 +531,10 @@ serve(async (req) => {
     for (let i = 1; i < allSegmentData.length; i++) {
       pendingPredictions.push({
         clipIndex: i,
-        predictionId: null, // Will be set by watchdog
+        predictionId: null,
         segmentText: allSegmentData[i].segmentText,
-        audioUrl: allSegmentData[i].audioUrl,
-        audioDurationMs: allSegmentData[i].audioDurationMs,
-        startImageUrl: null, // Will be set from previous clip's last frame
-        status: 'pending', // Waiting for previous clip to complete
+        startImageUrl: null,
+        status: 'pending',
         videoUrl: null,
       });
     }
@@ -714,20 +551,17 @@ serve(async (req) => {
 
     const asyncJobData = {
       predictions: pendingPredictions,
-      masterAudioUrl: permanentMasterAudioUrl,
-      masterAudioDurationMs,
       sceneImageUrl: sharedAnimationStartImage,
       startedAt: new Date().toISOString(),
       clipDuration,
       aspectRatio,
-      // CRITICAL: Persist original parameters for recovery
+      embeddedAudioOnly: true,
       originalScript: script,
       originalSceneDescription: sceneDescription || null,
     };
 
     if (projectId) {
       const { error: updateError } = await supabase.from('movie_projects').update({
-        // CRITICAL: Save user's script to synopsis for reference
         synopsis: script,
         pipeline_state: {
           stage: 'async_video_generation',
@@ -738,26 +572,22 @@ serve(async (req) => {
         },
         pending_video_tasks: {
           type: 'avatar_async',
+          embeddedAudioOnly: true,
           predictions: pendingPredictions.map(p => ({
             predictionId: p.predictionId,
             clipIndex: p.clipIndex,
-            status: p.status, // CRITICAL: Use actual status (processing vs pending)
-            audioUrl: p.audioUrl,
-            audioDurationMs: p.audioDurationMs,
+            status: p.status,
             segmentText: p.segmentText,
-            startImageUrl: p.startImageUrl, // Preserve start image for frame-chaining
+            startImageUrl: p.startImageUrl,
           })),
-          masterAudioUrl: permanentMasterAudioUrl,
           sceneImageUrl: sharedAnimationStartImage,
           sceneCompositingApplied: sceneCompositingApplied,
           sceneDescription: sceneDescription || null,
           clipDuration: clipDuration,
           aspectRatio: aspectRatio,
-          // CRITICAL: Preserve full script for recovery/debugging
           originalScript: script,
           startedAt: new Date().toISOString(),
         },
-        voice_audio_url: permanentMasterAudioUrl,
         updated_at: new Date().toISOString(),
       }).eq('id', projectId);
       
@@ -769,21 +599,21 @@ serve(async (req) => {
     }
 
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
-    console.log("[AvatarDirect] ✅ ASYNC AVATAR PIPELINE v3.0 - JOB STARTED");
+    console.log("[AvatarDirect] ✅ ASYNC AVATAR PIPELINE v4.0 - EMBEDDED AUDIO");
     console.log(`[AvatarDirect] Started ${pendingPredictions.length} Kling predictions`);
-    console.log("[AvatarDirect] Watchdog will poll for completion and finalize");
+    console.log("[AvatarDirect] Using Kling native audio - no TTS overlay");
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
 
     return new Response(
       JSON.stringify({
         success: true,
         async: true,
-        message: `Avatar generation started - ${pendingPredictions.length} clips processing`,
+        message: `Avatar generation started - ${pendingPredictions.length} clips processing (embedded audio)`,
         predictionIds: pendingPredictions.map(p => p.predictionId),
         projectId,
-        masterAudioUrl: permanentMasterAudioUrl,
         totalClips: pendingPredictions.length,
         status: 'processing',
+        embeddedAudioOnly: true,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

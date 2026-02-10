@@ -142,16 +142,11 @@ serve(async (req) => {
     const timestamp = Date.now();
     const includeNarration = project?.include_narration === true;
     
-    // Check for master audio in pipeline_state (avatar multi-clip projects)
-    const pipelineState = project?.pipeline_state as Record<string, unknown> | null;
-    const masterAudioUrl = pipelineState?.masterAudioUrl as string | undefined;
-    const isAvatarProject = project?.mode === 'avatar' || !!masterAudioUrl;
+    // EMBEDDED AUDIO STRATEGY: All clips use their native embedded audio
+    // No master audio overlay needed - Kling generates audio with each clip
+    const isAvatarProject = project?.mode === 'avatar';
     
-    // For avatar projects with master audio, use that for seamless playback
-    // Otherwise fall back to project voice_audio_url
-    const voiceAudioUrl = masterAudioUrl || (includeNarration ? (project?.voice_audio_url || null) : null);
-    
-    console.log(`[SimpleStitch] Audio config: isAvatar=${isAvatarProject}, masterAudio=${!!masterAudioUrl}, voiceUrl=${!!voiceAudioUrl}`);
+    console.log(`[SimpleStitch] Audio config: EMBEDDED AUDIO ONLY (no master overlay), isAvatar=${isAvatarProject}`);
     
     // =========================================================================
     // GENERATE HLS PLAYLIST FOR iOS SAFARI
@@ -253,31 +248,30 @@ serve(async (req) => {
         };
       }),
       totalDuration,
-      // CRITICAL: Use master audio for seamless playback in avatar projects
-      voiceUrl: voiceAudioUrl,
-      masterAudioUrl: masterAudioUrl || null,
+      // EMBEDDED AUDIO: No master audio overlay - clips have their own audio
+      voiceUrl: null,
+      masterAudioUrl: null,
       isAvatarProject,
       musicUrl: project?.music_url || null,
-      // NEW: Volume automation keyframes for real-time ducking
+      // Volume automation keyframes for real-time ducking
       volumeAutomation,
-      // NEW: Music cue markers for visual sync (swells, drops, transitions)
+      // Music cue markers for visual sync
       musicCueMarkers,
-      // NEW: Scoring metadata from sync plan
+      // Scoring metadata from sync plan
       scoringMetadata: musicSyncPlan ? {
         intensity: musicSyncPlan.intensity,
         referenceComposer: musicSyncPlan.referenceComposer,
         cueCount: musicCueMarkers.length,
       } : null,
       audioConfig: {
-        includeNarration: includeNarration || isAvatarProject,
-        // CRITICAL: Always use embedded clip audio - no master audio overlay
+        includeNarration: false,
+        // EMBEDDED AUDIO: Always use clip's native audio
         muteClipAudio: false,
-        // Base music volume - will be modulated by volumeAutomation
-        musicVolume: (includeNarration || isAvatarProject) ? 0.3 : 0.8,
+        musicVolume: isAvatarProject ? 0.3 : 0.8,
         fadeIn: 1,
         fadeOut: 2,
-        // Enable real-time dialogue ducking when volumeAutomation is present
         enableDialogueDucking: volumeAutomation.length > 0,
+        embeddedAudioOnly: true,
       },
     };
 

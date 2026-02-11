@@ -2578,6 +2578,57 @@ export type Database = {
         }
         Relationships: []
       }
+      signup_analytics: {
+        Row: {
+          city: string | null
+          country: string | null
+          country_code: string | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          referrer: string | null
+          region: string | null
+          timezone: string | null
+          user_agent: string | null
+          user_id: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          city?: string | null
+          country?: string | null
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          referrer?: string | null
+          region?: string | null
+          timezone?: string | null
+          user_agent?: string | null
+          user_id: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          city?: string | null
+          country?: string | null
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          referrer?: string | null
+          region?: string | null
+          timezone?: string | null
+          user_agent?: string | null
+          user_id?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
+      }
       stitch_jobs: {
         Row: {
           attempt_number: number

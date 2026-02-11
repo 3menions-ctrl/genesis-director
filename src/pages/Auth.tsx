@@ -11,6 +11,7 @@ import { PasswordStrength } from '@/components/ui/password-strength';
 import { WelcomeBackDialog } from '@/components/auth/WelcomeBackDialog';
 import { useSafeNavigation } from '@/lib/navigation';
 import { Logo } from '@/components/ui/Logo';
+import { supabase } from '@/integrations/supabase/client';
 import landingAbstractBg from '@/assets/landing-abstract-bg.jpg';
 import authHeroImage from '@/assets/auth-hero.jpg';
 // Validation schemas
@@ -77,6 +78,21 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
   const [hasPendingCreation, setHasPendingCreation] = useState(false);
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   const [pendingEmailConfirmation, setPendingEmailConfirmation] = useState<string | null>(null);
+
+  // Track signup/login geo data (fire-and-forget)
+  const trackSignup = useCallback((userId: string) => {
+    const params = new URLSearchParams(window.location.search);
+    supabase.functions.invoke('track-signup', {
+      body: {
+        user_id: userId,
+        utm_source: params.get('utm_source'),
+        utm_medium: params.get('utm_medium'),
+        utm_campaign: params.get('utm_campaign'),
+        referrer: document.referrer || null,
+      },
+    }).catch(() => {}); // silent fail
+  }, []);
+
 
   // Check for pending creation on mount
   useEffect(() => {
@@ -175,6 +191,8 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
             toast.error(error.message);
           }
         } else {
+          // Track geo data on login
+          if (user) trackSignup(user.id);
           // Show epic welcome dialog instead of simple toast
           setShowWelcomeDialog(true);
         }

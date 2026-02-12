@@ -56,6 +56,19 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Check if we already have a record for this user (dedup)
+    const { data: existing } = await supabaseAdmin
+      .from("signup_analytics")
+      .select("id")
+      .eq("user_id", user_id)
+      .maybeSingle();
+
+    if (existing) {
+      return new Response(JSON.stringify({ success: true, skipped: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { error } = await supabaseAdmin.from("signup_analytics").insert({
       user_id,
       ip_address: ip,

@@ -124,8 +124,10 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
     // Don't redirect while welcome dialog is showing - it will handle navigation
     if (showWelcomeDialog) return;
     
-    if (user && profile) {
+   if (user && profile) {
       setHasRedirected(true);
+      // Track geo data on every authenticated visit to Auth page
+      trackSignup(user.id);
       if (!profile.onboarding_completed) {
         navigate('/onboarding', { replace: true });
       } else {

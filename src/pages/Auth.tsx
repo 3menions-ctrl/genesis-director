@@ -193,8 +193,9 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
             toast.error(error.message);
           }
         } else {
-          // Track geo data on login
-          if (user) trackSignup(user.id);
+          // Track geo data on login - get fresh session user since component user hasn't updated yet
+          const { data: sessionData } = await supabase.auth.getUser();
+          if (sessionData?.user) trackSignup(sessionData.user.id);
           // Show epic welcome dialog instead of simple toast
           setShowWelcomeDialog(true);
         }

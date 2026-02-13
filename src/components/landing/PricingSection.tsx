@@ -1,15 +1,8 @@
 import { memo, forwardRef, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Sparkles, Zap, Star, Rocket, Building2 } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import { SimpleVideoPlayer } from '@/components/player';
-
-const PACKAGES: Array<{ name: string; credits: number; price: number; icon: typeof Zap; color: string; glow: string; label: string; popular?: boolean }> = [
-  { name: 'Mini', credits: 90, price: 9, icon: Zap, color: 'from-sky-400 to-cyan-400', glow: 'sky', label: 'Try it out' },
-  { name: 'Starter', credits: 370, price: 37, icon: Star, color: 'from-violet-400 to-purple-400', glow: 'violet', label: 'Most flexible' },
-  { name: 'Growth', credits: 1000, price: 99, icon: Rocket, color: 'from-amber-400 to-orange-400', glow: 'amber', label: 'Most popular', popular: true },
-  { name: 'Agency', credits: 2500, price: 249, icon: Building2, color: 'from-emerald-400 to-teal-400', glow: 'emerald', label: 'Best value' },
-];
 
 const PRICING_STATS = [
   { value: '$0.10', label: 'per credit' },
@@ -84,45 +77,7 @@ export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionProps>(
             </div>
           </div>
 
-          {/* Package Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-            {PACKAGES.map((pkg, i) => {
-              const Icon = pkg.icon;
-              return (
-                <motion.div
-                  key={pkg.name}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.4 + i * 0.08 }}
-                  onClick={() => onNavigate('/pricing')}
-                  className={`relative group/card cursor-pointer rounded-2xl border p-5 transition-all duration-300 ${
-                    pkg.popular
-                      ? 'bg-white/[0.06] border-amber-400/30 hover:border-amber-400/50'
-                      : 'bg-white/[0.02] border-white/[0.06] hover:border-white/[0.12]'
-                  }`}
-                >
-                  {pkg.popular && (
-                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 text-[10px] font-bold text-black uppercase tracking-wider">
-                      Popular
-                    </div>
-                  )}
-                  
-                  <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${pkg.color} flex items-center justify-center mb-3`}>
-                    <Icon className="w-4 h-4 text-white" />
-                  </div>
-                  
-                  <div className="text-xs text-white/40 mb-1">{pkg.label}</div>
-                  <div className="text-lg font-semibold text-white">{pkg.name}</div>
-                  
-                  <div className="mt-3 pt-3 border-t border-white/[0.06]">
-                    <span className="text-2xl font-bold text-white">${pkg.price}</span>
-                    <span className="text-xs text-white/30 ml-1">one-time</span>
-                  </div>
-                  <div className="text-sm text-white/50 mt-1">{pkg.credits} credits</div>
-                </motion.div>
-              );
-            })}
-          </div>
+
 
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />

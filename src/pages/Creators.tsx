@@ -76,7 +76,7 @@ export default function Creators() {
         <CreatorsHero 
           title="Discover Creators"
           subtitle="Explore outstanding work from the community's most talented filmmakers"
-          stats={{ totalCreators, totalVideos }}
+          stats={{ totalVideos }}
         />
 
         {/* Search bar — refined */}

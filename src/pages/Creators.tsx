@@ -53,7 +53,32 @@ export default function Creators() {
 
       const { data, error } = await query;
       if (error) return [];
-      return data || [];
+      const projects = data || [];
+
+      // Fetch first clip mp4 for each project (for PausedFrameVideo thumbnails)
+      if (projects.length > 0) {
+        const projectIds = projects.map(p => p.id);
+        const { data: clips } = await supabase
+          .from('video_clips')
+          .select('project_id, video_url')
+          .in('project_id', projectIds)
+          .eq('shot_index', 0)
+          .not('video_url', 'is', null);
+
+        const clipMap = new Map<string, string>();
+        clips?.forEach(c => {
+          if (c.video_url && c.video_url.includes('.mp4')) {
+            clipMap.set(c.project_id, c.video_url);
+          }
+        });
+
+        return projects.map(p => ({
+          ...p,
+          first_clip_url: clipMap.get(p.id) || null,
+        }));
+      }
+
+      return projects.map(p => ({ ...p, first_clip_url: null }));
     },
     staleTime: 60000,
   });
@@ -184,11 +209,15 @@ function VideoThumbnail({
   firstClipUrl?: string | null;
   title: string;
 }) {
+  // Only use videoUrl for PausedFrameVideo if it's an actual video file, not a JSON manifest
+  const playableVideoUrl = videoUrl && !videoUrl.endsWith('.json') ? videoUrl : null;
+  const clipSrc = firstClipUrl || playableVideoUrl;
+
   return (
     <div className="relative aspect-video overflow-hidden bg-black/20">
-      {(firstClipUrl || videoUrl) ? (
+      {clipSrc ? (
         <PausedFrameVideo 
-          src={(firstClipUrl || videoUrl)!} 
+          src={clipSrc} 
           className="w-full h-full object-cover"
           showLoader={false}
         />
@@ -344,6 +373,7 @@ function DiscoverContent({
               <VideoThumbnail
                 thumbnailUrl={video.thumbnail_url}
                 videoUrl={video.video_url}
+                firstClipUrl={video.first_clip_url}
                 title={video.title}
               />
               <div className="p-4 space-y-2">

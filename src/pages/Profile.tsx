@@ -129,7 +129,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         .eq('user_id', user.id);
 
       const { data: allTransactions } = await supabase
-        .from('credit_transactions')
+        .from('credit_transactions_safe')
         .select('amount, clip_duration_seconds, transaction_type')
         .eq('user_id', user.id);
 
@@ -150,7 +150,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     if (!user) return;
     
     const { data, error } = await supabase
-      .from('credit_transactions')
+      .from('credit_transactions_safe')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })

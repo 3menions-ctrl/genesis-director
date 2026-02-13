@@ -60,7 +60,7 @@ export function useRealAnalytics() {
 
       // Fetch credit transactions
       const { data: transactions } = await supabase
-        .from('credit_transactions')
+        .from('credit_transactions_safe')
         .select('amount, transaction_type, created_at')
         .eq('user_id', user.id);
 

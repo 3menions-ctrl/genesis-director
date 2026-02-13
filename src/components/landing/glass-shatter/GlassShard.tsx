@@ -9,20 +9,20 @@ interface GlassShardProps {
   isFading: boolean;
 }
 
-// Premium glass palette — jewel-toned architectural glass
+// Premium glass palette — rich dark cinematic tones matching app design system
 const GLASS_PALETTE = [
-  { h: 0.58, s: 0.40, l: 0.78 },  // Aquamarine
-  { h: 0.65, s: 0.35, l: 0.75 },  // Sapphire
-  { h: 0.73, s: 0.45, l: 0.72 },  // Royal blue
-  { h: 0.80, s: 0.38, l: 0.76 },  // Amethyst
-  { h: 0.87, s: 0.32, l: 0.80 },  // Lavender
-  { h: 0.12, s: 0.50, l: 0.82 },  // Champagne
-  { h: 0.95, s: 0.28, l: 0.84 },  // Blush
-  { h: 0.38, s: 0.35, l: 0.78 },  // Jade
-  { h: 0.00, s: 0.00, l: 0.96 },  // Diamond clear
-  { h: 0.55, s: 0.42, l: 0.76 },  // Teal
-  { h: 0.18, s: 0.55, l: 0.78 },  // Topaz
-  { h: 0.45, s: 0.30, l: 0.80 },  // Peridot
+  { h: 0.73, s: 0.65, l: 0.30 },  // Deep indigo
+  { h: 0.76, s: 0.70, l: 0.25 },  // Midnight violet
+  { h: 0.80, s: 0.60, l: 0.35 },  // Dark amethyst
+  { h: 0.70, s: 0.55, l: 0.28 },  // Navy sapphire
+  { h: 0.83, s: 0.75, l: 0.32 },  // Royal purple
+  { h: 0.68, s: 0.50, l: 0.22 },  // Deep ocean
+  { h: 0.75, s: 0.80, l: 0.38 },  // Electric violet
+  { h: 0.72, s: 0.45, l: 0.18 },  // Obsidian blue
+  { h: 0.78, s: 0.55, l: 0.42 },  // Bright amethyst accent
+  { h: 0.66, s: 0.60, l: 0.20 },  // Abyss blue
+  { h: 0.85, s: 0.50, l: 0.28 },  // Dark plum
+  { h: 0.71, s: 0.40, l: 0.15 },  // Near-black indigo
 ];
 
 export function GlassShard({ shard, isShattered, isFading }: GlassShardProps) {
@@ -56,41 +56,41 @@ export function GlassShard({ shard, isShattered, isFading }: GlassShardProps) {
   const material = useMemo(() => {
     const c = GLASS_PALETTE[shard.id % GLASS_PALETTE.length];
     const sv = (shard.id % 7) * 0.02;
-    const lv = (shard.id % 5) * 0.015;
+    const lv = (shard.id % 5) * 0.01;
     
     const baseColor = new THREE.Color().setHSL(c.h, Math.min(1, c.s + sv), Math.min(1, c.l + lv));
-    const attenuation = new THREE.Color().setHSL(c.h, Math.min(1, c.s + 0.2), Math.max(0.35, c.l - 0.25));
+    const attenuation = new THREE.Color().setHSL(c.h, Math.min(1, c.s + 0.15), Math.max(0.1, c.l - 0.1));
 
     return new THREE.MeshPhysicalMaterial({
       color: baseColor,
-      metalness: 0.0,
-      roughness: 0.01,        // Near-perfect polish
-      transmission: 0.92,     // High transparency
-      thickness: 0.4,
-      ior: 1.55,              // Crown glass IOR
+      metalness: 0.05,
+      roughness: 0.02,
+      transmission: 0.85,      // Slightly less transparent for richer color
+      thickness: 0.6,
+      ior: 1.55,
       clearcoat: 1.0,
       clearcoatRoughness: 0.02,
       transparent: true,
       opacity: 1,
       side: THREE.DoubleSide,
-      envMapIntensity: 5.0,   // Strong environment reflections
-      specularIntensity: 2.0,
-      specularColor: new THREE.Color().setHSL(c.h, 0.2, 1.0),
-      sheen: 0.2,
-      sheenRoughness: 0.2,
-      sheenColor: baseColor.clone().multiplyScalar(1.3),
+      envMapIntensity: 6.0,    // Strong reflections for drama
+      specularIntensity: 2.5,
+      specularColor: new THREE.Color().setHSL(c.h, 0.3, 0.8),
+      sheen: 0.3,
+      sheenRoughness: 0.15,
+      sheenColor: baseColor.clone().multiplyScalar(1.5),
       attenuationColor: attenuation,
-      attenuationDistance: 0.5,
-      dispersion: 0.3,        // Chromatic dispersion — rainbow edge refractions
+      attenuationDistance: 0.3,
+      dispersion: 0.4,         // Stronger chromatic dispersion
     });
   }, [shard.id]);
 
   const edgeMaterial = useMemo(() => {
     const c = GLASS_PALETTE[shard.id % GLASS_PALETTE.length];
     return new THREE.LineBasicMaterial({
-      color: new THREE.Color().setHSL(c.h, c.s * 0.4, 0.92),
+      color: new THREE.Color().setHSL(c.h, c.s * 0.6, 0.6),
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.45,
     });
   }, [shard.id]);
 

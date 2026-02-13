@@ -18,7 +18,7 @@ export const LandingNav = memo(forwardRef<HTMLElement, NavigationProps>(
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Logo size="md" showText textClassName="text-base" />
 
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-8 flex-nowrap">
             {SCROLL_ITEMS.map((item) => (
               <button 
                 key={item}

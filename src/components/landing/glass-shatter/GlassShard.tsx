@@ -9,6 +9,20 @@ interface GlassShardProps {
   isFading: boolean;
 }
 
+// Realistic colored glass palette - each shard gets a unique tint
+const GLASS_COLORS = [
+  { hue: 0.55, sat: 0.35, light: 0.75, name: 'teal' },      // Teal glass
+  { hue: 0.60, sat: 0.30, light: 0.80, name: 'cyan' },       // Cyan glass
+  { hue: 0.72, sat: 0.40, light: 0.70, name: 'blue' },       // Deep blue glass
+  { hue: 0.78, sat: 0.35, light: 0.75, name: 'indigo' },     // Indigo glass
+  { hue: 0.85, sat: 0.30, light: 0.80, name: 'violet' },     // Violet glass
+  { hue: 0.10, sat: 0.45, light: 0.85, name: 'amber' },      // Amber glass
+  { hue: 0.95, sat: 0.25, light: 0.85, name: 'rose' },       // Rose glass
+  { hue: 0.35, sat: 0.30, light: 0.80, name: 'emerald' },    // Emerald glass
+  { hue: 0.00, sat: 0.00, light: 0.95, name: 'clear' },      // Clear glass (slight white)
+  { hue: 0.15, sat: 0.50, light: 0.80, name: 'gold' },       // Gold glass
+];
+
 export function GlassShard({ shard, isShattered, isFading }: GlassShardProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const edgesRef = useRef<THREE.LineSegments>(null);
@@ -40,44 +54,60 @@ export function GlassShard({ shard, isShattered, isFading }: GlassShardProps) {
     return geo;
   }, [shard.vertices, shard.thickness]);
 
-  // Premium glass material - ultra realistic
+  // Realistic colored glass material
   const material = useMemo(() => {
-    // Subtle color variation per shard for chromatic dispersion feel
-    const hueOptions = [0.72, 0.68, 0.78, 0.65, 0.75];
-    const tintHue = hueOptions[shard.id % hueOptions.length];
-    const saturation = 0.04 + (shard.id % 3) * 0.03;
+    const colorData = GLASS_COLORS[shard.id % GLASS_COLORS.length];
     
+    // Vary saturation and lightness slightly per shard for organic feel
+    const satVariation = (shard.id % 7) * 0.03;
+    const lightVariation = (shard.id % 5) * 0.02;
+    
+    const baseColor = new THREE.Color().setHSL(
+      colorData.hue,
+      Math.min(1, colorData.sat + satVariation),
+      Math.min(1, colorData.light + lightVariation)
+    );
+    
+    const attenuationColor = new THREE.Color().setHSL(
+      colorData.hue,
+      Math.min(1, colorData.sat + 0.15),
+      Math.max(0.4, colorData.light - 0.2)
+    );
+
     return new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color().setHSL(tintHue, saturation, 0.98),
+      color: baseColor,
       metalness: 0.0,
-      roughness: 0.01,
-      transmission: 0.95,
-      thickness: 0.4,
+      roughness: 0.02,
+      transmission: 0.88,
+      thickness: 0.5,
       ior: 1.52,
       clearcoat: 1.0,
-      clearcoatRoughness: 0.05,
+      clearcoatRoughness: 0.03,
       transparent: true,
       opacity: 1,
       side: THREE.DoubleSide,
-      envMapIntensity: 3.5,
-      specularIntensity: 1.2,
-      specularColor: new THREE.Color().setHSL(0.7, 0.15, 1.0),
-      sheen: 0.1,
-      sheenRoughness: 0.3,
-      sheenColor: new THREE.Color(0xccccff),
-      attenuationColor: new THREE.Color().setHSL(tintHue, 0.12, 0.92),
-      attenuationDistance: 0.8,
+      envMapIntensity: 4.0,
+      specularIntensity: 1.5,
+      specularColor: new THREE.Color().setHSL(colorData.hue, 0.3, 1.0),
+      sheen: 0.15,
+      sheenRoughness: 0.25,
+      sheenColor: baseColor.clone().multiplyScalar(1.2),
+      attenuationColor: attenuationColor,
+      attenuationDistance: 0.6,
     });
   }, [shard.id]);
 
-  // Edge material
+  // Edge material with subtle color tint
   const edgeMaterial = useMemo(() => {
+    const colorData = GLASS_COLORS[shard.id % GLASS_COLORS.length];
+    const edgeColor = new THREE.Color().setHSL(colorData.hue, colorData.sat * 0.5, 0.9);
+    
     return new THREE.LineBasicMaterial({
-      color: 0xffffff,
+      color: edgeColor,
       transparent: true,
-      opacity: 0.6,
+      opacity: 0.5,
     });
-  }, []);
+  }, [shard.id]);
 
   const edgesGeometry = useMemo(() => {
     return new THREE.EdgesGeometry(geometry, 20);
@@ -104,7 +134,7 @@ export function GlassShard({ shard, isShattered, isFading }: GlassShardProps) {
       edgesRef.current.rotation.copy(meshRef.current.rotation);
       edgesRef.current.scale.copy(meshRef.current.scale);
       material.opacity = 1;
-      edgeMaterial.opacity = 0.6;
+      edgeMaterial.opacity = 0.5;
       progressRef.current = 0;
       startTimeRef.current = null;
       return;
@@ -118,29 +148,32 @@ export function GlassShard({ shard, isShattered, isFading }: GlassShardProps) {
     const elapsed = state.clock.elapsedTime - startTimeRef.current - shard.delay;
     if (elapsed < 0) return;
 
-    const easeOutExpo = (t: number) => t === 1 ? 1 : 1 - Math.pow(2, -12 * t);
-    const easeOutQuint = (t: number) => 1 - Math.pow(1 - t, 5);
+    // Much slower, more cinematic easing
+    const easeOutExpo = (t: number) => t === 1 ? 1 : 1 - Math.pow(2, -8 * t);
+    const easeOutQuart = (t: number) => 1 - Math.pow(1 - t, 4);
     
-    const duration = 5.0;
+    // Significantly longer duration for slow-motion feel
+    const duration = 12.0;
     progressRef.current = Math.min(1, elapsed / duration);
-    const rotationProgress = easeOutQuint(progressRef.current);
+    const rotationProgress = easeOutQuart(progressRef.current);
 
     const t = elapsed;
-    const gravity = 1.2;
+    const gravity = 0.4; // Much lighter gravity for floaty slow-motion
     
-    // More dramatic initial burst then slow elegance
-    const velocityX = shard.velocity.x * 1.5;
-    const velocityY = shard.velocity.y * 1.5 - gravity * t * 0.35;
-    const velocityZ = shard.velocity.z * 2.2;
+    // Slower, more graceful movement
+    const velocityX = shard.velocity.x * 0.6;
+    const velocityY = shard.velocity.y * 0.6 - gravity * t * 0.15;
+    const velocityZ = shard.velocity.z * 0.8;
     
-    // Sharper deceleration for cinematic slow-down
-    const decel = Math.exp(-t * 0.55);
+    // Gentler deceleration for longer, more visible trajectories
+    const decel = Math.exp(-t * 0.18);
     meshRef.current.position.x = shard.initialPosition.x + velocityX * t * decel;
-    meshRef.current.position.y = shard.initialPosition.y + velocityY * t * decel - 0.5 * gravity * t * t * 0.12;
+    meshRef.current.position.y = shard.initialPosition.y + velocityY * t * decel - 0.5 * gravity * t * t * 0.04;
     meshRef.current.position.z = shard.initialPosition.z + velocityZ * t * decel;
 
-    const spinDecay = Math.exp(-t * 0.3);
-    const spinSpeed = shard.spinSpeed * spinDecay;
+    // Slower, more elegant rotation
+    const spinDecay = Math.exp(-t * 0.12);
+    const spinSpeed = shard.spinSpeed * 0.4 * spinDecay;
     meshRef.current.rotation.x = initialRotation.current.x + shard.rotationAxis.x * rotationProgress * spinSpeed;
     meshRef.current.rotation.y = initialRotation.current.y + shard.rotationAxis.y * rotationProgress * spinSpeed;
     meshRef.current.rotation.z = initialRotation.current.z + shard.rotationAxis.z * rotationProgress * spinSpeed;
@@ -149,11 +182,12 @@ export function GlassShard({ shard, isShattered, isFading }: GlassShardProps) {
     edgesRef.current.rotation.copy(meshRef.current.rotation);
     edgesRef.current.scale.copy(meshRef.current.scale);
 
-    if (isFading && progressRef.current > 0.4) {
-      const fadeProgress = (progressRef.current - 0.4) / 0.6;
-      const fadeEased = easeOutQuint(fadeProgress);
+    // Slower fade out
+    if (isFading && progressRef.current > 0.5) {
+      const fadeProgress = (progressRef.current - 0.5) / 0.5;
+      const fadeEased = easeOutQuart(fadeProgress);
       material.opacity = 1 - fadeEased;
-      edgeMaterial.opacity = 0.6 * (1 - fadeEased);
+      edgeMaterial.opacity = 0.5 * (1 - fadeEased);
     }
   });
 

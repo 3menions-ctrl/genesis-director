@@ -97,10 +97,10 @@ const ScreenCrashOverlay = memo(function ScreenCrashOverlay({
     const timers: NodeJS.Timeout[] = [];
 
     // Start shatter after brief impact
-    timers.push(setTimeout(() => setPhase('shatter'), 120));
+    timers.push(setTimeout(() => setPhase('shatter'), 200));
     
-    // Show CTA after shards disperse
-    timers.push(setTimeout(() => setPhase('cta'), 3500));
+    // Show CTA after shards disperse — much longer for slow-motion effect
+    timers.push(setTimeout(() => setPhase('cta'), 7000));
 
     return () => {
       timers.forEach(clearTimeout);

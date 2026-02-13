@@ -127,8 +127,8 @@ const ScreenCrashOverlay = memo(function ScreenCrashOverlay({
     onDismiss();
   }, [navigate, onDismiss]);
 
-  const handleOverlayClick = useCallback((e: React.MouseEvent) => {
-    if (e.target === overlayRef.current && phase === 'cta') {
+  const handleOverlayClick = useCallback(() => {
+    if (phase === 'cta') {
       onDismiss();
     }
   }, [onDismiss, phase]);

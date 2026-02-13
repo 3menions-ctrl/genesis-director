@@ -1,4 +1,5 @@
 import { memo, useMemo, forwardRef } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Type, 
@@ -315,15 +316,15 @@ const FeaturesShowcase = memo(forwardRef<HTMLElement, Record<string, never>>(
             variants={fadeInVariants}
             className="mt-16 md:mt-24 text-center"
           >
-            <a 
-              href="/auth?mode=signup"
+            <Link 
+              to="/auth?mode=signup"
               className="group relative inline-flex items-center gap-3 px-10 py-4 rounded-full text-sm font-semibold transition-all duration-300 overflow-hidden"
             >
               <div className="absolute -inset-1 rounded-full bg-white/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="absolute inset-0 rounded-full bg-white shadow-[0_0_60px_rgba(255,255,255,0.15)] group-hover:shadow-[0_0_80px_rgba(255,255,255,0.25)] transition-shadow duration-300" />
               <span className="relative text-black">Start Creating</span>
               <ArrowRight className="relative w-4 h-4 text-black transition-transform group-hover:translate-x-1" />
-            </a>
+            </Link>
             <p className="mt-5 text-sm text-white/30">
               Free credits included • No credit card required
             </p>

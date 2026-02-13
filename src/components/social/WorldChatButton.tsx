@@ -138,13 +138,16 @@ export function WorldChatButton() {
       />
 
       {/* Slide-in panel */}
-      <div className={cn(
-        "fixed top-0 right-0 bottom-0 z-[70] w-[400px] max-w-[85vw]",
-        "bg-[#0a0a0a] border-l border-white/[0.06]",
-        "flex flex-col",
-        "transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
-        isOpen ? "translate-x-0" : "translate-x-full"
-      )}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className={cn(
+          "fixed top-0 right-0 bottom-0 z-[70] w-[400px] max-w-[85vw]",
+          "bg-[#0a0a0a] border-l border-white/[0.06]",
+          "flex flex-col",
+          "transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+          isOpen ? "translate-x-0" : "translate-x-full"
+        )}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
           <div>
@@ -154,8 +157,8 @@ export function WorldChatButton() {
             </p>
           </div>
           <button
-            onClick={() => setIsOpen(false)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-colors"
+            onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-colors relative z-[80]"
           >
             <X className="w-4 h-4" />
           </button>

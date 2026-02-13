@@ -31,6 +31,12 @@ interface BuyCreditsModalProps {
 
 // Premium tier configuration matching pricing page
 const TIER_CONFIG = {
+  Mini: {
+    icon: Sparkles,
+    description: 'Quick top-up to get started',
+    gradient: 'from-slate-400 to-slate-500',
+    features: ['HD export', 'AI scripts', '~9 clips'],
+  },
   Starter: {
     icon: Zap,
     description: 'Perfect for trying out the platform',
@@ -96,6 +102,7 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
       const name = packageName.toLowerCase();
       if (name.includes('growth')) return 'growth';
       if (name.includes('agency')) return 'agency';
+      if (name.includes('mini')) return 'mini';
       return 'starter';
     };
 
@@ -204,7 +211,7 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
               ) : (
                 <>
                   {/* Pricing Cards */}
-                  <div className="grid md:grid-cols-3 gap-5 mb-10">
+                  <div className="grid md:grid-cols-4 gap-4 mb-10">
                     <AnimatePresence mode="wait">
                       {packages.map((pkg, index) => {
                         const tierConfig = getTierConfig(pkg.name);

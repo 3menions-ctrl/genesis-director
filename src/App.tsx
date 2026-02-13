@@ -9,7 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppLoader } from "@/components/ui/app-loader";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { WorldChatButton } from "@/components/social/WorldChatButton";
+// WorldChatButton removed - now a dedicated page
 import { WelcomeVideoModal } from "@/components/welcome/WelcomeVideoModal";
 import { GlobalStabilityBoundary } from "@/components/stability/GlobalStabilityBoundary";
 import { RouteContainer } from "@/components/layout/RouteContainer";
@@ -57,6 +57,7 @@ const Creators = lazy(() => import("./pages/Creators"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
 const VideoDetail = lazy(() => import("./pages/VideoDetail"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
+const WorldChat = lazy(() => import("./pages/WorldChat"));
 
 // Route change tracker component
 function RouteChangeTracker() {
@@ -352,6 +353,15 @@ const App = () => {
                 } />
                 <Route path="/social" element={<Navigate to="/creators" replace />} />
                 
+                {/* World Chat */}
+                <Route path="/chat" element={
+                  <RouteContainer fallbackMessage="Loading chat...">
+                    <ProtectedRoute>
+                      <WorldChat />
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                
                 {/* Video Detail Page */}
                 <Route path="/video/:videoId" element={
                   <RouteContainer fallbackMessage="Loading video...">
@@ -389,8 +399,6 @@ const App = () => {
                 </Routes>
                 {/* Diagnostics - Admin console only */}
                 <AdminOnlyDiagnostics />
-                {/* Global World Chat Button */}
-                <WorldChatButton />
                 {/* Welcome Video Modal - shows once for new users */}
                 <WelcomeVideoModal />
               </StudioProvider>

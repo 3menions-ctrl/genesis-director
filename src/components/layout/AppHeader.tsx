@@ -31,6 +31,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Pipeline', path: '/production' },
   { label: 'Clips', path: '/clips' },
   { label: 'Creators', path: '/creators' },
+  { label: 'Chat', path: '/chat' },
 ];
 
 interface AppHeaderProps {

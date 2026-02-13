@@ -1248,20 +1248,6 @@ const transitionsData = useMemo(() =>
 
       {/* Main Layout */}
       <div className="relative z-10 flex-1 flex overflow-hidden">
-        {/* Sidebar - Hidden on mobile */}
-        <div className="hidden md:block">
-          <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
-            <Suspense fallback={<MinimalFallback />}>
-              <ProductionSidebar
-                projects={allProductionProjects}
-                activeProjectId={projectId}
-                isCollapsed={sidebarCollapsed}
-                onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-              />
-            </Suspense>
-          </ErrorBoundaryWrapper>
-        </div>
-
         {/* Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
 

@@ -186,24 +186,18 @@ function VideoThumbnail({
 }) {
   return (
     <div className="relative aspect-video overflow-hidden bg-black/20">
-      {thumbnailUrl ? (
+      {(firstClipUrl || videoUrl) ? (
+        <PausedFrameVideo 
+          src={(firstClipUrl || videoUrl)!} 
+          className="w-full h-full object-cover"
+          showLoader={false}
+        />
+      ) : thumbnailUrl ? (
         <img 
           src={thumbnailUrl} 
           alt={title}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
-        />
-      ) : firstClipUrl ? (
-        <PausedFrameVideo 
-          src={firstClipUrl} 
-          className="w-full h-full object-cover"
-          showLoader={false}
-        />
-      ) : videoUrl ? (
-        <PausedFrameVideo 
-          src={videoUrl} 
-          className="w-full h-full object-cover"
-          showLoader={false}
         />
       ) : (
         <div className="w-full h-full bg-white/[0.02] flex items-center justify-center">

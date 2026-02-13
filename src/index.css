@@ -330,47 +330,95 @@
 .animate-float-up { animation: float-up 4s ease-out infinite; }
 
 /* ═══════════════════════════════════════════════════════════════════
-   CINEMA LOADER ANIMATIONS - Unified loading state
+   FUTURISTIC HOLOGRAPHIC LOADER ANIMATIONS
    ═══════════════════════════════════════════════════════════════════ */
 
-@keyframes cinema-ray {
-  0%, 100% { opacity: 0.3; transform: translateY(0) rotate(var(--ray-rotate, 0deg)); }
-  50% { opacity: 0.7; transform: translateY(-20px) rotate(var(--ray-rotate, 0deg)); }
+/* Holographic scanning line */
+@keyframes holo-scan {
+  0% { top: -2%; }
+  100% { top: 102%; }
+}
+@keyframes holo-scan-reverse {
+  0% { top: 102%; }
+  100% { top: -2%; }
 }
 
-@keyframes cinema-ring-outer {
-  0%, 100% { transform: scale(1); opacity: 0.4; }
-  50% { transform: scale(1.15); opacity: 0.15; }
-}
-
-@keyframes cinema-ring-middle {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-@keyframes cinema-ring-inner {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 0.3; }
-}
-
-@keyframes cinema-orbit {
+/* Ring rotations */
+@keyframes holo-ring-1 {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+@keyframes holo-ring-2 {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+@keyframes holo-ring-3 {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
 
+/* Core pulse */
+@keyframes core-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.3); opacity: 1; }
+}
+
+/* Core icon float */
+@keyframes core-icon {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50% { transform: scale(1.08) translateY(-2px); }
+}
+
+/* Data stream */
+@keyframes data-stream {
+  0% { opacity: 0; transform: translateY(-100%); }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(100%); }
+}
+
+/* Text flicker */
+@keyframes text-flicker {
+  0%, 95%, 100% { opacity: 0.9; }
+  96% { opacity: 0.4; }
+  97% { opacity: 0.9; }
+  98% { opacity: 0.5; }
+}
+
+/* Glitch layers */
+@keyframes glitch-1 {
+  0%, 90%, 100% { transform: translate(0); }
+  92% { transform: translate(2px, -1px); }
+  94% { transform: translate(-2px, 1px); }
+  96% { transform: translate(1px, 0); }
+}
+@keyframes glitch-2 {
+  0%, 88%, 100% { transform: translate(0); }
+  90% { transform: translate(-2px, 1px); }
+  93% { transform: translate(2px, -1px); }
+  95% { transform: translate(-1px, 0); }
+}
+
+/* Shimmer on progress bar */
 @keyframes cinema-shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
 
-.animate-cinema-ray { animation: cinema-ray 4s ease-in-out infinite; }
-.animate-cinema-ring-outer { animation: cinema-ring-outer 3s ease-in-out infinite; }
-.animate-cinema-ring-middle { animation: cinema-ring-middle 8s linear infinite; }
-.animate-cinema-ring-inner { animation: cinema-ring-inner 2s ease-in-out infinite; }
-.animate-cinema-orbit { animation: cinema-orbit 6s linear infinite; }
+.animate-holo-scan { animation: holo-scan 3.5s linear infinite; }
+.animate-holo-scan-reverse { animation: holo-scan-reverse 4.5s linear infinite; }
+.animate-holo-ring-1 { animation: holo-ring-1 12s linear infinite; }
+.animate-holo-ring-2 { animation: holo-ring-2 8s linear infinite; }
+.animate-holo-ring-3 { animation: holo-ring-3 4s linear infinite; }
+.animate-core-pulse { animation: core-pulse 2.5s ease-in-out infinite; }
+.animate-core-icon { animation: core-icon 3s ease-in-out infinite; }
+.animate-data-stream { animation: data-stream 3s linear infinite; }
+.animate-text-flicker { animation: text-flicker 4s ease-in-out infinite; }
+.animate-glitch-1 { animation: glitch-1 5s ease-in-out infinite; }
+.animate-glitch-2 { animation: glitch-2 5s ease-in-out infinite; }
 .animate-cinema-shimmer { animation: cinema-shimmer 2s linear infinite; }
 
-/* Fade in up animation - alternative to framer-motion */
+/* Fade in up animation */
 @keyframes fade-in-up {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }

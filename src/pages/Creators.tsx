@@ -41,7 +41,7 @@ export default function Creators() {
     queryFn: async () => {
       let query = supabase
         .from('movie_projects')
-        .select('id, title, thumbnail_url, video_url, likes_count, created_at')
+        .select('id, title, thumbnail_url, video_url, video_clips, likes_count, created_at')
         .eq('is_public', true)
         .not('video_url', 'is', null)
         .order('created_at', { ascending: false })
@@ -72,13 +72,24 @@ export default function Creators() {
           }
         });
 
-        return projects.map(p => ({
-          ...p,
-          first_clip_url: clipMap.get(p.id) || null,
-        }));
+        return projects.map(p => {
+          let clipUrl = clipMap.get(p.id) || null;
+          if (!clipUrl && p.video_clips && Array.isArray(p.video_clips) && p.video_clips.length > 0) {
+            const firstMp4 = (p.video_clips as string[]).find((u: string) => u.includes('.mp4'));
+            if (firstMp4) clipUrl = firstMp4;
+          }
+          return { ...p, first_clip_url: clipUrl };
+        });
       }
 
-      return projects.map(p => ({ ...p, first_clip_url: null }));
+      return projects.map(p => {
+        let clipUrl: string | null = null;
+        if (p.video_clips && Array.isArray(p.video_clips) && p.video_clips.length > 0) {
+          const firstMp4 = (p.video_clips as string[]).find((u: string) => u.includes('.mp4'));
+          if (firstMp4) clipUrl = firstMp4;
+        }
+        return { ...p, first_clip_url: clipUrl };
+      });
     },
     staleTime: 60000,
   });

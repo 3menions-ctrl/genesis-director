@@ -15,95 +15,94 @@ export function GlassShatterScene({ isShattered, isFading }: GlassShatterScenePr
   const timeRef = useRef(0);
   const { gl } = useThree();
   
-  // Generate shard data once - higher count for premium realism
-  const shards = useMemo(() => generateShardData(130), []);
+  // Premium shard count for cinematic density
+  const shards = useMemo(() => generateShardData(160), []);
   
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      // Force dispose of WebGL resources
-      if (gl) {
-        gl.dispose();
-      }
+      if (gl) gl.dispose();
     };
   }, [gl]);
   
-  // Subtle scene rotation for depth
+  // Ultra-subtle scene breathing for parallax depth
   useFrame((_, delta) => {
     if (groupRef.current && isShattered) {
       timeRef.current += delta;
-      groupRef.current.rotation.y = Math.sin(timeRef.current * 0.08) * 0.015;
-      groupRef.current.rotation.x = Math.cos(timeRef.current * 0.06) * 0.008;
+      groupRef.current.rotation.y = Math.sin(timeRef.current * 0.05) * 0.008;
+      groupRef.current.rotation.x = Math.cos(timeRef.current * 0.04) * 0.005;
     }
   });
 
   return (
     <>
-      {/* Premium lighting - cinematic 3-point + accents */}
-      <ambientLight intensity={0.05} color="#d8d0ff" />
+      {/* Cinematic lighting rig — 7-point setup */}
+      <ambientLight intensity={0.03} color="#c8c0ff" />
       
-      {/* Key light - strong top-front for shard highlights */}
+      {/* Key light — strong directional for specular highlights */}
       <spotLight
-        position={[2, 8, 12]}
-        intensity={5}
-        angle={0.4}
-        penumbra={0.9}
-        color="#ffffff"
+        position={[3, 10, 15]}
+        intensity={6}
+        angle={0.35}
+        penumbra={0.95}
+        color="#f8f4ff"
         castShadow
+        shadow-mapSize={[1024, 1024]}
       />
       
-      {/* Fill light - softer from opposite side */}
+      {/* Fill light — soft opposite side */}
       <spotLight
-        position={[-6, 4, 8]}
-        intensity={2}
-        angle={0.6}
+        position={[-8, 5, 10]}
+        intensity={1.8}
+        angle={0.5}
         penumbra={1}
         color="#e0e8ff"
       />
       
-      {/* Accent light - purple from left for color */}
-      <pointLight position={[-10, 3, 5]} intensity={3} color="#a855f7" />
+      {/* Purple accent — brand color splash */}
+      <pointLight position={[-12, 4, 6]} intensity={2.5} color="#8b5cf6" />
       
-      {/* Secondary accent - cooler blue from right */}
-      <pointLight position={[10, -2, 4]} intensity={2.5} color="#3b82f6" />
+      {/* Cool blue counterbalance */}
+      <pointLight position={[12, -3, 5]} intensity={2} color="#3b82f6" />
       
-      {/* Rim light - dramatic backlight for silhouette */}
-      <pointLight position={[0, -5, -8]} intensity={4} color="#7c3aed" />
+      {/* Rim backlight — dramatic silhouette edge */}
+      <pointLight position={[0, -6, -10]} intensity={5} color="#6d28d9" />
       
-      {/* Top hair light for edge highlights on shards */}
-      <pointLight position={[0, 10, 2]} intensity={2} color="#ffffff" />
+      {/* Hair light — top edge definition */}
+      <pointLight position={[0, 12, 3]} intensity={1.5} color="#e2e8f0" />
       
-      {/* Impact point glow - bright white flash */}
+      {/* Impact epicenter — white burst */}
       <pointLight 
-        position={[0, 0, 1.5]} 
-        intensity={isShattered ? 15 : 0} 
+        position={[0, 0, 2]} 
+        intensity={isShattered ? 20 : 0} 
         color="#ffffff" 
-        distance={8}
+        distance={10}
         decay={2}
       />
       
-      {/* Secondary impact glow - purple bloom */}
+      {/* Impact bloom — purple halo */}
       <pointLight 
-        position={[0, 0, 0.5]} 
-        intensity={isShattered ? 10 : 0} 
-        color="#a855f7" 
-        distance={5}
-        decay={2}
-      />
-      
-      {/* Warm accent from below for dramatic underlight */}
-      <pointLight 
-        position={[0, -3, 3]} 
-        intensity={isShattered ? 4 : 0} 
-        color="#f59e0b" 
+        position={[0, 0, 0.8]} 
+        intensity={isShattered ? 12 : 0} 
+        color="#8b5cf6" 
         distance={6}
         decay={2}
       />
+      
+      {/* Warm underlight — cinematic depth */}
+      <pointLight 
+        position={[0, -4, 4]} 
+        intensity={isShattered ? 3 : 0} 
+        color="#d97706" 
+        distance={8}
+        decay={2}
+      />
 
-      {/* Premium environment for realistic reflections */}
-      <Environment preset="city" />
+      {/* Studio HDRI for photorealistic reflections */}
+      <Environment preset="studio" />
 
-      {/* Shards group */}
+      {/* Fog for atmospheric depth */}
+      <fog attach="fog" args={['#050510', 8, 25]} />
+
       <group ref={groupRef}>
         {shards.map((shard: ShardData) => (
           <GlassShard
@@ -115,169 +114,105 @@ export function GlassShatterScene({ isShattered, isFading }: GlassShatterScenePr
         ))}
       </group>
 
-      {/* Premium crack lines at impact point */}
-      {isShattered && <CrackLines />}
-      
-      {/* Floating dust particles */}
-      {isShattered && <DustParticles />}
+      {isShattered && <ImpactRing />}
+      {isShattered && <VolumetricDust />}
     </>
   );
 }
 
-// Floating dust particles for atmosphere
-function DustParticles() {
-  const particlesRef = useRef<THREE.Points>(null);
-  const startTimeRef = useRef<number | null>(null);
-  
-  const { geometry, material } = useMemo(() => {
-    const count = 150;
-    const positions = new Float32Array(count * 3);
-    const velocities = new Float32Array(count * 3);
-    
-    for (let i = 0; i < count; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 0.5;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 0.5;
-      positions[i * 3 + 2] = Math.random() * 0.5;
-      
-      velocities[i * 3] = (Math.random() - 0.5) * 2;
-      velocities[i * 3 + 1] = (Math.random() - 0.5) * 2;
-      velocities[i * 3 + 2] = Math.random() * 3;
-    }
-    
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geo.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
-    
-    const mat = new THREE.PointsMaterial({
-      size: 0.012,
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.5,
-      sizeAttenuation: true,
-      blending: THREE.AdditiveBlending,
-    });
-    
-    return { geometry: geo, material: mat };
-  }, []);
+/** Expanding shockwave ring at impact point */
+function ImpactRing() {
+  const ringRef = useRef<THREE.Mesh>(null);
+  const matRef = useRef<THREE.MeshBasicMaterial>(null);
+  const startRef = useRef<number | null>(null);
 
   useFrame((state) => {
-    if (!particlesRef.current) return;
+    if (!ringRef.current || !matRef.current) return;
+    if (startRef.current === null) startRef.current = state.clock.elapsedTime;
     
-    if (startTimeRef.current === null) {
-      startTimeRef.current = state.clock.elapsedTime;
-    }
-    
-    const elapsed = state.clock.elapsedTime - startTimeRef.current;
-    const positions = particlesRef.current.geometry.attributes.position.array as Float32Array;
-    const velocities = particlesRef.current.geometry.attributes.velocity.array as Float32Array;
-    
-    // Much slower particle drift for slow-motion realism
-    for (let i = 0; i < positions.length / 3; i++) {
-      const decay = Math.exp(-elapsed * 0.1);
-      positions[i * 3] += velocities[i * 3] * 0.004 * decay;
-      positions[i * 3 + 1] += velocities[i * 3 + 1] * 0.004 * decay;
-      positions[i * 3 + 2] += velocities[i * 3 + 2] * 0.006 * decay;
-    }
-    
-    particlesRef.current.geometry.attributes.position.needsUpdate = true;
-    
-    // Slower fade matching the longer animation
-    if (elapsed > 5) {
-      material.opacity = Math.max(0, 0.5 * (1 - (elapsed - 5) / 4));
-    }
+    const t = state.clock.elapsedTime - startRef.current;
+    const scale = 1 + t * 2.5;
+    ringRef.current.scale.set(scale, scale, 1);
+    matRef.current.opacity = Math.max(0, 0.6 * Math.exp(-t * 0.8));
   });
 
-  return <points ref={particlesRef} geometry={geometry} material={material} />;
-}
-
-// Procedural crack lines
-function CrackLines() {
-  const lines = useMemo(() => {
-    const result: { angle: number; length: number }[] = [];
-    const count = 24;
-    
-    for (let i = 0; i < count; i++) {
-      const baseAngle = (i / count) * Math.PI * 2;
-      const angleVariation = (Math.random() - 0.5) * 0.25;
-      result.push({ 
-        angle: baseAngle + angleVariation, 
-        length: 3 + Math.random() * 2 
-      });
-    }
-    return result;
-  }, []);
-
   return (
-    <group position={[0, 0, 0.02]}>
-      {lines.map((line, i) => (
-        <CrackLine 
-          key={i} 
-          angle={line.angle} 
-          length={line.length}
-          delay={i * 0.015}
-        />
-      ))}
-    </group>
+    <mesh ref={ringRef} position={[0, 0, 0.05]} rotation={[0, 0, 0]}>
+      <ringGeometry args={[0.3, 0.35, 64]} />
+      <meshBasicMaterial
+        ref={matRef}
+        color="#c4b5fd"
+        transparent
+        opacity={0.6}
+        side={THREE.DoubleSide}
+        blending={THREE.AdditiveBlending}
+      />
+    </mesh>
   );
 }
 
-interface CrackLineProps {
-  angle: number;
-  length: number;
-  delay: number;
-}
-
-function CrackLine({ angle, length, delay }: CrackLineProps) {
-  const lineRef = useRef<THREE.Line>(null);
-  const progressRef = useRef(0);
-  const startTimeRef = useRef<number | null>(null);
-
-  const { geometry, material } = useMemo(() => {
-    const points: THREE.Vector3[] = [];
-    const segments = 20;
+/** Volumetric dust cloud for atmosphere */
+function VolumetricDust() {
+  const pointsRef = useRef<THREE.Points>(null);
+  const startRef = useRef<number | null>(null);
+  
+  const { geometry, material, velocities } = useMemo(() => {
+    const count = 200;
+    const pos = new Float32Array(count * 3);
+    const vel = new Float32Array(count * 3);
+    const sizes = new Float32Array(count);
     
-    for (let i = 0; i <= segments; i++) {
-      const t = i / segments;
-      const x = Math.cos(angle) * t * length;
-      const y = Math.sin(angle) * t * length;
-      const wave = Math.sin(t * 8) * 0.02 * t;
-      const perpX = -Math.sin(angle) * wave;
-      const perpY = Math.cos(angle) * wave;
-      points.push(new THREE.Vector3(x + perpX, y + perpY, 0));
+    for (let i = 0; i < count; i++) {
+      // Concentrated at origin, expanding outward
+      pos[i * 3] = (Math.random() - 0.5) * 0.3;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 0.3;
+      pos[i * 3 + 2] = Math.random() * 0.3;
+      
+      vel[i * 3] = (Math.random() - 0.5) * 3;
+      vel[i * 3 + 1] = (Math.random() - 0.5) * 3;
+      vel[i * 3 + 2] = Math.random() * 4;
+      
+      sizes[i] = 0.008 + Math.random() * 0.015;
     }
     
-    const geo = new THREE.BufferGeometry().setFromPoints(points);
-    const mat = new THREE.LineBasicMaterial({
-      color: 0xffffff,
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+    
+    const mat = new THREE.PointsMaterial({
+      size: 0.01,
+      color: 0xe8e0ff,
       transparent: true,
-      opacity: 0.7,
+      opacity: 0.4,
+      sizeAttenuation: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
     });
     
-    return { geometry: geo, material: mat };
-  }, [angle, length]);
+    return { geometry: geo, material: mat, velocities: vel };
+  }, []);
 
   useFrame((state) => {
-    if (!lineRef.current) return;
+    if (!pointsRef.current) return;
+    if (startRef.current === null) startRef.current = state.clock.elapsedTime;
     
-    if (startTimeRef.current === null) {
-      startTimeRef.current = state.clock.elapsedTime;
+    const elapsed = state.clock.elapsedTime - startRef.current;
+    const positions = pointsRef.current.geometry.attributes.position.array as Float32Array;
+    
+    for (let i = 0; i < positions.length / 3; i++) {
+      const decay = Math.exp(-elapsed * 0.08);
+      positions[i * 3] += velocities[i * 3] * 0.003 * decay;
+      positions[i * 3 + 1] += velocities[i * 3 + 1] * 0.003 * decay;
+      positions[i * 3 + 2] += velocities[i * 3 + 2] * 0.004 * decay;
     }
     
-    const elapsed = state.clock.elapsedTime - startTimeRef.current - delay;
-    if (elapsed < 0) return;
+    pointsRef.current.geometry.attributes.position.needsUpdate = true;
     
-    // Slower crack propagation
-    progressRef.current = Math.min(1, elapsed * 1.0);
-    
-    const drawRange = Math.floor(progressRef.current * 20);
-    geometry.setDrawRange(0, drawRange + 1);
-    
-    // Longer-lasting cracks
-    const fadeStart = 5;
-    if (elapsed > fadeStart) {
-      material.opacity = Math.max(0, 0.7 * (1 - (elapsed - fadeStart) / 4));
-    }
+    // Graceful fade
+    material.opacity = elapsed < 6
+      ? 0.4 
+      : Math.max(0, 0.4 * (1 - (elapsed - 6) / 5));
   });
 
-  return <primitive ref={lineRef} object={new THREE.Line(geometry, material)} />;
+  return <points ref={pointsRef} geometry={geometry} material={material} />;
 }

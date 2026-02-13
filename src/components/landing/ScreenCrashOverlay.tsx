@@ -199,16 +199,16 @@ const ScreenCrashOverlay = memo(function ScreenCrashOverlay({
         >
           <SilentBoundary>
           <Canvas
-              camera={{ position: [0, 0, 5], fov: 55 }}
+              camera={{ position: [0, 0, 5.5], fov: 50 }}
               gl={{ 
                 antialias: true, 
                 alpha: true,
                 powerPreference: 'high-performance',
                 failIfMajorPerformanceCaveat: false,
                 toneMapping: THREE.ACESFilmicToneMapping,
-                toneMappingExposure: 1.2,
+                toneMappingExposure: 1.4,
               }}
-              dpr={[1, 2]}
+              dpr={[1, 2.5]}
               frameloop={phase === 'cta' ? 'demand' : 'always'}
               onCreated={({ gl }) => {
                 // STABILITY FIX: Store renderer ref for cleanup

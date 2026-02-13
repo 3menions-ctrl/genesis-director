@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Plus, ExternalLink, Copy, BarChart3, Settings2, Trash2, Play, Pause, Eye, MousePointerClick, Film, Sparkles, ArrowLeft, Layers } from 'lucide-react';
+import { Plus, Copy, BarChart3, Settings2, Trash2, Play, Pause, Eye, MousePointerClick, Film, ArrowLeft, Layers, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -11,6 +11,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WidgetBuilderForm } from '@/components/scenes/WidgetBuilderForm';
 import { WidgetAnalytics } from '@/components/scenes/WidgetAnalytics';
 import type { WidgetConfig } from '@/types/widget';
+
+/* ── dark glass tokens ── */
+const glass = 'bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm';
+const glassHover = 'hover:bg-white/[0.06] hover:border-white/[0.12]';
+const textPrimary = 'text-white/90';
+const textSecondary = 'text-white/50';
+const textMuted = 'text-white/30';
 
 export function ScenesHub() {
   const { user } = useAuth();
@@ -99,12 +106,12 @@ export function ScenesHub() {
   }, []);
 
   const statusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      published: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25',
-      paused: 'bg-amber-500/15 text-amber-300 border border-amber-500/25',
-      draft: 'bg-muted text-muted-foreground border border-border',
+    const map: Record<string, string> = {
+      published: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+      paused: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+      draft: 'bg-white/[0.06] text-white/40 border-white/[0.1]',
     };
-    return styles[status] || styles.draft;
+    return map[status] || map.draft;
   };
 
   return (
@@ -115,24 +122,24 @@ export function ScenesHub() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => { setSelectedWidget(null); setActiveTab('list'); }}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-all"
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm ${textSecondary} hover:text-white/80 hover:bg-white/[0.06] transition-all`}
             >
               <ArrowLeft className="w-4 h-4" />
               Back
             </button>
-            <div className="h-5 w-px bg-border" />
-            <h2 className="text-lg font-semibold text-foreground tracking-tight">{selectedWidget.name}</h2>
-            <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium uppercase tracking-wider ${statusBadge(selectedWidget.status)}`}>
+            <div className="h-5 w-px bg-white/[0.1]" />
+            <h2 className={`text-lg font-semibold ${textPrimary} tracking-tight`}>{selectedWidget.name}</h2>
+            <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium uppercase tracking-wider border ${statusBadge(selectedWidget.status)}`}>
               {selectedWidget.status}
             </span>
           </div>
 
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'builder' | 'analytics')}>
-            <TabsList className="bg-card border border-border p-1 rounded-xl">
-              <TabsTrigger value="builder" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg gap-2 text-sm">
+            <TabsList className="bg-white/[0.04] border border-white/[0.08] p-1 rounded-xl">
+              <TabsTrigger value="builder" className="data-[state=active]:bg-white/[0.1] data-[state=active]:text-white rounded-lg gap-2 text-sm text-white/50 data-[state=active]:shadow-none">
                 <Settings2 className="w-4 h-4" /> Builder
               </TabsTrigger>
-              <TabsTrigger value="analytics" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg gap-2 text-sm">
+              <TabsTrigger value="analytics" className="data-[state=active]:bg-white/[0.1] data-[state=active]:text-white rounded-lg gap-2 text-sm text-white/50 data-[state=active]:shadow-none">
                 <BarChart3 className="w-4 h-4" /> Analytics
               </TabsTrigger>
             </TabsList>
@@ -150,23 +157,18 @@ export function ScenesHub() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                </div>
-                <h2 className="text-2xl font-bold text-foreground tracking-tight">Scenes</h2>
-              </div>
-              <p className="text-sm text-muted-foreground pl-12">Video conversion widgets & landing pages</p>
+              <h2 className={`text-2xl font-bold ${textPrimary} tracking-tight`}>Scenes</h2>
+              <p className={`text-sm ${textSecondary}`}>Video conversion widgets & landing pages</p>
             </div>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2">
+                <button className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium ${textPrimary} ${glass} ${glassHover} transition-all`}>
                   <Plus className="w-4 h-4" /> New Widget
-                </Button>
+                </button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="bg-[#1a1714] border-white/[0.1]">
                 <DialogHeader>
-                  <DialogTitle>Create New Widget</DialogTitle>
+                  <DialogTitle className={textPrimary}>Create New Widget</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
                   <Input
@@ -174,6 +176,7 @@ export function ScenesHub() {
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && newName.trim() && createMutation.mutate(newName.trim())}
+                    className="bg-white/[0.06] border-white/[0.1] text-white placeholder:text-white/30"
                   />
                   <Button className="w-full" disabled={!newName.trim() || createMutation.isPending} onClick={() => createMutation.mutate(newName.trim())}>
                     {createMutation.isPending ? 'Creating...' : 'Create Widget'}
@@ -186,43 +189,46 @@ export function ScenesHub() {
           {/* Content */}
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {[1,2,3].map(i => (
-                <div key={i} className="h-56 rounded-2xl bg-card border border-border animate-pulse" />
+              {[1, 2, 3].map(i => (
+                <div key={i} className={`h-56 rounded-2xl ${glass} animate-pulse`} />
               ))}
             </div>
           ) : !widgets?.length ? (
-            <div className="text-center py-24 rounded-2xl border border-dashed border-border bg-card/50">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-muted border border-border flex items-center justify-center mb-6">
-                <Layers className="w-7 h-7 text-muted-foreground" />
+            <div className={`text-center py-24 rounded-2xl border border-dashed border-white/[0.1] bg-white/[0.02]`}>
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mb-6">
+                <Layers className={`w-7 h-7 ${textSecondary}`} />
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">No widgets yet</h3>
-              <p className="text-muted-foreground mb-8 max-w-sm mx-auto text-sm leading-relaxed">
+              <h3 className={`text-lg font-semibold ${textPrimary} mb-2`}>No widgets yet</h3>
+              <p className={`${textSecondary} mb-8 max-w-sm mx-auto text-sm leading-relaxed`}>
                 Create your first video conversion widget. Embed it on any site or share as a hosted landing page.
               </p>
-              <Button onClick={() => setCreateDialogOpen(true)} variant="outline" className="gap-2">
+              <button
+                onClick={() => setCreateDialogOpen(true)}
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium ${textPrimary} ${glass} ${glassHover} transition-all`}
+              >
                 <Plus className="w-4 h-4" /> Create Your First Widget
-              </Button>
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {widgets.map((widget) => (
                 <div
                   key={widget.id}
-                  className="group relative rounded-2xl bg-card border border-border hover:border-primary/30 transition-all duration-300 overflow-hidden"
+                  className={`group relative rounded-2xl ${glass} ${glassHover} transition-all duration-300 overflow-hidden`}
                 >
-                  {/* Hover accent */}
-                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  {/* Top accent line */}
+                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/[0.15] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
                   <div className="p-5 space-y-4">
                     {/* Title row */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <h3 className="font-semibold text-foreground truncate">{widget.name}</h3>
-                        <p className="text-[11px] text-muted-foreground font-medium tracking-wide mt-0.5">
+                        <h3 className={`font-semibold ${textPrimary} truncate`}>{widget.name}</h3>
+                        <p className={`text-[11px] ${textMuted} font-medium tracking-wide mt-0.5`}>
                           {widget.widget_type === 'both' ? 'EMBED + LANDING' : widget.widget_type?.toUpperCase()}
                         </p>
                       </div>
-                      <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium uppercase tracking-wider shrink-0 ${statusBadge(widget.status)}`}>
+                      <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium uppercase tracking-wider shrink-0 border ${statusBadge(widget.status)}`}>
                         {widget.status}
                       </span>
                     </div>
@@ -234,9 +240,9 @@ export function ScenesHub() {
                         { value: widget.total_cta_clicks, label: 'Clicks', icon: MousePointerClick },
                         { value: widget.total_views > 0 ? `${((widget.total_cta_clicks / widget.total_views) * 100).toFixed(1)}%` : '—', label: 'CVR', icon: null },
                       ].map(({ value, label, icon: Icon }) => (
-                        <div key={label} className="text-center py-2.5 rounded-xl bg-muted/50 border border-border/50">
-                          <p className="text-base font-bold text-foreground tabular-nums">{value}</p>
-                          <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
+                        <div key={label} className="text-center py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                          <p className={`text-base font-bold ${textPrimary} tabular-nums`}>{value}</p>
+                          <p className={`text-[10px] ${textMuted} flex items-center justify-center gap-1 mt-0.5`}>
                             {Icon && <Icon className="w-3 h-3" />}
                             {label}
                           </p>
@@ -246,37 +252,35 @@ export function ScenesHub() {
 
                     {/* Scenes count */}
                     <div className="flex items-center gap-2">
-                      <Film className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-[11px] text-muted-foreground">{(widget.scenes as unknown[])?.length || 0} scenes configured</span>
+                      <Film className={`w-3 h-3 ${textMuted}`} />
+                      <span className={`text-[11px] ${textSecondary}`}>{(widget.scenes as unknown[])?.length || 0} scenes configured</span>
                     </div>
 
                     {/* Divider */}
-                    <div className="h-px bg-border" />
+                    <div className="h-px bg-white/[0.06]" />
 
-                    {/* Actions - balanced grid */}
+                    {/* Actions */}
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 gap-1.5 text-xs h-9"
+                      <button
+                        className={`flex-1 flex items-center justify-center gap-1.5 text-xs h-9 rounded-lg ${glass} ${glassHover} ${textSecondary} hover:text-white/80 transition-all font-medium`}
                         onClick={() => { setSelectedWidget(widget); setActiveTab('builder'); }}
                       >
                         <Settings2 className="w-3.5 h-3.5" /> Configure
-                      </Button>
-                      <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => togglePublish.mutate({ id: widget.id, status: widget.status })}>
+                      </button>
+                      <button className={`h-9 w-9 shrink-0 flex items-center justify-center rounded-lg ${glass} ${glassHover} ${textSecondary} hover:text-white/80 transition-all`} onClick={() => togglePublish.mutate({ id: widget.id, status: widget.status })}>
                         {widget.status === 'published' ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                      </Button>
-                      <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => copyEmbedCode(widget)}>
+                      </button>
+                      <button className={`h-9 w-9 shrink-0 flex items-center justify-center rounded-lg ${glass} ${glassHover} ${textSecondary} hover:text-white/80 transition-all`} onClick={() => copyEmbedCode(widget)}>
                         <Copy className="w-3.5 h-3.5" />
-                      </Button>
+                      </button>
                       {widget.slug && (
-                        <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => copyLandingUrl(widget)}>
+                        <button className={`h-9 w-9 shrink-0 flex items-center justify-center rounded-lg ${glass} ${glassHover} ${textSecondary} hover:text-white/80 transition-all`} onClick={() => copyLandingUrl(widget)}>
                           <ExternalLink className="w-3.5 h-3.5" />
-                        </Button>
+                        </button>
                       )}
-                      <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => { if (confirm('Delete this widget?')) deleteMutation.mutate(widget.id); }}>
+                      <button className={`h-9 w-9 shrink-0 flex items-center justify-center rounded-lg hover:bg-red-500/10 ${textMuted} hover:text-red-400 transition-all`} onClick={() => { if (confirm('Delete this widget?')) deleteMutation.mutate(widget.id); }}>
                         <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
+                      </button>
                     </div>
                   </div>
                 </div>

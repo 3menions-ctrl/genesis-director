@@ -121,27 +121,28 @@ const ClipsBackground = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
         <path
           d="M-100,400 Q300,200 600,350 T1200,300 T1800,450 T2200,350"
           stroke="url(#violetLine)"
-          strokeWidth="2"
+          strokeWidth="1.5"
           fill="none"
           filter="url(#softGlowPurple)"
+          style={{ opacity: 0.35 }}
         />
         
         <path
           d="M-50,600 Q400,450 800,550 T1400,480 T2000,580"
           stroke="url(#magentaLine)"
-          strokeWidth="1.5"
+          strokeWidth="1"
           fill="none"
           filter="url(#softGlowPurple)"
-          style={{ opacity: 0.8 }}
+          style={{ opacity: 0.25 }}
         />
         
         <path
           d="M-200,250 Q200,150 500,280 T1100,180 T1700,300 T2100,200"
           stroke="url(#violetLine)"
-          strokeWidth="1"
+          strokeWidth="0.8"
           fill="none"
           filter="url(#softGlowPurple)"
-          style={{ opacity: 0.6 }}
+          style={{ opacity: 0.2 }}
         />
         
         {/* Elegant static circles */}

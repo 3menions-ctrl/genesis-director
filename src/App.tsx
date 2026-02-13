@@ -58,6 +58,7 @@ const UserProfile = lazy(() => import("./pages/UserProfile"));
 const VideoDetail = lazy(() => import("./pages/VideoDetail"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const WorldChat = lazy(() => import("./pages/WorldChat"));
+const VideoEditor = lazy(() => import("./pages/VideoEditor"));
 
 // Route change tracker component
 function RouteChangeTracker() {
@@ -366,6 +367,15 @@ const App = () => {
                 <Route path="/video/:videoId" element={
                   <RouteContainer fallbackMessage="Loading video...">
                     <VideoDetail />
+                  </RouteContainer>
+                } />
+                
+                {/* Video Editor */}
+                <Route path="/editor" element={
+                  <RouteContainer fallbackMessage="Loading editor...">
+                    <ProtectedRoute>
+                      <VideoEditor />
+                    </ProtectedRoute>
                   </RouteContainer>
                 } />
                 

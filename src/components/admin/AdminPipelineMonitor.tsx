@@ -150,7 +150,7 @@ export function AdminPipelineMonitor() {
         return {
           name: config.name,
           status,
-          latency: Math.floor(Math.random() * 500) + 100, // Mock latency
+          latency: 0, // Not tracked — shown as N/A in UI
           successRate,
           callsToday: data.calls,
           failuresToday: data.failures,
@@ -163,11 +163,29 @@ export function AdminPipelineMonitor() {
       const completedToday = (apiLogs || []).filter((l: any) => l.status === 'completed').length;
       const failedToday = (apiLogs || []).filter((l: any) => l.status === 'failed').length;
 
+      // Calculate real average processing time from completed clips today
+      const { data: completedClipsToday } = await supabase
+        .from('video_clips')
+        .select('created_at, updated_at')
+        .eq('status', 'completed')
+        .gte('updated_at', today.toISOString())
+        .limit(100);
+      
+      let avgTime = 0;
+      if (completedClipsToday && completedClipsToday.length > 0) {
+        const totalSeconds = completedClipsToday.reduce((sum, clip) => {
+          const created = new Date(clip.created_at).getTime();
+          const updated = new Date(clip.updated_at).getTime();
+          return sum + (updated - created) / 1000;
+        }, 0);
+        avgTime = Math.round(totalSeconds / completedClipsToday.length);
+      }
+
       setMetrics({
         activeJobs: (activeClips?.length || 0) + (activeStitches?.length || 0),
         completedToday,
         failedToday,
-        averageProcessingTime: 45, // Mock
+        averageProcessingTime: avgTime,
         queueDepth: activeClips?.filter((c: any) => c.status === 'pending').length || 0,
       });
 

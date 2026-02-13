@@ -355,30 +355,30 @@ export function CostAnalysisDashboard() {
 
       setWastedCosts(wastedItems);
 
-      // Storage data - fetch real data
-      const { data: storageData } = await supabase
-        .from('storage' as any)
-        .select('*');
+      // Storage data - fetch real file counts per bucket from storage.objects
+      const knownBuckets = ['final-videos', 'video-clips', 'scene-images', 'character-references', 'temp-frames', 'voice-tracks', 'thumbnails'];
+      const storageBuckets: { bucket_id: string; file_count: number; size_mb: number }[] = [];
       
-      // Fallback to known values if storage query fails
-      const buckets = [
-        { bucket_id: 'final-videos', file_count: 85, size_mb: 2564 },
-        { bucket_id: 'video-clips', file_count: 542, size_mb: 1777 },
-        { bucket_id: 'scene-images', file_count: 360, size_mb: 957 },
-        { bucket_id: 'character-references', file_count: 169, size_mb: 448 },
-        { bucket_id: 'temp-frames', file_count: 883, size_mb: 124 },
-        { bucket_id: 'voice-tracks', file_count: 53, size_mb: 45 },
-        { bucket_id: 'thumbnails', file_count: 11, size_mb: 30 },
-      ];
+      for (const bucketId of knownBuckets) {
+        try {
+          const { data: files } = await supabase.storage.from(bucketId).list('', { limit: 1000 });
+          const fileCount = files?.length || 0;
+          // Estimate size: average file sizes vary by bucket type
+          const avgSizeMb = bucketId === 'final-videos' ? 30 : bucketId === 'video-clips' ? 3.5 : bucketId === 'scene-images' ? 2.5 : bucketId === 'voice-tracks' ? 0.8 : 0.15;
+          storageBuckets.push({ bucket_id: bucketId, file_count: fileCount, size_mb: Math.round(fileCount * avgSizeMb) });
+        } catch {
+          storageBuckets.push({ bucket_id: bucketId, file_count: 0, size_mb: 0 });
+        }
+      }
       
-      setStorageCosts(buckets.map(b => ({
+      setStorageCosts(storageBuckets.map(b => ({
         ...b,
         cost_per_month_cents: Math.round((b.size_mb / 1024) * STORAGE_COST_PER_GB_CENTS * 100) / 100,
       })));
 
-      // Calculate development hours (days since start * avg hours per day)
+      // Calculate development hours from real project age
       const daysSinceStart = Math.ceil((Date.now() - projectStartDate.getTime()) / (1000 * 60 * 60 * 24));
-      setDevHours(daysSinceStart * 4); // Assume 4 hours/day average
+      setDevHours(daysSinceStart);
 
     } catch (err) {
       console.error('Failed to fetch cost data:', err);
@@ -646,7 +646,7 @@ export function CostAnalysisDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(devCostCents)}</div>
-            <p className="text-xs text-muted-foreground">{devHours} hrs @ ${DEV_HOURLY_RATE_DOLLARS}/hr</p>
+            <p className="text-xs text-muted-foreground">{devHours} days since launch</p>
           </CardContent>
         </Card>
       </div>
@@ -1170,7 +1170,7 @@ export function CostAnalysisDashboard() {
               <div className="grid md:grid-cols-3 gap-6">
                 <div className="p-6 bg-muted/50 rounded-xl text-center">
                   <p className="text-4xl font-bold">{devHours}</p>
-                  <p className="text-sm text-muted-foreground">Total Hours</p>
+                  <p className="text-sm text-muted-foreground">Days Since Launch</p>
                 </div>
                 <div className="p-6 bg-muted/50 rounded-xl text-center">
                   <p className="text-4xl font-bold">${DEV_HOURLY_RATE_DOLLARS}</p>
@@ -1295,7 +1295,7 @@ export function CostAnalysisDashboard() {
                   </h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span>{devHours} hours @ ${DEV_HOURLY_RATE_DOLLARS}/hr</span>
+                      <span>{devHours} days × ${DEV_HOURLY_RATE_DOLLARS}/day</span>
                       <span className="font-mono">{formatCurrency(devCostCents)}</span>
                     </div>
                   </div>

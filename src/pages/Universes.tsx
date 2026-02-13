@@ -30,9 +30,7 @@ const UniversesContent = memo(function UniversesContent() {
 
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="mb-8"
         >
           <div className="flex items-center gap-3 mb-2">
@@ -44,14 +42,10 @@ const UniversesContent = memo(function UniversesContent() {
           <p className="text-white/50 ml-13">
             Create and explore collaborative cinematic universes
           </p>
-        </motion.div>
+        </div>
 
         {/* Main Content - wrapped in SafeComponent */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
+        <div>
           <SafeComponent name="Universes Content">
             {!isLoading && !hasUniverses ? (
               <UniverseEmptyState onCreated={(id) => navigate(`/universes/${id}`)} />
@@ -59,7 +53,7 @@ const UniversesContent = memo(function UniversesContent() {
               <CollaborativeMovieHub />
             )}
           </SafeComponent>
-        </motion.div>
+        </div>
       </main>
     </div>
   );

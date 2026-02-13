@@ -142,20 +142,13 @@ export default function Pricing() {
       {/* Hero Section */}
       <section className="relative z-10 pt-16 pb-8 px-6">
         <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
+          <div>
+            <div
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.08] mb-8"
             >
               <Sparkles className="w-4 h-4 text-amber-400" />
               <span className="text-sm text-white/60">Simple, transparent pricing</span>
-            </motion.div>
+            </div>
 
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white mb-6">
               <span className="block">Pay once.</span>
@@ -171,7 +164,7 @@ export default function Pricing() {
             <p className="text-sm text-white/30">
               1 credit = $0.10 • 10-15 credits per clip
             </p>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -180,11 +173,8 @@ export default function Pricing() {
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {PRICING_TIERS.map((tier, index) => (
-              <motion.div
+              <div
                 key={tier.id}
-                initial={{ opacity: 0, y: 40 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 + index * 0.15 }}
                 className={cn(
                   "relative group rounded-3xl",
                   tier.popular ? "lg:-mt-4 lg:mb-4" : ""
@@ -279,7 +269,7 @@ export default function Pricing() {
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>

@@ -14,7 +14,7 @@ const FAQS = [
   },
   {
     question: 'What are credits and how much do they cost?',
-    answer: 'Credits power video generation. 1 credit = $0.10. Short clips (≤6 seconds) cost 10 credits ($1); longer clips (>6 seconds) cost 15 credits ($1.50). New users get 60 free credits. Purchase packs start at $37 for 370 credits.',
+    answer: 'Credits power video generation. 1 credit = $0.10. Short clips (≤6 seconds) cost 10 credits ($1); longer clips (>6 seconds) cost 15 credits ($1.50). New users get 60 free credits. Purchase packs start at $9 for 90 credits.',
   },
   {
     question: 'Can I get a refund on credits?',
@@ -37,7 +37,7 @@ const FAQS = [
 const FAQSection = memo(forwardRef<HTMLElement, Record<string, never>>(
   function FAQSection(_, ref) {
     return (
-      <section ref={ref} id="faq" className="relative z-10 py-32 px-6">
+      <section ref={ref} className="relative z-10 py-32 px-6">
         <div className="max-w-2xl mx-auto">
           <motion.div 
             initial={{ opacity: 0, y: 30 }}

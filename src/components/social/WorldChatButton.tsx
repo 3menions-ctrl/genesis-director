@@ -132,14 +132,14 @@ export function WorldChatButton() {
       <div
         onClick={() => setIsOpen(false)}
         className={cn(
-          "fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity duration-300",
+          "fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm transition-opacity duration-300",
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
       />
 
       {/* Slide-in panel */}
       <div className={cn(
-        "fixed top-0 right-0 bottom-0 z-50 w-[400px] max-w-[85vw]",
+        "fixed top-0 right-0 bottom-0 z-[70] w-[400px] max-w-[85vw]",
         "bg-[#0a0a0a] border-l border-white/[0.06]",
         "flex flex-col",
         "transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",

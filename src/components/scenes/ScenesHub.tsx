@@ -20,7 +20,6 @@ export function ScenesHub() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newName, setNewName] = useState('');
 
-  // Fetch widgets
   const { data: widgets, isLoading } = useQuery({
     queryKey: ['widgets', user?.id],
     queryFn: async () => {
@@ -34,20 +33,14 @@ export function ScenesHub() {
     enabled: !!user,
   });
 
-  // Create widget
   const createMutation = useMutation({
     mutationFn: async (name: string) => {
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       const { data, error } = await supabase
         .from('widget_configs')
         .insert({
-          name,
-          slug,
-          user_id: user!.id,
-          widget_type: 'both',
-          scenes: [],
-          triggers: { idle_seconds: 6, scroll_percent: 35, exit_intent: true },
-          rules: [],
+          name, slug, user_id: user!.id, widget_type: 'both',
+          scenes: [], triggers: { idle_seconds: 6, scroll_percent: 35, exit_intent: true }, rules: [],
         })
         .select()
         .single();
@@ -65,7 +58,6 @@ export function ScenesHub() {
     onError: () => toast.error('Failed to create widget'),
   });
 
-  // Delete widget
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('widget_configs').delete().eq('id', id);
@@ -79,16 +71,12 @@ export function ScenesHub() {
     },
   });
 
-  // Toggle publish
   const togglePublish = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const newStatus = status === 'published' ? 'paused' : 'published';
       const { error } = await supabase
         .from('widget_configs')
-        .update({ 
-          status: newStatus, 
-          published_at: newStatus === 'published' ? new Date().toISOString() : null 
-        })
+        .update({ status: newStatus, published_at: newStatus === 'published' ? new Date().toISOString() : null })
         .eq('id', id);
       if (error) throw error;
       return newStatus;
@@ -106,18 +94,17 @@ export function ScenesHub() {
   }, []);
 
   const copyLandingUrl = useCallback((widget: WidgetConfig) => {
-    const url = `https://genesis-director.lovable.app/w/${widget.slug}`;
-    navigator.clipboard.writeText(url);
+    navigator.clipboard.writeText(`https://genesis-director.lovable.app/w/${widget.slug}`);
     toast.success('Landing page URL copied!');
   }, []);
 
   const statusBadge = (status: string) => {
-    const styles = {
-      published: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
-      paused: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
-      draft: 'bg-white/[0.05] text-white/40 border border-white/[0.08]',
+    const styles: Record<string, string> = {
+      published: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25',
+      paused: 'bg-amber-500/15 text-amber-300 border border-amber-500/25',
+      draft: 'bg-muted text-muted-foreground border border-border',
     };
-    return styles[status as keyof typeof styles] || styles.draft;
+    return styles[status] || styles.draft;
   };
 
   return (
@@ -125,29 +112,27 @@ export function ScenesHub() {
       {selectedWidget ? (
         /* ══════════ BUILDER / ANALYTICS VIEW ══════════ */
         <div className="space-y-6">
-          {/* Back bar */}
           <div className="flex items-center gap-4">
             <button
               onClick={() => { setSelectedWidget(null); setActiveTab('list'); }}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-white/50 hover:text-white/80 hover:bg-white/[0.05] transition-all"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-all"
             >
               <ArrowLeft className="w-4 h-4" />
               Back
             </button>
-            <div className="h-5 w-px bg-white/[0.08]" />
+            <div className="h-5 w-px bg-border" />
             <h2 className="text-lg font-semibold text-foreground tracking-tight">{selectedWidget.name}</h2>
             <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium uppercase tracking-wider ${statusBadge(selectedWidget.status)}`}>
               {selectedWidget.status}
             </span>
           </div>
 
-          {/* Tabs */}
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'builder' | 'analytics')}>
-            <TabsList className="bg-white/[0.03] border border-white/[0.08] p-1 rounded-xl">
-              <TabsTrigger value="builder" className="data-[state=active]:bg-white/[0.08] data-[state=active]:text-foreground rounded-lg gap-2">
+            <TabsList className="bg-card border border-border p-1 rounded-xl">
+              <TabsTrigger value="builder" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg gap-2 text-sm">
                 <Settings2 className="w-4 h-4" /> Builder
               </TabsTrigger>
-              <TabsTrigger value="analytics" className="data-[state=active]:bg-white/[0.08] data-[state=active]:text-foreground rounded-lg gap-2">
+              <TabsTrigger value="analytics" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg gap-2 text-sm">
                 <BarChart3 className="w-4 h-4" /> Analytics
               </TabsTrigger>
             </TabsList>
@@ -166,36 +151,31 @@ export function ScenesHub() {
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 border border-white/[0.08] flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
                   <Sparkles className="w-4 h-4 text-primary" />
                 </div>
                 <h2 className="text-2xl font-bold text-foreground tracking-tight">Scenes</h2>
               </div>
-              <p className="text-sm text-white/40 pl-12">Video conversion widgets & landing pages</p>
+              <p className="text-sm text-muted-foreground pl-12">Video conversion widgets & landing pages</p>
             </div>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
-                <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.15] transition-all text-sm font-medium text-foreground">
+                <Button variant="outline" className="gap-2">
                   <Plus className="w-4 h-4" /> New Widget
-                </button>
+                </Button>
               </DialogTrigger>
-              <DialogContent className="bg-black/95 backdrop-blur-xl border-white/[0.08]">
+              <DialogContent>
                 <DialogHeader>
-                  <DialogTitle className="text-foreground">Create New Widget</DialogTitle>
+                  <DialogTitle>Create New Widget</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
-                  <Input 
-                    placeholder="Widget name (e.g., Product Launch)" 
-                    value={newName} 
-                    onChange={(e) => setNewName(e.target.value)} 
+                  <Input
+                    placeholder="Widget name (e.g., Product Launch)"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && newName.trim() && createMutation.mutate(newName.trim())}
-                    className="bg-white/[0.03] border-white/[0.08] text-foreground placeholder:text-white/30"
                   />
-                  <Button 
-                    className="w-full" 
-                    disabled={!newName.trim() || createMutation.isPending} 
-                    onClick={() => createMutation.mutate(newName.trim())}
-                  >
+                  <Button className="w-full" disabled={!newName.trim() || createMutation.isPending} onClick={() => createMutation.mutate(newName.trim())}>
                     {createMutation.isPending ? 'Creating...' : 'Create Widget'}
                   </Button>
                 </div>
@@ -205,45 +185,40 @@ export function ScenesHub() {
 
           {/* Content */}
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {[1,2,3].map(i => (
-                <div key={i} className="h-52 rounded-2xl bg-white/[0.02] border border-white/[0.05] animate-pulse" />
+                <div key={i} className="h-56 rounded-2xl bg-card border border-border animate-pulse" />
               ))}
             </div>
           ) : !widgets?.length ? (
-            /* Empty state */
-            <div className="text-center py-24 rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.01]">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mb-6">
-                <Layers className="w-7 h-7 text-white/20" />
+            <div className="text-center py-24 rounded-2xl border border-dashed border-border bg-card/50">
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-muted border border-border flex items-center justify-center mb-6">
+                <Layers className="w-7 h-7 text-muted-foreground" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">No widgets yet</h3>
-              <p className="text-white/40 mb-8 max-w-sm mx-auto text-sm leading-relaxed">
+              <p className="text-muted-foreground mb-8 max-w-sm mx-auto text-sm leading-relaxed">
                 Create your first video conversion widget. Embed it on any site or share as a hosted landing page.
               </p>
-              <button
-                onClick={() => setCreateDialogOpen(true)}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.15] transition-all text-sm font-medium text-foreground"
-              >
+              <Button onClick={() => setCreateDialogOpen(true)} variant="outline" className="gap-2">
                 <Plus className="w-4 h-4" /> Create Your First Widget
-              </button>
+              </Button>
             </div>
           ) : (
-            /* Widget cards */
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {widgets.map((widget) => (
-                <div 
-                  key={widget.id} 
-                  className="group relative rounded-2xl bg-white/[0.02] backdrop-blur-sm border border-white/[0.06] hover:border-white/[0.12] hover:bg-white/[0.04] transition-all duration-300 overflow-hidden"
+                <div
+                  key={widget.id}
+                  className="group relative rounded-2xl bg-card border border-border hover:border-primary/30 transition-all duration-300 overflow-hidden"
                 >
-                  {/* Subtle top accent line */}
-                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  
+                  {/* Hover accent */}
+                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
                   <div className="p-5 space-y-4">
                     {/* Title row */}
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-0.5 min-w-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
                         <h3 className="font-semibold text-foreground truncate">{widget.name}</h3>
-                        <p className="text-[11px] text-white/30 font-medium tracking-wide">
+                        <p className="text-[11px] text-muted-foreground font-medium tracking-wide mt-0.5">
                           {widget.widget_type === 'both' ? 'EMBED + LANDING' : widget.widget_type?.toUpperCase()}
                         </p>
                       </div>
@@ -252,16 +227,16 @@ export function ScenesHub() {
                       </span>
                     </div>
 
-                    {/* Stats row */}
-                    <div className="grid grid-cols-3 gap-3">
+                    {/* Stats */}
+                    <div className="grid grid-cols-3 gap-2">
                       {[
                         { value: widget.total_views, label: 'Views', icon: Eye },
                         { value: widget.total_cta_clicks, label: 'Clicks', icon: MousePointerClick },
                         { value: widget.total_views > 0 ? `${((widget.total_cta_clicks / widget.total_views) * 100).toFixed(1)}%` : '—', label: 'CVR', icon: null },
                       ].map(({ value, label, icon: Icon }) => (
-                        <div key={label} className="text-center py-2 rounded-lg bg-white/[0.02]">
+                        <div key={label} className="text-center py-2.5 rounded-xl bg-muted/50 border border-border/50">
                           <p className="text-base font-bold text-foreground tabular-nums">{value}</p>
-                          <p className="text-[10px] text-white/30 flex items-center justify-center gap-1 mt-0.5">
+                          <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
                             {Icon && <Icon className="w-3 h-3" />}
                             {label}
                           </p>
@@ -269,49 +244,39 @@ export function ScenesHub() {
                       ))}
                     </div>
 
-                    {/* Scenes indicator */}
+                    {/* Scenes count */}
                     <div className="flex items-center gap-2">
-                      <Film className="w-3 h-3 text-white/20" />
-                      <span className="text-[11px] text-white/30">{(widget.scenes as unknown[])?.length || 0} scenes</span>
+                      <Film className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-[11px] text-muted-foreground">{(widget.scenes as unknown[])?.length || 0} scenes configured</span>
                     </div>
 
-                    {/* Hairline divider */}
-                    <div className="h-px bg-white/[0.05]" />
+                    {/* Divider */}
+                    <div className="h-px bg-border" />
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-1.5">
-                      <button
+                    {/* Actions - balanced grid */}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-1.5 text-xs h-9"
                         onClick={() => { setSelectedWidget(widget); setActiveTab('builder'); }}
-                        className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.12] text-xs text-white/60 hover:text-white/90 transition-all"
                       >
-                        <Settings2 className="w-3 h-3" /> Configure
-                      </button>
-                      <button
-                        onClick={() => togglePublish.mutate({ id: widget.id, status: widget.status })}
-                        className="h-8 w-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.12] flex items-center justify-center text-white/40 hover:text-white/80 transition-all"
-                      >
+                        <Settings2 className="w-3.5 h-3.5" /> Configure
+                      </Button>
+                      <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => togglePublish.mutate({ id: widget.id, status: widget.status })}>
                         {widget.status === 'published' ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                      </button>
-                      <button
-                        onClick={() => copyEmbedCode(widget)}
-                        className="h-8 w-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.12] flex items-center justify-center text-white/40 hover:text-white/80 transition-all"
-                      >
+                      </Button>
+                      <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => copyEmbedCode(widget)}>
                         <Copy className="w-3.5 h-3.5" />
-                      </button>
+                      </Button>
                       {widget.slug && (
-                        <button
-                          onClick={() => copyLandingUrl(widget)}
-                          className="h-8 w-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.12] flex items-center justify-center text-white/40 hover:text-white/80 transition-all"
-                        >
+                        <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => copyLandingUrl(widget)}>
                           <ExternalLink className="w-3.5 h-3.5" />
-                        </button>
+                        </Button>
                       )}
-                      <button
-                        onClick={() => { if (confirm('Delete this widget?')) deleteMutation.mutate(widget.id); }}
-                        className="h-8 w-8 rounded-lg hover:bg-destructive/10 border border-transparent hover:border-destructive/20 flex items-center justify-center text-white/20 hover:text-destructive transition-all"
-                      >
+                      <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => { if (confirm('Delete this widget?')) deleteMutation.mutate(widget.id); }}>
                         <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>

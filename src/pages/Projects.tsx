@@ -258,14 +258,26 @@ function ProjectsContentInner() {
           // Group by project_id and take first clip for each
           const clipsByProject = new Map<string, string>();
           for (const clip of clips) {
-            // Skip Replicate delivery URLs (they expire) - use Supabase storage URLs
             const isReplicateUrl = clip.video_url?.includes('replicate.delivery');
             if (!clipsByProject.has(clip.project_id) && clip.video_url && !isReplicateUrl) {
               clipsByProject.set(clip.project_id, clip.video_url);
-              console.log('[Projects] Resolved clip for project:', clip.project_id.substring(0, 8), '→', clip.video_url.substring(0, 60));
             }
           }
-          setResolvedClipUrls(clipsByProject);
+          
+          // Fallback: for projects not found in video_clips table, check video_clips column (avatar projects)
+          for (const p of projectsNeedingResolution) {
+            if (!clipsByProject.has(p.id) && p.video_clips && p.video_clips.length > 0) {
+              const firstMp4 = p.video_clips.find((u: string) => u?.includes('.mp4') && !u.includes('replicate.delivery'));
+              if (firstMp4) clipsByProject.set(p.id, firstMp4);
+            }
+          }
+          
+          // Merge with existing resolved URLs (don't lose previously resolved ones on Load More)
+          setResolvedClipUrls(prev => {
+            const merged = new Map(prev);
+            clipsByProject.forEach((url, id) => merged.set(id, url));
+            return merged;
+          });
         }
       } catch (err) {
         console.debug('[Projects] Batch clip resolution failed:', err);

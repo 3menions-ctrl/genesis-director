@@ -40,23 +40,33 @@ export function GlassShard({ shard, isShattered, isFading }: GlassShardProps) {
     return geo;
   }, [shard.vertices, shard.thickness]);
 
-  // Premium glass material
+  // Premium glass material - ultra realistic
   const material = useMemo(() => {
-    const tintHue = shard.id % 2 === 0 ? 0.75 : 0.68;
+    // Subtle color variation per shard for chromatic dispersion feel
+    const hueOptions = [0.72, 0.68, 0.78, 0.65, 0.75];
+    const tintHue = hueOptions[shard.id % hueOptions.length];
+    const saturation = 0.04 + (shard.id % 3) * 0.03;
     
     return new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color().setHSL(tintHue, 0.08, 0.97),
+      color: new THREE.Color().setHSL(tintHue, saturation, 0.98),
       metalness: 0.0,
-      roughness: 0.03,
-      transmission: 0.9,
-      thickness: 0.2,
-      ior: 1.5,
+      roughness: 0.01,
+      transmission: 0.95,
+      thickness: 0.4,
+      ior: 1.52,
       clearcoat: 1.0,
-      clearcoatRoughness: 0.1,
+      clearcoatRoughness: 0.05,
       transparent: true,
       opacity: 1,
       side: THREE.DoubleSide,
-      envMapIntensity: 2.5,
+      envMapIntensity: 3.5,
+      specularIntensity: 1.2,
+      specularColor: new THREE.Color().setHSL(0.7, 0.15, 1.0),
+      sheen: 0.1,
+      sheenRoughness: 0.3,
+      sheenColor: new THREE.Color(0xccccff),
+      attenuationColor: new THREE.Color().setHSL(tintHue, 0.12, 0.92),
+      attenuationDistance: 0.8,
     });
   }, [shard.id]);
 
@@ -116,15 +126,17 @@ export function GlassShard({ shard, isShattered, isFading }: GlassShardProps) {
     const rotationProgress = easeOutQuint(progressRef.current);
 
     const t = elapsed;
-    const gravity = 0.6;
+    const gravity = 1.2;
     
-    const velocityX = shard.velocity.x * 1.2;
-    const velocityY = shard.velocity.y * 1.2 - gravity * t * 0.2;
-    const velocityZ = shard.velocity.z * 1.8;
+    // More dramatic initial burst then slow elegance
+    const velocityX = shard.velocity.x * 1.5;
+    const velocityY = shard.velocity.y * 1.5 - gravity * t * 0.35;
+    const velocityZ = shard.velocity.z * 2.2;
     
-    const decel = Math.exp(-t * 0.4);
+    // Sharper deceleration for cinematic slow-down
+    const decel = Math.exp(-t * 0.55);
     meshRef.current.position.x = shard.initialPosition.x + velocityX * t * decel;
-    meshRef.current.position.y = shard.initialPosition.y + velocityY * t * decel - 0.5 * gravity * t * t * 0.08;
+    meshRef.current.position.y = shard.initialPosition.y + velocityY * t * decel - 0.5 * gravity * t * t * 0.12;
     meshRef.current.position.z = shard.initialPosition.z + velocityZ * t * decel;
 
     const spinDecay = Math.exp(-t * 0.3);

@@ -15,8 +15,8 @@ export function GlassShatterScene({ isShattered, isFading }: GlassShatterScenePr
   const timeRef = useRef(0);
   const { gl } = useThree();
   
-  // Generate shard data once - more shards for premium feel
-  const shards = useMemo(() => generateShardData(100), []);
+  // Generate shard data once - higher count for premium realism
+  const shards = useMemo(() => generateShardData(130), []);
   
   // Cleanup on unmount
   useEffect(() => {
@@ -39,47 +39,69 @@ export function GlassShatterScene({ isShattered, isFading }: GlassShatterScenePr
 
   return (
     <>
-      {/* Premium lighting setup */}
-      <ambientLight intensity={0.1} color="#e8e0ff" />
+      {/* Premium lighting - cinematic 3-point + accents */}
+      <ambientLight intensity={0.05} color="#d8d0ff" />
       
-      {/* Key light - bright white with slight purple tint */}
+      {/* Key light - strong top-front for shard highlights */}
       <spotLight
-        position={[0, 8, 10]}
-        intensity={4}
-        angle={0.5}
-        penumbra={0.8}
+        position={[2, 8, 12]}
+        intensity={5}
+        angle={0.4}
+        penumbra={0.9}
         color="#ffffff"
+        castShadow
       />
       
-      {/* Accent light - purple from left */}
-      <pointLight position={[-10, 3, 5]} intensity={2.5} color="#a855f7" />
+      {/* Fill light - softer from opposite side */}
+      <spotLight
+        position={[-6, 4, 8]}
+        intensity={2}
+        angle={0.6}
+        penumbra={1}
+        color="#e0e8ff"
+      />
       
-      {/* Secondary accent - blue from right */}
-      <pointLight position={[10, -2, 4]} intensity={2} color="#3b82f6" />
+      {/* Accent light - purple from left for color */}
+      <pointLight position={[-10, 3, 5]} intensity={3} color="#a855f7" />
       
-      {/* Rim light - dramatic backlight */}
-      <pointLight position={[0, -5, -8]} intensity={3} color="#8b5cf6" />
+      {/* Secondary accent - cooler blue from right */}
+      <pointLight position={[10, -2, 4]} intensity={2.5} color="#3b82f6" />
       
-      {/* Impact point glow - animated */}
+      {/* Rim light - dramatic backlight for silhouette */}
+      <pointLight position={[0, -5, -8]} intensity={4} color="#7c3aed" />
+      
+      {/* Top hair light for edge highlights on shards */}
+      <pointLight position={[0, 10, 2]} intensity={2} color="#ffffff" />
+      
+      {/* Impact point glow - bright white flash */}
       <pointLight 
-        position={[0, 0, 1]} 
-        intensity={isShattered ? 12 : 0} 
+        position={[0, 0, 1.5]} 
+        intensity={isShattered ? 15 : 0} 
         color="#ffffff" 
+        distance={8}
+        decay={2}
+      />
+      
+      {/* Secondary impact glow - purple bloom */}
+      <pointLight 
+        position={[0, 0, 0.5]} 
+        intensity={isShattered ? 10 : 0} 
+        color="#a855f7" 
+        distance={5}
+        decay={2}
+      />
+      
+      {/* Warm accent from below for dramatic underlight */}
+      <pointLight 
+        position={[0, -3, 3]} 
+        intensity={isShattered ? 4 : 0} 
+        color="#f59e0b" 
         distance={6}
         decay={2}
       />
-      
-      {/* Secondary impact glow - purple */}
-      <pointLight 
-        position={[0, 0, 0.5]} 
-        intensity={isShattered ? 8 : 0} 
-        color="#a855f7" 
-        distance={4}
-        decay={2}
-      />
 
-      {/* Premium environment for reflections */}
-      <Environment preset="night" />
+      {/* Premium environment for realistic reflections */}
+      <Environment preset="city" />
 
       {/* Shards group */}
       <group ref={groupRef}>

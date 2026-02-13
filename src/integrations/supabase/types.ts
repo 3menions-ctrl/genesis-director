@@ -3589,6 +3589,188 @@ export type Database = {
           },
         ]
       }
+      widget_configs: {
+        Row: {
+          allowed_domains: string[] | null
+          background_color: string | null
+          created_at: string
+          credits_charged: number | null
+          cta_color: string | null
+          cta_text: string | null
+          cta_url: string | null
+          font_family: string | null
+          headline: string | null
+          id: string
+          last_view_credit_checkpoint: number | null
+          logo_url: string | null
+          name: string
+          position: string | null
+          primary_color: string | null
+          public_key: string
+          published_at: string | null
+          rules: Json
+          scenes: Json
+          secondary_cta_text: string | null
+          secondary_cta_url: string | null
+          sensitivity: string | null
+          slug: string | null
+          source_project_id: string | null
+          status: string
+          subheadline: string | null
+          tone: string | null
+          total_cta_clicks: number | null
+          total_scene_plays: number | null
+          total_views: number | null
+          triggers: Json
+          updated_at: string
+          user_id: string
+          widget_height: number | null
+          widget_type: string
+          widget_width: number | null
+          z_index: number | null
+        }
+        Insert: {
+          allowed_domains?: string[] | null
+          background_color?: string | null
+          created_at?: string
+          credits_charged?: number | null
+          cta_color?: string | null
+          cta_text?: string | null
+          cta_url?: string | null
+          font_family?: string | null
+          headline?: string | null
+          id?: string
+          last_view_credit_checkpoint?: number | null
+          logo_url?: string | null
+          name: string
+          position?: string | null
+          primary_color?: string | null
+          public_key?: string
+          published_at?: string | null
+          rules?: Json
+          scenes?: Json
+          secondary_cta_text?: string | null
+          secondary_cta_url?: string | null
+          sensitivity?: string | null
+          slug?: string | null
+          source_project_id?: string | null
+          status?: string
+          subheadline?: string | null
+          tone?: string | null
+          total_cta_clicks?: number | null
+          total_scene_plays?: number | null
+          total_views?: number | null
+          triggers?: Json
+          updated_at?: string
+          user_id: string
+          widget_height?: number | null
+          widget_type?: string
+          widget_width?: number | null
+          z_index?: number | null
+        }
+        Update: {
+          allowed_domains?: string[] | null
+          background_color?: string | null
+          created_at?: string
+          credits_charged?: number | null
+          cta_color?: string | null
+          cta_text?: string | null
+          cta_url?: string | null
+          font_family?: string | null
+          headline?: string | null
+          id?: string
+          last_view_credit_checkpoint?: number | null
+          logo_url?: string | null
+          name?: string
+          position?: string | null
+          primary_color?: string | null
+          public_key?: string
+          published_at?: string | null
+          rules?: Json
+          scenes?: Json
+          secondary_cta_text?: string | null
+          secondary_cta_url?: string | null
+          sensitivity?: string | null
+          slug?: string | null
+          source_project_id?: string | null
+          status?: string
+          subheadline?: string | null
+          tone?: string | null
+          total_cta_clicks?: number | null
+          total_scene_plays?: number | null
+          total_views?: number | null
+          triggers?: Json
+          updated_at?: string
+          user_id?: string
+          widget_height?: number | null
+          widget_type?: string
+          widget_width?: number | null
+          z_index?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "widget_configs_source_project_id_fkey"
+            columns: ["source_project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "widget_configs_source_project_id_fkey"
+            columns: ["source_project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      widget_events: {
+        Row: {
+          created_at: string
+          device_type: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          page_url: string | null
+          referrer: string | null
+          scene_id: string | null
+          visitor_session: string | null
+          widget_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_type?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          page_url?: string | null
+          referrer?: string | null
+          scene_id?: string | null
+          visitor_session?: string | null
+          widget_id: string
+        }
+        Update: {
+          created_at?: string
+          device_type?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          page_url?: string | null
+          referrer?: string | null
+          scene_id?: string | null
+          visitor_session?: string | null
+          widget_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "widget_events_widget_id_fkey"
+            columns: ["widget_id"]
+            isOneToOne: false
+            referencedRelation: "widget_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       world_chat_messages: {
         Row: {
           content: string
@@ -3978,6 +4160,10 @@ export type Database = {
         Returns: Json
       }
       check_support_rate_limit: { Args: { p_email: string }; Returns: boolean }
+      check_widget_view_credits: {
+        Args: { p_widget_id: string }
+        Returns: boolean
+      }
       deactivate_account: { Args: { p_reason?: string }; Returns: boolean }
       deduct_credits: {
         Args: {
@@ -4048,6 +4234,10 @@ export type Database = {
       }
       increment_credits: {
         Args: { amount_param: number; user_id_param: string }
+        Returns: undefined
+      }
+      increment_widget_analytics: {
+        Args: { p_event_type: string; p_widget_id: string }
         Returns: undefined
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }

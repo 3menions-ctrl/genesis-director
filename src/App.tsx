@@ -59,6 +59,9 @@ const VideoDetail = lazy(() => import("./pages/VideoDetail"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const WorldChat = lazy(() => import("./pages/WorldChat"));
 const VideoEditor = lazy(() => import("./pages/VideoEditor"));
+const Scenes = lazy(() => import("./pages/Scenes"));
+const WidgetLanding = lazy(() => import("./pages/WidgetLanding"));
+const WidgetEmbed = lazy(() => import("./pages/WidgetEmbed"));
 
 // Route change tracker component
 function RouteChangeTracker() {
@@ -382,6 +385,25 @@ const App = () => {
                 {/* Legacy route redirects */}
                 <Route path="/long-video" element={<Navigate to="/create" replace />} />
                 <Route path="/pipeline/*" element={<Navigate to="/create" replace />} />
+                
+                {/* Genesis Scenes */}
+                <Route path="/scenes" element={
+                  <RouteContainer fallbackMessage="Loading scenes...">
+                    <ProtectedRoute>
+                      <Scenes />
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/w/:slug" element={
+                  <RouteContainer fallbackMessage="Loading...">
+                    <WidgetLanding />
+                  </RouteContainer>
+                } />
+                <Route path="/widget/:publicKey" element={
+                  <RouteContainer fallbackMessage="">
+                    <WidgetEmbed />
+                  </RouteContainer>
+                } />
                 
                 {/* Admin Dashboard */}
                 <Route path="/admin" element={

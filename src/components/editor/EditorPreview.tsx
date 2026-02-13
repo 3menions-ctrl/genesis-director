@@ -1,7 +1,6 @@
-import { useRef, useEffect, useCallback } from "react";
-import { Play, Pause, SkipBack, SkipForward } from "lucide-react";
+import { useRef, useEffect } from "react";
+import { Play, Pause, SkipBack, SkipForward, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import type { TimelineTrack } from "./types";
 
 interface EditorPreviewProps {
@@ -24,19 +23,16 @@ export const EditorPreview = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const rafRef = useRef<number>(0);
 
-  // Find the active video clip at currentTime
   const activeVideoClip = tracks
     .filter((t) => t.type === "video")
     .flatMap((t) => t.clips)
     .find((c) => currentTime >= c.start && currentTime < c.end);
 
-  // Find active text overlays at currentTime
   const activeTextClips = tracks
     .filter((t) => t.type === "text")
     .flatMap((t) => t.clips)
     .filter((c) => currentTime >= c.start && currentTime < c.end);
 
-  // Playback timer
   useEffect(() => {
     if (!isPlaying) {
       cancelAnimationFrame(rafRef.current);
@@ -59,7 +55,6 @@ export const EditorPreview = ({
     return () => cancelAnimationFrame(rafRef.current);
   }, [isPlaying, currentTime, duration, onTimeChange]);
 
-  // Sync video element with currentTime
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !activeVideoClip) return;
@@ -87,10 +82,13 @@ export const EditorPreview = ({
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}:${f.toString().padStart(2, "0")}`;
   };
 
+  // Scrubber percentage
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
   return (
-    <div className="h-full flex flex-col bg-background">
-      {/* Video viewport */}
-      <div className="flex-1 flex items-center justify-center bg-muted/30 relative overflow-hidden">
+    <div className="h-full flex flex-col bg-[#111]">
+      {/* Video viewport — cinematic black */}
+      <div className="flex-1 flex items-center justify-center bg-black relative overflow-hidden">
         {activeVideoClip ? (
           <video
             ref={videoRef}
@@ -99,8 +97,9 @@ export const EditorPreview = ({
             playsInline
           />
         ) : (
-          <div className="text-muted-foreground text-sm">
-            No clip at current time
+          <div className="flex flex-col items-center gap-3 text-[#444]">
+            <Play className="w-10 h-10" />
+            <span className="text-xs tracking-wide">No clip at playhead</span>
           </div>
         )}
 
@@ -115,7 +114,7 @@ export const EditorPreview = ({
                 fontSize: clip.textStyle?.fontSize || 48,
                 color: clip.textStyle?.color || "#FFFFFF",
                 fontWeight: (clip.textStyle?.fontWeight as any) || "bold",
-                textShadow: "0 2px 8px rgba(0,0,0,0.5)",
+                textShadow: "0 2px 12px rgba(0,0,0,0.7)",
               }}
             >
               {clip.textContent || ""}
@@ -124,42 +123,72 @@ export const EditorPreview = ({
         ))}
       </div>
 
-      {/* Transport controls */}
-      <div className="h-12 border-t border-border flex items-center gap-3 px-4">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onTimeChange(0)}>
-          <SkipBack className="h-3.5 w-3.5" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={onPlayPause}
+      {/* Transport bar */}
+      <div className="bg-[#1a1a1a] border-t border-[#2a2a2a]">
+        {/* Scrubber track */}
+        <div
+          className="h-1 bg-[#222] cursor-pointer group relative"
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const pct = (e.clientX - rect.left) / rect.width;
+            onTimeChange(Math.max(0, Math.min(duration, pct * duration)));
+          }}
         >
-          {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-        </Button>
+          <div
+            className="h-full bg-[#4a9eff] transition-all duration-75"
+            style={{ width: `${progress}%` }}
+          />
+          <div
+            className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#4a9eff] opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+            style={{ left: `${progress}%`, marginLeft: -5 }}
+          />
+        </div>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={() => onTimeChange(duration)}
-        >
-          <SkipForward className="h-3.5 w-3.5" />
-        </Button>
+        {/* Controls */}
+        <div className="h-10 flex items-center gap-1 px-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-[#888] hover:text-white hover:bg-[#2a2a2a]"
+            onClick={() => onTimeChange(0)}
+          >
+            <SkipBack className="h-3.5 w-3.5" />
+          </Button>
 
-        <span className="text-xs font-mono text-muted-foreground w-24">
-          {formatTime(currentTime)} / {formatTime(duration)}
-        </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-white hover:bg-[#2a2a2a]"
+            onClick={onPlayPause}
+          >
+            {isPlaying ? (
+              <Pause className="h-4 w-4" />
+            ) : (
+              <Play className="h-4 w-4 ml-0.5" />
+            )}
+          </Button>
 
-        <Slider
-          value={[currentTime]}
-          min={0}
-          max={duration || 1}
-          step={0.033}
-          onValueChange={([v]) => onTimeChange(v)}
-          className="flex-1"
-        />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-[#888] hover:text-white hover:bg-[#2a2a2a]"
+            onClick={() => onTimeChange(duration)}
+          >
+            <SkipForward className="h-3.5 w-3.5" />
+          </Button>
+
+          <div className="h-4 w-px bg-[#333] mx-1.5" />
+
+          <span className="text-[11px] font-mono text-[#888] tabular-nums">
+            {formatTime(currentTime)}
+          </span>
+          <span className="text-[11px] text-[#444] mx-1">/</span>
+          <span className="text-[11px] font-mono text-[#555] tabular-nums">
+            {formatTime(duration)}
+          </span>
+
+          <div className="flex-1" />
+        </div>
       </div>
     </div>
   );

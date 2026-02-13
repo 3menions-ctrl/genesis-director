@@ -1,7 +1,9 @@
 import { useState, useCallback, memo } from 'react';
 import { toast } from 'sonner';
+import { Film, Sparkles } from 'lucide-react';
 import ClipsBackground from '@/components/clips/ClipsBackground';
 import { CreationHub } from '@/components/studio/CreationHub';
+import { ScenesHub } from '@/components/scenes/ScenesHub';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { VideoGenerationMode, VideoStylePreset } from '@/types/video-modes';
@@ -14,6 +16,7 @@ import { BrandLoadingSpinner } from '@/components/ui/UnifiedLoadingPage';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
 import { withSafePageRef } from '@/lib/withSafeRef';
 import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
+import { cn } from '@/lib/utils';
 
 // Loading overlay component for creation in progress - uses unified brand animation
 const LoadingOverlay = memo(function LoadingOverlay({ status }: { status: string }) {
@@ -41,6 +44,7 @@ function CreateContentInner() {
   const [isCreating, setIsCreating] = useState(false);
   const [creationStatus, setCreationStatus] = useState<string>('');
   const [isHubReady, setIsHubReady] = useState(false);
+  const [activeTab, setActiveTab] = useState<'create' | 'scenes'>('create');
   
   // Use comprehensive stability guard for safe async operations
   const { isMounted, getAbortController, safeSetState } = useStabilityGuard();
@@ -198,15 +202,49 @@ function CreateContentInner() {
       {/* Top Menu Bar */}
       <AppHeader />
       
+      {/* Tab Navigation */}
+      <div className="relative z-20 max-w-6xl mx-auto px-6 pt-6">
+        <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-white/[0.05] border border-white/[0.08]">
+          <button
+            onClick={() => setActiveTab('create')}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+              activeTab === 'create'
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-white/[0.05]"
+            )}
+          >
+            <Film className="w-4 h-4" />
+            Create Video
+          </button>
+          <button
+            onClick={() => setActiveTab('scenes')}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+              activeTab === 'scenes'
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-white/[0.05]"
+            )}
+          >
+            <Sparkles className="w-4 h-4" />
+            Scenes
+          </button>
+        </div>
+      </div>
+      
       {/* Main Content - only render when ready or forced */}
       <div 
         className="relative z-10 flex-1"
         style={{ opacity: gatekeeper.isLoading ? 0 : 1, transition: 'opacity 0.3s ease-out' }}
       >
-        <CreationHub 
-          onStartCreation={handleStartCreation}
-          onReady={handleHubReady}
-        />
+        {activeTab === 'create' ? (
+          <CreationHub 
+            onStartCreation={handleStartCreation}
+            onReady={handleHubReady}
+          />
+        ) : (
+          <ScenesHub />
+        )}
       </div>
       
       {/* Loading overlay with status updates */}

@@ -386,14 +386,8 @@ const App = () => {
                 <Route path="/long-video" element={<Navigate to="/create" replace />} />
                 <Route path="/pipeline/*" element={<Navigate to="/create" replace />} />
                 
-                {/* Genesis Scenes */}
-                <Route path="/scenes" element={
-                  <RouteContainer fallbackMessage="Loading scenes...">
-                    <ProtectedRoute>
-                      <Scenes />
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
+                {/* Genesis Scenes - redirect to Create page */}
+                <Route path="/scenes" element={<Navigate to="/create" replace />} />
                 <Route path="/w/:slug" element={
                   <RouteContainer fallbackMessage="Loading...">
                     <WidgetLanding />

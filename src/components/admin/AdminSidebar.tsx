@@ -60,34 +60,35 @@ export const AdminSidebar = memo(forwardRef<HTMLElement, AdminSidebarProps>(func
       <aside 
         ref={ref}
         className={cn(
-          "fixed left-0 top-16 bottom-0 z-40 flex flex-col border-r border-border/50 bg-background/95 backdrop-blur-sm transition-all duration-300",
-          expanded ? "w-48" : "w-16"
+          "fixed left-0 top-16 bottom-0 z-40 flex flex-col border-r transition-all duration-300",
+          "bg-sidebar border-sidebar-border",
+          expanded ? "w-52" : "w-16"
         )}
       >
-        {/* Toggle Button */}
-        <div className="flex justify-end p-2 border-b border-border/50">
+        {/* Toggle */}
+        <div className="flex justify-end p-2.5 border-b border-sidebar-border">
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-7 w-7 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
             onClick={() => setExpanded(!expanded)}
           >
             {expanded ? (
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-3.5 w-3.5" />
             ) : (
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3.5 w-3.5" />
             )}
           </Button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-4">
+        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-5">
           {groups.map((group) => {
             const groupItems = navItems.filter(item => item.group === group.id);
             return (
-              <div key={group.id} className="space-y-1">
+              <div key={group.id} className="space-y-0.5">
                 {expanded && (
-                  <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                  <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-sidebar-foreground/30">
                     {group.label}
                   </p>
                 )}
@@ -97,34 +98,37 @@ export const AdminSidebar = memo(forwardRef<HTMLElement, AdminSidebarProps>(func
                   const showBadge = item.badge && messageCount > 0;
 
                   const button = (
-                    <Button
+                    <button
                       key={item.id}
-                      variant={isActive ? "secondary" : "ghost"}
-                      size={expanded ? "sm" : "icon"}
                       className={cn(
-                        "relative transition-all",
-                        expanded ? "w-full justify-start gap-2" : "w-10 h-10",
-                        isActive && "bg-primary/10 text-primary hover:bg-primary/15"
+                        "relative flex items-center w-full rounded-lg transition-all duration-200",
+                        expanded ? "gap-2.5 px-3 py-2 text-sm" : "justify-center p-2.5",
+                        isActive 
+                          ? "bg-sidebar-primary/10 text-sidebar-primary" 
+                          : "text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                       )}
                       onClick={() => onTabChange(item.id)}
                     >
-                      <Icon className="h-4 w-4 shrink-0" />
+                      <Icon className={cn("shrink-0", expanded ? "h-4 w-4" : "h-[18px] w-[18px]")} />
                       {expanded && (
-                        <span className="text-sm truncate">{item.label}</span>
+                        <span className="truncate font-medium">{item.label}</span>
                       )}
                       {showBadge && (
                         <span className={cn(
-                          "absolute flex items-center justify-center min-w-4 h-4 px-1 text-[10px] font-semibold bg-destructive text-destructive-foreground rounded-full",
+                          "absolute flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-destructive text-destructive-foreground rounded-full",
                           expanded ? "right-2" : "-top-1 -right-1"
                         )}>
                           {messageCount > 99 ? '99+' : messageCount}
                         </span>
                       )}
-                    </Button>
+                      {isActive && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-sidebar-primary" />
+                      )}
+                    </button>
                   );
 
                   if (expanded) {
-                    return button;
+                    return <div key={item.id}>{button}</div>;
                   }
 
                   return (
@@ -132,8 +136,8 @@ export const AdminSidebar = memo(forwardRef<HTMLElement, AdminSidebarProps>(func
                       <TooltipTrigger asChild>
                         {button}
                       </TooltipTrigger>
-                      <TooltipContent side="right" sideOffset={8}>
-                        <p>{item.label}</p>
+                      <TooltipContent side="right" sideOffset={12} className="text-xs">
+                        {item.label}
                       </TooltipContent>
                     </Tooltip>
                   );

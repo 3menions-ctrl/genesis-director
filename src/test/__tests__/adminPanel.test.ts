@@ -138,7 +138,7 @@ describe('Admin Panel — Sidebar Navigation', () => {
   });
 
   it('should highlight active tab with primary styling', () => {
-    expect(sidebar).toMatch(/isActive\s*&&\s*["']bg-primary/);
+    expect(sidebar).toMatch(/isActive[\s\S]*sidebar-primary/);
   });
 
   it('should show tooltips in collapsed mode', () => {

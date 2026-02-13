@@ -133,6 +133,38 @@ interface CostSummary {
   wastePercentage: number;
 }
 
+/* ─── Stat Pill ─────────────────────────────────────────────────── */
+function StatPill({ icon: Icon, label, value, sub, accent }: {
+  icon: React.ElementType;
+  label: string;
+  value: string | number;
+  sub?: string;
+  accent?: 'primary' | 'success' | 'warning' | 'destructive' | 'info';
+}) {
+  const accentColor = {
+    primary: 'text-primary',
+    success: 'text-success',
+    warning: 'text-warning',
+    destructive: 'text-destructive',
+    info: 'text-info',
+  }[accent || 'primary'];
+
+  return (
+    <div className="glass-card p-5 space-y-3">
+      <div className="flex items-center gap-2.5">
+        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center bg-muted/50", accentColor)}>
+          <Icon className="w-4 h-4" />
+        </div>
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
+      </div>
+      <div>
+        <p className="text-2xl font-bold tracking-tight text-foreground">{value}</p>
+        {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   // FIX: useAuth now returns safe fallback if context is missing
   // No try-catch needed - that violated React's hook rules
@@ -521,8 +553,8 @@ export default function AdminDashboard() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Verifying admin access...</p>
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          <p className="text-xs text-muted-foreground tracking-wider uppercase">Verifying admin access...</p>
         </div>
       </div>
     );
@@ -554,188 +586,59 @@ export default function AdminDashboard() {
     switch (activeTab) {
       case 'overview':
         return (
-          <div className="space-y-6">
-            {/* User & Project Stats */}
+          <div className="space-y-8 animate-fade-in">
+            {/* Key Metrics */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="card-premium hover:shadow-lg transition-shadow">
-                <CardHeader className="pb-2">
-                  <CardDescription className="flex items-center gap-2 text-muted-foreground">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Users className="w-4 h-4 text-primary" />
-                    </div>
-                    Total Users
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-foreground">{stats?.total_users?.toLocaleString() || 0}</div>
-                  <p className="text-sm text-success flex items-center gap-1 mt-1">
-                    <TrendingUp className="w-3 h-3" />
-                    +{stats?.users_today || 0} today
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="card-premium hover:shadow-lg transition-shadow">
-                <CardHeader className="pb-2">
-                  <CardDescription className="flex items-center gap-2 text-muted-foreground">
-                    <div className="w-8 h-8 rounded-lg bg-info/10 flex items-center justify-center">
-                      <FolderKanban className="w-4 h-4 text-info" />
-                    </div>
-                    Total Projects
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-foreground">{stats?.total_projects?.toLocaleString() || 0}</div>
-                  <p className="text-sm text-success flex items-center gap-1 mt-1">
-                    <TrendingUp className="w-3 h-3" />
-                    +{stats?.projects_today || 0} today
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="card-premium hover:shadow-lg transition-shadow">
-                <CardHeader className="pb-2">
-                  <CardDescription className="flex items-center gap-2 text-muted-foreground">
-                    <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
-                      <Coins className="w-4 h-4 text-warning" />
-                    </div>
-                    Credits Sold
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-foreground">{stats?.total_credits_sold?.toLocaleString() || 0}</div>
-                  <p className="text-sm text-muted-foreground mt-1">{stats?.total_credits_used?.toLocaleString() || 0} used</p>
-                </CardContent>
-              </Card>
-
-              <Card className="card-premium hover:shadow-lg transition-shadow">
-                <CardHeader className="pb-2">
-                  <CardDescription className="flex items-center gap-2 text-muted-foreground">
-                    <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
-                      <Activity className="w-4 h-4 text-success" />
-                    </div>
-                    Active Jobs
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-foreground">{stats?.active_generations || 0}</div>
-                  <p className="text-sm text-muted-foreground mt-1">{stats?.completed_videos || 0} videos completed</p>
-                </CardContent>
-              </Card>
+              <StatPill icon={Users} label="Users" value={stats?.total_users?.toLocaleString() || '0'} sub={`+${stats?.users_today || 0} today`} accent="primary" />
+              <StatPill icon={FolderKanban} label="Projects" value={stats?.total_projects?.toLocaleString() || '0'} sub={`+${stats?.projects_today || 0} today`} accent="info" />
+              <StatPill icon={Coins} label="Credits Sold" value={stats?.total_credits_sold?.toLocaleString() || '0'} sub={`${stats?.total_credits_used?.toLocaleString() || 0} used`} accent="warning" />
+              <StatPill icon={Activity} label="Active Jobs" value={stats?.active_generations || 0} sub={`${stats?.completed_videos || 0} completed`} accent="success" />
             </div>
 
             {/* Cost Overview */}
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Calculator className="w-5 h-5 text-primary" />
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground flex items-center gap-2">
+                <Calculator className="w-3.5 h-3.5" />
                 Cost Overview
               </h3>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-                  <CardHeader className="pb-2">
-                    <CardDescription className="flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-primary" />
-                      Total API Spend
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-foreground">
-                      {formatCurrency(costSummary?.totalApiCost || 0)}
-                    </div>
-                    <p className="text-xs text-muted-foreground">All-time API costs</p>
-                  </CardContent>
-                </Card>
-
-                <Card className={cn(
-                  "bg-gradient-to-br border",
-                  (costSummary?.wastePercentage || 0) > 10 
-                    ? "from-destructive/10 to-destructive/5 border-destructive/20" 
-                    : "from-success/10 to-success/5 border-success/20"
-                )}>
-                  <CardHeader className="pb-2">
-                    <CardDescription className="flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-destructive" />
-                      Wasted Costs
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-foreground">
-                      {formatCurrency(costSummary?.totalWastedCost || 0)}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {(costSummary?.wastePercentage || 0).toFixed(1)}% of total spend
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-warning/10 to-warning/5 border-warning/20">
-                  <CardHeader className="pb-2">
-                    <CardDescription className="flex items-center gap-2">
-                      <RefreshCw className="w-4 h-4 text-warning" />
-                      Retries
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-foreground">
-                      {costSummary?.totalRetries?.toLocaleString() || 0}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {formatCurrency((costSummary?.totalRetries || 0) * VEO_COST_PER_CLIP_CENTS)} in retry costs
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-info/10 to-info/5 border-info/20">
-                  <CardHeader className="pb-2">
-                    <CardDescription className="flex items-center gap-2">
-                      <ArrowDownRight className="w-4 h-4 text-info" />
-                      Refunds Issued
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-foreground">
-                      {costSummary?.totalRefunds?.toLocaleString() || 0}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Credits refunded to users
-                    </p>
-                  </CardContent>
-                </Card>
+                <StatPill icon={DollarSign} label="API Spend" value={formatCurrency(costSummary?.totalApiCost || 0)} sub="All-time" accent="primary" />
+                <StatPill icon={AlertTriangle} label="Wasted" value={formatCurrency(costSummary?.totalWastedCost || 0)} sub={`${(costSummary?.wastePercentage || 0).toFixed(1)}% of total`} accent="destructive" />
+                <StatPill icon={RefreshCw} label="Retries" value={costSummary?.totalRetries?.toLocaleString() || '0'} sub={formatCurrency((costSummary?.totalRetries || 0) * VEO_COST_PER_CLIP_CENTS)} accent="warning" />
+                <StatPill icon={ArrowDownRight} label="Refunds" value={costSummary?.totalRefunds?.toLocaleString() || '0'} sub="Credits refunded" accent="info" />
               </div>
             </div>
 
             {/* Failed Operations Warning */}
             {(costSummary?.failedClips || 0) > 0 && (
-              <Card className="border-destructive/50 bg-destructive/5">
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
-                      <AlertTriangle className="w-5 h-5 text-destructive" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">
-                        {costSummary?.failedClips} Failed API Operations Detected
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        These failures cost {formatCurrency(costSummary?.totalWastedCost || 0)} in wasted API spend. 
-                        View the Cost Analysis tab for detailed breakdown.
-                      </p>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setActiveTab('costs')}
-                    >
-                      View Details
-                    </Button>
+              <div className="glass-card p-4 border-destructive/20">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-5 h-5 text-destructive" />
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">
+                      {costSummary?.failedClips} failed operations
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatCurrency(costSummary?.totalWastedCost || 0)} wasted — View Cost Analysis for breakdown
+                    </p>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="text-xs shrink-0"
+                    onClick={() => setActiveTab('costs')}
+                  >
+                    Details →
+                  </Button>
+                </div>
+              </div>
             )}
 
-            <Button onClick={() => { fetchStats(); fetchCostSummary(); }} variant="outline" size="sm" className="shadow-sm">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh Stats
+            <Button onClick={() => { fetchStats(); fetchCostSummary(); }} variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground">
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+              Refresh
             </Button>
           </div>
         );
@@ -745,203 +648,150 @@ export default function AdminDashboard() {
 
       case 'users':
         return (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between gap-4">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <div className="space-y-6 animate-fade-in">
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <Input
                   placeholder="Search users..."
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && fetchUsers()}
-                  className="pl-10"
+                  className="pl-9 h-9 text-sm bg-muted/30 border-border/50"
                 />
               </div>
-              <Button onClick={fetchUsers} variant="outline" size="sm" disabled={usersLoading}>
-                {usersLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+              <Button onClick={fetchUsers} variant="ghost" size="sm" disabled={usersLoading} className="h-9">
+                {usersLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
               </Button>
             </div>
 
-            <Card className="card-premium">
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border bg-muted/30">
-                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">User</th>
-                        <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Credits</th>
-                        <th className="text-center py-3 px-4 text-sm font-medium text-muted-foreground">Projects</th>
-                        <th className="text-center py-3 px-4 text-sm font-medium text-muted-foreground">Tier</th>
-                        <th className="text-center py-3 px-4 text-sm font-medium text-muted-foreground">Roles</th>
-                        <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Actions</th>
+            <div className="glass-card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border/50">
+                      <th className="text-left py-3 px-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">User</th>
+                      <th className="text-right py-3 px-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Credits</th>
+                      <th className="text-center py-3 px-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Projects</th>
+                      <th className="text-center py-3 px-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Tier</th>
+                      <th className="text-center py-3 px-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Roles</th>
+                      <th className="text-right py-3 px-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map((u) => (
+                      <tr key={u.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
+                        <td className="py-3 px-4">
+                          <p className="text-sm font-medium text-foreground">{u.display_name || u.full_name || 'Unknown'}</p>
+                          <p className="text-xs text-muted-foreground">{u.email}</p>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <span className="font-mono text-sm">{u.credits_balance?.toLocaleString()}</span>
+                        </td>
+                        <td className="py-3 px-4 text-center text-sm text-muted-foreground">{u.project_count}</td>
+                        <td className="py-3 px-4 text-center">
+                          <Badge variant="secondary" className="text-[10px] font-medium">{u.account_tier}</Badge>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          {u.roles?.includes('admin') && (
+                            <Badge className="bg-primary/10 text-primary border border-primary/20 text-[10px]">
+                              <Crown className="w-2.5 h-2.5 mr-1" />
+                              Admin
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0"
+                              onClick={() => setCreditDialog({ 
+                                open: true, 
+                                user: u, 
+                                amount: '', 
+                                reason: '' 
+                              })}
+                            >
+                              <Coins className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={u.roles?.includes('admin') ? 'destructive' : 'ghost'}
+                              className="h-7 w-7 p-0"
+                              onClick={() => handleToggleAdminRole(u)}
+                            >
+                              <UserCog className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {users.map((u) => (
-                        <tr key={u.id} className="border-b border-border/50 hover:bg-muted/30">
-                          <td className="py-3 px-4">
-                            <div>
-                              <p className="font-medium text-foreground">{u.display_name || u.full_name || 'Unknown'}</p>
-                              <p className="text-sm text-muted-foreground">{u.email}</p>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <span className="font-mono">{u.credits_balance?.toLocaleString()}</span>
-                          </td>
-                          <td className="py-3 px-4 text-center">{u.project_count}</td>
-                          <td className="py-3 px-4 text-center">
-                            <Badge variant="secondary">{u.account_tier}</Badge>
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            {u.roles?.includes('admin') && (
-                              <Badge className="bg-primary text-primary-foreground">
-                                <Crown className="w-3 h-3 mr-1" />
-                                Admin
-                              </Badge>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setCreditDialog({ 
-                                  open: true, 
-                                  user: u, 
-                                  amount: '', 
-                                  reason: '' 
-                                })}
-                              >
-                                <Coins className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant={u.roles?.includes('admin') ? 'destructive' : 'outline'}
-                                onClick={() => handleToggleAdminRole(u)}
-                              >
-                                <UserCog className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {users.length === 0 && !usersLoading && (
-                    <div className="text-center py-12 text-muted-foreground">
-                      No users found
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                    ))}
+                  </tbody>
+                </table>
+                {users.length === 0 && !usersLoading && (
+                  <div className="text-center py-16 text-muted-foreground text-sm">
+                    No users found
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         );
 
       case 'financials':
         return (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
-                <CardHeader className="pb-2">
-                  <CardDescription className="flex items-center gap-2 text-success">
-                    <DollarSign className="w-4 h-4" />
-                    Total Revenue
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(actualStripeRevenue)}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {actualStripeRevenue === 0 ? 'No Stripe purchases yet' : 'From Stripe purchases'}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20">
-                <CardHeader className="pb-2">
-                  <CardDescription className="flex items-center gap-2 text-destructive">
-                    <ArrowDownRight className="w-4 h-4" />
-                    API Cost
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(calculatedApiCost)}</div>
-                  <p className="text-xs text-muted-foreground">{totalOperations.toLocaleString()} operations</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-                <CardHeader className="pb-2">
-                  <CardDescription className="flex items-center gap-2 text-primary">
-                    <TrendingUp className="w-4 h-4" />
-                    Net Profit
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-bold">{formatCurrency(totalProfit)}</span>
-                    {totalProfit >= 0 ? <ArrowUpRight className="w-4 h-4 text-success" /> : <ArrowDownRight className="w-4 h-4 text-destructive" />}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className={cn(
-                "bg-gradient-to-br border",
-                profitMargin >= 70 ? "from-success/10 to-success/5 border-success/20" :
-                profitMargin >= 50 ? "from-warning/10 to-warning/5 border-warning/20" :
-                "from-destructive/10 to-destructive/5 border-destructive/20"
-              )}>
-                <CardHeader className="pb-2">
-                  <CardDescription className="flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4" />
-                    Profit Margin
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{formatPercent(profitMargin)}</div>
-                  <p className="text-xs text-muted-foreground">Target: 70-80%</p>
-                </CardContent>
-              </Card>
+          <div className="space-y-8 animate-fade-in">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatPill icon={DollarSign} label="Revenue" value={formatCurrency(actualStripeRevenue)} sub={actualStripeRevenue === 0 ? 'No purchases yet' : 'Stripe purchases'} accent="success" />
+              <StatPill icon={ArrowDownRight} label="API Cost" value={formatCurrency(calculatedApiCost)} sub={`${totalOperations.toLocaleString()} operations`} accent="destructive" />
+              <StatPill icon={TrendingUp} label="Net Profit" value={formatCurrency(totalProfit)} accent="primary" />
+              <StatPill 
+                icon={BarChart3} 
+                label="Margin" 
+                value={formatPercent(profitMargin)} 
+                sub="Target: 70-80%"
+                accent={profitMargin >= 70 ? 'success' : profitMargin >= 50 ? 'warning' : 'destructive'} 
+              />
             </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="w-5 h-5" />
+            <div className="glass-card overflow-hidden">
+              <div className="p-5 border-b border-border/30">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-muted-foreground" />
                   Cost Breakdown by Service
-                </CardTitle>
-                <CardDescription>Detailed API cost tracking</CardDescription>
-              </CardHeader>
-              <CardContent>
+                </h3>
+              </div>
+              <div className="p-0">
                 {profitData.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Coins className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No cost data yet</p>
+                  <div className="text-center py-16 text-muted-foreground">
+                    <Coins className="w-8 h-8 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">No cost data yet</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
-                        <tr className="border-b border-border">
-                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Date</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Service</th>
-                          <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Ops</th>
-                          <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Revenue</th>
-                          <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Cost</th>
-                          <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Margin</th>
+                        <tr className="border-b border-border/30">
+                          <th className="text-left py-3 px-5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Date</th>
+                          <th className="text-left py-3 px-5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Service</th>
+                          <th className="text-right py-3 px-5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Ops</th>
+                          <th className="text-right py-3 px-5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Revenue</th>
+                          <th className="text-right py-3 px-5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Cost</th>
+                          <th className="text-right py-3 px-5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Margin</th>
                         </tr>
                       </thead>
                       <tbody>
                         {profitData.map((row, idx) => (
-                          <tr key={idx} className="border-b border-border/50 hover:bg-muted/30">
-                            <td className="py-3 px-4 text-sm">{new Date(row.date).toLocaleDateString()}</td>
-                            <td className="py-3 px-4">
-                              <Badge variant="secondary">{row.service}</Badge>
+                          <tr key={idx} className="border-b border-border/20 hover:bg-muted/15 transition-colors">
+                            <td className="py-3 px-5 text-sm">{new Date(row.date).toLocaleDateString()}</td>
+                            <td className="py-3 px-5">
+                              <Badge variant="secondary" className="text-[10px]">{row.service}</Badge>
                             </td>
-                            <td className="py-3 px-4 text-sm text-right">{row.total_operations.toLocaleString()}</td>
-                            <td className="py-3 px-4 text-sm text-right text-success">{formatCurrency(row.estimated_revenue_cents)}</td>
-                            <td className="py-3 px-4 text-sm text-right text-destructive">{formatCurrency(row.total_real_cost_cents)}</td>
-                            <td className="py-3 px-4 text-right">
+                            <td className="py-3 px-5 text-sm text-right text-muted-foreground">{row.total_operations.toLocaleString()}</td>
+                            <td className="py-3 px-5 text-sm text-right text-success">{formatCurrency(row.estimated_revenue_cents)}</td>
+                            <td className="py-3 px-5 text-sm text-right text-destructive">{formatCurrency(row.total_real_cost_cents)}</td>
+                            <td className="py-3 px-5 text-right">
                               <span className={cn(
                                 "text-sm font-medium",
                                 row.profit_margin_percent >= 70 ? "text-success" :
@@ -956,12 +806,12 @@ export default function AdminDashboard() {
                     </table>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            <Button onClick={fetchProfitData} variant="outline" size="sm">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh Data
+            <Button onClick={fetchProfitData} variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground">
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+              Refresh
             </Button>
           </div>
         );
@@ -971,56 +821,56 @@ export default function AdminDashboard() {
 
       case 'audit':
         return (
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <History className="w-5 h-5" />
-                  Admin Audit Log
-                </CardTitle>
-                <CardDescription>Track all admin actions</CardDescription>
-              </CardHeader>
-              <CardContent>
+          <div className="space-y-4 animate-fade-in">
+            <div className="glass-card overflow-hidden">
+              <div className="p-5 border-b border-border/30">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <History className="w-4 h-4 text-muted-foreground" />
+                  Audit Log
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">Track all admin actions</p>
+              </div>
+              <div className="p-4">
                 {auditLog.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No audit entries yet</p>
+                  <div className="text-center py-16 text-muted-foreground">
+                    <History className="w-8 h-8 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">No audit entries yet</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {auditLog.map((entry) => (
-                      <div key={entry.id} className="flex items-start gap-4 p-3 rounded-lg bg-muted/30 border border-border/50">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <Shield className="w-4 h-4 text-primary" />
+                      <div key={entry.id} className="flex items-start gap-3 p-3 rounded-xl bg-muted/20 border border-border/30 hover:bg-muted/30 transition-colors">
+                        <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Shield className="w-3.5 h-3.5 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline">{entry.action}</Badge>
+                            <Badge variant="outline" className="text-[10px]">{entry.action}</Badge>
                             {entry.target_type && (
-                              <span className="text-sm text-muted-foreground">
+                              <span className="text-xs text-muted-foreground">
                                 on {entry.target_type}
                               </span>
                             )}
                           </div>
                           {entry.details && Object.keys(entry.details).length > 0 && (
-                            <p className="text-sm text-muted-foreground mt-1">
+                            <p className="text-xs text-muted-foreground mt-1 font-mono truncate">
                               {JSON.stringify(entry.details)}
                             </p>
                           )}
                         </div>
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
                           {new Date(entry.created_at).toLocaleString()}
                         </span>
                       </div>
                     ))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            <Button onClick={fetchAuditLog} variant="outline" size="sm">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh Log
+            <Button onClick={fetchAuditLog} variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground">
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+              Refresh
             </Button>
           </div>
         );
@@ -1066,7 +916,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/30">
+    <div className="min-h-screen bg-background">
       <AppHeader />
       
       <AdminSidebar 
@@ -1076,27 +926,30 @@ export default function AdminDashboard() {
       />
       
       <main className="pl-16 transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-          {/* Premium Header */}
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8 space-y-8">
+          {/* Minimal Header */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20">
-                <Shield className="w-6 h-6 text-primary-foreground" />
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Shield className="w-4.5 h-4.5 text-primary" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                  Admin Dashboard
+                <h1 className="text-lg font-semibold tracking-tight text-foreground">
+                  Admin
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-[11px] text-muted-foreground">
                   {user?.email}
                 </p>
               </div>
             </div>
-            <Badge className="bg-primary/10 text-primary border border-primary/20 shadow-sm">
-              <Crown className="w-3.5 h-3.5 mr-1.5" />
+            <Badge variant="outline" className="text-[10px] font-medium text-muted-foreground border-border/50 gap-1.5">
+              <Crown className="w-3 h-3" />
               Administrator
             </Badge>
           </div>
+
+          {/* Hairline separator */}
+          <div className="h-px bg-border/40" />
 
           {/* Content */}
           {renderContent()}
@@ -1105,21 +958,20 @@ export default function AdminDashboard() {
 
       {/* Credit Adjustment Dialog */}
       <Dialog open={creditDialog.open} onOpenChange={(open) => !open && setCreditDialog({ open: false, user: null, amount: '', reason: '' })}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Adjust Credits</DialogTitle>
-            <DialogDescription>
-              Adjust credits for {creditDialog.user?.display_name || creditDialog.user?.email}
-              <br />
-              Current balance: <strong>{creditDialog.user?.credits_balance?.toLocaleString()}</strong>
+            <DialogTitle className="text-base">Adjust Credits</DialogTitle>
+            <DialogDescription className="text-xs">
+              {creditDialog.user?.display_name || creditDialog.user?.email} — Balance: <strong>{creditDialog.user?.credits_balance?.toLocaleString()}</strong>
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 py-3">
             <div className="flex items-center gap-2">
               <Button
                 type="button"
                 size="icon"
-                variant="outline"
+                variant="ghost"
+                className="h-9 w-9 shrink-0"
                 onClick={() => setCreditDialog(prev => ({ 
                   ...prev, 
                   amount: String(Math.abs(parseInt(prev.amount) || 0) * -1) 
@@ -1132,12 +984,13 @@ export default function AdminDashboard() {
                 placeholder="Amount"
                 value={creditDialog.amount}
                 onChange={(e) => setCreditDialog(prev => ({ ...prev, amount: e.target.value }))}
-                className="flex-1"
+                className="flex-1 h-9 text-sm"
               />
               <Button
                 type="button"
                 size="icon"
-                variant="outline"
+                variant="ghost"
+                className="h-9 w-9 shrink-0"
                 onClick={() => setCreditDialog(prev => ({ 
                   ...prev, 
                   amount: String(Math.abs(parseInt(prev.amount) || 0)) 
@@ -1150,14 +1003,15 @@ export default function AdminDashboard() {
               placeholder="Reason for adjustment..."
               value={creditDialog.reason}
               onChange={(e) => setCreditDialog(prev => ({ ...prev, reason: e.target.value }))}
+              className="h-9 text-sm"
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreditDialog({ open: false, user: null, amount: '', reason: '' })}>
+            <Button variant="ghost" size="sm" onClick={() => setCreditDialog({ open: false, user: null, amount: '', reason: '' })}>
               Cancel
             </Button>
-            <Button onClick={handleAdjustCredits}>
-              Apply Adjustment
+            <Button size="sm" onClick={handleAdjustCredits}>
+              Apply
             </Button>
           </DialogFooter>
         </DialogContent>

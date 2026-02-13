@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Zap, Crown, Building2, ArrowRight, Sparkles, Shield, Clock, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -104,6 +104,11 @@ const TRUST_POINTS = [
 export default function Pricing() {
   // Unified navigation - safe navigation with locking
   const { navigate } = useSafeNavigation();
+
+  // Always scroll to top when page loads
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#000] overflow-hidden relative">

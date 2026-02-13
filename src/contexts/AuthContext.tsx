@@ -182,6 +182,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Track intentional sign-out to prevent session resurrection
+  const signedOutRef = useRef(false);
+
   useEffect(() => {
     let mounted = true;
     let refreshInterval: ReturnType<typeof setInterval> | null = null;
@@ -240,6 +243,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         if (!mounted) return;
+        
+        // CRITICAL: If user explicitly signed out, ignore any session events
+        // This prevents stale token refresh or tab-sync from resurrecting a session
+        if (signedOutRef.current && event !== 'SIGNED_IN') {
+          console.log('[AuthContext] Ignoring auth event after intentional sign-out:', event);
+          return;
+        }
+        
+        // Clear the sign-out flag on explicit sign-in
+        if (event === 'SIGNED_IN') {
+          signedOutRef.current = false;
+        }
         
         console.log('[AuthContext] Auth state change:', event, newSession ? 'has session' : 'no session');
         
@@ -485,10 +500,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // Set flag BEFORE calling signOut to prevent onAuthStateChange from resurrecting session
+    signedOutRef.current = true;
     sessionRef.current = null;
+    setSession(null);
+    setUser(null);
     setProfile(null);
     setProfileError(null);
+    setIsAdmin(false);
+    
+    // Use global scope to clear session across all tabs
+    await supabase.auth.signOut({ scope: 'global' });
   };
 
   /**

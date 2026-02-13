@@ -99,11 +99,16 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
     }, [open, fetchPackages]);
 
     const getCheckoutId = (packageName: string): string => {
-      const name = packageName.toLowerCase();
-      if (name.includes('growth')) return 'growth';
-      if (name.includes('agency')) return 'agency';
-      if (name.includes('mini')) return 'mini';
-      return 'starter';
+      const nameMap: Record<string, string> = {
+        'mini': 'mini',
+        'starter': 'starter',
+        'growth': 'growth',
+        'agency': 'agency',
+      };
+      const key = packageName.toLowerCase().trim();
+      const checkoutId = nameMap[key] || 'starter';
+      console.log('[BuyCredits] getCheckoutId:', { packageName, key, checkoutId });
+      return checkoutId;
     };
 
     const handlePurchase = useCallback(async (pkg: CreditPackage) => {

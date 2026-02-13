@@ -314,33 +314,33 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
   const getStatusBadge = () => {
     if (hasVideo) {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-          <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">Ready</span>
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08]">
+          <div className="w-1 h-1 rounded-full bg-emerald-400" />
+          <span className="text-[10px] font-medium text-white/60 uppercase tracking-wider">Ready</span>
         </span>
       );
     }
     if (status === 'stitching_failed') {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
-          <AlertCircle className="w-2.5 h-2.5 text-amber-400" />
-          <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider">Stitch Failed</span>
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08]">
+          <div className="w-1 h-1 rounded-full bg-amber-400" />
+          <span className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Failed</span>
         </span>
       );
     }
     if (status === 'stitching') {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
-          <Loader2 className="w-2.5 h-2.5 text-amber-400 animate-spin" />
-          <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider">Stitching</span>
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08]">
+          <div className="w-1 h-1 rounded-full bg-white/40 animate-pulse" />
+          <span className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Stitching</span>
         </span>
       );
     }
     if (status === 'generating' || status === 'rendering') {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-500/20 border border-blue-500/30">
-          <Loader2 className="w-2.5 h-2.5 text-blue-400 animate-spin" />
-          <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider">Processing</span>
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08]">
+          <div className="w-1 h-1 rounded-full bg-white/40 animate-pulse" />
+          <span className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Processing</span>
         </span>
       );
     }
@@ -471,29 +471,22 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     <div
       ref={ref}
       className={cn(
-        "group relative cursor-pointer animate-fade-in transition-transform duration-300",
-        // Desktop: lift on hover; Mobile: no lift (causes jank)
-        !isTouchDevice && "hover:-translate-y-2"
+        "group relative cursor-pointer animate-fade-in transition-all duration-300",
+        !isTouchDevice && "hover:-translate-y-1"
       )}
-      style={{ animationDelay: `${Math.min(index * 0.06, 0.3)}s` }}
+      style={{ animationDelay: `${Math.min(index * 0.04, 0.2)}s` }}
       onMouseEnter={!isTouchDevice ? handleMouseEnter : undefined}
       onMouseLeave={!isTouchDevice ? handleMouseLeave : undefined}
       onTouchStart={isTouchDevice ? handleTouchStart : undefined}
       onTouchEnd={isTouchDevice ? handleTouchEnd : undefined}
       onClick={handleCardClick}
     >
-      {/* Glow effect on hover - desktop only */}
-      {!isTouchDevice && (
-        <div className="absolute -inset-2 rounded-3xl bg-gradient-to-b from-foreground/10 via-foreground/5 to-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-700 pointer-events-none" />
-      )}
-      
       <div className={cn(
-        "relative overflow-hidden rounded-2xl transition-all duration-500",
-        "bg-zinc-900 border border-white/[0.06]",
-        // MOBILE FIX: Always use aspect-video for consistency
+        "relative overflow-hidden rounded-xl transition-all duration-300",
+        "bg-zinc-900/80 border border-white/[0.06]",
         "aspect-video",
-        isHovered && "border-white/20 shadow-2xl shadow-black/50",
-        isActive && "ring-2 ring-white/30"
+        isHovered && "border-white/[0.12]",
+        isActive && "ring-1 ring-white/20"
       )}>
         
         {/* Video/Thumbnail - iOS SAFARI FIX: Only render video when hovered to save memory */}
@@ -612,17 +605,17 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
         {/* Play button - shows on hover (desktop) or tap (mobile) */}
         {hasVideo && isHovered && (
           <div className="absolute inset-0 flex items-center justify-center z-10 animate-scale-in">
-            <div className="relative w-12 sm:w-16 h-12 sm:h-16 rounded-full bg-white/20 backdrop-blur-2xl flex items-center justify-center border border-white/40 shadow-lg hover:scale-110 active:scale-95 transition-transform">
-              <Play className="w-5 sm:w-7 h-5 sm:h-7 text-white ml-0.5 sm:ml-1" fill="currentColor" />
+            <div className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-xl flex items-center justify-center border border-white/20">
+              <Play className="w-4 h-4 text-white ml-0.5" fill="currentColor" />
             </div>
           </div>
         )}
 
         {/* Pin indicator - MOBILE: Smaller on mobile */}
         {isPinned && (
-          <div className="absolute top-2 sm:top-3 left-2 sm:left-3 z-20">
-            <div className="w-5 sm:w-7 h-5 sm:h-7 rounded-md sm:rounded-lg bg-amber-500 flex items-center justify-center shadow-lg">
-              <Pin className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5 text-black" />
+          <div className="absolute top-2 left-2 z-20">
+            <div className="w-5 h-5 rounded-md bg-white/10 backdrop-blur flex items-center justify-center">
+              <Pin className="w-2.5 h-2.5 text-white/60" />
             </div>
           </div>
         )}

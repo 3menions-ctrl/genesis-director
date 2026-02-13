@@ -783,327 +783,153 @@ function ProjectsContentInner() {
         
         {/* Loading state */}
         {(isLoadingProjects && !hasLoadedOnce) ? (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center justify-center py-32"
-          >
-            <div className="relative mb-6">
-              <div className="absolute inset-0 bg-white/5 rounded-full blur-2xl scale-150 animate-pulse" />
-              <Loader2 className="relative w-10 h-10 text-zinc-500 animate-spin" />
+          <div className="flex flex-col items-center justify-center py-32 animate-fade-in">
+            <div className="w-8 h-8 border border-white/10 rounded-full flex items-center justify-center mb-4">
+              <div className="w-3 h-3 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
             </div>
-            <p className="text-zinc-500">Loading your projects...</p>
-          </motion.div>
+            <p className="text-white/20 text-sm">Loading projects...</p>
+          </div>
         ) : stats.total === 0 && stitchingProjects.length === 0 ? (
-          /* Cinematic Empty State */
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1 }}
-            className="relative flex flex-col items-center justify-center py-24 sm:py-32 px-4"
-          >
-            {/* Dramatic spotlight */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              <motion.div 
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] rounded-full"
-                style={{
-                  background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, transparent 70%)',
-                }}
-                animate={{ 
-                  scale: [1, 1.2, 1],
-                  opacity: [0.5, 0.8, 0.5]
-                }}
-                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-              />
+          /* Minimal Empty State */
+          <div className="flex flex-col items-center justify-center py-24 sm:py-32 px-4 animate-fade-in">
+            <div className="w-16 h-16 rounded-full border border-white/[0.08] flex items-center justify-center mb-8">
+              <Film className="w-7 h-7 text-white/15" strokeWidth={1} />
             </div>
-
-            {/* Film reel icon with animation */}
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-              className="relative mb-10"
-            >
-              {/* Outer glow ring */}
-              <motion.div
-                className="absolute inset-[-20px] rounded-full border border-white/10"
-                animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
-                transition={{ duration: 3, repeat: Infinity }}
-              />
-              <motion.div
-                className="absolute inset-[-40px] rounded-full border border-white/5"
-                animate={{ scale: [1, 1.15, 1], opacity: [0.2, 0.4, 0.2] }}
-                transition={{ duration: 4, repeat: Infinity, delay: 0.5 }}
-              />
-              
-              <motion.div
-                animate={{ 
-                  rotate: [0, 360],
-                }}
-                transition={{ 
-                  duration: 20, 
-                  repeat: Infinity, 
-                  ease: "linear"
-                }}
-                className="relative w-32 h-32 rounded-full bg-zinc-900 border border-white/[0.06] flex items-center justify-center shadow-2xl"
-              >
-                {/* Inner details to look like film reel */}
-                <div className="absolute inset-4 rounded-full border border-white/[0.06]" />
-                <div className="absolute inset-8 rounded-full border border-white/[0.04]" />
-                {[...Array(8)].map((_, i) => (
-                  <div 
-                    key={i}
-                    className="absolute w-2 h-2 rounded-full bg-white/20"
-                    style={{
-                      transform: `rotate(${i * 45}deg) translateY(-40px)`
-                    }}
-                  />
-                ))}
-                <Film className="w-10 h-10 text-zinc-600" strokeWidth={1} />
-              </motion.div>
-            </motion.div>
             
-            <motion.h2 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.6 }}
-              className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 text-center tracking-tight"
-            >
-              The Stage is Set
-            </motion.h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 text-center tracking-tight">
+              No projects yet
+            </h2>
             
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.6 }}
-              className="text-zinc-400 text-lg sm:text-xl mb-4 text-center max-w-lg"
-            >
-              Your creative journey begins here. Every great director started with their first scene.
-            </motion.p>
+            <p className="text-white/30 text-sm sm:text-base mb-8 text-center max-w-sm">
+              Create your first AI-generated film and it will appear here.
+            </p>
             
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6, duration: 0.6 }}
-              className="text-zinc-600 text-sm mb-10 text-center italic"
+            <button 
+              onClick={handleCreateProject}
+              className="group h-11 px-8 rounded-lg bg-white text-black hover:bg-white/90 font-medium text-sm transition-all"
             >
-              "Every frame is a chance to tell a story"
-            </motion.p>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7, duration: 0.6 }}
-            >
-              <Button 
-                onClick={handleCreateProject}
-                className="group relative h-14 px-10 rounded-full bg-white text-black hover:bg-white/90 font-bold text-lg overflow-hidden shadow-xl"
-              >
-                {/* Shimmer effect */}
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-transparent"
-                  animate={{ x: ['-100%', '100%'] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", repeatDelay: 1 }}
-                />
-                <span className="relative flex items-center gap-2">
-                  <Plus className="w-5 h-5 transition-transform group-hover:rotate-90 duration-300" />
-                  Create Your First Film
-                </span>
-              </Button>
-            </motion.div>
-
-            {/* Decorative film strips */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.5 }}
-              transition={{ delay: 1, duration: 1 }}
-              className="absolute bottom-10 left-0 right-0 flex justify-center gap-2 pointer-events-none"
-            >
-              {[...Array(7)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 0.3 + i * 0.1, y: 0 }}
-                  transition={{ delay: 1 + i * 0.1, duration: 0.5 }}
-                  className="w-16 h-12 rounded bg-zinc-900 border border-white/[0.06]"
-                  style={{ transform: `rotate(${(i - 3) * 3}deg)` }}
-                />
-              ))}
-            </motion.div>
-          </motion.div>
+              <span className="flex items-center gap-2">
+                <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 duration-300" />
+                Create Project
+              </span>
+            </button>
+          </div>
         ) : (
           <>
             {/* Premium Hero Header with Orange Theme */}
             <ProjectsHero stats={stats} />
 
             {/* Premium Search & Filter Toolbar with Orange Accents */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
-              className="mb-6"
-            >
-              <div className="relative p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] backdrop-blur-2xl overflow-hidden">
-                {/* Subtle orange glow in corner */}
-                <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-orange-500/5 blur-3xl pointer-events-none" />
-                
-                <div className="relative flex flex-col lg:flex-row items-stretch lg:items-center gap-4">
-                  {/* Search Bar - Premium with orange focus */}
-                  <div className="relative flex-1 group">
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500/10 to-amber-500/5 opacity-0 group-focus-within:opacity-100 blur-xl transition-opacity duration-500" />
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-orange-400 transition-colors" />
-                    <Input
-                      id="project-search"
-                      placeholder="Search your projects..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="relative h-12 pl-12 pr-12 bg-white/[0.03] border border-white/[0.08] text-white placeholder:text-white/30 rounded-xl focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500/50 text-base backdrop-blur-xl transition-all"
-                    />
-                    {searchQuery ? (
-                      <button 
-                        onClick={() => setSearchQuery('')}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    ) : (
-                      <kbd className="absolute right-4 top-1/2 -translate-y-1/2 hidden sm:inline-flex text-xs font-mono text-white/30 bg-white/5 px-2.5 py-1 rounded-lg border border-white/[0.08]">/</kbd>
-                    )}
-                  </div>
-
-                  {/* Divider */}
-                  <div className="hidden lg:block w-px h-10 bg-white/[0.08]" />
-
-                  {/* Filter Controls */}
-                  {/* MOBILE FIX: Wrap filters in scrollable container on mobile */}
-                  <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
-                    {/* Status Filter Tabs - Orange themed, scrollable on mobile */}
-                    <div className="flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-lg sm:rounded-xl bg-white/[0.03] border border-white/[0.06] flex-shrink-0">
-                      {[
-                        { value: 'all', label: 'All', icon: Layers },
-                        { value: 'completed', label: 'Ready', icon: Check },
-                        { value: 'processing', label: 'Active', icon: Activity },
-                        { value: 'failed', label: 'Failed', icon: AlertCircle },
-                      ].map((filter) => (
-                        <button
-                          key={filter.value}
-                          onClick={() => setStatusFilter(filter.value as any)}
-                          className={cn(
-                            "flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition-all flex-shrink-0",
-                            statusFilter === filter.value 
-                              ? "bg-gradient-to-r from-orange-500/20 to-amber-500/20 text-orange-400 border border-orange-500/30" 
-                              : "text-white/40 hover:text-white/70 hover:bg-white/[0.05]"
-                          )}
-                        >
-                          <filter.icon className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
-                          <span className="hidden xs:inline sm:inline">{filter.label}</span>
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Sort Dropdown */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-10 px-3 rounded-xl text-zinc-500 hover:text-white hover:bg-white/10 gap-2">
-                          {sortOrder === 'desc' ? <SortDesc className="w-4 h-4" /> : <SortAsc className="w-4 h-4" />}
-                          <span className="hidden sm:inline text-sm">Sort</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48 bg-zinc-900 backdrop-blur-xl border-white/10">
-                        <DropdownMenuLabel className="text-zinc-500 text-xs uppercase tracking-wider">Sort by</DropdownMenuLabel>
-                        <DropdownMenuSeparator className="bg-white/10" />
-                        <DropdownMenuCheckboxItem 
-                          checked={sortBy === 'updated'} 
-                          onCheckedChange={() => setSortBy('updated')}
-                          className="gap-2 text-zinc-300 focus:text-white focus:bg-white/10"
-                        >
-                          <Clock className="w-4 h-4" />
-                          Last Updated
-                        </DropdownMenuCheckboxItem>
-                        <DropdownMenuCheckboxItem 
-                          checked={sortBy === 'created'} 
-                          onCheckedChange={() => setSortBy('created')}
-                          className="gap-2 text-zinc-300 focus:text-white focus:bg-white/10"
-                        >
-                          <Calendar className="w-4 h-4" />
-                          Date Created
-                        </DropdownMenuCheckboxItem>
-                        <DropdownMenuCheckboxItem 
-                          checked={sortBy === 'name'} 
-                          onCheckedChange={() => setSortBy('name')}
-                          className="gap-2 text-zinc-300 focus:text-white focus:bg-white/10"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                          Name
-                        </DropdownMenuCheckboxItem>
-                        <DropdownMenuSeparator className="bg-white/10" />
-                        <DropdownMenuItem 
-                          onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                          className="gap-2 text-zinc-300 focus:text-white focus:bg-white/10"
-                        >
-                          {sortOrder === 'desc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
-                          {sortOrder === 'desc' ? 'Ascending' : 'Descending'}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    {/* View Mode Toggle - Orange themed, smaller on mobile */}
-                    <div className="flex items-center gap-0.5 p-0.5 sm:p-1 rounded-lg sm:rounded-xl bg-white/[0.03] border border-white/[0.06] flex-shrink-0">
-                      <button
-                        onClick={() => setViewMode('grid')}
-                        className={cn(
-                          "p-1.5 sm:p-2.5 rounded-md sm:rounded-lg transition-all",
-                          viewMode === 'grid' ? "bg-orange-500/20 text-orange-400" : "text-white/40 hover:text-white/70"
-                        )}
-                        title="Grid view"
-                      >
-                        <Grid3X3 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
-                      </button>
-                      <button
-                        onClick={() => setViewMode('list')}
-                        className={cn(
-                          "p-1.5 sm:p-2.5 rounded-md sm:rounded-lg transition-all",
-                          viewMode === 'list' ? "bg-orange-500/20 text-orange-400" : "text-white/40 hover:text-white/70"
-                        )}
-                        title="List view"
-                      >
-                        <LayoutList className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
-                      </button>
-                    </div>
-                  </div>
+            {/* Minimal Search & Filter Toolbar */}
+            <div className="mb-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                {/* Search */}
+                <div className="relative flex-1 group">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-white/50 transition-colors" />
+                  <Input
+                    id="project-search"
+                    placeholder="Search projects..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-10 pl-10 pr-10 bg-transparent border border-white/[0.08] text-white placeholder:text-white/20 rounded-lg focus:ring-1 focus:ring-white/20 focus:border-white/20 text-sm transition-all"
+                  />
+                  {searchQuery ? (
+                    <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline text-[10px] font-mono text-white/20 border border-white/[0.08] px-1.5 py-0.5 rounded">/</kbd>
+                  )}
                 </div>
 
-                {/* Active filters indicator - Orange themed */}
-                {(searchQuery || statusFilter !== 'all') && (
-                  <motion.div 
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="flex items-center gap-2 mt-4 pt-4 border-t border-white/[0.06]"
-                  >
-                    <span className="text-xs text-white/40">Showing:</span>
-                    {searchQuery && (
-                      <Badge className="gap-1 text-xs bg-orange-500/10 text-orange-300 border-orange-500/20 hover:bg-orange-500/20">
-                        "{searchQuery}"
-                        <button onClick={() => setSearchQuery('')} className="ml-1 hover:text-white">
-                          <X className="w-3 h-3" />
-                        </button>
-                      </Badge>
-                    )}
-                    {statusFilter !== 'all' && (
-                      <Badge className="gap-1 text-xs capitalize bg-orange-500/10 text-orange-300 border-orange-500/20 hover:bg-orange-500/20">
-                        {statusFilter}
-                        <button onClick={() => setStatusFilter('all')} className="ml-1 hover:text-white">
-                          <X className="w-3 h-3" />
-                        </button>
-                      </Badge>
-                    )}
-                    <span className="text-xs text-white/40 ml-auto">
-                      {filteredProjects.length} {filteredProjects.length === 1 ? 'project' : 'projects'}
-                    </span>
-                  </motion.div>
-                )}
+                {/* Controls row */}
+                <div className="flex items-center gap-2">
+                  {/* Status filter pills */}
+                  <div className="flex items-center gap-1 p-0.5 rounded-lg border border-white/[0.06]">
+                    {[
+                      { value: 'all', label: 'All' },
+                      { value: 'completed', label: 'Ready' },
+                      { value: 'processing', label: 'Active' },
+                      { value: 'failed', label: 'Failed' },
+                    ].map((filter) => (
+                      <button
+                        key={filter.value}
+                        onClick={() => setStatusFilter(filter.value as any)}
+                        className={cn(
+                          "px-2.5 py-1.5 rounded-md text-xs font-medium transition-all",
+                          statusFilter === filter.value
+                            ? "bg-white/10 text-white"
+                            : "text-white/30 hover:text-white/60"
+                        )}
+                      >
+                        {filter.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Sort */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="p-2 rounded-lg border border-white/[0.06] text-white/30 hover:text-white/60 hover:border-white/[0.12] transition-all">
+                        {sortOrder === 'desc' ? <SortDesc className="w-4 h-4" /> : <SortAsc className="w-4 h-4" />}
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44 bg-zinc-900/95 backdrop-blur-xl border-white/[0.08] rounded-lg">
+                      <DropdownMenuLabel className="text-white/30 text-[10px] uppercase tracking-wider">Sort by</DropdownMenuLabel>
+                      <DropdownMenuCheckboxItem checked={sortBy === 'updated'} onCheckedChange={() => setSortBy('updated')} className="text-sm text-white/60 focus:text-white focus:bg-white/[0.06]">
+                        Last Updated
+                      </DropdownMenuCheckboxItem>
+                      <DropdownMenuCheckboxItem checked={sortBy === 'created'} onCheckedChange={() => setSortBy('created')} className="text-sm text-white/60 focus:text-white focus:bg-white/[0.06]">
+                        Date Created
+                      </DropdownMenuCheckboxItem>
+                      <DropdownMenuCheckboxItem checked={sortBy === 'name'} onCheckedChange={() => setSortBy('name')} className="text-sm text-white/60 focus:text-white focus:bg-white/[0.06]">
+                        Name
+                      </DropdownMenuCheckboxItem>
+                      <DropdownMenuSeparator className="bg-white/[0.06]" />
+                      <DropdownMenuItem onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')} className="text-sm text-white/60 focus:text-white focus:bg-white/[0.06]">
+                        {sortOrder === 'desc' ? 'Oldest First' : 'Newest First'}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* View toggle */}
+                  <div className="flex items-center p-0.5 rounded-lg border border-white/[0.06]">
+                    <button
+                      onClick={() => setViewMode('grid')}
+                      className={cn("p-2 rounded-md transition-all", viewMode === 'grid' ? "bg-white/10 text-white" : "text-white/30 hover:text-white/60")}
+                    >
+                      <Grid3X3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode('list')}
+                      className={cn("p-2 rounded-md transition-all", viewMode === 'list' ? "bg-white/10 text-white" : "text-white/30 hover:text-white/60")}
+                    >
+                      <LayoutList className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
               </div>
-            </motion.div>
+
+              {/* Active filters */}
+              {(searchQuery || statusFilter !== 'all') && (
+                <div className="flex items-center gap-2 mt-3 text-xs text-white/30">
+                  <span>Showing:</span>
+                  {searchQuery && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white/[0.06] text-white/50">
+                      "{searchQuery}"
+                      <button onClick={() => setSearchQuery('')} className="hover:text-white"><X className="w-3 h-3" /></button>
+                    </span>
+                  )}
+                  {statusFilter !== 'all' && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white/[0.06] text-white/50 capitalize">
+                      {statusFilter}
+                      <button onClick={() => setStatusFilter('all')} className="hover:text-white"><X className="w-3 h-3" /></button>
+                    </span>
+                  )}
+                  <span className="ml-auto">{filteredProjects.length} {filteredProjects.length === 1 ? 'project' : 'projects'}</span>
+                </div>
+              )}
+            </div>
 
             {/* Categorized Projects Grid */}
             <motion.div 
@@ -1120,24 +946,16 @@ function ProjectsContentInner() {
                   transition={{ delay: 0.15 }}
                   className="relative"
                 >
-                  <div className="relative flex items-center gap-2 mb-4">
-                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg">
-                      <GraduationCap className="w-3 h-3 text-black" />
-                    </div>
-                    <h2 className="text-sm font-semibold text-foreground">Training Videos</h2>
-                    <Badge className="ml-auto bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30 text-[10px] px-1.5">
-                      {trainingVideos.length}
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate('/training-video')}
-                      className="h-7 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
-                    >
-                      <Plus className="w-3 h-3 mr-1" />
-                      New
-                    </Button>
-                  </div>
+                    <div className="flex items-center gap-2 mb-4">
+                     <h2 className="text-xs font-medium uppercase tracking-wider text-white/40">Training Videos</h2>
+                     <span className="text-[10px] text-white/20">{trainingVideos.length}</span>
+                     <button
+                       onClick={() => navigate('/training-video')}
+                       className="ml-auto text-[10px] uppercase tracking-wider text-white/30 hover:text-white/60 transition-colors"
+                     >
+                       + New
+                     </button>
+                   </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                     {trainingVideos.map((video, index) => (
@@ -1211,15 +1029,11 @@ function ProjectsContentInner() {
                       className="relative"
                     >
                       
-                      <div className="relative flex items-center gap-2 mb-4">
-                        <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg">
-                          <Pin className="w-3 h-3 text-black" />
+                        <div className="flex items-center gap-2 mb-4">
+                          <Pin className="w-3.5 h-3.5 text-white/40" />
+                          <h2 className="text-xs font-medium uppercase tracking-wider text-white/40">Pinned</h2>
+                          <span className="text-[10px] text-white/20 ml-auto">{filteredProjects.filter(p => pinnedProjects.has(p.id)).length}</span>
                         </div>
-                        <h2 className="text-sm font-semibold text-foreground">Pinned</h2>
-                        <Badge className="ml-auto bg-amber-500/20 text-amber-400 border-amber-500/30 hover:bg-amber-500/30 text-[10px] px-1.5">
-                          {filteredProjects.filter(p => pinnedProjects.has(p.id)).length}
-                        </Badge>
-                      </div>
                       {viewMode === 'list' ? (
                         <div className="space-y-2">
                           {filteredProjects.filter(p => pinnedProjects.has(p.id)).map((project, index) => (
@@ -1287,14 +1101,9 @@ function ProjectsContentInner() {
                         transition={{ delay: 0.1 + genreIndex * 0.05 }}
                         className="relative"
                       >
-                        <div className="relative flex items-center gap-2 mb-4">
-                          <div className="w-6 h-6 rounded-lg flex items-center justify-center shadow-lg border border-border/40 bg-gradient-to-br from-muted/80 to-muted/40">
-                            <GenreIcon className={cn("w-3 h-3", config.color)} />
-                          </div>
-                          <h2 className="text-sm font-semibold text-foreground">{config.label}</h2>
-                          <Badge variant="outline" className="ml-auto text-[10px] border-border/40 bg-muted/30 px-1.5">
-                            {genreProjects.length}
-                          </Badge>
+                        <div className="flex items-center gap-2 mb-4">
+                          <h2 className="text-xs font-medium uppercase tracking-wider text-white/40">{config.label}</h2>
+                          <span className="text-[10px] text-white/20">{genreProjects.length}</span>
                         </div>
                         {viewMode === 'list' ? (
                           <div className="space-y-2">
@@ -1347,18 +1156,16 @@ function ProjectsContentInner() {
                     );
                   })}
                   
-                  {/* iOS Safari Load More Button */}
+                  {/* Load More */}
                   {hasMoreToLoad && (
                     <div className="flex justify-center py-8">
-                      <Button
+                      <button
                         onClick={handleLoadMore}
-                        variant="outline"
                         disabled={isLoadingMore}
-                        className="gap-2 border-orange-500/30 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500/50"
+                        className="text-xs uppercase tracking-wider text-white/30 hover:text-white/60 border border-white/[0.08] hover:border-white/[0.15] px-6 py-2.5 rounded-lg transition-all disabled:opacity-50"
                       >
-                        {isLoadingMore ? <Loader2 className="w-4 h-4 animate-spin" /> : <Loader2 className="w-4 h-4" />}
-                        {isLoadingMore ? 'Loading...' : `Load More (${totalCount - displayedProjects.length} remaining)`}
-                      </Button>
+                        {isLoadingMore ? 'Loading...' : `Load More · ${totalCount - displayedProjects.length} remaining`}
+                      </button>
                     </div>
                   )}
                 </>

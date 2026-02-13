@@ -10,6 +10,10 @@ const corsHeaders = {
 // Credit packages with Stripe price IDs (must match database stripe_price_id)
 // Pricing: $1 = 10 credits
 const CREDIT_PACKAGES: Record<string, { priceId: string; credits: number }> = {
+  mini: {
+    priceId: "price_1T0ASxCh3vnsCadWpStMewh5", // $9 for 90 credits
+    credits: 90,
+  },
   starter: {
     priceId: "price_1SxftaCh3vnsCadWTBmr53l1", // $37 for 370 credits
     credits: 370,

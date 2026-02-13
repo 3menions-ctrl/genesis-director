@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreatorDiscovery, useFollowingFeed } from '@/hooks/usePublicProfile';
@@ -21,7 +21,7 @@ import CreatorsBackground from '@/components/creators/CreatorsBackground';
 import { CreatorsHero } from '@/components/creators/CreatorsHero';
 import { UniversalVideoPlayer } from '@/components/player';
 
-const glassCard = "backdrop-blur-xl bg-white/[0.03] border border-white/[0.08]";
+const glassCard = "backdrop-blur-xl bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-300";
 
 export default function Creators() {
   const { user } = useAuth();
@@ -36,7 +36,6 @@ export default function Creators() {
   const { data: creators, isLoading: creatorsLoading } = useCreatorDiscovery(debouncedQuery);
   const { data: feedVideos, isLoading: feedLoading } = useFollowingFeed();
 
-  // Fetch public videos for discover tab (no creator info exposed)
   const { data: discoverVideos, isLoading: discoverLoading } = useQuery({
     queryKey: ['discover-videos', debouncedQuery],
     queryFn: async () => {
@@ -59,14 +58,12 @@ export default function Creators() {
     staleTime: 60000,
   });
 
-  // Debounced search
   const handleSearch = (value: string) => {
     setSearchQuery(value);
     const timeoutId = setTimeout(() => setDebouncedQuery(value), 300);
     return () => clearTimeout(timeoutId);
   };
 
-  // Calculate stats for the hero
   const totalCreators = creators?.length || 0;
   const totalVideos = creators?.reduce((sum, c) => sum + c.video_count, 0) || 0;
 
@@ -75,49 +72,48 @@ export default function Creators() {
       <CreatorsBackground />
       <AppHeader />
 
-      <main className="relative z-10 max-w-6xl mx-auto px-4 py-8 space-y-8">
-        {/* Premium Hero Header matching Clips page */}
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
         <CreatorsHero 
           title="Discover Creators"
-          subtitle="Find and follow talented creators, watch their latest videos, and get inspired"
+          subtitle="Explore outstanding work from the community's most talented filmmakers"
           stats={{ totalCreators, totalVideos }}
         />
 
-        {/* Search */}
+        {/* Search bar — refined */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="max-w-md mx-auto"
+          transition={{ delay: 0.2 }}
+          className="max-w-lg mx-auto"
         >
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+          <div className="relative group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-violet-400 transition-colors" />
             <Input
               type="text"
-              placeholder="Search creators..."
+              placeholder="Search videos..."
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
-              className="pl-12 h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-white/40 rounded-xl focus:border-violet-500/50"
+              className="pl-11 h-11 bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30 rounded-xl focus:border-violet-500/40 focus:bg-white/[0.05] transition-all"
             />
           </div>
         </motion.div>
 
-        {/* Tabs */}
-        <Tabs defaultValue={user ? "feed" : "discover"} className="space-y-6">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 bg-white/[0.03] border border-white/[0.08]">
+        {/* Tabs — sleeker */}
+        <Tabs defaultValue={user ? "feed" : "discover"} className="space-y-8">
+          <TabsList className="grid w-full max-w-xs mx-auto grid-cols-2 bg-white/[0.02] border border-white/[0.06] h-10 rounded-xl p-0.5">
             {user && (
-              <TabsTrigger value="feed" className="gap-2 data-[state=active]:bg-violet-600">
-                <Sparkles className="w-4 h-4" />
+              <TabsTrigger value="feed" className="gap-1.5 text-xs font-medium rounded-lg data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-violet-500/20">
+                <Sparkles className="w-3.5 h-3.5" />
                 Your Feed
               </TabsTrigger>
             )}
-            <TabsTrigger value="discover" className="gap-2 data-[state=active]:bg-violet-600">
-              <TrendingUp className="w-4 h-4" />
-              {user ? 'Discover' : 'All Creators'}
+            <TabsTrigger value="discover" className="gap-1.5 text-xs font-medium rounded-lg data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-violet-500/20">
+              <TrendingUp className="w-3.5 h-3.5" />
+              {user ? 'Discover' : 'All Videos'}
             </TabsTrigger>
             {!user && (
-              <TabsTrigger value="discover" className="gap-2 data-[state=active]:bg-violet-600" disabled>
-                <Sparkles className="w-4 h-4" />
+              <TabsTrigger value="discover" className="gap-1.5 text-xs font-medium rounded-lg" disabled>
+                <Sparkles className="w-3.5 h-3.5" />
                 Sign in for Feed
               </TabsTrigger>
             )}
@@ -126,256 +122,306 @@ export default function Creators() {
           {/* Feed Tab */}
           {user && (
             <TabsContent value="feed" className="space-y-6">
-              {feedLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[...Array(6)].map((_, i) => (
-                    <div key={i} className={cn("rounded-2xl overflow-hidden", glassCard)}>
-                      <Skeleton className="aspect-video bg-white/[0.03]" />
-                      <div className="p-4 space-y-3">
-                        <Skeleton className="h-5 w-3/4 bg-white/[0.03]" />
-                        <Skeleton className="h-4 w-1/2 bg-white/[0.03]" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : feedVideos && feedVideos.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <AnimatePresence mode="sync">
-                    {feedVideos.map((video, index) => (
-                      <motion.div
-                        key={video.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ delay: index * 0.05 }}
-                        className={cn("group rounded-2xl overflow-hidden cursor-pointer", glassCard)}
-                        onClick={() => setSelectedVideo({
-                          id: video.id,
-                          title: video.title,
-                          creator: video.creator,
-                        })}
-                      >
-                        {/* Thumbnail with fallback chain */}
-                        <div className="relative aspect-video overflow-hidden">
-                          {video.thumbnail_url ? (
-                            <img 
-                              src={video.thumbnail_url} 
-                              alt={video.title}
-                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                            />
-                          ) : (video as { first_clip_url?: string }).first_clip_url ? (
-                            <PausedFrameVideo 
-                              src={(video as { first_clip_url?: string }).first_clip_url!} 
-                              className="w-full h-full object-cover"
-                              showLoader={false}
-                            />
-                          ) : video.video_url ? (
-                            <PausedFrameVideo 
-                              src={video.video_url} 
-                              className="w-full h-full object-cover"
-                              showLoader={false}
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-white/5 flex items-center justify-center">
-                              <Video className="w-10 h-10 text-white/20" />
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                              <Play className="w-6 h-6 text-white fill-white ml-1" />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Info */}
-                        <div className="p-4">
-                          <h3 className="font-semibold text-white truncate mb-2">{video.title}</h3>
-                          <Link 
-                            to={`/user/${video.user_id}`}
-                            className="flex items-center gap-2 group/creator"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Avatar className="w-6 h-6">
-                              <AvatarImage src={video.creator?.avatar_url || undefined} />
-                              <AvatarFallback className="text-xs bg-violet-600/20 text-violet-400">
-                                {(video.creator?.display_name || 'U').charAt(0).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm text-white/60 group-hover/creator:text-violet-400 transition-colors">
-                              {video.creator?.display_name || 'Anonymous'}
-                            </span>
-                          </Link>
-                          <div className="flex items-center gap-4 mt-3 text-xs text-white/40">
-                            <span className="flex items-center gap-1">
-                              <Heart className="w-3 h-3" />
-                              {video.likes_count}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {new Date(video.created_at).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-              ) : (
-                <div className={cn("rounded-2xl p-12 text-center", glassCard)}>
-                  <Users className="w-16 h-16 text-white/20 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-white mb-2">Your feed is empty</h3>
-                  <p className="text-white/60 mb-6">Follow some creators to see their videos here!</p>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      const tab = document.querySelector('[data-state="inactive"][value="discover"]') as HTMLButtonElement;
-                      tab?.click();
-                    }}
-                    className="gap-2"
-                  >
-                    <TrendingUp className="w-4 h-4" />
-                    Discover Creators
-                  </Button>
-                </div>
-              )}
+              <FeedContent
+                feedLoading={feedLoading}
+                feedVideos={feedVideos}
+                onSelectVideo={setSelectedVideo}
+              />
             </TabsContent>
           )}
 
-          {/* Discover Tab — Video-focused grid, no creator names */}
+          {/* Discover Tab */}
           <TabsContent value="discover" className="space-y-6">
-            {discoverLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(9)].map((_, i) => (
-                  <div key={i} className={cn("rounded-2xl overflow-hidden", glassCard)}>
-                    <Skeleton className="aspect-video bg-white/[0.03]" />
-                    <div className="p-4 space-y-2">
-                      <Skeleton className="h-4 w-3/4 bg-white/[0.03]" />
-                      <Skeleton className="h-3 w-1/3 bg-white/[0.03]" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : discoverVideos && discoverVideos.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <AnimatePresence mode="sync">
-                  {discoverVideos.map((video, index) => (
-                    <motion.div
-                      key={video.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ delay: index * 0.04 }}
-                      className={cn("group rounded-2xl overflow-hidden cursor-pointer", glassCard)}
-                      onClick={() => setSelectedVideo({
-                        id: video.id,
-                        title: video.title,
-                      })}
-                    >
-                      {/* Thumbnail */}
-                      <div className="relative aspect-video overflow-hidden">
-                        {video.thumbnail_url ? (
-                          <img 
-                            src={video.thumbnail_url} 
-                            alt={video.title}
-                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                          />
-                        ) : video.video_url ? (
-                          <PausedFrameVideo 
-                            src={video.video_url} 
-                            className="w-full h-full object-cover"
-                            showLoader={false}
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-white/5 flex items-center justify-center">
-                            <Video className="w-10 h-10 text-white/20" />
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                            <Play className="w-6 h-6 text-white fill-white ml-1" />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Info — title and stats only, no creator name */}
-                      <div className="p-4">
-                        <h3 className="font-semibold text-white truncate">{video.title}</h3>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-white/40">
-                          <span className="flex items-center gap-1">
-                            <Heart className="w-3 h-3" />
-                            {video.likes_count ?? 0}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {new Date(video.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            ) : (
-              <div className={cn("rounded-2xl p-12 text-center", glassCard)}>
-                <Video className="w-16 h-16 text-white/20 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">No videos found</h3>
-                <p className="text-white/60">
-                  {searchQuery ? 'Try a different search term' : 'Be the first to share a video!'}
-                </p>
-              </div>
-            )}
+            <DiscoverContent
+              discoverLoading={discoverLoading}
+              discoverVideos={discoverVideos}
+              searchQuery={searchQuery}
+              onSelectVideo={setSelectedVideo}
+            />
           </TabsContent>
         </Tabs>
       </main>
 
-      {/* Video Player Modal - Uses UniversalVideoPlayer with projectId for multi-clip playback */}
+      {/* Video Player Modal */}
       <AnimatePresence>
         {selectedVideo && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
-            onClick={() => setSelectedVideo(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-4xl mx-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Close button */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute -top-12 right-0 text-white hover:bg-white/10"
-                onClick={() => setSelectedVideo(null)}
-              >
-                <X className="w-6 h-6" />
-              </Button>
-
-              {/* Video title and creator */}
-              <div className="mb-4">
-                <h2 className="text-xl font-semibold text-white">{selectedVideo.title}</h2>
-                {selectedVideo.creator?.display_name && (
-                  <p className="text-white/60 text-sm">by {selectedVideo.creator.display_name}</p>
-                )}
-              </div>
-
-              {/* UniversalVideoPlayer with projectId for ALL clips */}
-              <div className="rounded-xl overflow-hidden bg-black aspect-video">
-                <UniversalVideoPlayer
-                  source={{ projectId: selectedVideo.id }}
-                  mode="inline"
-                  autoPlay
-                  className="w-full h-full"
-                />
-              </div>
-            </motion.div>
-          </motion.div>
+          <VideoPlayerModal
+            video={selectedVideo}
+            onClose={() => setSelectedVideo(null)}
+          />
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+/* ─── Sub-components ─── */
+
+function VideoCardSkeleton({ count = 6 }: { count?: number }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      {[...Array(count)].map((_, i) => (
+        <div key={i} className={cn("rounded-2xl overflow-hidden", glassCard)}>
+          <Skeleton className="aspect-video bg-white/[0.03]" />
+          <div className="p-4 space-y-2.5">
+            <Skeleton className="h-4 w-3/4 bg-white/[0.03]" />
+            <Skeleton className="h-3 w-1/3 bg-white/[0.03]" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function VideoThumbnail({ 
+  thumbnailUrl, 
+  videoUrl, 
+  firstClipUrl, 
+  title 
+}: { 
+  thumbnailUrl?: string | null;
+  videoUrl?: string | null;
+  firstClipUrl?: string | null;
+  title: string;
+}) {
+  return (
+    <div className="relative aspect-video overflow-hidden bg-black/20">
+      {thumbnailUrl ? (
+        <img 
+          src={thumbnailUrl} 
+          alt={title}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+        />
+      ) : firstClipUrl ? (
+        <PausedFrameVideo 
+          src={firstClipUrl} 
+          className="w-full h-full object-cover"
+          showLoader={false}
+        />
+      ) : videoUrl ? (
+        <PausedFrameVideo 
+          src={videoUrl} 
+          className="w-full h-full object-cover"
+          showLoader={false}
+        />
+      ) : (
+        <div className="w-full h-full bg-white/[0.02] flex items-center justify-center">
+          <Video className="w-8 h-8 text-white/10" />
+        </div>
+      )}
+      {/* Hover overlay with play button */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+        <div className="w-12 h-12 rounded-full bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center transform scale-90 group-hover:scale-100 transition-transform duration-300">
+          <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VideoMeta({ likesCount, createdAt }: { likesCount?: number | null; createdAt: string }) {
+  return (
+    <div className="flex items-center gap-4 text-[11px] text-white/25 font-medium">
+      <span className="flex items-center gap-1">
+        <Heart className="w-3 h-3" />
+        {likesCount ?? 0}
+      </span>
+      <span className="flex items-center gap-1">
+        <Clock className="w-3 h-3" />
+        {new Date(createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+      </span>
+    </div>
+  );
+}
+
+function FeedContent({ 
+  feedLoading, 
+  feedVideos, 
+  onSelectVideo 
+}: { 
+  feedLoading: boolean;
+  feedVideos: any[] | undefined;
+  onSelectVideo: (v: any) => void;
+}) {
+  if (feedLoading) return <VideoCardSkeleton count={6} />;
+  
+  if (feedVideos && feedVideos.length > 0) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <AnimatePresence mode="sync">
+          {feedVideos.map((video, index) => (
+            <motion.div
+              key={video.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ delay: index * 0.04 }}
+              className={cn("group rounded-2xl overflow-hidden cursor-pointer", glassCard)}
+              onClick={() => onSelectVideo({
+                id: video.id,
+                title: video.title,
+                creator: video.creator,
+              })}
+            >
+              <VideoThumbnail
+                thumbnailUrl={video.thumbnail_url}
+                videoUrl={video.video_url}
+                firstClipUrl={(video as any).first_clip_url}
+                title={video.title}
+              />
+              <div className="p-4 space-y-2.5">
+                <h3 className="font-semibold text-sm text-white truncate">{video.title}</h3>
+                <Link 
+                  to={`/user/${video.user_id}`}
+                  className="flex items-center gap-2 group/creator"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Avatar className="w-5 h-5">
+                    <AvatarImage src={video.creator?.avatar_url || undefined} />
+                    <AvatarFallback className="text-[10px] bg-violet-600/20 text-violet-400">
+                      {(video.creator?.display_name || 'U').charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-xs text-white/40 group-hover/creator:text-violet-400 transition-colors">
+                    {video.creator?.display_name || 'Anonymous'}
+                  </span>
+                </Link>
+                <VideoMeta likesCount={video.likes_count} createdAt={video.created_at} />
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("rounded-2xl p-16 text-center", glassCard)}>
+      <Users className="w-12 h-12 text-white/10 mx-auto mb-4" />
+      <h3 className="text-lg font-semibold text-white mb-2">Your feed is empty</h3>
+      <p className="text-white/40 text-sm mb-6">Follow some creators to see their videos here</p>
+      <Button 
+        variant="outline" 
+        size="sm"
+        onClick={() => {
+          const tab = document.querySelector('[data-state="inactive"][value="discover"]') as HTMLButtonElement;
+          tab?.click();
+        }}
+        className="gap-2 text-xs"
+      >
+        <TrendingUp className="w-3.5 h-3.5" />
+        Discover Videos
+      </Button>
+    </div>
+  );
+}
+
+function DiscoverContent({ 
+  discoverLoading, 
+  discoverVideos, 
+  searchQuery, 
+  onSelectVideo 
+}: { 
+  discoverLoading: boolean;
+  discoverVideos: any[] | undefined;
+  searchQuery: string;
+  onSelectVideo: (v: any) => void;
+}) {
+  if (discoverLoading) return <VideoCardSkeleton count={9} />;
+  
+  if (discoverVideos && discoverVideos.length > 0) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <AnimatePresence mode="sync">
+          {discoverVideos.map((video, index) => (
+            <motion.div
+              key={video.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ delay: index * 0.035 }}
+              className={cn("group rounded-2xl overflow-hidden cursor-pointer", glassCard)}
+              onClick={() => onSelectVideo({
+                id: video.id,
+                title: video.title,
+              })}
+            >
+              <VideoThumbnail
+                thumbnailUrl={video.thumbnail_url}
+                videoUrl={video.video_url}
+                title={video.title}
+              />
+              <div className="p-4 space-y-2">
+                <h3 className="font-semibold text-sm text-white truncate">{video.title}</h3>
+                <VideoMeta likesCount={video.likes_count} createdAt={video.created_at} />
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("rounded-2xl p-16 text-center", glassCard)}>
+      <Video className="w-12 h-12 text-white/10 mx-auto mb-4" />
+      <h3 className="text-lg font-semibold text-white mb-2">No videos found</h3>
+      <p className="text-white/40 text-sm">
+        {searchQuery ? 'Try a different search term' : 'Be the first to share a video!'}
+      </p>
+    </div>
+  );
+}
+
+function VideoPlayerModal({ 
+  video, 
+  onClose 
+}: { 
+  video: { id: string; title: string; creator?: { display_name: string | null; avatar_url: string | null } };
+  onClose: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        className="relative w-full max-w-4xl mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute -top-12 right-0 text-white/60 hover:text-white hover:bg-white/10"
+          onClick={onClose}
+        >
+          <X className="w-5 h-5" />
+        </Button>
+
+        <div className="mb-3">
+          <h2 className="text-lg font-semibold text-white">{video.title}</h2>
+          {video.creator?.display_name && (
+            <p className="text-white/40 text-xs mt-0.5">by {video.creator.display_name}</p>
+          )}
+        </div>
+
+        <div className="rounded-xl overflow-hidden bg-black aspect-video ring-1 ring-white/[0.06]">
+          <UniversalVideoPlayer
+            source={{ projectId: video.id }}
+            mode="inline"
+            autoPlay
+            className="w-full h-full"
+          />
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }

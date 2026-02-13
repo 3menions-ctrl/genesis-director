@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Zap, Crown, Building2, ArrowRight, Sparkles, Shield, Clock } from 'lucide-react';
+import { Check, Zap, Crown, Building2, ArrowRight, Sparkles, Shield, Clock, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
@@ -10,6 +10,26 @@ const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackg
 
 // Credit pricing: 1 credit = $0.10
 const PRICING_TIERS = [
+  {
+    id: 'mini',
+    name: 'Mini',
+    description: 'Quick start for new creators',
+    price: 9,
+    credits: 90,
+    videosEstimate: '~9 clips',
+    icon: <Star className="w-6 h-6" />,
+    features: [
+      'HD video export (1080p)',
+      'AI-powered script generation',
+      'Text-to-video creation',
+      'Image-to-video animation',
+      'Standard processing queue',
+      'Email support',
+    ],
+    popular: false,
+    gradient: 'from-sky-400 to-cyan-500',
+    glowColor: 'rgba(56, 189, 248, 0.3)',
+  },
   {
     id: 'starter',
     name: 'Starter',
@@ -153,7 +173,7 @@ export default function Pricing() {
       {/* Pricing Cards */}
       <section className="relative z-10 py-16 px-6">
         <div className="max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {PRICING_TIERS.map((tier, index) => (
               <motion.div
                 key={tier.id}

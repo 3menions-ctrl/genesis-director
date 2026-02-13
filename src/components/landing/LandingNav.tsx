@@ -28,12 +28,6 @@ export const LandingNav = memo(forwardRef<HTMLElement, NavigationProps>(
                 {item}
               </button>
             ))}
-            <Link
-              to="/how-it-works"
-              className="text-sm text-white/50 hover:text-white transition-colors leading-none"
-            >
-              How It Works
-            </Link>
           </div>
 
           <div className="flex items-center gap-3">

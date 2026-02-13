@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 
 interface CreatorsHeroProps {
   stats?: {
-    totalCreators: number;
+    totalCreators?: number;
     totalVideos: number;
   };
   title?: string;
@@ -78,17 +78,20 @@ export const CreatorsHero = memo(forwardRef<HTMLDivElement, CreatorsHeroProps>(f
             transition={{ duration: 0.6, delay: 0.45 }}
             className="flex items-center justify-center gap-8 mt-8"
           >
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-                <Users className="w-4 h-4 text-violet-400" />
-              </div>
-              <div className="text-left">
-                <div className="text-lg font-bold text-white tabular-nums">{stats.totalCreators}</div>
-                <div className="text-[10px] text-white/30 uppercase tracking-widest">Creators</div>
-              </div>
-            </div>
-
-            <div className="w-px h-8 bg-white/[0.06]" />
+            {stats.totalCreators != null && (
+              <>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+                    <Users className="w-4 h-4 text-violet-400" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-lg font-bold text-white tabular-nums">{stats.totalCreators}</div>
+                    <div className="text-[10px] text-white/30 uppercase tracking-widest">Creators</div>
+                  </div>
+                </div>
+                <div className="w-px h-8 bg-white/[0.06]" />
+              </>
+            )}
 
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">

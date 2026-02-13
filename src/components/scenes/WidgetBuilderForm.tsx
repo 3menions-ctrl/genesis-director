@@ -11,6 +11,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Trash2, GripVertical, Copy, ExternalLink, Save, FileText, Film, Zap, Palette, Code2 } from 'lucide-react';
 import type { WidgetConfig, WidgetScene, WidgetTriggers, WidgetRule, WidgetPosition, WidgetSensitivity, WidgetTone } from '@/types/widget';
 
+/* ── dark glass tokens ── */
+const glass = 'bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm';
+const glassInput = 'bg-white/[0.06] border-white/[0.1] text-white/90 placeholder:text-white/25 focus-visible:ring-white/[0.15] focus-visible:border-white/[0.2]';
+const textPrimary = 'text-white/90';
+const textSecondary = 'text-white/50';
+const textMuted = 'text-white/30';
+const sectionLabel = `text-[10px] ${textMuted} uppercase tracking-wider font-medium`;
+
 interface WidgetBuilderFormProps {
   widget: WidgetConfig;
   onUpdate: (widget: WidgetConfig) => void;
@@ -76,115 +84,87 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
   const embedCode = `<iframe src="https://genesis-director.lovable.app/widget/${config.public_key}" style="position:fixed;bottom:20px;right:20px;width:${config.widget_width}px;height:${config.widget_height}px;border:none;z-index:${config.z_index};" allow="autoplay"></iframe>`;
   const landingUrl = `https://genesis-director.lovable.app/w/${config.slug}`;
 
-  const sectionLabel = "text-[11px] text-muted-foreground uppercase tracking-wider font-medium";
-
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Save button */}
       <div className="flex justify-end">
-        <Button variant="outline" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="gap-2">
+        <button
+          onClick={() => saveMutation.mutate()}
+          disabled={saveMutation.isPending}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium ${textPrimary} ${glass} hover:bg-white/[0.06] hover:border-white/[0.12] transition-all disabled:opacity-50`}
+        >
           <Save className="w-4 h-4" />
           {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
-        </Button>
+        </button>
       </div>
 
       <Tabs defaultValue="content">
-        <TabsList className="bg-card border border-border p-1 rounded-xl w-full grid grid-cols-5">
-          <TabsTrigger value="content" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg gap-1.5 text-xs">
-            <FileText className="w-3.5 h-3.5" /> Content
-          </TabsTrigger>
-          <TabsTrigger value="scenes" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg gap-1.5 text-xs">
-            <Film className="w-3.5 h-3.5" /> Scenes
-          </TabsTrigger>
-          <TabsTrigger value="triggers" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg gap-1.5 text-xs">
-            <Zap className="w-3.5 h-3.5" /> Triggers
-          </TabsTrigger>
-          <TabsTrigger value="branding" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg gap-1.5 text-xs">
-            <Palette className="w-3.5 h-3.5" /> Branding
-          </TabsTrigger>
-          <TabsTrigger value="embed" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg gap-1.5 text-xs">
-            <Code2 className="w-3.5 h-3.5" /> Embed
-          </TabsTrigger>
+        <TabsList className="bg-white/[0.04] border border-white/[0.08] p-1 rounded-xl w-full grid grid-cols-5">
+          {[
+            { value: 'content', icon: FileText, label: 'Content' },
+            { value: 'scenes', icon: Film, label: 'Scenes' },
+            { value: 'triggers', icon: Zap, label: 'Triggers' },
+            { value: 'branding', icon: Palette, label: 'Branding' },
+            { value: 'embed', icon: Code2, label: 'Embed' },
+          ].map(({ value, icon: Icon, label }) => (
+            <TabsTrigger
+              key={value}
+              value={value}
+              className="data-[state=active]:bg-white/[0.1] data-[state=active]:text-white data-[state=active]:shadow-none rounded-lg gap-1.5 text-xs text-white/40"
+            >
+              <Icon className="w-3.5 h-3.5" /> {label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         {/* Content Tab */}
         <TabsContent value="content" className="mt-6">
-          <div className="rounded-2xl bg-card border border-border p-6">
+          <div className={`rounded-2xl ${glass} p-6`}>
             <p className={`${sectionLabel} mb-5`}>Widget Settings</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Widget Name</Label>
-                <Input value={config.name} onChange={e => updateConfig('name', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">URL Slug</Label>
-                <Input value={config.slug || ''} onChange={e => updateConfig('slug', e.target.value)} placeholder="my-product" />
-                <p className="text-[10px] text-muted-foreground font-mono">/w/{config.slug || '...'}</p>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Headline</Label>
-                <Input value={config.headline || ''} onChange={e => updateConfig('headline', e.target.value)} placeholder="Transform your workflow" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Subheadline</Label>
-                <Input value={config.subheadline || ''} onChange={e => updateConfig('subheadline', e.target.value)} placeholder="See how it works in 30 seconds" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">CTA Text</Label>
-                <Input value={config.cta_text} onChange={e => updateConfig('cta_text', e.target.value)} placeholder="Get Started" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">CTA URL</Label>
-                <Input value={config.cta_url || ''} onChange={e => updateConfig('cta_url', e.target.value)} placeholder="https://..." />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Secondary CTA Text</Label>
-                <Input value={config.secondary_cta_text || ''} onChange={e => updateConfig('secondary_cta_text', e.target.value)} placeholder="Learn more" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Secondary CTA URL</Label>
-                <Input value={config.secondary_cta_url || ''} onChange={e => updateConfig('secondary_cta_url', e.target.value)} placeholder="https://..." />
-              </div>
+              {[
+                { label: 'Widget Name', value: config.name, key: 'name' as const, placeholder: '' },
+                { label: 'URL Slug', value: config.slug || '', key: 'slug' as const, placeholder: 'my-product' },
+                { label: 'Headline', value: config.headline || '', key: 'headline' as const, placeholder: 'Transform your workflow' },
+                { label: 'Subheadline', value: config.subheadline || '', key: 'subheadline' as const, placeholder: 'See how it works in 30 seconds' },
+                { label: 'CTA Text', value: config.cta_text, key: 'cta_text' as const, placeholder: 'Get Started' },
+                { label: 'CTA URL', value: config.cta_url || '', key: 'cta_url' as const, placeholder: 'https://...' },
+                { label: 'Secondary CTA Text', value: config.secondary_cta_text || '', key: 'secondary_cta_text' as const, placeholder: 'Learn more' },
+                { label: 'Secondary CTA URL', value: config.secondary_cta_url || '', key: 'secondary_cta_url' as const, placeholder: 'https://...' },
+              ].map(({ label, value, key, placeholder }) => (
+                <div key={key} className="space-y-1.5">
+                  <Label className={`text-xs ${textSecondary}`}>{label}</Label>
+                  <Input
+                    value={value}
+                    onChange={e => updateConfig(key, e.target.value)}
+                    placeholder={placeholder}
+                    className={glassInput}
+                  />
+                  {key === 'slug' && (
+                    <p className={`text-[10px] ${textMuted} font-mono`}>/w/{config.slug || '...'}</p>
+                  )}
+                </div>
+              ))}
             </div>
 
-            <div className="h-px bg-border my-6" />
+            <div className="h-px bg-white/[0.06] my-6" />
             <p className={`${sectionLabel} mb-5`}>Behavior</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Widget Type</Label>
-                <Select value={config.widget_type} onValueChange={v => updateConfig('widget_type', v as WidgetConfig['widget_type'])}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="embed">Embed Only</SelectItem>
-                    <SelectItem value="landing_page">Landing Page Only</SelectItem>
-                    <SelectItem value="both">Both</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Tone</Label>
-                <Select value={config.tone} onValueChange={v => updateConfig('tone', v as WidgetTone)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="friendly">Friendly</SelectItem>
-                    <SelectItem value="bold">Bold</SelectItem>
-                    <SelectItem value="funny">Funny</SelectItem>
-                    <SelectItem value="professional">Professional</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Sensitivity</Label>
-                <Select value={config.sensitivity} onValueChange={v => updateConfig('sensitivity', v as WidgetSensitivity)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {[
+                { label: 'Widget Type', value: config.widget_type, key: 'widget_type', options: [{ v: 'embed', l: 'Embed Only' }, { v: 'landing_page', l: 'Landing Page Only' }, { v: 'both', l: 'Both' }] },
+                { label: 'Tone', value: config.tone, key: 'tone', options: [{ v: 'friendly', l: 'Friendly' }, { v: 'bold', l: 'Bold' }, { v: 'funny', l: 'Funny' }, { v: 'professional', l: 'Professional' }, { v: 'urgent', l: 'Urgent' }] },
+                { label: 'Sensitivity', value: config.sensitivity, key: 'sensitivity', options: [{ v: 'low', l: 'Low' }, { v: 'medium', l: 'Medium' }, { v: 'high', l: 'High' }] },
+              ].map(({ label, value, key, options }) => (
+                <div key={key} className="space-y-1.5">
+                  <Label className={`text-xs ${textSecondary}`}>{label}</Label>
+                  <Select value={value} onValueChange={v => updateConfig(key as any, v)}>
+                    <SelectTrigger className={glassInput}><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-[#1a1714] border-white/[0.1]">
+                      {options.map(o => <SelectItem key={o.v} value={o.v} className="text-white/80 focus:bg-white/[0.08] focus:text-white">{o.l}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
             </div>
           </div>
         </TabsContent>
@@ -193,63 +173,60 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
         <TabsContent value="scenes" className="mt-6 space-y-4">
           <div className="flex items-center justify-between">
             <p className={sectionLabel}>Video Scenes ({scenes.length})</p>
-            <Button variant="outline" size="sm" onClick={addScene} className="gap-1.5 text-xs">
+            <button onClick={addScene} className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg ${glass} ${textSecondary} hover:text-white/80 hover:bg-white/[0.06] transition-all`}>
               <Plus className="w-3.5 h-3.5" /> Add Scene
-            </Button>
+            </button>
           </div>
 
           {scenes.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border bg-card/50 p-12 text-center">
-              <p className="text-sm text-muted-foreground">No scenes yet. Add your first video scene.</p>
+            <div className="rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.02] p-12 text-center">
+              <p className={`text-sm ${textSecondary}`}>No scenes yet. Add your first video scene.</p>
             </div>
           ) : (
             <div className="space-y-3">
               {scenes.map((scene, idx) => (
-                <div key={scene.id} className="rounded-2xl bg-card border border-border p-5 space-y-3">
+                <div key={scene.id} className={`rounded-2xl ${glass} p-5 space-y-3`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <GripVertical className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium text-foreground">{scene.name}</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-md bg-muted text-muted-foreground uppercase tracking-wider">{scene.type}</span>
+                      <GripVertical className={`w-4 h-4 ${textMuted}`} />
+                      <span className={`text-sm font-medium ${textPrimary}`}>{scene.name}</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-md bg-white/[0.06] ${textMuted} uppercase tracking-wider`}>{scene.type}</span>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => removeScene(idx)}>
+                    <button className={`h-8 w-8 flex items-center justify-center rounded-lg ${textMuted} hover:text-red-400 hover:bg-red-500/10 transition-all`} onClick={() => removeScene(idx)}>
                       <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
+                    </button>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div className="space-y-1">
-                      <Label className="text-[10px] text-muted-foreground">Name</Label>
-                      <Input value={scene.name} onChange={e => updateScene(idx, { name: e.target.value })} className="h-9 text-sm" />
+                      <Label className={`text-[10px] ${textMuted}`}>Name</Label>
+                      <Input value={scene.name} onChange={e => updateScene(idx, { name: e.target.value })} className={`h-9 text-sm ${glassInput}`} />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] text-muted-foreground">Type</Label>
+                      <Label className={`text-[10px] ${textMuted}`}>Type</Label>
                       <Select value={scene.type} onValueChange={v => updateScene(idx, { type: v as WidgetScene['type'] })}>
-                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="hero">Hero</SelectItem>
-                          <SelectItem value="idle">Idle</SelectItem>
-                          <SelectItem value="engage">Engage</SelectItem>
-                          <SelectItem value="cta">CTA Push</SelectItem>
-                          <SelectItem value="exit_save">Exit Save</SelectItem>
-                          <SelectItem value="testimonial">Testimonial</SelectItem>
+                        <SelectTrigger className={`h-9 ${glassInput}`}><SelectValue /></SelectTrigger>
+                        <SelectContent className="bg-[#1a1714] border-white/[0.1]">
+                          {['hero', 'idle', 'engage', 'cta', 'exit_save', 'testimonial'].map(t => (
+                            <SelectItem key={t} value={t} className="text-white/80 focus:bg-white/[0.08] focus:text-white capitalize">{t.replace('_', ' ')}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] text-muted-foreground">Priority</Label>
-                      <Input type="number" value={scene.priority} onChange={e => updateScene(idx, { priority: parseInt(e.target.value) || 1 })} className="h-9 text-sm" />
+                      <Label className={`text-[10px] ${textMuted}`}>Priority</Label>
+                      <Input type="number" value={scene.priority} onChange={e => updateScene(idx, { priority: parseInt(e.target.value) || 1 })} className={`h-9 text-sm ${glassInput}`} />
                     </div>
                     <div className="md:col-span-2 space-y-1">
-                      <Label className="text-[10px] text-muted-foreground">Video URL (MP4)</Label>
-                      <Input value={scene.src_mp4} onChange={e => updateScene(idx, { src_mp4: e.target.value })} placeholder="https://...mp4" className="h-9 text-sm" />
+                      <Label className={`text-[10px] ${textMuted}`}>Video URL (MP4)</Label>
+                      <Input value={scene.src_mp4} onChange={e => updateScene(idx, { src_mp4: e.target.value })} placeholder="https://...mp4" className={`h-9 text-sm ${glassInput}`} />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] text-muted-foreground">Subtitle</Label>
-                      <Input value={scene.subtitle_text || ''} onChange={e => updateScene(idx, { subtitle_text: e.target.value })} placeholder="Optional" className="h-9 text-sm" />
+                      <Label className={`text-[10px] ${textMuted}`}>Subtitle</Label>
+                      <Input value={scene.subtitle_text || ''} onChange={e => updateScene(idx, { subtitle_text: e.target.value })} placeholder="Optional" className={`h-9 text-sm ${glassInput}`} />
                     </div>
                     <div className="flex items-center gap-2.5 pt-5">
                       <Switch checked={scene.loop} onCheckedChange={v => updateScene(idx, { loop: v })} />
-                      <Label className="text-xs text-muted-foreground">Loop</Label>
+                      <Label className={`text-xs ${textSecondary}`}>Loop</Label>
                     </div>
                   </div>
                 </div>
@@ -261,59 +238,57 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
         {/* Triggers Tab */}
         <TabsContent value="triggers" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-2xl bg-card border border-border p-5 space-y-4">
+            <div className={`rounded-2xl ${glass} p-5 space-y-4`}>
               <p className={sectionLabel}>Trigger Thresholds</p>
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Idle Seconds</Label>
-                <Input type="number" value={triggers.idle_seconds || ''} onChange={e => setTriggers(t => ({ ...t, idle_seconds: parseInt(e.target.value) || undefined }))} placeholder="6" className="h-9" />
+                <Label className={`text-xs ${textSecondary}`}>Idle Seconds</Label>
+                <Input type="number" value={triggers.idle_seconds || ''} onChange={e => setTriggers(t => ({ ...t, idle_seconds: parseInt(e.target.value) || undefined }))} placeholder="6" className={`h-9 ${glassInput}`} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Scroll Depth %</Label>
-                <Input type="number" value={triggers.scroll_percent || ''} onChange={e => setTriggers(t => ({ ...t, scroll_percent: parseInt(e.target.value) || undefined }))} placeholder="35" className="h-9" />
+                <Label className={`text-xs ${textSecondary}`}>Scroll Depth %</Label>
+                <Input type="number" value={triggers.scroll_percent || ''} onChange={e => setTriggers(t => ({ ...t, scroll_percent: parseInt(e.target.value) || undefined }))} placeholder="35" className={`h-9 ${glassInput}`} />
               </div>
               <div className="flex items-center gap-3 pt-1">
                 <Switch checked={triggers.exit_intent || false} onCheckedChange={v => setTriggers(t => ({ ...t, exit_intent: v }))} />
-                <Label className="text-xs text-foreground">Exit Intent Detection</Label>
+                <Label className={`text-xs ${textPrimary}`}>Exit Intent Detection</Label>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Pricing Hover Selector</Label>
-                <Input value={triggers.pricing_hover_selector || ''} onChange={e => setTriggers(t => ({ ...t, pricing_hover_selector: e.target.value || undefined }))} placeholder=".pricing-card" className="h-9 font-mono" />
+                <Label className={`text-xs ${textSecondary}`}>Pricing Hover Selector</Label>
+                <Input value={triggers.pricing_hover_selector || ''} onChange={e => setTriggers(t => ({ ...t, pricing_hover_selector: e.target.value || undefined }))} placeholder=".pricing-card" className={`h-9 font-mono ${glassInput}`} />
               </div>
             </div>
 
-            <div className="rounded-2xl bg-card border border-border p-5 space-y-4">
+            <div className={`rounded-2xl ${glass} p-5 space-y-4`}>
               <div className="flex items-center justify-between">
                 <p className={sectionLabel}>Event → Scene Rules</p>
-                <Button variant="outline" size="sm" onClick={addRule} className="gap-1 text-xs h-7">
+                <button onClick={addRule} className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg ${glass} ${textSecondary} hover:text-white/80 hover:bg-white/[0.06] transition-all`}>
                   <Plus className="w-3 h-3" /> Add
-                </Button>
+                </button>
               </div>
               {rules.map((rule, idx) => (
                 <div key={idx} className="flex items-center gap-2">
                   <Select value={rule.event} onValueChange={v => setRules(r => r.map((x, i) => i === idx ? { ...x, event: v as WidgetRule['event'] } : x))}>
-                    <SelectTrigger className="h-8 text-xs w-[130px]"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="PAGE_VIEW">Page View</SelectItem>
-                      <SelectItem value="IDLE">Idle</SelectItem>
-                      <SelectItem value="SCROLL_DEPTH">Scroll</SelectItem>
-                      <SelectItem value="EXIT_INTENT">Exit Intent</SelectItem>
-                      <SelectItem value="CTA_HOVER">CTA Hover</SelectItem>
+                    <SelectTrigger className={`h-8 text-xs w-[130px] ${glassInput}`}><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-[#1a1714] border-white/[0.1]">
+                      {['PAGE_VIEW', 'IDLE', 'SCROLL_DEPTH', 'EXIT_INTENT', 'CTA_HOVER'].map(e => (
+                        <SelectItem key={e} value={e} className="text-white/80 focus:bg-white/[0.08] focus:text-white text-xs">{e.replace('_', ' ')}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
-                  <span className="text-xs text-muted-foreground">→</span>
+                  <span className={`text-xs ${textMuted}`}>→</span>
                   <Select value={rule.scene_id || ''} onValueChange={v => setRules(r => r.map((x, i) => i === idx ? { ...x, scene_id: v } : x))}>
-                    <SelectTrigger className="h-8 text-xs flex-1"><SelectValue placeholder="Select scene" /></SelectTrigger>
-                    <SelectContent>
-                      {scenes.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    <SelectTrigger className={`h-8 text-xs flex-1 ${glassInput}`}><SelectValue placeholder="Select scene" /></SelectTrigger>
+                    <SelectContent className="bg-[#1a1714] border-white/[0.1]">
+                      {scenes.map(s => <SelectItem key={s.id} value={s.id} className="text-white/80 focus:bg-white/[0.08] focus:text-white">{s.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setRules(r => r.filter((_, i) => i !== idx))}>
+                  <button className={`h-8 w-8 flex items-center justify-center rounded-lg ${textMuted} hover:text-red-400 hover:bg-red-500/10 transition-all`} onClick={() => setRules(r => r.filter((_, i) => i !== idx))}>
                     <Trash2 className="w-3 h-3" />
-                  </Button>
+                  </button>
                 </div>
               ))}
               {rules.length === 0 && (
-                <p className="text-xs text-muted-foreground">No rules configured. Scenes play by type.</p>
+                <p className={`text-xs ${textSecondary}`}>No rules configured. Scenes play by type.</p>
               )}
             </div>
           </div>
@@ -321,7 +296,7 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
 
         {/* Branding Tab */}
         <TabsContent value="branding" className="mt-6">
-          <div className="rounded-2xl bg-card border border-border p-6">
+          <div className={`rounded-2xl ${glass} p-6`}>
             <p className={`${sectionLabel} mb-5`}>Visual Identity</p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
@@ -330,62 +305,59 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
                 { label: 'Background Color', value: config.background_color, key: 'background_color' as const },
               ].map(({ label, value, key }) => (
                 <div key={key} className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">{label}</Label>
+                  <Label className={`text-xs ${textSecondary}`}>{label}</Label>
                   <div className="flex gap-2">
-                    <div className="relative w-10 h-10 rounded-lg border border-border overflow-hidden shrink-0">
+                    <div className="relative w-10 h-10 rounded-lg border border-white/[0.1] overflow-hidden shrink-0">
                       <input type="color" value={value} onChange={e => updateConfig(key, e.target.value)} className="absolute inset-0 w-full h-full cursor-pointer opacity-0" />
                       <div className="w-full h-full" style={{ backgroundColor: value }} />
                     </div>
-                    <Input value={value} onChange={e => updateConfig(key, e.target.value)} className="flex-1 font-mono text-xs" />
+                    <Input value={value} onChange={e => updateConfig(key, e.target.value)} className={`flex-1 font-mono text-xs ${glassInput}`} />
                   </div>
                 </div>
               ))}
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Logo URL</Label>
-                <Input value={config.logo_url || ''} onChange={e => updateConfig('logo_url', e.target.value)} placeholder="https://..." />
+                <Label className={`text-xs ${textSecondary}`}>Logo URL</Label>
+                <Input value={config.logo_url || ''} onChange={e => updateConfig('logo_url', e.target.value)} placeholder="https://..." className={glassInput} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Font Family</Label>
+                <Label className={`text-xs ${textSecondary}`}>Font Family</Label>
                 <Select value={config.font_family} onValueChange={v => updateConfig('font_family', v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Inter">Inter</SelectItem>
-                    <SelectItem value="system-ui">System UI</SelectItem>
-                    <SelectItem value="Georgia">Georgia</SelectItem>
-                    <SelectItem value="monospace">Monospace</SelectItem>
+                  <SelectTrigger className={glassInput}><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-[#1a1714] border-white/[0.1]">
+                    {['Inter', 'system-ui', 'Georgia', 'monospace'].map(f => (
+                      <SelectItem key={f} value={f} className="text-white/80 focus:bg-white/[0.08] focus:text-white">{f}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Position</Label>
+                <Label className={`text-xs ${textSecondary}`}>Position</Label>
                 <Select value={config.position} onValueChange={v => updateConfig('position', v as WidgetPosition)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="bottom-right">Bottom Right</SelectItem>
-                    <SelectItem value="bottom-left">Bottom Left</SelectItem>
-                    <SelectItem value="top-right">Top Right</SelectItem>
-                    <SelectItem value="top-left">Top Left</SelectItem>
-                    <SelectItem value="center">Center</SelectItem>
+                  <SelectTrigger className={glassInput}><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-[#1a1714] border-white/[0.1]">
+                    {[{ v: 'bottom-right', l: 'Bottom Right' }, { v: 'bottom-left', l: 'Bottom Left' }, { v: 'top-right', l: 'Top Right' }, { v: 'top-left', l: 'Top Left' }, { v: 'center', l: 'Center' }].map(o => (
+                      <SelectItem key={o.v} value={o.v} className="text-white/80 focus:bg-white/[0.08] focus:text-white">{o.l}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Width (px)</Label>
-                <Input type="number" value={config.widget_width} onChange={e => updateConfig('widget_width', parseInt(e.target.value) || 320)} />
+                <Label className={`text-xs ${textSecondary}`}>Width (px)</Label>
+                <Input type="number" value={config.widget_width} onChange={e => updateConfig('widget_width', parseInt(e.target.value) || 320)} className={glassInput} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Height (px)</Label>
-                <Input type="number" value={config.widget_height} onChange={e => updateConfig('widget_height', parseInt(e.target.value) || 400)} />
+                <Label className={`text-xs ${textSecondary}`}>Height (px)</Label>
+                <Input type="number" value={config.widget_height} onChange={e => updateConfig('widget_height', parseInt(e.target.value) || 400)} className={glassInput} />
               </div>
             </div>
 
-            <div className="h-px bg-border my-6" />
+            <div className="h-px bg-white/[0.06] my-6" />
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Allowed Domains (one per line)</Label>
+              <Label className={`text-xs ${textSecondary}`}>Allowed Domains (one per line)</Label>
               <textarea
                 value={(config.allowed_domains || []).join('\n')}
                 onChange={e => updateConfig('allowed_domains', e.target.value.split('\n').map(d => d.trim()).filter(Boolean))}
-                className="w-full h-24 rounded-xl border border-border bg-input px-4 py-3 text-sm font-mono text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring/20"
+                className={`w-full h-24 rounded-xl border px-4 py-3 text-sm font-mono resize-none focus:outline-none focus:ring-2 ${glassInput} focus:ring-white/[0.1]`}
                 placeholder={"example.com\nshop.example.com"}
               />
             </div>
@@ -394,40 +366,38 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
 
         {/* Embed Tab */}
         <TabsContent value="embed" className="mt-6 space-y-4">
-          <div className="rounded-2xl bg-card border border-border p-5">
+          <div className={`rounded-2xl ${glass} p-5`}>
             <div className="flex items-center justify-between mb-4">
               <p className={sectionLabel}>Embed Code (iframe)</p>
-              <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(embedCode); toast.success('Copied!'); }} className="gap-1.5 text-xs">
+              <button onClick={() => { navigator.clipboard.writeText(embedCode); toast.success('Copied!'); }} className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg ${glass} ${textSecondary} hover:text-white/80 hover:bg-white/[0.06] transition-all`}>
                 <Copy className="w-3.5 h-3.5" /> Copy
-              </Button>
+              </button>
             </div>
-            <pre className="bg-muted rounded-xl p-4 text-[11px] font-mono text-foreground overflow-x-auto whitespace-pre-wrap break-all leading-relaxed border border-border">
+            <pre className={`bg-white/[0.03] rounded-xl p-4 text-[11px] font-mono ${textSecondary} overflow-x-auto whitespace-pre-wrap break-all leading-relaxed border border-white/[0.06]`}>
               {embedCode}
             </pre>
           </div>
 
           {config.slug && (
-            <div className="rounded-2xl bg-card border border-border p-5">
+            <div className={`rounded-2xl ${glass} p-5`}>
               <div className="flex items-center justify-between mb-4">
                 <p className={sectionLabel}>Landing Page URL</p>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(landingUrl); toast.success('Copied!'); }} className="gap-1.5 text-xs">
+                  <button onClick={() => { navigator.clipboard.writeText(landingUrl); toast.success('Copied!'); }} className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg ${glass} ${textSecondary} hover:text-white/80 hover:bg-white/[0.06] transition-all`}>
                     <Copy className="w-3.5 h-3.5" /> Copy
-                  </Button>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={`/w/${config.slug}`} target="_blank" rel="noopener noreferrer" className="gap-1.5 text-xs">
-                      <ExternalLink className="w-3.5 h-3.5" /> Preview
-                    </a>
-                  </Button>
+                  </button>
+                  <a href={`/w/${config.slug}`} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg ${glass} ${textSecondary} hover:text-white/80 hover:bg-white/[0.06] transition-all`}>
+                    <ExternalLink className="w-3.5 h-3.5" /> Preview
+                  </a>
                 </div>
               </div>
-              <p className="text-sm font-mono text-muted-foreground">{landingUrl}</p>
+              <p className={`text-sm font-mono ${textSecondary}`}>{landingUrl}</p>
             </div>
           )}
 
-          <div className="rounded-2xl bg-card border border-border p-5">
+          <div className={`rounded-2xl ${glass} p-5`}>
             <p className={`${sectionLabel} mb-2`}>Public Key</p>
-            <p className="text-xs font-mono text-muted-foreground">{config.public_key}</p>
+            <p className={`text-xs font-mono ${textSecondary}`}>{config.public_key}</p>
           </div>
         </TabsContent>
       </Tabs>

@@ -9,20 +9,20 @@ interface GlassShardProps {
   isFading: boolean;
 }
 
-// Premium glass palette — rich dark cinematic tones matching app design system
+// Premium glass palette — ultra-dark cinematic shades
 const GLASS_PALETTE = [
-  { h: 0.73, s: 0.65, l: 0.30 },  // Deep indigo
-  { h: 0.76, s: 0.70, l: 0.25 },  // Midnight violet
-  { h: 0.80, s: 0.60, l: 0.35 },  // Dark amethyst
-  { h: 0.70, s: 0.55, l: 0.28 },  // Navy sapphire
-  { h: 0.83, s: 0.75, l: 0.32 },  // Royal purple
-  { h: 0.68, s: 0.50, l: 0.22 },  // Deep ocean
-  { h: 0.75, s: 0.80, l: 0.38 },  // Electric violet
-  { h: 0.72, s: 0.45, l: 0.18 },  // Obsidian blue
-  { h: 0.78, s: 0.55, l: 0.42 },  // Bright amethyst accent
-  { h: 0.66, s: 0.60, l: 0.20 },  // Abyss blue
-  { h: 0.85, s: 0.50, l: 0.28 },  // Dark plum
-  { h: 0.71, s: 0.40, l: 0.15 },  // Near-black indigo
+  { h: 0.72, s: 0.70, l: 0.12 },  // Void indigo
+  { h: 0.78, s: 0.80, l: 0.14 },  // Black violet
+  { h: 0.68, s: 0.65, l: 0.10 },  // Abyssal navy
+  { h: 0.82, s: 0.75, l: 0.16 },  // Shadow plum
+  { h: 0.75, s: 0.85, l: 0.18 },  // Dark neon purple
+  { h: 0.65, s: 0.55, l: 0.08 },  // Midnight ocean
+  { h: 0.70, s: 0.60, l: 0.13 },  // Ink sapphire
+  { h: 0.80, s: 0.70, l: 0.11 },  // Obsidian violet
+  { h: 0.76, s: 0.90, l: 0.22 },  // Electric amethyst (accent)
+  { h: 0.85, s: 0.65, l: 0.09 },  // Black cherry
+  { h: 0.67, s: 0.50, l: 0.06 },  // Near-black teal
+  { h: 0.73, s: 0.75, l: 0.20 },  // Deep iris (accent)
 ];
 
 export function GlassShard({ shard, isShattered, isFading }: GlassShardProps) {

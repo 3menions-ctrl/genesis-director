@@ -58,7 +58,7 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
     if (!user) return;
     
     const { data, error } = await supabase
-      .from('credit_transactions')
+      .from('credit_transactions_safe')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
@@ -81,7 +81,7 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
     startOfWeek.setDate(now.getDate() - 7);
 
     const { data } = await supabase
-      .from('credit_transactions')
+      .from('credit_transactions_safe')
       .select('amount, created_at, transaction_type')
       .eq('user_id', user.id)
       .eq('transaction_type', 'usage');

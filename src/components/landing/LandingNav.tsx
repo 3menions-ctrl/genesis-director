@@ -41,7 +41,7 @@ export const LandingNav = memo(forwardRef<HTMLElement, NavigationProps>(
             <Button
               ref={signUpButtonRef}
               onClick={() => onNavigate('/auth?mode=signup')}
-              className="h-9 px-5 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90"
+              className="h-9 px-5 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90 btn-star-blink"
             >
               Start Free
             </Button>

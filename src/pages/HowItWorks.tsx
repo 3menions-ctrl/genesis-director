@@ -257,7 +257,7 @@ export default function HowItWorks() {
             >
               <Link to="/auth">Sign in</Link>
             </Button>
-            <Button asChild className="h-9 px-5 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90">
+            <Button asChild className="h-9 px-5 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90 btn-star-blink">
               <Link to="/auth?mode=signup">Start Free</Link>
             </Button>
           </div>
@@ -388,7 +388,7 @@ export default function HowItWorks() {
           <p className="text-lg text-white/35 mb-10">
             Stop prompting. Start producing.
           </p>
-          <Button asChild size="lg" className="h-14 px-10 text-base font-medium rounded-full bg-white text-black hover:bg-white/90 shadow-[0_0_60px_rgba(255,255,255,0.15)]">
+          <Button asChild size="lg" className="h-14 px-10 text-base font-medium rounded-full bg-white text-black hover:bg-white/90 btn-star-blink shadow-[0_0_60px_rgba(255,255,255,0.15)]">
             <Link to="/auth?mode=signup">
               Start Free
               <ArrowRight className="w-5 h-5 ml-3" />

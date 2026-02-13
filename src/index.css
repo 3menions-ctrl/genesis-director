@@ -432,6 +432,17 @@
 }
 .animate-route-enter { animation: route-enter 0.2s ease-out forwards; }
 
+/* Star blink effect for CTA buttons */
+@keyframes star-blink {
+  0%, 100% { box-shadow: 0 0 4px rgba(255,255,255,0.2); }
+  25% { box-shadow: 0 0 12px rgba(255,255,255,0.6), 0 0 24px rgba(255,255,255,0.3); }
+  50% { box-shadow: 0 0 6px rgba(255,255,255,0.1); }
+  75% { box-shadow: 0 0 16px rgba(255,255,255,0.8), 0 0 32px rgba(255,255,255,0.4); }
+}
+.btn-star-blink {
+  animation: star-blink 2s ease-in-out infinite;
+}
+
 .delay-0 { animation-delay: 0ms; }
 .delay-1 { animation-delay: 75ms; }
 .delay-2 { animation-delay: 150ms; }

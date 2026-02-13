@@ -23,14 +23,14 @@ export const LandingNav = memo(forwardRef<HTMLElement, NavigationProps>(
               <button 
                 key={item}
                 onClick={() => onScrollToSection(item.toLowerCase())}
-                className="text-sm text-white/50 hover:text-white transition-colors"
+                className="text-sm text-white/50 hover:text-white transition-colors leading-none"
               >
                 {item}
               </button>
             ))}
             <Link
               to="/how-it-works"
-              className="text-sm text-white/50 hover:text-white transition-colors"
+              className="text-sm text-white/50 hover:text-white transition-colors leading-none"
             >
               How It Works
             </Link>

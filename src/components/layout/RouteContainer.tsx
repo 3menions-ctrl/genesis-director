@@ -14,21 +14,17 @@ interface RouteContainerProps {
  * This prevents crashes in one route from affecting the entire app.
  * Each route is fully isolated - a crash here won't break navigation.
  * 
- * Uses StabilityBoundary for:
- * - Error classification and targeted recovery
- * - Automatic retry for transient errors
- * - Structured error logging
- * 
- * forwardRef is implemented for AnimatePresence compatibility
+ * ANTI-BLINK: Uses CSS animate-fade-in so content appears smoothly
+ * without the flash caused by individual motion.div opacity:0 → 1 transitions.
  */
 export const RouteContainer = memo(forwardRef<HTMLDivElement, RouteContainerProps>(
   function RouteContainer({ children, fallbackMessage = 'Loading...', routeName }, ref) {
     return (
-      <div ref={ref}>
+      <div ref={ref} className="animate-route-enter">
         <StabilityBoundary 
           name={routeName || 'Page'} 
-          autoRetry={false}  // DISABLED: Prevents retry loops during hydration issues
-          maxRetries={0}     // No automatic retries - user must click "Try Again"
+          autoRetry={false}
+          maxRetries={0}
         >
           <Suspense fallback={<AppLoader message={fallbackMessage} />}>
             {children}

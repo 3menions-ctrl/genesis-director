@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, MousePointerClick, Film, Clock, TrendingUp, Monitor, Smartphone, Tablet } from 'lucide-react';
+import { Eye, MousePointerClick, Film, TrendingUp, Monitor, Smartphone, Tablet } from 'lucide-react';
 
 interface WidgetAnalyticsProps {
   widgetId: string;
@@ -18,7 +18,6 @@ interface WidgetEvent {
 }
 
 export function WidgetAnalytics({ widgetId }: WidgetAnalyticsProps) {
-  // Fetch recent events
   const { data: events, isLoading } = useQuery({
     queryKey: ['widget-events', widgetId],
     queryFn: async () => {
@@ -33,121 +32,107 @@ export function WidgetAnalytics({ widgetId }: WidgetAnalyticsProps) {
     },
   });
 
-  // Compute stats from events
   const stats = React.useMemo(() => {
     if (!events) return { views: 0, clicks: 0, scenePlays: 0, uniqueSessions: 0, desktop: 0, mobile: 0, tablet: 0 };
-    
-    const views = events.filter(e => e.event_type === 'view').length;
-    const clicks = events.filter(e => e.event_type === 'cta_click').length;
-    const scenePlays = events.filter(e => e.event_type === 'scene_play').length;
-    const uniqueSessions = new Set(events.map(e => e.visitor_session).filter(Boolean)).size;
-    const desktop = events.filter(e => e.device_type === 'desktop').length;
-    const mobile = events.filter(e => e.device_type === 'mobile').length;
-    const tablet = events.filter(e => e.device_type === 'tablet').length;
-    
-    return { views, clicks, scenePlays, uniqueSessions, desktop, mobile, tablet };
+    return {
+      views: events.filter(e => e.event_type === 'view').length,
+      clicks: events.filter(e => e.event_type === 'cta_click').length,
+      scenePlays: events.filter(e => e.event_type === 'scene_play').length,
+      uniqueSessions: new Set(events.map(e => e.visitor_session).filter(Boolean)).size,
+      desktop: events.filter(e => e.device_type === 'desktop').length,
+      mobile: events.filter(e => e.device_type === 'mobile').length,
+      tablet: events.filter(e => e.device_type === 'tablet').length,
+    };
   }, [events]);
 
   const cvr = stats.views > 0 ? ((stats.clicks / stats.views) * 100).toFixed(1) : '0.0';
 
   const eventTypeLabels: Record<string, string> = {
-    view: 'Page View',
-    scene_play: 'Scene Play',
-    scene_complete: 'Scene Complete',
-    cta_click: 'CTA Click',
-    secondary_cta_click: '2nd CTA Click',
-    dismiss: 'Dismissed',
-    minimize: 'Minimized',
-    reopen: 'Reopened',
-    exit_intent_fired: 'Exit Intent',
-    idle_triggered: 'Idle Trigger',
-    scroll_triggered: 'Scroll Trigger',
-    hover_triggered: 'Hover Trigger',
+    view: 'Page View', scene_play: 'Scene Play', scene_complete: 'Scene Complete',
+    cta_click: 'CTA Click', secondary_cta_click: '2nd CTA Click', dismiss: 'Dismissed',
+    minimize: 'Minimized', reopen: 'Reopened', exit_intent_fired: 'Exit Intent',
+    idle_triggered: 'Idle Trigger', scroll_triggered: 'Scroll Trigger', hover_triggered: 'Hover Trigger',
   };
 
-  const eventTypeColors: Record<string, string> = {
-    view: 'text-blue-400',
-    cta_click: 'text-green-400',
-    scene_play: 'text-purple-400',
-    dismiss: 'text-red-400',
-    exit_intent_fired: 'text-orange-400',
-    idle_triggered: 'text-yellow-400',
-    scroll_triggered: 'text-cyan-400',
+  const eventDotColors: Record<string, string> = {
+    view: 'bg-blue-400', cta_click: 'bg-emerald-400', scene_play: 'bg-violet-400',
+    dismiss: 'bg-red-400', exit_intent_fired: 'bg-amber-400', idle_triggered: 'bg-yellow-400',
+    scroll_triggered: 'bg-cyan-400',
   };
+
+  const statCards = [
+    { label: 'Views', value: stats.views, icon: Eye, gradient: 'from-blue-500/10 to-blue-500/5' },
+    { label: 'CTA Clicks', value: stats.clicks, icon: MousePointerClick, gradient: 'from-emerald-500/10 to-emerald-500/5' },
+    { label: 'Scene Plays', value: stats.scenePlays, icon: Film, gradient: 'from-violet-500/10 to-violet-500/5' },
+    { label: 'Unique Visitors', value: stats.uniqueSessions, icon: TrendingUp, gradient: 'from-cyan-500/10 to-cyan-500/5' },
+    { label: 'CVR', value: `${cvr}%`, icon: TrendingUp, gradient: 'from-primary/10 to-primary/5' },
+  ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        {[
-          { label: 'Views', value: stats.views, icon: Eye, color: 'text-blue-400' },
-          { label: 'CTA Clicks', value: stats.clicks, icon: MousePointerClick, color: 'text-green-400' },
-          { label: 'Scene Plays', value: stats.scenePlays, icon: Film, color: 'text-purple-400' },
-          { label: 'Unique Visitors', value: stats.uniqueSessions, icon: TrendingUp, color: 'text-cyan-400' },
-          { label: 'CVR', value: `${cvr}%`, icon: TrendingUp, color: 'text-emerald-400' },
-        ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="border border-border rounded-xl p-4 bg-card">
-            <div className="flex items-center gap-2 mb-2">
-              <Icon className={`w-4 h-4 ${color}`} />
-              <span className="text-xs text-muted-foreground">{label}</span>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {statCards.map(({ label, value, icon: Icon, gradient }) => (
+          <div key={label} className={`rounded-2xl bg-gradient-to-b ${gradient} border border-white/[0.06] p-4`}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-lg bg-white/[0.05] flex items-center justify-center">
+                <Icon className="w-3.5 h-3.5 text-white/50" />
+              </div>
             </div>
-            <p className="text-2xl font-bold text-foreground">{value}</p>
+            <p className="text-2xl font-bold text-foreground tabular-nums">{value}</p>
+            <p className="text-[10px] text-white/30 uppercase tracking-wider mt-1">{label}</p>
           </div>
         ))}
       </div>
 
       {/* Device Breakdown */}
-      <div className="border border-border rounded-xl p-4 bg-card">
-        <h4 className="text-sm font-medium text-foreground mb-3">Device Breakdown (last 50 events)</h4>
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <Monitor className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm text-foreground">{stats.desktop} Desktop</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Smartphone className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm text-foreground">{stats.mobile} Mobile</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Tablet className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm text-foreground">{stats.tablet} Tablet</span>
-          </div>
+      <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-5">
+        <h4 className="text-xs font-medium text-white/40 uppercase tracking-wider mb-4">Device Breakdown</h4>
+        <div className="flex items-center gap-8">
+          {[
+            { icon: Monitor, label: 'Desktop', count: stats.desktop },
+            { icon: Smartphone, label: 'Mobile', count: stats.mobile },
+            { icon: Tablet, label: 'Tablet', count: stats.tablet },
+          ].map(({ icon: Icon, label, count }) => (
+            <div key={label} className="flex items-center gap-2.5">
+              <Icon className="w-4 h-4 text-white/20" />
+              <span className="text-sm text-foreground font-medium tabular-nums">{count}</span>
+              <span className="text-[11px] text-white/30">{label}</span>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* Event Log */}
-      <div className="border border-border rounded-xl bg-card">
-        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-          <h4 className="text-sm font-medium text-foreground">Recent Events</h4>
-          <span className="text-xs text-muted-foreground">Last 50</span>
+      <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-white/[0.05] flex items-center justify-between">
+          <h4 className="text-xs font-medium text-white/40 uppercase tracking-wider">Recent Events</h4>
+          <span className="text-[10px] text-white/20 font-mono">LAST 50</span>
         </div>
         
         {isLoading ? (
-          <div className="p-8 text-center text-muted-foreground text-sm">Loading events...</div>
+          <div className="p-12 text-center text-white/30 text-sm">Loading events...</div>
         ) : !events?.length ? (
-          <div className="p-8 text-center text-muted-foreground text-sm">No events recorded yet. Publish your widget to start tracking.</div>
+          <div className="p-12 text-center text-white/30 text-sm">No events recorded yet. Publish your widget to start tracking.</div>
         ) : (
-          <div className="divide-y divide-border max-h-[400px] overflow-y-auto">
+          <div className="divide-y divide-white/[0.03] max-h-[400px] overflow-y-auto scrollbar-hide">
             {events.map(event => (
-              <div key={event.id} className="px-4 py-2.5 flex items-center justify-between text-sm">
+              <div key={event.id} className="px-5 py-2.5 flex items-center justify-between text-sm hover:bg-white/[0.02] transition-colors">
                 <div className="flex items-center gap-3">
-                  <span className={`font-medium ${eventTypeColors[event.event_type] || 'text-foreground'}`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${eventDotColors[event.event_type] || 'bg-white/20'}`} />
+                  <span className="font-medium text-foreground text-xs">
                     {eventTypeLabels[event.event_type] || event.event_type}
                   </span>
                   {event.scene_id && (
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                      Scene: {event.scene_id.slice(0, 8)}
+                    <span className="text-[10px] text-white/20 bg-white/[0.04] px-2 py-0.5 rounded-md font-mono">
+                      {event.scene_id.slice(0, 8)}
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  {event.device_type && (
-                    <span className="capitalize">{event.device_type}</span>
-                  )}
-                  <span>
-                    {new Date(event.created_at).toLocaleString(undefined, { 
-                      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
-                    })}
+                <div className="flex items-center gap-3 text-[11px] text-white/20">
+                  {event.device_type && <span className="capitalize">{event.device_type}</span>}
+                  <span className="font-mono">
+                    {new Date(event.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
               </div>

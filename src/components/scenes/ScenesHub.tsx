@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Plus, ExternalLink, Copy, BarChart3, Settings2, Trash2, Play, Pause, Eye, MousePointerClick, Film, Sparkles } from 'lucide-react';
+import { Plus, ExternalLink, Copy, BarChart3, Settings2, Trash2, Play, Pause, Eye, MousePointerClick, Film, Sparkles, ArrowLeft, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -111,46 +111,45 @@ export function ScenesHub() {
     toast.success('Landing page URL copied!');
   }, []);
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
-            <Sparkles className="w-7 h-7 text-primary" />
-            Genesis Scenes
-          </h2>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Create video conversion widgets & landing pages
-          </p>
-        </div>
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2"><Plus className="w-4 h-4" /> New Widget</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Create New Widget</DialogTitle></DialogHeader>
-            <div className="space-y-4 pt-4">
-              <Input placeholder="Widget name (e.g., Product Launch)" value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && newName.trim() && createMutation.mutate(newName.trim())} />
-              <Button className="w-full" disabled={!newName.trim() || createMutation.isPending} onClick={() => createMutation.mutate(newName.trim())}>
-                {createMutation.isPending ? 'Creating...' : 'Create Widget'}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+  const statusBadge = (status: string) => {
+    const styles = {
+      published: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+      paused: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+      draft: 'bg-white/[0.05] text-white/40 border border-white/[0.08]',
+    };
+    return styles[status as keyof typeof styles] || styles.draft;
+  };
 
+  return (
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 animate-fade-in">
       {selectedWidget ? (
-        <div>
-          <div className="flex items-center gap-3 mb-6">
-            <Button variant="ghost" size="sm" onClick={() => { setSelectedWidget(null); setActiveTab('list'); }}>← Back</Button>
-            <h2 className="text-xl font-semibold text-foreground">{selectedWidget.name}</h2>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${selectedWidget.status === 'published' ? 'bg-green-500/20 text-green-400' : selectedWidget.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-muted text-muted-foreground'}`}>{selectedWidget.status}</span>
+        /* ══════════ BUILDER / ANALYTICS VIEW ══════════ */
+        <div className="space-y-6">
+          {/* Back bar */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => { setSelectedWidget(null); setActiveTab('list'); }}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-white/50 hover:text-white/80 hover:bg-white/[0.05] transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </button>
+            <div className="h-5 w-px bg-white/[0.08]" />
+            <h2 className="text-lg font-semibold text-foreground tracking-tight">{selectedWidget.name}</h2>
+            <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium uppercase tracking-wider ${statusBadge(selectedWidget.status)}`}>
+              {selectedWidget.status}
+            </span>
           </div>
+
+          {/* Tabs */}
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'builder' | 'analytics')}>
-            <TabsList>
-              <TabsTrigger value="builder"><Settings2 className="w-4 h-4 mr-1.5" /> Builder</TabsTrigger>
-              <TabsTrigger value="analytics"><BarChart3 className="w-4 h-4 mr-1.5" /> Analytics</TabsTrigger>
+            <TabsList className="bg-white/[0.03] border border-white/[0.08] p-1 rounded-xl">
+              <TabsTrigger value="builder" className="data-[state=active]:bg-white/[0.08] data-[state=active]:text-foreground rounded-lg gap-2">
+                <Settings2 className="w-4 h-4" /> Builder
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="data-[state=active]:bg-white/[0.08] data-[state=active]:text-foreground rounded-lg gap-2">
+                <BarChart3 className="w-4 h-4" /> Analytics
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="builder" className="mt-6">
               <WidgetBuilderForm widget={selectedWidget} onUpdate={(updated) => { setSelectedWidget(updated); queryClient.invalidateQueries({ queryKey: ['widgets'] }); }} />
@@ -161,50 +160,159 @@ export function ScenesHub() {
           </Tabs>
         </div>
       ) : (
-        <div>
+        /* ══════════ LIST VIEW ══════════ */
+        <div className="space-y-8">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 border border-white/[0.08] flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                </div>
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">Scenes</h2>
+              </div>
+              <p className="text-sm text-white/40 pl-12">Video conversion widgets & landing pages</p>
+            </div>
+            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.15] transition-all text-sm font-medium text-foreground">
+                  <Plus className="w-4 h-4" /> New Widget
+                </button>
+              </DialogTrigger>
+              <DialogContent className="bg-black/95 backdrop-blur-xl border-white/[0.08]">
+                <DialogHeader>
+                  <DialogTitle className="text-foreground">Create New Widget</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <Input 
+                    placeholder="Widget name (e.g., Product Launch)" 
+                    value={newName} 
+                    onChange={(e) => setNewName(e.target.value)} 
+                    onKeyDown={(e) => e.key === 'Enter' && newName.trim() && createMutation.mutate(newName.trim())}
+                    className="bg-white/[0.03] border-white/[0.08] text-foreground placeholder:text-white/30"
+                  />
+                  <Button 
+                    className="w-full" 
+                    disabled={!newName.trim() || createMutation.isPending} 
+                    onClick={() => createMutation.mutate(newName.trim())}
+                  >
+                    {createMutation.isPending ? 'Creating...' : 'Create Widget'}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Content */}
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1,2,3].map(i => (<div key={i} className="h-48 rounded-xl bg-muted animate-pulse" />))}
+              {[1,2,3].map(i => (
+                <div key={i} className="h-52 rounded-2xl bg-white/[0.02] border border-white/[0.05] animate-pulse" />
+              ))}
             </div>
           ) : !widgets?.length ? (
-            <div className="text-center py-20 border border-dashed border-border rounded-2xl">
-              <Film className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+            /* Empty state */
+            <div className="text-center py-24 rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.01]">
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mb-6">
+                <Layers className="w-7 h-7 text-white/20" />
+              </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">No widgets yet</h3>
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto">Create your first video conversion widget. Embed it on any site or share as a landing page.</p>
-              <Button onClick={() => setCreateDialogOpen(true)} className="gap-2"><Plus className="w-4 h-4" /> Create Your First Widget</Button>
+              <p className="text-white/40 mb-8 max-w-sm mx-auto text-sm leading-relaxed">
+                Create your first video conversion widget. Embed it on any site or share as a hosted landing page.
+              </p>
+              <button
+                onClick={() => setCreateDialogOpen(true)}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.15] transition-all text-sm font-medium text-foreground"
+              >
+                <Plus className="w-4 h-4" /> Create Your First Widget
+              </button>
             </div>
           ) : (
+            /* Widget cards */
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {widgets.map((widget) => (
-                <div key={widget.id} className="rounded-xl border border-border bg-card p-5 hover:border-primary/30 transition-colors group">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="font-semibold text-foreground">{widget.name}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">{widget.widget_type === 'both' ? 'Embed + Landing' : widget.widget_type}</p>
+                <div 
+                  key={widget.id} 
+                  className="group relative rounded-2xl bg-white/[0.02] backdrop-blur-sm border border-white/[0.06] hover:border-white/[0.12] hover:bg-white/[0.04] transition-all duration-300 overflow-hidden"
+                >
+                  {/* Subtle top accent line */}
+                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  
+                  <div className="p-5 space-y-4">
+                    {/* Title row */}
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-0.5 min-w-0">
+                        <h3 className="font-semibold text-foreground truncate">{widget.name}</h3>
+                        <p className="text-[11px] text-white/30 font-medium tracking-wide">
+                          {widget.widget_type === 'both' ? 'EMBED + LANDING' : widget.widget_type?.toUpperCase()}
+                        </p>
+                      </div>
+                      <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium uppercase tracking-wider shrink-0 ${statusBadge(widget.status)}`}>
+                        {widget.status}
+                      </span>
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${widget.status === 'published' ? 'bg-green-500/20 text-green-400' : widget.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-muted text-muted-foreground'}`}>{widget.status}</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 mb-4">
-                    <div className="text-center">
-                      <p className="text-lg font-bold text-foreground">{widget.total_views}</p>
-                      <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1"><Eye className="w-3 h-3" /> Views</p>
+
+                    {/* Stats row */}
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { value: widget.total_views, label: 'Views', icon: Eye },
+                        { value: widget.total_cta_clicks, label: 'Clicks', icon: MousePointerClick },
+                        { value: widget.total_views > 0 ? `${((widget.total_cta_clicks / widget.total_views) * 100).toFixed(1)}%` : '—', label: 'CVR', icon: null },
+                      ].map(({ value, label, icon: Icon }) => (
+                        <div key={label} className="text-center py-2 rounded-lg bg-white/[0.02]">
+                          <p className="text-base font-bold text-foreground tabular-nums">{value}</p>
+                          <p className="text-[10px] text-white/30 flex items-center justify-center gap-1 mt-0.5">
+                            {Icon && <Icon className="w-3 h-3" />}
+                            {label}
+                          </p>
+                        </div>
+                      ))}
                     </div>
-                    <div className="text-center">
-                      <p className="text-lg font-bold text-foreground">{widget.total_cta_clicks}</p>
-                      <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1"><MousePointerClick className="w-3 h-3" /> Clicks</p>
+
+                    {/* Scenes indicator */}
+                    <div className="flex items-center gap-2">
+                      <Film className="w-3 h-3 text-white/20" />
+                      <span className="text-[11px] text-white/30">{(widget.scenes as unknown[])?.length || 0} scenes</span>
                     </div>
-                    <div className="text-center">
-                      <p className="text-lg font-bold text-foreground">{widget.total_views > 0 ? ((widget.total_cta_clicks / widget.total_views) * 100).toFixed(1) : '0'}%</p>
-                      <p className="text-[10px] text-muted-foreground">CVR</p>
+
+                    {/* Hairline divider */}
+                    <div className="h-px bg-white/[0.05]" />
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => { setSelectedWidget(widget); setActiveTab('builder'); }}
+                        className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.12] text-xs text-white/60 hover:text-white/90 transition-all"
+                      >
+                        <Settings2 className="w-3 h-3" /> Configure
+                      </button>
+                      <button
+                        onClick={() => togglePublish.mutate({ id: widget.id, status: widget.status })}
+                        className="h-8 w-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.12] flex items-center justify-center text-white/40 hover:text-white/80 transition-all"
+                      >
+                        {widget.status === 'published' ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                      </button>
+                      <button
+                        onClick={() => copyEmbedCode(widget)}
+                        className="h-8 w-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.12] flex items-center justify-center text-white/40 hover:text-white/80 transition-all"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                      {widget.slug && (
+                        <button
+                          onClick={() => copyLandingUrl(widget)}
+                          className="h-8 w-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.12] flex items-center justify-center text-white/40 hover:text-white/80 transition-all"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => { if (confirm('Delete this widget?')) deleteMutation.mutate(widget.id); }}
+                        className="h-8 w-8 rounded-lg hover:bg-destructive/10 border border-transparent hover:border-destructive/20 flex items-center justify-center text-white/20 hover:text-destructive transition-all"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-4">{(widget.scenes as unknown[])?.length || 0} scenes configured</p>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => { setSelectedWidget(widget); setActiveTab('builder'); }}><Settings2 className="w-3.5 h-3.5 mr-1" /> Edit</Button>
-                    <Button variant="outline" size="sm" onClick={() => togglePublish.mutate({ id: widget.id, status: widget.status })}>{widget.status === 'published' ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}</Button>
-                    <Button variant="outline" size="sm" onClick={() => copyEmbedCode(widget)}><Copy className="w-3.5 h-3.5" /></Button>
-                    {widget.slug && (<Button variant="outline" size="sm" onClick={() => copyLandingUrl(widget)}><ExternalLink className="w-3.5 h-3.5" /></Button>)}
-                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => { if (confirm('Delete this widget?')) deleteMutation.mutate(widget.id); }}><Trash2 className="w-3.5 h-3.5" /></Button>
                   </div>
                 </div>
               ))}

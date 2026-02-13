@@ -1,5 +1,4 @@
 import React, { useMemo, useEffect, useState, useRef, memo } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
   FileText,
@@ -11,9 +10,6 @@ import {
   CheckCircle2,
   Loader2,
   XCircle,
-  Zap,
-  Brain,
-  Palette,
   Clapperboard,
 } from 'lucide-react';
 
@@ -44,580 +40,106 @@ interface CinematicPipelineProgressProps {
 
 // ============= STAGE METADATA =============
 
-const STAGE_METADATA: Record<string, {
+const STAGE_META: Record<string, {
   icon: React.ElementType;
-  color: string;
-  glowColor: string;
-  description: string;
-  activities: string[];
+  accent: string;
+  label: string;
 }> = {
-  'Script': {
-    icon: FileText,
-    color: 'from-violet-500 to-purple-600',
-    glowColor: 'rgba(139, 92, 246, 0.5)',
-    description: 'Crafting your cinematic narrative',
-    activities: [
-      'Analyzing story structure...',
-      'Breaking down into shots...',
-      'Optimizing visual flow...',
-      'Adding camera directions...',
-    ],
-  },
-  'Identity': {
-    icon: Users,
-    color: 'from-blue-500 to-cyan-500',
-    glowColor: 'rgba(34, 211, 238, 0.5)',
-    description: 'Building character consistency',
-    activities: [
-      'Extracting facial features...',
-      'Mapping body proportions...',
-      'Locking wardrobe elements...',
-      'Creating identity anchors...',
-    ],
-  },
-  'Audit': {
-    icon: Shield,
-    color: 'from-emerald-500 to-teal-500',
-    glowColor: 'rgba(52, 211, 153, 0.5)',
-    description: 'Quality assurance check',
-    activities: [
-      'Validating scene continuity...',
-      'Checking lighting consistency...',
-      'Verifying motion vectors...',
-      'Scoring visual coherence...',
-    ],
-  },
-  'Assets': {
-    icon: Wand2,
-    color: 'from-amber-500 to-orange-500',
-    glowColor: 'rgba(251, 191, 36, 0.5)',
-    description: 'Generating visual elements',
-    activities: [
-      'Creating scene images...',
-      'Generating background music...',
-      'Synthesizing voice narration...',
-      'Preparing anchor frames...',
-    ],
-  },
-  'Render': {
-    icon: Film,
-    color: 'from-rose-500 to-pink-500',
-    glowColor: 'rgba(244, 63, 94, 0.5)',
-    description: 'AI video generation',
-    activities: [
-      'Initializing neural renderer...',
-      'Processing motion dynamics...',
-      'Applying style consistency...',
-      'Generating video frames...',
-    ],
-  },
-  'Stitch': {
-    icon: Sparkles,
-    color: 'from-indigo-500 to-purple-500',
-    glowColor: 'rgba(99, 102, 241, 0.5)',
-    description: 'Final assembly',
-    activities: [
-      'Analyzing transitions...',
-      'Building playback manifest...',
-      'Optimizing audio sync...',
-      'Finalizing production...',
-    ],
-  },
+  'Script': { icon: FileText, accent: 'text-violet-400', label: 'Crafting narrative' },
+  'Identity': { icon: Users, accent: 'text-cyan-400', label: 'Locking characters' },
+  'Audit': { icon: Shield, accent: 'text-emerald-400', label: 'Quality check' },
+  'Assets': { icon: Wand2, accent: 'text-amber-400', label: 'Generating assets' },
+  'Render': { icon: Film, accent: 'text-rose-400', label: 'Rendering video' },
+  'Stitch': { icon: Sparkles, accent: 'text-indigo-400', label: 'Final assembly' },
 };
 
 // ============= SUB-COMPONENTS =============
 
-// Animated particle trail - OPTIMIZED: Deterministic values, CSS will-change hint
-const PARTICLE_OFFSETS = [
-  { x: 80, y: 30, duration: 2.4 },
-  { x: -60, y: -20, duration: 2.8 },
-  { x: 40, y: 45, duration: 3.2 },
-  { x: -80, y: 10, duration: 2.6 },
-  { x: 20, y: -40, duration: 3.0 },
-  { x: -40, y: 35, duration: 2.2 },
-  { x: 70, y: -15, duration: 3.4 },
-  { x: -20, y: 50, duration: 2.5 },
-  { x: 50, y: -30, duration: 2.9 },
-  { x: -70, y: 25, duration: 3.1 },
-  { x: 30, y: 40, duration: 2.7 },
-  { x: -50, y: -35, duration: 3.3 },
-];
+// Rotating activity text for active stage
+const ActivityText = memo(function ActivityText({ stage }: { stage: string }) {
+  const activities: Record<string, string[]> = {
+    'Script': ['Analyzing structure...', 'Breaking into shots...', 'Adding camera cues...'],
+    'Identity': ['Extracting features...', 'Mapping proportions...', 'Creating anchors...'],
+    'Audit': ['Validating continuity...', 'Scoring coherence...', 'Checking lighting...'],
+    'Assets': ['Creating images...', 'Generating music...', 'Synthesizing voice...'],
+    'Render': ['Processing frames...', 'Applying style...', 'Generating video...'],
+    'Stitch': ['Analyzing transitions...', 'Building manifest...', 'Finalizing...'],
+  };
 
-function ParticleTrail({ isActive }: { isActive: boolean }) {
-  if (!isActive) return null;
-  
+  const [index, setIndex] = useState(0);
+  const list = activities[stage] || ['Processing...'];
+
+  useEffect(() => {
+    const interval = setInterval(() => setIndex(i => (i + 1) % list.length), 2800);
+    return () => clearInterval(interval);
+  }, [list.length]);
+
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {PARTICLE_OFFSETS.map((offset, i) => (
-        <motion.div
-          key={i}
-          className="absolute w-1 h-1 rounded-full bg-white will-change-transform"
-          initial={{ 
-            x: '-50%', 
-            y: '50%',
-            opacity: 0,
-            scale: 0 
-          }}
-          animate={{ 
-            x: ['0%', `${offset.x}%`],
-            y: ['50%', `${offset.y}%`],
-            opacity: [0, 1, 0],
-            scale: [0, 1.5, 0]
-          }}
-          transition={{ 
-            duration: offset.duration,
-            repeat: Infinity,
-            delay: i * 0.2,
-            ease: 'easeOut'
-          }}
-        />
-      ))}
-    </div>
+    <span className="text-[11px] text-white/40 font-mono transition-opacity duration-300">
+      {list[index]}
+    </span>
   );
-}
+});
 
-// DNA helix animation for identity stage
-function DNAHelix({ isActive }: { isActive: boolean }) {
-  if (!isActive) return null;
-  
-  return (
-    <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-8 h-16 pointer-events-none">
-      {[...Array(8)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute w-1.5 h-1.5 rounded-full bg-cyan-400"
-          style={{ top: `${i * 12.5}%` }}
-          animate={{
-            x: [0, 8, 0, -8, 0],
-            opacity: [0.3, 1, 0.3],
-          }}
-          transition={{
-            duration: 1.5,
-            repeat: Infinity,
-            delay: i * 0.1,
-            ease: 'easeInOut',
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-// Waveform visualization for audio stages - OPTIMIZED: Deterministic heights
-const WAVEFORM_HEIGHTS = [14, 12, 16, 10, 15, 11, 13];
-const WAVEFORM_DURATIONS = [0.45, 0.52, 0.48, 0.55, 0.42, 0.58, 0.50];
-
-function AudioWaveform({ isActive }: { isActive: boolean }) {
-  if (!isActive) return null;
-  
-  return (
-    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-end gap-0.5 h-4 pointer-events-none">
-      {WAVEFORM_HEIGHTS.map((maxHeight, i) => (
-        <motion.div
-          key={i}
-          className="w-0.5 bg-amber-400 rounded-full will-change-transform"
-          animate={{
-            height: [4, maxHeight, 4],
-          }}
-          transition={{
-            duration: WAVEFORM_DURATIONS[i],
-            repeat: Infinity,
-            delay: i * 0.05,
-            ease: 'easeInOut',
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-// Neural network nodes visualization
-function NeuralNodes({ isActive }: { isActive: boolean }) {
-  if (!isActive) return null;
-  
-  return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      {[...Array(6)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute w-2 h-2 rounded-full border border-rose-400/50"
-          style={{
-            left: `${20 + (i % 3) * 25}%`,
-            top: `${25 + Math.floor(i / 3) * 35}%`,
-          }}
-          animate={{
-            scale: [1, 1.3, 1],
-            opacity: [0.3, 1, 0.3],
-            borderColor: ['rgba(244,63,94,0.3)', 'rgba(244,63,94,1)', 'rgba(244,63,94,0.3)'],
-          }}
-          transition={{
-            duration: 1.2,
-            repeat: Infinity,
-            delay: i * 0.15,
-          }}
-        />
-      ))}
-      {/* Connection lines */}
-      <svg className="absolute inset-0 w-full h-full">
-        <motion.line
-          x1="32%" y1="42%" x2="57%" y2="42%"
-          stroke="rgba(244,63,94,0.4)"
-          strokeWidth="1"
-          animate={{ opacity: [0.2, 0.8, 0.2] }}
-          transition={{ duration: 1, repeat: Infinity, delay: 0.5 }}
-        />
-        <motion.line
-          x1="45%" y1="42%" x2="45%" y2="77%"
-          stroke="rgba(244,63,94,0.4)"
-          strokeWidth="1"
-          animate={{ opacity: [0.2, 0.8, 0.2] }}
-          transition={{ duration: 1, repeat: Infinity, delay: 0.7 }}
-        />
-      </svg>
-    </div>
-  );
-}
-
-// Rotating activity text - OPTIMIZED: forwardRef for AnimatePresence compatibility
-const ActivityText = memo(React.forwardRef<HTMLDivElement, { stage: string; isActive: boolean }>(
-  function ActivityText({ stage, isActive }, ref) {
-    const [activityIndex, setActivityIndex] = useState(0);
-    const metadata = STAGE_METADATA[stage];
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
-    
-    useEffect(() => {
-      if (!isActive || !metadata) {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        return;
-      }
-      
-      intervalRef.current = setInterval(() => {
-        setActivityIndex(prev => (prev + 1) % metadata.activities.length);
-      }, 2500);
-      
-      return () => {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-      };
-    }, [isActive, metadata?.activities.length, stage]);
-    
-    if (!isActive || !metadata) return null;
-    
-    return (
-      <div ref={ref}>
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={activityIndex}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-            className="text-[10px] text-white/60 font-mono tracking-wider"
-          >
-            {metadata.activities[activityIndex]}
-          </motion.p>
-        </AnimatePresence>
-      </div>
-    );
-  }
-));
-
-// Individual stage node
-function StageNode({ 
-  stage, 
-  index, 
-  isFirst,
-  isLast,
-  previousComplete 
-}: { 
-  stage: StageStatus; 
-  index: number;
-  isFirst: boolean;
-  isLast: boolean;
-  previousComplete: boolean;
-}) {
-  const metadata = STAGE_METADATA[stage.shortName] || STAGE_METADATA['Script'];
-  const Icon = metadata.icon;
+function StageNode({ stage }: { stage: StageStatus }) {
+  const meta = STAGE_META[stage.shortName] || STAGE_META['Script'];
+  const Icon = meta.icon;
   const isActive = stage.status === 'active';
   const isComplete = stage.status === 'complete';
   const isError = stage.status === 'error';
   const isPending = stage.status === 'pending';
-  
+
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="relative flex flex-col items-center"
-    >
-      {/* Connection line to previous */}
-      {!isFirst && (
-        <div className="absolute right-full top-8 w-full h-0.5 -mr-1">
-          <div className={cn(
-            "h-full transition-all duration-700",
-            previousComplete ? "bg-gradient-to-r from-emerald-500/50 to-emerald-400" : "bg-white/10"
-          )} />
-          {previousComplete && (
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent"
-              animate={{ x: ['-100%', '200%'] }}
-              transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
-            />
-          )}
-        </div>
-      )}
-      
-      {/* Stage Circle */}
-      <div className="relative">
-        {/* Outer glow ring for active */}
+    <div className="flex flex-col items-center gap-2.5 min-w-0">
+      {/* Node circle */}
+      <div className={cn(
+        "relative w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-500",
+        isPending && "bg-white/[0.04] border border-white/[0.06] text-white/20",
+        isActive && "bg-white/[0.08] border border-white/20 text-white shadow-[0_0_20px_-5px_rgba(255,255,255,0.1)]",
+        isComplete && "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400",
+        isError && "bg-rose-500/10 border border-rose-500/20 text-rose-400",
+      )}>
+        {/* Subtle pulse ring for active */}
         {isActive && (
-          <>
-            <motion.div
-              className={cn("absolute -inset-4 rounded-full opacity-30 blur-md bg-gradient-to-r", metadata.color)}
-              animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-            <motion.div
-              className="absolute -inset-2 rounded-full border-2 border-white/20"
-              animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            />
-          </>
+          <div className="absolute -inset-1 rounded-xl border border-white/10 animate-[pulse_3s_ease-in-out_infinite]" />
         )}
-        
-        {/* Success burst */}
-        {isComplete && (
-          <motion.div
-            initial={{ scale: 0.5, opacity: 1 }}
-            animate={{ scale: 2, opacity: 0 }}
-            transition={{ duration: 0.6 }}
-            className="absolute inset-0 rounded-full bg-emerald-400"
-          />
+
+        {isActive ? (
+          <Loader2 className="w-5 h-5 animate-spin" />
+        ) : isComplete ? (
+          <CheckCircle2 className="w-5 h-5" />
+        ) : isError ? (
+          <XCircle className="w-5 h-5" />
+        ) : (
+          <Icon className="w-4.5 h-4.5" />
         )}
-        
-        {/* Main node */}
-        <motion.div
-          className={cn(
-            "relative w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden",
-            "transition-all duration-500 backdrop-blur-xl",
-            isPending && "bg-white/5 border border-white/10 text-white/30",
-            isActive && `bg-gradient-to-br ${metadata.color} border border-white/30 text-white shadow-lg`,
-            isComplete && "bg-gradient-to-br from-emerald-500/30 to-emerald-600/20 border border-emerald-400/50 text-emerald-400",
-            isError && "bg-gradient-to-br from-rose-500/30 to-rose-600/20 border border-rose-400/50 text-rose-400"
-          )}
-          style={isActive ? { boxShadow: `0 0 40px ${metadata.glowColor}` } : {}}
-          whileHover={{ scale: isPending ? 1 : 1.05 }}
-        >
-          {/* Background pattern */}
-          {isActive && (
-            <div className="absolute inset-0 opacity-20">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,white_1px,transparent_1px)] bg-[length:8px_8px]" />
-            </div>
-          )}
-          
-          {/* Stage-specific animations */}
-          {stage.shortName === 'Identity' && <DNAHelix isActive={isActive} />}
-          {stage.shortName === 'Assets' && <AudioWaveform isActive={isActive} />}
-          {stage.shortName === 'Render' && <NeuralNodes isActive={isActive} />}
-          <ParticleTrail isActive={isActive} />
-          
-          {/* Icon */}
-          <AnimatePresence mode="wait">
-            {isActive ? (
-              <motion.div
-                key="loading"
-                initial={{ opacity: 0, rotate: -180 }}
-                animate={{ opacity: 1, rotate: 0 }}
-                exit={{ opacity: 0, rotate: 180 }}
-                className="relative z-10"
-              >
-                <Loader2 className="w-7 h-7 animate-spin" />
-              </motion.div>
-            ) : isComplete ? (
-              <motion.div
-                key="complete"
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                className="relative z-10"
-              >
-                <CheckCircle2 className="w-7 h-7" />
-              </motion.div>
-            ) : isError ? (
-              <motion.div
-                key="error"
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="relative z-10"
-              >
-                <XCircle className="w-7 h-7" />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="icon"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="relative z-10"
-              >
-                <Icon className="w-6 h-6" />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
       </div>
-      
-      {/* Label and activity */}
-      <div className="mt-3 text-center min-h-[44px]">
+
+      {/* Label */}
+      <div className="text-center">
         <p className={cn(
-          "text-xs font-semibold tracking-wider uppercase transition-colors",
-          isPending && "text-white/40",
+          "text-[11px] font-semibold tracking-wide uppercase transition-colors duration-300",
+          isPending && "text-white/25",
           isActive && "text-white",
-          isComplete && "text-emerald-400",
-          isError && "text-rose-400"
+          isComplete && "text-emerald-400/80",
+          isError && "text-rose-400/80",
         )}>
           {stage.shortName}
         </p>
-        <div className="h-4 mt-1">
-          <ActivityText stage={stage.shortName} isActive={isActive} />
-        </div>
+        {isActive && (
+          <div className="mt-0.5 h-3.5">
+            <ActivityText stage={stage.shortName} />
+          </div>
+        )}
       </div>
-    </motion.div>
-  );
-}
-
-// Main progress line with energy flow
-function ProgressLine({ progress, stages, isError }: { progress: number; stages: StageStatus[]; isError?: boolean }) {
-  const completedCount = stages.filter(s => s.status === 'complete').length;
-  const activeIndex = stages.findIndex(s => s.status === 'active');
-  const progressValue = activeIndex >= 0 
-    ? ((completedCount + 0.5) / stages.length) * 100 
-    : (completedCount / stages.length) * 100;
-
-  return (
-    <div className="absolute top-8 left-8 right-8 h-0.5 pointer-events-none">
-      {/* Background track */}
-      <div className="absolute inset-0 bg-white/5 rounded-full" />
-      
-      {/* Progress fill */}
-      <motion.div
-        className="absolute inset-y-0 left-0 rounded-full overflow-hidden"
-        initial={{ width: 0 }}
-        animate={{ width: `${Math.min(progressValue, 100)}%` }}
-        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <div className={cn(
-          "absolute inset-0",
-          isError 
-            ? "bg-gradient-to-r from-rose-500 via-rose-400 to-rose-500"
-            : "bg-gradient-to-r from-violet-500 via-cyan-400 to-emerald-400"
-        )} />
-        
-        {/* Animated shine - smoother */}
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
-          animate={{ x: ['-200%', '200%'] }}
-          transition={{ duration: 3, repeat: Infinity, ease: 'linear', repeatDelay: 1 }}
-        />
-      </motion.div>
-      
-      {/* Energy orb at progress head - smooth pulse, no trailing particles */}
-      {progressValue > 0 && progressValue < 100 && !isError && (
-        <motion.div
-          className="absolute top-1/2 -translate-y-1/2 w-3 h-3"
-          style={{ left: `${progressValue}%` }}
-        >
-          <motion.div
-            className="absolute inset-0 rounded-full bg-white"
-            animate={{
-              boxShadow: [
-                '0 0 8px 2px rgba(255,255,255,0.4)',
-                '0 0 16px 3px rgba(255,255,255,0.6)',
-                '0 0 8px 2px rgba(255,255,255,0.4)',
-              ],
-            }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-          />
-        </motion.div>
-      )}
     </div>
   );
 }
 
-// Overall progress ring
-function ProgressRing({ progress, isError, isComplete }: { progress: number; isError?: boolean; isComplete?: boolean }) {
-  const circumference = 2 * Math.PI * 45;
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
-  
-  return (
-    <div className="relative w-28 h-28">
-      <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-        {/* Background ring */}
-        <circle
-          cx="50"
-          cy="50"
-          r="45"
-          fill="none"
-          stroke="rgba(255,255,255,0.05)"
-          strokeWidth="6"
-        />
-        {/* Progress ring */}
-        <motion.circle
-          cx="50"
-          cy="50"
-          r="45"
-          fill="none"
-          stroke={isError ? '#f43f5e' : isComplete ? '#10b981' : 'url(#progressGradient)'}
-          strokeWidth="6"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset }}
-          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-        />
-        <defs>
-          <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#8B5CF6" />
-            <stop offset="50%" stopColor="#22D3EE" />
-            <stop offset="100%" stopColor="#34D399" />
-          </linearGradient>
-        </defs>
-      </svg>
-      
-      {/* Center content */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        {/* OPTIMIZED: Removed key={Math.floor(progress)} which caused re-mount on every 1% change */}
-        <span 
-          className={cn(
-            "text-2xl font-bold tabular-nums transition-colors duration-300",
-            isError ? "text-rose-400" : isComplete ? "text-emerald-400" : "text-white"
-          )}
-        >
-          {Math.round(progress)}%
-        </span>
-        <span className="text-[10px] text-white/40 uppercase tracking-wider">
-          {isError ? 'Failed' : isComplete ? 'Done' : 'Complete'}
-        </span>
-      </div>
-      
-      {/* Subtle orbiting dot - smooth, not flashing */}
-      {progress > 0 && progress < 100 && !isError && (
-        <motion.div
-          className="absolute w-1.5 h-1.5 rounded-full bg-cyan-400/60"
-          style={{
-            left: '50%',
-            top: '50%',
-            marginLeft: '-3px',
-            marginTop: '-3px',
-          }}
-          animate={{
-            rotate: 360,
-            x: [0, 45, 0, -45, 0],
-            y: [-45, 0, 45, 0, -45],
-          }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-        />
-      )}
-    </div>
-  );
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
 // ============= MAIN COMPONENT =============
@@ -638,378 +160,225 @@ export function CinematicPipelineProgress({
   className,
 }: CinematicPipelineProgressProps) {
   const activeStage = stages.find(s => s.status === 'active');
-  const errorStage = stages.find(s => s.status === 'error');
-  const activeMetadata = activeStage ? STAGE_METADATA[activeStage.shortName] : null;
-  
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  const activeMeta = activeStage ? STAGE_META[activeStage.shortName] : null;
+
+  // Compute progress line percentage from stages
+  const completedCount = stages.filter(s => s.status === 'complete').length;
+  const activeIndex = stages.findIndex(s => s.status === 'active');
+  const lineProgress = activeIndex >= 0
+    ? ((completedCount + 0.5) / stages.length) * 100
+    : (completedCount / stages.length) * 100;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className={cn(
-        "relative rounded-3xl overflow-hidden",
-        "bg-gradient-to-br from-zinc-900/95 via-zinc-950/98 to-black",
-        "border border-white/[0.08]",
-        "shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]",
-        "backdrop-blur-2xl",
-        className
-      )}
-    >
-      {/* Animated background gradient */}
+    <div className={cn(
+      "relative rounded-2xl overflow-hidden",
+      "bg-white/[0.02] border border-white/[0.06]",
+      "backdrop-blur-xl",
+      className
+    )}>
+      {/* Subtle ambient glow */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Dynamic glow based on active stage - OPTIMIZED: Reduced blur from 150px to 80px for GPU */}
-        {activeMetadata && !isError && (
-          <motion.div
-            className={cn("absolute w-[600px] h-[600px] rounded-full blur-[80px] bg-gradient-to-r opacity-20 will-change-transform", activeMetadata.color)}
-            animate={{ 
-              x: ['-20%', '20%', '-20%'],
-              y: ['-20%', '10%', '-20%'],
-              scale: [1, 1.2, 1],
-            }}
-            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-            style={{ left: '30%', top: '-50%' }}
-          />
-        )}
-        
-        {/* Error glow */}
-        {isError && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.15 }}
-            className="absolute w-[600px] h-[600px] rounded-full blur-[80px] bg-rose-500"
-            style={{ left: '30%', top: '-50%' }}
-          />
-        )}
-        
-        {/* Completion glow */}
         {isComplete && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 0.3, scale: 1 }}
-            className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 via-transparent to-cyan-500/20"
-          />
+          <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/[0.06] blur-[100px] rounded-full translate-x-1/3 -translate-y-1/3" />
         )}
-        
-        {/* Noise texture */}
-        <div 
-          className="absolute inset-0 opacity-[0.02]"
-          style={{
-            backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.8\' numOctaves=\'4\' /%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\' /%3E%3C/svg%3E")',
-          }}
-        />
+        {isRunning && !isComplete && !isError && (
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-64 bg-white/[0.02] blur-[80px] rounded-full -translate-y-1/2" />
+        )}
+        {isError && (
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-64 bg-rose-500/[0.04] blur-[80px] rounded-full -translate-y-1/2" />
+        )}
       </div>
 
-      <div className="relative p-8 md:p-10">
-        {/* Header with controls */}
-        <div className="flex items-center justify-between mb-10">
-          <div className="flex items-center gap-4">
+      <div className="relative p-6 md:p-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3.5">
             <div className={cn(
-              "w-14 h-14 rounded-2xl flex items-center justify-center",
-              "bg-gradient-to-br from-white/10 to-white/5 border border-white/10",
-              isError && "border-rose-500/30"
+              "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500",
+              "bg-white/[0.05] border border-white/[0.08]",
+              isComplete && "border-emerald-500/20",
+              isError && "border-rose-500/20",
             )}>
               {isComplete ? (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 15 }}
-                >
-                  <Sparkles className="w-7 h-7 text-emerald-400" />
-                </motion.div>
+                <Sparkles className="w-5 h-5 text-emerald-400" />
               ) : isError ? (
-                <XCircle className="w-7 h-7 text-rose-400" />
+                <XCircle className="w-5 h-5 text-rose-400" />
               ) : (
-                <Clapperboard className="w-6 h-6 text-white/60" />
+                <Clapperboard className="w-4.5 h-4.5 text-white/40" />
               )}
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white tracking-tight">
-                {projectTitle || (isComplete ? 'Production Complete' : isError ? 'Production Failed' : 'Production Pipeline')}
+              <h2 className="text-base font-semibold text-white tracking-tight">
+                {projectTitle || 'Production Pipeline'}
               </h2>
-              <p className="text-sm text-white/40">
-                {isComplete 
-                  ? 'Your video is ready to preview'
+              <p className="text-xs text-white/35 mt-0.5">
+                {isComplete
+                  ? 'Your video is ready'
                   : isError
-                    ? lastError || 'An error occurred during production'
-                    : activeStage 
-                      ? activeMetadata?.description 
-                      : 'Preparing your production...'
-                }
+                    ? (lastError ? lastError.slice(0, 80) : 'Production failed')
+                    : activeMeta
+                      ? activeMeta.label
+                      : 'Initializing...'}
               </p>
             </div>
           </div>
-          
-          {/* Progress ring, timer, and controls */}
+
           <div className="flex items-center gap-4">
             {/* Action buttons */}
             {onCancel && isRunning && !isComplete && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
+              <button
                 onClick={onCancel}
                 disabled={isCancelling}
                 className={cn(
-                  "px-4 py-2 rounded-xl text-sm font-medium transition-all",
-                  "bg-white/5 border border-white/10 text-white/60",
-                  "hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-400",
+                  "px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all",
+                  "bg-white/[0.04] border border-white/[0.08] text-white/50",
+                  "hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-400",
                   isCancelling && "opacity-50 cursor-not-allowed"
                 )}
               >
-                {isCancelling ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Cancelling
-                  </span>
-                ) : 'Cancel'}
-              </motion.button>
+                {isCancelling ? 'Cancelling...' : 'Cancel'}
+              </button>
             )}
-            
+
             {onResume && isError && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
+              <button
                 onClick={onResume}
                 disabled={isResuming}
                 className={cn(
-                  "px-4 py-2 rounded-xl text-sm font-semibold transition-all",
-                  "bg-gradient-to-r from-amber-500 to-orange-500 text-black",
-                  "hover:from-amber-400 hover:to-orange-400",
-                  "shadow-lg shadow-amber-500/20",
+                  "px-4 py-1.5 rounded-lg text-xs font-semibold transition-all",
+                  "bg-white/10 border border-white/15 text-white",
+                  "hover:bg-white/15",
                   isResuming && "opacity-50 cursor-not-allowed"
                 )}
               >
-                {isResuming ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Resuming
-                  </span>
-                ) : 'Resume'}
-              </motion.button>
+                {isResuming ? 'Resuming...' : 'Resume'}
+              </button>
             )}
-            
-            {/* Status indicator */}
+
+            {/* Live indicator */}
             {isRunning && !isComplete && !isError && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10">
-                <motion.div
-                  className="w-2 h-2 rounded-full bg-cyan-400"
-                  animate={{ 
-                    opacity: [1, 0.4, 1],
-                    scale: [1, 0.9, 1]
-                  }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                />
-                <span className="text-xs font-medium text-white/60 uppercase tracking-wider">Live</span>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04]">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-[pulse_2s_ease-in-out_infinite]" />
+                <span className="text-[10px] font-medium text-white/40 uppercase tracking-wider">Live</span>
               </div>
             )}
-            
-            <div className="text-right hidden sm:block">
-              <p className="text-3xl font-mono font-bold text-white tracking-tighter tabular-nums">
-                {formatTime(elapsedTime)}
-              </p>
-              <p className="text-[10px] text-white/40 uppercase tracking-[0.2em]">Elapsed</p>
+
+            {/* Timer + Progress */}
+            <div className="flex items-center gap-4">
+              <div className="text-right hidden sm:block">
+                <p className="text-2xl font-mono font-bold text-white/90 tracking-tighter tabular-nums">
+                  {formatTime(elapsedTime)}
+                </p>
+              </div>
+
+              {/* Minimal progress ring */}
+              <div className="relative w-16 h-16">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
+                  <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="3" />
+                  <circle
+                    cx="32" cy="32" r="28" fill="none"
+                    stroke={isError ? '#f43f5e' : isComplete ? '#10b981' : 'rgba(255,255,255,0.5)'}
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeDasharray={2 * Math.PI * 28}
+                    strokeDashoffset={2 * Math.PI * 28 * (1 - progress / 100)}
+                    className="transition-all duration-700 ease-out"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className={cn(
+                    "text-sm font-bold tabular-nums",
+                    isError ? "text-rose-400" : isComplete ? "text-emerald-400" : "text-white/80"
+                  )}>
+                    {Math.round(progress)}%
+                  </span>
+                </div>
+              </div>
             </div>
-            <ProgressRing progress={progress} isError={isError} isComplete={isComplete} />
           </div>
         </div>
 
-        {/* Desktop: Horizontal stage display */}
-        <div className="hidden md:block relative">
-          <ProgressLine progress={progress} stages={stages} isError={isError} />
-          
-          <div className="grid grid-cols-6 gap-4 pt-6">
+        {/* Hairline progress bar */}
+        <div className="h-px bg-white/[0.06] mb-8 relative overflow-hidden rounded-full">
+          <div
+            className={cn(
+              "absolute inset-y-0 left-0 transition-all duration-700 ease-out",
+              isError ? "bg-rose-500/60" : isComplete ? "bg-emerald-500/60" : "bg-white/30"
+            )}
+            style={{ width: `${Math.min(lineProgress, 100)}%` }}
+          />
+        </div>
+
+        {/* Desktop: Horizontal stage nodes */}
+        <div className="hidden md:block">
+          <div className="grid grid-cols-6 gap-2">
             {stages.map((stage, index) => (
-              <StageNode
-                key={stage.name}
-                stage={stage}
-                index={index}
-                isFirst={index === 0}
-                isLast={index === stages.length - 1}
-                previousComplete={index > 0 && stages[index - 1].status === 'complete'}
-              />
+              <div key={stage.name} className="relative">
+                {/* Connection line */}
+                {index > 0 && (
+                  <div className="absolute right-full top-6 w-full h-px -mr-1 z-0">
+                    <div className={cn(
+                      "h-full transition-all duration-500",
+                      stages[index - 1].status === 'complete' ? "bg-emerald-500/25" : "bg-white/[0.04]"
+                    )} />
+                  </div>
+                )}
+                <StageNode stage={stage} />
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Mobile: Vertical compact display */}
-        <div className="md:hidden space-y-3">
-          {stages.map((stage, index) => {
-            const metadata = STAGE_METADATA[stage.shortName];
-            const Icon = metadata?.icon || FileText;
-            const stageIsActive = stage.status === 'active';
-            const stageIsComplete = stage.status === 'complete';
-            const stageIsError = stage.status === 'error';
-            const isPending = stage.status === 'pending';
-            
+        {/* Mobile: Compact vertical list */}
+        <div className="md:hidden space-y-1.5">
+          {stages.map((stage) => {
+            const meta = STAGE_META[stage.shortName] || STAGE_META['Script'];
+            const Icon = meta.icon;
+            const isActive = stage.status === 'active';
+            const isComp = stage.status === 'complete';
+            const isErr = stage.status === 'error';
+            const isPend = stage.status === 'pending';
+
             return (
-              <motion.div
+              <div
                 key={stage.name}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
                 className={cn(
-                  "relative flex items-center gap-4 p-4 rounded-2xl transition-all",
-                  stageIsActive && "bg-white/5 border border-white/20",
-                  stageIsComplete && "bg-emerald-500/10 border border-emerald-500/20",
-                  stageIsError && "bg-rose-500/10 border border-rose-500/20",
-                  isPending && "opacity-40"
+                  "flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-300",
+                  isActive && "bg-white/[0.04] border border-white/[0.08]",
+                  isPend && "opacity-30",
                 )}
               >
-                {/* Icon */}
                 <div className={cn(
-                  "w-12 h-12 rounded-xl flex items-center justify-center",
-                  isPending && "bg-white/5 text-white/30",
-                  stageIsActive && "bg-white/10 text-white",
-                  stageIsComplete && "bg-emerald-500/20 text-emerald-400",
-                  stageIsError && "bg-rose-500/20 text-rose-400"
+                  "w-8 h-8 rounded-lg flex items-center justify-center",
+                  isPend && "bg-white/[0.03] text-white/20",
+                  isActive && "bg-white/[0.06] text-white",
+                  isComp && "bg-emerald-500/10 text-emerald-400",
+                  isErr && "bg-rose-500/10 text-rose-400",
                 )}>
-                  {stageIsActive ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : stageIsComplete ? (
-                    <CheckCircle2 className="w-5 h-5" />
-                  ) : stageIsError ? (
-                    <XCircle className="w-5 h-5" />
-                  ) : (
-                    <Icon className="w-5 h-5" />
-                  )}
+                  {isActive ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> :
+                   isComp ? <CheckCircle2 className="w-3.5 h-3.5" /> :
+                   isErr ? <XCircle className="w-3.5 h-3.5" /> :
+                   <Icon className="w-3.5 h-3.5" />}
                 </div>
-                
-                {/* Text */}
-                <div className="flex-1">
-                  <p className={cn(
-                    "text-sm font-semibold",
-                    isPending && "text-white/40",
-                    stageIsActive && "text-white",
-                    stageIsComplete && "text-emerald-400",
-                    stageIsError && "text-rose-400"
-                  )}>
-                    {stage.shortName}
-                  </p>
-                  <AnimatePresence mode="wait">
-                    {stageIsActive && metadata && (
-                      <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="text-xs text-white/50"
-                      >
-                        {metadata.description}
-                      </motion.p>
-                    )}
-                  </AnimatePresence>
-                </div>
-                
-                {/* Status indicator - smooth pulse, not flashing */}
-                {stageIsActive && (
-                  <motion.div
-                    className="w-2 h-2 rounded-full bg-cyan-400"
-                    animate={{ 
-                      opacity: [1, 0.4, 1],
-                      scale: [1, 0.85, 1]
-                    }}
-                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                  />
+                <span className={cn(
+                  "text-xs font-medium",
+                  isPend && "text-white/30",
+                  isActive && "text-white",
+                  isComp && "text-emerald-400/70",
+                  isErr && "text-rose-400/70",
+                )}>
+                  {stage.shortName}
+                </span>
+                {isActive && (
+                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white/40 animate-[pulse_2s_ease-in-out_infinite]" />
                 )}
-              </motion.div>
+              </div>
             );
           })}
         </div>
-
-        {/* Active stage detail panel */}
-        <AnimatePresence>
-          {activeStage && activeMetadata && !isError && (
-            <motion.div
-              initial={{ opacity: 0, y: 20, height: 0 }}
-              animate={{ opacity: 1, y: 0, height: 'auto' }}
-              exit={{ opacity: 0, y: -10, height: 0 }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="mt-8 hidden md:block"
-            >
-              <div className={cn(
-                "relative p-5 rounded-2xl overflow-hidden",
-                "bg-gradient-to-r from-white/[0.03] to-transparent",
-                "border border-white/[0.06]"
-              )}>
-                {/* Decorative gradient */}
-                <div 
-                  className={cn("absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b", activeMetadata.color)}
-                />
-                
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-amber-400" />
-                    <span className="text-xs font-semibold text-white/60 uppercase tracking-wider">
-                      Now Processing
-                    </span>
-                  </div>
-                  <div className="flex-1" />
-                  <motion.div
-                    animate={{ opacity: [0.5, 1, 0.5] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                    className="flex items-center gap-2"
-                  >
-                    <Brain className="w-4 h-4 text-cyan-400" />
-                    <span className="text-xs text-white/40">AI Engine Active</span>
-                  </motion.div>
-                </div>
-                
-                <div className="mt-3 flex items-center gap-6">
-                  <div>
-                    <p className="text-lg font-bold text-white">{activeStage.shortName}</p>
-                    <p className="text-sm text-white/50">{activeMetadata.description}</p>
-                  </div>
-                  <div className="flex-1" />
-                  <ActivityText stage={activeStage.shortName} isActive={true} />
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        
-        {/* Error detail panel */}
-        {isError && lastError && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-8"
-          >
-            <div className={cn(
-              "relative p-5 rounded-2xl overflow-hidden",
-              "bg-rose-500/5 border border-rose-500/20"
-            )}>
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-rose-500 to-rose-600" />
-              
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center flex-shrink-0">
-                  <XCircle className="w-5 h-5 text-rose-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-rose-400">Production Error</p>
-                  <p className="text-sm text-white/60 mt-1 break-words">{lastError}</p>
-                </div>
-                {onResume && (
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={onResume}
-                    disabled={isResuming}
-                    className={cn(
-                      "px-4 py-2 rounded-xl text-sm font-semibold flex-shrink-0",
-                      "bg-gradient-to-r from-amber-500 to-orange-500 text-black",
-                      "hover:from-amber-400 hover:to-orange-400",
-                      isResuming && "opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                    {isResuming ? 'Resuming...' : 'Resume Production'}
-                  </motion.button>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        )}
       </div>
-    </motion.div>
+    </div>
   );
 }
+
+export default CinematicPipelineProgress;

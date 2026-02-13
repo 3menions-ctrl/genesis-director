@@ -656,6 +656,66 @@ export type Database = {
         }
         Relationships: []
       }
+      edit_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string | null
+          render_error: string | null
+          render_progress: number | null
+          render_settings: Json | null
+          render_url: string | null
+          status: string
+          timeline_data: Json
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          render_error?: string | null
+          render_progress?: number | null
+          render_settings?: Json | null
+          render_url?: string | null
+          status?: string
+          timeline_data?: Json
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          render_error?: string | null
+          render_progress?: number | null
+          render_settings?: Json | null
+          render_url?: string | null
+          status?: string
+          timeline_data?: Json
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edit_sessions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "edit_sessions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gallery_showcase: {
         Row: {
           category: string

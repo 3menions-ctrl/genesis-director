@@ -58,25 +58,25 @@ function calculateVelocity(
   const dirX = position.x === 0 ? (seededRandom(seed * 5) - 0.5) : position.x / (distFromCenter || 1);
   const dirY = position.y === 0 ? (seededRandom(seed * 6) - 0.5) : position.y / (distFromCenter || 1);
   
-  // Speed based on zone - center is most explosive
+  // Speed based on zone - slower for cinematic slow-motion
   const zoneMultiplier = {
-    'center': 3.0,
-    'inner': 2.2,
-    'mid': 1.6,
-    'outer': 1.2,
-    'edge': 0.9
-  }[zone] || 1.5;
+    'center': 1.8,
+    'inner': 1.3,
+    'mid': 1.0,
+    'outer': 0.7,
+    'edge': 0.5
+  }[zone] || 0.9;
   
-  const speedVariation = seededRandom(seed * 7) * 0.6 + 0.7;
+  const speedVariation = seededRandom(seed * 7) * 0.5 + 0.7;
   const speed = zoneMultiplier * speedVariation;
   
-  // Z velocity - dramatic forward explosion
-  const zBase = zone === 'center' ? 2.0 : zone === 'inner' ? 1.5 : 1.0;
-  const zSpeed = zBase + seededRandom(seed * 8) * 1.2;
+  // Z velocity - gentler forward explosion for slow-motion
+  const zBase = zone === 'center' ? 1.2 : zone === 'inner' ? 0.9 : 0.6;
+  const zSpeed = zBase + seededRandom(seed * 8) * 0.7;
   
   return new THREE.Vector3(
-    dirX * speed + (seededRandom(seed * 9) - 0.5) * 0.4,
-    dirY * speed + (seededRandom(seed * 10) - 0.5) * 0.4,
+    dirX * speed + (seededRandom(seed * 9) - 0.5) * 0.3,
+    dirY * speed + (seededRandom(seed * 10) - 0.5) * 0.3,
     zSpeed
   );
 }
@@ -117,8 +117,8 @@ export function generateShardData(count: number): ShardData[] {
       
       const baseSize = sizeMultiplier[zone.size];
       
-      // Calculate delay based on distance from center - ripple effect
-      const distanceDelay = Math.sqrt(x * x + y * y) * 0.08;
+      // Slower delay ripple for gradual slow-motion propagation
+      const distanceDelay = Math.sqrt(x * x + y * y) * 0.15;
       
       const shard: ShardData = {
         id,
@@ -132,8 +132,8 @@ export function generateShardData(count: number): ShardData[] {
           seededRandom(seed * 12) - 0.5,
           seededRandom(seed * 13) - 0.5
         ).normalize(),
-        spinSpeed: 2 + seededRandom(seed * 14) * 6,
-        delay: distanceDelay + seededRandom(seed * 15) * 0.05,
+        spinSpeed: 1.5 + seededRandom(seed * 14) * 3,
+        delay: distanceDelay + seededRandom(seed * 15) * 0.1,
         size: zone.size
       };
       
@@ -159,17 +159,17 @@ export function generateShardData(count: number): ShardData[] {
       initialPosition: new THREE.Vector3(x, y, 0),
       initialRotation: seededRandom(seed * 5) * Math.PI * 2,
       velocity: new THREE.Vector3(
-        (seededRandom(seed * 6) - 0.5) * 3.5,
-        (seededRandom(seed * 7) - 0.5) * 3.5,
-        1.5 + seededRandom(seed * 8) * 2.5
+        (seededRandom(seed * 6) - 0.5) * 1.8,
+        (seededRandom(seed * 7) - 0.5) * 1.8,
+        0.8 + seededRandom(seed * 8) * 1.2
       ),
       rotationAxis: new THREE.Vector3(
         seededRandom(seed * 11) - 0.5,
         seededRandom(seed * 12) - 0.5,
         seededRandom(seed * 13) - 0.5
       ).normalize(),
-      spinSpeed: 8 + seededRandom(seed * 14) * 12,
-      delay: seededRandom(seed * 15) * 0.08,
+      spinSpeed: 3 + seededRandom(seed * 14) * 5,
+      delay: seededRandom(seed * 15) * 0.15,
       size: 'tiny'
     };
     

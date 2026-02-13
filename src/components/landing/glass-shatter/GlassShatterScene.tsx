@@ -171,17 +171,19 @@ function DustParticles() {
     const positions = particlesRef.current.geometry.attributes.position.array as Float32Array;
     const velocities = particlesRef.current.geometry.attributes.velocity.array as Float32Array;
     
+    // Much slower particle drift for slow-motion realism
     for (let i = 0; i < positions.length / 3; i++) {
-      const decay = Math.exp(-elapsed * 0.3);
-      positions[i * 3] += velocities[i * 3] * 0.01 * decay;
-      positions[i * 3 + 1] += velocities[i * 3 + 1] * 0.01 * decay;
-      positions[i * 3 + 2] += velocities[i * 3 + 2] * 0.015 * decay;
+      const decay = Math.exp(-elapsed * 0.1);
+      positions[i * 3] += velocities[i * 3] * 0.004 * decay;
+      positions[i * 3 + 1] += velocities[i * 3 + 1] * 0.004 * decay;
+      positions[i * 3 + 2] += velocities[i * 3 + 2] * 0.006 * decay;
     }
     
     particlesRef.current.geometry.attributes.position.needsUpdate = true;
     
-    if (elapsed > 2) {
-      material.opacity = Math.max(0, 0.5 * (1 - (elapsed - 2) / 2));
+    // Slower fade matching the longer animation
+    if (elapsed > 5) {
+      material.opacity = Math.max(0, 0.5 * (1 - (elapsed - 5) / 4));
     }
   });
 
@@ -264,14 +266,16 @@ function CrackLine({ angle, length, delay }: CrackLineProps) {
     const elapsed = state.clock.elapsedTime - startTimeRef.current - delay;
     if (elapsed < 0) return;
     
-    progressRef.current = Math.min(1, elapsed * 2.5);
+    // Slower crack propagation
+    progressRef.current = Math.min(1, elapsed * 1.0);
     
     const drawRange = Math.floor(progressRef.current * 20);
     geometry.setDrawRange(0, drawRange + 1);
     
-    const fadeStart = 2;
+    // Longer-lasting cracks
+    const fadeStart = 5;
     if (elapsed > fadeStart) {
-      material.opacity = Math.max(0, 0.7 * (1 - (elapsed - fadeStart) / 2));
+      material.opacity = Math.max(0, 0.7 * (1 - (elapsed - fadeStart) / 4));
     }
   });
 

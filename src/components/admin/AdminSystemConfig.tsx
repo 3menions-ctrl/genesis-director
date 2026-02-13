@@ -51,7 +51,7 @@ interface SystemStatus {
   database: 'operational' | 'degraded' | 'down';
 }
 
-// Mock feature flags - in production, these would come from a database table
+// Feature flags — stored in-memory only (no database table yet)
 const DEFAULT_FEATURE_FLAGS: FeatureFlag[] = [
   { id: 'video_generation', name: 'Video Generation', description: 'Enable video generation pipeline', enabled: true, category: 'core' },
   { id: 'multi_character', name: 'Multi-Character Bible', description: 'Multi-character identity tracking', enabled: true, category: 'core' },
@@ -92,9 +92,8 @@ export function AdminSystemConfig() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // In production, this would save to a system_config table
-      await new Promise(resolve => setTimeout(resolve, 500));
-      toast.success('Configuration saved');
+      // Note: No system_config table exists yet — changes are session-only
+      toast.info('Configuration changes are session-only. A system_config table is needed for persistence.');
     } catch (err) {
       toast.error('Failed to save configuration');
     } finally {

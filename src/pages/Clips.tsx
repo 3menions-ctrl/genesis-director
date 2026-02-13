@@ -661,6 +661,18 @@ export default function Clips() {
               Retry Stitch
             </Button>
           )}
+
+          {/* Open Editor */}
+          {completedCount > 0 && (
+            <Button
+              onClick={() => navigate(projectIdFilter ? `/editor?projectId=${projectIdFilter}` : '/editor')}
+              variant="outline"
+              className="border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.08] hover:text-white hover:border-white/20"
+            >
+              <MonitorPlay className="w-4 h-4 mr-2" />
+              Open Editor
+            </Button>
+          )}
           
         </motion.div>
 

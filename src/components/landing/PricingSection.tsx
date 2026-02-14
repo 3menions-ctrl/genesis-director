@@ -10,7 +10,7 @@ const PRICING_STATS = [
   { value: '∞', label: 'no expiry' },
 ] as const;
 
-const STUDIO_VIDEO_URL = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/fc34967d-0fcc-4863-829e-29d2dee5e514/avatar_fc34967d-0fcc-4863-829e-29d2dee5e514_clip1_lipsync_1770421330974.mp4';
+const STUDIO_VIDEO_URL = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/04d9d079-faaa-4c4a-a4ea-7de073338813/clip_04d9d079-faaa-4c4a-a4ea-7de073338813_2_1770613248838.mp4';
 
 interface PricingSectionProps {
   onNavigate: (path: string) => void;

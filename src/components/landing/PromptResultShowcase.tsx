@@ -1,6 +1,6 @@
 import { memo, useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Type, Film, GripVertical } from 'lucide-react';
 
 // Curated prompt → video pairs using real gallery content
 const SHOWCASE_PAIRS = [
@@ -26,162 +26,170 @@ const SHOWCASE_PAIRS = [
   },
 ];
 
-const TYPING_SPEED = 35; // ms per character
-const PAUSE_BEFORE_VIDEO = 800;
-const VIDEO_DISPLAY_TIME = 8000;
-const FADE_GAP = 600;
-
-// Fake pipeline stages
-const PIPELINE_STAGES = [
-  'Analyzing prompt…',
-  'Generating script…',
-  'Composing shots…',
-  'Rendering video…',
-];
+const CYCLE_INTERVAL = 10000;
 
 export const PromptResultShowcase = memo(function PromptResultShowcase() {
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [displayedText, setDisplayedText] = useState('');
-  const [phase, setPhase] = useState<'typing' | 'processing' | 'reveal'>('typing');
-  const [pipelineStage, setPipelineStage] = useState(0);
+  const [sliderPos, setSliderPos] = useState(50);
+  const [isDragging, setIsDragging] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const timerRef = useRef<NodeJS.Timeout>();
 
   const pair = SHOWCASE_PAIRS[currentIdx];
 
-  // Typewriter effect
+  // Auto-cycle through pairs
   useEffect(() => {
-    if (phase !== 'typing') return;
-    setDisplayedText('');
-    let i = 0;
-    const interval = setInterval(() => {
-      i++;
-      setDisplayedText(pair.prompt.slice(0, i));
-      if (i >= pair.prompt.length) {
-        clearInterval(interval);
-        setTimeout(() => setPhase('processing'), PAUSE_BEFORE_VIDEO);
-      }
-    }, TYPING_SPEED);
-    return () => clearInterval(interval);
-  }, [phase, pair.prompt]);
+    if (isDragging) return;
+    timerRef.current = setInterval(() => {
+      setVideoReady(false);
+      setCurrentIdx((prev) => (prev + 1) % SHOWCASE_PAIRS.length);
+      setSliderPos(50);
+    }, CYCLE_INTERVAL);
+    return () => clearInterval(timerRef.current);
+  }, [isDragging]);
 
-  // Fake pipeline processing
+  // Play video when index changes
   useEffect(() => {
-    if (phase !== 'processing') return;
-    setPipelineStage(0);
-    let stage = 0;
-    const interval = setInterval(() => {
-      stage++;
-      if (stage >= PIPELINE_STAGES.length) {
-        clearInterval(interval);
-        setPhase('reveal');
-      } else {
-        setPipelineStage(stage);
-      }
-    }, 500);
-    return () => clearInterval(interval);
-  }, [phase]);
-
-  // Video reveal + auto-advance
-  useEffect(() => {
-    if (phase !== 'reveal') return;
     const video = videoRef.current;
     if (video) {
       video.currentTime = 0;
       video.play().catch(() => {});
     }
-    timerRef.current = setTimeout(() => {
-      setPhase('typing');
-      setCurrentIdx((prev) => (prev + 1) % SHOWCASE_PAIRS.length);
-    }, VIDEO_DISPLAY_TIME);
-    return () => clearTimeout(timerRef.current);
-  }, [phase]);
+  }, [currentIdx]);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, []);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDragging || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    setSliderPos((x / rect.width) * 100);
+  }, [isDragging]);
+
+  const handlePointerUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
 
   return (
-    <div className="w-full max-w-3xl mx-auto mt-12">
-      {/* Prompt display */}
-      <div className="relative mb-4">
-        <div className="flex items-start gap-3 px-5 py-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm">
-          <Sparkles className="w-4 h-4 text-primary/60 mt-1 shrink-0" />
-          <div className="min-h-[3rem]">
-            <p className="text-sm text-white/70 leading-relaxed font-mono">
-              {displayedText}
-              {phase === 'typing' && (
-                <span className="inline-block w-0.5 h-4 bg-primary/80 ml-0.5 animate-pulse" />
-              )}
-            </p>
-          </div>
+    <div className="w-full max-w-4xl mx-auto mt-12">
+      {/* Section header */}
+      <div className="text-center mb-6">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-3">
+          <Sparkles className="w-3.5 h-3.5 text-primary" />
+          <span className="text-xs font-medium text-primary tracking-wide uppercase">Before & After</span>
         </div>
+        <h3 className="text-xl font-semibold text-white/90">From Prompt to Cinema</h3>
       </div>
 
-      {/* Processing / Video area */}
-      <div className="relative aspect-video rounded-2xl overflow-hidden bg-black/50 border border-white/[0.06]">
-        {/* Processing state */}
-        <AnimatePresence>
-          {phase === 'processing' && (
+      {/* Before/After Container */}
+      <div
+        ref={containerRef}
+        className="relative aspect-video rounded-2xl overflow-hidden border border-white/[0.08] cursor-col-resize select-none touch-none"
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+      >
+        {/* === AFTER: Video (full width, underneath) === */}
+        <div className="absolute inset-0">
+          <AnimatePresence mode="wait">
             <motion.div
-              key="processing"
+              key={`video-${currentIdx}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10"
+              transition={{ duration: 0.6 }}
+              className="absolute inset-0"
             >
-              {/* Pipeline progress */}
-              <div className="flex flex-col gap-2 w-48">
-                {PIPELINE_STAGES.map((stage, i) => (
-                  <div key={stage} className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                      i <= pipelineStage ? 'bg-primary scale-100' : 'bg-white/10 scale-75'
-                    }`} />
-                    <span className={`text-xs transition-colors duration-300 ${
-                      i <= pipelineStage ? 'text-white/60' : 'text-white/20'
-                    }`}>
-                      {stage}
-                    </span>
-                    {i === pipelineStage && (
-                      <div className="w-3 h-3 border border-primary/50 border-t-primary rounded-full animate-spin ml-auto" />
-                    )}
-                  </div>
-                ))}
-              </div>
+              <video
+                ref={videoRef}
+                src={pair.videoUrl}
+                muted
+                loop
+                playsInline
+                preload="none"
+                onCanPlay={() => setVideoReady(true)}
+                className="w-full h-full object-cover"
+              />
             </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Video */}
-        <video
-          ref={videoRef}
-          src={pair.videoUrl}
-          muted
-          playsInline
-          preload="none"
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
-            phase === 'reveal' ? 'opacity-100' : 'opacity-0'
-          }`}
-        />
-
-        {/* Label overlay */}
-        {phase === 'reveal' && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="absolute bottom-4 left-4 right-4"
-          >
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-xs text-white/80">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              {pair.label}
+          </AnimatePresence>
+          {/* AFTER label */}
+          <div className="absolute bottom-4 right-4 z-10">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 text-[11px] font-medium text-emerald-300 uppercase tracking-wider">
+              <Film className="w-3 h-3" />
+              Result
             </span>
-          </motion.div>
-        )}
+          </div>
+        </div>
+
+        {/* === BEFORE: Prompt (clipped by slider) === */}
+        <div
+          className="absolute inset-0 z-10"
+          style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
+        >
+          <div className="absolute inset-0 bg-[#0a0a0f] flex items-center justify-center p-8 md:p-12">
+            <div className="max-w-md text-center space-y-5">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.1]">
+                <Type className="w-3.5 h-3.5 text-white/50" />
+                <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">Your Prompt</span>
+              </div>
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={`prompt-${currentIdx}`}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.4 }}
+                  className="text-base md:text-lg text-white/70 leading-relaxed font-mono italic"
+                >
+                  "{pair.prompt}"
+                </motion.p>
+              </AnimatePresence>
+              <div className="flex items-center justify-center gap-1.5 pt-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" />
+                <span className="text-xs text-white/30">Drag slider to reveal result →</span>
+              </div>
+            </div>
+          </div>
+          {/* BEFORE label */}
+          <div className="absolute bottom-4 left-4">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.08] backdrop-blur-md border border-white/[0.12] text-[11px] font-medium text-white/60 uppercase tracking-wider">
+              <Type className="w-3 h-3" />
+              Prompt
+            </span>
+          </div>
+        </div>
+
+        {/* === Slider Handle === */}
+        <div
+          className="absolute top-0 bottom-0 z-20 flex items-center justify-center"
+          style={{ left: `${sliderPos}%`, transform: 'translateX(-50%)' }}
+        >
+          {/* Vertical line */}
+          <div className="absolute inset-y-0 w-[2px] bg-white/60 shadow-[0_0_12px_rgba(255,255,255,0.3)]" />
+          {/* Drag handle */}
+          <div
+            onPointerDown={handlePointerDown}
+            className="relative z-30 w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/30 flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-white/20 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+          >
+            <GripVertical className="w-4 h-4 text-white/80" />
+          </div>
+        </div>
 
         {/* Dots indicator */}
-        <div className="absolute top-3 right-3 flex gap-1.5 z-10">
+        <div className="absolute top-3 right-3 flex gap-1.5 z-20">
           {SHOWCASE_PAIRS.map((_, i) => (
             <button
               key={i}
               onClick={() => {
+                setVideoReady(false);
                 setCurrentIdx(i);
-                setPhase('typing');
+                setSliderPos(50);
               }}
               className={`w-2 h-2 rounded-full transition-all duration-300 ${
                 i === currentIdx ? 'bg-white w-5' : 'bg-white/20 hover:bg-white/40'
@@ -189,6 +197,24 @@ export const PromptResultShowcase = memo(function PromptResultShowcase() {
             />
           ))}
         </div>
+
+        {/* Film title */}
+        {videoReady && (
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10"
+            style={{ 
+              opacity: sliderPos < 40 ? 1 : 0,
+              transition: 'opacity 0.3s' 
+            }}
+          >
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-xs text-white/80">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              {pair.label}
+            </span>
+          </motion.div>
+        )}
       </div>
     </div>
   );

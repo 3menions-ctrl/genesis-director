@@ -21,7 +21,7 @@ const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({ onClos
   const playerRef = useRef<UniversalHLSPlayerHandle>(null);
 
   return (
-    <div className="fixed inset-0 z-[1] animate-fade-in" style={{ animationDuration: '1.2s' }}>
+    <div className="fixed inset-0 z-[45] animate-fade-in" style={{ animationDuration: '1.2s' }}>
       {/* Fullscreen HLS video */}
       <div className="absolute inset-0">
         <UniversalHLSPlayer

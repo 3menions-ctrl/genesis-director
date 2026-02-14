@@ -536,7 +536,7 @@ export default function Blog() {
               onClick={() => window.location.href = '/auth?mode=signup'}
               className="h-9 px-5 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90 btn-star-blink"
             >
-              Start Free
+              Get Started
             </Button>
           </div>
         </div>

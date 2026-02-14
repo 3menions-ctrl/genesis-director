@@ -14,11 +14,11 @@ const FAQS = [
   },
   {
     question: 'What are credits and how much do they cost?',
-    answer: 'Credits power video generation. 1 credit = $0.10. Short clips (≤6 seconds) cost 10 credits ($1); longer clips (>6 seconds) cost 15 credits ($1.50). New users get 60 free credits. Purchase packs start at $9 for 90 credits.',
+    answer: 'Credits power video generation. 1 credit = $0.10. Short clips (≤6 seconds) cost 10 credits ($1); longer clips (>6 seconds) cost 15 credits ($1.50). Purchase packs start at $9 for 90 credits.',
   },
   {
     question: 'Can I get a refund on credits?',
-    answer: 'No. ALL credit purchases are final and non-refundable. This includes unused credits, dissatisfaction with AI results, or account closure. Please use your 60 free credits to thoroughly test the platform before purchasing.',
+    answer: 'No. ALL credit purchases are final and non-refundable. This includes unused credits, dissatisfaction with AI results, or account closure. We recommend starting with a small credit pack to try out the platform before making larger purchases.',
   },
   {
     question: 'What are the AI limitations I should know about?',

@@ -1,7 +1,7 @@
 import { memo, forwardRef, useState, useCallback, useEffect, useRef } from 'react';
-import { motion, useInView, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Lock, Camera, Layers, Eye, Shield, Brain, Music, Zap } from 'lucide-react';
+import { ArrowRight, Lock, Camera, Layers, Eye, Shield, Brain, Music, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const LAYERS = [
   { icon: Lock, title: 'Identity Lock', desc: '3-point character bible prevents morphing across scenes', color: '#fbbf24', stat: '99.2%', statLabel: 'Consistency' },
@@ -16,216 +16,52 @@ const LAYERS = [
 
 const AUTO_CYCLE_MS = 4500;
 
-// Round orbital card component
-const OrbitalCard = memo(function OrbitalCard({ 
-  layer, 
-  index, 
-  isActive, 
-  isPast, 
-  onClick 
-}: { 
-  layer: typeof LAYERS[number]; 
-  index: number; 
-  isActive: boolean; 
-  isPast: boolean; 
-  onClick: () => void;
-}) {
-  const Icon = layer.icon;
-  
-  return (
-    <motion.button
-      onClick={onClick}
-      initial={{ opacity: 0, x: 40 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5, delay: (LAYERS.length - 1 - index) * 0.06 }}
-      className="group relative flex flex-col items-center gap-3 outline-none shrink-0"
-    >
-      {/* Outer glow ring */}
-      {isActive && (
-        <motion.div
-          layoutId="orbital-glow"
-          className="absolute -inset-3 rounded-full opacity-40 blur-2xl pointer-events-none"
-          style={{ background: `radial-gradient(circle, ${layer.color}30, transparent 70%)` }}
-          transition={{ duration: 0.5 }}
-        />
-      )}
-
-      {/* Circle card */}
-      <div className="relative">
-        {/* Animated ring */}
-        <svg className="absolute -inset-1.5 w-[calc(100%+12px)] h-[calc(100%+12px)]" viewBox="0 0 88 88">
-          <circle
-            cx="44" cy="44" r="42"
-            fill="none"
-            stroke={isActive ? layer.color : `${layer.color}15`}
-            strokeWidth={isActive ? 1.5 : 0.5}
-            strokeDasharray={isActive ? "8 4" : "2 6"}
-            className="transition-all duration-700"
-            style={{ filter: isActive ? `drop-shadow(0 0 4px ${layer.color}40)` : 'none' }}
-          >
-            {isActive && (
-              <animateTransform
-                attributeName="transform"
-                type="rotate"
-                from="0 44 44"
-                to="360 44 44"
-                dur="12s"
-                repeatCount="indefinite"
-              />
-            )}
-          </circle>
-        </svg>
-
-        <div
-          className={`relative w-[72px] h-[72px] md:w-20 md:h-20 rounded-full border-2 flex items-center justify-center transition-all duration-500 cursor-pointer ${
-            isActive
-              ? 'scale-110 bg-white/[0.08]'
-              : isPast
-                ? 'bg-white/[0.03] hover:bg-white/[0.05]'
-                : 'bg-white/[0.02] hover:bg-white/[0.04]'
-          }`}
-          style={{
-            borderColor: isActive ? `${layer.color}60` : isPast ? `${layer.color}20` : `${layer.color}10`,
-            boxShadow: isActive
-              ? `0 0 30px ${layer.color}20, inset 0 0 20px ${layer.color}08`
-              : 'none',
-          }}
-        >
-          {/* Inner glow */}
-          {isActive && (
-            <div
-              className="absolute inset-0 rounded-full opacity-20"
-              style={{ background: `radial-gradient(circle at 30% 30%, ${layer.color}40, transparent 70%)` }}
-            />
-          )}
-
-          <Icon
-            className="w-6 h-6 md:w-7 md:h-7 transition-all duration-500 relative z-10"
-            style={{
-              color: isActive ? layer.color : isPast ? `${layer.color}66` : `${layer.color}33`,
-              filter: isActive ? `drop-shadow(0 0 8px ${layer.color}50)` : 'none',
-            }}
-          />
-
-          {/* Step number */}
-          <span
-            className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-[9px] font-bold flex items-center justify-center border transition-all duration-300"
-            style={{
-              color: isActive ? '#000' : layer.color,
-              background: isActive ? layer.color : `${layer.color}15`,
-              borderColor: isActive ? layer.color : `${layer.color}20`,
-              boxShadow: isActive ? `0 0 10px ${layer.color}40` : 'none',
-            }}
-          >
-            {index + 1}
-          </span>
-        </div>
-      </div>
-
-      {/* Label */}
-      <span className={`text-[11px] md:text-xs font-medium text-center leading-tight max-w-[80px] transition-colors duration-300 ${
-        isActive ? 'text-white' : isPast ? 'text-white/35' : 'text-white/20 group-hover:text-white/35'
-      }`}>
-        {layer.title}
-      </span>
-    </motion.button>
-  );
-});
-
-// Connector line between cards
-const Connector = memo(function Connector({ fromColor, toColor, isActive }: { fromColor: string; toColor: string; isActive: boolean }) {
-  return (
-    <div className="flex items-center shrink-0 -mx-1 self-start mt-[36px] md:mt-10">
-      <div className="relative w-8 md:w-12 h-[2px]">
-        <div
-          className="absolute inset-0 rounded-full transition-all duration-500"
-          style={{
-            background: isActive
-              ? `linear-gradient(90deg, ${fromColor}80, ${toColor}80)`
-              : `linear-gradient(90deg, ${fromColor}15, ${toColor}15)`,
-            boxShadow: isActive ? `0 0 8px ${fromColor}30` : 'none',
-          }}
-        />
-        {isActive && (
-          <motion.div
-            className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full"
-            style={{ background: toColor, boxShadow: `0 0 6px ${toColor}60` }}
-            animate={{ left: ['-4px', 'calc(100% + 4px)'] }}
-            transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
-          />
-        )}
-      </div>
-    </div>
-  );
-});
-
-// Detail panel for active layer
-const DetailPanel = memo(function DetailPanel({ layer }: { layer: typeof LAYERS[number] }) {
-  return (
-    <motion.div
-      key={layer.title}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 px-6 py-5 rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-sm"
-    >
-      <div className="flex items-center gap-3">
-        <span
-          className="text-2xl md:text-3xl font-bold tabular-nums"
-          style={{ color: layer.color }}
-        >
-          {layer.stat}
-        </span>
-        <span className="text-[10px] uppercase tracking-widest text-white/30 font-medium">
-          {layer.statLabel}
-        </span>
-      </div>
-      <div className="hidden sm:block w-px h-8 bg-white/[0.08]" />
-      <p className="text-sm text-white/40 text-center sm:text-left leading-relaxed flex-1">
-        {layer.desc}
-      </p>
-    </motion.div>
-  );
-});
-
 export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, never>>(
   function HowItWorksSection(_, ref) {
     const [activeLayer, setActiveLayer] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
+    const [direction, setDirection] = useState(1); // 1 = forward (right-to-left entry), -1 = backward
     const cycleRef = useRef<ReturnType<typeof setInterval>>();
     const sectionRef = useRef<HTMLElement>(null);
-    const isInView = useInView(sectionRef, { once: false, margin: '-100px' });
-    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-      if (isPaused || !isInView) return;
+      if (isPaused) return;
       cycleRef.current = setInterval(() => {
+        setDirection(1);
         setActiveLayer(prev => (prev + 1) % LAYERS.length);
       }, AUTO_CYCLE_MS);
       return () => { if (cycleRef.current) clearInterval(cycleRef.current); };
-    }, [isPaused, isInView]);
+    }, [isPaused]);
 
-    // Auto-scroll to active card on mobile
-    useEffect(() => {
-      const container = scrollContainerRef.current;
-      if (!container) return;
-      const card = container.children[activeLayer * 2] as HTMLElement | undefined; // *2 because connectors
-      if (card) {
-        card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-      }
+    const goTo = useCallback((index: number) => {
+      setDirection(index > activeLayer ? 1 : -1);
+      setActiveLayer(index);
+      setIsPaused(true);
+      setTimeout(() => setIsPaused(false), AUTO_CYCLE_MS * 2);
     }, [activeLayer]);
 
-    const handleNodeClick = useCallback((index: number) => {
-      setActiveLayer(index);
+    const goNext = useCallback(() => {
+      setDirection(1);
+      setActiveLayer(prev => (prev + 1) % LAYERS.length);
       setIsPaused(true);
       setTimeout(() => setIsPaused(false), AUTO_CYCLE_MS * 2);
     }, []);
 
-    const currentLayer = LAYERS[activeLayer];
-    // Reverse order: right to left (Output → Input)
-    const reversedLayers = [...LAYERS].reverse();
+    const goPrev = useCallback(() => {
+      setDirection(-1);
+      setActiveLayer(prev => (prev - 1 + LAYERS.length) % LAYERS.length);
+      setIsPaused(true);
+      setTimeout(() => setIsPaused(false), AUTO_CYCLE_MS * 2);
+    }, []);
+
+    const layer = LAYERS[activeLayer];
+    const Icon = layer.icon;
+
+    const slideVariants = {
+      enter: (d: number) => ({ x: d > 0 ? 300 : -300, opacity: 0, scale: 0.8 }),
+      center: { x: 0, opacity: 1, scale: 1 },
+      exit: (d: number) => ({ x: d > 0 ? -300 : 300, opacity: 0, scale: 0.8 }),
+    };
 
     return (
       <section ref={(el) => {
@@ -233,11 +69,11 @@ export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, nev
         if (typeof ref === 'function') ref(el);
         else if (ref) (ref as React.MutableRefObject<HTMLElement | null>).current = el;
       }} id="features" className="relative z-10 py-24 md:py-32 px-6 overflow-hidden">
-        <div className="max-w-7xl mx-auto relative">
+        <div className="max-w-5xl mx-auto relative">
           {/* Ambient glow */}
           <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] rounded-full blur-[150px] opacity-25 pointer-events-none transition-all duration-1000"
-            style={{ background: `radial-gradient(ellipse, ${currentLayer.color}18, transparent 70%)` }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-[180px] opacity-20 pointer-events-none transition-all duration-1000"
+            style={{ background: `radial-gradient(circle, ${layer.color}25, transparent 70%)` }}
           />
 
           {/* Header */}
@@ -246,7 +82,7 @@ export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, nev
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="text-center mb-12 md:mb-16"
+            className="text-center mb-16 md:mb-20"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -270,65 +106,161 @@ export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, nev
             </p>
           </motion.div>
 
-          {/* Flow direction labels */}
-          <div className="hidden md:flex items-center justify-between mb-3 px-4">
-            <span className="text-[11px] font-mono text-white/20 tracking-[0.15em] uppercase">Output • Cinema</span>
-            <span className="text-[11px] font-mono text-white/20 tracking-[0.15em] uppercase">Input • Your Idea</span>
-          </div>
-
-          {/* Horizontal orbital card strip — right to left */}
-          <div className="relative">
-            <div
-              ref={scrollContainerRef}
-              className="flex items-start justify-center gap-0 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide px-4"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-              {reversedLayers.map((layer, visualIndex) => {
-                const realIndex = LAYERS.length - 1 - visualIndex;
-                const isActive = activeLayer === realIndex;
-                const isPast = realIndex < activeLayer;
-
-                return (
-                  <div key={layer.title} className="flex items-start snap-center">
-                    <OrbitalCard
-                      layer={layer}
-                      index={realIndex}
-                      isActive={isActive}
-                      isPast={isPast}
-                      onClick={() => handleNodeClick(realIndex)}
-                    />
-                    {visualIndex < LAYERS.length - 1 && (
-                      <Connector
-                        fromColor={layer.color}
-                        toColor={reversedLayers[visualIndex + 1].color}
-                        isActive={realIndex === activeLayer || realIndex - 1 === activeLayer}
+          {/* Gallery — single card at a time */}
+          <div className="relative flex flex-col items-center">
+            {/* Main circle card */}
+            <div className="relative w-[260px] h-[260px] md:w-[320px] md:h-[320px] flex items-center justify-center">
+              <AnimatePresence mode="wait" custom={direction}>
+                <motion.div
+                  key={activeLayer}
+                  custom={direction}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                  className="absolute inset-0 flex items-center justify-center"
+                >
+                  {/* Outer rotating ring */}
+                  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 320 320">
+                    <defs>
+                      <linearGradient id={`ring-grad-${activeLayer}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor={layer.color} stopOpacity="0.6" />
+                        <stop offset="50%" stopColor={layer.color} stopOpacity="0.1" />
+                        <stop offset="100%" stopColor={layer.color} stopOpacity="0.6" />
+                      </linearGradient>
+                    </defs>
+                    <circle
+                      cx="160" cy="160" r="155"
+                      fill="none"
+                      stroke={`url(#ring-grad-${activeLayer})`}
+                      strokeWidth="1.5"
+                      strokeDasharray="12 8"
+                    >
+                      <animateTransform
+                        attributeName="transform"
+                        type="rotate"
+                        from="0 160 160"
+                        to="360 160 160"
+                        dur="20s"
+                        repeatCount="indefinite"
                       />
-                    )}
+                    </circle>
+                  </svg>
+
+                  {/* The circle card itself */}
+                  <div
+                    className="relative w-[220px] h-[220px] md:w-[280px] md:h-[280px] rounded-full border-2 flex flex-col items-center justify-center gap-4 backdrop-blur-sm"
+                    style={{
+                      borderColor: `${layer.color}40`,
+                      background: `radial-gradient(circle at 40% 35%, ${layer.color}12, ${layer.color}04 60%, transparent 80%)`,
+                      boxShadow: `0 0 60px ${layer.color}15, inset 0 0 40px ${layer.color}06, 0 0 120px ${layer.color}08`,
+                    }}
+                  >
+                    {/* Icon */}
+                    <div
+                      className="w-16 h-16 md:w-20 md:h-20 rounded-full border flex items-center justify-center"
+                      style={{
+                        borderColor: `${layer.color}30`,
+                        background: `${layer.color}10`,
+                        boxShadow: `0 0 30px ${layer.color}15`,
+                      }}
+                    >
+                      <Icon
+                        className="w-8 h-8 md:w-10 md:h-10"
+                        style={{ color: layer.color, filter: `drop-shadow(0 0 10px ${layer.color}50)` }}
+                      />
+                    </div>
+
+                    {/* Title */}
+                    <h3 className="text-lg md:text-xl font-bold text-white text-center px-6 leading-tight">
+                      {layer.title}
+                    </h3>
+
+                    {/* Stat badge */}
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-2xl md:text-3xl font-bold tabular-nums" style={{ color: layer.color }}>
+                        {layer.stat}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-widest text-white/30 font-medium">
+                        {layer.statLabel}
+                      </span>
+                    </div>
+
+                    {/* Step indicator */}
+                    <span
+                      className="absolute top-4 md:top-6 right-4 md:right-8 w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center"
+                      style={{
+                        color: '#000',
+                        background: layer.color,
+                        boxShadow: `0 0 15px ${layer.color}50`,
+                      }}
+                    >
+                      {activeLayer + 1}
+                    </span>
                   </div>
-                );
-              })}
+                </motion.div>
+              </AnimatePresence>
             </div>
 
-            {/* Fade edges */}
-            <div className="absolute top-0 left-0 bottom-4 w-12 bg-gradient-to-r from-black to-transparent pointer-events-none md:hidden" />
-            <div className="absolute top-0 right-0 bottom-4 w-12 bg-gradient-to-l from-black to-transparent pointer-events-none md:hidden" />
+            {/* Description below */}
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={activeLayer}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.35 }}
+                className="text-sm md:text-base text-white/40 text-center max-w-md mt-8 leading-relaxed"
+              >
+                {layer.desc}
+              </motion.p>
+            </AnimatePresence>
+
+            {/* Navigation arrows */}
+            <button
+              onClick={goPrev}
+              className="absolute left-0 md:-left-8 top-[130px] md:top-[160px] w-10 h-10 rounded-full border border-white/[0.1] bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/[0.2] flex items-center justify-center text-white/40 hover:text-white transition-all duration-300"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={goNext}
+              className="absolute right-0 md:-right-8 top-[130px] md:top-[160px] w-10 h-10 rounded-full border border-white/[0.1] bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/[0.2] flex items-center justify-center text-white/40 hover:text-white transition-all duration-300"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Dot indicators */}
+          <div className="flex items-center justify-center gap-2 mt-8">
+            {LAYERS.map((l, i) => (
+              <button
+                key={l.title}
+                onClick={() => goTo(i)}
+                className="relative group p-1"
+              >
+                <div
+                  className={`w-2.5 h-2.5 rounded-full transition-all duration-500 ${
+                    i === activeLayer ? 'scale-125' : 'scale-100 opacity-40 hover:opacity-60'
+                  }`}
+                  style={{
+                    background: i === activeLayer ? l.color : `${l.color}60`,
+                    boxShadow: i === activeLayer ? `0 0 10px ${l.color}50` : 'none',
+                  }}
+                />
+              </button>
+            ))}
           </div>
 
           {/* Progress bar */}
           <div className="mt-6 h-[2px] rounded-full bg-white/[0.04] overflow-hidden">
             <motion.div
               className="h-full rounded-full"
-              style={{ background: `linear-gradient(90deg, ${LAYERS[0].color}, ${currentLayer.color})` }}
+              style={{ background: `linear-gradient(90deg, ${LAYERS[0].color}, ${layer.color})` }}
               animate={{ width: `${((activeLayer + 1) / LAYERS.length) * 100}%` }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             />
-          </div>
-
-          {/* Active layer detail panel */}
-          <div className="mt-6">
-            <AnimatePresence mode="wait">
-              <DetailPanel layer={currentLayer} />
-            </AnimatePresence>
           </div>
 
           {/* Footer */}

@@ -278,28 +278,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 />
               </div>
 
-              {/* Music Toggle */}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-xl border transition-all cursor-pointer",
-                      enableMusic 
-                        ? "bg-violet-500/10 border-violet-500/30" 
-                        : "bg-zinc-800/50 border-zinc-700/50 hover:border-zinc-600"
-                    )}
-                    onClick={() => onEnableMusicChange(!enableMusic)}
-                    >
-                      <Music className={cn("w-4 h-4", enableMusic ? "text-violet-400" : "text-zinc-500")} />
-                      <span className="text-xs text-zinc-300 font-medium">Music</span>
-                      <Switch checked={enableMusic} onCheckedChange={onEnableMusicChange} className="scale-75" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs">
-                    Add background music to your video
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              {/* Music toggle removed - music disabled globally */}
 
               {/* Cinematic Mode Toggle */}
               <TooltipProvider>

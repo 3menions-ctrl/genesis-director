@@ -111,7 +111,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   const [sceneDescription, setSceneDescription] = useState('');
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [clipDuration, setClipDuration] = useState(10);
-  const [enableMusic, setEnableMusic] = useState(true);
+  const [enableMusic] = useState(false); // Music disabled globally - low quality
   const [enableDualAvatar, setEnableDualAvatar] = useState(false);
   const [cinematicMode, setCinematicMode] = useState<CinematicModeConfig>(DEFAULT_CINEMATIC_CONFIG);
   
@@ -491,8 +491,8 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
               clipCount={clipCount}
               onClipCountChange={handleClipCountChange}
               maxClips={maxClips}
-              enableMusic={enableMusic}
-              onEnableMusicChange={setEnableMusic}
+              enableMusic={false}
+              onEnableMusicChange={() => {}}
               enableDualAvatar={enableDualAvatar}
               onEnableDualAvatarChange={setEnableDualAvatar}
               cinematicMode={cinematicMode}
@@ -526,8 +526,8 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
             clipCount={clipCount}
             onClipCountChange={handleClipCountChange}
             maxClips={maxClips}
-            enableMusic={enableMusic}
-            onEnableMusicChange={setEnableMusic}
+            enableMusic={false}
+            onEnableMusicChange={() => {}}
             enableDualAvatar={enableDualAvatar}
             onEnableDualAvatarChange={setEnableDualAvatar}
             cinematicMode={cinematicMode}

@@ -3,7 +3,7 @@
  * Fun-focused with condensed layout, analytics and settings in separate tabs
  */
 
-import { useState, useEffect, memo, forwardRef } from 'react';
+import { useState, useEffect, useRef, useCallback, memo, forwardRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,7 +17,7 @@ import {
   Flame, Target, Award, ChevronRight, Plus,
   Star, Heart, Users, Medal, Settings,
   BarChart3, MessageCircle, TrendingUp, Clock,
-  Calendar, Camera, Edit2
+  Calendar, Camera, Edit2, Loader2
 } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
@@ -87,8 +87,64 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     totalVideosGenerated: 0,
     totalVideoDuration: 0,
   });
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const handleAvatarUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be under 5MB');
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const filePath = `${user.id}/avatar.${ext}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Add cache-buster to force refresh
+      const avatarUrl = `${publicUrl}?t=${Date.now()}`;
+
+      // Update profile
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      await refreshProfile();
+      toast.success('Profile picture updated!');
+    } catch (error: any) {
+      console.error('Avatar upload error:', error);
+      toast.error('Failed to upload picture');
+    } finally {
+      setUploadingAvatar(false);
+      // Reset input so same file can be re-selected
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  }, [user, refreshProfile]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -235,8 +291,23 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                   {profile?.display_name?.charAt(0) || user?.email?.charAt(0) || '?'}
                 </AvatarFallback>
               </Avatar>
-              <button className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors">
-                <Camera className="w-3.5 h-3.5 text-white" />
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarUpload}
+              />
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors disabled:opacity-50"
+              >
+                {uploadingAvatar ? (
+                  <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                ) : (
+                  <Camera className="w-3.5 h-3.5 text-white" />
+                )}
               </button>
             </div>
             
@@ -595,6 +666,30 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
               </div>
               
               <div className="space-y-4">
+                {/* Profile Picture */}
+                <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-10 h-10 ring-1 ring-white/10">
+                      <AvatarImage src={profile?.avatar_url || undefined} />
+                      <AvatarFallback className="bg-white/10 text-white text-sm">
+                        {profile?.display_name?.charAt(0) || '?'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-sm font-medium text-white">Profile Picture</p>
+                      <p className="text-xs text-white/40">JPG, PNG — max 5MB</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-white/60 hover:text-white"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                  >
+                    {uploadingAvatar ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                  </Button>
+                </div>
                 <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
                   <div>
                     <p className="text-sm font-medium text-white">Display Name</p>

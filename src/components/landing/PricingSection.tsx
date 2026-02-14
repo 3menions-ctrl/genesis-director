@@ -1,7 +1,7 @@
 import { memo, forwardRef, useState, useCallback, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Sparkles, Maximize2, X } from 'lucide-react';
+import { ArrowRight, Sparkles, Maximize2, X, Volume2, VolumeX } from 'lucide-react';
 import { UniversalHLSPlayer, type UniversalHLSPlayerHandle } from '@/components/player/UniversalHLSPlayer';
 
 const PRICING_STATS = [
@@ -61,6 +61,7 @@ const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
   onVideoEnded: () => void;
 }) {
   const playerRef = useRef<UniversalHLSPlayerHandle>(null);
+  const [isMuted, setIsMuted] = useState(true);
 
   // Escape key to exit
   useEffect(() => {
@@ -75,6 +76,14 @@ const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
     return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [onClose]);
 
+  // Sync muted state to the underlying video element
+  useEffect(() => {
+    const video = playerRef.current?.getVideoElement?.();
+    if (video) {
+      video.muted = isMuted;
+    }
+  }, [isMuted]);
+
   return (
     <>
       {/* Video background layer - behind content */}
@@ -87,6 +96,7 @@ const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
             className="w-full h-full"
             showControls={false}
             autoPlay={true}
+            muted={true}
             loop={false}
             aspectRatio="auto"
             onEnded={onVideoEnded}
@@ -97,17 +107,38 @@ const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/65" />
       </div>
 
-      {/* Close button - separate from video layer so z-index works independently */}
-      <button
-        onClick={(e) => { e.stopPropagation(); onClose(); }}
-        className="fixed top-20 right-6 z-[9999] group flex items-center gap-2 px-4 py-2.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 hover:bg-white/15 hover:border-white/30 transition-all duration-300 animate-fade-in cursor-pointer"
-        style={{ pointerEvents: 'auto', animationDelay: '0.6s' }}
-        aria-label="Exit immersive mode"
-      >
-        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-        <span className="text-[11px] text-white/70 group-hover:text-white font-medium tracking-[0.08em] uppercase transition-colors">Exit Immersive</span>
-        <X className="w-4 h-4 text-white/60 group-hover:text-white transition-colors" />
-      </button>
+      {/* Controls - separate from video layer so z-index works */}
+      <div className="fixed top-20 right-6 z-[9999] flex items-center gap-2 animate-fade-in" style={{ pointerEvents: 'auto', animationDelay: '0.6s' }}>
+        {/* Unmute/Mute button */}
+        <button
+          onClick={(e) => { e.stopPropagation(); setIsMuted(m => !m); }}
+          className="group flex items-center gap-2 px-3 py-2.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 hover:bg-white/15 hover:border-white/30 transition-all duration-300 cursor-pointer"
+          aria-label={isMuted ? 'Unmute' : 'Mute'}
+        >
+          {isMuted ? (
+            <>
+              <VolumeX className="w-4 h-4 text-white/60 group-hover:text-white transition-colors" />
+              <span className="text-[10px] text-white/50 group-hover:text-white/80 font-medium tracking-wider uppercase transition-colors hidden md:inline">Unmute</span>
+            </>
+          ) : (
+            <>
+              <Volume2 className="w-4 h-4 text-white/60 group-hover:text-white transition-colors" />
+              <span className="text-[10px] text-white/50 group-hover:text-white/80 font-medium tracking-wider uppercase transition-colors hidden md:inline">Mute</span>
+            </>
+          )}
+        </button>
+
+        {/* Close button */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onClose(); }}
+          className="group flex items-center gap-2 px-4 py-2.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 hover:bg-white/15 hover:border-white/30 transition-all duration-300 cursor-pointer"
+          aria-label="Exit immersive mode"
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-[11px] text-white/70 group-hover:text-white font-medium tracking-[0.08em] uppercase transition-colors">Exit Immersive</span>
+          <X className="w-4 h-4 text-white/60 group-hover:text-white transition-colors" />
+        </button>
+      </div>
     </>
   );
 });

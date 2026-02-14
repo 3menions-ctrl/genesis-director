@@ -1,211 +1,94 @@
 
 
-# Gallery Page Premium Renovation Plan
+# Neuter Landing Page & Unify Loading Architecture
 
 ## Overview
-Transform the Gallery page into a world-class, visually stunning showcase that elevates the premium brand identity. The renovation will introduce cutting-edge visual effects, advanced micro-interactions, and a more immersive user experience while preserving the core video gallery functionality.
+Strip the landing page of its heavy, crash-simulating, and bandwidth-hogging elements while ensuring every page and feature loads through the existing world-class CinemaLoader + Gatekeeper pattern.
 
 ---
 
-## Current State Analysis
+## Phase 1: Remove ScreenCrashOverlay (Three.js elimination)
 
-The existing Gallery page features:
-- Parallax background with floating particles
-- 3D tilt video cards with hover effects
-- Category filtering tabs
-- Fullscreen immersive player with clip transitions
-- Famous Avatars Showcase section
-- Wheel/keyboard navigation
+**Problem**: ~500KB bundle bloat from Three.js/React Three Fiber. Simulates a crash, confusing users. 10-second countdown blocks interaction.
 
-While functional, there's room for significant visual enhancement to match the premium aesthetic established in the landing page's FeaturesShowcase and CinematicTransition components.
+**Action**:
+- Delete `src/components/landing/ScreenCrashOverlay.tsx`
+- Delete `src/components/landing/glass-shatter/` directory (GlassShatterScene.tsx, GlassShard.tsx, shardGenerator.ts, index.ts)
+- Remove the ScreenCrashOverlay import, state, and JSX from `Landing.tsx`
+- Remove `screenCrashDismissed` state and `handleDismissScreenCrash` callback
 
 ---
 
-## Renovation Components
+## Phase 2: Neuter CinematicTransition (650-line animation monster)
 
-### 1. Premium Hero Section
-Add a cinematic header with animated typography and atmospheric effects:
-- Animated gradient text with shimmer effect
-- Floating particle field with depth perception
-- Elegant section divider with animated glow
-- Premium badge with glassmorphism styling
+**Problem**: 150 particles, 32 rays, 12 orbs, 5 pulse rings, 13-second sequence. Massive Framer Motion overhead.
 
-### 2. Enhanced Background System
-Replace the current ImmersiveBackground with a more sophisticated version:
-- Multi-layer parallax with depth-aware blur
-- Animated aurora/nebula effects using CSS gradients
-- Subtle grid overlay for depth perception
-- Dynamic color shifts based on active category
-- Animated mesh gradient orbs
-
-### 3. Revolutionary Video Card Design
-Redesign TiltVideoCard with premium glass morphism:
-- Frosted glass borders with animated gradient edges
-- Holographic shine effect on hover
-- Floating reflection layer
-- Category-specific accent colors and glows
-- Animated play button with pulse effect
-- Smooth thumbnail-to-video transition
-- Corner accent decorations
-- Premium loading shimmer states
-
-### 4. Advanced Category Navigation
-Redesign the category tabs:
-- Pill-style tabs with animated selection indicator
-- Category icons with micro-animations
-- Glassmorphism container with blur backdrop
-- Count badges with animated updates
-- Hover state with glow effect
-- Mobile-optimized compact view
-
-### 5. Immersive Carousel Experience
-Enhance the video carousel:
-- Depth-based card scaling (cards further from center appear smaller and blurred)
-- Smooth spring-based animations
-- Touch/swipe gesture support for mobile
-- Animated progress indicators with glow
-- Keyboard accessibility enhancements
-
-### 6. Enhanced Fullscreen Player
-Upgrade FullscreenPlayer with cinema-grade UI:
-- Elegant control panel with glassmorphism
-- Animated progress bar with glow
-- Volume slider with visual feedback
-- Clip transition indicators
-- Ambient background color extraction
-- Cinematic letterboxing option
-
-### 7. Premium Footer Navigation
-Add bottom navigation enhancements:
-- Floating action button for avatar section
-- Animated scroll indicator
-- Progress dots with glow effects
-- Video counter with premium typography
+**Action**:
+- Replace the entire `CinematicTransition.tsx` with a clean 2-second fade-to-black using the existing `CinemaLoader` component
+- Transition: fade in CinemaLoader -> navigate after 1.5s -> fade out
+- Removes ~600 lines of particle/ray/orb animation code
 
 ---
 
-## Technical Implementation
+## Phase 3: Fix PromptResultShowcase video preloading
 
-### Files to Modify
+**Problem**: 4 videos with `preload="auto"` = 40-80MB loaded on page mount.
 
-**Primary:** `src/pages/Gallery.tsx`
-- Refactor ImmersiveBackground component
-- Enhance TiltVideoCard component
-- Redesign category tabs UI
-- Improve FullscreenPlayer styling
-- Add new premium animations and effects
-
-**Secondary:** Create new components if needed
-- Consider extracting reusable premium UI patterns
-
-### Animation Strategy
-- Use Framer Motion for complex animations
-- CSS animations for performance-critical effects
-- Hardware-accelerated transforms (GPU)
-- Reduced motion media query support
-
-### Performance Considerations
-- Lazy load heavy visual effects
-- Use `will-change` hints strategically
-- Memoize expensive computations
-- Progressive enhancement for older browsers
+**Action**:
+- Change `preload="auto"` to `preload="none"` on the showcase video element
+- Videos only load when the typewriter cycle reaches the reveal phase (already happens via `.play()`)
 
 ---
 
-## Visual Design Specifications
+## Phase 4: Fix AvatarCTASection video preloading
 
-### Color Palette Enhancement
-```text
-Primary Accents:
-├── Blue Spectrum: #3b82f6 → #60a5fa → #93c5fd
-├── Silver/Platinum: #e2e8f0 → #cbd5e1 → #94a3b8
-├── Deep Black: #030303 → #0a0a0a → #171717
-└── Category-specific accents:
-    ├── Text-to-Video: Blue gradient
-    ├── Image-to-Video: Silver gradient
-    └── Avatar: Violet/Fuchsia gradient
-```
+**Problem**: Avatar CTA video uses `preload="auto"`, loading eagerly.
 
-### Glassmorphism Standards
-```text
-Glass Components:
-├── Background: rgba(255, 255, 255, 0.02-0.08)
-├── Border: rgba(255, 255, 255, 0.08-0.15)
-├── Backdrop Blur: 12px - 24px
-└── Shadow: 0 8px 32px rgba(0, 0, 0, 0.3)
-```
-
-### Animation Timing
-```text
-Micro-interactions: 150-300ms
-Card transitions: 400-600ms
-Page transitions: 800-1200ms
-Easing: cubic-bezier(0.16, 1, 0.3, 1)
-```
+**Action**:
+- Change `preload="auto"` to `preload="none"`
 
 ---
 
-## Component Architecture
+## Phase 5: Remove duplicate SocialProofTicker
 
-```text
-Gallery.tsx
-├── PremiumGalleryBackground (enhanced parallax + aurora)
-├── GalleryHeroSection (animated title + subtitle)
-├── CategoryNavigation (glassmorphism tabs)
-├── VideoCarousel
-│   ├── PremiumVideoCard (3D tilt + holographic)
-│   ├── CarouselControls (arrows + progress)
-│   └── VideoCounter
-├── FullscreenPlayer (cinema-grade controls)
-├── AvatarShowcaseTeaser (scroll indicator)
-└── FamousAvatarsShowcase (existing component)
-```
+**Problem**: Two identical `<SocialProofTicker />` instances in Landing.tsx, each running independent intervals.
+
+**Action**:
+- Remove the second `<SocialProofTicker />` (between FeaturesShowcase and PricingSection)
 
 ---
 
-## Key Visual Enhancements
+## Phase 6: Landing page gatekeeper integration
 
-### Video Card Improvements
-1. Add animated gradient border that rotates on hover
-2. Implement holographic prismatic shine effect
-3. Category-specific glow colors
-4. Floating "Premium" badge for featured videos
-5. Smooth video preview with fade transition
-6. Corner decorations matching the design system
+**Problem**: Landing page has no loading gatekeeper -- it just renders everything immediately, causing layout thrash as lazy components pop in.
 
-### Background Enhancements
-1. Animated mesh gradient with 3-4 color nodes
-2. Subtle star field / particle system
-3. Aurora borealis effect using CSS gradients
-4. Category-aware color theming
-5. Vignette with adjustable intensity
-
-### Navigation Improvements
-1. Magnetic hover effect on arrows
-2. Glow trail on navigation
-3. Animated dots with scale + opacity
-4. Touch gesture support with visual feedback
+**Action**:
+- Add the landing page to the gatekeeper system via `useGatekeeperLoading` with a lightweight config
+- Show `CinemaLoader` briefly while the AbstractBackground image and hero section mount
+- Signal ready once the background image loads and auth check completes
+- This gives a clean fade-in instead of content popping
 
 ---
 
-## Accessibility Considerations
+## Technical Details
 
-- Maintain keyboard navigation (arrow keys, Enter, Escape)
-- Preserve focus indicators with premium styling
-- Support reduced motion preferences
-- Ensure sufficient color contrast
-- Screen reader announcements for carousel state
+### Files to delete:
+- `src/components/landing/ScreenCrashOverlay.tsx`
+- `src/components/landing/glass-shatter/GlassShatterScene.tsx`
+- `src/components/landing/glass-shatter/GlassShard.tsx`
+- `src/components/landing/glass-shatter/shardGenerator.ts`
+- `src/components/landing/glass-shatter/index.ts`
 
----
+### Files to modify:
+- `src/pages/Landing.tsx` -- Remove ScreenCrashOverlay, remove duplicate ticker, add gatekeeper
+- `src/components/landing/CinematicTransition.tsx` -- Replace with minimal CinemaLoader-based transition
+- `src/components/landing/PromptResultShowcase.tsx` -- `preload="none"`
+- `src/components/landing/AvatarCTASection.tsx` -- `preload="none"`
+- `src/hooks/useGatekeeperLoading.ts` -- Add `landing` preset
 
-## Summary
-
-This renovation will transform the Gallery into a flagship showcase that:
-- Establishes premium brand identity
-- Creates an immersive viewing experience
-- Maintains excellent performance
-- Preserves all existing functionality
-- Enhances accessibility and usability
-
-The implementation focuses on visual polish while keeping the proven interaction patterns that users expect.
+### Expected impact:
+- ~500KB bundle size reduction (Three.js removal)
+- ~40-80MB less bandwidth on landing page load
+- Consistent loading UX via CinemaLoader across all entry points
+- Faster LCP and Time to Interactive
 

@@ -56,13 +56,33 @@ serve(async (req) => {
       console.log("[ResumePipeline] approvedScript.shots count:", request.approvedScript.shots.length);
     }
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // SECURITY: Extract userId from JWT instead of trusting client payload
+    const authHeader = req.headers.get("Authorization");
+    let authenticatedUserId: string | null = null;
+    if (authHeader?.startsWith("Bearer ") && !authHeader.includes(supabaseKey)) {
+      try {
+        const authClient = createClient(supabaseUrl, anonKey);
+        const token = authHeader.replace("Bearer ", "");
+        const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+        if (!claimsError && claimsData?.claims?.sub) {
+          authenticatedUserId = claimsData.claims.sub as string;
+        }
+      } catch (authErr) {
+        console.warn("[ResumePipeline] JWT validation failed:", authErr);
+      }
+    }
+    if (authenticatedUserId) {
+      request.userId = authenticatedUserId;
+    }
+
     if (!request.projectId || !request.userId) {
       throw new Error("Missing projectId or userId");
     }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get current project state
     const { data: project, error: fetchError } = await supabase

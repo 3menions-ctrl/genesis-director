@@ -520,6 +520,10 @@ serve(async (req) => {
       sceneNote: seg.sceneNote,
       transitionNote: (seg as any).transitionNote || '',
       physicalDetail: (seg as any).physicalDetail || '',
+      // KLING-NATIVE CONTINUITY FIELDS
+      startPose: (seg as any).startPose || '',
+      endPose: (seg as any).endPose || '',
+      visualContinuity: (seg as any).visualContinuity || '',
     }));
 
     // START CLIP 1 ONLY - Watchdog will chain the rest

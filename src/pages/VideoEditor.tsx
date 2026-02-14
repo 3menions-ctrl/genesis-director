@@ -9,7 +9,7 @@ import { EditorPreview } from "@/components/editor/EditorPreview";
 import { EditorSidebar } from "@/components/editor/EditorSidebar";
 import { EditorMediaBrowser } from "@/components/editor/EditorMediaBrowser";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { Film } from "lucide-react";
+import { Film, Sparkles } from "lucide-react";
 import { useEditorHistory } from "@/hooks/useEditorHistory";
 import type { EditorState, TimelineTrack, TimelineClip } from "@/components/editor/types";
 
@@ -122,11 +122,7 @@ const VideoEditor = () => {
     }
 
     const splitPoint = currentTime;
-    const leftClip: TimelineClip = {
-      ...targetClip,
-      id: `${targetClip.id}-L`,
-      end: splitPoint,
-    };
+    const leftClip: TimelineClip = { ...targetClip, id: `${targetClip.id}-L`, end: splitPoint };
     const rightClip: TimelineClip = {
       ...targetClip,
       id: `${targetClip.id}-R`,
@@ -138,12 +134,7 @@ const VideoEditor = () => {
       ...prev,
       tracks: prev.tracks.map((t) =>
         t.id === targetTrack!.id
-          ? {
-              ...t,
-              clips: t.clips.flatMap((c) =>
-                c.id === targetClip!.id ? [leftClip, rightClip] : [c]
-              ),
-            }
+          ? { ...t, clips: t.clips.flatMap((c) => (c.id === targetClip!.id ? [leftClip, rightClip] : [c])) }
           : t
       ),
       selectedClipId: rightClip.id,
@@ -208,26 +199,18 @@ const VideoEditor = () => {
 
     setEditorState((prev) => ({
       ...prev,
-      tracks: prev.tracks.map((t) =>
-        t.id === "video-0" ? { ...t, clips: timelineClips } : t
-      ),
+      tracks: prev.tracks.map((t) => (t.id === "video-0" ? { ...t, clips: timelineClips } : t)),
       duration: startTime,
     }));
   };
 
   const handleAddClipFromBrowser = useCallback((clip: {
-    id: string;
-    prompt: string;
-    video_url: string;
-    duration_seconds: number;
-    shot_index: number;
+    id: string; prompt: string; video_url: string; duration_seconds: number; shot_index: number;
   }) => {
     const dur = clip.duration_seconds || 6;
-
     withHistory((prev) => {
       const videoTrack = prev.tracks.find((t) => t.id === "video-0");
       const lastEnd = videoTrack?.clips.reduce((max, c) => Math.max(max, c.end), 0) || 0;
-
       const newClip: TimelineClip = {
         id: `imported-${clip.id}-${Date.now()}`,
         trackId: "video-0",
@@ -238,16 +221,12 @@ const VideoEditor = () => {
         label: clip.prompt?.substring(0, 40) || `Shot ${clip.shot_index + 1}`,
         effects: [],
       };
-
       return {
         ...prev,
-        tracks: prev.tracks.map((t) =>
-          t.id === "video-0" ? { ...t, clips: [...t.clips, newClip] } : t
-        ),
+        tracks: prev.tracks.map((t) => (t.id === "video-0" ? { ...t, clips: [...t.clips, newClip] } : t)),
         duration: Math.max(prev.duration, lastEnd + dur),
       };
     });
-
     toast.success("Clip added to timeline");
   }, [withHistory]);
 
@@ -256,9 +235,7 @@ const VideoEditor = () => {
       ...prev,
       tracks: prev.tracks.map((track) => ({
         ...track,
-        clips: track.clips.map((clip) =>
-          clip.id === clipId ? { ...clip, ...updates } : clip
-        ),
+        clips: track.clips.map((clip) => (clip.id === clipId ? { ...clip, ...updates } : clip)),
       })),
     }));
   }, [withHistory]);
@@ -279,15 +256,11 @@ const VideoEditor = () => {
         }
         return track;
       });
-
       if (!movedClip) return prev;
-
       return {
         ...prev,
         tracks: tracksWithout.map((track) =>
-          track.id === targetTrackId
-            ? { ...track, clips: [...track.clips, movedClip!] }
-            : track
+          track.id === targetTrackId ? { ...track, clips: [...track.clips, movedClip!] } : track
         ),
       };
     });
@@ -313,7 +286,6 @@ const VideoEditor = () => {
   const handleAddTextOverlay = useCallback(() => {
     const textTrack = editorState.tracks.find((t) => t.type === "text");
     if (!textTrack) return;
-
     const newClip: TimelineClip = {
       id: `text-${Date.now()}`,
       trackId: textTrack.id,
@@ -326,12 +298,9 @@ const VideoEditor = () => {
       textContent: "Your text here",
       textStyle: { fontSize: 48, color: "#FFFFFF", fontWeight: "bold" },
     };
-
     withHistory((prev) => ({
       ...prev,
-      tracks: prev.tracks.map((t) =>
-        t.id === textTrack.id ? { ...t, clips: [...t.clips, newClip] } : t
-      ),
+      tracks: prev.tracks.map((t) => (t.id === textTrack.id ? { ...t, clips: [...t.clips, newClip] } : t)),
       selectedClipId: newClip.id,
     }));
   }, [editorState.tracks, editorState.currentTime, withHistory]);
@@ -340,28 +309,13 @@ const VideoEditor = () => {
     if (!user) return;
     setIsSaving(true);
     try {
-      const timelineData = {
-        tracks: editorState.tracks,
-        duration: editorState.duration,
-      };
-
+      const timelineData = { tracks: editorState.tracks, duration: editorState.duration };
       if (editorState.sessionId) {
-        await supabase
-          .from("edit_sessions")
-          .update({ title: editorState.title, timeline_data: timelineData as any })
-          .eq("id", editorState.sessionId);
+        await supabase.from("edit_sessions").update({ title: editorState.title, timeline_data: timelineData as any }).eq("id", editorState.sessionId);
       } else {
-        const { data, error } = await supabase
-          .from("edit_sessions")
-          .insert({
-            user_id: user.id,
-            project_id: editorState.projectId,
-            title: editorState.title,
-            timeline_data: timelineData as any,
-          })
-          .select("id")
-          .single();
-
+        const { data, error } = await supabase.from("edit_sessions").insert({
+          user_id: user.id, project_id: editorState.projectId, title: editorState.title, timeline_data: timelineData as any,
+        }).select("id").single();
         if (error) throw error;
         setEditorState((prev) => ({ ...prev, sessionId: data.id }));
       }
@@ -375,9 +329,7 @@ const VideoEditor = () => {
 
   const handleExport = async () => {
     if (!editorState.sessionId) await handleSave();
-
     setEditorState((prev) => ({ ...prev, renderStatus: "rendering", renderProgress: 0 }));
-
     try {
       const { data, error } = await supabase.functions.invoke("render-video", {
         body: {
@@ -386,7 +338,6 @@ const VideoEditor = () => {
           settings: { resolution: "1080p", fps: 30, format: "mp4" },
         },
       });
-
       if (error) throw error;
       if (data?.jobId) {
         toast.success("Render job submitted!");
@@ -401,10 +352,7 @@ const VideoEditor = () => {
   const pollRenderStatus = async (jobId: string) => {
     const interval = setInterval(async () => {
       try {
-        const { data } = await supabase.functions.invoke("render-video", {
-          body: { action: "status", jobId },
-        });
-
+        const { data } = await supabase.functions.invoke("render-video", { body: { action: "status", jobId } });
         if (data?.status === "completed") {
           clearInterval(interval);
           setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
@@ -416,33 +364,26 @@ const VideoEditor = () => {
         } else {
           setEditorState((prev) => ({ ...prev, renderProgress: data?.progress || prev.renderProgress }));
         }
-      } catch {
-        clearInterval(interval);
-      }
+      } catch { clearInterval(interval); }
     }, 5000);
   };
 
   const handleDeleteClip = useCallback((clipId: string) => {
     withHistory((prev) => ({
       ...prev,
-      tracks: prev.tracks.map((track) => ({
-        ...track,
-        clips: track.clips.filter((c) => c.id !== clipId),
-      })),
+      tracks: prev.tracks.map((track) => ({ ...track, clips: track.clips.filter((c) => c.id !== clipId) })),
       selectedClipId: prev.selectedClipId === clipId ? null : prev.selectedClipId,
     }));
   }, [withHistory]);
 
   const handleAddTransition = useCallback((clipId: string, type: string) => {
-    handleUpdateClip(clipId, {
-      effects: [{ type: "transition", name: type, duration: 0.5 }],
-    });
+    handleUpdateClip(clipId, { effects: [{ type: "transition", name: type, duration: 0.5 }] });
   }, [handleUpdateClip]);
 
   const hasClips = editorState.tracks.some((t) => t.clips.length > 0);
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
+    <div className="h-screen flex flex-col bg-[hsl(260,15%,4%)] overflow-hidden">
       <EditorToolbar
         title={editorState.title}
         onTitleChange={(title) => setEditorState((prev) => ({ ...prev, title }))}
@@ -462,13 +403,13 @@ const VideoEditor = () => {
 
       <div className="flex-1 min-h-0">
         <ResizablePanelGroup direction="horizontal">
-          <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
+          <ResizablePanel defaultSize={18} minSize={14} maxSize={28}>
             <EditorMediaBrowser onAddClip={handleAddClipFromBrowser} />
           </ResizablePanel>
 
-          <ResizableHandle className="w-px bg-border hover:bg-primary/30 transition-colors" />
+          <ResizableHandle className="w-px bg-white/[0.04] hover:bg-primary/30 transition-colors data-[resize-handle-active]:bg-primary/50" />
 
-          <ResizablePanel defaultSize={55} minSize={40}>
+          <ResizablePanel defaultSize={57} minSize={40}>
             <ResizablePanelGroup direction="vertical">
               <ResizablePanel defaultSize={60} minSize={30}>
                 {hasClips ? (
@@ -481,21 +422,24 @@ const VideoEditor = () => {
                     duration={editorState.duration}
                   />
                 ) : (
-                  <div className="h-full flex flex-col items-center justify-center bg-black gap-4">
-                    <div className="w-16 h-16 rounded-full bg-surface-1 border border-border flex items-center justify-center">
-                      <Film className="w-7 h-7 text-muted-foreground/30" />
+                  <div className="h-full flex flex-col items-center justify-center bg-[hsl(260,15%,4%)] gap-5">
+                    <div className="w-16 h-16 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-center relative">
+                      <Film className="w-7 h-7 text-white/15" />
+                      <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
+                        <Sparkles className="w-2 h-2 text-primary" />
+                      </div>
                     </div>
                     <div className="text-center">
-                      <p className="text-[13px] text-muted-foreground font-medium">No clips in timeline</p>
-                      <p className="text-[11px] text-muted-foreground/50 mt-1">
-                        Browse clips in the media panel and click to add them
+                      <p className="text-[13px] text-white/50 font-medium tracking-wide">No clips in timeline</p>
+                      <p className="text-[11px] text-white/20 mt-1.5 max-w-[240px] leading-relaxed">
+                        Browse clips in the media panel and click to add them to your edit
                       </p>
                     </div>
                   </div>
                 )}
               </ResizablePanel>
 
-              <ResizableHandle className="h-px bg-border hover:bg-primary/30 transition-colors" />
+              <ResizableHandle className="h-px bg-white/[0.04] hover:bg-primary/30 transition-colors data-[resize-handle-active]:bg-primary/50" />
 
               <ResizablePanel defaultSize={40} minSize={20}>
                 <EditorTimeline
@@ -516,7 +460,7 @@ const VideoEditor = () => {
             </ResizablePanelGroup>
           </ResizablePanel>
 
-          <ResizableHandle className="w-px bg-border hover:bg-primary/30 transition-colors" />
+          <ResizableHandle className="w-px bg-white/[0.04] hover:bg-primary/30 transition-colors data-[resize-handle-active]:bg-primary/50" />
 
           <ResizablePanel defaultSize={25} minSize={15} maxSize={35}>
             <EditorSidebar

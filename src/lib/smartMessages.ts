@@ -52,10 +52,10 @@
  
  // ============= Message Registry =============
  
- /**
-  * CREDITS & BILLING MESSAGES
-  * - Welcome bonus notification
-  * - Low credits warnings (multiple thresholds)
+  /**
+   * CREDITS & BILLING MESSAGES
+   * - Welcome / first purchase notification
+   * - Low credits warnings (multiple thresholds)
   * - Credit purchase success
   * - Insufficient credits for action
   * - Auto-recharge triggered

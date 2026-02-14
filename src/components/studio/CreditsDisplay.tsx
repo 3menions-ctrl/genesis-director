@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { CREDIT_COSTS } from '@/hooks/useCreditBilling';
+import { calculateCreditsRequired, calculateAffordableClips, CREDIT_SYSTEM } from '@/lib/creditSystem';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 
 interface CreditsDisplayProps {
@@ -19,13 +20,13 @@ export const CreditsDisplay = memo(forwardRef<HTMLDivElement, CreditsDisplayProp
   const [showBuyModal, setShowBuyModal] = useState(false);
   
   const usagePercentage = (credits.used / Math.max(credits.total, 1)) * 100;
-  const isLow = credits.remaining < CREDIT_COSTS.TOTAL_PER_SHOT * 2;
+  const isLow = credits.remaining < CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP * 2;
   
-  // Calculate what the user can afford with Iron-Clad pricing
-  const requiredCredits = selectedShotCount ? selectedShotCount * CREDIT_COSTS.TOTAL_PER_SHOT : 0;
+  // Calculate with proper extended pricing (clips 7+ or >6s cost 15 instead of 10)
+  const requiredCredits = selectedShotCount ? calculateCreditsRequired(selectedShotCount) : 0;
   const canAfford = credits.remaining >= requiredCredits;
   const creditsAfter = credits.remaining - requiredCredits;
-  const affordableShots = Math.floor(credits.remaining / CREDIT_COSTS.TOTAL_PER_SHOT);
+  const affordableShots = calculateAffordableClips(credits.remaining);
 
   // Not logged in - show sign in prompt
   if (!user) {

@@ -2,7 +2,7 @@ import { memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Sparkles } from 'lucide-react';
-import { UniversalVideoPlayer } from '@/components/player';
+import { UniversalHLSPlayer } from '@/components/player/UniversalHLSPlayer';
 
 const PRICING_STATS = [
   { value: '$0.10', label: 'per credit' },
@@ -10,14 +10,7 @@ const PRICING_STATS = [
   { value: '∞', label: 'no expiry' },
 ] as const;
 
-const STORYTELLING_CLIP_URLS = [
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_clip1_lipsync_1771086006879.mp4',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_clip2_lipsync_1771086184096.mp4',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_clip3_lipsync_1771086363289.mp4',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_clip4_lipsync_1771086544128.mp4',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_clip5_lipsync_1771086724461.mp4',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_clip6_lipsync_1771086905770.mp4',
-];
+const STORYTELLING_HLS_URL = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/temp-frames/hls_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_1771087015077.m3u8';
 
 interface PricingSectionProps {
   onNavigate: (path: string) => void;
@@ -50,11 +43,10 @@ export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionProps>(
             </div>
             
             <div className="relative aspect-video max-w-3xl mx-auto rounded-2xl overflow-hidden bg-black/50 border border-white/[0.08]">
-              <UniversalVideoPlayer
-                source={{ urls: STORYTELLING_CLIP_URLS }}
-                mode="inline"
-                controls={{ showDownload: false }}
+              <UniversalHLSPlayer
+                hlsUrl={STORYTELLING_HLS_URL}
                 className="w-full h-full"
+                showControls={true}
               />
             </div>
           </div>

@@ -425,49 +425,34 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           </motion.div>
         )}
 
-        {/* Header - Premium minimal */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-16"
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.08] mb-6"
-          >
-            <Sparkles className="w-4 h-4 text-white/60" />
-            <span className="text-sm text-white/60 font-medium">AI Video Creation</span>
-          </motion.div>
+        {/* Header - Cinematic studio */}
+        <div className="text-center mb-16 animate-fade-in">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.06] mb-6">
+            <Sparkles className="w-4 h-4 text-violet-400" />
+            <span className="text-sm text-white/50 font-medium tracking-wide">AI Video Studio</span>
+          </div>
           
           <h1 className="text-4xl md:text-6xl font-display font-bold text-white mb-5 tracking-tight">
-            What will you create?
+            What will you <span className="bg-gradient-to-r from-violet-400 via-purple-300 to-fuchsia-400 bg-clip-text text-transparent">create</span>?
           </h1>
-          <p className="text-lg text-white/40 max-w-xl mx-auto">
+          <p className="text-lg text-white/35 max-w-xl mx-auto leading-relaxed">
             Choose your creation mode and bring your vision to life
           </p>
           
           {/* Credits display */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.06]"
-          >
+          <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.06] animate-fade-in" style={{ animationDelay: '200ms', animationFillMode: 'both' }}>
             <Zap className="w-4 h-4 text-amber-400" />
-            <span className="text-sm text-white/70">{userCredits.toLocaleString()} credits available</span>
-          </motion.div>
-        </motion.div>
+            <span className="text-sm text-white/60 tabular-nums">{userCredits.toLocaleString()} credits available</span>
+          </div>
+        </div>
 
-        {/* Mode Selection Grid - Clean minimal cards */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-8"
-        >
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {/* Mode Selection Grid - Cinematic studio cards */}
+        <div className="mb-10 animate-fade-in" style={{ animationDelay: '200ms', animationFillMode: 'both' }}>
+          <p className="text-xs text-white/30 uppercase tracking-[0.2em] font-medium mb-4 flex items-center gap-2">
+            <Film className="w-3.5 h-3.5" />
+            Choose your creation mode
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {CREATION_MODES.map((mode, index) => (
               <CreationModeCard
                 key={mode.id}
@@ -479,7 +464,6 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                 isPopular={mode.popular}
                 isNew={mode.isNew}
                 onClick={() => {
-                  // Navigate to dedicated page for avatar mode
                   if (mode.id === 'avatar') {
                     navigate('/avatars');
                   } else {
@@ -490,68 +474,49 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
               />
             ))}
           </div>
-        </motion.div>
+        </div>
 
         {/* Quick Access Cards - Templates & Training Videos */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="mb-10"
-        >
-          <p className="text-center text-xs text-white/40 uppercase tracking-wider mb-4">Or explore</p>
-          <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
-            {QUICK_ACCESS_CARDS.map((card, index) => {
+        <div className="mb-10 animate-fade-in" style={{ animationDelay: '350ms', animationFillMode: 'both' }}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+            <p className="text-xs text-white/30 uppercase tracking-[0.15em] font-medium">Or explore</p>
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+          </div>
+          <div className="grid grid-cols-2 gap-4 max-w-lg mx-auto">
+            {QUICK_ACCESS_CARDS.map((card) => {
               const Icon = card.icon;
-              const colorClasses = card.color === 'violet' 
-                ? 'bg-violet-500/10 border-violet-500/20 hover:bg-violet-500/15 hover:border-violet-500/30'
-                : 'bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/15 hover:border-emerald-500/30';
-              const iconColor = card.color === 'violet' ? 'text-violet-400' : 'text-emerald-400';
-              const textColor = card.color === 'violet' ? 'text-violet-300' : 'text-emerald-300';
-              const descColor = card.color === 'violet' ? 'text-violet-400/60' : 'text-emerald-400/60';
-              
+              const isViolet = card.color === 'violet';
               return (
-                <motion.a
+                <a
                   key={card.id}
                   href={card.href}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 + index * 0.08, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                   className={cn(
-                    "group relative flex flex-col items-start p-5 rounded-2xl border text-left transition-all duration-300",
-                    "backdrop-blur-xl",
-                    colorClasses
+                    "group relative flex items-center gap-4 p-4 rounded-2xl border text-left transition-all duration-300",
+                    isViolet 
+                      ? 'bg-violet-500/[0.06] border-violet-500/15 hover:bg-violet-500/[0.1] hover:border-violet-500/25'
+                      : 'bg-emerald-500/[0.06] border-emerald-500/15 hover:bg-emerald-500/[0.1] hover:border-emerald-500/25'
                   )}
                 >
-                  {/* Icon */}
                   <div className={cn(
-                    "w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-all duration-300",
-                    card.color === 'violet' 
-                      ? "bg-violet-500/20 group-hover:bg-violet-500/30" 
-                      : "bg-emerald-500/20 group-hover:bg-emerald-500/30"
+                    "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300",
+                    isViolet ? "bg-violet-500/20 group-hover:bg-violet-500/30" : "bg-emerald-500/20 group-hover:bg-emerald-500/30"
                   )}>
-                    <Icon className={cn("w-6 h-6", iconColor)} />
+                    <Icon className={cn("w-5 h-5", isViolet ? 'text-violet-400' : 'text-emerald-400')} />
                   </div>
-
-                  {/* Text */}
-                  <h3 className={cn("text-base font-semibold mb-1", textColor)}>
-                    {card.name}
-                  </h3>
-                  <p className={cn("text-sm line-clamp-2", descColor)}>
-                    {card.description}
-                  </p>
-
-                  {/* Subtle hover glow */}
-                  <div className={cn(
-                    "absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 pointer-events-none",
-                    "bg-gradient-to-br from-white/[0.02] to-transparent",
-                    "group-hover:opacity-100"
-                  )} />
-                </motion.a>
+                  <div className="min-w-0">
+                    <h3 className={cn("text-sm font-semibold", isViolet ? 'text-violet-300' : 'text-emerald-300')}>
+                      {card.name}
+                    </h3>
+                    <p className={cn("text-xs mt-0.5", isViolet ? 'text-violet-400/50' : 'text-emerald-400/50')}>
+                      {card.description}
+                    </p>
+                  </div>
+                </a>
               );
             })}
           </div>
-        </motion.div>
+        </div>
 
         {/* Configuration Panel - Premium glass */}
         <motion.div

@@ -177,7 +177,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [clipDuration, setClipDuration] = useState(5);
   const [enableNarration, setEnableNarration] = useState(true);
-  const [enableMusic, setEnableMusic] = useState(true);
+  const [enableMusic] = useState(false); // Music disabled globally - low quality
   
   // Avatar selection for breakout templates
   const [selectedAvatar, setSelectedAvatar] = useState<AvatarTemplate | null>(null);
@@ -716,16 +716,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                         onCheckedChange={setEnableNarration}
                       />
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Music className="w-4 h-4 text-white/40" />
-                        <span className="text-sm text-white/70">Music</span>
-                      </div>
-                      <Switch
-                        checked={enableMusic}
-                        onCheckedChange={setEnableMusic}
-                      />
-                    </div>
+                    {/* Music toggle removed - music disabled globally */}
                   </div>
                 </div>
               </div>
@@ -1057,12 +1048,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                       <span className="text-white/70">Narration</span>
                     </div>
                   )}
-                  {enableMusic && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08]">
-                      <Music className="w-3.5 h-3.5 text-white/50" />
-                      <span className="text-white/70">Music</span>
-                    </div>
-                  )}
+                  {/* Music badge removed - music disabled globally */}
                 </div>
                 
                 {/* Insufficient credits warning */}

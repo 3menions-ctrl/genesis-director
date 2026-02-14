@@ -20,7 +20,7 @@ const corsHeaders = {
 
 interface DeleteClipRequest {
   clipId: string;
-  userId: string;
+  userId?: string; // Deprecated - now extracted from JWT
 }
 
 // Extract storage path from Supabase URL
@@ -57,16 +57,39 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const replicateApiKey = Deno.env.get("REPLICATE_API_KEY");
   
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    const { clipId, userId }: DeleteClipRequest = await req.json();
-
-    if (!clipId || !userId) {
+    // ═══ JWT AUTHENTICATION ═══
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: "clipId and userId are required" }),
+        JSON.stringify({ error: "Missing authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const userId = claimsData.claims.sub as string;
+
+    const { clipId }: DeleteClipRequest = await req.json();
+
+    if (!clipId) {
+      return new Response(
+        JSON.stringify({ error: "clipId is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

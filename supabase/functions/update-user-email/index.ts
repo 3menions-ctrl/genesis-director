@@ -59,15 +59,16 @@ Deno.serve(async (req) => {
     const currentEmail = claimsData.claims.email as string
     console.log('User verified:', userId, 'Current email:', currentEmail, 'New email:', newEmail)
 
-    // Use admin client to update email (bypasses session requirement)
+    // Use admin client to update email
     const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false }
     })
 
     // Update the user's email using admin API
+    // email_confirm: false ensures the user must verify the new email before it takes effect
     const { data: updatedUser, error: updateError } = await adminClient.auth.admin.updateUserById(
       userId,
-      { email: newEmail }
+      { email: newEmail, email_confirm: false }
     )
 
     if (updateError) {

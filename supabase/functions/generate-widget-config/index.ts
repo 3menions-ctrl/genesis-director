@@ -290,13 +290,19 @@ CRITICAL REQUIREMENTS:
 
     if (!response.ok) {
       const status = response.status;
-      console.error("AI gateway error:", status);
+      const errorBody = await response.text();
+      console.error("AI gateway error:", status, errorBody.substring(0, 200));
       if (status === 429) {
         return new Response(JSON.stringify({ error: "Rate limited. Please try again shortly." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      return new Response(JSON.stringify({ error: "AI generation failed" }), {
+      if (status === 402) {
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits to your workspace under Settings → Usage." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ error: "AI generation failed. Please try again." }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

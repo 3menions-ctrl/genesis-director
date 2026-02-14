@@ -585,7 +585,7 @@ export default function Clips() {
   };
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white overflow-x-hidden">
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       {/* Premium Purple Animated Background */}
       <ClipsBackground />
 

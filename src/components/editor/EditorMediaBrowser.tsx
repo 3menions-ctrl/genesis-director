@@ -98,37 +98,37 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#161616] border-l border-[#222]">
+    <div className="h-full flex flex-col bg-surface-1 border-l border-border">
       {/* Header */}
-      <div className="h-9 flex items-center px-3 border-b border-[#222] shrink-0 bg-[#1a1a1a]">
-        <Film className="h-3 w-3 text-[#555] mr-2" />
-        <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#666]">
+      <div className="h-9 flex items-center px-3 border-b border-border shrink-0 bg-surface-2">
+        <Film className="h-3 w-3 text-muted-foreground/50 mr-2" />
+        <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
           Media
         </span>
-        <span className="ml-auto text-[9px] text-[#444] tabular-nums">{clips.length} clips</span>
+        <span className="ml-auto text-[9px] text-muted-foreground/40 tabular-nums">{clips.length} clips</span>
       </div>
 
       {/* Search */}
-      <div className="px-2 py-2 border-b border-[#1e1e1e]">
+      <div className="px-2 py-2 border-b border-border/50">
         <div className="relative">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-[#555]" />
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search clips..."
-            className="h-7 pl-7 text-[10px] bg-[#111] border-[#2a2a2a] text-[#999] placeholder:text-[#444] focus-visible:ring-[#4a9eff]/30"
+            className="h-7 pl-7 text-[10px] bg-background border-border text-foreground/70 placeholder:text-muted-foreground/40 focus-visible:ring-primary/30"
           />
         </div>
       </div>
 
       {/* Project filter tabs */}
-      <div className="px-2 py-1.5 border-b border-[#1e1e1e] flex gap-1 overflow-x-auto scrollbar-hide">
+      <div className="px-2 py-1.5 border-b border-border/50 flex gap-1 overflow-x-auto scrollbar-hide">
         <button
           className={cn(
             "shrink-0 px-2 py-0.5 rounded text-[9px] font-medium transition-colors",
             !selectedProject
-              ? "bg-[#4a9eff]/15 text-[#8ac4ff]"
-              : "text-[#555] hover:text-[#888] hover:bg-[#1e1e1e]"
+              ? "bg-primary/15 text-primary"
+              : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-surface-2"
           )}
           onClick={() => setSelectedProject(null)}
         >
@@ -140,8 +140,8 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
             className={cn(
               "shrink-0 px-2 py-0.5 rounded text-[9px] font-medium transition-colors truncate max-w-[120px]",
               selectedProject === p.id
-                ? "bg-[#4a9eff]/15 text-[#8ac4ff]"
-                : "text-[#555] hover:text-[#888] hover:bg-[#1e1e1e]"
+                ? "bg-primary/15 text-primary"
+                : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-surface-2"
             )}
             onClick={() => setSelectedProject(p.id)}
           >
@@ -154,12 +154,12 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center h-full">
-            <Loader2 className="h-4 w-4 animate-spin text-[#444]" />
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/40" />
           </div>
         ) : filteredClips.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2 px-4">
-            <FolderOpen className="h-6 w-6 text-[#333]" />
-            <span className="text-[11px] text-[#444] text-center">
+            <FolderOpen className="h-6 w-6 text-muted-foreground/20" />
+            <span className="text-[11px] text-muted-foreground/40 text-center">
               {search ? "No clips match your search" : "No completed clips yet"}
             </span>
           </div>
@@ -168,21 +168,21 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
             {filteredClips.map((clip) => (
               <div
                 key={clip.id}
-                className="group flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1e1e1e] cursor-pointer transition-colors"
+                className="group flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-2 cursor-pointer transition-colors"
                 onClick={() => onAddClip(clip)}
               >
                 {/* Thumbnail placeholder */}
-                <div className="w-12 h-7 rounded bg-[#222] border border-[#2a2a2a] flex items-center justify-center shrink-0 overflow-hidden">
-                  <Film className="h-3 w-3 text-[#444]" />
+                <div className="w-12 h-7 rounded bg-surface-2 border border-border flex items-center justify-center shrink-0 overflow-hidden">
+                  <Film className="h-3 w-3 text-muted-foreground/30" />
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] text-[#999] truncate leading-tight">
+                  <p className="text-[10px] text-foreground/70 truncate leading-tight">
                     {clip.prompt}
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[8px] text-[#555] truncate">{clip.project_title}</span>
-                    <span className="flex items-center gap-0.5 text-[8px] text-[#444]">
+                    <span className="text-[8px] text-muted-foreground/50 truncate">{clip.project_title}</span>
+                    <span className="flex items-center gap-0.5 text-[8px] text-muted-foreground/40">
                       <Clock className="h-2 w-2" />
                       {formatDuration(clip.duration_seconds)}
                     </span>
@@ -193,7 +193,7 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-5 w-5 opacity-0 group-hover:opacity-100 text-[#4a9eff] hover:bg-[#4a9eff]/10 transition-opacity shrink-0"
+                  className="h-5 w-5 opacity-0 group-hover:opacity-100 text-primary hover:bg-primary/10 transition-opacity shrink-0"
                 >
                   <Plus className="h-3 w-3" />
                 </Button>

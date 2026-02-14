@@ -17,7 +17,7 @@ const ClipsBackground = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
   return (
     <div ref={ref} className={`fixed inset-0 overflow-hidden pointer-events-none transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
       {/* Deep black base */}
-      <div className="absolute inset-0 bg-[#030303]" />
+      <div className="absolute inset-0 bg-background" />
       
       {/* Static flowing circles with CSS animations - stunning purple palette */}
       <svg 

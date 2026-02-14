@@ -22,9 +22,9 @@ const TRACK_HEIGHT = 44;
 const PIXELS_PER_SECOND_BASE = 60;
 
 const trackColors: Record<string, { bg: string; border: string; text: string }> = {
-  video: { bg: "bg-[#1e3a5f]/60", border: "border-[#4a9eff]/40", text: "text-[#8ac4ff]" },
-  audio: { bg: "bg-[#2d1f4e]/60", border: "border-[#9b6dff]/40", text: "text-[#c4a8ff]" },
-  text: { bg: "bg-[#3d2f1e]/60", border: "border-[#ffb347]/40", text: "text-[#ffd699]" },
+  video: { bg: "bg-primary/10", border: "border-primary/30", text: "text-primary" },
+  audio: { bg: "bg-accent/10", border: "border-accent/30", text: "text-accent" },
+  text: { bg: "bg-warning/10", border: "border-warning/30", text: "text-warning" },
 };
 
 const trackIcons: Record<string, typeof Film> = {
@@ -154,22 +154,22 @@ export const EditorTimeline = ({
       {/* Timeline body */}
       <div className="flex-1 flex overflow-hidden">
         {/* Track labels */}
-        <div className="w-28 shrink-0 border-r border-[#222] bg-[#161616]">
-          <div className="h-5 border-b border-[#222]" />
+        <div className="w-28 shrink-0 border-r border-border bg-surface-1">
+          <div className="h-5 border-b border-border" />
           {tracks.map((track) => {
             const Icon = trackIcons[track.type] || Film;
             const colors = trackColors[track.type] || trackColors.video;
             return (
               <div
                 key={track.id}
-                className="flex items-center gap-1.5 px-2.5 border-b border-[#1e1e1e]"
+                className="flex items-center gap-1.5 px-2.5 border-b border-border/50"
                 style={{ height: TRACK_HEIGHT }}
               >
                 <Icon className={cn("h-3 w-3 shrink-0", colors.text)} />
-                <span className="text-[10px] font-medium text-[#888] truncate flex-1">
+                <span className="text-[10px] font-medium text-muted-foreground truncate flex-1">
                   {track.name}
                 </span>
-                <button className="opacity-40 hover:opacity-80 text-[#888]">
+                <button className="opacity-40 hover:opacity-80 text-muted-foreground">
                   {track.muted ? (
                     <VolumeX className="h-2.5 w-2.5" />
                   ) : (
@@ -186,7 +186,7 @@ export const EditorTimeline = ({
           <div style={{ width: timelineWidth, position: "relative" }}>
             {/* Time ruler */}
             <div
-              className="h-5 border-b border-[#222] relative bg-[#161616]"
+              className="h-5 border-b border-border relative bg-surface-1"
               onClick={handleTimelineClick}
             >
               {markers.map((t) => (
@@ -195,10 +195,10 @@ export const EditorTimeline = ({
                   className="absolute top-0 h-full flex flex-col justify-end"
                   style={{ left: t * pxPerSec }}
                 >
-                  <span className="text-[8px] text-[#555] px-0.5 tabular-nums">
+                  <span className="text-[8px] text-muted-foreground/50 px-0.5 tabular-nums">
                     {Math.floor(t / 60)}:{(t % 60).toString().padStart(2, "0")}
                   </span>
-                  <div className="w-px h-1.5 bg-[#333]" />
+                  <div className="w-px h-1.5 bg-border" />
                 </div>
               ))}
             </div>
@@ -207,9 +207,9 @@ export const EditorTimeline = ({
             {tracks.map((track) => {
               const colors = trackColors[track.type] || trackColors.video;
               return (
-                <div
+              <div
                   key={track.id}
-                  className="relative border-b border-[#1e1e1e]"
+                  className="relative border-b border-border/50"
                   style={{ height: TRACK_HEIGHT }}
                   onClick={handleTimelineClick}
                 >
@@ -226,7 +226,7 @@ export const EditorTimeline = ({
                           "flex items-center overflow-hidden transition-shadow",
                           colors.bg,
                           colors.border,
-                          isSelected && "ring-1 ring-[#4a9eff] shadow-[0_0_12px_rgba(74,158,255,0.15)]"
+                          isSelected && "ring-1 ring-primary shadow-[0_0_12px_hsl(263_70%_58%/0.2)]"
                         )}
                         style={{
                           left,
@@ -241,7 +241,7 @@ export const EditorTimeline = ({
                       >
                         {/* Left trim handle */}
                         <div
-                          className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-white/20 rounded-l"
+                          className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-foreground/20 rounded-l"
                           onMouseDown={(e) => handleClipMouseDown(e, clip, "trim-left")}
                         />
 
@@ -250,12 +250,12 @@ export const EditorTimeline = ({
                         </span>
 
                         {clip.effects.some((e) => e.type === "transition") && (
-                          <div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#4a9eff]" />
+                          <div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-primary" />
                         )}
 
                         {/* Right trim handle */}
                         <div
-                          className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-white/20 rounded-r"
+                          className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-foreground/20 rounded-r"
                           onMouseDown={(e) => handleClipMouseDown(e, clip, "trim-right")}
                         />
                       </div>
@@ -267,10 +267,11 @@ export const EditorTimeline = ({
 
             {/* Playhead */}
             <div
-              className="absolute top-0 bottom-0 w-px bg-[#4a9eff] z-10 pointer-events-none"
+              className="absolute top-0 bottom-0 w-px bg-primary z-10 pointer-events-none"
               style={{ left: currentTime * pxPerSec }}
             >
-              <div className="w-2 h-2.5 bg-[#4a9eff] rounded-b-sm -ml-[4px]" />
+              <div className="w-2 h-2.5 bg-primary rounded-b-sm -ml-[4px]" />
+            </div>
             </div>
           </div>
         </div>

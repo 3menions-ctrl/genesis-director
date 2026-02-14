@@ -771,7 +771,7 @@ function ProjectsContentInner() {
   const stitchingProjects = projects.filter(p => status(p) === 'stitching');
 
   return (
-    <div className="min-h-screen bg-[#030303] relative overflow-x-hidden">
+    <div className="min-h-screen bg-background relative overflow-x-hidden">
       {/* Premium Orange-Themed Animated Background */}
       <ProjectsBackground />
 

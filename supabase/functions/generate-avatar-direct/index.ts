@@ -808,6 +808,9 @@ serve(async (req) => {
           avatarType: avatarType,
           // DUAL AVATAR: Persist secondary avatar data for watchdog
           secondaryAvatar: secondaryAvatar || null,
+          // IDENTITY ANCHOR: Original unmodified avatar reference image
+          // This is the ground truth for character identity — never re-composited
+          originalAvatarImageUrl: avatarImageUrl,
           predictions: pendingPredictions.map(p => ({
             predictionId: p.predictionId,
             clipIndex: p.clipIndex,

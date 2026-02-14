@@ -353,123 +353,164 @@ serve(async (req) => {
           console.log(`[Watchdog] 🔗 FRAME-CHAINING: Starting clip ${pred.clipIndex + 1} from clip ${prevClipIndex + 1}'s last frame`);
           
           // DUAL AVATAR: Determine if switching characters
-          const isDualAvatar = pred.avatarRole === 'secondary' && tasks.secondaryAvatar?.imageUrl;
+          const isSecondaryClip = pred.avatarRole === 'secondary' && tasks.secondaryAvatar?.imageUrl;
           const prevWasSecondary = prevPred.avatarRole === 'secondary';
           const isCharacterSwitch = (pred.avatarRole === 'secondary' && !prevWasSecondary) || 
                                     (pred.avatarRole === 'primary' && prevWasSecondary);
           let startImageUrl: string | null = null;
           
           // BUILD IDENTITY LOCK for this clip's character
-          // This gets injected into the Kling prompt to prevent face drift
           let characterIdentityLock = '';
           
-          if (isDualAvatar) {
-            // SECONDARY AVATAR CLIP
-            console.log(`[Watchdog] 🎭 DUAL AVATAR: Clip ${pred.clipIndex + 1} uses SECONDARY avatar (${tasks.secondaryAvatar.name})`);
-            characterIdentityLock = `This is ${tasks.secondaryAvatar.name}. The character in this clip must look EXACTLY like the person shown in the start frame reference image. Preserve their exact facial features, hair style, hair color, skin tone, eye color, body build, and outfit.`;
-            
-            // SCENE-AWARE COMPOSITING for secondary avatar
-            // Clip 2 (index 1): A2 enters A1's scene → use A1's scene description for continuity
-            // Clip 3+ (index 2+): A2 solo → use screenplay's sceneNote for NEW environment
-            const isEntranceClip = pred.clipIndex === 1; // A2's first appearance — enters A1's world
-            const sceneDesc = isEntranceClip 
-              ? (tasks.sceneDescription || 'Professional studio setting')  // Same scene as A1
-              : (pred.sceneNote || tasks.sceneDescription || 'Professional studio setting'); // New scene from screenplay
-            
-            const entranceInstruction = isEntranceClip
-              ? 'IMPORTANT: This character is ENTERING a scene where another character was just speaking. They walk in, appear, or are revealed. Show them arriving or being noticed. The environment must match the previous clip exactly.'
-              : 'IMPORTANT: This character is NOW in a DIFFERENT LOCATION from the previous clips. New environment, new background. Show them in this new space.';
-            
+          // ═══════════════════════════════════════════════════════════════════════
+          // FRAME EXTRACTION HELPER: Extract last frame from any video URL
+          // Used for BOTH primary and secondary same-character continuity
+          // ═══════════════════════════════════════════════════════════════════════
+          const extractLastFrameFromVideo = async (videoUrl: string, forClipIndex: number): Promise<string | null> => {
             try {
-              const sceneResponse = await fetch(`${supabaseUrl}/functions/v1/generate-avatar-scene`, {
+              const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-last-frame`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                   'Authorization': `Bearer ${supabaseKey}`,
                 },
                 body: JSON.stringify({
-                  avatarImageUrl: tasks.secondaryAvatar.imageUrl,
-                  sceneDescription: sceneDesc,
-                  aspectRatio: tasks.aspectRatio || '16:9',
-                  placement: 'center',
-                  additionalInstructions: `${entranceInstruction} Show the COMPLETE person from head to toe. Full body visible. Do NOT crop to just the head or face. The character must have a complete body, arms, legs, and be standing or sitting naturally in the scene. CRITICAL: Preserve the EXACT face, hair, and appearance of the person in the reference image.`,
+                  videoUrl,
+                  projectId: project.id,
+                  clipIndex: forClipIndex,
                 }),
               });
               
-              if (sceneResponse.ok) {
-                const sceneResult = await sceneResponse.json();
-                if (sceneResult.success && sceneResult.sceneImageUrl) {
-                  startImageUrl = sceneResult.sceneImageUrl;
-                  console.log(`[Watchdog] ✅ Secondary avatar scene composited (${isEntranceClip ? 'ENTRANCE — same scene as A1' : 'NEW LOCATION'}): ${startImageUrl.substring(0, 60)}...`);
+              if (frameResponse.ok) {
+                const frameResult = await frameResponse.json();
+                const extractedFrame = frameResult.frameUrl || frameResult.lastFrameUrl;
+                if (frameResult.success && extractedFrame) {
+                  console.log(`[Watchdog] ✅ Extracted last frame from clip ${forClipIndex + 1} (${frameResult.method}): ${extractedFrame.substring(0, 60)}...`);
+                  return extractedFrame;
                 }
               }
-            } catch (sceneError) {
-              console.warn(`[Watchdog] Secondary scene compositing failed (non-fatal):`, sceneError);
+              console.warn(`[Watchdog] ⚠️ Frame extraction failed for clip ${forClipIndex + 1}`);
+            } catch (frameError) {
+              console.error(`[Watchdog] Frame extraction error for clip ${forClipIndex + 1}:`, frameError);
+            }
+            return null;
+          };
+          
+          // ═══════════════════════════════════════════════════════════════════════
+          // FIND MOST RECENT CLIP OF SAME CHARACTER (for identity anchoring)
+          // ═══════════════════════════════════════════════════════════════════════
+          const findLastClipOfRole = (role: string): { clipIndex: number; videoUrl: string; startImageUrl: string } | null => {
+            for (let searchIdx = pred.clipIndex - 1; searchIdx >= 0; searchIdx--) {
+              const candidate = tasks.predictions.find((p: { clipIndex: number }) => p.clipIndex === searchIdx);
+              if (candidate && candidate.avatarRole === role && candidate.status === 'completed' && candidate.videoUrl) {
+                return { clipIndex: searchIdx, videoUrl: candidate.videoUrl, startImageUrl: candidate.startImageUrl };
+              }
+            }
+            return null;
+          };
+          
+          if (isSecondaryClip) {
+            // ═══════════════════════════════════════════════════════════════════
+            // SECONDARY AVATAR CLIP
+            // KEY RULE: Only composite on FIRST appearance. After that, use last frame.
+            // ═══════════════════════════════════════════════════════════════════
+            console.log(`[Watchdog] 🎭 DUAL AVATAR: Clip ${pred.clipIndex + 1} uses SECONDARY avatar (${tasks.secondaryAvatar.name})`);
+            characterIdentityLock = `This is ${tasks.secondaryAvatar.name}. The character in this clip must look EXACTLY like the person shown in the start frame reference image. Preserve their exact facial features, hair style, hair color, skin tone, eye color, body build, and outfit.`;
+            
+            const lastSecondaryClip = findLastClipOfRole('secondary');
+            
+            if (lastSecondaryClip && !isCharacterSwitch) {
+              // SAME CHARACTER CONTINUING: Use last frame from previous secondary clip
+              // This preserves identity perfectly — no re-compositing drift
+              console.log(`[Watchdog] 🔗 SECONDARY CONTINUITY: Using last frame from clip ${lastSecondaryClip.clipIndex + 1}`);
+              startImageUrl = await extractLastFrameFromVideo(lastSecondaryClip.videoUrl, lastSecondaryClip.clipIndex);
             }
             
-            // Fallback: use raw image
+            if (!startImageUrl && isCharacterSwitch) {
+              // FIRST APPEARANCE or re-entering: Need scene compositing
+              const isEntranceClip = pred.clipIndex === 1;
+              const sceneDesc = isEntranceClip 
+                ? (tasks.sceneDescription || 'Professional studio setting')
+                : (pred.sceneNote || tasks.sceneDescription || 'Professional studio setting');
+              
+              // Check if we already have a cached composite for this character
+              const cachedSecondaryScene = tasks._secondarySceneCache;
+              if (cachedSecondaryScene && isEntranceClip) {
+                // Reuse the cached composite for same-scene entrance
+                startImageUrl = cachedSecondaryScene;
+                console.log(`[Watchdog] ✅ Using CACHED secondary composite: ${startImageUrl.substring(0, 60)}...`);
+              } else {
+                // Composite once for this character
+                console.log(`[Watchdog] 🎨 Compositing secondary avatar (${isEntranceClip ? 'ENTRANCE' : 'NEW LOCATION'})...`);
+                try {
+                  const sceneResponse = await fetch(`${supabaseUrl}/functions/v1/generate-avatar-scene`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${supabaseKey}`,
+                    },
+                    body: JSON.stringify({
+                      avatarImageUrl: tasks.secondaryAvatar.imageUrl,
+                      sceneDescription: sceneDesc,
+                      aspectRatio: tasks.aspectRatio || '16:9',
+                      placement: 'center',
+                      additionalInstructions: `The character is ALREADY positioned in the scene from the start. Show the COMPLETE person from head to toe. Full body visible. Do NOT crop to just the head or face. CRITICAL: Preserve the EXACT face, hair, and appearance of the person in the reference image. NO face changes.`,
+                    }),
+                  });
+                  
+                  if (sceneResponse.ok) {
+                    const sceneResult = await sceneResponse.json();
+                    if (sceneResult.success && sceneResult.sceneImageUrl) {
+                      startImageUrl = sceneResult.sceneImageUrl;
+                      // Cache for reuse
+                      tasks._secondarySceneCache = startImageUrl;
+                      console.log(`[Watchdog] ✅ Secondary composite created & cached: ${startImageUrl.substring(0, 60)}...`);
+                    }
+                  }
+                } catch (sceneError) {
+                  console.warn(`[Watchdog] Secondary scene compositing failed (non-fatal):`, sceneError);
+                }
+              }
+            }
+            
+            // If still no start image but we have a previous secondary clip's last frame attempt
+            if (!startImageUrl && lastSecondaryClip) {
+              startImageUrl = await extractLastFrameFromVideo(lastSecondaryClip.videoUrl, lastSecondaryClip.clipIndex);
+            }
+            
+            // Fallback: use raw secondary avatar image
             if (!startImageUrl) {
               startImageUrl = tasks.secondaryAvatar.imageUrl;
-              console.warn(`[Watchdog] ⚠️ Using raw secondary avatar image (may produce head-only render)`);
+              console.warn(`[Watchdog] ⚠️ Using raw secondary avatar image (fallback)`);
             }
           } else {
+            // ═══════════════════════════════════════════════════════════════════
             // PRIMARY AVATAR CLIP
+            // KEY RULE: Always use last frame from most recent primary clip.
+            // Only fall back to original scene image if no primary clip exists yet.
+            // ═══════════════════════════════════════════════════════════════════
             characterIdentityLock = `This is the PRIMARY character. The character in this clip must look EXACTLY like the person shown in the start frame reference image. Preserve their exact facial features, hair style, hair color, skin tone, eye color, body build, and outfit. This MUST be the same person as in clip 1.`;
             
-            if (isCharacterSwitch) {
-              // SWITCHING BACK TO PRIMARY after secondary clips
-              // CRITICAL FIX: Do NOT use the secondary character's last frame!
-              // Re-composite from the ORIGINAL primary reference to restore identity
-              console.log(`[Watchdog] 🔗 IDENTITY RESTORE: Switching back to PRIMARY — re-compositing from original reference`);
+            // ALWAYS try to get last frame from most recent primary clip first
+            const lastPrimaryClip = findLastClipOfRole('primary');
+            
+            if (lastPrimaryClip) {
+              // Extract the last frame from the most recent primary clip's VIDEO
+              // This preserves identity from the actual rendered character
+              console.log(`[Watchdog] 🔗 PRIMARY CONTINUITY: Extracting last frame from clip ${lastPrimaryClip.clipIndex + 1}`);
+              startImageUrl = await extractLastFrameFromVideo(lastPrimaryClip.videoUrl, lastPrimaryClip.clipIndex);
               
-              // First try: re-composite from original scene image (has primary avatar in scene)
+              if (startImageUrl) {
+                console.log(`[Watchdog] ✅ PRIMARY identity anchored from clip ${lastPrimaryClip.clipIndex + 1}'s last frame`);
+              }
+            }
+            
+            if (!startImageUrl) {
+              // No previous primary clip frame available — use original scene image
               const originalSceneImage = tasks.sceneImageUrl || tasks.predictions[0]?.startImageUrl;
               if (originalSceneImage) {
                 startImageUrl = originalSceneImage;
-                console.log(`[Watchdog] ✅ Using ORIGINAL primary scene image for identity restore: ${startImageUrl!.substring(0, 60)}...`);
-              }
-              
-              // If no scene image, search for the most recent primary clip's start image (not last frame — too risky for drift)
-              if (!startImageUrl) {
-                for (let searchIdx = pred.clipIndex - 1; searchIdx >= 0; searchIdx--) {
-                  const candidatePred = tasks.predictions.find((p: { clipIndex: number }) => p.clipIndex === searchIdx);
-                  if (candidatePred && candidatePred.avatarRole === 'primary' && candidatePred.startImageUrl) {
-                    startImageUrl = candidatePred.startImageUrl;
-                    console.log(`[Watchdog] ✅ Found PRIMARY start image from clip ${searchIdx + 1}: ${startImageUrl!.substring(0, 60)}...`);
-                    break;
-                  }
-                }
-              }
-            } else {
-              // Normal case: previous clip was also primary — extract its last frame for continuity
-              try {
-                const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-last-frame`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${supabaseKey}`,
-                  },
-                  body: JSON.stringify({
-                    videoUrl: prevPred.videoUrl,
-                    projectId: project.id,
-                    clipIndex: prevClipIndex,
-                  }),
-                });
-                
-                if (frameResponse.ok) {
-                  const frameResult = await frameResponse.json();
-                  const extractedFrame = frameResult.frameUrl || frameResult.lastFrameUrl;
-                  if (frameResult.success && extractedFrame) {
-                    startImageUrl = extractedFrame;
-                    console.log(`[Watchdog] ✅ Extracted last frame (${frameResult.method}): ${startImageUrl!.substring(0, 60)}...`);
-                  } else {
-                    console.warn(`[Watchdog] Frame extraction returned no URL (success=${frameResult.success}), using fallback`);
-                  }
-                } else {
-                  console.warn(`[Watchdog] Frame extraction HTTP error ${frameResponse.status}`);
-                }
-              } catch (frameError) {
-                console.error(`[Watchdog] Frame extraction error:`, frameError);
+                console.log(`[Watchdog] ✅ Using ORIGINAL primary scene image: ${startImageUrl!.substring(0, 60)}...`);
               }
             }
           }

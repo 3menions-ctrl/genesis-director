@@ -1,8 +1,8 @@
-import { memo, forwardRef, useState, useCallback } from 'react';
+import { memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Sparkles } from 'lucide-react';
-import { SimpleVideoPlayer } from '@/components/player';
+import { UniversalVideoPlayer } from '@/components/player';
 
 const PRICING_STATS = [
   { value: '$0.10', label: 'per credit' },
@@ -10,7 +10,14 @@ const PRICING_STATS = [
   { value: '∞', label: 'no expiry' },
 ] as const;
 
-const STUDIO_VIDEO_URL = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/04d9d079-faaa-4c4a-a4ea-7de073338813/clip_04d9d079-faaa-4c4a-a4ea-7de073338813_2_1770613248838.mp4';
+const STORYTELLING_CLIP_URLS = [
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/d571f407-9dbd-4996-9bd6-825be4b33f66/clip_d571f407-9dbd-4996-9bd6-825be4b33f66_0_1770518760774.mp4',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/d571f407-9dbd-4996-9bd6-825be4b33f66/clip_d571f407-9dbd-4996-9bd6-825be4b33f66_1_1770518902341.mp4',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/d571f407-9dbd-4996-9bd6-825be4b33f66/clip_d571f407-9dbd-4996-9bd6-825be4b33f66_2_1770519042838.mp4',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/d571f407-9dbd-4996-9bd6-825be4b33f66/clip_d571f407-9dbd-4996-9bd6-825be4b33f66_3_1770519183033.mp4',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/d571f407-9dbd-4996-9bd6-825be4b33f66/clip_d571f407-9dbd-4996-9bd6-825be4b33f66_4_1770519324040.mp4',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/d571f407-9dbd-4996-9bd6-825be4b33f66/clip_d571f407-9dbd-4996-9bd6-825be4b33f66_5_1770519464550.mp4',
+];
 
 interface PricingSectionProps {
   onNavigate: (path: string) => void;
@@ -18,15 +25,6 @@ interface PricingSectionProps {
 
 export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionProps>(
   function PricingSection({ onNavigate }, ref) {
-    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-    
-    const handlePlayVideo = useCallback(() => {
-      setIsVideoPlaying(true);
-      const video = document.getElementById('pricing-video') as HTMLVideoElement;
-      if (video) {
-        video.play().catch(console.error);
-      }
-    }, []);
 
     return (
       <section ref={ref} id="pricing" className="relative z-10 py-24 px-6">
@@ -52,28 +50,12 @@ export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionProps>(
             </div>
             
             <div className="relative aspect-video max-w-3xl mx-auto rounded-2xl overflow-hidden bg-black/50 border border-white/[0.08]">
-              <SimpleVideoPlayer
-                src={STUDIO_VIDEO_URL}
-                className="w-full h-full object-contain"
-                onPlay={() => setIsVideoPlaying(true)}
-                onPause={() => setIsVideoPlaying(false)}
-                onEnded={() => setIsVideoPlaying(false)}
-                showControls={isVideoPlaying}
+              <UniversalVideoPlayer
+                source={{ urls: STORYTELLING_CLIP_URLS }}
+                mode="inline"
+                controls={{ showDownload: false }}
+                className="w-full h-full"
               />
-              
-              {/* Play overlay */}
-              {!isVideoPlaying && (
-                <div 
-                  className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer transition-opacity hover:bg-black/30"
-                  onClick={handlePlayVideo}
-                >
-                  <div className="w-20 h-20 rounded-full bg-white/90 flex items-center justify-center shadow-lg shadow-white/20 transition-transform hover:scale-110">
-                    <svg className="w-8 h-8 text-black ml-1" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 

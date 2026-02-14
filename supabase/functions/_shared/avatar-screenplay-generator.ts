@@ -131,6 +131,23 @@ ${isDual ? `
 CHARACTER 1 (PRIMARY): "${primary.name}" — ${primary.avatarType === 'animated' ? 'Animated/stylized' : 'Realistic'}
 CHARACTER 2 (SECONDARY): "${secondary!.name}" — ${secondary!.avatarType === 'animated' ? 'Animated/stylized' : 'Realistic'}
 
+⚠️ STRATEGIC CHARACTER INTRODUCTION PROTOCOL (CRITICAL — DO NOT IGNORE) ⚠️
+The second character MUST be introduced with CINEMATIC INTENTION. NEVER have them just "appear."
+
+INTRODUCTION STRATEGIES (pick the best fit for the story):
+1. THE PLANT → REVEAL: Clip 1 hints at someone else ("You know who'd love this?", a sound off-screen, noticing something). Clip 2 REVEALS the second character was there the whole time or arrives with purpose.
+2. THE REACTION SHOT: Primary says/does something bold. CUT TO: Secondary already watching, arms crossed, with a look that says everything. Their first line is a REACTION to what Primary just did.
+3. THE INTERRUPTION: Primary is mid-sentence or mid-action when Secondary walks in, calls out, or physically enters the frame. "Excuse me—" "Oh no, not you."
+4. THE HANDOFF: Primary directly addresses or introduces the secondary. "Let me show you something" (turns to reveal Secondary). Or "You want to know what THEY think?"
+5. THE CONTRAST CUT: Primary's clip ends with a strong statement. HARD CUT to Secondary in a completely different energy/pose, contradicting or building on it. The JUXTAPOSITION tells the story.
+6. THE SHARED SPACE: Both are already in the same environment from clip 1, but the camera only shows Primary. Clip 2 WIDENS or PANS to reveal Secondary was in the same scene.
+
+TRANSITION RULES FOR EVERY CHARACTER SWITCH:
+- The LAST LINE of a primary clip must CREATE A REASON for the cut to secondary (question, reference, setup, cliffhanger)
+- The FIRST LINE of a secondary clip must ACKNOWLEDGE the transition (react to what was said, answer the question, subvert the setup)
+- NEVER have a character switch without narrative connective tissue
+- transitionNote MUST describe the specific visual/narrative bridge between clips
+
 DIALOGUE MASTERY RULES:
 - These two have CHEMISTRY. They play off each other like a comedy duo.
 - Use INTERRUPTIONS: "Wait, did you just—" "Yes. And I'd do it again."
@@ -216,7 +233,14 @@ function buildScreenplayUserPrompt(
 "${userPrompt}"
 
 ${isDual 
-  ? `${primary.name} and ${secondary!.name} interact like a legendary comedy duo — think Key & Peele, Abbott & Costello, or Ryan Reynolds & Hugh Jackman. They REACT to each other, riff off each other, and create magic together. Give them distinct personalities that complement each other.` 
+  ? `${primary.name} and ${secondary!.name} interact like a legendary comedy duo — think Key & Peele, Abbott & Costello, or Ryan Reynolds & Hugh Jackman. They REACT to each other, riff off each other, and create magic together. Give them distinct personalities that complement each other.
+
+⚠️ CRITICAL: The second character (${secondary!.name}) must be INTRODUCED STRATEGICALLY — NOT just randomly appearing. Use one of these:
+- Have ${primary.name} reference, call out to, or set up ${secondary!.name} before the cut
+- Use a reveal: ${secondary!.name} was watching/listening the whole time
+- Have ${secondary!.name} interrupt or respond to something ${primary.name} said
+- Use a contrast cut where ${secondary!.name}'s energy directly responds to ${primary.name}'s last moment
+Every character switch MUST have a transitionNote explaining the visual/narrative bridge.` 
   : `${primary.name} delivers this like a master storyteller — think a TED talk speaker with the charisma of a stand-up comedian. They OWN the space, use physicality, and make the audience feel like they're being let in on a secret.`
 }
 
@@ -227,6 +251,7 @@ REQUIREMENTS:
 4. End with a moment that makes people want to SHARE this
 5. Include at least one unexpected moment or twist
 6. Make it genuinely ENTERTAINING — not generic corporate content
+${isDual ? `7. EVERY transitionNote field MUST be filled with a specific description of how the scene bridges to the next character` : ''}
 
 Output ONLY the JSON object. No markdown wrapping.`;
 }

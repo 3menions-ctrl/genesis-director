@@ -14,6 +14,7 @@ const PRICING_STATS = [
 ] as const;
 
 const STORYTELLING_HLS_URL = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/temp-frames/hls_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_1771087015077.m3u8';
+const STORYTELLING_MP4_FALLBACK = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_clip1_lipsync_1771086006879.mp4';
 
 const INACTIVITY_TIMEOUT_MS = 10_000;
 
@@ -216,6 +217,7 @@ const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
           <UniversalHLSPlayer
             ref={playerRef}
             hlsUrl={STORYTELLING_HLS_URL}
+            fallbackMp4Url={STORYTELLING_MP4_FALLBACK}
             className="w-full h-full"
             showControls={false}
             autoPlay={true}
@@ -354,6 +356,7 @@ export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionProps>(
               <div className="relative aspect-video max-w-3xl mx-auto rounded-2xl overflow-hidden bg-black/50 border border-white/[0.08]">
                 <UniversalHLSPlayer
                   hlsUrl={STORYTELLING_HLS_URL}
+                  fallbackMp4Url={STORYTELLING_MP4_FALLBACK}
                   className="w-full h-full"
                   showControls={true}
                 />

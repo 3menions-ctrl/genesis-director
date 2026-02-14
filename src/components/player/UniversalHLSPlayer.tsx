@@ -30,6 +30,8 @@ export interface UniversalHLSPlayerHandle {
 export interface UniversalHLSPlayerProps {
   /** HLS playlist URL (.m3u8) */
   hlsUrl: string;
+  /** Optional direct MP4 fallback when HLS fails (e.g. Safari decode errors) */
+  fallbackMp4Url?: string;
   /** Optional master audio track (for lip-synced content) */
   masterAudioUrl?: string | null;
   /** Mute the video track audio (use when master audio is provided) */
@@ -132,6 +134,7 @@ function formatTime(seconds: number): string {
 export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, UniversalHLSPlayerProps>(
   function UniversalHLSPlayer({
     hlsUrl,
+    fallbackMp4Url,
     masterAudioUrl,
     muteClipAudio = false,
     autoPlay = false,
@@ -168,6 +171,7 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
     const mountedRef = useRef(true);
     const retryCountRef = useRef(0);
     const initializingRef = useRef(false);
+    const fallbackTriedRef = useRef(false);
     
     // Stable callback refs to prevent re-initialization loops
     const onErrorRef = useRef(onError);
@@ -400,6 +404,20 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
         if (playbackMethod === 'native') {
           const errorMessage = (e.target as HTMLVideoElement)?.error?.message || 'Playback error';
           console.error('[UniversalHLS] Native error:', errorMessage);
+          
+          // Try fallback MP4 if available and not already tried
+          if (fallbackMp4Url && !fallbackTriedRef.current) {
+            fallbackTriedRef.current = true;
+            console.log('[UniversalHLS] Falling back to direct MP4:', fallbackMp4Url.substring(0, 80));
+            const video = videoRef.current;
+            if (video) {
+              video.src = fallbackMp4Url;
+              video.load();
+              if (autoPlay) safePlay(video);
+              return;
+            }
+          }
+          
           setError(errorMessage);
           setIsLoading(false);
           onErrorRef.current?.(errorMessage);

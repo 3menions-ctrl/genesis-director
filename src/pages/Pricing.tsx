@@ -134,7 +134,7 @@ export default function Pricing() {
             onClick={() => navigate('/auth?mode=signup')}
             className="rounded-full bg-white/10 hover:bg-white/15 text-white border border-white/10"
           >
-            Sign Up Free
+            Sign Up
           </Button>
         </div>
       </nav>

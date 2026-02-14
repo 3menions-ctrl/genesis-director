@@ -258,7 +258,7 @@ export default function HowItWorks() {
               <Link to="/auth">Sign in</Link>
             </Button>
             <Button asChild className="h-9 px-5 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90 btn-star-blink">
-              <Link to="/auth?mode=signup">Start Free</Link>
+              <Link to="/auth?mode=signup">Get Started</Link>
             </Button>
           </div>
         </div>
@@ -390,11 +390,11 @@ export default function HowItWorks() {
           </p>
           <Button asChild size="lg" className="h-14 px-10 text-base font-medium rounded-full bg-white text-black hover:bg-white/90 btn-star-blink shadow-[0_0_60px_rgba(255,255,255,0.15)]">
             <Link to="/auth?mode=signup">
-              Start Free
+              Get Started
               <ArrowRight className="w-5 h-5 ml-3" />
             </Link>
           </Button>
-          <p className="mt-5 text-sm text-white/20">Free credits included · No credit card required</p>
+          <p className="mt-5 text-sm text-white/20">Credit packs start at $9 · No subscription required</p>
         </motion.div>
       </section>
 

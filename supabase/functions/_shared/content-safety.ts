@@ -274,17 +274,13 @@ export function checkContentSafety(content: string): ContentSafetyResult {
  * Check if content contains a term (word boundary aware + substring check)
  */
 function containsTerm(content: string, term: string): boolean {
-  // First do a simple substring check (catches obfuscation attempts)
-  if (content.includes(term)) {
-    return true;
-  }
-  
-  // For multi-word terms, the above check is sufficient
+  // For multi-word terms, simple substring check is sufficient
   if (term.includes(' ')) {
-    return false;
+    return content.includes(term);
   }
   
-  // For single words, also try word boundary matching
+  // For single words, ALWAYS use word boundary matching to avoid false positives
+  // e.g. "butt" should NOT match "button", "ass" should NOT match "class"
   const regex = new RegExp(`\\b${escapeRegex(term)}\\b`, 'i');
   return regex.test(content);
 }

@@ -150,11 +150,11 @@ export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionProps>(
     const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const hasAutoTriggeredRef = useRef(false);
 
-    // Inactivity detection — auto-enter immersive after 10s
+    // Inactivity detection — auto-enter immersive after 10s of no clicks/taps/keys
     useEffect(() => {
       if (isImmersive || hasAutoTriggeredRef.current) return;
 
-      const resetTimer = () => {
+      const startTimer = () => {
         if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
         inactivityTimerRef.current = setTimeout(() => {
           if (!hasAutoTriggeredRef.current) {
@@ -164,15 +164,17 @@ export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionProps>(
         }, INACTIVITY_TIMEOUT_MS);
       };
 
-      const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
-      events.forEach(e => window.addEventListener(e, resetTimer, { passive: true }));
+      // Only track deliberate user actions, not passive movements/scrolls
+      const handleActivity = () => startTimer();
+      const events = ['mousedown', 'keydown', 'touchstart', 'click'];
+      events.forEach(e => window.addEventListener(e, handleActivity, { passive: true }));
       
-      // Start the initial timer
-      resetTimer();
+      // Start the initial timer immediately
+      startTimer();
 
       return () => {
         if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
-        events.forEach(e => window.removeEventListener(e, resetTimer));
+        events.forEach(e => window.removeEventListener(e, handleActivity));
       };
     }, [isImmersive]);
 

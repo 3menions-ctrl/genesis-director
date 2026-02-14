@@ -1,4 +1,4 @@
-import { memo, useMemo, forwardRef } from 'react';
+import { memo, useMemo, forwardRef, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -29,6 +29,7 @@ interface Feature {
   subtitle: string;
   description: string;
   image: string;
+  videoUrl?: string; // Optional hover-play video
   icon: React.ReactNode;
   highlights: string[];
   accentColor: string;
@@ -42,6 +43,7 @@ const FEATURES: Feature[] = [
     subtitle: 'Words become cinema',
     description: 'Transform any description into stunning cinematic footage. Our AI understands context, emotion, and visual storytelling.',
     image: textToVideoPremium,
+    videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171376851.mp4',
     icon: <Type className="w-5 h-5" />,
     highlights: ['4K HDR', 'Cinematic Motion', 'Natural Physics'],
     accentColor: 'from-blue-500 to-cyan-400',
@@ -52,6 +54,7 @@ const FEATURES: Feature[] = [
     subtitle: 'Bring stills to life',
     description: 'Upload any image and watch it transform into fluid, natural motion. Perfect for product shots or artwork.',
     image: imageToVideoPremium,
+    videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4',
     icon: <Image className="w-5 h-5" />,
     highlights: ['Fluid Animation', 'Camera Movement', 'Style Lock'],
     accentColor: 'from-slate-300 to-zinc-400',
@@ -62,6 +65,7 @@ const FEATURES: Feature[] = [
     subtitle: 'Perfect consistency',
     description: 'Keep characters identical across every scene. No more morphing faces or inconsistent appearances.',
     image: characterLockPremium,
+    videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_7434c756-78d3-4f68-8107-b205930027c4_1768120634478.mp4',
     icon: <UserCheck className="w-5 h-5" />,
     highlights: ['Face Mapping', 'Multi-Angle', 'Outfit Lock'],
     accentColor: 'from-white to-slate-300',
@@ -72,6 +76,7 @@ const FEATURES: Feature[] = [
     subtitle: 'Professional narration',
     description: 'Generate lifelike voiceovers in dozens of voices and languages with perfect emotion control.',
     image: voiceoverPremium,
+    videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/fc34967d-0fcc-4863-829e-29d2dee5e514/avatar_fc34967d-0fcc-4863-829e-29d2dee5e514_clip1_lipsync_1770421330974.mp4',
     icon: <Mic className="w-5 h-5" />,
     highlights: ['50+ Voices', 'Multi-Language', 'Lip-Sync'],
     accentColor: 'from-cyan-400 to-teal-400',
@@ -82,6 +87,7 @@ const FEATURES: Feature[] = [
     subtitle: 'Original scores',
     description: 'Generate royalty-free background music tailored to your scene. Custom composed for every moment.',
     image: musicPremium,
+    videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768157346652.mp4',
     icon: <Music className="w-5 h-5" />,
     highlights: ['Any Genre', 'Scene-Synced', 'Royalty-Free'],
     accentColor: 'from-amber-400 to-orange-400',
@@ -92,6 +98,7 @@ const FEATURES: Feature[] = [
     subtitle: 'Any aesthetic',
     description: 'Transform your videos into any artistic style. From hyperrealistic to anime—20+ cinema-grade presets.',
     image: styleTransferPremium,
+    videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/gallery/Beautiful_Day_Vibes-final.mp4',
     icon: <Palette className="w-5 h-5" />,
     highlights: ['20+ Presets', 'Color Grading', 'Consistency'],
     accentColor: 'from-violet-400 to-purple-400',
@@ -121,10 +128,27 @@ const fadeInVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
 };
 
-// Memoized Feature Card component for performance
+// Memoized Feature Card component with hover-play video
 const FeatureCard = memo(forwardRef<HTMLDivElement, { feature: Feature; index: number }>(
   function FeatureCard({ feature, index }, ref) {
     const isWide = index === 0 || index === 3;
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const [isHovering, setIsHovering] = useState(false);
+    
+    const handleMouseEnter = useCallback(() => {
+      setIsHovering(true);
+      if (videoRef.current && feature.videoUrl) {
+        videoRef.current.currentTime = 0;
+        videoRef.current.play().catch(() => {});
+      }
+    }, [feature.videoUrl]);
+    
+    const handleMouseLeave = useCallback(() => {
+      setIsHovering(false);
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
+    }, []);
     
     return (
       <motion.div
@@ -136,8 +160,10 @@ const FeatureCard = memo(forwardRef<HTMLDivElement, { feature: Feature; index: n
         variants={cardVariants}
         className={`group relative ${isWide ? 'lg:col-span-2' : ''}`}
         style={{ willChange: 'transform, opacity' }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
     >
-      {/* Ambient glow - CSS only, no JS animation */}
+      {/* Ambient glow */}
       <div 
         className="absolute -inset-3 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-2xl pointer-events-none"
         style={{ background: `radial-gradient(ellipse at center, ${feature.glowColor} 0%, transparent 70%)` }}
@@ -152,24 +178,49 @@ const FeatureCard = memo(forwardRef<HTMLDivElement, { feature: Feature; index: n
         
         {/* Inner content */}
         <div className="relative h-full rounded-2xl md:rounded-[1.5rem] overflow-hidden">
-          {/* Floating Image Container */}
+          {/* Floating Image/Video Container */}
           <div className={`relative overflow-hidden ${isWide ? 'aspect-[2.4/1]' : 'aspect-[16/10]'}`}>
-            {/* Image with lazy loading */}
             <div className="absolute inset-3 md:inset-4 rounded-xl md:rounded-2xl overflow-hidden shadow-2xl transition-transform duration-500 group-hover:scale-[1.02]" style={{ willChange: 'transform' }}>
               <div className="absolute -inset-px rounded-xl md:rounded-2xl bg-gradient-to-br from-white/20 via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               
+              {/* Static image (shown when not hovering or no video) */}
               <img 
                 src={feature.image} 
                 alt={feature.title}
                 loading="lazy"
                 decoding="async"
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
+                className={`w-full h-full object-cover transition-opacity duration-500 ${
+                  isHovering && feature.videoUrl ? 'opacity-0' : 'opacity-100'
+                }`}
                 style={{ willChange: 'transform' }}
               />
+              
+              {/* Hover video */}
+              {feature.videoUrl && (
+                <video
+                  ref={videoRef}
+                  src={feature.videoUrl}
+                  muted
+                  playsInline
+                  loop
+                  preload="none"
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+                    isHovering ? 'opacity-100' : 'opacity-0'
+                  }`}
+                />
+              )}
               
               {/* Overlays */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
               <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black/30" />
+              
+              {/* Playing indicator */}
+              {isHovering && feature.videoUrl && (
+                <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2 py-1 rounded-full bg-black/50 backdrop-blur-sm z-10">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                  <span className="text-[10px] text-white/70 font-medium">LIVE PREVIEW</span>
+                </div>
+              )}
             </div>
             
             {/* Corner accents */}

@@ -672,10 +672,12 @@ function ProductionContentInner() {
         
         if (realtimeManifestUrl) {
           setFinalVideoUrl(realtimeManifestUrl);
-        } else if (project.video_url && !(project.video_url as string).includes('replicate.delivery')) {
-          setFinalVideoUrl(project.video_url as string);
-        } else if ((project.video_url as string)?.endsWith('.json')) {
-          setFinalVideoUrl(project.video_url as string);
+        } else if (project.video_url) {
+          // Accept any video_url when project is completed, or non-Replicate URLs anytime
+          const videoUrl = project.video_url as string;
+          if (project.status === 'completed' || !videoUrl.includes('replicate.delivery') || videoUrl.endsWith('.json')) {
+            setFinalVideoUrl(videoUrl);
+          }
         }
         
         // Update error state from realtime
@@ -1191,21 +1193,34 @@ const transitionsData = useMemo(() =>
       return 100;
     }
     
+    // If project status is completed but video URL is still loading, show 98%
+    if (projectStatus === 'completed') {
+      return 98;
+    }
+    
+    // For avatar projects, derive completed count from avatarClips if available
+    const isAvatarMode = ['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode);
+    const effectiveCompleted = isAvatarMode && avatarClips.length > 0
+      ? avatarClips.filter(c => c.status === 'completed').length
+      : completedClips;
+    const effectiveGenerating = isAvatarMode && avatarClips.length > 0
+      ? avatarClips.filter(c => c.status === 'generating').length
+      : clipResults.filter(c => c.status === 'generating').length;
+    const effectiveExpected = isAvatarMode && avatarClips.length > 0
+      ? Math.max(expectedClipCount, avatarClips.length)
+      : expectedClipCount;
+    
     // If no clips expected yet, use database progress (early pipeline stages)
-    if (expectedClipCount === 0) {
+    if (effectiveExpected === 0) {
       return progress;
     }
     
-    // Calculate actual progress from clip completion status
-    const generatingClips = clipResults.filter(c => c.status === 'generating').length;
-    const pendingClips = clipResults.filter(c => c.status === 'pending').length;
-    
     // Base progress: completed clips / total expected
     // Reserve 0-85% for clip generation, 85-100% for stitching
-    const clipProgress = (completedClips / expectedClipCount) * 85;
+    const clipProgress = (effectiveCompleted / effectiveExpected) * 85;
     
     // Add partial progress for currently generating clips (~5% each while processing)
-    const generatingProgress = generatingClips * 2;
+    const generatingProgress = effectiveGenerating * 2;
     
     // If stitching or later, show 85-95%
     if (['stitching', 'post_production'].includes(projectStatus)) {
@@ -1217,7 +1232,7 @@ const transitionsData = useMemo(() =>
     // Only use database progress if it's less than calculated (early stages)
     // This prevents the "100% but still rendering" issue
     return Math.max(calculatedProgress, Math.min(progress, calculatedProgress + 5));
-  }, [projectStatus, finalVideoUrl, expectedClipCount, completedClips, clipResults, progress]);
+  }, [projectStatus, finalVideoUrl, expectedClipCount, completedClips, clipResults, progress, projectMode, avatarClips]);
 
   const failedClipsData = useMemo(() => 
     clipResults.filter(c => c.status === 'failed').map(c => ({

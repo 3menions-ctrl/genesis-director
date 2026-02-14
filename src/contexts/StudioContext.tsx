@@ -3,7 +3,7 @@ import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus, parseP
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { TIER_CREDIT_COSTS } from '@/hooks/useCreditBilling';
+import { calculateCreditsRequired } from '@/lib/creditSystem';
 import type { QualityTier } from '@/types/quality-tiers';
 // Default credits for unauthenticated state
 const DEFAULT_CREDITS: UserCredits = {
@@ -416,13 +416,14 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   };
 
   // Check if user can afford a number of shots with tier-aware pricing
-  // Returns detailed info for better UI feedback
-  const canAffordShots = useCallback((shotCount: number, tier: QualityTier = 'standard'): boolean => {
-    const required = shotCount * TIER_CREDIT_COSTS[tier].TOTAL_PER_SHOT;
+  // Uses calculateCreditsRequired which accounts for extended pricing (clips 7+ or >6s)
+  const canAffordShots = useCallback((shotCount: number, _tier: QualityTier = 'standard'): boolean => {
+    // Default to 5s clips for affordability check (conservative estimate)
+    const required = calculateCreditsRequired(shotCount, 5);
     const canAfford = credits.remaining >= required;
     
     if (!canAfford) {
-      console.log(`[StudioContext] Cannot afford ${shotCount} shots at ${tier} tier: need ${required}, have ${credits.remaining}`);
+      console.log(`[StudioContext] Cannot afford ${shotCount} shots: need ${required}, have ${credits.remaining}`);
     }
     
     return canAfford;

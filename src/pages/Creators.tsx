@@ -1,51 +1,42 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCreatorDiscovery, useFollowingFeed } from '@/hooks/usePublicProfile';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Search, Users, Video, Play, Heart, 
-  TrendingUp, Sparkles, Clock, X 
+import { UniversalVideoPlayer } from '@/components/player';
+import {
+  Search, Play, Heart, Sparkles, Clock, X, ArrowRight, Video, Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import CreatorsBackground from '@/components/creators/CreatorsBackground';
-import { CreatorsHero } from '@/components/creators/CreatorsHero';
-import { UniversalVideoPlayer } from '@/components/player';
-
-const glassCard = "backdrop-blur-xl bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-300";
 
 export default function Creators() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [selectedVideo, setSelectedVideo] = useState<{
     id: string;
     title: string;
-    creator?: { display_name: string | null; avatar_url: string | null };
   } | null>(null);
-  
-  const { data: creators, isLoading: creatorsLoading } = useCreatorDiscovery(debouncedQuery);
-  const { data: feedVideos, isLoading: feedLoading } = useFollowingFeed();
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
-  const { data: discoverVideos, isLoading: discoverLoading } = useQuery({
+  const { data: discoverVideos, isLoading } = useQuery({
     queryKey: ['discover-videos', debouncedQuery],
     queryFn: async () => {
       let query = supabase
         .from('movie_projects')
-        .select('id, title, thumbnail_url, video_url, video_clips, likes_count, created_at')
+        .select('id, title, thumbnail_url, video_url, video_clips, likes_count, created_at, user_id')
         .eq('is_public', true)
         .not('video_url', 'is', null)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(60);
 
       if (debouncedQuery?.trim()) {
         query = query.ilike('title', `%${debouncedQuery.trim()}%`);
@@ -55,7 +46,6 @@ export default function Creators() {
       if (error) return [];
       const projects = data || [];
 
-      // Fetch first clip mp4 for each project (for PausedFrameVideo thumbnails)
       if (projects.length > 0) {
         const projectIds = projects.map(p => p.id);
         const { data: clips } = await supabase
@@ -94,88 +84,278 @@ export default function Creators() {
     staleTime: 60000,
   });
 
-  const handleSearch = (value: string) => {
+  const handleSearch = useCallback((value: string) => {
     setSearchQuery(value);
     const timeoutId = setTimeout(() => setDebouncedQuery(value), 300);
     return () => clearTimeout(timeoutId);
-  };
+  }, []);
 
-  const totalCreators = creators?.length || 0;
-  const totalVideos = creators?.reduce((sum, c) => sum + c.video_count, 0) || 0;
+  const totalVideos = discoverVideos?.length || 0;
+
+  // Split videos: first 3 are "featured", rest in grid
+  const featuredVideos = discoverVideos?.slice(0, 3) || [];
+  const gridVideos = discoverVideos?.slice(3) || [];
 
   return (
     <div className="min-h-screen bg-[#030303] text-white">
-      <CreatorsBackground />
+      {/* Subtle gradient background */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute inset-0 bg-[#030303]" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] bg-violet-600/[0.07] rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-0 w-[800px] h-[400px] bg-fuchsia-600/[0.04] rounded-full blur-[100px]" />
+      </div>
+
       <AppHeader />
 
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
-        <CreatorsHero 
-          title="Discover Creators"
-          subtitle="Explore outstanding work from the community's most talented filmmakers"
-          stats={{ totalVideos }}
-        />
+      <main className="relative z-10">
+        {/* ═══ HERO SECTION ═══ */}
+        <section className="pt-28 pb-16 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-5xl mx-auto text-center">
+            {/* Badge */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-violet-500/20 bg-violet-500/[0.08] mb-8"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+              <span className="text-xs font-semibold uppercase tracking-[0.15em] text-violet-300">
+                Community Gallery
+              </span>
+            </motion.div>
 
-        {/* Search bar — refined */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="max-w-lg mx-auto"
-        >
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-violet-400 transition-colors" />
-            <Input
-              type="text"
-              placeholder="Search videos..."
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="pl-11 h-11 bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30 rounded-xl focus:border-violet-500/40 focus:bg-white/[0.05] transition-all"
-            />
+            {/* Title */}
+            <motion.h1
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+              className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.05] mb-5"
+            >
+              <span className="text-white">Explore </span>
+              <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400 bg-clip-text text-transparent">
+                AI Films
+              </span>
+            </motion.h1>
+
+            {/* Subtitle */}
+            <motion.p
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="text-white/35 text-lg sm:text-xl max-w-xl mx-auto mb-10 leading-relaxed"
+            >
+              Watch stunning videos created by our community — then make your own.
+            </motion.p>
+
+            {/* Search */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="max-w-xl mx-auto mb-6"
+            >
+              <div className="relative group">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/25 group-focus-within:text-violet-400 transition-colors" />
+                <Input
+                  ref={searchRef}
+                  type="text"
+                  placeholder="Search videos..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="pl-14 pr-12 h-14 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 rounded-2xl focus:border-violet-500/40 focus:bg-white/[0.06] transition-all text-base"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => { setSearchQuery(''); setDebouncedQuery(''); }}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/20 transition-all"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </motion.div>
+
+            {/* Stats pill */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="inline-flex items-center gap-3 text-xs text-white/30"
+            >
+              <span className="flex items-center gap-1.5">
+                <Video className="w-3.5 h-3.5" />
+                {totalVideos} videos
+              </span>
+              <span className="w-1 h-1 rounded-full bg-white/15" />
+              <span>Updated live</span>
+            </motion.div>
           </div>
-        </motion.div>
+        </section>
 
-        {/* Tabs — sleeker */}
-        <Tabs defaultValue={user ? "feed" : "discover"} className="space-y-8">
-          <TabsList className="grid w-full max-w-xs mx-auto grid-cols-2 bg-white/[0.02] border border-white/[0.06] h-10 rounded-xl p-0.5">
-            {user && (
-              <TabsTrigger value="feed" className="gap-1.5 text-xs font-medium rounded-lg data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-violet-500/20">
-                <Sparkles className="w-3.5 h-3.5" />
-                Your Feed
-              </TabsTrigger>
+        {/* ═══ FEATURED VIDEOS ═══ */}
+        {!isLoading && featuredVideos.length >= 3 && !searchQuery && (
+          <section className="px-4 sm:px-6 lg:px-8 pb-16">
+            <div className="max-w-7xl mx-auto">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="grid grid-cols-1 md:grid-cols-3 gap-4"
+              >
+                {/* Large featured card */}
+                <div
+                  className="md:col-span-2 md:row-span-2 group relative rounded-3xl overflow-hidden cursor-pointer bg-white/[0.02] border border-white/[0.06]"
+                  onClick={() => setSelectedVideo({ id: featuredVideos[0].id, title: featuredVideos[0].title })}
+                  onMouseEnter={() => setHoveredId(featuredVideos[0].id)}
+                  onMouseLeave={() => setHoveredId(null)}
+                >
+                  <div className="aspect-video md:aspect-auto md:h-full relative">
+                    <VideoThumbnail
+                      thumbnailUrl={featuredVideos[0].thumbnail_url}
+                      videoUrl={featuredVideos[0].video_url}
+                      firstClipUrl={featuredVideos[0].first_clip_url}
+                      title={featuredVideos[0].title}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-500/20 border border-violet-500/30 text-violet-300 text-[10px] font-semibold uppercase tracking-wider mb-3">
+                        <Sparkles className="w-3 h-3" />
+                        Featured
+                      </div>
+                      <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 line-clamp-2">{featuredVideos[0].title}</h3>
+                      <VideoMeta likesCount={featuredVideos[0].likes_count} createdAt={featuredVideos[0].created_at} />
+                    </div>
+                    <PlayOverlay />
+                  </div>
+                </div>
+
+                {/* Two smaller featured cards */}
+                {featuredVideos.slice(1, 3).map((video, i) => (
+                  <div
+                    key={video.id}
+                    className="group relative rounded-3xl overflow-hidden cursor-pointer bg-white/[0.02] border border-white/[0.06]"
+                    onClick={() => setSelectedVideo({ id: video.id, title: video.title })}
+                    onMouseEnter={() => setHoveredId(video.id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                  >
+                    <div className="aspect-video relative">
+                      <VideoThumbnail
+                        thumbnailUrl={video.thumbnail_url}
+                        videoUrl={video.video_url}
+                        firstClipUrl={video.first_clip_url}
+                        title={video.title}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-5">
+                        <h3 className="text-sm font-semibold text-white truncate mb-1">{video.title}</h3>
+                        <VideoMeta likesCount={video.likes_count} createdAt={video.created_at} />
+                      </div>
+                      <PlayOverlay />
+                    </div>
+                  </div>
+                ))}
+              </motion.div>
+            </div>
+          </section>
+        )}
+
+        {/* ═══ VIDEO GRID ═══ */}
+        <section className="px-4 sm:px-6 lg:px-8 pb-20">
+          <div className="max-w-7xl mx-auto">
+            {/* Section header */}
+            {!searchQuery && !isLoading && gridVideos.length > 0 && (
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-lg font-semibold text-white/80">All Videos</h2>
+                <span className="text-xs text-white/25">{gridVideos.length} videos</span>
+              </div>
             )}
-            <TabsTrigger value="discover" className="gap-1.5 text-xs font-medium rounded-lg data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-violet-500/20">
-              <TrendingUp className="w-3.5 h-3.5" />
-              {user ? 'Discover' : 'All Videos'}
-            </TabsTrigger>
-            {!user && (
-              <TabsTrigger value="discover" className="gap-1.5 text-xs font-medium rounded-lg" disabled>
-                <Sparkles className="w-3.5 h-3.5" />
-                Sign in for Feed
-              </TabsTrigger>
+
+            {isLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div key={i} className="rounded-2xl overflow-hidden bg-white/[0.02] border border-white/[0.06]">
+                    <Skeleton className="aspect-video bg-white/[0.04]" />
+                    <div className="p-4 space-y-2">
+                      <Skeleton className="h-4 w-3/4 bg-white/[0.04]" />
+                      <Skeleton className="h-3 w-1/3 bg-white/[0.04]" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (searchQuery ? discoverVideos : gridVideos)?.length ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {(searchQuery ? discoverVideos : gridVideos)?.map((video, index) => (
+                  <motion.div
+                    key={video.id}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: Math.min(index * 0.03, 0.4) }}
+                    className="group rounded-2xl overflow-hidden cursor-pointer bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.14] hover:bg-white/[0.04] transition-all duration-300"
+                    onClick={() => setSelectedVideo({ id: video.id, title: video.title })}
+                    onMouseEnter={() => setHoveredId(video.id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                  >
+                    <div className="aspect-video relative overflow-hidden">
+                      <VideoThumbnail
+                        thumbnailUrl={video.thumbnail_url}
+                        videoUrl={video.video_url}
+                        firstClipUrl={video.first_clip_url}
+                        title={video.title}
+                      />
+                      <PlayOverlay />
+                    </div>
+                    <div className="p-4 space-y-2">
+                      <h3 className="font-semibold text-sm text-white truncate group-hover:text-violet-300 transition-colors">{video.title}</h3>
+                      <VideoMeta likesCount={video.likes_count} createdAt={video.created_at} />
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-20 text-center">
+                <Video className="w-12 h-12 text-white/10 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-white mb-2">No videos found</h3>
+                <p className="text-white/30 text-sm">
+                  {searchQuery ? 'Try a different search term' : 'Be the first to share a video!'}
+                </p>
+              </div>
             )}
-          </TabsList>
+          </div>
+        </section>
 
-          {/* Feed Tab */}
-          {user && (
-            <TabsContent value="feed" className="space-y-6">
-              <FeedContent
-                feedLoading={feedLoading}
-                feedVideos={feedVideos}
-                onSelectVideo={setSelectedVideo}
-              />
-            </TabsContent>
-          )}
+        {/* ═══ CTA SECTION ═══ */}
+        <section className="px-4 sm:px-6 lg:px-8 pb-24">
+          <div className="max-w-3xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="relative rounded-3xl overflow-hidden p-12 sm:p-16 text-center"
+            >
+              {/* CTA background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 via-fuchsia-600/10 to-transparent border border-violet-500/20 rounded-3xl" />
+              <div className="absolute inset-0 bg-[#030303]/40" />
 
-          {/* Discover Tab */}
-          <TabsContent value="discover" className="space-y-6">
-            <DiscoverContent
-              discoverLoading={discoverLoading}
-              discoverVideos={discoverVideos}
-              searchQuery={searchQuery}
-              onSelectVideo={setSelectedVideo}
-            />
-          </TabsContent>
-        </Tabs>
+              <div className="relative">
+                <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+                  Ready to create your own?
+                </h2>
+                <p className="text-white/40 text-base mb-8 max-w-md mx-auto">
+                  Turn any idea into a cinematic AI video in minutes. No experience needed.
+                </p>
+                <Button
+                  onClick={() => navigate(user ? '/projects' : '/auth?mode=signup')}
+                  size="lg"
+                  className="h-13 px-8 text-sm font-semibold rounded-full bg-white text-black hover:bg-white/90 shadow-[0_0_40px_rgba(139,92,246,0.3)] hover:shadow-[0_0_60px_rgba(139,92,246,0.4)] transition-all duration-300"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {user ? 'Start Creating' : 'Get Started Free'}
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        </section>
       </main>
 
       {/* Video Player Modal */}
@@ -191,72 +371,59 @@ export default function Creators() {
   );
 }
 
-/* ─── Sub-components ─── */
+/* ═══ Sub-components ═══ */
 
-function VideoCardSkeleton({ count = 6 }: { count?: number }) {
+function PlayOverlay() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-      {[...Array(count)].map((_, i) => (
-        <div key={i} className={cn("rounded-2xl overflow-hidden", glassCard)}>
-          <Skeleton className="aspect-video bg-white/[0.03]" />
-          <div className="p-4 space-y-2.5">
-            <Skeleton className="h-4 w-3/4 bg-white/[0.03]" />
-            <Skeleton className="h-3 w-1/3 bg-white/[0.03]" />
-          </div>
-        </div>
-      ))}
+    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
+      <div className="w-14 h-14 rounded-full bg-white/0 group-hover:bg-white/15 backdrop-blur-md border border-white/0 group-hover:border-white/20 flex items-center justify-center transform scale-75 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-300">
+        <Play className="w-6 h-6 text-white fill-white ml-0.5" />
+      </div>
     </div>
   );
 }
 
-function VideoThumbnail({ 
-  thumbnailUrl, 
-  videoUrl, 
-  firstClipUrl, 
-  title 
-}: { 
+function VideoThumbnail({
+  thumbnailUrl,
+  videoUrl,
+  firstClipUrl,
+  title
+}: {
   thumbnailUrl?: string | null;
   videoUrl?: string | null;
   firstClipUrl?: string | null;
   title: string;
 }) {
-  // Only use videoUrl for PausedFrameVideo if it's an actual video file, not a JSON manifest
   const playableVideoUrl = videoUrl && !videoUrl.endsWith('.json') ? videoUrl : null;
   const clipSrc = firstClipUrl || playableVideoUrl;
 
   return (
-    <div className="relative aspect-video overflow-hidden bg-black/20">
+    <div className="w-full h-full bg-white/[0.02]">
       {clipSrc ? (
-        <PausedFrameVideo 
-          src={clipSrc} 
+        <PausedFrameVideo
+          src={clipSrc}
           className="w-full h-full object-cover"
           showLoader={false}
         />
       ) : thumbnailUrl ? (
-        <img 
-          src={thumbnailUrl} 
+        <img
+          src={thumbnailUrl}
           alt={title}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
         />
       ) : (
-        <div className="w-full h-full bg-white/[0.02] flex items-center justify-center">
+        <div className="w-full h-full flex items-center justify-center">
           <Video className="w-8 h-8 text-white/10" />
         </div>
       )}
-      {/* Hover overlay with play button */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-        <div className="w-12 h-12 rounded-full bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center transform scale-90 group-hover:scale-100 transition-transform duration-300">
-          <Play className="w-5 h-5 text-white fill-white ml-0.5" />
-        </div>
-      </div>
     </div>
   );
 }
 
 function VideoMeta({ likesCount, createdAt }: { likesCount?: number | null; createdAt: string }) {
   return (
-    <div className="flex items-center gap-4 text-[11px] text-white/25 font-medium">
+    <div className="flex items-center gap-3 text-[11px] text-white/25 font-medium">
       <span className="flex items-center gap-1">
         <Heart className="w-3 h-3" />
         {likesCount ?? 0}
@@ -269,151 +436,11 @@ function VideoMeta({ likesCount, createdAt }: { likesCount?: number | null; crea
   );
 }
 
-function FeedContent({ 
-  feedLoading, 
-  feedVideos, 
-  onSelectVideo 
-}: { 
-  feedLoading: boolean;
-  feedVideos: any[] | undefined;
-  onSelectVideo: (v: any) => void;
-}) {
-  if (feedLoading) return <VideoCardSkeleton count={6} />;
-  
-  if (feedVideos && feedVideos.length > 0) {
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        <AnimatePresence mode="sync">
-          {feedVideos.map((video, index) => (
-            <motion.div
-              key={video.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ delay: index * 0.04 }}
-              className={cn("group rounded-2xl overflow-hidden cursor-pointer", glassCard)}
-              onClick={() => onSelectVideo({
-                id: video.id,
-                title: video.title,
-                creator: video.creator,
-              })}
-            >
-              <VideoThumbnail
-                thumbnailUrl={video.thumbnail_url}
-                videoUrl={video.video_url}
-                firstClipUrl={(video as any).first_clip_url}
-                title={video.title}
-              />
-              <div className="p-4 space-y-2.5">
-                <h3 className="font-semibold text-sm text-white truncate">{video.title}</h3>
-                <Link 
-                  to={`/user/${video.user_id}`}
-                  className="flex items-center gap-2 group/creator"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Avatar className="w-5 h-5">
-                    <AvatarImage src={video.creator?.avatar_url || undefined} />
-                    <AvatarFallback className="text-[10px] bg-violet-600/20 text-violet-400">
-                      {(video.creator?.display_name || 'U').charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs text-white/40 group-hover/creator:text-violet-400 transition-colors">
-                    {video.creator?.display_name || 'Anonymous'}
-                  </span>
-                </Link>
-                <VideoMeta likesCount={video.likes_count} createdAt={video.created_at} />
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
-    );
-  }
-
-  return (
-    <div className={cn("rounded-2xl p-16 text-center", glassCard)}>
-      <Users className="w-12 h-12 text-white/10 mx-auto mb-4" />
-      <h3 className="text-lg font-semibold text-white mb-2">Your feed is empty</h3>
-      <p className="text-white/40 text-sm mb-6">Follow some creators to see their videos here</p>
-      <Button 
-        variant="outline" 
-        size="sm"
-        onClick={() => {
-          const tab = document.querySelector('[data-state="inactive"][value="discover"]') as HTMLButtonElement;
-          tab?.click();
-        }}
-        className="gap-2 text-xs"
-      >
-        <TrendingUp className="w-3.5 h-3.5" />
-        Discover Videos
-      </Button>
-    </div>
-  );
-}
-
-function DiscoverContent({ 
-  discoverLoading, 
-  discoverVideos, 
-  searchQuery, 
-  onSelectVideo 
-}: { 
-  discoverLoading: boolean;
-  discoverVideos: any[] | undefined;
-  searchQuery: string;
-  onSelectVideo: (v: any) => void;
-}) {
-  if (discoverLoading) return <VideoCardSkeleton count={9} />;
-  
-  if (discoverVideos && discoverVideos.length > 0) {
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        <AnimatePresence mode="sync">
-          {discoverVideos.map((video, index) => (
-            <motion.div
-              key={video.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ delay: index * 0.035 }}
-              className={cn("group rounded-2xl overflow-hidden cursor-pointer", glassCard)}
-              onClick={() => onSelectVideo({
-                id: video.id,
-                title: video.title,
-              })}
-            >
-              <VideoThumbnail
-                thumbnailUrl={video.thumbnail_url}
-                videoUrl={video.video_url}
-                firstClipUrl={video.first_clip_url}
-                title={video.title}
-              />
-              <div className="p-4 space-y-2">
-                <h3 className="font-semibold text-sm text-white truncate">{video.title}</h3>
-                <VideoMeta likesCount={video.likes_count} createdAt={video.created_at} />
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
-    );
-  }
-
-  return (
-    <div className={cn("rounded-2xl p-16 text-center", glassCard)}>
-      <Video className="w-12 h-12 text-white/10 mx-auto mb-4" />
-      <h3 className="text-lg font-semibold text-white mb-2">No videos found</h3>
-      <p className="text-white/40 text-sm">
-        {searchQuery ? 'Try a different search term' : 'Be the first to share a video!'}
-      </p>
-    </div>
-  );
-}
-
-function VideoPlayerModal({ 
-  video, 
-  onClose 
-}: { 
-  video: { id: string; title: string; creator?: { display_name: string | null; avatar_url: string | null } };
+function VideoPlayerModal({
+  video,
+  onClose
+}: {
+  video: { id: string; title: string };
   onClose: () => void;
 }) {
   return (
@@ -443,9 +470,6 @@ function VideoPlayerModal({
 
         <div className="mb-3">
           <h2 className="text-lg font-semibold text-white">{video.title}</h2>
-          {video.creator?.display_name && (
-            <p className="text-white/40 text-xs mt-0.5">by {video.creator.display_name}</p>
-          )}
         </div>
 
         <div className="rounded-xl overflow-hidden bg-black aspect-video ring-1 ring-white/[0.06]">

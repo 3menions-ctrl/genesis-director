@@ -1,8 +1,9 @@
 /**
- * AVATAR SCREENPLAY GENERATOR
+ * AVATAR SCREENPLAY GENERATOR — WORLD-CLASS EDITION
  * 
- * Transforms simple user prompts into creative, dialogue-rich screenplays
- * with natural movement, humor, and cinematic scene transitions.
+ * Transforms simple user prompts into award-winning, dialogue-rich screenplays
+ * with cinematic movement, comedic timing, emotional depth, and professional
+ * scene transitions worthy of Pixar/A24/Netflix short-form content.
  * 
  * Supports 1 or 2 avatars with dynamic back-and-forth dialogue.
  */
@@ -23,6 +24,8 @@ export interface ScreenplaySegment {
   sceneNote: string;    // Scene/environment context for this beat
   emotion: string;      // Emotional tone for acting prompt
   cameraHint: string;   // Suggested camera treatment
+  transitionNote?: string; // How this clip flows into the next
+  physicalDetail?: string; // Micro-action details (fidgeting, glancing, etc.)
 }
 
 export interface GeneratedScreenplay {
@@ -30,11 +33,12 @@ export interface GeneratedScreenplay {
   title: string;
   tone: string;
   hasMovement: boolean;
+  narrativeArc: string;
 }
 
 /**
- * Generate a creative screenplay from a simple user prompt.
- * Uses OpenAI to expand into natural dialogue with movement and humor.
+ * Generate a world-class screenplay from a simple user prompt.
+ * Uses OpenAI to expand into natural dialogue with movement, humor, and cinematic flair.
  */
 export async function generateAvatarScreenplay(params: {
   userPrompt: string;
@@ -50,10 +54,10 @@ export async function generateAvatarScreenplay(params: {
   const isDualAvatar = !!secondaryCharacter;
   const totalDuration = clipCount * clipDuration;
   
-  console.log(`[ScreenplayGen] Generating screenplay: "${userPrompt.substring(0, 80)}", ${clipCount} clips, dual=${isDualAvatar}`);
+  console.log(`[ScreenplayGen] 🎬 WORLD-CLASS screenplay: "${userPrompt.substring(0, 80)}", ${clipCount} clips, dual=${isDualAvatar}`);
   
   const systemPrompt = buildScreenplaySystemPrompt(clipCount, clipDuration, primaryCharacter, secondaryCharacter, sceneDescription);
-  const userMessage = buildScreenplayUserPrompt(userPrompt, clipCount, isDualAvatar, primaryCharacter, secondaryCharacter);
+  const userMessage = buildScreenplayUserPrompt(userPrompt, clipCount, isDualAvatar, primaryCharacter, secondaryCharacter, clipDuration);
   
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -63,19 +67,18 @@ export async function generateAvatarScreenplay(params: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-4o",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userMessage },
         ],
-        max_tokens: Math.min(clipCount * 300 + 500, 4000),
-        temperature: 0.9, // Higher creativity
+        max_tokens: Math.min(clipCount * 500 + 800, 6000),
+        temperature: 0.95,
       }),
     });
 
     if (!response.ok) {
       console.error(`[ScreenplayGen] OpenAI error: ${response.status}`);
-      // Fallback: return basic split
       return createFallbackScreenplay(userPrompt, clipCount, primaryCharacter, secondaryCharacter);
     }
 
@@ -87,9 +90,8 @@ export async function generateAvatarScreenplay(params: {
       return createFallbackScreenplay(userPrompt, clipCount, primaryCharacter, secondaryCharacter);
     }
 
-    // Parse the JSON response
     const parsed = parseScreenplayResponse(content, clipCount, primaryCharacter, secondaryCharacter);
-    console.log(`[ScreenplayGen] ✅ Generated ${parsed.segments.length} screenplay segments, tone: ${parsed.tone}`);
+    console.log(`[ScreenplayGen] ✅ Generated ${parsed.segments.length} segments | Arc: ${parsed.narrativeArc} | Tone: ${parsed.tone}`);
     return parsed;
     
   } catch (error) {
@@ -106,79 +108,97 @@ function buildScreenplaySystemPrompt(
   sceneDescription?: string
 ): string {
   const isDual = !!secondary;
+  const wordsPerClip = Math.floor(clipDuration * 2.2);
   
-  return `You are a BRILLIANT screenwriter who creates SHORT-FORM video screenplays that are ENTERTAINING, NATURAL, and CINEMATIC.
+  return `You are an EMMY-WINNING screenwriter who creates viral short-form content that gets millions of views. Your writing has been compared to the best of Ryan Reynolds' social media, Pixar's emotional precision, and Taika Waititi's comedic timing.
 
-Your screenplays are known for:
-- WITTY, NATURAL dialogue that sounds like real people talking (not robotic or formal)
-- PHYSICAL COMEDY and MOVEMENT - characters walk, gesture, react, move through spaces
-- EMOTIONAL RANGE - humor, surprise, warmth, drama, sarcasm
-- VISUAL STORYTELLING - show don't tell, use actions and reactions
-- SATISFYING STORY ARCS even in ${clipCount * clipDuration} seconds
+═══ YOUR SIGNATURE STYLE ═══
+1. THE HOOK: Every screenplay opens with a line that makes people STOP SCROLLING.
+2. SUBVERSION: You set up expectations, then twist them. The audience never sees it coming.
+3. SPECIFICITY: You never write generic dialogue. Instead of "that's nice", you write "that's the kind of nice that makes you suspicious."
+4. PHYSICAL COMEDY: Characters don't just talk — they knock things over, trip, do double-takes, slowly turn to camera.
+5. CALLBACK HUMOR: Plant something early, pay it off later. Even in ${clipCount} clips.
+6. EMOTIONAL TRUTH: Underneath the humor, there's always something real and relatable.
+7. THE BUTTON: Every screenplay ends on a moment that makes people replay or share.
+
+═══ NARRATIVE ARC (even in ${clipCount * clipDuration} seconds) ═══
+- CLIP 1: THE HOOK — Grab attention. Bold statement, question, or unexpected situation.
+${clipCount >= 3 ? `- CLIPS 2-${clipCount - 1}: THE ESCALATION — Each beat raises stakes, adds complications, reveals new info.` : '- MIDDLE: BUILD — Complicate or deepen the hook.'}
+- FINAL CLIP: THE PAYOFF — Twist, punchline, emotional landing, or satisfying resolution.
 
 ${isDual ? `
-═══ DUAL CHARACTER SCREENPLAY ═══
-You are writing for TWO characters who INTERACT with each other:
+═══ DUAL CHARACTER CHEMISTRY ═══
+CHARACTER 1 (PRIMARY): "${primary.name}" — ${primary.avatarType === 'animated' ? 'Animated/stylized' : 'Realistic'}
+CHARACTER 2 (SECONDARY): "${secondary!.name}" — ${secondary!.avatarType === 'animated' ? 'Animated/stylized' : 'Realistic'}
 
-CHARACTER 1 (PRIMARY): "${primary.name}" - ${primary.avatarType === 'animated' ? 'Animated/cartoon character' : 'Realistic person'}
-CHARACTER 2 (SECONDARY): "${secondary!.name}" - ${secondary!.avatarType === 'animated' ? 'Animated/cartoon character' : 'Realistic person'}
-
-DIALOGUE RULES:
-- Characters TALK TO EACH OTHER, not to camera (unless it's a vlog/presentation)
-- Dialogue should flow naturally - interruptions, reactions, agreements, disagreements
-- Each character should have a DISTINCT voice/personality
-- Include REACTION beats - one character reacting to what the other said
-- Use humor, banter, wit - make it ENTERTAINING
-- Characters can disagree, tease each other, build on each other's ideas
+DIALOGUE MASTERY RULES:
+- These two have CHEMISTRY. They play off each other like a comedy duo.
+- Use INTERRUPTIONS: "Wait, did you just—" "Yes. And I'd do it again."
+- Use REACTIONS: One character's face tells the story while the other talks.
+- Use DISAGREEMENT that's ENTERTAINING: They don't just agree on everything.
+- OVERLAPPING energy: One is the setup, the other is the punchline (alternate who's which).
+- PHYSICAL INTERPLAY: They can nudge each other, point at each other, turn away dramatically.
+- Give each a DISTINCT VOICE: One might be deadpan, the other expressive. One formal, one casual.
+- They REFERENCE what the other said/did: "You literally just—" "We don't talk about that."
 ` : `
-═══ SINGLE CHARACTER SCREENPLAY ═══
-CHARACTER: "${primary.name}" - ${primary.avatarType === 'animated' ? 'Animated/cartoon character' : 'Realistic person'}
+═══ SOLO PERFORMER ═══
+CHARACTER: "${primary.name}" — ${primary.avatarType === 'animated' ? 'Animated/stylized' : 'Realistic'}
 
-This character speaks directly to the audience OR narrates a story.
-Make them DYNAMIC - not just standing and talking. They should:
-- Walk and explore the scene
-- Use expressive gestures and body language
-- React to their environment
-- Show emotional range
+SOLO MASTERY RULES:
+- This character speaks TO THE AUDIENCE like they're confiding in a friend.
+- BREAK THE FOURTH WALL: React to their own words. "Did I really just say that? Yes. Yes I did."
+- PHYSICAL STORYTELLING: Don't just stand there. Walk, turn, gesture, react to the environment.
+- VOICE MODULATION cues: Whisper for secrets, speed up for excitement, pause for emphasis.
+- SHOW vulnerability: The best solo content has a real human moment.
 `}
 
-${sceneDescription ? `SCENE: ${sceneDescription}` : 'Scene will be determined by the story.'}
+${sceneDescription ? `SCENE SETTING: ${sceneDescription}` : 'SCENE: Let the story determine the perfect environment.'}
 
-═══ MOVEMENT IS MANDATORY ═══
-Characters MUST physically move in most clips:
-- Walking, strolling, pacing, turning
-- Leaning in, stepping back, sitting down, standing up
-- Gesturing expressively, pointing, reaching
-- Driving, riding, traveling (if story calls for it)
-- Reacting physically - surprise, laughter, shock
-DO NOT have characters just stand still and talk for every clip.
+═══ MOVEMENT DIRECTION (CRITICAL) ═══
+Characters are ALIVE. They inhabit physical space. Every clip needs VISIBLE MOTION:
+- WALK: Strolling, pacing, power-walking, meandering, turning corners
+- GESTURE: Pointing, waving, counting on fingers, throwing hands up, facepalm
+- LEAN: Against a wall, over a table, toward camera, back in surprise
+- TURN: Dramatic spin, slow turn to camera, whipping around, double-take
+- SIT/STAND: Sitting down in disbelief, standing up in excitement, flopping into chair
+- DRIVE: Behind the wheel, passenger reactions, looking out windows
+- REACT: Spit-take, jaw drop, slow clap, covering face, freezing in place
+- DANCE: Victory dance, nervous shuffle, rhythmic movement, celebratory
+- RUN: Running toward something, running away, jogging alongside someone
 
-OUTPUT FORMAT (strict JSON):
+PACING: Vary the energy. Not every clip should be high-energy. Quiet moments make loud moments land harder.
+
+═══ OUTPUT FORMAT (strict JSON) ═══
 {
-  "title": "Creative title for this screenplay",
-  "tone": "comedy|drama|inspirational|action|wholesome|sarcastic",
+  "title": "Catchy, shareable title",
+  "tone": "comedy|drama|inspirational|action|wholesome|sarcastic|heartfelt|absurd",
+  "narrativeArc": "One sentence describing the story arc",
   "segments": [
     {
       "clipIndex": 0,
       "avatarRole": "primary",
-      "dialogue": "What the character SAYS in this clip (spoken aloud)",
-      "action": "Physical action description: walking through park, leaning against wall, turning to face friend",
-      "movement": "walk|gesture|lean|turn|sit|stand|drive|react|dance|run",
-      "sceneNote": "Brief scene context: outdoor cafe, city street at sunset",
-      "emotion": "amused|excited|thoughtful|surprised|confident|nervous|dramatic",
-      "cameraHint": "tracking|close-up|wide|over-shoulder|medium|panning"
+      "dialogue": "Exactly what is SPOKEN ALOUD (conversational, not written language)",
+      "action": "Detailed physical action: walking into frame, leaning on railing looking out at city",
+      "movement": "walk|gesture|lean|turn|sit|stand|drive|react|dance|run|point|laugh|freeze",
+      "sceneNote": "Rooftop at golden hour, city skyline behind, wind in hair",
+      "emotion": "amused|excited|thoughtful|surprised|confident|nervous|dramatic|deadpan|tender|mischievous",
+      "cameraHint": "tracking|close-up|wide|over-shoulder|medium|panning|dolly-in|low-angle|crane",
+      "transitionNote": "Cuts to reveal the other character was standing there the whole time",
+      "physicalDetail": "Tapping fingers on railing, slight squint against the sun"
     }
   ]
 }
 
 CRITICAL RULES:
 - Output EXACTLY ${clipCount} segments
-- Each segment's dialogue should be speakable in ~${clipDuration} seconds (${Math.floor(clipDuration * 2.5)} words max)
-- ${isDual ? 'ALTERNATE between primary and secondary avatarRole. First and last clips are primary.' : 'All segments use "primary" avatarRole.'}
-- dialogue field contains ONLY spoken words (what the character says aloud)
-- action field describes VISIBLE physical movement
-- Be CREATIVE and ENTERTAINING - not generic or boring
-- Output ONLY valid JSON, nothing else`;
+- Each dialogue MUST be speakable in ~${clipDuration} seconds (${wordsPerClip} words MAX — count carefully)
+- ${isDual ? `ALTERNATE between primary and secondary roles. First and last clips are ALWAYS primary.` : 'All segments use "primary".'}
+- dialogue = SPOKEN WORDS ONLY. Write how people ACTUALLY TALK, not how they write.
+- Use contractions: "I'm", "can't", "wouldn't". NEVER "I am", "cannot" unless for emphasis.
+- Include natural speech patterns: "Look,", "Okay so,", "Here's the thing—", "I mean,"
+- action = VISIBLE physical behavior (what would a director tell the actor to DO)
+- physicalDetail = micro-actions that make it feel REAL (fidgeting, adjusting glasses, glancing away)
+- Output ONLY valid JSON, no markdown, no explanation`;
 }
 
 function buildScreenplayUserPrompt(
@@ -187,18 +207,28 @@ function buildScreenplayUserPrompt(
   isDual: boolean,
   primary: AvatarCharacter,
   secondary?: AvatarCharacter | null,
+  clipDuration: number = 10,
 ): string {
-  return `Write a ${clipCount}-clip screenplay for this concept:
+  const wordsPerClip = Math.floor(clipDuration * 2.2);
+  
+  return `Write a ${clipCount}-clip viral screenplay for this concept:
 
 "${userPrompt}"
 
 ${isDual 
-  ? `The two characters (${primary.name} and ${secondary!.name}) should interact naturally - talking to each other, reacting, moving through the scene together.` 
-  : `${primary.name} should be dynamic and engaging - moving, gesturing, exploring the scene while delivering their lines.`
+  ? `${primary.name} and ${secondary!.name} interact like a legendary comedy duo — think Key & Peele, Abbott & Costello, or Ryan Reynolds & Hugh Jackman. They REACT to each other, riff off each other, and create magic together. Give them distinct personalities that complement each other.` 
+  : `${primary.name} delivers this like a master storyteller — think a TED talk speaker with the charisma of a stand-up comedian. They OWN the space, use physicality, and make the audience feel like they're being let in on a secret.`
 }
 
-Make it creative, entertaining, and visually dynamic. Include physical movement in every clip.
-Output ONLY the JSON object.`;
+REQUIREMENTS:
+1. HOOK the audience in clip 1 — they should want to keep watching
+2. Each clip should have DISTINCT physical movement (not just standing and talking)
+3. Dialogue must sound NATURAL and SPOKEN (max ${wordsPerClip} words per clip)
+4. End with a moment that makes people want to SHARE this
+5. Include at least one unexpected moment or twist
+6. Make it genuinely ENTERTAINING — not generic corporate content
+
+Output ONLY the JSON object. No markdown wrapping.`;
 }
 
 function parseScreenplayResponse(
@@ -207,14 +237,12 @@ function parseScreenplayResponse(
   primary: AvatarCharacter,
   secondary?: AvatarCharacter | null,
 ): GeneratedScreenplay {
-  // Extract JSON from response (handle markdown code blocks)
   let jsonStr = content.trim();
   const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (jsonMatch) {
     jsonStr = jsonMatch[1].trim();
   }
   
-  // Try to find JSON object
   const objStart = jsonStr.indexOf('{');
   const objEnd = jsonStr.lastIndexOf('}');
   if (objStart !== -1 && objEnd !== -1) {
@@ -227,28 +255,30 @@ function parseScreenplayResponse(
       clipIndex: i,
       avatarRole: s.avatarRole || (i % 2 === 0 ? 'primary' : (secondary ? 'secondary' : 'primary')),
       dialogue: s.dialogue || '',
-      action: s.action || 'speaking naturally',
+      action: s.action || 'speaking with natural energy',
       movement: s.movement || 'gesture',
       sceneNote: s.sceneNote || '',
       emotion: s.emotion || 'confident',
       cameraHint: s.cameraHint || 'medium',
+      transitionNote: s.transitionNote || '',
+      physicalDetail: s.physicalDetail || '',
     }));
     
-    // Ensure correct clip count
     while (segments.length < clipCount) {
       segments.push({
         clipIndex: segments.length,
         avatarRole: 'primary',
         dialogue: '',
-        action: 'speaking naturally',
+        action: 'speaking with engaging energy',
         movement: 'gesture',
         sceneNote: '',
         emotion: 'confident',
         cameraHint: 'medium',
+        transitionNote: '',
+        physicalDetail: '',
       });
     }
     
-    // Ensure first and last are primary for dual avatar
     if (secondary && segments.length >= 2) {
       segments[0].avatarRole = 'primary';
       segments[segments.length - 1].avatarRole = 'primary';
@@ -259,6 +289,7 @@ function parseScreenplayResponse(
       title: parsed.title || 'Untitled',
       tone: parsed.tone || 'wholesome',
       hasMovement: segments.some(s => s.movement !== 'gesture' && s.movement !== 'static'),
+      narrativeArc: parsed.narrativeArc || 'A compelling story unfolds.',
     };
   } catch (e) {
     console.error("[ScreenplayGen] JSON parse failed:", e);
@@ -272,9 +303,21 @@ function createFallbackScreenplay(
   primary: AvatarCharacter,
   secondary?: AvatarCharacter | null,
 ): GeneratedScreenplay {
-  // Simple sentence-based split as fallback
   const sentences = script.match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g) || [script];
   const clean = sentences.map(s => s.trim()).filter(s => s.length > 0);
+  
+  // Even fallback gets variety
+  const fallbackMovements = ['walk', 'gesture', 'lean', 'turn', 'gesture', 'react'];
+  const fallbackEmotions = ['confident', 'excited', 'amused', 'thoughtful', 'dramatic'];
+  const fallbackCameras = ['medium', 'tracking', 'close-up', 'wide', 'dolly-in'];
+  const fallbackActions = [
+    'walking into frame with energy',
+    'gesturing expressively while explaining',
+    'leaning forward with intensity',
+    'turning to face the audience directly',
+    'pausing for dramatic effect, then continuing',
+    'reacting with surprise before speaking',
+  ];
   
   const segments: ScreenplaySegment[] = [];
   for (let i = 0; i < clipCount; i++) {
@@ -285,11 +328,13 @@ function createFallbackScreenplay(
       clipIndex: i,
       avatarRole: isSecondary ? 'secondary' : 'primary',
       dialogue: clean[sentenceIdx] || script,
-      action: 'speaking expressively with gestures',
-      movement: 'gesture',
+      action: fallbackActions[i % fallbackActions.length],
+      movement: fallbackMovements[i % fallbackMovements.length],
       sceneNote: '',
-      emotion: 'confident',
-      cameraHint: 'medium',
+      emotion: fallbackEmotions[i % fallbackEmotions.length],
+      cameraHint: fallbackCameras[i % fallbackCameras.length],
+      transitionNote: '',
+      physicalDetail: '',
     });
   }
   
@@ -297,6 +342,7 @@ function createFallbackScreenplay(
     segments,
     title: 'Untitled',
     tone: 'neutral',
-    hasMovement: false,
+    hasMovement: true,
+    narrativeArc: 'A story unfolds.',
   };
 }

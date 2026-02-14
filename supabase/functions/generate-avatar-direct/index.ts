@@ -480,6 +480,8 @@ serve(async (req) => {
       emotion: seg.emotion,
       cameraHint: seg.cameraHint,
       sceneNote: seg.sceneNote,
+      transitionNote: (seg as any).transitionNote || '',
+      physicalDetail: (seg as any).physicalDetail || '',
     }));
 
     // START CLIP 1 ONLY - Watchdog will chain the rest
@@ -706,6 +708,8 @@ serve(async (req) => {
         movement: allSegmentData[i].movement,
         emotion: allSegmentData[i].emotion,
         cameraHint: allSegmentData[i].cameraHint,
+        physicalDetail: allSegmentData[i].physicalDetail,
+        transitionNote: allSegmentData[i].transitionNote,
       });
     }
 
@@ -858,8 +862,8 @@ function splitScriptIntoSegments(script: string, targetCount: number): string[] 
 // SUBJECT_MOTION, SCENE_JOURNEYS, progression arrays, and helper functions
 
 /**
- * Build a cinematic prompt using SCREENPLAY data for dynamic, natural acting.
- * Supports movement (walking, driving, gesturing) instead of forcing static poses.
+ * Build a WORLD-CLASS cinematic prompt using screenplay data for dynamic, natural acting.
+ * Supports full range of movement, emotion, and camera work.
  */
 function buildActingPrompt(
   script: string, 
@@ -872,55 +876,54 @@ function buildActingPrompt(
   screenplayMovement?: string,
   screenplayEmotion?: string,
   screenplayCameraHint?: string,
+  physicalDetail?: string,
 ): string {
   const emotionalTone = screenplayEmotion || analyzeEmotionalTone(script);
   const performanceStyle = getPerformanceStyle(typeof emotionalTone === 'string' ? emotionalTone : 'neutral');
   
-  // Build movement instruction from screenplay data
-  const movementInstruction = buildMovementInstruction(screenplayMovement, screenplayAction, clipIndex);
+  const movementInstruction = buildMovementInstruction(screenplayMovement, screenplayAction, clipIndex, physicalDetail);
   
-  // Check if cinematic mode is enabled for full Hollywood treatment
-  if (cinematicMode?.enabled) {
-    return buildWorldClassPrompt(script, sceneDescription, clipIndex, totalClips, performanceStyle, avatarType, movementInstruction, screenplayCameraHint);
-  }
-  
-  return buildVarietyPrompt(script, sceneDescription, clipIndex, totalClips, performanceStyle, avatarType, movementInstruction, screenplayCameraHint);
+  // Always use world-class prompts now
+  return buildWorldClassPrompt(script, sceneDescription, clipIndex, totalClips, performanceStyle, avatarType, movementInstruction, screenplayCameraHint, physicalDetail);
 }
 
 /**
- * Convert screenplay movement/action into a natural motion instruction for Kling.
+ * Convert screenplay movement/action into rich, natural motion instruction for Kling.
  */
-function buildMovementInstruction(movement?: string, action?: string, clipIndex: number = 0): string {
+function buildMovementInstruction(movement?: string, action?: string, clipIndex: number = 0, physicalDetail?: string): string {
   if (!movement && !action) return '';
   
   const movementMap: Record<string, string> = {
-    'walk': 'walking naturally through the scene with confident strides',
-    'gesture': 'using expressive hand gestures and animated body language',
-    'lean': 'leaning in with interest, shifting weight naturally',
-    'turn': 'turning to face a new direction with fluid body rotation',
-    'sit': 'sitting comfortably, using hands expressively while talking',
-    'stand': 'standing with confident posture, subtle weight shifts',
-    'drive': 'seated behind the wheel, hands on steering wheel, glancing around',
-    'react': 'reacting with visible surprise, eyebrows raised, body pulling back slightly',
-    'dance': 'moving rhythmically with joyful energy and natural flow',
-    'run': 'moving quickly with dynamic energy and purpose',
-    'point': 'pointing and gesturing toward something with enthusiasm',
-    'laugh': 'laughing genuinely with full body movement, head tilting back',
+    'walk': 'walking naturally through the scene with confident strides, arms swinging gently',
+    'gesture': 'using expressive hand gestures and animated body language, hands painting the air',
+    'lean': 'leaning in with genuine interest, weight shifting forward, eyes locked on target',
+    'turn': 'turning with fluid body rotation, a natural pivot that reveals new intent',
+    'sit': 'sitting with lived-in comfort, hands active while talking, slight shifts in posture',
+    'stand': 'standing tall with grounded confidence, subtle weight transfers between feet',
+    'drive': 'seated behind the wheel, one hand casually on the steering wheel, glancing between road and camera',
+    'react': 'reacting with whole-body surprise — eyebrows shooting up, torso pulling back, hands rising',
+    'dance': 'moving with infectious rhythmic energy, shoulders bouncing, natural unscripted joy',
+    'run': 'moving with urgent purposeful energy, body leaning into the momentum',
+    'point': 'pointing with conviction, arm extending fully, whole body following the gesture',
+    'laugh': 'breaking into genuine laughter, head tilting back, shoulders shaking, eyes crinkling',
+    'freeze': 'freezing mid-motion in comedic disbelief, eyes wide, body completely still',
   };
 
   const motionPhrase = movementMap[movement || ''] || '';
   const actionPhrase = action ? `${action}` : '';
+  const microAction = physicalDetail ? ` ${physicalDetail}.` : '';
   
-  // Combine: prefer specific action, supplement with movement style
   if (actionPhrase && motionPhrase) {
-    return `The subject is ${actionPhrase}, ${motionPhrase}.`;
+    return `The subject is ${actionPhrase}, ${motionPhrase}.${microAction}`;
   }
-  return actionPhrase ? `The subject is ${actionPhrase}.` : (motionPhrase ? `The subject is ${motionPhrase}.` : '');
+  return actionPhrase 
+    ? `The subject is ${actionPhrase}.${microAction}` 
+    : (motionPhrase ? `The subject is ${motionPhrase}.${microAction}` : '');
 }
 
 /**
- * Full Hollywood-grade cinematography prompt with DYNAMIC movement support.
- * Characters can now walk, gesture, react, and move naturally through scenes.
+ * WORLD-CLASS Hollywood-grade cinematography prompt.
+ * Every clip feels like it was directed by a master filmmaker.
  */
 function buildWorldClassPrompt(
   script: string,
@@ -931,6 +934,7 @@ function buildWorldClassPrompt(
   avatarType: string = 'realistic',
   movementInstruction: string = '',
   cameraHint?: string,
+  physicalDetail?: string,
 ): string {
   const idx = clipIndex % 10;
   
@@ -939,99 +943,75 @@ function buildWorldClassPrompt(
   const sizeKey = SIZE_PROGRESSION[idx];
   const lightingKey = LIGHTING_PROGRESSION[idx];
   
-  // Use screenplay camera hint if available, otherwise use progression
+  // Enhanced camera map with film-school precision
   const cameraMap: Record<string, string> = {
-    'tracking': 'Smooth tracking shot following the subject',
-    'close-up': 'Intimate close-up capturing facial expressions and emotion',
-    'wide': 'Wide establishing shot showing the full scene and environment',
-    'over-shoulder': 'Over-the-shoulder perspective creating depth and intimacy',
-    'medium': 'Balanced medium shot framing the subject naturally',
-    'panning': 'Slow cinematic pan revealing the scene around the subject',
+    'tracking': 'Smooth Steadicam tracking shot gliding alongside the subject, maintaining perfect focus',
+    'close-up': 'Intimate close-up isolating facial micro-expressions, shallow depth of field blurring background into bokeh',
+    'wide': 'Wide establishing shot placing the subject in their full environment, giving scale and context',
+    'over-shoulder': 'Over-the-shoulder perspective creating voyeuristic intimacy, foreground shoulder soft-focused',
+    'medium': 'Classic medium shot from waist up, balanced composition with room to breathe',
+    'panning': 'Slow deliberate pan revealing the scene around the subject, building anticipation',
+    'dolly-in': 'Slow dolly push-in toward the subject, building intensity and focus on their words',
+    'low-angle': 'Low-angle shot looking up at the subject, conveying authority and presence',
+    'crane': 'Subtle crane movement adding vertical dimension, elevating the visual storytelling',
   };
   
   const movementPrompt = cameraHint && cameraMap[cameraHint] 
     ? cameraMap[cameraHint]
     : selectPrompt(CAMERA_MOVEMENTS[movementKey] || CAMERA_MOVEMENTS.static_locked);
   const anglePrompt = selectPrompt(CAMERA_ANGLES[angleKey] || CAMERA_ANGLES.eye_level_centered);
-  const sizePrompt = cameraHint && cameraMap[cameraHint]
-    ? cameraMap[cameraHint]
-    : selectPrompt(SHOT_SIZES[sizeKey] || SHOT_SIZES.medium);
+  const sizePrompt = selectPrompt(SHOT_SIZES[sizeKey] || SHOT_SIZES.medium);
   const lightingPrompt = selectPrompt(LIGHTING_STYLES[lightingKey] || LIGHTING_STYLES.classic_key);
   
   const progressiveScene = getProgressiveScene(baseSceneDescription, clipIndex, totalClips, true);
-  const sceneContext = `Cinematic scene set in ${progressiveScene}.`;
-  const backgroundLock = clipIndex > 0 ? '[SAME ENVIRONMENT: Continue in the same location.]' : '';
+  const sceneContext = `Cinematic scene set in ${progressiveScene}, shot on ARRI Alexa with anamorphic lenses.`;
+  const backgroundLock = clipIndex > 0 ? '[SAME ENVIRONMENT: Continue in the exact same location with consistent lighting and props.]' : '';
   
-  // DYNAMIC MOVEMENT: Use screenplay action instead of static positioning
+  // Rich motion direction
   const motionBlock = movementInstruction 
     ? movementInstruction
-    : `The subject is speaking naturally with expressive gestures.`;
+    : `The subject is speaking with natural energy, using expressive gestures, weight shifting naturally between feet.`;
   
-  const qualityBaseline = "Ultra-high definition 4K quality, natural skin tones, bright vibrant colors, cinematic depth of field, warm inviting lighting.";
+  // Performance nuance based on clip position in narrative
+  let narrativeBeat = '';
+  if (totalClips >= 3) {
+    if (clipIndex === 0) narrativeBeat = 'OPENING ENERGY: This is the hook — confident, attention-grabbing delivery.';
+    else if (clipIndex === totalClips - 1) narrativeBeat = 'CLOSING MOMENT: This is the payoff — land the final beat with impact and conviction.';
+    else narrativeBeat = 'BUILDING MOMENTUM: The story is developing — natural escalation of energy and engagement.';
+  }
   
-  console.log(`[AvatarDirect] Clip ${clipIndex + 1}/${totalClips} Style: ${cameraHint || movementKey} + ${angleKey}`);
+  const qualityBaseline = "Ultra-high definition 4K cinematic quality. Natural skin tones with subsurface scattering. Rich vibrant colors with cinematic color grading. Shallow depth of field with natural bokeh. Volumetric warm lighting with soft fill. Film-quality motion blur on movement.";
   
-  return `${backgroundLock} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. ${motionBlock} Speaking naturally: "${script.substring(0, 100)}${script.length > 100 ? '...' : ''}". ${performanceStyle} Lifelike fluid movements, natural micro-expressions, authentic lip sync, subtle breathing motion, realistic eye movements and blinks. ${qualityBaseline}`;
-}
-
-/**
- * Standard variety prompt with movement support.
- */
-function buildVarietyPrompt(
-  script: string,
-  baseSceneDescription: string | undefined,
-  clipIndex: number,
-  totalClips: number,
-  performanceStyle: string,
-  avatarType: string = 'realistic',
-  movementInstruction: string = '',
-  cameraHint?: string,
-): string {
-  const cameraAngles = [
-    "centered medium shot with balanced composition",
-    "slightly angled medium close-up with depth",
-    "comfortable wide shot with environmental context",
-    "intimate close-up with emotional focus",
-    "three-quarter medium shot with dimensional framing",
-  ];
+  const lifelikeDirective = "Continuous lifelike motion: breathing visible in chest/shoulders, natural eye movements tracking between focal points, involuntary micro-expressions (slight brow raises, lip movements between words), authentic weight shifts, hair/clothing responding to movement with physics-accurate motion.";
   
-  const angle = cameraAngles[clipIndex % cameraAngles.length];
+  console.log(`[AvatarDirect] 🎬 Clip ${clipIndex + 1}/${totalClips} | Camera: ${cameraHint || movementKey} | Emotion: ${performanceStyle.substring(0, 30)}...`);
   
-  const progressiveScene = getProgressiveScene(baseSceneDescription, clipIndex, totalClips, true);
-  const sceneContext = `Cinematic scene in ${progressiveScene}, shot with professional cinematography.`;
-  const backgroundLock = clipIndex > 0 ? '[SAME ENVIRONMENT]' : '';
-  
-  // DYNAMIC MOVEMENT from screenplay
-  const motionBlock = movementInstruction 
-    ? movementInstruction
-    : `The subject is speaking expressively with natural gestures.`;
-  
-  const qualityBaseline = "Ultra high definition, bright vibrant colors, natural skin tones, sharp focus, warm inviting lighting.";
-  
-  return `${backgroundLock} ${sceneContext} ${angle}. ${motionBlock} Speaking: "${script.substring(0, 100)}${script.length > 100 ? '...' : ''}". ${performanceStyle} Lifelike fluid movements, natural micro-expressions, authentic lip sync. ${qualityBaseline}`;
+  return `${backgroundLock} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. ${narrativeBeat} ${motionBlock} Speaking naturally with authentic delivery: "${script.substring(0, 120)}${script.length > 120 ? '...' : ''}". ${performanceStyle} ${lifelikeDirective} ${qualityBaseline}`;
 }
 
 function analyzeEmotionalTone(script: string): string {
   const lower = script.toLowerCase();
-  if (lower.includes('!') || lower.includes('amazing') || lower.includes('incredible')) return 'excited';
-  if (lower.includes('important') || lower.includes('serious') || lower.includes('critical')) return 'serious';
-  if (lower.includes('welcome') || lower.includes('thank') || lower.includes('love')) return 'warm';
-  if (lower.includes('fun') || lower.includes('joke') || lower.includes('haha')) return 'playful';
+  if (lower.includes('!') && (lower.includes('amazing') || lower.includes('incredible') || lower.includes('wow'))) return 'excited';
+  if (lower.includes('important') || lower.includes('serious') || lower.includes('critical') || lower.includes('listen')) return 'dramatic';
+  if (lower.includes('welcome') || lower.includes('thank') || lower.includes('love') || lower.includes('heart')) return 'tender';
+  if (lower.includes('fun') || lower.includes('joke') || lower.includes('haha') || lower.includes('lol') || lower.includes('funny')) return 'amused';
+  if (lower.includes('wait') || lower.includes('what') || lower.includes('seriously') || lower.includes('no way')) return 'surprised';
+  if (lower.includes('okay so') || lower.includes('look') || lower.includes('here\'s the thing') || lower.includes('let me')) return 'confident';
   return 'neutral';
 }
 
 function getPerformanceStyle(tone: string): string {
   switch (tone) {
-    case 'excited': return "Eyes bright with enthusiasm, animated hand gestures, energetic head movements, beaming smile.";
-    case 'serious': return "Focused expression, measured movements, direct eye contact, nodding to emphasize key points.";
-    case 'warm': return "Gentle welcoming smile, soft expressive eyes, relaxed natural posture.";
-    case 'playful': return "Mischievous smile, playful eyebrow raises, animated expressions, lighthearted energy.";
-    case 'amused': return "Subtle grin, raised eyebrows, head tilted with amusement, relaxed posture.";
-    case 'surprised': return "Wide eyes, raised eyebrows, mouth slightly open, body pulling back with surprise.";
-    case 'nervous': return "Fidgeting hands, darting eyes, tense shoulders, uncertain half-smile.";
-    case 'dramatic': return "Intense gaze, deliberate gestures, controlled breathing, commanding presence.";
-    case 'confident': return "Steady gaze, open posture, measured gestures, assured expression.";
-    default: return "Natural confident delivery, genuine facial expressions, professional yet personable energy.";
+    case 'excited': return "Eyes BLAZING with enthusiasm, animated hand gestures cutting through the air, energetic head movements, megawatt smile that lights up the frame. Voice pitch rises naturally.";
+    case 'dramatic': return "Intense locked-in gaze, deliberate measured gestures that demand attention, controlled breathing between phrases, commanding physical presence that owns the frame.";
+    case 'warm': case 'tender': return "Genuine warm smile reaching the eyes (Duchenne smile), soft expressive gaze, open welcoming posture, gentle head tilts showing authentic care and connection.";
+    case 'amused': case 'playful': return "Mischievous knowing grin, playful eyebrow raises, animated expressions shifting rapidly between amusement and mock-seriousness, infectious lighthearted energy.";
+    case 'surprised': return "Eyes widening in genuine surprise, eyebrows shooting up, slight body pullback, mouth forming an 'O' before breaking into speech, hands rising instinctively.";
+    case 'nervous': return "Subtle fidgeting — adjusting collar, touching face, weight shifting between feet — with darting eye movements and an uncertain half-smile that breaks into nervous laughter.";
+    case 'confident': return "Rock-solid eye contact with the lens, open commanding posture, precisely timed gestures that punctuate key words, the assured energy of someone who KNOWS they're right.";
+    case 'deadpan': return "Completely flat expression, minimal movement, devastating understatement delivered with surgical precision. The comedy comes from the stillness.";
+    case 'mischievous': return "Sly half-smile, one eyebrow slightly raised, leaning toward camera conspiratorially, the energy of someone about to reveal a delicious secret.";
+    default: return "Natural confident delivery with genuine facial expressions, professional yet personable energy, authentic micro-expressions between phrases that show real thinking.";
   }
 }
 

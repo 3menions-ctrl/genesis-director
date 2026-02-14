@@ -118,7 +118,7 @@ const MAX_AGE_MS = 60 * 60 * 1000; // 60 minutes
 /**
  * Build WORLD-CLASS acting prompt for avatar frame-chaining
  * Each clip gets unique cinematography + DYNAMIC SCENE PROGRESSION
- * Now supports SCREENPLAY-DRIVEN movement (walking, gesturing, reacting)
+ * Supports SCREENPLAY-DRIVEN movement, emotion, and micro-performance
  */
 function buildAvatarActingPrompt(
   segmentText: string, 
@@ -130,6 +130,7 @@ function buildAvatarActingPrompt(
   screenplayMovement?: string,
   screenplayEmotion?: string,
   screenplayCameraHint?: string,
+  physicalDetail?: string,
 ): string {
   const idx = clipIndex % 10;
   
@@ -138,14 +139,17 @@ function buildAvatarActingPrompt(
   const sizeKey = SIZE_PROGRESSION[idx];
   const lightingKey = LIGHTING_PROGRESSION[idx];
   
-  // Use screenplay camera hint if provided, otherwise use progression
+  // Film-school precision camera map
   const cameraHintMap: Record<string, string> = {
-    'tracking': 'Smooth tracking shot following the subject',
-    'close-up': 'Intimate close-up capturing facial detail',
-    'wide': 'Wide shot showing the full scene',
-    'over-shoulder': 'Over-the-shoulder perspective',
-    'medium': 'Balanced medium shot',
-    'panning': 'Slow cinematic pan',
+    'tracking': 'Smooth Steadicam tracking shot gliding alongside the subject, maintaining perfect focus',
+    'close-up': 'Intimate close-up isolating facial micro-expressions, shallow depth of field with bokeh',
+    'wide': 'Wide establishing shot placing subject in full environment with scale and context',
+    'over-shoulder': 'Over-the-shoulder perspective creating voyeuristic intimacy, foreground soft-focused',
+    'medium': 'Classic medium shot from waist up, balanced composition with room to breathe',
+    'panning': 'Slow deliberate pan revealing the scene, building anticipation',
+    'dolly-in': 'Slow dolly push-in toward the subject, building intensity on their words',
+    'low-angle': 'Low-angle shot looking up at the subject, conveying authority and presence',
+    'crane': 'Subtle crane movement adding vertical dimension to the visual storytelling',
   };
   
   const movementPrompt = screenplayCameraHint && cameraHintMap[screenplayCameraHint]
@@ -156,56 +160,72 @@ function buildAvatarActingPrompt(
   const lightingPrompt = selectPrompt(LIGHTING_STYLES[lightingKey] || LIGHTING_STYLES.classic_key);
   
   const progressiveScene = getProgressiveScene(sceneDescription, clipIndex, totalClips, true);
-  const sceneContext = `Cinematic scene in ${progressiveScene}, shot with professional cinematography.`;
+  const sceneContext = `Cinematic scene in ${progressiveScene}, shot on ARRI Alexa with anamorphic lenses.`;
   
   const avatarTypeLock = avatarType === 'animated'
     ? '[AVATAR STYLE: Stylized CGI/animated character. NOT photorealistic.]'
     : '[AVATAR STYLE: Photorealistic human. NOT cartoon/animated.]';
   
-  const backgroundLock = clipIndex > 0 ? '[SAME ENVIRONMENT: Continue in the same location.]' : '';
+  const backgroundLock = clipIndex > 0 ? '[SAME ENVIRONMENT: Continue in the exact same location with consistent lighting.]' : '';
   
-  // DYNAMIC MOVEMENT from screenplay data
+  // Rich movement from screenplay
   const movementMap: Record<string, string> = {
-    'walk': 'walking naturally through the scene',
-    'gesture': 'using expressive hand gestures',
-    'lean': 'leaning in with interest',
-    'turn': 'turning with fluid body rotation',
-    'sit': 'sitting comfortably, gesturing while talking',
-    'stand': 'standing with confident posture',
-    'drive': 'seated behind the wheel, hands on steering wheel',
-    'react': 'reacting with visible surprise',
-    'dance': 'moving rhythmically with joyful energy',
-    'run': 'moving quickly with dynamic energy',
-    'laugh': 'laughing genuinely with full body movement',
+    'walk': 'walking naturally through the scene with confident strides, arms swinging gently',
+    'gesture': 'using expressive hand gestures painting the air with conviction',
+    'lean': 'leaning in with genuine interest, weight shifting forward, eyes locked',
+    'turn': 'turning with fluid body rotation, a natural pivot revealing new intent',
+    'sit': 'sitting with lived-in comfort, hands active while talking',
+    'stand': 'standing tall with grounded confidence, subtle weight transfers',
+    'drive': 'seated behind the wheel, one hand casually on steering wheel',
+    'react': 'reacting with whole-body surprise — eyebrows shooting up, torso pulling back',
+    'dance': 'moving with infectious rhythmic energy, shoulders bouncing, natural joy',
+    'run': 'moving with urgent purposeful energy, body leaning into momentum',
+    'laugh': 'breaking into genuine laughter, head tilting back, shoulders shaking',
+    'freeze': 'freezing mid-motion in comedic disbelief, eyes wide, completely still',
+    'point': 'pointing with conviction, arm extending fully, whole body following',
   };
   
   let motionBlock: string;
   if (screenplayAction) {
     const movePhrase = screenplayMovement && movementMap[screenplayMovement] ? `, ${movementMap[screenplayMovement]}` : '';
-    motionBlock = `The subject is ${screenplayAction}${movePhrase}.`;
+    const microAction = physicalDetail ? ` ${physicalDetail}.` : '';
+    motionBlock = `The subject is ${screenplayAction}${movePhrase}.${microAction}`;
   } else {
-    motionBlock = `The subject is speaking naturally with expressive gestures.`;
+    motionBlock = `The subject is speaking with natural energy, expressive gestures, weight shifting naturally.`;
   }
   
-  // Emotion-based performance
+  // Emotion-based performance direction
   const emotionStyles: Record<string, string> = {
-    'amused': 'Subtle grin, raised eyebrows, relaxed posture.',
-    'excited': 'Eyes bright, animated gestures, beaming smile.',
-    'surprised': 'Wide eyes, raised eyebrows, body pulling back.',
-    'nervous': 'Fidgeting hands, darting eyes, uncertain expression.',
-    'dramatic': 'Intense gaze, deliberate gestures, commanding presence.',
-    'confident': 'Steady gaze, open posture, assured expression.',
-    'thoughtful': 'Pensive expression, slow measured gestures.',
+    'amused': 'Mischievous knowing grin, playful eyebrow raises, infectious lighthearted energy.',
+    'excited': 'Eyes BLAZING with enthusiasm, animated gestures cutting through air, megawatt smile.',
+    'surprised': 'Eyes widening, eyebrows shooting up, slight body pullback, hands rising instinctively.',
+    'nervous': 'Subtle fidgeting, darting eyes, weight shifting, uncertain half-smile breaking into nervous laugh.',
+    'dramatic': 'Intense locked-in gaze, deliberate measured gestures, commanding physical presence.',
+    'confident': 'Rock-solid eye contact, open commanding posture, precisely timed gestures punctuating key words.',
+    'thoughtful': 'Pensive expression, slow measured gestures, eyes looking away briefly then returning with insight.',
+    'deadpan': 'Completely flat expression, minimal movement, devastating understatement with surgical precision.',
+    'tender': 'Genuine warm Duchenne smile, soft expressive gaze, open welcoming posture, gentle head tilts.',
+    'mischievous': 'Sly half-smile, one eyebrow raised, leaning toward camera conspiratorially.',
   };
   const performanceStyle = screenplayEmotion && emotionStyles[screenplayEmotion] 
     ? emotionStyles[screenplayEmotion] 
-    : 'Natural confident delivery, genuine facial expressions.';
+    : 'Natural confident delivery, genuine facial expressions, authentic micro-expressions between phrases.';
   
-  const qualityBaseline = "Ultra-high definition, natural skin tones, bright vibrant colors, cinematic depth of field, warm inviting lighting.";
+  // Narrative beat based on position
+  let narrativeBeat = '';
+  if (totalClips >= 3) {
+    if (clipIndex === 0) narrativeBeat = 'OPENING: Hook the audience — confident, attention-grabbing delivery.';
+    else if (clipIndex === totalClips - 1) narrativeBeat = 'CLOSING: Land the final beat with impact and conviction.';
+    else narrativeBeat = 'BUILDING: Natural escalation of energy and engagement.';
+  }
   
-  console.log(`[Watchdog] Clip ${clipIndex + 1}/${totalClips} Style: ${screenplayCameraHint || movementKey} | Movement: ${screenplayMovement || 'default'} | AvatarType: ${avatarType}`);
+  const qualityBaseline = "Ultra-high definition 4K cinematic quality. Natural skin tones with subsurface scattering. Rich vibrant colors with cinematic color grading. Shallow depth of field with bokeh. Volumetric warm lighting. Film-quality motion blur.";
   
-  return `${avatarTypeLock} ${backgroundLock} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. ${motionBlock} Speaking naturally: "${segmentText.trim().substring(0, 100)}${segmentText.length > 100 ? '...' : ''}". ${performanceStyle} Lifelike fluid movements, natural micro-expressions, authentic lip sync, subtle breathing motion. ${qualityBaseline}`;
+  const lifelikeDirective = "Continuous lifelike motion: breathing visible in chest/shoulders, natural eye tracking, involuntary micro-expressions, authentic weight shifts, hair/clothing responding to movement.";
+  
+  console.log(`[Watchdog] 🎬 Clip ${clipIndex + 1}/${totalClips} | Camera: ${screenplayCameraHint || movementKey} | Movement: ${screenplayMovement || 'default'} | AvatarType: ${avatarType}`);
+  
+  return `${avatarTypeLock} ${backgroundLock} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. ${narrativeBeat} ${motionBlock} Speaking naturally: "${segmentText.trim().substring(0, 120)}${segmentText.length > 120 ? '...' : ''}". ${performanceStyle} ${lifelikeDirective} ${qualityBaseline}`;
 }
 
 serve(async (req) => {
@@ -381,7 +401,7 @@ serve(async (req) => {
           const avatarType = tasks.avatarType || 'realistic';
           const actingPrompt = buildAvatarActingPrompt(
             pred.segmentText, tasks.sceneDescription, pred.clipIndex, tasks.predictions.length, avatarType,
-            pred.action, pred.movement, pred.emotion, pred.cameraHint,
+            pred.action, pred.movement, pred.emotion, pred.cameraHint, pred.physicalDetail,
           );
           const videoDuration = tasks.clipDuration >= 10 ? 10 : (tasks.clipDuration || 10);
           

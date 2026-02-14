@@ -15,19 +15,42 @@ export interface TextStyle {
   position?: { x: number; y: number };
 }
 
+export interface ColorGrading {
+  brightness: number; // 0-200, default 100
+  contrast: number;   // 0-200, default 100
+  saturation: number; // 0-200, default 100
+  hue: number;        // 0-360, default 0
+  opacity: number;    // 0-100, default 100
+}
+
+export interface Keyframe {
+  time: number; // seconds relative to clip start
+  properties: {
+    x?: number;
+    y?: number;
+    scale?: number;
+    rotation?: number;
+    opacity?: number;
+  };
+  easing?: "linear" | "ease-in" | "ease-out" | "ease-in-out";
+}
+
 export interface TimelineClip {
   id: string;
   trackId: string;
-  start: number; // seconds
-  end: number; // seconds
+  start: number;
+  end: number;
   type: "video" | "audio" | "text" | "image";
   sourceUrl: string;
   label: string;
   effects: ClipEffect[];
   textContent?: string;
   textStyle?: TextStyle;
-  trimStart?: number; // in-point within source
-  trimEnd?: number; // out-point within source
+  trimStart?: number;
+  trimEnd?: number;
+  colorGrading?: ColorGrading;
+  keyframes?: Keyframe[];
+  volume?: number; // 0-100, default 100
 }
 
 export interface TimelineTrack {
@@ -52,6 +75,14 @@ export interface EditorState {
   renderStatus: "idle" | "rendering" | "completed" | "failed";
   renderProgress: number;
 }
+
+export const DEFAULT_COLOR_GRADING: ColorGrading = {
+  brightness: 100,
+  contrast: 100,
+  saturation: 100,
+  hue: 0,
+  opacity: 100,
+};
 
 export const TRANSITION_TYPES = [
   { id: "crossfade", name: "Crossfade", icon: "Blend" },

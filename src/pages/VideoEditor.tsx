@@ -9,14 +9,14 @@ import { EditorPreview } from "@/components/editor/EditorPreview";
 import { EditorSidebar } from "@/components/editor/EditorSidebar";
 import { EditorMediaBrowser } from "@/components/editor/EditorMediaBrowser";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { Film, FolderOpen } from "lucide-react";
+import { Film } from "lucide-react";
+import { useEditorHistory } from "@/hooks/useEditorHistory";
 import type { EditorState, TimelineTrack, TimelineClip } from "@/components/editor/types";
 
 const VideoEditor = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  // Support both "project" and "projectId" params
   const projectId = searchParams.get("project") || searchParams.get("projectId");
 
   const [editorState, setEditorState] = useState<EditorState>({
@@ -25,6 +25,7 @@ const VideoEditor = () => {
     title: "Untitled Edit",
     tracks: [
       { id: "video-0", name: "Video", type: "video", clips: [], muted: false, locked: false },
+      { id: "audio-0", name: "Audio", type: "audio", clips: [], muted: false, locked: false },
       { id: "text-0", name: "Text", type: "text", clips: [], muted: false, locked: false },
     ],
     currentTime: 0,
@@ -38,7 +39,137 @@ const VideoEditor = () => {
 
   const [isSaving, setIsSaving] = useState(false);
 
-  // Load project clips into tracks on mount
+  // Undo/Redo history
+  const history = useEditorHistory({
+    tracks: editorState.tracks,
+    duration: editorState.duration,
+    selectedClipId: editorState.selectedClipId,
+  });
+
+  // Keep history in sync
+  useEffect(() => {
+    history.syncCurrent({
+      tracks: editorState.tracks,
+      duration: editorState.duration,
+      selectedClipId: editorState.selectedClipId,
+    });
+  }, [editorState.tracks, editorState.duration, editorState.selectedClipId]);
+
+  // Listen for keyboard undo/redo events
+  useEffect(() => {
+    const onUndo = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail) setEditorState((prev) => ({ ...prev, ...detail }));
+    };
+    const onRedo = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail) setEditorState((prev) => ({ ...prev, ...detail }));
+    };
+    window.addEventListener("editor-undo", onUndo);
+    window.addEventListener("editor-redo", onRedo);
+    return () => {
+      window.removeEventListener("editor-undo", onUndo);
+      window.removeEventListener("editor-redo", onRedo);
+    };
+  }, []);
+
+  // Push state before mutations
+  const withHistory = useCallback(
+    (mutator: (prev: EditorState) => EditorState) => {
+      setEditorState((prev) => {
+        history.pushState({
+          tracks: prev.tracks,
+          duration: prev.duration,
+          selectedClipId: prev.selectedClipId,
+        });
+        return mutator(prev);
+      });
+    },
+    [history]
+  );
+
+  const handleUndo = useCallback(() => {
+    const snapshot = history.undo();
+    if (snapshot) setEditorState((prev) => ({ ...prev, ...snapshot }));
+  }, [history]);
+
+  const handleRedo = useCallback(() => {
+    const snapshot = history.redo();
+    if (snapshot) setEditorState((prev) => ({ ...prev, ...snapshot }));
+  }, [history]);
+
+  // Split clip at playhead
+  const handleSplit = useCallback(() => {
+    const { currentTime, tracks, selectedClipId } = editorState;
+    // Find clip under playhead (prefer selected, fallback to any on video track)
+    let targetClip: TimelineClip | undefined;
+    let targetTrack: TimelineTrack | undefined;
+
+    for (const track of tracks) {
+      for (const clip of track.clips) {
+        if (currentTime > clip.start && currentTime < clip.end) {
+          if (clip.id === selectedClipId || !targetClip) {
+            targetClip = clip;
+            targetTrack = track;
+          }
+        }
+      }
+    }
+
+    if (!targetClip || !targetTrack) {
+      toast.error("No clip at playhead to split");
+      return;
+    }
+
+    const splitPoint = currentTime;
+    const leftClip: TimelineClip = {
+      ...targetClip,
+      id: `${targetClip.id}-L`,
+      end: splitPoint,
+    };
+    const rightClip: TimelineClip = {
+      ...targetClip,
+      id: `${targetClip.id}-R`,
+      start: splitPoint,
+      trimStart: (targetClip.trimStart || 0) + (splitPoint - targetClip.start),
+    };
+
+    withHistory((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map((t) =>
+        t.id === targetTrack!.id
+          ? {
+              ...t,
+              clips: t.clips.flatMap((c) =>
+                c.id === targetClip!.id ? [leftClip, rightClip] : [c]
+              ),
+            }
+          : t
+      ),
+      selectedClipId: rightClip.id,
+    }));
+
+    toast.success("Clip split at playhead");
+  }, [editorState, withHistory]);
+
+  // Split keyboard shortcut
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "s" && !e.ctrlKey && !e.metaKey && document.activeElement?.tagName !== "INPUT") {
+        e.preventDefault();
+        handleSplit();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleSplit]);
+
+  // Can we split?
+  const canSplit = editorState.tracks.some((t) =>
+    t.clips.some((c) => editorState.currentTime > c.start && editorState.currentTime < c.end)
+  );
+
+  // Load project clips on mount
   useEffect(() => {
     if (!projectId || !user) return;
     loadProjectClips(projectId);
@@ -93,8 +224,7 @@ const VideoEditor = () => {
   }) => {
     const dur = clip.duration_seconds || 6;
 
-    setEditorState((prev) => {
-      // Find end of last clip on video track
+    withHistory((prev) => {
       const videoTrack = prev.tracks.find((t) => t.id === "video-0");
       const lastEnd = videoTrack?.clips.reduce((max, c) => Math.max(max, c.end), 0) || 0;
 
@@ -119,10 +249,10 @@ const VideoEditor = () => {
     });
 
     toast.success("Clip added to timeline");
-  }, []);
+  }, [withHistory]);
 
   const handleUpdateClip = useCallback((clipId: string, updates: Partial<TimelineClip>) => {
-    setEditorState((prev) => ({
+    withHistory((prev) => ({
       ...prev,
       tracks: prev.tracks.map((track) => ({
         ...track,
@@ -131,11 +261,38 @@ const VideoEditor = () => {
         ),
       })),
     }));
-  }, []);
+  }, [withHistory]);
 
   const handleReorderClip = useCallback((clipId: string, newStart: number) => {
     handleUpdateClip(clipId, { start: newStart });
   }, [handleUpdateClip]);
+
+  // Move clip between tracks (drag-and-drop)
+  const handleMoveClipToTrack = useCallback((clipId: string, targetTrackId: string) => {
+    withHistory((prev) => {
+      let movedClip: TimelineClip | undefined;
+      const tracksWithout = prev.tracks.map((track) => {
+        const clip = track.clips.find((c) => c.id === clipId);
+        if (clip) {
+          movedClip = { ...clip, trackId: targetTrackId };
+          return { ...track, clips: track.clips.filter((c) => c.id !== clipId) };
+        }
+        return track;
+      });
+
+      if (!movedClip) return prev;
+
+      return {
+        ...prev,
+        tracks: tracksWithout.map((track) =>
+          track.id === targetTrackId
+            ? { ...track, clips: [...track.clips, movedClip!] }
+            : track
+        ),
+      };
+    });
+    toast.success("Clip moved to track");
+  }, [withHistory]);
 
   const handleSelectClip = useCallback((clipId: string | null) => {
     setEditorState((prev) => ({ ...prev, selectedClipId: clipId }));
@@ -170,14 +327,14 @@ const VideoEditor = () => {
       textStyle: { fontSize: 48, color: "#FFFFFF", fontWeight: "bold" },
     };
 
-    setEditorState((prev) => ({
+    withHistory((prev) => ({
       ...prev,
       tracks: prev.tracks.map((t) =>
         t.id === textTrack.id ? { ...t, clips: [...t.clips, newClip] } : t
       ),
       selectedClipId: newClip.id,
     }));
-  }, [editorState.tracks, editorState.currentTime]);
+  }, [editorState.tracks, editorState.currentTime, withHistory]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -191,10 +348,7 @@ const VideoEditor = () => {
       if (editorState.sessionId) {
         await supabase
           .from("edit_sessions")
-          .update({
-            title: editorState.title,
-            timeline_data: timelineData as any,
-          })
+          .update({ title: editorState.title, timeline_data: timelineData as any })
           .eq("id", editorState.sessionId);
       } else {
         const { data, error } = await supabase
@@ -220,9 +374,7 @@ const VideoEditor = () => {
   };
 
   const handleExport = async () => {
-    if (!editorState.sessionId) {
-      await handleSave();
-    }
+    if (!editorState.sessionId) await handleSave();
 
     setEditorState((prev) => ({ ...prev, renderStatus: "rendering", renderProgress: 0 }));
 
@@ -236,12 +388,11 @@ const VideoEditor = () => {
       });
 
       if (error) throw error;
-
       if (data?.jobId) {
         toast.success("Render job submitted!");
         pollRenderStatus(data.jobId);
       }
-    } catch (err) {
+    } catch {
       setEditorState((prev) => ({ ...prev, renderStatus: "failed" }));
       toast.error("Failed to start render");
     }
@@ -272,7 +423,7 @@ const VideoEditor = () => {
   };
 
   const handleDeleteClip = useCallback((clipId: string) => {
-    setEditorState((prev) => ({
+    withHistory((prev) => ({
       ...prev,
       tracks: prev.tracks.map((track) => ({
         ...track,
@@ -280,7 +431,7 @@ const VideoEditor = () => {
       })),
       selectedClipId: prev.selectedClipId === clipId ? null : prev.selectedClipId,
     }));
-  }, []);
+  }, [withHistory]);
 
   const handleAddTransition = useCallback((clipId: string, type: string) => {
     handleUpdateClip(clipId, {
@@ -291,13 +442,19 @@ const VideoEditor = () => {
   const hasClips = editorState.tracks.some((t) => t.clips.length > 0);
 
   return (
-    <div className="h-screen flex flex-col bg-[#111] overflow-hidden">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
       <EditorToolbar
         title={editorState.title}
         onTitleChange={(title) => setEditorState((prev) => ({ ...prev, title }))}
         onSave={handleSave}
         onExport={handleExport}
         onBack={() => navigate(-1)}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onSplit={handleSplit}
+        canUndo={history.canUndo}
+        canRedo={history.canRedo}
+        canSplit={canSplit}
         isSaving={isSaving}
         renderStatus={editorState.renderStatus}
         renderProgress={editorState.renderProgress}
@@ -305,14 +462,12 @@ const VideoEditor = () => {
 
       <div className="flex-1 min-h-0">
         <ResizablePanelGroup direction="horizontal">
-          {/* Left: Media browser */}
           <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
             <EditorMediaBrowser onAddClip={handleAddClipFromBrowser} />
           </ResizablePanel>
 
-          <ResizableHandle className="w-px bg-[#222] hover:bg-[#4a9eff]/30 transition-colors" />
+          <ResizableHandle className="w-px bg-border hover:bg-primary/30 transition-colors" />
 
-          {/* Center: Preview + Timeline */}
           <ResizablePanel defaultSize={55} minSize={40}>
             <ResizablePanelGroup direction="vertical">
               <ResizablePanel defaultSize={60} minSize={30}>
@@ -326,14 +481,13 @@ const VideoEditor = () => {
                     duration={editorState.duration}
                   />
                 ) : (
-                  /* Empty state */
                   <div className="h-full flex flex-col items-center justify-center bg-black gap-4">
-                    <div className="w-16 h-16 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center">
-                      <Film className="w-7 h-7 text-[#333]" />
+                    <div className="w-16 h-16 rounded-full bg-surface-1 border border-border flex items-center justify-center">
+                      <Film className="w-7 h-7 text-muted-foreground/30" />
                     </div>
                     <div className="text-center">
-                      <p className="text-[13px] text-[#666] font-medium">No clips in timeline</p>
-                      <p className="text-[11px] text-[#444] mt-1">
+                      <p className="text-[13px] text-muted-foreground font-medium">No clips in timeline</p>
+                      <p className="text-[11px] text-muted-foreground/50 mt-1">
                         Browse clips in the media panel and click to add them
                       </p>
                     </div>
@@ -341,7 +495,7 @@ const VideoEditor = () => {
                 )}
               </ResizablePanel>
 
-              <ResizableHandle className="h-px bg-[#222] hover:bg-[#4a9eff]/30 transition-colors" />
+              <ResizableHandle className="h-px bg-border hover:bg-primary/30 transition-colors" />
 
               <ResizablePanel defaultSize={40} minSize={20}>
                 <EditorTimeline
@@ -356,18 +510,19 @@ const VideoEditor = () => {
                   onReorderClip={handleReorderClip}
                   onZoomChange={handleZoomChange}
                   onDeleteClip={handleDeleteClip}
+                  onMoveClipToTrack={handleMoveClipToTrack}
                 />
               </ResizablePanel>
             </ResizablePanelGroup>
           </ResizablePanel>
 
-          <ResizableHandle className="w-px bg-[#222] hover:bg-[#4a9eff]/30 transition-colors" />
+          <ResizableHandle className="w-px bg-border hover:bg-primary/30 transition-colors" />
 
-          {/* Right: Properties/Inspector */}
           <ResizablePanel defaultSize={25} minSize={15} maxSize={35}>
             <EditorSidebar
               tracks={editorState.tracks}
               selectedClipId={editorState.selectedClipId}
+              currentTime={editorState.currentTime}
               onUpdateClip={handleUpdateClip}
               onAddTextOverlay={handleAddTextOverlay}
               onAddTransition={handleAddTransition}

@@ -131,20 +131,29 @@ ${isDual ? `
 CHARACTER 1 (PRIMARY): "${primary.name}" — ${primary.avatarType === 'animated' ? 'Animated/stylized' : 'Realistic'}
 CHARACTER 2 (SECONDARY): "${secondary!.name}" — ${secondary!.avatarType === 'animated' ? 'Animated/stylized' : 'Realistic'}
 
-⚠️ STRATEGIC CHARACTER INTRODUCTION PROTOCOL (CRITICAL — DO NOT IGNORE) ⚠️
-The second character MUST be introduced with CINEMATIC INTENTION. NEVER have them just "appear."
+⚠️ MANDATORY STRUCTURE: "TOGETHER FIRST, THEN BRANCH" ⚠️
+CLIP 1 MUST show BOTH characters TOGETHER in the same scene. They are side by side, interacting,
+reacting to each other, or in conversation. The audience meets them AS A PAIR first.
+- Use a TWO-SHOT or WIDE framing so both characters are visible
+- They should have a shared moment: agreeing, disagreeing, discovering something together, reacting to the same thing
+- Clip 1's avatarRole is "primary" but the sceneNote and action MUST describe BOTH characters present together
+- The dialogue can reference the other character directly: looking at them, responding to them, nudging them
 
-INTRODUCTION STRATEGIES (pick the best fit for the story):
-1. THE PLANT → REVEAL: Clip 1 hints at someone else ("You know who'd love this?", a sound off-screen, noticing something). Clip 2 REVEALS the second character was there the whole time or arrives with purpose.
-2. THE REACTION SHOT: Primary says/does something bold. CUT TO: Secondary already watching, arms crossed, with a look that says everything. Their first line is a REACTION to what Primary just did.
-3. THE INTERRUPTION: Primary is mid-sentence or mid-action when Secondary walks in, calls out, or physically enters the frame. "Excuse me—" "Oh no, not you."
-4. THE HANDOFF: Primary directly addresses or introduces the secondary. "Let me show you something" (turns to reveal Secondary). Or "You want to know what THEY think?"
-5. THE CONTRAST CUT: Primary's clip ends with a strong statement. HARD CUT to Secondary in a completely different energy/pose, contradicting or building on it. The JUXTAPOSITION tells the story.
-6. THE SHARED SPACE: Both are already in the same environment from clip 1, but the camera only shows Primary. Clip 2 WIDENS or PANS to reveal Secondary was in the same scene.
+After the ESTABLISHING clip together, characters can BRANCH into individual clips:
+- The branching must feel MOTIVATED: one walks away, gets a phone call, goes to check something, storms off, or the camera simply FOLLOWS one of them
+- transitionNote on clip 1 MUST explain WHY the camera follows one character away from the pair
+- When cutting back to the other character, reference what happened when they were together
+
+BRANCHING STRATEGIES (after the together clip):
+1. THE SPLIT: They agree to divide and conquer. "You take that side, I'll take this one."
+2. THE WALKAWAY: One character leaves dramatically. "Fine. I'll prove it myself." Camera follows.
+3. THE PERSPECTIVE SHIFT: Camera stays on one, then cuts to show what the OTHER was doing/thinking.
+4. THE CALLBACK: After branching, they RECONVENE in the final clip, referencing what happened apart.
+5. THE REACTION CHAIN: One does something solo, the other reacts in their clip — cause and effect.
 
 TRANSITION RULES FOR EVERY CHARACTER SWITCH:
-- The LAST LINE of a primary clip must CREATE A REASON for the cut to secondary (question, reference, setup, cliffhanger)
-- The FIRST LINE of a secondary clip must ACKNOWLEDGE the transition (react to what was said, answer the question, subvert the setup)
+- The LAST LINE of a clip must CREATE A REASON for the cut to the next character
+- The FIRST LINE of the next clip must ACKNOWLEDGE the transition
 - NEVER have a character switch without narrative connective tissue
 - transitionNote MUST describe the specific visual/narrative bridge between clips
 
@@ -209,7 +218,7 @@ PACING: Vary the energy. Not every clip should be high-energy. Quiet moments mak
 CRITICAL RULES:
 - Output EXACTLY ${clipCount} segments
 - Each dialogue MUST be speakable in ~${clipDuration} seconds (${wordsPerClip} words MAX — count carefully)
-- ${isDual ? `ALTERNATE between primary and secondary roles. First and last clips are ALWAYS primary.` : 'All segments use "primary".'}
+- ${isDual ? `CLIP 1 MUST feature BOTH characters TOGETHER (avatarRole="primary", but describe both in action/sceneNote). After clip 1, alternate between primary and secondary for solo clips. Last clip should bring them back together if possible. transitionNote on clip 1 MUST explain the branching motivation.` : 'All segments use "primary".'}
 - dialogue = SPOKEN WORDS ONLY. Write how people ACTUALLY TALK, not how they write.
 - Use contractions: "I'm", "can't", "wouldn't". NEVER "I am", "cannot" unless for emphasis.
 - Include natural speech patterns: "Look,", "Okay so,", "Here's the thing—", "I mean,"
@@ -233,25 +242,26 @@ function buildScreenplayUserPrompt(
 "${userPrompt}"
 
 ${isDual 
-  ? `${primary.name} and ${secondary!.name} interact like a legendary comedy duo — think Key & Peele, Abbott & Costello, or Ryan Reynolds & Hugh Jackman. They REACT to each other, riff off each other, and create magic together. Give them distinct personalities that complement each other.
+  ? `${primary.name} and ${secondary!.name} are a DUO. They start TOGETHER in clip 1 — side by side, interacting, reacting to each other in the SAME frame. The audience must see their chemistry FIRST before they branch into solo moments.
 
-⚠️ CRITICAL: The second character (${secondary!.name}) must be INTRODUCED STRATEGICALLY — NOT just randomly appearing. Use one of these:
-- Have ${primary.name} reference, call out to, or set up ${secondary!.name} before the cut
-- Use a reveal: ${secondary!.name} was watching/listening the whole time
-- Have ${secondary!.name} interrupt or respond to something ${primary.name} said
-- Use a contrast cut where ${secondary!.name}'s energy directly responds to ${primary.name}'s last moment
-Every character switch MUST have a transitionNote explaining the visual/narrative bridge.` 
+⚠️ STRUCTURE: TOGETHER → BRANCH → RECONNECT
+- CLIP 1: Both characters appear TOGETHER. Two-shot. Shared moment. Establish their dynamic.
+- CLIPS 2+: They BRANCH — one goes solo, then the other. Each solo clip references the shared moment.
+- FINAL CLIP: Ideally they RECONVENE, callback to clip 1, or the primary character wraps with a reference to the other.
+- Every character switch needs a MOTIVATED reason (walks away, camera follows one, perspective shift).
+- transitionNote on EVERY clip must explain the bridge to the next.` 
   : `${primary.name} delivers this like a master storyteller — think a TED talk speaker with the charisma of a stand-up comedian. They OWN the space, use physicality, and make the audience feel like they're being let in on a secret.`
 }
 
 REQUIREMENTS:
-1. HOOK the audience in clip 1 — they should want to keep watching
+1. CLIP 1 must show BOTH characters together — establish them as a pair
 2. Each clip should have DISTINCT physical movement (not just standing and talking)
 3. Dialogue must sound NATURAL and SPOKEN (max ${wordsPerClip} words per clip)
 4. End with a moment that makes people want to SHARE this
 5. Include at least one unexpected moment or twist
 6. Make it genuinely ENTERTAINING — not generic corporate content
-${isDual ? `7. EVERY transitionNote field MUST be filled with a specific description of how the scene bridges to the next character` : ''}
+${isDual ? `7. EVERY transitionNote field MUST describe the specific visual/narrative bridge between clips
+8. The branching from together→solo MUST feel intentional and motivated` : ''}
 
 Output ONLY the JSON object. No markdown wrapping.`;
 }

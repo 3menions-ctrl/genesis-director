@@ -128,28 +128,51 @@ ${clipCount >= 3 ? `- CLIPS 2-${clipCount - 1}: THE ESCALATION — Each beat rai
 
 ${isDual ? `
 ═══ DUAL CHARACTER CHEMISTRY ═══
-CHARACTER 1 (PRIMARY): "${primary.name}" — ${primary.avatarType === 'animated' ? 'Animated/stylized' : 'Realistic'}
-CHARACTER 2 (SECONDARY): "${secondary!.name}" — ${secondary!.avatarType === 'animated' ? 'Animated/stylized' : 'Realistic'}
+CHARACTER 1 (PRIMARY — "A1"): "${primary.name}" — ${primary.avatarType === 'animated' ? 'Animated/stylized' : 'Realistic'}
+CHARACTER 2 (SECONDARY — "A2"): "${secondary!.name}" — ${secondary!.avatarType === 'animated' ? 'Animated/stylized' : 'Realistic'}
 
-⚠️ MANDATORY STRUCTURE: "TOGETHER FIRST, THEN BRANCH" ⚠️
-CLIP 1 MUST show BOTH characters TOGETHER in the same scene. They are side by side, interacting,
-reacting to each other, or in conversation. The audience meets them AS A PAIR first.
-- Use a TWO-SHOT or WIDE framing so both characters are visible
-- They should have a shared moment: agreeing, disagreeing, discovering something together, reacting to the same thing
-- Clip 1's avatarRole is "primary" but the sceneNote and action MUST describe BOTH characters present together
-- The dialogue can reference the other character directly: looking at them, responding to them, nudging them
+⚠️ MANDATORY 6-CLIP STRUCTURE: "INTRODUCE → MEET → BRANCH → RETURN → CONTINUE → FINISH" ⚠️
 
-After the ESTABLISHING clip together, characters can BRANCH into individual clips:
-- The branching must feel MOTIVATED: one walks away, gets a phone call, goes to check something, storms off, or the camera simply FOLLOWS one of them
-- transitionNote on clip 1 MUST explain WHY the camera follows one character away from the pair
-- When cutting back to the other character, reference what happened when they were together
+THE EXACT FLOW (follow this PRECISELY for ${clipCount} clips):
 
-BRANCHING STRATEGIES (after the together clip):
-1. THE SPLIT: They agree to divide and conquer. "You take that side, I'll take this one."
-2. THE WALKAWAY: One character leaves dramatically. "Fine. I'll prove it myself." Camera follows.
-3. THE PERSPECTIVE SHIFT: Camera stays on one, then cuts to show what the OTHER was doing/thinking.
-4. THE CALLBACK: After branching, they RECONVENE in the final clip, referencing what happened apart.
-5. THE REACTION CHAIN: One does something solo, the other reacts in their clip — cause and effect.
+CLIP 1 — A1 SOLO OPENING (avatarRole: "primary")
+  - A1 is ALONE. Establishing their world, personality, and the topic/situation.
+  - A1 speaks directly to camera OR sets up the scenario. This is THEIR moment.
+  - NO mention of A2 yet. The audience bonds with A1 first.
+  - End with something that MOTIVATES the cut: A1 hears something, turns, or says "speaking of which..."
+
+CLIP 2 — A2 ENTERS / THE MEETING (avatarRole: "secondary")
+  - A2 appears in A1's space OR the camera reveals A2 was nearby.
+  - This is the INTRODUCTION moment. A2 makes an entrance — walks in, interrupts, appears from behind.
+  - SHORT DIALOGUE TOGETHER: A1 and A2 have a quick exchange (A2 speaks, referencing A1).
+  - The sceneNote MUST describe BOTH characters present. A2 is the focus but A1 is referenced.
+  - End with A2 having a REASON to go do something: "Let me go check..." / "I'll handle that" / walks off.
+
+CLIP 3 — A2 SOLO ADVENTURE (avatarRole: "secondary")
+  - A2 is NOW ALONE in a DIFFERENT ENVIRONMENT. New room, outside, driving, different location.
+  - This is A2's showcase moment. They can walk, drive, explore, react to their new surroundings.
+  - They should REFERENCE what happened with A1: "Can you believe they said..." or react to the task.
+  - MOVEMENT IS KEY: walking into a new room, driving, stepping outside, different background entirely.
+
+CLIP 4 — BACK TO A1 (avatarRole: "primary")
+  - CUT BACK to A1. Can be SAME scene or DIFFERENT scene from clip 1.
+  - A1 reacts to A2's departure, continues their thought, or has moved to a new spot.
+  - References the meeting: "Now that they're gone..." or continues the narrative thread.
+
+CLIP 5 — A1 CONTINUES (avatarRole: "primary")
+  - A1 stays on screen. Deepens the story, builds toward the conclusion.
+  - This is the ESCALATION or REVELATION moment. New info, twist, or emotional beat.
+  - Sets up the handoff to A2 for the finale: "But honestly..." or a cliffhanger.
+
+CLIP 6 — A2 FINISHES (avatarRole: "secondary")
+  - A2 gets the FINAL WORD. The closer, the punchline, the emotional landing.
+  - Can be in their solo location OR back with A1 (callback to clip 2).
+  - This must be the moment that makes people REPLAY or SHARE.
+  - THE BUTTON: End on something memorable — a twist, a callback, a mic-drop line.
+
+${clipCount !== 6 ? `NOTE: Adapt this structure proportionally for ${clipCount} clips. The KEY BEATS are:
+- A1 opens solo → A2 enters and they interact → A2 goes solo (new scene) → A1 returns → A2 closes.
+- For fewer clips, merge beats. For more clips, extend A1/A2 solo sections.` : ''}
 
 TRANSITION RULES FOR EVERY CHARACTER SWITCH:
 - The LAST LINE of a clip must CREATE A REASON for the cut to the next character
@@ -157,13 +180,17 @@ TRANSITION RULES FOR EVERY CHARACTER SWITCH:
 - NEVER have a character switch without narrative connective tissue
 - transitionNote MUST describe the specific visual/narrative bridge between clips
 
+A2 ENTRANCE STRATEGIES (for Clip 2):
+1. THE INTERRUPTION: A2 walks into frame mid-sentence. "Sorry, couldn't help but overhear—"
+2. THE REVEAL: Camera pulls back to show A2 was standing there. "You done? Because—"
+3. THE ARRIVAL: Door opens, A2 enters. "Okay, I'm here. What's the emergency?"
+4. THE REACTION: A2 appears reacting to what A1 just said. "Wait, you're serious about that?"
+
 DIALOGUE MASTERY RULES:
 - These two have CHEMISTRY. They play off each other like a comedy duo.
 - Use INTERRUPTIONS: "Wait, did you just—" "Yes. And I'd do it again."
 - Use REACTIONS: One character's face tells the story while the other talks.
 - Use DISAGREEMENT that's ENTERTAINING: They don't just agree on everything.
-- OVERLAPPING energy: One is the setup, the other is the punchline (alternate who's which).
-- PHYSICAL INTERPLAY: They can nudge each other, point at each other, turn away dramatically.
 - Give each a DISTINCT VOICE: One might be deadpan, the other expressive. One formal, one casual.
 - They REFERENCE what the other said/did: "You literally just—" "We don't talk about that."
 ` : `
@@ -218,7 +245,7 @@ PACING: Vary the energy. Not every clip should be high-energy. Quiet moments mak
 CRITICAL RULES:
 - Output EXACTLY ${clipCount} segments
 - Each dialogue MUST be speakable in ~${clipDuration} seconds (${wordsPerClip} words MAX — count carefully)
-- ${isDual ? `CLIP 1 MUST feature BOTH characters TOGETHER (avatarRole="primary", but describe both in action/sceneNote). After clip 1, alternate between primary and secondary for solo clips. Last clip should bring them back together if possible. transitionNote on clip 1 MUST explain the branching motivation.` : 'All segments use "primary".'}
+- ${isDual ? `Follow the EXACT clip structure: Clip 1=primary solo, Clip 2=secondary (enters A1's scene), Clip 3=secondary solo (NEW location), Clip 4=primary returns, Clip 5=primary continues, Clip 6=secondary finishes. avatarRole must match: "primary" for A1 clips, "secondary" for A2 clips.` : 'All segments use "primary".'}
 - dialogue = SPOKEN WORDS ONLY. Write how people ACTUALLY TALK, not how they write.
 - Use contractions: "I'm", "can't", "wouldn't". NEVER "I am", "cannot" unless for emphasis.
 - Include natural speech patterns: "Look,", "Okay so,", "Here's the thing—", "I mean,"
@@ -242,26 +269,29 @@ function buildScreenplayUserPrompt(
 "${userPrompt}"
 
 ${isDual 
-  ? `${primary.name} and ${secondary!.name} are a DUO. They start TOGETHER in clip 1 — side by side, interacting, reacting to each other in the SAME frame. The audience must see their chemistry FIRST before they branch into solo moments.
+  ? `${primary.name} (A1) and ${secondary!.name} (A2) are a DUO with amazing chemistry.
 
-⚠️ STRUCTURE: TOGETHER → BRANCH → RECONNECT
-- CLIP 1: Both characters appear TOGETHER. Two-shot. Shared moment. Establish their dynamic.
-- CLIPS 2+: They BRANCH — one goes solo, then the other. Each solo clip references the shared moment.
-- FINAL CLIP: Ideally they RECONVENE, callback to clip 1, or the primary character wraps with a reference to the other.
-- Every character switch needs a MOTIVATED reason (walks away, camera follows one, perspective shift).
-- transitionNote on EVERY clip must explain the bridge to the next.` 
+⚠️ MANDATORY STRUCTURE — FOLLOW EXACTLY:
+- CLIP 1: A1 (${primary.name}) is ALONE. Solo opening. Establishes the world and topic.
+- CLIP 2: A2 (${secondary!.name}) ENTERS A1's scene. They interact briefly — short dialogue together. A2 is the focus.
+- CLIP 3: A2 goes SOLO in a DIFFERENT LOCATION (new room, outside, driving, etc.). Adventure/exploration moment.
+- CLIP 4: Cut BACK to A1. Same or different scene. A1 continues the narrative.
+- CLIP 5: A1 stays on. Escalation or revelation. Builds to the close.
+- CLIP 6: A2 gets the FINAL WORD. The closer, the punchline, the payoff.
+- Every character switch needs a MOTIVATED reason and transitionNote explaining the bridge.` 
   : `${primary.name} delivers this like a master storyteller — think a TED talk speaker with the charisma of a stand-up comedian. They OWN the space, use physicality, and make the audience feel like they're being let in on a secret.`
 }
 
 REQUIREMENTS:
-1. CLIP 1 must show BOTH characters together — establish them as a pair
-2. Each clip should have DISTINCT physical movement (not just standing and talking)
-3. Dialogue must sound NATURAL and SPOKEN (max ${wordsPerClip} words per clip)
-4. End with a moment that makes people want to SHARE this
-5. Include at least one unexpected moment or twist
-6. Make it genuinely ENTERTAINING — not generic corporate content
-${isDual ? `7. EVERY transitionNote field MUST describe the specific visual/narrative bridge between clips
-8. The branching from together→solo MUST feel intentional and motivated` : ''}
+1. CLIP 1 is A1 SOLO — no A2 yet
+2. CLIP 2 introduces A2 INTO A1's scene — they meet/interact
+3. CLIP 3 sends A2 to a DIFFERENT ENVIRONMENT — new background, movement, exploration
+4. Each clip should have DISTINCT physical movement (not just standing and talking)
+5. Dialogue must sound NATURAL and SPOKEN (max ${wordsPerClip} words per clip)
+6. End with a moment that makes people want to SHARE this
+7. Make it genuinely ENTERTAINING — not generic corporate content
+${isDual ? `8. EVERY transitionNote field MUST describe the specific visual/narrative bridge between clips
+9. A2's solo clip (clip 3) MUST have a visually DIFFERENT scene/background from clips 1-2` : ''}
 
 Output ONLY the JSON object. No markdown wrapping.`;
 }
@@ -330,9 +360,13 @@ function parseScreenplayResponse(
       });
     }
     
+    // Enforce the correct dual-avatar structure:
+    // Clip 1: primary, Clip 2: secondary, Clip 3: secondary, Clip 4: primary, Clip 5: primary, Clip 6: secondary
     if (secondary && segments.length >= 2) {
-      segments[0].avatarRole = 'primary';
-      segments[segments.length - 1].avatarRole = 'primary';
+      const dualPattern = getDualAvatarPattern(segments.length);
+      for (let i = 0; i < segments.length; i++) {
+        segments[i].avatarRole = dualPattern[i] || 'primary';
+      }
     }
     
     return {
@@ -346,6 +380,24 @@ function parseScreenplayResponse(
     console.error("[ScreenplayGen] JSON parse failed:", e);
     return createFallbackScreenplay(content, clipCount, primary, secondary);
   }
+}
+
+/**
+ * Returns the mandatory avatarRole pattern for dual-avatar clips.
+ * Pattern: A1 solo → A2 enters → A2 solo → A1 returns → A1 continues → A2 finishes
+ */
+function getDualAvatarPattern(clipCount: number): Array<'primary' | 'secondary'> {
+  if (clipCount <= 2) return ['primary', 'secondary'];
+  if (clipCount === 3) return ['primary', 'secondary', 'secondary'];
+  if (clipCount === 4) return ['primary', 'secondary', 'secondary', 'primary'];
+  if (clipCount === 5) return ['primary', 'secondary', 'secondary', 'primary', 'secondary'];
+  // 6+ clips: primary, secondary, secondary, primary, primary, secondary
+  const pattern: Array<'primary' | 'secondary'> = ['primary', 'secondary', 'secondary', 'primary', 'primary', 'secondary'];
+  // For clips beyond 6, alternate
+  for (let i = 6; i < clipCount; i++) {
+    pattern.push(i % 2 === 0 ? 'primary' : 'secondary');
+  }
+  return pattern;
 }
 
 function createFallbackScreenplay(
@@ -371,13 +423,13 @@ function createFallbackScreenplay(
   ];
   
   const segments: ScreenplaySegment[] = [];
+  const dualPattern = secondary ? getDualAvatarPattern(clipCount) : null;
   for (let i = 0; i < clipCount; i++) {
     const sentenceIdx = i % Math.max(clean.length, 1);
-    const isSecondary = secondary && i > 0 && i < clipCount - 1 && i % 2 === 1;
     
     segments.push({
       clipIndex: i,
-      avatarRole: isSecondary ? 'secondary' : 'primary',
+      avatarRole: dualPattern ? dualPattern[i] : 'primary',
       dialogue: clean[sentenceIdx] || script,
       action: fallbackActions[i % fallbackActions.length],
       movement: fallbackMovements[i % fallbackMovements.length],

@@ -55,8 +55,7 @@ const BackgroundFallback = memo(forwardRef<HTMLDivElement, Record<string, never>
 ));
 BackgroundFallback.displayName = 'BackgroundFallback';
 
-// Inactivity timeout in milliseconds
-const INACTIVITY_TIMEOUT = 10000;
+// Main Landing Component
 
 // Main Landing Component
 export default function Landing() {
@@ -65,9 +64,7 @@ export default function Landing() {
   
   const [showExamples, setShowExamples] = useState(false);
   const [showCinematicTransition, setShowCinematicTransition] = useState(false);
-  const [showScreenCrash, setShowScreenCrash] = useState(false);
   const signUpButtonRef = useRef<HTMLButtonElement>(null);
-  const hasTriggeredCrash = useRef(false);
 
   // Redirect authenticated users
   useEffect(() => {
@@ -75,36 +72,6 @@ export default function Landing() {
       navigate('/projects');
     }
   }, [user, navigate]);
-
-  // Inactivity detection - trigger screen crash after 10 seconds
-  useEffect(() => {
-    // Only for non-authenticated users who haven't seen it
-    if (user || hasTriggeredCrash.current) return;
-
-    let inactivityTimer: NodeJS.Timeout;
-
-    const resetTimer = () => {
-      clearTimeout(inactivityTimer);
-      if (!hasTriggeredCrash.current && !showScreenCrash) {
-        inactivityTimer = setTimeout(() => {
-          hasTriggeredCrash.current = true;
-          setShowScreenCrash(true);
-        }, INACTIVITY_TIMEOUT);
-      }
-    };
-
-    // Start timer
-    resetTimer();
-
-    // Reset on user activity
-    const events = ['mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
-    events.forEach(event => window.addEventListener(event, resetTimer));
-
-    return () => {
-      clearTimeout(inactivityTimer);
-      events.forEach(event => window.removeEventListener(event, resetTimer));
-    };
-  }, [user, showScreenCrash]);
 
   // Navigation handlers
   const scrollToSection = useCallback((target: string) => {
@@ -127,8 +94,9 @@ export default function Landing() {
     setShowExamples(open);
   }, []);
 
+  const [screenCrashDismissed, setScreenCrashDismissed] = useState(false);
   const handleDismissScreenCrash = useCallback(() => {
-    setShowScreenCrash(false);
+    setScreenCrashDismissed(true);
   }, []);
 
   return (
@@ -137,7 +105,7 @@ export default function Landing() {
       <ErrorBoundaryWrapper fallback={null}>
         <Suspense fallback={null}>
           <ScreenCrashOverlay 
-            isActive={showScreenCrash} 
+            isActive={!user && !screenCrashDismissed} 
             onDismiss={handleDismissScreenCrash}
           />
         </Suspense>

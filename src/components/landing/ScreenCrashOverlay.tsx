@@ -1,8 +1,9 @@
 /**
- * ScreenCrashOverlay - v3 with Epic Countdown
+ * ScreenCrashOverlay - Background Countdown + Glass Shatter
  * 
- * Adds a dramatic 5-second countdown before the glass shatter,
- * building tension with escalating visual effects.
+ * The countdown lives BEHIND all page content (z-[1]) and is only visible
+ * during user inactivity. Any scroll/mouse/key resets it to 10 seconds.
+ * When it reaches 0, the shatter takes over the foreground.
  */
 
 import { memo, useState, useEffect, useCallback, useRef, Suspense } from 'react';
@@ -16,10 +17,10 @@ import { cn } from '@/lib/utils';
 
 // Lazy load the heavy 3D scene
 const GlassShatterScene = memo(function GlassShatterSceneLazy({
-  isShattered, 
-  isFading 
-}: { 
-  isShattered: boolean; 
+  isShattered,
+  isFading
+}: {
+  isShattered: boolean;
   isFading: boolean;
 }) {
   const [SceneComponent, setSceneComponent] = useState<React.ComponentType<{
@@ -46,58 +47,71 @@ interface ScreenCrashOverlayProps {
   onDismiss: () => void;
 }
 
-type Phase = 'idle' | 'countdown' | 'impact' | 'shatter' | 'cta';
+type Phase = 'background' | 'impact' | 'shatter' | 'cta';
 
-const COUNTDOWN_SECONDS = 5;
+const COUNTDOWN_MAX = 10;
+const INACTIVITY_DELAY = 2000; // ms before countdown resumes after last activity
 
 const ScreenCrashOverlay = memo(function ScreenCrashOverlay({
   isActive,
   onDismiss
 }: ScreenCrashOverlayProps) {
-  const [phase, setPhase] = useState<Phase>('idle');
-  const [count, setCount] = useState(COUNTDOWN_SECONDS);
+  const [phase, setPhase] = useState<Phase>('background');
+  const [count, setCount] = useState(COUNTDOWN_MAX);
+  const [isInactive, setIsInactive] = useState(false);
   const [canvasError, setCanvasError] = useState(false);
-  const overlayRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<any>(null);
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasShatteredRef = useRef(false);
   const { navigate } = useSafeNavigation();
 
-  // Phase sequencing
+  // Track user activity — reset countdown and pause
   useEffect(() => {
-    if (!isActive) {
-      setPhase('idle');
-      setCount(COUNTDOWN_SECONDS);
-      setCanvasError(false);
-      
-      if (rendererRef.current) {
-        try {
-          rendererRef.current.dispose();
-          rendererRef.current.forceContextLoss();
-        } catch { /* ignore */ }
-        rendererRef.current = null;
+    if (!isActive || hasShatteredRef.current) return;
+
+    const handleActivity = () => {
+      // Reset countdown to max
+      setCount(COUNTDOWN_MAX);
+      setIsInactive(false);
+
+      // Clear existing inactivity timer
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
       }
-      return;
-    }
 
-    // Start countdown
-    setPhase('countdown');
-    setCount(COUNTDOWN_SECONDS);
+      // Start new inactivity timer
+      inactivityTimerRef.current = setTimeout(() => {
+        setIsInactive(true);
+      }, INACTIVITY_DELAY);
+    };
 
-    return () => {};
+    const events = ['mousemove', 'keydown', 'scroll', 'touchstart', 'click', 'wheel'];
+    events.forEach(e => window.addEventListener(e, handleActivity, { passive: true }));
+
+    // Start initial inactivity timer
+    inactivityTimerRef.current = setTimeout(() => {
+      setIsInactive(true);
+    }, INACTIVITY_DELAY);
+
+    return () => {
+      events.forEach(e => window.removeEventListener(e, handleActivity));
+      if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+    };
   }, [isActive]);
 
-  // Countdown ticker
+  // Countdown ticker — only ticks when inactive
   useEffect(() => {
-    if (phase !== 'countdown') return;
+    if (!isActive || !isInactive || phase !== 'background' || hasShatteredRef.current) return;
 
     if (count <= 0) {
-      // Countdown finished → impact
+      hasShatteredRef.current = true;
       setPhase('impact');
       return;
     }
 
     const timer = setTimeout(() => setCount(prev => prev - 1), 1000);
     return () => clearTimeout(timer);
-  }, [phase, count]);
+  }, [isActive, isInactive, phase, count]);
 
   // Impact → shatter → CTA sequencing
   useEffect(() => {
@@ -108,7 +122,26 @@ const ScreenCrashOverlay = memo(function ScreenCrashOverlay({
     return () => timers.forEach(clearTimeout);
   }, [phase]);
 
-  // Cleanup WebGL on unmount
+  // Reset on deactivation
+  useEffect(() => {
+    if (!isActive) {
+      setPhase('background');
+      setCount(COUNTDOWN_MAX);
+      setIsInactive(false);
+      setCanvasError(false);
+      hasShatteredRef.current = false;
+
+      if (rendererRef.current) {
+        try {
+          rendererRef.current.dispose();
+          rendererRef.current.forceContextLoss();
+        } catch { /* ignore */ }
+        rendererRef.current = null;
+      }
+    }
+  }, [isActive]);
+
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (rendererRef.current) {
@@ -118,6 +151,7 @@ const ScreenCrashOverlay = memo(function ScreenCrashOverlay({
         } catch { /* ignore */ }
         rendererRef.current = null;
       }
+      if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
     };
   }, []);
 
@@ -127,52 +161,87 @@ const ScreenCrashOverlay = memo(function ScreenCrashOverlay({
   }, [navigate, onDismiss]);
 
   const handleOverlayClick = useCallback(() => {
-    if (phase === 'cta') {
-      onDismiss();
-    }
+    if (phase === 'cta') onDismiss();
   }, [onDismiss, phase]);
 
   if (!isActive) return null;
 
-  // Intensity grows as countdown decreases (5→1 = 0→1 intensity)
-  const intensity = phase === 'countdown' ? (COUNTDOWN_SECONDS - count) / COUNTDOWN_SECONDS : 1;
+  const isForeground = phase === 'impact' || phase === 'shatter' || phase === 'cta';
+  // Opacity: fully visible when inactive and counting, fades when active
+  const countdownOpacity = isInactive ? Math.min(1, (COUNTDOWN_MAX - count) * 0.15 + 0.3) : 0;
 
   return (
-    <div
-      ref={overlayRef}
-      className="fixed inset-0 z-[100] cursor-pointer"
-      onClick={handleOverlayClick}
-    >
-      {/* Deep void background — fades in during countdown */}
-      <div
-        className="absolute inset-0 transition-opacity duration-700"
-        style={{
-          background: 'radial-gradient(ellipse at 50% 50%, #0a0a0f 0%, #030303 50%, #000000 100%)',
-          opacity: phase === 'idle' ? 0 : phase === 'countdown' ? 0.6 + intensity * 0.4 : 1,
-        }}
-      />
-
-      {/* ===== COUNTDOWN PHASE ===== */}
-      {phase === 'countdown' && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          {/* Escalating radial pulse */}
+    <>
+      {/* ===== BACKGROUND COUNTDOWN LAYER (behind everything) ===== */}
+      {phase === 'background' && (
+        <div
+          className="fixed inset-0 z-[1] pointer-events-none select-none overflow-hidden"
+          style={{ opacity: countdownOpacity, transition: 'opacity 0.8s ease-in-out' }}
+        >
+          {/* Subtle radial glow */}
           <div
-            className="absolute rounded-full animate-countdown-pulse"
+            className="absolute inset-0"
             style={{
-              width: `${200 + intensity * 400}px`,
-              height: `${200 + intensity * 400}px`,
-              background: `radial-gradient(circle, rgba(139,92,246,${0.05 + intensity * 0.15}) 0%, transparent 70%)`,
-              filter: `blur(${40 - intensity * 20}px)`,
-              transition: 'width 0.8s, height 0.8s, background 0.8s',
+              background: `radial-gradient(ellipse at 50% 50%, rgba(139,92,246,${0.03 + (COUNTDOWN_MAX - count) * 0.008}) 0%, transparent 60%)`,
             }}
           />
 
-          {/* Crack lines that grow with each count */}
-          {count <= 3 && (
+          {/* Giant countdown number */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            {/* Number glow layer */}
+            <div
+              className="absolute"
+              style={{ filter: `blur(${60 - count * 3}px)` }}
+            >
+              <span
+                className="text-[30vw] md:text-[25vw] font-black tabular-nums leading-none"
+                style={{
+                  color: `rgba(139,92,246,${0.08 + (COUNTDOWN_MAX - count) * 0.02})`,
+                }}
+              >
+                {count}
+              </span>
+            </div>
+
+            {/* Main number */}
+            <span
+              key={count}
+              className="relative text-[30vw] md:text-[25vw] font-black tabular-nums leading-none animate-bg-countdown-tick"
+              style={{
+                color: `rgba(255,255,255,${0.04 + (COUNTDOWN_MAX - count) * 0.015})`,
+                textShadow: count <= 3
+                  ? `0 0 ${80 - count * 15}px rgba(139,92,246,${0.15 + (3 - count) * 0.1})`
+                  : 'none',
+              }}
+            >
+              {count}
+            </span>
+          </div>
+
+          {/* Expanding rings — only visible at lower counts */}
+          {count <= 5 && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              {[0, 1].map(ring => (
+                <div
+                  key={ring}
+                  className="absolute rounded-full"
+                  style={{
+                    width: `${20 + ring * 15}vw`,
+                    height: `${20 + ring * 15}vw`,
+                    border: `1px solid rgba(139,92,246,${0.06 - ring * 0.02})`,
+                    animation: `ring-breathe 3s ease-in-out infinite ${ring * 0.5}s`,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Crack lines at very low counts */}
+          {count <= 2 && (
             <div className="absolute inset-0 pointer-events-none">
-              {Array.from({ length: Math.min((4 - count) * 4, 12) }).map((_, i) => {
-                const angle = (i / 12) * 360;
-                const length = 30 + (4 - count) * 25 + Math.random() * 20;
+              {Array.from({ length: (3 - count) * 5 }).map((_, i) => {
+                const angle = (i / 15) * 360 + Math.random() * 30;
+                const length = 15 + (3 - count) * 12;
                 return (
                   <div
                     key={i}
@@ -180,287 +249,186 @@ const ScreenCrashOverlay = memo(function ScreenCrashOverlay({
                     style={{
                       width: `${length}%`,
                       height: '1px',
-                      background: `linear-gradient(90deg, rgba(139,92,246,${0.4 + (4 - count) * 0.2}), transparent)`,
-                      transform: `rotate(${angle + Math.random() * 20}deg)`,
-                      animation: `crack-grow 0.3s ease-out ${i * 0.05}s both`,
+                      background: `linear-gradient(90deg, rgba(139,92,246,${0.08 + (3 - count) * 0.04}), transparent)`,
+                      transform: `rotate(${angle}deg)`,
+                      animation: `crack-grow 0.5s ease-out ${i * 0.08}s both`,
                     }}
                   />
                 );
               })}
             </div>
           )}
-
-          {/* Expanding rings */}
-          {[0, 1, 2].map(ring => (
-            <div
-              key={ring}
-              className="absolute rounded-full"
-              style={{
-                width: `${100 + ring * 60}px`,
-                height: `${100 + ring * 60}px`,
-                border: `1px solid rgba(139,92,246,${(0.1 + intensity * 0.2) - ring * 0.05})`,
-                animation: `ring-breathe 2s ease-in-out infinite ${ring * 0.3}s`,
-              }}
-            />
-          ))}
-
-          {/* THE NUMBER */}
-          <div className="relative" key={count}>
-            {/* Number glow */}
-            <div
-              className="absolute inset-0 flex items-center justify-center"
-              style={{
-                filter: `blur(${20 + intensity * 10}px)`,
-              }}
-            >
-              <span
-                className="text-[200px] md:text-[300px] font-black tabular-nums"
-                style={{ color: `rgba(139,92,246,${0.3 + intensity * 0.3})` }}
-              >
-                {count > 0 ? count : ''}
-              </span>
-            </div>
-
-            {/* Number body */}
-            <span
-              className="relative block text-[200px] md:text-[300px] font-black tabular-nums leading-none animate-countdown-number"
-              style={{
-                color: 'white',
-                textShadow: `0 0 ${30 + intensity * 40}px rgba(139,92,246,${0.3 + intensity * 0.4}), 0 0 ${60 + intensity * 80}px rgba(139,92,246,${0.15 + intensity * 0.2})`,
-              }}
-            >
-              {count > 0 ? count : ''}
-            </span>
-          </div>
-
-          {/* Sub-label */}
-          <p
-            className="absolute bottom-[20%] text-white/20 text-sm uppercase tracking-[0.4em] font-medium animate-fade-in"
-            style={{ animationDelay: '0.3s' }}
-          >
-            {count > 3 ? 'Something is coming...' : count > 1 ? 'Brace yourself' : 'Impact'}
-          </p>
-
-          {/* Heartbeat vignette — stronger as count lowers */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              boxShadow: `inset 0 0 ${100 + intensity * 150}px rgba(0,0,0,${0.3 + intensity * 0.4})`,
-              animation: count <= 2 ? 'heartbeat-vignette 0.8s ease-in-out infinite' : undefined,
-            }}
-          />
         </div>
       )}
 
-      {/* Impact flash */}
-      {phase === 'impact' && (
-        <>
-          <div className="absolute inset-0 pointer-events-none animate-flash-impact" />
-          <div 
-            className="absolute inset-0 pointer-events-none mix-blend-screen"
-            style={{
-              background: 'radial-gradient(circle at 50% 50%, rgba(139,92,246,0.3) 0%, rgba(59,130,246,0.15) 30%, transparent 60%)',
-            }}
-          />
-          <style>{`
-            @keyframes screenShake {
-              0%, 100% { transform: translate(0, 0); }
-              10% { transform: translate(-3px, 2px); }
-              20% { transform: translate(4px, -2px); }
-              30% { transform: translate(-2px, 3px); }
-              40% { transform: translate(3px, -1px); }
-              50% { transform: translate(-1px, 2px); }
-              60% { transform: translate(2px, -2px); }
-              70% { transform: translate(-2px, 1px); }
-              80% { transform: translate(1px, -1px); }
-            }
-            .screen-shake { animation: screenShake 0.3s ease-out; }
-          `}</style>
-        </>
-      )}
-
-      {/* 3D Glass Shatter Scene */}
-      {!canvasError && (phase === 'impact' || phase === 'shatter' || phase === 'cta') && (
-        <div 
-          className={cn(
-            "absolute inset-0 transition-opacity duration-1500",
-            phase === 'cta' ? "opacity-15" : "opacity-100"
-          )}
+      {/* ===== FOREGROUND SHATTER + CTA (takes over screen) ===== */}
+      {isForeground && (
+        <div
+          className="fixed inset-0 z-[100] cursor-pointer"
+          onClick={handleOverlayClick}
         >
-          <SilentBoundary>
-            <Canvas
-              camera={{ position: [0, 0, 5.5], fov: 50 }}
-              gl={{ 
-                antialias: true, 
-                alpha: true,
-                powerPreference: 'high-performance',
-                failIfMajorPerformanceCaveat: false,
-                toneMapping: THREE.ACESFilmicToneMapping,
-                toneMappingExposure: 1.4,
-              }}
-              dpr={[1, 2.5]}
-              frameloop={phase === 'cta' ? 'demand' : 'always'}
-              onCreated={({ gl }) => {
-                rendererRef.current = gl;
-                gl.domElement.addEventListener('webglcontextlost', (e) => {
-                  e.preventDefault();
-                  setCanvasError(true);
-                }, false);
-              }}
-            >
-              <Suspense fallback={null}>
-                <GlassShatterScene 
-                  isShattered={phase === 'shatter' || phase === 'cta'} 
-                  isFading={phase === 'cta'}
-                />
-              </Suspense>
-            </Canvas>
-          </SilentBoundary>
-        </div>
-      )}
-
-      {/* CSS fallback shards */}
-      {canvasError && (phase === 'shatter' || phase === 'cta') && (
-        <div className="absolute inset-0 pointer-events-none animate-fade-in">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-16 h-16 border border-white/20 animate-shard-fly"
-              style={{
-                left: `${20 + (i % 4) * 15}%`,
-                top: `${20 + Math.floor(i / 4) * 20}%`,
-                clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
-                animationDelay: `${i * 40}ms`,
-                '--shard-x': `${(Math.random() - 0.5) * 400}px`,
-                '--shard-y': `${(Math.random() - 0.5) * 400}px`,
-                '--shard-rotate': `${Math.random() * 360}deg`,
-              } as React.CSSProperties}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* CTA Section */}
-      {phase === 'cta' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <div 
-            className="absolute w-[800px] h-[800px] rounded-full pointer-events-none animate-scale-in"
+          {/* Deep void background */}
+          <div
+            className="absolute inset-0"
             style={{
-              background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, rgba(139,92,246,0.04) 40%, transparent 70%)',
-              filter: 'blur(60px)',
+              background: 'radial-gradient(ellipse at 50% 50%, #0a0a0f 0%, #030303 50%, #000000 100%)',
             }}
           />
 
-          {[0, 1, 2].map((ring) => (
-            <div
-              key={ring}
-              className="absolute rounded-full pointer-events-none animate-ring-expand"
-              style={{
-                width: 180,
-                height: 180,
-                border: '1px solid',
-                borderColor: `rgba(139, 92, 246, ${0.4 - ring * 0.1})`,
-                animationDelay: `${0.4 + ring * 0.3}s`,
-              }}
-            />
-          ))}
-
-          <p className="text-white/40 text-sm uppercase tracking-[0.3em] font-medium mb-6 animate-fade-in"
-             style={{ animationDelay: '0.2s' }}>
-            Break through
-          </p>
-
-          <div className="pointer-events-auto relative animate-scale-in" style={{ animationDelay: '0.4s' }}>
-            <div
-              className="absolute inset-0 rounded-full blur-2xl animate-pulse-glow"
-              style={{
-                background: 'linear-gradient(135deg, rgba(139,92,246,0.5) 0%, rgba(59,130,246,0.3) 100%)',
-              }}
-            />
-            
-            <Button
-              onClick={handleLetsGo}
-              className="relative h-16 md:h-20 px-12 md:px-16 text-xl md:text-2xl font-bold rounded-full overflow-hidden group hover:scale-[1.03] active:scale-[0.98] transition-transform"
-              style={{
-                background: 'linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%)',
-                color: '#0a0a0f',
-                boxShadow: '0 0 60px rgba(255,255,255,0.4), 0 0 120px rgba(139,92,246,0.3), inset 0 1px 0 rgba(255,255,255,0.8)',
-              }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12 animate-shine-sweep" />
-              <span className="relative flex items-center gap-3 md:gap-4">
-                <Zap className="w-6 h-6 md:w-7 md:h-7" style={{ fill: 'currentColor' }} />
-                <span className="tracking-wide">Let's Go!</span>
-                <ArrowRight className="w-6 h-6 md:w-7 md:h-7 animate-arrow-bounce" />
-              </span>
-            </Button>
-          </div>
-
-          <p className="mt-8 text-white/30 text-base md:text-lg font-light tracking-wide animate-fade-in"
-             style={{ animationDelay: '0.8s' }}>
-            Create videos that shatter expectations
-          </p>
-
-          {Array.from({ length: 8 }).map((_, i) => {
-            const angle = (i / 8) * Math.PI * 2;
-            const distance = 120 + (i % 3) * 30;
-            return (
+          {/* Impact flash */}
+          {phase === 'impact' && (
+            <>
+              <div className="absolute inset-0 pointer-events-none animate-flash-impact" />
               <div
-                key={i}
-                className="absolute w-1 h-1 rounded-full pointer-events-none animate-sparkle-float"
+                className="absolute inset-0 pointer-events-none mix-blend-screen"
                 style={{
-                  background: i % 2 === 0 ? '#a855f7' : '#ffffff',
-                  boxShadow: i % 2 === 0 ? '0 0 6px #a855f7' : '0 0 4px #ffffff',
-                  '--sparkle-x': `${Math.cos(angle) * distance}px`,
-                  '--sparkle-y': `${Math.sin(angle) * distance}px`,
-                  animationDelay: `${0.6 + i * 0.12}s`,
-                } as React.CSSProperties}
+                  background: 'radial-gradient(circle at 50% 50%, rgba(139,92,246,0.3) 0%, rgba(59,130,246,0.15) 30%, transparent 60%)',
+                }}
               />
-            );
-          })}
+            </>
+          )}
+
+          {/* 3D Glass Shatter Scene */}
+          {!canvasError && (
+            <div
+              className={cn(
+                "absolute inset-0 transition-opacity duration-1500",
+                phase === 'cta' ? "opacity-15" : "opacity-100"
+              )}
+            >
+              <SilentBoundary>
+                <Canvas
+                  camera={{ position: [0, 0, 5.5], fov: 50 }}
+                  gl={{
+                    antialias: true,
+                    alpha: true,
+                    powerPreference: 'high-performance',
+                    failIfMajorPerformanceCaveat: false,
+                    toneMapping: THREE.ACESFilmicToneMapping,
+                    toneMappingExposure: 1.4,
+                  }}
+                  dpr={[1, 2.5]}
+                  frameloop={phase === 'cta' ? 'demand' : 'always'}
+                  onCreated={({ gl }) => {
+                    rendererRef.current = gl;
+                    gl.domElement.addEventListener('webglcontextlost', (e) => {
+                      e.preventDefault();
+                      setCanvasError(true);
+                    }, false);
+                  }}
+                >
+                  <Suspense fallback={null}>
+                    <GlassShatterScene
+                      isShattered={phase === 'shatter' || phase === 'cta'}
+                      isFading={phase === 'cta'}
+                    />
+                  </Suspense>
+                </Canvas>
+              </SilentBoundary>
+            </div>
+          )}
+
+          {/* CSS fallback shards */}
+          {canvasError && (phase === 'shatter' || phase === 'cta') && (
+            <div className="absolute inset-0 pointer-events-none animate-fade-in">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute w-16 h-16 border border-white/20 animate-shard-fly"
+                  style={{
+                    left: `${20 + (i % 4) * 15}%`,
+                    top: `${20 + Math.floor(i / 4) * 20}%`,
+                    clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
+                    animationDelay: `${i * 40}ms`,
+                    '--shard-x': `${(Math.random() - 0.5) * 400}px`,
+                    '--shard-y': `${(Math.random() - 0.5) * 400}px`,
+                    '--shard-rotate': `${Math.random() * 360}deg`,
+                  } as React.CSSProperties}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* CTA Section */}
+          {phase === 'cta' && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <div
+                className="absolute w-[800px] h-[800px] rounded-full pointer-events-none animate-scale-in"
+                style={{
+                  background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, rgba(139,92,246,0.04) 40%, transparent 70%)',
+                  filter: 'blur(60px)',
+                }}
+              />
+
+              <p className="text-white/40 text-sm uppercase tracking-[0.3em] font-medium mb-6 animate-fade-in"
+                 style={{ animationDelay: '0.2s' }}>
+                Break through
+              </p>
+
+              <div className="pointer-events-auto relative animate-scale-in" style={{ animationDelay: '0.4s' }}>
+                <div
+                  className="absolute inset-0 rounded-full blur-2xl animate-pulse-glow"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(139,92,246,0.5) 0%, rgba(59,130,246,0.3) 100%)',
+                  }}
+                />
+
+                <Button
+                  onClick={handleLetsGo}
+                  className="relative h-16 md:h-20 px-12 md:px-16 text-xl md:text-2xl font-bold rounded-full overflow-hidden group hover:scale-[1.03] active:scale-[0.98] transition-transform"
+                  style={{
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%)',
+                    color: '#0a0a0f',
+                    boxShadow: '0 0 60px rgba(255,255,255,0.4), 0 0 120px rgba(139,92,246,0.3), inset 0 1px 0 rgba(255,255,255,0.8)',
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12 animate-shine-sweep" />
+                  <span className="relative flex items-center gap-3 md:gap-4">
+                    <Zap className="w-6 h-6 md:w-7 md:h-7" style={{ fill: 'currentColor' }} />
+                    <span className="tracking-wide">Let's Go!</span>
+                    <ArrowRight className="w-6 h-6 md:w-7 md:h-7 animate-arrow-bounce" />
+                  </span>
+                </Button>
+              </div>
+
+              <p className="mt-8 text-white/30 text-base md:text-lg font-light tracking-wide animate-fade-in"
+                 style={{ animationDelay: '0.8s' }}>
+                Create videos that shatter expectations
+              </p>
+            </div>
+          )}
+
+          {/* Dismiss hint */}
+          {phase === 'cta' && (
+            <p className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/15 text-sm pointer-events-none animate-fade-in"
+               style={{ animationDelay: '2s' }}>
+              Click anywhere to dismiss
+            </p>
+          )}
         </div>
       )}
 
-      {/* Dismiss hint */}
-      {phase === 'cta' && (
-        <p className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/15 text-sm pointer-events-none animate-fade-in"
-           style={{ animationDelay: '2s' }}>
-          Click anywhere to dismiss
-        </p>
-      )}
-
-      {/* Countdown-specific animations */}
+      {/* Animations */}
       <style>{`
-        @keyframes countdown-number {
-          0% { transform: scale(1.4); opacity: 0; }
-          15% { transform: scale(1); opacity: 1; }
-          80% { transform: scale(1); opacity: 1; }
-          100% { transform: scale(0.85); opacity: 0; }
+        @keyframes bg-countdown-tick {
+          0% { transform: scale(1.08); opacity: 0; }
+          20% { transform: scale(1); opacity: 1; }
+          80% { opacity: 1; }
+          100% { opacity: 0.8; }
         }
-        .animate-countdown-number {
-          animation: countdown-number 1s ease-out;
-        }
-        @keyframes countdown-pulse {
-          0%, 100% { transform: scale(1); opacity: 0.5; }
-          50% { transform: scale(1.15); opacity: 1; }
-        }
-        .animate-countdown-pulse {
-          animation: countdown-pulse 1s ease-in-out infinite;
+        .animate-bg-countdown-tick {
+          animation: bg-countdown-tick 1s ease-out;
         }
         @keyframes ring-breathe {
           0%, 100% { transform: scale(1); opacity: 0.3; }
-          50% { transform: scale(1.1); opacity: 0.6; }
+          50% { transform: scale(1.08); opacity: 0.6; }
         }
         @keyframes crack-grow {
           0% { transform: scaleX(0); opacity: 0; }
           100% { transform: scaleX(1); opacity: 1; }
         }
-        @keyframes heartbeat-vignette {
-          0%, 100% { opacity: 0.7; }
-          50% { opacity: 1; }
-        }
       `}</style>
-    </div>
+    </>
   );
 });
 

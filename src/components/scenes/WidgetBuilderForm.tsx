@@ -104,6 +104,11 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
           if (aiConfig.triggers) setTriggers(aiConfig.triggers);
           if (aiConfig.rules?.length) setRules(aiConfig.rules);
         }}
+        onSceneVideoReady={(sceneId, videoUrl) => {
+          setScenes(prev => prev.map(s =>
+            s.id === sceneId ? { ...s, src_mp4: videoUrl, video_generation_status: 'completed' } : s
+          ));
+        }}
       />
 
       {/* Save button */}

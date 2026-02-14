@@ -362,13 +362,14 @@ CRITICAL REQUIREMENTS:
     const generatedProjects: { sceneId: string; projectId: string }[] = [];
 
     if (generate_videos && config.scenes?.length > 0) {
-      console.log(`[WidgetConfig] Starting video generation for ${config.scenes.length} scenes`);
+      console.log(`[WidgetConfig] Starting video generation — sequential mode (1 active project constraint)`);
+      
+      // Only launch the FIRST scene. The frontend will trigger subsequent scenes
+      // after each completes, respecting the single-active-project constraint.
+      const firstScene = config.scenes[0];
+      const prompt = firstScene.video_generation_prompt;
 
-      for (let i = 0; i < config.scenes.length; i++) {
-        const scene = config.scenes[i];
-        const prompt = scene.video_generation_prompt;
-        if (!prompt || prompt.length < 20) continue;
-
+      if (prompt && prompt.length >= 20) {
         try {
           const pipelineResponse = await fetch(`${supabaseUrl}/functions/v1/mode-router`, {
             method: "POST",
@@ -381,61 +382,48 @@ CRITICAL REQUIREMENTS:
               mode: "text-to-video",
               prompt: prompt,
               clipCount: 1,
-              clipDuration: scene.type === "cta" ? 5 : 6,
+              clipDuration: firstScene.type === "cta" ? 5 : 6,
               aspectRatio: style === "minimal_embed" ? "9:16" : "16:9",
-              includeVoice: scene.type === "cta",
-              includeMusic: scene.type === "hero",
+              includeVoice: firstScene.type === "cta",
+              includeMusic: firstScene.type === "hero",
               qualityTier: "professional",
               genre: "commercial",
-              mood: scene.mood || "cinematic",
+              mood: firstScene.mood || "cinematic",
             }),
           });
 
           if (pipelineResponse.ok) {
             const result = await pipelineResponse.json();
             if (result.projectId) {
-              scene.video_project_id = result.projectId;
-              scene.video_generation_status = "generating";
-              generatedProjects.push({ sceneId: scene.id, projectId: result.projectId });
+              firstScene.video_project_id = result.projectId;
+              firstScene.video_generation_status = "generating";
+              generatedProjects.push({ sceneId: firstScene.id, projectId: result.projectId });
               videoGenerationStarted = true;
-              console.log(`[WidgetConfig] Scene ${i + 1} → Project ${result.projectId}`);
+              console.log(`[WidgetConfig] Scene 1 → Project ${result.projectId}`);
             }
           } else {
             const errText = await pipelineResponse.text();
-            console.error(`[WidgetConfig] Scene ${i + 1} pipeline error:`, pipelineResponse.status, errText.substring(0, 200));
-            
-            // If rate limited or active project exists, stop trying more scenes
-            if (pipelineResponse.status === 409 || pipelineResponse.status === 429) {
-              console.log(`[WidgetConfig] Stopping scene generation — will queue remaining`);
-              scene.video_generation_status = "pending";
-              // Mark remaining scenes as pending too
-              for (let j = i + 1; j < config.scenes.length; j++) {
-                config.scenes[j].video_generation_status = "pending";
-              }
-              break;
-            }
-            scene.video_generation_status = "failed";
-          }
-
-          // Rate limit protection: wait between pipeline calls
-          if (i < config.scenes.length - 1) {
-            await new Promise(r => setTimeout(r, 2000));
+            console.error(`[WidgetConfig] Scene 1 pipeline error:`, pipelineResponse.status, errText.substring(0, 200));
+            firstScene.video_generation_status = "failed";
           }
         } catch (err) {
-          console.error(`[WidgetConfig] Scene ${i + 1} error:`, err);
-          scene.video_generation_status = "failed";
+          console.error(`[WidgetConfig] Scene 1 error:`, err);
+          firstScene.video_generation_status = "failed";
         }
       }
 
-      // Persist scene-project mappings to widget
-      if (generatedProjects.length > 0) {
-        await supabase
-          .from("widget_configs")
-          .update({
-            scenes: JSON.parse(JSON.stringify(config.scenes)),
-          })
-          .eq("id", widget_id);
+      // Mark remaining scenes as queued (frontend will trigger them sequentially)
+      for (let j = 1; j < config.scenes.length; j++) {
+        config.scenes[j].video_generation_status = "pending";
       }
+
+      // Persist scene state to widget
+      await supabase
+        .from("widget_configs")
+        .update({
+          scenes: JSON.parse(JSON.stringify(config.scenes)),
+        })
+        .eq("id", widget_id);
     }
 
     return new Response(

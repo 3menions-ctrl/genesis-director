@@ -4359,6 +4359,7 @@ export type Database = {
         Args: { p_widget_id: string }
         Returns: boolean
       }
+      cleanup_old_signup_analytics: { Args: never; Returns: undefined }
       create_group_conversation: {
         Args: { p_member_ids: string[]; p_name: string }
         Returns: string

@@ -30,6 +30,29 @@ const QUICK_REACTIONS = ['❤️', '😂', '🔥', '👏', '😮', '💯'];
 // MESSAGE BUBBLE
 // ═══════════════════════════════════════
 
+// Color palette for other users' message bubbles
+const USER_BUBBLE_COLORS = [
+  'bg-violet-600/70',
+  'bg-emerald-600/70',
+  'bg-rose-600/70',
+  'bg-sky-600/70',
+  'bg-amber-600/70',
+  'bg-fuchsia-600/70',
+  'bg-teal-600/70',
+  'bg-orange-600/70',
+  'bg-indigo-600/70',
+  'bg-cyan-600/70',
+];
+
+function getUserColor(userId: string): string {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    hash = ((hash << 5) - hash) + userId.charCodeAt(i);
+    hash |= 0;
+  }
+  return USER_BUBBLE_COLORS[Math.abs(hash) % USER_BUBBLE_COLORS.length];
+}
+
 const MessageBubble = memo(function MessageBubble({
   message, isOwn, onReply, onDelete, onReact,
 }: {
@@ -43,6 +66,7 @@ const MessageBubble = memo(function MessageBubble({
   const [showReactions, setShowReactions] = useState(false);
   const displayName = message.profile?.display_name || 'Anonymous';
   const initials = displayName.slice(0, 2).toUpperCase();
+  const bubbleColor = isOwn ? 'bg-primary/90' : getUserColor(message.user_id);
 
   return (
     <div
@@ -89,10 +113,10 @@ const MessageBubble = memo(function MessageBubble({
 
         {/* Bubble */}
         <div className={cn(
-          "relative px-3.5 py-2 rounded-2xl text-[13px] leading-relaxed break-words whitespace-pre-wrap",
+          "relative px-3.5 py-2 rounded-2xl text-[13px] leading-relaxed break-words whitespace-pre-wrap text-white",
           isOwn
-            ? "bg-primary/90 text-primary-foreground rounded-br-md"
-            : "bg-secondary/80 text-secondary-foreground rounded-bl-md"
+            ? `${bubbleColor} rounded-br-md`
+            : `${bubbleColor} rounded-bl-md`
         )}>
           {message.content}
           {isOwn && (

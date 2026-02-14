@@ -326,76 +326,128 @@ serve(async (req) => {
           
           // DUAL AVATAR: If this clip uses the secondary avatar, use its reference image
           const isDualAvatar = pred.avatarRole === 'secondary' && tasks.secondaryAvatar?.imageUrl;
-          let startImageUrl = isDualAvatar 
-            ? tasks.secondaryAvatar.imageUrl
-            : prevPred.startImageUrl; // Fallback to previous start image
+          let startImageUrl: string | null = null;
           
           if (isDualAvatar) {
             console.log(`[Watchdog] 🎭 DUAL AVATAR: Clip ${pred.clipIndex + 1} uses SECONDARY avatar (${tasks.secondaryAvatar.name})`);
             
-            // SCENE COMPOSITING for secondary avatar - don't use raw reference image
-            if (tasks.sceneDescription && tasks.sceneImageUrl) {
-              try {
-                const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-                const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-                const sceneResponse = await fetch(`${supabaseUrl}/functions/v1/generate-avatar-scene`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${supabaseKey}`,
-                  },
-                  body: JSON.stringify({
-                    avatarImageUrl: tasks.secondaryAvatar.imageUrl,
-                    sceneDescription: pred.sceneNote || tasks.sceneDescription,
-                    aspectRatio: tasks.aspectRatio || '16:9',
-                    placement: 'center',
-                  }),
-                });
-                
-                if (sceneResponse.ok) {
-                  const sceneResult = await sceneResponse.json();
-                  if (sceneResult.success && sceneResult.sceneImageUrl) {
-                    startImageUrl = sceneResult.sceneImageUrl;
-                    console.log(`[Watchdog] ✅ Secondary avatar scene composited: ${startImageUrl.substring(0, 60)}...`);
-                  }
-                }
-              } catch (sceneError) {
-                console.warn(`[Watchdog] Secondary scene compositing failed (non-fatal):`, sceneError);
-              }
-            }
-          }
-          
-          // For primary avatar clips, extract last frame for continuity
-          if (!isDualAvatar) {
-            // Extract last frame from previous clip's video
+            // ALWAYS scene-composite the secondary avatar to prevent headless rendering
+            // The raw reference image may be a face-only crop — compositing ensures full-body in environment
+            const sceneDesc = pred.sceneNote || tasks.sceneDescription || 'Professional studio setting';
             try {
-              const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-last-frame`, {
+              const sceneResponse = await fetch(`${supabaseUrl}/functions/v1/generate-avatar-scene`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                   'Authorization': `Bearer ${supabaseKey}`,
                 },
                 body: JSON.stringify({
-                  videoUrl: prevPred.videoUrl,
-                  projectId: project.id,
-                  clipIndex: prevClipIndex,
+                  avatarImageUrl: tasks.secondaryAvatar.imageUrl,
+                  sceneDescription: sceneDesc,
+                  aspectRatio: tasks.aspectRatio || '16:9',
+                  placement: 'center',
+                  // CRITICAL: Force full-body generation to prevent head-only rendering
+                  additionalInstructions: 'IMPORTANT: Show the COMPLETE person from head to toe. Full body visible. Do NOT crop to just the head or face. The character must have a complete body, arms, legs, and be standing or sitting naturally in the scene.',
                 }),
               });
               
-              if (frameResponse.ok) {
-                const frameResult = await frameResponse.json();
-                const extractedFrame = frameResult.frameUrl || frameResult.lastFrameUrl;
-                if (frameResult.success && extractedFrame) {
-                  startImageUrl = extractedFrame;
-                  console.log(`[Watchdog] ✅ Extracted last frame (${frameResult.method}): ${startImageUrl.substring(0, 60)}...`);
-                } else {
-                  console.warn(`[Watchdog] Frame extraction returned no URL (success=${frameResult.success}), using fallback`);
+              if (sceneResponse.ok) {
+                const sceneResult = await sceneResponse.json();
+                if (sceneResult.success && sceneResult.sceneImageUrl) {
+                  startImageUrl = sceneResult.sceneImageUrl;
+                  console.log(`[Watchdog] ✅ Secondary avatar FULL-BODY scene composited: ${startImageUrl.substring(0, 60)}...`);
                 }
-              } else {
-                console.warn(`[Watchdog] Frame extraction HTTP error ${frameResponse.status}`);
               }
-            } catch (frameError) {
-              console.error(`[Watchdog] Frame extraction error:`, frameError);
+            } catch (sceneError) {
+              console.warn(`[Watchdog] Secondary scene compositing failed (non-fatal):`, sceneError);
+            }
+            
+            // Fallback: use raw image but warn
+            if (!startImageUrl) {
+              startImageUrl = tasks.secondaryAvatar.imageUrl;
+              console.warn(`[Watchdog] ⚠️ Using raw secondary avatar image (may produce head-only render)`);
+            }
+          } else {
+            // PRIMARY AVATAR CLIP: Smart frame-chaining
+            // KEY FIX: If the previous clip was a SECONDARY avatar, don't use its last frame
+            // Instead, find the most recent PRIMARY avatar clip's last frame for identity continuity
+            const prevWasSecondary = prevPred.avatarRole === 'secondary';
+            
+            if (prevWasSecondary) {
+              console.log(`[Watchdog] 🔗 CROSS-AVATAR CONTINUITY: Previous clip was secondary — finding last PRIMARY frame`);
+              
+              // Search backwards for the most recent completed PRIMARY clip
+              let primaryFrameFound = false;
+              for (let searchIdx = pred.clipIndex - 1; searchIdx >= 0; searchIdx--) {
+                const candidatePred = tasks.predictions.find((p: { clipIndex: number }) => p.clipIndex === searchIdx);
+                if (candidatePred && candidatePred.avatarRole === 'primary' && candidatePred.status === 'completed' && candidatePred.videoUrl) {
+                  // Extract last frame from this primary clip
+                  try {
+                    const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-last-frame`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${supabaseKey}`,
+                      },
+                      body: JSON.stringify({
+                        videoUrl: candidatePred.videoUrl,
+                        projectId: project.id,
+                        clipIndex: searchIdx,
+                      }),
+                    });
+                    
+                    if (frameResponse.ok) {
+                      const frameResult = await frameResponse.json();
+                      const extractedFrame = frameResult.frameUrl || frameResult.lastFrameUrl;
+                      if (frameResult.success && extractedFrame) {
+                        startImageUrl = extractedFrame;
+                        primaryFrameFound = true;
+                        console.log(`[Watchdog] ✅ Found PRIMARY frame from clip ${searchIdx + 1}: ${startImageUrl!.substring(0, 60)}...`);
+                        break;
+                      }
+                    }
+                  } catch (frameError) {
+                    console.warn(`[Watchdog] Frame extraction from primary clip ${searchIdx + 1} failed:`, frameError);
+                  }
+                }
+              }
+              
+              // If no primary frame found, fall back to scene image (which has the primary avatar)
+              if (!primaryFrameFound) {
+                startImageUrl = tasks.sceneImageUrl || tasks.predictions[0]?.startImageUrl;
+                console.warn(`[Watchdog] ⚠️ No previous PRIMARY frame found, using scene image fallback`);
+              }
+            } else {
+              // Normal case: previous clip was also primary — extract its last frame
+              try {
+                const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-last-frame`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${supabaseKey}`,
+                  },
+                  body: JSON.stringify({
+                    videoUrl: prevPred.videoUrl,
+                    projectId: project.id,
+                    clipIndex: prevClipIndex,
+                  }),
+                });
+                
+                if (frameResponse.ok) {
+                  const frameResult = await frameResponse.json();
+                  const extractedFrame = frameResult.frameUrl || frameResult.lastFrameUrl;
+                  if (frameResult.success && extractedFrame) {
+                    startImageUrl = extractedFrame;
+                    console.log(`[Watchdog] ✅ Extracted last frame (${frameResult.method}): ${startImageUrl!.substring(0, 60)}...`);
+                  } else {
+                    console.warn(`[Watchdog] Frame extraction returned no URL (success=${frameResult.success}), using fallback`);
+                  }
+                } else {
+                  console.warn(`[Watchdog] Frame extraction HTTP error ${frameResponse.status}`);
+                }
+              } catch (frameError) {
+                console.error(`[Watchdog] Frame extraction error:`, frameError);
+              }
             }
           }
           
@@ -439,8 +491,14 @@ serve(async (req) => {
           
           // Build acting prompt with SCREENPLAY DATA (movement, action, emotion, camera)
           const avatarType = tasks.avatarType || 'realistic';
+          
+          // FULL-BODY ENFORCEMENT: Add explicit body instruction for secondary avatar clips
+          const fullBodyEnforcement = (pred.avatarRole === 'secondary')
+            ? ' CRITICAL: Show the COMPLETE person with full body visible — head, torso, arms, hands, legs, feet. Do NOT crop to just the head or upper body. The character must be fully visible in the scene.'
+            : '';
+          
           const actingPrompt = buildAvatarActingPrompt(
-            pred.segmentText, tasks.sceneDescription, pred.clipIndex, tasks.predictions.length, avatarType,
+            pred.segmentText + fullBodyEnforcement, tasks.sceneDescription, pred.clipIndex, tasks.predictions.length, avatarType,
             pred.action, pred.movement, pred.emotion, pred.cameraHint, pred.physicalDetail,
             pred.sceneNote, pred.transitionNote,
           );

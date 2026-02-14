@@ -136,23 +136,24 @@ CHARACTER 2 (SECONDARY — "A2"): "${secondary!.name}" — ${secondary!.avatarTy
 THE EXACT FLOW (follow this PRECISELY for ${clipCount} clips):
 
 CLIP 1 — A1 SOLO OPENING (avatarRole: "primary")
-  - A1 is ALONE. Establishing their world, personality, and the topic/situation.
+  - A1 is ALREADY IN THEIR ENVIRONMENT from frame 1. No walking in, no entering. They are ALREADY THERE.
   - A1 speaks directly to camera OR sets up the scenario. This is THEIR moment.
   - NO mention of A2 yet. The audience bonds with A1 first.
   - End with something that MOTIVATES the cut: A1 hears something, turns, or says "speaking of which..."
 
 CLIP 2 — A2 ENTERS / THE MEETING (avatarRole: "secondary")
-  - A2 appears in A1's space OR the camera reveals A2 was nearby.
-  - This is the INTRODUCTION moment. A2 makes an entrance — walks in, interrupts, appears from behind.
-  - SHORT DIALOGUE TOGETHER: A1 and A2 have a quick exchange (A2 speaks, referencing A1).
+  - A2 is ALREADY POSITIONED in A1's space from the first frame. They are ALREADY THERE — standing, sitting, or leaning nearby.
+  - The camera REVEALS A2 was nearby all along, or cuts to show A2 already present in the same space.
+  - Do NOT show A2 walking in or entering. They are already situated when the clip begins.
+  - SHORT DIALOGUE TOGETHER: A2 speaks, referencing A1.
   - The sceneNote MUST describe BOTH characters present. A2 is the focus but A1 is referenced.
-  - End with A2 having a REASON to go do something: "Let me go check..." / "I'll handle that" / walks off.
+  - End with A2 having a REASON to go do something: "Let me go check..." / "I'll handle that."
 
 CLIP 3 — A2 SOLO ADVENTURE (avatarRole: "secondary")
-  - A2 is NOW ALONE in a DIFFERENT ENVIRONMENT. New room, outside, driving, different location.
-  - This is A2's showcase moment. They can walk, drive, explore, react to their new surroundings.
+  - A2 is ALREADY in a DIFFERENT ENVIRONMENT from frame 1. They are already positioned there — no arrival shown.
+  - This is A2's showcase moment. They can gesture, react, look around their new surroundings.
   - They should REFERENCE what happened with A1: "Can you believe they said..." or react to the task.
-  - MOVEMENT IS KEY: walking into a new room, driving, stepping outside, different background entirely.
+  - DIFFERENT BACKGROUND: new room, outside, car interior, different location entirely.
 
 CLIP 4 — BACK TO A1 (avatarRole: "primary")
   - CUT BACK to A1. Can be SAME scene or DIFFERENT scene from clip 1.
@@ -180,11 +181,11 @@ TRANSITION RULES FOR EVERY CHARACTER SWITCH:
 - NEVER have a character switch without narrative connective tissue
 - transitionNote MUST describe the specific visual/narrative bridge between clips
 
-A2 ENTRANCE STRATEGIES (for Clip 2):
-1. THE INTERRUPTION: A2 walks into frame mid-sentence. "Sorry, couldn't help but overhear—"
-2. THE REVEAL: Camera pulls back to show A2 was standing there. "You done? Because—"
-3. THE ARRIVAL: Door opens, A2 enters. "Okay, I'm here. What's the emergency?"
-4. THE REACTION: A2 appears reacting to what A1 just said. "Wait, you're serious about that?"
+A2 INTRODUCTION STRATEGIES (for Clip 2 — A2 is ALREADY in the scene, NOT walking in):
+1. THE REVEAL: Camera pulls back to show A2 was standing there. "You done? Because—"
+2. THE ALREADY-THERE: A2 is already seated/standing nearby when the clip starts. "I've been waiting for you to finish."
+3. THE REACTION: A2 is already present, reacting to what A1 just said. "Wait, you're serious about that?"
+4. THE COMPANION: A2 is already beside A1, turning to speak. "Okay, my turn."
 
 DIALOGUE MASTERY RULES:
 - These two have CHEMISTRY. They play off each other like a comedy duo.
@@ -245,11 +246,12 @@ PACING: Vary the energy. Not every clip should be high-energy. Quiet moments mak
 CRITICAL RULES:
 - Output EXACTLY ${clipCount} segments
 - Each dialogue MUST be speakable in ~${clipDuration} seconds (${wordsPerClip} words MAX — count carefully)
-- ${isDual ? `Follow the EXACT clip structure: Clip 1=primary solo, Clip 2=secondary (enters A1's scene), Clip 3=secondary solo (NEW location), Clip 4=primary returns, Clip 5=primary continues, Clip 6=secondary finishes. avatarRole must match: "primary" for A1 clips, "secondary" for A2 clips.` : 'All segments use "primary".'}
+- ${isDual ? `Follow the EXACT clip structure: Clip 1=primary solo, Clip 2=secondary (already in A1's scene), Clip 3=secondary solo (NEW location), Clip 4=primary returns, Clip 5=primary continues, Clip 6=secondary finishes. avatarRole must match: "primary" for A1 clips, "secondary" for A2 clips.` : 'All segments use "primary".'}
+- ⚠️ STATIC START (MANDATORY): Every clip MUST begin with the character ALREADY POSITIONED in their environment. They are already standing, sitting, leaning, or seated from the VERY FIRST FRAME. NEVER write "walks in", "enters", "arrives", "comes into" as an action. The character is ALREADY THERE when the clip starts. The action field should describe what they're doing IN PLACE, not how they got there.
 - dialogue = SPOKEN WORDS ONLY. Write how people ACTUALLY TALK, not how they write.
 - Use contractions: "I'm", "can't", "wouldn't". NEVER "I am", "cannot" unless for emphasis.
 - Include natural speech patterns: "Look,", "Okay so,", "Here's the thing—", "I mean,"
-- action = VISIBLE physical behavior (what would a director tell the actor to DO)
+- action = VISIBLE physical behavior while ALREADY IN POSITION (gesturing, leaning, turning, reacting — NOT arriving)
 - physicalDetail = micro-actions that make it feel REAL (fidgeting, adjusting glasses, glancing away)
 - Output ONLY valid JSON, no markdown, no explanation`;
 }

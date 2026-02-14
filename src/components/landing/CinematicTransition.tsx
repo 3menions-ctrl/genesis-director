@@ -1,12 +1,11 @@
 /**
- * CinematicTransition - World-class cinematic studio entrance
+ * CinematicTransition - The APEX STUDIOS Signature Brand Animation
  * 
- * Features: triple concentric progress rings, radial light rays,
- * star field, shockwave pulse, morphing diamond core, ambient particles,
- * and cinematic letterbox exit.
+ * A 5-second cinematic intro sequence inspired by Netflix/Disney brand animations.
+ * Phases: Void → Supernova → Forge → Brand Stamp → Portal Entry
  */
 
-import { memo, forwardRef, useEffect, useRef, useState, useMemo } from 'react';
+import { memo, forwardRef, useEffect, useRef, useState, useMemo, useCallback } from 'react';
 
 interface CinematicTransitionProps {
   isActive: boolean;
@@ -14,42 +13,35 @@ interface CinematicTransitionProps {
   className?: string;
 }
 
+const TOTAL_DURATION = 5000;
+
 const CinematicTransition = memo(forwardRef<HTMLDivElement, CinematicTransitionProps>(
   function CinematicTransition({ isActive, onComplete }, ref) {
     const hasNavigated = useRef(false);
     const isMountedRef = useRef(true);
     const [progress, setProgress] = useState(0);
-    const [phase, setPhase] = useState<'enter' | 'hold' | 'exit'>('enter');
+    const [phase, setPhase] = useState(0); // 0-5
 
-    // Generate stable random values for particles and stars
-    const particles = useMemo(() => 
-      Array.from({ length: 40 }, (_, i) => ({
-        x: 10 + Math.random() * 80,
-        y: 10 + Math.random() * 80,
-        size: 2 + Math.random() * 3,
-        opacity: 0.2 + Math.random() * 0.5,
-        duration: 2 + Math.random() * 2,
-        delay: Math.random() * 1.5,
+    const particles = useMemo(() =>
+      Array.from({ length: 50 }, () => ({
+        angle: Math.random() * 360,
+        dist: 30 + Math.random() * 70,
+        size: 1.5 + Math.random() * 2.5,
+        speed: 0.5 + Math.random() * 1.5,
+        delay: Math.random() * 0.8,
       })), []
     );
 
-    const stars = useMemo(() =>
-      Array.from({ length: 60 }, () => ({
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-        size: 1 + Math.random() * 2,
-        duration: 1 + Math.random() * 2,
-        delay: Math.random() * 2,
+    const warpLines = useMemo(() =>
+      Array.from({ length: 24 }, (_, i) => ({
+        angle: (360 / 24) * i + Math.random() * 8,
+        length: 60 + Math.random() * 40,
+        width: 1 + Math.random() * 1.5,
+        delay: Math.random() * 0.3,
       })), []
     );
 
-    const rays = useMemo(() =>
-      Array.from({ length: 12 }, (_, i) => ({
-        angle: (360 / 12) * i,
-        width: 1.5 + Math.random(),
-        delay: i * 0.08,
-      })), []
-    );
+    const stableOnComplete = useCallback(onComplete, [onComplete]);
 
     useEffect(() => {
       isMountedRef.current = true;
@@ -60,386 +52,402 @@ const CinematicTransition = memo(forwardRef<HTMLDivElement, CinematicTransitionP
       if (!isActive) {
         hasNavigated.current = false;
         setProgress(0);
-        setPhase('enter');
+        setPhase(0);
         return;
       }
 
-      setPhase('enter');
-      const duration = 3500;
       const start = Date.now();
+      setPhase(1);
 
       const tick = () => {
         if (!isMountedRef.current) return;
         const elapsed = Date.now() - start;
-        // Ease-in-out progress curve
-        const linear = Math.min(elapsed / duration, 1);
-        const eased = linear < 0.5
-          ? 4 * linear * linear * linear
-          : 1 - Math.pow(-2 * linear + 2, 3) / 2;
-        const pct = eased * 100;
-        setProgress(pct);
-        if (pct > 30) setPhase('hold');
-        if (linear < 1) requestAnimationFrame(tick);
+        const t = Math.min(elapsed / TOTAL_DURATION, 1);
+        setProgress(t);
+
+        // Phase transitions
+        if (t > 0.08 && t <= 0.30) setPhase(2);      // Supernova
+        else if (t > 0.30 && t <= 0.55) setPhase(3);  // Forge
+        else if (t > 0.55 && t <= 0.82) setPhase(4);  // Brand Stamp
+        else if (t > 0.82) setPhase(5);                // Portal Entry
+
+        if (t < 1) requestAnimationFrame(tick);
       };
       requestAnimationFrame(tick);
 
       const timer = setTimeout(() => {
         if (!hasNavigated.current && isMountedRef.current) {
           hasNavigated.current = true;
-          setPhase('exit');
-          setTimeout(() => onComplete(), 500);
+          stableOnComplete();
         }
-      }, duration);
+      }, TOTAL_DURATION + 200);
 
       return () => clearTimeout(timer);
-    }, [isActive, onComplete]);
+    }, [isActive, stableOnComplete]);
 
     if (!isActive) return null;
-
-    const r1 = 52, r2 = 42, r3 = 32;
-    const c1 = 2 * Math.PI * r1;
-    const c2 = 2 * Math.PI * r2;
-    const c3 = 2 * Math.PI * r3;
 
     return (
       <div
         ref={ref}
         style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 99999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#030108',
-          overflow: 'hidden',
+          position: 'fixed', inset: 0, zIndex: 99999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: '#020009', overflow: 'hidden',
         }}
       >
-        {/* Deep space background gradient */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: 'radial-gradient(ellipse at center, rgba(124,58,237,0.08) 0%, rgba(15,5,40,0.4) 40%, transparent 70%)',
-          animation: 'ct-bg-breathe 3s ease-in-out infinite',
-        }} />
-
-        {/* Star field */}
-        {stars.map((s, i) => (
-          <div key={`star-${i}`} style={{
+        {/* ======= PHASE 1: VOID - Single igniting point ======= */}
+        <div
+          className="apex-ignition"
+          style={{
             position: 'absolute',
-            left: `${s.x}%`,
-            top: `${s.y}%`,
-            width: s.size,
-            height: s.size,
+            top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 6, height: 6,
             borderRadius: '50%',
-            background: 'white',
-            animation: `ct-twinkle ${s.duration}s ${s.delay}s ease-in-out infinite`,
-            opacity: 0,
-          }} />
-        ))}
+            background: '#a78bfa',
+            boxShadow: '0 0 30px 10px rgba(139,92,246,0.8), 0 0 60px 20px rgba(124,58,237,0.4)',
+            opacity: phase >= 1 ? 1 : 0,
+            animation: phase >= 1 ? 'apex-ignite 0.4s ease-out forwards' : 'none',
+          }}
+        />
 
-        {/* Radial light rays */}
-        <div style={{
-          position: 'absolute',
-          top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 800, height: 800,
-          animation: 'ct-rays-rotate 20s linear infinite',
-          opacity: progress > 10 ? 0.4 : 0,
-          transition: 'opacity 1s ease',
-        }}>
-          {rays.map((r, i) => (
-            <div key={`ray-${i}`} style={{
+        {/* ======= PHASE 2: SUPERNOVA - Light explosion ======= */}
+        {phase >= 2 && (
+          <>
+            {/* Expanding nova ring */}
+            <div
+              className="apex-nova"
+              style={{
+                position: 'absolute',
+                top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 100, height: 100,
+                borderRadius: '50%',
+                border: '2px solid rgba(196,167,255,0.6)',
+                animation: 'apex-nova-expand 1.2s ease-out forwards',
+              }}
+            />
+            {/* Second nova ring */}
+            <div style={{
               position: 'absolute',
               top: '50%', left: '50%',
-              width: `${r.width}px`,
-              height: '400px',
-              background: 'linear-gradient(to top, rgba(167,139,250,0.3), transparent)',
-              transformOrigin: 'bottom center',
-              transform: `translate(-50%, -100%) rotate(${r.angle}deg)`,
-              animation: `ct-ray-pulse 2s ${r.delay}s ease-in-out infinite`,
+              transform: 'translate(-50%, -50%)',
+              width: 80, height: 80,
+              borderRadius: '50%',
+              border: '1px solid rgba(139,92,246,0.4)',
+              animation: 'apex-nova-expand 1.5s 0.15s ease-out forwards',
             }} />
-          ))}
-        </div>
 
-        {/* Primary radial glow */}
-        <div style={{
-          position: 'absolute',
-          top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 700, height: 700,
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(124,58,237,0.35) 0%, rgba(139,92,246,0.15) 30%, rgba(88,28,135,0.05) 55%, transparent 70%)',
-          animation: 'ct-glow-expand 2.5s ease-out forwards',
-          filter: 'blur(20px)',
-        }} />
-
-        {/* Secondary warm glow */}
-        <div style={{
-          position: 'absolute',
-          top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 400, height: 400,
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(196,167,255,0.15) 0%, transparent 60%)',
-          animation: 'ct-inner-glow 2s 0.5s ease-out forwards',
-          opacity: 0,
-        }} />
-
-        {/* Shockwave ring */}
-        <div style={{
-          position: 'absolute',
-          top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 120, height: 120,
-          borderRadius: '50%',
-          border: '2px solid rgba(167,139,250,0.5)',
-          animation: 'ct-shockwave 2s 0.8s ease-out forwards',
-          opacity: 0,
-        }} />
-
-        {/* Second shockwave */}
-        <div style={{
-          position: 'absolute',
-          top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 120, height: 120,
-          borderRadius: '50%',
-          border: '1px solid rgba(196,167,255,0.3)',
-          animation: 'ct-shockwave 2.5s 1.5s ease-out forwards',
-          opacity: 0,
-        }} />
-
-        {/* Floating particles */}
-        {particles.map((p, i) => (
-          <div key={`p-${i}`} style={{
-            position: 'absolute',
-            left: `${p.x}%`,
-            top: `${p.y}%`,
-            width: p.size,
-            height: p.size,
-            borderRadius: '50%',
-            background: `rgba(167, 139, 250, ${p.opacity})`,
-            boxShadow: `0 0 ${p.size * 2}px rgba(139,92,246,0.3)`,
-            animation: `ct-float ${p.duration}s ${p.delay}s ease-in-out infinite`,
-            opacity: 0,
-          }} />
-        ))}
-
-        {/* Central content */}
-        <div style={{
-          position: 'relative', zIndex: 10,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 28,
-          animation: 'ct-content-enter 0.8s 0.2s ease-out both',
-        }}>
-          {/* Triple ring system */}
-          <div style={{ position: 'relative', width: 140, height: 140 }}>
-            <svg width="140" height="140" viewBox="0 0 120 120" style={{
-              position: 'absolute', inset: 0,
-              filter: 'drop-shadow(0 0 15px rgba(124,58,237,0.5))',
+            {/* Radial light burst */}
+            <div style={{
+              position: 'absolute',
+              top: '50%', left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 800, height: 800,
+              animation: 'apex-burst-rotate 15s linear infinite',
             }}>
-              {/* Outer ring - slow, reverse */}
-              <circle cx="60" cy="60" r={r1} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="1.5" />
-              <circle
-                cx="60" cy="60" r={r1} fill="none"
-                stroke="url(#ring1grad)"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeDasharray={c1}
-                strokeDashoffset={c1 * (1 - progress / 100)}
+              {Array.from({ length: 16 }).map((_, i) => (
+                <div key={`burst-${i}`} style={{
+                  position: 'absolute',
+                  top: '50%', left: '50%',
+                  width: 1.5,
+                  height: 350,
+                  background: `linear-gradient(to top, rgba(167,139,250,${0.2 + (i % 3) * 0.1}), transparent 70%)`,
+                  transformOrigin: 'bottom center',
+                  transform: `translate(-50%, -100%) rotate(${(360 / 16) * i}deg)`,
+                  animation: `apex-ray-in 0.8s ${i * 0.03}s ease-out both`,
+                }} />
+              ))}
+            </div>
+
+            {/* Massive glow bloom */}
+            <div style={{
+              position: 'absolute',
+              top: '50%', left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 600, height: 600,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(139,92,246,0.4) 0%, rgba(124,58,237,0.15) 35%, transparent 65%)',
+              filter: 'blur(30px)',
+              animation: 'apex-bloom 1s ease-out forwards',
+            }} />
+
+            {/* Swirling particles */}
+            {particles.map((p, i) => (
+              <div key={`sp-${i}`} style={{
+                position: 'absolute',
+                top: '50%', left: '50%',
+                width: p.size, height: p.size,
+                borderRadius: '50%',
+                background: 'rgba(196,167,255,0.8)',
+                boxShadow: '0 0 4px rgba(167,139,250,0.6)',
+                animation: `apex-swirl ${p.speed + 1}s ${p.delay}s ease-in-out forwards`,
+                transformOrigin: 'center',
+                transform: `rotate(${p.angle}deg) translateY(-${p.dist}px)`,
+                opacity: 0,
+              }} />
+            ))}
+          </>
+        )}
+
+        {/* ======= PHASE 3: FORGE - Logo materializes from energy ======= */}
+        <div style={{
+          position: 'relative', zIndex: 20,
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          opacity: phase >= 3 ? 1 : 0,
+          transition: 'opacity 0.6s ease',
+        }}>
+          {/* Geometric Pyramid Crown */}
+          <div style={{
+            marginBottom: 20,
+            opacity: phase >= 3 ? 1 : 0,
+            animation: phase >= 3 ? 'apex-forge-in 1s ease-out forwards' : 'none',
+          }}>
+            <svg width="80" height="70" viewBox="0 0 80 70" fill="none">
+              {/* Pyramid shape */}
+              <path
+                d="M40 2 L75 62 L5 62 Z"
+                stroke="url(#pyramidGrad)"
+                strokeWidth="2"
+                fill="none"
+                strokeLinejoin="round"
                 style={{
-                  transition: 'stroke-dashoffset 0.15s linear',
-                  animation: 'ct-ring-spin-reverse 8s linear infinite',
-                  transformOrigin: 'center',
+                  strokeDasharray: 200,
+                  strokeDashoffset: phase >= 3 ? 0 : 200,
+                  transition: 'stroke-dashoffset 1.2s ease-out',
+                  filter: 'drop-shadow(0 0 12px rgba(139,92,246,0.7))',
                 }}
               />
-
-              {/* Middle ring - main progress */}
-              <circle cx="60" cy="60" r={r2} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="2.5" />
-              <circle
-                cx="60" cy="60" r={r2} fill="none"
-                stroke="url(#ring2grad)"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeDasharray={c2}
-                strokeDashoffset={c2 * (1 - progress / 100)}
+              {/* Inner pyramid lines */}
+              <path
+                d="M40 2 L40 42 M22 42 L58 42"
+                stroke="url(#pyramidGrad2)"
+                strokeWidth="1.2"
+                fill="none"
                 style={{
-                  transition: 'stroke-dashoffset 0.15s linear',
-                  filter: 'drop-shadow(0 0 6px rgba(139,92,246,0.8))',
+                  strokeDasharray: 80,
+                  strokeDashoffset: phase >= 3 ? 0 : 80,
+                  transition: 'stroke-dashoffset 1.4s 0.3s ease-out',
+                  filter: 'drop-shadow(0 0 6px rgba(167,139,250,0.5))',
                 }}
               />
-
-              {/* Inner ring - fast */}
-              <circle cx="60" cy="60" r={r3} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+              {/* Crown jewel at apex */}
               <circle
-                cx="60" cy="60" r={r3} fill="none"
-                stroke="url(#ring3grad)"
-                strokeWidth="1"
-                strokeLinecap="round"
-                strokeDasharray={c3}
-                strokeDashoffset={c3 * (1 - Math.min(progress * 1.3, 100) / 100)}
+                cx="40" cy="8" r="3"
+                fill={phase >= 4 ? '#e9d5ff' : 'transparent'}
                 style={{
-                  transition: 'stroke-dashoffset 0.15s linear',
-                  animation: 'ct-ring-spin 5s linear infinite',
-                  transformOrigin: 'center',
+                  filter: 'drop-shadow(0 0 8px rgba(233,213,255,0.8))',
+                  transition: 'fill 0.5s ease',
                 }}
               />
-
-              {/* Orbiting dot */}
-              <circle
-                cx="60"
-                cy={60 - r2}
-                r="3"
-                fill="white"
-                style={{
-                  filter: 'drop-shadow(0 0 6px white)',
-                  animation: 'ct-ring-spin 3s linear infinite',
-                  transformOrigin: '60px 60px',
-                }}
-              />
-
               <defs>
-                <linearGradient id="ring1grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#a78bfa" stopOpacity="0.6" />
-                  <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.2" />
+                <linearGradient id="pyramidGrad" x1="5" y1="62" x2="75" y2="2">
+                  <stop offset="0%" stopColor="#5b21b6" />
+                  <stop offset="50%" stopColor="#a78bfa" />
+                  <stop offset="100%" stopColor="#e9d5ff" />
                 </linearGradient>
-                <linearGradient id="ring2grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#c4b5fd" />
-                  <stop offset="50%" stopColor="#7c3aed" />
-                  <stop offset="100%" stopColor="#5b21b6" />
-                </linearGradient>
-                <linearGradient id="ring3grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#e9d5ff" stopOpacity="0.8" />
-                  <stop offset="100%" stopColor="#a78bfa" stopOpacity="0.3" />
+                <linearGradient id="pyramidGrad2" x1="22" y1="42" x2="58" y2="2">
+                  <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="#c4b5fd" stopOpacity="0.7" />
                 </linearGradient>
               </defs>
             </svg>
+          </div>
 
-            {/* Core diamond */}
+          {/* APEX STUDIOS text */}
+          <div style={{
+            overflow: 'hidden',
+            animation: phase >= 3 ? 'apex-text-reveal 1s 0.4s ease-out both' : 'none',
+          }}>
+            <h1 style={{
+              fontSize: 42,
+              fontWeight: 200,
+              letterSpacing: '0.45em',
+              color: 'transparent',
+              backgroundImage: 'linear-gradient(135deg, #e9d5ff 0%, #ffffff 40%, #a78bfa 80%, #7c3aed 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              textTransform: 'uppercase',
+              fontFamily: "'Sora', sans-serif",
+              lineHeight: 1,
+              animation: phase >= 4 ? 'apex-text-shimmer 3s ease-in-out infinite' : 'none',
+              backgroundSize: '200% 100%',
+            }}>
+              Apex
+            </h1>
+          </div>
+
+          <div style={{
+            overflow: 'hidden',
+            animation: phase >= 3 ? 'apex-text-reveal 0.8s 0.7s ease-out both' : 'none',
+          }}>
+            <p style={{
+              fontSize: 13,
+              fontWeight: 400,
+              letterSpacing: '0.6em',
+              color: 'rgba(167,139,250,0.7)',
+              textTransform: 'uppercase',
+              marginTop: 6,
+              fontFamily: "'Sora', sans-serif",
+            }}>
+              Studios
+            </p>
+          </div>
+
+          {/* ======= PHASE 4: BRAND STAMP - Shockwave "thud" ======= */}
+          {phase >= 4 && (
+            <>
+              {/* Horizontal rule accent */}
+              <div style={{
+                width: 60, height: 1,
+                background: 'linear-gradient(90deg, transparent, rgba(167,139,250,0.5), transparent)',
+                marginTop: 20,
+                animation: 'apex-line-expand 0.6s ease-out forwards',
+              }} />
+
+              {/* Tagline */}
+              <p style={{
+                fontSize: 11,
+                fontWeight: 300,
+                letterSpacing: '0.3em',
+                color: 'rgba(196,167,255,0.5)',
+                textTransform: 'uppercase',
+                marginTop: 14,
+                animation: 'apex-tagline-in 0.8s 0.2s ease-out both',
+                fontFamily: "'Instrument Sans', sans-serif",
+              }}>
+                Where Stories Come Alive
+              </p>
+
+              {/* Stamp shockwave */}
+              <div style={{
+                position: 'fixed',
+                top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 150, height: 150,
+                borderRadius: '50%',
+                border: '1.5px solid rgba(167,139,250,0.4)',
+                animation: 'apex-stamp-wave 1s ease-out forwards',
+                zIndex: 5,
+              }} />
+
+              {/* Logo glow pulse — the "ta-dum" */}
+              <div style={{
+                position: 'fixed',
+                top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 300, height: 300,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 60%)',
+                animation: 'apex-thud-glow 0.8s ease-out forwards',
+                zIndex: 5,
+              }} />
+            </>
+          )}
+        </div>
+
+        {/* ======= PHASE 5: PORTAL ENTRY - Warp speed ======= */}
+        {phase >= 5 && (
+          <>
+            {/* Warp streaks */}
             <div style={{
               position: 'absolute', inset: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 40,
             }}>
-              <div style={{
-                width: 18, height: 18,
-                background: 'linear-gradient(135deg, #e9d5ff, #7c3aed)',
-                borderRadius: 4,
-                animation: 'ct-diamond-morph 2s ease-in-out infinite',
-                boxShadow: '0 0 20px rgba(139,92,246,0.6), 0 0 40px rgba(124,58,237,0.3)',
-              }} />
+              {warpLines.map((w, i) => (
+                <div key={`warp-${i}`} style={{
+                  position: 'absolute',
+                  width: w.width,
+                  height: `${w.length}%`,
+                  background: `linear-gradient(to bottom, rgba(196,167,255,0.6), transparent)`,
+                  transformOrigin: 'center top',
+                  transform: `rotate(${w.angle}deg)`,
+                  animation: `apex-warp ${0.6 + w.delay}s ${w.delay}s ease-in forwards`,
+                  opacity: 0,
+                }} />
+              ))}
             </div>
-          </div>
 
-          {/* Text group */}
-          <div style={{ textAlign: 'center' }}>
-            <p style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: 'rgba(255,255,255,0.9)',
-              letterSpacing: '0.25em',
-              textTransform: 'uppercase',
-              textShadow: '0 0 20px rgba(139,92,246,0.5)',
-            }}>
-              Entering Studio
-            </p>
-            <p style={{
-              fontSize: 28,
-              fontWeight: 300,
-              color: 'rgba(255,255,255,0.7)',
-              marginTop: 8,
-              fontVariantNumeric: 'tabular-nums',
-              textShadow: '0 0 10px rgba(139,92,246,0.3)',
-              animation: 'ct-number-glow 1.5s ease-in-out infinite',
-            }}>
-              {Math.floor(progress)}%
-            </p>
-          </div>
-
-          {/* Loading bar */}
-          <div style={{
-            width: 200, height: 2,
-            background: 'rgba(255,255,255,0.06)',
-            borderRadius: 1,
-            overflow: 'hidden',
-          }}>
+            {/* White flash */}
             <div style={{
-              height: '100%',
-              width: `${progress}%`,
-              background: 'linear-gradient(90deg, #7c3aed, #a78bfa, #c4b5fd)',
-              borderRadius: 1,
-              transition: 'width 0.15s linear',
-              boxShadow: '0 0 10px rgba(139,92,246,0.5)',
+              position: 'absolute', inset: 0, zIndex: 50,
+              background: 'white',
+              animation: 'apex-flash 0.6s 0.4s ease-out forwards',
+              opacity: 0,
             }} />
-          </div>
-        </div>
-
-        {/* Letterbox exit bars */}
-        <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, background: '#030108', zIndex: 30,
-          height: phase === 'exit' ? '50%' : '0%',
-          transition: 'height 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-        }} />
-        <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, background: '#030108', zIndex: 30,
-          height: phase === 'exit' ? '50%' : '0%',
-          transition: 'height 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-        }} />
+          </>
+        )}
 
         <style>{`
-          @keyframes ct-bg-breathe {
-            0%, 100% { opacity: 0.6; }
+          @keyframes apex-ignite {
+            0% { transform: translate(-50%,-50%) scale(0); opacity: 0; }
+            60% { transform: translate(-50%,-50%) scale(3); opacity: 1; }
+            100% { transform: translate(-50%,-50%) scale(1.5); opacity: 0.9; }
+          }
+          @keyframes apex-nova-expand {
+            0% { transform: translate(-50%,-50%) scale(0.5); opacity: 1; }
+            100% { transform: translate(-50%,-50%) scale(8); opacity: 0; }
+          }
+          @keyframes apex-burst-rotate {
+            from { transform: translate(-50%,-50%) rotate(0deg); }
+            to { transform: translate(-50%,-50%) rotate(360deg); }
+          }
+          @keyframes apex-ray-in {
+            0% { opacity: 0; height: 0; }
             50% { opacity: 1; }
+            100% { opacity: 0.4; height: 350px; }
           }
-          @keyframes ct-twinkle {
-            0%, 100% { opacity: 0; transform: scale(0.5); }
-            50% { opacity: 0.8; transform: scale(1); }
+          @keyframes apex-bloom {
+            0% { transform: translate(-50%,-50%) scale(0.2); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translate(-50%,-50%) scale(1); opacity: 0.7; }
           }
-          @keyframes ct-glow-expand {
-            0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
-            60% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(1); opacity: 0.85; }
+          @keyframes apex-swirl {
+            0% { opacity: 0; transform: rotate(var(--angle, 0deg)) translateY(0); }
+            30% { opacity: 1; }
+            100% { opacity: 0; transform: rotate(calc(var(--angle, 0deg) + 180deg)) translateY(-200px); }
           }
-          @keyframes ct-inner-glow {
-            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+          @keyframes apex-forge-in {
+            0% { transform: scale(0.5) translateY(20px); opacity: 0; filter: blur(10px) brightness(3); }
+            60% { filter: blur(0) brightness(1.5); }
+            100% { transform: scale(1) translateY(0); opacity: 1; filter: blur(0) brightness(1); }
           }
-          @keyframes ct-shockwave {
-            0% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
-            100% { opacity: 0; transform: translate(-50%, -50%) scale(6); }
+          @keyframes apex-text-reveal {
+            0% { transform: translateY(100%); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
           }
-          @keyframes ct-float {
-            0%, 100% { opacity: 0; transform: translateY(0) scale(0.5); }
-            25% { opacity: 1; transform: translateY(-20px) scale(1.2); }
-            75% { opacity: 0.6; transform: translateY(-50px) scale(0.8); }
+          @keyframes apex-text-shimmer {
+            0% { background-position: -100% 0; }
+            100% { background-position: 200% 0; }
           }
-          @keyframes ct-content-enter {
-            from { opacity: 0; transform: translateY(20px) scale(0.9); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+          @keyframes apex-line-expand {
+            0% { width: 0; opacity: 0; }
+            100% { width: 60px; opacity: 1; }
           }
-          @keyframes ct-ring-spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+          @keyframes apex-tagline-in {
+            0% { opacity: 0; transform: translateY(8px); }
+            100% { opacity: 1; transform: translateY(0); }
           }
-          @keyframes ct-ring-spin-reverse {
-            from { transform: rotate(360deg); }
-            to { transform: rotate(0deg); }
+          @keyframes apex-stamp-wave {
+            0% { transform: translate(-50%,-50%) scale(1); opacity: 0.8; }
+            100% { transform: translate(-50%,-50%) scale(5); opacity: 0; }
           }
-          @keyframes ct-diamond-morph {
-            0%, 100% { transform: rotate(0deg) scale(1); border-radius: 4px; }
-            25% { transform: rotate(45deg) scale(1.2); border-radius: 50%; }
-            50% { transform: rotate(90deg) scale(0.9); border-radius: 4px; }
-            75% { transform: rotate(135deg) scale(1.1); border-radius: 50%; }
+          @keyframes apex-thud-glow {
+            0% { transform: translate(-50%,-50%) scale(0.5); opacity: 0; }
+            30% { opacity: 0.8; }
+            100% { transform: translate(-50%,-50%) scale(1.5); opacity: 0; }
           }
-          @keyframes ct-number-glow {
-            0%, 100% { text-shadow: 0 0 10px rgba(139,92,246,0.3); }
-            50% { text-shadow: 0 0 25px rgba(139,92,246,0.6); }
+          @keyframes apex-warp {
+            0% { opacity: 0; transform: rotate(var(--angle, 0deg)) scaleY(0.1); }
+            40% { opacity: 0.8; }
+            100% { opacity: 0; transform: rotate(var(--angle, 0deg)) scaleY(3); }
           }
-          @keyframes ct-rays-rotate {
-            from { transform: translate(-50%, -50%) rotate(0deg); }
-            to { transform: translate(-50%, -50%) rotate(360deg); }
-          }
-          @keyframes ct-ray-pulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.8; }
+          @keyframes apex-flash {
+            0% { opacity: 0; }
+            40% { opacity: 0.9; }
+            100% { opacity: 1; }
           }
         `}</style>
       </div>

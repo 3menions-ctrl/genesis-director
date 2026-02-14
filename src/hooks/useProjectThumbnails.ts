@@ -61,15 +61,14 @@ export function useProjectThumbnails() {
   }, []);
 
   const generateMissingThumbnails = useCallback(async (
-    projects: Array<{ id: string; video_url: string | null; thumbnail_url: string | null }>
+    projects: Array<{ id: string; video_url: string | null; thumbnail_url: string | null; resolvedClipUrl?: string | null }>
   ) => {
-    // Filter projects that need thumbnails
-    const needsThumbnail = projects.filter(p => 
-      p.video_url && 
-      !p.thumbnail_url && 
-      p.video_url.includes('/final-videos/') &&
-      p.video_url.endsWith('.mp4')
-    );
+    // Filter projects that need thumbnails - use resolvedClipUrl (mp4) if video_url is a manifest
+    const needsThumbnail = projects.filter(p => {
+      if (p.thumbnail_url) return false; // Already has thumbnail
+      const videoSource = p.resolvedClipUrl || p.video_url;
+      return videoSource && videoSource.endsWith('.mp4') && !videoSource.includes('replicate.delivery');
+    });
 
     if (needsThumbnail.length === 0) {
       return;
@@ -82,7 +81,7 @@ export function useProjectThumbnails() {
     for (let i = 0; i < needsThumbnail.length; i += batchSize) {
       const batch = needsThumbnail.slice(i, i + batchSize);
       await Promise.all(
-        batch.map(p => generateThumbnail(p.id, p.video_url!))
+        batch.map(p => generateThumbnail(p.id, (p.resolvedClipUrl || p.video_url)!))
       );
     }
   }, [generateThumbnail]);

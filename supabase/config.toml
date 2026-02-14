@@ -236,3 +236,6 @@ verify_jwt = false
 
 [functions.generate-avatar-batch]
 verify_jwt = false
+
+[functions.generate-widget-config]
+verify_jwt = false

@@ -13,7 +13,7 @@ import { useSafeNavigation } from '@/lib/navigation';
 import { Logo } from '@/components/ui/Logo';
 import { supabase } from '@/integrations/supabase/client';
 import landingAbstractBg from '@/assets/landing-abstract-bg.jpg';
-import authHeroImage from '@/assets/auth-hero.jpg';
+import authHeroImage from '@/assets/auth-hero-mittens.png';
 // Validation schemas
 const emailSchema = z.string()
   .trim()
@@ -269,7 +269,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
         <div className="absolute inset-0">
           <img 
             src={authHeroImage}
-            alt="Premium race car"
+            alt="Mittens avatar"
             className="w-full h-full object-cover object-center"
           />
           {/* Gradient overlays for blending */}

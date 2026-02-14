@@ -241,17 +241,47 @@ serve(async (req) => {
       
       try {
         // Query avatar_templates for a matching secondary (same type, different avatar)
+        // First get primary avatar's details for contrast selection
+        const { data: primaryTemplate } = await supabase
+          .from('avatar_templates')
+          .select('gender, voice_id, personality, style')
+          .eq('id', avatarTemplateId)
+          .single();
+        
         const { data: candidates } = await supabase
           .from('avatar_templates')
-          .select('id, name, face_image_url, front_image_url, voice_id, avatar_type, gender')
+          .select('id, name, face_image_url, front_image_url, voice_id, avatar_type, gender, personality, style')
           .eq('is_active', true)
           .eq('avatar_type', avatarType)
           .neq('id', avatarTemplateId)
-          .limit(10);
+          .limit(20);
         
         if (candidates && candidates.length > 0) {
-          // Pick a random candidate (simple selection - could be smarter with script analysis)
-          const picked = candidates[Math.floor(Math.random() * candidates.length)];
+          // SMART SELECTION: Prefer gender contrast and different voice for visual/audible distinction
+          let picked = candidates[0];
+          const primaryGender = primaryTemplate?.gender || 'unknown';
+          const primaryVoice = primaryTemplate?.voice_id || voiceId;
+          
+          // Score each candidate: higher = better contrast
+          const scored = candidates.map(c => {
+            let score = 0;
+            // Gender contrast is the strongest signal for visual distinction
+            if (c.gender && c.gender !== primaryGender && primaryGender !== 'unknown') score += 3;
+            // Different voice ensures audible distinction
+            if (c.voice_id !== primaryVoice) score += 2;
+            // Different personality/style adds creative contrast
+            if (c.personality && c.personality !== primaryTemplate?.personality) score += 1;
+            if (c.style && c.style !== primaryTemplate?.style) score += 1;
+            return { candidate: c, score };
+          });
+          
+          // Sort by score descending, pick best (with randomness among ties)
+          scored.sort((a, b) => b.score - a.score);
+          const topScore = scored[0].score;
+          const topCandidates = scored.filter(s => s.score === topScore);
+          picked = topCandidates[Math.floor(Math.random() * topCandidates.length)].candidate;
+          
+          console.log(`[AvatarDirect] 🎭 Smart selection: ${picked.name} (gender=${picked.gender}, contrast score=${topScore})`);
           secondaryAvatar = {
             id: picked.id,
             name: picked.name,
@@ -583,6 +613,14 @@ serve(async (req) => {
             startImageUrl: null,
             status: 'pending',
             videoUrl: null,
+            avatarRole: allSegmentData[i].avatarRole,
+            action: allSegmentData[i].action,
+            movement: allSegmentData[i].movement,
+            emotion: allSegmentData[i].emotion,
+            cameraHint: allSegmentData[i].cameraHint,
+            physicalDetail: allSegmentData[i].physicalDetail,
+            transitionNote: allSegmentData[i].transitionNote,
+            sceneNote: allSegmentData[i].sceneNote,
           });
         }
 
@@ -633,20 +671,28 @@ serve(async (req) => {
             pending_video_tasks: {
               type: 'avatar_async',
               embeddedAudioOnly: true,
-              predictions: pendingPredictions.map(p => ({
-                predictionId: p.predictionId,
-                clipIndex: p.clipIndex,
-                status: p.status,
-                segmentText: p.segmentText,
-                startImageUrl: p.startImageUrl,
-              })),
-              sceneImageUrl: sharedAnimationStartImage,
-              sceneCompositingApplied: sceneCompositingApplied,
-              sceneDescription: sceneDescription || null,
-              clipDuration: videoDuration,
-              aspectRatio: aspectRatio,
-              originalScript: script,
-              startedAt: new Date().toISOString(),
+          predictions: pendingPredictions.map(p => ({
+            predictionId: p.predictionId,
+            clipIndex: p.clipIndex,
+            status: p.status,
+            segmentText: p.segmentText,
+            startImageUrl: p.startImageUrl,
+            avatarRole: (p as any).avatarRole || 'primary',
+            action: (p as any).action || '',
+            movement: (p as any).movement || '',
+            emotion: (p as any).emotion || '',
+            cameraHint: (p as any).cameraHint || '',
+            physicalDetail: (p as any).physicalDetail || '',
+            transitionNote: (p as any).transitionNote || '',
+            sceneNote: (p as any).sceneNote || '',
+          })),
+          sceneImageUrl: sharedAnimationStartImage,
+          sceneCompositingApplied: sceneCompositingApplied,
+          sceneDescription: sceneDescription || null,
+          clipDuration: videoDuration,
+          aspectRatio: aspectRatio,
+          originalScript: script,
+          startedAt: new Date().toISOString(),
             },
             updated_at: new Date().toISOString(),
           }).eq('id', projectId);
@@ -756,7 +802,14 @@ serve(async (req) => {
             status: p.status,
             segmentText: p.segmentText,
             startImageUrl: p.startImageUrl,
-            avatarRole: p.avatarRole,
+            avatarRole: (p as any).avatarRole || 'primary',
+            action: (p as any).action || '',
+            movement: (p as any).movement || '',
+            emotion: (p as any).emotion || '',
+            cameraHint: (p as any).cameraHint || '',
+            physicalDetail: (p as any).physicalDetail || '',
+            transitionNote: (p as any).transitionNote || '',
+            sceneNote: (p as any).sceneNote || '',
           })),
           sceneImageUrl: sharedAnimationStartImage,
           sceneCompositingApplied: sceneCompositingApplied,

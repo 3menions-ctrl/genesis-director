@@ -131,6 +131,8 @@ function buildAvatarActingPrompt(
   screenplayEmotion?: string,
   screenplayCameraHint?: string,
   physicalDetail?: string,
+  sceneNote?: string,
+  transitionNote?: string,
 ): string {
   const idx = clipIndex % 10;
   
@@ -159,8 +161,15 @@ function buildAvatarActingPrompt(
   const sizePrompt = selectPrompt(SHOT_SIZES[sizeKey] || SHOT_SIZES.medium);
   const lightingPrompt = selectPrompt(LIGHTING_STYLES[lightingKey] || LIGHTING_STYLES.classic_key);
   
-  const progressiveScene = getProgressiveScene(sceneDescription, clipIndex, totalClips, true);
+  // Use screenplay sceneNote if available, falling back to base scene description
+  const effectiveScene = sceneNote?.trim() ? `${sceneNote}. ${sceneDescription || ''}` : sceneDescription;
+  const progressiveScene = getProgressiveScene(effectiveScene, clipIndex, totalClips, true);
   const sceneContext = `Cinematic scene in ${progressiveScene}, shot on ARRI Alexa with anamorphic lenses.`;
+  
+  // Use transitionNote for continuity enforcement
+  const transitionDirective = transitionNote?.trim() 
+    ? `[TRANSITION: ${transitionNote}]` 
+    : '';
   
   const avatarTypeLock = avatarType === 'animated'
     ? '[AVATAR STYLE: Stylized CGI/animated character. NOT photorealistic.]'
@@ -225,7 +234,7 @@ function buildAvatarActingPrompt(
   
   console.log(`[Watchdog] 🎬 Clip ${clipIndex + 1}/${totalClips} | Camera: ${screenplayCameraHint || movementKey} | Movement: ${screenplayMovement || 'default'} | AvatarType: ${avatarType}`);
   
-  return `${avatarTypeLock} ${backgroundLock} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. ${narrativeBeat} ${motionBlock} Speaking naturally: "${segmentText.trim().substring(0, 120)}${segmentText.length > 120 ? '...' : ''}". ${performanceStyle} ${lifelikeDirective} ${qualityBaseline}`;
+  return `${avatarTypeLock} ${backgroundLock} ${transitionDirective} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. ${narrativeBeat} ${motionBlock} Speaking naturally: "${segmentText.trim().substring(0, 120)}${segmentText.length > 120 ? '...' : ''}". ${performanceStyle} ${lifelikeDirective} ${qualityBaseline}`;
 }
 
 serve(async (req) => {
@@ -323,6 +332,37 @@ serve(async (req) => {
           
           if (isDualAvatar) {
             console.log(`[Watchdog] 🎭 DUAL AVATAR: Clip ${pred.clipIndex + 1} uses SECONDARY avatar (${tasks.secondaryAvatar.name})`);
+            
+            // SCENE COMPOSITING for secondary avatar - don't use raw reference image
+            if (tasks.sceneDescription && tasks.sceneImageUrl) {
+              try {
+                const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+                const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+                const sceneResponse = await fetch(`${supabaseUrl}/functions/v1/generate-avatar-scene`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${supabaseKey}`,
+                  },
+                  body: JSON.stringify({
+                    avatarImageUrl: tasks.secondaryAvatar.imageUrl,
+                    sceneDescription: pred.sceneNote || tasks.sceneDescription,
+                    aspectRatio: tasks.aspectRatio || '16:9',
+                    placement: 'center',
+                  }),
+                });
+                
+                if (sceneResponse.ok) {
+                  const sceneResult = await sceneResponse.json();
+                  if (sceneResult.success && sceneResult.sceneImageUrl) {
+                    startImageUrl = sceneResult.sceneImageUrl;
+                    console.log(`[Watchdog] ✅ Secondary avatar scene composited: ${startImageUrl.substring(0, 60)}...`);
+                  }
+                }
+              } catch (sceneError) {
+                console.warn(`[Watchdog] Secondary scene compositing failed (non-fatal):`, sceneError);
+              }
+            }
           }
           
           // For primary avatar clips, extract last frame for continuity
@@ -402,6 +442,7 @@ serve(async (req) => {
           const actingPrompt = buildAvatarActingPrompt(
             pred.segmentText, tasks.sceneDescription, pred.clipIndex, tasks.predictions.length, avatarType,
             pred.action, pred.movement, pred.emotion, pred.cameraHint, pred.physicalDetail,
+            pred.sceneNote, pred.transitionNote,
           );
           const videoDuration = tasks.clipDuration >= 10 ? 10 : (tasks.clipDuration || 10);
           
@@ -882,9 +923,48 @@ serve(async (req) => {
           console.warn(`[Watchdog] Music generation skipped:`, musicError);
         }
         
+        // ═══════════════════════════════════════════════════════════════════════════
+        // AUTO-STITCH: Concatenate all clips into a single continuous video
+        // ═══════════════════════════════════════════════════════════════════════════
+        let stitchedVideoUrl: string | null = null;
+        if (videoClipsArray.length > 1) {
+          try {
+            console.log(`[Watchdog] 🎬 AUTO-STITCH: Concatenating ${videoClipsArray.length} clips...`);
+            const stitchResponse = await fetch(`${supabaseUrl}/functions/v1/simple-stitch`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseKey}`,
+              },
+              body: JSON.stringify({
+                projectId: project.id,
+                videoUrls: videoClipsArray,
+                musicUrl: musicUrl || undefined,
+                outputFilename: `avatar_${project.id}_stitched_${Date.now()}.mp4`,
+              }),
+            });
+            
+            if (stitchResponse.ok) {
+              const stitchResult = await stitchResponse.json();
+              if (stitchResult.success && stitchResult.videoUrl) {
+                stitchedVideoUrl = stitchResult.videoUrl;
+                console.log(`[Watchdog] ✅ AUTO-STITCH complete: ${stitchedVideoUrl!.substring(0, 60)}...`);
+              } else {
+                console.warn(`[Watchdog] Stitch returned no video URL, using individual clips`);
+              }
+            } else {
+              console.warn(`[Watchdog] Stitch failed (${stitchResponse.status}), using individual clips`);
+            }
+          } catch (stitchError) {
+            console.warn(`[Watchdog] Auto-stitch exception (non-fatal):`, stitchError);
+          }
+        }
+        
+        const finalVideoUrl = stitchedVideoUrl || primaryVideoUrl;
+        
         const { error: updateError } = await supabase.from('movie_projects').update({
           status: 'completed',
-          video_url: primaryVideoUrl,
+          video_url: finalVideoUrl,
           video_clips: videoClipsArray,
           pipeline_stage: 'completed',
           pipeline_state: {
@@ -895,12 +975,14 @@ serve(async (req) => {
             asyncCompletedByWatchdog: true,
             totalClipsGenerated: videoClipsArray.length,
             hasMusic: !!musicUrl,
+            hasStitchedVideo: !!stitchedVideoUrl,
           },
           pending_video_tasks: {
             ...tasks,
             status: 'completed',
             completedAt: new Date().toISOString(),
             musicUrl,
+            stitchedVideoUrl,
           },
           updated_at: new Date().toISOString(),
         }).eq('id', project.id);

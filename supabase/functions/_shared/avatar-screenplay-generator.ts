@@ -251,18 +251,34 @@ function parseScreenplayResponse(
   
   try {
     const parsed = JSON.parse(jsonStr);
-    const segments: ScreenplaySegment[] = (parsed.segments || []).map((s: any, i: number) => ({
-      clipIndex: i,
-      avatarRole: s.avatarRole || (i % 2 === 0 ? 'primary' : (secondary ? 'secondary' : 'primary')),
-      dialogue: s.dialogue || '',
-      action: s.action || 'speaking with natural energy',
-      movement: s.movement || 'gesture',
-      sceneNote: s.sceneNote || '',
-      emotion: s.emotion || 'confident',
-      cameraHint: s.cameraHint || 'medium',
-      transitionNote: s.transitionNote || '',
-      physicalDetail: s.physicalDetail || '',
-    }));
+    const segments: ScreenplaySegment[] = (parsed.segments || []).map((s: any, i: number) => {
+      // Word-count validation: trim dialogue to fit clip duration
+      const maxWords = Math.floor(clipCount > 0 ? (300 / clipCount) : 22); // ~2.2 words/sec
+      let dialogue = s.dialogue || '';
+      const words = dialogue.split(/\s+/);
+      if (words.length > maxWords + 5) {
+        // Trim to max words, preserving sentence boundary
+        dialogue = words.slice(0, maxWords).join(' ');
+        // Try to end at a natural boundary
+        const lastPunctuation = dialogue.search(/[.!?][^.!?]*$/);
+        if (lastPunctuation > dialogue.length * 0.6) {
+          dialogue = dialogue.substring(0, lastPunctuation + 1);
+        }
+      }
+      
+      return {
+        clipIndex: i,
+        avatarRole: s.avatarRole || (i % 2 === 0 ? 'primary' : (secondary ? 'secondary' : 'primary')),
+        dialogue,
+        action: s.action || 'speaking with natural energy',
+        movement: s.movement || 'gesture',
+        sceneNote: s.sceneNote || '',
+        emotion: s.emotion || 'confident',
+        cameraHint: s.cameraHint || 'medium',
+        transitionNote: s.transitionNote || '',
+        physicalDetail: s.physicalDetail || '',
+      };
+    });
     
     while (segments.length < clipCount) {
       segments.push({

@@ -459,25 +459,29 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
               )
             ) : (
               <>
-                {/* Static thumbnail when not hovered */}
-                {!isHovered && (
-                  project.thumbnail_url ? (
-                    <img src={project.thumbnail_url} alt={project.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                {/* Static thumbnail — always mounted to prevent flash */}
+                <div className={cn(
+                  "absolute inset-0 w-full h-full transition-opacity duration-300",
+                  isHovered ? "opacity-0 pointer-events-none" : "opacity-100"
+                )}>
+                  {project.thumbnail_url ? (
+                    <img src={project.thumbnail_url} alt={project.name} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
-                    <PausedFrameVideo src={videoSrc} className="absolute inset-0 w-full h-full object-cover" showLoader={false} />
-                  )
-                )}
-                {/* Active video when hovered */}
-                {isHovered && (
-                  <video
-                    ref={videoRef}
-                    src={videoSrc}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 scale-105"
-                    loop muted playsInline preload="metadata"
-                    onLoadedMetadata={handleVideoMetadataLoaded}
-                    onError={(e) => { e.preventDefault?.(); e.stopPropagation?.(); setVideoError(true); }}
-                  />
-                )}
+                    <PausedFrameVideo src={videoSrc} className="w-full h-full object-cover" showLoader={false} />
+                  )}
+                </div>
+                {/* Active video — always mounted, shown on hover */}
+                <video
+                  ref={videoRef}
+                  src={isHovered ? videoSrc : undefined}
+                  className={cn(
+                    "absolute inset-0 w-full h-full object-cover transition-all duration-700",
+                    isHovered ? "opacity-100 scale-105" : "opacity-0 scale-100"
+                  )}
+                  loop muted playsInline preload="none"
+                  onLoadedMetadata={handleVideoMetadataLoaded}
+                  onError={(e) => { e.preventDefault?.(); e.stopPropagation?.(); setVideoError(true); }}
+                />
               </>
             )}
           </>

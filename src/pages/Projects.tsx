@@ -5,11 +5,10 @@ import { useSafeNavigation, useRouteCleanup, useNavigationAbort } from '@/lib/na
 import { debounce } from '@/lib/concurrency/debounce';
 import { 
   Plus, Film, Play, Download, Trash2, Edit2,
-  Loader2, Clock, Zap, Eye, Star, Heart, TrendingUp,
-  Pencil, Calendar, Grid3X3, LayoutList,
-  AlertCircle, Layers, Sparkles, Activity,
-  X, Check, Search, SortAsc, SortDesc,
-  Command, GraduationCap, MonitorPlay, Pin, ExternalLink
+  Loader2, Clock,
+  Pencil, Grid3X3, LayoutList,
+  X, Search, SortAsc, SortDesc,
+  Command, MonitorPlay, Pin, ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
@@ -522,36 +521,23 @@ function ProjectsContentInner() {
     return { total: allProjects.length, completed, processing, totalClips };
   }, [projects]);
 
-  // Genre categories config
-  const GENRE_CONFIG: Record<string, { label: string; icon: typeof Film; color: string }> = {
-    cinematic: { label: 'Cinematic', icon: Film, color: 'text-purple-400' },
-    ad: { label: 'Advertisement', icon: Zap, color: 'text-amber-400' },
-    documentary: { label: 'Documentary', icon: Eye, color: 'text-blue-400' },
-    educational: { label: 'Educational', icon: Sparkles, color: 'text-emerald-400' },
-    funny: { label: 'Comedy', icon: Star, color: 'text-pink-400' },
-    religious: { label: 'Religious', icon: Heart, color: 'text-rose-400' },
-    motivational: { label: 'Motivational', icon: TrendingUp, color: 'text-orange-400' },
-    storytelling: { label: 'Storytelling', icon: Layers, color: 'text-cyan-400' },
-  };
-
-  // Group projects by genre - now using displayedProjects from server-side pagination
-  const groupedProjects = useMemo(() => {
-    const unpinnedProjects = displayedProjects.filter(p => !pinnedProjects.has(p.id));
-    const groups: Record<string, Project[]> = {};
-    
-    unpinnedProjects.forEach(project => {
-      const genre = project.genre || 'cinematic';
-      if (!groups[genre]) {
-        groups[genre] = [];
-      }
-      groups[genre].push(project);
-    });
-    
-    // Sort genres by count (most projects first)
-    const sortedGenres = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length);
-    
-    return { groups, sortedGenres };
-  }, [displayedProjects, pinnedProjects]);
+  // Infinite scroll observer ref
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (!hasMore || isLoadingMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          loadMore();
+        }
+      },
+      { rootMargin: '400px' }
+    );
+    const el = loadMoreRef.current;
+    if (el) observer.observe(el);
+    return () => { if (el) observer.unobserve(el); };
+  }, [hasMore, isLoadingMore, loadMore]);
 
   // Handlers
   const handleCreateProject = () => {
@@ -772,22 +758,41 @@ function ProjectsContentInner() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
-      {/* Premium Orange-Themed Animated Background */}
+      {/* Premium Animated Background */}
       <ProjectsBackground />
 
       {/* Navigation */}
       <AppHeader onCreateClick={handleCreateProject} />
 
-      {/* Main Content - MOBILE FIX: Reduced padding on mobile */}
-      <main className="relative z-10 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4 pt-16 sm:pt-20">
+      {/* Floating Create CTA — high-conversion, always visible */}
+      {stats.total > 0 && (
+        <button
+          onClick={handleCreateProject}
+          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 h-12 px-6 rounded-full bg-primary text-primary-foreground font-semibold text-sm shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-105 transition-all duration-200"
+        >
+          <Plus className="w-4 h-4" />
+          Create New
+        </button>
+      )}
+
+      {/* Main Content */}
+      <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 pt-16 sm:pt-20">
         
-        {/* Loading state */}
+        {/* Loading skeleton */}
         {(isLoadingProjects && !hasLoadedOnce) ? (
-          <div className="flex flex-col items-center justify-center py-32 animate-fade-in">
-            <div className="w-8 h-8 border border-white/10 rounded-full flex items-center justify-center mb-4">
-              <div className="w-3 h-3 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+          <div className="pt-8">
+            {/* Skeleton hero */}
+            <div className="mb-8">
+              <div className="h-3 w-16 rounded bg-white/[0.04] mb-2" />
+              <div className="h-10 w-48 rounded bg-white/[0.06] mb-6" />
+              <div className="h-px bg-white/[0.04]" />
             </div>
-            <p className="text-white/20 text-sm">Loading projects...</p>
+            {/* Skeleton grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="aspect-video rounded-xl bg-white/[0.03] border border-white/[0.04] animate-pulse" />
+              ))}
+            </div>
           </div>
         ) : stats.total === 0 && stitchingProjects.length === 0 ? (
           /* Minimal Empty State */
@@ -957,7 +962,7 @@ function ProjectsContentInner() {
                      </button>
                    </div>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {trainingVideos.map((video, index) => (
                       <motion.div
                         key={video.id}
@@ -1060,7 +1065,7 @@ function ProjectsContentInner() {
                           ))}
                         </div>
                       ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                           {filteredProjects.filter(p => pinnedProjects.has(p.id)).map((project, index) => (
                             <ProjectCard
                               key={project.id}
@@ -1087,87 +1092,70 @@ function ProjectsContentInner() {
                       )}
                     </motion.section>
                   )}
-                  {/* Genre-based Project Sections - Premium */}
-                  {groupedProjects.sortedGenres.map((genre, genreIndex) => {
-                    const genreProjects = groupedProjects.groups[genre];
-                    const config = GENRE_CONFIG[genre] || { label: genre.charAt(0).toUpperCase() + genre.slice(1), icon: Film, color: 'text-primary' };
-                    const GenreIcon = config.icon;
-                    
-                    return (
-                      <motion.section 
-                        key={genre} 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 + genreIndex * 0.05 }}
-                        className="relative"
-                      >
-                        <div className="flex items-center gap-2 mb-4">
-                          <h2 className="text-xs font-medium uppercase tracking-wider text-white/40">{config.label}</h2>
-                          <span className="text-[10px] text-white/20">{genreProjects.length}</span>
-                        </div>
-                        {viewMode === 'list' ? (
-                          <div className="space-y-2">
-                            {genreProjects.map((project, index) => (
-                              <ProjectCard
-                                key={project.id}
-                                project={project}
-                                index={index}
-                                viewMode="list"
-                                preResolvedClipUrl={resolvedClipUrls.get(project.id)}
-                                onPlay={() => handlePlayVideo(project)}
-                                onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
-                                onRename={() => handleRenameProject(project)}
-                                onDelete={() => deleteProject(project.id)}
-                                onDownload={() => handleDownloadAll(project)}
-                                onRetryStitch={() => handleGoogleStitch(project.id)}
-                                onTogglePin={() => togglePin(project.id)}
-                                onTogglePublic={() => handleTogglePublic(project)}
-                                isActive={activeProjectId === project.id}
-                                isRetrying={retryingProjectId === project.id}
-                                isPinned={pinnedProjects.has(project.id)}
-                              />
-                            ))}
-                          </div>
-                        ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                            {genreProjects.map((project, index) => (
-                              <ProjectCard
-                                key={project.id}
-                                project={project}
-                                index={index}
-                                viewMode="grid"
-                                preResolvedClipUrl={resolvedClipUrls.get(project.id)}
-                                onPlay={() => handlePlayVideo(project)}
-                                onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
-                                onRename={() => handleRenameProject(project)}
-                                onDelete={() => deleteProject(project.id)}
-                                onDownload={() => handleDownloadAll(project)}
-                                onRetryStitch={() => handleGoogleStitch(project.id)}
-                                onTogglePin={() => togglePin(project.id)}
-                                onTogglePublic={() => handleTogglePublic(project)}
-                                isActive={activeProjectId === project.id}
-                                isRetrying={retryingProjectId === project.id}
-                                isPinned={pinnedProjects.has(project.id)}
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </motion.section>
-                    );
-                  })}
-                  
-                  {/* Load More */}
-                  {hasMoreToLoad && (
-                    <div className="flex justify-center py-8">
-                      <button
-                        onClick={handleLoadMore}
-                        disabled={isLoadingMore}
-                        className="text-xs uppercase tracking-wider text-white/30 hover:text-white/60 border border-white/[0.08] hover:border-white/[0.15] px-6 py-2.5 rounded-lg transition-all disabled:opacity-50"
-                      >
-                        {isLoadingMore ? 'Loading...' : `Load More · ${totalCount - displayedProjects.length} remaining`}
-                      </button>
+                  {/* Flat chronological grid — all unpinned projects */}
+                  {viewMode === 'list' ? (
+                    <div className="space-y-1.5">
+                      {filteredProjects.filter(p => !pinnedProjects.has(p.id)).map((project, index) => (
+                        <ProjectCard
+                          key={project.id}
+                          project={project}
+                          index={index}
+                          viewMode="list"
+                          preResolvedClipUrl={resolvedClipUrls.get(project.id)}
+                          onPlay={() => handlePlayVideo(project)}
+                          onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
+                          onRename={() => handleRenameProject(project)}
+                          onDelete={() => deleteProject(project.id)}
+                          onDownload={() => handleDownloadAll(project)}
+                          onRetryStitch={() => handleGoogleStitch(project.id)}
+                          onBrowserStitch={() => handleBrowserStitch(project.id)}
+                          onTogglePin={() => togglePin(project.id)}
+                          onTogglePublic={() => handleTogglePublic(project)}
+                          isActive={activeProjectId === project.id}
+                          isRetrying={retryingProjectId === project.id}
+                          isBrowserStitching={browserStitchingProjectId === project.id}
+                          isPinned={false}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {filteredProjects.filter(p => !pinnedProjects.has(p.id)).map((project, index) => (
+                        <ProjectCard
+                          key={project.id}
+                          project={project}
+                          index={index}
+                          viewMode="grid"
+                          preResolvedClipUrl={resolvedClipUrls.get(project.id)}
+                          onPlay={() => handlePlayVideo(project)}
+                          onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
+                          onRename={() => handleRenameProject(project)}
+                          onDelete={() => deleteProject(project.id)}
+                          onDownload={() => handleDownloadAll(project)}
+                          onRetryStitch={() => handleGoogleStitch(project.id)}
+                          onBrowserStitch={() => handleBrowserStitch(project.id)}
+                          onTogglePin={() => togglePin(project.id)}
+                          onTogglePublic={() => handleTogglePublic(project)}
+                          isActive={activeProjectId === project.id}
+                          isRetrying={retryingProjectId === project.id}
+                          isBrowserStitching={browserStitchingProjectId === project.id}
+                          isPinned={false}
+                        />
+                      ))}
                     </div>
                   )}
+                  
+                  {/* Infinite scroll sentinel */}
+                  <div ref={loadMoreRef} className="py-4">
+                    {isLoadingMore && (
+                      <div className="flex justify-center">
+                        <div className="flex items-center gap-3 text-white/20 text-xs">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Loading more...
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </>
               ) : null}
             </motion.div>

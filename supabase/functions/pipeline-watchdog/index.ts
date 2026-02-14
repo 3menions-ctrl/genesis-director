@@ -120,7 +120,7 @@ const MAX_AGE_MS = 60 * 60 * 1000; // 60 minutes
  * Each clip gets unique cinematography + DYNAMIC SCENE PROGRESSION
  * CRITICAL: Enforces "ALREADY IN POSITION" - avatar starts IN the scene, not entering it
  */
-function buildAvatarActingPrompt(segmentText: string, sceneDescription?: string, clipIndex: number = 0, totalClips: number = 1): string {
+function buildAvatarActingPrompt(segmentText: string, sceneDescription?: string, clipIndex: number = 0, totalClips: number = 1, avatarType: string = 'realistic'): string {
   const idx = clipIndex % 10;
   
   // Get unique style elements for this clip
@@ -136,19 +136,27 @@ function buildAvatarActingPrompt(segmentText: string, sceneDescription?: string,
   const lightingPrompt = selectPrompt(LIGHTING_STYLES[lightingKey] || LIGHTING_STYLES.classic_key);
   const motionPrompt = selectPrompt(SUBJECT_MOTION[motionKey] || SUBJECT_MOTION.gesture_expressive);
   
-  // DYNAMIC SCENE PROGRESSION: Get progressive scene for this clip
-  const progressiveScene = getProgressiveScene(sceneDescription, clipIndex, totalClips);
+  // BACKGROUND CONTINUITY: Lock scene across all clips (pass lockBackground=true for avatar)
+  const progressiveScene = getProgressiveScene(sceneDescription, clipIndex, totalClips, true);
   const sceneContext = `Cinematic scene in ${progressiveScene}, shot with professional cinematography.`;
+  
+  // AVATAR TYPE LOCK: Enforce consistent visual style
+  const avatarTypeLock = avatarType === 'animated'
+    ? '[AVATAR STYLE: Stylized CGI/animated character. Maintain cartoon/animated art style throughout. NOT photorealistic.]'
+    : '[AVATAR STYLE: Photorealistic human. Maintain realistic appearance throughout. NOT cartoon/animated.]';
   
   // CRITICAL: "Already in position" enforcement for Kling animation
   const positionEnforcement = "CRITICAL: Subject is ALREADY fully positioned in the environment from frame 1 - NOT walking in, NOT entering, NOT arriving. They are stationary and grounded, having already been present in this location.";
   
+  // BACKGROUND LOCK for clips 2+
+  const backgroundLock = clipIndex > 0 ? '[SAME BACKGROUND: Continue in the EXACT same environment, lighting, and setting as previous clip. DO NOT change location.]' : '';
+  
   const qualityBaseline = "Ultra-high definition, film-grain texture, natural skin tones, professional color grading, cinematic depth of field.";
   
-  console.log(`[Watchdog] Clip ${clipIndex + 1}/${totalClips} Style: ${movementKey} + ${angleKey} + ${sizeKey}`);
+  console.log(`[Watchdog] Clip ${clipIndex + 1}/${totalClips} Style: ${movementKey} + ${angleKey} + ${sizeKey} | AvatarType: ${avatarType}`);
   console.log(`[Watchdog] Clip ${clipIndex + 1}/${totalClips} Scene: ${progressiveScene.substring(0, 50)}...`);
   
-  return `${positionEnforcement} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. The subject is ${motionPrompt}, speaking naturally: "${segmentText.trim().substring(0, 80)}${segmentText.length > 80 ? '...' : ''}". Lifelike fluid movements, natural micro-expressions, authentic lip sync, subtle breathing motion, realistic eye movements and blinks. ${qualityBaseline}`;
+  return `${avatarTypeLock} ${positionEnforcement} ${backgroundLock} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. The subject is ${motionPrompt}, speaking naturally: "${segmentText.trim().substring(0, 80)}${segmentText.length > 80 ? '...' : ''}". Lifelike fluid movements, natural micro-expressions, authentic lip sync, subtle breathing motion, realistic eye movements and blinks. ${qualityBaseline}`;
 }
 
 serve(async (req) => {
@@ -311,8 +319,14 @@ serve(async (req) => {
           pred.startImageUrl = startImageUrl;
           
           // Build WORLD-CLASS acting prompt for this segment with unique cinematography + scene progression
-          const actingPrompt = buildAvatarActingPrompt(pred.segmentText, tasks.sceneDescription, pred.clipIndex, tasks.predictions.length);
+          const avatarType = tasks.avatarType || 'realistic';
+          const actingPrompt = buildAvatarActingPrompt(pred.segmentText, tasks.sceneDescription, pred.clipIndex, tasks.predictions.length, avatarType);
           const videoDuration = tasks.clipDuration >= 10 ? 10 : (tasks.clipDuration || 10);
+          
+          // Avatar type-specific negative prompts
+          const negativePrompt = avatarType === 'animated'
+            ? "photorealistic, real human, live action, photograph, real skin texture, different background, changed environment, new location, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless"
+            : "cartoon, animated, CGI, 3D render, anime, illustration, drawing, painting, sketch, different background, changed environment, new location, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless";
           
           // Start Kling prediction for this clip WITH RESILIENT FETCH
           let klingRetries = 0;
@@ -340,7 +354,7 @@ serve(async (req) => {
                     duration: videoDuration,
                     start_image: startImageUrl,
                     aspect_ratio: tasks.aspectRatio || "16:9",
-                    negative_prompt: "static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless",
+                    negative_prompt: negativePrompt,
                   },
                 }),
                 maxRetries: 2,

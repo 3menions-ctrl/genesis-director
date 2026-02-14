@@ -23,7 +23,7 @@ const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({ onClos
   return (
     <div className="fixed inset-0 z-[2] pointer-events-none animate-fade-in" style={{ animationDuration: '1.2s' }}>
       {/* Fullscreen HLS video */}
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 [&_video]:!object-cover [&_video]:!w-full [&_video]:!h-full [&>div]:!w-full [&>div]:!h-full">
         <UniversalHLSPlayer
           ref={playerRef}
           hlsUrl={STORYTELLING_HLS_URL}
@@ -31,6 +31,7 @@ const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({ onClos
           showControls={false}
           autoPlay={true}
           loop={true}
+          aspectRatio="auto"
         />
       </div>
       

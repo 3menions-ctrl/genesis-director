@@ -89,6 +89,7 @@ const CinematicTransition = memo(forwardRef<HTMLDivElement, CinematicTransitionP
       const start = Date.now();
       setPhase(1);
 
+      let lastPhase = 1;
       const tick = () => {
         if (!isMountedRef.current) return;
         const elapsed = Date.now() - start;
@@ -99,11 +100,17 @@ const CinematicTransition = memo(forwardRef<HTMLDivElement, CinematicTransitionP
           : 0.35 + Math.pow((t - 0.5) * 2, 2.2) * 0.65;
         setProgress(curved);
 
-        if (t <= 0.15) setPhase(1);       // Void & ember (0-1.5s)
-        else if (t <= 0.32) setPhase(2);   // Supernova (1.5-3.2s)
-        else if (t <= 0.58) setPhase(3);   // Logo forge (3.2-5.8s)
-        else if (t <= 0.80) setPhase(4);   // Brand stamp (5.8-8s)
-        else setPhase(5);                  // Warp exit (8-10s)
+        // Only update phase when it actually changes to prevent re-render flicker
+        let newPhase = 1;
+        if (t > 0.80) newPhase = 5;
+        else if (t > 0.58) newPhase = 4;
+        else if (t > 0.32) newPhase = 3;
+        else if (t > 0.15) newPhase = 2;
+        
+        if (newPhase !== lastPhase) {
+          lastPhase = newPhase;
+          setPhase(newPhase);
+        }
 
         if (t < 1) requestAnimationFrame(tick);
       };
@@ -373,27 +380,27 @@ const CinematicTransition = memo(forwardRef<HTMLDivElement, CinematicTransitionP
               ))}
             </div>
 
-            {/* Cinematic letterbox bars closing in */}
+            {/* Pitch black letterbox curtains */}
             <div style={{
               position: 'absolute', top: 0, left: 0, right: 0,
-              background: `linear-gradient(to bottom, ${C.bg}, ${C.blue})`,
+              background: '#000000',
               zIndex: 50,
               height: '0%',
-              animation: 'apex-letterbox-close 1.2s 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+              animation: 'apex-letterbox-close 1.4s 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards',
             }} />
             <div style={{
               position: 'absolute', bottom: 0, left: 0, right: 0,
-              background: `linear-gradient(to top, ${C.bg}, ${C.blue})`,
+              background: '#000000',
               zIndex: 50,
               height: '0%',
-              animation: 'apex-letterbox-close 1.2s 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+              animation: 'apex-letterbox-close 1.4s 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards',
             }} />
 
-            {/* Final dark blue vignette instead of white flash */}
+            {/* Full black overlay that fades in behind letterbox */}
             <div style={{
               position: 'absolute', inset: 0, zIndex: 45,
-              background: `radial-gradient(ellipse at center, transparent 20%, ${C.blue} 70%, ${C.bg} 100%)`,
-              animation: 'apex-vignette 1s 0.3s ease-in forwards',
+              background: '#000000',
+              animation: 'apex-blackout 0.8s 0.3s ease-in forwards',
               opacity: 0,
             }} />
           </>
@@ -479,17 +486,17 @@ const CinematicTransition = memo(forwardRef<HTMLDivElement, CinematicTransitionP
             100% { transform: translate(-50%,-50%) scale(2.5); opacity: 0; }
           }
           @keyframes apex-warp-streak {
-            0% { opacity: 0; transform: rotate(var(--a,0deg)) scaleY(0.03); }
+            0% { opacity: 0; scale: 1 0.03; }
             30% { opacity: 0.8; }
-            100% { opacity: 0; transform: rotate(var(--a,0deg)) scaleY(6); }
+            100% { opacity: 0; scale: 1 6; }
           }
           @keyframes apex-letterbox-close {
             0% { height: 0%; }
             100% { height: 52%; }
           }
-          @keyframes apex-vignette {
+          @keyframes apex-blackout {
             0% { opacity: 0; }
-            100% { opacity: 0.8; }
+            100% { opacity: 1; }
           }
         `}</style>
       </div>

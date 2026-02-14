@@ -530,6 +530,9 @@ serve(async (req) => {
       ? '[AVATAR STYLE LOCK: This character is a stylized CGI/animated character. Maintain cartoon/animated art style throughout. DO NOT render as photorealistic human.]'
       : '[AVATAR STYLE LOCK: This character is a photorealistic human. Maintain realistic appearance throughout. DO NOT render as cartoon/animated/CGI style.]';
     
+    // IDENTITY LOCK: Injected into EVERY clip prompt to prevent face drift
+    const identityLockPrefix = `[FACE LOCK — CRITICAL: The person in this video must look EXACTLY like the person in the start frame reference image. Preserve their exact facial features, hair style, hair color, skin tone, eye color, body build, and outfit throughout ALL frames. NO morphing, NO face changes, NO age shifts. This person must be 100% recognizable.]`;
+    
     console.log(`[AvatarDirect] ═══ Starting Clip 1/${finalClipCount} ═══`);
     console.log(`[AvatarDirect] Start image: ${sharedAnimationStartImage.substring(0, 60)}...`);
     
@@ -542,13 +545,13 @@ serve(async (req) => {
       body: JSON.stringify({
         input: {
           mode: "pro",
-          prompt: `${avatarTypeLock} ${actingPrompt}`,
+          prompt: `${identityLockPrefix} ${avatarTypeLock} ${actingPrompt}`,
           duration: videoDuration,
           start_image: sharedAnimationStartImage,
           aspect_ratio: aspectRatio,
           negative_prompt: avatarType === 'animated'
-            ? "photorealistic, real human, live action, photograph, real skin texture, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast"
-            : "cartoon, animated, CGI, 3D render, anime, illustration, drawing, painting, sketch, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast",
+            ? "photorealistic, real human, live action, photograph, real skin texture, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast, face morphing, identity change, different person, age change"
+            : "cartoon, animated, CGI, 3D render, anime, illustration, drawing, painting, sketch, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast, face morphing, identity change, different person, age change",
         },
       }),
     });
@@ -569,16 +572,16 @@ serve(async (req) => {
             "Authorization": `Bearer ${REPLICATE_API_KEY}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
+           body: JSON.stringify({
             input: {
               mode: "pro",
-              prompt: `${avatarTypeLock} ${actingPrompt}`,
+              prompt: `${identityLockPrefix} ${avatarTypeLock} ${actingPrompt}`,
               duration: videoDuration,
               start_image: sharedAnimationStartImage,
               aspect_ratio: aspectRatio,
               negative_prompt: avatarType === 'animated'
-                ? "photorealistic, real human, live action, photograph, real skin texture, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast"
-                : "cartoon, animated, CGI, 3D render, anime, illustration, drawing, painting, sketch, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast",
+                ? "photorealistic, real human, live action, photograph, real skin texture, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast, face morphing, identity change, different person, age change"
+                : "cartoon, animated, CGI, 3D render, anime, illustration, drawing, painting, sketch, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast, face morphing, identity change, different person, age change",
             },
           }),
         });

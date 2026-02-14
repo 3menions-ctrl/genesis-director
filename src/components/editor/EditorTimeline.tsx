@@ -16,6 +16,7 @@ interface EditorTimelineProps {
   onReorderClip: (clipId: string, newStart: number) => void;
   onZoomChange: (zoom: number) => void;
   onDeleteClip: (clipId: string) => void;
+  onMoveClipToTrack?: (clipId: string, targetTrackId: string) => void;
 }
 
 const TRACK_HEIGHT = 44;
@@ -45,6 +46,7 @@ export const EditorTimeline = ({
   onReorderClip,
   onZoomChange,
   onDeleteClip,
+  onMoveClipToTrack,
 }: EditorTimelineProps) => {
   const timelineRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{

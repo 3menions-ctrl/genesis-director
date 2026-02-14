@@ -1,13 +1,13 @@
 /**
  * CinematicTransition - The APEX STUDIOS Signature Brand Animation
  * 
- * 10-second cinematic intro. Starts slow, accelerates to climax.
- * Uses the raw logo graphic (no container), fills the screen.
- * Phases: Void → Slow Burn → Supernova → Logo Forge → Brand Stamp → Warp Exit
+ * 10-second cinematic intro. Black, white, dark blue palette.
+ * Uses apex-studio-logo.png (the white sign, no container).
+ * Starts slow, accelerates. Ends with cinematic letterbox close, not white flash.
  */
 
 import { memo, forwardRef, useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import logoGraphic from '@/assets/apex-logo.png';
+import logoImage from '@/assets/apex-studio-logo.png';
 
 interface CinematicTransitionProps {
   isActive: boolean;
@@ -17,6 +17,22 @@ interface CinematicTransitionProps {
 
 const TOTAL_DURATION = 10000;
 
+// Color palette: black, white, dark blue
+const C = {
+  bg: '#0a0a0f',           // --background
+  white: '#ffffff',
+  whiteHalf: 'rgba(255,255,255,0.5)',
+  white20: 'rgba(255,255,255,0.2)',
+  white10: 'rgba(255,255,255,0.1)',
+  white06: 'rgba(255,255,255,0.06)',
+  white03: 'rgba(255,255,255,0.03)',
+  blue: '#1a2744',         // dark blue
+  blueGlow: 'rgba(26,39,68,0.6)',
+  blueBright: '#2a4070',
+  blueLight: 'rgba(60,100,180,0.3)',
+  blueSubtle: 'rgba(40,65,120,0.15)',
+};
+
 const CinematicTransition = memo(forwardRef<HTMLDivElement, CinematicTransitionProps>(
   function CinematicTransition({ isActive, onComplete }, ref) {
     const hasNavigated = useRef(false);
@@ -25,21 +41,33 @@ const CinematicTransition = memo(forwardRef<HTMLDivElement, CinematicTransitionP
     const [phase, setPhase] = useState(0);
 
     const particles = useMemo(() =>
-      Array.from({ length: 60 }, () => ({
+      Array.from({ length: 70 }, () => ({
         angle: Math.random() * 360,
-        dist: 50 + Math.random() * 120,
-        size: 1.5 + Math.random() * 3.5,
-        speed: 1 + Math.random() * 2,
-        delay: Math.random() * 1.2,
+        dist: 40 + Math.random() * 150,
+        size: 1 + Math.random() * 3,
+        speed: 1.5 + Math.random() * 2.5,
+        delay: Math.random() * 1.5,
+        isBlue: Math.random() > 0.6,
       })), []
     );
 
     const warpLines = useMemo(() =>
-      Array.from({ length: 36 }, (_, i) => ({
-        angle: (360 / 36) * i + Math.random() * 5,
+      Array.from({ length: 40 }, (_, i) => ({
+        angle: (360 / 40) * i + Math.random() * 4,
         length: 50 + Math.random() * 50,
-        width: 1 + Math.random() * 2.5,
-        delay: Math.random() * 0.25,
+        width: 0.5 + Math.random() * 2,
+        delay: Math.random() * 0.4,
+        isBlue: Math.random() > 0.5,
+      })), []
+    );
+
+    const starField = useMemo(() =>
+      Array.from({ length: 80 }, () => ({
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        size: 0.5 + Math.random() * 2,
+        dur: 1.5 + Math.random() * 3,
+        delay: Math.random() * 3,
       })), []
     );
 
@@ -65,18 +93,17 @@ const CinematicTransition = memo(forwardRef<HTMLDivElement, CinematicTransitionP
         if (!isMountedRef.current) return;
         const elapsed = Date.now() - start;
         const t = Math.min(elapsed / TOTAL_DURATION, 1);
-        // Slow start, accelerating curve: t^0.6 for first half, then speeds up
+        // Slow start → fast end
         const curved = t < 0.5
-          ? Math.pow(t * 2, 0.6) * 0.5
-          : 0.5 + Math.pow((t - 0.5) * 2, 1.8) * 0.5;
+          ? Math.pow(t * 2, 0.5) * 0.35
+          : 0.35 + Math.pow((t - 0.5) * 2, 2.2) * 0.65;
         setProgress(curved);
 
-        // Phase timing (stretched for 10s)
-        if (t <= 0.12) setPhase(1);       // Void & slow burn (0-1.2s)
-        else if (t <= 0.30) setPhase(2);   // Supernova (1.2-3s)
-        else if (t <= 0.55) setPhase(3);   // Logo forge (3-5.5s)
-        else if (t <= 0.78) setPhase(4);   // Brand stamp (5.5-7.8s)
-        else setPhase(5);                  // Warp exit (7.8-10s)
+        if (t <= 0.15) setPhase(1);       // Void & ember (0-1.5s)
+        else if (t <= 0.32) setPhase(2);   // Supernova (1.5-3.2s)
+        else if (t <= 0.58) setPhase(3);   // Logo forge (3.2-5.8s)
+        else if (t <= 0.80) setPhase(4);   // Brand stamp (5.8-8s)
+        else setPhase(5);                  // Warp exit (8-10s)
 
         if (t < 1) requestAnimationFrame(tick);
       };
@@ -100,100 +127,98 @@ const CinematicTransition = memo(forwardRef<HTMLDivElement, CinematicTransitionP
         style={{
           position: 'fixed', inset: 0, zIndex: 99999,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'hsl(250, 15%, 4%)',
+          background: C.bg,
           overflow: 'hidden',
         }}
       >
+        {/* ═══ STAR FIELD — visible throughout ═══ */}
+        {starField.map((s, i) => (
+          <div key={`star-${i}`} style={{
+            position: 'absolute',
+            left: `${s.x}%`, top: `${s.y}%`,
+            width: s.size, height: s.size,
+            borderRadius: '50%',
+            background: C.white,
+            animation: `apex-twinkle ${s.dur}s ${s.delay}s ease-in-out infinite`,
+            opacity: 0,
+          }} />
+        ))}
+
         {/* ═══ PHASE 1: VOID — Slow breathing ember ═══ */}
         <div style={{
           position: 'absolute', top: '50%', left: '50%',
           transform: 'translate(-50%, -50%)',
           width: 4, height: 4, borderRadius: '50%',
-          background: 'hsl(263, 70%, 58%)',
-          boxShadow: '0 0 60px 20px hsla(263,70%,58%,0.6), 0 0 120px 40px hsla(263,70%,58%,0.3)',
+          background: C.white,
+          boxShadow: `0 0 40px 15px ${C.white20}, 0 0 80px 30px ${C.blueSubtle}, 0 0 140px 60px ${C.white06}`,
           opacity: phase >= 1 ? 1 : 0,
-          animation: phase === 1 ? 'apex-ember 1.2s ease-in-out forwards' : phase >= 2 ? 'apex-ignite 0.5s ease-out forwards' : 'none',
+          animation: phase === 1 ? 'apex-ember 1.5s ease-in-out forwards' : phase >= 2 ? 'apex-ignite 0.6s ease-out forwards' : 'none',
         }} />
 
-        {/* Slow breathing ambient glow during phase 1 */}
         {phase === 1 && (
           <div style={{
             position: 'absolute', top: '50%', left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: 300, height: 300, borderRadius: '50%',
-            background: 'radial-gradient(circle, hsla(263,70%,58%,0.06) 0%, transparent 60%)',
-            animation: 'apex-ambient-breathe 2s ease-in-out infinite',
+            width: 400, height: 400, borderRadius: '50%',
+            background: `radial-gradient(circle, ${C.blueSubtle} 0%, transparent 60%)`,
+            animation: 'apex-ambient 2.5s ease-in-out infinite',
           }} />
         )}
 
-        {/* ═══ PHASE 2: SUPERNOVA — Explosive expansion ═══ */}
+        {/* ═══ PHASE 2: SUPERNOVA ═══ */}
         {phase >= 2 && (
           <>
-            {/* Triple nova rings */}
-            <div style={{
-              position: 'absolute', top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 180, height: 180, borderRadius: '50%',
-              border: '2.5px solid hsla(263,70%,58%,0.5)',
-              animation: 'apex-nova-expand 2s ease-out forwards',
-            }} />
-            <div style={{
-              position: 'absolute', top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 120, height: 120, borderRadius: '50%',
-              border: '1.5px solid hsla(263,70%,70%,0.3)',
-              animation: 'apex-nova-expand 2.5s 0.2s ease-out forwards',
-            }} />
-            <div style={{
-              position: 'absolute', top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 80, height: 80, borderRadius: '50%',
-              border: '1px solid hsla(195,90%,50%,0.2)',
-              animation: 'apex-nova-expand 3s 0.4s ease-out forwards',
-            }} />
+            {/* Nova rings — white and dark blue */}
+            {[200, 140, 90].map((size, i) => (
+              <div key={`nova-${i}`} style={{
+                position: 'absolute', top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: size, height: size, borderRadius: '50%',
+                border: `${2 - i * 0.5}px solid ${i === 2 ? C.blueLight : C.white20}`,
+                animation: `apex-nova ${2 + i * 0.5}s ${i * 0.2}s ease-out forwards`,
+              }} />
+            ))}
 
-            {/* 24 light rays */}
+            {/* 28 light rays — alternating white and dark blue */}
             <div style={{
               position: 'absolute', top: '50%', left: '50%',
               transform: 'translate(-50%, -50%)',
               width: '100vmax', height: '100vmax',
-              animation: 'apex-burst-rotate 25s linear infinite',
+              animation: 'apex-rotate 30s linear infinite',
             }}>
-              {Array.from({ length: 24 }).map((_, i) => (
+              {Array.from({ length: 28 }).map((_, i) => (
                 <div key={`ray-${i}`} style={{
                   position: 'absolute', top: '50%', left: '50%',
-                  width: i % 3 === 0 ? 2.5 : 1.2,
+                  width: i % 4 === 0 ? 2.5 : 1,
                   height: '50%',
-                  background: i % 5 === 0
-                    ? 'linear-gradient(to top, hsla(195,90%,50%,0.12), transparent 55%)'
-                    : `linear-gradient(to top, hsla(263,70%,58%,${0.12 + (i % 3) * 0.06}), transparent 60%)`,
+                  background: i % 3 === 0
+                    ? `linear-gradient(to top, ${C.blueLight}, transparent 50%)`
+                    : `linear-gradient(to top, ${C.white10}, transparent 55%)`,
                   transformOrigin: 'bottom center',
-                  transform: `translate(-50%, -100%) rotate(${(360 / 24) * i}deg)`,
-                  animation: `apex-ray-in 1.5s ${i * 0.04}s ease-out both`,
+                  transform: `translate(-50%, -100%) rotate(${(360 / 28) * i}deg)`,
+                  animation: `apex-ray-in 1.8s ${i * 0.03}s ease-out both`,
                 }} />
               ))}
             </div>
 
-            {/* Full-screen bloom */}
+            {/* Full-screen bloom — dark blue tinted */}
             <div style={{
               position: 'absolute', top: '50%', left: '50%',
               transform: 'translate(-50%, -50%)',
-              width: '120vmax', height: '120vmax', borderRadius: '50%',
-              background: 'radial-gradient(circle, hsla(263,70%,58%,0.25) 0%, hsla(250,20%,16%,0.1) 25%, transparent 55%)',
-              filter: 'blur(60px)',
-              animation: 'apex-bloom 2s ease-out forwards',
+              width: '130vmax', height: '130vmax', borderRadius: '50%',
+              background: `radial-gradient(circle, ${C.blueGlow} 0%, ${C.blueSubtle} 20%, transparent 50%)`,
+              filter: 'blur(80px)',
+              animation: 'apex-bloom 2.5s ease-out forwards',
             }} />
 
-            {/* Swirling particles */}
+            {/* Particles */}
             {particles.map((p, i) => (
-              <div key={`sp-${i}`} style={{
+              <div key={`p-${i}`} style={{
                 position: 'absolute', top: '50%', left: '50%',
                 width: p.size, height: p.size, borderRadius: '50%',
-                background: i % 6 === 0 ? 'hsla(195,90%,50%,0.7)' : 'hsla(263,70%,75%,0.7)',
-                boxShadow: i % 6 === 0
-                  ? '0 0 8px hsla(195,90%,50%,0.5)'
-                  : '0 0 6px hsla(263,70%,58%,0.4)',
-                animation: `apex-swirl ${p.speed + 1.5}s ${p.delay}s ease-in-out forwards`,
+                background: p.isBlue ? C.blueBright : C.white,
+                boxShadow: p.isBlue ? `0 0 6px ${C.blueLight}` : `0 0 4px ${C.white20}`,
+                animation: `apex-swirl ${p.speed}s ${p.delay}s ease-in-out forwards`,
                 transform: `rotate(${p.angle}deg) translateY(-${p.dist}px)`,
                 opacity: 0,
               }} />
@@ -201,54 +226,54 @@ const CinematicTransition = memo(forwardRef<HTMLDivElement, CinematicTransitionP
           </>
         )}
 
-        {/* ═══ PHASE 3: FORGE — Logo fills the screen ═══ */}
+        {/* ═══ PHASE 3: FORGE — Logo materializes ═══ */}
         <div style={{
           position: 'relative', zIndex: 20,
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           opacity: phase >= 3 ? 1 : 0,
-          transition: 'opacity 0.8s ease',
+          transition: 'opacity 1s ease',
         }}>
-          {/* Logo — large, raw graphic, no container */}
+          {/* The original white logo — NO container */}
           <div style={{
-            animation: phase >= 3 ? 'apex-logo-forge 2s ease-out forwards' : 'none',
-            opacity: phase >= 3 ? 1 : 0,
+            animation: phase >= 3 ? 'apex-logo-forge 2.5s ease-out forwards' : 'none',
+            opacity: 0,
           }}>
             <img
-              src={logoGraphic}
+              src={logoImage}
               alt="Apex Studio"
               style={{
-                width: '45vmin',
-                height: '45vmin',
-                maxWidth: 400,
-                maxHeight: 400,
+                width: '50vmin',
+                height: '50vmin',
+                maxWidth: 450,
+                maxHeight: 450,
                 objectFit: 'contain',
                 filter: phase >= 4
-                  ? 'drop-shadow(0 0 50px hsla(263,70%,58%,0.5)) drop-shadow(0 0 100px hsla(263,70%,58%,0.25)) drop-shadow(0 0 150px hsla(250,20%,16%,0.3))'
-                  : 'drop-shadow(0 0 30px hsla(263,70%,58%,0.6)) brightness(1.5)',
-                transition: 'filter 1s ease',
-                animation: phase >= 4 ? 'apex-logo-pulse 2s ease-in-out infinite' : 'none',
+                  ? `drop-shadow(0 0 40px ${C.white20}) drop-shadow(0 0 80px ${C.blueSubtle})`
+                  : `drop-shadow(0 0 25px ${C.white20}) brightness(1.4)`,
+                transition: 'filter 1.2s ease',
+                animation: phase >= 4 ? 'apex-logo-breathe 3s ease-in-out infinite' : 'none',
               }}
             />
           </div>
 
-          {/* APEX text — big */}
+          {/* APEX text */}
           <div style={{
             overflow: 'hidden',
-            marginTop: 32,
-            animation: phase >= 3 ? 'apex-text-reveal 1.2s 0.6s ease-out both' : 'none',
+            marginTop: 36,
+            animation: phase >= 3 ? 'apex-text-up 1.4s 0.8s ease-out both' : 'none',
           }}>
             <h1 style={{
-              fontSize: 'clamp(48px, 10vw, 80px)',
-              fontWeight: 200,
-              letterSpacing: '0.5em',
+              fontSize: 'clamp(50px, 12vw, 90px)',
+              fontWeight: 100,
+              letterSpacing: '0.55em',
               color: 'transparent',
-              backgroundImage: 'linear-gradient(135deg, hsl(240,5%,90%) 0%, hsl(0,0%,100%) 40%, hsl(263,70%,75%) 80%, hsl(263,70%,58%) 100%)',
+              backgroundImage: `linear-gradient(135deg, ${C.white} 0%, rgba(255,255,255,0.85) 50%, ${C.blueBright} 100%)`,
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               textTransform: 'uppercase',
               fontFamily: "'Sora', sans-serif",
               lineHeight: 1,
-              animation: phase >= 4 ? 'apex-text-shimmer 3s ease-in-out infinite' : 'none',
+              animation: phase >= 4 ? 'apex-shimmer 4s ease-in-out infinite' : 'none',
               backgroundSize: '200% 100%',
             }}>
               Apex
@@ -258,15 +283,15 @@ const CinematicTransition = memo(forwardRef<HTMLDivElement, CinematicTransitionP
           {/* STUDIOS */}
           <div style={{
             overflow: 'hidden',
-            animation: phase >= 3 ? 'apex-text-reveal 1s 1s ease-out both' : 'none',
+            animation: phase >= 3 ? 'apex-text-up 1.2s 1.3s ease-out both' : 'none',
           }}>
             <p style={{
-              fontSize: 'clamp(14px, 2.5vw, 20px)',
-              fontWeight: 400,
-              letterSpacing: '0.8em',
-              color: 'hsla(263,70%,75%,0.55)',
+              fontSize: 'clamp(14px, 3vw, 22px)',
+              fontWeight: 300,
+              letterSpacing: '0.85em',
+              color: C.whiteHalf,
               textTransform: 'uppercase',
-              marginTop: 10,
+              marginTop: 12,
               fontFamily: "'Sora', sans-serif",
             }}>
               Studios
@@ -276,68 +301,57 @@ const CinematicTransition = memo(forwardRef<HTMLDivElement, CinematicTransitionP
           {/* ═══ PHASE 4: BRAND STAMP ═══ */}
           {phase >= 4 && (
             <>
+              {/* Accent line — white to dark blue gradient */}
               <div style={{
-                width: 100, height: 1,
-                background: 'linear-gradient(90deg, transparent, hsla(263,70%,58%,0.45), hsla(195,90%,50%,0.25), transparent)',
-                marginTop: 28,
-                animation: 'apex-line-expand 0.8s ease-out forwards',
+                width: 120, height: 1,
+                background: `linear-gradient(90deg, transparent, ${C.whiteHalf}, ${C.blueBright}, transparent)`,
+                marginTop: 32,
+                animation: 'apex-line 0.8s ease-out forwards',
               }} />
 
+              {/* Tagline */}
               <p style={{
-                fontSize: 'clamp(10px, 1.5vw, 14px)',
+                fontSize: 'clamp(10px, 1.8vw, 15px)',
                 fontWeight: 300,
                 letterSpacing: '0.4em',
-                color: 'hsla(240,5%,55%,0.6)',
+                color: 'rgba(255,255,255,0.35)',
                 textTransform: 'uppercase',
-                marginTop: 18,
-                animation: 'apex-tagline-in 1s 0.3s ease-out both',
+                marginTop: 20,
+                animation: 'apex-tagline 1s 0.3s ease-out both',
                 fontFamily: "'Instrument Sans', sans-serif",
               }}>
                 Where Stories Come Alive
               </p>
 
-              {/* Shockwaves */}
-              <div style={{
-                position: 'fixed', top: '50%', left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: 250, height: 250, borderRadius: '50%',
-                border: '2px solid hsla(263,70%,58%,0.3)',
-                animation: 'apex-stamp-wave 1.5s ease-out forwards',
-                zIndex: 5,
-              }} />
-              <div style={{
-                position: 'fixed', top: '50%', left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: 200, height: 200, borderRadius: '50%',
-                border: '1px solid hsla(195,90%,50%,0.15)',
-                animation: 'apex-stamp-wave 2s 0.2s ease-out forwards',
-                zIndex: 5,
-              }} />
-              <div style={{
-                position: 'fixed', top: '50%', left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: 150, height: 150, borderRadius: '50%',
-                border: '1px solid hsla(263,70%,70%,0.2)',
-                animation: 'apex-stamp-wave 2.5s 0.4s ease-out forwards',
-                zIndex: 5,
-              }} />
+              {/* Shockwaves — the "thud" */}
+              {[300, 240, 180].map((size, i) => (
+                <div key={`wave-${i}`} style={{
+                  position: 'fixed', top: '50%', left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: size, height: size, borderRadius: '50%',
+                  border: `${1.5 - i * 0.3}px solid ${i === 1 ? C.blueLight : C.white10}`,
+                  animation: `apex-wave ${1.5 + i * 0.5}s ${i * 0.2}s ease-out forwards`,
+                  zIndex: 5,
+                }} />
+              ))}
 
               {/* Deep glow thud */}
               <div style={{
                 position: 'fixed', top: '50%', left: '50%',
                 transform: 'translate(-50%, -50%)',
-                width: '80vmin', height: '80vmin', borderRadius: '50%',
-                background: 'radial-gradient(circle, hsla(263,70%,58%,0.1) 0%, transparent 50%)',
-                animation: 'apex-thud-glow 1.2s ease-out forwards',
+                width: '90vmin', height: '90vmin', borderRadius: '50%',
+                background: `radial-gradient(circle, ${C.blueSubtle} 0%, transparent 45%)`,
+                animation: 'apex-thud 1.5s ease-out forwards',
                 zIndex: 5,
               }} />
             </>
           )}
         </div>
 
-        {/* ═══ PHASE 5: WARP EXIT ═══ */}
+        {/* ═══ PHASE 5: CINEMATIC EXIT — Warp + letterbox close ═══ */}
         {phase >= 5 && (
           <>
+            {/* Warp streaks */}
             <div style={{
               position: 'absolute', inset: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -348,108 +362,134 @@ const CinematicTransition = memo(forwardRef<HTMLDivElement, CinematicTransitionP
                   position: 'absolute',
                   width: w.width,
                   height: `${w.length}%`,
-                  background: i % 5 === 0
-                    ? 'linear-gradient(to bottom, hsla(195,90%,50%,0.5), transparent)'
-                    : 'linear-gradient(to bottom, hsla(263,70%,75%,0.45), transparent)',
+                  background: w.isBlue
+                    ? `linear-gradient(to bottom, ${C.blueBright}, transparent)`
+                    : `linear-gradient(to bottom, ${C.whiteHalf}, transparent)`,
                   transformOrigin: 'center top',
                   transform: `rotate(${w.angle}deg)`,
-                  animation: `apex-warp ${0.6 + w.delay}s ${w.delay}s ease-in forwards`,
+                  animation: `apex-warp-streak ${0.5 + w.delay}s ${w.delay}s ease-in forwards`,
                   opacity: 0,
                 }} />
               ))}
             </div>
 
+            {/* Cinematic letterbox bars closing in */}
             <div style={{
-              position: 'absolute', inset: 0, zIndex: 50,
-              background: 'hsl(0,0%,100%)',
-              animation: 'apex-flash 0.7s 0.5s ease-out forwards',
+              position: 'absolute', top: 0, left: 0, right: 0,
+              background: `linear-gradient(to bottom, ${C.bg}, ${C.blue})`,
+              zIndex: 50,
+              height: '0%',
+              animation: 'apex-letterbox-close 1.2s 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+            }} />
+            <div style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0,
+              background: `linear-gradient(to top, ${C.bg}, ${C.blue})`,
+              zIndex: 50,
+              height: '0%',
+              animation: 'apex-letterbox-close 1.2s 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+            }} />
+
+            {/* Final dark blue vignette instead of white flash */}
+            <div style={{
+              position: 'absolute', inset: 0, zIndex: 45,
+              background: `radial-gradient(ellipse at center, transparent 20%, ${C.blue} 70%, ${C.bg} 100%)`,
+              animation: 'apex-vignette 1s 0.3s ease-in forwards',
               opacity: 0,
             }} />
           </>
         )}
 
         <style>{`
+          @keyframes apex-twinkle {
+            0%, 100% { opacity: 0; transform: scale(0.3); }
+            50% { opacity: 0.6; transform: scale(1); }
+          }
           @keyframes apex-ember {
             0% { transform: translate(-50%,-50%) scale(0); opacity: 0; }
-            50% { transform: translate(-50%,-50%) scale(1); opacity: 0.6; }
-            100% { transform: translate(-50%,-50%) scale(0.8); opacity: 1; }
+            40% { transform: translate(-50%,-50%) scale(1.2); opacity: 0.5; }
+            70% { transform: translate(-50%,-50%) scale(0.7); opacity: 0.8; }
+            100% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
           }
-          @keyframes apex-ambient-breathe {
-            0%, 100% { opacity: 0.3; transform: translate(-50%,-50%) scale(0.9); }
-            50% { opacity: 0.7; transform: translate(-50%,-50%) scale(1.1); }
+          @keyframes apex-ambient {
+            0%, 100% { opacity: 0.2; transform: translate(-50%,-50%) scale(0.85); }
+            50% { opacity: 0.5; transform: translate(-50%,-50%) scale(1.15); }
           }
           @keyframes apex-ignite {
             0% { transform: translate(-50%,-50%) scale(1); }
-            50% { transform: translate(-50%,-50%) scale(5); opacity: 1; }
-            100% { transform: translate(-50%,-50%) scale(3); opacity: 0.8; }
+            40% { transform: translate(-50%,-50%) scale(6); opacity: 1; }
+            100% { transform: translate(-50%,-50%) scale(3); opacity: 0.6; }
           }
-          @keyframes apex-nova-expand {
-            0% { transform: translate(-50%,-50%) scale(0.3); opacity: 1; }
-            100% { transform: translate(-50%,-50%) scale(12); opacity: 0; }
+          @keyframes apex-nova {
+            0% { transform: translate(-50%,-50%) scale(0.2); opacity: 0.8; }
+            100% { transform: translate(-50%,-50%) scale(14); opacity: 0; }
           }
-          @keyframes apex-burst-rotate {
+          @keyframes apex-rotate {
             from { transform: translate(-50%,-50%) rotate(0deg); }
             to { transform: translate(-50%,-50%) rotate(360deg); }
           }
           @keyframes apex-ray-in {
             0% { opacity: 0; height: 0; }
-            40% { opacity: 1; }
-            100% { opacity: 0.3; height: 50%; }
+            30% { opacity: 0.8; }
+            100% { opacity: 0.25; height: 50%; }
           }
           @keyframes apex-bloom {
-            0% { transform: translate(-50%,-50%) scale(0.1); opacity: 0; }
-            40% { opacity: 1; }
-            100% { transform: translate(-50%,-50%) scale(1); opacity: 0.6; }
+            0% { transform: translate(-50%,-50%) scale(0.05); opacity: 0; }
+            30% { opacity: 0.8; }
+            100% { transform: translate(-50%,-50%) scale(1); opacity: 0.5; }
           }
           @keyframes apex-swirl {
             0% { opacity: 0; transform: rotate(0deg) translateY(0); }
-            20% { opacity: 1; }
-            100% { opacity: 0; transform: rotate(250deg) translateY(-300px); }
+            15% { opacity: 0.9; }
+            100% { opacity: 0; transform: rotate(280deg) translateY(-350px); }
           }
           @keyframes apex-logo-forge {
-            0% { transform: scale(0.15); opacity: 0; filter: blur(25px) brightness(5); }
-            30% { filter: blur(8px) brightness(2.5); }
-            60% { filter: blur(2px) brightness(1.5); }
+            0% { transform: scale(0.08); opacity: 0; filter: blur(30px) brightness(6); }
+            20% { opacity: 0.3; filter: blur(15px) brightness(3); }
+            50% { filter: blur(5px) brightness(1.8); }
+            75% { filter: blur(1px) brightness(1.2); }
             100% { transform: scale(1); opacity: 1; filter: blur(0) brightness(1); }
           }
-          @keyframes apex-logo-pulse {
-            0%, 100% { filter: drop-shadow(0 0 50px hsla(263,70%,58%,0.5)) drop-shadow(0 0 100px hsla(263,70%,58%,0.25)); }
-            50% { filter: drop-shadow(0 0 70px hsla(263,70%,58%,0.65)) drop-shadow(0 0 140px hsla(263,70%,58%,0.35)); }
+          @keyframes apex-logo-breathe {
+            0%, 100% { filter: drop-shadow(0 0 40px rgba(255,255,255,0.2)) drop-shadow(0 0 80px rgba(26,39,68,0.3)); }
+            50% { filter: drop-shadow(0 0 60px rgba(255,255,255,0.3)) drop-shadow(0 0 120px rgba(26,39,68,0.4)); }
           }
-          @keyframes apex-text-reveal {
-            0% { transform: translateY(120%); opacity: 0; }
+          @keyframes apex-text-up {
+            0% { transform: translateY(130%); opacity: 0; }
             100% { transform: translateY(0); opacity: 1; }
           }
-          @keyframes apex-text-shimmer {
+          @keyframes apex-shimmer {
             0% { background-position: -100% 0; }
             100% { background-position: 200% 0; }
           }
-          @keyframes apex-line-expand {
+          @keyframes apex-line {
             0% { width: 0; opacity: 0; }
-            100% { width: 100px; opacity: 1; }
+            100% { width: 120px; opacity: 1; }
           }
-          @keyframes apex-tagline-in {
-            0% { opacity: 0; transform: translateY(12px); }
+          @keyframes apex-tagline {
+            0% { opacity: 0; transform: translateY(14px); }
             100% { opacity: 1; transform: translateY(0); }
           }
-          @keyframes apex-stamp-wave {
-            0% { transform: translate(-50%,-50%) scale(1); opacity: 0.6; }
-            100% { transform: translate(-50%,-50%) scale(8); opacity: 0; }
+          @keyframes apex-wave {
+            0% { transform: translate(-50%,-50%) scale(1); opacity: 0.5; }
+            100% { transform: translate(-50%,-50%) scale(10); opacity: 0; }
           }
-          @keyframes apex-thud-glow {
-            0% { transform: translate(-50%,-50%) scale(0.3); opacity: 0; }
-            25% { opacity: 0.6; }
-            100% { transform: translate(-50%,-50%) scale(2); opacity: 0; }
+          @keyframes apex-thud {
+            0% { transform: translate(-50%,-50%) scale(0.2); opacity: 0; }
+            20% { opacity: 0.5; }
+            100% { transform: translate(-50%,-50%) scale(2.5); opacity: 0; }
           }
-          @keyframes apex-warp {
-            0% { opacity: 0; transform: rotate(var(--angle,0deg)) scaleY(0.05); }
-            35% { opacity: 0.9; }
-            100% { opacity: 0; transform: rotate(var(--angle,0deg)) scaleY(5); }
+          @keyframes apex-warp-streak {
+            0% { opacity: 0; transform: rotate(var(--a,0deg)) scaleY(0.03); }
+            30% { opacity: 0.8; }
+            100% { opacity: 0; transform: rotate(var(--a,0deg)) scaleY(6); }
           }
-          @keyframes apex-flash {
+          @keyframes apex-letterbox-close {
+            0% { height: 0%; }
+            100% { height: 52%; }
+          }
+          @keyframes apex-vignette {
             0% { opacity: 0; }
-            60% { opacity: 0.95; }
-            100% { opacity: 1; }
+            100% { opacity: 0.8; }
           }
         `}</style>
       </div>

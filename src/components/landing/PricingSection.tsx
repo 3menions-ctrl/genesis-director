@@ -34,27 +34,30 @@ const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({ onClos
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[2] animate-fade-in" style={{ animationDuration: '1.2s', pointerEvents: 'none' }}>
-      {/* Fullscreen HLS video */}
-      <div className="absolute inset-0 [&_video]:!object-cover [&_video]:!w-full [&_video]:!h-full [&>div]:!w-full [&>div]:!h-full">
-        <UniversalHLSPlayer
-          ref={playerRef}
-          hlsUrl={STORYTELLING_HLS_URL}
-          className="w-full h-full"
-          showControls={false}
-          autoPlay={true}
-          loop={true}
-          aspectRatio="auto"
-        />
+    <>
+      {/* Video background layer - behind content */}
+      <div className="fixed inset-0 z-[2] animate-fade-in" style={{ animationDuration: '1.2s', pointerEvents: 'none' }}>
+        {/* Fullscreen HLS video */}
+        <div className="absolute inset-0 [&_video]:!object-cover [&_video]:!w-full [&_video]:!h-full [&>div]:!w-full [&>div]:!h-full">
+          <UniversalHLSPlayer
+            ref={playerRef}
+            hlsUrl={STORYTELLING_HLS_URL}
+            className="w-full h-full"
+            showControls={false}
+            autoPlay={true}
+            loop={true}
+            aspectRatio="auto"
+          />
+        </div>
+        
+        {/* Dark gradient overlay for content readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/65" />
       </div>
-      
-      {/* Dark gradient overlay for content readability */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/65" />
-      
-      {/* Floating close button - fixed position, fully interactive */}
+
+      {/* Close button - separate from video layer so z-index works independently */}
       <button
         onClick={(e) => { e.stopPropagation(); onClose(); }}
-        className="fixed top-20 right-6 z-[60] group flex items-center gap-2 px-4 py-2.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 hover:bg-white/15 hover:border-white/30 transition-all duration-300 animate-fade-in"
+        className="fixed top-20 right-6 z-[9999] group flex items-center gap-2 px-4 py-2.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 hover:bg-white/15 hover:border-white/30 transition-all duration-300 animate-fade-in cursor-pointer"
         style={{ pointerEvents: 'auto', animationDelay: '0.6s' }}
         aria-label="Exit immersive mode"
       >
@@ -62,7 +65,7 @@ const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({ onClos
         <span className="text-[11px] text-white/70 group-hover:text-white font-medium tracking-[0.08em] uppercase transition-colors">Exit Immersive</span>
         <X className="w-4 h-4 text-white/60 group-hover:text-white transition-colors" />
       </button>
-    </div>
+    </>
   );
 });
 

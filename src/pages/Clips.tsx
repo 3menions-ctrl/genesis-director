@@ -514,7 +514,8 @@ export default function Clips() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `clip-${clip.shot_index + 1}-${clip.id.substring(0, 8)}.mp4`;
+      const safeName = (clip.project_title || 'Video').replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '-').substring(0, 40);
+      a.download = `${safeName}-Clip-${clip.shot_index + 1}.mp4`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -1166,8 +1167,8 @@ export default function Clips() {
                                 {/* Info */}
                                 <div className="p-3">
                                   <div className="flex items-center justify-between mb-2">
-                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-white/5 border-white/10 text-white/60 font-mono">
-                                      Shot {clip.shot_index + 1}
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-white/5 border-white/10 text-white/60">
+                                      Clip {clip.shot_index + 1}
                                     </Badge>
                                     <span className="text-[10px] text-white/30">
                                       {formatRelativeDate(clip.created_at)}
@@ -1234,7 +1235,7 @@ export default function Clips() {
           source={{ urls: [selectedClip.video_url] }}
           mode="fullscreen"
           onClose={() => setVideoModalOpen(false)}
-          title={`Shot ${selectedClip.shot_index + 1}`}
+          title={`${selectedClip.project_title || 'Video'} — Clip ${selectedClip.shot_index + 1}`}
         />
       )}
 

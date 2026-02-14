@@ -194,6 +194,9 @@ interface ModeRouterRequest {
   // Avatar-specific: Cinematic mode for dynamic movement and camera
   cinematicMode?: CinematicModeConfig;
   
+  // Avatar-specific: Enable AI-picked second character for dialogue scenes
+  enableDualAvatar?: boolean;
+  
   // Production controls
   aspectRatio: string;
   clipCount: number;
@@ -431,14 +434,17 @@ serve(async (req) => {
         return await handleAvatarDirectMode({
           projectId: projectId!,
           userId,
-          script: prompt, // User's EXACT script to be spoken verbatim
+          script: prompt,
           sceneDescription: request.sceneDescription,
           avatarImageUrl: imageUrl!,
           voiceId: voiceId || 'bella',
           aspectRatio,
-          clipCount, // Pass clip count for multi-clip generation
-          clipDuration, // Pass clip duration for each segment
-          cinematicMode: request.cinematicMode, // Pass cinematic mode config
+          clipCount,
+          clipDuration,
+          cinematicMode: request.cinematicMode,
+          avatarType: request.avatarType || 'realistic',
+          enableDualAvatar: request.enableDualAvatar || false,
+          avatarTemplateId: request.avatarTemplateId,
           supabase,
         });
 
@@ -517,17 +523,20 @@ serve(async (req) => {
 async function handleAvatarDirectMode(params: {
   projectId: string;
   userId: string;
-  script: string; // User's EXACT text to be spoken
+  script: string;
   sceneDescription?: string;
   avatarImageUrl: string;
   voiceId: string;
   aspectRatio: string;
-  clipCount: number; // Number of clips to generate
-  clipDuration: number; // Duration per clip in seconds
-  cinematicMode?: CinematicModeConfig; // Cinematic mode for dynamic movement
+  clipCount: number;
+  clipDuration: number;
+  cinematicMode?: CinematicModeConfig;
+  avatarType: string;
+  enableDualAvatar?: boolean;
+  avatarTemplateId?: string;
   supabase: any;
 }) {
-  const { projectId, userId, script, sceneDescription, avatarImageUrl, voiceId, aspectRatio, clipCount, clipDuration, cinematicMode, supabase } = params;
+  const { projectId, userId, script, sceneDescription, avatarImageUrl, voiceId, aspectRatio, clipCount, clipDuration, cinematicMode, avatarType, enableDualAvatar, avatarTemplateId, supabase } = params;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -560,20 +569,22 @@ async function handleAvatarDirectMode(params: {
       'Authorization': `Bearer ${supabaseKey}`,
     },
     body: JSON.stringify({
-      script, // EXACT user text, no changes
+      script,
       avatarImageUrl,
       voiceId,
       sceneDescription,
       projectId,
       userId,
       aspectRatio,
-      clipCount, // Number of clips to generate
-      clipDuration, // Duration per clip in seconds
-      cinematicMode, // Pass cinematic mode to generation
-      avatarType: request.avatarType || 'realistic', // Lock avatar style type
+      clipCount,
+      clipDuration,
+      cinematicMode,
+      avatarType: avatarType || 'realistic',
+      enableDualAvatar: enableDualAvatar || false,
+      avatarTemplateId: avatarTemplateId || null,
     }),
     maxRetries: 3,
-    timeoutMs: 90000, // 90 second timeout for the initial call (most work is async)
+    timeoutMs: 90000,
   });
 
   if (!directResponse.ok) {

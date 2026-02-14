@@ -268,11 +268,20 @@ export function AIWidgetAssist({ widgetId, onConfigGenerated, onSceneVideoReady 
     } catch (err: any) {
       console.error('AI generation failed:', err);
       setStage('error');
-      const msg = err?.message?.includes('429')
-        ? 'Rate limited — please try again in a moment.'
-        : err?.message?.includes('402')
-          ? 'Credits required — please add funds.'
-          : 'Generation failed. Try again.';
+      // Parse error from edge function response body
+      let msg = 'Generation failed. Try again.';
+      try {
+        const context = err?.context;
+        if (context?.body) {
+          const body = typeof context.body === 'string' ? JSON.parse(context.body) : context.body;
+          if (body?.error) msg = body.error;
+        }
+      } catch { /* use default */ }
+      if (msg === 'Generation failed. Try again.') {
+        const errStr = String(err?.message || err);
+        if (errStr.includes('429')) msg = 'Rate limited — please try again in a moment.';
+        else if (errStr.includes('402')) msg = 'AI credits exhausted. Add credits in Settings → Usage.';
+      }
       setStageMessage(msg);
       toast.error(msg);
     }

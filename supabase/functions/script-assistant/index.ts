@@ -13,6 +13,17 @@ serve(async (req) => {
   }
 
   try {
+    // ═══ AUTH GUARD: Prevent unauthorized API credit consumption ═══
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) {
+      const scriptCorsHeaders = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+      };
+      return unauthorizedResponse(scriptCorsHeaders, auth.error);
+    }
+
     const { action, currentScript, userPrompt, prompt, context, tone, targetLength } = await req.json();
     
     // Input validation

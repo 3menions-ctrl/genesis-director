@@ -147,6 +147,12 @@ serve(async (req) => {
   }
 
   try {
+    // ═══ AUTH GUARD: Prevent unauthorized API credit consumption ═══
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) {
+      return unauthorizedResponse(corsHeaders, auth.error);
+    }
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

@@ -24,6 +24,12 @@ serve(async (req) => {
   }
 
   try {
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) {
+      return unauthorizedResponse(corsHeaders, auth.error);
+    }
+
     const { projectId, videoUrl } = await req.json();
 
     if (!projectId || !videoUrl) {

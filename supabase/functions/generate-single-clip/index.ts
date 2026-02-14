@@ -463,6 +463,13 @@ serve(async (req) => {
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
+  // ═══ AUTH GUARD: Prevent unauthorized API credit consumption ═══
+  const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+  const auth = await validateAuth(req);
+  if (!auth.authenticated) {
+    return unauthorizedResponse(corsHeaders, auth.error);
+  }
+
   let projectId: string | undefined;
   let userId: string | undefined;
   let shotIndex = 0;
@@ -471,7 +478,8 @@ serve(async (req) => {
   try {
     const body = await req.json();
     projectId = body.projectId;
-    userId = body.userId;
+    // Use authenticated userId instead of trusting client payload
+    userId = auth.userId || body.userId;
     shotIndex = body.shotIndex || body.clipIndex || 0;
     
     const {

@@ -30,6 +30,13 @@ serve(async (req) => {
   }
 
   try {
+    // ═══ AUTH GUARD: Prevent unauthorized API credit consumption ═══
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) {
+      return unauthorizedResponse(corsHeaders, auth.error);
+    }
+
     const { scenes, projectId, userId, visualStyle, globalStyle, globalCharacters, globalEnvironment, triggerNextStage }: SceneImageRequest = await req.json();
 
     if (!scenes || scenes.length === 0) {

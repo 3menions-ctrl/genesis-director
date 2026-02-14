@@ -19,6 +19,12 @@ serve(async (req) => {
   }
 
   try {
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) {
+      return unauthorizedResponse(corsHeaders, auth.error);
+    }
+
     const { videos } = await req.json() as { videos: VideoData[] };
     
     if (!videos || !Array.isArray(videos)) {

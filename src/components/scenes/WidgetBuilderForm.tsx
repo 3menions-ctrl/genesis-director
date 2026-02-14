@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Trash2, GripVertical, Copy, ExternalLink, Save, FileText, Film, Zap, Palette, Code2 } from 'lucide-react';
 import type { WidgetConfig, WidgetScene, WidgetTriggers, WidgetRule, WidgetPosition, WidgetSensitivity, WidgetTone } from '@/types/widget';
+import { AIWidgetAssist } from './AIWidgetAssist';
 
 /* ── dark glass tokens ── */
 const glass = 'bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm';
@@ -86,6 +87,25 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* AI Widget Assist */}
+      <AIWidgetAssist
+        widgetId={config.id}
+        onConfigGenerated={(aiConfig) => {
+          if (aiConfig.headline) updateConfig('headline', aiConfig.headline);
+          if (aiConfig.subheadline) updateConfig('subheadline', aiConfig.subheadline);
+          if (aiConfig.cta_text) updateConfig('cta_text', aiConfig.cta_text);
+          if (aiConfig.cta_url) updateConfig('cta_url', aiConfig.cta_url);
+          if (aiConfig.secondary_cta_text) updateConfig('secondary_cta_text', aiConfig.secondary_cta_text);
+          if (aiConfig.tone) updateConfig('tone', aiConfig.tone as WidgetTone);
+          if (aiConfig.widget_type) updateConfig('widget_type', aiConfig.widget_type as any);
+          if (aiConfig.primary_color) updateConfig('primary_color', aiConfig.primary_color);
+          if (aiConfig.background_color) updateConfig('background_color', aiConfig.background_color);
+          if (aiConfig.scenes?.length) setScenes(aiConfig.scenes);
+          if (aiConfig.triggers) setTriggers(aiConfig.triggers);
+          if (aiConfig.rules?.length) setRules(aiConfig.rules);
+        }}
+      />
+
       {/* Save button */}
       <div className="flex justify-end">
         <button

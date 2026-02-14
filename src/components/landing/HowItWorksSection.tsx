@@ -5,12 +5,12 @@ import { ArrowRight, Lock, Camera, Layers, Eye, Shield, Brain, Music, Zap, Chevr
 
 const LAYERS = [
   { icon: Lock, title: 'Identity Lock', desc: '3-point character bible prevents morphing across scenes', color: '#fbbf24', stat: '99.2%', statLabel: 'Consistency' },
-  { icon: Camera, title: 'Cinematography', desc: '12 movements, 14 angles, 7 sizes, 9 lighting styles', color: '#38bdf8', stat: '42', statLabel: 'Presets' },
+  { icon: Camera, title: 'Cinematography', desc: '12 movements, 14 angles, 7 sizes, 9 lighting styles', color: '#38bdf8', stat: '42', statLabel: 'Combos' },
   { icon: Layers, title: 'Frame Chaining', desc: 'Sequential visual continuity across every cut', color: '#34d399', stat: '0ms', statLabel: 'Visual gap' },
   { icon: Eye, title: 'Cinematic Auditor', desc: 'Pre-gen review catches physics & continuity errors', color: '#a78bfa', stat: '14', statLabel: 'Checks' },
   { icon: Shield, title: 'Hallucination Filter', desc: '25 negative prompts remove AI artifacts & extra limbs', color: '#fb7185', stat: '25', statLabel: 'Filters' },
   { icon: Brain, title: 'Smart Script', desc: 'Concept → shot list → timeline with narrative pacing', color: '#22d3ee', stat: '3s', statLabel: 'To timeline' },
-  { icon: Music, title: 'Audio Intelligence', desc: 'TTS voices, cinematic scoring & dialogue ducking', color: '#e879f9', stat: '8', statLabel: 'Voices' },
+  { icon: Music, title: 'Audio Intelligence', desc: '50+ AI voices, cinematic scoring & dialogue ducking', color: '#e879f9', stat: '50+', statLabel: 'Voices' },
   { icon: Zap, title: 'Multi-Model', desc: 'Kling & Veo orchestrated — best model per shot', color: '#facc15', stat: '2+', statLabel: 'AI models' },
 ] as const;
 

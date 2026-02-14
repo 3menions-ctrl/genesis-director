@@ -1,13 +1,12 @@
 /**
  * CinematicTransition - Premium cinematic entrance animation
  * 
- * Features a dramatic letterbox reveal with particle-like dots,
- * a glowing progress ring, and text fade — all CSS/Framer Motion only
- * (no Three.js or heavy 3D libraries).
+ * A dramatic full-screen transition with violet glow, progress ring,
+ * floating particles, and letterbox reveal.
  */
 
 import { memo, forwardRef, useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 interface CinematicTransitionProps {
   isActive: boolean;
@@ -16,7 +15,7 @@ interface CinematicTransitionProps {
 }
 
 const CinematicTransition = memo(forwardRef<HTMLDivElement, CinematicTransitionProps>(
-  function CinematicTransition({ isActive, onComplete, className }, ref) {
+  function CinematicTransition({ isActive, onComplete }, ref) {
     const hasNavigated = useRef(false);
     const isMountedRef = useRef(true);
     const [progress, setProgress] = useState(0);
@@ -35,167 +34,164 @@ const CinematicTransition = memo(forwardRef<HTMLDivElement, CinematicTransitionP
         return;
       }
 
-      // Phase 1: Enter (0-500ms)
+      console.log('[CinematicTransition] Animation STARTED');
       setPhase('enter');
 
-      // Animate progress
+      const duration = 3000;
       const start = Date.now();
-      const duration = 1800;
       const tick = () => {
         if (!isMountedRef.current) return;
         const elapsed = Date.now() - start;
         const pct = Math.min((elapsed / duration) * 100, 100);
         setProgress(pct);
-        
         if (pct > 40) setPhase('hold');
-        
-        if (pct < 100) {
-          requestAnimationFrame(tick);
-        }
+        if (pct < 100) requestAnimationFrame(tick);
       };
       requestAnimationFrame(tick);
 
-      // Navigate
       const timer = setTimeout(() => {
         if (!hasNavigated.current && isMountedRef.current) {
           hasNavigated.current = true;
+          console.log('[CinematicTransition] Animation COMPLETE, navigating...');
           setPhase('exit');
-          setTimeout(() => onComplete(), 200);
+          setTimeout(() => onComplete(), 400);
         }
-      }, 1800);
+      }, duration);
 
       return () => clearTimeout(timer);
     }, [isActive, onComplete]);
 
     if (!isActive) return null;
 
+    const circumference = 2 * Math.PI * 34;
+
     return (
-      <motion.div
+      <div
         ref={ref}
-        className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#000',
+          overflow: 'hidden',
+        }}
       >
-        {/* Background */}
-        <motion.div
-          className="absolute inset-0 bg-black"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4 }}
+        {/* Radial violet glow */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 600,
+            height: 600,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(124,58,237,0.3) 0%, rgba(124,58,237,0.1) 40%, transparent 70%)',
+            animation: 'cinematic-glow 2s ease-out forwards',
+          }}
         />
 
-        {/* Subtle radial glow */}
-        <div className="absolute inset-0 pointer-events-none">
-          <motion.div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full"
+        {/* Floating particles */}
+        {Array.from({ length: 30 }).map((_, i) => (
+          <div
+            key={i}
             style={{
-              background: 'radial-gradient(circle, rgba(124,58,237,0.15) 0%, rgba(124,58,237,0.05) 40%, transparent 70%)',
+              position: 'absolute',
+              width: 3,
+              height: 3,
+              borderRadius: '50%',
+              background: `rgba(167, 139, 250, ${0.3 + Math.random() * 0.4})`,
+              left: `${10 + Math.random() * 80}%`,
+              top: `${10 + Math.random() * 80}%`,
+              animation: `cinematic-particle ${1.5 + Math.random() * 1.5}s ${0.2 + Math.random()}s ease-out forwards`,
+              opacity: 0,
             }}
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: [0.5, 1.2, 1], opacity: [0, 0.8, 0.6] }}
-            transition={{ duration: 1.5, ease: 'easeOut' }}
           />
-        </div>
-
-        {/* Floating particles (CSS only) */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {Array.from({ length: 20 }).map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute w-1 h-1 rounded-full bg-white/20"
-              style={{
-                left: `${10 + Math.random() * 80}%`,
-                top: `${10 + Math.random() * 80}%`,
-              }}
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{
-                opacity: [0, 0.6, 0],
-                scale: [0, 1, 0],
-                y: [0, -40 - Math.random() * 60],
-              }}
-              transition={{
-                duration: 1.5 + Math.random(),
-                delay: 0.2 + Math.random() * 0.8,
-                ease: 'easeOut',
-              }}
-            />
-          ))}
-        </div>
+        ))}
 
         {/* Central content */}
-        <div className="relative flex flex-col items-center gap-8">
-          {/* Circular progress ring */}
-          <motion.div
-            className="relative w-20 h-20"
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
-              {/* Track */}
-              <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="2" />
-              {/* Progress */}
-              <motion.circle
+        <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32, animation: 'cinematic-fade-in 0.5s 0.15s ease-out both' }}>
+          {/* Progress ring */}
+          <div style={{ position: 'relative', width: 96, height: 96 }}>
+            <svg width="96" height="96" viewBox="0 0 80 80" style={{ transform: 'rotate(-90deg)' }}>
+              <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="2.5" />
+              <circle
                 cx="40" cy="40" r="34" fill="none"
-                stroke="url(#progress-gradient)"
-                strokeWidth="2"
+                stroke="#7c3aed"
+                strokeWidth="2.5"
                 strokeLinecap="round"
-                strokeDasharray={`${2 * Math.PI * 34}`}
-                strokeDashoffset={`${2 * Math.PI * 34 * (1 - progress / 100)}`}
-                style={{ filter: 'drop-shadow(0 0 6px rgba(124,58,237,0.5))' }}
+                strokeDasharray={circumference}
+                strokeDashoffset={circumference * (1 - progress / 100)}
+                style={{ filter: 'drop-shadow(0 0 8px rgba(124,58,237,0.6))', transition: 'stroke-dashoffset 0.1s linear' }}
               />
-              <defs>
-                <linearGradient id="progress-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#7c3aed" />
-                  <stop offset="100%" stopColor="#a78bfa" />
-                </linearGradient>
-              </defs>
             </svg>
-
-            {/* Center icon */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <motion.div
-                className="w-3 h-3 rounded-sm bg-white/80"
-                animate={{ rotate: [0, 90, 180, 270, 360] }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-              />
+            {/* Spinning center */}
+            <div style={{
+              position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <div style={{
+                width: 14, height: 14, borderRadius: 3,
+                background: 'rgba(255,255,255,0.85)',
+                animation: 'cinematic-spin 2s linear infinite',
+                boxShadow: '0 0 12px rgba(255,255,255,0.3)',
+              }} />
             </div>
-          </motion.div>
+          </div>
 
           {/* Text */}
-          <motion.div
-            className="text-center"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <p className="text-sm font-medium text-white/70 tracking-[0.15em] uppercase">
+          <div style={{ textAlign: 'center' }}>
+            <p style={{
+              fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.8)',
+              letterSpacing: '0.2em', textTransform: 'uppercase',
+            }}>
               Entering Studio
             </p>
-            <motion.p
-              className="text-xs text-white/25 mt-2 tabular-nums"
-              key={Math.floor(progress)}
-            >
+            <p style={{
+              fontSize: 13, color: 'rgba(255,255,255,0.35)', marginTop: 8,
+              fontVariantNumeric: 'tabular-nums',
+            }}>
               {Math.floor(progress)}%
-            </motion.p>
-          </motion.div>
+            </p>
+          </div>
         </div>
 
-        {/* Letterbox bars */}
-        <motion.div
-          className="absolute top-0 left-0 right-0 bg-black"
-          initial={{ height: '0%' }}
-          animate={{ height: phase === 'exit' ? '50%' : '0%' }}
-          transition={{ duration: 0.3, ease: 'easeIn' }}
-        />
-        <motion.div
-          className="absolute bottom-0 left-0 right-0 bg-black"
-          initial={{ height: '0%' }}
-          animate={{ height: phase === 'exit' ? '50%' : '0%' }}
-          transition={{ duration: 0.3, ease: 'easeIn' }}
-        />
-      </motion.div>
+        {/* Letterbox bars for exit */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, background: '#000', zIndex: 30,
+          height: phase === 'exit' ? '50%' : '0%',
+          transition: 'height 0.4s ease-in',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, background: '#000', zIndex: 30,
+          height: phase === 'exit' ? '50%' : '0%',
+          transition: 'height 0.4s ease-in',
+        }} />
+
+        {/* CSS animations */}
+        <style>{`
+          @keyframes cinematic-glow {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            60% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+          }
+          @keyframes cinematic-particle {
+            0% { opacity: 0; transform: scale(0) translateY(0); }
+            50% { opacity: 1; transform: scale(1.5) translateY(-30px); }
+            100% { opacity: 0; transform: scale(0) translateY(-80px); }
+          }
+          @keyframes cinematic-fade-in {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes cinematic-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
     );
   }
 ));

@@ -553,7 +553,7 @@ serve(async (req) => {
           // Store the validated start image for this clip
           pred.startImageUrl = startImageUrl;
           
-          // Build acting prompt with SCREENPLAY DATA + IDENTITY LOCK
+          // Build acting prompt with SCREENPLAY DATA + IDENTITY LOCK + KLING-NATIVE CONTINUITY
           const avatarType = tasks.avatarType || 'realistic';
           
           // FULL-BODY ENFORCEMENT: Add explicit body instruction for secondary avatar clips
@@ -561,11 +561,20 @@ serve(async (req) => {
             ? ' CRITICAL: Show the COMPLETE person with full body visible — head, torso, arms, hands, legs, feet. Do NOT crop to just the head or upper body. The character must be fully visible in the scene.'
             : '';
           
+          // KLING-NATIVE CONTINUITY: Inject startPose/endPose/visualContinuity
+          const klingContinuity = [
+            pred.startPose ? `[START POSE: The character begins this clip ${pred.startPose}]` : '',
+            pred.endPose ? `[END POSE — CRITICAL: Character must end this clip ${pred.endPose}. This exact position becomes the first frame of the next clip.]` : '',
+            pred.visualContinuity ? `[CONTINUITY: ${pred.visualContinuity}]` : '',
+          ].filter(Boolean).join(' ');
+          
           const actingPrompt = buildAvatarActingPrompt(
             pred.segmentText + fullBodyEnforcement, tasks.sceneDescription, pred.clipIndex, tasks.predictions.length, avatarType,
             pred.action, pred.movement, pred.emotion, pred.cameraHint, pred.physicalDetail,
             pred.sceneNote, pred.transitionNote, characterIdentityLock,
           );
+          // Prepend Kling continuity to the acting prompt
+          const finalActingPrompt = klingContinuity ? `${klingContinuity} ${actingPrompt}` : actingPrompt;
           const videoDuration = tasks.clipDuration >= 10 ? 10 : (tasks.clipDuration || 10);
           
           // Avatar type-specific negative prompts (with anti-morphing)
@@ -595,7 +604,7 @@ serve(async (req) => {
                 body: JSON.stringify({
                   input: {
                     mode: "pro",
-                    prompt: actingPrompt,
+                    prompt: finalActingPrompt,
                     duration: videoDuration,
                     start_image: startImageUrl,
                     aspect_ratio: tasks.aspectRatio || "16:9",

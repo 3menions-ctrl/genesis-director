@@ -128,7 +128,9 @@ interface AvatarDirectRequest {
   clipCount?: number;
   clipDuration?: number;
   cinematicMode?: CinematicModeConfig;
-  avatarType?: 'realistic' | 'animated'; // Lock avatar visual style
+  avatarType?: 'realistic' | 'animated';
+  enableDualAvatar?: boolean;
+  avatarTemplateId?: string;
 }
 
 serve(async (req) => {
@@ -163,6 +165,8 @@ serve(async (req) => {
       clipDuration = 10,
       cinematicMode,
       avatarType = 'realistic',
+      enableDualAvatar = false,
+      avatarTemplateId,
     } = request;
 
     if (!script || !avatarImageUrl) {
@@ -215,11 +219,49 @@ serve(async (req) => {
     const requestedClipCount = Math.max(1, Math.min(clipCount, 20));
 
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════");
-    console.log("[AvatarDirect] Starting ASYNC AVATAR pipeline v3.5 (Hardened + Audio-Driven)");
+    console.log("[AvatarDirect] Starting ASYNC AVATAR pipeline v4.5 (Dual Avatar + Continuity)");
     console.log(`[AvatarDirect] Script (${script.length} chars): "${script.substring(0, 80)}..."`);
     console.log(`[AvatarDirect] Scene: "${sceneDescription || 'Professional studio setting'}"`);
     console.log(`[AvatarDirect] Voice: ${voiceId}, Requested clips: ${requestedClipCount}`);
+    console.log(`[AvatarDirect] Dual Avatar: ${enableDualAvatar ? 'ENABLED' : 'disabled'}`);
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════")
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DUAL AVATAR: AI auto-pick a secondary character for dialogue scenes
+    // ═══════════════════════════════════════════════════════════════════════════
+    let secondaryAvatar: { id: string; name: string; imageUrl: string; voiceId: string; avatarType: string } | null = null;
+    
+    if (enableDualAvatar && avatarTemplateId) {
+      console.log("[AvatarDirect] 🎭 DUAL AVATAR: Finding secondary character...");
+      
+      try {
+        // Query avatar_templates for a matching secondary (same type, different avatar)
+        const { data: candidates } = await supabase
+          .from('avatar_templates')
+          .select('id, name, face_image_url, front_image_url, voice_id, avatar_type, gender')
+          .eq('is_active', true)
+          .eq('avatar_type', avatarType)
+          .neq('id', avatarTemplateId)
+          .limit(10);
+        
+        if (candidates && candidates.length > 0) {
+          // Pick a random candidate (simple selection - could be smarter with script analysis)
+          const picked = candidates[Math.floor(Math.random() * candidates.length)];
+          secondaryAvatar = {
+            id: picked.id,
+            name: picked.name,
+            imageUrl: picked.front_image_url || picked.face_image_url,
+            voiceId: picked.voice_id,
+            avatarType: picked.avatar_type || avatarType,
+          };
+          console.log(`[AvatarDirect] ✅ Secondary avatar picked: ${secondaryAvatar.name} (${secondaryAvatar.id})`);
+        } else {
+          console.warn("[AvatarDirect] ⚠️ No suitable secondary avatar found, proceeding with single avatar");
+        }
+      } catch (pickError) {
+        console.error("[AvatarDirect] Secondary avatar pick failed:", pickError);
+      }
+    }
 
     if (projectId) {
       await supabase.from('movie_projects').update({
@@ -227,7 +269,9 @@ serve(async (req) => {
         pipeline_state: {
           stage: 'init',
           progress: 5,
-          message: 'Preparing video generation...',
+          message: secondaryAvatar 
+            ? `Preparing dual avatar scene with ${secondaryAvatar.name}...`
+            : 'Preparing video generation...',
           totalClips: requestedClipCount,
         },
       }).eq('id', projectId);
@@ -243,14 +287,34 @@ serve(async (req) => {
     const finalClipCount = Math.max(requestedClipCount, 1);
     
     // Split script into segments for multi-clip prompt variation
+    // For dual avatar: alternate dialogue between primary and secondary
     const scriptSegments = finalClipCount > 1 
       ? splitScriptIntoSegments(script, finalClipCount)
       : [script];
+    
+    // Assign each clip to primary or secondary avatar for dialogue alternation
+    const clipAvatarAssignments: Array<'primary' | 'secondary'> = [];
+    for (let i = 0; i < finalClipCount; i++) {
+      if (secondaryAvatar && finalClipCount >= 3) {
+        // Dialogue pattern: Primary → Secondary → Primary → Secondary...
+        // First and last clips always primary (bookend pattern)
+        if (i === 0 || i === finalClipCount - 1) {
+          clipAvatarAssignments.push('primary');
+        } else {
+          clipAvatarAssignments.push(i % 2 === 0 ? 'primary' : 'secondary');
+        }
+      } else {
+        clipAvatarAssignments.push('primary');
+      }
+    }
     
     console.log(`[AvatarDirect] 🎬 CLIP CALCULATION:`);
     console.log(`[AvatarDirect]    Requested clips: ${requestedClipCount}`);
     console.log(`[AvatarDirect]    FINAL clip count: ${finalClipCount}`);
     console.log(`[AvatarDirect]    Script segments: ${scriptSegments.length}`);
+    if (secondaryAvatar) {
+      console.log(`[AvatarDirect]    Avatar assignments: ${clipAvatarAssignments.join(', ')}`);
+    }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // STEP 2: Optional Scene Compositing (fast - ~5-10s)
@@ -346,8 +410,11 @@ serve(async (req) => {
     }
 
     // EMBEDDED AUDIO: No TTS pre-generation needed - Kling produces native audio
-    // Just prepare segment data for prompts
-    const allSegmentData: Array<{ segmentText: string }> = scriptSegments.map(text => ({ segmentText: text }));
+    // Include avatar assignment for dual-avatar mode
+    const allSegmentData: Array<{ segmentText: string; avatarRole: 'primary' | 'secondary' }> = scriptSegments.map((text, i) => ({
+      segmentText: text,
+      avatarRole: clipAvatarAssignments[i] || 'primary',
+    }));
 
     // START CLIP 1 ONLY - Watchdog will chain the rest
     const clip1Data = allSegmentData[0];
@@ -544,6 +611,7 @@ serve(async (req) => {
       startImageUrl: string | null;
       status: string;
       videoUrl: string | null;
+      avatarRole: 'primary' | 'secondary';
     }> = [];
 
     // Clip 1 - currently processing
@@ -554,6 +622,7 @@ serve(async (req) => {
       startImageUrl: sharedAnimationStartImage,
       status: 'processing',
       videoUrl: null,
+      avatarRole: clip1Data.avatarRole,
     });
 
     // Clips 2+ - pending, will be started by watchdog after frame extraction
@@ -565,6 +634,7 @@ serve(async (req) => {
         startImageUrl: null,
         status: 'pending',
         videoUrl: null,
+        avatarRole: allSegmentData[i].avatarRole,
       });
     }
 
@@ -602,13 +672,16 @@ serve(async (req) => {
         pending_video_tasks: {
           type: 'avatar_async',
           embeddedAudioOnly: true,
-          avatarType: avatarType, // CRITICAL: Persist for watchdog to use in subsequent clips
+          avatarType: avatarType,
+          // DUAL AVATAR: Persist secondary avatar data for watchdog
+          secondaryAvatar: secondaryAvatar || null,
           predictions: pendingPredictions.map(p => ({
             predictionId: p.predictionId,
             clipIndex: p.clipIndex,
             status: p.status,
             segmentText: p.segmentText,
             startImageUrl: p.startImageUrl,
+            avatarRole: p.avatarRole,
           })),
           sceneImageUrl: sharedAnimationStartImage,
           sceneCompositingApplied: sceneCompositingApplied,

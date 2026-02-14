@@ -49,6 +49,8 @@ interface AvatarsConfigPanelProps {
   maxClips: number;
   enableMusic: boolean;
   onEnableMusicChange: (enabled: boolean) => void;
+  enableDualAvatar: boolean;
+  onEnableDualAvatarChange: (enabled: boolean) => void;
   cinematicMode: CinematicModeConfig;
   onCinematicModeChange: (config: CinematicModeConfig) => void;
   estimatedDuration: number;
@@ -76,6 +78,8 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
   maxClips,
   enableMusic,
   onEnableMusicChange,
+  enableDualAvatar,
+  onEnableDualAvatarChange,
   cinematicMode,
   onCinematicModeChange,
   estimatedDuration,
@@ -317,6 +321,30 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                   <TooltipContent side="top" className="max-w-xs">
                     <p className="font-medium">Cinematic Mode</p>
                     <p className="text-xs text-muted-foreground">Dynamic movement and camera angles for film-quality videos</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {/* Dual Avatar Toggle */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className={cn(
+                      "flex items-center gap-2 px-3 py-2 rounded-xl border transition-all cursor-pointer",
+                      enableDualAvatar 
+                        ? "bg-sky-500/10 border-sky-500/30" 
+                        : "bg-zinc-800/50 border-zinc-700/50 hover:border-zinc-600"
+                    )}
+                    onClick={() => onEnableDualAvatarChange(!enableDualAvatar)}
+                    >
+                      <Sparkles className={cn("w-4 h-4", enableDualAvatar ? "text-sky-400" : "text-zinc-500")} />
+                      <span className="text-xs text-zinc-300 font-medium">2 Avatars</span>
+                      <Switch checked={enableDualAvatar} onCheckedChange={onEnableDualAvatarChange} className="scale-75" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p className="font-medium">Dual Avatar Mode</p>
+                    <p className="text-xs text-muted-foreground">AI auto-picks a second character for dialogue scenes</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

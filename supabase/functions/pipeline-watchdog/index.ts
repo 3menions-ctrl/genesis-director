@@ -246,38 +246,48 @@ serve(async (req) => {
           // Previous clip is complete - extract last frame and start this clip!
           console.log(`[Watchdog] 🔗 FRAME-CHAINING: Starting clip ${pred.clipIndex + 1} from clip ${prevClipIndex + 1}'s last frame`);
           
-          let startImageUrl = prevPred.startImageUrl; // Fallback to previous start image
+          // DUAL AVATAR: If this clip uses the secondary avatar, use its reference image
+          const isDualAvatar = pred.avatarRole === 'secondary' && tasks.secondaryAvatar?.imageUrl;
+          let startImageUrl = isDualAvatar 
+            ? tasks.secondaryAvatar.imageUrl
+            : prevPred.startImageUrl; // Fallback to previous start image
           
-          // Extract last frame from previous clip's video
-          try {
-            const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-last-frame`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${supabaseKey}`,
-              },
-              body: JSON.stringify({
-                videoUrl: prevPred.videoUrl,
-                projectId: project.id,
-                clipIndex: prevClipIndex,
-              }),
-            });
-            
-            if (frameResponse.ok) {
-              const frameResult = await frameResponse.json();
-              // extract-last-frame returns 'frameUrl', not 'lastFrameUrl'
-              const extractedFrame = frameResult.frameUrl || frameResult.lastFrameUrl;
-              if (frameResult.success && extractedFrame) {
-                startImageUrl = extractedFrame;
-                console.log(`[Watchdog] ✅ Extracted last frame (${frameResult.method}): ${startImageUrl.substring(0, 60)}...`);
+          if (isDualAvatar) {
+            console.log(`[Watchdog] 🎭 DUAL AVATAR: Clip ${pred.clipIndex + 1} uses SECONDARY avatar (${tasks.secondaryAvatar.name})`);
+          }
+          
+          // For primary avatar clips, extract last frame for continuity
+          if (!isDualAvatar) {
+            // Extract last frame from previous clip's video
+            try {
+              const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-last-frame`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseKey}`,
+                },
+                body: JSON.stringify({
+                  videoUrl: prevPred.videoUrl,
+                  projectId: project.id,
+                  clipIndex: prevClipIndex,
+                }),
+              });
+              
+              if (frameResponse.ok) {
+                const frameResult = await frameResponse.json();
+                const extractedFrame = frameResult.frameUrl || frameResult.lastFrameUrl;
+                if (frameResult.success && extractedFrame) {
+                  startImageUrl = extractedFrame;
+                  console.log(`[Watchdog] ✅ Extracted last frame (${frameResult.method}): ${startImageUrl.substring(0, 60)}...`);
+                } else {
+                  console.warn(`[Watchdog] Frame extraction returned no URL (success=${frameResult.success}), using fallback`);
+                }
               } else {
-                console.warn(`[Watchdog] Frame extraction returned no URL (success=${frameResult.success}), using fallback`);
+                console.warn(`[Watchdog] Frame extraction HTTP error ${frameResponse.status}`);
               }
-            } else {
-              console.warn(`[Watchdog] Frame extraction HTTP error ${frameResponse.status}`);
+            } catch (frameError) {
+              console.error(`[Watchdog] Frame extraction error:`, frameError);
             }
-          } catch (frameError) {
-            console.error(`[Watchdog] Frame extraction error:`, frameError);
           }
           
           if (!startImageUrl) {

@@ -422,8 +422,8 @@ describe('Admin Panel — Header Integration', () => {
     expect(header).toContain('Shield');
   });
 
-  it('should style admin link differently (amber) for visual distinction', () => {
-    expect(header).toMatch(/text-amber-400/);
+  it('should style admin link differently (warning/amber) for visual distinction', () => {
+    expect(header).toMatch(/text-warning|text-amber-400/);
   });
 
   it('should show admin link in both desktop dropdown and mobile menu', () => {
@@ -444,7 +444,7 @@ describe('Admin Panel — Data Export Compliance', () => {
   });
 
   it('should authenticate the requesting user', () => {
-    expect(exportFn).toMatch(/supabase\.auth\.getUser/);
+    expect(exportFn).toMatch(/supabase\.auth\.getUser|supabase\.auth\.getClaims/);
   });
 
   it('should export all user-owned data tables', () => {

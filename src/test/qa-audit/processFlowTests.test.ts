@@ -88,12 +88,15 @@ describe('P008-P009: Create Project Flow', () => {
     expect(content.includes('handleStartCreation')).toBe(true);
   });
 
-  it('should handle insufficient credits gracefully', () => {
-    const createPath = path.join(process.cwd(), 'src/pages/Create.tsx');
-    const content = fs.readFileSync(createPath, 'utf-8');
+  it('should handle insufficient credits gracefully via error handler', () => {
+    // Credit errors are now handled centrally in userFriendlyErrors.ts
+    const errorHandlerPath = path.join(process.cwd(), 'src/lib/userFriendlyErrors.ts');
+    const content = fs.readFileSync(errorHandlerPath, 'utf-8');
     
-    expect(content.includes('402') || content.includes('credits')).toBe(true);
-    expect(content.includes('Insufficient credits') || content.includes('billing')).toBe(true);
+    expect(content.includes('402') || content.includes('credits') || content.includes('Credits')).toBe(true);
+    // Create.tsx delegates to handleEdgeFunctionError / showUserFriendlyError
+    const createContent = fs.readFileSync(path.join(process.cwd(), 'src/pages/Create.tsx'), 'utf-8');
+    expect(createContent.includes('handleEdgeFunctionError') || createContent.includes('showUserFriendlyError')).toBe(true);
   });
 
   it('should navigate to production after creation', () => {
@@ -104,12 +107,13 @@ describe('P008-P009: Create Project Flow', () => {
     expect(content.includes('projectId')).toBe(true);
   });
 
-  it('should use gatekeeper timeout to prevent infinite loading', () => {
+  it('should use centralized gatekeeper loading to prevent infinite loading', () => {
     const createPath = path.join(process.cwd(), 'src/pages/Create.tsx');
     const content = fs.readFileSync(createPath, 'utf-8');
     
-    expect(content.includes('GATEKEEPER_TIMEOUT_MS')).toBe(true);
-    expect(content.includes('gatekeeperTimeout')).toBe(true);
+    // Gatekeeper is now centralized via useGatekeeperLoading hook + GATEKEEPER_PRESETS
+    expect(content.includes('useGatekeeperLoading')).toBe(true);
+    expect(content.includes('GATEKEEPER_PRESETS')).toBe(true);
   });
 });
 

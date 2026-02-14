@@ -19,6 +19,8 @@ const VideoEditor = () => {
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get("project") || searchParams.get("projectId");
 
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+
   const [editorState, setEditorState] = useState<EditorState>({
     sessionId: null,
     projectId: projectId || null,
@@ -420,6 +422,8 @@ const VideoEditor = () => {
                     onPlayPause={handlePlayPause}
                     onTimeChange={handleTimeChange}
                     duration={editorState.duration}
+                    playbackSpeed={playbackSpeed}
+                    onPlaybackSpeedChange={setPlaybackSpeed}
                   />
                 ) : (
                   <div className="h-full flex flex-col items-center justify-center bg-[hsl(260,15%,4%)] gap-5">

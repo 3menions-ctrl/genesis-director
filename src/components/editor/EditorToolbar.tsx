@@ -39,7 +39,6 @@ export const EditorToolbar = ({
   return (
     <TooltipProvider delayDuration={200}>
       <div className="h-11 bg-[hsl(260,15%,7%)] border-b border-white/[0.06] flex items-center gap-1.5 px-2 shrink-0 relative">
-        {/* Subtle top highlight */}
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
 
         <Tooltip>
@@ -48,7 +47,7 @@ export const EditorToolbar = ({
               variant="ghost"
               size="icon"
               onClick={onBack}
-              className="h-7 w-7 text-white/40 hover:text-white/80 hover:bg-white/[0.06] rounded-md transition-all"
+              className="h-7 w-7 text-white hover:text-white hover:bg-white/[0.08] rounded-md transition-all"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
             </Button>
@@ -58,7 +57,6 @@ export const EditorToolbar = ({
 
         <div className="h-4 w-px bg-white/[0.06] mx-0.5" />
 
-        {/* Logo accent */}
         <div className="flex items-center gap-1.5 mr-1">
           <div className="w-5 h-5 rounded bg-primary/20 border border-primary/30 flex items-center justify-center">
             <Scissors className="h-2.5 w-2.5 text-primary" />
@@ -82,7 +80,7 @@ export const EditorToolbar = ({
                 size="icon"
                 onClick={onUndo}
                 disabled={!canUndo}
-                className="h-6 w-6 text-white/40 hover:text-white/80 hover:bg-white/[0.08] disabled:opacity-15 rounded-sm transition-all"
+                className="h-6 w-6 text-white hover:text-white hover:bg-white/[0.08] disabled:opacity-15 rounded-sm transition-all"
               >
                 <Undo2 className="h-3 w-3" />
               </Button>
@@ -99,7 +97,7 @@ export const EditorToolbar = ({
                 size="icon"
                 onClick={onRedo}
                 disabled={!canRedo}
-                className="h-6 w-6 text-white/40 hover:text-white/80 hover:bg-white/[0.08] disabled:opacity-15 rounded-sm transition-all"
+                className="h-6 w-6 text-white hover:text-white hover:bg-white/[0.08] disabled:opacity-15 rounded-sm transition-all"
               >
                 <Redo2 className="h-3 w-3" />
               </Button>
@@ -118,7 +116,7 @@ export const EditorToolbar = ({
                 size="icon"
                 onClick={onSplit}
                 disabled={!canSplit}
-                className="h-6 w-6 text-white/40 hover:text-white/80 hover:bg-white/[0.08] disabled:opacity-15 rounded-sm transition-all"
+                className="h-6 w-6 text-white hover:text-white hover:bg-white/[0.08] disabled:opacity-15 rounded-sm transition-all"
               >
                 <Scissors className="h-3 w-3" />
               </Button>
@@ -162,7 +160,7 @@ export const EditorToolbar = ({
             size="sm"
             onClick={onSave}
             disabled={isSaving}
-            className="h-7 px-2.5 text-[10px] text-white/50 hover:text-white/80 hover:bg-white/[0.06] gap-1.5 rounded-md font-medium tracking-wide transition-all"
+            className="h-7 px-2.5 text-[10px] text-white hover:text-white hover:bg-white/[0.08] gap-1.5 rounded-md font-medium tracking-wide transition-all"
           >
             {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
             Save
@@ -172,7 +170,7 @@ export const EditorToolbar = ({
             size="sm"
             onClick={onExport}
             disabled={renderStatus === "rendering"}
-            className="h-7 px-3.5 text-[10px] bg-gradient-to-b from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white gap-1.5 rounded-md font-semibold tracking-wide shadow-[0_0_20px_hsl(263,70%,50%,0.15)] hover:shadow-[0_0_24px_hsl(263,70%,50%,0.25)] border border-primary/40 transition-all"
+            className="h-7 px-3.5 text-[10px] bg-white text-black hover:bg-white/90 gap-1.5 rounded-md font-semibold tracking-wide shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_24px_rgba(255,255,255,0.15)] border border-white/20 transition-all"
           >
             <Download className="h-3 w-3" />
             Export

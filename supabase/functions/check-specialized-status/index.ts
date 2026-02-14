@@ -346,9 +346,9 @@ async function handleMultiClipAvatar(
       message: finalPipelineState.message,
       videoUrl: videoUrl || null,
       clipIndex: targetPred.clipIndex,
-      isComplete: prediction.status === 'succeeded',
-      isFailed: prediction.status === 'failed' || prediction.status === 'canceled',
-      allClipsComplete: allDone && completedCount === totalCount,
+      isComplete: hasAllVideos || (allDone && completedCount === totalCount),
+      isFailed: allDone && failedCount > 0 && !hasAllVideos,
+      allClipsComplete: hasAllVideos || (allDone && completedCount === totalCount),
       error: prediction.status === 'failed' ? prediction.error : undefined,
     }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } }

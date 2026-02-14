@@ -5,6 +5,10 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { WidgetScene, WidgetTriggers, WidgetRule } from '@/types/widget';
 
+import cinematicHeroImg from '@/assets/scenes/cinematic-hero-preview.jpg';
+import fourthWallImg from '@/assets/scenes/4th-wall-breakthrough-preview.jpg';
+import minimalEmbedImg from '@/assets/scenes/minimal-embed-preview.jpg';
+
 const glass = 'bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm';
 const glassInput = 'bg-white/[0.06] border border-white/[0.1] text-white/90 placeholder:text-white/25 focus:ring-1 focus:ring-white/[0.15] focus:border-white/[0.2] outline-none';
 
@@ -16,6 +20,7 @@ const STYLES = [
     icon: '🎬',
     scenes: 3,
     techniques: ['Crane reveal', 'Rack focus', 'Volumetric lighting'],
+    preview: cinematicHeroImg,
   },
   {
     id: '4th_wall_breakthrough',
@@ -24,6 +29,7 @@ const STYLES = [
     icon: '💥',
     scenes: 3,
     techniques: ['Reality shatter', 'Particle physics', 'Direct address'],
+    preview: fourthWallImg,
   },
   {
     id: 'minimal_embed',
@@ -32,6 +38,7 @@ const STYLES = [
     icon: '✨',
     scenes: 2,
     techniques: ['Orbital camera', 'Soft DOF', 'Gentle push-in'],
+    preview: minimalEmbedImg,
   },
 ] as const;
 
@@ -337,21 +344,28 @@ export function AIWidgetAssist({ widgetId, onConfigGenerated, onSceneVideoReady 
                   onClick={() => !isGenerating && setSelectedStyle(style.id)}
                   disabled={isGenerating}
                   className={cn(
-                    'flex flex-col items-start gap-2 p-3.5 rounded-xl border text-left transition-all',
+                    'flex flex-col items-start gap-0 rounded-xl border text-left transition-all overflow-hidden',
                     selectedStyle === style.id
-                      ? 'border-violet-500/40 bg-violet-500/10'
+                      ? 'border-violet-500/40 bg-violet-500/10 ring-1 ring-violet-500/20'
                       : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1]',
                     isGenerating && 'opacity-50 cursor-not-allowed'
                   )}
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">{style.icon}</span>
-                    <span className={cn('text-xs font-medium', selectedStyle === style.id ? 'text-violet-300' : 'text-white/70')}>{style.name}</span>
+                  {/* Preview Image */}
+                  <div className="w-full aspect-video relative overflow-hidden">
+                    <img src={style.preview} alt={style.name} className="w-full h-full object-cover" loading="lazy" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                    <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
+                      <span className="text-sm">{style.icon}</span>
+                      <span className={cn('text-[11px] font-semibold drop-shadow-lg', selectedStyle === style.id ? 'text-violet-200' : 'text-white/90')}>{style.name}</span>
+                    </div>
                   </div>
-                  <p className="text-[10px] text-white/25 leading-relaxed">{style.description}</p>
-                  <div className="flex items-center gap-3 pt-1">
-                    <span className="text-[9px] text-white/20 flex items-center gap-1"><Film className="w-2.5 h-2.5" /> {style.scenes} scenes</span>
-                    <span className="text-[9px] text-white/20 flex items-center gap-1"><Camera className="w-2.5 h-2.5" /> {style.techniques[0]}</span>
+                  <div className="p-3 space-y-1.5">
+                    <p className="text-[10px] text-white/30 leading-relaxed">{style.description}</p>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[9px] text-white/20 flex items-center gap-1"><Film className="w-2.5 h-2.5" /> {style.scenes} scenes</span>
+                      <span className="text-[9px] text-white/20 flex items-center gap-1"><Camera className="w-2.5 h-2.5" /> {style.techniques[0]}</span>
+                    </div>
                   </div>
                 </button>
               ))}

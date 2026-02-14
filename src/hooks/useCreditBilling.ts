@@ -76,7 +76,8 @@ export function useCreditBilling() {
   // Charge pre-production credits (2 credits) - called when script/image generation starts
   const chargePreProduction = useCallback(async (
     projectId: string,
-    shotId: string
+    shotId: string,
+    creditsAmount?: number
   ): Promise<BillingResult> => {
     if (!user) {
       return { success: false, error: 'User not authenticated' };
@@ -84,10 +85,14 @@ export function useCreditBilling() {
 
     setIsCharging(true);
     try {
-      const { data, error } = await supabase.rpc('charge_preproduction_credits', {
+      const rpcParams: { p_project_id: string; p_shot_id: string; p_credits_amount?: number } = {
         p_project_id: projectId,
         p_shot_id: shotId,
-      });
+      };
+      if (creditsAmount !== undefined) {
+        rpcParams.p_credits_amount = creditsAmount;
+      }
+      const { data, error } = await supabase.rpc('charge_preproduction_credits', rpcParams as any);
 
       if (error) throw error;
 
@@ -117,7 +122,8 @@ export function useCreditBilling() {
   // Charge production credits (6-9 credits depending on clip type) - called when video generation starts
   const chargeProduction = useCallback(async (
     projectId: string,
-    shotId: string
+    shotId: string,
+    creditsAmount?: number
   ): Promise<BillingResult> => {
     if (!user) {
       return { success: false, error: 'User not authenticated' };
@@ -125,10 +131,14 @@ export function useCreditBilling() {
 
     setIsCharging(true);
     try {
-      const { data, error } = await supabase.rpc('charge_production_credits', {
+      const prodParams: { p_project_id: string; p_shot_id: string; p_credits_amount?: number } = {
         p_project_id: projectId,
         p_shot_id: shotId,
-      });
+      };
+      if (creditsAmount !== undefined) {
+        prodParams.p_credits_amount = creditsAmount;
+      }
+      const { data, error } = await supabase.rpc('charge_production_credits', prodParams as any);
 
       if (error) throw error;
 

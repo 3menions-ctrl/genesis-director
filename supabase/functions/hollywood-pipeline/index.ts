@@ -6245,7 +6245,9 @@ serve(async (req) => {
     }
 
     // SKIP credit check/deduction for resumes - credits were already charged on initial run
-    const shouldSkipCredits = request.skipCreditDeduction || isResuming;
+    // SECURITY: Only trust skipCreditDeduction from service-role callers (e.g., mode-router)
+    // User JWTs CANNOT skip credit deduction — prevents free generation exploit
+    const shouldSkipCredits = (isServiceRoleCall && request.skipCreditDeduction) || isResuming;
     
     if (!shouldSkipCredits) {
       // Check credits upfront

@@ -1184,20 +1184,32 @@ serve(async (req) => {
           const failedClipCount = totalExpectedClipsForTimeout - completedClips.length;
           const estimatedCredits = failedClipCount * 10;
           if (estimatedCredits > 0) {
-            await supabase.rpc('increment_credits', {
-              user_id_param: project.user_id,
-              amount_param: estimatedCredits,
-            });
+            // IDEMPOTENCY CHECK: Don't issue duplicate refunds
+            const { data: existingRefund } = await supabase
+              .from('credit_transactions')
+              .select('id')
+              .eq('project_id', project.id)
+              .eq('transaction_type', 'refund')
+              .limit(1);
             
-            await supabase.from('credit_transactions').insert({
-              user_id: project.user_id,
-              amount: estimatedCredits,
-              transaction_type: 'refund',
-              description: `Auto-refund: Async avatar timeout (${failedClipCount}/${totalExpectedClipsForTimeout} clips failed)`,
-              project_id: project.id,
-            });
-            
-            console.log(`[Watchdog] 💰 Refunded ${estimatedCredits} credits for ${failedClipCount} failed clips`);
+            if (existingRefund && existingRefund.length > 0) {
+              console.log(`[Watchdog] Skipping duplicate refund for project ${project.id}`);
+            } else {
+              await supabase.rpc('increment_credits', {
+                user_id_param: project.user_id,
+                amount_param: estimatedCredits,
+              });
+              
+              await supabase.from('credit_transactions').insert({
+                user_id: project.user_id,
+                amount: estimatedCredits,
+                transaction_type: 'refund',
+                description: `Auto-refund: Async avatar timeout (${failedClipCount}/${totalExpectedClipsForTimeout} clips failed)`,
+                project_id: project.id,
+              });
+              
+              console.log(`[Watchdog] 💰 Refunded ${estimatedCredits} credits for ${failedClipCount} failed clips`);
+            }
           }
         } catch (refundError) {
           console.error(`[Watchdog] Refund failed:`, refundError);
@@ -1423,20 +1435,33 @@ serve(async (req) => {
         // Refund credits
         try {
           const estimatedCredits = (pipelineState.totalClips || 1) * 10;
-          await supabase.rpc('increment_credits', {
-            user_id_param: project.user_id,
-            amount_param: estimatedCredits,
-          });
           
-          await supabase.from('credit_transactions').insert({
-            user_id: project.user_id,
-            amount: estimatedCredits,
-            transaction_type: 'refund',
-            description: `Auto-refund: Avatar generation failed (${project.title || project.id})`,
-            project_id: project.id,
-          });
+          // IDEMPOTENCY CHECK: Don't issue duplicate refunds
+          const { data: existingRefund } = await supabase
+            .from('credit_transactions')
+            .select('id')
+            .eq('project_id', project.id)
+            .eq('transaction_type', 'refund')
+            .limit(1);
           
-          console.log(`[Watchdog] 💰 Refunded ${estimatedCredits} credits to user ${project.user_id}`);
+          if (existingRefund && existingRefund.length > 0) {
+            console.log(`[Watchdog] Skipping duplicate refund for project ${project.id}`);
+          } else {
+            await supabase.rpc('increment_credits', {
+              user_id_param: project.user_id,
+              amount_param: estimatedCredits,
+            });
+            
+            await supabase.from('credit_transactions').insert({
+              user_id: project.user_id,
+              amount: estimatedCredits,
+              transaction_type: 'refund',
+              description: `Auto-refund: Avatar generation failed (${project.title || project.id})`,
+              project_id: project.id,
+            });
+            
+            console.log(`[Watchdog] 💰 Refunded ${estimatedCredits} credits to user ${project.user_id}`);
+          }
         } catch (refundError) {
           console.error(`[Watchdog] Credit refund failed:`, refundError);
         }

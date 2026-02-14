@@ -1,8 +1,11 @@
 import { memo, forwardRef, useState, useCallback, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Sparkles, Maximize2, X, Volume2, VolumeX } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ArrowRight, Sparkles, Maximize2, X, Volume2, VolumeX, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { UniversalHLSPlayer, type UniversalHLSPlayerHandle } from '@/components/player/UniversalHLSPlayer';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const PRICING_STATS = [
   { value: '$0.10', label: 'per credit' },
@@ -18,37 +21,157 @@ interface PricingSectionProps {
   onNavigate: (path: string) => void;
 }
 
-// Glowing star-like "Let's Go" CTA
-const LetsGoCTA = memo(function LetsGoCTA({ onNavigate }: { onNavigate: (path: string) => void }) {
+// Signup popup modal
+const SignupPopup = memo(function SignupPopup({ onClose, onNavigate }: { onClose: () => void; onNavigate: (path: string) => void }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (error) throw error;
+      toast({ title: 'Check your email', description: 'We sent you a confirmation link to verify your account.' });
+      onClose();
+    } catch (err: any) {
+      toast({ title: 'Signup failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-[9998] flex items-center justify-center animate-fade-in" style={{ pointerEvents: 'none' }}>
-      {/* Dimmed backdrop */}
-      <div className="absolute inset-0 bg-black/70" />
-      
-      {/* Glowing circular button */}
-      <button
-        onClick={() => onNavigate('/auth')}
-        className="relative z-10 w-40 h-40 md:w-52 md:h-52 rounded-full flex items-center justify-center cursor-pointer group transition-transform duration-300 hover:scale-110"
-        style={{ pointerEvents: 'auto' }}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[9999] flex items-center justify-center px-4"
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-md rounded-3xl bg-[#0e0e14] border border-white/[0.08] p-8 shadow-[0_0_80px_rgba(255,255,255,0.06)]"
       >
-        {/* Outer glow rings */}
-        <span className="absolute inset-0 rounded-full animate-ping opacity-20 bg-primary" style={{ animationDuration: '2s' }} />
-        <span className="absolute -inset-3 rounded-full bg-gradient-to-r from-primary/40 via-accent/30 to-primary/40 blur-2xl animate-pulse" style={{ animationDuration: '1.5s' }} />
-        <span className="absolute -inset-6 rounded-full bg-primary/10 blur-3xl animate-pulse" style={{ animationDuration: '3s' }} />
+        <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
+          <X className="w-4 h-4 text-white/50" />
+        </button>
+
+        <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-40 bg-white/[0.04] rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative text-center mb-8">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/[0.06] border border-white/[0.08] mb-4">
+            <Sparkles className="w-6 h-6 text-white/80" />
+          </div>
+          <h2 className="text-2xl font-semibold text-white mb-2">Start creating</h2>
+          <p className="text-sm text-white/40">Your first 60 credits are free. No card required.</p>
+        </div>
+
+        <form onSubmit={handleSignup} className="space-y-4">
+          <div className="relative">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+            <Input
+              type="email"
+              placeholder="Email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="pl-11 h-12 rounded-xl bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/30 focus-visible:ring-white/20 focus-visible:border-white/20"
+              required
+            />
+          </div>
+          <div className="relative">
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+            <Input
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Create a password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="pl-11 pr-11 h-12 rounded-xl bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/30 focus-visible:ring-white/20 focus-visible:border-white/20"
+              required
+              minLength={6}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(p => !p)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full h-12 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition-all duration-300 shadow-[0_0_30px_rgba(255,255,255,0.1)]"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+            {loading ? 'Creating account...' : 'Get Started Free'}
+          </Button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <button
+            onClick={() => { onClose(); onNavigate('/auth'); }}
+            className="text-xs text-white/30 hover:text-white/60 transition-colors"
+          >
+            Already have an account? <span className="text-white/50 underline underline-offset-2">Sign in</span>
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+});
+
+// Glowing star-like "Let's Go" CTA — white button that opens signup popup
+const LetsGoCTA = memo(function LetsGoCTA({ onNavigate }: { onNavigate: (path: string) => void }) {
+  const [showSignup, setShowSignup] = useState(false);
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[9998] flex items-center justify-center animate-fade-in" style={{ pointerEvents: 'none' }}>
+        <div className="absolute inset-0 bg-black/70" />
         
-        {/* Star shimmer effect */}
-        <span className="absolute inset-0 rounded-full overflow-hidden">
-          <span className="absolute inset-0 bg-gradient-conic from-primary via-white/20 to-primary rounded-full animate-spin" style={{ animationDuration: '4s' }} />
-        </span>
-        
-        {/* Inner button face */}
-        <span className="absolute inset-[3px] rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-[0_0_60px_rgba(124,58,237,0.5),0_0_120px_rgba(124,58,237,0.2)]">
-          <span className="text-white font-bold text-xl md:text-2xl tracking-wide drop-shadow-lg">
-            Let's Go
+        <button
+          onClick={() => setShowSignup(true)}
+          className="relative z-10 w-40 h-40 md:w-52 md:h-52 rounded-full flex items-center justify-center cursor-pointer group transition-transform duration-300 hover:scale-110"
+          style={{ pointerEvents: 'auto' }}
+        >
+          <span className="absolute inset-0 rounded-full animate-ping opacity-15 bg-white" style={{ animationDuration: '2s' }} />
+          <span className="absolute -inset-3 rounded-full bg-gradient-to-r from-white/30 via-white/10 to-white/30 blur-2xl animate-pulse" style={{ animationDuration: '1.5s' }} />
+          <span className="absolute -inset-6 rounded-full bg-white/10 blur-3xl animate-pulse" style={{ animationDuration: '3s' }} />
+          
+          <span className="absolute inset-0 rounded-full overflow-hidden">
+            <span className="absolute inset-0 bg-gradient-conic from-white via-white/20 to-white rounded-full animate-spin" style={{ animationDuration: '4s' }} />
           </span>
-        </span>
-      </button>
-    </div>
+          
+          <span className="absolute inset-[3px] rounded-full bg-white flex items-center justify-center shadow-[0_0_60px_rgba(255,255,255,0.4),0_0_120px_rgba(255,255,255,0.15)]">
+            <span className="text-black font-bold text-xl md:text-2xl tracking-wide">
+              Let's Go
+            </span>
+          </span>
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {showSignup && (
+          <SignupPopup onClose={() => setShowSignup(false)} onNavigate={onNavigate} />
+        )}
+      </AnimatePresence>
+    </>
   );
 });
 

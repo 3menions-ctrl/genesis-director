@@ -282,12 +282,20 @@ serve(async (req) => {
           picked = topCandidates[Math.floor(Math.random() * topCandidates.length)].candidate;
           
           console.log(`[AvatarDirect] 🎭 Smart selection: ${picked.name} (gender=${picked.gender}, contrast score=${topScore})`);
+          // CRITICAL: Prefer front_image_url (full-body) to prevent headless avatar rendering
+          const secondaryImageUrl = picked.front_image_url || picked.face_image_url;
+          const isFullBody = !!picked.front_image_url;
+          if (!isFullBody) {
+            console.warn(`[AvatarDirect] ⚠️ Secondary avatar "${picked.name}" has NO full-body image (front_image_url). Using face_image_url — may produce head-only render.`);
+          }
+          
           secondaryAvatar = {
             id: picked.id,
             name: picked.name,
-            imageUrl: picked.front_image_url || picked.face_image_url,
+            imageUrl: secondaryImageUrl,
             voiceId: picked.voice_id,
             avatarType: picked.avatar_type || avatarType,
+            isFullBody,
           };
           console.log(`[AvatarDirect] ✅ Secondary avatar picked: ${secondaryAvatar.name} (${secondaryAvatar.id})`);
         } else {

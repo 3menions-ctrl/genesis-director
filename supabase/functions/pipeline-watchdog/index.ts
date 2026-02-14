@@ -214,10 +214,19 @@ function buildAvatarActingPrompt(
   };
   
   let motionBlock: string;
+  // STATIC START ENFORCEMENT: Character is ALREADY in position from frame 1
+  const staticStartDirective = '[STATIC START — CRITICAL: The character is ALREADY positioned in their environment from the very first frame. They are already standing, sitting, or leaning in place. Do NOT show them walking in, entering, or arriving. They are ALREADY THERE, grounded and situated.]';
+  
   if (screenplayAction) {
+    // Filter out walking-in actions from screenplay
+    const sanitizedAction = screenplayAction
+      .replace(/walking into frame/gi, 'already positioned in frame')
+      .replace(/entering the scene/gi, 'already in the scene')
+      .replace(/walks in/gi, 'is already present')
+      .replace(/arriving/gi, 'already situated');
     const movePhrase = screenplayMovement && movementMap[screenplayMovement] ? `, ${movementMap[screenplayMovement]}` : '';
     const microAction = physicalDetail ? ` ${physicalDetail}.` : '';
-    motionBlock = `The subject is ${screenplayAction}${movePhrase}.${microAction}`;
+    motionBlock = `The subject is ${sanitizedAction}${movePhrase}.${microAction}`;
   } else {
     motionBlock = `The subject is speaking with natural energy, expressive gestures, weight shifting naturally.`;
   }
@@ -253,7 +262,7 @@ function buildAvatarActingPrompt(
   
   console.log(`[Watchdog] 🎬 Clip ${clipIndex + 1}/${totalClips} | Camera: ${screenplayCameraHint || movementKey} | Movement: ${screenplayMovement || 'default'} | AvatarType: ${avatarType} | IdentityLock: ${identityLock ? 'YES' : 'generic'}`);
   
-  return `${identityDirective} ${avatarTypeLock} ${backgroundLock} ${transitionDirective} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. ${narrativeBeat} ${motionBlock} Speaking naturally: "${segmentText.trim().substring(0, 120)}${segmentText.length > 120 ? '...' : ''}". ${performanceStyle} ${lifelikeDirective} ${qualityBaseline}`;
+  return `${staticStartDirective} ${identityDirective} ${avatarTypeLock} ${backgroundLock} ${transitionDirective} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. ${narrativeBeat} ${motionBlock} Speaking naturally: "${segmentText.trim().substring(0, 120)}${segmentText.length > 120 ? '...' : ''}". ${performanceStyle} ${lifelikeDirective} ${qualityBaseline}`;
 }
 
 serve(async (req) => {
@@ -520,8 +529,8 @@ serve(async (req) => {
           
           // Avatar type-specific negative prompts (with anti-morphing)
           const negativePrompt = avatarType === 'animated'
-            ? "photorealistic, real human, live action, photograph, real skin texture, different background, changed environment, new location, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, face morphing, identity change, different person, age change, face swap"
-            : "cartoon, animated, CGI, 3D render, anime, illustration, drawing, painting, sketch, different background, changed environment, new location, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, face morphing, identity change, different person, age change, face swap";
+            ? "photorealistic, real human, live action, photograph, real skin texture, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, face morphing, identity change, different person, age change, face swap, walking into frame, entering scene, arriving, approaching"
+            : "cartoon, animated, CGI, 3D render, anime, illustration, drawing, painting, sketch, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, face morphing, identity change, different person, age change, face swap, walking into frame, entering scene, arriving, approaching";
           
           // Start Kling prediction for this clip WITH RESILIENT FETCH
           let klingRetries = 0;

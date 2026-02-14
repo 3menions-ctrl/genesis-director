@@ -1,12 +1,11 @@
 /**
- * ProjectCard Component
+ * ProjectCard Component — Premium Redesign
  * 
- * Displays a single project in either grid or list view with:
- * - Video thumbnail/preview on hover
- * - Status badges (Ready, Processing, Failed)
- * - Quick actions menu (play, download, rename, delete, pin, share)
- * 
- * Extracted from Projects.tsx for maintainability
+ * Cinematic 16:9 cards with:
+ * - Hover-to-preview video playback
+ * - Visible quick-action overlays (play, download, edit)
+ * - Refined status indicators with progress rings
+ * - Clean typography with subtle animations
  */
 
 import { memo, forwardRef, useState, useEffect, useRef, useCallback, useMemo } from 'react';
@@ -119,7 +118,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     isDirectVideo || 
     isManifest || 
     hasAvatarVideo ||
-    (pendingTasks?.hlsPlaylistUrl) // HLS playlist available
+    (pendingTasks?.hlsPlaylistUrl)
   );
   
   // Detect touch device and iOS Safari on mount
@@ -129,7 +128,6 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
       const isTouchDev = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
       setIsTouchDevice(isTouchDev);
       
-      // Detect iOS Safari specifically (has severe memory constraints)
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
       const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -149,14 +147,10 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
   
   // Self-resolve clip URL if not provided by parent (fallback for race conditions)
   useEffect(() => {
-    // Skip if we already have a URL from parent or self
     if (preResolvedClipUrl || selfResolvedClipUrl) return;
-    // Skip if project already has direct video clips
     if (project.video_clips?.length) return;
-    // Skip if not a manifest URL (direct video available)
     if (isDirectVideo) return;
     
-    // Fetch first clip for this project
     const fetchClip = async () => {
       try {
         const { supabase } = await import('@/integrations/supabase/client');
@@ -169,7 +163,6 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
           .order('shot_index', { ascending: true })
           .limit(1);
         
-        // Filter out replicate URLs and get the first valid one
         const validClip = data?.find(clip => 
           clip.video_url && !clip.video_url.includes('replicate.delivery')
         );
@@ -186,13 +179,8 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
   }, [project.id, preResolvedClipUrl, selfResolvedClipUrl, project.video_clips, isDirectVideo]);
   
   const videoSrc = useMemo(() => {
-    // Priority 1: Pre-resolved from parent (batch resolution)
     if (preResolvedClipUrl) return preResolvedClipUrl;
-    
-    // Priority 2: Self-resolved as fallback
     if (selfResolvedClipUrl) return selfResolvedClipUrl;
-    
-    // Priority 3: Project's video_clips array
     if (project.video_clips?.length) {
       const permanentClip = project.video_clips.find(url => 
         url && !url.includes('replicate.delivery')
@@ -200,12 +188,9 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
       if (permanentClip) return permanentClip;
       return project.video_clips[0];
     }
-    
-    // Priority 4: Direct video URL (non-manifest, non-replicate)
     if (isDirectVideo && project.video_url && !project.video_url.includes('replicate.delivery')) {
       return project.video_url;
     }
-    
     return null;
   }, [project.video_url, project.video_clips, isDirectVideo, preResolvedClipUrl, selfResolvedClipUrl]);
 
@@ -214,7 +199,6 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     const video = videoRef.current;
     if (!video) return;
     
-    // Safe duration check
     const duration = video.duration;
     if (!duration || !isFinite(duration) || isNaN(duration) || duration <= 0) return;
     
@@ -234,7 +218,6 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     }
   }, []);
 
-  // Unified interaction handler for both mouse and touch
   const handleInteractionStart = useCallback(() => {
     if (!isMountedRef.current) return;
     setIsHovered(true);
@@ -243,10 +226,8 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     if (!video || !hasVideo || !videoSrc) return;
     
     try {
-      // CRITICAL: iOS requires muted for autoplay
       video.muted = true;
       
-      // Function to attempt play - STABILITY FIX: Use safe video operations
       const attemptPlay = () => {
         if (!isMountedRef.current || !videoRef.current) return;
         const v = videoRef.current;
@@ -254,18 +235,15 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
         safePlay(v);
       };
       
-      // If video has enough data, play immediately
       if (video.readyState >= 3) {
         attemptPlay();
       } else {
-        // Wait for video to be ready
         const onCanPlay = () => {
           video.removeEventListener('canplay', onCanPlay);
           attemptPlay();
         };
         video.addEventListener('canplay', onCanPlay, { once: true });
         
-        // Also try loading if not started
         if (video.readyState === 0) {
           video.load();
         }
@@ -275,7 +253,6 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     }
   }, [hasVideo, videoSrc]);
   
-  // Alias for mouse events
   const handleMouseEnter = handleInteractionStart;
 
   const handleInteractionEnd = useCallback(() => {
@@ -285,7 +262,6 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     const video = videoRef.current;
     if (!video) return;
     
-    // STABILITY FIX: Use safe video operations
     safePause(video);
     const duration = video.duration;
     if (isSafeVideoNumber(duration)) {
@@ -294,58 +270,19 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     }
   }, []);
   
-  // Alias for mouse events  
   const handleMouseLeave = handleInteractionEnd;
   
-  // Touch event handlers for iPad/mobile
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    // On touch devices, first tap shows preview, second tap plays
     if (!isHovered) {
-      e.preventDefault(); // Prevent click from firing immediately
+      e.preventDefault();
       handleInteractionStart();
     }
   }, [isHovered, handleInteractionStart]);
   
-  const handleTouchEnd = useCallback(() => {
-    // Don't immediately hide on touch end - let user see the preview
-    // They can tap again to play or tap elsewhere to dismiss
-  }, []);
+  const handleTouchEnd = useCallback(() => {}, []);
 
-  const getStatusBadge = () => {
-    if (hasVideo) {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08]">
-          <div className="w-1 h-1 rounded-full bg-emerald-400" />
-          <span className="text-[10px] font-medium text-white/60 uppercase tracking-wider">Ready</span>
-        </span>
-      );
-    }
-    if (status === 'stitching_failed') {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08]">
-          <div className="w-1 h-1 rounded-full bg-amber-400" />
-          <span className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Failed</span>
-        </span>
-      );
-    }
-    if (status === 'stitching') {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08]">
-          <div className="w-1 h-1 rounded-full bg-white/40 animate-pulse" />
-          <span className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Stitching</span>
-        </span>
-      );
-    }
-    if (status === 'generating' || status === 'rendering') {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08]">
-          <div className="w-1 h-1 rounded-full bg-white/40 animate-pulse" />
-          <span className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Processing</span>
-        </span>
-      );
-    }
-    return null;
-  };
+  const isProcessing = ['generating', 'rendering', 'stitching', 'pending', 'awaiting_approval'].includes(status);
+  const isFailed = status === 'stitching_failed' || status === 'failed';
 
   // ============= LIST VIEW =============
   if (viewMode === 'list') {
@@ -353,97 +290,110 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
       <div
         ref={ref}
         className={cn(
-          "group flex items-center gap-4 p-3 rounded-xl transition-all duration-300 cursor-pointer animate-fade-in",
-          "bg-zinc-900/60 border border-white/[0.06]",
-          "hover:bg-zinc-800/60 hover:border-white/[0.1]",
-          isActive && "ring-1 ring-white/20"
+          "group flex items-center gap-4 p-3 rounded-xl transition-all duration-200 cursor-pointer",
+          "bg-white/[0.02] border border-white/[0.04]",
+          "hover:bg-white/[0.05] hover:border-white/[0.08]",
+          isActive && "ring-1 ring-primary/30"
         )}
-        style={{ animationDelay: `${index * 0.03}s` }}
         onClick={onPlay}
       >
         {/* Thumbnail */}
-        <div className="relative w-20 h-12 rounded-lg overflow-hidden bg-zinc-800 shrink-0">
+        <div className="relative w-24 h-14 rounded-lg overflow-hidden bg-white/[0.03] shrink-0">
           {hasVideo && videoSrc ? (
             project.thumbnail_url ? (
-              <img 
-                src={project.thumbnail_url}
-                alt={project.name}
-                className="w-full h-full object-cover"
-              />
+              <img src={project.thumbnail_url} alt={project.name} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="w-4 h-4 border-2 border-zinc-600 border-t-zinc-400 rounded-full animate-spin" />
-              </div>
+              <PausedFrameVideo src={videoSrc} className="w-full h-full object-cover" showLoader={false} />
             )
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <Film className="w-5 h-5 text-zinc-600" />
+              {isProcessing ? (
+                <Loader2 className="w-4 h-4 text-white/20 animate-spin" />
+              ) : (
+                <Film className="w-4 h-4 text-white/10" />
+              )}
             </div>
           )}
           {isPinned && (
-            <div className="absolute top-1 left-1 w-4 h-4 rounded bg-amber-500/80 flex items-center justify-center">
-              <Pin className="w-2.5 h-2.5 text-black" />
+            <div className="absolute top-1 left-1 w-4 h-4 rounded bg-primary/80 flex items-center justify-center">
+              <Pin className="w-2.5 h-2.5 text-primary-foreground" />
             </div>
           )}
         </div>
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium text-white truncate">{project.name}</h3>
+          <h3 className="text-sm font-medium text-white/90 truncate">{project.name}</h3>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs text-zinc-500">{formatTimeAgo(project.updated_at)}</span>
+            <span className="text-xs text-white/30">{formatTimeAgo(project.updated_at)}</span>
             {(project.video_clips?.length ?? 0) > 0 && (
               <>
-                <span className="text-zinc-700">•</span>
-                <span className="text-xs text-zinc-500">{project.video_clips?.length} clips</span>
+                <span className="text-white/10">·</span>
+                <span className="text-xs text-white/30">{project.video_clips?.length} clips</span>
               </>
             )}
           </div>
         </div>
 
-        {/* Status */}
-        <div className="shrink-0">{getStatusBadge()}</div>
+        {/* Status pill */}
+        <div className="shrink-0">
+          {hasVideo && (
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10">
+              <div className="w-1 h-1 rounded-full bg-emerald-400" />
+              <span className="text-[10px] font-medium text-emerald-400/80">Ready</span>
+            </span>
+          )}
+          {isProcessing && (
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.05]">
+              <div className="w-1 h-1 rounded-full bg-white/40 animate-pulse" />
+              <span className="text-[10px] font-medium text-white/40">Processing</span>
+            </span>
+          )}
+          {isFailed && (
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/10">
+              <div className="w-1 h-1 rounded-full bg-red-400" />
+              <span className="text-[10px] font-medium text-red-400/80">Failed</span>
+            </span>
+          )}
+        </div>
 
-        {/* Actions */}
-        <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Quick actions */}
+        <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {hasVideo && (
+            <>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-white/30 hover:text-white hover:bg-white/10" onClick={(e) => { e.stopPropagation(); onPlay(); }}>
+                <Play className="w-3.5 h-3.5" fill="currentColor" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-white/30 hover:text-white hover:bg-white/10" onClick={(e) => { e.stopPropagation(); onDownload(); }}>
+                <Download className="w-3.5 h-3.5" />
+              </Button>
+            </>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-zinc-500 hover:text-white"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreVertical className="w-4 h-4" />
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-white/30 hover:text-white hover:bg-white/10" onClick={(e) => e.stopPropagation()}>
+                <MoreVertical className="w-3.5 h-3.5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44 bg-zinc-900 border-white/10 backdrop-blur-xl">
-              {hasVideo && (
-                <>
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPlay(); }} className="text-zinc-300 focus:text-white focus:bg-white/10">
-                    <Play className="w-4 h-4 mr-2" />Watch
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDownload(); }} className="text-zinc-300 focus:text-white focus:bg-white/10">
-                    <Download className="w-4 h-4 mr-2" />Download
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-white/10" />
-                </>
-              )}
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTogglePin?.(); }} className="text-zinc-300 focus:text-white focus:bg-white/10">
+            <DropdownMenuContent align="end" className="w-44 bg-zinc-900/95 border-white/[0.08] backdrop-blur-xl rounded-lg">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }} className="text-sm text-white/60 focus:text-white focus:bg-white/[0.06]">
+                <Edit2 className="w-4 h-4 mr-2" />Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTogglePin?.(); }} className="text-sm text-white/60 focus:text-white focus:bg-white/[0.06]">
                 {isPinned ? <PinOff className="w-4 h-4 mr-2" /> : <Pin className="w-4 h-4 mr-2" />}
                 {isPinned ? 'Unpin' : 'Pin'}
               </DropdownMenuItem>
-              {hasVideo && (
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTogglePublic?.(); }} className={cn("text-zinc-300 focus:text-white focus:bg-white/10", project.is_public && "text-emerald-400")}>
-                  {project.is_public ? <Globe className="w-4 h-4 mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
-                  {project.is_public ? 'Public' : 'Share to Feed'}
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRename(); }} className="text-zinc-300 focus:text-white focus:bg-white/10">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRename(); }} className="text-sm text-white/60 focus:text-white focus:bg-white/[0.06]">
                 <Pencil className="w-4 h-4 mr-2" />Rename
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-white/10" />
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-red-400 focus:text-red-300 focus:bg-red-500/10">
+              {hasVideo && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTogglePublic?.(); }} className={cn("text-sm focus:bg-white/[0.06]", project.is_public ? "text-emerald-400" : "text-white/60 focus:text-white")}>
+                  {project.is_public ? <Globe className="w-4 h-4 mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
+                  {project.is_public ? 'Public' : 'Share'}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator className="bg-white/[0.06]" />
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-sm text-red-400 focus:text-red-300 focus:bg-red-500/10">
                 <Trash2 className="w-4 h-4 mr-2" />Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -453,16 +403,13 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     );
   }
 
-  // ============= GRID VIEW =============
-  // MOBILE FIX: On touch devices, always show content (not hover-dependent)
+  // ============= GRID VIEW — PREMIUM REDESIGN =============
   const showContentOverlay = isTouchDevice || isHovered;
   
-  // Handle card click - only play if video content exists, otherwise edit
   const handleCardClick = useCallback(() => {
     if (hasVideo) {
       onPlay();
     } else {
-      // No video - go to editor instead
       onEdit();
     }
   }, [hasVideo, onPlay, onEdit]);
@@ -471,81 +418,55 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     <div
       ref={ref}
       className={cn(
-        "group relative cursor-pointer animate-fade-in transition-all duration-300",
-        !isTouchDevice && "hover:-translate-y-1"
+        "group relative cursor-pointer transition-all duration-300",
+        !isTouchDevice && "hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-black/40"
       )}
-      style={{ animationDelay: `${Math.min(index * 0.04, 0.2)}s` }}
+      style={{ animationDelay: `${Math.min(index * 0.04, 0.3)}s` }}
       onMouseEnter={!isTouchDevice ? handleMouseEnter : undefined}
       onMouseLeave={!isTouchDevice ? handleMouseLeave : undefined}
       onTouchStart={isTouchDevice ? handleTouchStart : undefined}
       onTouchEnd={isTouchDevice ? handleTouchEnd : undefined}
       onClick={handleCardClick}
     >
+      {/* Card container */}
       <div className={cn(
         "relative overflow-hidden rounded-xl transition-all duration-300",
-        "bg-zinc-900/80 border border-white/[0.06]",
+        "bg-white/[0.03] border border-white/[0.06]",
         "aspect-video",
-        isHovered && "border-white/[0.12]",
-        isActive && "ring-1 ring-white/20"
+        isHovered && "border-white/[0.15]",
+        isActive && "ring-1 ring-primary/40"
       )}>
         
-        {/* Video/Thumbnail - iOS SAFARI FIX: Only render video when hovered to save memory */}
+        {/* Video/Thumbnail layer */}
         {hasVideo && videoSrc ? (
           <>
-            {/* iOS Safari: Only load video element when actually hovering to prevent memory crash */}
             {isIOSSafari ? (
               isHovered ? (
                 <video
                   ref={videoRef}
                   src={videoSrc}
-                  className={cn(
-                    "absolute inset-0 w-full h-full object-cover transition-all duration-700",
-                    isHovered && "scale-105"
-                  )}
-                  loop
-                  muted
-                  playsInline
-                  preload="none"
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 scale-105"
+                  loop muted playsInline preload="none"
                   onLoadedMetadata={handleVideoMetadataLoaded}
-                  onError={(e) => {
-                    e.preventDefault?.();
-                    e.stopPropagation?.();
-                    setVideoError(true);
-                  }}
+                  onError={(e) => { e.preventDefault?.(); e.stopPropagation?.(); setVideoError(true); }}
                 />
               ) : (
-                // Show thumbnail or placeholder for iOS when not hovered
                 project.thumbnail_url ? (
-                  <img 
-                    src={project.thumbnail_url} 
-                    alt={project.name}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    loading="lazy"
-                  />
+                  <img src={project.thumbnail_url} alt={project.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
                 ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
-                    <Film className="w-8 h-8 text-zinc-600" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] to-transparent flex items-center justify-center">
+                    <Film className="w-8 h-8 text-white/[0.06]" />
                   </div>
                 )
               )
             ) : (
-              // Desktop: Prioritize thumbnail_url, fallback to PausedFrameVideo
               <>
-                {/* Static thumbnail when not hovered - PRIORITY: DB thumbnail > PausedFrameVideo */}
+                {/* Static thumbnail when not hovered */}
                 {!isHovered && (
                   project.thumbnail_url ? (
-                    <img 
-                      src={project.thumbnail_url} 
-                      alt={project.name}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      loading="lazy"
-                    />
+                    <img src={project.thumbnail_url} alt={project.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
                   ) : (
-                    <PausedFrameVideo
-                      src={videoSrc}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      showLoader={false}
-                    />
+                    <PausedFrameVideo src={videoSrc} className="absolute inset-0 w-full h-full object-cover" showLoader={false} />
                   )
                 )}
                 {/* Active video when hovered */}
@@ -553,202 +474,167 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
                   <video
                     ref={videoRef}
                     src={videoSrc}
-                    className={cn(
-                      "absolute inset-0 w-full h-full object-cover transition-all duration-700",
-                      "scale-105"
-                    )}
-                    loop
-                    muted
-                    playsInline
-                    preload="metadata"
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 scale-105"
+                    loop muted playsInline preload="metadata"
                     onLoadedMetadata={handleVideoMetadataLoaded}
-                    onError={(e) => {
-                      e.preventDefault?.();
-                      e.stopPropagation?.();
-                      setVideoError(true);
-                    }}
+                    onError={(e) => { e.preventDefault?.(); e.stopPropagation?.(); setVideoError(true); }}
                   />
                 )}
               </>
             )}
-            
-            {/* Cinematic bars on hover */}
-            <div 
-              className="absolute inset-x-0 top-0 bg-black pointer-events-none transition-all duration-400"
-              style={{ height: isHovered ? '6%' : 0 }}
-            />
-            <div 
-              className="absolute inset-x-0 bottom-0 bg-black pointer-events-none transition-all duration-400"
-              style={{ height: isHovered ? '6%' : 0 }}
-            />
           </>
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
-            {status === 'generating' || status === 'rendering' || status === 'stitching' ? (
-              <div className="relative">
-                <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-2xl animate-pulse scale-150" />
-                <Loader2 className="relative w-10 h-10 text-amber-500/70 animate-spin" strokeWidth={1} />
+          <div className="absolute inset-0 flex items-center justify-center bg-white/[0.02]">
+            {isProcessing ? (
+              <div className="relative flex flex-col items-center gap-3">
+                <div className="w-10 h-10 rounded-full border-2 border-white/[0.08] border-t-primary/60 animate-spin" />
+                <span className="text-[10px] uppercase tracking-widest text-white/20 font-medium">Processing</span>
+              </div>
+            ) : isFailed ? (
+              <div className="flex flex-col items-center gap-2">
+                <AlertCircle className="w-8 h-8 text-red-400/40" strokeWidth={1} />
+                <span className="text-[10px] uppercase tracking-widest text-red-400/40 font-medium">Failed</span>
               </div>
             ) : (
-              <Film className="w-12 h-12 text-zinc-700" strokeWidth={1} />
+              <Film className="w-10 h-10 text-white/[0.06]" strokeWidth={1} />
             )}
           </div>
         )}
 
-        {/* Gradient overlays - MOBILE FIX: Always visible on touch for readable text */}
+        {/* Bottom gradient - always present for text readability */}
         <div className={cn(
-          "absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent transition-opacity duration-500",
-          // Mobile: always 80% opacity; Desktop: 70% idle, 90% hovered
-          isTouchDevice ? "opacity-80" : (isHovered ? "opacity-90" : "opacity-70")
+          "absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent transition-opacity duration-300",
+          isTouchDevice ? "opacity-100" : (isHovered ? "opacity-100" : "opacity-60")
         )} />
-        
-        {/* Play button - shows on hover (desktop) or tap (mobile) */}
-        {hasVideo && isHovered && (
-          <div className="absolute inset-0 flex items-center justify-center z-10 animate-scale-in">
-            <div className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-xl flex items-center justify-center border border-white/20">
-              <Play className="w-4 h-4 text-white ml-0.5" fill="currentColor" />
-            </div>
-          </div>
-        )}
 
-        {/* Pin indicator - MOBILE: Smaller on mobile */}
-        {isPinned && (
-          <div className="absolute top-2 left-2 z-20">
-            <div className="w-5 h-5 rounded-md bg-white/10 backdrop-blur flex items-center justify-center">
-              <Pin className="w-2.5 h-2.5 text-white/60" />
-            </div>
-          </div>
-        )}
-
-        {/* Content overlay - MOBILE FIX: Always visible on touch devices */}
-        {showContentOverlay && (
+        {/* ===== HOVER QUICK ACTIONS — Visible play/download/edit buttons ===== */}
+        {hasVideo && (
           <div className={cn(
-            "absolute bottom-0 left-0 right-0 p-3 sm:p-4 z-20",
-            // Mobile: no animation (always visible); Desktop: fade in
-            !isTouchDevice && "animate-fade-in"
+            "absolute inset-0 flex items-center justify-center gap-2 z-10 transition-all duration-300",
+            isTouchDevice ? "opacity-100" : (isHovered ? "opacity-100" : "opacity-0")
           )}>
-            <div className="flex items-center gap-2 mb-1.5 sm:mb-2">{getStatusBadge()}</div>
-            <h3 className="font-bold text-white tracking-tight line-clamp-1 text-sm sm:text-base drop-shadow-lg">
-              {project.name}
-            </h3>
-            <div className="flex items-center gap-2 sm:gap-3 mt-1 sm:mt-1.5 text-white/70 text-[10px] sm:text-xs">
-              <span className="flex items-center gap-1">
-                <Clock className="w-2.5 sm:w-3 h-2.5 sm:h-3" />
-                {formatTimeAgo(project.updated_at)}
-              </span>
-              {(project.video_clips?.length ?? 0) > 0 && (
-                <span className="flex items-center gap-1">
-                  <Film className="w-2.5 sm:w-3 h-2.5 sm:h-3" />
-                  {project.video_clips?.length} clips
-                </span>
-              )}
-            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); onPlay(); }}
+              className="w-11 h-11 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 hover:bg-white/30 hover:scale-110 transition-all"
+              title="Play"
+            >
+              <Play className="w-5 h-5 text-white ml-0.5" fill="currentColor" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDownload(); }}
+              className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10 hover:bg-white/20 hover:scale-110 transition-all"
+              title="Download"
+            >
+              <Download className="w-4 h-4 text-white/80" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10 hover:bg-white/20 hover:scale-110 transition-all"
+              title="Edit"
+            >
+              <Edit2 className="w-4 h-4 text-white/80" />
+            </button>
           </div>
         )}
 
-        {/* Quick actions - MOBILE FIX: Always visible on touch devices */}
+        {/* Top-left: Status badge */}
+        <div className="absolute top-2.5 left-2.5 z-20">
+          {hasVideo && (
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm">
+              <div className="w-1 h-1 rounded-full bg-emerald-400" />
+              <span className="text-[10px] font-medium text-emerald-300/90">Ready</span>
+            </span>
+          )}
+          {isProcessing && (
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm">
+              <div className="w-1 h-1 rounded-full bg-primary/80 animate-pulse" />
+              <span className="text-[10px] font-medium text-white/60">Processing</span>
+            </span>
+          )}
+          {isFailed && (
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm">
+              <div className="w-1 h-1 rounded-full bg-red-400" />
+              <span className="text-[10px] font-medium text-red-300/80">Failed</span>
+            </span>
+          )}
+        </div>
+
+        {/* Top-right: Pin + More menu */}
         <div className={cn(
-          "absolute top-2 sm:top-3 right-2 sm:right-3 z-30 flex items-center gap-1 transition-all duration-300",
-          // Mobile: always visible; Desktop: show on hover
-          isTouchDevice ? "opacity-100" : (isHovered ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2")
+          "absolute top-2.5 right-2.5 z-30 flex items-center gap-1 transition-all duration-200",
+          isTouchDevice ? "opacity-100" : (isHovered ? "opacity-100" : "opacity-0")
         )}>
+          {isPinned && (
+            <div className="w-6 h-6 rounded-full bg-primary/80 flex items-center justify-center">
+              <Pin className="w-3 h-3 text-primary-foreground" />
+            </div>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={(e) => e.stopPropagation()}
-                className="h-8 w-8 rounded-full bg-black/60 backdrop-blur-xl text-white/70 hover:text-white hover:bg-black/80 transition-all border border-white/10"
+                className="h-7 w-7 rounded-full bg-black/50 backdrop-blur-sm text-white/70 hover:text-white hover:bg-black/70 border border-white/10"
               >
-                <MoreVertical className="w-4 h-4" />
+                <MoreVertical className="w-3.5 h-3.5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44 rounded-xl bg-zinc-900 border-zinc-700 shadow-2xl backdrop-blur-2xl p-1.5">
-              {hasVideo && (
-                <>
-                  <DropdownMenuItem 
-                    onClick={(e) => { e.stopPropagation(); onPlay(); }}
-                    className="gap-2.5 text-sm text-zinc-300 focus:text-white focus:bg-zinc-800 rounded-lg py-2.5 px-3"
-                  >
-                    <Play className="w-4 h-4" />Watch Now
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={(e) => { e.stopPropagation(); onDownload(); }}
-                    className="gap-2.5 text-sm text-zinc-300 focus:text-white focus:bg-zinc-800 rounded-lg py-2.5 px-3"
-                  >
-                    <Download className="w-4 h-4" />Download
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-zinc-700 my-1" />
-                </>
-              )}
-              <DropdownMenuItem 
-                onClick={(e) => { e.stopPropagation(); onTogglePin?.(); }}
-                className="gap-2.5 text-sm text-zinc-300 focus:text-white focus:bg-zinc-800 rounded-lg py-2.5 px-3"
-              >
+            <DropdownMenuContent align="end" className="w-44 rounded-xl bg-zinc-900/95 border-white/[0.08] shadow-2xl backdrop-blur-2xl p-1">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTogglePin?.(); }} className="gap-2 text-sm text-white/60 focus:text-white focus:bg-white/[0.06] rounded-lg py-2 px-2.5">
                 {isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
                 {isPinned ? 'Unpin' : 'Pin to Top'}
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={(e) => { e.stopPropagation(); onRename(); }} 
-                className="gap-2.5 text-sm text-zinc-300 focus:text-white focus:bg-zinc-800 rounded-lg py-2.5 px-3"
-              >
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRename(); }} className="gap-2 text-sm text-white/60 focus:text-white focus:bg-white/[0.06] rounded-lg py-2 px-2.5">
                 <Pencil className="w-4 h-4" />Rename
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={(e) => { e.stopPropagation(); onEdit(); }} 
-                className="gap-2.5 text-sm text-zinc-300 focus:text-white focus:bg-zinc-800 rounded-lg py-2.5 px-3"
-              >
-                <Edit2 className="w-4 h-4" />Edit Project
-              </DropdownMenuItem>
               {hasVideo && (
-                <>
-                  <DropdownMenuSeparator className="bg-zinc-700 my-1" />
-                  <DropdownMenuItem 
-                    onClick={(e) => { e.stopPropagation(); onTogglePublic?.(); }}
-                    className={cn(
-                      "gap-2.5 text-sm rounded-lg py-2.5 px-3",
-                      project.is_public 
-                        ? "text-emerald-400 focus:text-emerald-300 focus:bg-emerald-500/10" 
-                        : "text-zinc-300 focus:text-white focus:bg-zinc-800"
-                    )}
-                  >
-                    {project.is_public ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                    {project.is_public ? 'Public on Feed' : 'Share to Feed'}
-                  </DropdownMenuItem>
-                </>
-              )}
-              {status === 'stitching_failed' && onRetryStitch && (
-                <>
-                  <DropdownMenuSeparator className="bg-zinc-700 my-1" />
-                  <DropdownMenuItem
-                    onClick={(e) => { e.stopPropagation(); onRetryStitch(); }}
-                    disabled={isRetrying}
-                    className="gap-2.5 text-sm text-amber-400 focus:text-amber-300 focus:bg-amber-500/10 rounded-lg py-2.5 px-3"
-                  >
-                    <RefreshCw className={cn("w-4 h-4", isRetrying && "animate-spin")} />
-                    Retry Stitch
-                  </DropdownMenuItem>
-                </>
-              )}
-              {onBrowserStitch && (
-                <DropdownMenuItem
-                  onClick={(e) => { e.stopPropagation(); onBrowserStitch(); }}
-                  disabled={isBrowserStitching}
-                  className="gap-2.5 text-sm text-purple-400 focus:text-purple-300 focus:bg-purple-500/10 rounded-lg py-2.5 px-3"
-                >
-                  <MonitorPlay className={cn("w-4 h-4", isBrowserStitching && "animate-pulse")} />
-                  Browser Stitch
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTogglePublic?.(); }} className={cn("gap-2 text-sm rounded-lg py-2 px-2.5", project.is_public ? "text-emerald-400 focus:text-emerald-300 focus:bg-emerald-500/10" : "text-white/60 focus:text-white focus:bg-white/[0.06]")}>
+                  {project.is_public ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                  {project.is_public ? 'Public' : 'Share to Feed'}
                 </DropdownMenuItem>
               )}
-              <DropdownMenuSeparator className="bg-zinc-700 my-1" />
-              <DropdownMenuItem
-                className="gap-2.5 text-sm text-red-400 focus:text-red-300 focus:bg-red-500/10 rounded-lg py-2.5 px-3"
-                onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              >
+              {status === 'stitching_failed' && onRetryStitch && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRetryStitch(); }} disabled={isRetrying} className="gap-2 text-sm text-amber-400 focus:text-amber-300 focus:bg-amber-500/10 rounded-lg py-2 px-2.5">
+                  <RefreshCw className={cn("w-4 h-4", isRetrying && "animate-spin")} />Retry Stitch
+                </DropdownMenuItem>
+              )}
+              {onBrowserStitch && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onBrowserStitch(); }} disabled={isBrowserStitching} className="gap-2 text-sm text-primary focus:text-primary/80 focus:bg-primary/10 rounded-lg py-2 px-2.5">
+                  <MonitorPlay className={cn("w-4 h-4", isBrowserStitching && "animate-pulse")} />Browser Stitch
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator className="bg-white/[0.06] my-0.5" />
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="gap-2 text-sm text-red-400 focus:text-red-300 focus:bg-red-500/10 rounded-lg py-2 px-2.5">
                 <Trash2 className="w-4 h-4" />Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+        </div>
+
+        {/* Bottom info bar — always visible */}
+        <div className="absolute bottom-0 left-0 right-0 p-3 z-20">
+          <h3 className="font-semibold text-white text-sm leading-tight line-clamp-1 drop-shadow-lg">
+            {project.name}
+          </h3>
+          <div className="flex items-center gap-2 mt-1 text-white/40 text-[11px]">
+            <span className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {formatTimeAgo(project.updated_at)}
+            </span>
+            {(project.video_clips?.length ?? 0) > 0 && (
+              <>
+                <span className="text-white/15">·</span>
+                <span>{project.video_clips?.length} clips</span>
+              </>
+            )}
+            {project.is_public && (
+              <>
+                <span className="text-white/15">·</span>
+                <Globe className="w-3 h-3 text-emerald-400/60" />
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

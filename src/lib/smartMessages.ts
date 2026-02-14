@@ -62,14 +62,14 @@
   * - Credits refunded
   */
  export const CREDIT_MESSAGES = {
-   // Welcome & Bonuses
+   // Welcome
    WELCOME_BONUS: (credits: number): SmartMessage => ({
      id: 'welcome_bonus',
      category: 'credits',
      severity: 'epic',
      title: '🎉 Welcome to Genesis!',
-     message: `You've received ${credits} free credits to start creating. That's enough for about ${Math.floor(credits / 10)} video clips!`,
-     action: { label: 'Start Creating', path: '/create' },
+     message: `Purchase credits to start creating cinematic AI videos. Each clip costs as little as 10 credits.`,
+     action: { label: 'View Pricing', path: '/pricing' },
      duration: 10000,
    }),
    

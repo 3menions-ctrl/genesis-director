@@ -339,7 +339,7 @@ export default function Pricing() {
             Start creating today
           </h2>
           <p className="text-lg text-white/40 mb-10 max-w-md mx-auto">
-            Get 60 free credits when you sign up. No credit card required.
+            Purchase credits and start creating cinematic AI videos today.
           </p>
           <Button
             onClick={() => navigate('/auth?mode=signup')}

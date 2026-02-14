@@ -373,7 +373,7 @@ const FeaturesShowcase = memo(forwardRef<HTMLElement, Record<string, never>>(
               <ArrowRight className="relative w-4 h-4 text-black transition-transform group-hover:translate-x-1" />
             </Link>
             <p className="mt-5 text-sm text-white/20">
-              60 free credits • No credit card • Cancel anytime
+              Affordable credits • No subscription • Pay as you go
             </p>
           </div>
         </div>

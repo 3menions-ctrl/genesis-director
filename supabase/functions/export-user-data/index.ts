@@ -61,11 +61,8 @@ Deno.serve(async (req) => {
     const exportData = {
       exportDate: new Date().toISOString(),
       user: {
-        id: user.id,
-        email: user.email,
-        created_at: user.created_at,
-        email_confirmed_at: user.email_confirmed_at,
-        last_sign_in_at: user.last_sign_in_at,
+        id: userId,
+        email: claimsData.claims.email || null,
       },
       profile: profileResult.data,
       projects: projectsResult.data || [],

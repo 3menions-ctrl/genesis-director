@@ -235,8 +235,8 @@ serve(async (req) => {
         const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
         const authClient = createClient(supabaseUrl, anonKey);
         const token = authHeader.replace("Bearer ", "");
-        const { data: userData } = await authClient.auth.getUser(token);
-        authenticatedUserId = userData?.user?.id || null;
+        const { data: claimsData } = await authClient.auth.getClaims(token);
+        authenticatedUserId = (claimsData?.claims?.sub as string) || null;
       } catch (authErr) {
         console.error("[ModeRouter] Auth extraction failed:", authErr);
       }

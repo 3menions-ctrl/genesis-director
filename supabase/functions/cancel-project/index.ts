@@ -62,7 +62,26 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    const { projectId, userId }: CancelRequest = await req.json();
+    const requestBody: CancelRequest = await req.json();
+    let { projectId, userId } = requestBody;
+
+    // SECURITY: Extract userId from JWT instead of trusting client payload
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      try {
+        const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+        const authClient = createClient(supabaseUrl, anonKey);
+        const token = authHeader.replace("Bearer ", "");
+        if (token !== supabaseKey) {
+          const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+          if (!claimsError && claimsData?.claims?.sub) {
+            userId = claimsData.claims.sub as string;
+          }
+        }
+      } catch (authErr) {
+        console.warn("[CancelProject] JWT validation failed:", authErr);
+      }
+    }
 
     if (!projectId || !userId) {
       return new Response(

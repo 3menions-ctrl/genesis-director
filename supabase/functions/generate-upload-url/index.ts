@@ -20,6 +20,41 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // AUTH: Validate the caller is authenticated
+    const authHeader = req.headers.get('Authorization');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate JWT - accept both user tokens and service role
+    let authenticatedUserId: string | null = null;
+    const token = authHeader.replace('Bearer ', '');
+    if (token !== supabaseServiceKey) {
+      try {
+        const authClient = createClient(supabaseUrl, supabaseAnonKey);
+        const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+        if (claimsError || !claimsData?.claims?.sub) {
+          return new Response(
+            JSON.stringify({ error: 'Unauthorized' }),
+            { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        authenticatedUserId = claimsData.claims.sub as string;
+      } catch {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     const { projectId, filename, contentType = 'video/mp4', bucket = 'final-videos' } = await req.json() as UploadUrlRequest;
 
     if (!projectId) {
@@ -29,12 +64,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[GenerateUploadUrl] Creating signed URL for project ${projectId}`);
+    console.log(`[GenerateUploadUrl] Creating signed URL for project ${projectId}, user: ${authenticatedUserId || 'service-role'}`);
 
-    // Initialize Supabase with service role key for admin access
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false }
     });

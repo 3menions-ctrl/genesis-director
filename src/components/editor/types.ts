@@ -35,6 +35,13 @@ export interface Keyframe {
   easing?: "linear" | "ease-in" | "ease-out" | "ease-in-out";
 }
 
+export interface ClipTransform {
+  rotation: number;
+  flipH: boolean;
+  flipV: boolean;
+  cropAspect: number | null;
+}
+
 export interface TimelineClip {
   id: string;
   trackId: string;
@@ -51,6 +58,8 @@ export interface TimelineClip {
   colorGrading?: ColorGrading;
   keyframes?: Keyframe[];
   volume?: number; // 0-100, default 100
+  speed?: number; // playback speed multiplier, default 1
+  transform?: ClipTransform;
 }
 
 export interface TimelineTrack {

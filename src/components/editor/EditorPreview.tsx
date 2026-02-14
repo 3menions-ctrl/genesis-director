@@ -1,8 +1,10 @@
-import { useRef, useEffect } from "react";
-import { Play, Pause, SkipBack, SkipForward, Maximize2, Volume2 } from "lucide-react";
+import { useRef, useEffect, useState } from "react";
+import { Play, Pause, SkipBack, SkipForward, Maximize2, Volume2, Gauge } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { TimelineTrack } from "./types";
+import { cn } from "@/lib/utils";
 
 interface EditorPreviewProps {
   tracks: TimelineTrack[];
@@ -11,7 +13,11 @@ interface EditorPreviewProps {
   onPlayPause: () => void;
   onTimeChange: (time: number) => void;
   duration: number;
+  playbackSpeed?: number;
+  onPlaybackSpeedChange?: (speed: number) => void;
 }
+
+const SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 4, 8, 16];
 
 export const EditorPreview = ({
   tracks,
@@ -20,6 +26,8 @@ export const EditorPreview = ({
   onPlayPause,
   onTimeChange,
   duration,
+  playbackSpeed = 1,
+  onPlaybackSpeedChange,
 }: EditorPreviewProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const rafRef = useRef<number>(0);
@@ -43,7 +51,7 @@ export const EditorPreview = ({
     let lastTimestamp: number | null = null;
     const tick = (timestamp: number) => {
       if (lastTimestamp === null) lastTimestamp = timestamp;
-      const delta = (timestamp - lastTimestamp) / 1000;
+      const delta = ((timestamp - lastTimestamp) / 1000) * playbackSpeed;
       lastTimestamp = timestamp;
 
       onTimeChange(Math.min(currentTime + delta, duration));
@@ -54,7 +62,7 @@ export const EditorPreview = ({
 
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [isPlaying, currentTime, duration, onTimeChange]);
+  }, [isPlaying, currentTime, duration, onTimeChange, playbackSpeed]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -63,6 +71,8 @@ export const EditorPreview = ({
     if (video.src !== activeVideoClip.sourceUrl) {
       video.src = activeVideoClip.sourceUrl;
     }
+
+    video.playbackRate = playbackSpeed;
 
     const clipLocalTime = currentTime - activeVideoClip.start;
     if (Math.abs(video.currentTime - clipLocalTime) > 0.3) {
@@ -74,7 +84,7 @@ export const EditorPreview = ({
     } else if (!isPlaying && !video.paused) {
       video.pause();
     }
-  }, [activeVideoClip, currentTime, isPlaying]);
+  }, [activeVideoClip, currentTime, isPlaying, playbackSpeed]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -89,7 +99,6 @@ export const EditorPreview = ({
     <div className="h-full flex flex-col bg-[hsl(260,15%,5%)]">
       {/* Video viewport with letterbox */}
       <div className="flex-1 flex items-center justify-center relative overflow-hidden">
-        {/* Subtle vignette overlay */}
         <div className="absolute inset-0 pointer-events-none z-10" style={{
           background: 'radial-gradient(ellipse at center, transparent 50%, hsl(260 15% 3% / 0.6) 100%)'
         }} />
@@ -130,7 +139,6 @@ export const EditorPreview = ({
           </div>
         ))}
 
-        {/* Safe area indicator (16:9) */}
         <div className="absolute inset-4 border border-dashed border-white/[0.04] rounded pointer-events-none z-10 opacity-0 hover:opacity-100 transition-opacity" />
       </div>
 
@@ -145,14 +153,12 @@ export const EditorPreview = ({
             onTimeChange(Math.max(0, Math.min(duration, pct * duration)));
           }}
         >
-          {/* Buffered indicator */}
           <div className="absolute inset-0 bg-white/[0.04] rounded-full" />
-          {/* Progress */}
           <div
-            className="h-full bg-gradient-to-r from-primary/80 to-primary rounded-full transition-all duration-75 relative"
+            className="h-full bg-gradient-to-r from-white/60 to-white rounded-full transition-all duration-75 relative"
             style={{ width: `${progress}%` }}
           >
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_8px_hsl(263,70%,60%,0.5)] opacity-0 group-hover:opacity-100 transition-opacity translate-x-1/2" />
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.5)] opacity-0 group-hover:opacity-100 transition-opacity translate-x-1/2" />
           </div>
         </div>
 
@@ -163,7 +169,7 @@ export const EditorPreview = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-white/30 hover:text-white/70 hover:bg-white/[0.06] rounded-md transition-all"
+                className="h-7 w-7 text-white hover:text-white hover:bg-white/[0.08] rounded-md transition-all"
                 onClick={() => onTimeChange(0)}
               >
                 <SkipBack className="h-3 w-3" />
@@ -174,7 +180,7 @@ export const EditorPreview = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-white hover:bg-white/[0.08] rounded-lg transition-all mx-0.5"
+            className="h-8 w-8 text-white hover:text-white hover:bg-white/[0.08] rounded-lg transition-all mx-0.5"
             onClick={onPlayPause}
           >
             {isPlaying ? (
@@ -187,7 +193,7 @@ export const EditorPreview = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-white/30 hover:text-white/70 hover:bg-white/[0.06] rounded-md transition-all"
+            className="h-7 w-7 text-white hover:text-white hover:bg-white/[0.08] rounded-md transition-all"
             onClick={() => onTimeChange(duration)}
           >
             <SkipForward className="h-3 w-3" />
@@ -197,7 +203,7 @@ export const EditorPreview = ({
 
           {/* Timecode display */}
           <div className="flex items-center gap-1 bg-black/30 rounded px-2 py-0.5 border border-white/[0.04]">
-            <span className="text-[11px] font-mono text-primary/90 tabular-nums tracking-wider">
+            <span className="text-[11px] font-mono text-white tabular-nums tracking-wider">
               {formatTime(currentTime)}
             </span>
             <span className="text-[10px] text-white/15 mx-0.5">/</span>
@@ -208,10 +214,45 @@ export const EditorPreview = ({
 
           <div className="flex-1" />
 
+          {/* Speed control */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "h-6 px-2 text-[10px] font-mono gap-1 rounded transition-all",
+                  playbackSpeed !== 1 ? "text-white bg-white/[0.08]" : "text-white hover:text-white hover:bg-white/[0.06]"
+                )}
+              >
+                <Gauge className="h-3 w-3" />
+                {playbackSpeed}x
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-36 p-1.5 bg-[hsl(260,20%,10%)] border-white/10" side="top" align="end">
+              <div className="grid grid-cols-2 gap-0.5">
+                {SPEED_PRESETS.map((speed) => (
+                  <button
+                    key={speed}
+                    className={cn(
+                      "px-2 py-1.5 rounded text-[10px] font-mono transition-all",
+                      playbackSpeed === speed
+                        ? "bg-white text-black font-semibold"
+                        : "text-white/60 hover:text-white hover:bg-white/[0.08]"
+                    )}
+                    onClick={() => onPlaybackSpeedChange?.(speed)}
+                  >
+                    {speed}x
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 text-white/20 hover:text-white/50 hover:bg-white/[0.06] rounded transition-all"
+            className="h-6 w-6 text-white hover:text-white hover:bg-white/[0.06] rounded transition-all"
           >
             <Volume2 className="h-3 w-3" />
           </Button>
@@ -219,7 +260,7 @@ export const EditorPreview = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 text-white/20 hover:text-white/50 hover:bg-white/[0.06] rounded transition-all"
+            className="h-6 w-6 text-white hover:text-white hover:bg-white/[0.06] rounded transition-all"
           >
             <Maximize2 className="h-3 w-3" />
           </Button>

@@ -1,4 +1,4 @@
-import { Type, Trash2, ArrowRightLeft, Sliders, Volume2, Sparkles } from "lucide-react";
+import { Type, Trash2, ArrowRightLeft, Sliders, Volume2, Gauge, Crop } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TRANSITION_TYPES, type TimelineTrack, type TimelineClip } from "./types";
 import { ColorGradingPanel } from "./ColorGradingPanel";
 import { KeyframeEditor } from "./KeyframeEditor";
+import { SpeedControlPanel } from "./SpeedControlPanel";
+import { CropRotatePanel } from "./CropRotatePanel";
 import { cn } from "@/lib/utils";
 
 interface EditorSidebarProps {
@@ -20,13 +22,8 @@ interface EditorSidebarProps {
 }
 
 export const EditorSidebar = ({
-  tracks,
-  selectedClipId,
-  currentTime = 0,
-  onUpdateClip,
-  onAddTextOverlay,
-  onAddTransition,
-  onDeleteClip,
+  tracks, selectedClipId, currentTime = 0,
+  onUpdateClip, onAddTextOverlay, onAddTransition, onDeleteClip,
 }: EditorSidebarProps) => {
   const selectedClip = selectedClipId
     ? tracks.flatMap((t) => t.clips).find((c) => c.id === selectedClipId)
@@ -37,7 +34,7 @@ export const EditorSidebar = ({
       {/* Header */}
       <div className="h-9 flex items-center px-3 border-b border-white/[0.06] shrink-0 bg-[hsl(260,15%,8%)] relative">
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/10 to-transparent" />
-        <Sliders className="h-3 w-3 text-primary/40 mr-2" />
+        <Sliders className="h-3 w-3 text-white/40 mr-2" />
         <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
           {selectedClip ? "Inspector" : "Tools"}
         </span>
@@ -51,7 +48,7 @@ export const EditorSidebar = ({
             </p>
             <Button
               variant="ghost"
-              className="w-full justify-start gap-2.5 h-9 text-[11px] text-white/50 hover:text-white/80 hover:bg-white/[0.04] border border-white/[0.06] rounded-lg transition-all group"
+              className="w-full justify-start gap-2.5 h-9 text-[11px] text-white hover:text-white hover:bg-white/[0.06] border border-white/[0.06] rounded-lg transition-all group"
               onClick={onAddTextOverlay}
             >
               <div className="w-5 h-5 rounded bg-amber-500/10 border border-amber-500/20 flex items-center justify-center group-hover:bg-amber-500/15 transition-colors">
@@ -67,7 +64,7 @@ export const EditorSidebar = ({
               <Input
                 value={selectedClip.textContent || ""}
                 onChange={(e) => onUpdateClip(selectedClip.id, { textContent: e.target.value })}
-                className="mt-1.5 h-8 text-xs bg-white/[0.03] border-white/[0.06] text-white/80 focus-visible:ring-primary/30 focus-visible:border-primary/30 rounded-md"
+                className="mt-1.5 h-8 text-xs bg-white/[0.03] border-white/[0.06] text-white/80 focus-visible:ring-white/20 focus-visible:border-white/20 rounded-md"
               />
             </div>
             <div>
@@ -108,14 +105,20 @@ export const EditorSidebar = ({
         ) : (
           <Tabs defaultValue="properties" className="w-full">
             <TabsList className="w-full h-7 bg-white/[0.03] p-0.5 gap-0.5 rounded-lg border border-white/[0.04]">
-              <TabsTrigger value="properties" className="text-[9px] h-5.5 flex-1 rounded-md data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_8px_hsl(263,70%,58%,0.1)] text-white/35 font-medium tracking-wide transition-all">
-                Properties
+              <TabsTrigger value="properties" className="text-[8px] h-5.5 flex-1 rounded-md data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm text-white/35 font-medium tracking-wide transition-all">
+                Props
               </TabsTrigger>
-              <TabsTrigger value="color" className="text-[9px] h-5.5 flex-1 rounded-md data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_8px_hsl(263,70%,58%,0.1)] text-white/35 font-medium tracking-wide transition-all">
+              <TabsTrigger value="speed" className="text-[8px] h-5.5 flex-1 rounded-md data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm text-white/35 font-medium tracking-wide transition-all">
+                Speed
+              </TabsTrigger>
+              <TabsTrigger value="crop" className="text-[8px] h-5.5 flex-1 rounded-md data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm text-white/35 font-medium tracking-wide transition-all">
+                Crop
+              </TabsTrigger>
+              <TabsTrigger value="color" className="text-[8px] h-5.5 flex-1 rounded-md data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm text-white/35 font-medium tracking-wide transition-all">
                 Color
               </TabsTrigger>
-              <TabsTrigger value="keyframes" className="text-[9px] h-5.5 flex-1 rounded-md data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_8px_hsl(263,70%,58%,0.1)] text-white/35 font-medium tracking-wide transition-all">
-                Animate
+              <TabsTrigger value="keyframes" className="text-[8px] h-5.5 flex-1 rounded-md data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm text-white/35 font-medium tracking-wide transition-all">
+                Anim
               </TabsTrigger>
             </TabsList>
 
@@ -134,7 +137,7 @@ export const EditorSidebar = ({
                 ].map((item) => (
                   <div key={item.label} className="bg-black/20 rounded-md px-2 py-1.5 border border-white/[0.04]">
                     <span className="text-[7px] text-white/20 uppercase tracking-[0.2em] block font-semibold">{item.label}</span>
-                    <span className="text-[10px] font-mono text-primary/70 tabular-nums">{item.value}</span>
+                    <span className="text-[10px] font-mono text-white/70 tabular-nums">{item.value}</span>
                   </div>
                 ))}
               </div>
@@ -169,8 +172,8 @@ export const EditorSidebar = ({
                         className={cn(
                           "text-[9px] h-6 border rounded-md transition-all",
                           isActive
-                            ? "bg-primary/10 border-primary/25 text-primary shadow-[0_0_8px_hsl(263,70%,58%,0.08)]"
-                            : "border-white/[0.04] text-white/35 hover:text-white/60 hover:bg-white/[0.04]"
+                            ? "bg-white text-black border-white/20 font-semibold"
+                            : "border-white/[0.04] text-white/35 hover:text-white hover:bg-white/[0.06]"
                         )}
                         onClick={() => onAddTransition(selectedClip.id, t.id)}
                       >
@@ -190,6 +193,14 @@ export const EditorSidebar = ({
               >
                 <Trash2 className="h-2.5 w-2.5" /> Delete Clip
               </Button>
+            </TabsContent>
+
+            <TabsContent value="speed" className="mt-3">
+              <SpeedControlPanel clip={selectedClip} onUpdateClip={onUpdateClip} />
+            </TabsContent>
+
+            <TabsContent value="crop" className="mt-3">
+              <CropRotatePanel clip={selectedClip} onUpdateClip={onUpdateClip} />
             </TabsContent>
 
             <TabsContent value="color" className="mt-3">

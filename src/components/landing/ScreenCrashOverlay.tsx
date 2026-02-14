@@ -70,6 +70,9 @@ const ScreenCrashOverlay = memo(function ScreenCrashOverlay({
     if (!isActive || hasShatteredRef.current) return;
 
     const handleActivity = () => {
+      // Don't reset after shatter has occurred
+      if (hasShatteredRef.current) return;
+
       // Reset countdown to max
       setCount(COUNTDOWN_MAX);
       setIsInactive(false);
@@ -113,13 +116,18 @@ const ScreenCrashOverlay = memo(function ScreenCrashOverlay({
     return () => clearTimeout(timer);
   }, [isActive, isInactive, phase, count]);
 
-  // Impact → shatter → CTA sequencing
+  // Impact → shatter transition
   useEffect(() => {
     if (phase !== 'impact') return;
-    const timers: NodeJS.Timeout[] = [];
-    timers.push(setTimeout(() => setPhase('shatter'), 200));
-    timers.push(setTimeout(() => setPhase('cta'), 7000));
-    return () => timers.forEach(clearTimeout);
+    const timer = setTimeout(() => setPhase('shatter'), 200);
+    return () => clearTimeout(timer);
+  }, [phase]);
+
+  // Shatter → CTA transition
+  useEffect(() => {
+    if (phase !== 'shatter') return;
+    const timer = setTimeout(() => setPhase('cta'), 6800);
+    return () => clearTimeout(timer);
   }, [phase]);
 
   // Reset on deactivation
@@ -351,7 +359,7 @@ const ScreenCrashOverlay = memo(function ScreenCrashOverlay({
 
           {/* CTA Section */}
           {phase === 'cta' && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center pointer-events-none">
               <div
                 className="absolute w-[800px] h-[800px] rounded-full pointer-events-none animate-scale-in"
                 style={{
@@ -426,6 +434,48 @@ const ScreenCrashOverlay = memo(function ScreenCrashOverlay({
         @keyframes crack-grow {
           0% { transform: scaleX(0); opacity: 0; }
           100% { transform: scaleX(1); opacity: 1; }
+        }
+        @keyframes flash-impact {
+          0% { background: rgba(255,255,255,0.9); }
+          100% { background: transparent; }
+        }
+        .animate-flash-impact {
+          animation: flash-impact 0.3s ease-out forwards;
+        }
+        @keyframes pulse-glow {
+          0%, 100% { opacity: 0.5; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.1); }
+        }
+        .animate-pulse-glow {
+          animation: pulse-glow 2s ease-in-out infinite;
+        }
+        @keyframes shine-sweep {
+          0% { transform: translateX(-150%) skewX(-12deg); }
+          100% { transform: translateX(250%) skewX(-12deg); }
+        }
+        .animate-shine-sweep {
+          animation: shine-sweep 3s ease-in-out infinite;
+        }
+        @keyframes arrow-bounce {
+          0%, 100% { transform: translateX(0); }
+          50% { transform: translateX(6px); }
+        }
+        .animate-arrow-bounce {
+          animation: arrow-bounce 1.2s ease-in-out infinite;
+        }
+        @keyframes ring-expand {
+          0% { transform: scale(0); opacity: 0.5; }
+          100% { transform: scale(4); opacity: 0; }
+        }
+        .animate-ring-expand {
+          animation: ring-expand 2s ease-out forwards;
+        }
+        @keyframes shard-fly {
+          0% { transform: translate(0,0) rotate(0deg); opacity: 1; }
+          100% { transform: translate(var(--shard-x), var(--shard-y)) rotate(var(--shard-rotate)); opacity: 0; }
+        }
+        .animate-shard-fly {
+          animation: shard-fly 1.5s ease-out forwards;
         }
       `}</style>
     </>

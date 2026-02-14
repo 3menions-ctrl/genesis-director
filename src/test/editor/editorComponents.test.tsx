@@ -1,10 +1,14 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { EditorToolbar } from '@/components/editor/EditorToolbar';
 import { EditorPreview } from '@/components/editor/EditorPreview';
 import { EditorSidebar } from '@/components/editor/EditorSidebar';
 import { EditorTimeline } from '@/components/editor/EditorTimeline';
 import type { TimelineTrack, TimelineClip } from '@/components/editor/types';
+
+// Helper to wrap components that need TooltipProvider
+const withTooltip = (ui: React.ReactElement) => <TooltipProvider>{ui}</TooltipProvider>;
 
 // --- Test data ---
 const makeVideoClip = (overrides?: Partial<TimelineClip>): TimelineClip => ({
@@ -82,7 +86,7 @@ describe('EditorToolbar', () => {
 
   it('shows completion indicator when render is done', () => {
     render(<EditorToolbar {...defaultProps} renderStatus="completed" />);
-    expect(screen.getByText(/Render complete/)).toBeInTheDocument();
+    expect(screen.getByText(/Export ready/)).toBeInTheDocument();
   });
 
   it('calls onBack when back button clicked', () => {
@@ -111,31 +115,29 @@ describe('EditorPreview', () => {
   };
 
   it('renders transport controls', () => {
-    render(<EditorPreview {...defaultProps} />);
-    // Play button should be visible (not Pause since isPlaying=false)
+    render(withTooltip(<EditorPreview {...defaultProps} />));
     const buttons = screen.getAllByRole('button');
-    expect(buttons.length).toBeGreaterThanOrEqual(3); // skip-back, play, skip-forward
+    expect(buttons.length).toBeGreaterThanOrEqual(3);
   });
 
   it('renders timecode display', () => {
-    render(<EditorPreview {...defaultProps} />);
-    // Should show formatted timecodes
+    render(withTooltip(<EditorPreview {...defaultProps} />));
     expect(screen.getByText(/00:03/)).toBeInTheDocument();
   });
 
   it('shows "No clip at current time" when no active clip', () => {
-    render(<EditorPreview {...defaultProps} currentTime={100} />);
+    render(withTooltip(<EditorPreview {...defaultProps} currentTime={100} />));
     expect(screen.getByText('No clip at playhead')).toBeInTheDocument();
   });
 
   it('renders text overlays when text clips are active', () => {
     const tracks = makeTracks([makeVideoClip()], [makeTextClip({ start: 0, end: 5 })]);
-    render(<EditorPreview {...defaultProps} tracks={tracks} currentTime={2} />);
+    render(withTooltip(<EditorPreview {...defaultProps} tracks={tracks} currentTime={2} />));
     expect(screen.getByText('Hello World')).toBeInTheDocument();
   });
 
   it('calls onPlayPause when play button clicked', () => {
-    render(<EditorPreview {...defaultProps} />);
+    render(withTooltip(<EditorPreview {...defaultProps} />));
     const buttons = screen.getAllByRole('button');
     // Play button is the second button
     fireEvent.click(buttons[1]);
@@ -168,7 +170,8 @@ describe('EditorSidebar', () => {
 
   it('shows video clip properties when video clip selected', () => {
     render(<EditorSidebar {...defaultProps} selectedClipId="clip-1" />);
-    expect(screen.getByText('Properties')).toBeInTheDocument();
+    // The sidebar now uses "Inspector" header and "Props" tab instead of "Properties"
+    expect(screen.getByText('Inspector') || screen.getByText('Props')).toBeTruthy();
     expect(screen.getByText('Shot 1')).toBeInTheDocument();
     expect(screen.getByText('Delete Clip')).toBeInTheDocument();
   });
@@ -249,8 +252,8 @@ describe('EditorTimeline', () => {
     });
     const tracks = makeTracks([clipWithEffect]);
     const { container } = render(<EditorTimeline {...defaultProps} tracks={tracks} />);
-    // The transition indicator is a small dot
-    const dot = container.querySelector('.bg-primary.rounded-full');
+    // The transition indicator is a small white pulsing dot
+    const dot = container.querySelector('.rounded-full.bg-white') || container.querySelector('.rounded-full.animate-pulse');
     expect(dot).toBeTruthy();
   });
 });

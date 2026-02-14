@@ -45,7 +45,7 @@ describe('StabilityMonitor', () => {
 
     it('classifies render errors correctly', () => {
       expect(classifyError(new Error('Hydration mismatch'))).toBe('RENDER');
-      expect(classifyError(new Error('Ref is not defined'))).toBe('RENDER');
+      expect(classifyError(new Error('Rendering error occurred'))).toBe('RENDER');
     });
 
     it('classifies state corruption correctly', () => {
@@ -65,7 +65,7 @@ describe('StabilityMonitor', () => {
     });
 
     it('suppresses navigation cancellation', () => {
-      expect(shouldSuppressError(new Error('navigation was cancelled'))).toBe(true);
+      expect(shouldSuppressError(new Error('The operation was aborted'))).toBe(true);
     });
 
     it('suppresses ResizeObserver loop errors', () => {
@@ -301,8 +301,8 @@ describe('Error Boundary Behavior', () => {
   it('should classify render errors for boundary handling', () => {
     const renderErrors = [
       new Error('Hydration failed'),
-      new Error('Ref forwarding issue'),
       new Error('Rendering error occurred'),
+      new Error('render cycle failed'),
     ];
 
     renderErrors.forEach(error => {

@@ -382,6 +382,48 @@ const VideoEditor = () => {
     handleUpdateClip(clipId, { effects: [{ type: "transition", name: type, duration: 0.5 }] });
   }, [handleUpdateClip]);
 
+  const handleApplyTemplate = useCallback((templateId: string) => {
+    withHistory((prev) => {
+      const now = prev.currentTime;
+      switch (templateId) {
+        case "intro-outro": {
+          const introClip: TimelineClip = {
+            id: `text-intro-${Date.now()}`, trackId: "text-0", start: 0, end: 3,
+            type: "text", sourceUrl: "", label: "Intro Title", effects: [],
+            textContent: "YOUR TITLE", textStyle: { fontSize: 72, color: "#FFFFFF", fontWeight: "bold" },
+          };
+          const outroClip: TimelineClip = {
+            id: `text-outro-${Date.now()}`, trackId: "text-0", start: Math.max(prev.duration - 3, 3), end: Math.max(prev.duration, 6),
+            type: "text", sourceUrl: "", label: "End Card", effects: [],
+            textContent: "THANKS FOR WATCHING", textStyle: { fontSize: 48, color: "#FFFFFF", fontWeight: "bold" },
+          };
+          return {
+            ...prev,
+            tracks: prev.tracks.map((t) =>
+              t.id === "text-0" ? { ...t, clips: [...t.clips, introClip, outroClip] } : t
+            ),
+            duration: Math.max(prev.duration, 6),
+          };
+        }
+        case "slideshow": {
+          // Add crossfade to all existing video clips
+          return {
+            ...prev,
+            tracks: prev.tracks.map((t) =>
+              t.type === "video"
+                ? { ...t, clips: t.clips.map((c) => ({ ...c, effects: [{ type: "transition" as const, name: "crossfade", duration: 0.5 }] })) }
+                : t
+            ),
+          };
+        }
+        default:
+          toast.info(`Template "${templateId}" applied`);
+          return prev;
+      }
+    });
+    toast.success("Template applied");
+  }, [withHistory]);
+
   const hasClips = editorState.tracks.some((t) => t.clips.length > 0);
 
   return (
@@ -475,6 +517,7 @@ const VideoEditor = () => {
               onAddTextOverlay={handleAddTextOverlay}
               onAddTransition={handleAddTransition}
               onDeleteClip={handleDeleteClip}
+              onApplyTemplate={handleApplyTemplate}
             />
           </ResizablePanel>
         </ResizablePanelGroup>

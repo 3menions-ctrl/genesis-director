@@ -767,6 +767,7 @@ serve(async (req) => {
         cameraHint: allSegmentData[i].cameraHint,
         physicalDetail: allSegmentData[i].physicalDetail,
         transitionNote: allSegmentData[i].transitionNote,
+        sceneNote: allSegmentData[i].sceneNote,
       });
     }
 

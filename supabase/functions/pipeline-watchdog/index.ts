@@ -176,7 +176,20 @@ function buildAvatarActingPrompt(
     ? '[AVATAR STYLE: Stylized CGI/animated character. NOT photorealistic.]'
     : '[AVATAR STYLE: Photorealistic human. NOT cartoon/animated.]';
   
-  const backgroundLock = clipIndex > 0 ? '[SAME ENVIRONMENT: Continue in the exact same location with consistent lighting.]' : '';
+  // Only enforce same environment if the sceneNote doesn't indicate a NEW location
+  const isNewLocation = sceneNote && (
+    sceneNote.toLowerCase().includes('different') || 
+    sceneNote.toLowerCase().includes('new ') || 
+    sceneNote.toLowerCase().includes('outside') ||
+    sceneNote.toLowerCase().includes('another') ||
+    sceneNote.toLowerCase().includes('driving') ||
+    sceneNote.toLowerCase().includes('car') ||
+    sceneNote.toLowerCase().includes('walks into') ||
+    sceneNote.toLowerCase().includes('arrives at')
+  );
+  const backgroundLock = clipIndex > 0 && !isNewLocation 
+    ? '[SAME ENVIRONMENT: Continue in the exact same location with consistent lighting.]' 
+    : (isNewLocation ? '[NEW ENVIRONMENT: This is a DIFFERENT location from the previous clip. New background, new setting.]' : '');
   
   // IDENTITY LOCK: Critical for cross-character consistency
   const identityDirective = identityLock 
@@ -346,9 +359,18 @@ serve(async (req) => {
             console.log(`[Watchdog] 🎭 DUAL AVATAR: Clip ${pred.clipIndex + 1} uses SECONDARY avatar (${tasks.secondaryAvatar.name})`);
             characterIdentityLock = `This is ${tasks.secondaryAvatar.name}. The character in this clip must look EXACTLY like the person shown in the start frame reference image. Preserve their exact facial features, hair style, hair color, skin tone, eye color, body build, and outfit.`;
             
-            // ALWAYS re-composite from the ORIGINAL reference image for secondary
-            // This prevents identity drift — each secondary clip starts from the canonical reference
-            const sceneDesc = pred.sceneNote || tasks.sceneDescription || 'Professional studio setting';
+            // SCENE-AWARE COMPOSITING for secondary avatar
+            // Clip 2 (index 1): A2 enters A1's scene → use A1's scene description for continuity
+            // Clip 3+ (index 2+): A2 solo → use screenplay's sceneNote for NEW environment
+            const isEntranceClip = pred.clipIndex === 1; // A2's first appearance — enters A1's world
+            const sceneDesc = isEntranceClip 
+              ? (tasks.sceneDescription || 'Professional studio setting')  // Same scene as A1
+              : (pred.sceneNote || tasks.sceneDescription || 'Professional studio setting'); // New scene from screenplay
+            
+            const entranceInstruction = isEntranceClip
+              ? 'IMPORTANT: This character is ENTERING a scene where another character was just speaking. They walk in, appear, or are revealed. Show them arriving or being noticed. The environment must match the previous clip exactly.'
+              : 'IMPORTANT: This character is NOW in a DIFFERENT LOCATION from the previous clips. New environment, new background. Show them in this new space.';
+            
             try {
               const sceneResponse = await fetch(`${supabaseUrl}/functions/v1/generate-avatar-scene`, {
                 method: 'POST',
@@ -361,7 +383,7 @@ serve(async (req) => {
                   sceneDescription: sceneDesc,
                   aspectRatio: tasks.aspectRatio || '16:9',
                   placement: 'center',
-                  additionalInstructions: 'IMPORTANT: Show the COMPLETE person from head to toe. Full body visible. Do NOT crop to just the head or face. The character must have a complete body, arms, legs, and be standing or sitting naturally in the scene. CRITICAL: Preserve the EXACT face, hair, and appearance of the person in the reference image.',
+                  additionalInstructions: `${entranceInstruction} Show the COMPLETE person from head to toe. Full body visible. Do NOT crop to just the head or face. The character must have a complete body, arms, legs, and be standing or sitting naturally in the scene. CRITICAL: Preserve the EXACT face, hair, and appearance of the person in the reference image.`,
                 }),
               });
               
@@ -369,7 +391,7 @@ serve(async (req) => {
                 const sceneResult = await sceneResponse.json();
                 if (sceneResult.success && sceneResult.sceneImageUrl) {
                   startImageUrl = sceneResult.sceneImageUrl;
-                  console.log(`[Watchdog] ✅ Secondary avatar FULL-BODY scene composited: ${startImageUrl.substring(0, 60)}...`);
+                  console.log(`[Watchdog] ✅ Secondary avatar scene composited (${isEntranceClip ? 'ENTRANCE — same scene as A1' : 'NEW LOCATION'}): ${startImageUrl.substring(0, 60)}...`);
                 }
               }
             } catch (sceneError) {

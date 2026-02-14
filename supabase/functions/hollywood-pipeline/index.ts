@@ -6139,13 +6139,40 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
     const request: PipelineRequest = await req.json();
     
+    // SECURITY: Extract userId from JWT instead of trusting client payload
+    const authHeader = req.headers.get("Authorization");
+    let authenticatedUserId: string | null = null;
+    
+    if (authHeader?.startsWith("Bearer ")) {
+      try {
+        const authClient = createClient(supabaseUrl, anonKey);
+        const token = authHeader.replace("Bearer ", "");
+        const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+        if (!claimsError && claimsData?.claims?.sub) {
+          authenticatedUserId = claimsData.claims.sub as string;
+        }
+      } catch (authErr) {
+        console.warn("[Hollywood] JWT validation failed, falling back to request.userId:", authErr);
+      }
+    }
+    
+    // Prioritize JWT identity; fall back to request.userId for service-role calls (e.g., watchdog)
+    const isServiceRoleCall = authHeader?.includes(supabaseKey);
+    if (authenticatedUserId) {
+      if (request.userId && request.userId !== authenticatedUserId && !isServiceRoleCall) {
+        console.warn(`[Hollywood] userId mismatch: JWT=${authenticatedUserId}, request=${request.userId}. Using JWT.`);
+      }
+      request.userId = authenticatedUserId;
+    }
+    
     if (!request.userId) {
-      throw new Error("userId is required");
+      throw new Error("userId is required - authenticate or provide userId");
     }
     
     // For resume requests, we need approvedScript instead of concept/manualPrompts

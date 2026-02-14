@@ -5,6 +5,7 @@ import {
   Loader2, Play, RefreshCw, Download, ExternalLink,
   Sparkles, Wand2, Film, Clock, Zap, X, Eye, PlayCircle
 } from 'lucide-react';
+import { CinematicWaveVisualizer } from './CinematicWaveVisualizer';
 import { Button } from '@/components/ui/button';
 import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
 import { UniversalVideoPlayer } from '@/components/player';
@@ -463,111 +464,83 @@ export function SpecializedModeProgress({
             </div>
           </div>
 
-          {/* Stage Progress Visualization */}
+          {/* Cinematic Progress Visualization */}
           <div className="mb-8">
-            {/* Stage dots */}
-            <div className="flex items-center justify-between mb-4">
-              {config.stages.map((stage, idx) => {
-                const currentIdx = getCurrentStageIndex();
-                const isActive = idx === currentIdx && isProcessing;
-                const isCompleted = idx < currentIdx || isComplete;
-                const isFuture = idx > currentIdx && !isComplete;
-                
-                return (
-                  <div key={stage} className="flex flex-col items-center gap-2 flex-1">
-                    <motion.div
-                      className={cn(
-                        "relative w-10 h-10 rounded-full flex items-center justify-center",
-                        "transition-all duration-500",
-                        isCompleted ? cn(
-                          "bg-gradient-to-br",
-                          config.accentColor === 'amber' ? 'from-amber-500 to-orange-500' :
-                          config.accentColor === 'emerald' ? 'from-emerald-500 to-teal-500' : 
-                          'from-violet-500 to-purple-500'
-                        ) : isActive ? 'bg-white/10 border-2 border-white/30' : 'bg-white/[0.05] border border-white/[0.1]'
-                      )}
-                      animate={isActive ? { scale: [1, 1.1, 1] } : {}}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                    >
-                      {isCompleted ? (
-                        <CheckCircle2 className="w-5 h-5 text-white" />
-                      ) : isActive ? (
-                        <Loader2 className="w-5 h-5 text-white animate-spin" />
-                      ) : (
-                        <span className="text-white/40 text-sm font-medium">{idx + 1}</span>
-                      )}
-                      
-                      {/* Active glow */}
-                      {isActive && (
-                        <motion.div
-                          className={cn(
-                            "absolute inset-0 rounded-full",
-                            config.accentColor === 'amber' ? 'bg-amber-500/30' :
-                            config.accentColor === 'emerald' ? 'bg-emerald-500/30' : 'bg-violet-500/30'
-                          )}
-                          animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
-                          transition={{ duration: 1.5, repeat: Infinity }}
-                        />
-                      )}
-                    </motion.div>
-                    <span className={cn(
-                      "text-xs text-center transition-colors",
-                      isCompleted || isActive ? 'text-white/70' : 'text-white/30'
-                    )}>
-                      {stage}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            
-            {/* Progress bar */}
-            <div className="relative h-2 bg-white/[0.08] rounded-full overflow-hidden">
-              <motion.div
-                className={cn(
-                  "absolute inset-y-0 left-0 rounded-full",
-                  "bg-gradient-to-r",
-                  config.accentColor === 'amber' ? 'from-amber-500 to-orange-500' :
-                  config.accentColor === 'emerald' ? 'from-emerald-500 to-teal-500' : 
-                  'from-violet-500 to-purple-500'
-                )}
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.5, ease: 'easeOut' }}
+            {isProcessing ? (
+              <CinematicWaveVisualizer
+                progress={progress}
+                isProcessing={isProcessing}
+                accentColor={config.accentColor as 'violet' | 'emerald' | 'amber'}
+                currentStageIndex={getCurrentStageIndex()}
+                totalStages={config.stages.length}
+                message={getCurrentMessage()}
               />
-              
-              {/* Shimmer effect */}
-              {isProcessing && (
-                <motion.div
-                  className="absolute inset-y-0 w-20 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                  animate={{ x: ['-100%', '500%'] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                />
-              )}
-            </div>
-            
-            {/* Progress percentage and message */}
-            <div className="flex items-center justify-between mt-3">
-              <AnimatePresence mode="wait">
-                <motion.span
-                  key={getCurrentMessage()}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="text-white/60 text-sm flex items-center gap-2"
-                >
-                  {isProcessing && <Sparkles className="w-3.5 h-3.5" />}
-                  {getCurrentMessage()}
-                </motion.span>
-              </AnimatePresence>
-              <span className={cn(
-                "font-bold text-lg",
-                config.accentColor === 'amber' ? 'text-amber-400' :
-                config.accentColor === 'emerald' ? 'text-emerald-400' : 'text-violet-400'
-              )}>
-                {progress}%
-              </span>
-            </div>
+            ) : (
+              <>
+                {/* Static stage view when not processing */}
+                <div className="flex items-center justify-between mb-4">
+                  {config.stages.map((stage, idx) => {
+                    const currentIdx = getCurrentStageIndex();
+                    const isStageActive = idx === currentIdx && isProcessing;
+                    const isCompleted = idx < currentIdx || isComplete;
+                    
+                    return (
+                      <div key={stage} className="flex flex-col items-center gap-2 flex-1">
+                        <div
+                          className={cn(
+                            "relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500",
+                            isCompleted ? cn(
+                              "bg-gradient-to-br",
+                              config.accentColor === 'amber' ? 'from-amber-500 to-orange-500' :
+                              config.accentColor === 'emerald' ? 'from-emerald-500 to-teal-500' : 
+                              'from-violet-500 to-purple-500'
+                            ) : isStageActive ? 'bg-white/10 border-2 border-white/30' : 'bg-white/[0.05] border border-white/[0.1]'
+                          )}
+                        >
+                          {isCompleted ? (
+                            <CheckCircle2 className="w-5 h-5 text-white" />
+                          ) : (
+                            <span className="text-white/40 text-sm font-medium">{idx + 1}</span>
+                          )}
+                        </div>
+                        <span className={cn(
+                          "text-xs text-center transition-colors",
+                          isCompleted ? 'text-white/70' : 'text-white/30'
+                        )}>
+                          {stage}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Progress bar */}
+                <div className="relative h-2 bg-white/[0.08] rounded-full overflow-hidden">
+                  <motion.div
+                    className={cn(
+                      "absolute inset-y-0 left-0 rounded-full bg-gradient-to-r",
+                      config.accentColor === 'amber' ? 'from-amber-500 to-orange-500' :
+                      config.accentColor === 'emerald' ? 'from-emerald-500 to-teal-500' : 
+                      'from-violet-500 to-purple-500'
+                    )}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between mt-3">
+                  <span className="text-white/60 text-sm">{getCurrentMessage()}</span>
+                  <span className={cn(
+                    "font-bold text-lg",
+                    config.accentColor === 'amber' ? 'text-amber-400' :
+                    config.accentColor === 'emerald' ? 'text-emerald-400' : 'text-violet-400'
+                  )}>
+                    {progress}%
+                  </span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Clip Status Grid - Show during generation */}
@@ -858,17 +831,33 @@ export function SpecializedModeProgress({
             )}
 
             {isProcessing && (
-              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.08]">
-                <motion.div
-                  className={cn(
-                    "w-3 h-3 rounded-full",
-                    config.accentColor === 'amber' ? 'bg-amber-500' :
-                    config.accentColor === 'emerald' ? 'bg-emerald-500' : 'bg-violet-500'
-                  )}
-                  animate={{ scale: [1, 1.2, 1], opacity: [1, 0.7, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                />
-                <span className="text-white/60 text-sm">AI is generating your video...</span>
+              <div className="flex items-center gap-3 px-5 py-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                {/* Animated equalizer bars */}
+                <div className="flex items-end gap-[2px] h-4">
+                  {[0, 1, 2, 3, 4].map(i => (
+                    <div
+                      key={i}
+                      className={cn(
+                        "w-[3px] rounded-full",
+                        config.accentColor === 'amber' ? 'bg-amber-500' :
+                        config.accentColor === 'emerald' ? 'bg-emerald-500' : 'bg-violet-500'
+                      )}
+                      style={{
+                        animation: `equalizerBar 1.2s ease-in-out ${i * 0.15}s infinite`,
+                        height: '4px',
+                      }}
+                    />
+                  ))}
+                </div>
+                <span className="text-white/50 text-sm font-medium tracking-wide">
+                  Neural rendering in progress
+                </span>
+                <style>{`
+                  @keyframes equalizerBar {
+                    0%, 100% { height: 4px; opacity: 0.5; }
+                    50% { height: 16px; opacity: 1; }
+                  }
+                `}</style>
               </div>
             )}
           </div>

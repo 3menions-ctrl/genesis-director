@@ -1187,6 +1187,15 @@ const transitionsData = useMemo(() =>
   // NOT from database pending_video_tasks.progress (can be stale)
   // This ensures progress bar matches reality: 2/6 clips = ~33%, not 100%
   // =====================================================
+  // Animated progress for generating clips - ticks up over time
+  const [progressTick, setProgressTick] = useState(0);
+  useEffect(() => {
+    const isActive = ['generating', 'producing', 'rendering'].includes(projectStatus) && projectStatus !== 'completed';
+    if (!isActive) return;
+    const interval = setInterval(() => setProgressTick(t => t + 1), 3000);
+    return () => clearInterval(interval);
+  }, [projectStatus]);
+
   const realTimeProgress = useMemo(() => {
     // If project is fully complete with video, show 100%
     if (projectStatus === 'completed' && finalVideoUrl) {
@@ -1215,24 +1224,28 @@ const transitionsData = useMemo(() =>
       return progress;
     }
     
-    // Base progress: completed clips / total expected
-    // Reserve 0-85% for clip generation, 85-100% for stitching
-    const clipProgress = (effectiveCompleted / effectiveExpected) * 85;
+    // Per-clip progress weight
+    const perClipWeight = 85 / effectiveExpected;
     
-    // Add partial progress for currently generating clips (~5% each while processing)
-    const generatingProgress = effectiveGenerating * 2;
+    // Completed clips get full weight
+    const completedProgress = effectiveCompleted * perClipWeight;
+    
+    // Generating clips get partial weight that grows over time (simulates progress within a clip)
+    // Each tick (~3s) adds a bit, capping at 80% of per-clip weight
+    const generatingPartial = effectiveGenerating > 0
+      ? Math.min(perClipWeight * 0.8, (progressTick % 30) * (perClipWeight / 35)) * effectiveGenerating
+      : 0;
     
     // If stitching or later, show 85-95%
     if (['stitching', 'post_production'].includes(projectStatus)) {
-      return 85 + Math.min(10, (Date.now() % 10000) / 1000); // Animate 85-95%
+      return 85 + Math.min(10, (progressTick % 10) * 1);
     }
     
-    const calculatedProgress = Math.min(clipProgress + generatingProgress, 85);
+    const calculatedProgress = Math.min(completedProgress + generatingPartial, 85);
     
-    // Only use database progress if it's less than calculated (early stages)
-    // This prevents the "100% but still rendering" issue
+    // Ensure we never go below what we've shown before (monotonic increase)
     return Math.max(calculatedProgress, Math.min(progress, calculatedProgress + 5));
-  }, [projectStatus, finalVideoUrl, expectedClipCount, completedClips, clipResults, progress, projectMode, avatarClips]);
+  }, [projectStatus, finalVideoUrl, expectedClipCount, completedClips, clipResults, progress, projectMode, avatarClips, progressTick]);
 
   const failedClipsData = useMemo(() => 
     clipResults.filter(c => c.status === 'failed').map(c => ({

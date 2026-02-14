@@ -216,7 +216,7 @@ serve(async (req) => {
     console.log("[AvatarDirect] Starting ASYNC AVATAR pipeline v3.5 (Hardened + Audio-Driven)");
     console.log(`[AvatarDirect] Script (${script.length} chars): "${script.substring(0, 80)}..."`);
     console.log(`[AvatarDirect] Scene: "${sceneDescription || 'Professional studio setting'}"`);
-    console.log(`[AvatarDirect] Voice: ${minimaxVoice}, Requested clips: ${requestedClipCount}`);
+    console.log(`[AvatarDirect] Voice: ${voiceId}, Requested clips: ${requestedClipCount}`);
     console.log("[AvatarDirect] ═══════════════════════════════════════════════════════════")
 
     if (projectId) {

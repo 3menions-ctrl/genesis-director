@@ -7,19 +7,16 @@ const corsHeaders = {
 };
 
 /**
- * Generate Project Thumbnail v5.0 - REPLICATE-BASED
+ * Generate Project Thumbnail v6.0
  * 
  * Extracts a frame from a project's video and saves it as the project's thumbnail.
- * NO CLOUD RUN DEPENDENCY - Uses Replicate API for reliable frame extraction.
+ * Uses lucataco/frame-extractor on Replicate (854K+ runs, $0.0001/run).
+ * Falls back to video_clips.last_frame_url from DB.
  */
 
-interface GenerateThumbnailRequest {
-  projectId: string;
-  videoUrl: string;
-}
-
-// Sleep helper
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const REPLICATE_MODEL_VERSION = "c02b3c1df64728476b1c21b0876235119e6ac08b0c9b8a99b82c5f0e0d42442d";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -27,8 +24,7 @@ serve(async (req) => {
   }
 
   try {
-    const request: GenerateThumbnailRequest = await req.json();
-    const { projectId, videoUrl } = request;
+    const { projectId, videoUrl } = await req.json();
 
     if (!projectId || !videoUrl) {
       return new Response(
@@ -38,7 +34,6 @@ serve(async (req) => {
     }
 
     console.log(`[GenerateThumbnail] Starting for project ${projectId}`);
-    console.log(`[GenerateThumbnail] Video URL: ${videoUrl.substring(0, 80)}...`);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -53,244 +48,161 @@ serve(async (req) => {
       .single();
 
     if (project?.thumbnail_url) {
-      console.log(`[GenerateThumbnail] Project already has thumbnail, skipping`);
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          thumbnailUrl: project.thumbnail_url,
-          skipped: true,
-          message: "Project already has thumbnail" 
-        }),
+        JSON.stringify({ success: true, thumbnailUrl: project.thumbnail_url, skipped: true }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     let thumbnailUrl: string | null = null;
 
+    // Helper: download image and upload to thumbnails bucket
+    const uploadToStorage = async (sourceUrl: string): Promise<string | null> => {
+      try {
+        const res = await fetch(sourceUrl);
+        if (!res.ok) return null;
+        const imageData = await res.arrayBuffer();
+        const fileName = `thumb_${projectId}.jpg`;
+        const { error } = await supabase.storage
+          .from('thumbnails')
+          .upload(fileName, new Uint8Array(imageData), { contentType: 'image/jpeg', upsert: true });
+        if (error) return null;
+        const { data: urlData } = supabase.storage.from('thumbnails').getPublicUrl(fileName);
+        return urlData.publicUrl;
+      } catch { return null; }
+    };
+
     // ============================================================
-    // TIER 1: Replicate Frame Extraction
+    // TIER 1: Replicate lucataco/frame-extractor
     // ============================================================
     if (REPLICATE_API_KEY) {
-      const MAX_RETRIES = 3;
-      
-      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-        try {
-          if (attempt > 0) {
-            const backoffMs = 2000 * attempt;
-            console.log(`[GenerateThumbnail] 🔄 Retry ${attempt + 1}/${MAX_RETRIES}, waiting ${backoffMs}ms...`);
-            await sleep(backoffMs);
-          }
-          
-          console.log(`[GenerateThumbnail] TIER 1: Replicate extraction attempt ${attempt + 1}/${MAX_RETRIES}`);
-          
-          const predictionResponse = await fetch('https://api.replicate.com/v1/predictions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${REPLICATE_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              version: "a97a0a2e37ef87f7175ad88ba6ac019e51e6c3fc447c72a47c6a0d364a34d6b0",
-              input: {
-                video: videoUrl,
-                fps: 1,
-                format: "jpg"
-              }
-            }),
-          });
-          
-          if (!predictionResponse.ok) {
-            const errorText = await predictionResponse.text();
-            console.warn(`[GenerateThumbnail] Replicate prediction start failed: ${predictionResponse.status} - ${errorText.substring(0, 100)}`);
-            
-            if (predictionResponse.status === 404 || predictionResponse.status === 422) {
-              console.log(`[GenerateThumbnail] Frame extraction model unavailable, using fallback...`);
-              break;
-            }
-            continue;
-          }
-          
-          const prediction = await predictionResponse.json();
+      try {
+        console.log(`[GenerateThumbnail] TIER 1: Replicate frame-extractor`);
+        
+        const predictionRes = await fetch('https://api.replicate.com/v1/predictions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${REPLICATE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            version: REPLICATE_MODEL_VERSION,
+            input: { video: videoUrl, return_first_frame: true }
+          }),
+        });
+        
+        if (predictionRes.ok) {
+          const prediction = await predictionRes.json();
           console.log(`[GenerateThumbnail] Prediction started: ${prediction.id}`);
           
-          // Poll for completion (max 60 seconds)
-          const maxPollTime = 60000;
-          const pollInterval = 2000;
+          // Poll for completion (max 90 seconds)
           const startTime = Date.now();
-          
-          while (Date.now() - startTime < maxPollTime) {
-            await sleep(pollInterval);
-            
-            const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+          while (Date.now() - startTime < 90000) {
+            await sleep(2000);
+            const statusRes = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
               headers: { 'Authorization': `Bearer ${REPLICATE_API_KEY}` },
             });
+            if (!statusRes.ok) continue;
+            const status = await statusRes.json();
             
-            if (!statusResponse.ok) {
-              console.warn(`[GenerateThumbnail] Status check failed: ${statusResponse.status}`);
-              continue;
-            }
-            
-            const status = await statusResponse.json();
-            
-            if (status.status === 'succeeded') {
-              const frames = status.output;
-              
-              if (Array.isArray(frames) && frames.length > 0) {
-                // Get the FIRST frame for thumbnail
-                const firstFrameUrl = frames[0];
-                
-                if (firstFrameUrl) {
-                  // Download and re-upload to thumbnails bucket
-                  try {
-                    const frameResponse = await fetch(firstFrameUrl);
-                    if (frameResponse.ok) {
-                      const imageData = await frameResponse.arrayBuffer();
-                      const fileName = `thumb_${projectId}.jpg`;
-                      
-                      const { error: uploadError } = await supabase.storage
-                        .from('thumbnails')
-                        .upload(fileName, new Uint8Array(imageData), {
-                          contentType: 'image/jpeg',
-                          upsert: true,
-                        });
-
-                      if (!uploadError) {
-                        const { data: urlData } = supabase.storage
-                          .from('thumbnails')
-                          .getPublicUrl(fileName);
-                        
-                        thumbnailUrl = urlData.publicUrl;
-                        console.log(`[GenerateThumbnail] ✅ TIER 1 SUCCESS: ${thumbnailUrl}`);
-                        break;
-                      } else {
-                        console.warn(`[GenerateThumbnail] Upload failed:`, uploadError);
-                      }
-                    }
-                  } catch (downloadErr) {
-                    console.warn(`[GenerateThumbnail] Download/upload error:`, downloadErr);
-                  }
-                }
+            if (status.status === 'succeeded' && status.output) {
+              const frameUrl = typeof status.output === 'string' ? status.output : 
+                Array.isArray(status.output) ? status.output[0] : null;
+              if (frameUrl) {
+                thumbnailUrl = await uploadToStorage(frameUrl);
+                if (thumbnailUrl) console.log(`[GenerateThumbnail] ✅ TIER 1 SUCCESS`);
               }
               break;
             } else if (status.status === 'failed') {
               console.warn(`[GenerateThumbnail] Prediction failed: ${status.error}`);
               break;
             }
-            
-            console.log(`[GenerateThumbnail] Polling... status: ${status.status}`);
           }
-          
-          if (thumbnailUrl) break;
-        } catch (replicateError) {
-          const errorMsg = replicateError instanceof Error ? replicateError.message : 'Unknown error';
-          console.warn(`[GenerateThumbnail] Attempt ${attempt + 1} error: ${errorMsg}`);
-          continue;
+        } else {
+          const errText = await predictionRes.text();
+          console.warn(`[GenerateThumbnail] Replicate error ${predictionRes.status}: ${errText.substring(0, 120)}`);
         }
+      } catch (err) {
+        console.warn(`[GenerateThumbnail] TIER 1 error:`, err);
       }
-    } else {
-      console.warn(`[GenerateThumbnail] ⚠️ REPLICATE_API_KEY not configured`);
     }
 
     // ============================================================
-    // TIER 2: Fallback to extract-video-frame edge function
+    // TIER 2: Use last_frame_url from completed video clips
     // ============================================================
     if (!thumbnailUrl) {
-      console.log(`[GenerateThumbnail] TIER 2: Using extract-video-frame edge function...`);
-      
+      console.log(`[GenerateThumbnail] TIER 2: DB video_clips last_frame_url`);
       try {
-        const response = await fetch(`${supabaseUrl}/functions/v1/extract-video-frame`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${supabaseKey}`,
-          },
-          body: JSON.stringify({
-            videoUrl,
-            projectId,
-            shotId: 'thumbnail',
-            position: 'first',
-          }),
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.frameUrl) {
-            // Download and re-upload to thumbnails bucket
-            const frameResponse = await fetch(data.frameUrl);
-            if (frameResponse.ok) {
-              const imageData = await frameResponse.arrayBuffer();
-              const fileName = `thumb_${projectId}.jpg`;
-              
-              const { error: uploadError } = await supabase.storage
-                .from('thumbnails')
-                .upload(fileName, new Uint8Array(imageData), {
-                  contentType: 'image/jpeg',
-                  upsert: true,
-                });
+        const { data: clips } = await supabase
+          .from('video_clips')
+          .select('last_frame_url')
+          .eq('project_id', projectId)
+          .eq('status', 'completed')
+          .not('last_frame_url', 'is', null)
+          .order('shot_index', { ascending: true })
+          .limit(1);
 
-              if (!uploadError) {
-                const { data: urlData } = supabase.storage
-                  .from('thumbnails')
-                  .getPublicUrl(fileName);
-                
-                thumbnailUrl = urlData.publicUrl;
-                console.log(`[GenerateThumbnail] ✅ TIER 2 SUCCESS: ${thumbnailUrl}`);
-              }
-            }
+        const frameUrl = clips?.[0]?.last_frame_url;
+        if (frameUrl && typeof frameUrl === 'string' && frameUrl.startsWith('http')) {
+          thumbnailUrl = await uploadToStorage(frameUrl);
+          if (thumbnailUrl) console.log(`[GenerateThumbnail] ✅ TIER 2 SUCCESS`);
+        }
+      } catch (err) {
+        console.warn(`[GenerateThumbnail] TIER 2 error:`, err);
+      }
+    }
+
+    // ============================================================
+    // TIER 3: Use scene_images or pro_features_data reference
+    // ============================================================
+    if (!thumbnailUrl) {
+      console.log(`[GenerateThumbnail] TIER 3: Project reference images`);
+      try {
+        const { data: proj } = await supabase
+          .from('movie_projects')
+          .select('pro_features_data, scene_images')
+          .eq('id', projectId)
+          .single();
+
+        const proData = proj?.pro_features_data as Record<string, any> | null;
+        const candidates = [
+          proData?.referenceAnalysis?.imageUrl,
+          proData?.goldenFrameData?.goldenFrameUrl,
+          ...(Array.isArray(proj?.scene_images) ? (proj.scene_images as any[]).map((s: any) => s?.imageUrl) : []),
+        ].filter(u => u && typeof u === 'string' && u.startsWith('http'));
+
+        for (const url of candidates) {
+          thumbnailUrl = await uploadToStorage(url);
+          if (thumbnailUrl) {
+            console.log(`[GenerateThumbnail] ✅ TIER 3 SUCCESS`);
+            break;
           }
         }
-      } catch (edgeFnErr) {
-        console.warn(`[GenerateThumbnail] Edge function fallback failed:`, edgeFnErr);
+      } catch (err) {
+        console.warn(`[GenerateThumbnail] TIER 3 error:`, err);
       }
     }
 
     if (!thumbnailUrl) {
-      console.error(`[GenerateThumbnail] Failed to extract thumbnail`);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: `Failed to extract thumbnail - Replicate and fallbacks exhausted` 
-        }),
+        JSON.stringify({ success: false, error: "No thumbnail source available" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Update project with thumbnail URL
-    const { error: updateError } = await supabase
-      .from('movie_projects')
-      .update({ thumbnail_url: thumbnailUrl })
-      .eq('id', projectId);
-
-    if (updateError) {
-      console.error(`[GenerateThumbnail] Failed to update project:`, updateError);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: `Failed to update project: ${updateError.message}`,
-          thumbnailUrl 
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log(`[GenerateThumbnail] ✅ Success! Project ${projectId} thumbnail updated`);
+    // Update project
+    await supabase.from('movie_projects').update({ thumbnail_url: thumbnailUrl }).eq('id', projectId);
+    console.log(`[GenerateThumbnail] ✅ Project ${projectId} thumbnail saved`);
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        thumbnailUrl,
-        projectId 
-      }),
+      JSON.stringify({ success: true, thumbnailUrl, projectId }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {
-    console.error("[GenerateThumbnail] Fatal error:", error);
+    console.error("[GenerateThumbnail] Fatal:", error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      }),
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

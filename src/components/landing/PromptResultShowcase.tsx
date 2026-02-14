@@ -50,14 +50,14 @@ export const PromptResultShowcase = memo(function PromptResultShowcase() {
     return () => clearInterval(timerRef.current);
   }, [isDragging]);
 
-  // Play video when index changes
-  useEffect(() => {
-    const video = videoRef.current;
-    if (video) {
-      video.currentTime = 0;
-      video.play().catch(() => {});
+  // Attach ref callback to play video when it mounts
+  const setVideoRef = useCallback((el: HTMLVideoElement | null) => {
+    videoRef.current = el;
+    if (el) {
+      el.currentTime = 0;
+      el.play().catch(() => {});
     }
-  }, [currentIdx]);
+  }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault();
@@ -107,12 +107,12 @@ export const PromptResultShowcase = memo(function PromptResultShowcase() {
               className="absolute inset-0"
             >
               <video
-                ref={videoRef}
+                ref={setVideoRef}
                 src={pair.videoUrl}
                 muted
                 loop
                 playsInline
-                preload="none"
+                preload="metadata"
                 onCanPlay={() => setVideoReady(true)}
                 className="w-full h-full object-cover"
               />

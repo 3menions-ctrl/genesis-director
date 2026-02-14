@@ -12,15 +12,57 @@ const PRICING_STATS = [
 
 const STORYTELLING_HLS_URL = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/temp-frames/hls_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_1771087015077.m3u8';
 
+const INACTIVITY_TIMEOUT_MS = 10_000;
+
 interface PricingSectionProps {
   onNavigate: (path: string) => void;
 }
 
+// Glowing star-like "Let's Go" CTA
+const LetsGoCTA = memo(function LetsGoCTA({ onNavigate }: { onNavigate: (path: string) => void }) {
+  return (
+    <div className="fixed inset-0 z-[9998] flex items-center justify-center animate-fade-in" style={{ pointerEvents: 'none' }}>
+      {/* Dimmed backdrop */}
+      <div className="absolute inset-0 bg-black/70" />
+      
+      {/* Glowing circular button */}
+      <button
+        onClick={() => onNavigate('/auth')}
+        className="relative z-10 w-40 h-40 md:w-52 md:h-52 rounded-full flex items-center justify-center cursor-pointer group transition-transform duration-300 hover:scale-110"
+        style={{ pointerEvents: 'auto' }}
+      >
+        {/* Outer glow rings */}
+        <span className="absolute inset-0 rounded-full animate-ping opacity-20 bg-primary" style={{ animationDuration: '2s' }} />
+        <span className="absolute -inset-3 rounded-full bg-gradient-to-r from-primary/40 via-accent/30 to-primary/40 blur-2xl animate-pulse" style={{ animationDuration: '1.5s' }} />
+        <span className="absolute -inset-6 rounded-full bg-primary/10 blur-3xl animate-pulse" style={{ animationDuration: '3s' }} />
+        
+        {/* Star shimmer effect */}
+        <span className="absolute inset-0 rounded-full overflow-hidden">
+          <span className="absolute inset-0 bg-gradient-conic from-primary via-white/20 to-primary rounded-full animate-spin" style={{ animationDuration: '4s' }} />
+        </span>
+        
+        {/* Inner button face */}
+        <span className="absolute inset-[3px] rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-[0_0_60px_rgba(124,58,237,0.5),0_0_120px_rgba(124,58,237,0.2)]">
+          <span className="text-white font-bold text-xl md:text-2xl tracking-wide drop-shadow-lg">
+            Let's Go
+          </span>
+        </span>
+      </button>
+    </div>
+  );
+});
+
 // Immersive background overlay that renders the HLS video fullscreen
-const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({ onClose }: { onClose: () => void }) {
+const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({ 
+  onClose, 
+  onVideoEnded 
+}: { 
+  onClose: () => void;
+  onVideoEnded: () => void;
+}) {
   const playerRef = useRef<UniversalHLSPlayerHandle>(null);
 
-  // Escape key to exit - using document-level capture phase
+  // Escape key to exit
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' || e.keyCode === 27) {
@@ -45,8 +87,9 @@ const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({ onClos
             className="w-full h-full"
             showControls={false}
             autoPlay={true}
-            loop={true}
+            loop={false}
             aspectRatio="auto"
+            onEnded={onVideoEnded}
           />
         </div>
         
@@ -72,21 +115,63 @@ const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({ onClos
 export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionProps>(
   function PricingSection({ onNavigate }, ref) {
     const [isImmersive, setIsImmersive] = useState(false);
+    const [showCTA, setShowCTA] = useState(false);
+    const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const hasAutoTriggeredRef = useRef(false);
+
+    // Inactivity detection — auto-enter immersive after 10s
+    useEffect(() => {
+      if (isImmersive || hasAutoTriggeredRef.current) return;
+
+      const resetTimer = () => {
+        if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+        inactivityTimerRef.current = setTimeout(() => {
+          if (!hasAutoTriggeredRef.current) {
+            hasAutoTriggeredRef.current = true;
+            setIsImmersive(true);
+          }
+        }, INACTIVITY_TIMEOUT_MS);
+      };
+
+      const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+      events.forEach(e => window.addEventListener(e, resetTimer, { passive: true }));
+      
+      // Start the initial timer
+      resetTimer();
+
+      return () => {
+        if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+        events.forEach(e => window.removeEventListener(e, resetTimer));
+      };
+    }, [isImmersive]);
 
     const handleEnterImmersive = useCallback(() => {
+      hasAutoTriggeredRef.current = true;
       setIsImmersive(true);
+      setShowCTA(false);
     }, []);
 
     const handleExitImmersive = useCallback(() => {
       setIsImmersive(false);
+      setShowCTA(false);
+    }, []);
+
+    const handleVideoEnded = useCallback(() => {
+      setShowCTA(true);
     }, []);
 
     return (
       <>
         {/* Immersive fullscreen background */}
         {isImmersive && (
-          <ImmersiveVideoBackground onClose={handleExitImmersive} />
+          <ImmersiveVideoBackground 
+            onClose={handleExitImmersive} 
+            onVideoEnded={handleVideoEnded}
+          />
         )}
+
+        {/* Glowing CTA after video ends */}
+        {showCTA && <LetsGoCTA onNavigate={onNavigate} />}
 
         <section ref={ref} id="pricing" className="relative z-10 py-24 px-6">
           <motion.div

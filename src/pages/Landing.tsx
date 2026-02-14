@@ -21,7 +21,7 @@ const ExamplesGallery = lazy(() => import('@/components/landing/ExamplesGallery'
 const FAQSection = lazy(() => import('@/components/landing/FAQSection'));
 const Footer = lazy(() => import('@/components/landing/Footer'));
 const FeaturesShowcase = lazy(() => import('@/components/landing/FeaturesShowcase'));
-const CinematicTransition = lazy(() => import('@/components/landing/CinematicTransition'));
+import CinematicTransition from '@/components/landing/CinematicTransition';
 
 // Loading fallbacks
 const SectionLoader = memo(forwardRef<HTMLDivElement, Record<string, never>>(
@@ -117,16 +117,12 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-black overflow-hidden relative">
       {/* Cinematic Transition */}
-      <ErrorBoundaryWrapper fallback={null}>
-        <Suspense fallback={null}>
-          {showCinematicTransition && (
-            <CinematicTransition 
-              isActive={showCinematicTransition} 
-              onComplete={handleTransitionComplete} 
-            />
-          )}
-        </Suspense>
-      </ErrorBoundaryWrapper>
+      {showCinematicTransition && (
+        <CinematicTransition 
+          isActive={showCinematicTransition} 
+          onComplete={handleTransitionComplete} 
+        />
+      )}
 
       {/* Abstract Background */}
       <ErrorBoundaryWrapper fallback={<BackgroundFallback />}>

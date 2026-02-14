@@ -154,7 +154,7 @@ export const PromptResultShowcase = memo(function PromptResultShowcase() {
           src={pair.videoUrl}
           muted
           playsInline
-          preload="auto"
+          preload="none"
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
             phase === 'reveal' ? 'opacity-100' : 'opacity-0'
           }`}

@@ -3,6 +3,8 @@ import { lazy, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSafeNavigation } from '@/lib/navigation';
 import { ErrorBoundaryWrapper } from '@/components/ui/error-boundary';
+import { CinemaLoader } from '@/components/ui/CinemaLoader';
+import { useGatekeeperLoading, getGatekeeperMessage, GATEKEEPER_PRESETS } from '@/hooks/useGatekeeperLoading';
 
 // Extracted landing components
 import { LandingNav } from '@/components/landing/LandingNav';
@@ -20,7 +22,6 @@ const FAQSection = lazy(() => import('@/components/landing/FAQSection'));
 const Footer = lazy(() => import('@/components/landing/Footer'));
 const FeaturesShowcase = lazy(() => import('@/components/landing/FeaturesShowcase'));
 const CinematicTransition = lazy(() => import('@/components/landing/CinematicTransition'));
-const ScreenCrashOverlay = lazy(() => import('@/components/landing/ScreenCrashOverlay'));
 
 // Loading fallbacks
 const SectionLoader = memo(forwardRef<HTMLDivElement, Record<string, never>>(
@@ -56,15 +57,21 @@ const BackgroundFallback = memo(forwardRef<HTMLDivElement, Record<string, never>
 BackgroundFallback.displayName = 'BackgroundFallback';
 
 // Main Landing Component
-
-// Main Landing Component
 export default function Landing() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { navigate } = useSafeNavigation();
   
   const [showExamples, setShowExamples] = useState(false);
   const [showCinematicTransition, setShowCinematicTransition] = useState(false);
   const signUpButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Gatekeeper for clean fade-in
+  const { isLoading, progress, phase } = useGatekeeperLoading({
+    ...GATEKEEPER_PRESETS.landing,
+    authLoading,
+    dataLoading: false,
+    dataSuccess: true,
+  });
 
   // Redirect authenticated users
   useEffect(() => {
@@ -94,23 +101,21 @@ export default function Landing() {
     setShowExamples(open);
   }, []);
 
-  const [screenCrashDismissed, setScreenCrashDismissed] = useState(false);
-  const handleDismissScreenCrash = useCallback(() => {
-    setScreenCrashDismissed(true);
-  }, []);
+  // Show CinemaLoader while gatekeeper is active
+  if (isLoading) {
+    return (
+      <CinemaLoader
+        isVisible={true}
+        message={getGatekeeperMessage(phase, GATEKEEPER_PRESETS.landing.messages)}
+        progress={progress}
+        showProgress={true}
+        variant="fullscreen"
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black overflow-hidden relative">
-      {/* Screen Crash Conversion Overlay */}
-      <ErrorBoundaryWrapper fallback={null}>
-        <Suspense fallback={null}>
-          <ScreenCrashOverlay 
-            isActive={!user && !screenCrashDismissed} 
-            onDismiss={handleDismissScreenCrash}
-          />
-        </Suspense>
-      </ErrorBoundaryWrapper>
-
       {/* Cinematic Transition */}
       <ErrorBoundaryWrapper fallback={null}>
         <Suspense fallback={null}>
@@ -158,9 +163,6 @@ export default function Landing() {
         </Suspense>
       </ErrorBoundaryWrapper>
 
-      {/* Social Proof Ticker (repeat between major sections) */}
-      <SocialProofTicker />
-
       {/* Pricing CTA */}
       <PricingSection onNavigate={handleNavigate} />
 
@@ -173,7 +175,7 @@ export default function Landing() {
         </ErrorBoundaryWrapper>
       </div>
 
-      {/* Avatar CTA (replaces plain FinalCTASection) */}
+      {/* Avatar CTA */}
       <AvatarCTASection onNavigate={handleNavigate} />
 
       {/* Examples Gallery */}

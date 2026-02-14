@@ -61,7 +61,7 @@ export const AvatarCTASection = memo(function AvatarCTASection({ onNavigate }: A
                 src={AVATAR_CTA_VIDEO}
                 muted={muted}
                 playsInline
-                preload="auto"
+                preload="none"
                 loop
                 onPlay={() => { setIsPlaying(true); setShowSubtitle(true); }}
                 onPause={() => setIsPlaying(false)}

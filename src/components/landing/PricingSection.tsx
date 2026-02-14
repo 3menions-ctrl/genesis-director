@@ -79,7 +79,7 @@ const SignupPopup = memo(function SignupPopup({ onClose, onNavigate }: { onClose
             <Sparkles className="w-6 h-6 text-white/80" />
           </div>
           <h2 className="text-2xl font-semibold text-white mb-2">Start creating</h2>
-          <p className="text-sm text-white/40">Your first 60 credits are free. No card required.</p>
+          <p className="text-sm text-white/40">Purchase credits to start creating cinematic videos.</p>
         </div>
 
         <form onSubmit={handleSignup} className="space-y-4">

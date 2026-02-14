@@ -7,7 +7,7 @@
  * - Extended: 15 credits per clip if:
  *   - Clip count exceeds 6 clips (clips 7+), OR
  *   - Clip duration exceeds 6 seconds
- * - New users get 60 free credits (6 clips at base rate)
+ * - All credits are purchased (no free credits)
  * 
  * Stripe: 1 credit = $0.10 (10 credits = $1)
  * 
@@ -46,8 +46,8 @@ export const CREDIT_SYSTEM = {
     TOTAL: 15,            // Total per clip (extended rate)
   },
   
-  // Welcome bonus
-  WELCOME_CREDITS: 60,    // 6 free clips for new users (at base rate)
+  // No welcome bonus — all credits purchased
+  WELCOME_CREDITS: 0,
   
   // Clip duration options (Kling 2.6)
   CLIP_DURATIONS: [5, 10] as const,
@@ -60,7 +60,7 @@ export const CREDIT_SYSTEM = {
   DEFAULT_CLIP_COUNT: 6,
   
   // Max clips by tier (for display purposes)
-  MAX_CLIPS_FREE: 6,      // 60 credits (at base rate)
+  MAX_CLIPS_FREE: 6,      // Based on purchased credits
   MAX_CLIPS_PRO: 30,      // 300 credits
 } as const;
 

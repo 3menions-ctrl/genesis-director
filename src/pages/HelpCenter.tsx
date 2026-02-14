@@ -100,9 +100,9 @@ Credits power all video generation on Apex Studio.
 **1 credit = $0.10 USD**
 
 ### Getting Started
-- **Welcome Bonus**: New accounts receive **60 free credits**
 - **No Expiration**: Credits never expire while your account is active
 - **No Subscriptions**: Buy once, use whenever
+- **Pay As You Go**: Purchase credits in affordable packages
 
 ### Credit Packages
 
@@ -116,7 +116,7 @@ Credits power all video generation on Apex Studio.
 
 **All credit purchases are final and non-refundable.**
 
-- Use your 60 free credits to test first
+- Start with the smallest package to test
 - Budget 2-4x credits for regenerations
 - AI results vary—this is normal
 
@@ -781,13 +781,13 @@ Apex Studio uses a credit-based system (no subscriptions).
 | Growth | 1,000 | $100 | $0.10 |
 | Agency | 2,500 | $250 | $0.10 |
 
-### Free Credits
+### Getting Started
 
-**New accounts receive 60 free credits** as a welcome bonus.
+All credits are purchased via credit packages.
 
-- Use these to test the platform
 - No expiration while account is active
 - Non-refundable, non-transferable
+- Start with the Mini or Starter package to test
 
 ### Why Credits?
 
@@ -867,7 +867,7 @@ You **cannot** get a refund for:
 
 **Protect yourself:**
 
-1. ✅ Use your **60 free credits** to test thoroughly
+1. ✅ Start with the **smallest package** to test thoroughly
 2. ✅ Review our **AI limitations** documentation
 3. ✅ Watch **sample videos** in the gallery
 4. ✅ Start with the **smallest package** if unsure
@@ -1029,7 +1029,7 @@ Our video generation relies on external services that may:
 1. **Review all content** before publishing
 2. **Never rely on AI** for factual accuracy
 3. **Budget for regeneration**—this is expected
-4. **Use free credits first** to understand the platform
+4. **Start with a small package** to understand the platform
 5. **Accept inherent limitations** of current AI technology
         `
       },

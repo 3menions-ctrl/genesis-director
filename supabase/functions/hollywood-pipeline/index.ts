@@ -417,7 +417,7 @@ const MAX_CLIP_DURATION = 10;
 // COST OPTIMIZATION: Quality retries disabled to reduce Kling API costs
 // Each clip is generated once and accepted regardless of quality score
 const TIER_CLIP_LIMITS: Record<string, { maxClips: number; maxDuration: number; maxRetries: number; chunkedStitching: boolean }> = {
-  'free': { maxClips: 6, maxDuration: 60, maxRetries: 0, chunkedStitching: false }, // 6 clips to match 60 credit welcome bonus
+  'free': { maxClips: 6, maxDuration: 60, maxRetries: 0, chunkedStitching: false }, // Free tier limit
   'pro': { maxClips: 10, maxDuration: 60, maxRetries: 0, chunkedStitching: true },
   'growth': { maxClips: 20, maxDuration: 120, maxRetries: 0, chunkedStitching: true },
   'agency': { maxClips: 30, maxDuration: 180, maxRetries: 0, chunkedStitching: true },

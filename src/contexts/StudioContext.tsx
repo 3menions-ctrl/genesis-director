@@ -5,11 +5,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { TIER_CREDIT_COSTS } from '@/hooks/useCreditBilling';
 import type { QualityTier } from '@/types/quality-tiers';
-// Default credits match the standardized 60-credit welcome bonus
+// Default credits for unauthenticated state
 const DEFAULT_CREDITS: UserCredits = {
-  total: 60,
+  total: 0,
   used: 0,
-  remaining: 60,
+  remaining: 0,
 };
 
 // PRODUCTION-READY: No mock layers - real data only from database
@@ -272,7 +272,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (profile) {
       setCredits({
-        total: profile.total_credits_purchased + 60, // Include welcome bonus (60 credits = 6 clips)
+        total: profile.total_credits_purchased,
         used: profile.total_credits_used,
         remaining: profile.credits_balance,
       });

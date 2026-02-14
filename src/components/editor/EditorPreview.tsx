@@ -82,13 +82,12 @@ export const EditorPreview = ({
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}:${f.toString().padStart(2, "0")}`;
   };
 
-  // Scrubber percentage
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="h-full flex flex-col bg-[#111]">
-      {/* Video viewport — cinematic black */}
-      <div className="flex-1 flex items-center justify-center bg-black relative overflow-hidden">
+    <div className="h-full flex flex-col bg-surface-1">
+      {/* Video viewport */}
+      <div className="flex-1 flex items-center justify-center bg-background relative overflow-hidden">
         {activeVideoClip ? (
           <video
             ref={videoRef}
@@ -97,7 +96,7 @@ export const EditorPreview = ({
             playsInline
           />
         ) : (
-          <div className="flex flex-col items-center gap-3 text-[#444]">
+          <div className="flex flex-col items-center gap-3 text-muted-foreground/40">
             <Play className="w-10 h-10" />
             <span className="text-xs tracking-wide">No clip at playhead</span>
           </div>
@@ -124,10 +123,10 @@ export const EditorPreview = ({
       </div>
 
       {/* Transport bar */}
-      <div className="bg-[#1a1a1a] border-t border-[#2a2a2a]">
+      <div className="bg-surface-2 border-t border-border">
         {/* Scrubber track */}
         <div
-          className="h-1 bg-[#222] cursor-pointer group relative"
+          className="h-1 bg-surface-3 cursor-pointer group relative"
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const pct = (e.clientX - rect.left) / rect.width;
@@ -135,11 +134,11 @@ export const EditorPreview = ({
           }}
         >
           <div
-            className="h-full bg-[#4a9eff] transition-all duration-75"
+            className="h-full bg-primary transition-all duration-75"
             style={{ width: `${progress}%` }}
           />
           <div
-            className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#4a9eff] opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+            className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
             style={{ left: `${progress}%`, marginLeft: -5 }}
           />
         </div>
@@ -149,7 +148,7 @@ export const EditorPreview = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-[#888] hover:text-white hover:bg-[#2a2a2a]"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-surface-3"
             onClick={() => onTimeChange(0)}
           >
             <SkipBack className="h-3.5 w-3.5" />
@@ -158,7 +157,7 @@ export const EditorPreview = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-white hover:bg-[#2a2a2a]"
+            className="h-8 w-8 text-foreground hover:bg-surface-3"
             onClick={onPlayPause}
           >
             {isPlaying ? (
@@ -171,19 +170,19 @@ export const EditorPreview = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-[#888] hover:text-white hover:bg-[#2a2a2a]"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-surface-3"
             onClick={() => onTimeChange(duration)}
           >
             <SkipForward className="h-3.5 w-3.5" />
           </Button>
 
-          <div className="h-4 w-px bg-[#333] mx-1.5" />
+          <div className="h-4 w-px bg-border mx-1.5" />
 
-          <span className="text-[11px] font-mono text-[#888] tabular-nums">
+          <span className="text-[11px] font-mono text-muted-foreground tabular-nums">
             {formatTime(currentTime)}
           </span>
-          <span className="text-[11px] text-[#444] mx-1">/</span>
-          <span className="text-[11px] font-mono text-[#555] tabular-nums">
+          <span className="text-[11px] text-muted-foreground/40 mx-1">/</span>
+          <span className="text-[11px] font-mono text-muted-foreground/60 tabular-nums">
             {formatTime(duration)}
           </span>
 

@@ -33,8 +33,8 @@ import { MessagesInbox } from '@/components/social/MessagesInbox';
 import { ProjectsBackground } from '@/components/projects';
 
 // Glass card styles matching Projects page
-const glassCard = "relative backdrop-blur-xl bg-white/[0.03] border border-white/[0.08] rounded-2xl";
-const glassCardHover = "hover:bg-white/[0.06] hover:border-white/[0.12] transition-all duration-300";
+const glassCard = "relative backdrop-blur-xl bg-surface-1 border border-border rounded-2xl";
+const glassCardHover = "hover:bg-surface-2 hover:border-border transition-all duration-300";
 
 // Achievement definitions
 const ACHIEVEMENTS = [
@@ -196,7 +196,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#030303]">
+      <div className="min-h-screen bg-background">
         <ProjectsBackground />
         <AppHeader />
         <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
@@ -208,7 +208,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   }
 
   return (
-    <div ref={ref} className="min-h-screen bg-[#030303] text-white overflow-hidden">
+    <div ref={ref} className="min-h-screen bg-background text-foreground overflow-hidden">
       {/* Projects page background */}
       <ProjectsBackground />
 

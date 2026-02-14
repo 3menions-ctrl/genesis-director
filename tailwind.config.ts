@@ -84,6 +84,13 @@ export default {
           "text-muted": "hsl(var(--glass-text-muted))",
           "text-subtle": "hsl(var(--glass-text-subtle))",
         },
+        // Surface elevation tokens
+        surface: {
+          "0": "hsl(var(--surface-0))",
+          "1": "hsl(var(--surface-1))",
+          "2": "hsl(var(--surface-2))",
+          "3": "hsl(var(--surface-3))",
+        },
       },
       fontFamily: {
         sans: ['Instrument Sans', 'system-ui', '-apple-system', 'sans-serif'],

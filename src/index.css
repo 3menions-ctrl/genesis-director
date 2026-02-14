@@ -45,119 +45,106 @@
 
 @layer base {
   :root {
-    /* VIBRANT SUNRISE - Bright, energetic colors */
-    --background: 45 60% 98%;
-    --foreground: 20 20% 10%;
+    /* ══════════════════════════════════════════════════════
+       STUDIO DARK — Violet-accented dark-first system
+       ══════════════════════════════════════════════════════ */
 
-    /* Bright warm glass effect */
-    --card: 40 50% 99%;
-    --card-foreground: 20 20% 10%;
-    --popover: 40 50% 99%;
-    --popover-foreground: 20 20% 10%;
+    /* Base surfaces — 3-tier elevation */
+    --background: 250 15% 4%;        /* #0a0a0f - deepest base */
+    --foreground: 240 5% 90%;        /* near-white text */
 
-    /* Vibrant coral primary - eye-catching CTAs */
-    --primary: 16 100% 58%;
+    /* Surface 1: Cards, panels */
+    --card: 250 12% 8%;              /* subtle lift */
+    --card-foreground: 240 5% 90%;
+    --popover: 250 12% 10%;
+    --popover-foreground: 240 5% 90%;
+
+    /* Primary — Violet CTAs */
+    --primary: 263 70% 58%;          /* #7c3aed */
     --primary-foreground: 0 0% 100%;
 
-    /* Rich magenta-rose secondary */
-    --secondary: 340 85% 58%;
-    --secondary-foreground: 0 0% 100%;
+    /* Secondary — Muted violet */
+    --secondary: 250 20% 16%;
+    --secondary-foreground: 240 5% 85%;
 
-    /* Warm cream muted */
-    --muted: 42 40% 92%;
-    --muted-foreground: 25 15% 40%;
+    /* Muted surfaces */
+    --muted: 250 12% 12%;
+    --muted-foreground: 240 5% 55%;
 
-    /* Bright golden accent */
-    --accent: 45 100% 55%;
-    --accent-foreground: 20 20% 8%;
+    /* Accent — Cyan for highlights */
+    --accent: 195 90% 50%;
+    --accent-foreground: 0 0% 100%;
 
-    /* Semantic colors - Vibrant feedback */
+    /* Semantic colors */
     --success: 160 84% 45%;
     --success-foreground: 0 0% 100%;
-    --success-muted: 160 60% 90%;
+    --success-muted: 160 40% 15%;
     --warning: 42 100% 55%;
-    --warning-foreground: 25 100% 15%;
-    --warning-muted: 42 80% 90%;
-    --info: 195 100% 50%;
+    --warning-foreground: 25 100% 8%;
+    --warning-muted: 42 40% 15%;
+    --info: 210 100% 55%;
     --info-foreground: 0 0% 100%;
-    --info-muted: 195 80% 92%;
-    --destructive: 0 90% 60%;
+    --info-muted: 210 40% 15%;
+    --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
-    --destructive-muted: 0 70% 92%;
+    --destructive-muted: 0 40% 15%;
 
-    /* Chart colors - Vibrant rainbow spectrum */
-    --chart-1: 16 100% 58%;
-    --chart-2: 340 85% 58%;
-    --chart-3: 45 100% 55%;
-    --chart-4: 195 100% 50%;
-    --chart-5: 280 75% 60%;
+    /* Chart colors */
+    --chart-1: 263 70% 58%;
+    --chart-2: 195 90% 50%;
+    --chart-3: 160 84% 45%;
+    --chart-4: 42 100% 55%;
+    --chart-5: 330 70% 55%;
 
-    /* Warm golden borders */
-    --border: 42 30% 88%;
-    --input: 42 30% 94%;
-    --ring: 16 100% 58%;
+    /* Borders & inputs */
+    --border: 250 10% 16%;
+    --input: 250 10% 14%;
+    --ring: 263 70% 58%;
 
-    --radius: 1rem;
+    --radius: 0.75rem;
 
-    /* Premium shadows with warm golden tints */
-    --shadow-xs: 0 1px 2px hsl(30 40% 30% / 0.04);
-    --shadow-sm: 0 2px 4px hsl(30 40% 30% / 0.05), 0 1px 2px hsl(30 40% 30% / 0.04);
-    --shadow-md: 0 4px 8px hsl(30 40% 30% / 0.06), 0 2px 4px hsl(30 40% 30% / 0.04);
-    --shadow-lg: 0 8px 16px hsl(30 40% 30% / 0.08), 0 4px 8px hsl(30 40% 30% / 0.05);
-    --shadow-xl: 0 16px 48px hsl(30 40% 30% / 0.12), 0 8px 16px hsl(30 40% 30% / 0.06);
-    --shadow-2xl: 0 24px 64px hsl(30 40% 30% / 0.15), 0 12px 24px hsl(30 40% 30% / 0.08);
-    --shadow-glass: 0 8px 32px hsl(30 40% 30% / 0.06), inset 0 0 0 1px hsl(45 60% 100% / 0.2);
-    --shadow-glow: 0 0 60px hsl(16 100% 58% / 0.3);
-    --shadow-glow-accent: 0 0 40px hsl(45 100% 55% / 0.35);
-    --shadow-glow-secondary: 0 0 40px hsl(340 85% 58% / 0.3);
+    /* Shadows — deep black with violet tint */
+    --shadow-xs: 0 1px 2px hsl(250 30% 5% / 0.4);
+    --shadow-sm: 0 2px 4px hsl(250 30% 5% / 0.5), 0 1px 2px hsl(250 30% 5% / 0.4);
+    --shadow-md: 0 4px 8px hsl(250 30% 5% / 0.5), 0 2px 4px hsl(250 30% 5% / 0.4);
+    --shadow-lg: 0 8px 24px hsl(250 30% 5% / 0.6), 0 4px 8px hsl(250 30% 5% / 0.4);
+    --shadow-xl: 0 16px 48px hsl(250 30% 5% / 0.7), 0 8px 16px hsl(250 30% 5% / 0.5);
+    --shadow-2xl: 0 24px 64px hsl(250 30% 5% / 0.8);
+    --shadow-glass: 0 8px 32px hsl(250 30% 5% / 0.5), inset 0 1px 0 hsl(0 0% 100% / 0.04);
+    --shadow-glow: 0 0 40px hsl(263 70% 58% / 0.3);
+    --shadow-glow-accent: 0 0 40px hsl(195 90% 50% / 0.25);
+    --shadow-glow-secondary: 0 0 40px hsl(330 70% 55% / 0.2);
 
-    /* Warm sidebar */
-    --sidebar-background: 25 25% 8%;
-    --sidebar-foreground: 45 40% 95%;
-    --sidebar-primary: 16 100% 60%;
+    /* Sidebar */
+    --sidebar-background: 250 15% 5%;
+    --sidebar-foreground: 240 5% 85%;
+    --sidebar-primary: 263 70% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 25 20% 14%;
-    --sidebar-accent-foreground: 45 40% 95%;
-    --sidebar-border: 25 20% 18%;
-    --sidebar-ring: 16 100% 58%;
+    --sidebar-accent: 250 15% 12%;
+    --sidebar-accent-foreground: 240 5% 90%;
+    --sidebar-border: 250 10% 16%;
+    --sidebar-ring: 263 70% 58%;
 
-    /* Glass overlay tokens - for dark overlays/modals */
-    --glass-bg: 0 0% 100% / 0.05;
-    --glass-bg-hover: 0 0% 100% / 0.08;
-    --glass-bg-active: 0 0% 100% / 0.12;
+    /* Glass overlay tokens */
+    --glass-bg: 0 0% 100% / 0.03;
+    --glass-bg-hover: 0 0% 100% / 0.06;
+    --glass-bg-active: 0 0% 100% / 0.10;
     --glass-border: 0 0% 100% / 0.08;
-    --glass-border-hover: 0 0% 100% / 0.15;
-    --glass-text: 0 0% 100%;
-    --glass-text-muted: 0 0% 100% / 0.6;
-    --glass-text-subtle: 0 0% 100% / 0.4;
+    --glass-border-hover: 0 0% 100% / 0.14;
+    --glass-text: 240 5% 93%;
+    --glass-text-muted: 240 5% 60%;
+    --glass-text-subtle: 240 5% 40%;
+
+    /* Surface elevation tokens */
+    --surface-0: 250 15% 4%;
+    --surface-1: 250 12% 8%;
+    --surface-2: 250 10% 13%;
+    --surface-3: 250 8% 18%;
   }
 
+  /* Dark class mirrors root (app is always dark) */
   .dark {
-    --background: 25 20% 6%;
-    --foreground: 45 40% 95%;
-    --card: 25 20% 9%;
-    --card-foreground: 45 40% 95%;
-    --primary: 16 100% 62%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 340 85% 60%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 25 20% 15%;
-    --muted-foreground: 40 20% 60%;
-    --accent: 45 100% 58%;
-    --accent-foreground: 25 100% 8%;
-    --border: 25 20% 20%;
-    --input: 25 20% 15%;
-    --ring: 16 100% 62%;
-
-    /* Glass overlay tokens - dark mode adjustments */
-    --glass-bg: 0 0% 100% / 0.05;
-    --glass-bg-hover: 0 0% 100% / 0.08;
-    --glass-bg-active: 0 0% 100% / 0.12;
-    --glass-border: 0 0% 100% / 0.1;
-    --glass-border-hover: 0 0% 100% / 0.18;
-    --glass-text: 45 40% 95%;
-    --glass-text-muted: 45 30% 75%;
-    --glass-text-subtle: 45 20% 55%;
+    /* Inherits :root — no overrides needed */
   }
 }
 
@@ -461,7 +448,7 @@
   body {
     @apply text-foreground antialiased;
     font-family: 'Instrument Sans', system-ui, -apple-system, sans-serif;
-    background: linear-gradient(145deg, hsl(45 60% 98%) 0%, hsl(40 50% 96%) 50%, hsl(35 45% 95%) 100%);
+    background: hsl(var(--background));
     min-height: 100vh;
     font-feature-settings: "cv11", "ss01";
     font-variation-settings: "opsz" 32;
@@ -490,17 +477,17 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(30 15% 70%);
+    background: hsl(250 10% 25%);
     border-radius: 100px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(30 15% 55%);
+    background: hsl(250 10% 35%);
   }
 
   ::selection {
-    background: hsl(24 95% 53% / 0.15);
-    color: hsl(20 15% 12%);
+    background: hsl(263 70% 58% / 0.25);
+    color: hsl(0 0% 100%);
   }
 }
 

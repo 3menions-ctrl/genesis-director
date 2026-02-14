@@ -131,8 +131,9 @@ export const PausedFrameVideo = memo(function PausedFrameVideo({
         ref={videoRef}
         src={src}
         className={cn(
-          "w-full h-full transition-opacity duration-300",
-          !frameReady && "opacity-0"
+          "w-full h-full",
+          showLoader && "transition-opacity duration-200",
+          showLoader && !frameReady && "opacity-0"
         )}
         preload="metadata"
         muted

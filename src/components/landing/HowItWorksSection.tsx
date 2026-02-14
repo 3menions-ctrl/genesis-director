@@ -1,66 +1,137 @@
-import { memo, forwardRef, useState, useRef, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { memo, forwardRef, useState, useRef, useCallback, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Lock, Camera, Layers, Eye, Shield, Brain, Music, Zap } from 'lucide-react';
+import { ArrowRight, Lock, Camera, Layers, Eye, Shield, Brain, Music, Zap, Play } from 'lucide-react';
 
-// Each layer now has a demo video URL showing its effect
 const LAYERS = [
-  { icon: Lock, title: 'Identity Lock', desc: '3-point character bible prevents morphing across scenes', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_7434c756-78d3-4f68-8107-b205930027c4_1768120634478.mp4', demoLabel: 'Same character across 8 scenes' },
-  { icon: Camera, title: 'Cinematography', desc: '12 movements, 14 angles, 7 sizes, 9 lighting styles', color: 'text-sky-400', bg: 'bg-sky-400/10', border: 'border-sky-400/20', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4', demoLabel: 'Dolly + golden-hour lighting' },
-  { icon: Layers, title: 'Frame Chaining', desc: 'Sequential visual continuity across every single cut', color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171376851.mp4', demoLabel: 'Seamless scene transitions' },
-  { icon: Eye, title: 'Cinematic Auditor', desc: 'Pre-gen review catches physics and continuity violations', color: 'text-violet-400', bg: 'bg-violet-400/10', border: 'border-violet-400/20', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4', demoLabel: 'Physics-validated motion' },
-  { icon: Shield, title: 'Hallucination Filter', desc: '25 negative prompts systematically remove AI artifacts', color: 'text-rose-400', bg: 'bg-rose-400/10', border: 'border-rose-400/20', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768157346652.mp4', demoLabel: 'Clean output, no artifacts' },
-  { icon: Brain, title: 'Smart Script', desc: 'Concept → shot list → timeline with narrative pacing', color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/20', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9ee134ca-5526-4e7f-9c10-1345f7b7b01f_1768109298602.mp4', demoLabel: 'Auto-generated narrative arc' },
-  { icon: Music, title: 'Audio Intelligence', desc: 'TTS voices, cinematic scoring & dialogue ducking', color: 'text-fuchsia-400', bg: 'bg-fuchsia-400/10', border: 'border-fuchsia-400/20', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/fc34967d-0fcc-4863-829e-29d2dee5e514/avatar_fc34967d-0fcc-4863-829e-29d2dee5e514_clip1_lipsync_1770421330974.mp4', demoLabel: 'Lip-synced AI voice' },
-  { icon: Zap, title: 'Multi-Model', desc: 'Kling & Veo orchestrated in a unified pipeline', color: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/gallery/Beautiful_Day_Vibes-final.mp4', demoLabel: 'Best-of-breed model selection' },
+  { icon: Lock, title: 'Identity Lock', desc: '3-point character bible prevents morphing across scenes', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20', accent: 'rgba(251,191,36,0.4)', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_7434c756-78d3-4f68-8107-b205930027c4_1768120634478.mp4', demoLabel: 'Same character across 8 scenes' },
+  { icon: Camera, title: 'Cinematography', desc: '12 movements, 14 angles, 7 sizes, 9 lighting styles', color: 'text-sky-400', bg: 'bg-sky-400/10', border: 'border-sky-400/20', accent: 'rgba(56,189,248,0.4)', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4', demoLabel: 'Dolly + golden-hour lighting' },
+  { icon: Layers, title: 'Frame Chaining', desc: 'Sequential visual continuity across every single cut', color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20', accent: 'rgba(16,185,129,0.4)', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171376851.mp4', demoLabel: 'Seamless scene transitions' },
+  { icon: Eye, title: 'Cinematic Auditor', desc: 'Pre-gen review catches physics and continuity violations', color: 'text-violet-400', bg: 'bg-violet-400/10', border: 'border-violet-400/20', accent: 'rgba(139,92,246,0.4)', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4', demoLabel: 'Physics-validated motion' },
+  { icon: Shield, title: 'Hallucination Filter', desc: '25 negative prompts systematically remove AI artifacts', color: 'text-rose-400', bg: 'bg-rose-400/10', border: 'border-rose-400/20', accent: 'rgba(244,63,94,0.4)', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768157346652.mp4', demoLabel: 'Clean output, no artifacts' },
+  { icon: Brain, title: 'Smart Script', desc: 'Concept → shot list → timeline with narrative pacing', color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/20', accent: 'rgba(34,211,238,0.4)', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9ee134ca-5526-4e7f-9c10-1345f7b7b01f_1768109298602.mp4', demoLabel: 'Auto-generated narrative arc' },
+  { icon: Music, title: 'Audio Intelligence', desc: 'TTS voices, cinematic scoring & dialogue ducking', color: 'text-fuchsia-400', bg: 'bg-fuchsia-400/10', border: 'border-fuchsia-400/20', accent: 'rgba(217,70,239,0.4)', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/fc34967d-0fcc-4863-829e-29d2dee5e514/avatar_fc34967d-0fcc-4863-829e-29d2dee5e514_clip1_lipsync_1770421330974.mp4', demoLabel: 'Lip-synced AI voice' },
+  { icon: Zap, title: 'Multi-Model', desc: 'Kling & Veo orchestrated in a unified pipeline', color: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20', accent: 'rgba(250,204,21,0.4)', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/gallery/Beautiful_Day_Vibes-final.mp4', demoLabel: 'Best-of-breed model selection' },
 ] as const;
 
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: { staggerChildren: 0.07, delayChildren: 0.15 }
-  }
-};
+const AUTO_CYCLE_MS = 8000;
 
-const cardVariants = {
-  hidden: { opacity: 0, y: 24 },
-  visible: {
-    opacity: 1, y: 0,
-    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const }
-  }
-};
+/** Compact layer button for the right-side selector */
+const LayerButton = memo(function LayerButton({
+  layer,
+  index,
+  isActive,
+  onClick,
+}: {
+  layer: typeof LAYERS[number];
+  index: number;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  const Icon = layer.icon;
+  return (
+    <button
+      onClick={onClick}
+      className={`group relative w-full text-left p-3.5 rounded-xl border transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-white/20 ${
+        isActive
+          ? 'bg-white/[0.08] border-white/[0.18] shadow-lg'
+          : 'bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.05] hover:border-white/[0.1]'
+      }`}
+    >
+      {/* Active glow */}
+      {isActive && (
+        <div
+          className="absolute inset-0 rounded-xl opacity-20 blur-sm pointer-events-none"
+          style={{ background: `radial-gradient(ellipse at 30% 50%, ${layer.accent}, transparent 70%)` }}
+        />
+      )}
+
+      <div className="relative z-10 flex items-start gap-3">
+        {/* Icon */}
+        <div className={`shrink-0 w-9 h-9 rounded-lg ${layer.bg} border ${layer.border} flex items-center justify-center transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-105'}`}>
+          <Icon className={`w-4 h-4 ${layer.color}`} />
+        </div>
+
+        {/* Text */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className={`text-sm font-semibold transition-colors ${isActive ? 'text-white' : 'text-white/70 group-hover:text-white/90'}`}>
+              {layer.title}
+            </h3>
+            <span className={`text-[10px] font-mono tracking-widest transition-colors ${isActive ? 'text-white/30' : 'text-white/[0.08] group-hover:text-white/15'}`}>
+              {String(index + 1).padStart(2, '0')}
+            </span>
+          </div>
+          <p className={`text-xs leading-relaxed mt-0.5 transition-colors ${isActive ? 'text-white/50' : 'text-white/20 group-hover:text-white/35'}`}>
+            {layer.desc}
+          </p>
+        </div>
+      </div>
+
+      {/* Progress bar for auto-cycle */}
+      {isActive && (
+        <div className="absolute bottom-0 left-3 right-3 h-[2px] rounded-full overflow-hidden bg-white/[0.05]">
+          <div
+            className="h-full rounded-full animate-pipeline-progress"
+            style={{
+              background: `linear-gradient(90deg, ${layer.accent}, transparent)`,
+              animationDuration: `${AUTO_CYCLE_MS}ms`,
+            }}
+          />
+        </div>
+      )}
+    </button>
+  );
+});
 
 export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, never>>(
   function HowItWorksSection(_, ref) {
-    const [activeLayer, setActiveLayer] = useState<number | null>(null);
-    const demoVideoRef = useRef<HTMLVideoElement>(null);
+    const [activeLayer, setActiveLayer] = useState(0);
+    const [isPlaying, setIsPlaying] = useState(true);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const cycleTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
-    const handleLayerHover = useCallback((index: number) => {
+    // Start/restart auto-cycle timer
+    const startCycleTimer = useCallback(() => {
+      if (cycleTimerRef.current) clearTimeout(cycleTimerRef.current);
+      cycleTimerRef.current = setTimeout(() => {
+        setActiveLayer(prev => (prev + 1) % LAYERS.length);
+      }, AUTO_CYCLE_MS);
+    }, []);
+
+    // Auto-cycle
+    useEffect(() => {
+      if (!isPlaying) return;
+      startCycleTimer();
+      return () => { if (cycleTimerRef.current) clearTimeout(cycleTimerRef.current); };
+    }, [activeLayer, isPlaying, startCycleTimer]);
+
+    // Play video when active layer changes
+    useEffect(() => {
+      const video = videoRef.current;
+      if (!video) return;
+      video.src = LAYERS[activeLayer].demoVideo;
+      video.currentTime = 0;
+      video.play().catch(() => {});
+    }, [activeLayer]);
+
+    const handleLayerClick = useCallback((index: number) => {
       setActiveLayer(index);
-      if (demoVideoRef.current) {
-        demoVideoRef.current.src = LAYERS[index].demoVideo;
-        demoVideoRef.current.currentTime = 0;
-        demoVideoRef.current.play().catch(() => {});
-      }
+      setIsPlaying(true);
     }, []);
 
-    const handleLayerLeave = useCallback(() => {
-      setActiveLayer(null);
-      if (demoVideoRef.current) {
-        demoVideoRef.current.pause();
-      }
-    }, []);
+    const currentLayer = LAYERS[activeLayer];
 
     return (
       <section ref={ref} id="features" className="relative z-10 py-28 md:py-40 px-6 overflow-hidden">
         <div className="max-w-6xl mx-auto relative">
           {/* Header */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="text-center mb-16"
+            className="text-center mb-14"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -84,18 +155,19 @@ export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, nev
             </p>
           </motion.div>
 
-          {/* ===== EPIC CONTAINER ===== */}
+          {/* ===== MAIN VISUALIZER ===== */}
           <motion.div
             initial={{ opacity: 0, y: 50, scale: 0.97 }}
             whileInView={{ opacity: 1, y: 0, scale: 1 }}
             viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-            className="relative group/container"
+            className="relative"
           >
-            {/* Outer glow layer — large colored blur behind the container */}
-            <div className="absolute -inset-6 rounded-[3rem] opacity-50 blur-3xl pointer-events-none"
+            {/* Outer glow */}
+            <div className="absolute -inset-6 rounded-[3rem] opacity-40 blur-3xl pointer-events-none"
               style={{
-                background: 'radial-gradient(ellipse at 20% 20%, rgba(139,92,246,0.15), transparent 50%), radial-gradient(ellipse at 80% 80%, rgba(56,189,248,0.12), transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(251,191,36,0.06), transparent 60%)',
+                background: `radial-gradient(ellipse at 30% 40%, ${currentLayer.accent.replace('0.4', '0.12')}, transparent 60%), radial-gradient(ellipse at 70% 70%, rgba(56,189,248,0.08), transparent 50%)`,
+                transition: 'background 1s ease',
               }}
             />
 
@@ -108,7 +180,6 @@ export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, nev
                   background: 'linear-gradient(135deg, rgba(139,92,246,0.5) 0%, rgba(56,189,248,0.3) 25%, rgba(16,185,129,0.3) 50%, rgba(251,191,36,0.3) 75%, rgba(139,92,246,0.5) 100%)',
                 }}
               />
-              {/* Shimmer sweep */}
               <div
                 className="absolute inset-0 rounded-[2rem]"
                 style={{
@@ -118,111 +189,93 @@ export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, nev
                 }}
               />
 
-              {/* Main container body */}
+              {/* Container body */}
               <div className="relative rounded-[calc(2rem-1px)] bg-[#07070b] overflow-hidden">
-                
-                {/* Internal atmosphere */}
+                {/* Atmosphere */}
                 <div className="absolute inset-0 pointer-events-none">
-                  {/* Radial spotlight from top */}
                   <div className="absolute -top-[200px] left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-violet-500/[0.05] rounded-full blur-[100px]" />
-                  {/* Bottom edge glow */}
                   <div className="absolute -bottom-[100px] left-1/2 -translate-x-1/2 w-[700px] h-[300px] bg-sky-500/[0.04] rounded-full blur-[80px]" />
-                  {/* Noise texture overlay */}
                   <div className="absolute inset-0 opacity-[0.015]"
                     style={{
                       backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
                     }}
                   />
-                  {/* Top edge highlight line */}
                   <div className="absolute top-0 left-[10%] right-[10%] h-px bg-gradient-to-r from-transparent via-white/[0.15] to-transparent" />
                 </div>
 
-                {/* Content padding */}
-                <div className="relative px-6 py-8 md:px-10 md:py-10 lg:px-12 lg:py-12">
-                  
-                  {/* Interactive Demo Viewport */}
-                  <div className={`mb-8 transition-all duration-500 overflow-hidden rounded-xl ${activeLayer !== null ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                    <div className="relative aspect-video max-w-2xl mx-auto rounded-xl overflow-hidden bg-black/50 border border-white/[0.08]">
-                      <video
-                        ref={demoVideoRef}
-                        muted
-                        playsInline
-                        loop
-                        preload="none"
-                        className="w-full h-full object-cover"
-                      />
-                      {/* Demo label */}
-                      {activeLayer !== null && (
-                        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-                          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-xs text-white/80">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                            {LAYERS[activeLayer].demoLabel}
-                          </span>
-                          <span className={`text-xs font-mono ${LAYERS[activeLayer].color}`}>
-                            Layer {String(activeLayer + 1).padStart(2, '0')}
-                          </span>
+                {/* Content: Split layout */}
+                <div className="relative px-5 py-6 md:px-8 md:py-8 lg:px-10 lg:py-10">
+                  <div className="flex flex-col lg:flex-row gap-6">
+
+                    {/* LEFT: Persistent Video Player */}
+                    <div className="lg:w-[58%] shrink-0">
+                      <div className="relative aspect-video rounded-xl overflow-hidden bg-black/60 border border-white/[0.08] shadow-2xl">
+                        {/* Colored glow behind video */}
+                        <div
+                          className="absolute -inset-4 rounded-2xl opacity-30 blur-2xl pointer-events-none transition-all duration-1000"
+                          style={{ background: `radial-gradient(ellipse at center, ${currentLayer.accent}, transparent 70%)` }}
+                        />
+
+                        <video
+                          ref={videoRef}
+                          muted
+                          playsInline
+                          loop
+                          preload="none"
+                          className="relative w-full h-full object-cover"
+                        />
+
+                        {/* Video overlay info */}
+                        <div className="absolute inset-0 pointer-events-none">
+                          {/* Top: Layer badge */}
+                          <div className="absolute top-3 left-3 flex items-center gap-2">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/50 backdrop-blur-md border border-white/10 text-[11px] font-medium ${currentLayer.color}`}>
+                              <Play className="w-3 h-3 fill-current" />
+                              Layer {String(activeLayer + 1).padStart(2, '0')}
+                            </span>
+                          </div>
+
+                          {/* Bottom: Demo label */}
+                          <div className="absolute bottom-3 left-3 right-3">
+                            <AnimatePresence mode="wait">
+                              <motion.div
+                                key={activeLayer}
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -8 }}
+                                transition={{ duration: 0.3 }}
+                                className="flex items-center justify-between"
+                              >
+                                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-xs text-white/80">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                  {currentLayer.demoLabel}
+                                </span>
+                                <span className={`text-xs font-semibold ${currentLayer.color}`}>
+                                  {currentLayer.title}
+                                </span>
+                              </motion.div>
+                            </AnimatePresence>
+                          </div>
                         </div>
-                      )}
+                      </div>
+                    </div>
+
+                    {/* RIGHT: Layer Selector */}
+                    <div className="lg:w-[42%] flex flex-col gap-2 max-h-[500px] overflow-y-auto pr-1 scrollbar-thin">
+                      {LAYERS.map((layer, i) => (
+                        <LayerButton
+                          key={layer.title}
+                          layer={layer}
+                          index={i}
+                          isActive={activeLayer === i}
+                          onClick={() => handleLayerClick(i)}
+                        />
+                      ))}
                     </div>
                   </div>
 
-                  {/* Layer Grid */}
-                  <motion.div
-                    variants={containerVariants}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true, margin: '-40px' }}
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4"
-                  >
-                    {LAYERS.map((layer, i) => {
-                      const Icon = layer.icon;
-                      const isActive = activeLayer === i;
-                      return (
-                        <motion.div
-                          key={layer.title}
-                          variants={cardVariants}
-                          className="group relative cursor-pointer"
-                          onMouseEnter={() => handleLayerHover(i)}
-                          onMouseLeave={handleLayerLeave}
-                        >
-                          <div className={`relative h-full p-5 rounded-xl border transition-all duration-500 overflow-hidden ${
-                            isActive 
-                              ? 'bg-white/[0.06] border-white/[0.15] scale-[1.02]' 
-                              : 'bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.05] hover:border-white/[0.12]'
-                          }`}>
-                            
-                            {/* Card inner glow on hover */}
-                            <div className={`absolute inset-0 ${layer.bg} transition-opacity duration-700 ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
-                            
-                            {/* Layer number */}
-                            <span className={`relative z-10 absolute top-4 right-4 text-[10px] font-mono tracking-widest transition-colors ${isActive ? 'text-white/30' : 'text-white/[0.06] group-hover:text-white/15'}`}>
-                              {String(i + 1).padStart(2, '0')}
-                            </span>
-
-                            {/* Icon */}
-                            <div className={`relative z-10 w-10 h-10 rounded-lg ${layer.bg} border ${layer.border} flex items-center justify-center mb-4 transition-all duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-105'}`}>
-                              <Icon className={`w-[18px] h-[18px] ${layer.color}`} />
-                            </div>
-
-                            <h3 className={`relative z-10 text-sm font-semibold mb-1.5 transition-colors ${isActive ? 'text-white' : 'text-white/90 group-hover:text-white'}`}>
-                              {layer.title}
-                            </h3>
-                            <p className={`relative z-10 text-[13px] leading-relaxed transition-colors duration-500 ${isActive ? 'text-white/60' : 'text-white/25 group-hover:text-white/50'}`}>
-                              {layer.desc}
-                            </p>
-                            
-                            {/* Active indicator bar */}
-                            {isActive && (
-                              <div className={`absolute bottom-0 left-4 right-4 h-0.5 rounded-full bg-gradient-to-r ${layer.color === 'text-amber-400' ? 'from-amber-400 to-amber-400/0' : layer.color === 'text-sky-400' ? 'from-sky-400 to-sky-400/0' : layer.color === 'text-emerald-400' ? 'from-emerald-400 to-emerald-400/0' : layer.color === 'text-violet-400' ? 'from-violet-400 to-violet-400/0' : layer.color === 'text-rose-400' ? 'from-rose-400 to-rose-400/0' : layer.color === 'text-cyan-400' ? 'from-cyan-400 to-cyan-400/0' : layer.color === 'text-fuchsia-400' ? 'from-fuchsia-400 to-fuchsia-400/0' : 'from-yellow-400 to-yellow-400/0'}`} />
-                            )}
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </motion.div>
-
                   {/* Footer */}
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-10 pt-8 border-t border-white/[0.05]">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-white/[0.05]">
                     <p className="text-xs text-white/20 tracking-wide">
                       Powered by <span className="text-white/40 font-medium">Kling</span> & <span className="text-white/40 font-medium">Veo</span> — orchestrated by Apex
                     </p>
@@ -240,12 +293,24 @@ export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, nev
           </motion.div>
         </div>
 
-        {/* Shimmer animation */}
+        {/* Animations */}
         <style>{`
           @keyframes shimmer-sweep {
             0%, 100% { background-position: 200% 0; }
             50% { background-position: -200% 0; }
           }
+          @keyframes pipeline-progress {
+            0% { width: 0%; }
+            100% { width: 100%; }
+          }
+          .animate-pipeline-progress {
+            animation-name: pipeline-progress;
+            animation-timing-function: linear;
+            animation-fill-mode: forwards;
+          }
+          .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+          .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+          .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
         `}</style>
       </section>
     );

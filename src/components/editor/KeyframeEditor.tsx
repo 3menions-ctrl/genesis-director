@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Plus, Trash2, Diamond, Move, ZoomIn, RotateCw } from "lucide-react";
+import { Plus, Trash2, Diamond, Move, ZoomIn, RotateCw, Eye } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Keyframe, TimelineClip } from "./types";
 
 interface KeyframeEditorProps {
@@ -51,13 +52,13 @@ export const KeyframeEditor = ({ clip, currentTime, onUpdateClip }: KeyframeEdit
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+        <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/30">
           Keyframes
         </span>
         <Button
           variant="ghost"
           size="icon"
-          className="h-5 w-5 text-primary hover:bg-primary/10"
+          className="h-5 w-5 text-primary/60 hover:text-primary hover:bg-primary/10 rounded transition-all"
           onClick={addKeyframe}
         >
           <Plus className="h-3 w-3" />
@@ -65,48 +66,60 @@ export const KeyframeEditor = ({ clip, currentTime, onUpdateClip }: KeyframeEdit
       </div>
 
       {/* Keyframe timeline minimap */}
-      <div className="relative h-6 bg-surface-1 rounded border border-border">
+      <div className="relative h-8 bg-black/20 rounded-md border border-white/[0.04] overflow-hidden">
+        {/* Grid lines */}
+        <div className="absolute inset-0 flex">
+          {Array.from({ length: 10 }, (_, i) => (
+            <div key={i} className="flex-1 border-r border-white/[0.03]" />
+          ))}
+        </div>
+
         {keyframes.map((kf, i) => {
           const pct = (kf.time / clipDuration) * 100;
           return (
             <button
               key={i}
-              className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 transition-colors ${
+              className={cn(
+                "absolute top-1/2 -translate-y-1/2 -translate-x-1/2 transition-all z-10",
                 selectedKfIndex === i
-                  ? "text-primary"
-                  : "text-muted-foreground/60 hover:text-primary/80"
-              }`}
+                  ? "text-primary scale-125 drop-shadow-[0_0_4px_hsl(263,70%,58%,0.5)]"
+                  : "text-white/30 hover:text-primary/70 hover:scale-110"
+              )}
               style={{ left: `${pct}%` }}
               onClick={() => setSelectedKfIndex(i)}
             >
-              <Diamond className="h-3 w-3" />
+              <Diamond className="h-3.5 w-3.5" fill={selectedKfIndex === i ? "currentColor" : "none"} />
             </button>
           );
         })}
+
         {/* Current time indicator */}
         <div
-          className="absolute top-0 bottom-0 w-px bg-destructive/50"
+          className="absolute top-0 bottom-0 w-px bg-primary/40 z-5"
           style={{ left: `${(relativeTime / clipDuration) * 100}%` }}
         />
       </div>
 
       {keyframes.length === 0 && (
-        <p className="text-[10px] text-muted-foreground/40 text-center py-2">
-          No keyframes. Click + to add at current time.
+        <p className="text-[10px] text-white/20 text-center py-3">
+          No keyframes yet. Click <span className="text-primary/60">+</span> to add at playhead.
         </p>
       )}
 
       {/* Selected keyframe properties */}
       {selectedKf && selectedKfIndex !== null && (
-        <div className="space-y-2 p-2 rounded bg-surface-1 border border-border">
+        <div className="space-y-2.5 p-2.5 rounded-lg bg-black/20 border border-white/[0.04]">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] text-muted-foreground">
-              @ {selectedKf.time.toFixed(2)}s
-            </span>
+            <div className="flex items-center gap-1.5">
+              <Diamond className="h-2.5 w-2.5 text-primary" fill="currentColor" />
+              <span className="text-[9px] text-white/40 font-mono">
+                {selectedKf.time.toFixed(2)}s
+              </span>
+            </div>
             <Button
               variant="ghost"
               size="icon"
-              className="h-4 w-4 text-destructive/60 hover:text-destructive"
+              className="h-4 w-4 text-red-400/40 hover:text-red-400 hover:bg-red-500/10 rounded transition-all"
               onClick={() => removeKeyframe(selectedKfIndex)}
             >
               <Trash2 className="h-2.5 w-2.5" />
@@ -114,19 +127,19 @@ export const KeyframeEditor = ({ clip, currentTime, onUpdateClip }: KeyframeEdit
           </div>
 
           {[
-            { key: "x", label: "X Position", icon: Move, min: -500, max: 500 },
-            { key: "y", label: "Y Position", icon: Move, min: -500, max: 500 },
-            { key: "scale", label: "Scale", icon: ZoomIn, min: 10, max: 300 },
-            { key: "rotation", label: "Rotation", icon: RotateCw, min: -360, max: 360 },
-            { key: "opacity", label: "Opacity", icon: ZoomIn, min: 0, max: 100 },
-          ].map(({ key, label, icon: Icon, min, max }) => (
+            { key: "x", label: "Position X", icon: Move, min: -500, max: 500, color: "text-blue-400" },
+            { key: "y", label: "Position Y", icon: Move, min: -500, max: 500, color: "text-blue-400" },
+            { key: "scale", label: "Scale", icon: ZoomIn, min: 10, max: 300, color: "text-emerald-400" },
+            { key: "rotation", label: "Rotation", icon: RotateCw, min: -360, max: 360, color: "text-amber-400" },
+            { key: "opacity", label: "Opacity", icon: Eye, min: 0, max: 100, color: "text-white/60" },
+          ].map(({ key, label, icon: Icon, min, max, color }) => (
             <div key={key} className="space-y-0.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1">
-                  <Icon className="h-2.5 w-2.5 text-muted-foreground/50" />
-                  <span className="text-[9px] text-muted-foreground">{label}</span>
+                  <Icon className={cn("h-2.5 w-2.5", color)} />
+                  <span className="text-[9px] text-white/35">{label}</span>
                 </div>
-                <span className="text-[8px] tabular-nums text-muted-foreground/40">
+                <span className="text-[8px] tabular-nums text-white/20 font-mono">
                   {(selectedKf.properties as any)[key] ?? 0}
                 </span>
               </div>
@@ -142,15 +155,16 @@ export const KeyframeEditor = ({ clip, currentTime, onUpdateClip }: KeyframeEdit
           ))}
 
           {/* Easing */}
-          <div className="flex gap-1 mt-1">
+          <div className="flex gap-0.5 mt-1">
             {(["linear", "ease-in", "ease-out", "ease-in-out"] as const).map((e) => (
               <button
                 key={e}
-                className={`px-1.5 py-0.5 rounded text-[8px] transition-colors ${
+                className={cn(
+                  "px-2 py-0.5 rounded text-[8px] transition-all font-medium",
                   selectedKf.easing === e
-                    ? "bg-primary/15 text-primary"
-                    : "text-muted-foreground/40 hover:text-muted-foreground hover:bg-surface-2"
-                }`}
+                    ? "bg-primary/15 text-primary border border-primary/20"
+                    : "text-white/20 hover:text-white/40 hover:bg-white/[0.04]"
+                )}
                 onClick={() => updateKfEasing(selectedKfIndex, e)}
               >
                 {e}
@@ -170,7 +184,6 @@ export function interpolateKeyframes(keyframes: Keyframe[], time: number) {
   if (time >= keyframes[keyframes.length - 1].time)
     return { x: 0, y: 0, scale: 100, rotation: 0, opacity: 100, ...keyframes[keyframes.length - 1].properties };
 
-  // Find surrounding keyframes
   let a = keyframes[0], b = keyframes[1];
   for (let i = 0; i < keyframes.length - 1; i++) {
     if (time >= keyframes[i].time && time <= keyframes[i + 1].time) {
@@ -182,7 +195,6 @@ export function interpolateKeyframes(keyframes: Keyframe[], time: number) {
 
   const t = (time - a.time) / (b.time - a.time);
   const eased = applyEasing(t, b.easing || "linear");
-
   const lerp = (from: number, to: number) => from + (to - from) * eased;
 
   return {

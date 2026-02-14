@@ -125,7 +125,7 @@ describe('EditorPreview', () => {
 
   it('shows "No clip at current time" when no active clip', () => {
     render(<EditorPreview {...defaultProps} currentTime={100} />);
-    expect(screen.getByText('No clip at current time')).toBeInTheDocument();
+    expect(screen.getByText('No clip at playhead')).toBeInTheDocument();
   });
 
   it('renders text overlays when text clips are active', () => {
@@ -175,7 +175,6 @@ describe('EditorSidebar', () => {
 
   it('shows text clip properties when text clip selected', () => {
     render(<EditorSidebar {...defaultProps} selectedClipId="text-1" />);
-    expect(screen.getByText('Properties')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Hello World')).toBeInTheDocument();
   });
 

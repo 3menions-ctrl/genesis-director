@@ -133,6 +133,7 @@ function buildAvatarActingPrompt(
   physicalDetail?: string,
   sceneNote?: string,
   transitionNote?: string,
+  identityLock?: string,
 ): string {
   const idx = clipIndex % 10;
   
@@ -176,6 +177,11 @@ function buildAvatarActingPrompt(
     : '[AVATAR STYLE: Photorealistic human. NOT cartoon/animated.]';
   
   const backgroundLock = clipIndex > 0 ? '[SAME ENVIRONMENT: Continue in the exact same location with consistent lighting.]' : '';
+  
+  // IDENTITY LOCK: Critical for cross-character consistency
+  const identityDirective = identityLock 
+    ? `[FACE LOCK — CRITICAL: ${identityLock} Maintain EXACT same face, hair color, skin tone, body type, and clothing throughout. NO morphing, NO face changes, NO age shifts. This person must be 100% recognizable and identical to the start frame reference.]`
+    : '[IDENTITY LOCK: Maintain EXACT same face, hair, skin tone, body type, and clothing as shown in the start frame. NO morphing, NO face changes, NO age shifts.]';
   
   // Rich movement from screenplay
   const movementMap: Record<string, string> = {
@@ -232,9 +238,9 @@ function buildAvatarActingPrompt(
   
   const lifelikeDirective = "Continuous lifelike motion: breathing visible in chest/shoulders, natural eye tracking, involuntary micro-expressions, authentic weight shifts, hair/clothing responding to movement.";
   
-  console.log(`[Watchdog] 🎬 Clip ${clipIndex + 1}/${totalClips} | Camera: ${screenplayCameraHint || movementKey} | Movement: ${screenplayMovement || 'default'} | AvatarType: ${avatarType}`);
+  console.log(`[Watchdog] 🎬 Clip ${clipIndex + 1}/${totalClips} | Camera: ${screenplayCameraHint || movementKey} | Movement: ${screenplayMovement || 'default'} | AvatarType: ${avatarType} | IdentityLock: ${identityLock ? 'YES' : 'generic'}`);
   
-  return `${avatarTypeLock} ${backgroundLock} ${transitionDirective} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. ${narrativeBeat} ${motionBlock} Speaking naturally: "${segmentText.trim().substring(0, 120)}${segmentText.length > 120 ? '...' : ''}". ${performanceStyle} ${lifelikeDirective} ${qualityBaseline}`;
+  return `${identityDirective} ${avatarTypeLock} ${backgroundLock} ${transitionDirective} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. ${narrativeBeat} ${motionBlock} Speaking naturally: "${segmentText.trim().substring(0, 120)}${segmentText.length > 120 ? '...' : ''}". ${performanceStyle} ${lifelikeDirective} ${qualityBaseline}`;
 }
 
 serve(async (req) => {
@@ -324,15 +330,24 @@ serve(async (req) => {
           // Previous clip is complete - extract last frame and start this clip!
           console.log(`[Watchdog] 🔗 FRAME-CHAINING: Starting clip ${pred.clipIndex + 1} from clip ${prevClipIndex + 1}'s last frame`);
           
-          // DUAL AVATAR: If this clip uses the secondary avatar, use its reference image
+          // DUAL AVATAR: Determine if switching characters
           const isDualAvatar = pred.avatarRole === 'secondary' && tasks.secondaryAvatar?.imageUrl;
+          const prevWasSecondary = prevPred.avatarRole === 'secondary';
+          const isCharacterSwitch = (pred.avatarRole === 'secondary' && !prevWasSecondary) || 
+                                    (pred.avatarRole === 'primary' && prevWasSecondary);
           let startImageUrl: string | null = null;
           
+          // BUILD IDENTITY LOCK for this clip's character
+          // This gets injected into the Kling prompt to prevent face drift
+          let characterIdentityLock = '';
+          
           if (isDualAvatar) {
+            // SECONDARY AVATAR CLIP
             console.log(`[Watchdog] 🎭 DUAL AVATAR: Clip ${pred.clipIndex + 1} uses SECONDARY avatar (${tasks.secondaryAvatar.name})`);
+            characterIdentityLock = `This is ${tasks.secondaryAvatar.name}. The character in this clip must look EXACTLY like the person shown in the start frame reference image. Preserve their exact facial features, hair style, hair color, skin tone, eye color, body build, and outfit.`;
             
-            // ALWAYS scene-composite the secondary avatar to prevent headless rendering
-            // The raw reference image may be a face-only crop — compositing ensures full-body in environment
+            // ALWAYS re-composite from the ORIGINAL reference image for secondary
+            // This prevents identity drift — each secondary clip starts from the canonical reference
             const sceneDesc = pred.sceneNote || tasks.sceneDescription || 'Professional studio setting';
             try {
               const sceneResponse = await fetch(`${supabaseUrl}/functions/v1/generate-avatar-scene`, {
@@ -346,8 +361,7 @@ serve(async (req) => {
                   sceneDescription: sceneDesc,
                   aspectRatio: tasks.aspectRatio || '16:9',
                   placement: 'center',
-                  // CRITICAL: Force full-body generation to prevent head-only rendering
-                  additionalInstructions: 'IMPORTANT: Show the COMPLETE person from head to toe. Full body visible. Do NOT crop to just the head or face. The character must have a complete body, arms, legs, and be standing or sitting naturally in the scene.',
+                  additionalInstructions: 'IMPORTANT: Show the COMPLETE person from head to toe. Full body visible. Do NOT crop to just the head or face. The character must have a complete body, arms, legs, and be standing or sitting naturally in the scene. CRITICAL: Preserve the EXACT face, hair, and appearance of the person in the reference image.',
                 }),
               });
               
@@ -362,63 +376,41 @@ serve(async (req) => {
               console.warn(`[Watchdog] Secondary scene compositing failed (non-fatal):`, sceneError);
             }
             
-            // Fallback: use raw image but warn
+            // Fallback: use raw image
             if (!startImageUrl) {
               startImageUrl = tasks.secondaryAvatar.imageUrl;
               console.warn(`[Watchdog] ⚠️ Using raw secondary avatar image (may produce head-only render)`);
             }
           } else {
-            // PRIMARY AVATAR CLIP: Smart frame-chaining
-            // KEY FIX: If the previous clip was a SECONDARY avatar, don't use its last frame
-            // Instead, find the most recent PRIMARY avatar clip's last frame for identity continuity
-            const prevWasSecondary = prevPred.avatarRole === 'secondary';
+            // PRIMARY AVATAR CLIP
+            characterIdentityLock = `This is the PRIMARY character. The character in this clip must look EXACTLY like the person shown in the start frame reference image. Preserve their exact facial features, hair style, hair color, skin tone, eye color, body build, and outfit. This MUST be the same person as in clip 1.`;
             
-            if (prevWasSecondary) {
-              console.log(`[Watchdog] 🔗 CROSS-AVATAR CONTINUITY: Previous clip was secondary — finding last PRIMARY frame`);
+            if (isCharacterSwitch) {
+              // SWITCHING BACK TO PRIMARY after secondary clips
+              // CRITICAL FIX: Do NOT use the secondary character's last frame!
+              // Re-composite from the ORIGINAL primary reference to restore identity
+              console.log(`[Watchdog] 🔗 IDENTITY RESTORE: Switching back to PRIMARY — re-compositing from original reference`);
               
-              // Search backwards for the most recent completed PRIMARY clip
-              let primaryFrameFound = false;
-              for (let searchIdx = pred.clipIndex - 1; searchIdx >= 0; searchIdx--) {
-                const candidatePred = tasks.predictions.find((p: { clipIndex: number }) => p.clipIndex === searchIdx);
-                if (candidatePred && candidatePred.avatarRole === 'primary' && candidatePred.status === 'completed' && candidatePred.videoUrl) {
-                  // Extract last frame from this primary clip
-                  try {
-                    const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-last-frame`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${supabaseKey}`,
-                      },
-                      body: JSON.stringify({
-                        videoUrl: candidatePred.videoUrl,
-                        projectId: project.id,
-                        clipIndex: searchIdx,
-                      }),
-                    });
-                    
-                    if (frameResponse.ok) {
-                      const frameResult = await frameResponse.json();
-                      const extractedFrame = frameResult.frameUrl || frameResult.lastFrameUrl;
-                      if (frameResult.success && extractedFrame) {
-                        startImageUrl = extractedFrame;
-                        primaryFrameFound = true;
-                        console.log(`[Watchdog] ✅ Found PRIMARY frame from clip ${searchIdx + 1}: ${startImageUrl!.substring(0, 60)}...`);
-                        break;
-                      }
-                    }
-                  } catch (frameError) {
-                    console.warn(`[Watchdog] Frame extraction from primary clip ${searchIdx + 1} failed:`, frameError);
+              // First try: re-composite from original scene image (has primary avatar in scene)
+              const originalSceneImage = tasks.sceneImageUrl || tasks.predictions[0]?.startImageUrl;
+              if (originalSceneImage) {
+                startImageUrl = originalSceneImage;
+                console.log(`[Watchdog] ✅ Using ORIGINAL primary scene image for identity restore: ${startImageUrl!.substring(0, 60)}...`);
+              }
+              
+              // If no scene image, search for the most recent primary clip's start image (not last frame — too risky for drift)
+              if (!startImageUrl) {
+                for (let searchIdx = pred.clipIndex - 1; searchIdx >= 0; searchIdx--) {
+                  const candidatePred = tasks.predictions.find((p: { clipIndex: number }) => p.clipIndex === searchIdx);
+                  if (candidatePred && candidatePred.avatarRole === 'primary' && candidatePred.startImageUrl) {
+                    startImageUrl = candidatePred.startImageUrl;
+                    console.log(`[Watchdog] ✅ Found PRIMARY start image from clip ${searchIdx + 1}: ${startImageUrl!.substring(0, 60)}...`);
+                    break;
                   }
                 }
               }
-              
-              // If no primary frame found, fall back to scene image (which has the primary avatar)
-              if (!primaryFrameFound) {
-                startImageUrl = tasks.sceneImageUrl || tasks.predictions[0]?.startImageUrl;
-                console.warn(`[Watchdog] ⚠️ No previous PRIMARY frame found, using scene image fallback`);
-              }
             } else {
-              // Normal case: previous clip was also primary — extract its last frame
+              // Normal case: previous clip was also primary — extract its last frame for continuity
               try {
                 const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-last-frame`, {
                   method: 'POST',
@@ -489,7 +481,7 @@ serve(async (req) => {
           // Store the validated start image for this clip
           pred.startImageUrl = startImageUrl;
           
-          // Build acting prompt with SCREENPLAY DATA (movement, action, emotion, camera)
+          // Build acting prompt with SCREENPLAY DATA + IDENTITY LOCK
           const avatarType = tasks.avatarType || 'realistic';
           
           // FULL-BODY ENFORCEMENT: Add explicit body instruction for secondary avatar clips
@@ -500,14 +492,14 @@ serve(async (req) => {
           const actingPrompt = buildAvatarActingPrompt(
             pred.segmentText + fullBodyEnforcement, tasks.sceneDescription, pred.clipIndex, tasks.predictions.length, avatarType,
             pred.action, pred.movement, pred.emotion, pred.cameraHint, pred.physicalDetail,
-            pred.sceneNote, pred.transitionNote,
+            pred.sceneNote, pred.transitionNote, characterIdentityLock,
           );
           const videoDuration = tasks.clipDuration >= 10 ? 10 : (tasks.clipDuration || 10);
           
-          // Avatar type-specific negative prompts
+          // Avatar type-specific negative prompts (with anti-morphing)
           const negativePrompt = avatarType === 'animated'
-            ? "photorealistic, real human, live action, photograph, real skin texture, different background, changed environment, new location, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless"
-            : "cartoon, animated, CGI, 3D render, anime, illustration, drawing, painting, sketch, different background, changed environment, new location, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless";
+            ? "photorealistic, real human, live action, photograph, real skin texture, different background, changed environment, new location, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, face morphing, identity change, different person, age change, face swap"
+            : "cartoon, animated, CGI, 3D render, anime, illustration, drawing, painting, sketch, different background, changed environment, new location, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, face morphing, identity change, different person, age change, face swap";
           
           // Start Kling prediction for this clip WITH RESILIENT FETCH
           let klingRetries = 0;

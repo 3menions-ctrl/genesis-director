@@ -509,8 +509,25 @@ export function detectJourneyType(baseScene: string | undefined): string {
 export function getProgressiveScene(
   baseScene: string | undefined,
   clipIndex: number,
-  totalClips: number
+  totalClips: number,
+  lockBackground: boolean = false
 ): string {
+  // BACKGROUND CONTINUITY: If lockBackground is true OR user provided a scene, 
+  // keep the SAME environment across ALL clips for cinematic consistency
+  if (lockBackground || (baseScene?.trim())) {
+    const scene = baseScene?.trim() || "professional studio with cinematic lighting";
+    // Only vary camera framing/lighting subtly, NOT the location
+    const subtleVariations = [
+      '', // Clip 1: exactly as described
+      ', slightly different camera angle revealing more of the environment',
+      ', warm golden hour lighting shift',
+      ', deeper depth of field emphasizing the subject',
+      ', subtle atmospheric haze adding cinematic depth',
+    ];
+    const variation = subtleVariations[clipIndex % subtleVariations.length];
+    return `${scene}${variation}`;
+  }
+  
   // For 1-2 clips, use the same scene throughout
   if (totalClips < 3) {
     return baseScene?.trim() || "professional studio with cinematic lighting";

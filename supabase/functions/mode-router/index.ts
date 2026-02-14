@@ -183,6 +183,7 @@ interface ModeRouterRequest {
   // Avatar-specific: Single avatar (legacy support)
   characterBible?: CharacterBible;
   avatarTemplateId?: string;
+  avatarType?: 'realistic' | 'animated'; // Lock avatar visual style
   
   // Avatar-specific: Multi-avatar casting (new)
   avatarCast?: AvatarCastMember[];
@@ -569,6 +570,7 @@ async function handleAvatarDirectMode(params: {
       clipCount, // Number of clips to generate
       clipDuration, // Duration per clip in seconds
       cinematicMode, // Pass cinematic mode to generation
+      avatarType: request.avatarType || 'realistic', // Lock avatar style type
     }),
     maxRetries: 3,
     timeoutMs: 90000, // 90 second timeout for the initial call (most work is async)

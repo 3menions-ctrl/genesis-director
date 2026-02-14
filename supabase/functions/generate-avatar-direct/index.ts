@@ -128,6 +128,7 @@ interface AvatarDirectRequest {
   clipCount?: number;
   clipDuration?: number;
   cinematicMode?: CinematicModeConfig;
+  avatarType?: 'realistic' | 'animated'; // Lock avatar visual style
 }
 
 serve(async (req) => {
@@ -161,6 +162,7 @@ serve(async (req) => {
       clipCount = 1,
       clipDuration = 10,
       cinematicMode,
+      avatarType = 'realistic',
     } = request;
 
     if (!script || !avatarImageUrl) {
@@ -350,7 +352,10 @@ serve(async (req) => {
     // START CLIP 1 ONLY - Watchdog will chain the rest
     const clip1Data = allSegmentData[0];
     const videoDuration = (clipDuration && clipDuration >= 10) ? 10 : (clipDuration || 10);
-    const actingPrompt = buildActingPrompt(clip1Data.segmentText, sceneDescription, cinematicMode, 0, finalClipCount);
+    const actingPrompt = buildActingPrompt(clip1Data.segmentText, sceneDescription, cinematicMode, 0, finalClipCount, avatarType);
+    const avatarTypeLock = avatarType === 'animated' 
+      ? '[AVATAR STYLE LOCK: This character is a stylized CGI/animated character. Maintain cartoon/animated art style throughout. DO NOT render as photorealistic human.]'
+      : '[AVATAR STYLE LOCK: This character is a photorealistic human. Maintain realistic appearance throughout. DO NOT render as cartoon/animated/CGI style.]';
     
     console.log(`[AvatarDirect] ═══ Starting Clip 1/${finalClipCount} ═══`);
     console.log(`[AvatarDirect] Start image: ${sharedAnimationStartImage.substring(0, 60)}...`);
@@ -364,11 +369,13 @@ serve(async (req) => {
       body: JSON.stringify({
         input: {
           mode: "pro",
-          prompt: actingPrompt,
+          prompt: `${avatarTypeLock} ${actingPrompt}`,
           duration: videoDuration,
           start_image: sharedAnimationStartImage,
           aspect_ratio: aspectRatio,
-          negative_prompt: "static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast",
+          negative_prompt: avatarType === 'animated'
+            ? "photorealistic, real human, live action, photograph, real skin texture, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast"
+            : "cartoon, animated, CGI, 3D render, anime, illustration, drawing, painting, sketch, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast",
         },
       }),
     });
@@ -392,11 +399,13 @@ serve(async (req) => {
           body: JSON.stringify({
             input: {
               mode: "pro",
-              prompt: actingPrompt,
+              prompt: `${avatarTypeLock} ${actingPrompt}`,
               duration: videoDuration,
               start_image: sharedAnimationStartImage,
               aspect_ratio: aspectRatio,
-              negative_prompt: "static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast",
+              negative_prompt: avatarType === 'animated'
+                ? "photorealistic, real human, live action, photograph, real skin texture, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast"
+                : "cartoon, animated, CGI, 3D render, anime, illustration, drawing, painting, sketch, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast",
             },
           }),
         });
@@ -593,6 +602,7 @@ serve(async (req) => {
         pending_video_tasks: {
           type: 'avatar_async',
           embeddedAudioOnly: true,
+          avatarType: avatarType, // CRITICAL: Persist for watchdog to use in subsequent clips
           predictions: pendingPredictions.map(p => ({
             predictionId: p.predictionId,
             clipIndex: p.clipIndex,
@@ -712,18 +722,19 @@ function buildActingPrompt(
   sceneDescription?: string, 
   cinematicMode?: CinematicModeConfig, 
   clipIndex: number = 0,
-  totalClips: number = 1
+  totalClips: number = 1,
+  avatarType: string = 'realistic'
 ): string {
   const emotionalTone = analyzeEmotionalTone(script);
   const performanceStyle = getPerformanceStyle(emotionalTone);
   
   // Check if cinematic mode is enabled for full Hollywood treatment
   if (cinematicMode?.enabled) {
-    return buildWorldClassPrompt(script, sceneDescription, clipIndex, totalClips, performanceStyle);
+    return buildWorldClassPrompt(script, sceneDescription, clipIndex, totalClips, performanceStyle, avatarType);
   }
   
   // Even without cinematic mode, still provide variety between clips
-  return buildVarietyPrompt(script, sceneDescription, clipIndex, totalClips, performanceStyle);
+  return buildVarietyPrompt(script, sceneDescription, clipIndex, totalClips, performanceStyle, avatarType);
 }
 
 /**
@@ -735,7 +746,8 @@ function buildWorldClassPrompt(
   baseSceneDescription: string | undefined,
   clipIndex: number,
   totalClips: number,
-  performanceStyle: string
+  performanceStyle: string,
+  avatarType: string = 'realistic'
 ): string {
   const idx = clipIndex % 10;
   
@@ -752,9 +764,12 @@ function buildWorldClassPrompt(
   const lightingPrompt = selectPrompt(LIGHTING_STYLES[lightingKey] || LIGHTING_STYLES.classic_key);
   const motionPrompt = selectPrompt(SUBJECT_MOTION[motionKey] || SUBJECT_MOTION.gesture_expressive);
   
-  // DYNAMIC SCENE PROGRESSION: Get progressive scene for this clip
-  const progressiveScene = getProgressiveScene(baseSceneDescription, clipIndex, totalClips);
+  // BACKGROUND CONTINUITY: Lock scene across all clips for avatar mode
+  const progressiveScene = getProgressiveScene(baseSceneDescription, clipIndex, totalClips, true);
   const sceneContext = `Cinematic scene set in ${progressiveScene}.`;
+  
+  // BACKGROUND LOCK for clips 2+
+  const backgroundLock = clipIndex > 0 ? '[SAME BACKGROUND: Continue in EXACT same environment as previous clip. DO NOT change location.]' : '';
   
   // CRITICAL: "Already in position" enforcement for Kling animation
   const positionEnforcement = "IMPORTANT: The subject is ALREADY fully positioned in the environment from the first frame - NOT walking in, NOT entering, NOT arriving. They are stationary and grounded, having already been present in this location.";
@@ -764,7 +779,7 @@ function buildWorldClassPrompt(
   console.log(`[AvatarDirect] Clip ${clipIndex + 1}/${totalClips} Style: ${movementKey} + ${angleKey} + ${sizeKey}`);
   console.log(`[AvatarDirect] Clip ${clipIndex + 1}/${totalClips} Scene: ${progressiveScene.substring(0, 60)}...`);
   
-  return `${positionEnforcement} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. The subject is ${motionPrompt}, speaking naturally: "${script.substring(0, 80)}${script.length > 80 ? '...' : ''}". ${performanceStyle} Lifelike fluid movements, natural micro-expressions, authentic lip sync, subtle breathing motion, realistic eye movements and blinks. ${qualityBaseline}`;
+  return `${positionEnforcement} ${backgroundLock} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. The subject is ${motionPrompt}, speaking naturally: "${script.substring(0, 80)}${script.length > 80 ? '...' : ''}". ${performanceStyle} Lifelike fluid movements, natural micro-expressions, authentic lip sync, subtle breathing motion, realistic eye movements and blinks. ${qualityBaseline}`;
 }
 
 /**
@@ -777,7 +792,8 @@ function buildVarietyPrompt(
   baseSceneDescription: string | undefined,
   clipIndex: number,
   totalClips: number,
-  performanceStyle: string
+  performanceStyle: string,
+  avatarType: string = 'realistic'
 ): string {
   // Simpler variety cycle - all enforce "already positioned"
   const simpleAngles = [
@@ -800,9 +816,12 @@ function buildVarietyPrompt(
   const angle = simpleAngles[clipIndex % simpleAngles.length];
   const motion = simpleMotion[clipIndex % simpleMotion.length];
   
-  // DYNAMIC SCENE PROGRESSION: Get progressive scene for this clip
-  const progressiveScene = getProgressiveScene(baseSceneDescription, clipIndex, totalClips);
+  // BACKGROUND CONTINUITY: Lock scene across all clips for avatar mode
+  const progressiveScene = getProgressiveScene(baseSceneDescription, clipIndex, totalClips, true);
   const sceneContext = `Cinematic scene in ${progressiveScene}, shot with professional cinematography.`;
+  
+  // BACKGROUND LOCK for clips 2+
+  const backgroundLock = clipIndex > 0 ? '[SAME BACKGROUND: Continue in EXACT same environment as previous clip. DO NOT change location.]' : '';
   
   // CRITICAL: "Already in position" enforcement
   const positionEnforcement = "IMPORTANT: Subject is ALREADY in position from frame 1 - NOT walking in, NOT entering. Stationary and grounded.";
@@ -811,7 +830,7 @@ function buildVarietyPrompt(
   
   console.log(`[AvatarDirect] Clip ${clipIndex + 1}/${totalClips} (Standard) Scene: ${progressiveScene.substring(0, 60)}...`);
   
-  return `${positionEnforcement} ${sceneContext} ${angle} of the person ${motion}: "${script.substring(0, 80)}${script.length > 80 ? '...' : ''}". ${performanceStyle} Lifelike fluid movements, natural micro-expressions, authentic lip sync. ${qualityBaseline}`;
+  return `${positionEnforcement} ${backgroundLock} ${sceneContext} ${angle} of the person ${motion}: "${script.substring(0, 80)}${script.length > 80 ? '...' : ''}". ${performanceStyle} Lifelike fluid movements, natural micro-expressions, authentic lip sync. ${qualityBaseline}`;
 }
 
 function analyzeEmotionalTone(script: string): 'excited' | 'serious' | 'warm' | 'playful' | 'neutral' {

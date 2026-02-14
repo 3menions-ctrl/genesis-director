@@ -333,6 +333,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
           enableMusic,
           characterBible,
           avatarTemplateId: selectedAvatar.id,
+          avatarType: selectedAvatar.avatar_type || 'realistic', // Lock avatar style type
           sceneDescription: sceneDescription.trim() || undefined,
           cinematicMode: cinematicMode.enabled ? cinematicMode : undefined,
         },

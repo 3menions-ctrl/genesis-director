@@ -4341,11 +4341,27 @@ export type Database = {
       charge_preproduction_credits:
         | { Args: { p_project_id: string; p_shot_id: string }; Returns: Json }
         | {
+            Args: {
+              p_credits_amount?: number
+              p_project_id: string
+              p_shot_id: string
+            }
+            Returns: Json
+          }
+        | {
             Args: { p_project_id: string; p_shot_id: string; p_user_id: string }
             Returns: Json
           }
       charge_production_credits:
         | { Args: { p_project_id: string; p_shot_id: string }; Returns: Json }
+        | {
+            Args: {
+              p_credits_amount?: number
+              p_project_id: string
+              p_shot_id: string
+            }
+            Returns: Json
+          }
         | {
             Args: { p_project_id: string; p_shot_id: string; p_user_id: string }
             Returns: Json

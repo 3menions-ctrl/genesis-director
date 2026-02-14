@@ -225,11 +225,21 @@ export const GATEKEEPER_PRESETS = {
   },
   production: {
     pageId: 'ProductionPage',
-    timeout: 8000, // Longer for production page
+    timeout: 8000,
     messages: {
       auth: 'Authenticating...',
       data: 'Loading production data...',
       images: 'Preparing pipeline...',
+      ready: 'Ready',
+    },
+  },
+  landing: {
+    pageId: 'LandingPage',
+    timeout: 3000,
+    messages: {
+      auth: 'Loading...',
+      data: 'Loading...',
+      images: 'Loading...',
       ready: 'Ready',
     },
   },

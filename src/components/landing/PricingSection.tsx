@@ -20,13 +20,17 @@ interface PricingSectionProps {
 const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({ onClose }: { onClose: () => void }) {
   const playerRef = useRef<UniversalHLSPlayerHandle>(null);
 
-  // Escape key to exit
+  // Escape key to exit - using document-level capture phase
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' || e.keyCode === 27) {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+      }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [onClose]);
 
   return (

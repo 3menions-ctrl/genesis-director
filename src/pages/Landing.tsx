@@ -9,7 +9,9 @@ import { LandingNav } from '@/components/landing/LandingNav';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
 import { PricingSection } from '@/components/landing/PricingSection';
-import { FinalCTASection } from '@/components/landing/FinalCTASection';
+import { AvatarCTASection } from '@/components/landing/AvatarCTASection';
+import { SocialProofTicker } from '@/components/landing/SocialProofTicker';
+import { PromptResultShowcase } from '@/components/landing/PromptResultShowcase';
 
 // Lazy load heavy components
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
@@ -170,6 +172,14 @@ export default function Landing() {
       {/* Hero Section */}
       <HeroSection onEnterStudio={handleEnterStudio} />
 
+      {/* Prompt → Result Showcase */}
+      <div className="relative z-10 -mt-20 pb-12 px-6">
+        <PromptResultShowcase />
+      </div>
+
+      {/* Social Proof Ticker */}
+      <SocialProofTicker />
+
       {/* How it Works */}
       <HowItWorksSection />
 
@@ -179,6 +189,9 @@ export default function Landing() {
           <FeaturesShowcase />
         </Suspense>
       </ErrorBoundaryWrapper>
+
+      {/* Social Proof Ticker (repeat between major sections) */}
+      <SocialProofTicker />
 
       {/* Pricing CTA */}
       <PricingSection onNavigate={handleNavigate} />
@@ -192,8 +205,8 @@ export default function Landing() {
         </ErrorBoundaryWrapper>
       </div>
 
-      {/* Final CTA */}
-      <FinalCTASection onNavigate={handleNavigate} />
+      {/* Avatar CTA (replaces plain FinalCTASection) */}
+      <AvatarCTASection onNavigate={handleNavigate} />
 
       {/* Examples Gallery */}
       <ErrorBoundaryWrapper fallback={null}>

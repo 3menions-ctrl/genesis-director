@@ -1,17 +1,18 @@
-import { memo, forwardRef } from 'react';
+import { memo, forwardRef, useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Lock, Camera, Layers, Eye, Shield, Brain, Music, Zap } from 'lucide-react';
 
+// Each layer now has a demo video URL showing its effect
 const LAYERS = [
-  { icon: Lock, title: 'Identity Lock', desc: '3-point character bible prevents morphing across scenes', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20' },
-  { icon: Camera, title: 'Cinematography', desc: '12 movements, 14 angles, 7 sizes, 9 lighting styles', color: 'text-sky-400', bg: 'bg-sky-400/10', border: 'border-sky-400/20' },
-  { icon: Layers, title: 'Frame Chaining', desc: 'Sequential visual continuity across every single cut', color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20' },
-  { icon: Eye, title: 'Cinematic Auditor', desc: 'Pre-gen review catches physics and continuity violations', color: 'text-violet-400', bg: 'bg-violet-400/10', border: 'border-violet-400/20' },
-  { icon: Shield, title: 'Hallucination Filter', desc: '25 negative prompts systematically remove AI artifacts', color: 'text-rose-400', bg: 'bg-rose-400/10', border: 'border-rose-400/20' },
-  { icon: Brain, title: 'Smart Script', desc: 'Concept → shot list → timeline with narrative pacing', color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/20' },
-  { icon: Music, title: 'Audio Intelligence', desc: 'TTS voices, cinematic scoring & dialogue ducking', color: 'text-fuchsia-400', bg: 'bg-fuchsia-400/10', border: 'border-fuchsia-400/20' },
-  { icon: Zap, title: 'Multi-Model', desc: 'Kling & Veo orchestrated in a unified pipeline', color: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20' },
+  { icon: Lock, title: 'Identity Lock', desc: '3-point character bible prevents morphing across scenes', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_7434c756-78d3-4f68-8107-b205930027c4_1768120634478.mp4', demoLabel: 'Same character across 8 scenes' },
+  { icon: Camera, title: 'Cinematography', desc: '12 movements, 14 angles, 7 sizes, 9 lighting styles', color: 'text-sky-400', bg: 'bg-sky-400/10', border: 'border-sky-400/20', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4', demoLabel: 'Dolly + golden-hour lighting' },
+  { icon: Layers, title: 'Frame Chaining', desc: 'Sequential visual continuity across every single cut', color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171376851.mp4', demoLabel: 'Seamless scene transitions' },
+  { icon: Eye, title: 'Cinematic Auditor', desc: 'Pre-gen review catches physics and continuity violations', color: 'text-violet-400', bg: 'bg-violet-400/10', border: 'border-violet-400/20', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4', demoLabel: 'Physics-validated motion' },
+  { icon: Shield, title: 'Hallucination Filter', desc: '25 negative prompts systematically remove AI artifacts', color: 'text-rose-400', bg: 'bg-rose-400/10', border: 'border-rose-400/20', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768157346652.mp4', demoLabel: 'Clean output, no artifacts' },
+  { icon: Brain, title: 'Smart Script', desc: 'Concept → shot list → timeline with narrative pacing', color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/20', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9ee134ca-5526-4e7f-9c10-1345f7b7b01f_1768109298602.mp4', demoLabel: 'Auto-generated narrative arc' },
+  { icon: Music, title: 'Audio Intelligence', desc: 'TTS voices, cinematic scoring & dialogue ducking', color: 'text-fuchsia-400', bg: 'bg-fuchsia-400/10', border: 'border-fuchsia-400/20', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/fc34967d-0fcc-4863-829e-29d2dee5e514/avatar_fc34967d-0fcc-4863-829e-29d2dee5e514_clip1_lipsync_1770421330974.mp4', demoLabel: 'Lip-synced AI voice' },
+  { icon: Zap, title: 'Multi-Model', desc: 'Kling & Veo orchestrated in a unified pipeline', color: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20', demoVideo: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/gallery/Beautiful_Day_Vibes-final.mp4', demoLabel: 'Best-of-breed model selection' },
 ] as const;
 
 const containerVariants = {
@@ -31,6 +32,25 @@ const cardVariants = {
 
 export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, never>>(
   function HowItWorksSection(_, ref) {
+    const [activeLayer, setActiveLayer] = useState<number | null>(null);
+    const demoVideoRef = useRef<HTMLVideoElement>(null);
+
+    const handleLayerHover = useCallback((index: number) => {
+      setActiveLayer(index);
+      if (demoVideoRef.current) {
+        demoVideoRef.current.src = LAYERS[index].demoVideo;
+        demoVideoRef.current.currentTime = 0;
+        demoVideoRef.current.play().catch(() => {});
+      }
+    }, []);
+
+    const handleLayerLeave = useCallback(() => {
+      setActiveLayer(null);
+      if (demoVideoRef.current) {
+        demoVideoRef.current.pause();
+      }
+    }, []);
+
     return (
       <section ref={ref} id="features" className="relative z-10 py-28 md:py-40 px-6 overflow-hidden">
         <div className="max-w-6xl mx-auto relative">
@@ -120,6 +140,32 @@ export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, nev
                 {/* Content padding */}
                 <div className="relative px-6 py-8 md:px-10 md:py-10 lg:px-12 lg:py-12">
                   
+                  {/* Interactive Demo Viewport */}
+                  <div className={`mb-8 transition-all duration-500 overflow-hidden rounded-xl ${activeLayer !== null ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                    <div className="relative aspect-video max-w-2xl mx-auto rounded-xl overflow-hidden bg-black/50 border border-white/[0.08]">
+                      <video
+                        ref={demoVideoRef}
+                        muted
+                        playsInline
+                        loop
+                        preload="none"
+                        className="w-full h-full object-cover"
+                      />
+                      {/* Demo label */}
+                      {activeLayer !== null && (
+                        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+                          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-xs text-white/80">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            {LAYERS[activeLayer].demoLabel}
+                          </span>
+                          <span className={`text-xs font-mono ${LAYERS[activeLayer].color}`}>
+                            Layer {String(activeLayer + 1).padStart(2, '0')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Layer Grid */}
                   <motion.div
                     variants={containerVariants}
@@ -130,33 +176,45 @@ export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, nev
                   >
                     {LAYERS.map((layer, i) => {
                       const Icon = layer.icon;
+                      const isActive = activeLayer === i;
                       return (
                         <motion.div
                           key={layer.title}
                           variants={cardVariants}
-                          className="group relative"
+                          className="group relative cursor-pointer"
+                          onMouseEnter={() => handleLayerHover(i)}
+                          onMouseLeave={handleLayerLeave}
                         >
-                          <div className="relative h-full p-5 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-500 overflow-hidden">
+                          <div className={`relative h-full p-5 rounded-xl border transition-all duration-500 overflow-hidden ${
+                            isActive 
+                              ? 'bg-white/[0.06] border-white/[0.15] scale-[1.02]' 
+                              : 'bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.05] hover:border-white/[0.12]'
+                          }`}>
                             
                             {/* Card inner glow on hover */}
-                            <div className={`absolute inset-0 ${layer.bg} opacity-0 group-hover:opacity-100 transition-opacity duration-700`} />
+                            <div className={`absolute inset-0 ${layer.bg} transition-opacity duration-700 ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
                             
                             {/* Layer number */}
-                            <span className="relative z-10 absolute top-4 right-4 text-[10px] font-mono text-white/[0.06] group-hover:text-white/15 transition-colors tracking-widest">
+                            <span className={`relative z-10 absolute top-4 right-4 text-[10px] font-mono tracking-widest transition-colors ${isActive ? 'text-white/30' : 'text-white/[0.06] group-hover:text-white/15'}`}>
                               {String(i + 1).padStart(2, '0')}
                             </span>
 
                             {/* Icon */}
-                            <div className={`relative z-10 w-10 h-10 rounded-lg ${layer.bg} border ${layer.border} flex items-center justify-center mb-4 group-hover:scale-105 transition-all duration-300`}>
+                            <div className={`relative z-10 w-10 h-10 rounded-lg ${layer.bg} border ${layer.border} flex items-center justify-center mb-4 transition-all duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-105'}`}>
                               <Icon className={`w-[18px] h-[18px] ${layer.color}`} />
                             </div>
 
-                            <h3 className="relative z-10 text-sm font-semibold text-white/90 mb-1.5 group-hover:text-white transition-colors">
+                            <h3 className={`relative z-10 text-sm font-semibold mb-1.5 transition-colors ${isActive ? 'text-white' : 'text-white/90 group-hover:text-white'}`}>
                               {layer.title}
                             </h3>
-                            <p className="relative z-10 text-[13px] text-white/25 leading-relaxed group-hover:text-white/50 transition-colors duration-500">
+                            <p className={`relative z-10 text-[13px] leading-relaxed transition-colors duration-500 ${isActive ? 'text-white/60' : 'text-white/25 group-hover:text-white/50'}`}>
                               {layer.desc}
                             </p>
+                            
+                            {/* Active indicator bar */}
+                            {isActive && (
+                              <div className={`absolute bottom-0 left-4 right-4 h-0.5 rounded-full bg-gradient-to-r ${layer.color === 'text-amber-400' ? 'from-amber-400 to-amber-400/0' : layer.color === 'text-sky-400' ? 'from-sky-400 to-sky-400/0' : layer.color === 'text-emerald-400' ? 'from-emerald-400 to-emerald-400/0' : layer.color === 'text-violet-400' ? 'from-violet-400 to-violet-400/0' : layer.color === 'text-rose-400' ? 'from-rose-400 to-rose-400/0' : layer.color === 'text-cyan-400' ? 'from-cyan-400 to-cyan-400/0' : layer.color === 'text-fuchsia-400' ? 'from-fuchsia-400 to-fuchsia-400/0' : 'from-yellow-400 to-yellow-400/0'}`} />
+                            )}
                           </div>
                         </motion.div>
                       );

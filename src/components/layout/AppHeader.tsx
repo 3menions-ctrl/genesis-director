@@ -112,13 +112,13 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
                       className={cn(
                         "relative px-5 py-2 text-sm font-medium rounded-full transition-all duration-300 overflow-hidden",
                         active
-                          ? "text-primary-foreground" 
+                          ? "text-black" 
                           : "text-muted-foreground hover:text-foreground"
                       )}
                     >
-                      {/* Active pill background with glow */}
+                      {/* Active pill background */}
                       {active && (
-                        <span className="absolute inset-0 rounded-full bg-primary/90 shadow-[0_0_20px_hsl(var(--primary)/0.4)] animate-fade-in-scale" />
+                        <span className="absolute inset-0 rounded-full bg-white/90 shadow-[0_0_20px_hsl(0_0%_100%/0.3)] animate-fade-in-scale" />
                       )}
                       {/* Hover fill for inactive items */}
                       {!active && (
@@ -150,7 +150,7 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
                 <Button 
                   onClick={handleCreate}
                   size="sm"
-                  className="h-9 px-5 text-sm font-semibold rounded-full bg-gradient-to-r from-primary to-[hsl(280_70%_60%)] hover:from-primary/90 hover:to-[hsl(280_70%_55%)] text-primary-foreground shadow-[0_0_24px_hsl(var(--primary)/0.35)] hover:shadow-[0_0_32px_hsl(var(--primary)/0.5)] transition-all duration-300 border-0"
+                  className="h-9 px-5 text-sm font-semibold rounded-full bg-white hover:bg-white/90 text-black shadow-[0_0_24px_hsl(0_0%_100%/0.25)] hover:shadow-[0_0_32px_hsl(0_0%_100%/0.35)] transition-all duration-300 border-0"
                 >
                   <Sparkles className="w-3.5 h-3.5 mr-1.5" />
                   Create
@@ -240,7 +240,7 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
                 className={cn(
                   "block w-full px-4 py-3 rounded-xl text-sm font-medium transition-all",
                   isActive(item.path)
-                    ? "text-primary-foreground bg-primary/80" 
+                    ? "text-black bg-white/90" 
                     : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]"
                 )}
               >
@@ -257,7 +257,7 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
                     setMobileMenuOpen(false);
                   }}
                   size="sm"
-                  className="flex-1 h-10 bg-gradient-to-r from-primary to-[hsl(280_70%_60%)] text-primary-foreground hover:opacity-90 font-semibold rounded-xl border-0"
+                  className="flex-1 h-10 bg-white text-black hover:bg-white/90 font-semibold rounded-xl border-0"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
                   Create

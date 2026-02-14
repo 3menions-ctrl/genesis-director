@@ -454,9 +454,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
                 project.thumbnail_url ? (
                   <img src={project.thumbnail_url} alt={project.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
                 ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] to-transparent flex items-center justify-center">
-                    <Film className="w-8 h-8 text-white/[0.06]" />
-                  </div>
+                  <PausedFrameVideo src={videoSrc} className="absolute inset-0 w-full h-full object-cover" showLoader={false} />
                 )
               )
             ) : (

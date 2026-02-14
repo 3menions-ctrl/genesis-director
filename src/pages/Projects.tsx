@@ -286,22 +286,25 @@ function ProjectsContentInner() {
     resolveClipUrls();
   }, [user, hasLoadedOnce, projects]);
   
-  // Auto-generate missing thumbnails when projects load
+  // Auto-generate missing thumbnails when projects load (uses resolved clip URLs)
   useEffect(() => {
     // Guard: Wait for user and valid projects array
     if (!user || !hasLoadedOnce || !Array.isArray(projects) || projects.length === 0) return;
+    // Wait for clip resolution to complete before generating thumbnails
+    if (resolvedClipUrls.size === 0) return;
     
     try {
       const projectsNeedingThumbnails = projects.map(p => ({
         id: p.id,
         video_url: p.video_url,
-        thumbnail_url: p.thumbnail_url
+        thumbnail_url: p.thumbnail_url,
+        resolvedClipUrl: resolvedClipUrls.get(p.id) || null,
       }));
       generateMissingThumbnails(projectsNeedingThumbnails);
     } catch (err) {
       console.debug('[Projects] Thumbnail generation skipped:', err);
     }
-  }, [user, hasLoadedOnce, projects, generateMissingThumbnails]);
+  }, [user, hasLoadedOnce, projects, resolvedClipUrls, generateMissingThumbnails]);
 
 
   // Fetch training videos

@@ -127,7 +127,7 @@ const GalleryContent = memo(function GalleryContent() {
   // React requires consistent hook order on every render
   
   // 1. All useState hooks first
-  const [hasAccess, setHasAccess] = useState(false);
+  const [hasAccess, setHasAccess] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState<GalleryVideo | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -178,18 +178,13 @@ const GalleryContent = memo(function GalleryContent() {
     setCurrentIndex(0);
   }, [activeCategory]);
   
-  // Access control
+  // Track animation entry for smooth transitions (gallery is always public)
   useEffect(() => {
     const fromAnimation = location.state?.fromAnimation === true;
-    const sessionAccess = sessionStorage.getItem('gallery_access') === 'true';
-    
-    if (fromAnimation || sessionAccess) {
-      if (fromAnimation) sessionStorage.setItem('gallery_access', 'true');
-      setHasAccess(true);
-    } else {
-      navigate('/', { replace: true });
+    if (fromAnimation) {
+      sessionStorage.setItem('gallery_access', 'true');
     }
-  }, [location, navigate]);
+  }, [location]);
   
   // Scroll/wheel navigation with debounce
   const scrollThreshold = 300; // ms between scroll events

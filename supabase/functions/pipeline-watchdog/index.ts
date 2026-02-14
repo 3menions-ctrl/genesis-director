@@ -118,45 +118,94 @@ const MAX_AGE_MS = 60 * 60 * 1000; // 60 minutes
 /**
  * Build WORLD-CLASS acting prompt for avatar frame-chaining
  * Each clip gets unique cinematography + DYNAMIC SCENE PROGRESSION
- * CRITICAL: Enforces "ALREADY IN POSITION" - avatar starts IN the scene, not entering it
+ * Now supports SCREENPLAY-DRIVEN movement (walking, gesturing, reacting)
  */
-function buildAvatarActingPrompt(segmentText: string, sceneDescription?: string, clipIndex: number = 0, totalClips: number = 1, avatarType: string = 'realistic'): string {
+function buildAvatarActingPrompt(
+  segmentText: string, 
+  sceneDescription?: string, 
+  clipIndex: number = 0, 
+  totalClips: number = 1, 
+  avatarType: string = 'realistic',
+  screenplayAction?: string,
+  screenplayMovement?: string,
+  screenplayEmotion?: string,
+  screenplayCameraHint?: string,
+): string {
   const idx = clipIndex % 10;
   
-  // Get unique style elements for this clip
   const movementKey = MOVEMENT_PROGRESSION[idx];
   const angleKey = ANGLE_PROGRESSION[idx];
   const sizeKey = SIZE_PROGRESSION[idx];
   const lightingKey = LIGHTING_PROGRESSION[idx];
-  const motionKey = MOTION_PROGRESSION[idx];
   
-  const movementPrompt = selectPrompt(CAMERA_MOVEMENTS[movementKey] || CAMERA_MOVEMENTS.static_locked);
+  // Use screenplay camera hint if provided, otherwise use progression
+  const cameraHintMap: Record<string, string> = {
+    'tracking': 'Smooth tracking shot following the subject',
+    'close-up': 'Intimate close-up capturing facial detail',
+    'wide': 'Wide shot showing the full scene',
+    'over-shoulder': 'Over-the-shoulder perspective',
+    'medium': 'Balanced medium shot',
+    'panning': 'Slow cinematic pan',
+  };
+  
+  const movementPrompt = screenplayCameraHint && cameraHintMap[screenplayCameraHint]
+    ? cameraHintMap[screenplayCameraHint]
+    : selectPrompt(CAMERA_MOVEMENTS[movementKey] || CAMERA_MOVEMENTS.static_locked);
   const anglePrompt = selectPrompt(CAMERA_ANGLES[angleKey] || CAMERA_ANGLES.eye_level_centered);
   const sizePrompt = selectPrompt(SHOT_SIZES[sizeKey] || SHOT_SIZES.medium);
   const lightingPrompt = selectPrompt(LIGHTING_STYLES[lightingKey] || LIGHTING_STYLES.classic_key);
-  const motionPrompt = selectPrompt(SUBJECT_MOTION[motionKey] || SUBJECT_MOTION.gesture_expressive);
   
-  // BACKGROUND CONTINUITY: Lock scene across all clips (pass lockBackground=true for avatar)
   const progressiveScene = getProgressiveScene(sceneDescription, clipIndex, totalClips, true);
   const sceneContext = `Cinematic scene in ${progressiveScene}, shot with professional cinematography.`;
   
-  // AVATAR TYPE LOCK: Enforce consistent visual style
   const avatarTypeLock = avatarType === 'animated'
-    ? '[AVATAR STYLE: Stylized CGI/animated character. Maintain cartoon/animated art style throughout. NOT photorealistic.]'
-    : '[AVATAR STYLE: Photorealistic human. Maintain realistic appearance throughout. NOT cartoon/animated.]';
+    ? '[AVATAR STYLE: Stylized CGI/animated character. NOT photorealistic.]'
+    : '[AVATAR STYLE: Photorealistic human. NOT cartoon/animated.]';
   
-  // CRITICAL: "Already in position" enforcement for Kling animation
-  const positionEnforcement = "CRITICAL: Subject is ALREADY fully positioned in the environment from frame 1 - NOT walking in, NOT entering, NOT arriving. They are stationary and grounded, having already been present in this location.";
+  const backgroundLock = clipIndex > 0 ? '[SAME ENVIRONMENT: Continue in the same location.]' : '';
   
-  // BACKGROUND LOCK for clips 2+
-  const backgroundLock = clipIndex > 0 ? '[SAME BACKGROUND: Continue in the EXACT same environment, lighting, and setting as previous clip. DO NOT change location.]' : '';
+  // DYNAMIC MOVEMENT from screenplay data
+  const movementMap: Record<string, string> = {
+    'walk': 'walking naturally through the scene',
+    'gesture': 'using expressive hand gestures',
+    'lean': 'leaning in with interest',
+    'turn': 'turning with fluid body rotation',
+    'sit': 'sitting comfortably, gesturing while talking',
+    'stand': 'standing with confident posture',
+    'drive': 'seated behind the wheel, hands on steering wheel',
+    'react': 'reacting with visible surprise',
+    'dance': 'moving rhythmically with joyful energy',
+    'run': 'moving quickly with dynamic energy',
+    'laugh': 'laughing genuinely with full body movement',
+  };
   
-  const qualityBaseline = "Ultra-high definition, film-grain texture, natural skin tones, professional color grading, cinematic depth of field.";
+  let motionBlock: string;
+  if (screenplayAction) {
+    const movePhrase = screenplayMovement && movementMap[screenplayMovement] ? `, ${movementMap[screenplayMovement]}` : '';
+    motionBlock = `The subject is ${screenplayAction}${movePhrase}.`;
+  } else {
+    motionBlock = `The subject is speaking naturally with expressive gestures.`;
+  }
   
-  console.log(`[Watchdog] Clip ${clipIndex + 1}/${totalClips} Style: ${movementKey} + ${angleKey} + ${sizeKey} | AvatarType: ${avatarType}`);
-  console.log(`[Watchdog] Clip ${clipIndex + 1}/${totalClips} Scene: ${progressiveScene.substring(0, 50)}...`);
+  // Emotion-based performance
+  const emotionStyles: Record<string, string> = {
+    'amused': 'Subtle grin, raised eyebrows, relaxed posture.',
+    'excited': 'Eyes bright, animated gestures, beaming smile.',
+    'surprised': 'Wide eyes, raised eyebrows, body pulling back.',
+    'nervous': 'Fidgeting hands, darting eyes, uncertain expression.',
+    'dramatic': 'Intense gaze, deliberate gestures, commanding presence.',
+    'confident': 'Steady gaze, open posture, assured expression.',
+    'thoughtful': 'Pensive expression, slow measured gestures.',
+  };
+  const performanceStyle = screenplayEmotion && emotionStyles[screenplayEmotion] 
+    ? emotionStyles[screenplayEmotion] 
+    : 'Natural confident delivery, genuine facial expressions.';
   
-  return `${avatarTypeLock} ${positionEnforcement} ${backgroundLock} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. The subject is ${motionPrompt}, speaking naturally: "${segmentText.trim().substring(0, 80)}${segmentText.length > 80 ? '...' : ''}". Lifelike fluid movements, natural micro-expressions, authentic lip sync, subtle breathing motion, realistic eye movements and blinks. ${qualityBaseline}`;
+  const qualityBaseline = "Ultra-high definition, natural skin tones, bright vibrant colors, cinematic depth of field, warm inviting lighting.";
+  
+  console.log(`[Watchdog] Clip ${clipIndex + 1}/${totalClips} Style: ${screenplayCameraHint || movementKey} | Movement: ${screenplayMovement || 'default'} | AvatarType: ${avatarType}`);
+  
+  return `${avatarTypeLock} ${backgroundLock} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. ${motionBlock} Speaking naturally: "${segmentText.trim().substring(0, 100)}${segmentText.length > 100 ? '...' : ''}". ${performanceStyle} Lifelike fluid movements, natural micro-expressions, authentic lip sync, subtle breathing motion. ${qualityBaseline}`;
 }
 
 serve(async (req) => {
@@ -328,9 +377,12 @@ serve(async (req) => {
           // Store the validated start image for this clip
           pred.startImageUrl = startImageUrl;
           
-          // Build WORLD-CLASS acting prompt for this segment with unique cinematography + scene progression
+          // Build acting prompt with SCREENPLAY DATA (movement, action, emotion, camera)
           const avatarType = tasks.avatarType || 'realistic';
-          const actingPrompt = buildAvatarActingPrompt(pred.segmentText, tasks.sceneDescription, pred.clipIndex, tasks.predictions.length, avatarType);
+          const actingPrompt = buildAvatarActingPrompt(
+            pred.segmentText, tasks.sceneDescription, pred.clipIndex, tasks.predictions.length, avatarType,
+            pred.action, pred.movement, pred.emotion, pred.cameraHint,
+          );
           const videoDuration = tasks.clipDuration >= 10 ? 10 : (tasks.clipDuration || 10);
           
           // Avatar type-specific negative prompts

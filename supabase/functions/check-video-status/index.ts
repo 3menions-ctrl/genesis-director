@@ -94,6 +94,13 @@ serve(async (req) => {
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
+  // ═══ AUTH GUARD: Prevent unauthorized API access ═══
+  const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+  const auth = await validateAuth(req);
+  if (!auth.authenticated) {
+    return unauthorizedResponse(corsHeaders, auth.error);
+  }
+
   try {
     const { 
       taskId, 

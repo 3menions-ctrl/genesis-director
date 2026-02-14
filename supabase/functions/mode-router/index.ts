@@ -224,8 +224,37 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
+    // =========================================================
+    // AUTH: Extract userId from JWT, never trust client payload
+    // =========================================================
+    const authHeader = req.headers.get("Authorization");
+    let authenticatedUserId: string | null = null;
+    
+    if (authHeader) {
+      try {
+        const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+        const authClient = createClient(supabaseUrl, anonKey);
+        const token = authHeader.replace("Bearer ", "");
+        const { data: userData } = await authClient.auth.getUser(token);
+        authenticatedUserId = userData?.user?.id || null;
+      } catch (authErr) {
+        console.error("[ModeRouter] Auth extraction failed:", authErr);
+      }
+    }
+
     const request: ModeRouterRequest = await req.json();
-    const { mode, userId, prompt, imageUrl, videoUrl, stylePreset, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, genre, mood, isBreakout, breakoutStartImageUrl, breakoutPlatform } = request;
+    const { mode, prompt, imageUrl, videoUrl, stylePreset, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, genre, mood, isBreakout, breakoutStartImageUrl, breakoutPlatform } = request;
+    
+    // Use authenticated userId, fall back to request.userId only if auth fails (for backward compat)
+    const userId = authenticatedUserId || request.userId;
+    
+    if (!userId) {
+      console.error("[ModeRouter] No userId from JWT or request body");
+      return new Response(
+        JSON.stringify({ success: false, error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     console.log(`[ModeRouter] Routing ${mode} request for user ${userId}`);
     console.log(`[ModeRouter] Config: ${clipCount} clips × ${clipDuration}s, aspect ${aspectRatio}`);

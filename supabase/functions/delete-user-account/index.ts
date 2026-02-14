@@ -43,58 +43,92 @@ Deno.serve(async (req) => {
     // Create admin client for deletions
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Delete user data in order (respecting foreign keys)
-    // 1. Delete video clips
-    await supabaseAdmin.from('video_clips').delete().eq('user_id', userId)
+    console.log(`[DeleteAccount] Starting full account deletion for user ${userId}`)
 
-    // 2. Delete credit transactions
+    // Delete user data in dependency order (children first, then parents)
+    // ===== SOCIAL / ENGAGEMENT =====
+    await supabaseAdmin.from('chat_message_reactions').delete().eq('user_id', userId)
+    await supabaseAdmin.from('chat_messages').delete().eq('user_id', userId)
+    await supabaseAdmin.from('conversation_members').delete().eq('user_id', userId)
+    await supabaseAdmin.from('comment_likes').delete().eq('user_id', userId)
+    await supabaseAdmin.from('comment_reactions').delete().eq('user_id', userId)
+    await supabaseAdmin.from('project_comments').delete().eq('user_id', userId)
+    await supabaseAdmin.from('video_likes').delete().eq('user_id', userId)
+    await supabaseAdmin.from('video_reactions').delete().eq('user_id', userId)
+    await supabaseAdmin.from('genesis_video_votes').delete().eq('user_id', userId)
+    await supabaseAdmin.from('direct_messages').delete().eq('sender_id', userId)
+    await supabaseAdmin.from('direct_messages').delete().eq('recipient_id', userId)
+    await supabaseAdmin.from('user_follows').delete().eq('follower_id', userId)
+    await supabaseAdmin.from('user_follows').delete().eq('following_id', userId)
+    await supabaseAdmin.from('world_chat_messages').delete().eq('user_id', userId)
+    await supabaseAdmin.from('notifications').delete().eq('user_id', userId)
+
+    // ===== GAMIFICATION =====
+    await supabaseAdmin.from('user_achievements').delete().eq('user_id', userId)
+    await supabaseAdmin.from('user_challenge_progress').delete().eq('user_id', userId)
+    await supabaseAdmin.from('user_gamification').delete().eq('user_id', userId)
+    await supabaseAdmin.from('leaderboard').delete().eq('user_id', userId)
+    await supabaseAdmin.from('user_presence').delete().eq('user_id', userId)
+
+    // ===== CHARACTERS & LENDING =====
+    await supabaseAdmin.from('character_loans').delete().eq('borrower_id', userId)
+    await supabaseAdmin.from('character_loans').delete().eq('owner_id', userId)
+    await supabaseAdmin.from('character_voice_assignments').delete().in('character_id', 
+      (await supabaseAdmin.from('characters').select('id').eq('user_id', userId)).data?.map((c: any) => c.id) || []
+    )
+
+    // ===== VIDEO PRODUCTION =====
+    await supabaseAdmin.from('video_clips').delete().eq('user_id', userId)
+    await supabaseAdmin.from('stitch_jobs').delete().eq('user_id', userId)
+    await supabaseAdmin.from('production_credit_phases').delete().eq('user_id', userId)
+    await supabaseAdmin.from('api_cost_logs').delete().eq('user_id', userId)
+    await supabaseAdmin.from('edit_sessions').delete().eq('user_id', userId)
+    await supabaseAdmin.from('training_videos').delete().eq('user_id', userId)
+
+    // ===== GENESIS =====
+    await supabaseAdmin.from('genesis_videos').delete().eq('user_id', userId)
+    await supabaseAdmin.from('genesis_character_castings').delete().eq('user_id', userId)
+
+    // ===== BILLING =====
     await supabaseAdmin.from('credit_transactions').delete().eq('user_id', userId)
 
-    // 3. Delete production credit phases
-    await supabaseAdmin.from('production_credit_phases').delete().eq('user_id', userId)
-
-    // 4. Delete API cost logs
-    await supabaseAdmin.from('api_cost_logs').delete().eq('user_id', userId)
-
-    // 5. Delete stitch jobs
-    await supabaseAdmin.from('stitch_jobs').delete().eq('user_id', userId)
-
-    // 6. Delete movie projects
+    // ===== PROJECTS =====
     await supabaseAdmin.from('movie_projects').delete().eq('user_id', userId)
 
-    // 7. Delete characters
-    await supabaseAdmin.from('characters').delete().eq('user_id', userId)
-
-    // 8. Delete universe activity
+    // ===== UNIVERSES =====
     await supabaseAdmin.from('universe_activity').delete().eq('user_id', userId)
-
-    // 9. Delete universe continuity
     await supabaseAdmin.from('universe_continuity').delete().eq('created_by', userId)
-
-    // 10. Delete universe members
+    await supabaseAdmin.from('universe_messages').delete().eq('user_id', userId)
     await supabaseAdmin.from('universe_members').delete().eq('user_id', userId)
-
-    // 11. Delete universes
     await supabaseAdmin.from('universes').delete().eq('user_id', userId)
 
-    // 12. Delete script templates
+    // ===== CHARACTERS (after loans/voice assignments deleted) =====
+    await supabaseAdmin.from('characters').delete().eq('user_id', userId)
+
+    // ===== TEMPLATES & MISC =====
     await supabaseAdmin.from('script_templates').delete().eq('user_id', userId)
-
-    // 13. Delete project templates
     await supabaseAdmin.from('project_templates').delete().eq('user_id', userId)
+    await supabaseAdmin.from('widget_configs').delete().eq('user_id', userId)
+    await supabaseAdmin.from('support_messages').delete().eq('user_id', userId)
+    await supabaseAdmin.from('signup_analytics').delete().eq('user_id', userId)
 
-    // 14. Delete profile
+    // ===== ROLES & AUTH =====
+    await supabaseAdmin.from('user_roles').delete().eq('user_id', userId)
+
+    // ===== PROFILE (last before auth) =====
     await supabaseAdmin.from('profiles').delete().eq('id', userId)
 
-    // 15. Finally, delete the auth user
+    // ===== FINALLY: Delete the auth user =====
     const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(userId)
     if (deleteUserError) {
-      console.error('Error deleting auth user:', deleteUserError)
+      console.error('[DeleteAccount] Error deleting auth user:', deleteUserError)
       return new Response(
         JSON.stringify({ error: 'Failed to delete user account' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    console.log(`[DeleteAccount] Successfully deleted all data for user ${userId}`)
 
     return new Response(
       JSON.stringify({ success: true, message: 'Account deleted successfully' }),

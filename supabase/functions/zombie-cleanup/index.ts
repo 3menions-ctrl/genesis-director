@@ -258,20 +258,32 @@ serve(async (req) => {
       }).eq('id', project.id);
       
       if (refundAmount > 0) {
-        await supabase.from('credit_transactions').insert({
-          user_id: project.user_id,
-          amount: refundAmount,
-          transaction_type: 'refund',
-          description: `Refund for stalled avatar: ${project.title || project.id}`,
-          project_id: project.id,
-        });
+        // IDEMPOTENCY CHECK: Don't issue duplicate refunds for the same project
+        const { data: existingRefund } = await supabase
+          .from('credit_transactions')
+          .select('id')
+          .eq('project_id', project.id)
+          .eq('transaction_type', 'refund')
+          .limit(1);
         
-        await supabase.rpc('increment_credits', {
-          user_id_param: project.user_id,
-          amount_param: refundAmount,
-        });
-        
-        report.creditsRefunded += refundAmount;
+        if (existingRefund && existingRefund.length > 0) {
+          console.log(`[ZombieCleanup] Skipping duplicate refund for project ${project.id}`);
+        } else {
+          await supabase.from('credit_transactions').insert({
+            user_id: project.user_id,
+            amount: refundAmount,
+            transaction_type: 'refund',
+            description: `Refund for stalled avatar: ${project.title || project.id}`,
+            project_id: project.id,
+          });
+          
+          await supabase.rpc('increment_credits', {
+            user_id_param: project.user_id,
+            amount_param: refundAmount,
+          });
+          
+          report.creditsRefunded += refundAmount;
+        }
       }
       
       report.projectsFailed++;
@@ -351,25 +363,36 @@ serve(async (req) => {
         
         // Issue refund if applicable
         if (refundAmount > 0) {
-          const { error: refundError } = await supabase
+          // IDEMPOTENCY CHECK: Don't issue duplicate refunds
+          const { data: existingRefund } = await supabase
             .from('credit_transactions')
-            .insert({
-              user_id: project.user_id,
-              amount: refundAmount,
-              transaction_type: 'refund',
-              description: `Refund for failed project: ${project.title || project.id}`,
-              project_id: project.id,
-            });
+            .select('id')
+            .eq('project_id', project.id)
+            .eq('transaction_type', 'refund')
+            .limit(1);
           
-          if (!refundError) {
-            // Update user's credit balance
-            await supabase.rpc('increment_credits', {
-              user_id_param: project.user_id,
-              amount_param: refundAmount,
-            });
+          if (existingRefund && existingRefund.length > 0) {
+            console.log(`[ZombieCleanup] Skipping duplicate refund for project ${project.id}`);
+          } else {
+            const { error: refundError } = await supabase
+              .from('credit_transactions')
+              .insert({
+                user_id: project.user_id,
+                amount: refundAmount,
+                transaction_type: 'refund',
+                description: `Refund for failed project: ${project.title || project.id}`,
+                project_id: project.id,
+              });
             
-            report.creditsRefunded += refundAmount;
-            console.log(`[ZombieCleanup] Refunded ${refundAmount} credits for project ${project.id}`);
+            if (!refundError) {
+              await supabase.rpc('increment_credits', {
+                user_id_param: project.user_id,
+                amount_param: refundAmount,
+              });
+              
+              report.creditsRefunded += refundAmount;
+              console.log(`[ZombieCleanup] Refunded ${refundAmount} credits for project ${project.id}`);
+            }
           }
         }
         

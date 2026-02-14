@@ -40,21 +40,24 @@ Deno.serve(async (req) => {
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-    // First, verify the user with anon client
+    // Validate JWT claims
     const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     })
 
-    const { data: { user }, error: userError } = await anonClient.auth.getUser()
-    if (userError || !user) {
-      console.error('Auth error:', userError)
+    const token = authHeader.replace('Bearer ', '')
+    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token)
+    if (claimsError || !claimsData?.claims) {
+      console.error('Auth error:', claimsError)
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log('User verified:', user.id, 'Current email:', user.email, 'New email:', newEmail)
+    const userId = claimsData.claims.sub
+    const currentEmail = claimsData.claims.email as string
+    console.log('User verified:', userId, 'Current email:', currentEmail, 'New email:', newEmail)
 
     // Use admin client to update email (bypasses session requirement)
     const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
@@ -63,7 +66,7 @@ Deno.serve(async (req) => {
 
     // Update the user's email using admin API
     const { data: updatedUser, error: updateError } = await adminClient.auth.admin.updateUserById(
-      user.id,
+      userId,
       { email: newEmail }
     )
 
@@ -79,13 +82,13 @@ Deno.serve(async (req) => {
     const { error: profileError } = await adminClient
       .from('profiles')
       .update({ email: newEmail })
-      .eq('id', user.id)
+      .eq('id', userId)
 
     if (profileError) {
       console.warn('Could not update profile email:', profileError)
     }
 
-    console.log('Email updated successfully for user:', user.id)
+    console.log('Email updated successfully for user:', userId)
 
     return new Response(
       JSON.stringify({ 

@@ -118,13 +118,13 @@ export const EditorTimeline = ({
   }
 
   return (
-    <div className="h-full flex flex-col bg-[#141414]">
+    <div className="h-full flex flex-col bg-surface-0">
       {/* Timeline toolbar */}
-      <div className="h-8 flex items-center gap-1 px-3 border-b border-[#222] shrink-0 bg-[#1a1a1a]">
+      <div className="h-8 flex items-center gap-1 px-3 border-b border-border shrink-0 bg-surface-2">
         <Button
           variant="ghost"
           size="icon"
-          className="h-6 w-6 text-[#666] hover:text-white hover:bg-[#2a2a2a]"
+          className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-surface-3"
           onClick={() => onZoomChange(Math.min(zoom * 1.5, 10))}
         >
           <ZoomIn className="h-3 w-3" />
@@ -132,18 +132,18 @@ export const EditorTimeline = ({
         <Button
           variant="ghost"
           size="icon"
-          className="h-6 w-6 text-[#666] hover:text-white hover:bg-[#2a2a2a]"
+          className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-surface-3"
           onClick={() => onZoomChange(Math.max(zoom / 1.5, 0.1))}
         >
           <ZoomOut className="h-3 w-3" />
         </Button>
-        <span className="text-[10px] text-[#555] ml-1 tabular-nums">{Math.round(zoom * 100)}%</span>
+        <span className="text-[10px] text-muted-foreground/50 ml-1 tabular-nums">{Math.round(zoom * 100)}%</span>
         <div className="flex-1" />
         {selectedClipId && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 text-red-400/60 hover:text-red-400 hover:bg-red-500/10"
+            className="h-6 w-6 text-destructive/60 hover:text-destructive hover:bg-destructive/10"
             onClick={() => onDeleteClip(selectedClipId)}
           >
             <Trash2 className="h-3 w-3" />
@@ -271,7 +271,6 @@ export const EditorTimeline = ({
               style={{ left: currentTime * pxPerSec }}
             >
               <div className="w-2 h-2.5 bg-primary rounded-b-sm -ml-[4px]" />
-            </div>
             </div>
           </div>
         </div>

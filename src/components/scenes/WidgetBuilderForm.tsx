@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Trash2, GripVertical, Copy, ExternalLink, Save, FileText, Film, Zap, Palette, Code2 } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Copy, ExternalLink, Save, FileText, Film, Zap, Palette, Code2, Camera, Lightbulb, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import type { WidgetConfig, WidgetScene, WidgetTriggers, WidgetRule, WidgetPosition, WidgetSensitivity, WidgetTone } from '@/types/widget';
 import { AIWidgetAssist } from './AIWidgetAssist';
 
@@ -211,6 +211,19 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
                       <GripVertical className={`w-4 h-4 ${textMuted}`} />
                       <span className={`text-sm font-medium ${textPrimary}`}>{scene.name}</span>
                       <span className={`text-[10px] px-2 py-0.5 rounded-md bg-white/[0.06] ${textMuted} uppercase tracking-wider`}>{scene.type}</span>
+                      {/* Video generation status badge */}
+                      {scene.video_generation_status && scene.video_generation_status !== 'pending' && (
+                        <span className={`text-[9px] px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                          scene.video_generation_status === 'completed' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/20' :
+                          scene.video_generation_status === 'generating' ? 'bg-violet-500/15 text-violet-300 border border-violet-500/20' :
+                          'bg-red-500/15 text-red-300 border border-red-500/20'
+                        }`}>
+                          {scene.video_generation_status === 'completed' && <CheckCircle2 className="w-2.5 h-2.5" />}
+                          {scene.video_generation_status === 'generating' && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
+                          {scene.video_generation_status === 'failed' && <AlertCircle className="w-2.5 h-2.5" />}
+                          {scene.video_generation_status}
+                        </span>
+                      )}
                     </div>
                     <button className={`h-8 w-8 flex items-center justify-center rounded-lg ${textMuted} hover:text-red-400 hover:bg-red-500/10 transition-all`} onClick={() => removeScene(idx)}>
                       <Trash2 className="w-3.5 h-3.5" />
@@ -249,6 +262,37 @@ export function WidgetBuilderForm({ widget, onUpdate }: WidgetBuilderFormProps) 
                       <Label className={`text-xs ${textSecondary}`}>Loop</Label>
                     </div>
                   </div>
+
+                  {/* Cinematography metadata */}
+                  {(scene.camera_movement || scene.lighting_style || scene.mood) && (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {scene.camera_movement && (
+                        <span className={`text-[9px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] ${textMuted} flex items-center gap-1`}>
+                          <Camera className="w-2.5 h-2.5" /> {scene.camera_movement.substring(0, 40)}...
+                        </span>
+                      )}
+                      {scene.lighting_style && (
+                        <span className={`text-[9px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] ${textMuted} flex items-center gap-1`}>
+                          <Lightbulb className="w-2.5 h-2.5" /> {scene.lighting_style.substring(0, 35)}...
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Video Generation Prompt (expandable) */}
+                  {scene.video_generation_prompt && (
+                    <details className="pt-1">
+                      <summary className={`text-[10px] ${textMuted} cursor-pointer hover:text-white/40 transition-colors flex items-center gap-1`}>
+                        <Film className="w-3 h-3" /> View cinematic prompt ({scene.video_generation_prompt.length} chars)
+                      </summary>
+                      <textarea
+                        value={scene.video_generation_prompt}
+                        onChange={e => updateScene(idx, { video_generation_prompt: e.target.value })}
+                        rows={5}
+                        className={`w-full mt-2 rounded-lg px-3 py-2 text-[11px] leading-relaxed resize-y font-mono ${glassInput}`}
+                      />
+                    </details>
+                  )}
                 </div>
               ))}
             </div>

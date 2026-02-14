@@ -10,6 +10,13 @@ export interface WidgetScene {
   priority: number;
   subtitle_text?: string;
   duration_seconds?: number;
+  // AI pipeline fields
+  video_generation_prompt?: string;
+  video_generation_status?: 'pending' | 'generating' | 'completed' | 'failed';
+  video_project_id?: string;
+  camera_movement?: string;
+  lighting_style?: string;
+  mood?: string;
 }
 
 export interface WidgetTriggers {

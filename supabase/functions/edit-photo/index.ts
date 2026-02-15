@@ -38,10 +38,10 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
 
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    if (!REPLICATE_API_KEY) {
+      throw new Error('REPLICATE_API_KEY is not configured');
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -79,7 +79,6 @@ Deno.serve(async (req) => {
         .single();
 
       if (!profile || profile.credits_balance < creditsCost) {
-        // Update edit record as failed
         if (editId) {
           await supabase.from('photo_edits').update({
             status: 'failed',
@@ -92,7 +91,6 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Deduct credits
       await supabase.rpc('deduct_credits', {
         p_user_id: auth.userId,
         p_amount: creditsCost,
@@ -108,47 +106,41 @@ Deno.serve(async (req) => {
       }).eq('id', editId);
     }
 
-    // Call Gemini flash image model for editing
-    console.log(`[edit-photo] Processing edit for user ${auth.userId.slice(0, 8)}...`);
+    // Call Replicate instruct-pix2pix for image editing
+    console.log(`[edit-photo] Processing edit via Replicate for user ${auth.userId.slice(0, 8)}...`);
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    // Create prediction
+    const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${REPLICATE_API_KEY}`,
         'Content-Type': 'application/json',
+        Prefer: 'wait',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: editInstruction,
-              },
-              {
-                type: 'image_url',
-                image_url: { url: imageUrl },
-              },
-            ],
-          },
-        ],
-        modalities: ['image', 'text'],
+        version: 'a]30b0d18',
+        model: 'timothybrooks/instruct-pix2pix',
+        input: {
+          image: imageUrl,
+          prompt: editInstruction,
+          num_inference_steps: 50,
+          image_guidance_scale: 1.5,
+          guidance_scale: 7.5,
+        },
       }),
     });
 
-    if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error('[edit-photo] AI gateway error:', aiResponse.status, errText);
+    if (!createResponse.ok) {
+      const errText = await createResponse.text();
+      console.error('[edit-photo] Replicate error:', createResponse.status, errText);
 
-      const is429 = aiResponse.status === 429;
-      const is402 = aiResponse.status === 402;
+      const is429 = createResponse.status === 429;
+      const is402 = createResponse.status === 402;
       const errorMsg = is429
         ? 'Rate limited, try again shortly'
         : is402
-        ? 'Not enough AI credits. Please top up in Settings → Workspace → Usage.'
-        : 'AI processing failed';
+        ? 'Not enough Replicate credits. Please top up your Replicate account.'
+        : 'Image editing failed';
 
       if (editId) {
         await supabase.from('photo_edits').update({
@@ -157,7 +149,6 @@ Deno.serve(async (req) => {
         }).eq('id', editId);
       }
 
-      // Refund credits on failure
       if (creditsCost > 0) {
         await supabase.rpc('increment_credits', {
           user_id_param: auth.userId,
@@ -171,18 +162,26 @@ Deno.serve(async (req) => {
       );
     }
 
-    const aiData = await aiResponse.json();
-    const editedImageBase64 = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    let prediction = await createResponse.json();
 
-    if (!editedImageBase64) {
-      console.error('[edit-photo] No image in AI response');
+    // If Prefer: wait didn't resolve it, poll
+    while (prediction.status === 'starting' || prediction.status === 'processing') {
+      await new Promise(r => setTimeout(r, 2000));
+      const pollResp = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+        headers: { Authorization: `Bearer ${REPLICATE_API_KEY}` },
+      });
+      prediction = await pollResp.json();
+    }
+
+    if (prediction.status === 'failed' || !prediction.output) {
+      console.error('[edit-photo] Replicate prediction failed:', prediction.error);
+      
       if (editId) {
         await supabase.from('photo_edits').update({
           status: 'failed',
-          error_message: 'AI did not return an edited image',
+          error_message: 'Image editing failed',
         }).eq('id', editId);
       }
-      // Refund
       if (creditsCost > 0) {
         await supabase.rpc('increment_credits', {
           user_id_param: auth.userId,
@@ -190,14 +189,37 @@ Deno.serve(async (req) => {
         });
       }
       return new Response(
-        JSON.stringify({ error: 'AI did not return an edited image' }),
+        JSON.stringify({ error: 'Image editing failed' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Upload edited image to storage
-    const base64Data = editedImageBase64.replace(/^data:image\/\w+;base64,/, '');
-    const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+    // Replicate returns output as an array of URLs (or a single URL string)
+    const outputUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+
+    if (!outputUrl) {
+      console.error('[edit-photo] No output from Replicate');
+      if (editId) {
+        await supabase.from('photo_edits').update({
+          status: 'failed',
+          error_message: 'No edited image returned',
+        }).eq('id', editId);
+      }
+      if (creditsCost > 0) {
+        await supabase.rpc('increment_credits', {
+          user_id_param: auth.userId,
+          amount_param: creditsCost,
+        });
+      }
+      return new Response(
+        JSON.stringify({ error: 'No edited image returned' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Download the edited image from Replicate and upload to storage
+    const imageResp = await fetch(outputUrl);
+    const imageBytes = new Uint8Array(await imageResp.arrayBuffer());
     const fileName = `${auth.userId}/${crypto.randomUUID()}.png`;
 
     const { error: uploadError } = await supabase.storage
@@ -217,7 +239,6 @@ Deno.serve(async (req) => {
 
     const processingTime = Date.now() - startTime;
 
-    // Update edit record
     if (editId) {
       await supabase.from('photo_edits').update({
         status: 'completed',

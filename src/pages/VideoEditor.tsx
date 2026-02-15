@@ -75,6 +75,119 @@ const VideoEditor = () => {
     };
   }, []);
 
+  // === Auto-load project clips onto timeline when ?project= is set ===
+  const hasAutoLoadedRef = useRef(false);
+  useEffect(() => {
+    if (!projectId || !user || hasAutoLoadedRef.current) return;
+    hasAutoLoadedRef.current = true;
+
+    const loadProjectClips = async () => {
+      try {
+        // Fetch completed clips for this project
+        const { data: clips, error } = await supabase
+          .from('video_clips')
+          .select('id, video_url, duration_seconds, shot_index, prompt')
+          .eq('project_id', projectId)
+          .eq('status', 'completed')
+          .not('video_url', 'is', null)
+          .order('shot_index');
+
+        if (error || !clips || clips.length === 0) {
+          // Also check pending_video_tasks for avatar-style clips
+          const { data: project } = await supabase
+            .from('movie_projects')
+            .select('pending_video_tasks, title, mode')
+            .eq('id', projectId)
+            .single();
+
+          if (project?.title) {
+            setEditorState(prev => ({ ...prev, title: project.title }));
+          }
+
+          if (project?.pending_video_tasks) {
+            const tasks = project.pending_video_tasks as Record<string, unknown>;
+            const predictions = tasks.predictions as Array<{ videoUrl?: string; status?: string; clipIndex?: number }> | undefined;
+            if (predictions && Array.isArray(predictions)) {
+              const avatarClips = predictions
+                .filter(p => p.videoUrl && p.status === 'completed')
+                .sort((a, b) => (a.clipIndex ?? 0) - (b.clipIndex ?? 0));
+
+              if (avatarClips.length > 0) {
+                const timelineClips: TimelineClip[] = avatarClips.map((p, idx) => {
+                  const dur = 10; // Avatar clips default ~10s
+                  const start = idx * dur;
+                  return {
+                    id: `avatar-${idx}-${Date.now()}`,
+                    trackId: 'video-0',
+                    label: `Clip ${idx + 1}`,
+                    sourceUrl: p.videoUrl!,
+                    start,
+                    end: start + dur,
+                    trimStart: 0,
+                    type: 'video' as const,
+                    effects: [],
+                  };
+                });
+
+                const totalDuration = timelineClips[timelineClips.length - 1]?.end || 0;
+                setEditorState(prev => ({
+                  ...prev,
+                  tracks: prev.tracks.map(t =>
+                    t.id === 'video-0' ? { ...t, clips: timelineClips } : t
+                  ),
+                  duration: totalDuration,
+                }));
+                toast.success(`Loaded ${avatarClips.length} avatar clips`);
+              }
+            }
+          }
+          return;
+        }
+
+        // Fetch project title
+        const { data: project } = await supabase
+          .from('movie_projects')
+          .select('title')
+          .eq('id', projectId)
+          .single();
+
+        // Place clips sequentially on Video 1 track
+        const timelineClips: TimelineClip[] = clips.map((clip, idx) => {
+          const dur = clip.duration_seconds || 5;
+          const start = clips.slice(0, idx).reduce((sum, c) => sum + (c.duration_seconds || 5), 0);
+          return {
+            id: clip.id,
+            trackId: 'video-0',
+            label: clip.prompt || `Shot ${(clip.shot_index ?? idx) + 1}`,
+            sourceUrl: clip.video_url!,
+            start,
+            end: start + dur,
+            trimStart: 0,
+            type: 'video' as const,
+            effects: [],
+          };
+        });
+
+        const totalDuration = timelineClips[timelineClips.length - 1]?.end || 0;
+
+        setEditorState(prev => ({
+          ...prev,
+          title: project?.title || prev.title,
+          tracks: prev.tracks.map(t =>
+            t.id === 'video-0' ? { ...t, clips: timelineClips } : t
+          ),
+          duration: totalDuration,
+        }));
+
+        toast.success(`Loaded ${clips.length} clips from project`);
+      } catch (err) {
+        console.error('[Editor] Failed to auto-load project clips:', err);
+      }
+    };
+
+    loadProjectClips();
+  }, [projectId, user]);
+
   const withHistory = useCallback(
     (mutator: (prev: EditorState) => EditorState) => {
       setEditorState((prev) => {

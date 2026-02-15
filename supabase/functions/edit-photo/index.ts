@@ -38,10 +38,10 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
 
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    if (!REPLICATE_API_KEY) {
+      throw new Error('REPLICATE_API_KEY is not configured');
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -106,53 +106,71 @@ Deno.serve(async (req) => {
       }).eq('id', editId);
     }
 
-    console.log(`[edit-photo] Processing edit via Lovable AI (Gemini) for user ${auth.userId.slice(0, 8)}...`);
+    console.log(`[edit-photo] Processing via Bria FIBO Edit for user ${auth.userId.slice(0, 8)}...`);
 
-    // Build the enhanced editing prompt for world-class results
-    const systemPrompt = `You are a world-class professional photo editor with mastery of color grading, retouching, compositing, and artistic enhancement. Apply the requested edit with the highest possible quality. Maintain photorealistic detail, natural lighting consistency, and cinematic polish. Never degrade image quality. Always preserve the subject's identity and key features while applying the edit.`;
+    // Download the source image and convert to data URI for reliable input
+    let imageInput = imageUrl;
+    try {
+      const imgResp = await fetch(imageUrl);
+      if (imgResp.ok) {
+        const imgBuf = new Uint8Array(await imgResp.arrayBuffer());
+        const contentType = imgResp.headers.get('content-type') || 'image/png';
+        let binary = '';
+        const chunkSize = 8192;
+        for (let i = 0; i < imgBuf.length; i += chunkSize) {
+          binary += String.fromCharCode(...imgBuf.subarray(i, i + chunkSize));
+        }
+        imageInput = `data:${contentType};base64,${btoa(binary)}`;
+      }
+    } catch (e) {
+      console.warn('[edit-photo] Could not pre-download image, using URL directly:', e);
+    }
 
-    const editPrompt = `Apply this professional photo edit to the image: ${editInstruction}
-
-Requirements:
-- Maintain photorealistic quality and natural detail
-- Preserve lighting consistency and color harmony
-- Keep the subject's identity and key features intact
-- Apply the edit with cinematic, high-end production quality
-- Output should look like it was done by a top Hollywood VFX studio`;
-
-    // Call Lovable AI Gateway with Gemini image model
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    // === PRIMARY: Bria FIBO Edit — best-in-class structured image editor ===
+    let createResponse = await fetch('https://api.replicate.com/v1/models/bria/fibo-edit/predictions', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${REPLICATE_API_KEY}`,
         'Content-Type': 'application/json',
+        Prefer: 'wait',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: editPrompt },
-              { type: 'image_url', image_url: { url: imageUrl } },
-            ],
-          },
-        ],
-        modalities: ['image', 'text'],
+        input: {
+          image: imageInput,
+          instruction: editInstruction,
+        },
       }),
     });
 
-    if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error('[edit-photo] Lovable AI error:', aiResponse.status, errText);
+    // === FALLBACK: black-forest-labs/flux-kontext-pro (high quality edit model) ===
+    if (!createResponse.ok && (createResponse.status === 404 || createResponse.status === 422)) {
+      console.warn(`[edit-photo] FIBO Edit failed (${createResponse.status}), falling back to flux-kontext-pro...`);
+      createResponse = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${REPLICATE_API_KEY}`,
+          'Content-Type': 'application/json',
+          Prefer: 'wait',
+        },
+        body: JSON.stringify({
+          input: {
+            image: imageInput,
+            prompt: editInstruction,
+          },
+        }),
+      });
+    }
 
-      const is429 = aiResponse.status === 429;
-      const is402 = aiResponse.status === 402;
+    if (!createResponse.ok) {
+      const errText = await createResponse.text();
+      console.error('[edit-photo] Replicate error:', createResponse.status, errText);
+
+      const is429 = createResponse.status === 429;
+      const is402 = createResponse.status === 402;
       const errorMsg = is429
         ? 'Rate limited, try again shortly'
         : is402
-        ? 'AI credits exhausted. Please top up your workspace.'
+        ? 'Not enough Replicate credits. Please top up your Replicate account.'
         : 'Image editing failed';
 
       if (editId) {
@@ -175,14 +193,43 @@ Requirements:
       );
     }
 
-    const aiResult = await aiResponse.json();
-    
-    // Extract the edited image from the response
-    const editedImageData = aiResult.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    let prediction = await createResponse.json();
 
-    if (!editedImageData) {
-      console.error('[edit-photo] No image returned from Lovable AI:', JSON.stringify(aiResult).slice(0, 500));
+    // If Prefer: wait didn't resolve it, poll
+    while (prediction.status === 'starting' || prediction.status === 'processing') {
+      await new Promise(r => setTimeout(r, 2000));
+      const pollResp = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+        headers: { Authorization: `Bearer ${REPLICATE_API_KEY}` },
+      });
+      prediction = await pollResp.json();
+    }
+
+    if (prediction.status === 'failed' || !prediction.output) {
+      console.error('[edit-photo] Replicate prediction failed:', prediction.error);
       
+      if (editId) {
+        await supabase.from('photo_edits').update({
+          status: 'failed',
+          error_message: 'Image editing failed',
+        }).eq('id', editId);
+      }
+      if (creditsCost > 0) {
+        await supabase.rpc('increment_credits', {
+          user_id_param: auth.userId,
+          amount_param: creditsCost,
+        });
+      }
+      return new Response(
+        JSON.stringify({ error: 'Image editing failed' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Replicate returns output as an array of URLs or a single URL string
+    const outputUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+
+    if (!outputUrl) {
+      console.error('[edit-photo] No output from Replicate');
       if (editId) {
         await supabase.from('photo_edits').update({
           status: 'failed',
@@ -196,26 +243,14 @@ Requirements:
         });
       }
       return new Response(
-        JSON.stringify({ error: 'No edited image returned from AI' }),
+        JSON.stringify({ error: 'No edited image returned' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Convert base64 data URI to bytes for upload
-    let imageBytes: Uint8Array;
-    if (editedImageData.startsWith('data:')) {
-      const base64Part = editedImageData.split(',')[1];
-      const binaryString = atob(base64Part);
-      imageBytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        imageBytes[i] = binaryString.charCodeAt(i);
-      }
-    } else {
-      // If it's a URL, download it
-      const imgResp = await fetch(editedImageData);
-      imageBytes = new Uint8Array(await imgResp.arrayBuffer());
-    }
-
+    // Download edited image and upload to storage
+    const imageResp = await fetch(outputUrl);
+    const imageBytes = new Uint8Array(await imageResp.arrayBuffer());
     const fileName = `${auth.userId}/${crypto.randomUUID()}.png`;
 
     const { error: uploadError } = await supabase.storage

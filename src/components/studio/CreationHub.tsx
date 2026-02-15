@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, memo, useMemo } from 'react';
+import { saveDraft, loadDraft, clearDraft } from '@/lib/sessionPersistence';
 import { useNavigationWithLoading } from '@/components/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -240,6 +241,46 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       }
     }
   }, [appliedSettings, maxClips]);
+
+  // Restore draft on mount (only if no template is being applied)
+  const hasRestoredDraft = useRef(false);
+  useEffect(() => {
+    if (hasRestoredDraft.current || templateId) return;
+    hasRestoredDraft.current = true;
+    const draft = loadDraft();
+    if (draft) {
+      if (draft.prompt) setPrompt(draft.prompt);
+      if (draft.mode) setSelectedMode(draft.mode as VideoGenerationMode);
+      if (draft.aspectRatio) setAspectRatio(draft.aspectRatio);
+      if (draft.clipCount) setClipCount(Math.min(draft.clipCount, maxClips));
+      if (draft.clipDuration) setClipDuration(draft.clipDuration);
+      if (draft.genre) setGenre(draft.genre);
+      if (draft.mood) setMood(draft.mood);
+      if (draft.enableNarration !== undefined) setEnableNarration(draft.enableNarration);
+      if (draft.imageUrl) setUploadedImage(draft.imageUrl);
+    }
+  }, [templateId, maxClips]);
+
+  // Autosave draft as user makes changes (debounced)
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(() => {
+      saveDraft({
+        mode: selectedMode,
+        prompt,
+        aspectRatio,
+        clipCount,
+        clipDuration,
+        genre,
+        mood,
+        enableNarration,
+        enableMusic: false,
+        imageUrl: uploadedImage || undefined,
+      });
+    }, 1500);
+    return () => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current); };
+  }, [selectedMode, prompt, aspectRatio, clipCount, clipDuration, genre, mood, enableNarration, uploadedImage]);
 
   const currentMode = CREATION_MODES.find(m => m.id === selectedMode);
   const modeConfig = VIDEO_MODES.find(m => m.id === selectedMode);

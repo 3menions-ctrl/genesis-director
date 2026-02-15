@@ -1,4 +1,4 @@
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, useEffect, memo } from 'react';
 import { toast } from 'sonner';
 import { Film, Sparkles, Image } from 'lucide-react';
 import ClipsBackground from '@/components/clips/ClipsBackground';
@@ -18,6 +18,7 @@ import { CinemaLoader } from '@/components/ui/CinemaLoader';
 import { withSafePageRef } from '@/lib/withSafeRef';
 import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
 import { cn } from '@/lib/utils';
+import { saveDraft, loadDraft, clearDraft } from '@/lib/sessionPersistence';
 
 // Loading overlay component for creation in progress - uses unified brand animation
 const LoadingOverlay = memo(function LoadingOverlay({ status }: { status: string }) {
@@ -45,7 +46,30 @@ function CreateContentInner() {
   const [isCreating, setIsCreating] = useState(false);
   const [creationStatus, setCreationStatus] = useState<string>('');
   const [isHubReady, setIsHubReady] = useState(false);
-  const [activeTab, setActiveTab] = useState<'create' | 'scenes' | 'photo'>('create');
+  
+  // Restore active tab from session persistence
+  const [activeTab, setActiveTab] = useState<'create' | 'scenes' | 'photo'>(() => {
+    try {
+      const saved = localStorage.getItem('apex_create_active_tab');
+      if (saved === 'create' || saved === 'scenes' || saved === 'photo') return saved;
+    } catch {}
+    return 'create';
+  });
+  
+  // Persist active tab changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('apex_create_active_tab', activeTab);
+    } catch {}
+  }, [activeTab]);
+  
+  // Restore draft on mount if returning to the page
+  useEffect(() => {
+    const draft = loadDraft();
+    if (draft) {
+      toast.info('Draft restored — pick up where you left off', { duration: 3000 });
+    }
+  }, []);
   
   // Use comprehensive stability guard for safe async operations
   const { isMounted, getAbortController, safeSetState } = useStabilityGuard();
@@ -165,6 +189,9 @@ function CreateContentInner() {
       // Clear creating state BEFORE navigation to prevent stuck overlay
       safeSetState(setIsCreating, false);
       safeSetState(setCreationStatus, '');
+      
+      // Clear draft on successful creation
+      clearDraft();
       
       toast.success(`${config.mode.replace(/-/g, ' ')} creation started!`);
       

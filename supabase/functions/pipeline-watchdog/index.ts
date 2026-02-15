@@ -2210,25 +2210,71 @@ serve(async (req) => {
             result: `Manifest for ${clips.length} clips`,
           });
         } else {
+          const failError = 'Pipeline exceeded maximum processing time with no clips generated';
           await supabase
             .from('movie_projects')
             .update({
               status: 'failed',
+              last_error: failError,
               pending_video_tasks: {
                 ...tasks,
                 stage: 'error',
-                error: 'Pipeline exceeded maximum processing time',
+                error: failError,
                 failedAt: new Date().toISOString(),
               },
               updated_at: new Date().toISOString(),
             })
             .eq('id', project.id);
           
+          // AUTO-REFUND: Refund all credits when zero clips were generated
+          try {
+            const { data: existingRefund } = await supabase
+              .from('credit_transactions')
+              .select('id')
+              .eq('project_id', project.id)
+              .eq('transaction_type', 'refund')
+              .limit(1);
+            
+            if (!existingRefund || existingRefund.length === 0) {
+              // Find the original usage charge to determine refund amount
+              const { data: usageCharge } = await supabase
+                .from('credit_transactions')
+                .select('amount')
+                .eq('project_id', project.id)
+                .eq('transaction_type', 'usage')
+                .limit(1);
+              
+              // Also check charges without project_id (upfront deduction before project creation)
+              const chargeAmount = usageCharge?.[0]?.amount 
+                ? Math.abs(usageCharge[0].amount) 
+                : ((tasks as Record<string, unknown>).clipCount as number || 5) * 10;
+              
+              if (chargeAmount > 0) {
+                await supabase.rpc('increment_credits', {
+                  user_id_param: project.user_id,
+                  amount_param: chargeAmount,
+                });
+                
+                await supabase.from('credit_transactions').insert({
+                  user_id: project.user_id,
+                  amount: chargeAmount,
+                  transaction_type: 'refund',
+                  description: `Auto-refund: Pipeline timeout with 0 clips generated`,
+                  project_id: project.id,
+                });
+                
+                console.log(`[Watchdog] 💰 Auto-refunded ${chargeAmount} credits for failed project ${project.id}`);
+              }
+            }
+          } catch (refundError) {
+            console.error(`[Watchdog] Auto-refund failed for ${project.id}:`, refundError);
+          }
+          
           result.projectsMarkedFailed++;
           result.details.push({
             projectId: project.id,
             action: 'marked_failed',
-            result: 'No clips generated within 60 minutes',
+            result: 'No clips generated within 60 minutes, credits refunded',
           });
         }
       }

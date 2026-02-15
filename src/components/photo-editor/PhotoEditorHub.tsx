@@ -18,6 +18,7 @@ import { useFileUpload } from '@/hooks/useFileUpload';
 import { PhotoTemplateGrid } from './PhotoTemplateGrid';
 import { PhotoEditCanvas } from './PhotoEditCanvas';
 import { PhotoBulkPanel } from './PhotoBulkPanel';
+import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 
 export type PhotoEditMode = 'templates' | 'chat' | 'manual' | 'bulk';
 
@@ -46,6 +47,7 @@ export function PhotoEditorHub() {
   const [showControls, setShowControls] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageUpload = useFileUpload({ maxSizeMB: 15, allowedTypes: ['image/*'] });
+  const [showBuyCredits, setShowBuyCredits] = useState(false);
 
   const activePhoto = photos[activePhotoIndex] || null;
   const userCredits = profile?.credits_balance ?? 0;
@@ -95,6 +97,11 @@ export function PhotoEditorHub() {
   const handleEditWithTemplate = useCallback(async (templateId: string) => {
     if (!activePhoto) {
       toast.error('Please upload a photo first');
+      return;
+    }
+    // Block if insufficient credits
+    if (userCredits < 2) {
+      setShowBuyCredits(true);
       return;
     }
     setIsProcessing(true);
@@ -159,6 +166,11 @@ export function PhotoEditorHub() {
 
   const handleChatEdit = useCallback(async () => {
     if (!activePhoto || !chatInstruction.trim()) return;
+    // Block if insufficient credits
+    if (userCredits < 2) {
+      setShowBuyCredits(true);
+      return;
+    }
     setIsProcessing(true);
     setEditedUrl(null);
     try {
@@ -510,6 +522,12 @@ export function PhotoEditorHub() {
           </AnimatePresence>
         </div>
       </div>
+      
+      {/* Buy Credits Modal */}
+      <BuyCreditsModal 
+        open={showBuyCredits} 
+        onOpenChange={setShowBuyCredits} 
+      />
     </div>
   );
 }

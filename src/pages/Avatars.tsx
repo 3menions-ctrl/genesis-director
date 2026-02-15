@@ -43,6 +43,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/lib/errorHandler';
 import { handleEdgeFunctionError, showUserFriendlyError } from '@/lib/userFriendlyErrors';
 import { ErrorBoundary, SafeComponent } from '@/components/ui/error-boundary';
+import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
 import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
 
@@ -151,6 +152,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   // ========== Generation State ==========
   const [isCreating, setIsCreating] = useState(false);
   const [creationStatus, setCreationStatus] = useState('');
+  const [showBuyCredits, setShowBuyCredits] = useState(false);
   
   // ========== Data Fetching with Gatekeeper ==========
   const filterConfig = useMemo(() => ({
@@ -204,8 +206,8 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     [genderFilter, styleFilter, searchQuery]
   );
   const isReadyToCreate = useMemo(() => 
-    selectedAvatar && prompt.trim() && !hasInsufficientCredits,
-    [selectedAvatar, prompt, hasInsufficientCredits]
+    selectedAvatar && prompt.trim(),
+    [selectedAvatar, prompt]
   );
   
   // ========== LIFECYCLE: Strict Cleanup ==========
@@ -292,6 +294,12 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     if (!user) {
       toast.error('Please sign in to create videos');
       navigate('/auth');
+      return;
+    }
+    
+    // Block creation if insufficient credits - show buy modal
+    if (hasInsufficientCredits) {
+      setShowBuyCredits(true);
       return;
     }
     
@@ -567,6 +575,11 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
           />
         </div>
       )}
+      {/* Buy Credits Modal */}
+      <BuyCreditsModal 
+        open={showBuyCredits} 
+        onOpenChange={setShowBuyCredits} 
+      />
     </div>
   );
 }));

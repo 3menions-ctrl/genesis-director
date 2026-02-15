@@ -1,9 +1,10 @@
 import { useState, useRef, useCallback, useEffect, memo, useMemo } from 'react';
+
 import { saveDraft, loadDraft, clearDraft } from '@/lib/sessionPersistence';
 import { useNavigationWithLoading } from '@/components/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Wand2, Image, User, Palette, Dices, Film, 
+  Wand2, Image, User, Palette, Dices, Film, Coins, 
   Sparkles, Upload, Mic, ChevronRight, Play,
   Video, Layers, ArrowRight, RectangleHorizontal,
   Square, RectangleVertical, Clock, Hash, Music,
@@ -42,6 +43,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 
 // Extended mode data with visuals - core creation modes only
 const CREATION_MODES = [
@@ -162,7 +164,8 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
-  
+  const [showBuyCredits, setShowBuyCredits] = useState(false);
+
   // Template/Environment hook - loads settings from URL params
   const { appliedSettings, isLoading: templateLoading, templateId } = useTemplateEnvironment();
   
@@ -375,6 +378,11 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   }, []);
 
   const handleCreate = () => {
+    // Block creation if insufficient credits - show buy modal
+    if (hasInsufficientCredits) {
+      setShowBuyCredits(true);
+      return;
+    }
     if (!prompt.trim() && modeConfig?.requiresText) return;
     
     // CLIENT-SIDE CONTENT SAFETY CHECK - First defense layer
@@ -425,7 +433,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   };
 
   const isReadyToCreate = () => {
-    if (hasInsufficientCredits) return false;
+    // Don't disable button for insufficient credits - let handleCreate show the buy modal
     if (modeConfig?.requiresText && !prompt.trim()) return false;
     if (modeConfig?.requiresImage && !uploadedImage) return false;
     if (modeConfig?.requiresVideo && !uploadedVideo) return false;
@@ -1074,7 +1082,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                     <Zap className="w-5 h-5 text-red-400" />
                     <p className="text-sm text-red-300">
                       You need {estimatedCredits - userCredits} more credits for this video.{' '}
-                      <button className="underline hover:text-red-200">Get credits</button>
+                      <button onClick={() => setShowBuyCredits(true)} className="underline hover:text-red-200">Get credits</button>
                     </p>
                   </div>
                 )}
@@ -1086,16 +1094,28 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                   disabled={!isReadyToCreate()}
                   className={cn(
                     "w-full h-14 text-base font-semibold rounded-2xl transition-all duration-300 group",
-                    "bg-white text-black hover:bg-white/90",
+                    hasInsufficientCredits
+                      ? "bg-amber-500 text-black hover:bg-amber-400"
+                      : "bg-white text-black hover:bg-white/90",
                     "shadow-[0_0_40px_rgba(255,255,255,0.1)]",
                     "hover:shadow-[0_0_60px_rgba(255,255,255,0.15)]",
                     "disabled:opacity-40 disabled:shadow-none"
                   )}
                 >
                   <span className="flex items-center gap-3">
-                    <Sparkles className="w-5 h-5" />
-                    Create {currentMode?.name} • {estimatedCredits} credits
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    {hasInsufficientCredits ? (
+                      <>
+                        <Coins className="w-5 h-5" />
+                        Get Credits to Create
+                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-5 h-5" />
+                        Create {currentMode?.name} • {estimatedCredits} credits
+                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      </>
+                    )}
                   </span>
                 </Button>
               </div>
@@ -1127,6 +1147,12 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           </div>
         </motion.div>
       </div>
+      
+      {/* Buy Credits Modal */}
+      <BuyCreditsModal 
+        open={showBuyCredits} 
+        onOpenChange={setShowBuyCredits} 
+      />
     </div>
   );
 });

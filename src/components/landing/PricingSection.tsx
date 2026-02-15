@@ -169,7 +169,7 @@ const LetsGoCTA = memo(function LetsGoCTA({ onNavigate }: { onNavigate: (path: s
           
           <span className="absolute inset-[3px] rounded-full bg-white flex items-center justify-center shadow-[0_0_60px_rgba(255,255,255,0.4),0_0_120px_rgba(255,255,255,0.15)]">
             <span className="text-black font-bold text-xl md:text-2xl tracking-wide">
-              Let's Go
+              Let's Go!
             </span>
           </span>
         </button>

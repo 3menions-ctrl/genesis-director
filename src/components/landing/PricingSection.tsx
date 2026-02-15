@@ -195,6 +195,17 @@ const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
 }) {
   const playerRef = useRef<UniversalHLSPlayerHandle>(null);
   const [isMuted, setIsMuted] = useState(true);
+  const [hasEnded, setHasEnded] = useState(false);
+
+  const handleVideoEnded = useCallback(() => {
+    setHasEnded(true);
+    // Pause the video so it stops playing
+    const video = playerRef.current?.getVideoElement?.();
+    if (video) {
+      video.pause();
+    }
+    onVideoEnded();
+  }, [onVideoEnded]);
 
   // Escape key to exit
   useEffect(() => {
@@ -233,7 +244,7 @@ const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
             muted={true}
             loop={false}
             aspectRatio="auto"
-            onEnded={onVideoEnded}
+            onEnded={handleVideoEnded}
           />
         </div>
         

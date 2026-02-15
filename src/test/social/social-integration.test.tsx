@@ -45,7 +45,7 @@ describe('Social Features Integration', () => {
       const module = await import('@/hooks/useSocial');
       
       expect(module.useSocial).toBeDefined();
-      expect(module.useUniverseChat).toBeDefined();
+      
       expect(module.useDirectMessages).toBeDefined();
       expect(module.useProjectComments).toBeDefined();
     });

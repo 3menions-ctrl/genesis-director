@@ -40,8 +40,6 @@ const ScriptReview = lazy(() => import("./pages/ScriptReview"));
 const Production = lazy(() => import("./pages/Production"));
 const Clips = lazy(() => import("./pages/Clips"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
-const Universes = lazy(() => import("./pages/Universes"));
-const UniverseDetail = lazy(() => import("./pages/UniverseDetail"));
 const Templates = lazy(() => import("./pages/Templates"));
 const Environments = lazy(() => import("./pages/Environments"));
 const Discover = lazy(() => import("./pages/Discover"));
@@ -301,21 +299,9 @@ const App = () => {
                   </RouteContainer>
                 } />
                 
-                {/* Story Universes */}
-                <Route path="/universes" element={
-                  <RouteContainer fallbackMessage="Loading universes...">
-                    <ProtectedRoute>
-                      <Universes />
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
-                <Route path="/universes/:id" element={
-                  <RouteContainer fallbackMessage="Loading universe...">
-                    <ProtectedRoute>
-                      <UniverseDetail />
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
+                {/* Legacy universe routes - redirect to projects */}
+                <Route path="/universes" element={<Navigate to="/projects" replace />} />
+                <Route path="/universes/:id" element={<Navigate to="/projects" replace />} />
                 
                 {/* Templates Gallery */}
                 <Route path="/templates" element={

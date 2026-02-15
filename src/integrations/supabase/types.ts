@@ -2395,6 +2395,119 @@ export type Database = {
         }
         Relationships: []
       }
+      photo_edit_templates: {
+        Row: {
+          category: string
+          created_at: string
+          credits_cost: number | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          is_premium: boolean | null
+          name: string
+          prompt_instruction: string
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          credits_cost?: number | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_premium?: boolean | null
+          name: string
+          prompt_instruction: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          credits_cost?: number | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_premium?: boolean | null
+          name?: string
+          prompt_instruction?: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      photo_edits: {
+        Row: {
+          batch_id: string | null
+          batch_index: number | null
+          created_at: string
+          credits_charged: number | null
+          custom_instruction: string | null
+          edit_type: string
+          edited_url: string | null
+          error_message: string | null
+          id: string
+          manual_adjustments: Json | null
+          original_url: string
+          processing_time_ms: number | null
+          status: string
+          template_id: string | null
+          thumbnail_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          batch_id?: string | null
+          batch_index?: number | null
+          created_at?: string
+          credits_charged?: number | null
+          custom_instruction?: string | null
+          edit_type?: string
+          edited_url?: string | null
+          error_message?: string | null
+          id?: string
+          manual_adjustments?: Json | null
+          original_url: string
+          processing_time_ms?: number | null
+          status?: string
+          template_id?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          batch_id?: string | null
+          batch_index?: number | null
+          created_at?: string
+          credits_charged?: number | null
+          custom_instruction?: string | null
+          edit_type?: string
+          edited_url?: string | null
+          error_message?: string | null
+          id?: string
+          manual_adjustments?: Json | null
+          original_url?: string
+          processing_time_ms?: number | null
+          status?: string
+          template_id?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photo_edits_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "photo_edit_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricing_config: {
         Row: {
           clip_duration_seconds: number

@@ -261,6 +261,34 @@ const VideoEditor = () => {
     return maxEnd;
   }, []);
 
+  const handleDeleteClip = useCallback((clipId: string) => {
+    withHistory((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map((track) => ({ ...track, clips: track.clips.filter((c) => c.id !== clipId) })),
+      selectedClipId: prev.selectedClipId === clipId ? null : prev.selectedClipId,
+    }));
+  }, [withHistory]);
+
+  // === Toggle Track Mute ===
+  const handleToggleTrackMute = useCallback((trackId: string) => {
+    setEditorState((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map((t) =>
+        t.id === trackId ? { ...t, muted: !t.muted } : t
+      ),
+    }));
+  }, []);
+
+  // === Toggle Track Lock ===
+  const handleToggleTrackLock = useCallback((trackId: string) => {
+    setEditorState((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map((t) =>
+        t.id === trackId ? { ...t, locked: !t.locked } : t
+      ),
+    }));
+  }, []);
+
   // === Keyboard shortcuts ===
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -301,10 +329,20 @@ const VideoEditor = () => {
         e.preventDefault();
         setShowMediaBrowser((prev) => !prev);
       }
+      // Undo: Ctrl/Cmd+Z
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      }
+      // Redo: Ctrl/Cmd+Shift+Z
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "z") {
+        e.preventDefault();
+        handleRedo();
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [handleSplit, handleDuplicate, handleFitToView, editorState.selectedClipId, snapEnabled]);
+  }, [handleSplit, handleDuplicate, handleFitToView, handleDeleteClip, handleRippleDelete, handleUndo, handleRedo, editorState.selectedClipId, snapEnabled]);
 
   const canSplit = editorState.tracks.some((t) =>
     t.clips.some((c) => editorState.currentTime > c.start && editorState.currentTime < c.end)
@@ -575,13 +613,7 @@ const VideoEditor = () => {
     };
   }, []);
 
-  const handleDeleteClip = useCallback((clipId: string) => {
-    withHistory((prev) => ({
-      ...prev,
-      tracks: prev.tracks.map((track) => ({ ...track, clips: track.clips.filter((c) => c.id !== clipId) })),
-      selectedClipId: prev.selectedClipId === clipId ? null : prev.selectedClipId,
-    }));
-  }, [withHistory]);
+  // handleDeleteClip defined above keyboard handler
 
   const handleAddTransition = useCallback((clipId: string, type: string) => {
     handleUpdateClip(clipId, { effects: [{ type: "transition", name: type, duration: 0.5 }] });
@@ -710,6 +742,8 @@ const VideoEditor = () => {
               onDeleteClip={handleDeleteClip}
               onRippleDelete={handleRippleDelete}
               onMoveClipToTrack={handleMoveClipToTrack}
+              onToggleTrackMute={handleToggleTrackMute}
+              onToggleTrackLock={handleToggleTrackLock}
             />
           </div>
         </div>

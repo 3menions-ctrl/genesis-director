@@ -1,9 +1,10 @@
 import { useState, useCallback, memo } from 'react';
 import { toast } from 'sonner';
-import { Film, Sparkles } from 'lucide-react';
+import { Film, Sparkles, Image } from 'lucide-react';
 import ClipsBackground from '@/components/clips/ClipsBackground';
 import { CreationHub } from '@/components/studio/CreationHub';
 import { ScenesHub } from '@/components/scenes/ScenesHub';
+import { PhotoEditorHub } from '@/components/photo-editor/PhotoEditorHub';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { VideoGenerationMode, VideoStylePreset } from '@/types/video-modes';
@@ -44,7 +45,7 @@ function CreateContentInner() {
   const [isCreating, setIsCreating] = useState(false);
   const [creationStatus, setCreationStatus] = useState<string>('');
   const [isHubReady, setIsHubReady] = useState(false);
-  const [activeTab, setActiveTab] = useState<'create' | 'scenes'>('create');
+  const [activeTab, setActiveTab] = useState<'create' | 'scenes' | 'photo'>('create');
   
   // Use comprehensive stability guard for safe async operations
   const { isMounted, getAbortController, safeSetState } = useStabilityGuard();
@@ -229,6 +230,18 @@ function CreateContentInner() {
             <Sparkles className="w-4 h-4" />
             Scenes
           </button>
+          <button
+            onClick={() => setActiveTab('photo')}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+              activeTab === 'photo'
+                ? "bg-cyan-600 text-white shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-white/[0.05]"
+            )}
+          >
+            <Image className="w-4 h-4" />
+            Photo Editor
+          </button>
         </div>
       </div>
       
@@ -242,6 +255,8 @@ function CreateContentInner() {
             onStartCreation={handleStartCreation}
             onReady={handleHubReady}
           />
+        ) : activeTab === 'photo' ? (
+          <PhotoEditorHub />
         ) : (
           <ScenesHub />
         )}

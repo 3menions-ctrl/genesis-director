@@ -55,9 +55,11 @@ serve(async (req) => {
     }
 
     // Validate packageId is a string and exists in allowed packages
-    const packageId = typeof body === 'object' && body !== null && 'packageId' in body 
-      ? String((body as Record<string, unknown>).packageId).toLowerCase().trim()
+    const parsedBody = typeof body === 'object' && body !== null ? body as Record<string, unknown> : {};
+    const packageId = 'packageId' in parsedBody
+      ? String(parsedBody.packageId).toLowerCase().trim()
       : null;
+    const isWelcomeOffer = parsedBody.welcomeOffer === true;
     
     if (!packageId || packageId.length > 50 || !CREDIT_PACKAGES[packageId]) {
       logStep("Invalid package ID rejected", { received: packageId });
@@ -92,6 +94,13 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://genesis-director.lovable.app";
     
+    // Apply welcome 30% off coupon for first-time signups
+    const WELCOME_COUPON_ID = '0ZMvRAjk';
+    const discounts = isWelcomeOffer ? [{ coupon: WELCOME_COUPON_ID }] : undefined;
+    if (isWelcomeOffer) {
+      logStep("Applying welcome 30% off coupon", { couponId: WELCOME_COUPON_ID });
+    }
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : userEmail,
@@ -102,17 +111,17 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
+      discounts,
       success_url: `${origin}/profile?payment=success&credits=${pkg.credits}`,
       cancel_url: `${origin}/profile?payment=canceled`,
       metadata: {
         user_id: userId,
         credits: pkg.credits.toString(),
         package_id: packageId,
+        welcome_offer: isWelcomeOffer ? 'true' : 'false',
       },
       customer_creation: customerId ? undefined : 'always',
-      // Allow automatic tax calculation for international customers
       automatic_tax: { enabled: false },
-      // Let Stripe handle billing address collection for international compliance
       billing_address_collection: 'auto',
     });
 

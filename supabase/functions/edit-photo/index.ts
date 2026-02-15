@@ -128,8 +128,8 @@ Deno.serve(async (req) => {
       console.warn('[edit-photo] Could not pre-download image, using URL directly:', e);
     }
 
-    // Create prediction using Replicate API — Step1X-Edit (stable, modern model)
-    const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
+    // Create prediction using Replicate API — try model-based endpoint first, fallback to version
+    let createResponse = await fetch('https://api.replicate.com/v1/models/zsxkib/step1x-edit/predictions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${REPLICATE_API_KEY}`,
@@ -137,7 +137,6 @@ Deno.serve(async (req) => {
         Prefer: 'wait',
       },
       body: JSON.stringify({
-        version: '12b5a5a61e3419f792eb56cfc16eed046252740ebf5d470228f9b4cf2c861610',
         input: {
           image: imageInput,
           prompt: editInstruction,
@@ -146,6 +145,50 @@ Deno.serve(async (req) => {
         },
       }),
     });
+
+    // If model endpoint fails, try with explicit version hash
+    if (!createResponse.ok && createResponse.status === 404) {
+      console.log('[edit-photo] Model endpoint returned 404, trying version-based endpoint...');
+      createResponse = await fetch('https://api.replicate.com/v1/predictions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${REPLICATE_API_KEY}`,
+          'Content-Type': 'application/json',
+          Prefer: 'wait',
+        },
+        body: JSON.stringify({
+          version: '12b5a5a61e3419f792eb56cfc16eed046252740ebf5d470228f9b4cf2c861610',
+          input: {
+            image: imageInput,
+            prompt: editInstruction,
+            steps: 50,
+            guidance: 7.5,
+          },
+        }),
+      });
+    }
+
+    // If both fail, try a known-good alternative model (instruct-pix2pix)
+    if (!createResponse.ok && (createResponse.status === 404 || createResponse.status === 422)) {
+      console.log('[edit-photo] Step1X-Edit unavailable, falling back to timothybrooks/instruct-pix2pix...');
+      createResponse = await fetch('https://api.replicate.com/v1/models/timothybrooks/instruct-pix2pix/predictions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${REPLICATE_API_KEY}`,
+          'Content-Type': 'application/json',
+          Prefer: 'wait',
+        },
+        body: JSON.stringify({
+          input: {
+            image: imageInput,
+            prompt: editInstruction,
+            num_inference_steps: 50,
+            guidance_scale: 7.5,
+            image_guidance_scale: 1.5,
+          },
+        }),
+      });
+    }
 
     if (!createResponse.ok) {
       const errText = await createResponse.text();

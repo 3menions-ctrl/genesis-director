@@ -106,6 +106,7 @@ describe('Notification Icon & Color Mappings', () => {
     video_complete: 'Video',
     video_started: 'Play',
     video_failed: 'AlertTriangle',
+    low_credits: 'Coins',
     mention: 'MessageCircle',
   };
 
@@ -123,13 +124,14 @@ describe('Notification Icon & Color Mappings', () => {
     video_complete: 'text-green-500',
     video_started: 'text-blue-400',
     video_failed: 'text-red-500',
+    low_credits: 'text-amber-500',
     mention: 'text-blue-500',
   };
 
   const allTypes: NotificationType[] = [
     'like', 'comment', 'follow', 'achievement', 'challenge_complete',
     'message', 'universe_invite', 'character_borrow_request',
-    'level_up', 'streak_milestone', 'video_complete', 'video_started', 'video_failed', 'mention',
+    'level_up', 'streak_milestone', 'video_complete', 'video_started', 'video_failed', 'low_credits', 'mention',
   ];
 
   it('should have an icon mapped for every notification type', () => {

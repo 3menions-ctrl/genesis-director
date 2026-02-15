@@ -4707,6 +4707,7 @@ export type Database = {
         | "mention"
         | "video_started"
         | "video_failed"
+        | "low_credits"
       story_structure:
         | "three_act"
         | "hero_journey"
@@ -4870,6 +4871,7 @@ export const Constants = {
         "mention",
         "video_started",
         "video_failed",
+        "low_credits",
       ],
       story_structure: [
         "three_act",

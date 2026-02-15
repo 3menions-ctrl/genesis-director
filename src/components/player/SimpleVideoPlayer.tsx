@@ -95,7 +95,7 @@ export const SimpleVideoPlayer = memo(forwardRef<SimpleVideoPlayerHandle, Simple
     onError,
     onLoadedData,
     onCanPlay,
-    crossOrigin = 'anonymous',
+    crossOrigin,
   }, ref) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const hlsRef = useRef<Hls | null>(null);

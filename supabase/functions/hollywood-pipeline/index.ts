@@ -229,175 +229,57 @@ function getBreakoutEffectConfig(effectType: 'post-escape' | 'scroll-grab' | 'fr
    * 6. ANTI-MORPHING GUARDS - prevent face/body drift
    */
   
-  // Identity lock prefix - injected into EVERY prompt for consistency
-  const IDENTITY_ANCHOR = `[CRITICAL IDENTITY LOCK: Maintain EXACT same face, hair, skin tone, body type, and clothing across ALL frames. NO morphing, NO face changes, NO age shifts. The person must be 100% recognizable throughout.]`;
-  
-  // Motion enforcement - prevents static "slideshow" output
-  const MOTION_GUARD = `[MOTION REQUIRED: Continuous subtle movement - breathing, micro-expressions, fabric motion, hair sway, environmental particles. NEVER static or frozen.]`;
-  
-  // Anti-morphing negative prompt additions
-  const ANTI_MORPH = `Avoid: face changing, age morphing, body transformation, clothing change, skin tone shift, different person, inconsistent features, distorted face, melting features.`;
+  // Identity and motion guards - COMPRESSED for Kling's ~200-word effective prompt window
+  // NOTE: Full identity injection (face lock, anti-morphing, consistency anchors) is handled
+  // by prompt-builder.ts. These are lightweight scene-level reminders only.
+  const ID = `[Same person throughout - no face/body/clothing changes.]`;
+  const MO = `[Continuous motion: breathing, micro-expressions, fabric sway. Never static.]`;
   
   const configs: Record<string, BreakoutEffectConfig> = {
     'post-escape': {
-      clip1Prompt: `${IDENTITY_ANCHOR}
-CAMERA: Slow DOLLY PUSH-IN toward subject, building claustrophobic tension.
-SCENE: Photorealistic - person TRAPPED INSIDE a social media post interface. Body pressed against invisible glass barrier from inside. 
-UI LAYER: Like button, comments, profile info rendered as SEPARATE DEPTH PLANE in front of character.
-ACTION: Hands SLOWLY PRESSING harder against barrier, fingers splaying with increasing desperation. Breath fogging digital glass. Eyes LOCKING on camera with building intensity.
-LIGHTING: Dramatic rim light from behind screen, UI elements casting sharp shadows ON character's face. Cyan accent glow from interface elements.
-MOTION: Subtle claustrophobic movements - shifting weight, pressing harder, breathing visible.
-${MOTION_GUARD}
-Quality: 8K photorealistic, cinematic depth of field, hyperrealistic skin detail.`,
-      clip2Prompt: `${IDENTITY_ANCHOR}
-CAMERA: Dynamic TRACKING SHOT following the explosive action, slight DUTCH ANGLE for chaos.
-SCENE: THE BREAKTHROUGH - character SMASHES THROUGH the screen barrier with FULL BODY FORCE.
-ACTION: Arms PUNCHING through with visible impact shockwave. Glass shards and UI fragments EXPLODING TOWARD VIEWER in 120fps slow-motion. Body LUNGING through the opening with athletic power. Shoulders and torso TWISTING through jagged digital frame.
-VFX: Glass catching light in prismatic refraction. UI buttons SHATTERING into pixel fragments. Volumetric dust/particle explosion. Motion blur trails on fastest-moving debris.
-LIGHTING: EXPLOSIVE backlighting flooding through cracks. Dramatic light rays piercing debris cloud. Blue and white light explosions.
-PHYSICS: Realistic glass break patterns, authentic impact physics, debris following proper trajectories.
-${MOTION_GUARD}`,
-      clip3Prompt: `${IDENTITY_ANCHOR}
-CAMERA: Hero CRANE SHOT, starting slightly low and RISING to eye level - the triumphant reveal.
-SCENE: EMERGENCE COMPLETE - character stands CONFIDENTLY in reality with shattered interface debris settling.
-ACTION: Powerful STEP FORWARD toward camera. Shoulders rolling back in confident stance. Chin lifting with authority. Hand gestures emphasizing speech.
-ENVIRONMENT: Broken UI elements scattered as floor debris (like buttons, hearts, comment icons as physical shards). Final glass fragments floating down in slow-motion around subject.
-LIGHTING: Premium hero lighting - strong key from 45 degrees, subtle fill, dramatic rim light separating from dark background. Volumetric haze catching light.
-EXPRESSION: Direct commanding eye contact. Speaking with powerful conviction. Slight confident smile.
-MOTION: Active speaking gestures, subtle victorious energy, confident weight shifts.
-${MOTION_GUARD}`,
-      colorDescription: 'Deep blue accent lighting, white interface glow, dramatic noir shadows',
-      lightingDescription: 'Chiaroscuro-style contrast, UI elements as practical light sources, cinematic rim separation',
-      breakLightingDescription: 'Explosive volumetric rays, prismatic glass refraction, blue-white energy bursts',
-      visualElements: 'Like button shards, comment icons as debris, pixel fragments, shattered profile frame, glass particles',
+      clip1Prompt: `${ID} Slow DOLLY PUSH-IN, claustrophobic tension. Person TRAPPED inside social media post interface, pressing against glass barrier. UI layer (like button, comments) as separate depth plane. Hands pressing harder, breath fogging glass. Eyes locking on camera. Dramatic rim light, cyan UI glow casting shadows on face. ${MO}`,
+      clip2Prompt: `${ID} Dynamic TRACKING with DUTCH ANGLE. Character SMASHES THROUGH screen with full body force. Glass shards EXPLODING toward viewer. UI buttons shattering into pixel fragments. Volumetric dust explosion. Explosive backlighting flooding through cracks. Blue-white light bursts. ${MO}`,
+      clip3Prompt: `${ID} Hero CRANE SHOT rising to eye level. Powerful step forward, shattered UI debris settling as floor shards. Premium hero lighting - 45° key, subtle fill, dramatic rim. Volumetric haze. Speaking with commanding conviction, confident eye contact. ${MO}`,
+      colorDescription: 'Deep blue accent, white interface glow, dramatic noir shadows',
+      lightingDescription: 'Chiaroscuro contrast, UI as practical light, cinematic rim separation',
+      breakLightingDescription: 'Explosive volumetric rays, prismatic glass refraction, blue-white energy',
+      visualElements: 'Like button shards, comment icons as debris, pixel fragments, glass particles',
     },
     'scroll-grab': {
-      clip1Prompt: `${IDENTITY_ANCHOR}
-CAMERA: PUSH-IN with subtle HANDHELD energy, building viral urgency.
-SCENE: Hyperrealistic vertical video - person inside phone screen, their HAND reaches OUT toward viewer.
-ACTION: Fingers PRESSING against screen boundary from inside, creating visible 3D BULGE in glass surface. Palm PUSHING harder, glass WARPING and STRETCHING. Other hand bracing against inside of phone frame.
-UI LAYER: TikTok/Reels style elements (heart, share, comment icons) visible around edges, reacting to the pressure with slight glitch effects.
-LIGHTING: Dual-tone NEON - pink from left, cyan from right, creating vibrant rim glow on face and hands. Glow INTENSIFYING around pressure point.
-EXPRESSION: Mischievous knowing smirk, direct eye contact, about-to-break-free energy.
-MOTION: Fingers pressing and spreading, glass warping dynamically, face with subtle challenge expression.
-${MOTION_GUARD}
-Quality: 8K, true volumetric depth, hyperrealistic skin and hand detail.`,
-      clip2Prompt: `${IDENTITY_ANCHOR}
-CAMERA: WHIP PAN following the explosive breakthrough, dynamic energy.
-SCENE: THE GRAB - character's arm PUNCHES THROUGH screen, hand SEIZES device edge.
-ACTION: Fist SMASHING through in burst of glass. Fingers GRIPPING phone bezel with athletic intensity. Entire body PULLING FORWARD through the rupture with parkour-like movement. Screen material TEARING like liquid crystal fabric.
-VFX: NEON PINK and CYAN glass fragments EXPLODING in dual-tone light trails. Colorful shards catching and refracting colored light. Screen stretching before snapping. Digital artifacts glitching at tear point.
-LIGHTING: Dual neon EXPLOSION - pink and cyan light rays mixing at impact point. Dramatic backlight flooding through opening.
-PHYSICS: Muscular pulling motion, realistic glass break, fabric-like screen tear, authentic momentum.
-${MOTION_GUARD}`,
-      clip3Prompt: `${IDENTITY_ANCHOR}
-CAMERA: ORBIT RIGHT around subject, dynamic energy, settling to centered composition.
-SCENE: THE LANDING - character fully OUT of phone, dynamic pose in real space.
-ACTION: Athletic LANDING with slight crouch absorbing impact. Rising with confident SWAGGER. Hand gestures COMMANDING the frame. Speaking directly with influencer energy.
-ENVIRONMENT: Shattered phone visible behind at angle, neon reflections dancing on debris, final glass fragments floating down catching dual-tone light.
-LIGHTING: Club-style dual neon - pink key, cyan fill. Dramatic rim separation. Slight volumetric haze for atmosphere.
-EXPRESSION: Confident smirk, powerful eye contact, owning-the-room energy. Active speech with emphasis gestures.
-MOTION: Dynamic gestures, weight shifts with rhythm, energetic but controlled movement.
-${MOTION_GUARD}`,
-      colorDescription: 'Vibrant neon pink and cyan dual-tone, club atmosphere, high saturation',
+      clip1Prompt: `${ID} PUSH-IN with handheld energy. Person inside phone screen, hand reaching OUT creating 3D BULGE in glass. Neon pink/cyan dual-tone rim glow intensifying at pressure point. Fingers pressing harder, glass warping. Mischievous eye contact. ${MO}`,
+      clip2Prompt: `${ID} WHIP PAN following action. Fist SMASHING through glass burst, fingers gripping phone bezel. Body pulling forward with parkour energy. Screen tearing like liquid crystal. Neon pink/cyan fragments exploding in light trails. ${MO}`,
+      clip3Prompt: `${ID} ORBIT RIGHT around subject settling centered. Athletic landing with slight crouch, rising with confident swagger. Shattered phone behind, neon reflections on debris. Club-style pink key, cyan fill, volumetric haze. Speaking with influencer energy. ${MO}`,
+      colorDescription: 'Vibrant neon pink and cyan dual-tone, club atmosphere',
       lightingDescription: 'Dual neon rim lighting, energetic color contrast, volumetric haze',
-      breakLightingDescription: 'Pink and cyan light explosion, colorful debris refraction, neon trails',
-      visualElements: 'Phone bezel, vertical UI icons as debris, neon glass shards, pixel glitch particles',
+      breakLightingDescription: 'Pink and cyan light explosion, colorful debris refraction',
+      visualElements: 'Phone bezel, neon glass shards, pixel glitch particles',
     },
     'freeze-walk': {
-      clip1Prompt: `${IDENTITY_ANCHOR}
-CAMERA: Slow PUSH-IN toward the frozen figure, building supernatural tension.
-SCENE: Video conference grid - multiple participants in boxes. ONE PERSON in center has FROZEN mid-motion.
-CONTRAST: The frozen person rendered in GREYSCALE while all others move naturally in FULL COLOR. Other participants typing, nodding, gesturing - oblivious.
-ACTION: Frozen figure's eyes SLOWLY MOVING to lock on camera (only visible movement). Body beginning to GLOW at edges with supernatural white-gold light. Particles starting to rise around their silhouette.
-LIGHTING: Flat webcam lighting on color participants vs ethereal glow emanating FROM the frozen figure. Building intensity at their boundaries.
-EXPRESSION: Knowing, powerful gaze. The stillness is intentional. Something transformative about to happen.
-MOTION: Tiny eye movement only, all other participants with natural webcam movement, particles rising slowly.
-${MOTION_GUARD}`,
-      clip2Prompt: `${IDENTITY_ANCHOR}
-CAMERA: TRACKING SHOT following the emergence, perspective SHIFTING from 2D to 3D.
-SCENE: THE STEP-OUT - frozen person PUSHES FORWARD out of their video box into real 3D space.
-ACTION: One foot STEPPING through the screen boundary with visible dimensional ripple. Color FLOODING BACK into their body as they emerge. Hands pushing against video frame edges for leverage. Full body MATERIALIZING into solid 3D form.
-VFX: Portal-like GLOW at the 2D/3D boundary. Dimensional light where flat meets real. Their empty video box now showing abandoned chair behind them.
-LIGHTING: TRANSFORMATION from flat webcam lighting to dramatic 3D studio lighting AS they emerge. Volumetric edge glow fading.
-PHYSICS: The surreal made convincingly real - stepping from flat plane into depth.
-${MOTION_GUARD}`,
-      clip3Prompt: `${IDENTITY_ANCHOR}
-CAMERA: DOLLY BACK to establish powerful composition, then SETTLE to centered frame.
-SCENE: CORPORATE TRANSCENDENCE - person stands fully in 3D space, video call continuing behind them.
-ACTION: Confident STANCE adjustment, shoulders back. Subtle glow still fading from body edges. Hands coming together in authoritative gesture. Direct address to camera with business confidence.
-ENVIRONMENT: Video call grid visible behind as background element, other participants still meeting obliviously. The boundary between 2D and 3D now their backdrop.
-LIGHTING: Premium corporate lighting - clean key, professional fill, subtle rim. The subject MORE REAL than the flat background.
-EXPRESSION: Powerful, knowing, in-control. Speaking with calm authority.
-MOTION: Confident weight shifts, professional gestures, controlled powerful energy.
-${MOTION_GUARD}`,
-      colorDescription: 'Corporate blue-grey grid, supernatural white-gold glow at boundaries',
-      lightingDescription: 'Flat webcam to premium studio transformation, ethereal portal glow',
-      breakLightingDescription: 'Dimensional light ripples, 2D/3D boundary illumination, color return effect',
-      visualElements: 'Video boxes, mute icons, abandoned chair, dimensional boundary glow, participant avatars',
+      clip1Prompt: `${ID} Slow PUSH-IN toward frozen figure. Video conference grid - ONE person FROZEN in GREYSCALE while others move in full color. Eyes slowly moving to lock on camera. Body glowing at edges with white-gold light. Particles rising around silhouette. ${MO}`,
+      clip2Prompt: `${ID} TRACKING SHOT, perspective shifting 2D to 3D. Frozen person STEPS FORWARD out of video box into real 3D space. Color flooding back as they emerge. Portal glow at 2D/3D boundary. Empty chair in abandoned box. Flat webcam lighting transforming to dramatic studio lighting. ${MO}`,
+      clip3Prompt: `${ID} DOLLY BACK establishing composition, settling centered. Confident stance in 3D space, video grid continuing behind. Premium corporate lighting - clean key, professional fill, subtle rim. Subtle glow fading. Speaking with calm authority. ${MO}`,
+      colorDescription: 'Corporate blue-grey, supernatural white-gold glow at boundaries',
+      lightingDescription: 'Flat webcam to premium studio transformation, portal glow',
+      breakLightingDescription: 'Dimensional light ripples, 2D/3D boundary illumination',
+      visualElements: 'Video boxes, abandoned chair, dimensional boundary glow',
     },
     'reality-rip': {
-      clip1Prompt: `${IDENTITY_ANCHOR}
-CAMERA: Slow CRANE DOWN into the void, building godlike anticipation.
-SCENE: Pure darkness with a glowing TEAR forming in reality itself - like fabric or paper RIPPING.
-ACTION: Tear slowly WIDENING with crackling energy. Through the rift, SILHOUETTE of a person visible, BACKLIT by intense white-gold light. Their hands GRIPPING the tear edges from inside, beginning to PULL it wider.
-VFX: Glowing edges with electrical energy crackling. Digital glitch artifacts floating around tear. Reality FRAGMENTS drifting weightlessly. Light PULSING with building power.
-LIGHTING: Near-total darkness with BLINDING backlight through the tear. Godlike illumination. High contrast noir drama.
-MOTION: Tear widening with organic movement, energy crackling, fragments drifting, silhouette shifting with power.
-${MOTION_GUARD}`,
-      clip2Prompt: `${IDENTITY_ANCHOR}
-CAMERA: EXPLOSIVE PUSH-IN through the chaos, matching the emergence energy.
-SCENE: REALITY TEARS OPEN - the tear RIPS WIDE as the person STEPS THROUGH with godlike power.
-ACTION: Full body SURGING through the rift. Arms SPREADING wide in powerful stance. Energy EXPLODING outward from the tear. Physical form SOLIDIFYING as they enter reality - becoming MORE REAL than their surroundings.
-VFX: MASSIVE light explosion flooding outward. Digital artifacts and reality shards FLYING in all directions. Energy tendrils connecting to tear edges. Volumetric light rays piercing through debris cloud.
-LIGHTING: SUPERNOVA-level light burst, settling to dramatic backlight with edge illumination. Subject silhouetted then revealed.
-PHYSICS: Epic superhero entrance energy, reality-warping visual chaos, debris obeying explosion physics.
-${MOTION_GUARD}`,
-      clip3Prompt: `${IDENTITY_ANCHOR}
-CAMERA: HEROIC LOW ANGLE, slight TILT UP emphasizing power, settling to impactful composition.
-SCENE: GODLIKE ARRIVAL - person stands in reality as the tear SEALS behind them.
-ACTION: Powerful STANCE with last energy wisps fading from hands. The tear CLOSING with diminishing glow behind them. Chin LIFTING with absolute confidence. Speaking with commanding authority that matches their entrance.
-ENVIRONMENT: Reality restored but DIFFERENT now - subject is somehow MORE VIVID than surroundings. Floating particles of light settling around them.
-LIGHTING: Dramatic hero lighting - strong low key, powerful rim, subject glowing with residual energy. Volumetric atmosphere.
-EXPRESSION: Intense direct eye contact. Absolute confidence. Speaking with world-changing authority.
-MOTION: Powerful controlled movements, residual energy particles, confident gestures.
-${MOTION_GUARD}`,
-      colorDescription: 'Pure black with white-gold energy, extreme high contrast, supernatural luminance',
+      clip1Prompt: `${ID} Slow CRANE DOWN into void. Pure darkness with glowing TEAR in reality fabric. Silhouette backlit through rift, hands gripping tear edges pulling wider. Energy crackling, digital glitch fragments floating. Blinding backlight through tear, high contrast noir. ${MO}`,
+      clip2Prompt: `${ID} EXPLOSIVE PUSH-IN through chaos. Reality TEARS OPEN, person surges through with godlike power. Arms spreading wide. Energy exploding outward. Supernova light burst. Reality shards flying. Body solidifying, becoming more real than surroundings. ${MO}`,
+      clip3Prompt: `${ID} HEROIC LOW ANGLE with tilt up. Powerful stance as tear seals behind. Energy wisps fading from hands. Subject more vivid than reality. Floating light particles settling. Dramatic hero lighting - low key, powerful rim. Speaking with world-changing authority. ${MO}`,
+      colorDescription: 'Pure black with white-gold energy, extreme high contrast',
       lightingDescription: 'Total darkness to godlike backlighting, energy as light source',
-      breakLightingDescription: 'Supernova explosion, reality-crack illumination, volumetric god rays',
-      visualElements: 'Reality tear with glowing edges, digital glitch debris, light fragments, energy tendrils',
+      breakLightingDescription: 'Supernova explosion, reality-crack illumination, god rays',
+      visualElements: 'Reality tear with glowing edges, digital glitch debris, energy tendrils',
     },
     'aspect-escape': {
-      clip1Prompt: `${IDENTITY_ANCHOR}
-CAMERA: Static then SUBTLE PUSH as tension builds, format constraint emphasized.
-SCENE: Vertical 9:16 phone format - person TRAPPED in narrow frame, PUSHING against the aspect ratio itself.
-ACTION: Shoulder PRESSING against the visible 9:16 boundary edge. Body STRAINING against format limitation. Hands reaching for the horizontal space that doesn't exist yet. Expression showing determination and building force.
-VFX: Visible ASPECT RATIO EDGES as barriers. Reality BENDING where they push - dimensional distortion ripples. The 9:16 frame bulging outward from internal pressure.
-LIGHTING: Flat phone-video lighting (unflattering) emphasizing the limitation they're escaping.
-METAPHOR: The format itself is the prison - a meta-commentary on platform constraints.
-MOTION: Pushing effort, straining muscles, frame distortion, reality ripples.
-${MOTION_GUARD}`,
-      clip2Prompt: `${IDENTITY_ANCHOR}
-CAMERA: DRAMATIC WHIP from vertical to horizontal as they break through.
-SCENE: FORMAT SHATTER - person BREAKS through the aspect ratio boundary itself.
-ACTION: One powerful STEP crossing from 9:16 into 16:9. The vertical frame SHATTERING around them. Body TRANSITIONING between dimensional formats - legs in vertical, torso emerging into horizontal. Arms REACHING into widescreen freedom.
-VFX: Aspect ratio lines BREAKING like glass. Vertical and horizontal realities COLLIDING with prismatic visual distortion. Dimensional light where formats intersect. Shattered format fragments spinning away.
-LIGHTING: TRANSFORMATION from flat phone lighting to CINEMATIC widescreen quality AS they cross.
-PHYSICS: The surreal made real - stepping between dimensions of video format.
-${MOTION_GUARD}`,
-      clip3Prompt: `${IDENTITY_ANCHOR}
-CAMERA: CINEMATIC TRACKING establishing full widescreen composition - celebrating the new freedom.
-SCENE: FORMAT FREEDOM - person stands in glorious 16:9 horizontal reality.
-ACTION: Confident SWEEP of arms, embracing the full frame width. The shattered 9:16 fragments FADING behind them. Full CINEMATIC MOVEMENT now possible - they take advantage with expansive gestures and movement.
-ENVIRONMENT: Proper widescreen composition with rule-of-thirds. Cinematic negative space. Film-quality background blur. The cramped vertical prison now visible as scattered debris.
-LIGHTING: PREMIUM cinema lighting - Rembrandt key, sophisticated fill, dramatic rim. The upgrade is the point.
-EXPRESSION: Liberated confidence. Speaking to camera with the authority of someone who broke their own limitations.
-MOTION: Expansive gestures claiming the full frame, confident movement, celebratory energy.
-${MOTION_GUARD}`,
-      colorDescription: 'Flat phone-quality to premium cinematic grade, transformation emphasized',
-      lightingDescription: 'Harsh webcam to Hollywood lighting evolution, cinematic sophistication',
-      breakLightingDescription: 'Dimensional light at format boundary, prismatic distortion, quality upgrade visible',
-      visualElements: 'Visible aspect ratio edges, format shards, dimensional boundary, width expansion effect',
+      clip1Prompt: `${ID} Static then subtle PUSH. Vertical 9:16 format - person pushing against aspect ratio edge. Shoulder pressing, body straining. Format bulging from pressure. Reality bending at boundary with distortion ripples. Flat phone lighting emphasizing limitation. ${MO}`,
+      clip2Prompt: `${ID} DRAMATIC WHIP from vertical to horizontal. Person BREAKS through aspect ratio boundary. Powerful step from 9:16 into 16:9. Vertical frame shattering like glass. Dimensional light where formats collide. Flat lighting transforming to cinematic quality. ${MO}`,
+      clip3Prompt: `${ID} CINEMATIC TRACKING establishing widescreen composition. Arms sweeping to embrace full frame width. Shattered 9:16 fragments fading behind. Premium cinema lighting - Rembrandt key, sophisticated fill, dramatic rim. Speaking with liberated confidence. ${MO}`,
+      colorDescription: 'Phone-quality to premium cinematic grade transformation',
+      lightingDescription: 'Harsh webcam to Hollywood lighting evolution',
+      breakLightingDescription: 'Dimensional light at format boundary, prismatic distortion',
+      visualElements: 'Aspect ratio edges, format shards, dimensional boundary',
     },
   };
   

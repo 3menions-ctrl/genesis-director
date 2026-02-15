@@ -1,7 +1,7 @@
 import { memo, useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Type, Film, GripVertical, ImageIcon } from 'lucide-react';
-import silentVigilSource from '@/assets/silent-vigil-source.png';
+const silentVigilSource = '/images/silent-vigil-source.png';
 
 // Curated prompt → video pairs using real gallery content
 const SHOWCASE_PAIRS = [

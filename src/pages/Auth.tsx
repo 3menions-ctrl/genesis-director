@@ -151,9 +151,8 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
       });
       setErrors(fieldErrors);
       
-      // Show first error as toast
-      const firstError = result.error.errors[0];
-      toast.error(firstError.message);
+      // Show first validation error as toast
+      toast.error('Please check your details and try again.');
       return false;
     }
     

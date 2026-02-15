@@ -927,7 +927,7 @@ function ProductionContentInner() {
         await loadVideoClips();
       }
     } catch {
-      toast.error(`Retry failed`);
+      toast.error('Couldn\'t retry this clip. Please try again shortly.');
     } finally {
       setRetryingClipIndex(null);
     }

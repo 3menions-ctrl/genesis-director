@@ -168,7 +168,7 @@ export function AdminAvatarBatchV2() {
       }
     } catch (err) {
       console.error("Generation error:", err);
-      toast.error(`Generation error: ${err}`);
+      toast.error('Batch generation encountered an error. Please try again.');
       setIsGenerating(false);
     }
   }, [presetSummary]);

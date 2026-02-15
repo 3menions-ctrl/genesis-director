@@ -266,7 +266,7 @@ export function handleStabilityError(
     
     // Don't spam toasts for race conditions
     if (category !== 'ASYNC_RACE') {
-      toast.error(context ? `${context}` : 'Something went wrong', {
+      toast.error('Something went wrong. Please try again.', {
         description: suggestion,
         duration: 5000,
       });

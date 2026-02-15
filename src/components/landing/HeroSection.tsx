@@ -22,7 +22,7 @@ export const HeroSection = memo(forwardRef<HTMLElement, HeroSectionProps>(
             transition={{ duration: 0.8, delay: 1.4 }}
             className="text-base md:text-lg text-white/30 tracking-[0.3em] uppercase mb-16"
           >
-            Your Entire Video Studio — Powered by Imagination
+            1–3 Minute AI Videos From a Single Prompt
           </motion.p>
 
           {/* CTA */}

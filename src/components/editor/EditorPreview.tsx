@@ -9,8 +9,15 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { TimelineTrack, TimelineClip } from "./types";
 import { cn } from "@/lib/utils";
-import { generateHLSPlaylist, createHLSBlobUrl, type EditorClip } from "@/lib/editor/generateEditorHLS";
-import { UniversalHLSPlayer, type UniversalHLSPlayerHandle } from "@/components/player/UniversalHLSPlayer";
+
+/**
+ * EditorPreview - Direct MP4 playback with HLS-style seamless transition config
+ * 
+ * Uses the same gapless/overlap strategy as the HLS stitcher:
+ * - Pre-loads next clip while current plays (like #EXT-X-DISCONTINUITY buffering)
+ * - Zero-gap transitions between clips (no black frames)
+ * - Overlap-ready: clips can share timeline positions
+ */
 
 interface EditorPreviewProps {
   tracks: TimelineTrack[];
@@ -25,6 +32,8 @@ interface EditorPreviewProps {
 
 const SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 4, 8, 16];
 const FRAME_STEP = 1 / 30;
+// HLS-style config: pre-buffer threshold before clip end to preload next
+const PRELOAD_THRESHOLD_SEC = 0.5;
 
 export const EditorPreview = ({
   tracks,
@@ -36,16 +45,22 @@ export const EditorPreview = ({
   playbackSpeed = 1,
   onPlaybackSpeedChange,
 }: EditorPreviewProps) => {
-  const hlsPlayerRef = useRef<UniversalHLSPlayerHandle>(null);
+  // Dual-video for seamless HLS-style transitions
+  const videoARef = useRef<HTMLVideoElement>(null);
+  const videoBRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
   const isLoopingRef = useRef(false);
-  const lastSeekRef = useRef(0);
+  const isSyncingRef = useRef(false);
+  const activeClipIdRef = useRef<string | null>(null);
+  const activeSlotRef = useRef<'A' | 'B'>('A');
+  const preloadedClipIdRef = useRef<string | null>(null);
 
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
   const [isLooping, setIsLooping] = useState(false);
-  const [hlsBlobUrl, setHlsBlobUrl] = useState<string | null>(null);
+  const [videoReady, setVideoReady] = useState(false);
+  const [activeSlot, setActiveSlot] = useState<'A' | 'B'>('A');
 
   isLoopingRef.current = isLooping;
 
@@ -57,55 +72,15 @@ export const EditorPreview = ({
       .sort((a, b) => a.start - b.start);
   }, [tracks]);
 
-  // === Generate HLS blob URL from timeline clips ===
-  // Re-generate whenever clips change (add/remove/reorder)
-  const clipFingerprint = useMemo(() => {
-    return sortedVideoClips.map(c => `${c.id}:${c.sourceUrl}:${c.start}:${c.end}`).join('|');
-  }, [sortedVideoClips]);
-
-  useEffect(() => {
-    // Clean up previous blob
-    if (hlsBlobUrl) {
-      URL.revokeObjectURL(hlsBlobUrl);
-    }
-
-    if (sortedVideoClips.length === 0) {
-      setHlsBlobUrl(null);
-      return;
-    }
-
-    // Map timeline clips to EditorClip format
-    const editorClips: EditorClip[] = sortedVideoClips.map(clip => ({
-      id: clip.id,
-      sourceUrl: clip.sourceUrl,
-      duration: clip.end - clip.start,
-      start: clip.start,
-      end: clip.end,
-    }));
-
-    const playlist = generateHLSPlaylist(editorClips);
-    if (playlist) {
-      const url = createHLSBlobUrl(playlist);
-      setHlsBlobUrl(url);
-    }
-
-    return () => {
-      // Cleanup on unmount
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clipFingerprint]);
-
-  // Cleanup blob on unmount
-  useEffect(() => {
-    return () => {
-      if (hlsBlobUrl) URL.revokeObjectURL(hlsBlobUrl);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const activeVideoClip = useMemo(() => {
     return sortedVideoClips.find((c) => currentTime >= c.start && currentTime < c.end);
   }, [sortedVideoClips, currentTime]);
+
+  // Find next clip for preloading (HLS-style buffering)
+  const nextVideoClip = useMemo(() => {
+    if (!activeVideoClip) return null;
+    return sortedVideoClips.find((c) => c.start >= activeVideoClip.end - 0.01);
+  }, [sortedVideoClips, activeVideoClip]);
 
   const activeTextClips = useMemo(() => {
     return tracks
@@ -114,66 +89,162 @@ export const EditorPreview = ({
       .filter((c) => currentTime >= c.start && currentTime < c.end);
   }, [tracks, currentTime]);
 
-  // === Sync HLS player with editor timeline ===
-  // Play/pause
-  useEffect(() => {
-    const player = hlsPlayerRef.current;
-    if (!player || !hlsBlobUrl) return;
+  const getActiveVideo = useCallback(() => {
+    return activeSlotRef.current === 'A' ? videoARef.current : videoBRef.current;
+  }, []);
 
-    if (isPlaying) {
-      player.play();
+  const getPreloadVideo = useCallback(() => {
+    return activeSlotRef.current === 'A' ? videoBRef.current : videoARef.current;
+  }, []);
+
+  // === HLS-style preloading: buffer next clip before current ends ===
+  useEffect(() => {
+    if (!nextVideoClip || !activeVideoClip) return;
+    if (preloadedClipIdRef.current === nextVideoClip.id) return;
+
+    const timeToEnd = activeVideoClip.end - currentTime;
+    if (timeToEnd <= PRELOAD_THRESHOLD_SEC && timeToEnd > 0) {
+      const preloadVideo = getPreloadVideo();
+      if (preloadVideo && preloadVideo.src !== nextVideoClip.sourceUrl) {
+        preloadVideo.src = nextVideoClip.sourceUrl;
+        preloadVideo.load();
+        preloadVideo.currentTime = nextVideoClip.trimStart || 0;
+        preloadedClipIdRef.current = nextVideoClip.id;
+      }
+    }
+  }, [currentTime, activeVideoClip, nextVideoClip, getPreloadVideo]);
+
+  // === Direct MP4 source switching with HLS-style seamless swap ===
+  useEffect(() => {
+    const video = getActiveVideo();
+    if (!video) return;
+
+    if (!activeVideoClip) {
+      if (!video.paused) video.pause();
+      activeClipIdRef.current = null;
+      setVideoReady(false);
+      return;
+    }
+
+    // Switch source if clip changed
+    if (activeClipIdRef.current !== activeVideoClip.id) {
+      const prevClipId = activeClipIdRef.current;
+      activeClipIdRef.current = activeVideoClip.id;
+      isSyncingRef.current = true;
+
+      // HLS-style seamless swap: if next clip was preloaded, swap slots
+      if (preloadedClipIdRef.current === activeVideoClip.id) {
+        // Swap to preloaded video (zero-gap transition)
+        const newSlot = activeSlotRef.current === 'A' ? 'B' : 'A';
+        activeSlotRef.current = newSlot;
+        setActiveSlot(newSlot);
+        preloadedClipIdRef.current = null;
+
+        const swappedVideo = newSlot === 'A' ? videoARef.current : videoBRef.current;
+        if (swappedVideo) {
+          const clipLocalTime = currentTime - activeVideoClip.start + (activeVideoClip.trimStart || 0);
+          swappedVideo.currentTime = clipLocalTime;
+          setVideoReady(true);
+          if (isPlaying) swappedVideo.play().catch(() => {});
+          isSyncingRef.current = false;
+          // Pause old slot
+          const oldVideo = newSlot === 'A' ? videoBRef.current : videoARef.current;
+          if (oldVideo && !oldVideo.paused) oldVideo.pause();
+        }
+        return;
+      }
+
+      // Standard load (no preload available)
+      const clipLocalTime = currentTime - activeVideoClip.start + (activeVideoClip.trimStart || 0);
+      video.src = activeVideoClip.sourceUrl;
+      video.load();
+
+      const onCanPlay = () => {
+        video.currentTime = clipLocalTime;
+        setVideoReady(true);
+        if (isPlaying) video.play().catch(() => {});
+        isSyncingRef.current = false;
+        video.removeEventListener('canplay', onCanPlay);
+      };
+      video.addEventListener('canplay', onCanPlay);
     } else {
-      player.pause();
+      // Same clip - sync time if scrubbing
+      const clipLocalTime = currentTime - activeVideoClip.start + (activeVideoClip.trimStart || 0);
+      if (!isPlaying && Math.abs(video.currentTime - clipLocalTime) > 0.15) {
+        video.currentTime = clipLocalTime;
+      }
     }
-  }, [isPlaying, hlsBlobUrl]);
+  }, [activeVideoClip?.id, currentTime, isPlaying, getActiveVideo]);
 
-  // Seek sync (when user scrubs)
+  // Play/pause sync
   useEffect(() => {
-    const player = hlsPlayerRef.current;
-    if (!player || !hlsBlobUrl) return;
+    const video = getActiveVideo();
+    if (!video || !activeVideoClip || !videoReady) return;
 
-    // Only seek if not playing (scrubbing) or if large jump
-    if (!isPlaying || Math.abs(currentTime - lastSeekRef.current) > 1) {
-      player.seek(currentTime);
-      lastSeekRef.current = currentTime;
+    if (isPlaying && video.paused) {
+      video.play().catch(() => {});
+    } else if (!isPlaying && !video.paused) {
+      video.pause();
     }
-  }, [currentTime, isPlaying, hlsBlobUrl]);
+  }, [isPlaying, videoReady, activeVideoClip, getActiveVideo]);
 
   // Playback speed sync
   useEffect(() => {
-    const player = hlsPlayerRef.current;
-    const video = player?.getVideoElement();
-    if (video) video.playbackRate = playbackSpeed;
+    [videoARef.current, videoBRef.current].forEach(v => {
+      if (v) v.playbackRate = playbackSpeed;
+    });
   }, [playbackSpeed]);
 
   // Volume sync
   useEffect(() => {
-    const player = hlsPlayerRef.current;
-    const video = player?.getVideoElement();
-    if (!video) return;
-    video.muted = isMuted;
-    video.volume = volume / 100;
+    [videoARef.current, videoBRef.current].forEach(v => {
+      if (!v) return;
+      v.muted = isMuted;
+      v.volume = volume / 100;
+    });
   }, [volume, isMuted]);
 
-  // HLS player time update → editor time sync
-  const handleTimeUpdate = useCallback((hlsTime: number, hlsDuration: number) => {
-    if (!isPlaying) return;
-    lastSeekRef.current = hlsTime;
-    if (Math.abs(hlsTime - currentTime) > 0.05) {
-      onTimeChange(Math.min(hlsTime, duration));
+  // RAF loop: sync editor time from video during playback
+  useEffect(() => {
+    if (!isPlaying) {
+      cancelAnimationFrame(rafRef.current);
+      return;
     }
-  }, [isPlaying, currentTime, duration, onTimeChange]);
 
-  const handleEnded = useCallback(() => {
-    if (isLoopingRef.current) {
-      onTimeChange(0);
-      hlsPlayerRef.current?.seek(0);
-      hlsPlayerRef.current?.play();
-    } else {
-      onTimeChange(duration);
-      onPlayPause();
-    }
-  }, [duration, onTimeChange, onPlayPause]);
+    const tick = () => {
+      const video = getActiveVideo();
+      if (!video || isSyncingRef.current || !activeVideoClip) {
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      const clipStart = activeVideoClip.start;
+      const editorTime = clipStart + video.currentTime - (activeVideoClip.trimStart || 0);
+
+      if (Math.abs(editorTime - currentTime) > 0.03) {
+        onTimeChange(Math.min(editorTime, duration));
+      }
+
+      // Check if current clip ended - advance to next (HLS-style seamless)
+      const clipDuration = activeVideoClip.end - activeVideoClip.start;
+      if (video.currentTime >= clipDuration + (activeVideoClip.trimStart || 0) - 0.05) {
+        const nextClip = sortedVideoClips.find((c) => c.start >= activeVideoClip.end - 0.01);
+        if (nextClip) {
+          onTimeChange(nextClip.start);
+        } else if (isLoopingRef.current) {
+          onTimeChange(0);
+        } else {
+          onTimeChange(duration);
+          onPlayPause();
+        }
+      }
+
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [isPlaying, activeVideoClip, sortedVideoClips, duration, onTimeChange, onPlayPause, currentTime, getActiveVideo]);
 
   // === Keyboard shortcuts ===
   useEffect(() => {
@@ -275,32 +346,40 @@ export const EditorPreview = ({
       {/* === Video viewport === */}
       <div ref={containerRef} className="flex-1 relative min-h-0 overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-center p-3">
-          {hasClips && hlsBlobUrl ? (
+          {hasClips ? (
             <div className="relative w-full h-full flex items-center justify-center">
               {/* Ambient glow */}
               <div className="absolute inset-0 pointer-events-none" style={{
                 background: 'radial-gradient(ellipse at center, hsl(263 70% 50% / 0.04) 0%, transparent 70%)'
               }} />
               
-              {/* HLS Stitched Player - same engine as production */}
-              <div className="max-h-full max-w-full w-full h-full rounded-lg shadow-2xl shadow-black/50 overflow-hidden">
-                <UniversalHLSPlayer
-                  ref={hlsPlayerRef}
-                  hlsUrl={hlsBlobUrl}
-                  autoPlay={false}
+              {/* Dual-video for HLS-style seamless transitions */}
+              <div className="max-h-full max-w-full w-full h-full rounded-lg shadow-2xl shadow-black/50 overflow-hidden relative">
+                <video
+                  ref={videoARef}
+                  className={cn(
+                    "absolute inset-0 w-full h-full object-contain bg-black transition-opacity duration-100",
+                    activeSlot === 'A' ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                  )}
                   muted={isMuted}
-                  loop={false}
-                  showControls={false}
-                  className="w-full h-full"
-                  onTimeUpdate={handleTimeUpdate}
-                  onEnded={handleEnded}
-                  onError={(err) => console.warn('[EditorPreview] HLS error:', err)}
+                  playsInline
+                  preload="auto"
+                />
+                <video
+                  ref={videoBRef}
+                  className={cn(
+                    "absolute inset-0 w-full h-full object-contain bg-black transition-opacity duration-100",
+                    activeSlot === 'B' ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                  )}
+                  muted={isMuted}
+                  playsInline
+                  preload="auto"
                 />
               </div>
               
               {/* No-clip-at-playhead overlay */}
               {!activeVideoClip && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-lg">
+                <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-lg z-20">
                   <div className="text-center">
                     <span className="text-[12px] tracking-wider uppercase font-medium text-white/30 block">Gap in timeline</span>
                     <span className="text-[10px] text-white/15 mt-1 block">Move the playhead over a clip to preview</span>
@@ -309,7 +388,7 @@ export const EditorPreview = ({
               )}
               
               {/* Frame border */}
-              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+              <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-30">
                 <div className="w-full h-full max-w-full max-h-full border border-white/[0.04] rounded-lg" />
               </div>
             </div>

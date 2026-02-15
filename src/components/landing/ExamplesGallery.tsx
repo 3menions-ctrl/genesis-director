@@ -284,6 +284,7 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
                   muted={isMuted}
                   loop
                   showControls={false}
+                  crossOrigin={undefined}
                   onCanPlay={() => setIsLoaded(true)}
                   onTimeUpdate={handleTimeUpdate}
                   onError={() => setVideoError('Failed to load HLS stream')}
@@ -318,6 +319,7 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
                 muted={isMuted}
                 loop
                 showControls={false}
+                crossOrigin={undefined}
                 onCanPlay={() => setIsLoaded(true)}
                 onTimeUpdate={handleTimeUpdate}
                 onError={() => setVideoError('Failed to load video')}

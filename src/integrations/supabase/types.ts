@@ -4275,12 +4275,9 @@ export type Database = {
           avatar_url: string | null
           current_streak: number | null
           display_name: string | null
-          followers_count: number | null
           level: number | null
           rank: number | null
-          total_likes_received: number | null
           user_id: string | null
-          videos_created: number | null
           xp_total: number | null
         }
         Relationships: []

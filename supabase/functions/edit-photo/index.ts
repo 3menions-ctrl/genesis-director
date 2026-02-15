@@ -184,7 +184,7 @@ Deno.serve(async (req) => {
     const outputUrl = aiResult.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
     if (!outputUrl) {
-      console.error('[edit-photo] No output from Replicate');
+      console.error('[edit-photo] No output image from AI gateway');
       if (editId) {
         await supabase.from('photo_edits').update({
           status: 'failed',

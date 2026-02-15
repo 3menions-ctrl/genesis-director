@@ -9,7 +9,7 @@ import { EditorTimeline } from "@/components/editor/EditorTimeline";
 import { EditorPreview } from "@/components/editor/EditorPreview";
 import { EditorSidebar } from "@/components/editor/EditorSidebar";
 import { EditorMediaBrowser } from "@/components/editor/EditorMediaBrowser";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+// Layout uses fixed widths + CSS containment for cross-browser stability
 import { Film, Sparkles } from "lucide-react";
 import { useEditorHistory } from "@/hooks/useEditorHistory";
 import type { EditorState, TimelineTrack, TimelineClip } from "@/components/editor/types";
@@ -501,8 +501,10 @@ const VideoEditor = () => {
 
   const hasClips = editorState.tracks.some((t) => t.clips.length > 0);
 
+  const [showMediaBrowser, setShowMediaBrowser] = useState(true);
+
   return (
-    <div className="h-screen flex flex-col bg-[hsl(260,15%,4%)] overflow-hidden">
+    <div className="h-screen w-screen flex flex-col bg-[hsl(260,15%,4%)] overflow-hidden" style={{ contain: 'layout size' }}>
       <EditorToolbar
         title={editorState.title}
         onTitleChange={(title) => setEditorState((prev) => ({ ...prev, title }))}
@@ -520,82 +522,81 @@ const VideoEditor = () => {
         renderProgress={editorState.renderProgress}
       />
 
-      <div className="flex-1 min-h-0">
-        <ResizablePanelGroup direction="horizontal">
-          <ResizablePanel defaultSize={18} minSize={14} maxSize={28}>
+      {/* Main workspace — explicit height calc prevents overflow in all browsers */}
+      <div className="flex-1 flex min-h-0 min-w-0" style={{ height: 'calc(100vh - 44px)', contain: 'strict' }}>
+        {/* Media browser — collapsible sidebar */}
+        {showMediaBrowser && (
+          <div className="w-64 shrink-0 border-r border-white/[0.06] overflow-hidden" style={{ maxHeight: '100%' }}>
             <EditorMediaBrowser onAddClip={handleAddClipFromBrowser} />
-          </ResizablePanel>
+          </div>
+        )}
 
-          <ResizableHandle className="w-px bg-white/[0.04] hover:bg-primary/30 transition-colors data-[resize-handle-active]:bg-primary/50" />
-
-          <ResizablePanel defaultSize={57} minSize={40}>
-            <ResizablePanelGroup direction="vertical">
-              <ResizablePanel defaultSize={60} minSize={30}>
-                {hasClips ? (
-                  <EditorPreview
-                    tracks={editorState.tracks}
-                    currentTime={editorState.currentTime}
-                    isPlaying={editorState.isPlaying}
-                    onPlayPause={handlePlayPause}
-                    onTimeChange={handleTimeChange}
-                    duration={editorState.duration}
-                    playbackSpeed={playbackSpeed}
-                    onPlaybackSpeedChange={setPlaybackSpeed}
-                  />
-                ) : (
-                  <div className="h-full flex flex-col items-center justify-center bg-[hsl(260,15%,4%)] gap-5">
-                    <div className="w-16 h-16 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-center relative">
-                      <Film className="w-7 h-7 text-white/15" />
-                      <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
-                        <Sparkles className="w-2 h-2 text-primary" />
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-[13px] text-white/50 font-medium tracking-wide">No clips in timeline</p>
-                      <p className="text-[11px] text-white/20 mt-1.5 max-w-[240px] leading-relaxed">
-                        Browse clips in the media panel and click to add them to your edit
-                      </p>
-                    </div>
+        {/* Center workspace: Preview + Timeline stacked vertically */}
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+          {/* Preview area — takes remaining space above timeline */}
+          <div className="flex-1 min-h-0 overflow-hidden relative" style={{ contain: 'strict' }}>
+            {hasClips ? (
+              <EditorPreview
+                tracks={editorState.tracks}
+                currentTime={editorState.currentTime}
+                isPlaying={editorState.isPlaying}
+                onPlayPause={handlePlayPause}
+                onTimeChange={handleTimeChange}
+                duration={editorState.duration}
+                playbackSpeed={playbackSpeed}
+                onPlaybackSpeedChange={setPlaybackSpeed}
+              />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-[hsl(260,15%,4%)] gap-5">
+                <div className="w-16 h-16 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-center relative">
+                  <Film className="w-7 h-7 text-white/15" />
+                  <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
+                    <Sparkles className="w-2 h-2 text-primary" />
                   </div>
-                )}
-              </ResizablePanel>
+                </div>
+                <div className="text-center">
+                  <p className="text-[13px] text-white/50 font-medium tracking-wide">No clips in timeline</p>
+                  <p className="text-[11px] text-white/20 mt-1.5 max-w-[240px] leading-relaxed">
+                    Browse clips in the media panel and click to add them to your edit
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
 
-              <ResizableHandle className="h-px bg-white/[0.04] hover:bg-primary/30 transition-colors data-[resize-handle-active]:bg-primary/50" />
-
-              <ResizablePanel defaultSize={40} minSize={20}>
-                <EditorTimeline
-                  tracks={editorState.tracks}
-                  currentTime={editorState.currentTime}
-                  duration={editorState.duration}
-                  zoom={editorState.zoom}
-                  selectedClipId={editorState.selectedClipId}
-                  onTimeChange={handleTimeChange}
-                  onSelectClip={handleSelectClip}
-                  onUpdateClip={handleUpdateClip}
-                  onReorderClip={handleReorderClip}
-                  onZoomChange={handleZoomChange}
-                  onDeleteClip={handleDeleteClip}
-                  onMoveClipToTrack={handleMoveClipToTrack}
-                />
-              </ResizablePanel>
-            </ResizablePanelGroup>
-          </ResizablePanel>
-
-          <ResizableHandle className="w-px bg-white/[0.04] hover:bg-primary/30 transition-colors data-[resize-handle-active]:bg-primary/50" />
-
-          <ResizablePanel defaultSize={25} minSize={15} maxSize={35}>
-            <EditorSidebar
+          {/* Timeline — fixed proportion with resizable handle */}
+          <div className="h-px bg-white/[0.06]" />
+          <div className="shrink-0 overflow-hidden" style={{ height: '35%', minHeight: 180, maxHeight: 320 }}>
+            <EditorTimeline
               tracks={editorState.tracks}
-              selectedClipId={editorState.selectedClipId}
               currentTime={editorState.currentTime}
+              duration={editorState.duration}
+              zoom={editorState.zoom}
+              selectedClipId={editorState.selectedClipId}
+              onTimeChange={handleTimeChange}
+              onSelectClip={handleSelectClip}
               onUpdateClip={handleUpdateClip}
-              onAddTextOverlay={handleAddTextOverlay}
-              onAddTransition={handleAddTransition}
+              onReorderClip={handleReorderClip}
+              onZoomChange={handleZoomChange}
               onDeleteClip={handleDeleteClip}
-              onApplyTemplate={handleApplyTemplate}
+              onMoveClipToTrack={handleMoveClipToTrack}
             />
-          </ResizablePanel>
-        </ResizablePanelGroup>
+          </div>
+        </div>
+
+        {/* Inspector sidebar — fixed width, no resize jank */}
+        <div className="w-72 shrink-0 border-l border-white/[0.06] overflow-hidden" style={{ maxHeight: '100%' }}>
+          <EditorSidebar
+            tracks={editorState.tracks}
+            selectedClipId={editorState.selectedClipId}
+            currentTime={editorState.currentTime}
+            onUpdateClip={handleUpdateClip}
+            onAddTextOverlay={handleAddTextOverlay}
+            onAddTransition={handleAddTransition}
+            onDeleteClip={handleDeleteClip}
+            onApplyTemplate={handleApplyTemplate}
+          />
+        </div>
       </div>
     </div>
   );

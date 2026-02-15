@@ -31,6 +31,7 @@ export const EditorPreview = ({
 }: EditorPreviewProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const rafRef = useRef<number>(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const activeVideoClip = tracks
     .filter((t) => t.type === "video")
@@ -96,83 +97,96 @@ export const EditorPreview = ({
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="h-full flex flex-col bg-[hsl(260,15%,5%)]">
-      {/* Video viewport with letterbox */}
-      <div className="flex-1 flex items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none z-10" style={{
-          background: 'radial-gradient(ellipse at center, transparent 50%, hsl(260 15% 3% / 0.6) 100%)'
-        }} />
-
-        {activeVideoClip ? (
-          <video
-            ref={videoRef}
-            className="max-h-full max-w-full object-contain relative z-0"
-            muted
-            playsInline
-          />
-        ) : (
-          <div className="flex flex-col items-center gap-3 text-white/20">
-            <div className="w-14 h-14 rounded-xl border border-white/[0.06] flex items-center justify-center bg-white/[0.02]">
-              <Play className="w-6 h-6 ml-0.5" />
+    <div className="h-full w-full flex flex-col bg-[hsl(260,15%,4%)] overflow-hidden" style={{ contain: 'strict' }}>
+      {/* Video viewport — uses absolute positioning to guarantee containment */}
+      <div ref={containerRef} className="flex-1 relative min-h-0 overflow-hidden">
+        {/* Centered 16:9 aspect container */}
+        <div className="absolute inset-0 flex items-center justify-center p-3">
+          {activeVideoClip ? (
+            <div className="relative w-full h-full flex items-center justify-center">
+              {/* Ambient glow behind video */}
+              <div className="absolute inset-0 pointer-events-none" style={{
+                background: 'radial-gradient(ellipse at center, hsl(263 70% 50% / 0.04) 0%, transparent 70%)'
+              }} />
+              <video
+                ref={videoRef}
+                className="max-h-full max-w-full rounded-lg shadow-2xl shadow-black/50"
+                style={{
+                  objectFit: 'contain',
+                  WebkitTransform: 'translateZ(0)', // Safari GPU acceleration
+                }}
+                muted
+                playsInline
+              />
+              {/* Subtle border frame around video */}
+              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                <div className="w-full h-full max-w-full max-h-full border border-white/[0.04] rounded-lg" />
+              </div>
             </div>
-            <span className="text-[11px] tracking-wider uppercase font-medium">No clip at playhead</span>
-          </div>
-        )}
+          ) : (
+            <div className="flex flex-col items-center gap-4 text-white/20">
+              <div className="w-16 h-16 rounded-2xl border border-white/[0.06] flex items-center justify-center bg-white/[0.02] backdrop-blur-sm">
+                <Play className="w-7 h-7 ml-0.5" />
+              </div>
+              <div className="text-center">
+                <span className="text-[12px] tracking-wider uppercase font-medium block">No clip at playhead</span>
+                <span className="text-[10px] text-white/10 mt-1 block">Move the playhead over a clip to preview</span>
+              </div>
+            </div>
+          )}
 
-        {/* Text overlays */}
-        {activeTextClips.map((clip) => (
-          <div
-            key={clip.id}
-            className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
-          >
-            <span
-              style={{
-                fontSize: clip.textStyle?.fontSize || 48,
-                color: clip.textStyle?.color || "#FFFFFF",
-                fontWeight: (clip.textStyle?.fontWeight as any) || "bold",
-                textShadow: "0 2px 20px rgba(0,0,0,0.8), 0 0 40px rgba(0,0,0,0.4)",
-                letterSpacing: '0.02em',
-              }}
+          {/* Text overlays */}
+          {activeTextClips.map((clip) => (
+            <div
+              key={clip.id}
+              className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
             >
-              {clip.textContent || ""}
-            </span>
-          </div>
-        ))}
-
-        <div className="absolute inset-4 border border-dashed border-white/[0.04] rounded pointer-events-none z-10 opacity-0 hover:opacity-100 transition-opacity" />
+              <span
+                style={{
+                  fontSize: clip.textStyle?.fontSize || 48,
+                  color: clip.textStyle?.color || "#FFFFFF",
+                  fontWeight: (clip.textStyle?.fontWeight as any) || "bold",
+                  textShadow: "0 2px 20px rgba(0,0,0,0.8), 0 0 40px rgba(0,0,0,0.4)",
+                  letterSpacing: '0.02em',
+                }}
+              >
+                {clip.textContent || ""}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Transport bar */}
-      <div className="bg-[hsl(260,15%,8%)] border-t border-white/[0.06]">
+      {/* Transport bar — fixed height, never overflows */}
+      <div className="shrink-0 bg-[hsl(260,12%,8%)] border-t border-white/[0.06]">
         {/* Scrubber track */}
         <div
-          className="h-1.5 bg-white/[0.04] cursor-pointer group relative mx-2 mt-1 rounded-full overflow-hidden"
+          className="h-1.5 bg-white/[0.04] cursor-pointer group relative mx-3 mt-1.5 rounded-full overflow-hidden"
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const pct = (e.clientX - rect.left) / rect.width;
             onTimeChange(Math.max(0, Math.min(duration, pct * duration)));
           }}
         >
-          <div className="absolute inset-0 bg-white/[0.04] rounded-full" />
           <div
-            className="h-full bg-gradient-to-r from-white/60 to-white rounded-full transition-all duration-75 relative"
+            className="h-full bg-gradient-to-r from-white/50 to-white/80 rounded-full transition-all duration-75 relative"
             style={{ width: `${progress}%` }}
           >
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.5)] opacity-0 group-hover:opacity-100 transition-opacity translate-x-1/2" />
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)] opacity-0 group-hover:opacity-100 transition-opacity translate-x-1/2" />
           </div>
         </div>
 
         {/* Controls */}
-        <div className="h-10 flex items-center gap-0.5 px-3">
+        <div className="h-11 flex items-center gap-1 px-3">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-white hover:text-white hover:bg-white/[0.08] rounded-md transition-all"
+                className="h-8 w-8 text-white/60 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all"
                 onClick={() => onTimeChange(0)}
               >
-                <SkipBack className="h-3 w-3" />
+                <SkipBack className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
           </Tooltip>
@@ -180,34 +194,34 @@ export const EditorPreview = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-white hover:text-white hover:bg-white/[0.08] rounded-lg transition-all mx-0.5"
+            className="h-10 w-10 text-white hover:text-white hover:bg-white/[0.1] rounded-xl transition-all mx-0.5"
             onClick={onPlayPause}
           >
             {isPlaying ? (
-              <Pause className="h-4 w-4" />
+              <Pause className="h-5 w-5" />
             ) : (
-              <Play className="h-4 w-4 ml-0.5" />
+              <Play className="h-5 w-5 ml-0.5" />
             )}
           </Button>
 
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-white hover:text-white hover:bg-white/[0.08] rounded-md transition-all"
+            className="h-8 w-8 text-white/60 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all"
             onClick={() => onTimeChange(duration)}
           >
-            <SkipForward className="h-3 w-3" />
+            <SkipForward className="h-3.5 w-3.5" />
           </Button>
 
-          <div className="h-4 w-px bg-white/[0.06] mx-2" />
+          <div className="h-5 w-px bg-white/[0.06] mx-2" />
 
           {/* Timecode display */}
-          <div className="flex items-center gap-1 bg-black/30 rounded px-2 py-0.5 border border-white/[0.04]">
-            <span className="text-[11px] font-mono text-white tabular-nums tracking-wider">
+          <div className="flex items-center gap-1.5 bg-black/30 rounded-lg px-3 py-1.5 border border-white/[0.06]">
+            <span className="text-[12px] font-mono text-white tabular-nums tracking-wider">
               {formatTime(currentTime)}
             </span>
             <span className="text-[10px] text-white/15 mx-0.5">/</span>
-            <span className="text-[11px] font-mono text-white/30 tabular-nums tracking-wider">
+            <span className="text-[12px] font-mono text-white/30 tabular-nums tracking-wider">
               {formatTime(duration)}
             </span>
           </div>
@@ -221,21 +235,21 @@ export const EditorPreview = ({
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "h-6 px-2 text-[10px] font-mono gap-1 rounded transition-all",
-                  playbackSpeed !== 1 ? "text-white bg-white/[0.08]" : "text-white hover:text-white hover:bg-white/[0.06]"
+                  "h-7 px-2.5 text-[11px] font-mono gap-1.5 rounded-lg transition-all",
+                  playbackSpeed !== 1 ? "text-white bg-white/[0.08]" : "text-white/50 hover:text-white hover:bg-white/[0.06]"
                 )}
               >
-                <Gauge className="h-3 w-3" />
+                <Gauge className="h-3.5 w-3.5" />
                 {playbackSpeed}x
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-36 p-1.5 bg-[hsl(260,20%,10%)] border-white/10" side="top" align="end">
-              <div className="grid grid-cols-2 gap-0.5">
+            <PopoverContent className="w-40 p-2 bg-[hsl(260,20%,10%)] border-white/10" side="top" align="end">
+              <div className="grid grid-cols-2 gap-1">
                 {SPEED_PRESETS.map((speed) => (
                   <button
                     key={speed}
                     className={cn(
-                      "px-2 py-1.5 rounded text-[10px] font-mono transition-all",
+                      "px-2.5 py-2 rounded-lg text-[11px] font-mono transition-all",
                       playbackSpeed === speed
                         ? "bg-white text-black font-semibold"
                         : "text-white/60 hover:text-white hover:bg-white/[0.08]"
@@ -252,17 +266,17 @@ export const EditorPreview = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 text-white hover:text-white hover:bg-white/[0.06] rounded transition-all"
+            className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/[0.06] rounded-lg transition-all"
           >
-            <Volume2 className="h-3 w-3" />
+            <Volume2 className="h-3.5 w-3.5" />
           </Button>
 
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 text-white hover:text-white hover:bg-white/[0.06] rounded transition-all"
+            className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/[0.06] rounded-lg transition-all"
           >
-            <Maximize2 className="h-3 w-3" />
+            <Maximize2 className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>

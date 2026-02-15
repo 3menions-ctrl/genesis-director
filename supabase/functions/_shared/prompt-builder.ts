@@ -555,6 +555,10 @@ const BASE_QUALITY_NEGATIVES = [
   'wrong proportions',
   'unrealistic physics',
   'floating objects',
+  'film grain',
+  'noise grain',
+  'analog noise',
+  'grainy texture',
 ];
 
 const DEFAULT_ANTI_MORPHING_PROMPTS = [
@@ -1171,7 +1175,7 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   let assembledPrompt = promptParts.join('\n\n');
   
   // If prompt is too long, compress by removing verbose sections
-  const MAX_PROMPT_LENGTH = 1500; // Allow some headroom
+  const MAX_PROMPT_LENGTH = 2500; // Expanded: Kling v2.6 handles longer prompts well
   if (assembledPrompt.length > MAX_PROMPT_LENGTH) {
     // Remove lower priority blocks first (in order of priority)
     // CRITICAL: We NEVER remove SHOT ACTION or MANDATORY ACTION blocks

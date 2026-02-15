@@ -109,7 +109,21 @@ Deno.serve(async (req) => {
     // Call Replicate instruct-pix2pix for image editing
     console.log(`[edit-photo] Processing edit via Replicate for user ${auth.userId.slice(0, 8)}...`);
 
-    // Create prediction
+    // Download the source image and convert to data URI to avoid accessibility issues
+    let imageInput = imageUrl;
+    try {
+      const imgResp = await fetch(imageUrl);
+      if (imgResp.ok) {
+        const imgBuf = await imgResp.arrayBuffer();
+        const contentType = imgResp.headers.get('content-type') || 'image/png';
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(imgBuf)));
+        imageInput = `data:${contentType};base64,${base64}`;
+      }
+    } catch (e) {
+      console.warn('[edit-photo] Could not pre-download image, using URL directly:', e);
+    }
+
+    // Create prediction using Replicate API
     const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
@@ -118,10 +132,9 @@ Deno.serve(async (req) => {
         Prefer: 'wait',
       },
       body: JSON.stringify({
-        version: 'a]30b0d18',
-        model: 'timothybrooks/instruct-pix2pix',
+        version: '30c1d0b916a6f8efce20493f5d61ee27491ab2a60437c13c588468b9810ec23f',
         input: {
-          image: imageUrl,
+          image: imageInput,
           prompt: editInstruction,
           num_inference_steps: 50,
           image_guidance_scale: 1.5,

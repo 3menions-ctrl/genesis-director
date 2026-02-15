@@ -347,7 +347,7 @@ function ProjectsContentInner() {
         if (error) throw error;
         setTrainingVideos(data || []);
       } catch (err) {
-        console.error('Failed to fetch training videos:', err);
+        console.debug('Failed to fetch training videos:', err);
       } finally {
         setIsLoadingTrainingVideos(false);
       }
@@ -374,7 +374,7 @@ function ProjectsContentInner() {
         if (error) throw error;
         setPhotoEdits(data || []);
       } catch (err) {
-        console.error('Failed to fetch photo edits:', err);
+        console.debug('Failed to fetch photo edits:', err);
       } finally {
         setIsLoadingPhotoEdits(false);
       }

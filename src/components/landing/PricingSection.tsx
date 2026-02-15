@@ -185,6 +185,72 @@ const LetsGoCTA = memo(function LetsGoCTA({ onNavigate }: { onNavigate: (path: s
 });
 
 // Immersive background overlay that renders the HLS video fullscreen
+const CrackedGlassOverlay = memo(function CrackedGlassOverlay() {
+  return (
+    <div className="fixed inset-0 z-[3] pointer-events-none animate-crack-appear">
+      <svg width="100%" height="100%" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+        {/* Impact point — slightly off-center for realism */}
+        <circle cx="920" cy="480" r="6" fill="rgba(255,255,255,0.25)" className="animate-crack-flash" />
+        
+        {/* Primary radial cracks from impact */}
+        <g stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" fill="none" className="animate-crack-lines-1" strokeLinecap="round">
+          <path d="M920,480 L1120,280 L1200,250" />
+          <path d="M920,480 L1150,500 L1350,460 L1500,420" />
+          <path d="M920,480 L1080,650 L1200,780 L1280,900" />
+          <path d="M920,480 L750,250 L680,150" />
+          <path d="M920,480 L650,520 L450,540 L300,580" />
+          <path d="M920,480 L780,700 L700,850 L650,980" />
+          <path d="M920,480 L950,300 L980,150 L1010,50" />
+          <path d="M920,480 L900,700 L880,900 L860,1020" />
+        </g>
+        
+        {/* Secondary branching cracks */}
+        <g stroke="rgba(255,255,255,0.35)" strokeWidth="1" fill="none" className="animate-crack-lines-2" strokeLinecap="round">
+          <path d="M1120,280 L1180,320 L1250,330" />
+          <path d="M1120,280 L1100,200 L1130,120" />
+          <path d="M1150,500 L1180,580 L1250,620" />
+          <path d="M750,250 L700,280 L620,260" />
+          <path d="M750,250 L780,180 L800,100" />
+          <path d="M650,520 L620,600 L580,650" />
+          <path d="M1080,650 L1150,680 L1220,660" />
+          <path d="M780,700 L720,730 L660,710" />
+          <path d="M950,300 L1020,280 L1060,230" />
+          <path d="M900,700 L960,740 L1020,800" />
+        </g>
+        
+        {/* Tertiary micro-cracks */}
+        <g stroke="rgba(255,255,255,0.2)" strokeWidth="0.7" fill="none" className="animate-crack-lines-3" strokeLinecap="round">
+          <path d="M1200,250 L1260,210 L1320,220" />
+          <path d="M1350,460 L1380,500 L1430,490" />
+          <path d="M1200,780 L1250,810 L1300,790" />
+          <path d="M680,150 L640,120 L600,140" />
+          <path d="M450,540 L430,490 L390,480" />
+          <path d="M700,850 L750,880 L780,920" />
+          <path d="M980,150 L940,120 L900,90" />
+          <path d="M1250,330 L1290,380 L1340,370" />
+          <path d="M620,260 L570,230 L530,250" />
+          <path d="M580,650 L540,700 L500,690" />
+        </g>
+        
+        {/* Concentric stress rings around impact */}
+        <g stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" fill="none" className="animate-crack-rings">
+          <ellipse cx="920" cy="480" rx="80" ry="60" />
+          <ellipse cx="920" cy="480" rx="160" ry="120" />
+          <ellipse cx="920" cy="480" rx="280" ry="200" />
+        </g>
+
+        {/* Shard highlight — subtle refraction */}
+        <g className="animate-crack-shards">
+          <polygon points="920,480 1120,280 1150,500" fill="rgba(255,255,255,0.03)" />
+          <polygon points="920,480 750,250 650,520" fill="rgba(255,255,255,0.02)" />
+          <polygon points="920,480 1080,650 900,700" fill="rgba(255,255,255,0.025)" />
+          <polygon points="920,480 950,300 1120,280" fill="rgba(255,255,255,0.015)" />
+        </g>
+      </svg>
+    </div>
+  );
+});
+
 const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({ 
   onClose, 
   onVideoEnded 
@@ -194,6 +260,13 @@ const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
 }) {
   const playerRef = useRef<UniversalHLSPlayerHandle>(null);
   const [isMuted, setIsMuted] = useState(true);
+  const [showCrack, setShowCrack] = useState(false);
+
+  // Trigger cracked glass effect after 20 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => setShowCrack(true), 20_000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Escape key to exit
   useEffect(() => {
@@ -239,6 +312,9 @@ const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
         {/* Dark gradient overlay for content readability */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/65" />
       </div>
+
+      {/* Cracked glass overlay */}
+      {showCrack && <CrackedGlassOverlay />}
 
       {/* Controls - separate from video layer so z-index works */}
       <div className="fixed top-20 right-6 z-[9999] flex items-center gap-2 animate-fade-in" style={{ pointerEvents: 'auto', animationDelay: '0.6s' }}>

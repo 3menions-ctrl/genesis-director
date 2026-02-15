@@ -412,6 +412,58 @@
 }
 .animate-fade-in-up { animation: fade-in-up 0.4s ease-out forwards; }
 
+/* ═══════════════════════════════════════════════════════════════════
+   CRACKED GLASS EFFECT — Immersive Video Overlay
+   ═══════════════════════════════════════════════════════════════════ */
+@keyframes crack-appear {
+  0% { opacity: 0; filter: brightness(1); }
+  5% { opacity: 1; filter: brightness(3); }
+  15% { filter: brightness(1.2); }
+  100% { opacity: 1; filter: brightness(1); }
+}
+@keyframes crack-flash {
+  0% { r: 0; opacity: 0; }
+  10% { r: 12; opacity: 1; }
+  40% { r: 6; opacity: 0.4; }
+  100% { r: 6; opacity: 0.2; }
+}
+@keyframes crack-lines-1 {
+  0% { stroke-dasharray: 2000; stroke-dashoffset: 2000; opacity: 0; }
+  5% { opacity: 1; }
+  60% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+@keyframes crack-lines-2 {
+  0%, 20% { stroke-dasharray: 1000; stroke-dashoffset: 1000; opacity: 0; }
+  25% { opacity: 1; }
+  80% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+@keyframes crack-lines-3 {
+  0%, 40% { stroke-dasharray: 500; stroke-dashoffset: 500; opacity: 0; }
+  45% { opacity: 1; }
+  90% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+@keyframes crack-rings {
+  0%, 10% { opacity: 0; transform-origin: center; transform: scale(0.3); }
+  30% { opacity: 0.15; transform: scale(0.8); }
+  100% { opacity: 0.08; transform: scale(1); }
+}
+@keyframes crack-shards {
+  0%, 30% { opacity: 0; }
+  60% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+.animate-crack-appear { animation: crack-appear 1.5s ease-out forwards; }
+.animate-crack-flash { animation: crack-flash 0.8s ease-out forwards; }
+.animate-crack-lines-1 { animation: crack-lines-1 0.6s ease-out forwards; }
+.animate-crack-lines-2 { animation: crack-lines-2 0.8s ease-out forwards; }
+.animate-crack-lines-3 { animation: crack-lines-3 1.0s ease-out forwards; }
+.animate-crack-rings { animation: crack-rings 1.2s ease-out forwards; }
+.animate-crack-shards { animation: crack-shards 1.5s ease-out forwards; }
+
 /* Route-level fade-in — prevents per-element blink on page transitions */
 @keyframes route-enter {
   from { opacity: 0; }

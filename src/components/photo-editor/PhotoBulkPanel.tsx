@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Loader2, CheckCircle2, AlertCircle, Play, Layers } from 'lucide-react';
+import { Loader2, CheckCircle2, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
@@ -59,7 +59,6 @@ export function PhotoBulkPanel({ photos, onComplete }: PhotoBulkPanelProps) {
     setIsRunning(true);
     setProgress(0);
     setResults([]);
-    const batchId = crypto.randomUUID();
     const bulkResults: BulkResult[] = [];
 
     for (let i = 0; i < photos.length; i++) {
@@ -67,10 +66,7 @@ export function PhotoBulkPanel({ photos, onComplete }: PhotoBulkPanelProps) {
       const photo = photos[i];
       
       try {
-        const body: Record<string, unknown> = {
-          imageUrl: photo.url,
-        };
-        
+        const body: Record<string, unknown> = { imageUrl: photo.url };
         if (selectedTemplateId) {
           body.templateId = selectedTemplateId;
         } else {
@@ -84,7 +80,7 @@ export function PhotoBulkPanel({ photos, onComplete }: PhotoBulkPanelProps) {
         } else {
           bulkResults.push({ photoId: photo.id, editedUrl: data.editedUrl });
         }
-      } catch (err) {
+      } catch {
         bulkResults.push({ photoId: photo.id, error: 'Processing failed' });
       }
 
@@ -100,7 +96,7 @@ export function PhotoBulkPanel({ photos, onComplete }: PhotoBulkPanelProps) {
   const failCount = results.filter(r => r.error).length;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       <div>
         <h3 className="text-sm font-medium text-white/60 mb-1">Bulk Edit</h3>
         <p className="text-xs text-white/30">
@@ -111,14 +107,14 @@ export function PhotoBulkPanel({ photos, onComplete }: PhotoBulkPanelProps) {
       {/* Template selection */}
       <div className="space-y-2">
         <p className="text-xs text-white/40 font-medium">Choose a template:</p>
-        <div className="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto">
+        <div className="grid grid-cols-2 gap-1.5 max-h-36 sm:max-h-48 overflow-y-auto">
           {templates.map(t => (
             <button
               key={t.id}
               onClick={() => { setSelectedTemplateId(t.id); setCustomInstruction(''); }}
               disabled={isRunning}
               className={cn(
-                "p-2 rounded-lg text-left transition-all text-xs",
+                "p-2 rounded-lg text-left transition-all text-[11px] sm:text-xs active:scale-[0.97]",
                 selectedTemplateId === t.id
                   ? "bg-cyan-500/20 border border-cyan-500/30 text-cyan-300"
                   : "bg-white/[0.02] border border-white/[0.04] text-white/50 hover:border-white/10"
@@ -139,7 +135,7 @@ export function PhotoBulkPanel({ photos, onComplete }: PhotoBulkPanelProps) {
           onChange={e => { setCustomInstruction(e.target.value); setSelectedTemplateId(null); }}
           placeholder="e.g. Make all photos look professional with warm tones..."
           disabled={isRunning}
-          className="w-full h-20 p-2 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white text-xs resize-none placeholder:text-white/20"
+          className="w-full h-16 sm:h-20 p-2 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white text-xs resize-none placeholder:text-white/20"
         />
       </div>
 
@@ -156,13 +152,11 @@ export function PhotoBulkPanel({ photos, onComplete }: PhotoBulkPanelProps) {
 
       {/* Results summary */}
       {results.length > 0 && !isRunning && (
-        <div className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          <div className="text-xs">
-            <p className="text-white/60">
-              {successCount} successful, {failCount} failed
-            </p>
-          </div>
+        <div className="flex items-center gap-3 p-2.5 sm:p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+          <p className="text-xs text-white/60">
+            {successCount} successful, {failCount} failed
+          </p>
         </div>
       )}
 
@@ -170,7 +164,7 @@ export function PhotoBulkPanel({ photos, onComplete }: PhotoBulkPanelProps) {
       <Button
         onClick={handleBulkEdit}
         disabled={isRunning || (!selectedTemplateId && !customInstruction.trim())}
-        className="w-full bg-cyan-600 hover:bg-cyan-500 text-white"
+        className="w-full bg-cyan-600 hover:bg-cyan-500 text-white text-sm"
       >
         {isRunning ? (
           <>

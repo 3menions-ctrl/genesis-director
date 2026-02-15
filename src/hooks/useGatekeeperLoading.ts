@@ -243,6 +243,36 @@ export const GATEKEEPER_PRESETS = {
       ready: 'Ready',
     },
   },
+  gallery: {
+    pageId: 'GalleryPage',
+    timeout: 4000,
+    messages: {
+      auth: 'Loading...',
+      data: 'Loading gallery...',
+      images: 'Preparing showcase...',
+      ready: 'Ready',
+    },
+  },
+  discover: {
+    pageId: 'DiscoverPage',
+    timeout: 4000,
+    messages: {
+      auth: 'Authenticating...',
+      data: 'Loading community videos...',
+      images: 'Preparing feed...',
+      ready: 'Ready',
+    },
+  },
+  profile: {
+    pageId: 'ProfilePage',
+    timeout: 4000,
+    messages: {
+      auth: 'Authenticating...',
+      data: 'Loading your profile...',
+      images: 'Preparing dashboard...',
+      ready: 'Ready',
+    },
+  },
 } as const;
 
 export type GatekeeperPreset = keyof typeof GATEKEEPER_PRESETS;

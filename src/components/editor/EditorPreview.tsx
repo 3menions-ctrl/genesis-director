@@ -9,6 +9,8 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { TimelineTrack, TimelineClip } from "./types";
 import { cn } from "@/lib/utils";
+import { generateHLSPlaylist, createHLSBlobUrl, type EditorClip } from "@/lib/editor/generateEditorHLS";
+import { UniversalHLSPlayer, type UniversalHLSPlayerHandle } from "@/components/player/UniversalHLSPlayer";
 
 interface EditorPreviewProps {
   tracks: TimelineTrack[];
@@ -34,17 +36,16 @@ export const EditorPreview = ({
   playbackSpeed = 1,
   onPlaybackSpeedChange,
 }: EditorPreviewProps) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsPlayerRef = useRef<UniversalHLSPlayerHandle>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
   const isLoopingRef = useRef(false);
-  const isSyncingRef = useRef(false);
-  const activeClipIdRef = useRef<string | null>(null);
+  const lastSeekRef = useRef(0);
 
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
   const [isLooping, setIsLooping] = useState(false);
-  const [videoReady, setVideoReady] = useState(false);
+  const [hlsBlobUrl, setHlsBlobUrl] = useState<string | null>(null);
 
   isLoopingRef.current = isLooping;
 
@@ -55,6 +56,52 @@ export const EditorPreview = ({
       .flatMap((t) => t.clips)
       .sort((a, b) => a.start - b.start);
   }, [tracks]);
+
+  // === Generate HLS blob URL from timeline clips ===
+  // Re-generate whenever clips change (add/remove/reorder)
+  const clipFingerprint = useMemo(() => {
+    return sortedVideoClips.map(c => `${c.id}:${c.sourceUrl}:${c.start}:${c.end}`).join('|');
+  }, [sortedVideoClips]);
+
+  useEffect(() => {
+    // Clean up previous blob
+    if (hlsBlobUrl) {
+      URL.revokeObjectURL(hlsBlobUrl);
+    }
+
+    if (sortedVideoClips.length === 0) {
+      setHlsBlobUrl(null);
+      return;
+    }
+
+    // Map timeline clips to EditorClip format
+    const editorClips: EditorClip[] = sortedVideoClips.map(clip => ({
+      id: clip.id,
+      sourceUrl: clip.sourceUrl,
+      duration: clip.end - clip.start,
+      start: clip.start,
+      end: clip.end,
+    }));
+
+    const playlist = generateHLSPlaylist(editorClips);
+    if (playlist) {
+      const url = createHLSBlobUrl(playlist);
+      setHlsBlobUrl(url);
+    }
+
+    return () => {
+      // Cleanup on unmount
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clipFingerprint]);
+
+  // Cleanup blob on unmount
+  useEffect(() => {
+    return () => {
+      if (hlsBlobUrl) URL.revokeObjectURL(hlsBlobUrl);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const activeVideoClip = useMemo(() => {
     return sortedVideoClips.find((c) => currentTime >= c.start && currentTime < c.end);
@@ -67,116 +114,66 @@ export const EditorPreview = ({
       .filter((c) => currentTime >= c.start && currentTime < c.end);
   }, [tracks, currentTime]);
 
-  // === Direct MP4 source switching based on active clip ===
+  // === Sync HLS player with editor timeline ===
+  // Play/pause
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+    const player = hlsPlayerRef.current;
+    if (!player || !hlsBlobUrl) return;
 
-    if (!activeVideoClip) {
-      // No clip at playhead - pause and clear
-      if (!video.paused) video.pause();
-      activeClipIdRef.current = null;
-      setVideoReady(false);
-      return;
-    }
-
-    // Switch source if clip changed
-    if (activeClipIdRef.current !== activeVideoClip.id) {
-      activeClipIdRef.current = activeVideoClip.id;
-      isSyncingRef.current = true;
-      
-      const clipLocalTime = currentTime - activeVideoClip.start + (activeVideoClip.trimStart || 0);
-      
-      video.src = activeVideoClip.sourceUrl;
-      video.load();
-      
-      const onCanPlay = () => {
-        video.currentTime = clipLocalTime;
-        setVideoReady(true);
-        if (isPlaying) {
-          video.play().catch(() => {});
-        }
-        isSyncingRef.current = false;
-        video.removeEventListener('canplay', onCanPlay);
-      };
-      video.addEventListener('canplay', onCanPlay);
+    if (isPlaying) {
+      player.play();
     } else {
-      // Same clip - just sync time if scrubbing
-      const clipLocalTime = currentTime - activeVideoClip.start + (activeVideoClip.trimStart || 0);
-      if (!isPlaying && Math.abs(video.currentTime - clipLocalTime) > 0.15) {
-        video.currentTime = clipLocalTime;
-      }
+      player.pause();
     }
-  }, [activeVideoClip?.id, currentTime, isPlaying]);
+  }, [isPlaying, hlsBlobUrl]);
 
-  // Play/pause sync
+  // Seek sync (when user scrubs)
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !activeVideoClip || !videoReady) return;
+    const player = hlsPlayerRef.current;
+    if (!player || !hlsBlobUrl) return;
 
-    if (isPlaying && video.paused) {
-      video.play().catch(() => {});
-    } else if (!isPlaying && !video.paused) {
-      video.pause();
+    // Only seek if not playing (scrubbing) or if large jump
+    if (!isPlaying || Math.abs(currentTime - lastSeekRef.current) > 1) {
+      player.seek(currentTime);
+      lastSeekRef.current = currentTime;
     }
-  }, [isPlaying, videoReady, activeVideoClip]);
+  }, [currentTime, isPlaying, hlsBlobUrl]);
 
   // Playback speed sync
   useEffect(() => {
-    const video = videoRef.current;
+    const player = hlsPlayerRef.current;
+    const video = player?.getVideoElement();
     if (video) video.playbackRate = playbackSpeed;
   }, [playbackSpeed]);
 
   // Volume sync
   useEffect(() => {
-    const video = videoRef.current;
+    const player = hlsPlayerRef.current;
+    const video = player?.getVideoElement();
     if (!video) return;
     video.muted = isMuted;
     video.volume = volume / 100;
   }, [volume, isMuted]);
 
-  // RAF loop: sync editor time from video during playback
-  useEffect(() => {
-    if (!isPlaying) {
-      cancelAnimationFrame(rafRef.current);
-      return;
+  // HLS player time update → editor time sync
+  const handleTimeUpdate = useCallback((hlsTime: number, hlsDuration: number) => {
+    if (!isPlaying) return;
+    lastSeekRef.current = hlsTime;
+    if (Math.abs(hlsTime - currentTime) > 0.05) {
+      onTimeChange(Math.min(hlsTime, duration));
     }
+  }, [isPlaying, currentTime, duration, onTimeChange]);
 
-    const tick = () => {
-      const video = videoRef.current;
-      if (!video || isSyncingRef.current || !activeVideoClip) {
-        rafRef.current = requestAnimationFrame(tick);
-        return;
-      }
-
-      const clipStart = activeVideoClip.start;
-      const clipDuration = activeVideoClip.end - activeVideoClip.start;
-      const editorTime = clipStart + video.currentTime - (activeVideoClip.trimStart || 0);
-
-      // Update editor time
-      if (Math.abs(editorTime - currentTime) > 0.03) {
-        onTimeChange(Math.min(editorTime, duration));
-      }
-
-      // Check if current clip ended - advance to next
-      if (video.currentTime >= clipDuration + (activeVideoClip.trimStart || 0) - 0.05) {
-        const nextClip = sortedVideoClips.find((c) => c.start >= activeVideoClip.end - 0.01);
-        if (nextClip) {
-          onTimeChange(nextClip.start);
-        } else if (isLoopingRef.current) {
-          onTimeChange(0);
-        } else {
-          onTimeChange(duration);
-          onPlayPause();
-        }
-      }
-
-      rafRef.current = requestAnimationFrame(tick);
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [isPlaying, activeVideoClip, sortedVideoClips, duration, onTimeChange, onPlayPause, currentTime]);
+  const handleEnded = useCallback(() => {
+    if (isLoopingRef.current) {
+      onTimeChange(0);
+      hlsPlayerRef.current?.seek(0);
+      hlsPlayerRef.current?.play();
+    } else {
+      onTimeChange(duration);
+      onPlayPause();
+    }
+  }, [duration, onTimeChange, onPlayPause]);
 
   // === Keyboard shortcuts ===
   useEffect(() => {
@@ -278,21 +275,26 @@ export const EditorPreview = ({
       {/* === Video viewport === */}
       <div ref={containerRef} className="flex-1 relative min-h-0 overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-center p-3">
-          {hasClips ? (
+          {hasClips && hlsBlobUrl ? (
             <div className="relative w-full h-full flex items-center justify-center">
               {/* Ambient glow */}
               <div className="absolute inset-0 pointer-events-none" style={{
                 background: 'radial-gradient(ellipse at center, hsl(263 70% 50% / 0.04) 0%, transparent 70%)'
               }} />
               
-              {/* Direct MP4 Player */}
+              {/* HLS Stitched Player - same engine as production */}
               <div className="max-h-full max-w-full w-full h-full rounded-lg shadow-2xl shadow-black/50 overflow-hidden">
-                <video
-                  ref={videoRef}
-                  className="w-full h-full object-contain bg-black"
+                <UniversalHLSPlayer
+                  ref={hlsPlayerRef}
+                  hlsUrl={hlsBlobUrl}
+                  autoPlay={false}
                   muted={isMuted}
-                  playsInline
-                  preload="auto"
+                  loop={false}
+                  showControls={false}
+                  className="w-full h-full"
+                  onTimeUpdate={handleTimeUpdate}
+                  onEnded={handleEnded}
+                  onError={(err) => console.warn('[EditorPreview] HLS error:', err)}
                 />
               </div>
               

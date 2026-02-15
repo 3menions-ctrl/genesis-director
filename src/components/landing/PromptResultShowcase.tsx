@@ -139,7 +139,7 @@ export const PromptResultShowcase = memo(function PromptResultShowcase() {
         >
         {pair.sourceImage ? (
             <>
-              <div className="absolute inset-0">
+              <div className="absolute inset-0 bg-[#0a0a0f]">
                 <AnimatePresence mode="wait">
                   <motion.img
                     key={`source-img-${currentIdx}`}
@@ -149,7 +149,7 @@ export const PromptResultShowcase = memo(function PromptResultShowcase() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.4 }}
-                    className="absolute inset-0 w-full h-full object-cover object-center"
+                    className="absolute inset-0 w-full h-full object-contain"
                   />
                 </AnimatePresence>
               </div>

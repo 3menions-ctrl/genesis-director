@@ -570,7 +570,7 @@ const TRANSITION_HINTS: Record<string, string> = {
 // Ensures every clip is Hollywood-grade regardless of user input
 // ENHANCED with temporal consistency and professional finishing
 // ============================================================================
-const APEX_QUALITY_SUFFIX = ", cinematic lighting, 8K resolution, ultra high definition, highly detailed, professional cinematography, film grain, masterful composition, award-winning cinematographer, ARRI Alexa camera quality, anamorphic lens flares, perfect exposure, theatrical color grading, consistent throughout entire clip, temporally stable, no flickering, smooth motion";
+const APEX_QUALITY_SUFFIX = ", cinematic lighting, 8K resolution, ultra high definition, highly detailed, professional cinematography, masterful composition, award-winning cinematographer, ARRI Alexa camera quality, anamorphic lens flares, perfect exposure, theatrical color grading, clean sharp image, consistent throughout entire clip, temporally stable, no flickering, smooth motion";
 
 // ============================================================================
 // SCENE TRANSITION QUALITY - Ensures clips connect seamlessly
@@ -596,6 +596,7 @@ const COLOR_DEGRADATION_NEGATIVES = [
   "low saturation", "color degradation", "color drift", "bleached", "overexposed colors",
   "underexposed colors", "color noise", "color artifacts", "uneven color temperature",
   "color temperature jump", "white balance drift", "color grading change mid-clip",
+  "film grain", "noise grain", "grainy texture", "analog noise",
 ];
 
 // Build enhanced prompt with APEX Physics Engine, Quality Maximizer, SMART CAMERA ANGLES, VELOCITY VECTORING, and CHARACTER CONSISTENCY
@@ -821,11 +822,11 @@ async function generateWithKling(
 
     // Build Replicate input for Kling v2.6 - ALWAYS use "pro" mode for HD quality
     const replicateInput: Record<string, any> = {
-      prompt: enhancedPrompt.slice(0, 2500),
-      negative_prompt: negativePrompt.slice(0, 1000),
+      prompt: enhancedPrompt.slice(0, 4000),
+      negative_prompt: negativePrompt.slice(0, 1500),
       aspect_ratio: klingAspectRatio,
       duration: klingDuration,
-      cfg_scale: 0.5,
+      cfg_scale: 0.7,
       mode: "pro", // CRITICAL: "pro" mode = HD quality, "standard" = lower quality
     };
 

@@ -4191,7 +4191,7 @@ async function runProduction(
                 masterSceneAnchor: masterSceneAnchor,
                 // CRITICAL FIX: Persist accumulatedAnchors for resume
                 // Without this, clips on resume have 0 anchors
-                accumulatedAnchors: accumulatedAnchors.slice(-5), // Keep last 5 for reasonable size
+                accumulatedAnchors: accumulatedAnchors.slice(-10), // Keep last 10 for longer productions
                 // Also persist goldenFrameData if available (CRITICAL for character consistency)
                 goldenFrameData: goldenFrameData || existingData.goldenFrameData,
                 // And identityBible (CRITICAL for resume)

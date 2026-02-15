@@ -55,7 +55,7 @@ const DEFAULT_CLIP_DURATION = 5; // Kling 2.6: Default to 5 seconds
 // =====================================================
 // APEX MANDATORY QUALITY SUFFIX
 // =====================================================
-const APEX_QUALITY_SUFFIX = ", cinematic lighting, 8K resolution, ultra high definition, highly detailed, professional cinematography, film grain, masterful composition, award-winning cinematographer, ARRI Alexa camera quality, anamorphic lens flares, perfect exposure, theatrical color grading";
+const APEX_QUALITY_SUFFIX = ", cinematic lighting, 8K resolution, ultra high definition, highly detailed, professional cinematography, masterful composition, award-winning cinematographer, ARRI Alexa camera quality, anamorphic lens flares, perfect exposure, theatrical color grading, clean sharp image";
 
 // =====================================================
 // REPLICATE KLING VIDEO GENERATION
@@ -87,11 +87,11 @@ async function createReplicatePrediction(
 
   // Build Replicate input for Kling v2.6 - ALWAYS use "pro" mode for HD quality
   const input: Record<string, any> = {
-    prompt: prompt.slice(0, 2500),
-    negative_prompt: negativePrompt.slice(0, 1000),
+    prompt: prompt.slice(0, 4000),
+    negative_prompt: negativePrompt.slice(0, 1500),
     aspect_ratio: aspectRatio,
     duration: durationSeconds <= 5 ? 5 : 10,
-    cfg_scale: 0.5,
+    cfg_scale: 0.7,
     mode: "pro", // CRITICAL: "pro" mode = HD quality, "standard" = lower quality
   };
 

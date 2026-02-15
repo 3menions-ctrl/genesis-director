@@ -108,6 +108,8 @@ export default defineConfig(({ mode }) => ({
   build: {
     // Suppress chunk size warnings that get misinterpreted as errors
     chunkSizeWarningLimit: 1500,
+    // Skip gzip size computation to reduce build output volume
+    reportCompressedSize: false,
     // Optimize chunk splitting
     rollupOptions: {
       output: {

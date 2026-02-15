@@ -822,7 +822,7 @@ async function generateWithKling(
 
     // Build Replicate input for Kling v2.6 - ALWAYS use "pro" mode for HD quality
     const replicateInput: Record<string, any> = {
-      prompt: enhancedPrompt.slice(0, 4000),
+      prompt: enhancedPrompt.slice(0, 1500),
       negative_prompt: negativePrompt.slice(0, 1500),
       aspect_ratio: klingAspectRatio,
       duration: klingDuration,

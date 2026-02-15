@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -54,6 +54,10 @@ export function useNotifications() {
     enabled: !!user,
   });
 
+  // Stable ref for queryClient to avoid re-subscribing on every render
+  const queryClientRef = useRef(queryClient);
+  queryClientRef.current = queryClient;
+
   // Subscribe to realtime notifications
   useEffect(() => {
     if (!user) return;
@@ -68,8 +72,8 @@ export function useNotifications() {
           table: 'notifications',
           filter: `user_id=eq.${user.id}`,
         },
-        (payload) => {
-          queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
+        () => {
+          queryClientRef.current.invalidateQueries({ queryKey: ['notifications', user.id] });
         }
       )
       .subscribe();
@@ -77,7 +81,7 @@ export function useNotifications() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, queryClient]);
+  }, [user?.id]);
 
   // Mark as read mutation
   const markAsRead = useMutation({

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,6 +40,7 @@ const VideoEditor = () => {
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Undo/Redo history
   const history = useEditorHistory({
@@ -197,6 +198,11 @@ const VideoEditor = () => {
         }
 
         if (!targetProjectId) return; // No projects with clips found
+      
+        // Sync URL so refresh/bookmarks work
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set("project", targetProjectId);
+        window.history.replaceState(null, "", `?${newParams.toString()}`);
       } else {
         // Fetch the project title for the specified project
         const { data: proj } = await supabase
@@ -222,8 +228,13 @@ const VideoEditor = () => {
       .not("video_url", "is", null)
       .order("shot_index");
 
-    if (error || !clips?.length) {
-      toast.error("No completed clips found for this project");
+    if (error) {
+      console.error('[VideoEditor] Failed to load clips:', error.message);
+      toast.error("Couldn't load clips. Please try again.");
+      return;
+    }
+    if (!clips?.length) {
+      toast.info("No completed clips found for this project yet");
       return;
     }
 
@@ -399,24 +410,39 @@ const VideoEditor = () => {
     }
   };
 
-  const pollRenderStatus = async (jobId: string) => {
-    const interval = setInterval(async () => {
+  const pollRenderStatus = useCallback((jobId: string) => {
+    // Clear any existing poll before starting a new one
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+
+    pollIntervalRef.current = setInterval(async () => {
       try {
         const { data } = await supabase.functions.invoke("render-video", { body: { action: "status", jobId } });
         if (data?.status === "completed") {
-          clearInterval(interval);
+          if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
           setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
           toast.success("Render complete!");
         } else if (data?.status === "failed") {
-          clearInterval(interval);
+          if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
           setEditorState((prev) => ({ ...prev, renderStatus: "failed" }));
           toast.error("Render failed");
         } else {
           setEditorState((prev) => ({ ...prev, renderProgress: data?.progress || prev.renderProgress }));
         }
-      } catch { clearInterval(interval); }
+      } catch {
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
     }, 5000);
-  };
+  }, []);
+
+  // Cleanup poll interval on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
+  }, []);
 
   const handleDeleteClip = useCallback((clipId: string) => {
     withHistory((prev) => ({

@@ -255,10 +255,11 @@ export function usePaginatedProjects(
     debouncedRefreshRef.current();
   }, []);
 
-  // Re-fetch when filters/sort change
+  // Re-fetch when filters/sort change — fetchProjects already depends on these
+  // so we use fetchProjects as the sole dep to avoid double-fetch on mount
   useEffect(() => {
     fetchProjects(true);
-  }, [sortBy, sortOrder, statusFilter, searchQuery, user?.id]);
+  }, [fetchProjects]);
   
   // Cleanup debounce on unmount
   useEffect(() => {

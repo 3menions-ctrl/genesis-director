@@ -1,107 +1,66 @@
 import { memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 
-// Optimized animation variants - static objects
-const heroLetterVariants = {
-  hidden: (isApex: boolean) => ({ 
-    y: 150, 
-    opacity: 0, 
-    rotateX: -90,
-    rotateY: isApex ? 15 : -15
-  }),
-  visible: { 
-    y: 0, 
-    opacity: 1, 
-    rotateX: 0,
-    rotateY: 0
-  }
-};
-
 export const HeroTitle = memo(forwardRef<HTMLDivElement, Record<string, never>>(
   function HeroTitle(_, ref) {
     return (
-      <div ref={ref} className="relative mb-8">
-        {/* Optimized glow - static gradient, no animation for stability */}
+      <div ref={ref} className="relative mb-12">
+        {/* Ambient glow behind text */}
         <div 
-          className="absolute inset-0 blur-[80px] pointer-events-none opacity-60"
+          className="absolute inset-0 blur-[120px] pointer-events-none opacity-40"
           style={{
-            background: 'radial-gradient(ellipse 80% 50% at center, rgba(255,255,255,0.2) 0%, rgba(100,100,255,0.08) 40%, transparent 70%)',
+            background: 'radial-gradient(ellipse 60% 40% at center, rgba(249,115,22,0.35) 0%, rgba(251,191,36,0.15) 40%, transparent 70%)',
           }}
         />
-        
+
         <motion.div
-          initial={{ rotateX: 25, rotateY: -5, scale: 0.9 }}
-          animate={{ rotateX: 0, rotateY: 0, scale: 1 }}
-          transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
-          style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
         >
-          <h1 className="relative text-[clamp(3rem,15vw,12rem)] font-black leading-[0.85] tracking-[-0.04em]">
-            <span className="inline-block" style={{ transformStyle: 'preserve-3d' }}>
-              {'APEX'.split('').map((letter, i) => (
-                <motion.span
-                  key={`apex-${i}`}
-                  className="inline-block text-white"
-                  custom={true}
-                  variants={heroLetterVariants}
-                  initial="hidden"
-                  animate="visible"
-                  transition={{ duration: 1.2, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
-                  style={{ 
-                    transformOrigin: 'bottom center',
-                    transformStyle: 'preserve-3d',
-                    textShadow: '0 4px 30px rgba(0,0,0,0.5), 0 0 60px rgba(255,255,255,0.1)',
-                    willChange: 'transform, opacity'
-                  }}
-                >
-                  {letter}
-                </motion.span>
-              ))}
-            </span>
-            
+          {/* APEX - bold, gradient, dominant */}
+          <h1 className="relative text-center">
             <motion.span
-              className="inline-block mx-2 md:mx-6 text-white/20"
-              initial={{ scaleX: 0, opacity: 0 }}
-              animate={{ scaleX: 1, opacity: 1 }}
-              transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              className="block text-[clamp(4rem,18vw,14rem)] font-black leading-[0.85] tracking-[-0.05em]"
+              initial={{ opacity: 0, y: 60, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 1.4, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              style={{
+                background: 'linear-gradient(180deg, #ffffff 0%, #f9a825 40%, #f97316 80%, #c2410c 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                filter: 'drop-shadow(0 4px 40px rgba(249,115,22,0.3)) drop-shadow(0 0 80px rgba(251,191,36,0.15))',
+              }}
             >
-              –
+              APEX
             </motion.span>
-            
-            <span className="inline-block" style={{ transformStyle: 'preserve-3d' }}>
-              {'STUDIO'.split('').map((letter, i) => (
-                <motion.span
-                  key={`studio-${i}`}
-                  className="inline-block text-white/30"
-                  custom={false}
-                  variants={heroLetterVariants}
-                  initial="hidden"
-                  animate="visible"
-                  transition={{ duration: 1.2, delay: 0.6 + i * 0.08, ease: [0.16, 1, 0.3, 1] }}
-                  style={{ 
-                    transformOrigin: 'bottom center',
-                    transformStyle: 'preserve-3d',
-                    textShadow: '0 4px 30px rgba(0,0,0,0.3)',
-                    willChange: 'transform, opacity'
-                  }}
-                >
-                  {letter}
-                </motion.span>
-              ))}
-            </span>
+
+            {/* Decorative line */}
+            <motion.div
+              className="mx-auto my-3 h-[1px]"
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: '40%', opacity: 1 }}
+              transition={{ duration: 1, delay: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              style={{
+                background: 'linear-gradient(90deg, transparent, rgba(249,115,22,0.6), rgba(251,191,36,0.8), rgba(249,115,22,0.6), transparent)',
+                boxShadow: '0 0 12px rgba(249,115,22,0.4)',
+              }}
+            />
+
+            {/* STUDIO - refined, spaced, ethereal */}
+            <motion.span
+              className="block text-[clamp(1.2rem,5vw,3.5rem)] font-light tracking-[0.4em] uppercase text-white/40"
+              initial={{ opacity: 0, y: 20, letterSpacing: '0.8em' }}
+              animate={{ opacity: 1, y: 0, letterSpacing: '0.4em' }}
+              transition={{ duration: 1.2, delay: 1, ease: [0.16, 1, 0.3, 1] }}
+              style={{
+                textShadow: '0 0 30px rgba(255,255,255,0.08)',
+              }}
+            >
+              STUDIO
+            </motion.span>
           </h1>
         </motion.div>
-
-        {/* Underline */}
-        <motion.div
-          className="absolute -bottom-6 left-1/2 h-[2px]"
-          initial={{ width: 0, x: '-50%', opacity: 0 }}
-          animate={{ width: '70%', opacity: 1 }}
-          transition={{ duration: 1.5, delay: 1.4, ease: [0.16, 1, 0.3, 1] }}
-          style={{
-            background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%)',
-            boxShadow: '0 0 20px rgba(255,255,255,0.3)',
-          }}
-        />
       </div>
     );
   }

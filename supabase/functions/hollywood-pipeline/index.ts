@@ -3785,7 +3785,7 @@ async function runProduction(
                 correctedPrompt = `[STYLE ANCHOR: ${styleAnchor.consistencyPrompt}] ${correctedPrompt}`;
               }
               if (masterSceneAnchor?.masterConsistencyPrompt) {
-                correctedPrompt = `[SCENE DNA: ${masterSceneAnchor.masterConsistencyPrompt}] ${correctedPrompt}`;
+                correctedPrompt += ` [${masterSceneAnchor.masterConsistencyPrompt.substring(0, 120)}]`;
               }
               
               // FIXED: Clip 1 uses reference image, Clip 2+ uses previous frame

@@ -129,6 +129,9 @@ Deno.serve(async (req) => {
     }
 
     // === Nano Banana Pro (google/nano-banana-pro) — Gemini 3 Pro image editing ===
+    // CRITICAL: Prefix instruction to ensure the model EDITS the photo rather than generating a new one
+    const enhancementPrompt = `You are editing an existing photograph. Do NOT generate a new image from scratch. Keep the original composition, subject(s), background, and all visual elements intact. Only apply the following enhancement to the existing photo:\n\n${editInstruction}\n\nPreserve all original details — faces, objects, text, layout — and only modify what the instruction asks for.`;
+
     const createResponse = await fetch('https://api.replicate.com/v1/models/google/nano-banana-pro/predictions', {
       method: 'POST',
       headers: {
@@ -138,7 +141,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         input: {
-          prompt: editInstruction,
+          prompt: enhancementPrompt,
           image: imageInput,
         },
       }),

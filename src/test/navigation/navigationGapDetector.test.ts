@@ -43,7 +43,7 @@ const readFile = (filePath: string): string => {
 
 const HEAVY_ROUTE_PREFIXES = [
   '/create', '/production', '/avatars', '/projects',
-  '/discover', '/clips', '/universes', '/templates', '/environments',
+  '/discover', '/clips', '/templates', '/environments',
 ];
 
 interface RawNavigateCall {

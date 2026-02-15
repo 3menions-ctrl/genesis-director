@@ -52,13 +52,6 @@
      ],
      minDuration: 400,
    },
-   '/universes': {
-     messages: [
-       'Loading story universes...',
-       'Syncing timeline data...',
-     ],
-     minDuration: 400,
-   },
    '/discover': {
      messages: [
        'Loading community content...',

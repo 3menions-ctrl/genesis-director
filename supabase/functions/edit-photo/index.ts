@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
     }
 
     // Create prediction using Replicate API — Step1X-Edit (stable, modern model)
-    const createResponse = await fetch('https://api.replicate.com/v1/models/zsxkib/step1x-edit/predictions', {
+    const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${REPLICATE_API_KEY}`,
@@ -137,6 +137,7 @@ Deno.serve(async (req) => {
         Prefer: 'wait',
       },
       body: JSON.stringify({
+        version: '12b5a5a61e3419f792eb56cfc16eed046252740ebf5d470228f9b4cf2c861610',
         input: {
           image: imageInput,
           prompt: editInstruction,

@@ -144,9 +144,10 @@ export function WorldChatButton() {
           "fixed top-0 right-0 bottom-0 z-[70] w-[400px] max-w-[85vw]",
           "bg-[#0a0a0a] border-l border-white/[0.06]",
           "flex flex-col",
-          "transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+          "transition-transform duration-300",
           isOpen ? "translate-x-0" : "translate-x-full"
         )}
+        style={{ transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">

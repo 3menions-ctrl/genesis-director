@@ -287,7 +287,7 @@ const QUALITY_TIERS: QualityTier[] = [
     lighting: "Roger Deakins-style natural motivated lighting with precise shadow control",
     colorScience: "ACES 2.0 with custom show LUT, preserving full dynamic range",
     filmStock: "65mm ARRIRAW open gate, 16-bit color depth",
-    postProcess: "Baselight X theatrical mastering, film grain overlay, subtle halation",
+    postProcess: "Baselight X theatrical mastering, subtle halation, clean digital finish",
   },
 ];
 

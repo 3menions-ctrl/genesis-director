@@ -300,14 +300,47 @@ serve(async (req) => {
     }
 
     // ============================================================
-    // TIER 2: User-Uploaded Reference Image (CRITICAL FALLBACK)
-    // When extraction fails, use reference image to maintain continuity
+    // TIER 2: PRIORITIZED FALLBACK CHAIN
+    // Priority: golden frame (actual video frame) > previous clip frame > reference > identity > scene
+    // Golden frames and previous clip frames preserve actual video state.
+    // Reference/identity/scene images cause visual "resets" - use only as last resort.
     // ============================================================
-    console.log(`[ExtractFrame] TIER 2: Using reference image as fallback for continuity...`);
+    console.log(`[ExtractFrame] TIER 2: Prioritized fallback chain for continuity...`);
     
+    // CRITICAL: Try previous clip's ACTUAL last frame FIRST (highest continuity value)
+    if (shotIndex > 0) {
+      try {
+        const { data: prevClip } = await supabase
+          .from('video_clips')
+          .select('last_frame_url, frame_extraction_status')
+          .eq('project_id', projectId)
+          .eq('shot_index', shotIndex - 1)
+          .single();
+        
+        if (prevClip?.last_frame_url && isValidImageUrl(prevClip.last_frame_url) && prevClip.frame_extraction_status === 'completed') {
+          await saveFrameToDb(prevClip.last_frame_url);
+          console.log(`[ExtractFrame] ✅ TIER 2 SUCCESS (prev-clip-frame): Actual video continuity preserved`);
+          
+          return new Response(
+            JSON.stringify({
+              success: true,
+              frameUrl: prevClip.last_frame_url,
+              method: 'reference-fallback',
+              confidence: 'medium',
+            } as ExtractLastFrameResult),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      } catch (e) {
+        console.warn(`[ExtractFrame] Previous clip lookup failed:`, e);
+      }
+    }
+    
+    // Then try golden frame (first clip's extracted frame - best identity anchor)
+    // Then reference, identity, scene (in decreasing continuity value)
     const validFallbacks = [
-      { name: 'reference', url: referenceImageUrl, confidence: 'medium' as const },
       { name: 'golden', url: goldenFrameUrl, confidence: 'medium' as const },
+      { name: 'reference', url: referenceImageUrl, confidence: 'low' as const },
       { name: 'identity', url: identityBibleFrontUrl, confidence: 'low' as const },
       { name: 'scene', url: sceneImageUrl, confidence: 'low' as const },
     ].filter(s => isValidImageUrl(s.url));
@@ -318,6 +351,7 @@ serve(async (req) => {
       
       await saveFrameToDb(frameUrl);
       console.log(`[ExtractFrame] ✅ TIER 2 SUCCESS (${best.name}): ${frameUrl.substring(0, 80)}...`);
+      console.warn(`[ExtractFrame] ⚠️ DEGRADATION: Using ${best.name} image instead of actual video frame. Visual reset likely.`);
       
       return new Response(
         JSON.stringify({

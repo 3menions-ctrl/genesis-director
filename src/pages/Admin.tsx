@@ -665,7 +665,7 @@ export default function AdminDashboard() {
               </Button>
             </div>
 
-            <div className="glass-card overflow-hidden">
+            <div className="glass-card-dark overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>

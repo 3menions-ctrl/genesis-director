@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Sparkles, Film, Zap, ArrowRight, Loader2, X, Check } from 'lucide-react';
+import { Sparkles, Film, Zap, ArrowRight, Loader2, X, Check, Percent } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { SafeComponent } from '@/components/ui/error-boundary';
 
@@ -21,13 +21,16 @@ function WelcomeOfferModalInner() {
   const [purchasing, setPurchasing] = useState(false);
   const [hasMarkedSeen, setHasMarkedSeen] = useState(false);
 
-  // Show modal for new users who completed onboarding but haven't seen offer
+  // Only show for brand-new signups (not returning sign-ins)
+  // has_seen_welcome_offer defaults to false on profile creation,
+  // so this only triggers once per account lifetime
   useEffect(() => {
     if (
       user &&
       profile &&
       profile.onboarding_completed &&
-      profile.has_seen_welcome_offer === false
+      profile.has_seen_welcome_offer === false &&
+      profile.total_credits_purchased === 0 // Never purchased = new signup
     ) {
       const timer = setTimeout(() => setIsOpen(true), 800);
       return () => clearTimeout(timer);
@@ -60,7 +63,7 @@ function WelcomeOfferModalInner() {
 
     try {
       const { data, error } = await supabase.functions.invoke('create-credit-checkout', {
-        body: { packageId: 'mini' },
+        body: { packageId: 'mini', welcomeOffer: true },
       });
 
       if (error) throw error;
@@ -117,9 +120,9 @@ function WelcomeOfferModalInner() {
             transition={{ delay: 0.1 }}
             className="flex justify-center mb-6"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20">
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              <span className="text-sm font-medium text-amber-300">Welcome to ApeX Studio</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+              <Percent className="w-4 h-4 text-emerald-400" />
+              <span className="text-sm font-medium text-emerald-300">New Creator — 30% Off</span>
             </div>
           </motion.div>
 
@@ -131,10 +134,10 @@ function WelcomeOfferModalInner() {
             className="text-center mb-8"
           >
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white mb-3">
-              Ready to create your first film?
+              Your first film starts here
             </h2>
             <p className="text-white/50 text-sm leading-relaxed max-w-sm mx-auto">
-              Grab your starter credits and turn your first idea into a cinematic clip — it only takes one prompt.
+              As a new creator, enjoy <span className="text-emerald-400 font-semibold">30% off</span> your first credit pack. One prompt is all it takes.
             </p>
           </motion.div>
 
@@ -155,8 +158,11 @@ function WelcomeOfferModalInner() {
                   <p className="text-white/40 text-xs">Perfect first step</p>
                 </div>
                 <div className="text-right">
-                  <div className="text-3xl font-bold text-white">$9</div>
-                  <div className="text-xs text-amber-400/80 font-medium">90 credits</div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-lg text-white/30 line-through">$9</span>
+                    <span className="text-3xl font-bold text-white">$6.30</span>
+                  </div>
+                  <div className="text-xs text-emerald-400 font-medium">90 credits • 30% off</div>
                 </div>
               </div>
 
@@ -180,13 +186,13 @@ function WelcomeOfferModalInner() {
               <Button
                 onClick={handlePurchase}
                 disabled={purchasing}
-                className="w-full h-12 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-semibold text-sm transition-all duration-300 shadow-lg shadow-amber-500/20"
+                className="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-semibold text-sm transition-all duration-300 shadow-lg shadow-emerald-500/20"
               >
                 {purchasing ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    Get Started for $9
+                    Get 90 Credits for $6.30
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </>
                 )}

@@ -299,9 +299,9 @@ export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionProps>(
         }, INACTIVITY_TIMEOUT_MS);
       };
 
-      // Only track deliberate user actions, not passive movements/scrolls
+      // Track ALL user activity including scrolling and mouse movement
       const handleActivity = () => startTimer();
-      const events = ['mousedown', 'keydown', 'touchstart', 'click'];
+      const events = ['mousedown', 'keydown', 'touchstart', 'click', 'scroll', 'mousemove', 'touchmove', 'wheel'];
       events.forEach(e => window.addEventListener(e, handleActivity, { passive: true }));
       
       // Start the initial timer immediately

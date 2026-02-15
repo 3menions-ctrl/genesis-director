@@ -106,6 +106,8 @@ export default defineConfig(({ mode }) => ({
     ],
   },
   build: {
+    // Suppress chunk size warnings that get misinterpreted as errors
+    chunkSizeWarningLimit: 1500,
     // Optimize chunk splitting
     rollupOptions: {
       output: {

@@ -150,7 +150,7 @@ function StatPill({ icon: Icon, label, value, sub, accent }: {
   }[accent || 'primary'];
 
   return (
-    <div className="glass-card p-5 space-y-3">
+    <div className="glass-card-dark p-5 space-y-3">
       <div className="flex items-center gap-2.5">
         <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center bg-muted/50", accentColor)}>
           <Icon className="w-4 h-4" />
@@ -611,7 +611,7 @@ export default function AdminDashboard() {
 
             {/* Failed Operations Warning */}
             {(costSummary?.failedClips || 0) > 0 && (
-              <div className="glass-card p-4 border-destructive/20">
+              <div className="glass-card-dark p-4 border-destructive/20">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0">
                     <AlertTriangle className="w-5 h-5 text-destructive" />
@@ -755,7 +755,7 @@ export default function AdminDashboard() {
               />
             </div>
 
-            <div className="glass-card overflow-hidden">
+            <div className="glass-card-dark overflow-hidden">
               <div className="p-5 border-b border-border/30">
                 <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <Activity className="w-4 h-4 text-muted-foreground" />
@@ -822,7 +822,7 @@ export default function AdminDashboard() {
       case 'audit':
         return (
           <div className="space-y-4 animate-fade-in">
-            <div className="glass-card overflow-hidden">
+            <div className="glass-card-dark overflow-hidden">
               <div className="p-5 border-b border-border/30">
                 <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <History className="w-4 h-4 text-muted-foreground" />

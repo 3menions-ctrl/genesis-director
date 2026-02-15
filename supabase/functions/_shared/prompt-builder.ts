@@ -614,7 +614,7 @@ const DEFAULT_OCCLUSION_NEGATIVES = [
 // APEX QUALITY SUFFIX
 // =============================================================================
 
-const APEX_QUALITY_SUFFIX = ", cinematic lighting, 8K resolution, ultra high definition, highly detailed, professional cinematography, film grain, masterful composition, award-winning cinematographer, ARRI Alexa camera quality, anamorphic lens flares, perfect exposure, theatrical color grading";
+const APEX_QUALITY_SUFFIX = ", cinematic lighting, 8K resolution, ultra high definition, highly detailed, professional cinematography, masterful composition, award-winning cinematographer, ARRI Alexa camera quality, anamorphic lens flares, perfect exposure, theatrical color grading, clean sharp image";
 
 // =============================================================================
 // PROMPT DEDUPLICATION - Strip existing blocks to prevent redundancy

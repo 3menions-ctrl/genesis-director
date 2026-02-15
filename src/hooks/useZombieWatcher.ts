@@ -93,26 +93,30 @@ export function useZombieWatcher(
     return result;
   }, [userId, refresh]);
   
+  // Stable ref for refresh to break the effect→callback→effect loop
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
+
   // Initial check on mount
   useEffect(() => {
     isMountedRef.current = true;
     
     if (enabled && userId) {
-      refresh();
+      refreshRef.current();
     }
     
     return () => {
       isMountedRef.current = false;
     };
-  }, [enabled, userId, refresh]);
+  }, [enabled, userId]);
   
-  // Periodic auto-check
+  // Periodic auto-check — use ref to avoid interval churn
   useEffect(() => {
     if (!autoCheck || !enabled || !userId) return;
     
-    const interval = setInterval(refresh, checkInterval);
+    const interval = setInterval(() => refreshRef.current(), checkInterval);
     return () => clearInterval(interval);
-  }, [autoCheck, enabled, userId, checkInterval, refresh]);
+  }, [autoCheck, enabled, userId, checkInterval]);
   
   return {
     zombies,

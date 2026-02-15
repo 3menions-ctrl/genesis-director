@@ -178,7 +178,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
       setNewEmail('');
     } catch (error) {
       console.error('Error changing email:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to change email');
+      toast.error('Couldn\'t change email. Please try again.');
     } finally {
       setIsChangingEmail(false);
     }

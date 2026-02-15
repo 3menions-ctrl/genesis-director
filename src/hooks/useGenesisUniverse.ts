@@ -290,8 +290,8 @@ export function useSubmitToGenesis() {
       queryClient.invalidateQueries({ queryKey: ['genesis-videos'] });
       toast.success('Video submitted to Genesis Universe!');
     },
-    onError: (error) => {
-      toast.error('Failed to submit: ' + error.message);
+    onError: () => {
+      toast.error('Couldn\'t submit video. Please try again.');
     },
   });
 }
@@ -333,8 +333,8 @@ export function useRequestLocation() {
       queryClient.invalidateQueries({ queryKey: ['genesis-location-requests'] });
       toast.success('Location request submitted! An admin will review it.');
     },
-    onError: (error) => {
-      toast.error('Failed to submit request: ' + error.message);
+    onError: () => {
+      toast.error('Couldn\'t submit location request. Please try again.');
     },
   });
 }

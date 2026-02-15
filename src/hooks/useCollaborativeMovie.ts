@@ -166,8 +166,8 @@ export function useSubmitCasting() {
       queryClient.invalidateQueries({ queryKey: ['collaborative-movie-stats'] });
       toast.success('Casting submitted! Awaiting approval.');
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to submit casting');
+    onError: () => {
+      toast.error('Couldn\'t submit casting. Please try again.');
     }
   });
 }
@@ -216,8 +216,8 @@ export function useSubmitSceneClip() {
       queryClient.invalidateQueries({ queryKey: ['collaborative-movie-stats'] });
       toast.success('Scene clip submitted for review!');
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to submit clip');
+    onError: () => {
+      toast.error('Couldn\'t submit scene clip. Please try again.');
     }
   });
 }

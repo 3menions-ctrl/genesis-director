@@ -963,7 +963,7 @@ function ProductionContentInner() {
         toast.success('Stitched!');
       }
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error('Stitching failed. Please try again.');
     } finally {
       setIsSimpleStitching(false);
     }

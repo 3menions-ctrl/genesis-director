@@ -43,8 +43,8 @@ export function useAddGalleryItem() {
       queryClient.invalidateQueries({ queryKey: ['gallery-showcase'] });
       toast.success('Gallery item added');
     },
-    onError: (error) => {
-      toast.error(`Failed to add: ${error.message}`);
+    onError: () => {
+      toast.error('Couldn\'t add gallery item. Please try again.');
     },
   });
 }
@@ -68,8 +68,8 @@ export function useUpdateGalleryItem() {
       queryClient.invalidateQueries({ queryKey: ['gallery-showcase'] });
       toast.success('Gallery item updated');
     },
-    onError: (error) => {
-      toast.error(`Failed to update: ${error.message}`);
+    onError: () => {
+      toast.error('Couldn\'t update gallery item. Please try again.');
     },
   });
 }
@@ -90,8 +90,8 @@ export function useDeleteGalleryItem() {
       queryClient.invalidateQueries({ queryKey: ['gallery-showcase'] });
       toast.success('Gallery item removed');
     },
-    onError: (error) => {
-      toast.error(`Failed to delete: ${error.message}`);
+    onError: () => {
+      toast.error('Couldn\'t remove gallery item. Please try again.');
     },
   });
 }
@@ -114,8 +114,8 @@ export function useReorderGalleryItems() {
       queryClient.invalidateQueries({ queryKey: ['gallery-showcase'] });
       toast.success('Order updated');
     },
-    onError: (error) => {
-      toast.error(`Failed to reorder: ${error.message}`);
+    onError: () => {
+      toast.error('Couldn\'t save new order. Please try again.');
     },
   });
 }

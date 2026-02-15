@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from "react";
-import { Play, Pause, SkipBack, SkipForward, Maximize2, Volume2, Gauge } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Maximize2, Volume2, VolumeX, Volume1, Gauge } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -32,6 +33,8 @@ export const EditorPreview = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const rafRef = useRef<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [volume, setVolume] = useState(80);
+  const [isMuted, setIsMuted] = useState(false);
 
   const activeVideoClip = tracks
     .filter((t) => t.type === "video")
@@ -65,6 +68,7 @@ export const EditorPreview = ({
     return () => cancelAnimationFrame(rafRef.current);
   }, [isPlaying, currentTime, duration, onTimeChange, playbackSpeed]);
 
+  // Sync video source, time, play state
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !activeVideoClip) return;
@@ -86,6 +90,14 @@ export const EditorPreview = ({
       video.pause();
     }
   }, [activeVideoClip, currentTime, isPlaying, playbackSpeed]);
+
+  // Sync volume and mute state to video element
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = isMuted;
+    video.volume = volume / 100;
+  }, [volume, isMuted]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -115,7 +127,7 @@ export const EditorPreview = ({
                   objectFit: 'contain',
                   WebkitTransform: 'translateZ(0)', // Safari GPU acceleration
                 }}
-                muted
+                
                 playsInline
               />
               {/* Subtle border frame around video */}
@@ -263,13 +275,58 @@ export const EditorPreview = ({
             </PopoverContent>
           </Popover>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/[0.06] rounded-lg transition-all"
-          >
-            <Volume2 className="h-3.5 w-3.5" />
-          </Button>
+          {/* Volume control */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "h-7 w-7 rounded-lg transition-all",
+                  isMuted ? "text-red-400/60 hover:text-red-400 hover:bg-red-500/10" : "text-white/50 hover:text-white hover:bg-white/[0.06]"
+                )}
+                onClick={(e) => {
+                  // Simple click toggles mute, popover opens on the trigger
+                  if (e.detail === 2) return; // ignore double click
+                }}
+              >
+                {isMuted ? <VolumeX className="h-3.5 w-3.5" /> : volume < 50 ? <Volume1 className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-44 p-3 bg-[hsl(260,20%,10%)] border-white/10" side="top" align="end">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Volume</span>
+                  <button
+                    className={cn(
+                      "text-[10px] font-medium px-2 py-0.5 rounded transition-all",
+                      isMuted ? "text-red-400 bg-red-500/10" : "text-white/50 hover:text-white hover:bg-white/[0.06]"
+                    )}
+                    onClick={() => setIsMuted(!isMuted)}
+                  >
+                    {isMuted ? "Unmute" : "Mute"}
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <VolumeX className="h-3 w-3 text-white/20 shrink-0" />
+                  <Slider
+                    value={[isMuted ? 0 : volume]}
+                    min={0}
+                    max={100}
+                    step={1}
+                    onValueChange={([v]) => {
+                      setVolume(v);
+                      if (v > 0 && isMuted) setIsMuted(false);
+                      if (v === 0) setIsMuted(true);
+                    }}
+                    className="flex-1"
+                  />
+                  <Volume2 className="h-3 w-3 text-white/20 shrink-0" />
+                </div>
+                <span className="text-[10px] text-white/30 font-mono tabular-nums block text-center">{isMuted ? "Muted" : `${volume}%`}</span>
+              </div>
+            </PopoverContent>
+          </Popover>
 
           <Button
             variant="ghost"

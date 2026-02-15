@@ -251,11 +251,14 @@ const SUPPRESSED_CRASH_PATTERNS = [
   // ResizeObserver - browser quirk, not a crash
   'ResizeObserver loop',
   'ResizeObserver loop completed',
-  // ChunkLoadError - handled by recovery system
+  // ChunkLoadError / dynamic import failures - handled by recovery system
+  // CRITICAL: Must match main.tsx suppression to prevent false crash loop detection
   'ChunkLoadError',
   'Loading chunk',
   'dynamically imported module',
   'Failed to fetch dynamically imported module',
+  'Importing a module script failed',
+  'error loading dynamically imported module',
   // React state updates on unmounted - warning, not crash
   'state update on an unmounted',
   "Can't perform a React state update on an unmounted",

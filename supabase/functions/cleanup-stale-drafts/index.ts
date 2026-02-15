@@ -37,6 +37,18 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
+    // ═══ AUTH GUARD: Service-role or admin only ═══
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) {
+      return unauthorizedResponse(corsHeaders, auth.error);
+    }
+    if (!auth.isServiceRole && auth.userId) {
+      const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id', auth.userId);
+      if (!roles?.some(r => r.role === 'admin')) {
+        return unauthorizedResponse(corsHeaders, 'Admin access required');
+      }
+    }
     let daysOld = 7;
     let dryRun = false;
 

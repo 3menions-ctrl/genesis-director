@@ -50,6 +50,12 @@ serve(async (req) => {
   }
 
   try {
+    // ═══ AUTH GUARD: Prevent unauthorized API credit consumption ═══
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) {
+      return unauthorizedResponse(corsHeaders, auth.error);
+    }
     const request: FrameExtractionRequest = await req.json();
     const { videoUrl, shotId, projectId, referenceImageUrl } = request;
 

@@ -143,6 +143,20 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // ═══ AUTH GUARD: Prevent unauthorized API credit consumption ═══
+  try {
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) {
+      return unauthorizedResponse(corsHeaders, auth.error);
+    }
+  } catch (authErr) {
+    return new Response(
+      JSON.stringify({ success: false, error: "Authentication failed" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");

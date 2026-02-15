@@ -12,8 +12,16 @@ serve(async (req) => {
   }
 
   try {
-    const { user_id, utm_source, utm_medium, utm_campaign, referrer } = await req.json();
+    // ═══ AUTH GUARD: Require valid JWT to prevent fake analytics injection ═══
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) {
+      return unauthorizedResponse(corsHeaders, auth.error);
+    }
+    const { utm_source, utm_medium, utm_campaign, referrer } = await req.json();
 
+    // SECURITY: Use JWT-extracted userId, not client-supplied
+    const user_id = auth.userId;
     if (!user_id) {
       return new Response(JSON.stringify({ error: "user_id required" }), {
         status: 400,

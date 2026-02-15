@@ -38,10 +38,10 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
-    if (!REPLICATE_API_KEY) {
-      throw new Error('REPLICATE_API_KEY is not configured');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
       }).eq('id', editId);
     }
 
-    console.log(`[edit-photo] Processing via Nano Banana Pro for user ${auth.userId.slice(0, 8)}...`);
+    console.log(`[edit-photo] Processing via Lovable AI gateway for user ${auth.userId.slice(0, 8)}...`);
 
     // Download the source image and convert to data URI for reliable input
     let imageInput = imageUrl;
@@ -128,35 +128,36 @@ Deno.serve(async (req) => {
       console.warn('[edit-photo] Could not pre-download image, using URL directly:', e);
     }
 
-    // === Nano Banana Pro (google/nano-banana-pro) — Gemini 3 Pro image editing ===
-    // CRITICAL: Prefix instruction to ensure the model EDITS the photo rather than generating a new one
-    const enhancementPrompt = `You are editing an existing photograph. Do NOT generate a new image from scratch. Keep the original composition, subject(s), background, and all visual elements intact. Only apply the following enhancement to the existing photo:\n\n${editInstruction}\n\nPreserve all original details — faces, objects, text, layout — and only modify what the instruction asks for.`;
+    // Use Lovable AI gateway with google/gemini-3-pro-image-preview for true image editing
+    const enhancementPrompt = `Edit this existing photograph. Do NOT generate a new image. Keep the original composition, subject(s), background, and all visual elements intact. Only apply the following modification:\n\n${editInstruction}\n\nPreserve all original details — faces, objects, text, layout — and only change what the instruction asks for.`;
 
-    const createResponse = await fetch('https://api.replicate.com/v1/models/google/nano-banana-pro/predictions', {
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${REPLICATE_API_KEY}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
-        Prefer: 'wait',
       },
       body: JSON.stringify({
-        input: {
-          prompt: enhancementPrompt,
-          image: imageInput,
-        },
+        model: 'google/gemini-3-pro-image-preview',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: enhancementPrompt },
+              { type: 'image_url', image_url: { url: imageInput } },
+            ],
+          },
+        ],
+        modalities: ['image', 'text'],
       }),
     });
 
-    if (!createResponse.ok) {
-      const errText = await createResponse.text();
-      console.error('[edit-photo] Replicate error:', createResponse.status, errText);
+    if (!aiResponse.ok) {
+      const errText = await aiResponse.text();
+      console.error('[edit-photo] AI gateway error:', aiResponse.status, errText);
 
-      const is429 = createResponse.status === 429;
-      const is402 = createResponse.status === 402;
-      const errorMsg = is429
+      const errorMsg = aiResponse.status === 429
         ? 'Rate limited, try again shortly'
-        : is402
-        ? 'Not enough Replicate credits. Please top up your Replicate account.'
         : 'Image editing failed';
 
       if (editId) {
@@ -175,44 +176,12 @@ Deno.serve(async (req) => {
 
       return new Response(
         JSON.stringify({ error: errorMsg }),
-        { status: is429 ? 429 : is402 ? 402 : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: aiResponse.status === 429 ? 429 : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    let prediction = await createResponse.json();
-
-    // If Prefer: wait didn't resolve it, poll
-    while (prediction.status === 'starting' || prediction.status === 'processing') {
-      await new Promise(r => setTimeout(r, 2000));
-      const pollResp = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
-        headers: { Authorization: `Bearer ${REPLICATE_API_KEY}` },
-      });
-      prediction = await pollResp.json();
-    }
-
-    if (prediction.status === 'failed' || !prediction.output) {
-      console.error('[edit-photo] Replicate prediction failed:', prediction.error);
-      
-      if (editId) {
-        await supabase.from('photo_edits').update({
-          status: 'failed',
-          error_message: 'Image editing failed',
-        }).eq('id', editId);
-      }
-      if (creditsCost > 0) {
-        await supabase.rpc('increment_credits', {
-          user_id_param: auth.userId,
-          amount_param: creditsCost,
-        });
-      }
-      return new Response(
-        JSON.stringify({ error: 'Image editing failed' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Replicate returns output as an array of URLs or a single URL string
-    const outputUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+    const aiResult = await aiResponse.json();
+    const outputUrl = aiResult.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
     if (!outputUrl) {
       console.error('[edit-photo] No output from Replicate');
@@ -234,9 +203,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Download edited image and upload to storage
-    const imageResp = await fetch(outputUrl);
-    const imageBytes = new Uint8Array(await imageResp.arrayBuffer());
+    // Convert base64 data URI to bytes and upload to storage
+    let imageBytes: Uint8Array;
+    if (outputUrl.startsWith('data:')) {
+      const base64Data = outputUrl.split(',')[1];
+      const binaryStr = atob(base64Data);
+      imageBytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) {
+        imageBytes[i] = binaryStr.charCodeAt(i);
+      }
+    } else {
+      const imageResp = await fetch(outputUrl);
+      imageBytes = new Uint8Array(await imageResp.arrayBuffer());
+    }
     const fileName = `${auth.userId}/${crypto.randomUUID()}.png`;
 
     const { error: uploadError } = await supabase.storage

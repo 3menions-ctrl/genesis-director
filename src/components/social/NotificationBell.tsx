@@ -1,5 +1,5 @@
 import { useState, memo, forwardRef } from 'react';
-import { Bell, Check, Trophy, Heart, MessageCircle, UserPlus, Zap, Gift, Video, Star, Play, AlertTriangle } from 'lucide-react';
+import { Bell, Check, Trophy, Heart, MessageCircle, UserPlus, Zap, Gift, Video, Star, Play, AlertTriangle, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -26,6 +26,7 @@ const notificationIcons: Record<NotificationType, typeof Bell> = {
   video_complete: Video,
   video_started: Play,
   video_failed: AlertTriangle,
+  low_credits: Coins,
   mention: MessageCircle,
 };
 
@@ -43,6 +44,7 @@ const notificationColors: Record<NotificationType, string> = {
   video_complete: 'text-green-500',
   video_started: 'text-blue-400',
   video_failed: 'text-red-500',
+  low_credits: 'text-amber-500',
   mention: 'text-blue-500',
 };
 

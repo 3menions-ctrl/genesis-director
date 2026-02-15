@@ -17,6 +17,7 @@ export type NotificationType =
   | 'video_complete' 
   | 'video_started'
   | 'video_failed'
+  | 'low_credits'
   | 'mention';
 
 export interface Notification {

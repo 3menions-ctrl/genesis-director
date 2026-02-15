@@ -62,26 +62,17 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    const requestBody: CancelRequest = await req.json();
-    let { projectId, userId } = requestBody;
-
-    // SECURITY: Extract userId from JWT instead of trusting client payload
-    const authHeader = req.headers.get("Authorization");
-    if (authHeader?.startsWith("Bearer ")) {
-      try {
-        const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-        const authClient = createClient(supabaseUrl, anonKey);
-        const token = authHeader.replace("Bearer ", "");
-        if (token !== supabaseKey) {
-          const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-          if (!claimsError && claimsData?.claims?.sub) {
-            userId = claimsData.claims.sub as string;
-          }
-        }
-      } catch (authErr) {
-        console.warn("[CancelProject] JWT validation failed:", authErr);
-      }
+    // ═══ AUTH GUARD: Require valid JWT ═══
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) {
+      return unauthorizedResponse(corsHeaders, auth.error);
     }
+
+    const requestBody: CancelRequest = await req.json();
+    const { projectId } = requestBody;
+    // SECURITY: Always use JWT-extracted userId, never trust client payload
+    const userId = auth.userId || requestBody.userId;
 
     if (!projectId || !userId) {
       return new Response(

@@ -45,6 +45,12 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
+    // ═══ AUTH GUARD: Prevent unauthorized access ═══
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) {
+      return unauthorizedResponse(corsHeaders, auth.error);
+    }
     const { projectId, predictionId }: StatusRequest = await req.json();
 
     if (!projectId || !predictionId) {

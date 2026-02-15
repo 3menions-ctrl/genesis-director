@@ -11,6 +11,26 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // ═══ AUTH GUARD: Admin-only operation ═══
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) {
+      return unauthorizedResponse(corsHeaders, auth.error);
+    }
+    // Verify caller is admin
+    const supabaseAdminCheck = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    if (auth.userId) {
+      const { data: roles } = await supabaseAdminCheck.from('user_roles').select('role').eq('user_id', auth.userId);
+      const isAdmin = roles?.some(r => r.role === 'admin');
+      if (!isAdmin && !auth.isServiceRole) {
+        return unauthorizedResponse(corsHeaders, 'Admin access required');
+      }
+    }
+
     const { action } = await req.json().catch(() => ({ action: 'delete' }));
     
     const supabaseAdmin = createClient(

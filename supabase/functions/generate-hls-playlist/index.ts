@@ -33,6 +33,12 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
+    // ═══ AUTH GUARD: Prevent unauthorized access ═══
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) {
+      return unauthorizedResponse(corsHeaders, auth.error);
+    }
     const { projectId } = await req.json() as HLSPlaylistRequest;
 
     if (!projectId) {

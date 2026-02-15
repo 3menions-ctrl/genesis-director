@@ -79,15 +79,13 @@ export const AvatarCTASection = memo(function AvatarCTASection({ onNavigate }: A
                 </div>
               )}
 
-              {/* Mute toggle */}
-              {isPlaying && (
-                <button
-                  onClick={handleMuteToggle}
-                  className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white transition-colors z-10"
-                >
-                  {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                </button>
-              )}
+              {/* Mute toggle - always visible */}
+              <button
+                onClick={handleMuteToggle}
+                className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white/80 hover:text-white hover:bg-black/70 transition-colors z-10"
+              >
+                {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </button>
             </div>
 
             {/* Subtitle bubble */}

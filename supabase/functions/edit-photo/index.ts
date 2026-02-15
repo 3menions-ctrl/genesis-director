@@ -129,7 +129,8 @@ Deno.serve(async (req) => {
     }
 
     // Use Lovable AI gateway with google/gemini-3-pro-image-preview for true image editing
-    const enhancementPrompt = `Edit this existing photograph. Do NOT generate a new image. Keep the original composition, subject(s), background, and all visual elements intact. Only apply the following modification:\n\n${editInstruction}\n\nPreserve all original details — faces, objects, text, layout — and only change what the instruction asks for.`;
+    // Gemini best practice: "Using the provided image, [specific change]. Keep everything else unchanged."
+    const enhancementPrompt = `Using the provided image, apply the following edit: ${editInstruction}. Keep everything else in the image completely unchanged — same subjects, composition, framing, and aspect ratio.`;
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',

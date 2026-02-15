@@ -82,7 +82,7 @@ export const AvatarCTASection = memo(function AvatarCTASection({ onNavigate }: A
               {/* Mute toggle - always visible */}
               <button
                 onClick={handleMuteToggle}
-                className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white/80 hover:text-white hover:bg-black/70 transition-colors z-10"
+                className="absolute bottom-5 right-5 w-9 h-9 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white/80 hover:text-white hover:bg-black/70 transition-colors z-10"
               >
                 {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               </button>

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+import { useSafeNavigation } from "@/lib/navigation";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -15,7 +16,7 @@ import type { EditorState, TimelineTrack, TimelineClip } from "@/components/edit
 
 const VideoEditor = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const { navigate } = useSafeNavigation();
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get("project") || searchParams.get("projectId");
 
@@ -507,7 +508,7 @@ const VideoEditor = () => {
         onTitleChange={(title) => setEditorState((prev) => ({ ...prev, title }))}
         onSave={handleSave}
         onExport={handleExport}
-        onBack={() => navigate(-1)}
+        onBack={() => window.history.back()}
         onUndo={handleUndo}
         onRedo={handleRedo}
         onSplit={handleSplit}

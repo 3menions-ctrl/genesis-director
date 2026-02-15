@@ -21,7 +21,8 @@ import { getErrorMessage } from '@/types/error-handling';
 // CRITICAL: Import background directly - prevents flash on page load
 import ClipsBackground from '@/components/clips/ClipsBackground';
 import { AppHeader } from '@/components/layout/AppHeader';
-import { AppLoader } from '@/components/ui/app-loader';
+import { CinemaLoader } from '@/components/ui/CinemaLoader';
+import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
 import { SimpleVideoPlayer } from '@/components/player';
 import type { ScriptShot } from '@/components/studio/ScriptReviewPanel';
 
@@ -134,6 +135,13 @@ function ProductionContentInner() {
   // Core state
   const [isLoading, setIsLoading] = useState(true);
   const [isResuming, setIsResuming] = useState(false);
+  
+  // CENTRALIZED GATEKEEPER - unified loading with CinemaLoader
+  const gatekeeper = useGatekeeperLoading({
+    ...GATEKEEPER_PRESETS.production,
+    dataLoading: isLoading,
+    dataSuccess: !isLoading,
+  });
   const [projectTitle, setProjectTitle] = useState('');
   const [projectStatus, setProjectStatus] = useState('');
   const [stages, setStages] = useState<StageStatus[]>(
@@ -1262,8 +1270,15 @@ const transitionsData = useMemo(() =>
     setSelectedClipUrl(url);
   }, []);
 
-  if (isLoading) {
-    return <AppLoader message="Loading production..." />;
+  if (gatekeeper.isLoading) {
+    return (
+      <CinemaLoader
+        isVisible={true}
+        message={getGatekeeperMessage(gatekeeper.phase, GATEKEEPER_PRESETS.production.messages)}
+        showProgress={true}
+        progress={gatekeeper.progress}
+      />
+    );
   }
 
   return (

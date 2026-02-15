@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
+import { useSafeNavigation } from '@/lib/navigation';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { useNavigationWithLoading } from '@/components/navigation';
@@ -16,7 +17,7 @@ import landingAbstractBg from '@/assets/landing-abstract-bg.jpg';
  * - OAuth provider redirects
  */
 export default function AuthCallback() {
-  const navigate = useNavigate();
+  const { navigate } = useSafeNavigation();
   const [searchParams] = useSearchParams();
   const { navigateTo } = useNavigationWithLoading();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');

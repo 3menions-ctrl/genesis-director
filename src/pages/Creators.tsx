@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSafeNavigation } from '@/lib/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppHeader } from '@/components/layout/AppHeader';
@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 
 export default function Creators() {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const { navigate } = useSafeNavigation();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [selectedVideo, setSelectedVideo] = useState<{

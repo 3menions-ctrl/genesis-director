@@ -11,6 +11,7 @@ import { AppLoader } from "@/components/ui/app-loader";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 // WorldChatButton removed - now a dedicated page
 import { WelcomeVideoModal } from "@/components/welcome/WelcomeVideoModal";
+import { WelcomeOfferModal } from "@/components/welcome/WelcomeOfferModal";
 import { GlobalStabilityBoundary } from "@/components/stability/GlobalStabilityBoundary";
 import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
@@ -411,6 +412,8 @@ const App = () => {
                 </Routes>
                 {/* Diagnostics - Admin console only */}
                 <AdminOnlyDiagnostics />
+                {/* Welcome Offer Modal - shows Mini pack to new users */}
+                <WelcomeOfferModal />
                 {/* Welcome Video Modal - shows once for new users */}
                 <WelcomeVideoModal />
               </StudioProvider>

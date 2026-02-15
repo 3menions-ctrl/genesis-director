@@ -120,7 +120,15 @@ export function PhotoEditorHub() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // For non-2xx, the error context may contain the response body
+        const errBody = (error as any)?.context?.body ? await (error as any).context.body.text().catch(() => '') : '';
+        let parsed: any = {};
+        try { parsed = JSON.parse(errBody); } catch {}
+        const msg = parsed?.error || 'Failed to process edit';
+        toast.error(msg);
+        return;
+      }
       if (data?.error) {
         if (data.error.includes('Insufficient credits')) {
           toast.error(`Need ${data.required} credits (have ${data.available})`);
@@ -165,7 +173,13 @@ export function PhotoEditorHub() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        const errBody = (error as any)?.context?.body ? await (error as any).context.body.text().catch(() => '') : '';
+        let parsed: any = {};
+        try { parsed = JSON.parse(errBody); } catch {}
+        toast.error(parsed?.error || 'Failed to process edit');
+        return;
+      }
       if (data?.error) {
         toast.error(data.error);
         return;

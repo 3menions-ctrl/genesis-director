@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { notifyVideoComplete, notifyVideoFailed } from "../_shared/pipeline-notifications.ts";
 import {
   CAMERA_MOVEMENTS,
   CAMERA_ANGLES,
@@ -1123,6 +1124,12 @@ serve(async (req) => {
           console.error(`[Watchdog] Update error details:`, JSON.stringify(updateError));
         } else {
           console.log(`[Watchdog] ✅ Database update succeeded for ${project.id}`);
+          
+          // Notify user their avatar video is ready
+          await notifyVideoComplete(supabase, project.user_id, project.id, project.title, {
+            clipCount: videoClipsArray.length,
+            videoUrl: finalVideoUrl,
+          });
         }
         
         result.productionResumed++;
@@ -1214,6 +1221,14 @@ serve(async (req) => {
         } catch (refundError) {
           console.error(`[Watchdog] Refund failed:`, refundError);
         }
+        
+        // Notify user about avatar timeout
+        const failedClipCount2 = totalExpectedClipsForTimeout - completedClips.length;
+        const estimatedCredits2 = failedClipCount2 * 10;
+        await notifyVideoFailed(supabase, project.user_id, project.id, project.title, {
+          reason: 'Avatar generation timed out',
+          creditsRefunded: estimatedCredits2 > 0 ? estimatedCredits2 : undefined,
+        });
         
         result.projectsMarkedFailed++;
         continue;
@@ -1465,6 +1480,13 @@ serve(async (req) => {
         } catch (refundError) {
           console.error(`[Watchdog] Credit refund failed:`, refundError);
         }
+        
+        // Notify user about avatar failure
+        const estimatedCreditsForNotify = (pipelineState.totalClips || 1) * 10;
+        await notifyVideoFailed(supabase, project.user_id, project.id, project.title, {
+          reason: 'Avatar generation failed after retries',
+          creditsRefunded: estimatedCreditsForNotify > 0 ? estimatedCreditsForNotify : undefined,
+        });
         
         result.projectsMarkedFailed++;
         result.details.push({

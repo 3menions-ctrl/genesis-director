@@ -14,7 +14,7 @@ describe('Notification Types', () => {
   const ALL_TYPES: NotificationType[] = [
     'like', 'comment', 'follow', 'achievement', 'challenge_complete',
     'message', 'universe_invite', 'character_borrow_request',
-    'level_up', 'streak_milestone', 'video_complete', 'mention',
+    'level_up', 'streak_milestone', 'video_complete', 'video_started', 'video_failed', 'mention',
   ];
 
   it('should define all 12 notification types', () => {
@@ -104,6 +104,8 @@ describe('Notification Icon & Color Mappings', () => {
     level_up: 'Zap',
     streak_milestone: 'Zap',
     video_complete: 'Video',
+    video_started: 'Play',
+    video_failed: 'AlertTriangle',
     mention: 'MessageCircle',
   };
 
@@ -119,13 +121,15 @@ describe('Notification Icon & Color Mappings', () => {
     level_up: 'text-yellow-500',
     streak_milestone: 'text-orange-500',
     video_complete: 'text-green-500',
+    video_started: 'text-blue-400',
+    video_failed: 'text-red-500',
     mention: 'text-blue-500',
   };
 
   const allTypes: NotificationType[] = [
     'like', 'comment', 'follow', 'achievement', 'challenge_complete',
     'message', 'universe_invite', 'character_borrow_request',
-    'level_up', 'streak_milestone', 'video_complete', 'mention',
+    'level_up', 'streak_milestone', 'video_complete', 'video_started', 'video_failed', 'mention',
   ];
 
   it('should have an icon mapped for every notification type', () => {

@@ -261,6 +261,17 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     }
   }, [templateId, maxClips]);
 
+  // Pick up image from photo editor pipeline
+  useEffect(() => {
+    const imageFromEditor = sessionStorage.getItem('imageToVideoUrl');
+    if (imageFromEditor) {
+      sessionStorage.removeItem('imageToVideoUrl');
+      setSelectedMode('image-to-video');
+      setUploadedImage(imageFromEditor);
+      setUploadedFileName('Edited Photo');
+    }
+  }, []);
+
   // Autosave draft as user makes changes (debounced)
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {

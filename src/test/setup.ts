@@ -1,5 +1,11 @@
 import "@testing-library/jest-dom";
 
+// Mock URL.createObjectURL / revokeObjectURL for jsdom
+if (typeof URL.createObjectURL === 'undefined') {
+  URL.createObjectURL = () => 'blob:mock-url';
+  URL.revokeObjectURL = () => {};
+}
+
 // Mock window.matchMedia
 Object.defineProperty(window, "matchMedia", {
   writable: true,

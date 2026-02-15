@@ -109,8 +109,8 @@ export function useCharacterLending() {
       queryClient.invalidateQueries({ queryKey: ['outgoing-loan-requests'] });
       toast.success('Loan request sent!');
     },
-    onError: (error) => {
-      toast.error('Failed to request: ' + error.message);
+    onError: () => {
+      toast.error('Couldn\'t send loan request. Please try again.');
     },
   });
 

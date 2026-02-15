@@ -131,8 +131,8 @@ export function useCreateStoryArc() {
       queryClient.invalidateQueries({ queryKey: ['genesis-story-arcs'] });
       toast.success('Story arc created!');
     },
-    onError: (error) => {
-      toast.error('Failed to create arc: ' + error.message);
+    onError: () => {
+      toast.error('Couldn\'t create story arc. Please try again.');
     },
   });
 }
@@ -180,8 +180,8 @@ export function useConnectVideoToArc() {
       queryClient.invalidateQueries({ queryKey: ['genesis-story-arcs'] });
       toast.success('Video connected to story arc!');
     },
-    onError: (error) => {
-      toast.error('Failed to connect: ' + error.message);
+    onError: () => {
+      toast.error('Couldn\'t connect video to arc. Please try again.');
     },
   });
 }
@@ -389,8 +389,8 @@ export function useProposeAnchor() {
       queryClient.invalidateQueries({ queryKey: ['genesis-continuity-anchors'] });
       toast.success('Continuity anchor proposed! The community will vote on it.');
     },
-    onError: (error) => {
-      toast.error('Failed to propose anchor: ' + error.message);
+    onError: () => {
+      toast.error('Couldn\'t propose anchor. Please try again.');
     },
   });
 }

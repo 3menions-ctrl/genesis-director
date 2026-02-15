@@ -67,7 +67,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
       toast.success('Password updated successfully');
     } catch (error) {
       console.error('Error updating password:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to update password');
+      toast.error('Couldn\'t update password. Please try again.');
     } finally {
       setIsSavingPassword(false);
     }
@@ -149,7 +149,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
       navigate('/');
     } catch (error) {
       console.error('Error deleting account:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to delete account');
+      toast.error('Account deletion failed. Please contact support if this persists.');
     } finally {
       setIsDeleting(false);
     }

@@ -51,8 +51,10 @@ export function useUniverses() {
       queryClient.invalidateQueries({ queryKey: ['universes'] });
       toast.success('Universe created!');
     },
-    onError: (error) => {
-      toast.error('Failed to create universe: ' + error.message);
+    onError: () => {
+      toast.error('Couldn\'t create your universe. Please try again.', {
+        action: { label: 'Retry', onClick: () => createUniverse.reset() },
+      });
     },
   });
 

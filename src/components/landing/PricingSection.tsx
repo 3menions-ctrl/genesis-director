@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { ArrowRight, Sparkles, Maximize2, X, Volume2, VolumeX, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { UniversalHLSPlayer, type UniversalHLSPlayerHandle } from '@/components/player/UniversalHLSPlayer';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 const PRICING_STATS = [
   { value: '$0.10', label: 'per credit' },
@@ -28,7 +28,7 @@ const SignupPopup = memo(function SignupPopup({ onClose, onNavigate }: { onClose
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+  // Using sonner toast directly
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,10 +41,18 @@ const SignupPopup = memo(function SignupPopup({ onClose, onNavigate }: { onClose
         options: { emailRedirectTo: window.location.origin },
       });
       if (error) throw error;
-      toast({ title: 'Check your email', description: 'We sent you a confirmation link to verify your account.' });
+      toast.success('Check your email — we sent you a confirmation link to verify your account.', {
+        duration: 8000,
+        action: { label: 'Got it', onClick: () => {} },
+      });
       onClose();
     } catch (err: any) {
-      toast({ title: 'Signup failed', description: err.message, variant: 'destructive' });
+      const msg = err.message?.includes('already registered')
+        ? 'This email is already registered. Try logging in instead.'
+        : 'Signup failed. Please try again.';
+      toast.error(msg, {
+        action: { label: 'Try Again', onClick: () => {} },
+      });
     } finally {
       setLoading(false);
     }

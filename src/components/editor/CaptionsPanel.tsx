@@ -57,7 +57,7 @@ export const CaptionsPanel = ({ clip, onUpdateClip }: CaptionsPanelProps) => {
         toast.info("No speech detected in clip");
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to transcribe");
+      toast.error("Transcription failed. Please try a different clip.");
     } finally {
       setIsTranscribing(false);
     }
@@ -94,7 +94,7 @@ export const CaptionsPanel = ({ clip, onUpdateClip }: CaptionsPanelProps) => {
       await audio.play();
       toast.success("Speech generated & playing");
     } catch (err: any) {
-      toast.error(err.message || "Failed to generate speech");
+      toast.error("Speech generation failed. Please try again.");
     } finally {
       setIsSpeaking(false);
     }

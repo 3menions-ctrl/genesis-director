@@ -168,8 +168,8 @@ const DiscoverContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
       queryClient.invalidateQueries({ queryKey: ['public-videos'] });
       queryClient.invalidateQueries({ queryKey: ['user-likes'] });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to update like');
+    onError: () => {
+      toast.error('Couldn\'t update your like. Please try again.');
     },
   });
 

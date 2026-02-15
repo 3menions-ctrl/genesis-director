@@ -190,7 +190,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
             setPendingEmailConfirmation(trimmedEmail);
             toast.error('Please check your email and click the confirmation link before signing in.');
           } else {
-            toast.error(error.message);
+            toast.error('Login failed. Please check your credentials and try again.');
           }
         } else {
           // Track geo data on login - get fresh session user since component user hasn't updated yet
@@ -205,7 +205,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
           if (error.message.includes('already registered')) {
             toast.error('This email is already registered. Try logging in instead.');
           } else {
-            toast.error(error.message);
+            toast.error('Signup failed. Please try again with a different email.');
           }
         } else {
           // Show email confirmation pending state

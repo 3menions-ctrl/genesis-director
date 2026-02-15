@@ -739,7 +739,9 @@ function ProjectsContentInner() {
       }
     } catch (err: any) {
       console.error('Google stitch failed:', err);
-      toast.error('Stitch failed', { description: err.message });
+      toast.error('Video stitching failed. Please try again.', {
+        action: { label: 'Retry', onClick: () => {} },
+      });
     } finally {
       setRetryingProjectId(null);
     }

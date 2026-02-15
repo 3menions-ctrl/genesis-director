@@ -11,6 +11,13 @@ serve(async (req) => {
   }
 
   try {
+    // ═══ AUTH GUARD ═══
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) {
+      return unauthorizedResponse(corsHeaders, auth.error);
+    }
+
     const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
     if (!ELEVENLABS_API_KEY) {
       return new Response(JSON.stringify({ error: "ELEVENLABS_API_KEY not configured" }), {

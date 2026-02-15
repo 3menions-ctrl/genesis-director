@@ -64,21 +64,21 @@ serve(async (req) => {
   }
 
   try {
+    // ═══ AUTH GUARD: Service-role only (admin seed function) ═══
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated || !auth.isServiceRole) {
+      return unauthorizedResponse(corsHeaders, 'Service-role access required');
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { 
       name, gender, ageRange, ethnicity, style, personality, clothing, 
-      avatarType, tags, era, secretKey 
+      avatarType, tags, era 
     } = await req.json();
-
-    // Simple auth
-    if (secretKey !== "lovable-batch-2024") {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
-    }
 
     const isAnimal = tags?.some((t: string) => ["lion", "wolf", "eagle", "panther", "tiger", "elephant", "fox", "horse", "dolphin", "bear", "owl", "leopard", "turtle", "gorilla", "falcon", "dog", "cat", "penguin", "bunny", "raccoon", "snake", "parrot", "cheetah", "moth", "tortoise", "frog", "panda", "octopus", "deer", "squirrel", "seahorse", "dragon"].includes(t));
     const isAnimated = avatarType === "animated";

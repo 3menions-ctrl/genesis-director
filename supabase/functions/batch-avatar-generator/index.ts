@@ -250,20 +250,18 @@ serve(async (req) => {
   }
 
   try {
+    // ═══ AUTH GUARD: Service-role only (admin seed function) ═══
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated || !auth.isServiceRole) {
+      return unauthorizedResponse(corsHeaders, 'Service-role access required');
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { action, startIndex = 0, count = 5, secretKey } = await req.json();
-
-    // Simple secret key protection for direct calls
-    const expectedKey = Deno.env.get("BATCH_SECRET_KEY") || "lovable-batch-2024";
-    if (secretKey !== expectedKey) {
-      return new Response(JSON.stringify({ error: "Invalid secret key" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const { action, startIndex = 0, count = 5 } = await req.json();
 
     if (action === "list") {
       return new Response(JSON.stringify({

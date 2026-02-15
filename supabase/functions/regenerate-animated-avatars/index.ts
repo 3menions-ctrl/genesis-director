@@ -137,6 +137,13 @@ serve(async (req) => {
   }
 
   try {
+    // ═══ AUTH GUARD: Service-role only (admin function) ═══
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated || !auth.isServiceRole) {
+      return unauthorizedResponse(corsHeaders, 'Service-role access required');
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

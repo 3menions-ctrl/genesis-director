@@ -3109,29 +3109,24 @@ async function runProduction(
       // Fallback: Build visual continuity manually (original logic)
       const visualContinuityParts: string[] = [];
       
-      // Motion continuity from previous clip (most critical for seamless transitions)
-      if (previousMotionVectors?.continuityPrompt) {
-        visualContinuityParts.push(`[MANDATORY CONTINUATION: ${previousMotionVectors.continuityPrompt}]`);
-      }
-      if (previousMotionVectors?.actionContinuity) {
-        visualContinuityParts.push(`[CURRENT ACTION: ${previousMotionVectors.actionContinuity}]`);
-      }
-      
-      // Scene DNA from accumulated anchors (environment, lighting, colors)
-      if (masterSceneAnchor?.masterConsistencyPrompt) {
-        visualContinuityParts.push(`[SCENE DNA: ${masterSceneAnchor.masterConsistencyPrompt}]`);
-      }
-      
-      // Add the visual continuity FIRST (it takes precedence)
-      if (visualContinuityParts.length > 0) {
-        finalPrompt = visualContinuityParts.join('\n') + '\n\n';
-        console.log(`[Hollywood] Clip ${i + 1}: Visual continuity takes precedence (${visualContinuityParts.length} elements)`);
-      }
-      
-      // STEP 2: Adapt script to visual state
-      // The script is now a GOAL, not a mandate. Blend it with visual reality.
+      // STEP 1: Scene action FIRST (highest priority for Kling's attention window)
       const scriptGoal = clip.prompt;
-      finalPrompt += `[STORY GOAL - adapt to maintain continuity: ${scriptGoal}]`;
+      finalPrompt = scriptGoal;
+      
+      // STEP 2: Append SHORT continuity cues AFTER the action (kept brief to stay within ~1500 chars)
+      const continuityParts: string[] = [];
+      if (previousMotionVectors?.continuityPrompt) {
+        // Truncate to 80 chars to prevent bloating
+        continuityParts.push(`Continue: ${previousMotionVectors.continuityPrompt.substring(0, 80)}`);
+      }
+      if (masterSceneAnchor?.masterConsistencyPrompt) {
+        // Truncate scene DNA to 120 chars - only the most critical info
+        continuityParts.push(masterSceneAnchor.masterConsistencyPrompt.substring(0, 120));
+      }
+      if (continuityParts.length > 0) {
+        finalPrompt += ` [${continuityParts.join('. ')}]`;
+        console.log(`[Hollywood] Clip ${i + 1}: Appended ${continuityParts.length} brief continuity cues AFTER scene action`);
+      }
       
     } else {
       // Clip 1: Use script directly (no previous clip to continue from)

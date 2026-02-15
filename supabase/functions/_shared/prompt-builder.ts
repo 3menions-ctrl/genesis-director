@@ -1175,7 +1175,7 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   let assembledPrompt = promptParts.join('\n\n');
   
   // If prompt is too long, compress by removing verbose sections
-  const MAX_PROMPT_LENGTH = 2500; // Expanded: Kling v2.6 handles longer prompts well
+  const MAX_PROMPT_LENGTH = 1500; // Kling's effective window is ~200 words / ~1200 chars; 1500 gives buffer
   if (assembledPrompt.length > MAX_PROMPT_LENGTH) {
     // Remove lower priority blocks first (in order of priority)
     // CRITICAL: We NEVER remove SHOT ACTION or MANDATORY ACTION blocks

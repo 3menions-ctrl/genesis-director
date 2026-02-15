@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { checkMultipleContent } from "../_shared/content-safety.ts";
+import { notifyVideoStarted, notifyVideoComplete, notifyVideoFailed } from "../_shared/pipeline-notifications.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -5613,6 +5614,9 @@ async function executePipelineInBackground(
   try {
     const stages = request.stages || ['preproduction', 'qualitygate', 'assets', 'production', 'postproduction'];
     
+    // Notify user that generation has started
+    await notifyVideoStarted(supabase, request.userId, projectId, request.projectName, state.clipCount);
+    
     // Check if we're resuming from a specific stage
     const resumeFrom = (request as any).resumeFrom;
     const approvedScript = (request as any).approvedScript;
@@ -5872,6 +5876,13 @@ async function executePipelineInBackground(
     
     console.log(`[Hollywood] Pipeline completed successfully!`);
     
+    // Notify user their video is ready
+    const completedClipCount = state.production?.clipResults?.filter(c => c.status === 'completed').length || 0;
+    await notifyVideoComplete(supabase, request.userId, projectId, request.projectName, {
+      clipCount: completedClipCount,
+      videoUrl: state.finalVideoUrl,
+    });
+    
   } catch (error) {
     console.error("[Hollywood] Background pipeline error:", error);
     
@@ -5962,6 +5973,12 @@ async function executePipelineInBackground(
       .eq('id', projectId);
     
     console.log(`[Hollywood] Resumable failure state saved. Resume from: ${getSuggestedResumeStage(lastCompletedStage, errorMessage)}`);
+    
+    // Notify user about the failure
+    await notifyVideoFailed(supabase, request.userId, projectId, request.projectName, {
+      reason: errorMessage,
+      resumable: true,
+    });
   }
 }
 

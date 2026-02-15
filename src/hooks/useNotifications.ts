@@ -15,6 +15,8 @@ export type NotificationType =
   | 'level_up'
   | 'streak_milestone' 
   | 'video_complete' 
+  | 'video_started'
+  | 'video_failed'
   | 'mention';
 
 export interface Notification {

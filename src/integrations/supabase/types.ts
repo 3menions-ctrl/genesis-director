@@ -4705,6 +4705,8 @@ export type Database = {
         | "streak_milestone"
         | "video_complete"
         | "mention"
+        | "video_started"
+        | "video_failed"
       story_structure:
         | "three_act"
         | "hero_journey"
@@ -4866,6 +4868,8 @@ export const Constants = {
         "streak_milestone",
         "video_complete",
         "mention",
+        "video_started",
+        "video_failed",
       ],
       story_structure: [
         "three_act",

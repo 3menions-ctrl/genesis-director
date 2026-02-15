@@ -13,7 +13,6 @@ import {
   Film,
   ArrowRight,
   Sparkles,
-  Globe,
   Clock,
   Shield,
   Clapperboard,
@@ -117,14 +116,14 @@ const FEATURES: Feature[] = [
 ];
 
 const ADDITIONAL_FEATURES = [
+  { icon: <Image className="w-4 h-4" />, title: 'Photo Editor', desc: 'AI-powered image editing & retouching' },
+  { icon: <Clapperboard className="w-4 h-4" />, title: 'Video Editor', desc: 'Timeline-based post-production' },
   { icon: <Wand2 className="w-4 h-4" />, title: 'Smart Screenplay', desc: 'AI writes & structures your story' },
   { icon: <Layers className="w-4 h-4" />, title: 'Scene Composer', desc: 'Visual shot-by-shot breakdown' },
   { icon: <Zap className="w-4 h-4" />, title: 'Auto Assembly', desc: 'One-click seamless stitching' },
   { icon: <Film className="w-4 h-4" />, title: 'HLS Streaming', desc: 'Gapless cinema-grade playback' },
-  { icon: <Globe className="w-4 h-4" />, title: 'Genesis Universe', desc: 'Shared cinematic world-building' },
   { icon: <Clock className="w-4 h-4" />, title: 'Pipeline Engine', desc: 'Real-time generation progress' },
   { icon: <Shield className="w-4 h-4" />, title: 'Credit System', desc: 'Pay only for what you create' },
-  { icon: <Clapperboard className="w-4 h-4" />, title: 'Video Editor', desc: 'Timeline-based post-production' },
 ];
 
 // Memoized Feature Card

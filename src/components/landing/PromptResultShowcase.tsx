@@ -139,20 +139,22 @@ export const PromptResultShowcase = memo(function PromptResultShowcase() {
         >
         {pair.sourceImage ? (
             <>
-              <AnimatePresence mode="wait">
-                <motion.img
-                  key={`source-img-${currentIdx}`}
-                  src={pair.sourceImage}
-                  alt="Source image"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.4 }}
-                  className="w-full h-full object-cover"
-                />
-              </AnimatePresence>
+              <div className="absolute inset-0">
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={`source-img-${currentIdx}`}
+                    src={pair.sourceImage}
+                    alt="Source image"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="absolute inset-0 w-full h-full object-cover object-center"
+                  />
+                </AnimatePresence>
+              </div>
               {/* BEFORE label */}
-              <div className="absolute bottom-4 left-4">
+              <div className="absolute bottom-4 left-4 z-10">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.08] backdrop-blur-md border border-white/[0.12] text-[11px] font-medium text-white/60 uppercase tracking-wider">
                   <ImageIcon className="w-3 h-3" />
                   Source Image

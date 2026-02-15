@@ -335,7 +335,7 @@ const VideoEditor = () => {
         handleUndo();
       }
       // Redo: Ctrl/Cmd+Shift+Z
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "z") {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "z") {
         e.preventDefault();
         handleRedo();
       }

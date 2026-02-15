@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { CinemaLoader } from '@/components/ui/CinemaLoader';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -291,12 +292,11 @@ export default function ScriptReview() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading script...</p>
-        </div>
-      </div>
+      <CinemaLoader
+        isVisible={true}
+        message="Loading script..."
+        showProgress={false}
+      />
     );
   }
 

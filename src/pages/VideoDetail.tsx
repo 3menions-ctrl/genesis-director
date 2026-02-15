@@ -4,7 +4,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useSafeNavigation } from '@/lib/navigation';
 import { ArrowLeft, Share2, Eye, Calendar, User, ExternalLink, Loader2 } from 'lucide-react';
 import { useNavigationWithLoading } from '@/components/navigation';
 import { Button } from '@/components/ui/button';
@@ -38,7 +39,7 @@ interface VideoDetails {
 
 export default function VideoDetailPage() {
   const { videoId } = useParams<{ videoId: string }>();
-  const navigate = useNavigate();
+  const { navigate } = useSafeNavigation();
   const { navigateTo } = useNavigationWithLoading();
   const { user } = useAuth();
   
@@ -133,7 +134,7 @@ export default function VideoDetailPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={() => window.history.back()}
             className="h-10 w-10 rounded-full bg-white/5 hover:bg-white/10"
           >
             <ArrowLeft className="w-5 h-5" />

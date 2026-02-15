@@ -121,11 +121,18 @@ export function PhotoEditorHub() {
       });
 
       if (error) {
-        // For non-2xx, the error context may contain the response body
-        const errBody = (error as any)?.context?.body ? await (error as any).context.body.text().catch(() => '') : '';
-        let parsed: any = {};
-        try { parsed = JSON.parse(errBody); } catch {}
-        const msg = parsed?.error || 'Failed to process edit';
+        let msg = 'Failed to process edit';
+        try {
+          const ctx = (error as any)?.context;
+          if (ctx?.body && typeof ctx.body.text === 'function') {
+            const errBody = await ctx.body.text();
+            const parsed = JSON.parse(errBody);
+            if (parsed?.error) msg = parsed.error;
+          } else if (typeof ctx?.body === 'string') {
+            const parsed = JSON.parse(ctx.body);
+            if (parsed?.error) msg = parsed.error;
+          }
+        } catch {}
         toast.error(msg);
         return;
       }
@@ -174,10 +181,19 @@ export function PhotoEditorHub() {
       });
 
       if (error) {
-        const errBody = (error as any)?.context?.body ? await (error as any).context.body.text().catch(() => '') : '';
-        let parsed: any = {};
-        try { parsed = JSON.parse(errBody); } catch {}
-        toast.error(parsed?.error || 'Failed to process edit');
+        let msg = 'Failed to process edit';
+        try {
+          const ctx = (error as any)?.context;
+          if (ctx?.body && typeof ctx.body.text === 'function') {
+            const errBody = await ctx.body.text();
+            const parsed = JSON.parse(errBody);
+            if (parsed?.error) msg = parsed.error;
+          } else if (typeof ctx?.body === 'string') {
+            const parsed = JSON.parse(ctx.body);
+            if (parsed?.error) msg = parsed.error;
+          }
+        } catch {}
+        toast.error(msg);
         return;
       }
       if (data?.error) {

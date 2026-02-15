@@ -195,17 +195,47 @@ const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
 }) {
   const playerRef = useRef<UniversalHLSPlayerHandle>(null);
   const [isMuted, setIsMuted] = useState(true);
-  const [hasEnded, setHasEnded] = useState(false);
+  const hasEndedRef = useRef(false);
 
-  const handleVideoEnded = useCallback(() => {
-    setHasEnded(true);
-    // Pause the video so it stops playing
+  const stopPlayback = useCallback(() => {
+    if (hasEndedRef.current) return;
+    hasEndedRef.current = true;
     const video = playerRef.current?.getVideoElement?.();
     if (video) {
       video.pause();
+      video.removeAttribute('loop');
     }
     onVideoEnded();
   }, [onVideoEnded]);
+
+  // Robust end-detection: timeupdate fires reliably even when HLS 'ended' doesn't
+  useEffect(() => {
+    const video = playerRef.current?.getVideoElement?.();
+    if (!video) {
+      // Retry after player mounts
+      const retryTimer = setTimeout(() => {
+        const v = playerRef.current?.getVideoElement?.();
+        if (v) attachEndDetection(v);
+      }, 500);
+      return () => clearTimeout(retryTimer);
+    }
+    attachEndDetection(video);
+
+    function attachEndDetection(v: HTMLVideoElement) {
+      const onTimeUpdate = () => {
+        if (hasEndedRef.current) return;
+        const dur = v.duration;
+        if (dur && isFinite(dur) && dur > 0 && v.currentTime >= dur - 0.3) {
+          stopPlayback();
+        }
+      };
+      const onEnded = () => stopPlayback();
+      v.addEventListener('timeupdate', onTimeUpdate);
+      v.addEventListener('ended', onEnded);
+      // Ensure loop attribute is off
+      v.loop = false;
+    }
+  }, [stopPlayback]);
 
   // Escape key to exit
   useEffect(() => {
@@ -244,7 +274,7 @@ const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
             muted={true}
             loop={false}
             aspectRatio="auto"
-            onEnded={handleVideoEnded}
+            onEnded={stopPlayback}
           />
         </div>
         

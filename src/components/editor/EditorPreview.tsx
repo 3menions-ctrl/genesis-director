@@ -9,6 +9,8 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { TimelineTrack, TimelineClip } from "./types";
 import { cn } from "@/lib/utils";
+import { UniversalHLSPlayer, type UniversalHLSPlayerHandle } from "@/components/player/UniversalHLSPlayer";
+import { generateHLSPlaylist, createHLSBlobUrl, type EditorClip } from "@/lib/editor/generateEditorHLS";
 
 interface EditorPreviewProps {
   tracks: TimelineTrack[];
@@ -22,8 +24,7 @@ interface EditorPreviewProps {
 }
 
 const SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 4, 8, 16];
-const PRELOAD_AHEAD_SEC = 1.5; // preload next clip this many seconds before transition
-const FRAME_STEP = 1 / 30; // 30fps frame step
+const FRAME_STEP = 1 / 30;
 
 export const EditorPreview = ({
   tracks,
@@ -35,32 +36,28 @@ export const EditorPreview = ({
   playbackSpeed = 1,
   onPlaybackSpeedChange,
 }: EditorPreviewProps) => {
-  // === Refs ===
-  const activeVideoRef = useRef<HTMLVideoElement>(null);
-  const preloadVideoRef = useRef<HTMLVideoElement>(null);
-  const rafRef = useRef<number>(0);
+  const hlsPlayerRef = useRef<UniversalHLSPlayerHandle>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const lastActiveClipIdRef = useRef<string | null>(null);
-  const preloadedClipIdRef = useRef<string | null>(null);
   const currentTimeRef = useRef(currentTime);
   const durationRef = useRef(duration);
   const playbackSpeedRef = useRef(playbackSpeed);
+  const rafRef = useRef<number>(0);
   const isLoopingRef = useRef(false);
+  const lastSyncTimeRef = useRef(0);
+  const isSeekingRef = useRef(false);
 
-  // Keep refs in sync
   currentTimeRef.current = currentTime;
   durationRef.current = duration;
   playbackSpeedRef.current = playbackSpeed;
 
-  // === State ===
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
   const [isLooping, setIsLooping] = useState(false);
+  const [hlsReady, setHlsReady] = useState(false);
 
-  // Sync loop ref
   isLoopingRef.current = isLooping;
 
-  // === Derived: sorted video clips for sequencing ===
+  // === Sorted video clips ===
   const sortedVideoClips = useMemo(() => {
     return tracks
       .filter((t) => t.type === "video")
@@ -72,19 +69,6 @@ export const EditorPreview = ({
     return sortedVideoClips.find((c) => currentTime >= c.start && currentTime < c.end);
   }, [sortedVideoClips, currentTime]);
 
-  // Check if the active video's track is muted
-  const isTrackMuted = useMemo(() => {
-    if (!activeVideoClip) return false;
-    const track = tracks.find((t) => t.clips.some((c) => c.id === activeVideoClip.id));
-    return track?.muted ?? false;
-  }, [tracks, activeVideoClip]);
-
-  const nextVideoClip = useMemo(() => {
-    if (!activeVideoClip) return null;
-    const idx = sortedVideoClips.indexOf(activeVideoClip);
-    return idx >= 0 && idx < sortedVideoClips.length - 1 ? sortedVideoClips[idx + 1] : null;
-  }, [sortedVideoClips, activeVideoClip]);
-
   const activeTextClips = useMemo(() => {
     return tracks
       .filter((t) => t.type === "text")
@@ -92,32 +76,94 @@ export const EditorPreview = ({
       .filter((c) => currentTime >= c.start && currentTime < c.end);
   }, [tracks, currentTime]);
 
-  // === Playback clock (RAF) — ref-based to avoid stale closures ===
+  // === Generate HLS playlist from timeline clips ===
+  const hlsBlobUrl = useMemo(() => {
+    if (sortedVideoClips.length === 0) return null;
+
+    const editorClips: EditorClip[] = sortedVideoClips.map((clip) => ({
+      id: clip.id,
+      sourceUrl: clip.sourceUrl,
+      duration: clip.end - clip.start,
+      start: clip.start,
+      end: clip.end,
+    }));
+
+    const playlist = generateHLSPlaylist(editorClips);
+    if (!playlist) return null;
+
+    return createHLSBlobUrl(playlist);
+  }, [sortedVideoClips]);
+
+  // Cleanup blob URL on unmount or change
   useEffect(() => {
-    if (!isPlaying) {
+    return () => {
+      if (hlsBlobUrl) {
+        URL.revokeObjectURL(hlsBlobUrl);
+      }
+    };
+  }, [hlsBlobUrl]);
+
+  // === Sync HLS player time with editor timeline ===
+  const handleHLSTimeUpdate = useCallback((time: number, dur: number) => {
+    if (isSeekingRef.current) return;
+    // Only update editor time from HLS player during playback
+    if (Math.abs(time - currentTimeRef.current) > 0.05) {
+      onTimeChange(time);
+    }
+  }, [onTimeChange]);
+
+  // Seek HLS player when editor scrubs
+  useEffect(() => {
+    if (!hlsReady || !hlsPlayerRef.current) return;
+    const video = hlsPlayerRef.current.getVideoElement();
+    if (!video) return;
+
+    // Only seek if difference is significant (avoids feedback loops)
+    if (Math.abs(video.currentTime - currentTime) > 0.2) {
+      isSeekingRef.current = true;
+      hlsPlayerRef.current.seek(currentTime);
+      setTimeout(() => { isSeekingRef.current = false; }, 100);
+    }
+  }, [currentTime, hlsReady]);
+
+  // Play/pause sync
+  useEffect(() => {
+    if (!hlsReady || !hlsPlayerRef.current) return;
+    const video = hlsPlayerRef.current.getVideoElement();
+    if (!video) return;
+
+    if (isPlaying && video.paused) {
+      hlsPlayerRef.current.play();
+    } else if (!isPlaying && !video.paused) {
+      hlsPlayerRef.current.pause();
+    }
+  }, [isPlaying, hlsReady]);
+
+  // Volume sync
+  useEffect(() => {
+    if (!hlsPlayerRef.current) return;
+    const video = hlsPlayerRef.current.getVideoElement();
+    if (!video) return;
+    video.muted = isMuted;
+    video.volume = volume / 100;
+  }, [volume, isMuted]);
+
+  // Loop handling via RAF (HLS player doesn't support loop natively for multi-clip)
+  useEffect(() => {
+    if (!isPlaying || !hlsReady) {
       cancelAnimationFrame(rafRef.current);
       return;
     }
 
-    let lastTimestamp: number | null = null;
-    const tick = (timestamp: number) => {
-      if (lastTimestamp === null) lastTimestamp = timestamp;
-      const delta = ((timestamp - lastTimestamp) / 1000) * playbackSpeedRef.current;
-      lastTimestamp = timestamp;
+    const tick = () => {
+      const video = hlsPlayerRef.current?.getVideoElement();
+      if (!video) return;
 
-      const ct = currentTimeRef.current;
-      const dur = durationRef.current;
-      const newTime = ct + delta;
-
-      if (newTime >= dur) {
+      if (video.currentTime >= durationRef.current - 0.1) {
         if (isLoopingRef.current) {
+          hlsPlayerRef.current?.seek(0);
           onTimeChange(0);
-        } else {
-          onTimeChange(dur);
-          return; // Stop the loop — we've reached the end
         }
-      } else {
-        onTimeChange(newTime);
       }
 
       rafRef.current = requestAnimationFrame(tick);
@@ -125,77 +171,7 @@ export const EditorPreview = ({
 
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [isPlaying, onTimeChange]);
-
-  // === Double-buffer: preload next clip ===
-  useEffect(() => {
-    const preloadVideo = preloadVideoRef.current;
-    if (!preloadVideo || !nextVideoClip) return;
-
-    const timeToTransition = activeVideoClip ? activeVideoClip.end - currentTime : Infinity;
-
-    // Start preloading when we're within the threshold
-    if (timeToTransition <= PRELOAD_AHEAD_SEC && preloadedClipIdRef.current !== nextVideoClip.id) {
-      preloadVideo.src = nextVideoClip.sourceUrl;
-      preloadVideo.preload = "auto";
-      preloadVideo.currentTime = 0;
-      preloadVideo.volume = isMuted ? 0 : volume / 100;
-      preloadVideo.muted = isMuted;
-      preloadedClipIdRef.current = nextVideoClip.id;
-    }
-  }, [activeVideoClip, nextVideoClip, currentTime, isMuted, volume]);
-
-  // === Main video sync ===
-  useEffect(() => {
-    const video = activeVideoRef.current;
-    if (!video || !activeVideoClip) return;
-
-    const clipChanged = lastActiveClipIdRef.current !== activeVideoClip.id;
-    lastActiveClipIdRef.current = activeVideoClip.id;
-
-    if (clipChanged) {
-      // Check if the preload buffer already has this clip ready
-      const preloadVideo = preloadVideoRef.current;
-      if (preloadVideo && preloadedClipIdRef.current === activeVideoClip.id && preloadVideo.readyState >= 2) {
-        // Swap: copy src from preload to active for instant start
-        video.src = preloadVideo.src;
-        video.currentTime = 0;
-      } else {
-        video.src = activeVideoClip.sourceUrl;
-        video.currentTime = 0;
-      }
-      preloadedClipIdRef.current = null; // Reset preload state
-    }
-
-    video.playbackRate = playbackSpeed;
-
-    // Sync position within clip — tight tolerance for gapless playback
-    const clipLocalTime = currentTime - activeVideoClip.start;
-    if (!clipChanged && Math.abs(video.currentTime - clipLocalTime) > 0.15) {
-      video.currentTime = clipLocalTime;
-    }
-
-    if (isPlaying && video.paused) {
-      video.play().catch(() => {});
-    } else if (!isPlaying && !video.paused) {
-      video.pause();
-    }
-  }, [activeVideoClip, currentTime, isPlaying, playbackSpeed]);
-
-  // === Volume sync (respects track mute) ===
-  useEffect(() => {
-    const effectiveMute = isMuted || isTrackMuted;
-    const video = activeVideoRef.current;
-    if (video) {
-      video.muted = effectiveMute;
-      video.volume = volume / 100;
-    }
-    const preload = preloadVideoRef.current;
-    if (preload) {
-      preload.muted = effectiveMute;
-      preload.volume = volume / 100;
-    }
-  }, [volume, isMuted, isTrackMuted]);
+  }, [isPlaying, hlsReady, onTimeChange]);
 
   // === Keyboard shortcuts ===
   useEffect(() => {
@@ -210,7 +186,6 @@ export const EditorPreview = ({
         case "ArrowLeft":
           e.preventDefault();
           if (e.shiftKey) {
-            // Jump to previous clip boundary
             const prevBoundary = sortedVideoClips
               .map(c => c.start)
               .filter(t => t < currentTime - 0.05)
@@ -223,7 +198,6 @@ export const EditorPreview = ({
         case "ArrowRight":
           e.preventDefault();
           if (e.shiftKey) {
-            // Jump to next clip boundary
             const nextBoundary = sortedVideoClips
               .map(c => c.start)
               .find(t => t > currentTime + 0.05);
@@ -284,7 +258,6 @@ export const EditorPreview = ({
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  // Clip boundary markers for the scrubber
   const clipMarkers = useMemo(() => {
     if (duration <= 0) return [];
     return sortedVideoClips.map(c => ({
@@ -295,33 +268,41 @@ export const EditorPreview = ({
 
   return (
     <div className="h-full w-full flex flex-col bg-[hsl(260,15%,4%)] overflow-hidden" style={{ contain: 'strict' }}>
-      {/* === Hidden preload video element for gapless transitions === */}
-      <video
-        ref={preloadVideoRef}
-        className="hidden"
-        preload="auto"
-        playsInline
-        muted={isMuted}
-      />
-
       {/* === Video viewport === */}
       <div ref={containerRef} className="flex-1 relative min-h-0 overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-center p-3">
-          {activeVideoClip ? (
+          {hlsBlobUrl ? (
             <div className="relative w-full h-full flex items-center justify-center">
               {/* Ambient glow */}
               <div className="absolute inset-0 pointer-events-none" style={{
                 background: 'radial-gradient(ellipse at center, hsl(263 70% 50% / 0.04) 0%, transparent 70%)'
               }} />
-              <video
-                ref={activeVideoRef}
-                className="max-h-full max-w-full rounded-lg shadow-2xl shadow-black/50"
-                style={{
-                  objectFit: 'contain',
-                  WebkitTransform: 'translateZ(0)',
-                }}
-                playsInline
-              />
+              
+              {/* HLS Player - same stitching config as production */}
+              <div className="max-h-full max-w-full w-full h-full rounded-lg shadow-2xl shadow-black/50 overflow-hidden">
+                <UniversalHLSPlayer
+                  ref={hlsPlayerRef}
+                  hlsUrl={hlsBlobUrl}
+                  autoPlay={false}
+                  muted={isMuted}
+                  loop={false}
+                  showControls={false}
+                  aspectRatio="auto"
+                  className="w-full h-full"
+                  onReady={() => setHlsReady(true)}
+                  onTimeUpdate={handleHLSTimeUpdate}
+                  onEnded={() => {
+                    if (isLooping) {
+                      hlsPlayerRef.current?.seek(0);
+                      onTimeChange(0);
+                    } else {
+                      onTimeChange(duration);
+                      onPlayPause();
+                    }
+                  }}
+                />
+              </div>
+              
               {/* Frame border */}
               <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
                 <div className="w-full h-full max-w-full max-h-full border border-white/[0.04] rounded-lg" />
@@ -372,7 +353,6 @@ export const EditorPreview = ({
             onTimeChange(Math.max(0, Math.min(duration, pct * duration)));
           }}
         >
-          {/* Clip boundary markers */}
           {clipMarkers.map((m) => (
             <div
               key={m.id}
@@ -380,8 +360,6 @@ export const EditorPreview = ({
               style={{ left: `${m.position}%` }}
             />
           ))}
-
-          {/* Progress fill */}
           <div
             className="h-full bg-gradient-to-r from-white/50 to-white/80 rounded-full transition-all duration-75 relative z-20"
             style={{ width: `${progress}%` }}
@@ -392,15 +370,9 @@ export const EditorPreview = ({
 
         {/* Controls */}
         <div className="h-11 flex items-center gap-0.5 px-3">
-          {/* Navigation cluster */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all"
-                onClick={() => onTimeChange(0)}
-              >
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all" onClick={() => onTimeChange(0)}>
                 <SkipBack className="h-3 w-3" />
               </Button>
             </TooltipTrigger>
@@ -409,39 +381,20 @@ export const EditorPreview = ({
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all"
-                onClick={jumpToPrevClip}
-              >
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all" onClick={jumpToPrevClip}>
                 <FrameBack className="h-2.5 w-2.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="top" className="text-[10px] bg-[hsl(260,20%,12%)] border-white/10">Prev Clip <kbd className="ml-1 text-white/30">⇧←</kbd></TooltipContent>
           </Tooltip>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 text-white hover:text-white hover:bg-white/[0.1] rounded-xl transition-all mx-0.5"
-            onClick={onPlayPause}
-          >
-            {isPlaying ? (
-              <Pause className="h-5 w-5" />
-            ) : (
-              <Play className="h-5 w-5 ml-0.5" />
-            )}
+          <Button variant="ghost" size="icon" className="h-10 w-10 text-white hover:text-white hover:bg-white/[0.1] rounded-xl transition-all mx-0.5" onClick={onPlayPause}>
+            {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
           </Button>
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all"
-                onClick={jumpToNextClip}
-              >
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all" onClick={jumpToNextClip}>
                 <FrameForward className="h-2.5 w-2.5" />
               </Button>
             </TooltipTrigger>
@@ -450,12 +403,7 @@ export const EditorPreview = ({
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all"
-                onClick={() => onTimeChange(duration)}
-              >
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all" onClick={() => onTimeChange(duration)}>
                 <SkipForward className="h-3 w-3" />
               </Button>
             </TooltipTrigger>
@@ -475,7 +423,6 @@ export const EditorPreview = ({
             </span>
           </div>
 
-          {/* Active clip indicator */}
           {activeVideoClip && (
             <div className="ml-2 px-2 py-0.5 rounded bg-primary/10 border border-primary/20">
               <span className="text-[9px] text-primary/70 font-medium truncate max-w-[100px] block">
@@ -490,33 +437,20 @@ export const EditorPreview = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-7 w-7 rounded-lg transition-all",
-                  isLooping ? "text-primary bg-primary/10" : "text-white/30 hover:text-white hover:bg-white/[0.06]"
-                )}
+                variant="ghost" size="icon"
+                className={cn("h-7 w-7 rounded-lg transition-all", isLooping ? "text-primary bg-primary/10" : "text-white/30 hover:text-white hover:bg-white/[0.06]")}
                 onClick={() => setIsLooping(!isLooping)}
               >
                 <Repeat className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="text-[10px] bg-[hsl(260,20%,12%)] border-white/10">
-              Loop <kbd className="ml-1 text-white/30">L</kbd>
-            </TooltipContent>
+            <TooltipContent side="top" className="text-[10px] bg-[hsl(260,20%,12%)] border-white/10">Loop <kbd className="ml-1 text-white/30">L</kbd></TooltipContent>
           </Tooltip>
 
           {/* Speed control */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "h-7 px-2.5 text-[11px] font-mono gap-1.5 rounded-lg transition-all",
-                  playbackSpeed !== 1 ? "text-white bg-white/[0.08]" : "text-white/50 hover:text-white hover:bg-white/[0.06]"
-                )}
-              >
+              <Button variant="ghost" size="sm" className={cn("h-7 px-2.5 text-[11px] font-mono gap-1.5 rounded-lg transition-all", playbackSpeed !== 1 ? "text-white bg-white/[0.08]" : "text-white/50 hover:text-white hover:bg-white/[0.06]")}>
                 <Gauge className="h-3.5 w-3.5" />
                 {playbackSpeed}x
               </Button>
@@ -526,12 +460,7 @@ export const EditorPreview = ({
                 {SPEED_PRESETS.map((speed) => (
                   <button
                     key={speed}
-                    className={cn(
-                      "px-2.5 py-2 rounded-lg text-[11px] font-mono transition-all",
-                      playbackSpeed === speed
-                        ? "bg-white text-black font-semibold"
-                        : "text-white/60 hover:text-white hover:bg-white/[0.08]"
-                    )}
+                    className={cn("px-2.5 py-2 rounded-lg text-[11px] font-mono transition-all", playbackSpeed === speed ? "bg-white text-black font-semibold" : "text-white/60 hover:text-white hover:bg-white/[0.08]")}
                     onClick={() => onPlaybackSpeedChange?.(speed)}
                   >
                     {speed}x
@@ -544,14 +473,7 @@ export const EditorPreview = ({
           {/* Volume control */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-7 w-7 rounded-lg transition-all",
-                  isMuted ? "text-red-400/60 hover:text-red-400 hover:bg-red-500/10" : "text-white/50 hover:text-white hover:bg-white/[0.06]"
-                )}
-              >
+              <Button variant="ghost" size="icon" className={cn("h-7 w-7 rounded-lg transition-all", isMuted ? "text-red-400/60 hover:text-red-400 hover:bg-red-500/10" : "text-white/50 hover:text-white hover:bg-white/[0.06]")}>
                 {isMuted ? <VolumeX className="h-3.5 w-3.5" /> : volume < 50 ? <Volume1 className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
               </Button>
             </PopoverTrigger>
@@ -559,13 +481,7 @@ export const EditorPreview = ({
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Volume</span>
-                  <button
-                    className={cn(
-                      "text-[10px] font-medium px-2 py-0.5 rounded transition-all",
-                      isMuted ? "text-red-400 bg-red-500/10" : "text-white/50 hover:text-white hover:bg-white/[0.06]"
-                    )}
-                    onClick={() => setIsMuted(!isMuted)}
-                  >
+                  <button className={cn("text-[10px] font-medium px-2 py-0.5 rounded transition-all", isMuted ? "text-red-400 bg-red-500/10" : "text-white/50 hover:text-white hover:bg-white/[0.06]")} onClick={() => setIsMuted(!isMuted)}>
                     {isMuted ? "Unmute" : "Mute"}
                   </button>
                 </div>
@@ -573,9 +489,7 @@ export const EditorPreview = ({
                   <VolumeX className="h-3 w-3 text-white/20 shrink-0" />
                   <Slider
                     value={[isMuted ? 0 : volume]}
-                    min={0}
-                    max={100}
-                    step={1}
+                    min={0} max={100} step={1}
                     onValueChange={([v]) => {
                       setVolume(v);
                       if (v > 0 && isMuted) setIsMuted(false);
@@ -590,11 +504,7 @@ export const EditorPreview = ({
             </PopoverContent>
           </Popover>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/[0.06] rounded-lg transition-all"
-          >
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/[0.06] rounded-lg transition-all">
             <Maximize2 className="h-3.5 w-3.5" />
           </Button>
         </div>

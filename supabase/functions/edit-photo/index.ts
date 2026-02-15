@@ -114,10 +114,15 @@ Deno.serve(async (req) => {
     try {
       const imgResp = await fetch(imageUrl);
       if (imgResp.ok) {
-        const imgBuf = await imgResp.arrayBuffer();
+        const imgBuf = new Uint8Array(await imgResp.arrayBuffer());
         const contentType = imgResp.headers.get('content-type') || 'image/png';
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(imgBuf)));
-        imageInput = `data:${contentType};base64,${base64}`;
+        // Chunk the conversion to avoid stack overflow on large images
+        let binary = '';
+        const chunkSize = 8192;
+        for (let i = 0; i < imgBuf.length; i += chunkSize) {
+          binary += String.fromCharCode(...imgBuf.subarray(i, i + chunkSize));
+        }
+        imageInput = `data:${contentType};base64,${btoa(binary)}`;
       }
     } catch (e) {
       console.warn('[edit-photo] Could not pre-download image, using URL directly:', e);

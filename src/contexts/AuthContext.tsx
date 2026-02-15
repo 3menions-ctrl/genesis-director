@@ -23,6 +23,7 @@ interface UserProfile {
   notification_settings: Record<string, unknown> | null;
   auto_recharge_enabled: boolean | null;
   has_seen_welcome_video: boolean | null;
+  has_seen_welcome_offer: boolean | null;
 }
 
 interface AuthContextType {
@@ -88,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       notification_settings: null,
       auto_recharge_enabled: false,
       has_seen_welcome_video: false,
+      has_seen_welcome_offer: false,
     });
 
     try {
@@ -227,6 +229,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             notification_settings: null,
             auto_recharge_enabled: false,
             has_seen_welcome_video: false,
+            has_seen_welcome_offer: false,
           });
           setIsAdmin(false);
         }

@@ -1,6 +1,6 @@
 import { memo, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigationWithLoading } from '@/components/navigation';
 import { 
   Film, 
   Loader2, 
@@ -61,10 +61,10 @@ export const ProductionSidebar = memo(forwardRef<HTMLDivElement, ProductionSideb
   isCollapsed,
   onToggle
 }, ref) {
-  const navigate = useNavigate();
+  const { navigateTo } = useNavigationWithLoading();
   
   const handleSelectProject = (id: string) => {
-    navigate(`/production?projectId=${id}`);
+    navigateTo(`/production?projectId=${id}`);
   };
 
   const getStatusConfig = (status: string, progress: number) => {
@@ -222,7 +222,7 @@ export const ProductionSidebar = memo(forwardRef<HTMLDivElement, ProductionSideb
                   "bg-muted/20 hover:bg-muted/50",
                   "border border-transparent hover:border-border"
                 )}
-                onClick={() => navigate('/projects')}
+                onClick={() => navigateTo('/projects')}
               >
                 <LayoutGrid className="w-4 h-4" />
                 <span>All Projects</span>

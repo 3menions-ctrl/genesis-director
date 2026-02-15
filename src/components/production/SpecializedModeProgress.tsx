@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useNavigationWithLoading } from '@/components/navigation';
 
 interface PipelineState {
   stage: string;
@@ -109,6 +110,7 @@ export function SpecializedModeProgress({
   onCancel,
 }: SpecializedModeProgressProps) {
   const navigate = useNavigate();
+  const { navigateTo } = useNavigationWithLoading();
   const [isPolling, setIsPolling] = useState(false);
   const [localState, setLocalState] = useState<PipelineState>(pipelineState);
   const [localVideoUrl, setLocalVideoUrl] = useState(videoUrl);
@@ -140,7 +142,7 @@ export function SpecializedModeProgress({
       toast.success('Project cancelled');
       setLocalState(prev => ({ ...prev, stage: 'cancelled' }));
       onCancel?.();
-      navigate('/projects');
+      navigateTo('/projects');
     } catch (err) {
       console.error('Cancel error:', err);
       toast.error('Failed to cancel project');
@@ -728,7 +730,7 @@ export function SpecializedModeProgress({
                 <XCircle className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-rose-400 font-medium mb-1">Generation Failed</p>
-                  <p className="text-rose-300/70 text-sm">{localState.error}</p>
+                  <p className="text-rose-300/70 text-sm">Something went wrong during generation. Please try again.</p>
                 </div>
               </div>
             </motion.div>
@@ -771,7 +773,7 @@ export function SpecializedModeProgress({
                 </Button>
                 <Button
                   variant="ghost"
-                  onClick={() => navigate('/clips')}
+              onClick={() => navigateTo('/clips')}
                   className="h-11 sm:h-12 px-4 text-white/70 hover:text-white hover:bg-white/10"
                 >
                   <Eye className="w-4 h-4 mr-2" />
@@ -811,7 +813,7 @@ export function SpecializedModeProgress({
                 </Button>
                 <Button
                   variant="ghost"
-                  onClick={() => navigate(`/clips?project=${projectId}`)}
+              onClick={() => navigateTo(`/clips?project=${projectId}`)}
                   className="h-11 sm:h-12 px-4 text-white/70 hover:text-white hover:bg-white/10"
                 >
                   <Eye className="w-4 h-4 mr-2" />

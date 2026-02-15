@@ -55,9 +55,8 @@ export function useRetryStitch({ projectId, userId, onSuccess, onStatusChange }:
       }
     } catch (err) {
       console.error('Retry stitch failed:', err);
-      const errMsg = err instanceof Error ? err.message : 'Please try again';
       toast.error('Stitch retry failed', { 
-        description: errMsg 
+        description: 'Please try again shortly' 
       });
       
       // Reset status to failed

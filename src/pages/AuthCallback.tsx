@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { useNavigationWithLoading } from '@/components/navigation';
 import { toast } from 'sonner';
 import landingAbstractBg from '@/assets/landing-abstract-bg.jpg';
 
@@ -17,6 +18,7 @@ import landingAbstractBg from '@/assets/landing-abstract-bg.jpg';
 export default function AuthCallback() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { navigateTo } = useNavigationWithLoading();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [message, setMessage] = useState('Verifying your email...');
 
@@ -60,7 +62,7 @@ export default function AuthCallback() {
           toast.success('Welcome back!');
           
           // Redirect to projects after brief delay
-          setTimeout(() => navigate('/projects', { replace: true }), 1500);
+          setTimeout(() => navigateTo('/projects'), 1500);
           return;
         }
 
@@ -111,7 +113,7 @@ export default function AuthCallback() {
         if (session) {
           setStatus('success');
           setMessage('Already signed in! Redirecting...');
-          setTimeout(() => navigate('/projects', { replace: true }), 1000);
+          setTimeout(() => navigateTo('/projects'), 1000);
           return;
         }
 

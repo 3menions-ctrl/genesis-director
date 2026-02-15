@@ -659,7 +659,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
 
     } catch (err) {
       console.error('Generation error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to generate video');
+      setError('Failed to generate video. Please try again.');
       setGenerationStep('error');
       toast.error('Failed to generate training video');
     }

@@ -100,7 +100,7 @@ export function useClipRecovery(projectId: string | null, userId: string | null)
           }
         } catch (err) {
           console.debug(`[ClipRecovery] Recovery error for clip ${clip.shot_index + 1}:`, err);
-          result.errors.push(`Clip ${clip.shot_index + 1}: ${err}`);
+          result.errors.push(`Clip ${clip.shot_index + 1}: recovery failed`);
         }
       }
 
@@ -147,7 +147,7 @@ export function useClipRecovery(projectId: string | null, userId: string | null)
       return result;
     } catch (err) {
       console.debug('[ClipRecovery] Error:', err);
-      result.errors.push(`${err}`);
+      result.errors.push('Recovery check failed');
       return result;
     } finally {
       if (isMountedRef.current) setIsRecovering(false);

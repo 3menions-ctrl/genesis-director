@@ -21,7 +21,8 @@ export default function ExtractThumbnails() {
       });
       setResults(thumbnails);
     } catch (e) {
-      setError(String(e));
+      console.error('[ExtractThumbnails] Error:', e);
+      setError('Failed to extract thumbnails. Please try again.');
     } finally {
       setIsRunning(false);
     }

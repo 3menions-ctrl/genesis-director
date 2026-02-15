@@ -64,12 +64,18 @@ export function useSelfDiagnostic(options: UseSelfDiagnosticOptions): UseSelfDia
     featureName,
     checks,
     timeout = 5000,
-    autoRetry = false, // FIXED: Default to false to prevent retry loops
-    maxRetries = 1,    // FIXED: Reduced from 2 to prevent cascade failures
+    autoRetry = false,
+    maxRetries = 1,
     retryDelay = 1000,
     onReady,
     onFailure,
   } = options;
+  
+  // Ref-stabilize callbacks to prevent runChecks from being recreated on every render
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
+  const onFailureRef = useRef(onFailure);
+  onFailureRef.current = onFailure;
   
   const [isReady, setIsReady] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
@@ -146,7 +152,7 @@ export function useSelfDiagnostic(options: UseSelfDiagnosticOptions): UseSelfDia
       setIsChecking(false);
       setCriticalError(null);
       hasCompletedRef.current = true;
-      onReady?.();
+      onReadyRef.current?.();
     } else {
       // Some required checks failed
       const retryableFailures = failedRequired.filter(
@@ -183,12 +189,11 @@ export function useSelfDiagnostic(options: UseSelfDiagnosticOptions): UseSelfDia
           }
         );
         
-        onFailure?.(checkResults);
+        onFailureRef.current?.(checkResults);
       }
     }
-  // FIX: Removed 'checks' from dependencies - using checksRef.current instead
-  // This prevents infinite loops when checks array is recreated each render
-  }, [featureName, timeout, autoRetry, maxRetries, retryDelay, onReady, onFailure]);
+  // FIX: onReady/onFailure removed from deps — using refs to prevent re-render loops
+  }, [featureName, timeout, autoRetry, maxRetries, retryDelay]);
   
   // Run checks on mount
   useEffect(() => {

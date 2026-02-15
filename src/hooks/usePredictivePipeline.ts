@@ -255,8 +255,8 @@ async function warmSupabaseConnection(signal: AbortSignal): Promise<void> {
 
 // Pre-warm avatar cache
 async function warmAvatarCache(signal: AbortSignal): Promise<void> {
-  const { useQueryClient } = await import('@tanstack/react-query');
-  // This is a no-op for now - cache warming happens via useAvatarTemplatesQuery
+  // No-op — cache warming happens via useAvatarTemplatesQuery in the component tree.
+  // NOTE: Do NOT call React hooks (useQueryClient, etc.) here — this is a plain async function.
 }
 
 // Pre-warm edge functions (touch cold starts)

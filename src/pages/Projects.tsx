@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useMemo, useCallback, memo, forward
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { withSafePageRef } from '@/lib/withSafeRef';
 import { useSafeNavigation, useRouteCleanup, useNavigationAbort } from '@/lib/navigation';
+import { CinemaLoader } from '@/components/ui/CinemaLoader';
+import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
 import { debounce } from '@/lib/concurrency/debounce';
 import { 
   Plus, Film, Play, Download, Trash2, Edit2,
@@ -134,6 +136,12 @@ function ProjectsContentInner() {
   // FIX: useAuth and useStudio now return safe fallbacks if context is missing
   // No try-catch needed - that violated React's hook rules
   const { user } = useAuth();
+  
+  // CENTRALIZED GATEKEEPER - world-class loading structure
+  // Note: dataLoading will be false initially, gets real value from usePaginatedProjects below
+  const gatekeeper = useGatekeeperLoading({
+    ...GATEKEEPER_PRESETS.projects,
+  });
   
   const { 
     activeProjectId, 
@@ -763,6 +771,15 @@ function ProjectsContentInner() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
+      {/* Gatekeeper loading screen */}
+      {gatekeeper.isLoading && (
+        <CinemaLoader
+          isVisible={true}
+          message={getGatekeeperMessage(gatekeeper.phase, GATEKEEPER_PRESETS.projects.messages)}
+          showProgress={true}
+          progress={gatekeeper.progress}
+        />
+      )}
       {/* Premium Animated Background */}
       <ProjectsBackground />
 

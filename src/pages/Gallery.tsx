@@ -7,6 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { useSafeNavigation, useRouteCleanup, useNavigationAbort } from '@/lib/navigation';
+import { CinemaLoader } from '@/components/ui/CinemaLoader';
+import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
 import { FamousAvatarsShowcase } from '@/components/gallery/FamousAvatarsShowcase';
 import { PremiumGalleryBackground } from '@/components/gallery/PremiumGalleryBackground';
 import { PremiumVideoCard } from '@/components/gallery/PremiumVideoCard';
@@ -144,6 +146,13 @@ const GalleryContent = memo(function GalleryContent() {
   const location = useLocation(); // No try-catch - it's in a Router context
   const { data: videos = [], isLoading } = useGalleryVideos();
   
+  // CENTRALIZED GATEKEEPER - world-class loading structure
+  const gatekeeper = useGatekeeperLoading({
+    ...GATEKEEPER_PRESETS.gallery,
+    dataLoading: isLoading,
+    dataSuccess: !isLoading && videos.length >= 0,
+  });
+
   
   // Register cleanup when leaving this page
   useRouteCleanup(() => {
@@ -280,6 +289,15 @@ const GalleryContent = memo(function GalleryContent() {
 
   return (
     <div className="min-h-screen overflow-y-auto overflow-x-hidden">
+      {/* Gatekeeper loading screen */}
+      {gatekeeper.isLoading && (
+        <CinemaLoader
+          isVisible={true}
+          message={getGatekeeperMessage(gatekeeper.phase, GATEKEEPER_PRESETS.gallery.messages)}
+          showProgress={true}
+          progress={gatekeeper.progress}
+        />
+      )}
       {/* Video Gallery Section - Full screen */}
       <div className="min-h-screen relative">
         <PremiumGalleryBackground scrollProgress={scrollProgress} activeCategory={activeCategory} />

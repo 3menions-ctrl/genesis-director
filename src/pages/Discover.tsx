@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback, memo, forwardRef, Suspense, lazy } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { CinemaLoader } from '@/components/ui/CinemaLoader';
+import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, Clock, Heart, Film, Sparkles, 
@@ -88,6 +90,12 @@ const DiscoverContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
   // FIX: useAuth is now safe (returns fallback if context missing)
   // Call unconditionally - no try-catch wrapper that violates hook rules
   const { user } = useAuth();
+  
+  // CENTRALIZED GATEKEEPER - world-class loading structure
+  const gatekeeper = useGatekeeperLoading({
+    ...GATEKEEPER_PRESETS.discover,
+    authLoading: !user && false, // Auth handled by ProtectedRoute
+  });
   
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
@@ -221,6 +229,15 @@ const DiscoverContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
 
   return (
     <div className="min-h-screen text-white relative bg-[#030303] overflow-hidden">
+      {/* Gatekeeper loading screen */}
+      {gatekeeper.isLoading && (
+        <CinemaLoader
+          isVisible={true}
+          message={getGatekeeperMessage(gatekeeper.phase, GATEKEEPER_PRESETS.discover.messages)}
+          showProgress={true}
+          progress={gatekeeper.progress}
+        />
+      )}
       {/* Premium Cinematic Background - CSS-based, no flickering */}
       <Suspense fallback={<BackgroundFallback />}>
         <DiscoverBackground />

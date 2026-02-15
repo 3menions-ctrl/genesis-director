@@ -8,6 +8,8 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useSafeNavigation } from '@/lib/navigation';
+import { CinemaLoader } from '@/components/ui/CinemaLoader';
+import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
@@ -66,6 +68,14 @@ interface UserMetrics {
 const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProfileContent(_, ref) {
   const { navigate } = useSafeNavigation();
   const { user, profile, loading, refreshProfile } = useAuth();
+  
+  // CENTRALIZED GATEKEEPER - world-class loading structure
+  const gatekeeper = useGatekeeperLoading({
+    ...GATEKEEPER_PRESETS.profile,
+    authLoading: loading,
+    dataLoading: loading,
+    dataSuccess: !loading && !!user,
+  });
   const { stats: gamificationStats, xpProgress, leaderboard, leaderboardLoading } = useGamification();
   const { followersCount, followingCount } = useSocial();
   
@@ -250,15 +260,15 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     return <TrendingUp className="w-4 h-4 text-emerald-400" />;
   };
 
-  if (loading) {
+  if (loading || gatekeeper.isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <ProjectsBackground />
-        <AppHeader />
-        <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-          <Skeleton className="h-48 rounded-3xl bg-white/[0.03]" />
-          <Skeleton className="h-32 rounded-2xl bg-white/[0.03]" />
-        </div>
+        <CinemaLoader
+          isVisible={true}
+          message={getGatekeeperMessage(gatekeeper.phase, GATEKEEPER_PRESETS.profile.messages)}
+          showProgress={true}
+          progress={gatekeeper.progress}
+        />
       </div>
     );
   }

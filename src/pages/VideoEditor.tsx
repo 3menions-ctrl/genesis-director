@@ -9,7 +9,6 @@ import { EditorTimeline } from "@/components/editor/EditorTimeline";
 import { EditorPreview } from "@/components/editor/EditorPreview";
 import { EditorSidebar } from "@/components/editor/EditorSidebar";
 import { EditorMediaBrowser } from "@/components/editor/EditorMediaBrowser";
-// Layout uses fixed widths + CSS containment for cross-browser stability
 import { Film, Sparkles } from "lucide-react";
 import { useEditorHistory } from "@/hooks/useEditorHistory";
 import type { EditorState, TimelineTrack, TimelineClip } from "@/components/editor/types";
@@ -21,15 +20,17 @@ const VideoEditor = () => {
   const projectId = searchParams.get("project") || searchParams.get("projectId");
 
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [showMediaBrowser, setShowMediaBrowser] = useState(true);
+  const [snapEnabled, setSnapEnabled] = useState(true);
 
   const [editorState, setEditorState] = useState<EditorState>({
     sessionId: null,
     projectId: projectId || null,
     title: "Untitled Edit",
     tracks: [
-      { id: "video-0", name: "Video", type: "video", clips: [], muted: false, locked: false },
-      { id: "audio-0", name: "Audio", type: "audio", clips: [], muted: false, locked: false },
-      { id: "text-0", name: "Text", type: "text", clips: [], muted: false, locked: false },
+      { id: "video-0", name: "Video 1", type: "video", clips: [], muted: false, locked: false },
+      { id: "audio-0", name: "Audio 1", type: "audio", clips: [], muted: false, locked: false },
+      { id: "text-0", name: "Text 1", type: "text", clips: [], muted: false, locked: false },
     ],
     currentTime: 0,
     duration: 0,
@@ -43,14 +44,12 @@ const VideoEditor = () => {
   const [isSaving, setIsSaving] = useState(false);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Undo/Redo history
   const history = useEditorHistory({
     tracks: editorState.tracks,
     duration: editorState.duration,
     selectedClipId: editorState.selectedClipId,
   });
 
-  // Keep history in sync
   useEffect(() => {
     history.syncCurrent({
       tracks: editorState.tracks,
@@ -59,7 +58,6 @@ const VideoEditor = () => {
     });
   }, [editorState.tracks, editorState.duration, editorState.selectedClipId]);
 
-  // Listen for keyboard undo/redo events
   useEffect(() => {
     const onUndo = (e: Event) => {
       const detail = (e as CustomEvent).detail;
@@ -77,7 +75,6 @@ const VideoEditor = () => {
     };
   }, []);
 
-  // Push state before mutations
   const withHistory = useCallback(
     (mutator: (prev: EditorState) => EditorState) => {
       setEditorState((prev) => {
@@ -102,10 +99,9 @@ const VideoEditor = () => {
     if (snapshot) setEditorState((prev) => ({ ...prev, ...snapshot }));
   }, [history]);
 
-  // Split clip at playhead
+  // === SPLIT ===
   const handleSplit = useCallback(() => {
     const { currentTime, tracks, selectedClipId } = editorState;
-    // Find clip under playhead (prefer selected, fallback to any on video track)
     let targetClip: TimelineClip | undefined;
     let targetTrack: TimelineTrack | undefined;
 
@@ -147,42 +143,187 @@ const VideoEditor = () => {
     toast.success("Clip split at playhead");
   }, [editorState, withHistory]);
 
-  // Split keyboard shortcut
+  // === DUPLICATE ===
+  const handleDuplicate = useCallback(() => {
+    const { selectedClipId, tracks } = editorState;
+    if (!selectedClipId) {
+      toast.error("Select a clip to duplicate");
+      return;
+    }
+
+    let sourceClip: TimelineClip | undefined;
+    let sourceTrackId: string | undefined;
+    for (const track of tracks) {
+      const clip = track.clips.find((c) => c.id === selectedClipId);
+      if (clip) {
+        sourceClip = clip;
+        sourceTrackId = track.id;
+        break;
+      }
+    }
+
+    if (!sourceClip || !sourceTrackId) return;
+
+    const dur = sourceClip.end - sourceClip.start;
+    const newClip: TimelineClip = {
+      ...sourceClip,
+      id: `dup-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      start: sourceClip.end,
+      end: sourceClip.end + dur,
+    };
+
+    withHistory((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map((t) =>
+        t.id === sourceTrackId ? { ...t, clips: [...t.clips, newClip] } : t
+      ),
+      duration: Math.max(prev.duration, newClip.end),
+      selectedClipId: newClip.id,
+    }));
+    toast.success("Clip duplicated");
+  }, [editorState, withHistory]);
+
+  // === RIPPLE DELETE ===
+  const handleRippleDelete = useCallback((clipId: string) => {
+    withHistory((prev) => {
+      let deletedClip: TimelineClip | undefined;
+      let deletedTrackId: string | undefined;
+
+      for (const track of prev.tracks) {
+        const clip = track.clips.find((c) => c.id === clipId);
+        if (clip) {
+          deletedClip = clip;
+          deletedTrackId = track.id;
+          break;
+        }
+      }
+
+      if (!deletedClip || !deletedTrackId) return prev;
+
+      const gap = deletedClip.end - deletedClip.start;
+
+      return {
+        ...prev,
+        tracks: prev.tracks.map((t) => {
+          if (t.id !== deletedTrackId) return t;
+          const remaining = t.clips.filter((c) => c.id !== clipId);
+          // Shift all clips after the deleted one to close the gap
+          return {
+            ...t,
+            clips: remaining.map((c) =>
+              c.start >= deletedClip!.end
+                ? { ...c, start: c.start - gap, end: c.end - gap }
+                : c
+            ),
+          };
+        }),
+        selectedClipId: prev.selectedClipId === clipId ? null : prev.selectedClipId,
+        duration: Math.max(0, prev.duration - gap),
+      };
+    });
+    toast.success("Clip removed (ripple)");
+  }, [withHistory]);
+
+  // === ADD TRACK ===
+  const handleAddTrack = useCallback((type: "video" | "audio" | "text") => {
+    const existingCount = editorState.tracks.filter((t) => t.type === type).length;
+    const newTrack: TimelineTrack = {
+      id: `${type}-${Date.now()}`,
+      name: `${type.charAt(0).toUpperCase() + type.slice(1)} ${existingCount + 1}`,
+      type,
+      clips: [],
+      muted: false,
+      locked: false,
+    };
+    withHistory((prev) => ({
+      ...prev,
+      tracks: [...prev.tracks, newTrack],
+    }));
+    toast.success(`${newTrack.name} track added`);
+  }, [editorState.tracks, withHistory]);
+
+  // === FIT TO VIEW ===
+  const handleFitToView = useCallback(() => {
+    if (editorState.duration <= 0) return;
+    // Assume ~800px timeline visible width; target zoom so duration fills it
+    const targetZoom = 800 / (editorState.duration * 60);
+    setEditorState((prev) => ({ ...prev, zoom: Math.max(0.1, Math.min(10, targetZoom)) }));
+  }, [editorState.duration]);
+
+  // === Recalculate duration ===
+  const recalcDuration = useCallback((tracks: TimelineTrack[]) => {
+    let maxEnd = 0;
+    for (const t of tracks) {
+      for (const c of t.clips) {
+        if (c.end > maxEnd) maxEnd = c.end;
+      }
+    }
+    return maxEnd;
+  }, []);
+
+  // === Keyboard shortcuts ===
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "s" && !e.ctrlKey && !e.metaKey && document.activeElement?.tagName !== "INPUT") {
+      if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
+
+      // Split: S
+      if (e.key === "s" && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         handleSplit();
+      }
+      // Delete: Del or Backspace
+      if ((e.key === "Delete" || e.key === "Backspace") && editorState.selectedClipId) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleRippleDelete(editorState.selectedClipId);
+        } else {
+          handleDeleteClip(editorState.selectedClipId);
+        }
+      }
+      // Duplicate: Ctrl/Cmd+D
+      if ((e.ctrlKey || e.metaKey) && e.key === "d") {
+        e.preventDefault();
+        handleDuplicate();
+      }
+      // Fit to view: Ctrl/Cmd+Shift+F
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "F") {
+        e.preventDefault();
+        handleFitToView();
+      }
+      // Toggle snap: N
+      if (e.key === "n" && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setSnapEnabled((prev) => !prev);
+        toast.info(`Snap ${!snapEnabled ? 'on' : 'off'}`);
+      }
+      // Toggle media browser: M
+      if (e.key === "m" && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setShowMediaBrowser((prev) => !prev);
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [handleSplit]);
+  }, [handleSplit, handleDuplicate, handleFitToView, editorState.selectedClipId, snapEnabled]);
 
-  // Can we split?
   const canSplit = editorState.tracks.some((t) =>
     t.clips.some((c) => editorState.currentTime > c.start && editorState.currentTime < c.end)
   );
 
-  // Load project clips on mount — auto-detect latest project if none specified
+  // Load project clips on mount
   useEffect(() => {
     if (!user) return;
-
     const loadLatestOrSpecified = async () => {
       let targetProjectId = projectId;
       let projectTitle = "Untitled Edit";
-
       if (!targetProjectId) {
-        // No project specified — find the most recent project with completed clips
         const { data: recentProject } = await supabase
           .from("movie_projects")
           .select("id, title")
           .eq("user_id", user.id)
           .order("updated_at", { ascending: false })
           .limit(10);
-
         if (recentProject?.length) {
-          // Find first project that actually has completed clips
           for (const proj of recentProject) {
             const { count } = await supabase
               .from("video_clips")
@@ -197,15 +338,11 @@ const VideoEditor = () => {
             }
           }
         }
-
-        if (!targetProjectId) return; // No projects with clips found
-      
-        // Sync URL so refresh/bookmarks work
+        if (!targetProjectId) return;
         const newParams = new URLSearchParams(searchParams);
         newParams.set("project", targetProjectId);
         window.history.replaceState(null, "", `?${newParams.toString()}`);
       } else {
-        // Fetch the project title for the specified project
         const { data: proj } = await supabase
           .from("movie_projects")
           .select("title")
@@ -213,10 +350,8 @@ const VideoEditor = () => {
           .single();
         if (proj?.title) projectTitle = proj.title;
       }
-
       loadProjectClips(targetProjectId, projectTitle);
     };
-
     loadLatestOrSpecified();
   }, [projectId, user]);
 
@@ -241,7 +376,6 @@ const VideoEditor = () => {
 
     const timelineClips: TimelineClip[] = [];
     let startTime = 0;
-
     for (const clip of clips) {
       const dur = clip.duration_seconds || 6;
       timelineClips.push({
@@ -306,7 +440,6 @@ const VideoEditor = () => {
     handleUpdateClip(clipId, { start: newStart });
   }, [handleUpdateClip]);
 
-  // Move clip between tracks (drag-and-drop)
   const handleMoveClipToTrack = useCallback((clipId: string, targetTrackId: string) => {
     withHistory((prev) => {
       let movedClip: TimelineClip | undefined;
@@ -412,9 +545,7 @@ const VideoEditor = () => {
   };
 
   const pollRenderStatus = useCallback((jobId: string) => {
-    // Clear any existing poll before starting a new one
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-
     pollIntervalRef.current = setInterval(async () => {
       try {
         const { data } = await supabase.functions.invoke("render-video", { body: { action: "status", jobId } });
@@ -438,7 +569,6 @@ const VideoEditor = () => {
     }, 5000);
   }, []);
 
-  // Cleanup poll interval on unmount
   useEffect(() => {
     return () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
@@ -459,7 +589,6 @@ const VideoEditor = () => {
 
   const handleApplyTemplate = useCallback((templateId: string) => {
     withHistory((prev) => {
-      const now = prev.currentTime;
       switch (templateId) {
         case "intro-outro": {
           const introClip: TimelineClip = {
@@ -480,8 +609,7 @@ const VideoEditor = () => {
             duration: Math.max(prev.duration, 6),
           };
         }
-        case "slideshow": {
-          // Add crossfade to all existing video clips
+        case "slideshow":
           return {
             ...prev,
             tracks: prev.tracks.map((t) =>
@@ -490,7 +618,6 @@ const VideoEditor = () => {
                 : t
             ),
           };
-        }
         default:
           toast.info(`Template "${templateId}" applied`);
           return prev;
@@ -500,8 +627,6 @@ const VideoEditor = () => {
   }, [withHistory]);
 
   const hasClips = editorState.tracks.some((t) => t.clips.length > 0);
-
-  const [showMediaBrowser, setShowMediaBrowser] = useState(true);
 
   return (
     <div className="h-screen w-screen flex flex-col bg-[hsl(260,15%,4%)] overflow-hidden" style={{ contain: 'layout size' }}>
@@ -514,26 +639,30 @@ const VideoEditor = () => {
         onUndo={handleUndo}
         onRedo={handleRedo}
         onSplit={handleSplit}
+        onDuplicate={handleDuplicate}
+        onFitToView={handleFitToView}
+        onToggleSnap={() => setSnapEnabled((prev) => !prev)}
+        onToggleMediaBrowser={() => setShowMediaBrowser((prev) => !prev)}
+        onAddTrack={handleAddTrack}
         canUndo={history.canUndo}
         canRedo={history.canRedo}
         canSplit={canSplit}
+        canDuplicate={!!editorState.selectedClipId}
+        snapEnabled={snapEnabled}
+        showMediaBrowser={showMediaBrowser}
         isSaving={isSaving}
         renderStatus={editorState.renderStatus}
         renderProgress={editorState.renderProgress}
       />
 
-      {/* Main workspace — explicit height calc prevents overflow in all browsers */}
       <div className="flex-1 flex min-h-0 min-w-0" style={{ height: 'calc(100vh - 44px)', contain: 'strict' }}>
-        {/* Media browser — collapsible sidebar */}
         {showMediaBrowser && (
           <div className="w-64 shrink-0 border-r border-white/[0.06] overflow-hidden" style={{ maxHeight: '100%' }}>
             <EditorMediaBrowser onAddClip={handleAddClipFromBrowser} />
           </div>
         )}
 
-        {/* Center workspace: Preview + Timeline stacked vertically */}
         <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
-          {/* Preview area — takes remaining space above timeline */}
           <div className="flex-1 min-h-0 overflow-hidden relative" style={{ contain: 'strict' }}>
             {hasClips ? (
               <EditorPreview
@@ -564,7 +693,6 @@ const VideoEditor = () => {
             )}
           </div>
 
-          {/* Timeline — fixed proportion with resizable handle */}
           <div className="h-px bg-white/[0.06]" />
           <div className="shrink-0 overflow-hidden" style={{ height: '35%', minHeight: 180, maxHeight: 320 }}>
             <EditorTimeline
@@ -573,18 +701,19 @@ const VideoEditor = () => {
               duration={editorState.duration}
               zoom={editorState.zoom}
               selectedClipId={editorState.selectedClipId}
+              snapEnabled={snapEnabled}
               onTimeChange={handleTimeChange}
               onSelectClip={handleSelectClip}
               onUpdateClip={handleUpdateClip}
               onReorderClip={handleReorderClip}
               onZoomChange={handleZoomChange}
               onDeleteClip={handleDeleteClip}
+              onRippleDelete={handleRippleDelete}
               onMoveClipToTrack={handleMoveClipToTrack}
             />
           </div>
         </div>
 
-        {/* Inspector sidebar — fixed width, no resize jank */}
         <div className="w-72 shrink-0 border-l border-white/[0.06] overflow-hidden" style={{ maxHeight: '100%' }}>
           <EditorSidebar
             tracks={editorState.tracks}

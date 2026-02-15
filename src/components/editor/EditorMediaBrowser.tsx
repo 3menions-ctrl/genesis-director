@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { Film, Search, FolderOpen, Plus, Loader2, Layers } from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { Film, Search, FolderOpen, Plus, Loader2, Layers, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,43 @@ interface MediaClip {
 interface EditorMediaBrowserProps {
   onAddClip: (clip: MediaClip) => void;
 }
+
+/** Small thumbnail that shows a poster frame from the video */
+const VideoThumbnail = ({ url }: { url: string }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.preload = "metadata";
+    v.currentTime = 0.5; // seek to 0.5s for a representative frame
+    const onLoaded = () => setLoaded(true);
+    v.addEventListener("loadeddata", onLoaded);
+    return () => v.removeEventListener("loadeddata", onLoaded);
+  }, [url]);
+
+  return (
+    <div className="w-14 h-8 rounded bg-black/40 border border-white/[0.06] shrink-0 overflow-hidden relative">
+      <video
+        ref={videoRef}
+        src={url}
+        className={cn("w-full h-full object-cover transition-opacity duration-300", loaded ? "opacity-100" : "opacity-0")}
+        muted
+        playsInline
+      />
+      {!loaded && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Film className="h-3 w-3 text-white/15" />
+        </div>
+      )}
+      {/* Play overlay on hover */}
+      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity">
+        <Play className="h-3 w-3 text-white" fill="white" />
+      </div>
+    </div>
+  );
+};
 
 export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
   const { user } = useAuth();
@@ -125,15 +162,13 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
             {filteredClips.map((clip) => (
               <div key={clip.id} className="group flex items-center gap-2 px-2 py-2 rounded-md hover:bg-white/[0.04] cursor-pointer transition-all border border-transparent hover:border-white/[0.06]"
                 onClick={() => onAddClip(clip)}>
-                <div className="w-14 h-8 rounded bg-black/30 border border-white/[0.06] flex items-center justify-center shrink-0 overflow-hidden relative">
-                  <Film className="h-3 w-3 text-white/15" />
-                  <div className="absolute bottom-0 right-0 bg-black/60 text-[7px] text-white/50 px-1 py-px rounded-tl font-mono">
-                    {formatDuration(clip.duration_seconds)}
-                  </div>
-                </div>
+                <VideoThumbnail url={clip.video_url} />
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] text-white/60 truncate leading-tight font-medium">{clip.prompt}</p>
-                  <span className="text-[8px] text-white/20 truncate block mt-0.5">{clip.project_title}</span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-[8px] text-white/20 truncate">{clip.project_title}</span>
+                    <span className="text-[7px] text-white/15 font-mono">{formatDuration(clip.duration_seconds)}</span>
+                  </div>
                 </div>
                 <Button variant="ghost" size="icon"
                   className="h-5 w-5 opacity-0 group-hover:opacity-100 text-white hover:text-white hover:bg-white/[0.1] transition-all shrink-0 rounded">

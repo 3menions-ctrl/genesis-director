@@ -49,8 +49,8 @@ Deno.serve(async (req) => {
     // Resolve instruction from template if needed
     let editInstruction = instruction;
     let isPremium = false;
-    // Every photo edit costs 1 credit minimum
-    let creditsCost = 1;
+    // Every photo edit costs 2 credits minimum
+    let creditsCost = 2;
 
     if (templateId) {
       const { data: template, error: tErr } = await supabase
@@ -68,8 +68,8 @@ Deno.serve(async (req) => {
 
       editInstruction = template.prompt_instruction;
       isPremium = template.is_premium;
-      // Use template cost if higher than base, otherwise 1 credit minimum
-      creditsCost = Math.max(1, template.credits_cost || 1);
+      // Use template cost if higher than base, otherwise 2 credit minimum
+      creditsCost = Math.max(2, template.credits_cost || 2);
     }
 
     // Charge credits for premium edits

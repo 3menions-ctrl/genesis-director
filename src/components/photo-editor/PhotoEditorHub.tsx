@@ -1,10 +1,11 @@
 import { useState, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
   Upload, Image, Wand2, Download, Trash2,
   Loader2, CheckCircle2, AlertCircle, Layers,
   MessageSquare, Sparkles, X, Plus, Zap,
-  SlidersHorizontal, RotateCcw, ChevronRight, ChevronDown, ChevronUp,
+  SlidersHorizontal, RotateCcw, ChevronRight, ChevronDown, ChevronUp, Video,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -35,6 +36,7 @@ interface EditResult {
 
 export function PhotoEditorHub() {
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<PhotoEditMode>('templates');
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
@@ -228,6 +230,13 @@ export function PhotoEditorHub() {
     }
   }, [editedUrl, activePhoto]);
 
+  const handleUseInVideo = useCallback((imageUrl: string) => {
+    // Store the image URL in sessionStorage for the creation hub to pick up
+    sessionStorage.setItem('imageToVideoUrl', imageUrl);
+    navigate('/create?mode=image-to-video');
+    toast.success('Photo loaded into video creator');
+  }, [navigate]);
+
   const modes = [
     { id: 'templates' as const, label: 'Templates', icon: Layers },
     { id: 'chat' as const, label: 'AI Chat', icon: MessageSquare },
@@ -397,6 +406,7 @@ export function PhotoEditorHub() {
             editedUrl={editedUrl}
             isProcessing={isProcessing}
             onDownload={handleDownload}
+            onUseInVideo={handleUseInVideo}
           />
         </div>
 
@@ -462,7 +472,7 @@ export function PhotoEditorHub() {
                           )}
                         </Button>
                         <p className="text-xs text-white/30 text-center">
-                          Free for basic edits • 2 credits for premium styles
+                          2 credits per edit
                         </p>
                       </div>
                     </div>

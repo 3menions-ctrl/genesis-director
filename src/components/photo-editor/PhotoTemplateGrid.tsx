@@ -92,16 +92,10 @@ export function PhotoTemplateGrid({ onSelectTemplate, isProcessing }: PhotoTempl
                   <p className="text-xs sm:text-sm font-medium text-white/80 group-hover:text-white transition-colors">
                     {template.name}
                   </p>
-                  {template.is_premium ? (
-                    <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/20">
-                      <Crown className="w-2.5 h-2.5" />
-                      {template.credits_cost}
-                    </span>
-                  ) : (
-                    <span className="px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
-                      Free
-                    </span>
-                  )}
+                  <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/20">
+                    <Crown className="w-2.5 h-2.5" />
+                    {template.credits_cost || 2}
+                  </span>
                 </div>
                 <p className="text-[10px] sm:text-xs text-white/30 mt-0.5 line-clamp-1 sm:line-clamp-2">
                   {template.description}

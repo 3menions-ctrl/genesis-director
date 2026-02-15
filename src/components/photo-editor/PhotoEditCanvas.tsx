@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Loader2, ArrowLeftRight } from 'lucide-react';
+import { Download, Loader2, ArrowLeftRight, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface PhotoEditCanvasProps {
@@ -8,9 +8,10 @@ interface PhotoEditCanvasProps {
   editedUrl: string | null;
   isProcessing: boolean;
   onDownload: () => void;
+  onUseInVideo?: (imageUrl: string) => void;
 }
 
-export function PhotoEditCanvas({ originalUrl, editedUrl, isProcessing, onDownload }: PhotoEditCanvasProps) {
+export function PhotoEditCanvas({ originalUrl, editedUrl, isProcessing, onDownload, onUseInVideo }: PhotoEditCanvasProps) {
   const [showOriginal, setShowOriginal] = useState(false);
   const displayUrl = showOriginal ? originalUrl : (editedUrl || originalUrl);
 
@@ -66,13 +67,25 @@ export function PhotoEditCanvas({ originalUrl, editedUrl, isProcessing, onDownlo
       {/* Action bar */}
       <div className="flex items-center gap-2">
         {editedUrl && (
-          <Button
-            onClick={onDownload}
-            className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white text-sm"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Download Edited
-          </Button>
+          <>
+            <Button
+              onClick={onDownload}
+              className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white text-sm"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Download
+            </Button>
+            {onUseInVideo && (
+              <Button
+                onClick={() => onUseInVideo(editedUrl)}
+                variant="outline"
+                className="flex-1 border-violet-500/30 text-violet-300 hover:bg-violet-500/10 text-sm"
+              >
+                <Video className="w-4 h-4 mr-2" />
+                Use in Video
+              </Button>
+            )}
+          </>
         )}
         {!editedUrl && originalUrl && (
           <Button

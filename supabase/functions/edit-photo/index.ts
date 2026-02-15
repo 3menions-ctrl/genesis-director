@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
       }).eq('id', editId);
     }
 
-    console.log(`[edit-photo] Processing via Bria FIBO Edit for user ${auth.userId.slice(0, 8)}...`);
+    console.log(`[edit-photo] Processing via Nano Banana Pro for user ${auth.userId.slice(0, 8)}...`);
 
     // Download the source image and convert to data URI for reliable input
     let imageInput = imageUrl;
@@ -128,8 +128,8 @@ Deno.serve(async (req) => {
       console.warn('[edit-photo] Could not pre-download image, using URL directly:', e);
     }
 
-    // === PRIMARY: Bria FIBO Edit — best-in-class structured image editor ===
-    let createResponse = await fetch('https://api.replicate.com/v1/models/bria/fibo-edit/predictions', {
+    // === Nano Banana Pro (google/nano-banana-pro) — Gemini 3 Pro image editing ===
+    const createResponse = await fetch('https://api.replicate.com/v1/models/google/nano-banana-pro/predictions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${REPLICATE_API_KEY}`,
@@ -138,30 +138,11 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         input: {
+          prompt: editInstruction,
           image: imageInput,
-          instruction: editInstruction,
         },
       }),
     });
-
-    // === FALLBACK: black-forest-labs/flux-kontext-pro (high quality edit model) ===
-    if (!createResponse.ok && (createResponse.status === 404 || createResponse.status === 422)) {
-      console.warn(`[edit-photo] FIBO Edit failed (${createResponse.status}), falling back to flux-kontext-pro...`);
-      createResponse = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${REPLICATE_API_KEY}`,
-          'Content-Type': 'application/json',
-          Prefer: 'wait',
-        },
-        body: JSON.stringify({
-          input: {
-            image: imageInput,
-            prompt: editInstruction,
-          },
-        }),
-      });
-    }
 
     if (!createResponse.ok) {
       const errText = await createResponse.text();

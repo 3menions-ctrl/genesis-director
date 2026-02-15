@@ -42,7 +42,7 @@ const VideoEditor = () => {
   });
 
   const [isSaving, setIsSaving] = useState(false);
-  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  
 
   const history = useEditorHistory({
     tracks: editorState.tracks,
@@ -561,57 +561,85 @@ const VideoEditor = () => {
   };
 
   const handleExport = async () => {
-    if (!editorState.sessionId) await handleSave();
-    setEditorState((prev) => ({ ...prev, renderStatus: "rendering", renderProgress: 0 }));
+    const videoClips = editorState.tracks
+      .filter((t) => t.type === "video")
+      .flatMap((t) => t.clips)
+      .sort((a, b) => a.start - b.start);
+
+    if (videoClips.length === 0) {
+      toast.error("No clips in timeline to export");
+      return;
+    }
+
+    setEditorState((prev) => ({ ...prev, renderStatus: "rendering", renderProgress: 10 }));
+
     try {
-      const { data, error } = await supabase.functions.invoke("render-video", {
-        body: {
-          sessionId: editorState.sessionId,
-          timeline: { tracks: editorState.tracks, duration: editorState.duration },
-          settings: { resolution: "1080p", fps: 30, format: "mp4" },
-        },
-      });
-      if (error) throw error;
-      if (data?.jobId) {
-        toast.success("Render job submitted!");
-        pollRenderStatus(data.jobId);
+      // If we have a project ID, use simple-stitch for server-side manifest
+      if (editorState.projectId && user) {
+        setEditorState((prev) => ({ ...prev, renderProgress: 30 }));
+        
+        const { data, error } = await supabase.functions.invoke("simple-stitch", {
+          body: { projectId: editorState.projectId, userId: user.id },
+        });
+
+        if (error) throw error;
+        
+        setEditorState((prev) => ({ ...prev, renderProgress: 80 }));
+
+        if (data?.success && data?.finalVideoUrl) {
+          toast.success("Manifest created! Starting download...");
+          setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
+          
+          // Download each clip individually
+          await downloadEditorClips(videoClips);
+          return;
+        }
       }
-    } catch {
+
+      // Fallback: download clips individually from timeline
+      await downloadEditorClips(videoClips);
+      setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
+      toast.success("Download complete!");
+    } catch (err) {
+      console.error("[Editor Export] Error:", err);
       setEditorState((prev) => ({ ...prev, renderStatus: "failed" }));
-      toast.error("Failed to start render");
+      toast.error("Export failed. Try downloading clips individually.");
     }
   };
 
-  const pollRenderStatus = useCallback((jobId: string) => {
-    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-    pollIntervalRef.current = setInterval(async () => {
-      try {
-        const { data } = await supabase.functions.invoke("render-video", { body: { action: "status", jobId } });
-        if (data?.status === "completed") {
-          if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-          pollIntervalRef.current = null;
-          setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
-          toast.success("Render complete!");
-        } else if (data?.status === "failed") {
-          if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-          pollIntervalRef.current = null;
-          setEditorState((prev) => ({ ...prev, renderStatus: "failed" }));
-          toast.error("Render failed");
-        } else {
-          setEditorState((prev) => ({ ...prev, renderProgress: data?.progress || prev.renderProgress }));
-        }
-      } catch {
-        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-        pollIntervalRef.current = null;
-      }
-    }, 5000);
-  }, []);
+  const downloadEditorClips = async (clips: TimelineClip[]) => {
+    for (let i = 0; i < clips.length; i++) {
+      const clip = clips[i];
+      if (!clip.sourceUrl) continue;
 
-  useEffect(() => {
-    return () => {
-      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-    };
-  }, []);
+      setEditorState((prev) => ({
+        ...prev,
+        renderProgress: Math.round(((i + 1) / clips.length) * 100),
+      }));
+
+      try {
+        const response = await fetch(clip.sourceUrl, { mode: "cors" });
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${editorState.title.replace(/[^a-zA-Z0-9]/g, "_")}_clip_${i + 1}.mp4`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        // Small delay between downloads to avoid browser throttling
+        if (i < clips.length - 1) {
+          await new Promise((r) => setTimeout(r, 500));
+        }
+      } catch (err) {
+        console.warn(`[Editor Export] Failed to download clip ${i + 1}:`, err);
+        toast.error(`Failed to download clip ${i + 1}`);
+      }
+    }
+  };
+
 
   // handleDeleteClip defined above keyboard handler
 

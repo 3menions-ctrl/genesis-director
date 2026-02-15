@@ -462,14 +462,14 @@
   100% { opacity: 1; }
 }
 
-.animate-crack-appear { animation: crack-appear 0.3s ease-out forwards; }
-.animate-crack-whiteflash { animation: crack-whiteflash 0.6s ease-out forwards; }
-.animate-crack-flash { animation: crack-flash 0.5s ease-out forwards; }
-.animate-crack-lines-1 { animation: crack-lines-1 0.4s cubic-bezier(0.25, 0.1, 0.25, 1) forwards; }
-.animate-crack-lines-2 { animation: crack-lines-2 0.7s cubic-bezier(0.25, 0.1, 0.25, 1) forwards; }
-.animate-crack-lines-3 { animation: crack-lines-3 1.0s cubic-bezier(0.25, 0.1, 0.25, 1) forwards; }
-.animate-crack-rings { animation: crack-rings 0.8s ease-out forwards; }
-.animate-crack-shards { animation: crack-shards 1.2s ease-out forwards; }
+.animate-crack-appear { animation: crack-appear 1s ease-out forwards; }
+.animate-crack-whiteflash { animation: crack-whiteflash 2s ease-out forwards; }
+.animate-crack-flash { animation: crack-flash 2s ease-out forwards; }
+.animate-crack-lines-1 { animation: crack-lines-1 3s cubic-bezier(0.25, 0.1, 0.25, 1) forwards; }
+.animate-crack-lines-2 { animation: crack-lines-2 4.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards; }
+.animate-crack-lines-3 { animation: crack-lines-3 6s cubic-bezier(0.25, 0.1, 0.25, 1) forwards; }
+.animate-crack-rings { animation: crack-rings 4s ease-out forwards; }
+.animate-crack-shards { animation: crack-shards 5s ease-out forwards; }
 
 /* Route-level fade-in — prevents per-element blink on page transitions */
 @keyframes route-enter {

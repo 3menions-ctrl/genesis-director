@@ -73,12 +73,12 @@ export async function optimisticUpdate<T>({
       console.error('[OptimisticUpdate] Error during rollback:', e);
     }
     
-    const errorMessage = error instanceof Error ? error.message : 'Operation failed';
+    const errorMessage = 'Something went wrong. Please try again.';
     
     // CRITICAL: Only show toast for FATAL errors
     // Non-fatal errors (network hiccups, rate limits, etc.) are logged but suppressed
     if (showErrorToast && !isNonFatalError(error)) {
-      toast.error(context ? `${context}: ${errorMessage}` : errorMessage);
+      toast.error(context ? `${context} failed. Please try again.` : errorMessage);
     } else {
       console.debug(`[OptimisticUpdate] Suppressed non-fatal error:`, error);
     }

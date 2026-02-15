@@ -91,7 +91,7 @@ export function AdminAvatarSeeder() {
       }
     } catch (err) {
       console.error('Generation error:', err);
-      toast.error(`Error at avatar ${currentIndex + 1}: ${err}`);
+      toast.error('Avatar generation failed. Please try again.');
       setIsGenerating(false);
     }
   };

@@ -1,6 +1,7 @@
 import { useRef, useCallback, useState, useMemo } from "react";
-import { Film, Type, Music, Trash2, ZoomIn, ZoomOut, Volume2, VolumeX, Lock } from "lucide-react";
+import { Film, Type, Music, Trash2, ZoomIn, ZoomOut, Volume2, VolumeX, Lock, Scissors } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { TimelineTrack, TimelineClip } from "./types";
 import { AudioWaveform } from "./AudioWaveform";
@@ -11,17 +12,20 @@ interface EditorTimelineProps {
   duration: number;
   zoom: number;
   selectedClipId: string | null;
+  snapEnabled?: boolean;
   onTimeChange: (time: number) => void;
   onSelectClip: (clipId: string | null) => void;
   onUpdateClip: (clipId: string, updates: Partial<TimelineClip>) => void;
   onReorderClip: (clipId: string, newStart: number) => void;
   onZoomChange: (zoom: number) => void;
   onDeleteClip: (clipId: string) => void;
+  onRippleDelete?: (clipId: string) => void;
   onMoveClipToTrack?: (clipId: string, targetTrackId: string) => void;
 }
 
 const TRACK_HEIGHT = 48;
 const PIXELS_PER_SECOND_BASE = 60;
+const SNAP_THRESHOLD_PX = 8;
 
 const trackColors: Record<string, { bg: string; bgSolid: string; border: string; text: string; glow: string }> = {
   video: { bg: "bg-primary/[0.08]", bgSolid: "hsl(263 70% 58% / 0.12)", border: "border-primary/20", text: "text-primary", glow: "hsl(263 70% 58% / 0.15)" },
@@ -32,14 +36,42 @@ const trackColors: Record<string, { bg: string; bgSolid: string; border: string;
 const trackIcons: Record<string, typeof Film> = { video: Film, audio: Music, text: Type };
 
 export const EditorTimeline = ({
-  tracks, currentTime, duration, zoom, selectedClipId,
-  onTimeChange, onSelectClip, onUpdateClip, onReorderClip, onZoomChange, onDeleteClip, onMoveClipToTrack,
+  tracks, currentTime, duration, zoom, selectedClipId, snapEnabled = true,
+  onTimeChange, onSelectClip, onUpdateClip, onReorderClip, onZoomChange, onDeleteClip, onRippleDelete, onMoveClipToTrack,
 }: EditorTimelineProps) => {
   const timelineRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{ clipId: string; startX: number; originalStart: number; mode: "move" | "trim-left" | "trim-right" } | null>(null);
+  const [snapLine, setSnapLine] = useState<number | null>(null);
 
   const pxPerSec = PIXELS_PER_SECOND_BASE * zoom;
   const timelineWidth = Math.max(duration * pxPerSec, 800);
+
+  // Collect all snap points (clip edges + playhead)
+  const snapPoints = useMemo(() => {
+    const points: number[] = [0, currentTime];
+    for (const track of tracks) {
+      for (const clip of track.clips) {
+        points.push(clip.start, clip.end);
+      }
+    }
+    return [...new Set(points)].sort((a, b) => a - b);
+  }, [tracks, currentTime]);
+
+  const snapToNearest = useCallback((time: number, excludeClipId?: string): number => {
+    if (!snapEnabled) return time;
+    const threshold = SNAP_THRESHOLD_PX / pxPerSec;
+    let closest = time;
+    let minDist = Infinity;
+    for (const p of snapPoints) {
+      const d = Math.abs(time - p);
+      if (d < minDist && d < threshold) {
+        minDist = d;
+        closest = p;
+      }
+    }
+    setSnapLine(closest !== time ? closest : null);
+    return closest;
+  }, [snapEnabled, snapPoints, pxPerSec]);
 
   const handleTimelineClick = useCallback((e: React.MouseEvent) => {
     const rect = timelineRef.current?.getBoundingClientRect();
@@ -58,24 +90,32 @@ export const EditorTimeline = ({
       const dx = ev.clientX - e.clientX;
       const dt = dx / pxPerSec;
       if (mode === "move") {
-        const newStart = Math.max(0, clip.start + dt);
-        onUpdateClip(clip.id, { start: newStart, end: newStart + (clip.end - clip.start) });
+        let newStart = Math.max(0, clip.start + dt);
+        newStart = snapToNearest(newStart, clip.id);
+        const newEnd = snapToNearest(newStart + (clip.end - clip.start), clip.id);
+        const adjustedStart = newEnd - (clip.end - clip.start);
+        onUpdateClip(clip.id, { start: adjustedStart >= 0 ? adjustedStart : newStart, end: adjustedStart >= 0 ? newEnd : newStart + (clip.end - clip.start) });
       } else if (mode === "trim-left") {
-        onUpdateClip(clip.id, { start: Math.max(0, Math.min(clip.end - 0.5, clip.start + dt)) });
+        let newStart = Math.max(0, Math.min(clip.end - 0.5, clip.start + dt));
+        newStart = snapToNearest(newStart, clip.id);
+        onUpdateClip(clip.id, { start: newStart });
       } else {
-        onUpdateClip(clip.id, { end: Math.max(clip.start + 0.5, clip.end + dt) });
+        let newEnd = Math.max(clip.start + 0.5, clip.end + dt);
+        newEnd = snapToNearest(newEnd, clip.id);
+        onUpdateClip(clip.id, { end: newEnd });
       }
     };
 
     const handleMouseUp = () => {
       setDragging(null);
+      setSnapLine(null);
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
-  }, [pxPerSec, onSelectClip, onUpdateClip]);
+  }, [pxPerSec, onSelectClip, onUpdateClip, snapToNearest]);
 
   const markers = useMemo(() => {
     const result: { time: number; major: boolean }[] = [];
@@ -106,10 +146,37 @@ export const EditorTimeline = ({
 
         <div className="flex-1" />
 
+        {/* Clip count */}
+        <span className="text-[8px] text-white/15 font-mono mr-2">
+          {tracks.reduce((sum, t) => sum + t.clips.length, 0)} clips
+        </span>
+
+        {selectedClipId && onRippleDelete && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon"
+                className="h-5 w-5 text-amber-400/50 hover:text-amber-400 hover:bg-amber-500/10 rounded transition-all mr-0.5"
+                onClick={() => onRippleDelete(selectedClipId)}>
+                <Scissors className="h-2.5 w-2.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-[10px] bg-[hsl(260,20%,12%)] border-white/10">
+              Ripple Delete <kbd className="ml-1 text-white/30">⇧Del</kbd>
+            </TooltipContent>
+          </Tooltip>
+        )}
+
         {selectedClipId && (
-          <Button variant="ghost" size="icon" className="h-5 w-5 text-red-400/50 hover:text-red-400 hover:bg-red-500/10 rounded transition-all" onClick={() => onDeleteClip(selectedClipId)}>
-            <Trash2 className="h-2.5 w-2.5" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-5 w-5 text-red-400/50 hover:text-red-400 hover:bg-red-500/10 rounded transition-all" onClick={() => onDeleteClip(selectedClipId)}>
+                <Trash2 className="h-2.5 w-2.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-[10px] bg-[hsl(260,20%,12%)] border-white/10">
+              Delete <kbd className="ml-1 text-white/30">Del</kbd>
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
 
@@ -192,7 +259,7 @@ export const EditorTimeline = ({
                           <div className="absolute left-0.5 top-1/2 -translate-y-1/2 w-px h-3 bg-white/20 opacity-0 group-hover/clip:opacity-100 transition-opacity" />
                         </div>
 
-                        {/* Clip content - show waveform for audio, label for others */}
+                        {/* Clip content */}
                         {track.type === "audio" ? (
                           <div className="flex-1 min-w-0 h-full relative">
                             <AudioWaveform clipId={clip.id} width={Math.max(width, 28)} height={TRACK_HEIGHT - 12} color={colors.text} />
@@ -230,6 +297,13 @@ export const EditorTimeline = ({
                 </div>
               );
             })}
+
+            {/* Snap line */}
+            {snapLine !== null && (
+              <div className="absolute top-0 bottom-0 w-px bg-primary/60 z-30 pointer-events-none" style={{ left: snapLine * pxPerSec }}>
+                <div className="absolute inset-0 w-px bg-primary/30 blur-[2px]" />
+              </div>
+            )}
 
             {/* Playhead */}
             <div className="absolute top-0 bottom-0 z-20 pointer-events-none" style={{ left: currentTime * pxPerSec }}>

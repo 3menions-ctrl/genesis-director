@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Share2, Eye, Calendar, User, ExternalLink, Loader2 } from 'lucide-react';
+import { useNavigationWithLoading } from '@/components/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UniversalVideoPlayer } from '@/components/player';
@@ -38,6 +39,7 @@ interface VideoDetails {
 export default function VideoDetailPage() {
   const { videoId } = useParams<{ videoId: string }>();
   const navigate = useNavigate();
+  const { navigateTo } = useNavigationWithLoading();
   const { user } = useAuth();
   
   const [video, setVideo] = useState<VideoDetails | null>(null);
@@ -77,7 +79,7 @@ export default function VideoDetailPage() {
       } catch (err) {
         console.error('Failed to fetch video:', err);
         toast.error('Video not found');
-        navigate('/discover');
+        navigateTo('/discover');
       } finally {
         setIsLoading(false);
       }
@@ -111,7 +113,7 @@ export default function VideoDetailPage() {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
         <p className="text-zinc-500">Video not found</p>
-        <Button onClick={() => navigate('/discover')}>Back to Discover</Button>
+        <Button onClick={() => navigateTo('/discover')}>Back to Discover</Button>
       </div>
     );
   }

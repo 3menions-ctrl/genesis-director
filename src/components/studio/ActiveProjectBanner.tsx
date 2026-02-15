@@ -1,5 +1,5 @@
 import { useState, useEffect, memo, forwardRef, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigationWithLoading } from '@/components/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Loader2, Clock, Film, ArrowRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ interface ActiveProjectBannerProps {
 // Inner component with all the logic
 const ActiveProjectBannerInner = memo(forwardRef<HTMLDivElement, ActiveProjectBannerProps>(
   function ActiveProjectBannerInner({ className }, ref) {
-  const navigate = useNavigate();
+  const { navigateTo } = useNavigationWithLoading();
   const { user } = useAuth();
   const [activeProject, setActiveProject] = useState<ActiveProject | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -109,7 +109,7 @@ const ActiveProjectBannerInner = memo(forwardRef<HTMLDivElement, ActiveProjectBa
 
   const handleResume = () => {
     if (activeProject) {
-      navigate(`/production/${activeProject.id}`);
+      navigateTo(`/production/${activeProject.id}`);
     }
   };
 

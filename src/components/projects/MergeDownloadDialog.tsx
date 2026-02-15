@@ -116,7 +116,7 @@ export function MergeDownloadDialog({
     } catch (err) {
       console.error('[MergeDownload] Error:', err);
       setIsMerging(false);
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setError('Something went wrong while merging. Please try again.');
     }
   }, [clipUrls, projectId, projectName, masterAudioUrl, onOpenChange]);
 

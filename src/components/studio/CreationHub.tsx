@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, memo, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigationWithLoading } from '@/components/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Wand2, Image, User, Palette, Dices, Film, 
@@ -152,7 +152,7 @@ interface CreationHubProps {
 
 // CreationHub - no forwardRef needed, prevents React ref warnings
 export const CreationHub = memo(function CreationHub({ onStartCreation, onReady, className }: CreationHubProps) {
-  const navigate = useNavigate();
+  const { navigateTo: navigate } = useNavigationWithLoading();
   const { profile } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedMode, setSelectedMode] = useState<VideoGenerationMode>('text-to-video');

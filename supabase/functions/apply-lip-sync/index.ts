@@ -37,6 +37,13 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // ═══ AUTH GUARD ═══
+  const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+  const auth = await validateAuth(req);
+  if (!auth.authenticated) {
+    return unauthorizedResponse(corsHeaders, auth.error);
+  }
+
   const startTime = Date.now();
   const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
 

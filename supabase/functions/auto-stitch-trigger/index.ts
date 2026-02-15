@@ -29,6 +29,13 @@ serve(async (req) => {
   const startTime = Date.now();
   
   try {
+    // ═══ AUTH GUARD ═══
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) {
+      return unauthorizedResponse(corsHeaders, auth.error);
+    }
+
     const { projectId, userId, forceStitch = false } = await req.json() as AutoStitchRequest;
 
     if (!projectId) {

@@ -16,18 +16,6 @@ export interface DirectMessage {
   };
 }
 
-export interface UniverseMessage {
-  id: string;
-  universe_id: string;
-  user_id: string;
-  content: string;
-  reply_to_id: string | null;
-  created_at: string;
-  profiles?: {
-    display_name: string | null;
-    avatar_url: string | null;
-  };
-}
 
 export interface ProjectComment {
   id: string;
@@ -316,81 +304,6 @@ export function useDirectMessages(otherUserId?: string) {
   };
 }
 
-export function useUniverseChat(universeId?: string) {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-
-  // Fetch messages
-  const { data: messages, isLoading } = useQuery({
-    queryKey: ['universe-messages', universeId],
-    queryFn: async () => {
-      if (!universeId) return [];
-      
-      const { data, error } = await supabase
-        .from('universe_messages')
-        .select('*')
-        .eq('universe_id', universeId)
-        .order('created_at', { ascending: true })
-        .limit(100);
-      
-      if (error) throw error;
-      return data as UniverseMessage[];
-    },
-    enabled: !!universeId,
-  });
-
-  // Subscribe to realtime
-  useEffect(() => {
-    if (!universeId) return;
-
-    const channel = supabase
-      .channel(`universe-chat-${universeId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'universe_messages',
-          filter: `universe_id=eq.${universeId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['universe-messages', universeId] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [universeId, queryClient]);
-
-  // Send message
-  const sendMessage = useMutation({
-    mutationFn: async ({ content, replyToId }: { content: string; replyToId?: string }) => {
-      if (!user || !universeId) throw new Error('Not authenticated or no universe');
-      
-      const { error } = await supabase
-        .from('universe_messages')
-        .insert({
-          universe_id: universeId,
-          user_id: user.id,
-          content,
-          reply_to_id: replyToId,
-        });
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['universe-messages', universeId] });
-    },
-  });
-
-  return {
-    messages,
-    isLoading,
-    sendMessage,
-  };
-}
 
 export function useProjectComments(projectId?: string) {
   const { user } = useAuth();

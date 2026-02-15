@@ -1,6 +1,7 @@
 import { memo, useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Type, Film, GripVertical } from 'lucide-react';
+import { Sparkles, Type, Film, GripVertical, ImageIcon } from 'lucide-react';
+import silentVigilSource from '@/assets/silent-vigil-source.png';
 
 // Curated prompt → video pairs using real gallery content
 const SHOWCASE_PAIRS = [
@@ -8,21 +9,25 @@ const SHOWCASE_PAIRS = [
     prompt: 'A breathtaking aerial journey through pristine winter landscapes, soaring above snow-capped peaks…',
     videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171376851.mp4',
     label: 'Soaring Above Snowy Serenity',
+    sourceImage: null as string | null,
   },
   {
     prompt: 'A cinematic journey through golden-hour landscapes, endless winding roads stretching to the horizon…',
     videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4',
     label: 'Sunset Dreams on Winding Roads',
+    sourceImage: null as string | null,
   },
   {
     prompt: 'A delightful journey through a world of sweet confections, whimsical chocolate wonderlands…',
     videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768157346652.mp4',
     label: 'Whimsical Chocolate Adventures',
+    sourceImage: null as string | null,
   },
   {
     prompt: 'An epic tale of courage, a lone warrior standing vigil among ancient ruins, defying the test of time…',
     videoUrl: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4',
     label: 'Silent Vigil in Ruined Valor',
+    sourceImage: silentVigilSource,
   },
 ];
 
@@ -132,37 +137,63 @@ export const PromptResultShowcase = memo(function PromptResultShowcase() {
           className="absolute inset-0 z-10"
           style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
         >
-          <div className="absolute inset-0 bg-[#0a0a0f] flex items-center justify-center p-8 md:p-12">
-            <div className="max-w-md text-center space-y-5">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.1]">
-                <Type className="w-3.5 h-3.5 text-white/50" />
-                <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">Your Prompt</span>
-              </div>
+        {pair.sourceImage ? (
+            <>
               <AnimatePresence mode="wait">
-                <motion.p
-                  key={`prompt-${currentIdx}`}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
+                <motion.img
+                  key={`source-img-${currentIdx}`}
+                  src={pair.sourceImage}
+                  alt="Source image"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
                   transition={{ duration: 0.4 }}
-                  className="text-base md:text-lg text-white/70 leading-relaxed font-mono italic"
-                >
-                  "{pair.prompt}"
-                </motion.p>
+                  className="w-full h-full object-cover"
+                />
               </AnimatePresence>
-              <div className="flex items-center justify-center gap-1.5 pt-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" />
-                <span className="text-xs text-white/30">Drag slider to reveal result →</span>
+              {/* BEFORE label */}
+              <div className="absolute bottom-4 left-4">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.08] backdrop-blur-md border border-white/[0.12] text-[11px] font-medium text-white/60 uppercase tracking-wider">
+                  <ImageIcon className="w-3 h-3" />
+                  Source Image
+                </span>
               </div>
-            </div>
-          </div>
-          {/* BEFORE label */}
-          <div className="absolute bottom-4 left-4">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.08] backdrop-blur-md border border-white/[0.12] text-[11px] font-medium text-white/60 uppercase tracking-wider">
-              <Type className="w-3 h-3" />
-              Prompt
-            </span>
-          </div>
+            </>
+          ) : (
+            <>
+              <div className="absolute inset-0 bg-[#0a0a0f] flex items-center justify-center p-8 md:p-12">
+                <div className="max-w-md text-center space-y-5">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.1]">
+                    <Type className="w-3.5 h-3.5 text-white/50" />
+                    <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">Your Prompt</span>
+                  </div>
+                  <AnimatePresence mode="wait">
+                    <motion.p
+                      key={`prompt-${currentIdx}`}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.4 }}
+                      className="text-base md:text-lg text-white/70 leading-relaxed font-mono italic"
+                    >
+                      "{pair.prompt}"
+                    </motion.p>
+                  </AnimatePresence>
+                  <div className="flex items-center justify-center gap-1.5 pt-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" />
+                    <span className="text-xs text-white/30">Drag slider to reveal result →</span>
+                  </div>
+                </div>
+              </div>
+              {/* BEFORE label */}
+              <div className="absolute bottom-4 left-4">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.08] backdrop-blur-md border border-white/[0.12] text-[11px] font-medium text-white/60 uppercase tracking-wider">
+                  <Type className="w-3 h-3" />
+                  Prompt
+                </span>
+              </div>
+            </>
+          )}
         </div>
 
         {/* === Slider Handle === */}

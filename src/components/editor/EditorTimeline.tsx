@@ -21,6 +21,8 @@ interface EditorTimelineProps {
   onDeleteClip: (clipId: string) => void;
   onRippleDelete?: (clipId: string) => void;
   onMoveClipToTrack?: (clipId: string, targetTrackId: string) => void;
+  onToggleTrackMute?: (trackId: string) => void;
+  onToggleTrackLock?: (trackId: string) => void;
 }
 
 const TRACK_HEIGHT = 48;
@@ -38,6 +40,7 @@ const trackIcons: Record<string, typeof Film> = { video: Film, audio: Music, tex
 export const EditorTimeline = ({
   tracks, currentTime, duration, zoom, selectedClipId, snapEnabled = true,
   onTimeChange, onSelectClip, onUpdateClip, onReorderClip, onZoomChange, onDeleteClip, onRippleDelete, onMoveClipToTrack,
+  onToggleTrackMute, onToggleTrackLock,
 }: EditorTimelineProps) => {
   const timelineRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{ clipId: string; startX: number; originalStart: number; mode: "move" | "trim-left" | "trim-right" } | null>(null);
@@ -195,10 +198,18 @@ export const EditorTimeline = ({
                 </div>
                 <span className="text-[10px] font-medium text-white/50 truncate flex-1 tracking-wide">{track.name}</span>
                 <div className="flex items-center gap-px opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="p-0.5 text-white hover:text-white/70 transition-colors">
+                  <button
+                    className={cn("p-0.5 transition-colors", track.muted ? "text-red-400/60" : "text-white/30 hover:text-white/70")}
+                    onClick={() => onToggleTrackMute?.(track.id)}
+                    title={track.muted ? "Unmute track" : "Mute track"}
+                  >
                     {track.muted ? <VolumeX className="h-2.5 w-2.5" /> : <Volume2 className="h-2.5 w-2.5" />}
                   </button>
-                  <button className="p-0.5 text-white hover:text-white/70 transition-colors">
+                  <button
+                    className={cn("p-0.5 transition-colors", track.locked ? "text-amber-400/60" : "text-white/30 hover:text-white/70")}
+                    onClick={() => onToggleTrackLock?.(track.id)}
+                    title={track.locked ? "Unlock track" : "Lock track"}
+                  >
                     <Lock className="h-2 w-2" />
                   </button>
                 </div>

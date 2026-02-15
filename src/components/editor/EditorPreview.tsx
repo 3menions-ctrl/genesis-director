@@ -42,11 +42,23 @@ export const EditorPreview = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const lastActiveClipIdRef = useRef<string | null>(null);
   const preloadedClipIdRef = useRef<string | null>(null);
+  const currentTimeRef = useRef(currentTime);
+  const durationRef = useRef(duration);
+  const playbackSpeedRef = useRef(playbackSpeed);
+  const isLoopingRef = useRef(false);
+
+  // Keep refs in sync
+  currentTimeRef.current = currentTime;
+  durationRef.current = duration;
+  playbackSpeedRef.current = playbackSpeed;
 
   // === State ===
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
   const [isLooping, setIsLooping] = useState(false);
+
+  // Sync loop ref
+  isLoopingRef.current = isLooping;
 
   // === Derived: sorted video clips for sequencing ===
   const sortedVideoClips = useMemo(() => {
@@ -59,6 +71,13 @@ export const EditorPreview = ({
   const activeVideoClip = useMemo(() => {
     return sortedVideoClips.find((c) => currentTime >= c.start && currentTime < c.end);
   }, [sortedVideoClips, currentTime]);
+
+  // Check if the active video's track is muted
+  const isTrackMuted = useMemo(() => {
+    if (!activeVideoClip) return false;
+    const track = tracks.find((t) => t.clips.some((c) => c.id === activeVideoClip.id));
+    return track?.muted ?? false;
+  }, [tracks, activeVideoClip]);
 
   const nextVideoClip = useMemo(() => {
     if (!activeVideoClip) return null;
@@ -73,7 +92,7 @@ export const EditorPreview = ({
       .filter((c) => currentTime >= c.start && currentTime < c.end);
   }, [tracks, currentTime]);
 
-  // === Playback clock (RAF) ===
+  // === Playback clock (RAF) — ref-based to avoid stale closures ===
   useEffect(() => {
     if (!isPlaying) {
       cancelAnimationFrame(rafRef.current);
@@ -83,29 +102,30 @@ export const EditorPreview = ({
     let lastTimestamp: number | null = null;
     const tick = (timestamp: number) => {
       if (lastTimestamp === null) lastTimestamp = timestamp;
-      const delta = ((timestamp - lastTimestamp) / 1000) * playbackSpeed;
+      const delta = ((timestamp - lastTimestamp) / 1000) * playbackSpeedRef.current;
       lastTimestamp = timestamp;
 
-      const newTime = currentTime + delta;
+      const ct = currentTimeRef.current;
+      const dur = durationRef.current;
+      const newTime = ct + delta;
 
-      if (newTime >= duration) {
-        if (isLooping) {
+      if (newTime >= dur) {
+        if (isLoopingRef.current) {
           onTimeChange(0);
         } else {
-          onTimeChange(duration);
+          onTimeChange(dur);
+          return; // Stop the loop — we've reached the end
         }
       } else {
         onTimeChange(newTime);
       }
 
-      if (newTime < duration || isLooping) {
-        rafRef.current = requestAnimationFrame(tick);
-      }
+      rafRef.current = requestAnimationFrame(tick);
     };
 
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [isPlaying, currentTime, duration, onTimeChange, playbackSpeed, isLooping]);
+  }, [isPlaying, onTimeChange]);
 
   // === Double-buffer: preload next clip ===
   useEffect(() => {
@@ -149,9 +169,9 @@ export const EditorPreview = ({
 
     video.playbackRate = playbackSpeed;
 
-    // Sync position within clip
+    // Sync position within clip — tight tolerance for gapless playback
     const clipLocalTime = currentTime - activeVideoClip.start;
-    if (!clipChanged && Math.abs(video.currentTime - clipLocalTime) > 0.3) {
+    if (!clipChanged && Math.abs(video.currentTime - clipLocalTime) > 0.15) {
       video.currentTime = clipLocalTime;
     }
 
@@ -162,19 +182,20 @@ export const EditorPreview = ({
     }
   }, [activeVideoClip, currentTime, isPlaying, playbackSpeed]);
 
-  // === Volume sync ===
+  // === Volume sync (respects track mute) ===
   useEffect(() => {
+    const effectiveMute = isMuted || isTrackMuted;
     const video = activeVideoRef.current;
     if (video) {
-      video.muted = isMuted;
+      video.muted = effectiveMute;
       video.volume = volume / 100;
     }
     const preload = preloadVideoRef.current;
     if (preload) {
-      preload.muted = isMuted;
+      preload.muted = effectiveMute;
       preload.volume = volume / 100;
     }
-  }, [volume, isMuted]);
+  }, [volume, isMuted, isTrackMuted]);
 
   // === Keyboard shortcuts ===
   useEffect(() => {

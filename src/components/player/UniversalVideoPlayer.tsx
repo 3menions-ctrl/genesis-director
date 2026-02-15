@@ -1571,15 +1571,15 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
           <>
             <video
               ref={videoARef}
-              className="absolute inset-0 w-full h-full object-contain transition-opacity duration-[30ms]"
-              style={{ opacity: videoAOpacity }}
+className="absolute inset-0 w-full h-full object-contain transition-opacity"
+              style={{ opacity: videoAOpacity, transitionDuration: '30ms' }}
               muted={isMuted}
               playsInline
             />
             <video
               ref={videoBRef}
-              className="absolute inset-0 w-full h-full object-contain transition-opacity duration-[30ms]"
-              style={{ opacity: videoBOpacity }}
+className="absolute inset-0 w-full h-full object-contain transition-opacity"
+              style={{ opacity: videoBOpacity, transitionDuration: '30ms' }}
               muted={isMuted}
               playsInline
             />

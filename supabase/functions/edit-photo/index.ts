@@ -38,10 +38,10 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
-    if (!REPLICATE_API_KEY) {
-      throw new Error('REPLICATE_API_KEY is not configured');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -106,100 +106,53 @@ Deno.serve(async (req) => {
       }).eq('id', editId);
     }
 
-    // Call Replicate instruct-pix2pix for image editing
-    console.log(`[edit-photo] Processing edit via Replicate for user ${auth.userId.slice(0, 8)}...`);
+    console.log(`[edit-photo] Processing edit via Lovable AI (Gemini) for user ${auth.userId.slice(0, 8)}...`);
 
-    // Download the source image and convert to data URI to avoid accessibility issues
-    let imageInput = imageUrl;
-    try {
-      const imgResp = await fetch(imageUrl);
-      if (imgResp.ok) {
-        const imgBuf = new Uint8Array(await imgResp.arrayBuffer());
-        const contentType = imgResp.headers.get('content-type') || 'image/png';
-        // Chunk the conversion to avoid stack overflow on large images
-        let binary = '';
-        const chunkSize = 8192;
-        for (let i = 0; i < imgBuf.length; i += chunkSize) {
-          binary += String.fromCharCode(...imgBuf.subarray(i, i + chunkSize));
-        }
-        imageInput = `data:${contentType};base64,${btoa(binary)}`;
-      }
-    } catch (e) {
-      console.warn('[edit-photo] Could not pre-download image, using URL directly:', e);
-    }
+    // Build the enhanced editing prompt for world-class results
+    const systemPrompt = `You are a world-class professional photo editor with mastery of color grading, retouching, compositing, and artistic enhancement. Apply the requested edit with the highest possible quality. Maintain photorealistic detail, natural lighting consistency, and cinematic polish. Never degrade image quality. Always preserve the subject's identity and key features while applying the edit.`;
 
-    // Create prediction using Replicate API — try model-based endpoint first, fallback to version
-    let createResponse = await fetch('https://api.replicate.com/v1/models/zsxkib/step1x-edit/predictions', {
+    const editPrompt = `Apply this professional photo edit to the image: ${editInstruction}
+
+Requirements:
+- Maintain photorealistic quality and natural detail
+- Preserve lighting consistency and color harmony
+- Keep the subject's identity and key features intact
+- Apply the edit with cinematic, high-end production quality
+- Output should look like it was done by a top Hollywood VFX studio`;
+
+    // Call Lovable AI Gateway with Gemini image model
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${REPLICATE_API_KEY}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
-        Prefer: 'wait',
       },
       body: JSON.stringify({
-        input: {
-          image: imageInput,
-          prompt: editInstruction,
-          steps: 50,
-          guidance: 7.5,
-        },
+        model: 'google/gemini-2.5-flash-image',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: editPrompt },
+              { type: 'image_url', image_url: { url: imageUrl } },
+            ],
+          },
+        ],
+        modalities: ['image', 'text'],
       }),
     });
 
-    // If model endpoint fails, try with explicit version hash
-    if (!createResponse.ok && createResponse.status === 404) {
-      console.log('[edit-photo] Model endpoint returned 404, trying version-based endpoint...');
-      createResponse = await fetch('https://api.replicate.com/v1/predictions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${REPLICATE_API_KEY}`,
-          'Content-Type': 'application/json',
-          Prefer: 'wait',
-        },
-        body: JSON.stringify({
-          version: '12b5a5a61e3419f792eb56cfc16eed046252740ebf5d470228f9b4cf2c861610',
-          input: {
-            image: imageInput,
-            prompt: editInstruction,
-            steps: 50,
-            guidance: 7.5,
-          },
-        }),
-      });
-    }
+    if (!aiResponse.ok) {
+      const errText = await aiResponse.text();
+      console.error('[edit-photo] Lovable AI error:', aiResponse.status, errText);
 
-    // If both fail, try a known-good alternative model (instruct-pix2pix)
-    if (!createResponse.ok && (createResponse.status === 404 || createResponse.status === 422)) {
-      console.log('[edit-photo] Step1X-Edit unavailable, falling back to timothybrooks/instruct-pix2pix...');
-      createResponse = await fetch('https://api.replicate.com/v1/models/timothybrooks/instruct-pix2pix/predictions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${REPLICATE_API_KEY}`,
-          'Content-Type': 'application/json',
-          Prefer: 'wait',
-        },
-        body: JSON.stringify({
-          input: {
-            image: imageInput,
-            prompt: editInstruction,
-            num_inference_steps: 50,
-            guidance_scale: 7.5,
-            image_guidance_scale: 1.5,
-          },
-        }),
-      });
-    }
-
-    if (!createResponse.ok) {
-      const errText = await createResponse.text();
-      console.error('[edit-photo] Replicate error:', createResponse.status, errText);
-
-      const is429 = createResponse.status === 429;
-      const is402 = createResponse.status === 402;
+      const is429 = aiResponse.status === 429;
+      const is402 = aiResponse.status === 402;
       const errorMsg = is429
         ? 'Rate limited, try again shortly'
         : is402
-        ? 'Not enough Replicate credits. Please top up your Replicate account.'
+        ? 'AI credits exhausted. Please top up your workspace.'
         : 'Image editing failed';
 
       if (editId) {
@@ -222,43 +175,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    let prediction = await createResponse.json();
+    const aiResult = await aiResponse.json();
+    
+    // Extract the edited image from the response
+    const editedImageData = aiResult.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
-    // If Prefer: wait didn't resolve it, poll
-    while (prediction.status === 'starting' || prediction.status === 'processing') {
-      await new Promise(r => setTimeout(r, 2000));
-      const pollResp = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
-        headers: { Authorization: `Bearer ${REPLICATE_API_KEY}` },
-      });
-      prediction = await pollResp.json();
-    }
-
-    if (prediction.status === 'failed' || !prediction.output) {
-      console.error('[edit-photo] Replicate prediction failed:', prediction.error);
+    if (!editedImageData) {
+      console.error('[edit-photo] No image returned from Lovable AI:', JSON.stringify(aiResult).slice(0, 500));
       
-      if (editId) {
-        await supabase.from('photo_edits').update({
-          status: 'failed',
-          error_message: 'Image editing failed',
-        }).eq('id', editId);
-      }
-      if (creditsCost > 0) {
-        await supabase.rpc('increment_credits', {
-          user_id_param: auth.userId,
-          amount_param: creditsCost,
-        });
-      }
-      return new Response(
-        JSON.stringify({ error: 'Image editing failed' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Replicate returns output as an array of URLs (or a single URL string)
-    const outputUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
-
-    if (!outputUrl) {
-      console.error('[edit-photo] No output from Replicate');
       if (editId) {
         await supabase.from('photo_edits').update({
           status: 'failed',
@@ -272,14 +196,26 @@ Deno.serve(async (req) => {
         });
       }
       return new Response(
-        JSON.stringify({ error: 'No edited image returned' }),
+        JSON.stringify({ error: 'No edited image returned from AI' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Download the edited image from Replicate and upload to storage
-    const imageResp = await fetch(outputUrl);
-    const imageBytes = new Uint8Array(await imageResp.arrayBuffer());
+    // Convert base64 data URI to bytes for upload
+    let imageBytes: Uint8Array;
+    if (editedImageData.startsWith('data:')) {
+      const base64Part = editedImageData.split(',')[1];
+      const binaryString = atob(base64Part);
+      imageBytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        imageBytes[i] = binaryString.charCodeAt(i);
+      }
+    } else {
+      // If it's a URL, download it
+      const imgResp = await fetch(editedImageData);
+      imageBytes = new Uint8Array(await imgResp.arrayBuffer());
+    }
+
     const fileName = `${auth.userId}/${crypto.randomUUID()}.png`;
 
     const { error: uploadError } = await supabase.storage

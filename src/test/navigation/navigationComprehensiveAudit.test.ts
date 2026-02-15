@@ -101,7 +101,6 @@ describe('1. Route Config ↔ App.tsx Sync', () => {
       '/production',
       '/discover',
       '/clips',
-      '/universes',
       '/templates',
       '/environments',
     ];
@@ -128,7 +127,7 @@ describe('2. Protected Route Coverage', () => {
   // Routes that MUST be protected (require auth)
   const MUST_PROTECT = [
     '/projects', '/create', '/avatars', '/production',
-    '/settings', '/profile', '/clips', '/universes',
+    '/settings', '/profile', '/clips',
     '/templates', '/training-video', '/environments',
     '/chat', '/editor', '/admin', '/onboarding',
     '/discover', '/script-review', '/extract-thumbnails',

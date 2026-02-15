@@ -10,7 +10,8 @@ import {
   Loader2, Clock,
   Pencil, Grid3X3, LayoutList,
   X, Search, SortAsc, SortDesc,
-  Command, MonitorPlay, Pin, ExternalLink
+  Command, MonitorPlay, Pin, ExternalLink,
+  Image, Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
@@ -217,6 +218,21 @@ function ProjectsContentInner() {
   const [isLoadingTrainingVideos, setIsLoadingTrainingVideos] = useState(true);
   const [selectedTrainingVideo, setSelectedTrainingVideo] = useState<TrainingVideo | null>(null);
   const [trainingVideoModalOpen, setTrainingVideoModalOpen] = useState(false);
+
+  // Photo edits state
+  interface PhotoEdit {
+    id: string;
+    original_url: string;
+    edited_url: string | null;
+    edit_type: string;
+    custom_instruction: string | null;
+    status: string;
+    created_at: string;
+    credits_charged: number | null;
+  }
+  const [photoEdits, setPhotoEdits] = useState<PhotoEdit[]>([]);
+  const [isLoadingPhotoEdits, setIsLoadingPhotoEdits] = useState(true);
+  const [selectedPhotoEdit, setSelectedPhotoEdit] = useState<PhotoEdit | null>(null);
   
   // BATCH RESOLVE: Fetch all clip URLs for projects that need them in ONE query
   useEffect(() => {
@@ -338,6 +354,32 @@ function ProjectsContentInner() {
     };
     
     fetchTrainingVideos();
+  }, [user]);
+
+  // Fetch completed photo edits
+  useEffect(() => {
+    const fetchPhotoEdits = async () => {
+      if (!user) return;
+      setIsLoadingPhotoEdits(true);
+      try {
+        const { data, error } = await supabase
+          .from('photo_edits')
+          .select('id, original_url, edited_url, edit_type, custom_instruction, status, created_at, credits_charged')
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+          .not('edited_url', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(50);
+        
+        if (error) throw error;
+        setPhotoEdits(data || []);
+      } catch (err) {
+        console.error('Failed to fetch photo edits:', err);
+      } finally {
+        setIsLoadingPhotoEdits(false);
+      }
+    };
+    fetchPhotoEdits();
   }, [user]);
 
   // Delete training video handler
@@ -1033,7 +1075,142 @@ function ProjectsContentInner() {
                 </motion.section>
               )}
 
-              {filteredProjects.length === 0 && trainingVideos.length === 0 ? (
+              {/* Photo Edits Section */}
+              {photoEdits.length > 0 && (
+                <motion.section 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="relative"
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <Image className="w-3.5 h-3.5 text-cyan-400/60" />
+                    <h2 className="text-xs font-medium uppercase tracking-wider text-white/40">Photo Edits</h2>
+                    <span className="text-[10px] text-white/20">{photoEdits.length}</span>
+                    <button
+                      onClick={() => navigate('/create?tab=photo')}
+                      className="ml-auto text-[10px] uppercase tracking-wider text-white/30 hover:text-white/60 transition-colors"
+                    >
+                      + New Edit
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {photoEdits.map((edit, index) => (
+                      <motion.div
+                        key={edit.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.03 }}
+                        className="group relative cursor-pointer"
+                        onClick={() => setSelectedPhotoEdit(selectedPhotoEdit?.id === edit.id ? null : edit)}
+                      >
+                        <div className={cn(
+                          "relative aspect-square rounded-xl overflow-hidden",
+                          "bg-zinc-900 border transition-all duration-300",
+                          selectedPhotoEdit?.id === edit.id
+                            ? "border-cyan-500/50 ring-2 ring-cyan-500/20"
+                            : "border-white/[0.06] group-hover:border-cyan-500/30"
+                        )}>
+                          <img
+                            src={edit.edited_url || edit.original_url}
+                            alt="Photo edit"
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          {/* Hover overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                          
+                          {/* Before/After badge */}
+                          <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 border border-cyan-500/30 text-[9px] font-medium text-cyan-300 uppercase tracking-wider">
+                              <Sparkles className="w-2.5 h-2.5 inline mr-0.5 -mt-0.5" />
+                              Enhanced
+                            </span>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (edit.edited_url) {
+                                  const a = document.createElement('a');
+                                  a.href = edit.edited_url;
+                                  a.download = `photo-edit-${edit.id.slice(0, 8)}.png`;
+                                  a.target = '_blank';
+                                  a.click();
+                                }
+                              }}
+                              className="w-7 h-7 rounded-full bg-black/60 flex items-center justify-center hover:bg-white/20"
+                              title="Download"
+                            >
+                              <Download className="w-3 h-3 text-white" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (edit.edited_url) {
+                                  sessionStorage.setItem('imageToVideoUrl', edit.edited_url);
+                                  navigate('/create?mode=image-to-video');
+                                  toast.success('Photo loaded into video creator');
+                                }
+                              }}
+                              className="w-7 h-7 rounded-full bg-black/60 flex items-center justify-center hover:bg-cyan-500/40"
+                              title="Use in Video"
+                            >
+                              <Film className="w-3 h-3 text-white" />
+                            </button>
+                          </div>
+
+                          {/* Bottom info */}
+                          <div className="absolute bottom-0 left-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <p className="text-[10px] text-white/60 truncate">
+                              {edit.custom_instruction || edit.edit_type}
+                            </p>
+                            <p className="text-[9px] text-white/30 mt-0.5">{formatTimeAgo(edit.created_at)}</p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {/* Selected photo edit expanded view */}
+                  {selectedPhotoEdit && (
+                    <div className="mt-4 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 animate-fade-in">
+                      <div className="flex items-start gap-4">
+                        <div className="flex gap-3 flex-1 min-w-0">
+                          {/* Original */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] uppercase tracking-wider text-white/30 mb-2">Original</p>
+                            <div className="aspect-square rounded-lg overflow-hidden border border-white/[0.06]">
+                              <img src={selectedPhotoEdit.original_url} alt="Original" className="w-full h-full object-cover" />
+                            </div>
+                          </div>
+                          {/* Edited */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] uppercase tracking-wider text-cyan-400/60 mb-2">Enhanced</p>
+                            <div className="aspect-square rounded-lg overflow-hidden border border-cyan-500/20">
+                              <img src={selectedPhotoEdit.edited_url || ''} alt="Enhanced" className="w-full h-full object-cover" />
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setSelectedPhotoEdit(null)}
+                          className="p-1.5 rounded-lg hover:bg-white/[0.06] text-white/30 hover:text-white/60 transition-colors flex-shrink-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      {selectedPhotoEdit.custom_instruction && (
+                        <p className="text-xs text-white/40 mt-3 italic">"{selectedPhotoEdit.custom_instruction}"</p>
+                      )}
+                    </div>
+                  )}
+                </motion.section>
+              )}
+
+              {filteredProjects.length === 0 && trainingVideos.length === 0 && photoEdits.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <div className="w-16 h-16 rounded-xl bg-zinc-800/60 flex items-center justify-center mb-4">
                     <Search className="w-6 h-6 text-zinc-500" />

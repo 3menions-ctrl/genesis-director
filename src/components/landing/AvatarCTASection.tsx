@@ -48,7 +48,7 @@ export const AvatarCTASection = memo(function AvatarCTASection({ onNavigate }: A
           className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16"
         >
           {/* Avatar Video */}
-          <div className="relative shrink-0 w-56 h-56 lg:w-64 lg:h-64">
+          <div className="relative shrink-0 w-64 h-64 lg:w-72 lg:h-72">
             {/* Glow ring */}
             <div className="absolute -inset-3 rounded-full bg-gradient-to-br from-primary/20 via-violet-500/10 to-cyan-500/10 blur-xl animate-pulse" style={{ animationDuration: '3s' }} />
             

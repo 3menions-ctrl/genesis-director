@@ -188,63 +188,136 @@ const LetsGoCTA = memo(function LetsGoCTA({ onNavigate }: { onNavigate: (path: s
 const CrackedGlassOverlay = memo(function CrackedGlassOverlay() {
   return (
     <div className="fixed inset-0 z-[3] pointer-events-none animate-crack-appear">
+      {/* White flash on impact */}
+      <div className="absolute inset-0 animate-crack-whiteflash" />
+
       <svg width="100%" height="100%" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-        {/* Impact point — slightly off-center for realism */}
-        <circle cx="920" cy="480" r="6" fill="rgba(255,255,255,0.25)" className="animate-crack-flash" />
+        <defs>
+          {/* Glow filter for bright crack edges */}
+          <filter id="crackGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="1.5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="crackGlowSoft" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        {/* Impact point with bright center */}
+        <circle cx="870" cy="420" r="3" fill="rgba(255,255,255,0.9)" className="animate-crack-flash" filter="url(#crackGlow)" />
+        <circle cx="870" cy="420" r="18" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8" className="animate-crack-flash" />
         
-        {/* Primary radial cracks from impact */}
-        <g stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" fill="none" className="animate-crack-lines-1" strokeLinecap="round">
-          <path d="M920,480 L1120,280 L1200,250" />
-          <path d="M920,480 L1150,500 L1350,460 L1500,420" />
-          <path d="M920,480 L1080,650 L1200,780 L1280,900" />
-          <path d="M920,480 L750,250 L680,150" />
-          <path d="M920,480 L650,520 L450,540 L300,580" />
-          <path d="M920,480 L780,700 L700,850 L650,980" />
-          <path d="M920,480 L950,300 L980,150 L1010,50" />
-          <path d="M920,480 L900,700 L880,900 L860,1020" />
-        </g>
-        
-        {/* Secondary branching cracks */}
-        <g stroke="rgba(255,255,255,0.35)" strokeWidth="1" fill="none" className="animate-crack-lines-2" strokeLinecap="round">
-          <path d="M1120,280 L1180,320 L1250,330" />
-          <path d="M1120,280 L1100,200 L1130,120" />
-          <path d="M1150,500 L1180,580 L1250,620" />
-          <path d="M750,250 L700,280 L620,260" />
-          <path d="M750,250 L780,180 L800,100" />
-          <path d="M650,520 L620,600 L580,650" />
-          <path d="M1080,650 L1150,680 L1220,660" />
-          <path d="M780,700 L720,730 L660,710" />
-          <path d="M950,300 L1020,280 L1060,230" />
-          <path d="M900,700 L960,740 L1020,800" />
-        </g>
-        
-        {/* Tertiary micro-cracks */}
-        <g stroke="rgba(255,255,255,0.2)" strokeWidth="0.7" fill="none" className="animate-crack-lines-3" strokeLinecap="round">
-          <path d="M1200,250 L1260,210 L1320,220" />
-          <path d="M1350,460 L1380,500 L1430,490" />
-          <path d="M1200,780 L1250,810 L1300,790" />
-          <path d="M680,150 L640,120 L600,140" />
-          <path d="M450,540 L430,490 L390,480" />
-          <path d="M700,850 L750,880 L780,920" />
-          <path d="M980,150 L940,120 L900,90" />
-          <path d="M1250,330 L1290,380 L1340,370" />
-          <path d="M620,260 L570,230 L530,250" />
-          <path d="M580,650 L540,700 L500,690" />
-        </g>
-        
-        {/* Concentric stress rings around impact */}
-        <g stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" fill="none" className="animate-crack-rings">
-          <ellipse cx="920" cy="480" rx="80" ry="60" />
-          <ellipse cx="920" cy="480" rx="160" ry="120" />
-          <ellipse cx="920" cy="480" rx="280" ry="200" />
+        {/* ── LAYER 1: Major radial cracks (thick, bright) ── */}
+        <g stroke="rgba(255,255,255,0.7)" strokeWidth="2" fill="none" className="animate-crack-lines-1" strokeLinecap="round" filter="url(#crackGlow)">
+          <path d="M870,420 L1020,310 L1150,240 L1300,180 L1500,120" />
+          <path d="M870,420 L1080,430 L1280,400 L1480,370 L1700,330" />
+          <path d="M870,420 L1020,560 L1140,680 L1250,800 L1340,960" />
+          <path d="M870,420 L990,600 L1080,780 L1120,950" />
+          <path d="M870,420 L720,280 L600,180 L480,90 L350,20" />
+          <path d="M870,420 L650,390 L440,380 L250,400 L80,430" />
+          <path d="M870,420 L730,560 L600,700 L490,850 L400,1000" />
+          <path d="M870,420 L780,600 L700,780 L650,950 L620,1060" />
+          <path d="M870,420 L900,270 L920,140 L940,30" />
+          <path d="M870,420 L830,260 L780,120 L740,10" />
+          <path d="M870,420 L870,580 L860,750 L850,950" />
+          <path d="M870,420 L1000,480 L1150,560 L1320,650 L1500,740" />
         </g>
 
-        {/* Shard highlight — subtle refraction */}
+        {/* ── LAYER 2: Secondary branches ── */}
+        <g stroke="rgba(255,255,255,0.45)" strokeWidth="1.2" fill="none" className="animate-crack-lines-2" strokeLinecap="round">
+          <path d="M1020,310 L1060,360 L1130,380" />
+          <path d="M1020,310 L980,240 L960,160" />
+          <path d="M1150,240 L1200,290 L1270,300" />
+          <path d="M1150,240 L1130,170 L1150,100" />
+          <path d="M1080,430 L1100,500 L1160,540" />
+          <path d="M1280,400 L1310,460 L1380,480" />
+          <path d="M1020,560 L1080,530 L1150,550" />
+          <path d="M1140,680 L1200,650 L1270,670" />
+          <path d="M1140,680 L1110,740 L1060,790" />
+          <path d="M720,280 L680,330 L620,340" />
+          <path d="M720,280 L750,210 L770,140" />
+          <path d="M600,180 L560,230 L500,240" />
+          <path d="M650,390 L630,450 L580,480" />
+          <path d="M440,380 L420,320 L380,280" />
+          <path d="M440,380 L410,440 L360,470" />
+          <path d="M730,560 L780,590 L840,620" />
+          <path d="M600,700 L550,670 L490,680" />
+          <path d="M600,700 L630,760 L620,830" />
+          <path d="M900,270 L960,250 L1020,220" />
+          <path d="M900,270 L850,220 L800,200" />
+          <path d="M870,580 L920,610 L970,650" />
+          <path d="M870,580 L810,610 L760,640" />
+          <path d="M990,600 L1050,620 L1120,610" />
+          <path d="M1000,480 L1040,520 L1090,510" />
+          <path d="M1150,560 L1190,600 L1240,590" />
+        </g>
+
+        {/* ── LAYER 3: Tertiary micro-fractures ── */}
+        <g stroke="rgba(255,255,255,0.25)" strokeWidth="0.6" fill="none" className="animate-crack-lines-3" strokeLinecap="round">
+          <path d="M1300,180 L1340,220 L1390,210" />
+          <path d="M1500,120 L1540,160 L1590,140" />
+          <path d="M1480,370 L1520,410 L1570,400" />
+          <path d="M1700,330 L1740,370 L1800,350" />
+          <path d="M1250,800 L1290,830 L1340,810" />
+          <path d="M1340,960 L1380,990 L1420,970" />
+          <path d="M480,90 L440,130 L390,120" />
+          <path d="M350,20 L310,60 L260,40" />
+          <path d="M250,400 L220,360 L170,370" />
+          <path d="M80,430 L50,470 L20,460" />
+          <path d="M490,850 L440,880 L400,860" />
+          <path d="M400,1000 L360,1030 L320,1010" />
+          <path d="M940,30 L970,70 L1020,50" />
+          <path d="M740,10 L700,50 L660,30" />
+          <path d="M850,950 L890,980 L930,960" />
+          <path d="M1320,650 L1360,690 L1410,670" />
+          <path d="M1500,740 L1540,780 L1590,760" />
+          <path d="M1120,950 L1160,980 L1200,960" />
+          <path d="M620,1060 L660,1040 L700,1060" />
+          <path d="M1130,380 L1170,410 L1220,400" />
+          <path d="M620,340 L580,370 L540,350" />
+          <path d="M500,240 L460,270 L420,250" />
+          <path d="M580,480 L540,510 L500,500" />
+          <path d="M360,470 L320,500 L280,490" />
+        </g>
+
+        {/* ── LAYER 4: Concentric stress rings (spider web) ── */}
+        <g stroke="rgba(255,255,255,0.15)" strokeWidth="0.5" fill="none" className="animate-crack-rings">
+          <ellipse cx="870" cy="420" rx="40" ry="30" />
+          <ellipse cx="870" cy="420" rx="90" ry="65" />
+          <ellipse cx="870" cy="420" rx="160" ry="115" />
+          <ellipse cx="870" cy="420" rx="260" ry="190" />
+          <ellipse cx="870" cy="420" rx="400" ry="290" />
+        </g>
+
+        {/* ── LAYER 5: Shard regions with subtle refraction ── */}
         <g className="animate-crack-shards">
-          <polygon points="920,480 1120,280 1150,500" fill="rgba(255,255,255,0.03)" />
-          <polygon points="920,480 750,250 650,520" fill="rgba(255,255,255,0.02)" />
-          <polygon points="920,480 1080,650 900,700" fill="rgba(255,255,255,0.025)" />
-          <polygon points="920,480 950,300 1120,280" fill="rgba(255,255,255,0.015)" />
+          <polygon points="870,420 1020,310 1080,430" fill="rgba(255,255,255,0.04)" />
+          <polygon points="870,420 1080,430 1020,560" fill="rgba(255,255,255,0.025)" />
+          <polygon points="870,420 1020,560 990,600" fill="rgba(255,255,255,0.035)" />
+          <polygon points="870,420 720,280 650,390" fill="rgba(255,255,255,0.03)" />
+          <polygon points="870,420 650,390 730,560" fill="rgba(255,255,255,0.02)" />
+          <polygon points="870,420 900,270 1020,310" fill="rgba(255,255,255,0.015)" />
+          <polygon points="870,420 830,260 720,280" fill="rgba(255,255,255,0.025)" />
+          <polygon points="870,420 870,580 780,600" fill="rgba(255,255,255,0.03)" />
+          <polygon points="870,420 870,580 990,600" fill="rgba(255,255,255,0.02)" />
+          <polygon points="870,420 1000,480 1080,430" fill="rgba(255,255,255,0.015)" />
+        </g>
+
+        {/* ── LAYER 6: Bright edge highlights on major cracks ── */}
+        <g stroke="rgba(255,255,255,0.12)" strokeWidth="4" fill="none" className="animate-crack-lines-1" strokeLinecap="round" filter="url(#crackGlowSoft)">
+          <path d="M870,420 L1020,310 L1150,240" />
+          <path d="M870,420 L720,280 L600,180" />
+          <path d="M870,420 L1020,560 L1140,680" />
+          <path d="M870,420 L730,560 L600,700" />
+          <path d="M870,420 L900,270 L920,140" />
+          <path d="M870,420 L870,580 L860,750" />
         </g>
       </svg>
     </div>

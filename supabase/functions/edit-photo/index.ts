@@ -128,8 +128,8 @@ Deno.serve(async (req) => {
       console.warn('[edit-photo] Could not pre-download image, using URL directly:', e);
     }
 
-    // Create prediction using Replicate API
-    const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
+    // Create prediction using Replicate API — Step1X-Edit (stable, modern model)
+    const createResponse = await fetch('https://api.replicate.com/v1/models/zsxkib/step1x-edit/predictions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${REPLICATE_API_KEY}`,
@@ -137,13 +137,11 @@ Deno.serve(async (req) => {
         Prefer: 'wait',
       },
       body: JSON.stringify({
-        version: '30c1d0b916a6f8efce20493f5d61ee27491ab2a60437c13c588468b9810ec23f',
         input: {
           image: imageInput,
           prompt: editInstruction,
-          num_inference_steps: 50,
-          image_guidance_scale: 1.5,
-          guidance_scale: 7.5,
+          steps: 50,
+          guidance: 7.5,
         },
       }),
     });

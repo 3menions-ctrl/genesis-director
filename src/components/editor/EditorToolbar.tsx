@@ -1,6 +1,7 @@
 import {
   ArrowLeft, Save, Download, Loader2, Undo2, Redo2, Scissors, Sparkles,
   Copy, Magnet, Maximize, PanelLeftClose, PanelLeft, Plus, Film, Music, Type,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,66 @@ interface EditorToolbarProps {
   renderProgress: number;
 }
 
+/* ─── Small reusable pieces ─── */
+
+const Divider = () => <div className="h-5 w-px bg-border/40 mx-1 shrink-0" />;
+
+const Kbd = ({ children }: { children: React.ReactNode }) => (
+  <kbd className="ml-1.5 px-1 py-0.5 rounded bg-muted/60 text-[9px] font-mono text-muted-foreground/60 border border-border/30 leading-none">
+    {children}
+  </kbd>
+);
+
+const ToolbarTooltip = ({ children, label, shortcut }: { children: React.ReactNode; label: string; shortcut?: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>{children}</TooltipTrigger>
+    <TooltipContent
+      side="bottom"
+      sideOffset={8}
+      className="text-[11px] font-medium bg-popover border-border/60 shadow-xl px-2.5 py-1.5 flex items-center gap-1"
+    >
+      {label}
+      {shortcut && <Kbd>{shortcut}</Kbd>}
+    </TooltipContent>
+  </Tooltip>
+);
+
+const ToolBtn = ({
+  onClick, disabled, active, className, children,
+}: {
+  onClick?: () => void; disabled?: boolean; active?: boolean; className?: string; children: React.ReactNode;
+}) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className={cn(
+      "h-7 w-7 rounded-md flex items-center justify-center transition-all duration-150",
+      "text-muted-foreground hover:text-foreground hover:bg-secondary",
+      "disabled:opacity-20 disabled:pointer-events-none",
+      "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40",
+      active && "text-primary bg-primary/10 hover:bg-primary/15 hover:text-primary",
+      className,
+    )}
+  >
+    {children}
+  </button>
+);
+
+/* ─── Toolbar cluster wrapper ─── */
+const ToolCluster = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+  <div className={cn(
+    "flex items-center gap-0.5 rounded-lg p-0.5",
+    "bg-secondary/40 border border-border/30",
+    className,
+  )}>
+    {children}
+  </div>
+);
+
+/* ═══════════════════════════════════════════
+   Main Toolbar
+   ═══════════════════════════════════════════ */
+
 export const EditorToolbar = ({
   title, onTitleChange, onSave, onExport, onBack,
   onUndo, onRedo, onSplit, onDuplicate, onFitToView, onToggleSnap, onToggleMediaBrowser, onAddTrack,
@@ -41,200 +102,179 @@ export const EditorToolbar = ({
   isSaving, renderStatus, renderProgress,
 }: EditorToolbarProps) => {
   return (
-    <TooltipProvider delayDuration={200}>
-      <div className="h-11 bg-[hsl(260,15%,7%)] border-b border-white/[0.06] flex items-center gap-1 px-2 shrink-0 relative">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+    <TooltipProvider delayDuration={300}>
+      <div className="h-12 bg-card/80 backdrop-blur-xl border-b border-border/50 flex items-center gap-1.5 px-2 shrink-0 relative z-20">
+        {/* Top highlight line */}
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/25 to-transparent" />
 
-        {/* Back */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onBack}
-              className="h-7 w-7 text-white hover:text-white hover:bg-white/[0.08] rounded-md transition-all">
-              <ArrowLeft className="h-3.5 w-3.5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-[10px] bg-[hsl(260,20%,12%)] border-white/10">Back</TooltipContent>
-        </Tooltip>
+        {/* ── Back ── */}
+        <ToolbarTooltip label="Back to projects">
+          <ToolBtn onClick={onBack}>
+            <ArrowLeft className="h-4 w-4" />
+          </ToolBtn>
+        </ToolbarTooltip>
 
-        <div className="h-4 w-px bg-white/[0.06] mx-0.5" />
+        <Divider />
 
-        {/* Toggle media browser */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onToggleMediaBrowser}
-              className={cn("h-7 w-7 rounded-md transition-all",
-                showMediaBrowser ? "text-white bg-white/[0.06]" : "text-white/40 hover:text-white hover:bg-white/[0.08]"
-              )}>
-              {showMediaBrowser ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeft className="h-3.5 w-3.5" />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-[10px] bg-[hsl(260,20%,12%)] border-white/10">
-            Media Panel <kbd className="ml-1 text-[8px] text-white/30">M</kbd>
-          </TooltipContent>
-        </Tooltip>
+        {/* ── Media panel toggle ── */}
+        <ToolbarTooltip label="Media Panel" shortcut="M">
+          <ToolBtn onClick={onToggleMediaBrowser} active={showMediaBrowser}>
+            {showMediaBrowser ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
+          </ToolBtn>
+        </ToolbarTooltip>
 
-        <div className="h-4 w-px bg-white/[0.06] mx-0.5" />
+        <Divider />
 
-        {/* Project title */}
-        <div className="flex items-center gap-1.5 mr-1">
-          <div className="w-5 h-5 rounded bg-primary/20 border border-primary/30 flex items-center justify-center">
-            <Scissors className="h-2.5 w-2.5 text-primary" />
+        {/* ── Project title ── */}
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-6 h-6 rounded-md bg-primary/15 border border-primary/25 flex items-center justify-center shrink-0">
+            <Film className="h-3 w-3 text-primary" />
           </div>
-        </div>
-        <Input
-          value={title}
-          onChange={(e) => onTitleChange(e.target.value)}
-          className="max-w-[160px] h-6 text-[11px] font-medium bg-transparent border-none text-white/70 placeholder:text-white/20 focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-white/[0.04] rounded px-1.5"
-        />
-
-        <div className="h-4 w-px bg-white/[0.06] mx-0.5" />
-
-        {/* Edit tools cluster */}
-        <div className="flex items-center gap-0.5 bg-white/[0.03] rounded-md p-0.5 border border-white/[0.04]">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={onUndo} disabled={!canUndo}
-                className="h-6 w-6 text-white hover:text-white hover:bg-white/[0.08] disabled:opacity-15 rounded-sm transition-all">
-                <Undo2 className="h-3 w-3" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-[10px] bg-[hsl(260,20%,12%)] border-white/10">
-              Undo <kbd className="ml-1 text-[8px] text-white/30">⌘Z</kbd>
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={onRedo} disabled={!canRedo}
-                className="h-6 w-6 text-white hover:text-white hover:bg-white/[0.08] disabled:opacity-15 rounded-sm transition-all">
-                <Redo2 className="h-3 w-3" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-[10px] bg-[hsl(260,20%,12%)] border-white/10">
-              Redo <kbd className="ml-1 text-[8px] text-white/30">⌘⇧Z</kbd>
-            </TooltipContent>
-          </Tooltip>
-
-          <div className="h-3.5 w-px bg-white/[0.06]" />
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={onSplit} disabled={!canSplit}
-                className="h-6 w-6 text-white hover:text-white hover:bg-white/[0.08] disabled:opacity-15 rounded-sm transition-all">
-                <Scissors className="h-3 w-3" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-[10px] bg-[hsl(260,20%,12%)] border-white/10">
-              Split <kbd className="ml-1 text-[8px] text-white/30">S</kbd>
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={onDuplicate} disabled={!canDuplicate}
-                className="h-6 w-6 text-white hover:text-white hover:bg-white/[0.08] disabled:opacity-15 rounded-sm transition-all">
-                <Copy className="h-3 w-3" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-[10px] bg-[hsl(260,20%,12%)] border-white/10">
-              Duplicate <kbd className="ml-1 text-[8px] text-white/30">⌘D</kbd>
-            </TooltipContent>
-          </Tooltip>
+          <Input
+            value={title}
+            onChange={(e) => onTitleChange(e.target.value)}
+            className="max-w-[180px] h-7 text-xs font-semibold bg-transparent border-none text-foreground/80 placeholder:text-muted-foreground/30 focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-secondary/50 rounded-md px-2 transition-colors"
+          />
         </div>
 
-        <div className="h-4 w-px bg-white/[0.06] mx-0.5" />
+        <Divider />
 
-        {/* View tools cluster */}
-        <div className="flex items-center gap-0.5 bg-white/[0.03] rounded-md p-0.5 border border-white/[0.04]">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={onToggleSnap}
-                className={cn("h-6 w-6 rounded-sm transition-all",
-                  snapEnabled ? "text-primary bg-primary/10" : "text-white/30 hover:text-white hover:bg-white/[0.08]"
-                )}>
-                <Magnet className="h-3 w-3" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-[10px] bg-[hsl(260,20%,12%)] border-white/10">
-              Snap {snapEnabled ? "On" : "Off"} <kbd className="ml-1 text-[8px] text-white/30">N</kbd>
-            </TooltipContent>
-          </Tooltip>
+        {/* ── Edit tools ── */}
+        <ToolCluster>
+          <ToolbarTooltip label="Undo" shortcut="⌘Z">
+            <ToolBtn onClick={onUndo} disabled={!canUndo}>
+              <Undo2 className="h-3.5 w-3.5" />
+            </ToolBtn>
+          </ToolbarTooltip>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={onFitToView}
-                className="h-6 w-6 text-white/40 hover:text-white hover:bg-white/[0.08] rounded-sm transition-all">
-                <Maximize className="h-3 w-3" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-[10px] bg-[hsl(260,20%,12%)] border-white/10">
-              Fit to View <kbd className="ml-1 text-[8px] text-white/30">⌘⇧F</kbd>
-            </TooltipContent>
-          </Tooltip>
-        </div>
+          <ToolbarTooltip label="Redo" shortcut="⌘⇧Z">
+            <ToolBtn onClick={onRedo} disabled={!canRedo}>
+              <Redo2 className="h-3.5 w-3.5" />
+            </ToolBtn>
+          </ToolbarTooltip>
 
-        <div className="h-4 w-px bg-white/[0.06] mx-0.5" />
+          <div className="h-4 w-px bg-border/30" />
 
-        {/* Add Track */}
+          <ToolbarTooltip label="Split at playhead" shortcut="S">
+            <ToolBtn onClick={onSplit} disabled={!canSplit}>
+              <Scissors className="h-3.5 w-3.5" />
+            </ToolBtn>
+          </ToolbarTooltip>
+
+          <ToolbarTooltip label="Duplicate clip" shortcut="⌘D">
+            <ToolBtn onClick={onDuplicate} disabled={!canDuplicate}>
+              <Copy className="h-3.5 w-3.5" />
+            </ToolBtn>
+          </ToolbarTooltip>
+        </ToolCluster>
+
+        <Divider />
+
+        {/* ── View tools ── */}
+        <ToolCluster>
+          <ToolbarTooltip label={`Snap ${snapEnabled ? "On" : "Off"}`} shortcut="N">
+            <ToolBtn onClick={onToggleSnap} active={snapEnabled}>
+              <Magnet className="h-3.5 w-3.5" />
+            </ToolBtn>
+          </ToolbarTooltip>
+
+          <ToolbarTooltip label="Fit timeline to view" shortcut="⌘⇧F">
+            <ToolBtn onClick={onFitToView}>
+              <Maximize className="h-3.5 w-3.5" />
+            </ToolBtn>
+          </ToolbarTooltip>
+        </ToolCluster>
+
+        <Divider />
+
+        {/* ── Add Track ── */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm"
-              className="h-6 px-2 text-[10px] text-white/50 hover:text-white hover:bg-white/[0.08] gap-1 rounded-md transition-all">
-              <Plus className="h-3 w-3" />
-              Track
-            </Button>
+            <button className={cn(
+              "h-7 px-2.5 rounded-md flex items-center gap-1.5 text-xs font-medium transition-all duration-150",
+              "text-muted-foreground hover:text-foreground hover:bg-secondary",
+              "border border-transparent hover:border-border/40",
+            )}>
+              <Plus className="h-3.5 w-3.5" />
+              <span>Track</span>
+              <ChevronDown className="h-3 w-3 opacity-40" />
+            </button>
           </PopoverTrigger>
-          <PopoverContent className="w-36 p-1.5 bg-[hsl(260,20%,10%)] border-white/10" side="bottom" align="start">
+          <PopoverContent className="w-44 p-1.5" side="bottom" align="start" sideOffset={8}>
+            <p className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest px-2.5 pt-1 pb-2">
+              Add Track
+            </p>
             {[
               { type: "video" as const, icon: Film, label: "Video Track", color: "text-primary" },
-              { type: "audio" as const, icon: Music, label: "Audio Track", color: "text-emerald-400" },
-              { type: "text" as const, icon: Type, label: "Text Track", color: "text-amber-400" },
+              { type: "audio" as const, icon: Music, label: "Audio Track", color: "text-success" },
+              { type: "text" as const, icon: Type, label: "Text Overlay", color: "text-warning" },
             ].map(({ type, icon: Icon, label, color }) => (
-              <button key={type}
-                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-[10px] text-white/60 hover:text-white hover:bg-white/[0.08] transition-all"
-                onClick={() => onAddTrack?.(type)}>
-                <Icon className={cn("h-3 w-3", color)} />
+              <button
+                key={type}
+                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all"
+                onClick={() => onAddTrack?.(type)}
+              >
+                <div className={cn("w-5 h-5 rounded flex items-center justify-center bg-secondary/60", color)}>
+                  <Icon className="h-3 w-3" />
+                </div>
                 {label}
               </button>
             ))}
           </PopoverContent>
         </Popover>
 
+        {/* ── Spacer ── */}
         <div className="flex-1" />
 
-        {/* Render progress */}
+        {/* ── Render progress ── */}
         {renderStatus === "rendering" && (
-          <div className="flex items-center gap-2.5 mr-3">
+          <div className="flex items-center gap-2.5 mr-2 animate-in fade-in duration-300">
             <div className="relative">
               <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-              <div className="absolute inset-0 blur-md bg-primary/30 animate-pulse" />
+              <div className="absolute inset-0 blur-lg bg-primary/20 animate-pulse" />
             </div>
-            <div className="w-28 h-1 bg-white/[0.06] rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${renderProgress}%` }} />
+            <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-primary via-primary/80 to-accent rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${renderProgress}%` }}
+              />
             </div>
-            <span className="text-[10px] text-white/40 tabular-nums font-mono">{renderProgress}%</span>
+            <span className="text-[10px] text-muted-foreground tabular-nums font-mono">{renderProgress}%</span>
           </div>
         )}
 
         {renderStatus === "completed" && (
-          <div className="flex items-center gap-1.5 mr-3">
-            <Sparkles className="h-3 w-3 text-emerald-400" />
-            <span className="text-[10px] text-emerald-400 font-medium">Export ready</span>
+          <div className="flex items-center gap-1.5 mr-2 animate-in fade-in duration-300">
+            <Sparkles className="h-3.5 w-3.5 text-success" />
+            <span className="text-[11px] text-success font-semibold">Ready</span>
           </div>
         )}
 
-        {/* Actions */}
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={onSave} disabled={isSaving}
-            className="h-7 px-2.5 text-[10px] text-white hover:text-white hover:bg-white/[0.08] gap-1.5 rounded-md font-medium tracking-wide transition-all">
-            {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+        {/* ── Actions ── */}
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onSave}
+            disabled={isSaving}
+            className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground gap-1.5 rounded-lg font-medium"
+          >
+            {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             Save
           </Button>
 
-          <Button size="sm" onClick={onExport} disabled={renderStatus === "rendering"}
-            className="h-7 px-3.5 text-[10px] bg-white text-black hover:bg-white/90 gap-1.5 rounded-md font-semibold tracking-wide shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_24px_rgba(255,255,255,0.15)] border border-white/20 transition-all">
-            <Download className="h-3 w-3" />
+          <Button
+            size="sm"
+            onClick={onExport}
+            disabled={renderStatus === "rendering"}
+            className={cn(
+              "h-8 px-4 text-xs font-semibold rounded-lg gap-1.5 transition-all duration-200",
+              "bg-foreground text-background hover:bg-foreground/90",
+              "shadow-[0_0_20px_hsl(var(--foreground)/0.08)] hover:shadow-[0_0_28px_hsl(var(--foreground)/0.12)]",
+              "border border-foreground/10",
+            )}
+          >
+            <Download className="h-3.5 w-3.5" />
             Export
           </Button>
         </div>

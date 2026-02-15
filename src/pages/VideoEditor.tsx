@@ -162,18 +162,64 @@ const VideoEditor = () => {
     t.clips.some((c) => editorState.currentTime > c.start && editorState.currentTime < c.end)
   );
 
-  // Load project clips on mount
+  // Load project clips on mount — auto-detect latest project if none specified
   useEffect(() => {
-    if (!projectId || !user) return;
-    loadProjectClips(projectId);
+    if (!user) return;
+
+    const loadLatestOrSpecified = async () => {
+      let targetProjectId = projectId;
+      let projectTitle = "Untitled Edit";
+
+      if (!targetProjectId) {
+        // No project specified — find the most recent project with completed clips
+        const { data: recentProject } = await supabase
+          .from("movie_projects")
+          .select("id, title")
+          .eq("user_id", user.id)
+          .order("updated_at", { ascending: false })
+          .limit(10);
+
+        if (recentProject?.length) {
+          // Find first project that actually has completed clips
+          for (const proj of recentProject) {
+            const { count } = await supabase
+              .from("video_clips")
+              .select("id", { count: "exact", head: true })
+              .eq("project_id", proj.id)
+              .eq("status", "completed")
+              .not("video_url", "is", null);
+            if (count && count > 0) {
+              targetProjectId = proj.id;
+              projectTitle = proj.title || "Untitled Edit";
+              break;
+            }
+          }
+        }
+
+        if (!targetProjectId) return; // No projects with clips found
+      } else {
+        // Fetch the project title for the specified project
+        const { data: proj } = await supabase
+          .from("movie_projects")
+          .select("title")
+          .eq("id", targetProjectId)
+          .single();
+        if (proj?.title) projectTitle = proj.title;
+      }
+
+      loadProjectClips(targetProjectId, projectTitle);
+    };
+
+    loadLatestOrSpecified();
   }, [projectId, user]);
 
-  const loadProjectClips = async (pid: string) => {
+  const loadProjectClips = async (pid: string, projectTitle?: string) => {
     const { data: clips, error } = await supabase
       .from("video_clips")
       .select("id, shot_index, video_url, duration_seconds, prompt")
       .eq("project_id", pid)
       .eq("status", "completed")
+      .not("video_url", "is", null)
       .order("shot_index");
 
     if (error || !clips?.length) {
@@ -201,6 +247,8 @@ const VideoEditor = () => {
 
     setEditorState((prev) => ({
       ...prev,
+      projectId: pid,
+      title: projectTitle || prev.title,
       tracks: prev.tracks.map((t) => (t.id === "video-0" ? { ...t, clips: timelineClips } : t)),
       duration: startTime,
     }));

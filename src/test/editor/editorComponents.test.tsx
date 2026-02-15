@@ -125,9 +125,9 @@ describe('EditorPreview', () => {
     expect(screen.getByText(/00:03/)).toBeInTheDocument();
   });
 
-  it('renders HLS player even when no clip at current time', () => {
-    render(withTooltip(<EditorPreview {...defaultProps} currentTime={100} />));
-    // The HLS-based preview always renders a video element
+  it('renders video element for clip playback', () => {
+    render(withTooltip(<EditorPreview {...defaultProps} currentTime={3} />));
+    // Direct MP4 player renders a video element
     const video = document.querySelector('video');
     expect(video).toBeTruthy();
   });

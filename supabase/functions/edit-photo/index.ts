@@ -142,10 +142,18 @@ Deno.serve(async (req) => {
       const errText = await aiResponse.text();
       console.error('[edit-photo] AI gateway error:', aiResponse.status, errText);
 
+      const is429 = aiResponse.status === 429;
+      const is402 = aiResponse.status === 402;
+      const errorMsg = is429
+        ? 'Rate limited, try again shortly'
+        : is402
+        ? 'Not enough AI credits. Please top up in Settings → Workspace → Usage.'
+        : 'AI processing failed';
+
       if (editId) {
         await supabase.from('photo_edits').update({
           status: 'failed',
-          error_message: aiResponse.status === 429 ? 'Rate limited, please try again' : 'AI processing failed',
+          error_message: errorMsg,
         }).eq('id', editId);
       }
 
@@ -158,8 +166,8 @@ Deno.serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ error: aiResponse.status === 429 ? 'Rate limited, try again shortly' : 'AI processing failed' }),
-        { status: aiResponse.status === 429 ? 429 : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: errorMsg }),
+        { status: is429 ? 429 : is402 ? 402 : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 

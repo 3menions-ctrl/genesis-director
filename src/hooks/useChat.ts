@@ -98,10 +98,16 @@ export function useConversationsList() {
         .eq('user_id', user.id);
 
       if (memError) throw memError;
-      if (!memberships?.length) return [];
 
-      const convIds = memberships.map(m => m.conversation_id);
-      const readMap = new Map(memberships.map(m => [m.conversation_id, m.last_read_at]));
+      const convIds = (memberships || []).map(m => m.conversation_id);
+      const readMap = new Map((memberships || []).map(m => [m.conversation_id, m.last_read_at]));
+
+      // Always include world chat even if user hasn't explicitly joined
+      if (!convIds.includes(WORLD_CHAT_ID)) {
+        convIds.push(WORLD_CHAT_ID);
+      }
+
+      if (!convIds.length) return [];
 
       // Get conversation details
       const { data: convs, error: convError } = await supabase

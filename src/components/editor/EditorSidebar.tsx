@@ -37,10 +37,8 @@ export const EditorSidebar = ({
     : null;
 
   return (
-    <div className="h-full flex flex-col bg-[hsl(260,15%,7%)] border-l border-white/[0.06]">
-      {/* Header */}
-      <div className="h-9 flex items-center px-3 border-b border-white/[0.06] shrink-0 bg-[hsl(260,15%,8%)] relative">
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/10 to-transparent" />
+    <div className="h-full flex flex-col bg-[hsl(0,0%,7%)] border-l border-white/[0.06]">
+      <div className="h-9 flex items-center px-3 border-b border-white/[0.06] shrink-0 bg-[hsl(0,0%,8%)]">
         <Sliders className="h-3 w-3 text-white/40 mr-2" />
         <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
           {selectedClip ? "Inspector" : "Tools"}
@@ -49,34 +47,29 @@ export const EditorSidebar = ({
 
       <div className="flex-1 overflow-y-auto p-3 space-y-4 scrollbar-hide">
         {!selectedClip ? (
-          /* No clip selected — show tools */
           <div className="space-y-4">
             <p className="text-[11px] text-white/30 leading-relaxed">
               Select a clip on the timeline, or add new elements.
             </p>
             <Button
               variant="ghost"
-              className="w-full justify-start gap-2.5 h-9 text-[11px] text-white hover:text-white hover:bg-white/[0.06] border border-white/[0.06] rounded-lg transition-all group"
+              className="w-full justify-start gap-2.5 h-9 text-[11px] text-white/70 hover:text-white hover:bg-white/[0.06] border border-white/[0.06] rounded-lg transition-all group"
               onClick={onAddTextOverlay}
             >
-              <div className="w-5 h-5 rounded bg-amber-500/10 border border-amber-500/20 flex items-center justify-center group-hover:bg-amber-500/15 transition-colors">
+              <div className="w-5 h-5 rounded-md bg-amber-500/10 border border-amber-500/20 flex items-center justify-center group-hover:bg-amber-500/15 transition-colors">
                 <Type className="h-2.5 w-2.5 text-amber-400" />
               </div>
               Add Text Overlay
             </Button>
 
             <div className="h-px bg-white/[0.04]" />
-
-            {/* Templates */}
             <TemplatesPanel onApplyTemplate={onApplyTemplate || (() => {})} />
           </div>
         ) : selectedClip.type === "text" ? (
-          /* Text clip inspector */
           <TextClipInspector clip={selectedClip} onUpdateClip={onUpdateClip} onDeleteClip={onDeleteClip} />
         ) : (
-          /* Media clip inspector — all tabs */
           <Tabs defaultValue="properties" className="w-full">
-            <TabsList className="w-full h-auto bg-white/[0.03] p-0.5 gap-0.5 rounded-lg border border-white/[0.04] flex flex-wrap">
+            <TabsList className="w-full h-auto bg-white/[0.03] p-0.5 gap-0.5 rounded-lg border border-white/[0.06] flex flex-wrap">
               {[
                 { value: "properties", label: "Props" },
                 { value: "filters", label: "Filters" },
@@ -102,39 +95,30 @@ export const EditorSidebar = ({
             <TabsContent value="properties" className="mt-3 space-y-4">
               <PropertiesTab clip={selectedClip} onUpdateClip={onUpdateClip} onAddTransition={onAddTransition} onDeleteClip={onDeleteClip} />
             </TabsContent>
-
             <TabsContent value="filters" className="mt-3">
               <FiltersPanel clip={selectedClip} onUpdateClip={onUpdateClip} />
             </TabsContent>
-
             <TabsContent value="audio" className="mt-3">
               <AudioFadePanel clip={selectedClip} onUpdateClip={onUpdateClip} />
             </TabsContent>
-
             <TabsContent value="speed" className="mt-3">
               <SpeedControlPanel clip={selectedClip} onUpdateClip={onUpdateClip} />
             </TabsContent>
-
             <TabsContent value="crop" className="mt-3">
               <CropRotatePanel clip={selectedClip} onUpdateClip={onUpdateClip} />
             </TabsContent>
-
             <TabsContent value="color" className="mt-3">
               <ColorGradingPanel clip={selectedClip} onUpdateClip={onUpdateClip} />
             </TabsContent>
-
             <TabsContent value="pip" className="mt-3">
               <PipPanel clip={selectedClip} onUpdateClip={onUpdateClip} />
             </TabsContent>
-
             <TabsContent value="chroma" className="mt-3">
               <ChromaKeyPanel clip={selectedClip} onUpdateClip={onUpdateClip} />
             </TabsContent>
-
             <TabsContent value="captions" className="mt-3">
               <CaptionsPanel clip={selectedClip} onUpdateClip={onUpdateClip} />
             </TabsContent>
-
             <TabsContent value="keyframes" className="mt-3">
               <KeyframeEditor clip={selectedClip} currentTime={currentTime} onUpdateClip={onUpdateClip} />
             </TabsContent>
@@ -145,8 +129,6 @@ export const EditorSidebar = ({
   );
 };
 
-/* ---- Sub-components ---- */
-
 const TextClipInspector = ({ clip, onUpdateClip, onDeleteClip }: { clip: TimelineClip; onUpdateClip: (id: string, u: Partial<TimelineClip>) => void; onDeleteClip: (id: string) => void }) => (
   <div className="space-y-4">
     <div>
@@ -154,7 +136,7 @@ const TextClipInspector = ({ clip, onUpdateClip, onDeleteClip }: { clip: Timelin
       <Input
         value={clip.textContent || ""}
         onChange={(e) => onUpdateClip(clip.id, { textContent: e.target.value })}
-        className="mt-1.5 h-8 text-xs bg-white/[0.03] border-white/[0.06] text-white/80 focus-visible:ring-white/20 focus-visible:border-white/20 rounded-md"
+        className="mt-1.5 h-8 text-xs bg-white/[0.04] border-white/[0.06] text-white/80 focus-visible:ring-white/20 focus-visible:border-white/20 rounded-md"
       />
     </div>
     <div>
@@ -179,7 +161,7 @@ const TextClipInspector = ({ clip, onUpdateClip, onDeleteClip }: { clip: Timelin
         <Input
           value={clip.textStyle?.color || "#FFFFFF"}
           onChange={(e) => onUpdateClip(clip.id, { textStyle: { ...clip.textStyle!, color: e.target.value } })}
-          className="flex-1 h-7 text-[10px] bg-white/[0.03] border-white/[0.06] text-white/50 font-mono"
+          className="flex-1 h-7 text-[10px] bg-white/[0.04] border-white/[0.06] text-white/50 font-mono"
         />
       </div>
     </div>
@@ -212,7 +194,7 @@ const PropertiesTab = ({ clip, onUpdateClip, onAddTransition, onDeleteClip }: {
         { label: "OUT", value: `${clip.end.toFixed(2)}s` },
         { label: "DUR", value: `${(clip.end - clip.start).toFixed(2)}s` },
       ].map((item) => (
-        <div key={item.label} className="bg-black/20 rounded-md px-2 py-1.5 border border-white/[0.04]">
+        <div key={item.label} className="bg-white/[0.03] rounded-md px-2 py-1.5 border border-white/[0.04]">
           <span className="text-[7px] text-white/20 uppercase tracking-[0.2em] block font-semibold">{item.label}</span>
           <span className="text-[10px] font-mono text-white/70 tabular-nums">{item.value}</span>
         </div>
@@ -248,7 +230,7 @@ const PropertiesTab = ({ clip, onUpdateClip, onAddTransition, onDeleteClip }: {
                 "text-[9px] h-6 border rounded-md transition-all",
                 isActive
                   ? "bg-white text-black border-white/20 font-semibold"
-                  : "border-white/[0.04] text-white/35 hover:text-white hover:bg-white/[0.06]"
+                  : "border-white/[0.06] text-white/35 hover:text-white hover:bg-white/[0.06]"
               )}
               onClick={() => onAddTransition(clip.id, t.id)}
             >

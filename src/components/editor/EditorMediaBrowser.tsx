@@ -20,7 +20,6 @@ interface EditorMediaBrowserProps {
   onAddClip: (clip: MediaClip) => void;
 }
 
-/** Small thumbnail that shows a poster frame from the video */
 const VideoThumbnail = ({ url }: { url: string }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [loaded, setLoaded] = useState(false);
@@ -29,14 +28,14 @@ const VideoThumbnail = ({ url }: { url: string }) => {
     const v = videoRef.current;
     if (!v) return;
     v.preload = "metadata";
-    v.currentTime = 0.5; // seek to 0.5s for a representative frame
+    v.currentTime = 0.5;
     const onLoaded = () => setLoaded(true);
     v.addEventListener("loadeddata", onLoaded);
     return () => v.removeEventListener("loadeddata", onLoaded);
   }, [url]);
 
   return (
-    <div className="w-14 h-8 rounded bg-black/40 border border-white/[0.06] shrink-0 overflow-hidden relative">
+    <div className="w-14 h-9 rounded-md bg-white/[0.03] border border-white/[0.06] shrink-0 overflow-hidden relative">
       <video
         ref={videoRef}
         src={url}
@@ -49,7 +48,6 @@ const VideoThumbnail = ({ url }: { url: string }) => {
           <Film className="h-3 w-3 text-white/15" />
         </div>
       )}
-      {/* Play overlay on hover */}
       <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity">
         <Play className="h-3 w-3 text-white" fill="white" />
       </div>
@@ -114,19 +112,18 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-[hsl(260,15%,7%)] border-r border-white/[0.06]">
-      <div className="h-9 flex items-center px-3 border-b border-white/[0.06] shrink-0 bg-[hsl(260,15%,8%)] relative">
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+    <div className="h-full flex flex-col bg-[hsl(0,0%,7%)] border-r border-white/[0.06]">
+      <div className="h-9 flex items-center px-3 border-b border-white/[0.06] shrink-0 bg-[hsl(0,0%,8%)]">
         <Layers className="h-3 w-3 text-white/40 mr-2" />
         <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">Media</span>
-        <span className="ml-auto text-[9px] text-white/15 tabular-nums font-mono">{clips.length}</span>
+        <span className="ml-auto text-[9px] text-white/20 tabular-nums font-mono">{clips.length}</span>
       </div>
 
       <div className="px-2 py-2 border-b border-white/[0.04]">
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-white/20" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search clips..."
-            className="h-7 pl-7 text-[10px] bg-white/[0.03] border-white/[0.04] text-white/60 placeholder:text-white/15 focus-visible:ring-white/20 focus-visible:border-white/20 rounded-md" />
+            className="h-7 pl-7 text-[10px] bg-white/[0.04] border-white/[0.06] text-white/60 placeholder:text-white/15 focus-visible:ring-white/20 focus-visible:border-white/20 rounded-md" />
         </div>
       </div>
 
@@ -171,7 +168,7 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
                   </div>
                 </div>
                 <Button variant="ghost" size="icon"
-                  className="h-5 w-5 opacity-0 group-hover:opacity-100 text-white hover:text-white hover:bg-white/[0.1] transition-all shrink-0 rounded">
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 bg-white text-black hover:bg-white/90 transition-all shrink-0 rounded-md shadow-sm">
                   <Plus className="h-3 w-3" />
                 </Button>
               </div>

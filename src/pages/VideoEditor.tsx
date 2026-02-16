@@ -114,8 +114,12 @@ const VideoEditor = () => {
 
               if (avatarClips.length > 0) {
                 const timelineClips: TimelineClip[] = avatarClips.map((p, idx) => {
-                  const dur = 10; // Avatar clips default ~10s
+                  const dur = 10;
                   const start = idx * dur;
+                  // HLS-style: crossfade between sequential clips
+                  const effects: TimelineClip['effects'] = idx < avatarClips.length - 1
+                    ? [{ type: "transition" as const, name: "crossfade", duration: 0.5 }]
+                    : [];
                   return {
                     id: `avatar-${idx}-${Date.now()}`,
                     trackId: 'video-0',
@@ -125,7 +129,7 @@ const VideoEditor = () => {
                     end: start + dur,
                     trimStart: 0,
                     type: 'video' as const,
-                    effects: [],
+                    effects,
                   };
                 });
 
@@ -527,8 +531,13 @@ const VideoEditor = () => {
 
     const timelineClips: TimelineClip[] = [];
     let startTime = 0;
-    for (const clip of clips) {
+    for (let i = 0; i < clips.length; i++) {
+      const clip = clips[i];
       const dur = clip.duration_seconds || 6;
+      // HLS-style: auto-apply crossfade transition between sequential clips (matches HLS transitionOut: 'fade')
+      const effects: TimelineClip['effects'] = i < clips.length - 1
+        ? [{ type: "transition" as const, name: "crossfade", duration: 0.5 }]
+        : [];
       timelineClips.push({
         id: clip.id,
         trackId: "video-0",
@@ -537,7 +546,7 @@ const VideoEditor = () => {
         type: "video",
         sourceUrl: clip.video_url || "",
         label: clip.prompt?.substring(0, 40) || `Shot ${clip.shot_index + 1}`,
-        effects: [],
+        effects,
       });
       startTime += dur;
     }
@@ -557,7 +566,20 @@ const VideoEditor = () => {
     const dur = clip.duration_seconds || 6;
     withHistory((prev) => {
       const videoTrack = prev.tracks.find((t) => t.id === "video-0");
-      const lastEnd = videoTrack?.clips.reduce((max, c) => Math.max(max, c.end), 0) || 0;
+      const existingClips = videoTrack?.clips || [];
+      const lastEnd = existingClips.reduce((max, c) => Math.max(max, c.end), 0);
+      const hasPrevClip = existingClips.length > 0;
+      
+      // HLS-style: auto-apply crossfade transition to previous clip (matches HLS #EXT-X-DISCONTINUITY + transitionOut: 'fade')
+      const updatedExistingClips = hasPrevClip
+        ? existingClips.map((c) => {
+            if (c.end === lastEnd && !c.effects.some(e => e.type === "transition")) {
+              return { ...c, effects: [...c.effects, { type: "transition" as const, name: "crossfade", duration: 0.5 }] };
+            }
+            return c;
+          })
+        : existingClips;
+
       const newClip: TimelineClip = {
         id: `imported-${clip.id}-${Date.now()}`,
         trackId: "video-0",
@@ -570,7 +592,7 @@ const VideoEditor = () => {
       };
       return {
         ...prev,
-        tracks: prev.tracks.map((t) => (t.id === "video-0" ? { ...t, clips: [...t.clips, newClip] } : t)),
+        tracks: prev.tracks.map((t) => (t.id === "video-0" ? { ...t, clips: [...updatedExistingClips, newClip] } : t)),
         duration: Math.max(prev.duration, lastEnd + dur),
       };
     });
@@ -802,7 +824,7 @@ const VideoEditor = () => {
   const hasClips = editorState.tracks.some((t) => t.clips.length > 0);
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-[hsl(260,15%,4%)] overflow-hidden" style={{ contain: 'layout size' }}>
+    <div className="h-screen w-screen flex flex-col bg-[hsl(0,0%,5%)] overflow-hidden" style={{ contain: 'layout size' }}>
       <EditorToolbar
         title={editorState.title}
         onTitleChange={(title) => setEditorState((prev) => ({ ...prev, title }))}
@@ -849,7 +871,7 @@ const VideoEditor = () => {
                 onPlaybackSpeedChange={setPlaybackSpeed}
               />
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-[hsl(260,15%,4%)] gap-5">
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-[hsl(0,0%,5%)] gap-5">
                 <div className="w-16 h-16 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-center relative">
                   <Film className="w-7 h-7 text-white/15" />
                   <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">

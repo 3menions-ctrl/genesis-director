@@ -287,10 +287,11 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      {/* Decorative elements - subtle muted gradients */}
+      {/* Decorative elements - cinematic ambient glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-muted/50 blur-[120px] animate-morph" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-secondary/40 blur-[100px]" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-primary/15 blur-[140px] animate-morph" />
+        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full bg-accent/10 blur-[120px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[180px]" />
       </div>
 
       <div className="relative w-full max-w-lg animate-fade-in">
@@ -311,12 +312,12 @@ export default function Onboarding() {
               />
             ))}
           </div>
-          <p className="text-xs text-muted-foreground font-medium">Step {step} of 3</p>
+          <p className="text-xs text-white/30 font-medium">Step {step} of 3</p>
         </div>
 
         {/* Logo and Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-glossy-black mb-4 shadow-obsidian">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-accent mb-4 shadow-lg shadow-primary/25">
             <span className="text-lg font-bold text-white">AS</span>
           </div>
           <AnimatePresence mode="wait">
@@ -327,12 +328,12 @@ export default function Onboarding() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             >
-              <h1 className="text-2xl font-display font-bold text-foreground mb-2 tracking-tight">
+              <h1 className="text-2xl font-display font-bold text-white mb-2 tracking-tight">
                 {step === 1 && "Welcome! Let's get to know you"}
                 {step === 2 && "Select your account type"}
                 {step === 3 && "What will you create?"}
               </h1>
-              <p className="text-muted-foreground text-sm">
+              <p className="text-white/50 text-sm">
                 {step === 1 && "This helps us personalize your experience"}
                 {step === 2 && "Choose the option that best describes how you'll use Apex Studio"}
                 {step === 3 && "Choose your primary use case"}
@@ -342,14 +343,14 @@ export default function Onboarding() {
           
           {/* Show email context */}
           {user?.email && (
-            <p className="text-xs text-muted-foreground mt-3 font-medium">
+            <p className="text-xs text-white/30 mt-3 font-medium">
               Signed in as {user.email}
             </p>
           )}
         </div>
 
-        {/* Form Card - Premium glass card */}
-        <div className="glass-card p-8">
+        {/* Form Card - Premium dark glass card */}
+        <div className="glass-card-dark p-8">
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={step}
@@ -364,7 +365,7 @@ export default function Onboarding() {
               {step === 1 && (
                 <div className="space-y-6">
                   <div className="space-y-2.5">
-                    <Label htmlFor="fullName" className="text-foreground text-sm font-medium">
+                    <Label htmlFor="fullName" className="text-white text-sm font-medium">
                       What's your name?
                     </Label>
                     <Input
@@ -377,8 +378,8 @@ export default function Onboarding() {
                         if (errors.fullName) setErrors({});
                       }}
                       className={cn(
-                        "h-12 bg-secondary/50 border-border text-foreground placeholder:text-muted-foreground",
-                        "focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200",
+                        "h-12 bg-white/5 border-white/10 text-white placeholder:text-white/30",
+                        "focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200",
                         errors.fullName && "border-destructive focus:ring-destructive/10"
                       )}
                       maxLength={100}
@@ -390,8 +391,8 @@ export default function Onboarding() {
                   </div>
 
                   <div className="space-y-2.5">
-                    <Label htmlFor="company" className="text-foreground text-sm font-medium">
-                      Company or brand <span className="text-muted-foreground font-normal">(optional)</span>
+                    <Label htmlFor="company" className="text-white text-sm font-medium">
+                      Company or brand <span className="text-white/40 font-normal">(optional)</span>
                     </Label>
                     <Input
                       id="company"
@@ -399,7 +400,7 @@ export default function Onboarding() {
                       placeholder="Acme Studios"
                       value={formData.company}
                       onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                      className="h-12 bg-secondary/50 border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                      className="h-12 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
                       maxLength={100}
                     />
                     {errors.company && (
@@ -408,16 +409,16 @@ export default function Onboarding() {
                   </div>
 
                   <div className="space-y-2.5">
-                    <Label htmlFor="country" className="text-foreground text-sm font-medium flex items-center gap-2">
-                      <Globe className="w-4 h-4 text-muted-foreground" />
-                      Country <span className="text-muted-foreground font-normal">(optional)</span>
+                    <Label htmlFor="country" className="text-white text-sm font-medium flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-white/40" />
+                      Country <span className="text-white/40 font-normal">(optional)</span>
                     </Label>
                     <Select
                       value={formData.country}
                       onValueChange={(value) => setFormData({ ...formData, country: value })}
                     >
-                      <SelectTrigger className="h-12 bg-secondary/50 border-border text-foreground focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200">
-                        <SelectValue placeholder="Select your country" />
+                      <SelectTrigger className="h-12 bg-white/5 border-white/10 text-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200">
+                        <SelectValue placeholder="Select your country" className="text-white/30" />
                       </SelectTrigger>
                       <SelectContent className="max-h-60">
                         {COUNTRIES.map((country) => (
@@ -447,21 +448,21 @@ export default function Onboarding() {
                       className={cn(
                         "w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-200 text-left group",
                         formData.role === accountType.id
-                          ? "border-primary bg-primary/5 shadow-sm"
-                          : "border-border hover:border-primary/30 hover:bg-secondary/50"
+                          ? "border-primary bg-primary/10 shadow-sm shadow-primary/10"
+                          : "border-white/10 hover:border-primary/30 hover:bg-white/5"
                       )}
                     >
                       <div className={cn(
                         "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200",
                         formData.role === accountType.id 
-                          ? "bg-primary text-primary-foreground shadow-obsidian" 
-                          : "bg-secondary text-muted-foreground group-hover:bg-muted"
+                          ? "bg-primary text-white shadow-lg shadow-primary/25" 
+                          : "bg-white/5 text-white/50 group-hover:bg-white/10"
                       )}>
                         <accountType.icon className="w-5 h-5" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium text-foreground">{accountType.label}</p>
-                        <p className="text-xs text-muted-foreground">{accountType.description}</p>
+                        <p className="font-medium text-white">{accountType.label}</p>
+                        <p className="text-xs text-white/40">{accountType.description}</p>
                       </div>
                       {formData.role === accountType.id && (
                         <Check className="w-5 h-5 text-primary shrink-0" />
@@ -490,21 +491,21 @@ export default function Onboarding() {
                       className={cn(
                         "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 text-center group",
                         formData.useCase === useCase.id
-                          ? "border-primary bg-primary/5 shadow-sm"
-                          : "border-border hover:border-primary/30 hover:bg-secondary/50"
+                          ? "border-primary bg-primary/10 shadow-sm shadow-primary/10"
+                          : "border-white/10 hover:border-primary/30 hover:bg-white/5"
                       )}
                     >
                       <div className={cn(
                         "w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200",
                         formData.useCase === useCase.id 
-                          ? "bg-primary text-primary-foreground shadow-sm" 
-                          : "bg-secondary text-muted-foreground group-hover:bg-muted"
+                          ? "bg-primary text-white shadow-lg shadow-primary/25" 
+                          : "bg-white/5 text-white/50 group-hover:bg-white/10"
                       )}>
                         <useCase.icon className="w-5 h-5" />
                       </div>
                       <div>
-                        <p className="font-medium text-foreground text-sm">{useCase.label}</p>
-                        <p className="text-muted-foreground text-xs leading-tight">{useCase.description}</p>
+                        <p className="font-medium text-white text-sm">{useCase.label}</p>
+                        <p className="text-white/40 text-xs leading-tight">{useCase.description}</p>
                       </div>
                     </motion.button>
                   ))}
@@ -517,7 +518,7 @@ export default function Onboarding() {
           </AnimatePresence>
 
           {/* Actions */}
-          <div className="flex flex-col gap-4 mt-8 pt-6 border-t border-border/50">
+          <div className="flex flex-col gap-4 mt-8 pt-6 border-t border-white/10">
             {/* Primary actions row */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -526,7 +527,7 @@ export default function Onboarding() {
                     onClick={handleBack}
                     variant="ghost"
                     size="sm"
-                    className="gap-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all"
+                    className="gap-1.5 text-white/50 hover:text-white hover:bg-white/5 transition-all"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     Back
@@ -565,7 +566,7 @@ export default function Onboarding() {
               <button
                 onClick={handleSkip}
                 disabled={loading}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium inline-flex items-center gap-1.5 px-4 py-2 rounded-lg hover:bg-secondary/50"
+                className="text-sm text-white/40 hover:text-white transition-colors font-medium inline-flex items-center gap-1.5 px-4 py-2 rounded-lg hover:bg-white/5"
               >
                 Skip and start creating →
               </button>
@@ -573,8 +574,7 @@ export default function Onboarding() {
           </div>
         </div>
 
-        {/* Keyboard hint */}
-        <p className="text-center text-xs text-muted-foreground/50 mt-4">
+        <p className="text-center text-xs text-white/20 mt-4">
           Press Enter to continue
         </p>
       </div>

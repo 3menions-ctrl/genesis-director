@@ -9,13 +9,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { AgentPanel } from "./AgentPanel";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "react-router-dom";
 
 export function AgentTrigger() {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useAuth();
+  const location = useLocation();
 
-  // Only show for authenticated users
-  if (!user) return null;
+  // Hide on landing page and for unauthenticated users
+  if (!user || location.pathname === "/") return null;
 
   return (
     <>

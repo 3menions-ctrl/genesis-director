@@ -40,7 +40,7 @@ const emptyFormData: GalleryItemFormData = {
 };
 
 export const AdminGalleryManager = memo(function AdminGalleryManager() {
-  const { data: items, isLoading } = useGalleryShowcase(true);
+  const { data: items, isLoading } = useGalleryShowcase(true, true);
   const addMutation = useAddGalleryItem();
   const updateMutation = useUpdateGalleryItem();
   const deleteMutation = useDeleteGalleryItem();

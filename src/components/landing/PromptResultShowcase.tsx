@@ -1,4 +1,5 @@
 import { memo, useState, useEffect, useRef, useCallback } from 'react';
+import { useMediaCleanup } from '@/lib/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Type, Film, GripVertical, ImageIcon } from 'lucide-react';
 const silentVigilSource = '/images/silent-vigil-source.png';
@@ -70,6 +71,9 @@ export const PromptResultShowcase = memo(function PromptResultShowcase({ suspend
       video.play().catch(() => {});
     }
   }, [suspended]);
+
+  // Register video with NavigationCoordinator for pre-navigation cleanup
+  useMediaCleanup(videoRef);
 
   // Attach ref callback to play video when it mounts
   const setVideoRef = useCallback((el: HTMLVideoElement | null) => {

@@ -90,7 +90,7 @@ export default function AuthCallback() {
               setTimeout(() => navigate('/auth', { replace: true }), 2000);
               return;
             } else {
-              setMessage(verifyError.message || 'Verification failed. Please try again.');
+              setMessage('Verification failed. Please try again.');
             }
             return;
           }

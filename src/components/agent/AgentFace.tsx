@@ -59,7 +59,8 @@ export function AgentFace({ state, className, size = 80 }: AgentFaceProps) {
           loop
           muted
           playsInline
-          className="w-full h-full object-cover scale-[1.3] object-top"
+          className="w-full h-full object-cover scale-[1.15]"
+          style={{ objectPosition: "50% 25%" }}
         />
       </div>
     </div>

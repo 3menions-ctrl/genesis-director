@@ -705,7 +705,7 @@ function ProjectsContentInner() {
           .from('movie_projects')
           .select('pending_video_tasks, voice_audio_url')
           .eq('id', project.id)
-          .single();
+          .maybeSingle();
         
         if (projectData?.pending_video_tasks) {
           const tasks = projectData.pending_video_tasks as Record<string, unknown>;
@@ -794,7 +794,7 @@ function ProjectsContentInner() {
         .from('movie_projects')
         .select('title')
         .eq('id', projectId)
-        .single();
+        .maybeSingle();
       
       const { data, error: stitchError } = await supabase.functions.invoke('stitch-video', {
         body: {

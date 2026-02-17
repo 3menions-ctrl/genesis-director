@@ -109,7 +109,7 @@ export default function ScriptReview() {
           .select('*')
           .eq('id', projectId)
           .eq('user_id', session.user.id) // Use session user ID
-          .single();
+          .maybeSingle();
 
         if (error || !project) {
           toast.error('Project not found');

@@ -183,7 +183,7 @@ export async function cleanupZombieProject(
       .from('movie_projects')
       .select('pending_video_tasks, status, user_id')
       .eq('id', projectId)
-      .single();
+      .maybeSingle();
     
     if (fetchError || !project) {
       return { success: false, creditsRefunded: 0, error: 'Project not found' };
@@ -235,7 +235,7 @@ export async function cleanupZombieProject(
         .from('profiles')
         .select('credits_balance')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
       
       if (profile) {
         const { error: refundError } = await supabase

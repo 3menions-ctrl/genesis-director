@@ -246,7 +246,7 @@ async function warmSupabaseConnection(signal: AbortSignal): Promise<void> {
   const { supabase } = await import('@/integrations/supabase/client');
   
   await Promise.race([
-    supabase.from('avatar_templates').select('id').limit(1).single(),
+    supabase.from('avatar_templates').select('id').limit(1).maybeSingle(),
     new Promise((_, reject) => {
       signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
     }),

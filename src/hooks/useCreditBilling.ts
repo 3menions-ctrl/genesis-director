@@ -254,7 +254,7 @@ export function useCreditBilling() {
         .from('profiles')
         .select('credits_balance')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 

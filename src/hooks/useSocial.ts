@@ -101,10 +101,10 @@ export function useSocial() {
         .select('id')
         .eq('follower_id', user.id)
         .eq('following_id', userId)
-        .single();
+        .maybeSingle();
       
       if (!isMountedRef.current) return false;
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.debug('[useSocial] Check following error:', error.message);
         return false;
       }
@@ -373,7 +373,7 @@ export function useProjectComments(projectId?: string) {
         .from('movie_projects')
         .select('user_id, title')
         .eq('id', projectId)
-        .single();
+        .maybeSingle();
       
       // Create notification for project owner (not for own comments)
       if (project && project.user_id !== user.id) {

@@ -168,7 +168,7 @@ export function AIWidgetAssist({ widgetId, onConfigGenerated, onSceneVideoReady 
             .from('widget_configs')
             .select('scenes')
             .eq('id', widgetId)
-            .single();
+            .maybeSingle();
 
           if (widgetData?.scenes) {
             const updatedScenes = (widgetData.scenes as unknown as WidgetScene[]).map(s =>

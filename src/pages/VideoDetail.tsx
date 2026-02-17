@@ -59,7 +59,7 @@ export default function VideoDetailPage() {
           .select('id, title, video_url, thumbnail_url, created_at, updated_at, user_id, is_public, mode, genre, likes_count')
           .eq('id', videoId)
           .eq('is_public', true)
-          .single();
+          .maybeSingle();
 
         if (videoError) throw videoError;
 
@@ -68,7 +68,7 @@ export default function VideoDetailPage() {
           .from('profiles_public')
           .select('id, display_name, avatar_url')
           .eq('id', videoData.user_id)
-          .single();
+          .maybeSingle();
 
         setVideo({
           ...videoData,

@@ -937,7 +937,7 @@ export function useTemplateEnvironment() {
         .from('project_templates')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         toast.error('Template not found');

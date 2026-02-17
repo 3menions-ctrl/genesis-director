@@ -153,7 +153,7 @@ export async function loadDraftFromDatabase(userId: string): Promise<CreateDraft
       .from('profiles')
       .select('preferences')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
     
     if (error || !data?.preferences) {
       return null;

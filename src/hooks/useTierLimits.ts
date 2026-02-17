@@ -43,7 +43,7 @@ export function useTierLimits() {
               .from('profiles')
               .select('account_tier')
               .eq('id', user.id)
-              .single();
+              .maybeSingle();
             
             const tier = (profile?.account_tier as AccountTier) || 'free';
             return DEFAULT_TIER_LIMITS[tier];

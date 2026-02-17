@@ -496,6 +496,34 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
 }
 
 // ══════════════════════════════════════════════════════
+// Hoppy Markdown — Safe renderer with error boundary
+// ══════════════════════════════════════════════════════
+
+function HoppyMarkdown({ content }: { content: string }) {
+  try {
+    return (
+      <div className="max-w-none space-y-3
+                    [&>p]:text-[15px] [&>p]:leading-[1.85] [&>p]:mb-4 [&>p:last-child]:mb-0
+                    [&>p:first-child]:text-base [&>p:first-child]:font-medium [&>p:first-child]:text-foreground
+                    [&>ul]:mb-4 [&>ol]:mb-4 [&>li]:mb-1.5 [&>li]:text-[15px]
+                    [&_strong]:text-foreground [&_strong]:font-semibold
+                    [&_em]:text-primary/70
+                    [&_a]:text-primary [&_a]:no-underline [&_a:hover]:underline
+                    [&_code]:text-primary/80 [&_code]:bg-primary/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:text-xs
+                    [&_h2]:text-lg [&_h2]:font-display [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-foreground
+                    [&_h3]:text-base [&_h3]:font-display [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-foreground/90
+                    [&>blockquote]:border-l-2 [&>blockquote]:border-primary/40 [&>blockquote]:pl-4 [&>blockquote]:py-1 [&>blockquote]:italic [&>blockquote]:text-muted-foreground [&>blockquote]:bg-primary/5 [&>blockquote]:rounded-r-xl [&>blockquote]:my-4
+                    [&>hr]:border-border/10 [&>hr]:my-5">
+        <ReactMarkdown>{content}</ReactMarkdown>
+      </div>
+    );
+  } catch {
+    // Fallback to plain text if ReactMarkdown crashes
+    return <p className="font-sans text-[15px] leading-[1.85]">{content}</p>;
+  }
+}
+
+// ══════════════════════════════════════════════════════
 // Immersive Message Bubble — Full-width glassmorphic
 // ══════════════════════════════════════════════════════
 
@@ -558,20 +586,7 @@ function ImmersiveMessageBubble({
           {isUser ? (
             <p className="font-sans">{message.content}</p>
           ) : (
-            <div className="prose prose-invert max-w-none
-                          [&>p]:text-[15px] [&>p]:leading-[1.85] [&>p]:mb-4 [&>p:last-child]:mb-0
-                          [&>p:first-child]:text-base [&>p:first-child]:font-medium [&>p:first-child]:text-foreground
-                          [&>ul]:mb-4 [&>ol]:mb-4 [&>li]:mb-1.5 [&>li]:text-[15px]
-                          [&_strong]:text-foreground [&_strong]:font-semibold
-                          [&_em]:text-primary/70
-                          [&_a]:text-primary [&_a]:no-underline [&_a:hover]:underline
-                          [&_code]:text-primary/80 [&_code]:bg-primary/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:text-xs
-                          [&_h2]:text-lg [&_h2]:font-display [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-foreground
-                          [&_h3]:text-base [&_h3]:font-display [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-foreground/90
-                          [&>blockquote]:border-l-2 [&>blockquote]:border-primary/40 [&>blockquote]:pl-4 [&>blockquote]:py-1 [&>blockquote]:italic [&>blockquote]:text-muted-foreground [&>blockquote]:bg-primary/5 [&>blockquote]:rounded-r-xl [&>blockquote]:my-4
-                          [&>hr]:border-border/10 [&>hr]:my-5">
-              <ReactMarkdown>{message.content}</ReactMarkdown>
-            </div>
+            <HoppyMarkdown content={message.content} />
           )}
         </div>
 

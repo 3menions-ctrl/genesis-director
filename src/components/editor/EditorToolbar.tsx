@@ -34,7 +34,7 @@ interface EditorToolbarProps {
   renderProgress: number;
 }
 
-const Divider = () => <div className="h-5 w-px bg-white/[0.08] mx-1 shrink-0" />;
+const Divider = () => <div className="h-5 w-px bg-white/[0.06] mx-0.5 shrink-0" />;
 
 const Kbd = ({ children }: { children: React.ReactNode }) => (
   <kbd className="ml-1.5 px-1 py-0.5 rounded bg-white/10 text-[9px] font-mono text-white/50 border border-white/[0.08] leading-none">
@@ -65,7 +65,7 @@ const ToolBtn = ({
     onClick={onClick}
     disabled={disabled}
     className={cn(
-      "h-7 w-7 rounded-md flex items-center justify-center transition-all duration-150",
+      "h-8 w-8 rounded-lg flex items-center justify-center transition-all duration-200",
       "text-white/50 hover:text-white hover:bg-white/[0.08]",
       "disabled:opacity-20 disabled:pointer-events-none",
       "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20",
@@ -79,8 +79,8 @@ const ToolBtn = ({
 
 const ToolCluster = ({ children, className }: { children: React.ReactNode; className?: string }) => (
   <div className={cn(
-    "flex items-center gap-0.5 rounded-lg p-0.5",
-    "bg-white/[0.04] border border-white/[0.06]",
+    "flex items-center gap-0.5 rounded-xl p-0.5",
+    "bg-white/[0.03] border border-white/[0.06]",
     className,
   )}>
     {children}
@@ -96,9 +96,9 @@ export const EditorToolbar = ({
 }: EditorToolbarProps) => {
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="h-12 bg-[hsl(0,0%,8%)] border-b border-white/[0.08] flex items-center gap-1.5 px-2.5 shrink-0 relative z-20">
-        {/* Top accent */}
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+      <div className="h-14 bg-[hsl(0,0%,6%)] border-b border-white/[0.06] flex items-center gap-2 px-3 shrink-0 relative z-20">
+        {/* Top accent line */}
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
 
         <ToolbarTooltip label="Back to projects">
           <ToolBtn onClick={onBack}>
@@ -117,14 +117,14 @@ export const EditorToolbar = ({
         <Divider />
 
         {/* Project title */}
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-6 h-6 rounded-md bg-white/[0.08] border border-white/[0.1] flex items-center justify-center shrink-0">
-            <Film className="h-3 w-3 text-white/60" />
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center shrink-0">
+            <Film className="h-3.5 w-3.5 text-primary" />
           </div>
           <Input
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
-            className="max-w-[180px] h-7 text-xs font-semibold bg-transparent border-none text-white/80 placeholder:text-white/20 focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-white/[0.04] rounded-md px-2 transition-colors"
+            className="max-w-[200px] h-8 text-xs font-semibold bg-transparent border-none text-white/80 placeholder:text-white/20 focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-white/[0.04] rounded-lg px-2.5 transition-colors"
           />
         </div>
 
@@ -133,25 +133,17 @@ export const EditorToolbar = ({
         {/* Edit tools */}
         <ToolCluster>
           <ToolbarTooltip label="Undo" shortcut="⌘Z">
-            <ToolBtn onClick={onUndo} disabled={!canUndo}>
-              <Undo2 className="h-3.5 w-3.5" />
-            </ToolBtn>
+            <ToolBtn onClick={onUndo} disabled={!canUndo}><Undo2 className="h-3.5 w-3.5" /></ToolBtn>
           </ToolbarTooltip>
           <ToolbarTooltip label="Redo" shortcut="⌘⇧Z">
-            <ToolBtn onClick={onRedo} disabled={!canRedo}>
-              <Redo2 className="h-3.5 w-3.5" />
-            </ToolBtn>
+            <ToolBtn onClick={onRedo} disabled={!canRedo}><Redo2 className="h-3.5 w-3.5" /></ToolBtn>
           </ToolbarTooltip>
           <div className="h-4 w-px bg-white/[0.06]" />
           <ToolbarTooltip label="Split at playhead" shortcut="S">
-            <ToolBtn onClick={onSplit} disabled={!canSplit}>
-              <Scissors className="h-3.5 w-3.5" />
-            </ToolBtn>
+            <ToolBtn onClick={onSplit} disabled={!canSplit}><Scissors className="h-3.5 w-3.5" /></ToolBtn>
           </ToolbarTooltip>
           <ToolbarTooltip label="Duplicate clip" shortcut="⌘D">
-            <ToolBtn onClick={onDuplicate} disabled={!canDuplicate}>
-              <Copy className="h-3.5 w-3.5" />
-            </ToolBtn>
+            <ToolBtn onClick={onDuplicate} disabled={!canDuplicate}><Copy className="h-3.5 w-3.5" /></ToolBtn>
           </ToolbarTooltip>
         </ToolCluster>
 
@@ -160,14 +152,10 @@ export const EditorToolbar = ({
         {/* View tools */}
         <ToolCluster>
           <ToolbarTooltip label={`Snap ${snapEnabled ? "On" : "Off"}`} shortcut="N">
-            <ToolBtn onClick={onToggleSnap} active={snapEnabled}>
-              <Magnet className="h-3.5 w-3.5" />
-            </ToolBtn>
+            <ToolBtn onClick={onToggleSnap} active={snapEnabled}><Magnet className="h-3.5 w-3.5" /></ToolBtn>
           </ToolbarTooltip>
           <ToolbarTooltip label="Fit timeline to view" shortcut="⌘⇧F">
-            <ToolBtn onClick={onFitToView}>
-              <Maximize className="h-3.5 w-3.5" />
-            </ToolBtn>
+            <ToolBtn onClick={onFitToView}><Maximize className="h-3.5 w-3.5" /></ToolBtn>
           </ToolbarTooltip>
         </ToolCluster>
 
@@ -177,17 +165,17 @@ export const EditorToolbar = ({
         <Popover>
           <PopoverTrigger asChild>
             <button className={cn(
-              "h-7 px-2.5 rounded-md flex items-center gap-1.5 text-xs font-medium transition-all duration-150",
+              "h-8 px-3 rounded-lg flex items-center gap-1.5 text-xs font-medium transition-all duration-200",
               "text-white/50 hover:text-white hover:bg-white/[0.08]",
-              "border border-transparent hover:border-white/[0.08]",
+              "border border-white/[0.06] hover:border-white/[0.12]",
             )}>
               <Plus className="h-3.5 w-3.5" />
               <span>Track</span>
               <ChevronDown className="h-3 w-3 opacity-40" />
             </button>
           </PopoverTrigger>
-          <PopoverContent className="w-44 p-1.5 bg-[hsl(0,0%,10%)] border-white/[0.1]" side="bottom" align="start" sideOffset={8}>
-            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest px-2.5 pt-1 pb-2">
+          <PopoverContent className="w-48 p-1.5 bg-[hsl(0,0%,8%)] border-white/[0.08] rounded-xl" side="bottom" align="start" sideOffset={8}>
+            <p className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.2em] px-2.5 pt-1 pb-2">
               Add Track
             </p>
             {[
@@ -197,10 +185,10 @@ export const EditorToolbar = ({
             ].map(({ type, icon: Icon, label, color }) => (
               <button
                 key={type}
-                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-white/60 hover:text-white hover:bg-white/[0.08] transition-all"
+                className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-xs text-white/60 hover:text-white hover:bg-white/[0.06] transition-all"
                 onClick={() => onAddTrack?.(type)}
               >
-                <div className={cn("w-5 h-5 rounded flex items-center justify-center bg-white/[0.06]", color)}>
+                <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center bg-white/[0.04] border border-white/[0.06]", color)}>
                   <Icon className="h-3 w-3" />
                 </div>
                 {label}
@@ -213,11 +201,11 @@ export const EditorToolbar = ({
 
         {/* Render progress */}
         {renderStatus === "rendering" && (
-          <div className="flex items-center gap-2.5 mr-2 animate-in fade-in duration-300">
+          <div className="flex items-center gap-2.5 mr-3 animate-in fade-in duration-300">
             <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
-            <div className="w-24 h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
+            <div className="w-28 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
               <div
-                className="h-full bg-white rounded-full transition-all duration-700 ease-out"
+                className="h-full bg-gradient-to-r from-primary to-white rounded-full transition-all duration-700 ease-out"
                 style={{ width: `${renderProgress}%` }}
               />
             </div>
@@ -226,20 +214,20 @@ export const EditorToolbar = ({
         )}
 
         {renderStatus === "completed" && (
-          <div className="flex items-center gap-1.5 mr-2 animate-in fade-in duration-300">
+          <div className="flex items-center gap-1.5 mr-3 animate-in fade-in duration-300">
             <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
             <span className="text-[11px] text-emerald-400 font-semibold">Ready</span>
           </div>
         )}
 
         {/* Actions — WHITE BUTTONS */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
             onClick={onSave}
             disabled={isSaving}
-            className="h-8 px-3 text-xs text-white/60 hover:text-white hover:bg-white/[0.08] gap-1.5 rounded-lg font-medium"
+            className="h-9 px-4 text-xs text-white/60 hover:text-white hover:bg-white/[0.08] gap-1.5 rounded-xl font-medium border border-white/[0.06]"
           >
             {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             Save
@@ -250,9 +238,9 @@ export const EditorToolbar = ({
             onClick={onExport}
             disabled={renderStatus === "rendering"}
             className={cn(
-              "h-8 px-4 text-xs font-semibold rounded-lg gap-1.5 transition-all duration-200",
+              "h-9 px-5 text-xs font-semibold rounded-xl gap-1.5 transition-all duration-200",
               "bg-white text-black hover:bg-white/90",
-              "shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]",
+              "shadow-[0_0_24px_rgba(255,255,255,0.12)] hover:shadow-[0_0_40px_rgba(255,255,255,0.18)]",
             )}
           >
             <Download className="h-3.5 w-3.5" />

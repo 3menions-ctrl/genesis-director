@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { TimelineTrack, TimelineClip } from "./types";
+import { EFFECT_PRESETS, FILTER_PRESETS } from "./types";
 import { cn } from "@/lib/utils";
 import { useGaplessPlayback } from "./useGaplessPlayback";
 
@@ -119,8 +120,22 @@ export const EditorPreview = ({
         <div className="absolute inset-0 flex items-center justify-center p-5">
           {hasClips ? (
             <div className="relative w-full h-full flex items-center justify-center">
-              {/* Cinematic video frame */}
-              <div className="max-h-full max-w-full w-full h-full rounded-2xl shadow-2xl shadow-black/80 overflow-hidden relative border border-white/[0.06]">
+              {/* Cinematic video frame — with live filter from active clip */}
+              <div
+                className="max-h-full max-w-full w-full h-full rounded-2xl shadow-2xl shadow-black/80 overflow-hidden relative border border-white/[0.06]"
+                style={{
+                  filter: (() => {
+                    if (!activeVideoClip?.filter) return undefined;
+                    // Look up CSS from EFFECT_PRESETS or FILTER_PRESETS
+                    const effectPreset = EFFECT_PRESETS.find(e => e.id === activeVideoClip.filter);
+                    if (effectPreset && 'css' in effectPreset && effectPreset.css) return effectPreset.css;
+                    const filterPreset = FILTER_PRESETS.find(f => f.id === activeVideoClip.filter);
+                    if (filterPreset?.css) return filterPreset.css;
+                    return undefined;
+                  })(),
+                  transition: 'filter 0.3s ease',
+                }}
+              >
                 <video ref={videoARef}
                   className={cn("absolute inset-0 w-full h-full object-contain bg-black transition-opacity duration-75", activeSlot === 'A' ? 'opacity-100 z-10' : 'opacity-0 z-0')}
                   muted={isMuted} playsInline preload="auto" />

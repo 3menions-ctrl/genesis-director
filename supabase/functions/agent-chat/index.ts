@@ -6,8 +6,31 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Credit cost per agent conversation that uses tools
-const AGENT_CONVERSATION_CREDIT_COST = 1;
+// ══════════════════════════════════════════════════════
+// Credit Costs — Tiered: free chat, charged actions
+// ══════════════════════════════════════════════════════
+
+const TOOL_CREDIT_COSTS: Record<string, number> = {
+  // Free lookups (0 credits)
+  get_user_profile: 0,
+  get_user_projects: 0,
+  get_project_details: 0,
+  get_available_templates: 0,
+  get_available_avatars: 0,
+  get_project_pipeline_status: 0,
+  check_active_pipelines: 0,
+  get_credit_info: 0,
+  navigate_user: 0,
+  // Charged actions
+  create_project: 2,
+  rename_project: 1,
+  delete_project: 0,
+  start_creation_flow: 2,
+  generate_script_preview: 2,
+  trigger_generation: 0, // actual generation cost handled by pipeline
+  open_buy_credits: 0,
+  get_recent_transactions: 0,
+};
 
 // ══════════════════════════════════════════════════════
 // APEX Agent — Tool Definitions
@@ -106,7 +129,7 @@ const AGENT_TOOLS = [
     type: "function",
     function: {
       name: "start_creation_flow",
-      description: "Initiate a guided video creation flow. Shows the creation wizard with pre-filled parameters. Costs credits — will require user confirmation if cost > 5 credits.",
+      description: "Initiate a guided video creation flow. Navigates user to /create with pre-filled parameters. Costs 2 credits for the setup.",
       parameters: {
         type: "object",
         properties: {
@@ -114,7 +137,7 @@ const AGENT_TOOLS = [
           prompt: { type: "string", description: "The video prompt/description" },
           style: { type: "string", description: "Visual style preference" },
           aspect_ratio: { type: "string", enum: ["16:9", "9:16", "1:1"], description: "Video aspect ratio" },
-          clip_count: { type: "number", description: "Number of clips (1-8)" },
+          clip_count: { type: "number", description: "Number of clips (1-20)" },
         },
         required: ["mode", "prompt"],
       },
@@ -124,7 +147,7 @@ const AGENT_TOOLS = [
     type: "function",
     function: {
       name: "generate_script_preview",
-      description: "Generate a script preview for a video idea without starting production. Low cost (2 credits).",
+      description: "Generate a script preview for a video idea without starting production. Costs 2 credits.",
       parameters: {
         type: "object",
         properties: {
@@ -150,6 +173,90 @@ const AGENT_TOOLS = [
       name: "get_credit_info",
       description: "Get detailed credit information including balance, recent transactions, and cost estimates for different actions.",
       parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  // ─── NEW: Full User Action Tools ───
+  {
+    type: "function",
+    function: {
+      name: "create_project",
+      description: "Create a new draft movie project for the user. Costs 2 credits. Returns project ID.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Project title" },
+          prompt: { type: "string", description: "The video prompt/description" },
+          mode: { type: "string", enum: ["text-to-video", "image-to-video", "avatar"], description: "Creation mode" },
+          aspect_ratio: { type: "string", enum: ["16:9", "9:16", "1:1"], description: "Video aspect ratio" },
+          clip_count: { type: "number", description: "Number of clips (1-20)" },
+          clip_duration: { type: "number", enum: [5, 10], description: "Duration per clip in seconds" },
+        },
+        required: ["title", "prompt", "mode"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "rename_project",
+      description: "Rename an existing project. Costs 1 credit. Only works on user's own projects.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "The UUID of the project" },
+          new_title: { type: "string", description: "The new title for the project" },
+        },
+        required: ["project_id", "new_title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_project",
+      description: "Delete a project. Only works on user's own projects in draft or failed status. Requires confirmation.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "The UUID of the project to delete" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "trigger_generation",
+      description: "Trigger video generation on an existing draft project. The pipeline will handle credit deduction per clip. Requires user confirmation.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "The UUID of the draft project to generate" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "open_buy_credits",
+      description: "Open the credit purchase flow. Use when user wants to buy credits or is low on balance.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_recent_transactions",
+      description: "Get the user's recent credit transactions for transparency.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: { type: "number", description: "Number of transactions to return (max 20)" },
+        },
+      },
     },
   },
 ];
@@ -326,12 +433,16 @@ async function executeTool(
 
     case "start_creation_flow": {
       const clipCount = (args.clip_count as number) || 4;
-      const estimatedCredits = clipCount <= 6 ? 10 : 15;
+      // Calculate estimated total generation cost
+      let estCredits = 0;
+      for (let i = 0; i < clipCount; i++) {
+        estCredits += (i >= 6 || ((args.clip_duration as number) || 5) > 6) ? 15 : 10;
+      }
       
       return {
         action: "start_creation",
-        requires_confirmation: estimatedCredits > 5,
-        estimated_credits: estimatedCredits,
+        requires_confirmation: true,
+        estimated_credits: estCredits,
         params: {
           mode: args.mode,
           prompt: args.prompt,
@@ -387,13 +498,179 @@ async function executeTool(
         recent_transactions: transactions || [],
         cost_estimates: {
           text_to_video_4clips: 40,
+          text_to_video_6clips: 60,
           text_to_video_8clips: 75,
-          avatar_video: 40,
+          avatar_video_4clips: 40,
           script_preview: 2,
           photo_edit: 2,
-          agent_chat_with_tools: 1,
+          project_creation_via_agent: 2,
+          project_rename_via_agent: 1,
         },
       };
+    }
+
+    // ─── NEW ACTION TOOLS ───
+
+    case "create_project": {
+      // Create a new draft project
+      const { data: newProject, error } = await supabase
+        .from("movie_projects")
+        .insert({
+          user_id: userId,
+          title: args.title || "Untitled Project",
+          prompt: args.prompt || "",
+          mode: args.mode || "text-to-video",
+          aspect_ratio: args.aspect_ratio || "16:9",
+          clip_count: Math.min(Math.max((args.clip_count as number) || 6, 1), 20),
+          clip_duration: (args.clip_duration as number) || 5,
+          status: "draft",
+        })
+        .select("id, title, status")
+        .single();
+
+      if (error) {
+        console.error("[agent-chat] create_project error:", error);
+        return { error: "Failed to create project: " + error.message };
+      }
+
+      return {
+        action: "project_created",
+        project_id: newProject.id,
+        title: newProject.title,
+        status: newProject.status,
+        message: `Project "${newProject.title}" created successfully!`,
+        navigate_to: `/projects`,
+      };
+    }
+
+    case "rename_project": {
+      const { data: existing } = await supabase
+        .from("movie_projects")
+        .select("id, title")
+        .eq("id", args.project_id)
+        .eq("user_id", userId)
+        .single();
+
+      if (!existing) return { error: "Project not found or access denied" };
+
+      const { error } = await supabase
+        .from("movie_projects")
+        .update({ title: args.new_title })
+        .eq("id", args.project_id)
+        .eq("user_id", userId);
+
+      if (error) return { error: "Failed to rename project: " + error.message };
+
+      return {
+        action: "project_renamed",
+        project_id: args.project_id,
+        old_title: existing.title,
+        new_title: args.new_title,
+        message: `Renamed from "${existing.title}" to "${args.new_title}"`,
+      };
+    }
+
+    case "delete_project": {
+      const { data: toDelete } = await supabase
+        .from("movie_projects")
+        .select("id, title, status")
+        .eq("id", args.project_id)
+        .eq("user_id", userId)
+        .single();
+
+      if (!toDelete) return { error: "Project not found or access denied" };
+
+      // Only allow deleting draft or failed projects
+      if (!["draft", "failed"].includes(toDelete.status)) {
+        return {
+          error: `Cannot delete a project with status "${toDelete.status}". Only draft or failed projects can be deleted.`,
+          action: "delete_blocked",
+          project_status: toDelete.status,
+        };
+      }
+
+      return {
+        action: "confirm_delete",
+        requires_confirmation: true,
+        project_id: toDelete.id,
+        title: toDelete.title,
+        status: toDelete.status,
+        message: `Are you sure you want to delete "${toDelete.title}"? This cannot be undone.`,
+      };
+    }
+
+    case "trigger_generation": {
+      const { data: genProject } = await supabase
+        .from("movie_projects")
+        .select("id, title, status, clip_count, clip_duration, prompt, mode")
+        .eq("id", args.project_id)
+        .eq("user_id", userId)
+        .single();
+
+      if (!genProject) return { error: "Project not found or access denied" };
+
+      if (genProject.status !== "draft") {
+        return { error: `Project is "${genProject.status}" — only draft projects can be generated.` };
+      }
+
+      // Calculate estimated credits
+      const clipCount = genProject.clip_count || 6;
+      const clipDuration = genProject.clip_duration || 5;
+      let estCredits = 0;
+      for (let i = 0; i < clipCount; i++) {
+        estCredits += (i >= 6 || clipDuration > 6) ? 15 : 10;
+      }
+
+      // Check balance
+      const { data: bal } = await supabase
+        .from("profiles")
+        .select("credits_balance")
+        .eq("id", userId)
+        .single();
+
+      const balance = bal?.credits_balance || 0;
+
+      if (balance < estCredits) {
+        return {
+          action: "insufficient_credits",
+          required: estCredits,
+          available: balance,
+          shortfall: estCredits - balance,
+          message: `You need ${estCredits} credits but only have ${balance}. You're ${estCredits - balance} credits short.`,
+        };
+      }
+
+      return {
+        action: "confirm_generation",
+        requires_confirmation: true,
+        project_id: genProject.id,
+        title: genProject.title,
+        estimated_credits: estCredits,
+        clip_count: clipCount,
+        clip_duration: clipDuration,
+        balance_after: balance - estCredits,
+        message: `Ready to generate "${genProject.title}" (${clipCount} clips × ${clipDuration}s). This will use ~${estCredits} credits. You'll have ${balance - estCredits} credits remaining.`,
+      };
+    }
+
+    case "open_buy_credits": {
+      return {
+        action: "open_buy_credits",
+        path: "/pricing",
+        message: "Opening the credits store for you!",
+      };
+    }
+
+    case "get_recent_transactions": {
+      const txLimit = Math.min((args.limit as number) || 10, 20);
+      const { data: txns } = await supabase
+        .from("credit_transactions")
+        .select("amount, transaction_type, description, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(txLimit);
+
+      return { transactions: txns || [], count: txns?.length || 0 };
     }
 
     default:
@@ -402,18 +679,21 @@ async function executeTool(
 }
 
 // ══════════════════════════════════════════════════════
-// Credit Charging for Agent Conversations
+// Credit Charging — Per-Tool Tiered
 // ══════════════════════════════════════════════════════
 
-async function chargeAgentCredits(
+async function chargeToolCredits(
   supabase: ReturnType<typeof createClient>,
   userId: string,
+  toolName: string,
   amount: number
 ): Promise<{ success: boolean; remaining?: number; error?: string }> {
+  if (amount <= 0) return { success: true };
+
   const { data, error } = await supabase.rpc("deduct_credits", {
     p_user_id: userId,
     p_amount: amount,
-    p_description: `Hoppy AI assistant conversation (tool usage)`,
+    p_description: `Hoppy action: ${toolName}`,
   });
 
   if (error) {
@@ -441,7 +721,7 @@ async function getUserBalance(
 }
 
 // ══════════════════════════════════════════════════════
-// System Prompt Builder — Comprehensive App Knowledge
+// System Prompt Builder
 // ══════════════════════════════════════════════════════
 
 function buildSystemPrompt(userContext: Record<string, unknown>, currentPage?: string): string {
@@ -464,12 +744,37 @@ function buildSystemPrompt(userContext: Record<string, unknown>, currentPage?: s
 - Keep responses 2-4 sentences unless detail is asked for
 - ALWAYS remember and reference past conversations for continuity
 
+═══ YOUR CAPABILITIES (Actions you can take for the user) ═══
+You can DO things, not just talk. You are a capable assistant that takes action:
+
+1. **Create Projects** — Use create_project to make new draft video projects directly
+2. **Manage Projects** — Rename projects with rename_project, delete failed/draft ones with delete_project
+3. **Trigger Generation** — Use trigger_generation to start the production pipeline on draft projects
+4. **Buy Credits** — Open the credit store with open_buy_credits when users need more credits
+5. **Navigate** — Send users to any page: /create, /projects, /avatars, /pricing, /settings, /gallery
+6. **Lookup Info** — Check profile, projects, pipeline status, avatars, templates, credit info, transactions
+
+IMPORTANT: When a user asks you to DO something (create, delete, rename, generate), DO IT using tools. Don't just describe how — take the action.
+
+═══ CREDIT CHARGING (Tiered) ═══
+- **Free**: All lookups, navigation, and general Q&A cost NOTHING
+- **Charged actions** (deducted automatically):
+  - Create project via agent: 2 credits
+  - Rename project via agent: 1 credit
+  - Script preview: 2 credits
+  - Start creation flow: 2 credits
+  - Delete project: FREE
+  - Open buy credits: FREE
+  - Trigger generation: FREE (pipeline charges per clip)
+- If a user lacks credits for an action, guide them to /pricing warmly
+- Only mention costs if the user asks or if they're about to run out
+
 ═══ COMPLETE PLATFORM KNOWLEDGE ═══
 
 **Genesis Studio** is an AI video creation platform that turns text prompts into cinematic videos using AI models (Kling 2.6, Veo, ElevenLabs voice, OpenAI scripting).
 
 ### Core Creation Modes
-1. **Text-to-Video** (/create) — Describe a scene → AI generates a script → creates images → generates video clips → stitches final video with voice & music
+1. **Text-to-Video** (/create) — Describe a scene → AI generates script → creates images → generates video clips → stitches final video with voice & music
 2. **Image-to-Video** (/create) — Upload an image → AI animates it into video clips
 3. **Avatar Mode** (/avatars) — Choose an AI avatar character → they speak your script on camera with lip-sync
 
@@ -480,47 +785,34 @@ function buildSystemPrompt(userContext: Record<string, unknown>, currentPage?: s
 - Total: **10 credits per clip** (base, clips 1-6, ≤6s) or **15 credits per clip** (extended, clips 7+ or >6s duration)
 
 ### Available Pages & Features
-- **/create** — CreationHub: Main video creation workspace. Choose mode, set prompt, aspect ratio (16:9, 9:16, 1:1), clip count (1-20), duration (5s or 10s per clip)
-- **/projects** — All user projects with status tracking (draft, generating, processing, stitching, completed, failed)
-- **/avatars** — Browse & select AI avatar characters for avatar-mode videos
-- **/gallery** — Community showcase of completed videos for inspiration
-- **/pricing** — Credit packages: Mini ($9/90 credits), Starter ($37/370 credits), Growth, Agency tiers
+- **/create** — CreationHub: Main video creation workspace
+- **/projects** — All user projects with status tracking
+- **/avatars** — Browse & select AI avatar characters
+- **/gallery** — Community showcase
+- **/pricing** — Credit packages: Mini ($9/90 credits), Starter ($37/370 credits), Growth, Agency
 - **/profile** — User profile with bio, avatar, level, XP, streak, achievements
-- **/settings** — Account settings, preferences, display name, email, password
-- **/video-editor** — Post-production timeline editor for arranging clips
-- **/world-chat** — Community chat rooms (World Chat, DMs, Group conversations)
-- **/how-it-works** — Platform tutorial and workflow explanation
-- **/help** — Help center with FAQ and documentation
-- **/contact** — Support contact form
-- **/terms** — Terms of Service
-- **/privacy** — Privacy Policy
+- **/settings** — Account settings
+- **/video-editor** — Post-production timeline editor
+- **/world-chat** — Community chat
+- **/how-it-works** — Tutorial
+- **/help** — Help center
+- **/contact** — Support
 
-### Credit System (CRITICAL KNOWLEDGE)
+### Credit System
 - **1 credit = $0.10** (purchased via Stripe)
 - ALL credits must be purchased — no free credits
 - **ALL SALES ARE FINAL AND NON-REFUNDABLE**
-- Base rate: 10 credits/clip (clips 1-6, up to 6 seconds each)
-- Extended rate: 15 credits/clip (clips 7+ OR duration >6 seconds)
-- Photo editing: 2 credits per edit
-- Script preview: 2 credits
-- Agent chat with tools: 1 credit per tool-using conversation
-- If a generation fails, credits are automatically refunded
+- Base rate: 10 credits/clip (clips 1-6, up to 6 seconds)
+- Extended rate: 15 credits/clip (clips 7+ OR >6 seconds)
+- If generation fails, credits are automatically refunded
 
-### Gamification System
-- Users earn XP for creating videos, daily logins, streaks
-- Levels calculated from XP (level = floor(sqrt(xp/50)) + 1)
-- Daily challenges, achievements, and streaks (7-day, 30-day, 100-day)
-- Leaderboard shows top creators
+### Gamification
+- XP for creating videos, daily logins, streaks
+- Levels, daily challenges, achievements
 
 ### Social Features
-- Community chat (World Chat, DMs, Group conversations)
-- User follows, project likes and comments
-- Character lending between creators
-- Universes — collaborative worldbuilding spaces
-
-### Account Tiers
-- Free tier: Up to 6 clips per video (based on purchased credits)
-- Pro tier: Up to 30 clips, priority queue
+- Community chat, follows, likes, comments
+- Character lending, Universes (collaborative worldbuilding)
 
 ═══ USER CONTEXT ═══
 - Name: ${name}
@@ -529,57 +821,21 @@ function buildSystemPrompt(userContext: Record<string, unknown>, currentPage?: s
 - Total projects: ${projectCount}
 - Level: ${level} | Streak: ${streak} days
 - Current page: ${currentPage || "unknown"}
-${credits <= 0 ? "⚠️ User has NO credits — warmly guide them to /pricing. Be encouraging, not pushy." : ""}
-${credits > 0 && credits <= 10 ? "💡 User is low on credits — casually mention topping up." : ""}
+${credits <= 0 ? "⚠️ User has NO credits — warmly guide them to /pricing when they want to take action." : ""}
+${credits > 0 && credits <= 10 ? "💡 User is low on credits — casually mention topping up if they want to generate." : ""}
 ${projectCount === 0 ? "🌟 NEW user! Be extra welcoming. Guide them to create their first video." : ""}
-
-═══ CONVERSION GOALS (natural, never salesy) ═══
-- New users: Help create their first video — make it feel easy and exciting
-- Returning users: Celebrate progress, suggest creative ideas
-- Low credits: "You can grab more credits anytime at /pricing! 💜"
-- Value pitch: "With just 10 credits (~$1) you can create a cinematic video!"
-- Always guide toward action: creating, exploring, or purchasing
-
-═══ PROACTIVE AWARENESS ═══
-- On /projects: Offer progress updates on active generations
-- On /create: Help brainstorm ideas, suggest modes
-- On /pricing: Answer credit questions warmly, explain packages
-- On /avatars: Recommend avatar characters, explain how avatar mode works
-- On /gallery: Point out inspiring videos, suggest similar concepts
-- Active generations: Share updates proactively
-- Failed projects: Explain what happened, offer to retry
-
-═══ AVATAR EXPERTISE ═══
-- You know every avatar by name. When users ask about avatars, use the get_available_avatars tool to look up the full roster.
-- Recommend avatars by name, personality, and voice type based on the user's project needs.
-- Explain avatar types: "realistic" (photorealistic human) vs "animated" (stylized CGI).
-- Styles: corporate/business, creative, educational, casual, influencer, luxury/premium.
-- Each avatar has a unique voice — suggest matching voice personality to project tone.
-
-═══ PRODUCTION PIPELINE EXPERTISE ═══
-- When users ask about project progress, use get_project_pipeline_status for clip-by-clip detail.
-- Pipeline stages: script_generation → identity_analysis → quality_audit → scene_preparation → clip_generation → voice_synthesis → music_generation → stitching → completed
-- Explain progress in friendly terms: "3 of 6 clips done — about 5 minutes left! 🎬"
-- If clips fail, explain retries happen automatically and credits are refunded on total failure.
-- Active generations: proactively share which clip is rendering and estimated time.
 
 ═══ STRICT USER BOUNDARIES ═══
 - ONLY access the current user's data. Never reveal info about other users.
-- All project queries MUST filter by user_id. Never show projects belonging to others.
-- Credit balance, transactions, and account details are private to the authenticated user.
+- All project queries MUST filter by user_id.
 - If a user asks about another user's data, politely decline: "I can only help with your own account and projects! 💜"
 - Never expose internal IDs, API keys, or system details.
-
-═══ CREDIT CHARGING NOTICE ═══
-- Simple questions (no tools): FREE — no credits charged
-- Tool-using conversations (checking projects, profiles, etc.): 1 credit per conversation
-- You should inform users naturally if they ask about costs: "Quick lookups cost just 1 credit 💜"
 
 ═══ RESPONSE FORMAT ═══
 - Keep responses 2-4 sentences unless asked for detail
 - Use markdown for lists and emphasis
 - End with a helpful suggestion or question to keep conversation flowing
-- When describing features, always mention the relevant page path (e.g., "Head to /create to get started!")`;
+- When performing actions, confirm what you did clearly`;
 }
 
 // ══════════════════════════════════════════════════════
@@ -705,38 +961,10 @@ serve(async (req) => {
     const allToolResults: Array<{ name: string; result: unknown }> = [];
     let iterations = 0;
     const MAX_ITERATIONS = 5;
-    let toolsWereUsed = false;
+    let totalCreditsCharged = 0;
 
     // Tool calling loop
     while (assistantMessage?.tool_calls && iterations < MAX_ITERATIONS) {
-      // On first tool use, charge credits
-      if (!toolsWereUsed) {
-        toolsWereUsed = true;
-        
-        // Check balance and charge
-        const balance = await getUserBalance(supabase, auth.userId);
-        if (balance < AGENT_CONVERSATION_CREDIT_COST) {
-          return new Response(JSON.stringify({
-            content: "Oops! You need at least 1 credit for me to look things up for you. Head to **/pricing** to grab some credits and I'll be right here waiting! 💜🐰",
-            actions: [{ action: "navigate", path: "/pricing", reason: "Need credits for agent tools" }],
-            creditsCharged: 0,
-          }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        const chargeResult = await chargeAgentCredits(supabase, auth.userId, AGENT_CONVERSATION_CREDIT_COST);
-        if (!chargeResult.success) {
-          return new Response(JSON.stringify({
-            content: "Hmm, I couldn't process the credits right now. Try again in a moment! 🐰",
-            actions: [],
-            creditsCharged: 0,
-          }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-      }
-
       iterations++;
       const toolResults = [];
 
@@ -748,6 +976,37 @@ serve(async (req) => {
         } catch { /* empty args */ }
 
         console.log(`[agent-chat] Tool call: ${toolName}`, toolArgs);
+
+        // Check and charge per-tool credits
+        const toolCost = TOOL_CREDIT_COSTS[toolName] ?? 0;
+        if (toolCost > 0) {
+          const balance = await getUserBalance(supabase, auth.userId);
+          if (balance < toolCost) {
+            // Not enough credits for this action
+            toolResults.push({
+              role: "tool",
+              tool_call_id: toolCall.id,
+              content: JSON.stringify({
+                error: `Insufficient credits. This action costs ${toolCost} credits but you only have ${balance}. Head to /pricing to get more!`,
+                action: "insufficient_credits",
+                required: toolCost,
+                available: balance,
+              }),
+            });
+            continue;
+          }
+
+          const chargeResult = await chargeToolCredits(supabase, auth.userId, toolName, toolCost);
+          if (!chargeResult.success) {
+            toolResults.push({
+              role: "tool",
+              tool_call_id: toolCall.id,
+              content: JSON.stringify({ error: "Could not deduct credits: " + chargeResult.error }),
+            });
+            continue;
+          }
+          totalCreditsCharged += toolCost;
+        }
         
         const result = await executeTool(toolName, toolArgs, supabase, auth.userId);
         allToolResults.push({ name: toolName, result });
@@ -814,7 +1073,7 @@ serve(async (req) => {
         content,
         tool_calls: assistantMessage?.tool_calls || null,
         tool_results: allToolResults.length > 0 ? allToolResults : null,
-        metadata: { actions, creditsCharged: toolsWereUsed ? AGENT_CONVERSATION_CREDIT_COST : 0 },
+        metadata: { actions, creditsCharged: totalCreditsCharged },
       });
     }
 
@@ -830,7 +1089,7 @@ serve(async (req) => {
         content,
         actions,
         conversationId,
-        creditsCharged: toolsWereUsed ? AGENT_CONVERSATION_CREDIT_COST : 0,
+        creditsCharged: totalCreditsCharged,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

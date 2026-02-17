@@ -6,6 +6,7 @@
  * Each card can include a "Go to page" navigation action.
  */
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { 
   Film, Sparkles, Zap, Star, Crown, Eye, Heart, Clock, 
@@ -24,9 +25,10 @@ export interface RichBlock {
 interface RichBlocksRendererProps {
   blocks: RichBlock[];
   onNavigate?: (path: string) => void;
+  onSendMessage?: (content: string) => void;
 }
 
-export function RichBlocksRenderer({ blocks, onNavigate }: RichBlocksRendererProps) {
+export function RichBlocksRenderer({ blocks, onNavigate, onSendMessage }: RichBlocksRendererProps) {
   if (!blocks || blocks.length === 0) return null;
   return (
     <div className="flex flex-col gap-4 mt-3">
@@ -37,14 +39,14 @@ export function RichBlocksRenderer({ blocks, onNavigate }: RichBlocksRendererPro
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: i * 0.08, duration: 0.3 }}
         >
-          <BlockRouter block={block} onNavigate={onNavigate} />
+          <BlockRouter block={block} onNavigate={onNavigate} onSendMessage={onSendMessage} />
         </motion.div>
       ))}
     </div>
   );
 }
 
-function BlockRouter({ block, onNavigate }: { block: RichBlock; onNavigate?: (path: string) => void }) {
+function BlockRouter({ block, onNavigate, onSendMessage }: { block: RichBlock; onNavigate?: (path: string) => void; onSendMessage?: (content: string) => void }) {
   const nav = onNavigate;
   switch (block.type) {
     case "page_embed": return <PageEmbedBlock data={block.data} onNavigate={nav} />;
@@ -63,6 +65,7 @@ function BlockRouter({ block, onNavigate }: { block: RichBlock; onNavigate?: (pa
     case "shot_list": return <ShotListBlock data={block.data} />;
     case "onboarding": return <OnboardingBlock data={block.data} />;
     case "settings": return <SettingsBlock data={block.data} onNavigate={nav} />;
+    case "multiple_choice": return <MultipleChoiceBlock data={block.data} onSendMessage={onSendMessage} />;
     default: return null;
   }
 }
@@ -768,6 +771,164 @@ function SettingsBlock({ data, onNavigate }: { data: any; onNavigate?: (path: st
           </div>
         ))}
       </div>
+    </RichCard>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// MULTIPLE CHOICE — Interactive selection cards
+// ═══════════════════════════════════════════════
+
+
+
+function MultipleChoiceBlock({ data, onSendMessage }: { data: any; onSendMessage?: (content: string) => void }) {
+  const options: { id: string; label: string; description?: string; icon?: string }[] = data.options || [];
+  const maxSelections: number = data.max_selections || 1;
+  const question: string = data.question || "Choose an option:";
+  const choiceId: string = data.id || "choice";
+
+  const [selected, setSelected] = useState<string[]>([]);
+  const [submitted, setSubmitted] = useState(false);
+
+  const toggleOption = (optId: string) => {
+    if (submitted) return;
+    setSelected((prev) => {
+      if (prev.includes(optId)) return prev.filter((s) => s !== optId);
+      if (prev.length >= maxSelections) {
+        // Replace last selection if at max
+        return maxSelections === 1 ? [optId] : [...prev.slice(0, -1), optId];
+      }
+      return [...prev, optId];
+    });
+  };
+
+  const handleSubmit = () => {
+    if (selected.length === 0 || submitted) return;
+    setSubmitted(true);
+    const selectedLabels = selected
+      .map((id) => options.find((o) => o.id === id)?.label)
+      .filter(Boolean);
+    const response = selectedLabels.length === 1
+      ? selectedLabels[0]!
+      : selectedLabels.join(" and ");
+    onSendMessage?.(response);
+  };
+
+  const OPTION_ICONS: Record<string, any> = {
+    film: Film, sparkles: Sparkles, zap: Zap, star: Star, crown: Crown,
+    play: Play, globe: Globe, users: Users, settings: Settings, palette: Palette,
+    target: Target, award: Award, flame: Flame, trophy: Trophy, send: Send,
+    heart: Heart, eye: Eye, "credit-card": CreditCard, clapperboard: Clapperboard,
+  };
+
+  return (
+    <RichCard accent="hsl(var(--primary))">
+      <div className="px-5 py-4 border-b border-border/8">
+        <div className="flex items-center gap-2.5">
+          <div className="p-1.5 rounded-lg bg-primary/10">
+            <HelpCircle className="h-4 w-4 text-primary" />
+          </div>
+          <span className="font-display text-sm font-semibold text-foreground tracking-tight">{question}</span>
+        </div>
+        {maxSelections > 1 && (
+          <p className="text-[10px] text-muted-foreground/50 mt-1.5 ml-9">
+            Select up to {maxSelections} options
+          </p>
+        )}
+      </div>
+
+      <div className="p-3 space-y-2">
+        {options.map((opt) => {
+          const isSelected = selected.includes(opt.id);
+          const IconComp = opt.icon ? OPTION_ICONS[opt.icon] : null;
+
+          return (
+            <button
+              key={opt.id}
+              onClick={() => toggleOption(opt.id)}
+              disabled={submitted}
+              className={cn(
+                "w-full text-left px-4 py-3.5 rounded-xl border transition-all duration-200",
+                "flex items-center gap-3.5 group",
+                submitted && isSelected
+                  ? "bg-primary/12 border-primary/30 ring-1 ring-primary/20"
+                  : submitted
+                  ? "opacity-40 cursor-not-allowed bg-surface-2/20 border-border/8"
+                  : isSelected
+                  ? "bg-primary/10 border-primary/25 shadow-[0_0_20px_hsl(var(--primary)/0.08)]"
+                  : "bg-surface-2/30 border-border/10 hover:border-primary/20 hover:bg-surface-2/50"
+              )}
+            >
+              {/* Selection indicator */}
+              <div
+                className={cn(
+                  "h-5 w-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all",
+                  isSelected
+                    ? "border-primary bg-primary"
+                    : "border-muted-foreground/25 group-hover:border-primary/40"
+                )}
+              >
+                {isSelected && <CheckCircle className="h-3 w-3 text-primary-foreground" />}
+              </div>
+
+              {/* Icon */}
+              {IconComp && (
+                <div className={cn(
+                  "p-1.5 rounded-lg flex-shrink-0 transition-colors",
+                  isSelected ? "bg-primary/15" : "bg-surface-2/50"
+                )}>
+                  <IconComp className={cn("h-4 w-4", isSelected ? "text-primary" : "text-muted-foreground/60")} />
+                </div>
+              )}
+
+              {/* Label & description */}
+              <div className="flex-1 min-w-0">
+                <p className={cn(
+                  "text-sm font-medium transition-colors",
+                  isSelected ? "text-foreground" : "text-foreground/80"
+                )}>
+                  {opt.label}
+                </p>
+                {opt.description && (
+                  <p className="text-[11px] text-muted-foreground/50 mt-0.5 leading-relaxed line-clamp-2">
+                    {opt.description}
+                  </p>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Submit button */}
+      {!submitted && (
+        <div className="px-4 pb-4">
+          <button
+            onClick={handleSubmit}
+            disabled={selected.length === 0}
+            className={cn(
+              "w-full py-3 rounded-xl text-sm font-display font-semibold transition-all duration-200",
+              selected.length > 0
+                ? "bg-primary text-primary-foreground shadow-[0_4px_16px_hsl(var(--primary)/0.25)] hover:shadow-[0_8px_24px_hsl(var(--primary)/0.3)] active:scale-[0.98]"
+                : "bg-muted/50 text-muted-foreground/40 cursor-not-allowed"
+            )}
+          >
+            {selected.length === 0
+              ? "Select an option"
+              : `Confirm${selected.length > 1 ? ` (${selected.length})` : ""}`}
+          </button>
+        </div>
+      )}
+
+      {/* Submitted state */}
+      {submitted && (
+        <div className="px-5 py-3 border-t border-border/8 flex items-center gap-2">
+          <CheckCircle className="h-3.5 w-3.5 text-primary/60" />
+          <span className="text-[11px] text-primary/60 font-display font-medium">
+            Choice submitted
+          </span>
+        </div>
+      )}
     </RichCard>
   );
 }

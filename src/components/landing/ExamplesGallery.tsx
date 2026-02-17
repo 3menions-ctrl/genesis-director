@@ -88,7 +88,8 @@ const LoadTrigger = memo(function LoadTrigger({ onLoad }: { onLoad: () => void }
 
 const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: ExamplesGalleryProps) {
   const { safeSetState, isMounted } = useMountSafe();
-  const { data: galleryItems, isLoading: isLoadingGallery } = useGalleryShowcase();
+  // Only fetch gallery data when dialog is open to prevent wasting resources
+  const { data: galleryItems, isLoading: isLoadingGallery } = useGalleryShowcase(open);
   
   const [activeCategory, setActiveCategory] = useState<VideoCategory>('all');
   const [currentIndex, setCurrentIndex] = useState(0);

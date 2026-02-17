@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { GalleryShowcaseItem, GalleryShowcaseInsert, GalleryShowcaseUpdate } from '@/types/gallery-showcase';
 import { toast } from 'sonner';
 
-export function useGalleryShowcase(includeInactive = false) {
+export function useGalleryShowcase(enabled: boolean = true, includeInactive = false) {
   return useQuery({
     queryKey: ['gallery-showcase', includeInactive],
     queryFn: async () => {
@@ -22,6 +22,7 @@ export function useGalleryShowcase(includeInactive = false) {
       return data as GalleryShowcaseItem[];
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled, // Don't fetch when gallery dialog is closed
   });
 }
 

@@ -15,6 +15,7 @@ import { Play, Pause, Volume2, VolumeX, Maximize2, Loader2, AlertCircle, Refresh
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { safePlay, safePause, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
+import { useMediaCleanup, useRouteCleanup } from '@/lib/navigation';
 
 // ============================================================================
 // TYPES
@@ -215,6 +216,25 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
           hlsRef.current = null;
         }
       };
+    }, []);
+
+    // CRITICAL: Register video element with NavigationCoordinator
+    // so abortAllMedia() can pause/cleanup BEFORE React unmount races with new page mount
+    useMediaCleanup(videoRef);
+
+    // CRITICAL: Destroy HLS instance before navigation starts (not during unmount)
+    // This prevents Safari resource exhaustion when old HLS streams overlap with new page loading
+    useRouteCleanup(() => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      const video = videoRef.current;
+      if (video) {
+        video.pause();
+        video.removeAttribute('src');
+        video.load(); // Force release of media resources
+      }
     }, []);
     
     // Initialize HLS playback - only depends on hlsUrl

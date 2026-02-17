@@ -17,11 +17,17 @@ const ACTIVITY_TEMPLATES = [
   { icon: Zap, text: 'Motion transfer applied to a dance sequence', time: '16m ago' },
 ];
 
-export const SocialProofTicker = memo(function SocialProofTicker() {
+interface SocialProofTickerProps {
+  /** Suspend interval when overlay is active to reduce background work */
+  suspended?: boolean;
+}
+
+export const SocialProofTicker = memo(function SocialProofTicker({ suspended = false }: SocialProofTickerProps) {
   const [visibleIdx, setVisibleIdx] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
+    if (suspended) return;
     const interval = setInterval(() => {
       setIsVisible(false);
       setTimeout(() => {
@@ -30,7 +36,7 @@ export const SocialProofTicker = memo(function SocialProofTicker() {
       }, 400);
     }, 4000);
     return () => clearInterval(interval);
-  }, []);
+  }, [suspended]);
 
   const activity = ACTIVITY_TEMPLATES[visibleIdx];
   const Icon = activity.icon;

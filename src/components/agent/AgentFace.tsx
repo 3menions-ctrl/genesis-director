@@ -49,18 +49,35 @@ export function AgentFace({ state, className, size = 160 }: AgentFaceProps) {
           draggable={false}
         />
 
-        {/* Blink overlay — darkens the eye area briefly */}
-        <div
-          className="absolute inset-0 pointer-events-none transition-opacity"
-          style={{
-            opacity: blinking ? 1 : 0,
-            transitionDuration: blinking ? "40ms" : "80ms",
-            background: `
-              radial-gradient(ellipse 18% 6% at 38% 42%, hsl(250 12% 14% / 0.92) 0%, transparent 100%),
-              radial-gradient(ellipse 18% 6% at 62% 42%, hsl(250 12% 14% / 0.92) 0%, transparent 100%)
-            `,
-          }}
-        />
+        {/* Blink overlay — horizontal bars over each eye */}
+        {blinking && (
+          <div className="absolute inset-0 pointer-events-none">
+            {/* Left eye lid */}
+            <div
+              className="absolute rounded-full"
+              style={{
+                left: "24%",
+                top: "34%",
+                width: "20%",
+                height: "8%",
+                background: "hsl(25 30% 55%)",
+                filter: "blur(1.5px)",
+              }}
+            />
+            {/* Right eye lid */}
+            <div
+              className="absolute rounded-full"
+              style={{
+                left: "56%",
+                top: "34%",
+                width: "20%",
+                height: "8%",
+                background: "hsl(25 30% 55%)",
+                filter: "blur(1.5px)",
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

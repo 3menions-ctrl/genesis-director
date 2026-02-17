@@ -97,6 +97,9 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
     } else if (act === "project_created" && (action as any).navigate_to) {
       navigate((action as any).navigate_to);
       onClose();
+    } else if (act === "generation_started" && (action as any).navigate_to) {
+      navigate((action as any).navigate_to);
+      onClose();
     } else if (act === "confirm_generation" || act === "confirm_delete" || act === "start_creation") {
       setPendingAction(action);
     } else if (act === "insufficient_credits") {
@@ -105,7 +108,7 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
     } else if (act === "generate_script") {
       navigate("/create");
       onClose();
-    } else if (act === "dm_sent" || act === "followed_user" || act === "unfollowed_user" || act === "liked_project" || act === "unliked_project" || act === "profile_updated") {
+    } else if (act === "published" || act === "unpublished" || act === "project_updated" || act === "dm_sent" || act === "followed_user" || act === "unfollowed_user" || act === "liked_project" || act === "unliked_project" || act === "profile_updated") {
       // confirmation-only actions
     }
   };
@@ -615,6 +618,10 @@ function ImmersiveMessageBubble({
                 {action.action === "clip_updated" && "✏️ Clip Updated"}
                 {action.action === "clip_retried" && "🔄 Retrying"}
                 {action.action === "clips_reordered" && "🎬 Reordered"}
+                {action.action === "generation_started" && "🎬 Generating..."}
+                {action.action === "published" && "🌟 Published!"}
+                {action.action === "unpublished" && "🔒 Made Private"}
+                {action.action === "project_updated" && "✅ Updated"}
               </button>
             ))}
           </div>

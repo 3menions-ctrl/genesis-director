@@ -43,6 +43,12 @@ const TOOL_CREDIT_COSTS: Record<string, number> = {
   generate_script_preview: 2,
   // Pipeline (handled by pipeline itself)
   trigger_generation: 0,
+  execute_generation: 0, // Pipeline handles credits
+  // Publishing
+  publish_to_gallery: 0,
+  unpublish_from_gallery: 0,
+  // Project settings
+  update_project_settings: 1,
   // Editor navigation (free)
   open_video_editor: 0,
   open_photo_editor: 0,
@@ -1181,6 +1187,72 @@ const AGENT_TOOLS = [
       parameters: { type: "object", properties: {}, required: [] },
     },
   },
+  // ─── EXECUTE GENERATION (actually calls mode-router) ───
+  {
+    type: "function",
+    function: {
+      name: "execute_generation",
+      description: "Actually kick off video generation for a draft project by calling the production pipeline. This is the real trigger — use after user confirms. The pipeline charges credits. Requires confirmation.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project UUID to generate" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  // ─── PUBLISH / UNPUBLISH ───
+  {
+    type: "function",
+    function: {
+      name: "publish_to_gallery",
+      description: "Publish a completed video to the community Discover gallery so other users can see it. Only completed projects with a video_url can be published. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project UUID to publish" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "unpublish_from_gallery",
+      description: "Remove a video from the public Discover gallery (make it private). Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project UUID to unpublish" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  // ─── UPDATE PROJECT SETTINGS ───
+  {
+    type: "function",
+    function: {
+      name: "update_project_settings",
+      description: "Update project settings like title, prompt, clip count, clip duration, aspect ratio, genre, or mood. Can only modify draft projects. Costs 1 credit.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project UUID" },
+          title: { type: "string", description: "New project title" },
+          prompt: { type: "string", description: "Updated creative prompt/script" },
+          clip_count: { type: "number", description: "Number of clips (1-20)" },
+          clip_duration: { type: "number", description: "Duration per clip in seconds (5 or 10)" },
+          aspect_ratio: { type: "string", enum: ["16:9", "9:16", "1:1", "4:3"], description: "Video aspect ratio" },
+          genre: { type: "string", description: "Video genre/style" },
+          mood: { type: "string", description: "Video mood/tone" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
 ];
 
 // ══════════════════════════════════════════════════════
@@ -1460,6 +1532,134 @@ async function executeTool(
         action: "generate_script", requires_confirmation: false, estimated_credits: 2,
         params: { prompt: args.prompt, tone: args.tone || "professional" },
       };
+
+    // ─── EXECUTE GENERATION (actually calls mode-router) ───
+
+    case "execute_generation": {
+      const { data: gp } = await supabase.from("movie_projects")
+        .select("id, title, status, clip_count, clip_duration, prompt, mode, aspect_ratio, genre, mood, source_image_url, avatar_voice_id")
+        .eq("id", args.project_id).eq("user_id", userId).single();
+      if (!gp) return { error: "Project not found" };
+      if (gp.status !== "draft") return { error: `Project is "${gp.status}" — only drafts can generate.` };
+      if (!gp.prompt?.trim()) return { error: "Project has no prompt/script. Add one first with update_project_settings." };
+
+      // Check credits
+      const cc = gp.clip_count || 6;
+      const cd = gp.clip_duration || 5;
+      let est = 0;
+      for (let i = 0; i < cc; i++) est += (i >= 6 || cd > 6) ? 15 : 10;
+      const { data: bal } = await supabase.from("profiles").select("credits_balance").eq("id", userId).single();
+      const balance = bal?.credits_balance || 0;
+      if (balance < est) return { action: "insufficient_credits", required: est, available: balance, message: `Need ${est} credits, have ${balance}.` };
+
+      // Call mode-router server-to-server
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      
+      try {
+        const routerResp = await fetch(`${supabaseUrl}/functions/v1/mode-router`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+          body: JSON.stringify({
+            mode: gp.mode || "text-to-video",
+            userId: userId,
+            prompt: gp.prompt,
+            stylePreset: gp.genre || "cinematic",
+            aspectRatio: gp.aspect_ratio || "16:9",
+            clipCount: cc,
+            clipDuration: cd,
+            genre: gp.genre,
+            mood: gp.mood,
+            imageUrl: gp.source_image_url,
+            voiceId: gp.avatar_voice_id,
+            existingProjectId: gp.id,
+          }),
+        });
+        
+        const routerData = await routerResp.json();
+        
+        if (!routerResp.ok || routerData.error) {
+          return { error: `Pipeline failed to start: ${routerData.error || routerResp.statusText}` };
+        }
+
+        return {
+          action: "generation_started",
+          project_id: routerData.projectId || gp.id,
+          title: gp.title,
+          estimated_credits: est,
+          message: `🎬 Generation started for "${gp.title}"! ${cc} clips are being produced. Use get_project_pipeline_status to check progress.`,
+          navigate_to: `/projects`,
+        };
+      } catch (err: any) {
+        return { error: "Failed to start pipeline: " + (err?.message || "Unknown error") };
+      }
+    }
+
+    // ─── PUBLISH / UNPUBLISH ───
+
+    case "publish_to_gallery": {
+      const { data: p } = await supabase.from("movie_projects")
+        .select("id, title, status, video_url, is_public")
+        .eq("id", args.project_id).eq("user_id", userId).single();
+      if (!p) return { error: "Project not found" };
+      if (!p.video_url) return { error: "This project doesn't have a finished video yet. Generate it first!" };
+      if (p.is_public) return { message: `"${p.title}" is already published to Discover! 🌟` };
+      
+      const { error } = await supabase.from("movie_projects")
+        .update({ is_public: true })
+        .eq("id", args.project_id);
+      if (error) return { error: "Failed to publish: " + error.message };
+      return { action: "published", project_id: p.id, title: p.title, message: `"${p.title}" is now live on Discover! 🎉 Other creators can see and like your work.` };
+    }
+
+    case "unpublish_from_gallery": {
+      const { data: p } = await supabase.from("movie_projects")
+        .select("id, title, is_public")
+        .eq("id", args.project_id).eq("user_id", userId).single();
+      if (!p) return { error: "Project not found" };
+      if (!p.is_public) return { message: `"${p.title}" is already private.` };
+      
+      const { error } = await supabase.from("movie_projects")
+        .update({ is_public: false })
+        .eq("id", args.project_id);
+      if (error) return { error: "Failed to unpublish: " + error.message };
+      return { action: "unpublished", project_id: p.id, title: p.title, message: `"${p.title}" removed from Discover. It's now private.` };
+    }
+
+    // ─── UPDATE PROJECT SETTINGS ───
+
+    case "update_project_settings": {
+      const { data: p } = await supabase.from("movie_projects")
+        .select("id, title, status")
+        .eq("id", args.project_id).eq("user_id", userId).single();
+      if (!p) return { error: "Project not found" };
+      if (p.status !== "draft") return { error: `Can only edit draft projects. This project is "${p.status}".` };
+      
+      const updates: Record<string, unknown> = {};
+      if (args.title) updates.title = args.title;
+      if (args.prompt) updates.prompt = args.prompt;
+      if (args.clip_count) updates.clip_count = Math.min(Math.max(args.clip_count as number, 1), 20);
+      if (args.clip_duration) {
+        const dur = args.clip_duration as number;
+        updates.clip_duration = [5, 10].includes(dur) ? dur : 5;
+      }
+      if (args.aspect_ratio) updates.aspect_ratio = args.aspect_ratio;
+      if (args.genre) updates.genre = args.genre;
+      if (args.mood) updates.mood = args.mood;
+      
+      if (Object.keys(updates).length === 0) return { error: "No settings to update. Provide at least one field." };
+      
+      const { error } = await supabase.from("movie_projects").update(updates).eq("id", args.project_id);
+      if (error) return { error: "Failed to update: " + error.message };
+      return { 
+        action: "project_updated", project_id: p.id, title: args.title || p.title,
+        updated_fields: Object.keys(updates),
+        message: `Updated ${Object.keys(updates).join(", ")} for "${args.title || p.title}" ✅`,
+      };
+    }
 
     // ─── SOCIAL & COMMUNITY ───
 
@@ -3453,7 +3653,12 @@ You are a FULLY capable assistant. You can DO everything in the app:
 
 **📁 Project Management**
 - Create projects (2cr) • Rename (1cr) • Delete (free) • Duplicate (2cr)
-- Trigger video generation • Check pipeline status • View details
+- **update_project_settings** (1cr) — Edit draft project title, prompt, clip count, duration, aspect ratio, genre, mood
+- **trigger_generation** — Preview generation cost and get confirmation
+- **execute_generation** — Actually start the production pipeline (pipeline charges credits)
+- Check pipeline status • View details
+- **publish_to_gallery** (free) — Publish completed video to Discover for the community
+- **unpublish_from_gallery** (free) — Remove video from public Discover
 - **regenerate_clip** — Regenerate ANY clip at any position (completed, failed, or pending) with optional new prompt. Always confirm credits!
 
 **🎬 Video & Photo Editing**  

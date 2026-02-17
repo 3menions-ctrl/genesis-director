@@ -537,10 +537,10 @@ function ImmersiveMessageBubble({
         {/* Message content */}
         <div
           className={cn(
-            "px-5 py-4 text-sm leading-[1.7] backdrop-blur-md",
+            "backdrop-blur-md",
             isUser
-              ? "rounded-2xl rounded-br-lg"
-              : "rounded-2xl rounded-tl-lg"
+              ? "px-5 py-4 text-sm leading-[1.7] rounded-2xl rounded-br-lg"
+              : "px-6 py-5 text-[15px] leading-[1.85] rounded-3xl rounded-tl-xl"
           )}
           style={
             isUser
@@ -558,14 +558,18 @@ function ImmersiveMessageBubble({
           {isUser ? (
             <p className="font-sans">{message.content}</p>
           ) : (
-            <div className="prose prose-sm prose-invert max-w-none
-                          [&>p]:mb-2.5 [&>p:last-child]:mb-0
-                          [&>ul]:mb-2 [&>ol]:mb-2 [&>li]:mb-0.5
+            <div className="prose prose-invert max-w-none
+                          [&>p]:text-[15px] [&>p]:leading-[1.85] [&>p]:mb-4 [&>p:last-child]:mb-0
+                          [&>p:first-child]:text-base [&>p:first-child]:font-medium [&>p:first-child]:text-foreground
+                          [&>ul]:mb-4 [&>ol]:mb-4 [&>li]:mb-1.5 [&>li]:text-[15px]
                           [&_strong]:text-foreground [&_strong]:font-semibold
+                          [&_em]:text-primary/70
                           [&_a]:text-primary [&_a]:no-underline [&_a:hover]:underline
                           [&_code]:text-primary/80 [&_code]:bg-primary/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:text-xs
-                          [&_h3]:text-sm [&_h3]:font-display [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1.5
-                          [&>blockquote]:border-l-2 [&>blockquote]:border-primary/30 [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-muted-foreground">
+                          [&_h2]:text-lg [&_h2]:font-display [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-foreground
+                          [&_h3]:text-base [&_h3]:font-display [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-foreground/90
+                          [&>blockquote]:border-l-2 [&>blockquote]:border-primary/40 [&>blockquote]:pl-4 [&>blockquote]:py-1 [&>blockquote]:italic [&>blockquote]:text-muted-foreground [&>blockquote]:bg-primary/5 [&>blockquote]:rounded-r-xl [&>blockquote]:my-4
+                          [&>hr]:border-border/10 [&>hr]:my-5">
               <ReactMarkdown>{message.content}</ReactMarkdown>
             </div>
           )}

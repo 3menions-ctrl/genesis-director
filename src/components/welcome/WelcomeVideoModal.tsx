@@ -25,21 +25,6 @@ export function WelcomeVideoModal() {
   const [progress, setProgress] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Check if we should show the modal
-  useEffect(() => {
-    if (
-      user && 
-      profile && 
-      profile.onboarding_completed && 
-      profile.has_seen_welcome_video === false
-    ) {
-      const timer = setTimeout(() => {
-        setIsOpen(true);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [user, profile]);
-
   // Mark the video as seen in the database
   const markVideoAsSeen = useCallback(async () => {
     if (!user || hasMarkedSeen) return;
@@ -57,6 +42,30 @@ export function WelcomeVideoModal() {
       console.error('[WelcomeVideoModal] Failed to mark video as seen:', err);
     }
   }, [user, hasMarkedSeen, refreshProfile]);
+
+  // Check if we should show the modal — only for genuinely new signups
+  useEffect(() => {
+    if (
+      user && 
+      profile && 
+      profile.onboarding_completed && 
+      profile.has_seen_welcome_video === false
+    ) {
+      // Only show if the account was created within the last 2 hours (new signup)
+      const createdAt = new Date(user.created_at);
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+      if (createdAt < twoHoursAgo) {
+        // Existing user — silently mark as seen without showing
+        markVideoAsSeen();
+        return;
+      }
+
+      const timer = setTimeout(() => {
+        setIsOpen(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [user, profile, markVideoAsSeen]);
 
   const handleClose = useCallback(() => {
     setIsOpen(false);

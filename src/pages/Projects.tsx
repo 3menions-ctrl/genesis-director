@@ -11,7 +11,7 @@ import {
   Pencil, Grid3X3, LayoutList,
   X, Search, SortAsc, SortDesc,
   Command, MonitorPlay, Pin, ExternalLink,
-  Image, Sparkles,
+  Image, Sparkles, Clapperboard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
@@ -52,7 +52,9 @@ import {
   ProjectsBackground, 
   ProjectsHero,
   MergeDownloadDialog,
+  ProjectsCategoryTabs,
 } from '@/components/projects';
+import type { ProjectTab } from '@/components/projects';
 
 // STABILITY: motion/AnimatePresence disabled - replaced with CSS-only shims
 const MotionDiv = forwardRef<HTMLDivElement, any>(({ children, className, style, onClick, onMouseEnter, onMouseLeave, ...rest }, ref) => (
@@ -157,6 +159,7 @@ function ProjectsContentInner() {
   const [sortBy, setSortBy] = useState<'updated' | 'created' | 'name'>('updated');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'processing' | 'failed'>('all');
+  const [activeTab, setActiveTab] = useState<ProjectTab>('all');
   
   // SERVER-SIDE PAGINATED PROJECTS - replaces loading all projects into memory
   const {
@@ -574,6 +577,14 @@ function ProjectsContentInner() {
     return { total: allProjects.length, completed, processing, totalClips };
   }, [projects]);
 
+  // Tab counts for category tabs
+  const tabCounts = useMemo(() => ({
+    all: filteredProjects.length + trainingVideos.length + photoEdits.length,
+    films: filteredProjects.length,
+    training: trainingVideos.length,
+    photos: photoEdits.length,
+  }), [filteredProjects.length, trainingVideos.length, photoEdits.length]);
+
   // Infinite scroll observer ref
   const loadMoreRef = useRef<HTMLDivElement>(null);
   
@@ -885,65 +896,72 @@ function ProjectsContentInner() {
           </div>
         ) : (
           <>
-            {/* Premium Hero Header with Orange Theme */}
+            {/* Premium Hero */}
             <ProjectsHero stats={stats} />
 
-            {/* Premium Search & Filter Toolbar with Orange Accents */}
-            {/* Minimal Search & Filter Toolbar */}
-            <div className="mb-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+            {/* Category Tabs — Landing Gallery Style */}
+            <ProjectsCategoryTabs
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              counts={tabCounts}
+            />
+
+            {/* Search & Controls Bar */}
+            <div className="mb-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 {/* Search */}
                 <div className="relative flex-1 group">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-white/50 transition-colors" />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-white/40 transition-colors" />
                   <Input
                     id="project-search"
                     placeholder="Search projects..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="h-10 pl-10 pr-10 bg-transparent border border-white/[0.08] text-white placeholder:text-white/20 rounded-lg focus:ring-1 focus:ring-white/20 focus:border-white/20 text-sm transition-all"
+                    className="h-10 pl-10 pr-10 bg-white/[0.03] border border-white/[0.06] text-white placeholder:text-white/20 rounded-xl focus:ring-1 focus:ring-primary/20 focus:border-primary/30 text-sm transition-all"
                   />
                   {searchQuery ? (
                     <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   ) : (
-                    <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline text-[10px] font-mono text-white/20 border border-white/[0.08] px-1.5 py-0.5 rounded">/</kbd>
+                    <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline text-[10px] font-mono text-white/20 border border-white/[0.06] px-1.5 py-0.5 rounded">/</kbd>
                   )}
                 </div>
 
-                {/* Controls row */}
+                {/* Controls */}
                 <div className="flex items-center gap-2">
-                  {/* Status filter pills */}
-                  <div className="flex items-center gap-1 p-0.5 rounded-lg border border-white/[0.06]">
-                    {[
-                      { value: 'all', label: 'All' },
-                      { value: 'completed', label: 'Ready' },
-                      { value: 'processing', label: 'Active' },
-                      { value: 'failed', label: 'Failed' },
-                    ].map((filter) => (
-                      <button
-                        key={filter.value}
-                        onClick={() => setStatusFilter(filter.value as any)}
-                        className={cn(
-                          "px-2.5 py-1.5 rounded-md text-xs font-medium transition-all",
-                          statusFilter === filter.value
-                            ? "bg-white/10 text-white"
-                            : "text-white/30 hover:text-white/60"
-                        )}
-                      >
-                        {filter.label}
-                      </button>
-                    ))}
-                  </div>
+                  {/* Status pills — only show for films tab */}
+                  {(activeTab === 'all' || activeTab === 'films') && (
+                    <div className="flex items-center gap-0.5 p-0.5 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+                      {[
+                        { value: 'all', label: 'All' },
+                        { value: 'completed', label: 'Ready' },
+                        { value: 'processing', label: 'Active' },
+                      ].map((filter) => (
+                        <button
+                          key={filter.value}
+                          onClick={() => setStatusFilter(filter.value as any)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                            statusFilter === filter.value
+                              ? "bg-white/10 text-white"
+                              : "text-white/30 hover:text-white/60"
+                          )}
+                        >
+                          {filter.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Sort */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="p-2 rounded-lg border border-white/[0.06] text-white/30 hover:text-white/60 hover:border-white/[0.12] transition-all">
+                      <button className="p-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] text-white/30 hover:text-white/60 hover:border-white/[0.12] transition-all">
                         {sortOrder === 'desc' ? <SortDesc className="w-4 h-4" /> : <SortAsc className="w-4 h-4" />}
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-44 bg-zinc-900/95 backdrop-blur-xl border-white/[0.08] rounded-lg">
+                    <DropdownMenuContent align="end" className="w-44 bg-zinc-900/95 backdrop-blur-xl border-white/[0.08] rounded-xl">
                       <DropdownMenuLabel className="text-white/30 text-[10px] uppercase tracking-wider">Sort by</DropdownMenuLabel>
                       <DropdownMenuCheckboxItem checked={sortBy === 'updated'} onCheckedChange={() => setSortBy('updated')} className="text-sm text-white/60 focus:text-white focus:bg-white/[0.06]">
                         Last Updated
@@ -962,97 +980,71 @@ function ProjectsContentInner() {
                   </DropdownMenu>
 
                   {/* View toggle */}
-                  <div className="flex items-center p-0.5 rounded-lg border border-white/[0.06]">
-                    <button
-                      onClick={() => setViewMode('grid')}
-                      className={cn("p-2 rounded-md transition-all", viewMode === 'grid' ? "bg-white/10 text-white" : "text-white/30 hover:text-white/60")}
-                    >
-                      <Grid3X3 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => setViewMode('list')}
-                      className={cn("p-2 rounded-md transition-all", viewMode === 'list' ? "bg-white/10 text-white" : "text-white/30 hover:text-white/60")}
-                    >
-                      <LayoutList className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  {(activeTab === 'all' || activeTab === 'films') && (
+                    <div className="flex items-center p-0.5 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+                      <button
+                        onClick={() => setViewMode('grid')}
+                        className={cn("p-2 rounded-lg transition-all", viewMode === 'grid' ? "bg-white/10 text-white" : "text-white/30 hover:text-white/60")}
+                      >
+                        <Grid3X3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setViewMode('list')}
+                        className={cn("p-2 rounded-lg transition-all", viewMode === 'list' ? "bg-white/10 text-white" : "text-white/30 hover:text-white/60")}
+                      >
+                        <LayoutList className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
-
-              {/* Active filters */}
-              {(searchQuery || statusFilter !== 'all') && (
-                <div className="flex items-center gap-2 mt-3 text-xs text-white/30">
-                  <span>Showing:</span>
-                  {searchQuery && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white/[0.06] text-white/50">
-                      "{searchQuery}"
-                      <button onClick={() => setSearchQuery('')} className="hover:text-white"><X className="w-3 h-3" /></button>
-                    </span>
-                  )}
-                  {statusFilter !== 'all' && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white/[0.06] text-white/50 capitalize">
-                      {statusFilter}
-                      <button onClick={() => setStatusFilter('all')} className="hover:text-white"><X className="w-3 h-3" /></button>
-                    </span>
-                  )}
-                  <span className="ml-auto">{filteredProjects.length} {filteredProjects.length === 1 ? 'project' : 'projects'}</span>
-                </div>
-              )}
             </div>
 
-            {/* Categorized Projects Grid */}
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="space-y-6"
-            >
-              {/* Training Videos Section - Always show if there are training videos */}
-              {trainingVideos.length > 0 && (
-                <motion.section 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                  className="relative"
-                >
+            {/* ===== TAB CONTENT ===== */}
+            <div className="space-y-6 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+
+              {/* ===== TRAINING VIDEOS TAB ===== */}
+              {(activeTab === 'all' || activeTab === 'training') && trainingVideos.length > 0 && (
+                <section className="relative">
+                  {activeTab === 'all' && (
                     <div className="flex items-center gap-2 mb-4">
-                     <h2 className="text-xs font-medium uppercase tracking-wider text-white/40">Training Videos</h2>
-                     <span className="text-[10px] text-white/20">{trainingVideos.length}</span>
-                     <button
-                       onClick={() => navigate('/training-video')}
-                       className="ml-auto text-[10px] uppercase tracking-wider text-white/30 hover:text-white/60 transition-colors"
-                     >
-                       + New
-                     </button>
-                   </div>
+                      <Film className="w-3.5 h-3.5 text-primary/60" />
+                      <h2 className="text-xs font-medium uppercase tracking-wider text-white/40">Training Videos</h2>
+                      <span className="text-[10px] text-white/20">{trainingVideos.length}</span>
+                      <button
+                        onClick={() => navigate('/training-video')}
+                        className="ml-auto text-[10px] uppercase tracking-wider text-white/30 hover:text-white/60 transition-colors"
+                      >
+                        + New
+                      </button>
+                    </div>
+                  )}
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {trainingVideos.map((video, index) => (
-                      <motion.div
+                      <div
                         key={video.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="group relative cursor-pointer"
+                        className="group relative cursor-pointer animate-fade-in"
+                        style={{ animationDelay: `${index * 0.05}s` }}
                         onClick={() => {
                           setSelectedTrainingVideo(video);
                           setTrainingVideoModalOpen(true);
                         }}
                       >
                         <div className={cn(
-                          "relative aspect-video rounded-xl overflow-hidden",
-                          "bg-zinc-900 border border-white/[0.06]",
-                          "group-hover:border-emerald-500/30 transition-all duration-300"
+                          "relative aspect-video rounded-2xl overflow-hidden",
+                          "bg-white/[0.02] border border-white/[0.06]",
+                          "hover:border-primary/30 hover:-translate-y-1 hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.7)] transition-all duration-500"
                         )}>
                           <PausedFrameVideo
                             src={video.video_url}
                             className="w-full h-full object-cover"
                             showLoader={false}
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center">
-                              <Play className="w-5 h-5 text-black ml-0.5" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500">
+                            <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-xl flex items-center justify-center border border-white/25 hover:scale-110 transition-transform">
+                              <Play className="w-6 h-6 text-white ml-0.5" fill="currentColor" />
                             </div>
                           </div>
                           <button
@@ -1060,57 +1052,52 @@ function ProjectsContentInner() {
                               e.stopPropagation();
                               handleDeleteTrainingVideo(video.id);
                             }}
-                            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
+                            className="absolute top-3 right-3 w-8 h-8 rounded-xl bg-black/40 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/60 border border-white/10"
                           >
                             <Trash2 className="w-3.5 h-3.5 text-white" />
                           </button>
-                          <div className="absolute bottom-0 left-0 right-0 p-3">
-                            <h3 className="text-xs font-medium text-white truncate">{video.title}</h3>
-                            <p className="text-[10px] text-white/50 mt-0.5">{formatTimeAgo(video.created_at)}</p>
+                          <div className="absolute bottom-0 left-0 right-0 p-4">
+                            <h3 className="text-sm font-medium text-white truncate">{video.title}</h3>
+                            <p className="text-[10px] text-white/40 mt-0.5">{formatTimeAgo(video.created_at)}</p>
                           </div>
                         </div>
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
-                </motion.section>
+                </section>
               )}
 
-              {/* Photo Edits Section */}
-              {photoEdits.length > 0 && (
-                <motion.section 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="relative"
-                >
-                  <div className="flex items-center gap-2 mb-4">
-                    <Image className="w-3.5 h-3.5 text-cyan-400/60" />
-                    <h2 className="text-xs font-medium uppercase tracking-wider text-white/40">Photo Edits</h2>
-                    <span className="text-[10px] text-white/20">{photoEdits.length}</span>
-                    <button
-                      onClick={() => navigate('/create?tab=photo')}
-                      className="ml-auto text-[10px] uppercase tracking-wider text-white/30 hover:text-white/60 transition-colors"
-                    >
-                      + New Edit
-                    </button>
-                  </div>
+              {/* ===== PHOTO EDITS TAB ===== */}
+              {(activeTab === 'all' || activeTab === 'photos') && photoEdits.length > 0 && (
+                <section className="relative">
+                  {activeTab === 'all' && (
+                    <div className="flex items-center gap-2 mb-4">
+                      <Image className="w-3.5 h-3.5 text-cyan-400/60" />
+                      <h2 className="text-xs font-medium uppercase tracking-wider text-white/40">Photo Edits</h2>
+                      <span className="text-[10px] text-white/20">{photoEdits.length}</span>
+                      <button
+                        onClick={() => navigate('/create?tab=photo')}
+                        className="ml-auto text-[10px] uppercase tracking-wider text-white/30 hover:text-white/60 transition-colors"
+                      >
+                        + New Edit
+                      </button>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                     {photoEdits.map((edit, index) => (
-                      <motion.div
+                      <div
                         key={edit.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.03 }}
-                        className="group relative cursor-pointer"
+                        className="group relative cursor-pointer animate-fade-in"
+                        style={{ animationDelay: `${index * 0.03}s` }}
                         onClick={() => setSelectedPhotoEdit(selectedPhotoEdit?.id === edit.id ? null : edit)}
                       >
                         <div className={cn(
-                          "relative aspect-square rounded-xl overflow-hidden",
-                          "bg-zinc-900 border transition-all duration-300",
+                          "relative aspect-square rounded-2xl overflow-hidden",
+                          "bg-white/[0.02] border transition-all duration-500",
                           selectedPhotoEdit?.id === edit.id
                             ? "border-cyan-500/50 ring-2 ring-cyan-500/20"
-                            : "border-white/[0.06] group-hover:border-cyan-500/30"
+                            : "border-white/[0.06] hover:border-cyan-500/30 hover:-translate-y-1 hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.7)]"
                         )}>
                           <img
                             src={edit.edited_url || edit.original_url}
@@ -1118,18 +1105,15 @@ function ProjectsContentInner() {
                             className="w-full h-full object-cover"
                             loading="lazy"
                           />
-                          {/* Hover overlay */}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                           
-                          {/* Before/After badge */}
                           <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 border border-cyan-500/30 text-[9px] font-medium text-cyan-300 uppercase tracking-wider">
+                            <span className="px-1.5 py-0.5 rounded-lg bg-cyan-500/20 border border-cyan-500/30 text-[9px] font-medium text-cyan-300 uppercase tracking-wider">
                               <Sparkles className="w-2.5 h-2.5 inline mr-0.5 -mt-0.5" />
                               Enhanced
                             </span>
                           </div>
 
-                          {/* Actions */}
                           <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={(e) => {
@@ -1142,7 +1126,7 @@ function ProjectsContentInner() {
                                   a.click();
                                 }
                               }}
-                              className="w-7 h-7 rounded-full bg-black/60 flex items-center justify-center hover:bg-white/20"
+                              className="w-7 h-7 rounded-lg bg-black/40 backdrop-blur-md flex items-center justify-center hover:bg-white/20 border border-white/10"
                               title="Download"
                             >
                               <Download className="w-3 h-3 text-white" />
@@ -1156,41 +1140,38 @@ function ProjectsContentInner() {
                                   toast.success('Photo loaded into video creator');
                                 }
                               }}
-                              className="w-7 h-7 rounded-full bg-black/60 flex items-center justify-center hover:bg-cyan-500/40"
+                              className="w-7 h-7 rounded-lg bg-black/40 backdrop-blur-md flex items-center justify-center hover:bg-cyan-500/40 border border-white/10"
                               title="Use in Video"
                             >
                               <Film className="w-3 h-3 text-white" />
                             </button>
                           </div>
 
-                          {/* Bottom info */}
-                          <div className="absolute bottom-0 left-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute bottom-0 left-0 right-0 p-2.5 opacity-0 group-hover:opacity-100 transition-opacity">
                             <p className="text-[10px] text-white/60 truncate">
                               {edit.custom_instruction || edit.edit_type}
                             </p>
                             <p className="text-[9px] text-white/30 mt-0.5">{formatTimeAgo(edit.created_at)}</p>
                           </div>
                         </div>
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
 
                   {/* Selected photo edit expanded view */}
                   {selectedPhotoEdit && (
-                    <div className="mt-4 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 animate-fade-in">
+                    <div className="mt-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-sm p-4 animate-fade-in">
                       <div className="flex items-start gap-4">
                         <div className="flex gap-3 flex-1 min-w-0">
-                          {/* Original */}
                           <div className="flex-1 min-w-0">
                             <p className="text-[10px] uppercase tracking-wider text-white/30 mb-2">Original</p>
-                            <div className="aspect-square rounded-lg overflow-hidden border border-white/[0.06]">
+                            <div className="aspect-square rounded-xl overflow-hidden border border-white/[0.06]">
                               <img src={selectedPhotoEdit.original_url} alt="Original" className="w-full h-full object-cover" />
                             </div>
                           </div>
-                          {/* Edited */}
                           <div className="flex-1 min-w-0">
                             <p className="text-[10px] uppercase tracking-wider text-cyan-400/60 mb-2">Enhanced</p>
-                            <div className="aspect-square rounded-lg overflow-hidden border border-cyan-500/20">
+                            <div className="aspect-square rounded-xl overflow-hidden border border-cyan-500/20">
                               <img src={selectedPhotoEdit.edited_url || ''} alt="Enhanced" className="w-full h-full object-cover" />
                             </div>
                           </div>
@@ -1207,157 +1188,109 @@ function ProjectsContentInner() {
                       )}
                     </div>
                   )}
-                </motion.section>
+                </section>
               )}
 
-              {filteredProjects.length === 0 && trainingVideos.length === 0 && photoEdits.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="w-16 h-16 rounded-xl bg-zinc-800/60 flex items-center justify-center mb-4">
-                    <Search className="w-6 h-6 text-zinc-500" />
-                  </div>
-                  <p className="text-base font-medium text-white mb-1">No projects found</p>
-                  <p className="text-zinc-500 text-sm max-w-sm">Try adjusting your search or filters</p>
-                  <Button variant="outline" size="sm" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }} className="mt-4 gap-2 border-white/10 text-zinc-300 hover:bg-white/10 hover:text-white">
-                    <X className="w-3 h-3" />
-                    Clear filters
-                  </Button>
-                </div>
-              ) : filteredProjects.length > 0 ? (
+              {/* ===== FILMS / ALL PROJECTS TAB ===== */}
+              {(activeTab === 'all' || activeTab === 'films') && (
                 <>
-                  {/* Pinned Projects Section - Premium */}
-                  {pinnedProjects.size > 0 && filteredProjects.some(p => pinnedProjects.has(p.id)) && (
-                    <motion.section 
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
-                      className="relative"
-                    >
-                      
-                        <div className="flex items-center gap-2 mb-4">
-                          <Pin className="w-3.5 h-3.5 text-white/40" />
-                          <h2 className="text-xs font-medium uppercase tracking-wider text-white/40">Pinned</h2>
-                          <span className="text-[10px] text-white/20 ml-auto">{filteredProjects.filter(p => pinnedProjects.has(p.id)).length}</span>
-                        </div>
+                  {activeTab === 'all' && filteredProjects.length > 0 && (
+                    <div className="flex items-center gap-2 mb-4">
+                      <Clapperboard className="w-3.5 h-3.5 text-primary/60" />
+                      <h2 className="text-xs font-medium uppercase tracking-wider text-white/40">Films</h2>
+                      <span className="text-[10px] text-white/20">{filteredProjects.length}</span>
+                    </div>
+                  )}
+
+                  {filteredProjects.length === 0 && activeTab === 'films' ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-4">
+                        <Search className="w-6 h-6 text-white/10" />
+                      </div>
+                      <p className="text-base font-medium text-white mb-1">No projects found</p>
+                      <p className="text-white/30 text-sm max-w-sm">Try adjusting your search or filters</p>
+                      <Button variant="outline" size="sm" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }} className="mt-4 gap-2 border-white/[0.08] text-white/50 hover:bg-white/[0.06] hover:text-white rounded-xl">
+                        <X className="w-3 h-3" />
+                        Clear filters
+                      </Button>
+                    </div>
+                  ) : filteredProjects.length > 0 ? (
+                    <>
+                      {/* Pinned */}
+                      {pinnedProjects.size > 0 && filteredProjects.some(p => pinnedProjects.has(p.id)) && (
+                        <section className="relative mb-6">
+                          <div className="flex items-center gap-2 mb-4">
+                            <Pin className="w-3.5 h-3.5 text-white/40" />
+                            <h2 className="text-xs font-medium uppercase tracking-wider text-white/40">Pinned</h2>
+                            <span className="text-[10px] text-white/20 ml-auto">{filteredProjects.filter(p => pinnedProjects.has(p.id)).length}</span>
+                          </div>
+                          {viewMode === 'list' ? (
+                            <div className="space-y-2">
+                              {filteredProjects.filter(p => pinnedProjects.has(p.id)).map((project, index) => (
+                                <ProjectCard key={project.id} project={project} index={index} viewMode="list" preResolvedClipUrl={resolvedClipUrls.get(project.id)} onPlay={() => handlePlayVideo(project)} onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }} onRename={() => handleRenameProject(project)} onDelete={() => deleteProject(project.id)} onDownload={() => handleDownloadAll(project)} onRetryStitch={() => handleGoogleStitch(project.id)} onBrowserStitch={() => handleBrowserStitch(project.id)} onTogglePin={() => togglePin(project.id)} onTogglePublic={() => handleTogglePublic(project)} isActive={activeProjectId === project.id} isRetrying={retryingProjectId === project.id} isBrowserStitching={browserStitchingProjectId === project.id} isPinned={true} />
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {filteredProjects.filter(p => pinnedProjects.has(p.id)).map((project, index) => (
+                                <ProjectCard key={project.id} project={project} index={index} viewMode="grid" preResolvedClipUrl={resolvedClipUrls.get(project.id)} onPlay={() => handlePlayVideo(project)} onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }} onRename={() => handleRenameProject(project)} onDelete={() => deleteProject(project.id)} onDownload={() => handleDownloadAll(project)} onRetryStitch={() => handleGoogleStitch(project.id)} onBrowserStitch={() => handleBrowserStitch(project.id)} onTogglePin={() => togglePin(project.id)} onTogglePublic={() => handleTogglePublic(project)} isActive={activeProjectId === project.id} isRetrying={retryingProjectId === project.id} isBrowserStitching={browserStitchingProjectId === project.id} isPinned={true} />
+                              ))}
+                            </div>
+                          )}
+                        </section>
+                      )}
+
+                      {/* Unpinned projects */}
                       {viewMode === 'list' ? (
-                        <div className="space-y-2">
-                          {filteredProjects.filter(p => pinnedProjects.has(p.id)).map((project, index) => (
-                            <ProjectCard
-                              key={project.id}
-                              project={project}
-                              index={index}
-                              viewMode="list"
-                              preResolvedClipUrl={resolvedClipUrls.get(project.id)}
-                              onPlay={() => handlePlayVideo(project)}
-                              onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
-                              onRename={() => handleRenameProject(project)}
-                              onDelete={() => deleteProject(project.id)}
-                              onDownload={() => handleDownloadAll(project)}
-                              onRetryStitch={() => handleGoogleStitch(project.id)}
-                              onBrowserStitch={() => handleBrowserStitch(project.id)}
-                              onTogglePin={() => togglePin(project.id)}
-                              onTogglePublic={() => handleTogglePublic(project)}
-                              isActive={activeProjectId === project.id}
-                              isRetrying={retryingProjectId === project.id}
-                              isBrowserStitching={browserStitchingProjectId === project.id}
-                              isPinned={true}
-                            />
+                        <div className="space-y-1.5">
+                          {filteredProjects.filter(p => !pinnedProjects.has(p.id)).map((project, index) => (
+                            <ProjectCard key={project.id} project={project} index={index} viewMode="list" preResolvedClipUrl={resolvedClipUrls.get(project.id)} onPlay={() => handlePlayVideo(project)} onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }} onRename={() => handleRenameProject(project)} onDelete={() => deleteProject(project.id)} onDownload={() => handleDownloadAll(project)} onRetryStitch={() => handleGoogleStitch(project.id)} onBrowserStitch={() => handleBrowserStitch(project.id)} onTogglePin={() => togglePin(project.id)} onTogglePublic={() => handleTogglePublic(project)} isActive={activeProjectId === project.id} isRetrying={retryingProjectId === project.id} isBrowserStitching={browserStitchingProjectId === project.id} isPinned={false} />
                           ))}
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {filteredProjects.filter(p => pinnedProjects.has(p.id)).map((project, index) => (
-                            <ProjectCard
-                              key={project.id}
-                              project={project}
-                              index={index}
-                              viewMode="grid"
-                              preResolvedClipUrl={resolvedClipUrls.get(project.id)}
-                              onPlay={() => handlePlayVideo(project)}
-                              onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
-                              onRename={() => handleRenameProject(project)}
-                              onDelete={() => deleteProject(project.id)}
-                              onDownload={() => handleDownloadAll(project)}
-                              onRetryStitch={() => handleGoogleStitch(project.id)}
-                              onBrowserStitch={() => handleBrowserStitch(project.id)}
-                              onTogglePin={() => togglePin(project.id)}
-                              onTogglePublic={() => handleTogglePublic(project)}
-                              isActive={activeProjectId === project.id}
-                              isRetrying={retryingProjectId === project.id}
-                              isBrowserStitching={browserStitchingProjectId === project.id}
-                              isPinned={true}
-                            />
+                          {filteredProjects.filter(p => !pinnedProjects.has(p.id)).map((project, index) => (
+                            <ProjectCard key={project.id} project={project} index={index} viewMode="grid" preResolvedClipUrl={resolvedClipUrls.get(project.id)} onPlay={() => handlePlayVideo(project)} onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }} onRename={() => handleRenameProject(project)} onDelete={() => deleteProject(project.id)} onDownload={() => handleDownloadAll(project)} onRetryStitch={() => handleGoogleStitch(project.id)} onBrowserStitch={() => handleBrowserStitch(project.id)} onTogglePin={() => togglePin(project.id)} onTogglePublic={() => handleTogglePublic(project)} isActive={activeProjectId === project.id} isRetrying={retryingProjectId === project.id} isBrowserStitching={browserStitchingProjectId === project.id} isPinned={false} />
                           ))}
                         </div>
                       )}
-                    </motion.section>
-                  )}
-                  {/* Flat chronological grid — all unpinned projects */}
-                  {viewMode === 'list' ? (
-                    <div className="space-y-1.5">
-                      {filteredProjects.filter(p => !pinnedProjects.has(p.id)).map((project, index) => (
-                        <ProjectCard
-                          key={project.id}
-                          project={project}
-                          index={index}
-                          viewMode="list"
-                          preResolvedClipUrl={resolvedClipUrls.get(project.id)}
-                          onPlay={() => handlePlayVideo(project)}
-                          onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
-                          onRename={() => handleRenameProject(project)}
-                          onDelete={() => deleteProject(project.id)}
-                          onDownload={() => handleDownloadAll(project)}
-                          onRetryStitch={() => handleGoogleStitch(project.id)}
-                          onBrowserStitch={() => handleBrowserStitch(project.id)}
-                          onTogglePin={() => togglePin(project.id)}
-                          onTogglePublic={() => handleTogglePublic(project)}
-                          isActive={activeProjectId === project.id}
-                          isRetrying={retryingProjectId === project.id}
-                          isBrowserStitching={browserStitchingProjectId === project.id}
-                          isPinned={false}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {filteredProjects.filter(p => !pinnedProjects.has(p.id)).map((project, index) => (
-                        <ProjectCard
-                          key={project.id}
-                          project={project}
-                          index={index}
-                          viewMode="grid"
-                          preResolvedClipUrl={resolvedClipUrls.get(project.id)}
-                          onPlay={() => handlePlayVideo(project)}
-                          onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
-                          onRename={() => handleRenameProject(project)}
-                          onDelete={() => deleteProject(project.id)}
-                          onDownload={() => handleDownloadAll(project)}
-                          onRetryStitch={() => handleGoogleStitch(project.id)}
-                          onBrowserStitch={() => handleBrowserStitch(project.id)}
-                          onTogglePin={() => togglePin(project.id)}
-                          onTogglePublic={() => handleTogglePublic(project)}
-                          isActive={activeProjectId === project.id}
-                          isRetrying={retryingProjectId === project.id}
-                          isBrowserStitching={browserStitchingProjectId === project.id}
-                          isPinned={false}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  
-                  {/* Infinite scroll sentinel */}
-                  <div ref={loadMoreRef} className="py-4">
-                    {isLoadingMore && (
-                      <div className="flex justify-center">
-                        <div className="flex items-center gap-3 text-white/20 text-xs">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Loading more...
-                        </div>
+
+                      {/* Infinite scroll sentinel */}
+                      <div ref={loadMoreRef} className="py-4">
+                        {isLoadingMore && (
+                          <div className="flex justify-center">
+                            <div className="flex items-center gap-3 text-white/20 text-xs">
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Loading more...
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </>
+                  ) : null}
                 </>
-              ) : null}
-            </motion.div>
+              )}
+
+              {/* Empty state for training/photos tabs with no content */}
+              {activeTab === 'training' && trainingVideos.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <Film className="w-10 h-10 text-white/10 mb-4" />
+                  <p className="text-white/60 font-medium mb-2">No training videos yet</p>
+                  <button onClick={() => navigate('/training-video')} className="text-sm text-primary hover:text-primary/80 transition-colors">
+                    Create your first training video →
+                  </button>
+                </div>
+              )}
+              {activeTab === 'photos' && photoEdits.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <Image className="w-10 h-10 text-white/10 mb-4" />
+                  <p className="text-white/60 font-medium mb-2">No photo edits yet</p>
+                  <button onClick={() => navigate('/create?tab=photo')} className="text-sm text-primary hover:text-primary/80 transition-colors">
+                    Edit your first photo →
+                  </button>
+                </div>
+              )}
+            </div>
           </>
         )}
       </main>

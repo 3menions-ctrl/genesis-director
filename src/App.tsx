@@ -43,7 +43,7 @@ const Production = lazy(() => import("./pages/Production"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const Templates = lazy(() => import("./pages/Templates"));
 const Environments = lazy(() => import("./pages/Environments"));
-const Discover = lazy(() => import("./pages/Discover"));
+// Discover removed - redirects to /creators
 const Blog = lazy(() => import("./pages/Blog"));
 const Press = lazy(() => import("./pages/Press"));
 const TrainingVideo = lazy(() => import("./pages/TrainingVideo"));
@@ -173,13 +173,7 @@ const App = () => {
                     <Contact />
                   </RouteContainer>
                 } />
-                <Route path="/discover" element={
-                  <RouteContainer fallbackMessage="Loading discover...">
-                    <ProtectedRoute>
-                      <Discover />
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
+                <Route path="/discover" element={<Navigate to="/creators" replace />} />
                 <Route path="/help" element={
                   <RouteContainer>
                     <HelpCenter />

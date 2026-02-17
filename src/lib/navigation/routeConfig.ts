@@ -52,7 +52,7 @@
      ],
      minDuration: 400,
    },
-   '/discover': {
+   '/creators': {
      messages: [
        'Loading community content...',
        'Fetching latest creations...',

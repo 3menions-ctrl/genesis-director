@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useSafeNavigation } from '@/lib/navigation';
 import {
   Upload, Image, Wand2, Download, Trash2,
   Loader2, CheckCircle2, AlertCircle, Layers,
@@ -37,7 +37,7 @@ interface EditResult {
 
 export function PhotoEditorHub() {
   const { user, profile } = useAuth();
-  const navigate = useNavigate();
+  const { navigate } = useSafeNavigation();
   const [mode, setMode] = useState<PhotoEditMode>('templates');
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);

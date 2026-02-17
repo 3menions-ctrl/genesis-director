@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Dialog, DialogContent, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -97,6 +97,7 @@ function WelcomeOfferModalInner() {
         onPointerDownOutside={(e) => e.preventDefault()}
         hideCloseButton
       >
+        <DialogTitle className="sr-only">Welcome Offer</DialogTitle>
         <DialogDescription className="sr-only">
           Welcome offer to purchase starter credits
         </DialogDescription>

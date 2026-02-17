@@ -236,6 +236,28 @@ function ProjectsContentInner() {
   const [photoEdits, setPhotoEdits] = useState<PhotoEdit[]>([]);
   const [isLoadingPhotoEdits, setIsLoadingPhotoEdits] = useState(true);
   const [selectedPhotoEdit, setSelectedPhotoEdit] = useState<PhotoEdit | null>(null);
+  const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
+
+  const handleDeletePhoto = useCallback(async (editId: string) => {
+    if (!user) return;
+    setDeletingPhotoId(editId);
+    try {
+      const { error } = await supabase
+        .from('photo_edits')
+        .delete()
+        .eq('id', editId)
+        .eq('user_id', user.id);
+      if (error) throw error;
+      setPhotoEdits(prev => prev.filter(p => p.id !== editId));
+      if (selectedPhotoEdit?.id === editId) setSelectedPhotoEdit(null);
+      toast.success('Photo deleted');
+    } catch (err) {
+      console.error('Delete photo failed:', err);
+      toast.error('Failed to delete photo');
+    } finally {
+      setDeletingPhotoId(null);
+    }
+  }, [user, selectedPhotoEdit]);
   
   // BATCH RESOLVE: Fetch all clip URLs for projects that need them in ONE query
   useEffect(() => {
@@ -1144,8 +1166,23 @@ function ProjectsContentInner() {
                               title="Use in Video"
                             >
                               <Film className="w-3 h-3 text-white" />
+                             </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeletePhoto(edit.id);
+                              }}
+                              disabled={deletingPhotoId === edit.id}
+                              className="w-7 h-7 rounded-lg bg-black/40 backdrop-blur-md flex items-center justify-center hover:bg-red-500/40 border border-white/10"
+                              title="Delete"
+                            >
+                              {deletingPhotoId === edit.id ? (
+                                <Loader2 className="w-3 h-3 text-white animate-spin" />
+                              ) : (
+                                <Trash2 className="w-3 h-3 text-white" />
+                              )}
                             </button>
-                          </div>
+                           </div>
 
                           <div className="absolute bottom-0 left-0 right-0 p-2.5 opacity-0 group-hover:opacity-100 transition-opacity">
                             <p className="text-[10px] text-white/60 truncate">

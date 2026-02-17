@@ -238,8 +238,7 @@ export default function ScriptReview() {
       }
     } catch (err) {
       console.error('Resume pipeline error:', err);
-      const message = err instanceof Error ? err.message : 'Failed to resume pipeline';
-      toast.error(message);
+      toast.error('Failed to resume pipeline. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

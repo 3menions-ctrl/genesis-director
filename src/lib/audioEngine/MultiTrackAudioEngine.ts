@@ -162,8 +162,7 @@ export class MultiTrackAudioEngine {
       
       console.log(`[MultiTrackAudioEngine] Loaded ${type} track: ${audioBuffer.duration.toFixed(2)}s`);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load audio';
-      this.updateTrackState(type, { isLoading: false, error: errorMessage });
+      this.updateTrackState(type, { isLoading: false, error: 'Failed to load audio track' });
       console.error(`[MultiTrackAudioEngine] Error loading ${type}:`, error);
     }
   }

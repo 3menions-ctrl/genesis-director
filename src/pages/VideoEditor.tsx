@@ -871,16 +871,19 @@ const VideoEditor = () => {
                 onPlaybackSpeedChange={setPlaybackSpeed}
               />
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-[hsl(0,0%,5%)] gap-5">
-                <div className="w-16 h-16 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-center relative">
-                  <Film className="w-7 h-7 text-white/15" />
-                  <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
-                    <Sparkles className="w-2 h-2 text-primary" />
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-[hsl(0,0%,4%)] gap-6">
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-3xl bg-primary/[0.04] blur-[40px]" />
+                  <div className="relative w-20 h-20 rounded-3xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-center">
+                    <Film className="w-8 h-8 text-white/10" />
+                    <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center">
+                      <Sparkles className="w-2.5 h-2.5 text-primary" />
+                    </div>
                   </div>
                 </div>
                 <div className="text-center">
-                  <p className="text-[13px] text-white/50 font-medium tracking-wide">No clips in timeline</p>
-                  <p className="text-[11px] text-white/20 mt-1.5 max-w-[240px] leading-relaxed">
+                  <p className="text-[14px] text-white/40 font-medium tracking-wide">No clips in timeline</p>
+                  <p className="text-[11px] text-white/15 mt-2 max-w-[260px] leading-relaxed">
                     Browse clips in the media panel and click to add them to your edit
                   </p>
                 </div>

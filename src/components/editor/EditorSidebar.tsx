@@ -37,8 +37,8 @@ export const EditorSidebar = ({
     : null;
 
   return (
-    <div className="h-full flex flex-col bg-[hsl(0,0%,7%)] border-l border-white/[0.06]">
-      <div className="h-9 flex items-center px-3 border-b border-white/[0.06] shrink-0 bg-[hsl(0,0%,8%)]">
+    <div className="h-full flex flex-col bg-[hsl(0,0%,5%)]/80 backdrop-blur-xl border-l border-white/[0.06]">
+      <div className="h-10 flex items-center px-4 border-b border-white/[0.06] shrink-0">
         <Sliders className="h-3 w-3 text-white/40 mr-2" />
         <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
           {selectedClip ? "Inspector" : "Tools"}

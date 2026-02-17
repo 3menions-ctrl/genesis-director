@@ -130,9 +130,9 @@ export const EditorTimeline = ({
   }, [zoom, duration]);
 
   return (
-    <div className="h-full flex flex-col bg-[hsl(0,0%,5%)]">
+    <div className="h-full flex flex-col bg-[hsl(0,0%,4%)]">
       {/* Toolbar */}
-      <div className="h-9 flex items-center gap-1.5 px-3 border-b border-white/[0.06] shrink-0 bg-[hsl(0,0%,7%)]">
+      <div className="h-10 flex items-center gap-1.5 px-3 border-b border-white/[0.06] shrink-0 bg-[hsl(0,0%,5%)]/80 backdrop-blur-xl">
         <div className="flex items-center gap-0.5 bg-white/[0.03] rounded-lg p-0.5 border border-white/[0.06]">
           <Button variant="ghost" size="icon" className="h-6 w-6 text-white/50 hover:text-white hover:bg-white/[0.1] rounded-md transition-all" onClick={() => onZoomChange(Math.min(zoom * 1.5, 10))}>
             <ZoomIn className="h-3 w-3" />
@@ -184,7 +184,7 @@ export const EditorTimeline = ({
       {/* Body */}
       <div className="flex-1 flex overflow-hidden">
         {/* Track labels */}
-        <div className="w-40 shrink-0 border-r border-white/[0.06] bg-[hsl(0,0%,6%)]">
+        <div className="w-44 shrink-0 border-r border-white/[0.06] bg-[hsl(0,0%,5%)]/80 backdrop-blur-xl">
           <div className="h-7 border-b border-white/[0.04]" />
           {tracks.map((track) => {
             const Icon = trackIcons[track.type] || Film;
@@ -218,7 +218,7 @@ export const EditorTimeline = ({
         <div className="flex-1 overflow-x-auto overflow-y-hidden" ref={timelineRef}>
           <div style={{ width: timelineWidth, position: "relative" }}>
             {/* Ruler */}
-            <div className="h-7 border-b border-white/[0.06] relative bg-[hsl(0,0%,6%)]" onClick={handleTimelineClick}>
+            <div className="h-7 border-b border-white/[0.06] relative bg-[hsl(0,0%,5%)]/60" onClick={handleTimelineClick}>
               {markers.map((m, i) => (
                 <div key={i} className="absolute top-0 h-full flex flex-col justify-end" style={{ left: m.time * pxPerSec }}>
                   {m.major && (

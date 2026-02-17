@@ -1,13 +1,11 @@
 /**
- * APEX Agent Trigger Button
+ * Hoppy Agent Trigger Button 🐰
  * 
- * Floating button to open the AI agent panel.
- * Appears on all authenticated pages.
+ * Floating button with Hoppy's face to open the chat panel.
  */
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AgentPanel } from "./AgentPanel";
 
@@ -16,7 +14,7 @@ export function AgentTrigger() {
 
   return (
     <>
-      {/* Floating trigger button */}
+      {/* Floating Hoppy face button */}
       <AnimatePresence>
         {!isOpen && (
           <motion.button
@@ -28,19 +26,25 @@ export function AgentTrigger() {
             onClick={() => setIsOpen(true)}
             className={cn(
               "fixed bottom-6 right-6 z-40",
-              "h-14 w-14 rounded-2xl",
-              "bg-primary text-primary-foreground",
-              "flex items-center justify-center",
-              "shadow-[var(--shadow-glow)]",
-              "transition-shadow hover:shadow-[0_0_60px_hsl(263_70%_58%/0.4)]",
-              "border border-primary/30"
+              "h-16 w-16 rounded-full",
+              "overflow-hidden",
+              "shadow-[0_0_30px_hsl(263_70%_58%/0.3)]",
+              "transition-shadow hover:shadow-[0_0_50px_hsl(263_70%_58%/0.5)]",
+              "border-2 border-primary/40"
             )}
-            aria-label="Open APEX Agent"
+            aria-label="Chat with Hoppy"
           >
-            <Sparkles className="h-6 w-6" />
+            <video
+              src="/hoppy-blink.mp4"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover scale-[1.3] object-top"
+            />
             
             {/* Pulse ring */}
-            <span className="absolute inset-0 rounded-2xl animate-ping bg-primary/20 pointer-events-none" />
+            <span className="absolute inset-0 rounded-full animate-ping bg-primary/15 pointer-events-none" />
           </motion.button>
         )}
       </AnimatePresence>

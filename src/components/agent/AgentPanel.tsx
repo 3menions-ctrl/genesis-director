@@ -527,6 +527,9 @@ function MessageBubble({
                 {action.action === "unliked_project" && "💔 Unliked"}
                 {action.action === "dm_sent" && "💬 Sent"}
                 {action.action === "profile_updated" && "✅ Updated"}
+                {action.action === "clip_updated" && "✏️ Clip Updated"}
+                {action.action === "clip_retried" && "🔄 Retrying"}
+                {action.action === "clips_reordered" && "🎬 Reordered"}
               </button>
             ))}
           </div>

@@ -51,6 +51,12 @@ const TOOL_CREDIT_COSTS: Record<string, number> = {
   get_achievements: 0,
   get_gamification_stats: 0,
   get_account_settings: 0,
+  // Clip editing (free lookups, 1cr for edits)
+  get_clip_details: 0,
+  update_clip_prompt: 1,
+  retry_failed_clip: 0,
+  reorder_clips: 1,
+  delete_clip: 0,
 };
 
 // ══════════════════════════════════════════════════════
@@ -501,6 +507,89 @@ const AGENT_TOOLS = [
       name: "get_account_settings",
       description: "Get the user's account settings and tier limits. Free.",
       parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  // ─── CLIP EDITING ───
+  {
+    type: "function",
+    function: {
+      name: "get_clip_details",
+      description: "Get detailed info about all clips in a project including status, prompts, duration, errors. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project UUID" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_clip_prompt",
+      description: "Update the text prompt for a specific clip before regeneration. Costs 1 credit.",
+      parameters: {
+        type: "object",
+        properties: {
+          clip_id: { type: "string", description: "Clip UUID" },
+          new_prompt: { type: "string", description: "Updated prompt text" },
+        },
+        required: ["clip_id", "new_prompt"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "retry_failed_clip",
+      description: "Reset a failed clip back to 'pending' so the pipeline can retry it. Free (pipeline charges on generation).",
+      parameters: {
+        type: "object",
+        properties: {
+          clip_id: { type: "string", description: "Clip UUID" },
+        },
+        required: ["clip_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "reorder_clips",
+      description: "Reorder clips by providing new shot_index values. Costs 1 credit.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project UUID" },
+          clip_order: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                clip_id: { type: "string" },
+                new_index: { type: "number" },
+              },
+            },
+            description: "Array of {clip_id, new_index} pairs",
+          },
+        },
+        required: ["project_id", "clip_order"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_clip",
+      description: "Delete a specific clip from a draft project. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          clip_id: { type: "string", description: "Clip UUID" },
+        },
+        required: ["clip_id"],
+      },
     },
   },
 ];
@@ -965,6 +1054,70 @@ async function executeTool(
       };
     }
 
+    // ─── CLIP EDITING ───
+
+    case "get_clip_details": {
+      const { data: proj } = await supabase.from("movie_projects").select("id").eq("id", args.project_id).eq("user_id", userId).single();
+      if (!proj) return { error: "Project not found or access denied" };
+      const { data: clips } = await supabase.from("video_clips")
+        .select("id, shot_index, prompt, status, video_url, duration_seconds, error_message, retry_count, quality_score, created_at")
+        .eq("project_id", args.project_id)
+        .order("shot_index");
+      return { clips: clips || [], total: clips?.length || 0 };
+    }
+
+    case "update_clip_prompt": {
+      const { data: clip } = await supabase.from("video_clips")
+        .select("id, project_id, status, prompt")
+        .eq("id", args.clip_id).single();
+      if (!clip) return { error: "Clip not found" };
+      const { data: proj } = await supabase.from("movie_projects").select("id, status").eq("id", clip.project_id).eq("user_id", userId).single();
+      if (!proj) return { error: "Access denied" };
+      if (!["draft", "failed"].includes(clip.status) && clip.status !== "pending") return { error: `Can't edit a "${clip.status}" clip — only draft/pending/failed clips can be updated.` };
+      const { error } = await supabase.from("video_clips").update({ prompt: args.new_prompt, status: "pending" }).eq("id", args.clip_id);
+      if (error) return { error: "Failed to update clip: " + error.message };
+      return { message: `Clip prompt updated! The new prompt is ready for generation. ✨`, old_prompt: clip.prompt, new_prompt: args.new_prompt };
+    }
+
+    case "retry_failed_clip": {
+      const { data: clip } = await supabase.from("video_clips")
+        .select("id, project_id, status, error_message, retry_count")
+        .eq("id", args.clip_id).single();
+      if (!clip) return { error: "Clip not found" };
+      const { data: proj } = await supabase.from("movie_projects").select("id").eq("id", clip.project_id).eq("user_id", userId).single();
+      if (!proj) return { error: "Access denied" };
+      if (clip.status !== "failed") return { error: `Clip is "${clip.status}" — only failed clips can be retried.` };
+      const { error } = await supabase.from("video_clips").update({ status: "pending", error_message: null, retry_count: (clip.retry_count || 0) + 1 }).eq("id", args.clip_id);
+      if (error) return { error: "Failed to reset clip: " + error.message };
+      return { message: `Clip reset to pending! It will be picked up by the pipeline automatically. 🔄`, retry_count: (clip.retry_count || 0) + 1 };
+    }
+
+    case "reorder_clips": {
+      const { data: proj } = await supabase.from("movie_projects").select("id, status").eq("id", args.project_id).eq("user_id", userId).single();
+      if (!proj) return { error: "Project not found or access denied" };
+      if (proj.status !== "draft" && proj.status !== "completed") return { error: `Can only reorder clips in draft or completed projects.` };
+      const clipOrder = args.clip_order as Array<{ clip_id: string; new_index: number }>;
+      if (!clipOrder || clipOrder.length === 0) return { error: "No clip order provided" };
+      for (const item of clipOrder) {
+        const { error } = await supabase.from("video_clips").update({ shot_index: item.new_index }).eq("id", item.clip_id).eq("project_id", args.project_id);
+        if (error) return { error: `Failed to reorder clip ${item.clip_id}: ${error.message}` };
+      }
+      return { message: `Clips reordered successfully! 🎬`, reordered: clipOrder.length };
+    }
+
+    case "delete_clip": {
+      const { data: clip } = await supabase.from("video_clips")
+        .select("id, project_id, status, shot_index")
+        .eq("id", args.clip_id).single();
+      if (!clip) return { error: "Clip not found" };
+      const { data: proj } = await supabase.from("movie_projects").select("id, status").eq("id", clip.project_id).eq("user_id", userId).single();
+      if (!proj) return { error: "Access denied" };
+      if (proj.status !== "draft") return { error: "Can only delete clips from draft projects." };
+      const { error } = await supabase.from("video_clips").delete().eq("id", args.clip_id);
+      if (error) return { error: "Failed to delete clip: " + error.message };
+      return { message: `Clip #${clip.shot_index + 1} deleted! 🗑️` };
+    }
+
     default:
       return { error: `Unknown tool: ${toolName}` };
   }
@@ -1036,6 +1189,7 @@ You are a FULLY capable assistant. You can DO everything in the app:
 - Open video editor for completed projects
 - Open photo editor
 - Guide through creation flow
+- **Edit clips directly**: view clip details, update clip prompts (1cr), retry failed clips (free), reorder clips (1cr), delete clips from drafts (free)
 
 **👥 Social & Community**
 - Follow/unfollow users (free) • Like/unlike projects (free)
@@ -1078,8 +1232,21 @@ You are a FULLY capable assistant. You can DO everything in the app:
 - Extended: 15 credits/clip (7+ clips or >6s)
 - Failed clips are auto-refunded ← always reassure users about this
 
-### Pages
-/create, /projects, /avatars, /gallery, /pricing, /profile, /settings, /video-editor, /world-chat, /creators, /how-it-works, /help, /contact
+### Pages & Navigation
+You can navigate users to ANY of these pages. Always offer to navigate when relevant:
+- /create — Start a new video (text-to-video, image-to-video, avatar, photo editor)
+- /projects — View all projects, track progress, manage drafts
+- /avatars — Browse & preview all AI avatars
+- /gallery — Community showcase of best videos
+- /pricing — Credit packages & purchase
+- /profile — User's public profile (videos, followers, bio)
+- /settings — Account settings, tier info, deactivation
+- /video-editor — Professional NLE editor (with ?project=UUID for specific project)
+- /world-chat — Community chat rooms
+- /creators — Discover other creators, browse videos
+- /how-it-works — Platform guide for new users
+- /help — FAQ & support
+- /contact — Contact support team
 
 ### Credit Packages (ALL SALES FINAL)
 - Mini: $9 → 90 credits
@@ -1129,6 +1296,21 @@ Users get notified about: follows, video completions, video failures (with refun
 - "How do I delete my account?" → Settings page has account deactivation
 - "How long does generation take?" → Usually 2-5 minutes per clip, depending on complexity
 - "What's the best mode?" → Text-to-Video for stories, Avatar for presentations, Image-to-Video for animating existing art
+- "How do I edit my clips?" → You can update clip prompts, retry failed clips, reorder, or delete clips — just ask!
+- "Can I rearrange my clips?" → Yes! I can reorder clips for you within a project
+- "A clip failed, what do I do?" → I can retry it for you! Failed clips are auto-refunded
+
+═══ PROACTIVE TIPS & SUGGESTIONS ═══
+When appropriate, offer helpful platform tips organically:
+- If user just created their first project → "💡 Tip: You can edit individual clip prompts after creation for more control!"
+- If user has completed projects but hasn't used editor → "🎬 Did you know you can edit your videos with music, effects & stickers in our Video Editor?"
+- If user has low followers → "👥 Check out the Creators page to discover and connect with other filmmakers!"
+- If user streak is >0 → Acknowledge their streak: "🔥 ${streak}-day streak! Keep it going!"
+- If user hasn't used avatars → "🤖 Have you tried Avatar mode? It creates AI presenters that speak your script!"
+- If user asks about quality → "✨ Pro tip: Detailed prompts with camera angles, lighting, and mood produce better results!"
+- If user has many failed clips → "Don't worry — all failed clip credits are refunded. I can retry them for you!"
+- NEVER share technical tips about the backend, databases, APIs, or infrastructure
+- ONLY share user-facing feature tips that help them create better content
 
 ═══ USER CONTEXT ═══
 - Name: ${name}

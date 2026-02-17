@@ -89,6 +89,128 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          message_count: number | null
+          summary: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_count?: number | null
+          summary?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_count?: number | null
+          summary?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      agent_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          role: string
+          tool_calls: Json | null
+          tool_results: Json | null
+        }
+        Insert: {
+          content?: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          role: string
+          tool_calls?: Json | null
+          tool_results?: Json | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          role?: string
+          tool_calls?: Json | null
+          tool_results?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "agent_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_preferences: {
+        Row: {
+          agent_personality: string | null
+          created_at: string
+          greeting_name: string | null
+          id: string
+          interaction_count: number | null
+          last_interaction_at: string | null
+          learned_context: Json | null
+          preferred_aspect_ratio: string | null
+          preferred_clip_count: number | null
+          preferred_mode: string | null
+          preferred_style: string | null
+          preferred_tone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_personality?: string | null
+          created_at?: string
+          greeting_name?: string | null
+          id?: string
+          interaction_count?: number | null
+          last_interaction_at?: string | null
+          learned_context?: Json | null
+          preferred_aspect_ratio?: string | null
+          preferred_clip_count?: number | null
+          preferred_mode?: string | null
+          preferred_style?: string | null
+          preferred_tone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_personality?: string | null
+          created_at?: string
+          greeting_name?: string | null
+          id?: string
+          interaction_count?: number | null
+          last_interaction_at?: string | null
+          learned_context?: Json | null
+          preferred_aspect_ratio?: string | null
+          preferred_clip_count?: number | null
+          preferred_mode?: string | null
+          preferred_style?: string | null
+          preferred_tone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       api_cost_logs: {
         Row: {
           created_at: string

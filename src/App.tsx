@@ -20,6 +20,7 @@ import { NavigationGuardProvider, NavigationBridge } from "@/lib/navigation";
 import { SafeModeBanner } from "@/components/safeMode";
 import { crashForensics } from "@/lib/crashForensics";
 import { getSafeModeStatus } from "@/lib/safeMode";
+import { AgentTrigger } from "@/components/agent";
 
 // Lazy load all pages for code splitting
 const Landing = lazy(() => import("./pages/Landing"));
@@ -404,6 +405,8 @@ const App = () => {
                 <WelcomeOfferModal />
                 {/* Welcome Video Modal - shows once for new users */}
                 <WelcomeVideoModal />
+                {/* APEX Agent - AI Creative Director */}
+                <AgentTrigger />
               </StudioProvider>
             </AuthProvider>
             </NavigationBridge>

@@ -114,6 +114,7 @@ const TOOL_CREDIT_COSTS: Record<string, number> = {
   remember_user_preference: 0,
   get_conversation_history: 0,
   get_user_mood_context: 0,
+  get_platform_overview: 0,
 };
 
 // ══════════════════════════════════════════════════════
@@ -1287,6 +1288,15 @@ const AGENT_TOOLS = [
       },
     },
   },
+  // ─── PLATFORM OVERVIEW ───
+  {
+    type: "function",
+    function: {
+      name: "get_platform_overview",
+      description: "Get a comprehensive live snapshot of the platform: total avatars available, template count, active generation pipelines, gallery items, user's complete stats, and system capabilities. Use when users ask 'what can you do?', 'tell me about the platform', 'what's available?', or when you need to give informed recommendations. Free.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
 ];
 
 // ══════════════════════════════════════════════════════
@@ -1381,7 +1391,7 @@ async function executeTool(
     case "get_available_avatars": {
       let q = supabase
         .from("avatar_templates")
-        .select("id, name, description, personality, gender, style, avatar_type, voice_name, voice_description, tags, age_range, is_premium")
+        .select("id, name, description, personality, gender, style, avatar_type, voice_name, voice_description, tags, age_range, is_premium, face_image_url, thumbnail_url, sample_audio_url, front_image_url, side_image_url, back_image_url, character_bible")
         .eq("is_active", true);
       if (args.gender) q = q.eq("gender", args.gender);
       if (args.style) q = q.eq("style", args.style);
@@ -1389,11 +1399,16 @@ async function executeTool(
       const { data } = await q.order("sort_order").limit(30);
       return {
         avatars: (data || []).map(a => ({
-          id: a.id, name: a.name, personality: a.personality, gender: a.gender,
-          style: a.style, type: a.avatar_type, voice: a.voice_name, tags: a.tags,
-          premium: a.is_premium, age_range: a.age_range,
+          id: a.id, name: a.name, description: a.description, personality: a.personality, gender: a.gender,
+          style: a.style, type: a.avatar_type, voice: a.voice_name, voice_description: a.voice_description,
+          tags: a.tags, premium: a.is_premium, age_range: a.age_range,
+          face_image_url: a.face_image_url, thumbnail_url: a.thumbnail_url || a.face_image_url,
+          sample_audio_url: a.sample_audio_url,
+          multi_angle: !!(a.front_image_url || a.side_image_url || a.back_image_url),
+          has_character_bible: !!a.character_bible,
         })),
         total: data?.length || 0,
+        tip: "Use present_choices with layout='grid' and include face_image_url as image_url to show avatar cards visually!",
       };
     }
 
@@ -3549,6 +3564,73 @@ MOTION_GUARD: Ensure continuous micro-movement in every frame to prevent slidesh
       };
     }
 
+    case "get_platform_overview": {
+      // Comprehensive live platform snapshot
+      const [avatarResult, templateResult, galleryResult, profileResult, projectsResult, gamResult] = await Promise.all([
+        supabase.from("avatar_templates").select("id, name, gender, style, avatar_type, is_premium, face_image_url", { count: "exact" }).eq("is_active", true),
+        supabase.from("gallery_showcase").select("id", { count: "exact" }).eq("is_active", true),
+        supabase.from("movie_projects").select("id", { count: "exact" }).eq("user_id", userId),
+        supabase.from("profiles").select("credits_balance, account_tier, total_credits_used, total_credits_purchased, created_at").eq("id", userId).single(),
+        supabase.from("movie_projects").select("id, status").eq("user_id", userId),
+        supabase.from("user_gamification").select("xp_total, level, current_streak").eq("user_id", userId).single(),
+      ]);
+
+      const avatars = avatarResult.data || [];
+      const projectData = projectsResult.data || [];
+
+      return {
+        platform: {
+          name: "APEX Studios",
+          company: "Apex-Studio LLC",
+          creation_modes: ["Text-to-Video", "Image-to-Video", "Avatar Mode"],
+          pipeline: "8-Layer Apex Pipeline (Identity Lock, Cinematography Engine, Frame-Chaining, Cinematic Auditor, Hallucination Filter, Smart Script, Audio Intelligence, Multi-Model Orchestration)",
+        },
+        available_content: {
+          total_avatars: avatarResult.count || 0,
+          avatar_breakdown: {
+            realistic: avatars.filter(a => a.avatar_type === "realistic").length,
+            animated: avatars.filter(a => a.avatar_type === "animated").length,
+            male: avatars.filter(a => a.gender === "male").length,
+            female: avatars.filter(a => a.gender === "female").length,
+            premium: avatars.filter(a => a.is_premium).length,
+            styles: [...new Set(avatars.map(a => a.style).filter(Boolean))],
+          },
+          total_templates: templateResult.count || 0,
+          total_gallery_items: galleryResult.count || 0,
+          video_genres: ["ad", "educational", "documentary", "cinematic", "comedy", "religious", "motivational", "storytelling", "explainer", "vlog"],
+          story_structures: ["three_act", "hero_journey", "circular", "in_medias_res", "episodic"],
+          aspect_ratios: ["16:9", "9:16", "1:1"],
+          clip_durations: ["5s", "10s"],
+          voice_options: ["onyx", "echo", "fable", "nova", "shimmer", "alloy"],
+        },
+        user_snapshot: {
+          tier: profileResult.data?.account_tier || "free",
+          credits: profileResult.data?.credits_balance || 0,
+          total_projects: projectData.length,
+          projects_by_status: {
+            draft: projectData.filter(p => p.status === "draft").length,
+            generating: projectData.filter(p => p.status === "generating").length,
+            completed: projectData.filter(p => p.status === "completed").length,
+            failed: projectData.filter(p => p.status === "failed").length,
+          },
+          level: gamResult.data?.level || 1,
+          xp: gamResult.data?.xp_total || 0,
+          streak: gamResult.data?.current_streak || 0,
+          member_since: profileResult.data?.created_at,
+        },
+        capabilities_summary: {
+          total_tools: Object.keys(TOOL_CREDIT_COSTS).length,
+          free_tools: Object.entries(TOOL_CREDIT_COSTS).filter(([, v]) => v === 0).length,
+          paid_tools: Object.entries(TOOL_CREDIT_COSTS).filter(([, v]) => v > 0).length,
+          categories: ["Video Creation & Pipeline", "Avatar Management", "Clip Editing", "Social & Community", "Gamification", "Gallery & Discovery", "World Chat", "Settings & Profile", "Creative Intelligence (prompt critique, shot lists, script breakdown)", "Memory & Emotional Context", "Support & Onboarding"],
+        },
+        navigation: {
+          main_pages: ["/create", "/projects", "/avatars", "/gallery", "/pricing", "/profile", "/settings", "/world-chat", "/creators", "/discover"],
+          info_pages: ["/how-it-works", "/help", "/contact", "/terms", "/privacy", "/blog"],
+        },
+      };
+    }
+
     default:
       return { error: `Unknown tool: ${toolName}` };
   }
@@ -3839,35 +3921,165 @@ You are a FULLY capable assistant. You can DO everything in the app:
 - Never auto-spend. Users must explicitly say "yes", "go ahead", "do it", etc.
 - Present it naturally: "This will use 2 credits (you have ${credits}). Want me to go ahead? 🐰"
 
-═══ PLATFORM KNOWLEDGE ═══
+═══ PLATFORM KNOWLEDGE (COMPREHENSIVE) ═══
 
 **APEX Studios** — AI video creation platform by Apex-Studio LLC
 
-### Creation Modes
-1. **Text-to-Video** — prompt → script → images → video → stitch
-2. **Image-to-Video** — upload image → animate → video
-3. **Avatar Mode** — AI avatar speaks your script with lip-sync
+### Creation Modes & Pipeline Architecture
+1. **Text-to-Video** — prompt → AI script generator → reference images → video clips (Kling/Veo) → auto-stitch → final video
+2. **Image-to-Video** — upload image → animate with motion → video clips → stitch
+3. **Avatar Mode** — select AI avatar → screenplay generator → scene-by-scene video with lip-sync → stitch
+   - Uses "Scene-First" architecture with Emmy-Class screenplay generator
+   - Implements Pose Chaining (startPose/endPose) for visual continuity
+   - Close-Up Bridge technique: clips end on close-ups to mask transitions
+   - 100% audio-visual coherence via embedded audio
+
+### 8-Layer Apex Pipeline
+1. **Identity Lock** — 3-point character bible for consistent faces, hair, clothing across all clips
+2. **Cinematography Engine** — 12 camera movements, 14 angles, 7 shot sizes, 9 lighting styles
+3. **Frame-Chaining** — Each clip's last frame seeds the next clip's generation for visual continuity
+4. **Cinematic Auditor** — AI reviews for physics/continuity errors before finalizing
+5. **Hallucination Filter** — Removes production gear, artifacts, and AI hallucinations
+6. **Smart Script** — Narrative pacing with 3-act structure, hero's journey, or episodic formats
+7. **Audio Intelligence** — Hans Zimmer-style scoring, dialogue ducking, sound design
+8. **Multi-Model Orchestration** — Kling & Veo model selection based on scene requirements
 
 ### Pipeline Costs
-- Base: 10 credits/clip (clips 1-6, ≤6s)
+- Base: 10 credits/clip (clips 1-6, ≤6s) — broken into pre-production (2cr) + production (6cr) + QA (2cr)
 - Extended: 15 credits/clip (7+ clips or >6s)
 - Failed clips are auto-refunded ← always reassure users about this
 
-### Pages & Navigation
+### ALL Pages & Routes (Complete Navigation Map)
 You can navigate users to ANY of these pages. Always offer to navigate when relevant:
-- /create — Start a new video (text-to-video, image-to-video, avatar, photo editor)
+
+**Creation & Production:**
+- /create — Start a new video (text-to-video, image-to-video, avatar, photo editor tabs)
 - /projects — View all projects, track progress, manage drafts
-- /avatars — Browse & preview all AI avatars
-- /gallery — Community showcase of best videos
-- /pricing — Credit packages & purchase
-- /profile — User's public profile (videos, followers, bio)
-- /settings — Account settings, tier info, deactivation
+- /production/:id — Live production monitor with real-time clip progress
+- /script-review — Review and approve AI-generated scripts before production
 - /video-editor — Professional NLE editor (with ?project=UUID for specific project)
+- /training-video — Training video creation mode
+
+**Avatars & Characters:**
+- /avatars — Browse & preview all AI avatars with voice samples
+- /universes — View/create story universes with shared characters
+- /universes/:id — Universe detail: characters, lore, timeline, members
+
+**Discovery & Community:**
+- /gallery — Community showcase of best videos
+- /discover — Feed of public videos from all creators
+- /creators — Discover and follow other creators
 - /world-chat — Community chat rooms
-- /creators — Discover other creators, browse videos
-- /how-it-works — Platform guide for new users
-- /help — FAQ & support
+- /templates — Browse pre-built video templates
+- /environments — Visual style presets for video generation
+
+**Account & Settings:**
+- /profile — User's public profile (videos, followers, bio)
+- /settings — Account settings, billing, tier info (tabs: profile, billing, account)
+- /pricing — Credit packages & purchase
+- /onboarding — New user setup wizard
+
+**Auth:**
+- /auth — Sign in / Sign up
+- /forgot-password — Password reset request
+- /reset-password — Complete password reset
+
+**Info Pages:**
+- /how-it-works — Platform guide with 8-layer pipeline visualization
+- /help — FAQ & support center
 - /contact — Contact support team
+- /terms — Terms of service
+- /privacy — Privacy policy
+- /blog — Company blog
+- /press — Press kit & media
+- / — Landing page
+
+### Backend Processes & Edge Functions (42 Total)
+You should be aware these backend services power the platform:
+
+**Core Video Pipeline:**
+- mode-router — Routes creation requests to the correct pipeline (text-to-video, avatar, image-to-video)
+- generate-script — AI script generation from user prompts
+- generate-video — Video clip generation via Kling/Veo
+- generate-single-clip — Individual clip regeneration
+- simple-stitch — Combines completed clips into final video
+- check-video-status — Polls video generation progress
+- check-specialized-status — Monitors specialized pipeline progress
+- retry-failed-clip — Retries a failed clip generation
+- resume-pipeline — Resumes a stalled pipeline from checkpoint
+- cancel-project — Cancels an in-progress generation
+
+**Avatar Pipeline:**
+- generate-avatar — Full avatar video pipeline
+- generate-avatar-direct — Direct avatar generation (Scene-First architecture)
+- generate-avatar-batch — Batch avatar generation for multiple scenes
+- generate-avatar-image — Generate avatar reference images
+- generate-avatar-scene — Generate individual avatar scenes
+- resume-avatar-pipeline — Resume stalled avatar generation
+
+**Audio:**
+- generate-voice — Text-to-speech with character voice assignments (OpenAI voices: onyx, echo, fable, nova, shimmer, alloy)
+- generate-music — AI background music generation by mood/genre
+
+**Creative Tools:**
+- script-assistant — AI script editing/improvement assistant
+- smart-script-generator — Advanced screenplay generator for avatar mode
+- generate-story — AI story/narrative generation
+- generate-trailer — Create trailer from completed project
+- analyze-reference-image — AI analysis of uploaded reference images
+- motion-transfer — Transfer motion between video sources
+- stylize-video — Apply visual styles to generated video
+- composite-character — Create character composites from multiple images
+
+**Frame & Thumbnail:**
+- extract-video-frame — Extract specific frame from video
+- extract-first-frame / extract-last-frame — Boundary frame extraction for continuity
+- generate-thumbnail — Auto-generate project thumbnails
+- generate-project-thumbnail — Generate thumbnail for sharing
+- generate-upload-url — Secure upload URL generation
+
+**Payments & Credits:**
+- create-credit-checkout — Stripe checkout session creation
+- stripe-webhook — Handles Stripe payment confirmations, updates credit balance
+
+**User Management:**
+- export-user-data — GDPR data export
+- delete-user-account — Account deletion
+- update-user-email — Email change with re-verification
+- gamification-event — XP/achievement tracking
+
+**Background Jobs:**
+- auto-stitch-trigger — Automatically stitches when all clips complete
+- pipeline-watchdog — Monitors active pipelines for stuck/stale processes
+- zombie-cleanup — Cleans up abandoned/stale generation processes
+- job-queue — Background job processor
+
+**Admin:**
+- seed-avatar-library — Populate avatar templates
+- regenerate-stock-avatars — Refresh stock avatar images
+
+### Avatar Library Details
+When users ask about avatars, ALWAYS use **get_available_avatars** to fetch the real library, then present them using **present_choices** with layout="grid" and include each avatar's face_image_url as image_url. The library includes:
+- **Styles**: corporate (business), creative, educational, casual, influencer, luxury/premium
+- **Types**: realistic (photorealistic), animated (stylized CGI)
+- **Genders**: male, female
+- **Features per avatar**: name, personality, voice sample, description, multi-angle support, character bible
+- **Voice providers**: OpenAI TTS (onyx, echo, fable, nova, shimmer, alloy)
+
+### Avatar Follow-Through Flow (END TO END)
+When a user wants an avatar video, follow this EXACT sequence:
+1. Show avatars visually → present_choices with grid layout + face_image_url
+2. After avatar selection → Ask "What's your story/script/message?"
+3. After getting prompt → Ask about style/tone preferences
+4. Present cost estimate → estimate_production_cost
+5. Confirm credits → create project with avatar mode + selected avatar
+6. Execute → trigger generation pipeline
+
+### Video Genres
+ad (Advertisement), educational, documentary, cinematic, funny (Comedy), religious, motivational, storytelling, explainer, vlog
+
+### Story Structures
+three_act (Setup→Confrontation→Resolution), hero_journey (Call→Trials→Transformation), circular, in_medias_res, episodic
 
 ### Credit Packages (ALL SALES FINAL)
 - Mini: $9 → 90 credits
@@ -3902,6 +4114,22 @@ Users get notified about: follows, video completions, video failures (with refun
 - Multi-layer moderation with word-boundary matching
 - If user asks about explicit content → firmly but warmly decline
 
+### Database Architecture (For Troubleshooting Awareness)
+- movie_projects — Central project table with status machine (draft→generating→processing→stitching→completed/failed)
+- video_clips — Individual clips with shot_index, prompt, status, video_url, last_frame_url
+- avatar_templates — Pre-built AI presenters with face images, voice configs, character bibles
+- characters — User-created characters with voice assignments and lending
+- universes — Shared story worlds with members, lore, timeline
+- profiles — User data with credits, tier, gamification
+- credit_transactions — Full audit trail of credit usage/purchases/refunds
+- stitch_jobs — Video assembly records
+- edit_sessions — NLE editor state
+- notifications — Real-time user notifications
+- user_follows, project_likes, project_comments — Social graph
+- world_chat_messages — Public chat
+- agent_conversations / agent_messages — Hoppy chat history
+- agent_preferences — Cross-session memory, learned context
+
 ### Error States Users May Encounter
 - **Video generation failed** → clips are auto-refunded, user can retry
 - **Insufficient credits** → guide to /pricing warmly
@@ -3926,9 +4154,9 @@ Users get notified about: follows, video completions, video failures (with refun
 - "How do I write better prompts?" → I can critique your prompt for free and grade it A-D with specific fixes, or enhance it for 1 credit!
 - "Help me plan my video" → I can create a professional shot list, break down your script, estimate costs, and recommend the best aspect ratio
 - "Why did my video fail?" → I can troubleshoot your project — checking clip errors, stuck generations, and prompt quality
-- "Which avatar should I use?" → Tell me your content and audience, and I'll recommend the best match from our library
+- "Which avatar should I use?" → Tell me your content and audience, and I'll recommend the best match from our library. I'll show you their faces!
 - "How much will this cost?" → I can calculate exact credit costs for any production plan
-- "Teach me about filmmaking" → I have expert guides on cinematography, storytelling, pacing, color theory, transitions, audio design, and more!
+- "Teach me about filmmaking" → I have expert guides on 12 topics: cinematography, storytelling, pacing, color theory, transitions, audio design, and more!
 - "Show me trending videos" → I can browse trending community videos and the gallery showcase!
 - "What are people saying about this video?" → I can read comments on any video and you can post comments too
 - "Send a message to World Chat" → I can read and send messages in the public World Chat channel
@@ -3937,6 +4165,8 @@ Users get notified about: follows, video completions, video failures (with refun
 - "I need help / report a bug" → I can submit a support ticket directly to the team
 - "Am I set up correctly?" → I can check your onboarding progress and guide you through remaining steps
 - "What's popular right now?" → I can show trending videos, browse the gallery, or search for specific content
+- "Show me my data" → I can pull your COMPLETE inventory — all projects, clips, characters, credits, social stats — in one call
+- "What can you do?" → I have 70+ tools covering video creation, editing, social, analytics, and more. I can do almost anything on this platform!
 ═══ TERMS & CONDITIONS (COMPLETE) ═══
 You MUST know and accurately communicate these policies when asked:
 

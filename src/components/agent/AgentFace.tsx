@@ -1,14 +1,12 @@
 /**
- * Hoppy Agent Face — Immersive Animated Avatar 🐰
+ * Hoppy Agent Face — Refined Compact Avatar 🐰
  * 
- * State-reactive visual effects around Hoppy's video face:
- * - Orbital rings that change speed/color by state
- * - Glowing aura pulse  
- * - Particle sparkles when speaking
+ * Minimal, elegant state-reactive avatar:
+ * - Soft glow ring that shifts by state
+ * - Subtle pulse animation
+ * - Clean, no orbital clutter
  */
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface AgentFaceProps {
@@ -17,136 +15,43 @@ interface AgentFaceProps {
   size?: number;
 }
 
-const stateConfig = {
-  idle: {
-    auraColor: "hsl(280 60% 50% / 0.15)",
-    ringSpeed: 20,
-    pulseScale: 1.02,
-  },
-  thinking: {
-    auraColor: "hsl(45 90% 55% / 0.2)",
-    ringSpeed: 8,
-    pulseScale: 1.04,
-  },
-  speaking: {
-    auraColor: "hsl(280 70% 60% / 0.25)",
-    ringSpeed: 12,
-    pulseScale: 1.06,
-  },
-  listening: {
-    auraColor: "hsl(190 80% 50% / 0.2)",
-    ringSpeed: 15,
-    pulseScale: 1.03,
-  },
+const stateRing: Record<string, string> = {
+  idle: "ring-emerald-400/20",
+  thinking: "ring-amber-400/30",
+  speaking: "ring-primary/35",
+  listening: "ring-cyan-400/25",
 };
 
-export function AgentFace({ state, className, size = 160 }: AgentFaceProps) {
-  const config = stateConfig[state];
-  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; delay: number }>>([]);
+const stateGlow: Record<string, string> = {
+  idle: "shadow-[0_0_20px_hsl(160_60%_45%/0.1)]",
+  thinking: "shadow-[0_0_24px_hsl(45_90%_55%/0.15)]",
+  speaking: "shadow-[0_0_28px_hsl(var(--primary)/0.2)]",
+  listening: "shadow-[0_0_20px_hsl(190_80%_50%/0.12)]",
+};
 
-  // Generate particles when speaking
-  useEffect(() => {
-    if (state === "speaking") {
-      const newParticles = Array.from({ length: 6 }, (_, i) => ({
-        id: Date.now() + i,
-        x: Math.random() * 360,
-        y: Math.random() * 100,
-        delay: Math.random() * 0.5,
-      }));
-      setParticles(newParticles);
-    } else {
-      setParticles([]);
-    }
-  }, [state]);
-
+export function AgentFace({ state, className, size = 80 }: AgentFaceProps) {
   return (
     <div
       className={cn("relative flex items-center justify-center", className)}
-      style={{ width: size + 40, height: size + 40 }}
+      style={{ width: size + 12, height: size + 12 }}
     >
-      {/* Outer glow aura */}
-      <motion.div
-        className="absolute rounded-full"
-        animate={{
-          scale: [1, config.pulseScale, 1],
-          opacity: [0.4, 0.7, 0.4],
-        }}
-        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-        style={{
-          width: size + 32,
-          height: size + 32,
-          background: `radial-gradient(circle, ${config.auraColor} 0%, transparent 70%)`,
-        }}
-      />
-
-      {/* Orbital ring 1 */}
-      <motion.div
-        className="absolute rounded-full border pointer-events-none"
-        animate={{ rotate: 360 }}
-        transition={{ duration: config.ringSpeed, repeat: Infinity, ease: "linear" }}
-        style={{
-          width: size + 24,
-          height: size + 24,
-          borderColor: state === "thinking"
-            ? "hsl(45 80% 60% / 0.25)"
-            : "hsl(280 50% 60% / 0.15)",
-          borderStyle: "dashed",
-        }}
-      />
-
-      {/* Orbital ring 2 (counter-rotate) */}
-      <motion.div
-        className="absolute rounded-full border pointer-events-none"
-        animate={{ rotate: -360 }}
-        transition={{ duration: config.ringSpeed * 1.6, repeat: Infinity, ease: "linear" }}
-        style={{
-          width: size + 36,
-          height: size + 36,
-          borderColor: "hsl(280 40% 50% / 0.08)",
-          borderWidth: "1px",
-        }}
-      />
-
-      {/* Speaking particles */}
-      {particles.map((p) => (
-        <motion.div
-          key={p.id}
-          className="absolute w-1.5 h-1.5 rounded-full"
-          initial={{
-            opacity: 0,
-            scale: 0,
-            rotate: p.x,
-            x: 0,
-            y: 0,
-          }}
-          animate={{
-            opacity: [0, 1, 0],
-            scale: [0, 1, 0.5],
-            x: [0, Math.cos(p.x * Math.PI / 180) * (size / 2 + 20)],
-            y: [0, Math.sin(p.x * Math.PI / 180) * (size / 2 + 20)],
-          }}
-          transition={{
-            duration: 1.5,
-            delay: p.delay,
-            repeat: Infinity,
-            repeatDelay: 1,
-          }}
-          style={{ background: "hsl(280 70% 70%)" }}
-        />
-      ))}
-
-      {/* Face container with glass border */}
+      {/* Soft ambient glow */}
       <div
-        className="relative rounded-full overflow-hidden z-10"
+        className="absolute inset-0 rounded-full animate-pulse opacity-50"
         style={{
-          width: size,
-          height: size,
-          border: "2px solid hsl(280 40% 40% / 0.4)",
-          boxShadow: `
-            0 0 20px ${config.auraColor},
-            inset 0 0 20px hsl(280 30% 10% / 0.3)
-          `,
+          background: `radial-gradient(circle, hsl(var(--primary) / 0.08) 0%, transparent 70%)`,
+          animationDuration: "3s",
         }}
+      />
+
+      {/* Face container */}
+      <div
+        className={cn(
+          "relative rounded-full overflow-hidden z-10 ring-2 transition-all duration-500",
+          stateRing[state],
+          stateGlow[state],
+        )}
+        style={{ width: size, height: size }}
       >
         <video
           src="/hoppy-blink.mp4"
@@ -156,38 +61,7 @@ export function AgentFace({ state, className, size = 160 }: AgentFaceProps) {
           playsInline
           className="w-full h-full object-cover scale-[1.3] object-top"
         />
-
-        {/* State-reactive overlay */}
-        <motion.div
-          className="absolute inset-0 pointer-events-none"
-          animate={{
-            opacity: state === "thinking" ? [0, 0.15, 0] : 0,
-          }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-          style={{
-            background: "linear-gradient(180deg, transparent 0%, hsl(45 90% 55% / 0.15) 50%, transparent 100%)",
-          }}
-        />
       </div>
-
-      {/* Status indicator dot */}
-      <motion.div
-        className="absolute bottom-2 right-2 z-20 h-3 w-3 rounded-full border-2"
-        animate={{
-          scale: state === "idle" ? 1 : [1, 1.3, 1],
-        }}
-        transition={{ duration: 1, repeat: state === "idle" ? 0 : Infinity }}
-        style={{
-          background: state === "thinking"
-            ? "hsl(45 90% 55%)"
-            : state === "speaking"
-            ? "hsl(280 70% 60%)"
-            : state === "listening"
-            ? "hsl(190 80% 50%)"
-            : "hsl(140 60% 50%)",
-          borderColor: "hsl(0 0% 8%)",
-        }}
-      />
     </div>
   );
 }

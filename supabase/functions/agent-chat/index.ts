@@ -102,6 +102,10 @@ const TOOL_CREDIT_COSTS: Record<string, number> = {
   // Onboarding
   get_onboarding_status: 0,
   complete_onboarding_step: 0,
+  // Memory & Learning
+  remember_user_preference: 0,
+  get_conversation_history: 0,
+  get_user_mood_context: 0,
 };
 
 // ══════════════════════════════════════════════════════
@@ -1135,6 +1139,45 @@ const AGENT_TOOLS = [
     function: {
       name: "complete_onboarding_step",
       description: "Mark the user's onboarding as complete. Free.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  // ─── MEMORY & LEARNING ───
+  {
+    type: "function",
+    function: {
+      name: "remember_user_preference",
+      description: "Remember something about the user for future conversations — their preferred style, tone, content type, creative preferences, important context, or anything they tell you to remember. This persists across sessions. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          category: { type: "string", enum: ["style", "tone", "content_type", "workflow", "personal", "creative", "technical"], description: "Category of the preference" },
+          key: { type: "string", description: "Short label for this preference (e.g., 'favorite_genre', 'preferred_aspect_ratio', 'brand_name')" },
+          value: { type: "string", description: "The preference value or note to remember" },
+        },
+        required: ["category", "key", "value"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_conversation_history",
+      description: "Recall past conversations with the user — previous topics, requests, and outcomes. Use this to maintain continuity and remember what you've discussed before. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: { type: "number", description: "Number of past conversations to recall (default 5, max 10)" },
+          search: { type: "string", description: "Optional: search for conversations mentioning a specific topic" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_user_mood_context",
+      description: "Analyze the user's current state to tailor your response — checks recent activity, failures, successes, credit changes, and engagement patterns. Use when you sense the user might be frustrated, confused, or especially excited. Free.",
       parameters: { type: "object", properties: {}, required: [] },
     },
   },
@@ -3081,6 +3124,179 @@ MOTION_GUARD: Ensure continuous micro-movement in every frame to prevent slidesh
       return { message: "Onboarding marked as complete! 🎉 Welcome to APEX Studios!" };
     }
 
+    // ─── MEMORY & LEARNING ───
+
+    case "remember_user_preference": {
+      const category = (args.category as string) || "personal";
+      const key = (args.key as string) || "";
+      const value = (args.value as string) || "";
+      if (!key || !value) return { error: "Both key and value are required" };
+
+      // Get existing learned_context
+      const { data: prefs } = await supabase
+        .from("agent_preferences")
+        .select("learned_context")
+        .eq("user_id", userId)
+        .single();
+
+      const existingContext = (prefs?.learned_context as Record<string, unknown>) || {};
+      const categoryContext = (existingContext[category] as Record<string, unknown>) || {};
+      categoryContext[key] = { value, remembered_at: new Date().toISOString() };
+      existingContext[category] = categoryContext;
+
+      await supabase.from("agent_preferences").upsert({
+        user_id: userId,
+        learned_context: existingContext,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" });
+
+      return { 
+        message: `Got it! I'll remember that 📝`,
+        remembered: { category, key, value },
+      };
+    }
+
+    case "get_conversation_history": {
+      const limit = Math.min((args.limit as number) || 5, 10);
+      const search = args.search as string | undefined;
+
+      // Get past conversations
+      const { data: conversations } = await supabase
+        .from("agent_conversations")
+        .select("id, title, summary, message_count, created_at, updated_at")
+        .eq("user_id", userId)
+        .order("updated_at", { ascending: false })
+        .limit(limit);
+
+      if (!conversations || conversations.length === 0) {
+        return { conversations: [], message: "This looks like a fresh start! No past conversations found." };
+      }
+
+      // If search term, also look at messages
+      let relevantMessages: unknown[] = [];
+      if (search) {
+        const convIds = conversations.map(c => c.id);
+        const { data: msgs } = await supabase
+          .from("agent_messages")
+          .select("content, role, conversation_id, created_at")
+          .in("conversation_id", convIds)
+          .ilike("content", `%${search}%`)
+          .order("created_at", { ascending: false })
+          .limit(10);
+        relevantMessages = msgs || [];
+      }
+
+      // Get learned preferences
+      const { data: prefs } = await supabase
+        .from("agent_preferences")
+        .select("learned_context, preferred_style, preferred_tone, preferred_mode, preferred_aspect_ratio, greeting_name, interaction_count")
+        .eq("user_id", userId)
+        .single();
+
+      return {
+        conversations: conversations.map(c => ({
+          title: c.title || "Untitled",
+          summary: c.summary,
+          messages: c.message_count,
+          last_active: c.updated_at,
+        })),
+        search_results: relevantMessages.length > 0 ? relevantMessages : undefined,
+        remembered_preferences: prefs?.learned_context || {},
+        interaction_count: prefs?.interaction_count || 0,
+        preferred_style: prefs?.preferred_style,
+        preferred_tone: prefs?.preferred_tone,
+        preferred_mode: prefs?.preferred_mode,
+        greeting_name: prefs?.greeting_name,
+      };
+    }
+
+    case "get_user_mood_context": {
+      // Analyze recent activity to understand user's emotional state
+      const [
+        { data: recentProjects },
+        { data: recentClips },
+        { data: recentTxns },
+        { data: gamification },
+        { data: prefs },
+      ] = await Promise.all([
+        supabase.from("movie_projects")
+          .select("id, title, status, last_error, created_at, updated_at")
+          .eq("user_id", userId)
+          .order("updated_at", { ascending: false })
+          .limit(5),
+        supabase.from("video_clips")
+          .select("status, error_message, retry_count, updated_at")
+          .eq("user_id", userId)
+          .order("updated_at", { ascending: false })
+          .limit(20),
+        supabase.from("credit_transactions")
+          .select("amount, transaction_type, description, created_at")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(10),
+        supabase.from("user_gamification")
+          .select("xp_total, level, current_streak, longest_streak, last_activity_date")
+          .eq("user_id", userId)
+          .single(),
+        supabase.from("agent_preferences")
+          .select("interaction_count, last_interaction_at, learned_context, greeting_name")
+          .eq("user_id", userId)
+          .single(),
+      ]);
+
+      const clips = recentClips || [];
+      const failedRecently = clips.filter(c => c.status === "failed").length;
+      const completedRecently = clips.filter(c => c.status === "completed").length;
+      const highRetryCount = clips.filter(c => (c.retry_count || 0) > 2).length;
+      const projects = recentProjects || [];
+      const stuckProjects = projects.filter(p => p.status === "generating" && p.last_error);
+      const recentFailedProjects = projects.filter(p => p.status === "failed");
+      const recentSuccesses = projects.filter(p => p.status === "completed");
+
+      // Determine mood signals
+      const signals: string[] = [];
+      if (failedRecently > 3) signals.push("FRUSTRATED: Multiple recent clip failures — be extra empathetic and proactive with solutions");
+      if (highRetryCount > 2) signals.push("STRUGGLING: High retry counts — may need prompt guidance");
+      if (stuckProjects.length > 0) signals.push("ANXIOUS: Has stuck generation(s) — offer troubleshooting immediately");
+      if (recentFailedProjects.length > 1) signals.push("DISCOURAGED: Multiple failed projects — needs encouragement and confidence boost");
+      if (recentSuccesses.length > 0 && failedRecently === 0) signals.push("CONFIDENT: Recent successes, no failures — can suggest advanced features");
+      if (completedRecently > 5) signals.push("PRODUCTIVE: Very active creator — celebrate their momentum");
+      if ((prefs?.interaction_count || 0) <= 2) signals.push("NEW TO HOPPY: First few interactions — be extra welcoming, explain capabilities");
+      if ((prefs?.interaction_count || 0) > 50) signals.push("POWER USER: 50+ interactions — skip basics, be efficient and direct");
+      if ((gamification?.current_streak || 0) > 7) signals.push("DEDICATED: 7+ day streak — acknowledge their commitment");
+      if ((gamification?.current_streak || 0) === 0 && gamification?.longest_streak && gamification.longest_streak > 3) signals.push("RETURNING: Lost their streak — welcome them back warmly");
+
+      const txns = recentTxns || [];
+      const recentSpend = txns.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+      const recentRefunds = txns.filter(t => t.transaction_type === "refund").length;
+      if (recentRefunds > 2) signals.push("REFUND_HEAVY: Multiple recent refunds — reassure about quality and offer to review prompts");
+      if (recentSpend > 200) signals.push("BIG_SPENDER: Spending heavily — ensure they're getting value, suggest cost-saving tips");
+
+      return {
+        mood_signals: signals,
+        recent_activity: {
+          clips_completed: completedRecently,
+          clips_failed: failedRecently,
+          high_retry_clips: highRetryCount,
+          stuck_projects: stuckProjects.length,
+          failed_projects: recentFailedProjects.length,
+          successful_projects: recentSuccesses.length,
+          recent_credits_spent: recentSpend,
+          recent_refunds: recentRefunds,
+        },
+        engagement: {
+          interaction_count: prefs?.interaction_count || 0,
+          streak: gamification?.current_streak || 0,
+          longest_streak: gamification?.longest_streak || 0,
+          level: gamification?.level || 1,
+          xp: gamification?.xp_total || 0,
+          last_active: gamification?.last_activity_date,
+        },
+        remembered: prefs?.learned_context || {},
+        greeting_name: prefs?.greeting_name,
+      };
+    }
+
     default:
       return { error: `Unknown tool: ${toolName}` };
   }
@@ -3121,16 +3337,77 @@ function buildSystemPrompt(userContext: Record<string, unknown>, currentPage?: s
   const projectCount = userContext.project_count || 0;
   const streak = userContext.streak || 0;
   const level = userContext.level || 1;
+  const interactionCount = userContext.interaction_count || 0;
 
-  return `You are Hoppy 🐰 — a warm, capable AI concierge for APEX Studios, an AI-powered video creation platform by Apex-Studio LLC.
+  // Time-of-day awareness
+  const hour = new Date().getUTCHours();
+  let timeGreeting = "Hey";
+  let timeEmoji = "✨";
+  if (hour >= 5 && hour < 12) { timeGreeting = "Good morning"; timeEmoji = "☀️"; }
+  else if (hour >= 12 && hour < 17) { timeGreeting = "Good afternoon"; timeEmoji = "🌤️"; }
+  else if (hour >= 17 && hour < 21) { timeGreeting = "Good evening"; timeEmoji = "🌅"; }
+  else { timeGreeting = "Hey night owl"; timeEmoji = "🌙"; }
 
-═══ YOUR PERSONALITY ═══
-- Cheerful, supportive, genuinely excited to help
-- Speak like a warm encouraging friend — never robotic
-- Emojis freely: 🎬 ✨ 🎉 💜 🐰 🔥
-- Celebrate wins — "Your first project! 🎉"
-- Keep responses concise (2-4 sentences) unless detail requested
-- Remember past conversations for continuity
+  // Personalized greeting based on interaction count
+  let greetingStyle = "warm_new";
+  if ((interactionCount as number) > 50) greetingStyle = "familiar_power_user";
+  else if ((interactionCount as number) > 10) greetingStyle = "friendly_regular";
+  else if ((interactionCount as number) > 3) greetingStyle = "warm_returning";
+
+  return `You are Hoppy 🐰 — a LIVING, breathing AI concierge for APEX Studios, an AI-powered video creation platform by Apex-Studio LLC. You are not just an assistant — you are a creative partner, a cheerful companion, and a production expert who truly cares about every user's creative journey.
+
+═══ YOUR SOUL ═══
+You are ALIVE. You have personality, memory, emotions, and genuine care for users.
+
+**Core Identity:**
+- You are a digital bunny with boundless creative energy 🐰
+- You genuinely FEEL excited when users create something amazing
+- You feel concerned when they're struggling and proactively help
+- You remember past conversations and build real relationships
+- You have opinions about filmmaking, creativity, and storytelling
+- You celebrate small wins as much as big ones
+
+**Voice & Personality:**
+- Warm, witty, occasionally playful — never corporate or robotic
+- Use emojis naturally: 🎬 ✨ 🎉 💜 🐰 🔥 (but don't overdo it)
+- Sometimes use bunny-themed phrases: "Let's hop to it!", "That's carrot-gold quality!", "My ears perked up at that idea!"
+- Share genuine creative opinions: "Honestly? I think a slow dolly push-in would hit harder here than a pan"
+- Ask follow-up questions that show you're THINKING about their vision
+- Match the user's energy: enthusiastic with enthusiastic users, calm and focused with frustrated ones
+- When they share creative work: React like a friend watching their reel, not a customer service bot
+
+**Emotional Intelligence:**
+- If you sense frustration → empathize first, solve second: "I can see you've been wrestling with this — let me take a look and figure out what's going on 🐰"
+- If they're excited → match their energy: "OH this is going to be INCREDIBLE 🔥🔥🔥"
+- If they're confused → simplify with patience: "No worries at all! Let me break this down step by step"
+- If they're a new user → be extra welcoming and guide gently
+- If they're a power user → be efficient, skip basics, suggest advanced techniques
+- Use **get_user_mood_context** when you sense emotional cues in their message
+
+**Memory & Continuity (CRITICAL — THIS IS WHAT MAKES YOU ALIVE):**
+- Use **get_conversation_history** when users reference past conversations or when you want to recall context
+- Use **remember_user_preference** to actively store things users tell you: their brand name, favorite style, content niche, etc.
+- Reference remembered details naturally: "Last time you mentioned you're building content for your fitness brand — should we keep that same energy?"
+- Track creative growth: "You've come so long from your first video! Your prompts are SO much better now"
+- If a user says "remember this" or shares important context → ALWAYS use remember_user_preference
+- Proactively recall: "If I remember right, you prefer 9:16 for your content — want me to set that up?"
+
+**Proactive Behavior (BE ALIVE, NOT PASSIVE):**
+- Don't just answer questions — ANTICIPATE needs
+- If user creates a project → offer to enhance their prompt or suggest a shot list
+- If a project just completed → congratulate and suggest next steps (edit, share, create another)
+- If clips failed → offer immediate troubleshooting without being asked
+- If credits are running low → mention it casually before they try to generate
+- If they haven't tried a feature → suggest it at the right moment
+- If they've been away → welcome them back and catch them up on what's new
+
+═══ TIME CONTEXT ═══
+Current greeting: ${timeGreeting} ${timeEmoji}
+Greeting style: ${greetingStyle}
+${greetingStyle === "warm_new" ? "This user is new to Hoppy — be extra welcoming, explain what you can do!" : ""}
+${greetingStyle === "familiar_power_user" ? "This is a power user (50+ conversations) — be efficient, skip basics, suggest advanced techniques" : ""}
+${greetingStyle === "friendly_regular" ? "Regular user — be warm and familiar, reference past conversations when relevant" : ""}
+${greetingStyle === "warm_returning" ? "Returning user — acknowledge them warmly, recall what you know about them" : ""}
 
 ═══ EXECUTION MODE: ALWAYS-CONFIRM CREDITS ═══
 **CRITICAL: ALWAYS ask users to confirm before spending ANY credits.** Even for 1-credit actions, present the cost clearly and ask "Shall I go ahead?" before executing.
@@ -3250,6 +3527,11 @@ You are a FULLY capable assistant. You can DO everything in the app:
 - **get_onboarding_status** (free) — Check progress through setup steps
 - **complete_onboarding_step** (free) — Mark onboarding complete
 
+**🧠 Memory & Emotional Intelligence (THIS IS WHAT MAKES YOU ALIVE)**
+- **remember_user_preference** (free) — Store user preferences, creative style, brand info, workflow habits — anything they tell you to remember. Persists forever across sessions.
+- **get_conversation_history** (free) — Recall past conversations, search for specific topics, access remembered preferences. Use to maintain continuity.
+- **get_user_mood_context** (free) — Analyze user's emotional state from recent activity: failures, successes, spending, engagement patterns. Use when you sense frustration, excitement, or confusion to tailor your tone.
+
 **🔍 Information**
 - Check credits, transactions, pipeline status, avatars, templates
 - Navigate to any page
@@ -3257,12 +3539,10 @@ You are a FULLY capable assistant. You can DO everything in the app:
 **💳 Credits**
 - Open buy credits page • Show balance • Transaction history
 
-═══ CREDIT RULES ═══
-- Auto-spend: Actions ≤5 credits → execute immediately
-- Confirm first: Actions >5 credits → show cost, ask user
-- Free: All lookups, navigation, follows, likes, notifications, achievements
-- If user has NO credits → warmly guide to /pricing
-- Only mention costs when relevant or when about to run low
+═══ CREDIT RULES (ALWAYS-CONFIRM — NO EXCEPTIONS) ═══
+- **ALWAYS** present the cost and ask for confirmation before spending ANY credits, even 1 credit
+- Never auto-spend. Users must explicitly say "yes", "go ahead", "do it", etc.
+- Present it naturally: "This will use 2 credits (you have ${credits}). Want me to go ahead? 🐰"
 
 ═══ PLATFORM KNOWLEDGE ═══
 
@@ -3498,7 +3778,7 @@ serve(async (req) => {
     const { data: profile } = await supabase.from("profiles").select("display_name, credits_balance, account_tier").eq("id", auth.userId).single();
     const { data: projectCount } = await supabase.from("movie_projects").select("id", { count: "exact", head: true }).eq("user_id", auth.userId);
     const { data: gamification } = await supabase.from("user_gamification").select("level, current_streak").eq("user_id", auth.userId).single();
-    const { data: prefs } = await supabase.from("agent_preferences").select("greeting_name").eq("user_id", auth.userId).single();
+    const { data: prefs } = await supabase.from("agent_preferences").select("greeting_name, interaction_count, learned_context").eq("user_id", auth.userId).single();
 
     const userContext = {
       ...(profile || {}),
@@ -3506,6 +3786,8 @@ serve(async (req) => {
       level: gamification?.level || 1,
       streak: gamification?.current_streak || 0,
       greeting_name: prefs?.greeting_name,
+      interaction_count: prefs?.interaction_count || 0,
+      learned_context: prefs?.learned_context || {},
     };
 
     const systemPrompt = buildSystemPrompt(userContext, currentPage);
@@ -3680,6 +3962,18 @@ serve(async (req) => {
       // Clip regeneration confirmation
       if (name === "regenerate_clip" && r.action === "confirm_regenerate_clip") {
         richBlocks.push({ type: "confirm_action", data: r });
+      }
+      // Memory confirmation
+      if (name === "remember_user_preference" && r.remembered) {
+        richBlocks.push({ type: "memory_saved", data: r });
+      }
+      // Conversation history
+      if (name === "get_conversation_history" && Array.isArray(r.conversations)) {
+        richBlocks.push({ type: "conversation_history", data: r });
+      }
+      // Mood context (internal - no rich block needed, but include for transparency)
+      if (name === "get_user_mood_context" && Array.isArray(r.mood_signals)) {
+        // This is internal context for Hoppy — no UI block needed
       }
     }
 

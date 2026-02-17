@@ -3791,13 +3791,32 @@ serve(async (req) => {
     };
 
     const systemPrompt = buildSystemPrompt(userContext, currentPage);
-    const aiMessages = [{ role: "system", content: systemPrompt }, ...messages.slice(-20)];
+    const aiMessages = [{ role: "system", content: systemPrompt }, ...messages.slice(-10)];
 
-    let response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "gpt-4o", messages: aiMessages, tools: AGENT_TOOLS, stream: false }),
-    });
+    // 45s timeout to prevent edge function wall-clock death
+    const controller1 = new AbortController();
+    const timeout1 = setTimeout(() => controller1.abort(), 45000);
+
+    let response: Response;
+    try {
+      response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "gpt-4o", messages: aiMessages, tools: AGENT_TOOLS, stream: false }),
+        signal: controller1.signal,
+      });
+    } catch (e: any) {
+      clearTimeout(timeout1);
+      if (e.name === "AbortError") {
+        console.error("[agent-chat] OpenAI request timed out (45s)");
+        return new Response(JSON.stringify({ content: "Oops, I took too long thinking! Try again — I'll be quicker this time 🐰", actions: [], richBlocks: [], creditsCharged: 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      throw e;
+    } finally {
+      clearTimeout(timeout1);
+    }
 
     if (!response.ok) {
       const status = response.status;
@@ -3811,7 +3830,7 @@ serve(async (req) => {
     let assistantMessage = data.choices?.[0]?.message;
     const allToolResults: Array<{ name: string; result: unknown }> = [];
     let iterations = 0;
-    const MAX_ITERATIONS = 8; // Allow more iterations for complex plans
+    const MAX_ITERATIONS = 5; // Reduced to prevent edge function timeouts
     let totalCreditsCharged = 0;
 
     while (assistantMessage?.tool_calls && iterations < MAX_ITERATIONS) {
@@ -3849,11 +3868,22 @@ serve(async (req) => {
       }
 
       const continueMessages = [...aiMessages, assistantMessage, ...toolResults];
-      response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "gpt-4o", messages: continueMessages, tools: AGENT_TOOLS, stream: false }),
-      });
+      const controllerN = new AbortController();
+      const timeoutN = setTimeout(() => controllerN.abort(), 40000);
+      try {
+        response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "gpt-4o", messages: continueMessages, tools: AGENT_TOOLS, stream: false }),
+          signal: controllerN.signal,
+        });
+      } catch (e: any) {
+        clearTimeout(timeoutN);
+        if (e.name === "AbortError") { console.error("[agent-chat] Follow-up timed out"); break; }
+        throw e;
+      } finally {
+        clearTimeout(timeoutN);
+      }
 
       if (!response.ok) { console.error("[agent-chat] follow-up error:", response.status); break; }
       data = await response.json();

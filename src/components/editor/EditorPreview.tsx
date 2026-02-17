@@ -9,9 +9,10 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { TimelineTrack, TimelineClip } from "./types";
 import { cn } from "@/lib/utils";
+import { useGaplessPlayback } from "./useGaplessPlayback";
 
 /**
- * EditorPreview - Direct MP4 playback with HLS-style seamless transition config
+ * EditorPreview - Cinematic preview with rock-solid gapless playback
  */
 
 interface EditorPreviewProps {
@@ -27,160 +28,33 @@ interface EditorPreviewProps {
 
 const SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 4, 8, 16];
 const FRAME_STEP = 1 / 30;
-const PRELOAD_THRESHOLD_SEC = 0.5;
 
 export const EditorPreview = ({
   tracks, currentTime, isPlaying, onPlayPause, onTimeChange, duration,
   playbackSpeed = 1, onPlaybackSpeedChange,
 }: EditorPreviewProps) => {
-  const videoARef = useRef<HTMLVideoElement>(null);
-  const videoBRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const rafRef = useRef<number>(0);
-  const isLoopingRef = useRef(false);
-  const isSyncingRef = useRef(false);
-  const activeClipIdRef = useRef<string | null>(null);
-  const activeSlotRef = useRef<'A' | 'B'>('A');
-  const preloadedClipIdRef = useRef<string | null>(null);
 
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
   const [isLooping, setIsLooping] = useState(false);
-  const [videoReady, setVideoReady] = useState(false);
-  const [activeSlot, setActiveSlot] = useState<'A' | 'B'>('A');
 
-  isLoopingRef.current = isLooping;
+  // ── Gapless playback engine ──
+  const {
+    videoARef,
+    videoBRef,
+    activeSlot,
+    activeClip: activeVideoClip,
+    videoReady,
+    sortedVideoClips,
+    activeTextClips,
+  } = useGaplessPlayback(
+    tracks, currentTime, isPlaying, duration,
+    playbackSpeed, volume, isMuted, isLooping,
+    onTimeChange, onPlayPause,
+  );
 
-  const sortedVideoClips = useMemo(() => {
-    return tracks.filter((t) => t.type === "video").flatMap((t) => t.clips).sort((a, b) => a.start - b.start);
-  }, [tracks]);
-
-  const activeVideoClip = useMemo(() => {
-    return sortedVideoClips.find((c) => currentTime >= c.start && currentTime < c.end);
-  }, [sortedVideoClips, currentTime]);
-
-  const nextVideoClip = useMemo(() => {
-    if (!activeVideoClip) return null;
-    return sortedVideoClips.find((c) => c.start >= activeVideoClip.end - 0.01);
-  }, [sortedVideoClips, activeVideoClip]);
-
-  const activeTextClips = useMemo(() => {
-    return tracks.filter((t) => t.type === "text").flatMap((t) => t.clips).filter((c) => currentTime >= c.start && currentTime < c.end);
-  }, [tracks, currentTime]);
-
-  const getActiveVideo = useCallback(() => {
-    return activeSlotRef.current === 'A' ? videoARef.current : videoBRef.current;
-  }, []);
-
-  const getPreloadVideo = useCallback(() => {
-    return activeSlotRef.current === 'A' ? videoBRef.current : videoARef.current;
-  }, []);
-
-  // HLS-style preloading
-  useEffect(() => {
-    if (!nextVideoClip || !activeVideoClip) return;
-    if (preloadedClipIdRef.current === nextVideoClip.id) return;
-    const timeToEnd = activeVideoClip.end - currentTime;
-    if (timeToEnd <= PRELOAD_THRESHOLD_SEC && timeToEnd > 0) {
-      const preloadVideo = getPreloadVideo();
-      if (preloadVideo && preloadVideo.src !== nextVideoClip.sourceUrl) {
-        preloadVideo.src = nextVideoClip.sourceUrl;
-        preloadVideo.load();
-        preloadVideo.currentTime = nextVideoClip.trimStart || 0;
-        preloadedClipIdRef.current = nextVideoClip.id;
-      }
-    }
-  }, [currentTime, activeVideoClip, nextVideoClip, getPreloadVideo]);
-
-  // Source switching with HLS-style seamless swap
-  useEffect(() => {
-    const video = getActiveVideo();
-    if (!video) return;
-    if (!activeVideoClip) {
-      if (!video.paused) video.pause();
-      activeClipIdRef.current = null;
-      setVideoReady(false);
-      return;
-    }
-    if (activeClipIdRef.current !== activeVideoClip.id) {
-      activeClipIdRef.current = activeVideoClip.id;
-      isSyncingRef.current = true;
-      if (preloadedClipIdRef.current === activeVideoClip.id) {
-        const newSlot = activeSlotRef.current === 'A' ? 'B' : 'A';
-        activeSlotRef.current = newSlot;
-        setActiveSlot(newSlot);
-        preloadedClipIdRef.current = null;
-        const swappedVideo = newSlot === 'A' ? videoARef.current : videoBRef.current;
-        if (swappedVideo) {
-          const clipLocalTime = currentTime - activeVideoClip.start + (activeVideoClip.trimStart || 0);
-          swappedVideo.currentTime = clipLocalTime;
-          setVideoReady(true);
-          if (isPlaying) swappedVideo.play().catch(() => {});
-          isSyncingRef.current = false;
-          const oldVideo = newSlot === 'A' ? videoBRef.current : videoARef.current;
-          if (oldVideo && !oldVideo.paused) oldVideo.pause();
-        }
-        return;
-      }
-      const clipLocalTime = currentTime - activeVideoClip.start + (activeVideoClip.trimStart || 0);
-      video.src = activeVideoClip.sourceUrl;
-      video.load();
-      const onCanPlay = () => {
-        video.currentTime = clipLocalTime;
-        setVideoReady(true);
-        if (isPlaying) video.play().catch(() => {});
-        isSyncingRef.current = false;
-        video.removeEventListener('canplay', onCanPlay);
-      };
-      video.addEventListener('canplay', onCanPlay);
-    } else {
-      const clipLocalTime = currentTime - activeVideoClip.start + (activeVideoClip.trimStart || 0);
-      if (!isPlaying && Math.abs(video.currentTime - clipLocalTime) > 0.15) {
-        video.currentTime = clipLocalTime;
-      }
-    }
-  }, [activeVideoClip?.id, currentTime, isPlaying, getActiveVideo]);
-
-  useEffect(() => {
-    const video = getActiveVideo();
-    if (!video || !activeVideoClip || !videoReady) return;
-    if (isPlaying && video.paused) video.play().catch(() => {});
-    else if (!isPlaying && !video.paused) video.pause();
-  }, [isPlaying, videoReady, activeVideoClip, getActiveVideo]);
-
-  useEffect(() => {
-    [videoARef.current, videoBRef.current].forEach(v => { if (v) v.playbackRate = playbackSpeed; });
-  }, [playbackSpeed]);
-
-  useEffect(() => {
-    [videoARef.current, videoBRef.current].forEach(v => {
-      if (!v) return;
-      v.muted = isMuted;
-      v.volume = volume / 100;
-    });
-  }, [volume, isMuted]);
-
-  useEffect(() => {
-    if (!isPlaying) { cancelAnimationFrame(rafRef.current); return; }
-    const tick = () => {
-      const video = getActiveVideo();
-      if (!video || isSyncingRef.current || !activeVideoClip) { rafRef.current = requestAnimationFrame(tick); return; }
-      const clipStart = activeVideoClip.start;
-      const editorTime = clipStart + video.currentTime - (activeVideoClip.trimStart || 0);
-      if (Math.abs(editorTime - currentTime) > 0.03) onTimeChange(Math.min(editorTime, duration));
-      const clipDuration = activeVideoClip.end - activeVideoClip.start;
-      if (video.currentTime >= clipDuration + (activeVideoClip.trimStart || 0) - 0.05) {
-        const nextClip = sortedVideoClips.find((c) => c.start >= activeVideoClip.end - 0.01);
-        if (nextClip) onTimeChange(nextClip.start);
-        else if (isLoopingRef.current) onTimeChange(0);
-        else { onTimeChange(duration); onPlayPause(); }
-      }
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [isPlaying, activeVideoClip, sortedVideoClips, duration, onTimeChange, onPlayPause, currentTime, getActiveVideo]);
-
+  // ── Keyboard shortcuts ──
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
@@ -254,7 +128,7 @@ export const EditorPreview = ({
                   className={cn("absolute inset-0 w-full h-full object-contain bg-black transition-opacity duration-75", activeSlot === 'B' ? 'opacity-100 z-10' : 'opacity-0 z-0')}
                   muted={isMuted} playsInline preload="auto" />
                 
-                {/* Cinematic letterbox effect - subtle top/bottom gradient */}
+                {/* Cinematic letterbox effect */}
                 <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-black/30 to-transparent pointer-events-none z-20" />
                 <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/30 to-transparent pointer-events-none z-20" />
               </div>

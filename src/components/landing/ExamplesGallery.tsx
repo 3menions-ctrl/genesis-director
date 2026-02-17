@@ -6,7 +6,7 @@ import { useMountSafe } from '@/lib/navigation';
 import { useGalleryShowcase } from '@/hooks/useGalleryShowcase';
 import type { GalleryCategory } from '@/types/gallery-showcase';
 import { UniversalVideoPlayer, SimpleVideoPlayer, type SimpleVideoPlayerHandle } from '@/components/player';
-import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
+
 
 type VideoCategory = 'all' | GalleryCategory;
 
@@ -502,11 +502,11 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <PausedFrameVideo
-                    src={video.url}
-                    className="w-full h-full object-cover"
-                    showLoader={false}
-                  />
+                  /* Use a lightweight placeholder instead of PausedFrameVideo to avoid
+                     spawning 8 concurrent <video> elements which crash mobile/tablet */
+                  <div className="w-full h-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center">
+                    <Film className="w-4 h-4 text-white/30" />
+                  </div>
                 )}
                 {currentIndex === i && (
                   <div className="absolute inset-0 bg-white/10" />

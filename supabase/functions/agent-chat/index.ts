@@ -4345,6 +4345,59 @@ serve(async (req) => {
       credits_spent: totalCreditsCharged,
       session_page: currentPage || null,
     }).then(() => {}).catch(() => {});
+    // ── FALLBACK: Ensure choices are ALWAYS present ──
+    // If the model didn't call present_choices, auto-generate contextual choices
+    const hasChoices = richBlocks.some((b: any) => b.type === "multiple_choice");
+    if (!hasChoices) {
+      // Generate context-aware fallback choices based on query category
+      const fallbackChoicesMap: Record<string, { question: string; options: { id: string; label: string; description: string; icon: string }[] }> = {
+        creation: {
+          question: "What would you like to create?",
+          options: [
+            { id: "text_to_video", label: "Text to Video", description: "Describe your idea and I'll generate a video", icon: "film" },
+            { id: "image_to_video", label: "Image to Video", description: "Animate a photo or illustration", icon: "sparkles" },
+            { id: "avatar_mode", label: "Avatar Mode", description: "AI presenter with lip sync", icon: "users" },
+            { id: "browse_templates", label: "Browse Templates", description: "Start from a proven template", icon: "palette" },
+          ],
+        },
+        credits_pricing: {
+          question: "How can I help with credits?",
+          options: [
+            { id: "check_balance", label: "Check My Balance", description: "See your current credits", icon: "credit-card" },
+            { id: "buy_credits", label: "Buy Credits", description: "Top up your account", icon: "zap" },
+            { id: "create_video", label: "Create a Video", description: "Put your credits to work", icon: "film" },
+          ],
+        },
+        social: {
+          question: "What's next?",
+          options: [
+            { id: "browse_gallery", label: "Browse Gallery", description: "Discover trending videos", icon: "globe" },
+            { id: "find_creators", label: "Find Creators", description: "Connect with the community", icon: "users" },
+            { id: "create_something", label: "Create Something", description: "Start your next project", icon: "sparkles" },
+          ],
+        },
+        general: {
+          question: "What would you like to do?",
+          options: [
+            { id: "create_video", label: "Create a Video", description: "Turn your idea into a cinematic clip", icon: "film" },
+            { id: "explore_gallery", label: "Explore Gallery", description: "See what others are creating", icon: "globe" },
+            { id: "check_projects", label: "My Projects", description: "View your creations", icon: "clapperboard" },
+            { id: "get_help", label: "Help & Tips", description: "Learn what I can do for you", icon: "sparkles" },
+          ],
+        },
+      };
+
+      const fallback = fallbackChoicesMap[queryCategory] || fallbackChoicesMap["general"];
+      richBlocks.push({
+        type: "multiple_choice",
+        data: {
+          question: fallback.question,
+          options: fallback.options,
+          max_selections: 1,
+          id: `choice_fallback_${Date.now()}`,
+        },
+      });
+    }
 
     return new Response(JSON.stringify({ content, actions, richBlocks, conversationId, creditsCharged: totalCreditsCharged }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

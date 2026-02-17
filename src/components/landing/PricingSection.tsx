@@ -342,7 +342,7 @@ export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionProps>(
 
       // Track ALL user activity including scrolling and mouse movement
       const handleActivity = () => startTimer();
-      const events = ['mousedown', 'keydown', 'touchstart', 'click', 'scroll', 'mousemove', 'touchmove', 'wheel'];
+      const events = ['mousedown', 'keydown', 'touchstart', 'click', 'scroll', 'wheel'];
       events.forEach(e => window.addEventListener(e, handleActivity, { passive: true }));
       
       // Start the initial timer immediately

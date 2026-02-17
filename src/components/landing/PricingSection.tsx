@@ -340,9 +340,9 @@ export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionProps>(
         }, INACTIVITY_TIMEOUT_MS);
       };
 
-      // Track ALL user activity including scrolling and mouse movement
+      // Only deliberate interactions reset the timer — NOT scroll/mousemove
       const handleActivity = () => startTimer();
-      const events = ['mousedown', 'keydown', 'touchstart', 'click', 'scroll', 'wheel'];
+      const events = ['mousedown', 'keydown', 'touchstart', 'click'];
       events.forEach(e => window.addEventListener(e, handleActivity, { passive: true }));
       
       // Start the initial timer immediately

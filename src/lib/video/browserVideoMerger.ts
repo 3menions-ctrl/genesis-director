@@ -310,7 +310,7 @@ export async function mergeVideoClips(options: MergeOptions): Promise<MergeResul
     };
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorMessage = 'Video merge failed. Please try again.';
     console.error('[FFmpeg] Merge failed:', error);
     
     onProgress?.({
@@ -363,7 +363,7 @@ async function downloadSingleClip(
     };
   } catch (error) {
     console.error('[Download] Single clip download failed:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to download video';
+    const errorMessage = 'Failed to download video. Please try again.';
     
     onProgress?.({
       stage: 'error',
@@ -549,7 +549,7 @@ async function fallbackDownload(
     
   } catch (error) {
     console.error('[FFmpeg] Server-side fallback failed:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Download failed';
+    const errorMessage = 'Download failed. Please try again.';
     
     onProgress?.({
       stage: 'error',

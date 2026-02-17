@@ -150,7 +150,7 @@ export const MSEVideoPlayer = memo(forwardRef<HTMLDivElement, MSEVideoPlayerProp
         setEngineState(prev => ({
           ...prev,
           status: 'error',
-          errorMessage: error instanceof Error ? error.message : 'Init failed',
+          errorMessage: 'Video player initialization failed. Please refresh.',
         }));
       }
     };

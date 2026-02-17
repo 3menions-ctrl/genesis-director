@@ -179,7 +179,7 @@ export async function hydrateVideoBuffer(
         canPlayThrough: false,
         duration: 0,
         loadedBytes: 0,
-        lastError: error instanceof Error ? error.message : 'Unknown error',
+        lastError: 'Video boot failed',
       },
     };
   }

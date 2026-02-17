@@ -33,7 +33,12 @@ const SHOWCASE_PAIRS = [
 
 const CYCLE_INTERVAL = 10000;
 
-export const PromptResultShowcase = memo(function PromptResultShowcase() {
+interface PromptResultShowcaseProps {
+  /** When true, video playback and cycling are suspended to free resources */
+  suspended?: boolean;
+}
+
+export const PromptResultShowcase = memo(function PromptResultShowcase({ suspended = false }: PromptResultShowcaseProps) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [sliderPos, setSliderPos] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
@@ -44,16 +49,27 @@ export const PromptResultShowcase = memo(function PromptResultShowcase() {
 
   const pair = SHOWCASE_PAIRS[currentIdx];
 
-  // Auto-cycle through pairs
+  // Auto-cycle through pairs — suspend when gallery/immersive is active
   useEffect(() => {
-    if (isDragging) return;
+    if (isDragging || suspended) return;
     timerRef.current = setInterval(() => {
       setVideoReady(false);
       setCurrentIdx((prev) => (prev + 1) % SHOWCASE_PAIRS.length);
       setSliderPos(50);
     }, CYCLE_INTERVAL);
     return () => clearInterval(timerRef.current);
-  }, [isDragging]);
+  }, [isDragging, suspended]);
+
+  // Pause/resume video when suspended changes
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (suspended) {
+      video.pause();
+    } else {
+      video.play().catch(() => {});
+    }
+  }, [suspended]);
 
   // Attach ref callback to play video when it mounts
   const setVideoRef = useCallback((el: HTMLVideoElement | null) => {

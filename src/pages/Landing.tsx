@@ -148,8 +148,10 @@ export default function Landing() {
     };
   }, [isImmersive, showExamples]);
 
-  // Scroll reveal observer for landing sections
+  // Scroll reveal observer for landing sections — skip when overlay is active
   useEffect(() => {
+    if (isLoading || showExamples || isImmersive) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -162,11 +164,10 @@ export default function Landing() {
       { threshold: 0.1, rootMargin: '0px 0px -60px 0px' }
     );
 
-    // Observe all scroll-reveal elements
     const els = document.querySelectorAll('.scroll-reveal');
     els.forEach(el => observer.observe(el));
     return () => observer.disconnect();
-  }, [isLoading]); // Re-run after loading completes
+  }, [isLoading, showExamples, isImmersive]);
 
   // Show CinemaLoader while gatekeeper is active
   if (isLoading) {
@@ -218,13 +219,13 @@ export default function Landing() {
       {/* Hero Section */}
       <HeroSection onEnterStudio={handleEnterStudio} />
 
-      {/* Prompt → Result Showcase */}
+      {/* Prompt → Result Showcase — suspend video when gallery or immersive active */}
       <div className="relative z-10 -mt-20 pb-12 px-6">
-        <PromptResultShowcase />
+        <PromptResultShowcase suspended={showExamples || isImmersive} />
       </div>
 
-      {/* Social Proof Ticker */}
-      <SocialProofTicker />
+      {/* Social Proof Ticker — suspend when overlay active */}
+      <SocialProofTicker suspended={showExamples || isImmersive} />
 
       {/* How it Works — scroll reveal */}
       <div className="scroll-reveal">

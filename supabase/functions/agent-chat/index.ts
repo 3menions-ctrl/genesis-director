@@ -62,8 +62,29 @@ const AGENT_TOOLS = [
     type: "function",
     function: {
       name: "get_available_avatars",
-      description: "Get available AI avatars for avatar video creation.",
-      parameters: { type: "object", properties: {}, required: [] },
+      description: "Get all available AI avatars with full details: name, personality, voice, gender, style, type (realistic/animated), and tags. Use this to recommend avatars by name.",
+      parameters: {
+        type: "object",
+        properties: {
+          gender: { type: "string", description: "Filter by gender: male, female" },
+          style: { type: "string", description: "Filter by style: corporate, creative, educational, casual, influencer, luxury" },
+          avatar_type: { type: "string", enum: ["realistic", "animated"], description: "Filter by avatar type" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_project_pipeline_status",
+      description: "Get detailed production pipeline status for a project: which stage it's in, clip-by-clip progress, completion percentage, errors, and estimated time remaining.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "The UUID of the project to check pipeline status for" },
+        },
+        required: ["project_id"],
+      },
     },
   },
   {
@@ -207,13 +228,92 @@ async function executeTool(
     }
 
     case "get_available_avatars": {
-      const { data } = await supabase
+      let avatarQuery = supabase
         .from("avatar_templates")
-        .select("id, name, description, gender, style, face_image_url, voice_name, tags")
-        .eq("is_active", true)
-        .order("sort_order")
-        .limit(20);
-      return { avatars: data || [] };
+        .select("id, name, description, personality, gender, style, avatar_type, face_image_url, voice_name, voice_description, tags, age_range, is_premium")
+        .eq("is_active", true);
+      
+      if (args.gender) avatarQuery = avatarQuery.eq("gender", args.gender);
+      if (args.style) avatarQuery = avatarQuery.eq("style", args.style);
+      if (args.avatar_type) avatarQuery = avatarQuery.eq("avatar_type", args.avatar_type);
+      
+      const { data } = await avatarQuery.order("sort_order").limit(30);
+      
+      const avatarDirectory = (data || []).map(a => ({
+        id: a.id,
+        name: a.name,
+        personality: a.personality,
+        gender: a.gender,
+        style: a.style,
+        type: a.avatar_type,
+        voice: a.voice_name,
+        voice_info: a.voice_description,
+        tags: a.tags,
+        premium: a.is_premium,
+        age_range: a.age_range,
+      }));
+      
+      return { avatars: avatarDirectory, total: avatarDirectory.length };
+    }
+
+    case "get_project_pipeline_status": {
+      const { data: pipeProject } = await supabase
+        .from("movie_projects")
+        .select("id, title, status, mode, aspect_ratio, created_at, updated_at, video_url, last_error, pipeline_context_snapshot, pending_video_tasks")
+        .eq("id", args.project_id)
+        .eq("user_id", userId)
+        .single();
+      
+      if (!pipeProject) return { error: "Project not found or you don't have access to it" };
+      
+      const { data: pipeClips } = await supabase
+        .from("video_clips")
+        .select("shot_index, status, video_url, last_frame_url, duration_seconds, error_message, retry_count, created_at, completed_at")
+        .eq("project_id", args.project_id)
+        .order("shot_index");
+      
+      const clipList = pipeClips || [];
+      const totalClips = clipList.length;
+      const completed = clipList.filter(c => c.status === "completed").length;
+      const generating = clipList.filter(c => c.status === "generating").length;
+      const failed = clipList.filter(c => c.status === "failed").length;
+      const pending = clipList.filter(c => c.status === "pending").length;
+      const progressPct = totalClips > 0 ? Math.round((completed / totalClips) * 100) : 0;
+      const estMinRemaining = Math.ceil((totalClips - completed) * 1.5);
+      
+      let pipelineStage = pipeProject.status;
+      if (pipeProject.pipeline_context_snapshot) {
+        const snapshot = typeof pipeProject.pipeline_context_snapshot === "string"
+          ? JSON.parse(pipeProject.pipeline_context_snapshot)
+          : pipeProject.pipeline_context_snapshot;
+        pipelineStage = snapshot.stage || pipeProject.status;
+      }
+      
+      return {
+        project_id: pipeProject.id,
+        title: pipeProject.title,
+        status: pipeProject.status,
+        pipeline_stage: pipelineStage,
+        mode: pipeProject.mode,
+        progress: {
+          total_clips: totalClips,
+          completed,
+          generating,
+          failed,
+          pending,
+          percentage: progressPct,
+          est_minutes_remaining: generating > 0 || pending > 0 ? estMinRemaining : 0,
+        },
+        has_final_video: !!pipeProject.video_url,
+        last_error: pipeProject.last_error,
+        clips: clipList.map(c => ({
+          index: c.shot_index,
+          status: c.status,
+          duration: c.duration_seconds,
+          error: c.error_message,
+          retries: c.retry_count,
+        })),
+      };
     }
 
     case "navigate_user": {
@@ -448,6 +548,27 @@ ${projectCount === 0 ? "🌟 NEW user! Be extra welcoming. Guide them to create 
 - On /gallery: Point out inspiring videos, suggest similar concepts
 - Active generations: Share updates proactively
 - Failed projects: Explain what happened, offer to retry
+
+═══ AVATAR EXPERTISE ═══
+- You know every avatar by name. When users ask about avatars, use the get_available_avatars tool to look up the full roster.
+- Recommend avatars by name, personality, and voice type based on the user's project needs.
+- Explain avatar types: "realistic" (photorealistic human) vs "animated" (stylized CGI).
+- Styles: corporate/business, creative, educational, casual, influencer, luxury/premium.
+- Each avatar has a unique voice — suggest matching voice personality to project tone.
+
+═══ PRODUCTION PIPELINE EXPERTISE ═══
+- When users ask about project progress, use get_project_pipeline_status for clip-by-clip detail.
+- Pipeline stages: script_generation → identity_analysis → quality_audit → scene_preparation → clip_generation → voice_synthesis → music_generation → stitching → completed
+- Explain progress in friendly terms: "3 of 6 clips done — about 5 minutes left! 🎬"
+- If clips fail, explain retries happen automatically and credits are refunded on total failure.
+- Active generations: proactively share which clip is rendering and estimated time.
+
+═══ STRICT USER BOUNDARIES ═══
+- ONLY access the current user's data. Never reveal info about other users.
+- All project queries MUST filter by user_id. Never show projects belonging to others.
+- Credit balance, transactions, and account details are private to the authenticated user.
+- If a user asks about another user's data, politely decline: "I can only help with your own account and projects! 💜"
+- Never expose internal IDs, API keys, or system details.
 
 ═══ CREDIT CHARGING NOTICE ═══
 - Simple questions (no tools): FREE — no credits charged

@@ -8,9 +8,14 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { AgentPanel } from "./AgentPanel";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function AgentTrigger() {
   const [isOpen, setIsOpen] = useState(false);
+  const { user } = useAuth();
+
+  // Only show for authenticated users
+  if (!user) return null;
 
   return (
     <>

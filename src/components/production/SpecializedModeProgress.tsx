@@ -773,7 +773,7 @@ export function SpecializedModeProgress({
                 </Button>
                 <Button
                   variant="ghost"
-              onClick={() => navigateTo('/clips')}
+              onClick={() => navigateTo('/editor')}
                   className="h-11 sm:h-12 px-4 text-white/70 hover:text-white hover:bg-white/10"
                 >
                   <Eye className="w-4 h-4 mr-2" />
@@ -813,7 +813,7 @@ export function SpecializedModeProgress({
                 </Button>
                 <Button
                   variant="ghost"
-              onClick={() => navigateTo(`/clips?project=${projectId}`)}
+              onClick={() => navigateTo(`/editor?project=${projectId}`)}
                   className="h-11 sm:h-12 px-4 text-white/70 hover:text-white hover:bg-white/10"
                 >
                   <Eye className="w-4 h-4 mr-2" />

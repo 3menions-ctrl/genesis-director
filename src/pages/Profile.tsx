@@ -416,7 +416,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 { label: 'New Project', icon: Plus, onClick: () => navigate('/create'), gradient: 'from-orange-500 to-amber-500' },
-                { label: 'My Videos', icon: Video, onClick: () => navigate('/clips'), gradient: 'from-purple-500 to-indigo-500' },
+                { label: 'My Videos', icon: Video, onClick: () => navigate('/editor'), gradient: 'from-purple-500 to-indigo-500' },
                 { label: 'Leaderboard', icon: Trophy, onClick: () => {}, gradient: 'from-emerald-500 to-teal-500' },
                 { label: 'Discover', icon: Star, onClick: () => navigate('/discover'), gradient: 'from-sky-500 to-cyan-500' },
               ].map((action, i) => (

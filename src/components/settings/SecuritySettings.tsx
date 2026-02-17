@@ -102,7 +102,6 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
 
       if (response.error) throw response.error;
 
-      // Create and download the file
       const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -163,37 +162,41 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
       })
     : 'Unknown';
 
+  const cardClass = "relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.015] backdrop-blur-sm p-6";
+  const topAccent = "absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent";
+  const iconBoxClass = "w-10 h-10 rounded-xl flex items-center justify-center";
+
   return (
     <div ref={ref} className="space-y-6">
       {/* Section Header */}
       <div>
-        <h2 className="text-xl font-semibold text-white">Security</h2>
-        <p className="text-sm text-white/50">Manage your account security and sessions</p>
+        <h2 className="text-xl font-bold text-white tracking-tight">Security</h2>
+        <p className="text-sm text-white/35 mt-0.5">Manage your account security and sessions</p>
       </div>
 
       {/* Password Section */}
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02] p-6"
+        className={cardClass}
       >
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+        <div className={topAccent} />
         
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center">
-              <Key className="w-5 h-5 text-white/40" />
+            <div className={cn(iconBoxClass, "bg-violet-500/10 border border-violet-500/15")}>
+              <Key className="w-5 h-5 text-violet-400" />
             </div>
             <div>
               <h3 className="font-semibold text-white">Password</h3>
-              <p className="text-sm text-white/50">Change your account password</p>
+              <p className="text-sm text-white/40">Change your account password</p>
             </div>
           </div>
           {!isChangingPassword && (
             <Button
               onClick={() => setIsChangingPassword(true)}
               variant="outline"
-              className="border-white/10 text-white hover:bg-white/5"
+              className="border-white/[0.08] text-white/70 hover:bg-white/[0.05] hover:text-white hover:border-white/[0.15] rounded-xl"
             >
               Change Password
             </Button>
@@ -207,19 +210,19 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
             className="space-y-4"
           >
             <div className="space-y-2">
-              <Label className="text-white/60">New Password</Label>
+              <Label className="text-white/45 text-xs uppercase tracking-wider font-medium">New Password</Label>
               <div className="relative">
                 <Input
                   type={showPasswords.new ? 'text' : 'password'}
                   value={passwordForm.newPassword}
                   onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
                   placeholder="Enter new password"
-                  className="bg-white/[0.05] border-white/10 text-white placeholder:text-white/30 pr-10"
+                  className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 pr-10 rounded-xl focus:border-violet-500/40"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60"
                 >
                   {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -228,19 +231,19 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
             </div>
 
             <div className="space-y-2">
-              <Label className="text-white/60">Confirm New Password</Label>
+              <Label className="text-white/45 text-xs uppercase tracking-wider font-medium">Confirm New Password</Label>
               <div className="relative">
                 <Input
                   type={showPasswords.confirm ? 'text' : 'password'}
                   value={passwordForm.confirmPassword}
                   onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
                   placeholder="Confirm new password"
-                  className="bg-white/[0.05] border-white/10 text-white placeholder:text-white/30 pr-10"
+                  className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 pr-10 rounded-xl focus:border-violet-500/40"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60"
                 >
                   {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -257,14 +260,14 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
                   setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
                 }}
                 variant="ghost"
-                className="text-white/60 hover:text-white"
+                className="text-white/40 hover:text-white rounded-xl"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handlePasswordChange}
                 disabled={isSavingPassword || !passwordForm.newPassword || !passwordForm.confirmPassword || passwordForm.newPassword !== passwordForm.confirmPassword}
-                className="bg-white text-black hover:bg-white/90"
+                className="bg-violet-600 hover:bg-violet-500 text-white rounded-xl shadow-lg shadow-violet-500/20"
               >
                 {isSavingPassword ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -282,26 +285,24 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02] p-6"
+        transition={{ delay: 0.05 }}
+        className={cardClass}
       >
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+        <div className={topAccent} />
         
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center">
-              <Smartphone className="w-5 h-5 text-white/40" />
+            <div className={cn(iconBoxClass, "bg-white/[0.04]")}>
+              <Smartphone className="w-5 h-5 text-white/30" />
             </div>
             <div>
               <h3 className="font-semibold text-white">Two-Factor Authentication</h3>
-              <p className="text-sm text-white/50">Add an extra layer of security</p>
+              <p className="text-sm text-white/40">Add an extra layer of security</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="px-2.5 py-1 rounded-full bg-white/10 text-xs text-white/50">
-              Coming Soon
-            </span>
-          </div>
+          <span className="px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-[10px] font-medium text-white/35 uppercase tracking-wider">
+            Coming Soon
+          </span>
         </div>
       </motion.div>
 
@@ -309,25 +310,25 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02] p-6"
+        transition={{ delay: 0.1 }}
+        className={cardClass}
       >
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+        <div className={topAccent} />
         
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center">
-              <Monitor className="w-5 h-5 text-white/40" />
+            <div className={cn(iconBoxClass, "bg-cyan-500/10 border border-cyan-500/15")}>
+              <Monitor className="w-5 h-5 text-cyan-400" />
             </div>
             <div>
               <h3 className="font-semibold text-white">Active Sessions</h3>
-              <p className="text-sm text-white/50">Manage your logged-in devices</p>
+              <p className="text-sm text-white/40">Manage your logged-in devices</p>
             </div>
           </div>
           <Button
             onClick={handleSignOutAllDevices}
             variant="outline"
-            className="border-white/10 text-white hover:bg-white/5"
+            className="border-white/[0.08] text-white/70 hover:bg-white/[0.05] hover:text-white rounded-xl"
           >
             <LogOut className="w-4 h-4 mr-2" />
             Sign Out All
@@ -335,60 +336,56 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.05]">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/15 flex items-center justify-center">
                 <Monitor className="w-4 h-4 text-emerald-400" />
               </div>
               <div>
                 <p className="text-sm font-medium text-white">Current Device</p>
-                <p className="text-xs text-white/40">Last active: Now</p>
+                <p className="text-xs text-white/30">Last active: Now</p>
               </div>
             </div>
-            <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
+            <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/15 text-[10px] font-medium text-emerald-400 uppercase tracking-wider">
               Active
             </span>
           </div>
         </div>
       </motion.div>
 
-      {/* Account Info */}
+      {/* Account Security Overview */}
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02] p-6"
+        transition={{ delay: 0.15 }}
+        className={cardClass}
       >
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+        <div className={topAccent} />
         
         <div className="flex items-center gap-4 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center">
-            <Shield className="w-5 h-5 text-white/40" />
+          <div className={cn(iconBoxClass, "bg-emerald-500/10 border border-emerald-500/15")}>
+            <Shield className="w-5 h-5 text-emerald-400" />
           </div>
           <div>
             <h3 className="font-semibold text-white">Account Security</h3>
-            <p className="text-sm text-white/50">Your account security overview</p>
+            <p className="text-sm text-white/40">Your account security overview</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-            <p className="text-xs text-white/40">Email Verified</p>
-            <div className="flex items-center gap-2 mt-1">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span className="text-emerald-400 font-medium">Yes</span>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            { label: 'Email Verified', value: 'Yes', icon: <CheckCircle2 className="w-4 h-4 text-emerald-400" />, valueColor: 'text-emerald-400' },
+            { label: '2FA Enabled', value: 'No', valueColor: 'text-white/40' },
+            { label: 'Account Created', value: memberSince },
+          ].map((item, i) => (
+            <div key={i} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+              <p className="text-[10px] text-white/30 uppercase tracking-wider font-medium">{item.label}</p>
+              <div className="flex items-center gap-2 mt-1.5">
+                {item.icon}
+                <span className={cn("font-medium text-sm", item.valueColor || 'text-white')}>{item.value}</span>
+              </div>
             </div>
-          </div>
-          <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-            <p className="text-xs text-white/40">2FA Enabled</p>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-white/50 font-medium">No</span>
-            </div>
-          </div>
-          <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-            <p className="text-xs text-white/40">Account Created</p>
-            <p className="text-white font-medium mt-1 text-sm">{memberSince}</p>
-          </div>
+          ))}
         </div>
       </motion.div>
 
@@ -396,28 +393,26 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.22 }}
-        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02] p-6"
+        transition={{ delay: 0.2 }}
+        className={cardClass}
       >
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+        <div className={topAccent} />
         
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center">
-              <Download className="w-5 h-5 text-white/40" />
+            <div className={cn(iconBoxClass, "bg-white/[0.04]")}>
+              <Download className="w-5 h-5 text-white/30" />
             </div>
             <div>
               <h3 className="font-semibold text-white">Export Your Data</h3>
-              <p className="text-sm text-white/50">
-                Download a copy of all your data
-              </p>
+              <p className="text-sm text-white/40">Download a copy of all your data</p>
             </div>
           </div>
           <Button
             onClick={handleExportData}
             disabled={isExporting}
             variant="outline"
-            className="border-white/10 text-white hover:bg-white/5"
+            className="border-white/[0.08] text-white/70 hover:bg-white/[0.05] hover:text-white rounded-xl"
           >
             {isExporting ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -434,54 +429,52 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
-        className="relative rounded-2xl overflow-hidden border border-red-500/20 bg-red-500/5 p-6"
+        className="relative rounded-2xl overflow-hidden border border-red-500/10 bg-red-500/[0.02] backdrop-blur-sm p-6"
       >
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/30 to-transparent" />
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/20 to-transparent" />
         
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center">
-              <Trash2 className="w-5 h-5 text-red-400" />
+            <div className={cn(iconBoxClass, "bg-red-500/10 border border-red-500/15")}>
+              <Trash2 className="w-5 h-5 text-red-400/80" />
             </div>
             <div>
-              <h3 className="font-semibold text-red-400">Delete Account</h3>
-              <p className="text-sm text-white/50">
-                Permanently delete your account and all data
-              </p>
+              <h3 className="font-semibold text-red-400/90">Delete Account</h3>
+              <p className="text-sm text-white/40">Permanently delete your account and all data</p>
             </div>
           </div>
           <Button
             onClick={() => setShowDeleteDialog(true)}
             variant="outline"
-            className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50"
+            className="border-red-500/20 text-red-400/80 hover:bg-red-500/10 hover:border-red-500/30 rounded-xl"
           >
             Delete Account
           </Button>
         </div>
       </motion.div>
 
-      {/* Delete Account Dialog */}
+      {/* Delete Account Dialog - FIXED: responsive */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="bg-black/95 backdrop-blur-2xl border-red-500/20">
+        <DialogContent className="bg-[#0a0a0f]/98 backdrop-blur-2xl border-red-500/15 rounded-2xl max-w-[calc(100vw-2rem)] sm:max-w-md mx-auto max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-5 h-5 text-red-400" />
               </div>
-              <DialogTitle className="text-white">Delete Account</DialogTitle>
+              <DialogTitle className="text-white text-base sm:text-lg">Delete Account</DialogTitle>
             </div>
-            <DialogDescription className="text-white/60">
+            <DialogDescription className="text-white/50 text-sm">
               This action cannot be undone. This will permanently delete your account, 
-              all projects, videos, and remove all associated data from our servers.
+              all projects, videos, and remove all associated data.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
-              <p className="text-sm text-red-400">
+          <div className="space-y-4 py-3">
+            <div className="p-3 sm:p-4 rounded-xl bg-red-500/[0.08] border border-red-500/15">
+              <p className="text-xs sm:text-sm text-red-400">
                 <strong>Warning:</strong> You will lose access to:
               </p>
-              <ul className="mt-2 space-y-1 text-sm text-white/60">
+              <ul className="mt-1.5 space-y-0.5 text-xs sm:text-sm text-white/50">
                 <li>• All your projects and videos</li>
                 <li>• Remaining credits in your account</li>
                 <li>• Your account history and settings</li>
@@ -489,33 +482,33 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
             </div>
 
             <div className="space-y-2">
-              <Label className="text-white/60">
+              <Label className="text-white/50 text-xs">
                 Type <strong className="text-red-400">DELETE</strong> to confirm
               </Label>
               <Input
                 value={deleteConfirmation}
                 onChange={(e) => setDeleteConfirmation(e.target.value)}
                 placeholder="Type DELETE"
-                className="bg-white/[0.05] border-red-500/20 text-white placeholder:text-white/30"
+                className="bg-white/[0.03] border-red-500/15 text-white placeholder:text-white/20 rounded-xl"
               />
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2 flex-col-reverse sm:flex-row">
             <Button
               onClick={() => {
                 setShowDeleteDialog(false);
                 setDeleteConfirmation('');
               }}
               variant="ghost"
-              className="text-white/60 hover:text-white"
+              className="text-white/40 hover:text-white rounded-xl w-full sm:w-auto"
             >
               Cancel
             </Button>
             <Button
               onClick={handleDeleteAccount}
               disabled={deleteConfirmation !== 'DELETE' || isDeleting}
-              className="bg-red-500 text-white hover:bg-red-600"
+              className="bg-red-600 hover:bg-red-500 text-white rounded-xl w-full sm:w-auto"
             >
               {isDeleting ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

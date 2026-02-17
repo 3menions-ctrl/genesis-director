@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X, Play, Sparkles, ArrowRight, Volume2, VolumeX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -106,6 +106,7 @@ export function WelcomeVideoModal() {
         className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 !transform max-w-4xl w-[94vw] p-0 border-0 overflow-hidden bg-transparent shadow-none"
         onPointerDownOutside={(e) => e.preventDefault()}
       >
+        <DialogTitle className="sr-only">Welcome to APEX Studios</DialogTitle>
         {/* Outer glow */}
         <div className="absolute -inset-px rounded-3xl bg-gradient-to-b from-white/[0.15] to-white/[0.03] p-px">
           <div className="w-full h-full rounded-3xl bg-[hsl(240,10%,5%)]/95 backdrop-blur-2xl" />

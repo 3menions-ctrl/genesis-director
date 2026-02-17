@@ -75,8 +75,11 @@ function CreateContentInner() {
   const { isMounted, getAbortController, safeSetState } = useStabilityGuard();
   
   // CENTRALIZED GATEKEEPER - replaces inline timeout logic
+  // Pass authLoading so gatekeeper tracks auth → data phases properly
+  const authLoading = !user;
   const gatekeeper = useGatekeeperLoading({
     ...GATEKEEPER_PRESETS.create,
+    authLoading,
     dataLoading: !isHubReady,
     dataSuccess: isHubReady,
   });

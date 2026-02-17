@@ -5,6 +5,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -157,7 +158,8 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
           className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 !transform w-[92vw] max-w-4xl max-h-[85vh] p-0 bg-[#000] border-white/[0.08] overflow-hidden flex flex-col"
           hideCloseButton
         >
-          {/* Accessible description for screen readers */}
+          {/* Accessible title and description for screen readers */}
+          <DialogTitle className="sr-only">Buy Credits</DialogTitle>
           <DialogDescription className="sr-only">
             Purchase credits for video generation
           </DialogDescription>

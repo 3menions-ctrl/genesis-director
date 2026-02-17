@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription } from '@/components/ui/dialog
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSafeNavigation } from '@/lib/navigation';
 import { toast } from 'sonner';
 import { Sparkles, Film, Zap, ArrowRight, Loader2, X, Check, Percent } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -17,6 +18,7 @@ import { SafeComponent } from '@/components/ui/error-boundary';
 
 function WelcomeOfferModalInner() {
   const { user, profile, refreshProfile } = useAuth();
+  const { navigate } = useSafeNavigation();
   const [isOpen, setIsOpen] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
   const [hasMarkedSeen, setHasMarkedSeen] = useState(false);
@@ -55,7 +57,8 @@ function WelcomeOfferModalInner() {
   const handleClose = useCallback(() => {
     setIsOpen(false);
     markOfferSeen();
-  }, [markOfferSeen]);
+    navigate('/create', { replace: true });
+  }, [markOfferSeen, navigate]);
 
   const handlePurchase = useCallback(async () => {
     if (!user) return;

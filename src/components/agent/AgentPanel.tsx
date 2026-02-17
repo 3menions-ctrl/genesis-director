@@ -69,24 +69,26 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
   };
 
   const handleAction = (action: AgentAction) => {
-    if (action.action === "navigate" && action.path) {
+    const act = action.action;
+    if (act === "navigate" && action.path) {
       navigate(action.path);
       onClose();
-    } else if (action.action === "open_buy_credits") {
+    } else if (act === "open_buy_credits") {
       navigate("/pricing");
       onClose();
-    } else if (action.action === "project_created" && (action as any).navigate_to) {
+    } else if (act === "project_created" && (action as any).navigate_to) {
       navigate((action as any).navigate_to);
       onClose();
-    } else if (action.action === "confirm_generation" || action.action === "confirm_delete" || action.action === "start_creation") {
+    } else if (act === "confirm_generation" || act === "confirm_delete" || act === "start_creation") {
       setPendingAction(action);
-    } else if (action.action === "insufficient_credits") {
-      // Auto-navigate to pricing
+    } else if (act === "insufficient_credits") {
       navigate("/pricing");
       onClose();
-    } else if (action.action === "generate_script") {
+    } else if (act === "generate_script") {
       navigate("/create");
       onClose();
+    } else if (act === "dm_sent" || act === "followed_user" || act === "unfollowed_user" || act === "liked_project" || act === "unliked_project" || act === "profile_updated") {
+      // These are confirmation-only actions, no navigation needed
     }
   };
 
@@ -514,11 +516,17 @@ function MessageBubble({
                 {action.action === "open_buy_credits" && "💳 Buy Credits"}
                 {action.action === "start_creation" && `Create · ${action.estimated_credits}cr`}
                 {action.action === "generate_script" && "Preview script"}
-                {action.action === "project_created" && `📁 View Projects`}
+                {action.action === "project_created" && "📁 View Projects"}
                 {action.action === "project_renamed" && "✅ Renamed"}
                 {action.action === "confirm_generation" && `🎬 Generate · ${action.estimated_credits}cr`}
                 {action.action === "confirm_delete" && "🗑️ Confirm Delete"}
                 {action.action === "insufficient_credits" && "💳 Get Credits"}
+                {action.action === "followed_user" && "✅ Followed"}
+                {action.action === "unfollowed_user" && "✅ Unfollowed"}
+                {action.action === "liked_project" && "❤️ Liked"}
+                {action.action === "unliked_project" && "💔 Unliked"}
+                {action.action === "dm_sent" && "💬 Sent"}
+                {action.action === "profile_updated" && "✅ Updated"}
               </button>
             ))}
           </div>

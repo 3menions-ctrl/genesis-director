@@ -1,12 +1,11 @@
 /**
  * Hoppy Agent Panel 🐰 — Full-Screen Immersive Experience
  * 
- * Cinematic full-screen conversational interface:
- * - Takes over the entire viewport
- * - Beautiful ambient particle/gradient backgrounds
+ * Editorial card-based layout (NOT traditional chat bubbles):
+ * - User messages: compact pills on the right
+ * - Hoppy messages: full-width editorial cards with accent bars
+ * - Cinematic ambient backgrounds
  * - Large display typography (Sora)
- * - Glassmorphic message containers
- * - Closes on navigation
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -150,43 +149,27 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
         >
           {/* ─── Ambient Background Graphics ─── */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            {/* Top-left gradient orb */}
             <div
               className="absolute -top-[20%] -left-[10%] w-[600px] h-[600px] rounded-full opacity-20 blur-[120px]"
               style={{ background: "hsl(var(--primary))" }}
             />
-            {/* Bottom-right gradient orb */}
             <div
               className="absolute -bottom-[15%] -right-[10%] w-[500px] h-[500px] rounded-full opacity-15 blur-[100px]"
               style={{ background: "hsl(var(--accent))" }}
             />
-            {/* Center subtle mesh */}
             <div
               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full opacity-[0.04]"
               style={{ background: "radial-gradient(circle, hsl(var(--primary)), transparent 70%)" }}
             />
-            {/* Floating particles */}
             {[...Array(6)].map((_, i) => (
               <motion.div
                 key={i}
                 className="absolute w-1 h-1 rounded-full bg-primary/30"
-                style={{
-                  top: `${15 + i * 14}%`,
-                  left: `${10 + i * 15}%`,
-                }}
-                animate={{
-                  y: [0, -30, 0],
-                  opacity: [0.2, 0.5, 0.2],
-                }}
-                transition={{
-                  duration: 4 + i * 0.5,
-                  repeat: Infinity,
-                  delay: i * 0.8,
-                  ease: "easeInOut",
-                }}
+                style={{ top: `${15 + i * 14}%`, left: `${10 + i * 15}%` }}
+                animate={{ y: [0, -30, 0], opacity: [0.2, 0.5, 0.2] }}
+                transition={{ duration: 4 + i * 0.5, repeat: Infinity, delay: i * 0.8, ease: "easeInOut" }}
               />
             ))}
-            {/* Grid pattern overlay */}
             <div
               className="absolute inset-0 opacity-[0.015]"
               style={{
@@ -205,7 +188,6 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
             className="relative flex items-center justify-between px-6 md:px-10 pt-6 pb-4 z-10"
           >
             <div className="flex items-center gap-4">
-              {/* Hoppy avatar with state ring */}
               <div className="relative">
                 <div
                   className={cn(
@@ -262,7 +244,6 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
             </div>
           </motion.div>
 
-          {/* Divider */}
           <div className="h-px bg-border/8 mx-6 md:mx-10" />
 
           {/* ─── Messages Area ─── */}
@@ -270,7 +251,7 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
             ref={scrollContainerRef}
             className="flex-1 overflow-y-auto px-4 md:px-10 pt-6 pb-4 scrollbar-hide relative z-10"
           >
-            <div className="max-w-3xl mx-auto space-y-5">
+            <div className="max-w-3xl mx-auto space-y-6">
               {/* Loading history */}
               {loadingHistory && (
                 <div className="flex flex-col items-center justify-center py-24 gap-4 animate-fade-in">
@@ -281,7 +262,7 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                 </div>
               )}
 
-              {/* Empty state — Immersive welcome */}
+              {/* Empty state */}
               {!loadingHistory && messages.length === 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -298,7 +279,6 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                     Your AI studio assistant. Ask me anything about your projects, credits, or video creation.
                   </p>
 
-                  {/* Quick prompts — immersive cards */}
                   <div className="grid grid-cols-2 gap-3 w-full max-w-lg mt-10">
                     {quickPrompts.map((prompt, idx) => (
                       <motion.button
@@ -343,30 +323,34 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex gap-4 items-start"
+                  className="w-full"
                 >
-                  <div className="h-9 w-9 rounded-xl overflow-hidden flex-shrink-0 ring-1 ring-primary/15">
-                    <video
-                      src="/hoppy-blink.mp4"
-                      autoPlay loop muted playsInline
-                      className="w-full h-full object-cover scale-[1.4] object-top"
-                    />
-                  </div>
-                  <div className="flex gap-1.5 items-center px-5 py-4 rounded-2xl rounded-tl-lg
-                                  bg-surface-1/50 border border-border/10 backdrop-blur-md">
-                    {[0, 1, 2].map((i) => (
-                      <motion.span
-                        key={i}
-                        className="h-[6px] w-[6px] rounded-full bg-primary/50"
-                        animate={{ y: [0, -6, 0], opacity: [0.4, 1, 0.4] }}
-                        transition={{
-                          duration: 0.7,
-                          repeat: Infinity,
-                          delay: i * 0.12,
-                          ease: "easeInOut",
-                        }}
-                      />
-                    ))}
+                  <div
+                    className="w-full rounded-3xl overflow-hidden backdrop-blur-xl px-6 py-5"
+                    style={{
+                      background: "hsl(var(--surface-1) / 0.45)",
+                      border: "1px solid hsl(var(--border) / 0.08)",
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-7 w-7 rounded-lg overflow-hidden flex-shrink-0 ring-1 ring-primary/10">
+                        <video
+                          src="/hoppy-blink.mp4"
+                          autoPlay loop muted playsInline
+                          className="w-full h-full object-cover scale-[1.4] object-top"
+                        />
+                      </div>
+                      <div className="flex gap-1.5 items-center">
+                        {[0, 1, 2].map((i) => (
+                          <motion.span
+                            key={i}
+                            className="h-[6px] w-[6px] rounded-full bg-primary/50"
+                            animate={{ y: [0, -6, 0], opacity: [0.4, 1, 0.4] }}
+                            transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.12, ease: "easeInOut" }}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -413,46 +397,40 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                   </span>
                 </div>
                 <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
-                  {(pendingAction as any).message ||
-                    `This will use approximately ${pendingAction.estimated_credits || 0} credits. Ready to proceed?`}
+                  {pendingAction.reason || "This action requires your confirmation."}
+                  {pendingAction.estimated_credits && (
+                    <span className="block mt-2 text-amber-400/80 font-display font-semibold text-xs">
+                      Cost: {pendingAction.estimated_credits} credits
+                    </span>
+                  )}
                 </p>
-                <div className="flex gap-3">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setPendingAction(null)}
-                    className="flex-1 rounded-xl h-10 border-border/15 font-display"
-                  >
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setPendingAction(null)} className="flex-1">
                     Cancel
                   </Button>
-                  <Button
-                    size="sm"
-                    onClick={confirmAction}
-                    className="flex-1 bg-primary hover:bg-primary/90 rounded-xl h-10 font-display"
-                  >
-                    Confirm ✨
+                  <Button variant="default" size="sm" onClick={confirmAction} className="flex-1">
+                    Confirm
                   </Button>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* ─── Input area — Centered, cinematic ─── */}
+          {/* ─── Input Bar ─── */}
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.15, duration: 0.4 }}
-            className="relative px-4 md:px-10 pb-6 pt-4 z-10"
+            className="relative z-10 px-4 md:px-10 pb-6 pt-3"
           >
             <div className="max-w-3xl mx-auto">
               <div
-                className={cn(
-                  "flex items-end gap-3 rounded-2xl transition-all duration-200",
-                  "bg-surface-1/50 border backdrop-blur-md",
-                  input.trim()
-                    ? "border-primary/25 shadow-[0_0_40px_hsl(var(--primary)/0.08)]"
-                    : "border-border/10"
-                )}
+                className="flex items-end gap-3 rounded-2xl px-5 py-3 backdrop-blur-xl"
+                style={{
+                  background: "hsl(var(--surface-1) / 0.6)",
+                  border: "1px solid hsl(var(--border) / 0.1)",
+                  boxShadow: "0 -4px 40px hsl(0 0% 0% / 0.08)",
+                }}
               >
                 <textarea
                   ref={inputRef}
@@ -460,33 +438,25 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Ask Hoppy anything..."
+                  className="flex-1 bg-transparent text-[15px] text-foreground placeholder:text-muted-foreground/40 
+                             resize-none border-none outline-none font-sans leading-[1.6] max-h-28 min-h-[24px]"
                   rows={1}
-                  className="flex-1 resize-none bg-transparent px-5 py-4
-                           text-sm text-foreground placeholder:text-muted-foreground/30
-                           focus:outline-none transition-all max-h-32 scrollbar-hide w-full
-                           leading-relaxed font-sans"
-                  style={{ minHeight: "52px" }}
+                  disabled={isLoading}
+                  style={{ fieldSizing: "content" } as any}
                 />
                 <button
                   onClick={handleSend}
-                  disabled={!input.trim() || isLoading}
+                  disabled={isLoading || !input.trim()}
                   className={cn(
-                    "h-10 w-10 rounded-xl flex items-center justify-center transition-all flex-shrink-0 mr-2 mb-2",
-                    input.trim() && !isLoading
-                      ? "bg-primary text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.3)]"
-                      : "bg-transparent text-muted-foreground/20 cursor-not-allowed"
+                    "p-2.5 rounded-xl transition-all duration-200 flex-shrink-0",
+                    input.trim()
+                      ? "bg-primary text-primary-foreground shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
+                      : "bg-transparent text-muted-foreground/30 cursor-not-allowed"
                   )}
                 >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </button>
               </div>
-              <p className="text-[10px] text-muted-foreground/20 text-center mt-2.5 tracking-widest uppercase font-display">
-                Free Q&A · Actions may cost credits
-              </p>
             </div>
           </motion.div>
         </motion.div>
@@ -502,29 +472,30 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
 function HoppyMarkdown({ content }: { content: string }) {
   try {
     return (
-      <div className="max-w-none space-y-3
-                    [&>p]:text-[15px] [&>p]:leading-[1.85] [&>p]:mb-4 [&>p:last-child]:mb-0
-                    [&>p:first-child]:text-base [&>p:first-child]:font-medium [&>p:first-child]:text-foreground
-                    [&>ul]:mb-4 [&>ol]:mb-4 [&>li]:mb-1.5 [&>li]:text-[15px]
+      <div className="space-y-4
+                    [&>p]:text-[15.5px] [&>p]:leading-[1.9] [&>p]:text-foreground/85
+                    [&>p:first-child]:text-[17px] [&>p:first-child]:font-medium [&>p:first-child]:text-foreground [&>p:first-child]:leading-[1.7]
+                    [&>ul]:space-y-2 [&>ol]:space-y-2
+                    [&>ul]:pl-1 [&>ol]:pl-1
+                    [&_li]:text-[15px] [&_li]:leading-[1.8] [&_li]:text-foreground/80
                     [&_strong]:text-foreground [&_strong]:font-semibold
                     [&_em]:text-primary/70
-                    [&_a]:text-primary [&_a]:no-underline [&_a:hover]:underline
-                    [&_code]:text-primary/80 [&_code]:bg-primary/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:text-xs
-                    [&_h2]:text-lg [&_h2]:font-display [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-foreground
-                    [&_h3]:text-base [&_h3]:font-display [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-foreground/90
-                    [&>blockquote]:border-l-2 [&>blockquote]:border-primary/40 [&>blockquote]:pl-4 [&>blockquote]:py-1 [&>blockquote]:italic [&>blockquote]:text-muted-foreground [&>blockquote]:bg-primary/5 [&>blockquote]:rounded-r-xl [&>blockquote]:my-4
-                    [&>hr]:border-border/10 [&>hr]:my-5">
+                    [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_a]:decoration-primary/30 [&_a:hover]:decoration-primary
+                    [&_code]:text-primary/80 [&_code]:bg-primary/8 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-lg [&_code]:text-[13px] [&_code]:font-mono
+                    [&_h2]:text-xl [&_h2]:font-display [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-3 [&_h2]:text-foreground [&_h2]:tracking-tight
+                    [&_h3]:text-[17px] [&_h3]:font-display [&_h3]:font-semibold [&_h3]:mt-5 [&_h3]:mb-2 [&_h3]:text-foreground/90
+                    [&>blockquote]:border-l-[3px] [&>blockquote]:border-primary/30 [&>blockquote]:pl-5 [&>blockquote]:py-2 [&>blockquote]:italic [&>blockquote]:text-muted-foreground [&>blockquote]:bg-primary/[0.03] [&>blockquote]:rounded-r-2xl [&>blockquote]:my-5
+                    [&>hr]:border-border/8 [&>hr]:my-6">
         <ReactMarkdown>{content}</ReactMarkdown>
       </div>
     );
   } catch {
-    // Fallback to plain text if ReactMarkdown crashes
     return <p className="font-sans text-[15px] leading-[1.85]">{content}</p>;
   }
 }
 
 // ══════════════════════════════════════════════════════
-// Immersive Message Bubble — Full-width glassmorphic
+// Editorial Message Card — NOT chat bubbles
 // ══════════════════════════════════════════════════════
 
 function ImmersiveMessageBubble({
@@ -543,109 +514,128 @@ function ImmersiveMessageBubble({
   const isUser = message.role === "user";
   const handleRichBlockNav = onNavigate;
 
+  // ── User message: compact pill on the right ──
+  if (isUser) {
+    return (
+      <motion.div
+        initial={isLatest ? { opacity: 0, y: 8 } : false}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+        className="flex justify-end"
+      >
+        <div className="max-w-[75%]">
+          <div
+            className="px-5 py-3 rounded-2xl rounded-br-lg text-sm leading-[1.7] font-sans"
+            style={{
+              background: "hsl(var(--primary))",
+              color: "hsl(var(--primary-foreground))",
+            }}
+          >
+            {message.content}
+          </div>
+          <div className="flex justify-end mt-1.5 pr-1">
+            <span className="text-[10px] text-muted-foreground/25 tabular-nums font-display">
+              {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // ── Hoppy message: full-width editorial card ──
   return (
     <motion.div
-      initial={isLatest ? { opacity: 0, y: 10 } : false}
+      initial={isLatest ? { opacity: 0, y: 12 } : false}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
-      className={cn("flex gap-4", isUser ? "justify-end" : "justify-start")}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className="w-full"
     >
-      {/* Hoppy avatar */}
-      {!isUser && (
-        <div className="h-9 w-9 rounded-xl overflow-hidden flex-shrink-0 mt-1 ring-1 ring-primary/15">
-          <video
-            src="/hoppy-blink.mp4"
-            autoPlay loop muted playsInline
-            className="w-full h-full object-cover scale-[1.4] object-top"
-          />
-        </div>
-      )}
+      <div
+        className="w-full rounded-3xl overflow-hidden backdrop-blur-xl"
+        style={{
+          background: "hsl(var(--surface-1) / 0.45)",
+          border: "1px solid hsl(var(--border) / 0.08)",
+        }}
+      >
+        {/* Top accent gradient bar */}
+        <div className="h-[2px] w-full" style={{ background: "linear-gradient(90deg, hsl(var(--primary) / 0.4), hsl(var(--accent) / 0.2), transparent)" }} />
 
-      <div className={cn(isUser ? "max-w-[80%]" : "max-w-[90%] md:max-w-[85%]", "flex flex-col gap-2")}>
-        {/* Message content */}
-        <div
-          className={cn(
-            "backdrop-blur-md",
-            isUser
-              ? "px-5 py-4 text-sm leading-[1.7] rounded-2xl rounded-br-lg"
-              : "px-6 py-5 text-[15px] leading-[1.85] rounded-3xl rounded-tl-xl"
-          )}
-          style={
-            isUser
-              ? {
-                  background: "hsl(var(--primary))",
-                  color: "hsl(var(--primary-foreground))",
-                }
-              : {
-                  background: "hsl(var(--surface-1) / 0.55)",
-                  border: "1px solid hsl(var(--border) / 0.1)",
-                  color: "hsl(var(--foreground) / 0.92)",
-                }
-          }
-        >
-          {isUser ? (
-            <p className="font-sans">{message.content}</p>
-          ) : (
-            <HoppyMarkdown content={message.content} />
-          )}
-        </div>
-
-        {/* Rich content blocks — premium card rendering with navigation & choices */}
-        {!isUser && message.richBlocks && message.richBlocks.length > 0 && (
-          <RichBlocksRenderer blocks={message.richBlocks} onNavigate={handleRichBlockNav} onSendMessage={onSendMessage} />
-        )}
-
-        {/* Meta row */}
-        <div className={cn("flex items-center gap-2.5 px-1", isUser ? "justify-end" : "justify-start")}>
-          {!isUser && message.creditsCharged && message.creditsCharged > 0 && (
-            <span className="text-[10px] text-amber-400/50 flex items-center gap-0.5 font-medium">
+        {/* Header with avatar + timestamp */}
+        <div className="flex items-center gap-3 px-6 pt-5 pb-1">
+          <div className="h-7 w-7 rounded-lg overflow-hidden flex-shrink-0 ring-1 ring-primary/10">
+            <video
+              src="/hoppy-blink.mp4"
+              autoPlay loop muted playsInline
+              className="w-full h-full object-cover scale-[1.4] object-top"
+            />
+          </div>
+          <span className="font-display text-xs font-semibold text-foreground/60 tracking-wide uppercase">Hoppy</span>
+          <div className="flex-1" />
+          {message.creditsCharged && message.creditsCharged > 0 && (
+            <span className="text-[10px] text-amber-400/60 flex items-center gap-0.5 font-medium">
               <Zap className="h-2.5 w-2.5" />
               {message.creditsCharged} cr
             </span>
           )}
-          <span className="text-[10px] text-muted-foreground/25 tabular-nums font-display">
+          <span className="text-[10px] text-muted-foreground/30 tabular-nums font-display">
             {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </span>
         </div>
 
-        {/* Action chips */}
+        {/* Main content area */}
+        <div className="px-6 py-4">
+          <HoppyMarkdown content={message.content} />
+        </div>
+
+        {/* Rich content blocks */}
+        {message.richBlocks && message.richBlocks.length > 0 && (
+          <div className="px-5 pb-4">
+            <RichBlocksRenderer blocks={message.richBlocks} onNavigate={handleRichBlockNav} onSendMessage={onSendMessage} />
+          </div>
+        )}
+
+        {/* Action chips footer */}
         {message.actions && message.actions.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-1">
-            {message.actions.map((action, i) => (
-              <button
-                key={i}
-                onClick={() => onAction(action)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-display font-medium
-                         bg-primary/8 text-primary/80 border border-primary/12
-                         hover:bg-primary/15 hover:text-primary hover:border-primary/25
-                         transition-all duration-150 active:scale-[0.97]
-                         backdrop-blur-sm"
-              >
-                <ArrowRight className="h-3 w-3" />
-                {action.action === "navigate" && action.path}
-                {action.action === "open_buy_credits" && "💳 Buy Credits"}
-                {action.action === "start_creation" && `Create · ${action.estimated_credits}cr`}
-                {action.action === "generate_script" && "Preview script"}
-                {action.action === "project_created" && "📁 View Projects"}
-                {action.action === "project_renamed" && "✅ Renamed"}
-                {action.action === "confirm_generation" && `🎬 Generate · ${action.estimated_credits}cr`}
-                {action.action === "confirm_delete" && "🗑️ Confirm Delete"}
-                {action.action === "insufficient_credits" && "💳 Get Credits"}
-                {action.action === "followed_user" && "✅ Followed"}
-                {action.action === "unfollowed_user" && "✅ Unfollowed"}
-                {action.action === "liked_project" && "❤️ Liked"}
-                {action.action === "unliked_project" && "💔 Unliked"}
-                {action.action === "dm_sent" && "💬 Sent"}
-                {action.action === "profile_updated" && "✅ Updated"}
-                {action.action === "clip_updated" && "✏️ Clip Updated"}
-                {action.action === "clip_retried" && "🔄 Retrying"}
-                {action.action === "clips_reordered" && "🎬 Reordered"}
-                {action.action === "generation_started" && "🎬 Generating..."}
-                {action.action === "published" && "🌟 Published!"}
-                {action.action === "unpublished" && "🔒 Made Private"}
-                {action.action === "project_updated" && "✅ Updated"}
-              </button>
-            ))}
+          <div className="px-6 pb-5">
+            <div className="h-px w-full mb-4" style={{ background: "hsl(var(--border) / 0.06)" }} />
+            <div className="flex flex-wrap gap-2">
+              {message.actions.map((action, i) => (
+                <button
+                  key={i}
+                  onClick={() => onAction(action)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-display font-semibold
+                           bg-primary/8 text-primary/80 border border-primary/12
+                           hover:bg-primary/15 hover:text-primary hover:border-primary/25
+                           transition-all duration-150 active:scale-[0.97]
+                           backdrop-blur-sm"
+                >
+                  <ArrowRight className="h-3 w-3" />
+                  {action.action === "navigate" && action.path}
+                  {action.action === "open_buy_credits" && "💳 Buy Credits"}
+                  {action.action === "start_creation" && `Create · ${action.estimated_credits}cr`}
+                  {action.action === "generate_script" && "Preview script"}
+                  {action.action === "project_created" && "📁 View Projects"}
+                  {action.action === "project_renamed" && "✅ Renamed"}
+                  {action.action === "confirm_generation" && `🎬 Generate · ${action.estimated_credits}cr`}
+                  {action.action === "confirm_delete" && "🗑️ Confirm Delete"}
+                  {action.action === "insufficient_credits" && "💳 Get Credits"}
+                  {action.action === "followed_user" && "✅ Followed"}
+                  {action.action === "unfollowed_user" && "✅ Unfollowed"}
+                  {action.action === "liked_project" && "❤️ Liked"}
+                  {action.action === "unliked_project" && "💔 Unliked"}
+                  {action.action === "dm_sent" && "💬 Sent"}
+                  {action.action === "profile_updated" && "✅ Updated"}
+                  {action.action === "clip_updated" && "✏️ Clip Updated"}
+                  {action.action === "clip_retried" && "🔄 Retrying"}
+                  {action.action === "clips_reordered" && "🎬 Reordered"}
+                  {action.action === "generation_started" && "🎬 Generating..."}
+                  {action.action === "published" && "🌟 Published!"}
+                  {action.action === "unpublished" && "🔒 Made Private"}
+                  {action.action === "project_updated" && "✅ Updated"}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>

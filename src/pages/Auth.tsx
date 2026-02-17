@@ -197,7 +197,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
 
   const hasNavigatedRef = useRef(false);
   
-  const handleWelcomeComplete = useCallback(() => {
+  const handleWelcomeChoice = useCallback((choice: 'create' | 'explore') => {
     if (hasNavigatedRef.current) return;
     hasNavigatedRef.current = true;
     
@@ -206,7 +206,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
     if (profile && !profile.onboarding_completed) {
       navigate('/onboarding', { replace: true });
     } else {
-      navigate('/create', { replace: true });
+      navigate(choice === 'create' ? '/create' : '/creators', { replace: true });
     }
   }, [profile, navigate]);
 
@@ -218,7 +218,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
     <>
       <WelcomeBackDialog 
         isOpen={showWelcomeDialog} 
-        onComplete={handleWelcomeComplete}
+        onChoice={handleWelcomeChoice}
         userName={profile?.display_name?.split(' ')[0]}
       />
       

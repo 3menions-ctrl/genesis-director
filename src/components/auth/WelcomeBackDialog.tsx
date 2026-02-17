@@ -1,148 +1,80 @@
 import { useEffect, useState, useCallback, memo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowRight, Zap } from 'lucide-react';
+import { Sparkles, Rocket, Compass, ArrowRight } from 'lucide-react';
 
 interface WelcomeBackDialogProps {
   isOpen: boolean;
-  onComplete: () => void;
+  onChoice: (choice: 'create' | 'explore') => void;
   userName?: string;
 }
 
-// STABILITY: Animation subcomponents use simple memo (no forwardRef needed - they don't receive refs)
+// Floating particle
+const FloatingOrb = memo(function FloatingOrb({ delay, index }: { delay: number; index: number }) {
+  const size = 4 + Math.random() * 6;
+  const x = Math.random() * 100;
+  const duration = 6 + Math.random() * 8;
 
-// Particle component for the epic effect
-const Particle = memo(function Particle({ delay, index }: { delay: number; index: number }) {
-  const angle = (index / 20) * Math.PI * 2;
-  const distance = 150 + Math.random() * 100;
-  
   return (
     <motion.div
-      className="absolute w-1.5 h-1.5 rounded-full"
-      style={{
-        background: `linear-gradient(135deg, 
-          hsl(${200 + index * 8}, 80%, 70%), 
-          hsl(${220 + index * 5}, 90%, 80%))`,
-        boxShadow: `0 0 10px hsl(${200 + index * 8}, 80%, 70%)`,
-        left: '50%',
-        top: '50%',
-      }}
-      initial={{ 
-        x: 0, 
-        y: 0, 
-        opacity: 0, 
-        scale: 0 
-      }}
-      animate={{
-        x: [0, Math.cos(angle) * distance * 0.5, Math.cos(angle) * distance],
-        y: [0, Math.sin(angle) * distance * 0.5, Math.sin(angle) * distance],
-        opacity: [0, 1, 0],
-        scale: [0, 1.5, 0],
-      }}
-      transition={{
-        duration: 2,
-        delay: delay + 0.8,
-        ease: "easeOut",
-      }}
-    />
-  );
-});
-
-// Orbiting ring
-const OrbitRing = memo(function OrbitRing({ size, duration, delay, opacity }: { size: number; duration: number; delay: number; opacity: number }) {
-  return (
-    <motion.div
-      className="absolute rounded-full border"
+      className="absolute rounded-full"
       style={{
         width: size,
         height: size,
-        left: '50%',
-        top: '50%',
-        marginLeft: -size / 2,
-        marginTop: -size / 2,
-        borderColor: `rgba(255, 255, 255, ${opacity})`,
+        left: `${x}%`,
+        bottom: -20,
+        background: `radial-gradient(circle, hsl(var(--primary) / 0.6), hsl(var(--primary) / 0.1))`,
+        boxShadow: `0 0 ${size * 2}px hsl(var(--primary) / 0.3)`,
       }}
-      initial={{ scale: 0, opacity: 0, rotate: 0 }}
-      animate={{ 
-        scale: [0, 1, 1.1, 1],
-        opacity: [0, opacity, opacity * 0.5, 0],
-        rotate: 360,
+      initial={{ y: 0, opacity: 0 }}
+      animate={{
+        y: [0, -window.innerHeight - 40],
+        opacity: [0, 0.8, 0.6, 0],
       }}
       transition={{
-        duration: duration,
-        delay: delay,
-        ease: "easeOut",
+        duration,
+        delay: delay + index * 0.3,
+        ease: 'easeOut',
+        repeat: Infinity,
+        repeatDelay: Math.random() * 2,
       }}
     />
   );
 });
 
-// Light ray component
-const LightRay = memo(function LightRay({ angle, delay }: { angle: number; delay: number }) {
-  return (
-    <motion.div
-      className="absolute origin-center"
-      style={{
-        width: 2,
-        height: 200,
-        left: '50%',
-        top: '50%',
-        background: 'linear-gradient(to top, transparent, rgba(255,255,255,0.3), transparent)',
-          transform: `rotate(${angle}deg) translateY(-50%)`,
-        }}
-        initial={{ scaleY: 0, opacity: 0 }}
-        animate={{ 
-          scaleY: [0, 1, 0],
-          opacity: [0, 0.6, 0],
-        }}
-        transition={{
-          duration: 1.5,
-          delay: delay,
-          ease: "easeOut",
-        }}
-      />
-    );
-  }
-);
-
-export const WelcomeBackDialog = memo(function WelcomeBackDialog({ isOpen, onComplete, userName }: WelcomeBackDialogProps) {
-  const [phase, setPhase] = useState<'entrance' | 'celebrate' | 'exit'>('entrance');
-  const [showContent, setShowContent] = useState(false);
-  // CRITICAL: Prevent double-fire from auto-close timer + manual click
+export const WelcomeBackDialog = memo(function WelcomeBackDialog({
+  isOpen,
+  onChoice,
+  userName,
+}: WelcomeBackDialogProps) {
+  const [phase, setPhase] = useState<'entrance' | 'greeting' | 'choices' | 'exit'>('entrance');
   const isTransitioningRef = useRef(false);
 
-  const handleComplete = useCallback(() => {
-    // Guard against double-fire
-    if (isTransitioningRef.current) return;
-    isTransitioningRef.current = true;
-    
-    setPhase('exit');
-    setTimeout(onComplete, 600);
-  }, [onComplete]);
+  const handleChoice = useCallback(
+    (choice: 'create' | 'explore') => {
+      if (isTransitioningRef.current) return;
+      isTransitioningRef.current = true;
+      setPhase('exit');
+      setTimeout(() => onChoice(choice), 500);
+    },
+    [onChoice],
+  );
 
   useEffect(() => {
     if (isOpen) {
-      // Reset transition guard on open
       isTransitioningRef.current = false;
       setPhase('entrance');
-      setShowContent(false);
-      
-      // Show content after entrance
-      const contentTimer = setTimeout(() => {
-        setShowContent(true);
-        setPhase('celebrate');
-      }, 400);
 
-      // Auto-close after celebration
-      const closeTimer = setTimeout(() => {
-        handleComplete();
-      }, 3500);
+      const greetTimer = setTimeout(() => setPhase('greeting'), 300);
+      const choiceTimer = setTimeout(() => setPhase('choices'), 1400);
 
       return () => {
-        clearTimeout(contentTimer);
-        clearTimeout(closeTimer);
+        clearTimeout(greetTimer);
+        clearTimeout(choiceTimer);
       };
     }
-  }, [isOpen, handleComplete]);
+  }, [isOpen]);
+
+  const displayName = userName || 'Creator';
 
   return (
     <AnimatePresence>
@@ -154,200 +86,187 @@ export const WelcomeBackDialog = memo(function WelcomeBackDialog({ isOpen, onCom
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4 }}
         >
-          {/* Cinematic backdrop */}
+          {/* Deep backdrop */}
           <motion.div
-            className="absolute inset-0 bg-black"
+            className="absolute inset-0 bg-background"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.95 }}
+            animate={{ opacity: 0.97 }}
             exit={{ opacity: 0 }}
           />
 
-          {/* Animated gradient background */}
+          {/* Radial glow */}
           <motion.div
             className="absolute inset-0"
             style={{
-              background: 'radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.15) 0%, transparent 50%)',
+              background:
+                'radial-gradient(ellipse 60% 50% at 50% 45%, hsl(var(--primary) / 0.08) 0%, transparent 70%)',
             }}
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.5, 1, 0.5],
-            }}
-            transition={{
-              duration: 3,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
+            animate={{ opacity: [0.4, 0.7, 0.4] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
           />
 
-          {/* Light rays burst */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          {/* Floating orbs */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
             {Array.from({ length: 12 }).map((_, i) => (
-              <LightRay key={i} angle={i * 30} delay={0.5 + i * 0.05} />
-            ))}
-          </div>
-
-          {/* Orbiting rings */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <OrbitRing size={200} duration={3} delay={0.3} opacity={0.2} />
-            <OrbitRing size={280} duration={3.5} delay={0.5} opacity={0.15} />
-            <OrbitRing size={360} duration={4} delay={0.7} opacity={0.1} />
-          </div>
-
-          {/* Particle explosion */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            {Array.from({ length: 20 }).map((_, i) => (
-              <Particle key={i} delay={i * 0.02} index={i} />
+              <FloatingOrb key={i} delay={0.2} index={i} />
             ))}
           </div>
 
           {/* Main content */}
           <motion.div
-            className="relative z-10 flex flex-col items-center text-center px-6"
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ 
-              scale: phase === 'exit' ? 0.9 : 1, 
-              opacity: phase === 'exit' ? 0 : 1 
+            className="relative z-10 flex flex-col items-center text-center px-6 max-w-lg w-full"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{
+              scale: phase === 'exit' ? 0.95 : 1,
+              opacity: phase === 'exit' ? 0 : 1,
             }}
-            transition={{ 
-              type: "spring", 
-              stiffness: 200, 
-              damping: 20,
-              duration: 0.5
-            }}
+            transition={{ type: 'spring', stiffness: 180, damping: 22 }}
           >
-            {/* Animated logo */}
+            {/* Hoppy avatar */}
             <motion.div
-              className="relative mb-8"
-              initial={{ scale: 0, rotate: -180 }}
+              className="relative mb-6"
+              initial={{ scale: 0, rotate: -90 }}
               animate={{ scale: 1, rotate: 0 }}
-              transition={{ 
-                type: "spring", 
-                stiffness: 150, 
-                damping: 15,
-                delay: 0.2
-              }}
+              transition={{ type: 'spring', stiffness: 160, damping: 14, delay: 0.15 }}
             >
-              {/* Glow ring */}
+              {/* Glow behind avatar */}
               <motion.div
-                className="absolute inset-0 rounded-3xl"
+                className="absolute -inset-3 rounded-full"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.5), rgba(147, 51, 234, 0.5))',
-                  filter: 'blur(20px)',
+                  background: 'radial-gradient(circle, hsl(var(--primary) / 0.3), transparent 70%)',
                 }}
-                animate={{
-                  scale: [1, 1.3, 1],
-                  opacity: [0.5, 0.8, 0.5],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
+                animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.8, 0.5] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
               />
-              
-              {/* Logo container */}
-              <div className="relative w-24 h-24 rounded-3xl bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-2xl">
-                <motion.span 
-                  className="text-4xl font-display font-bold text-white"
-                  animate={{ 
-                    textShadow: [
-                      '0 0 20px rgba(255,255,255,0.5)',
-                      '0 0 40px rgba(255,255,255,0.8)',
-                      '0 0 20px rgba(255,255,255,0.5)',
-                    ]
-                  }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                >
-                  A–S
-                </motion.span>
-                
-                {/* Sparkle accents */}
-                <motion.div
-                  className="absolute -top-2 -right-2"
-                  animate={{ 
-                    rotate: [0, 15, -15, 0],
-                    scale: [1, 1.2, 1],
-                  }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                >
-                  <Sparkles className="w-6 h-6 text-yellow-400" style={{ filter: 'drop-shadow(0 0 8px rgba(250, 204, 21, 0.8))' }} />
-                </motion.div>
+              <div className="relative w-20 h-20 rounded-full overflow-hidden ring-2 ring-primary/30 shadow-[0_0_30px_hsl(var(--primary)/0.2)]">
+                <video
+                  src="/hoppy-blink.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover scale-[1.3] object-top"
+                />
               </div>
+              <motion.div
+                className="absolute -top-1 -right-1"
+                animate={{ rotate: [0, 12, -12, 0], scale: [1, 1.15, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <Sparkles
+                  className="w-5 h-5 text-amber-400"
+                  style={{ filter: 'drop-shadow(0 0 6px rgba(250, 204, 21, 0.7))' }}
+                />
+              </motion.div>
             </motion.div>
 
-            {/* Welcome text */}
-            <AnimatePresence>
-              {showContent && (
-                <>
+            {/* Greeting phase */}
+            <AnimatePresence mode="wait">
+              {(phase === 'greeting' || phase === 'choices') && (
+                <motion.div
+                  key="greeting"
+                  initial={{ y: 24, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                  className="mb-2"
+                >
+                  {/* Speech bubble tag */}
                   <motion.div
-                    initial={{ y: 30, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -20, opacity: 0 }}
-                    transition={{ delay: 0.1, duration: 0.5 }}
-                    className="mb-2"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-4"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.1 }}
                   >
-                    <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm">
-                      <Zap className="w-4 h-4 text-yellow-400" />
-                      <span className="text-sm font-medium text-white/80">Session restored</span>
-                    </span>
+                    <span className="text-xs font-medium text-primary">Hoppy 🐰</span>
                   </motion.div>
 
                   <motion.h1
-                    className="text-4xl sm:text-5xl md:text-6xl font-display font-bold text-white mb-4"
-                    initial={{ y: 40, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -20, opacity: 0 }}
-                    transition={{ delay: 0.2, duration: 0.6 }}
-                    style={{
-                      textShadow: '0 0 60px rgba(255,255,255,0.3)',
-                    }}
+                    className="text-3xl sm:text-4xl md:text-5xl font-display font-bold text-foreground mb-3 leading-tight"
+                    style={{ textShadow: '0 0 40px hsl(var(--primary) / 0.15)' }}
                   >
-                    Welcome back{userName ? `, ${userName}` : ''}!
+                    Welcome back, {displayName}!
                   </motion.h1>
 
                   <motion.p
-                    className="text-lg text-white/60 mb-8 max-w-md"
-                    initial={{ y: 40, opacity: 0 }}
+                    className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-sm mx-auto"
+                    initial={{ y: 16, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -20, opacity: 0 }}
-                    transition={{ delay: 0.35, duration: 0.5 }}
+                    transition={{ delay: 0.25, duration: 0.45 }}
                   >
-                    Your creative studio is ready. Let's make something amazing.
+                    I missed you! Your studio is warmed up and ready to go. What shall we do today? 💜
                   </motion.p>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-                  {/* Continue button */}
+            {/* Choice cards */}
+            <AnimatePresence>
+              {phase === 'choices' && (
+                <motion.div
+                  className="flex flex-col sm:flex-row gap-3 mt-6 w-full max-w-md"
+                  initial={{ y: 30, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.1, duration: 0.5 }}
+                >
+                  {/* Create */}
                   <motion.button
-                    onClick={handleComplete}
-                    className="group inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-white text-black font-semibold text-lg shadow-2xl hover:bg-white/90 transition-all duration-300"
-                    initial={{ y: 40, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -20, opacity: 0 }}
-                    transition={{ delay: 0.5, duration: 0.5 }}
-                    whileHover={{ scale: 1.05 }}
+                    onClick={() => handleChoice('create')}
+                    className="group relative flex-1 flex flex-col items-center gap-3 p-6 rounded-2xl border border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all duration-300 cursor-pointer"
+                    whileHover={{ scale: 1.03, y: -2 }}
                     whileTap={{ scale: 0.98 }}
-                    style={{
-                      boxShadow: '0 0 40px rgba(255,255,255,0.2), 0 20px 40px -10px rgba(0,0,0,0.5)',
-                    }}
                   >
-                    <span>Enter Studio</span>
-                    <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                    <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center group-hover:bg-primary/25 transition-colors">
+                      <Rocket className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground text-base">Start Creating</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Jump into the studio
+                      </p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-primary/50 group-hover:text-primary group-hover:translate-x-0.5 transition-all absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100" />
                   </motion.button>
-                </>
+
+                  {/* Explore */}
+                  <motion.button
+                    onClick={() => handleChoice('explore')}
+                    className="group relative flex-1 flex flex-col items-center gap-3 p-6 rounded-2xl border border-border/60 bg-card/40 hover:bg-card/70 hover:border-border transition-all duration-300 cursor-pointer"
+                    whileHover={{ scale: 1.03, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-muted/50 flex items-center justify-center group-hover:bg-muted transition-colors">
+                      <Compass className="w-6 h-6 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground text-base">Explore</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Discover the community
+                      </p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-foreground group-hover:translate-x-0.5 transition-all absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100" />
+                  </motion.button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Subtle hint */}
+            <AnimatePresence>
+              {phase === 'choices' && (
+                <motion.p
+                  className="text-[11px] text-muted-foreground/40 mt-5"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                >
+                  Powered by Hoppy AI · Your personal creative companion
+                </motion.p>
               )}
             </AnimatePresence>
           </motion.div>
 
-          {/* Bottom gradient fade */}
-          <div 
-            className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none"
-            style={{
-              background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
-            }}
-          />
-
-          {/* Noise texture overlay */}
-          <div 
-            className="absolute inset-0 opacity-[0.02] pointer-events-none mix-blend-overlay"
+          {/* Noise overlay */}
+          <div
+            className="absolute inset-0 opacity-[0.015] pointer-events-none mix-blend-overlay"
             style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
             }}

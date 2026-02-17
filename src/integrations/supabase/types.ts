@@ -211,6 +211,42 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_query_analytics: {
+        Row: {
+          created_at: string
+          credits_spent: number | null
+          id: string
+          query_category: string | null
+          query_text: string
+          response_quality: string | null
+          session_page: string | null
+          tools_used: string[] | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_spent?: number | null
+          id?: string
+          query_category?: string | null
+          query_text: string
+          response_quality?: string | null
+          session_page?: string | null
+          tools_used?: string[] | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_spent?: number | null
+          id?: string
+          query_category?: string | null
+          query_text?: string
+          response_quality?: string | null
+          session_page?: string | null
+          tools_used?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       api_cost_logs: {
         Row: {
           created_at: string
@@ -4238,6 +4274,15 @@ export type Database = {
       }
     }
     Views: {
+      agent_query_trends: {
+        Row: {
+          avg_credits: number | null
+          day: string | null
+          query_category: string | null
+          query_count: number | null
+        }
+        Relationships: []
+      }
       api_cost_logs_safe: {
         Row: {
           created_at: string | null

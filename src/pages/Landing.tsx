@@ -146,7 +146,7 @@ export default function Landing() {
       if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
       events.forEach(e => window.removeEventListener(e, handleActivity));
     };
-  }, [isImmersive]);
+  }, [isImmersive, showExamples]);
 
   // Scroll reveal observer for landing sections
   useEffect(() => {
@@ -242,7 +242,7 @@ export default function Landing() {
 
       {/* Pricing CTA — scroll reveal */}
       <div className="scroll-reveal" style={{ animationDelay: '200ms' }}>
-        <PricingSection onNavigate={handleNavigate} isImmersive={isImmersive} onEnterImmersive={handleEnterImmersive} />
+        <PricingSection onNavigate={handleNavigate} isImmersive={isImmersive} onEnterImmersive={handleEnterImmersive} suppressVideo={showExamples || isImmersive} />
       </div>
 
       {/* FAQ */}

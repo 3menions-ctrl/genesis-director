@@ -320,8 +320,13 @@ export const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
   );
 });
 
-export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionProps>(
-  function PricingSection({ onNavigate, isImmersive = false, onEnterImmersive }, ref) {
+interface PricingSectionExtendedProps extends PricingSectionProps {
+  /** When true, the storytelling HLS player is unmounted to free resources */
+  suppressVideo?: boolean;
+}
+
+export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionExtendedProps>(
+  function PricingSection({ onNavigate, isImmersive = false, onEnterImmersive, suppressVideo = false }, ref) {
 
     return (
       <>
@@ -348,12 +353,19 @@ export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionProps>(
               </div>
               
               <div className="relative aspect-video max-w-3xl mx-auto rounded-2xl overflow-hidden bg-black/50 border border-white/[0.08]">
+                {suppressVideo ? (
+                  /* Video suppressed to free GPU/memory for gallery or immersive */
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                    <Sparkles className="w-8 h-8 text-white/20" />
+                  </div>
+                ) : (
                 <UniversalHLSPlayer
                   hlsUrl={STORYTELLING_HLS_URL}
                   fallbackMp4Url={STORYTELLING_MP4_FALLBACK}
                   className="w-full h-full"
                   showControls={true}
                 />
+                )}
                 
                 {/* Immersive mode button */}
                 {!isImmersive && (

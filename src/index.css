@@ -1980,3 +1980,138 @@ img, a, button {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   PHASE 1: FUTURISTIC LANDING ANIMATIONS
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Holographic grid pulse */
+@keyframes holo-grid-pulse {
+  0%, 100% { opacity: 0.02; }
+  50% { opacity: 0.06; }
+}
+
+/* Gradient mesh animation */
+@keyframes gradient-mesh-shift {
+  0% { background-position: 0% 0%; }
+  25% { background-position: 100% 0%; }
+  50% { background-position: 100% 100%; }
+  75% { background-position: 0% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+/* Scan line sweep */
+@keyframes scan-line-sweep {
+  0% { transform: translateY(-100%); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+
+/* Holographic border shimmer */
+@keyframes holo-border {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Orbital ring for progress */
+@keyframes orbital-ring {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes orbital-ring-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+/* Particle drift */
+@keyframes particle-drift {
+  0% { transform: translate(0, 0) scale(0); opacity: 0; }
+  20% { opacity: 0.8; transform: translate(var(--drift-x, 20px), var(--drift-y, -30px)) scale(1); }
+  80% { opacity: 0.6; }
+  100% { transform: translate(calc(var(--drift-x, 20px) * 3), calc(var(--drift-y, -30px) * 3)) scale(0); opacity: 0; }
+}
+
+/* Holographic card effect */
+@keyframes holo-card-shine {
+  0% { transform: translateX(-150%) rotate(15deg); }
+  100% { transform: translateX(250%) rotate(15deg); }
+}
+
+/* Breathing glow for sections */
+@keyframes section-breathe {
+  0%, 100% { opacity: 0.15; transform: scale(1); }
+  50% { opacity: 0.25; transform: scale(1.05); }
+}
+
+/* Scroll-driven reveal (used with IntersectionObserver) */
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(60px) scale(0.95); filter: blur(8px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+@keyframes reveal-scale {
+  from { opacity: 0; transform: scale(0.85); filter: blur(12px); }
+  to { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+.animate-holo-grid-pulse { animation: holo-grid-pulse 4s ease-in-out infinite; }
+.animate-gradient-mesh { animation: gradient-mesh-shift 20s ease infinite; background-size: 400% 400%; }
+.animate-scan-line { animation: scan-line-sweep 8s linear infinite; }
+.animate-holo-border { animation: holo-border 3s linear infinite; background-size: 200% 200%; }
+.animate-orbital-ring { animation: orbital-ring 8s linear infinite; }
+.animate-orbital-ring-reverse { animation: orbital-ring-reverse 6s linear infinite; }
+.animate-section-breathe { animation: section-breathe 6s ease-in-out infinite; }
+.animate-reveal-up { animation: reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-reveal-scale { animation: reveal-scale 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+/* Scroll reveal wrapper — starts invisible, animated by JS IntersectionObserver */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(40px);
+}
+.scroll-reveal.revealed {
+  animation: reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Holographic card shine on hover */
+.holo-shine {
+  position: relative;
+  overflow: hidden;
+}
+.holo-shine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(263 70% 58% / 0.06),
+    hsl(195 90% 50% / 0.04),
+    transparent
+  );
+  transform: translateX(-150%) rotate(15deg);
+  transition: none;
+  pointer-events: none;
+}
+.holo-shine:hover::after {
+  animation: holo-card-shine 0.8s ease-out forwards;
+}
+
+/* Futuristic holographic border */
+.holo-border-gradient {
+  background: linear-gradient(
+    135deg,
+    hsl(263 70% 58% / 0.4),
+    hsl(195 90% 50% / 0.3),
+    hsl(160 84% 45% / 0.3),
+    hsl(263 70% 58% / 0.4)
+  );
+  background-size: 200% 200%;
+  animation: holo-border 3s linear infinite;
+}

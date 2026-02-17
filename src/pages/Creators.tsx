@@ -339,7 +339,7 @@ export default function Creators() {
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: Math.min(index * 0.03, 0.4) }}
-                    className="group rounded-2xl overflow-hidden cursor-pointer bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.14] hover:bg-white/[0.04] transition-all duration-300"
+                    className="group rounded-2xl overflow-hidden cursor-pointer bg-white/[0.02] border border-white/[0.06] hover:border-primary/30 hover:bg-white/[0.04] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_12px_40px_-10px_hsl(263_70%_58%/0.15)] holo-shine"
                     onClick={() => setSelectedVideo({ id: video.id, title: video.title, user_id: video.user_id })}
                     onMouseEnter={() => setHoveredId(video.id)}
                     onMouseLeave={() => setHoveredId(null)}

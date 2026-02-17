@@ -5,6 +5,7 @@ import { useSafeNavigation } from '@/lib/navigation';
 import { ErrorBoundaryWrapper } from '@/components/ui/error-boundary';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
 import { useGatekeeperLoading, getGatekeeperMessage, GATEKEEPER_PRESETS } from '@/hooks/useGatekeeperLoading';
+import { useScrollReveal } from '@/hooks/useScrollReveal';
 
 // Extracted landing components
 import { LandingNav } from '@/components/landing/LandingNav';
@@ -101,6 +102,26 @@ export default function Landing() {
     setShowExamples(open);
   }, []);
 
+  // Scroll reveal observer for landing sections
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('revealed');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -60px 0px' }
+    );
+
+    // Observe all scroll-reveal elements
+    const els = document.querySelectorAll('.scroll-reveal');
+    els.forEach(el => observer.observe(el));
+    return () => observer.disconnect();
+  }, [isLoading]); // Re-run after loading completes
+
   // Show CinemaLoader while gatekeeper is active
   if (isLoading) {
     return (
@@ -151,21 +172,27 @@ export default function Landing() {
       {/* Social Proof Ticker */}
       <SocialProofTicker />
 
-      {/* How it Works */}
-      <HowItWorksSection />
+      {/* How it Works — scroll reveal */}
+      <div className="scroll-reveal">
+        <HowItWorksSection />
+      </div>
 
-      {/* Features Showcase */}
-      <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
-        <Suspense fallback={<SectionLoader />}>
-          <FeaturesShowcase />
-        </Suspense>
-      </ErrorBoundaryWrapper>
+      {/* Features Showcase — scroll reveal */}
+      <div className="scroll-reveal" style={{ animationDelay: '100ms' }}>
+        <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
+          <Suspense fallback={<SectionLoader />}>
+            <FeaturesShowcase />
+          </Suspense>
+        </ErrorBoundaryWrapper>
+      </div>
 
-      {/* Pricing CTA */}
-      <PricingSection onNavigate={handleNavigate} />
+      {/* Pricing CTA — scroll reveal */}
+      <div className="scroll-reveal" style={{ animationDelay: '200ms' }}>
+        <PricingSection onNavigate={handleNavigate} />
+      </div>
 
       {/* FAQ */}
-      <div id="faq">
+      <div id="faq" className="scroll-reveal">
         <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
           <Suspense fallback={<SectionLoader />}>
             <FAQSection />
@@ -173,8 +200,10 @@ export default function Landing() {
         </ErrorBoundaryWrapper>
       </div>
 
-      {/* Avatar CTA */}
-      <AvatarCTASection onNavigate={handleNavigate} />
+      {/* Avatar CTA — scroll reveal */}
+      <div className="scroll-reveal">
+        <AvatarCTASection onNavigate={handleNavigate} />
+      </div>
 
       {/* Examples Gallery */}
       <ErrorBoundaryWrapper fallback={null}>

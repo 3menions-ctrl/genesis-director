@@ -21,6 +21,7 @@ import { SafeModeBanner } from "@/components/safeMode";
 import { crashForensics } from "@/lib/crashForensics";
 import { getSafeModeStatus } from "@/lib/safeMode";
 import { AgentTrigger } from "@/components/agent";
+import { CommandPalette } from "@/components/agent/CommandPalette";
 
 // Lazy load all pages for code splitting
 const Landing = lazy(() => import("./pages/Landing"));
@@ -407,6 +408,8 @@ const App = () => {
                 <WelcomeVideoModal />
                 {/* APEX Agent - AI Creative Director */}
                 <AgentTrigger />
+                {/* Command Palette (Cmd+K) */}
+                <CommandPalette />
               </StudioProvider>
             </AuthProvider>
             </NavigationBridge>

@@ -71,6 +71,16 @@ const TOOL_CREDIT_COSTS: Record<string, number> = {
   get_edit_sessions: 0,
   get_characters: 0,
   get_stitch_jobs: 0,
+  // Advanced video production intelligence
+  suggest_shot_list: 1,
+  critique_prompt: 0,
+  recommend_avatar_for_content: 0,
+  estimate_production_cost: 0,
+  troubleshoot_generation: 0,
+  suggest_aspect_ratio: 0,
+  breakdown_script_to_scenes: 1,
+  compare_projects: 0,
+  get_platform_tips: 0,
 };
 
 // ══════════════════════════════════════════════════════
@@ -757,6 +767,150 @@ const AGENT_TOOLS = [
           limit: { type: "number", description: "Max jobs to return (default 10)" },
           status: { type: "string", enum: ["pending", "processing", "completed", "failed"], description: "Filter by status" },
         },
+      },
+    },
+  },
+  // ─── ADVANCED VIDEO PRODUCTION INTELLIGENCE ───
+  {
+    type: "function",
+    function: {
+      name: "suggest_shot_list",
+      description: "Break down a video concept into a professional shot list with camera movements, shot sizes, lighting, and pacing notes. Returns a director-ready sequence of clips. Costs 1 credit.",
+      parameters: {
+        type: "object",
+        properties: {
+          concept: { type: "string", description: "The video concept or story idea" },
+          clip_count: { type: "number", description: "Target number of clips (3-20)" },
+          style: { type: "string", enum: ["cinematic", "documentary", "commercial", "music_video", "vlog", "narrative", "tutorial", "social_media"], description: "Production style" },
+          aspect_ratio: { type: "string", enum: ["16:9", "9:16", "1:1"], description: "Target aspect ratio" },
+          mood: { type: "string", description: "Overall mood/tone: epic, intimate, energetic, mysterious, etc." },
+        },
+        required: ["concept"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "critique_prompt",
+      description: "Analyze a video generation prompt and identify weaknesses, missing elements, and improvement opportunities. Returns specific, actionable feedback on camera work, lighting, subject description, motion, and emotional direction. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          prompt: { type: "string", description: "The prompt to critique" },
+          mode: { type: "string", enum: ["text-to-video", "avatar", "image-to-video"], description: "Generation mode for context" },
+        },
+        required: ["prompt"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "recommend_avatar_for_content",
+      description: "Analyze a content idea and recommend the best-matching avatar(s) from the library based on tone, style, audience, and content type. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          content_description: { type: "string", description: "What the video is about" },
+          target_audience: { type: "string", description: "Who the video is for (e.g., 'business professionals', 'gen-z social media', 'educational')" },
+          tone: { type: "string", description: "Desired tone: professional, casual, energetic, calm, authoritative, friendly" },
+        },
+        required: ["content_description"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "estimate_production_cost",
+      description: "Calculate the total credit cost for a video production plan including clips, duration, mode, and any extras. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          clip_count: { type: "number", description: "Number of clips (1-30)" },
+          clip_duration: { type: "number", enum: [5, 10], description: "Duration per clip in seconds" },
+          mode: { type: "string", enum: ["text-to-video", "avatar", "image-to-video"], description: "Generation mode" },
+          include_music: { type: "boolean", description: "Whether music will be added" },
+          include_effects: { type: "boolean", description: "Whether effects will be applied" },
+          include_editing: { type: "boolean", description: "Whether clip editing (reorder/update prompts) is expected" },
+        },
+        required: ["clip_count"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "troubleshoot_generation",
+      description: "Diagnose why a video generation might be failing or producing poor results. Analyzes project state, clip errors, prompt quality, and pipeline status. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project UUID to troubleshoot" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "suggest_aspect_ratio",
+      description: "Recommend the best aspect ratio based on content type, platform target, and visual composition needs. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          content_type: { type: "string", description: "What kind of video: story, commercial, tutorial, social post, presentation, music video" },
+          target_platform: { type: "string", description: "Where it will be shared: youtube, tiktok, instagram_reels, instagram_feed, linkedin, twitter, website, general" },
+          has_text_overlays: { type: "boolean", description: "Whether text will be overlaid on the video" },
+        },
+        required: ["content_type"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "breakdown_script_to_scenes",
+      description: "Analyze a script or story and break it into individual scenes with camera directions, character blocking, lighting cues, and transition suggestions. Returns a production-ready scene breakdown. Costs 1 credit.",
+      parameters: {
+        type: "object",
+        properties: {
+          script: { type: "string", description: "The full script or story text" },
+          target_clips: { type: "number", description: "Target number of clips to break into" },
+          style: { type: "string", description: "Visual style guidance" },
+        },
+        required: ["script"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "compare_projects",
+      description: "Compare two projects side by side — clip counts, status, prompt quality, duration, and production stats. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id_a: { type: "string", description: "First project UUID" },
+          project_id_b: { type: "string", description: "Second project UUID" },
+        },
+        required: ["project_id_a", "project_id_b"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_platform_tips",
+      description: "Get contextual tips and best practices for video creation based on the user's current situation — experience level, content type, or specific challenge. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          topic: { type: "string", enum: ["beginner_guide", "prompt_writing", "avatar_best_practices", "editing_workflow", "social_growth", "credit_optimization", "cinematic_techniques", "storytelling", "pacing_rhythm", "color_and_mood", "audio_design", "transitions"], description: "Topic to get tips about" },
+        },
+        required: ["topic"],
       },
     },
   },
@@ -1643,6 +1797,590 @@ MOTION_GUARD: Ensure continuous micro-movement in every frame to prevent slidesh
       return { stitch_jobs: data || [], total: data?.length || 0 };
     }
 
+    // ─── ADVANCED VIDEO PRODUCTION INTELLIGENCE ───
+
+    case "suggest_shot_list": {
+      const concept = (args.concept as string) || "";
+      const clipCount = Math.min(Math.max((args.clip_count as number) || 6, 3), 20);
+      const style = (args.style as string) || "cinematic";
+      const aspect = (args.aspect_ratio as string) || "16:9";
+      const mood = (args.mood as string) || "cinematic";
+
+      const CAMERA_MOVEMENTS = ["dolly push-in", "slow pan right", "crane reveal", "tracking shot", "orbital around subject", "steadicam follow", "static locked-off", "tilt up reveal", "pull-back reveal", "dutch angle drift", "whip pan", "zoom crawl"];
+      const SHOT_SIZES = ["Extreme Wide Shot (EWS)", "Wide Shot (WS)", "Medium Wide (MWS)", "Medium Shot (MS)", "Medium Close-Up (MCU)", "Close-Up (CU)", "Extreme Close-Up (ECU)"];
+      const LIGHTING = ["golden hour warm", "high-key bright", "low-key dramatic", "Rembrandt side-lit", "silhouette backlit", "neon-lit cyberpunk", "soft diffused overcast", "chiaroscuro contrast", "butterfly glamour", "practical ambient"];
+
+      const shots = [];
+      for (let i = 0; i < clipCount; i++) {
+        const progress = i / (clipCount - 1 || 1);
+        let narrativeBeat = "establishing";
+        if (progress < 0.2) narrativeBeat = "establishing/hook";
+        else if (progress < 0.5) narrativeBeat = "rising action";
+        else if (progress < 0.75) narrativeBeat = "climax/peak";
+        else if (progress < 0.9) narrativeBeat = "falling action";
+        else narrativeBeat = "resolution/outro";
+
+        shots.push({
+          clip_number: i + 1,
+          narrative_beat: narrativeBeat,
+          suggested_shot_size: SHOT_SIZES[Math.min(i % SHOT_SIZES.length, SHOT_SIZES.length - 1)],
+          camera_movement: CAMERA_MOVEMENTS[i % CAMERA_MOVEMENTS.length],
+          lighting_suggestion: LIGHTING[i % LIGHTING.length],
+          pacing_note: progress < 0.3 ? "Slower pace — let the audience absorb the world" : progress < 0.7 ? "Building tempo — shorter cuts, more motion" : "Peak energy or gentle wind-down",
+          transition_to_next: i < clipCount - 1 ? (progress < 0.5 ? "smooth dissolve or match cut" : "hard cut or whip transition") : "final fade to black",
+          prompt_skeleton: `[${SHOT_SIZES[i % SHOT_SIZES.length]}] ${CAMERA_MOVEMENTS[i % CAMERA_MOVEMENTS.length]}, ${LIGHTING[i % LIGHTING.length]}, ${mood} mood — [DESCRIBE SCENE ACTION HERE]`,
+        });
+      }
+
+      return {
+        concept,
+        style,
+        aspect_ratio: aspect,
+        mood,
+        total_clips: clipCount,
+        estimated_duration_seconds: clipCount * 5,
+        shot_list: shots,
+        director_notes: [
+          `Open with a strong visual hook — the first 2 seconds determine if viewers stay`,
+          `Vary shot sizes: alternate wide establishing shots with intimate close-ups`,
+          `Use camera movement to convey emotion: slow = contemplative, fast = urgent`,
+          `Lighting shifts can signal mood changes without words`,
+          `End each clip on a composition that naturally flows into the next`,
+          `For ${aspect}: ${aspect === "9:16" ? "Keep subject centered, vertical framing emphasizes height and faces" : aspect === "1:1" ? "Symmetric compositions work best, subject fills center" : "Use rule of thirds, cinematic widescreen framing"}`,
+        ],
+        production_tips: [
+          "Include IDENTITY_ANCHOR in every prompt to maintain character consistency",
+          "Add MOTION_GUARD to prevent static 'slideshow' artifacts",
+          "Place key action words at the START of prompts — the AI reads front-to-back",
+          "Negative prompts: avoid 'film grain', 'blurry', 'static', 'morphing'",
+        ],
+      };
+    }
+
+    case "critique_prompt": {
+      const prompt = (args.prompt as string) || "";
+      const mode = (args.mode as string) || "text-to-video";
+      const issues: Array<{ category: string; severity: string; issue: string; fix: string }> = [];
+
+      // Camera work analysis
+      const hasCameraDir = /dolly|pan|tilt|crane|tracking|orbital|zoom|steadicam|handheld/i.test(prompt);
+      if (!hasCameraDir) issues.push({ category: "Camera", severity: "high", issue: "No camera movement specified", fix: "Add a camera direction like 'slow dolly push-in' or 'tracking shot following subject'" });
+
+      // Shot size
+      const hasShotSize = /wide shot|close-up|medium shot|extreme|ECU|CU|MS|WS|MCU|EWS/i.test(prompt);
+      if (!hasShotSize) issues.push({ category: "Framing", severity: "medium", issue: "No shot size specified", fix: "Specify framing like 'medium close-up' or 'wide establishing shot'" });
+
+      // Lighting
+      const hasLighting = /light|lit|glow|shadow|golden hour|backlit|neon|sunset|sunrise|overcast|dim|bright|dark/i.test(prompt);
+      if (!hasLighting) issues.push({ category: "Lighting", severity: "high", issue: "No lighting direction", fix: "Add lighting cues: 'warm golden hour light', 'dramatic side-lighting', 'soft diffused overcast'" });
+
+      // Motion/Action
+      const hasMotion = /walk|run|turn|move|gesture|breathe|look|reach|lean|step|dance|drive|fly/i.test(prompt);
+      if (!hasMotion && mode === "text-to-video") issues.push({ category: "Motion", severity: "high", issue: "No subject motion described", fix: "Describe what the subject is DOING: 'slowly turns to face camera', 'walks through the scene'" });
+
+      // Emotion/Mood
+      const hasEmotion = /emotion|mood|feeling|atmosphere|vibe|tone|dramatic|peaceful|tense|joyful|mysterious|epic/i.test(prompt);
+      if (!hasEmotion) issues.push({ category: "Emotion", severity: "medium", issue: "No emotional direction", fix: "Set the mood: 'atmosphere of quiet tension', 'joyful and energetic vibe'" });
+
+      // Subject clarity
+      const wordCount = prompt.split(/\s+/).length;
+      if (wordCount < 10) issues.push({ category: "Detail", severity: "high", issue: "Prompt too short — AI needs more context", fix: "Expand to 30-80 words with specific visual details, actions, and atmosphere" });
+      if (wordCount > 200) issues.push({ category: "Detail", severity: "medium", issue: "Prompt may be too long — key details get lost after ~150 words", fix: "Front-load the most important action and visual cues in the first 50 words" });
+
+      // Color/Visual
+      const hasColor = /color|red|blue|green|gold|silver|warm|cool|vivid|saturated|muted|monochrome/i.test(prompt);
+      if (!hasColor) issues.push({ category: "Color", severity: "low", issue: "No color direction", fix: "Add color cues: 'warm amber tones', 'cool blue shadows', 'vivid saturated colors'" });
+
+      // Safety markers
+      const hasIdentityAnchor = /IDENTITY_ANCHOR|identity anchor|face lock|consistent appearance/i.test(prompt);
+      const hasMotionGuard = /MOTION_GUARD|motion guard|continuous movement|subtle movement/i.test(prompt);
+
+      const score = Math.max(0, 100 - issues.filter(i => i.severity === "high").length * 20 - issues.filter(i => i.severity === "medium").length * 10 - issues.filter(i => i.severity === "low").length * 5);
+
+      return {
+        prompt_analyzed: prompt.substring(0, 100) + (prompt.length > 100 ? "..." : ""),
+        mode,
+        overall_score: score,
+        grade: score >= 80 ? "A — Excellent" : score >= 60 ? "B — Good, minor improvements" : score >= 40 ? "C — Needs work" : "D — Significant gaps",
+        issues,
+        has_identity_anchor: hasIdentityAnchor,
+        has_motion_guard: hasMotionGuard,
+        word_count: wordCount,
+        recommendations: [
+          !hasIdentityAnchor && "Add [IDENTITY_ANCHOR: consistent face, hair, clothing] for character consistency",
+          !hasMotionGuard && "Add [MOTION_GUARD: continuous subtle breathing and micro-expressions] to prevent static output",
+          score < 60 && "Consider using the 'enhance_prompt' tool to auto-upgrade this prompt",
+        ].filter(Boolean),
+      };
+    }
+
+    case "recommend_avatar_for_content": {
+      const contentDesc = (args.content_description as string) || "";
+      const audience = (args.target_audience as string) || "general";
+      const tone = (args.tone as string) || "professional";
+
+      // Fetch all active avatars
+      const { data: avatars } = await supabase
+        .from("avatar_templates")
+        .select("id, name, personality, gender, style, avatar_type, voice_name, voice_description, tags, age_range, description")
+        .eq("is_active", true)
+        .order("use_count", { ascending: false })
+        .limit(30);
+
+      if (!avatars || avatars.length === 0) return { recommendations: [], message: "No avatars available" };
+
+      // Simple scoring based on keyword matching
+      const scored = avatars.map(a => {
+        let score = 0;
+        const allText = `${a.personality || ""} ${a.style || ""} ${a.tags?.join(" ") || ""} ${a.description || ""} ${a.voice_description || ""}`.toLowerCase();
+        const contentLower = contentDesc.toLowerCase();
+        const toneLower = tone.toLowerCase();
+        const audienceLower = audience.toLowerCase();
+
+        // Style match
+        if (toneLower.includes("professional") && (a.style === "corporate" || a.style === "luxury")) score += 3;
+        if (toneLower.includes("casual") && (a.style === "casual" || a.style === "influencer")) score += 3;
+        if (toneLower.includes("educational") && a.style === "educational") score += 3;
+        if (toneLower.includes("energetic") && (a.style === "influencer" || a.style === "creative")) score += 3;
+
+        // Content relevance
+        const contentWords = contentLower.split(/\s+/);
+        for (const word of contentWords) {
+          if (word.length > 3 && allText.includes(word)) score += 1;
+        }
+
+        // Audience match
+        if (audienceLower.includes("business") && a.style === "corporate") score += 2;
+        if (audienceLower.includes("young") && (a.style === "influencer" || a.style === "creative")) score += 2;
+        if (audienceLower.includes("education") && a.style === "educational") score += 2;
+
+        return { ...a, match_score: score };
+      });
+
+      scored.sort((a, b) => b.match_score - a.match_score);
+      const top = scored.slice(0, 5);
+
+      return {
+        content_analyzed: contentDesc.substring(0, 100),
+        target_audience: audience,
+        desired_tone: tone,
+        recommendations: top.map((a, i) => ({
+          rank: i + 1,
+          avatar_id: a.id,
+          name: a.name,
+          personality: a.personality,
+          style: a.style,
+          type: a.avatar_type,
+          voice: a.voice_name,
+          match_score: a.match_score,
+          why: `${a.style} style matches "${tone}" tone. ${a.personality || "Versatile presenter"}.`,
+        })),
+        tip: "You can preview any avatar on the /avatars page before using it in your project!",
+      };
+    }
+
+    case "estimate_production_cost": {
+      const clipCount = Math.min(Math.max((args.clip_count as number) || 6, 1), 30);
+      const duration = (args.clip_duration as number) || 5;
+      const mode = (args.mode as string) || "text-to-video";
+      const includeMusic = (args.include_music as boolean) || false;
+      const includeEffects = (args.include_effects as boolean) || false;
+      const includeEditing = (args.include_editing as boolean) || false;
+
+      // Base credits per clip
+      const baseClips = Math.min(clipCount, 6);
+      const extendedClips = Math.max(0, clipCount - 6);
+      const isExtendedDuration = duration > 6;
+
+      const baseCost = isExtendedDuration ? 15 : 10;
+      const extendedCost = 15;
+
+      const clipCredits = (baseClips * baseCost) + (extendedClips * extendedCost);
+      const musicCredits = includeMusic ? 1 : 0;
+      const effectsCredits = includeEffects ? 1 : 0;
+      const editingCredits = includeEditing ? 3 : 0; // Estimate: prompt updates + reorder
+
+      const totalCredits = clipCredits + musicCredits + effectsCredits + editingCredits;
+      const totalDollars = (totalCredits * 0.10).toFixed(2);
+      const totalDuration = clipCount * duration;
+
+      return {
+        breakdown: {
+          clip_generation: { clips: clipCount, duration_each: `${duration}s`, base_clips: baseClips, extended_clips: extendedClips, credits: clipCredits },
+          music: { included: includeMusic, credits: musicCredits },
+          effects: { included: includeEffects, credits: effectsCredits },
+          editing_estimate: { included: includeEditing, credits: editingCredits },
+        },
+        total_credits: totalCredits,
+        total_cost_usd: `$${totalDollars}`,
+        total_video_duration: `${totalDuration}s (${(totalDuration / 60).toFixed(1)} min)`,
+        mode,
+        notes: [
+          "Failed clips are automatically refunded",
+          clipCount > 6 ? `Clips 7+ use extended rate (15 credits each)` : "All clips at base rate (10 credits each)",
+          isExtendedDuration ? "Extended duration (>6s) uses extended rate" : "Standard duration (≤6s) at base rate",
+          "Project creation via Hoppy costs 2 additional credits",
+        ],
+        best_package: totalCredits <= 90 ? "Mini ($9/90cr)" : totalCredits <= 370 ? "Starter ($37/370cr)" : totalCredits <= 1000 ? "Growth ($99/1000cr)" : "Agency ($249/2500cr)",
+      };
+    }
+
+    case "troubleshoot_generation": {
+      const { data: project } = await supabase
+        .from("movie_projects")
+        .select("id, title, status, prompt, mode, aspect_ratio, clip_count, clip_duration, video_url, last_error, pipeline_context_snapshot, generation_lock, created_at, updated_at")
+        .eq("id", args.project_id)
+        .eq("user_id", userId)
+        .single();
+      if (!project) return { error: "Project not found or access denied" };
+
+      const { data: clips } = await supabase
+        .from("video_clips")
+        .select("shot_index, status, prompt, error_message, retry_count, duration_seconds, created_at, updated_at")
+        .eq("project_id", args.project_id)
+        .order("shot_index");
+
+      const cl = clips || [];
+      const failed = cl.filter(c => c.status === "failed");
+      const generating = cl.filter(c => c.status === "generating");
+      const completed = cl.filter(c => c.status === "completed");
+      const pending = cl.filter(c => c.status === "pending");
+
+      const diagnostics: Array<{ issue: string; severity: string; suggestion: string }> = [];
+
+      // Check overall project state
+      if (project.status === "failed" && project.last_error) {
+        diagnostics.push({ issue: `Project failed: ${project.last_error.substring(0, 100)}`, severity: "critical", suggestion: "Try regenerating the project. If the error persists, the prompt may need adjusting." });
+      }
+
+      // Check for stuck generations
+      for (const clip of generating) {
+        const ageMinutes = (Date.now() - new Date(clip.updated_at).getTime()) / 60000;
+        if (ageMinutes > 15) {
+          diagnostics.push({ issue: `Clip #${clip.shot_index + 1} stuck generating for ${Math.round(ageMinutes)} minutes`, severity: "high", suggestion: "This clip may be stuck. I can retry it for you." });
+        }
+      }
+
+      // Check failed clips
+      for (const clip of failed) {
+        const errorMsg = clip.error_message || "Unknown error";
+        if (errorMsg.includes("content") || errorMsg.includes("safety") || errorMsg.includes("moderat")) {
+          diagnostics.push({ issue: `Clip #${clip.shot_index + 1} failed content moderation`, severity: "high", suggestion: "The prompt may contain terms that trigger content filters. I can help rephrase it." });
+        } else if (errorMsg.includes("timeout") || errorMsg.includes("timed out")) {
+          diagnostics.push({ issue: `Clip #${clip.shot_index + 1} timed out`, severity: "medium", suggestion: "This can happen with complex prompts. Retry usually works." });
+        } else if (clip.retry_count >= 3) {
+          diagnostics.push({ issue: `Clip #${clip.shot_index + 1} failed ${clip.retry_count} times`, severity: "high", suggestion: "Multiple failures suggest the prompt needs reworking. Try simplifying or rephrasing it." });
+        } else {
+          diagnostics.push({ issue: `Clip #${clip.shot_index + 1} failed: ${errorMsg.substring(0, 80)}`, severity: "medium", suggestion: "I can retry this clip. Credits for failures are auto-refunded." });
+        }
+      }
+
+      // Prompt quality check
+      if (project.prompt) {
+        const words = project.prompt.split(/\s+/).length;
+        if (words < 10) diagnostics.push({ issue: "Main prompt is very short", severity: "medium", suggestion: "Longer, more descriptive prompts produce better results. Consider using enhance_prompt." });
+      }
+
+      // Generation lock check
+      if (project.generation_lock) {
+        diagnostics.push({ issue: "Generation lock is active — another process may be running", severity: "info", suggestion: "If nothing is progressing, the lock will auto-release after 10 minutes." });
+      }
+
+      return {
+        project_id: project.id,
+        title: project.title,
+        status: project.status,
+        mode: project.mode,
+        clip_summary: { total: cl.length, completed: completed.length, failed: failed.length, generating: generating.length, pending: pending.length },
+        diagnostics,
+        overall_health: diagnostics.filter(d => d.severity === "critical").length > 0 ? "CRITICAL" : diagnostics.filter(d => d.severity === "high").length > 0 ? "NEEDS_ATTENTION" : diagnostics.length > 0 ? "MINOR_ISSUES" : "HEALTHY",
+        actions_available: [
+          failed.length > 0 && "I can retry failed clips for you",
+          generating.length > 0 && "Generation is in progress — monitor with pipeline status",
+          pending.length > 0 && "Pending clips will be processed automatically",
+          project.status === "draft" && "Project is still in draft — trigger generation when ready",
+        ].filter(Boolean),
+      };
+    }
+
+    case "suggest_aspect_ratio": {
+      const contentType = (args.content_type as string) || "general";
+      const platform = (args.target_platform as string) || "general";
+      const hasText = (args.has_text_overlays as boolean) || false;
+
+      const recommendations: Record<string, { ratio: string; reason: string }> = {
+        tiktok: { ratio: "9:16", reason: "TikTok is vertical-first. 9:16 fills the entire screen for maximum engagement." },
+        instagram_reels: { ratio: "9:16", reason: "Reels are vertical. 9:16 ensures full-screen immersion." },
+        instagram_feed: { ratio: "1:1", reason: "Square format is the Instagram feed standard — clean and consistent in grid." },
+        youtube: { ratio: "16:9", reason: "YouTube is widescreen. 16:9 is the native format for maximum quality." },
+        linkedin: { ratio: "16:9", reason: "LinkedIn favors professional widescreen content." },
+        twitter: { ratio: "16:9", reason: "Twitter/X plays 16:9 natively in the feed." },
+        website: { ratio: "16:9", reason: "Widescreen embeds look best on web pages." },
+      };
+
+      const platformRec = recommendations[platform] || { ratio: "16:9", reason: "Widescreen is the most versatile default." };
+
+      const contentNotes: Record<string, string> = {
+        story: "Narrative content benefits from widescreen (16:9) for cinematic feel, or vertical (9:16) for intimate character-driven stories.",
+        commercial: "Match your distribution platform. Widescreen for TV/web, vertical for social.",
+        tutorial: "16:9 works best for tutorials — more horizontal space for demonstrations and text.",
+        "social post": "9:16 for TikTok/Reels, 1:1 for Instagram feed, 16:9 for YouTube.",
+        presentation: "16:9 mirrors slide decks and feels professional.",
+        "music video": "16:9 for cinematic music videos, 9:16 for social-first releases.",
+      };
+
+      return {
+        recommended_ratio: platformRec.ratio,
+        reason: platformRec.reason,
+        content_note: contentNotes[contentType] || "Consider your primary distribution platform when choosing aspect ratio.",
+        all_options: {
+          "16:9": { best_for: "YouTube, websites, presentations, cinematic content", feel: "Professional, cinematic, expansive" },
+          "9:16": { best_for: "TikTok, Instagram Reels, YouTube Shorts", feel: "Intimate, mobile-first, immersive" },
+          "1:1": { best_for: "Instagram feed, social media ads", feel: "Clean, balanced, grid-friendly" },
+        },
+        text_overlay_tip: hasText ? "With text overlays, ensure your aspect ratio has enough space. 16:9 gives the most room for lower-thirds and titles." : null,
+      };
+    }
+
+    case "breakdown_script_to_scenes": {
+      const script = (args.script as string) || "";
+      const targetClips = Math.min(Math.max((args.target_clips as number) || 6, 2), 20);
+      const style = (args.style as string) || "cinematic";
+
+      // Split script into roughly equal segments
+      const sentences = script.split(/[.!?]+/).filter(s => s.trim().length > 5);
+      const sentencesPerClip = Math.max(1, Math.ceil(sentences.length / targetClips));
+      const scenes = [];
+
+      const cameraSequence = ["Wide establishing shot", "Medium shot", "Close-up", "Over-the-shoulder", "Tracking shot", "Low angle", "High angle", "Point-of-view", "Two-shot", "Extreme close-up"];
+      const transitionTypes = ["dissolve", "match cut", "hard cut", "whip pan", "fade through black", "jump cut", "L-cut"];
+
+      for (let i = 0; i < targetClips; i++) {
+        const startIdx = i * sentencesPerClip;
+        const sceneText = sentences.slice(startIdx, startIdx + sentencesPerClip).join(". ").trim();
+        if (!sceneText) continue;
+
+        const progress = i / (targetClips - 1 || 1);
+        let act = "Act 1 — Setup";
+        if (progress > 0.25 && progress <= 0.65) act = "Act 2 — Confrontation";
+        else if (progress > 0.65) act = "Act 3 — Resolution";
+
+        scenes.push({
+          scene_number: i + 1,
+          act,
+          script_content: sceneText.substring(0, 200),
+          camera: cameraSequence[i % cameraSequence.length],
+          lighting: progress < 0.3 ? "Warm, inviting — establish comfort" : progress < 0.7 ? "Dynamic, shifting — tension building" : "Resolved — soft or dramatic depending on ending",
+          subject_direction: "Subject should show visible emotion matching the script content",
+          transition_out: i < targetClips - 1 ? transitionTypes[i % transitionTypes.length] : "Fade to black",
+          pacing: progress < 0.3 ? "Measured, allow audience to settle in" : progress < 0.8 ? "Accelerating, building momentum" : "Decelerating, bringing closure",
+          prompt_suggestion: `[${cameraSequence[i % cameraSequence.length]}] ${style} visual, ${sceneText.substring(0, 80)}... [IDENTITY_ANCHOR] [MOTION_GUARD]`,
+        });
+      }
+
+      return {
+        total_scenes: scenes.length,
+        style,
+        three_act_structure: {
+          act_1: "Setup — Introduce the world, characters, and stakes",
+          act_2: "Confrontation — Rising tension, obstacles, key moments",
+          act_3: "Resolution — Climax and satisfying conclusion",
+        },
+        scenes,
+        director_notes: [
+          "Each scene prompt should lead with the primary action",
+          "Maintain character consistency with IDENTITY_ANCHOR across all clips",
+          "Use camera variety — avoid repeating the same shot size consecutively",
+          "Emotional beats should build: curiosity → engagement → climax → satisfaction",
+        ],
+      };
+    }
+
+    case "compare_projects": {
+      const [{ data: projA }, { data: projB }] = await Promise.all([
+        supabase.from("movie_projects").select("id, title, status, prompt, mode, aspect_ratio, clip_count, clip_duration, video_url, likes_count, created_at").eq("id", args.project_id_a).eq("user_id", userId).single(),
+        supabase.from("movie_projects").select("id, title, status, prompt, mode, aspect_ratio, clip_count, clip_duration, video_url, likes_count, created_at").eq("id", args.project_id_b).eq("user_id", userId).single(),
+      ]);
+
+      if (!projA || !projB) return { error: "One or both projects not found" };
+
+      const [{ data: clipsA }, { data: clipsB }] = await Promise.all([
+        supabase.from("video_clips").select("status, quality_score, duration_seconds, retry_count").eq("project_id", args.project_id_a),
+        supabase.from("video_clips").select("status, quality_score, duration_seconds, retry_count").eq("project_id", args.project_id_b),
+      ]);
+
+      const ca = clipsA || [];
+      const cb = clipsB || [];
+      const avgQA = ca.filter(c => c.quality_score).reduce((s, c) => s + (c.quality_score || 0), 0) / (ca.filter(c => c.quality_score).length || 1);
+      const avgQB = cb.filter(c => c.quality_score).reduce((s, c) => s + (c.quality_score || 0), 0) / (cb.filter(c => c.quality_score).length || 1);
+
+      return {
+        comparison: {
+          project_a: { id: projA.id, title: projA.title, status: projA.status, mode: projA.mode, clips: ca.length, completed: ca.filter(c => c.status === "completed").length, failed: ca.filter(c => c.status === "failed").length, likes: projA.likes_count, avg_quality: Math.round(avgQA * 10) / 10, has_video: !!projA.video_url },
+          project_b: { id: projB.id, title: projB.title, status: projB.status, mode: projB.mode, clips: cb.length, completed: cb.filter(c => c.status === "completed").length, failed: cb.filter(c => c.status === "failed").length, likes: projB.likes_count, avg_quality: Math.round(avgQB * 10) / 10, has_video: !!projB.video_url },
+        },
+        insights: [
+          ca.length !== cb.length && `${projA.title} has ${ca.length} clips vs ${projB.title}'s ${cb.length}`,
+          avgQA !== avgQB && `Quality: ${projA.title} scores ${avgQA.toFixed(1)} vs ${projB.title}'s ${avgQB.toFixed(1)}`,
+          projA.likes_count !== projB.likes_count && `Engagement: ${projA.title} has ${projA.likes_count} likes vs ${projB.title}'s ${projB.likes_count}`,
+        ].filter(Boolean),
+      };
+    }
+
+    case "get_platform_tips": {
+      const topic = (args.topic as string) || "beginner_guide";
+
+      const tips: Record<string, { title: string; tips: string[] }> = {
+        beginner_guide: {
+          title: "🌟 Getting Started with APEX Studios",
+          tips: [
+            "Start with Text-to-Video mode — type what you want to see and we handle the rest",
+            "Your first video: try 4 clips at 5 seconds each (40 credits total)",
+            "Each clip is a 'shot' in your video — think of them as camera angles in a movie",
+            "After generation, open the Video Editor to add music, effects, and fine-tune",
+            "Failed clips are automatically refunded — never lose credits on errors",
+            "Check /avatars to browse AI presenters for professional talking-head videos",
+          ],
+        },
+        prompt_writing: {
+          title: "✍️ Writing Prompts That Produce Stunning Videos",
+          tips: [
+            "FRONT-LOAD: Put the most important action in the first 20 words — AI attention drops after ~150 words",
+            "CAMERA: Always specify a camera movement: 'slow dolly push-in', 'tracking shot following subject'",
+            "LIGHTING: Name your light: 'golden hour warm backlighting', 'dramatic Rembrandt side-light'",
+            "MOTION: Describe what moves: 'wind rustling hair', 'character slowly turns', 'camera drifts right'",
+            "EMOTION: Set the mood: 'atmosphere of quiet tension', 'vibrant celebratory energy'",
+            "COLOR: Direct the palette: 'warm amber and deep shadows', 'cool blue steel tones'",
+            "GUARDS: End with [IDENTITY_ANCHOR: consistent face/hair/clothing] [MOTION_GUARD: subtle breathing and micro-expressions]",
+            "AVOID: 'film grain', 'blurry', 'static pose', 'multiple subjects morphing' — add these as mental negatives",
+            "EXAMPLE: 'Close-up, slow dolly push-in. A woman with auburn hair looks up with wonder, golden hour light catching her eyes. Warm amber tones, bokeh background. She slowly smiles. [IDENTITY_ANCHOR] [MOTION_GUARD]'",
+          ],
+        },
+        avatar_best_practices: {
+          title: "🤖 Creating Perfect Avatar Videos",
+          tips: [
+            "Write your script as natural speech — the avatar will lip-sync to it",
+            "Keep sentences short (10-15 words) for natural pacing and clear lip-sync",
+            "Match avatar personality to content: corporate for business, creative for entertainment",
+            "Use punctuation for timing: periods = pause, commas = brief pause, ellipsis = long pause",
+            "Avatar videos default to 10s per clip for natural speech rhythm",
+            "Browse /avatars to preview voices before committing to a project",
+          ],
+        },
+        editing_workflow: {
+          title: "🎬 Professional Editing Workflow",
+          tips: [
+            "Generate your base clips first, then open the Video Editor for post-production",
+            "Add music AFTER reviewing your clips — match the track to your video's energy",
+            "Apply effects sparingly — one strong effect beats three subtle ones",
+            "Reorder clips to improve narrative flow — I can help analyze pacing",
+            "Use the stitch feature to combine clips into a seamless final video",
+            "Export and share directly from the editor",
+          ],
+        },
+        cinematic_techniques: {
+          title: "🎥 Cinematic Techniques for AI Video",
+          tips: [
+            "RULE OF THIRDS: Mention subject position — 'subject in left third of frame'",
+            "DEPTH: Create layers — 'foreground flowers, subject mid-ground, mountains background'",
+            "MOVEMENT CONTRAST: Static camera on moving subject OR moving camera on static subject — not both",
+            "SHOT VARIETY: Alternate wide → medium → close-up to maintain visual interest",
+            "CONTINUITY: End each clip on a composition that flows into the next",
+            "COLOR STORY: Use warm colors for positive moments, cool for tension, neutral for transitions",
+            "GOLDEN RATIO: For the most pleasing composition, place key elements along golden ratio lines",
+            "BREATHING ROOM: Leave negative space — not every frame needs to be packed with detail",
+          ],
+        },
+        storytelling: {
+          title: "📖 Visual Storytelling Principles",
+          tips: [
+            "THREE-ACT STRUCTURE: Setup (25%) → Confrontation (50%) → Resolution (25%)",
+            "HOOK: Your first clip must grab attention in 2 seconds — start with the most visually striking moment",
+            "SHOW DON'T TELL: Use visual metaphors instead of explicit narration where possible",
+            "EMOTIONAL ARC: Build emotion gradually — don't peak in clip 1",
+            "CONTRAST: Juxtapose opposites — light/dark, fast/slow, wide/close — to create visual interest",
+            "CLOSURE: Your final clip should provide emotional resolution — a look, a sunset, a symbolic image",
+          ],
+        },
+        pacing_rhythm: {
+          title: "⏱️ Pacing & Rhythm",
+          tips: [
+            "FAST PACING: Short clips (5s), frequent cuts, dynamic camera = energy and urgency",
+            "SLOW PACING: Longer clips (10s), minimal cuts, smooth camera = contemplation and weight",
+            "RHYTHM: Alternate fast and slow sections to prevent monotony",
+            "MUSIC SYNC: Time your cut points to musical beats for professional feel",
+            "BREATHING SPACE: After an intense sequence, add a quiet 'breathing' clip",
+            "MOMENTUM: Each clip should feel like it propels you to the next",
+          ],
+        },
+        color_and_mood: {
+          title: "🎨 Color Theory for Video",
+          tips: [
+            "WARM (amber, gold, orange): Comfort, nostalgia, intimacy, happiness",
+            "COOL (blue, teal, silver): Technology, isolation, calm, professionalism",
+            "RED: Passion, danger, power, urgency",
+            "GREEN: Nature, growth, peace, envy",
+            "PURPLE: Luxury, mystery, spirituality",
+            "DESATURATED: Melancholy, memory, documentary feel",
+            "HIGH CONTRAST: Drama, power, cinema",
+            "LOW CONTRAST: Softness, dreams, romance",
+            "TIP: Pick a dominant color and use its complement as an accent for visual pop",
+          ],
+        },
+        audio_design: {
+          title: "🎵 Audio & Music Design",
+          tips: [
+            "Music sets 70% of the emotional tone — choose it with intention",
+            "Match music BPM to your edit rhythm: 60-80 BPM = calm, 120+ BPM = energetic",
+            "The platform auto-ducks music during dialogue — let the system handle volume balance",
+            "CINEMATIC: Orchestral, piano, strings — for dramatic and emotional content",
+            "POP/ELECTRONIC: For energetic, young-audience, social media content",
+            "AMBIENT: For meditation, relaxation, nature, technology showcases",
+            "SILENCE: Strategic silence before a key moment creates powerful impact",
+          ],
+        },
+        transitions: {
+          title: "🔄 Transition Techniques",
+          tips: [
+            "HARD CUT: Most common. Clean and professional. Use for same-energy scenes.",
+            "DISSOLVE: Signals time passing or mood shift. Use sparingly.",
+            "MATCH CUT: End on a shape/motion, start next clip with similar shape/motion — most cinematic transition",
+            "WHIP PAN: Camera whips to side, next clip starts mid-whip — energetic and fun",
+            "FADE TO BLACK: Signals chapter ending or significant time jump",
+            "JUMP CUT: Same framing, time skip — trendy for social media",
+            "L-CUT: Audio from next scene starts before the visual cut — sophisticated",
+            "RULE: Use maximum 2-3 different transition types per video. Consistency > variety.",
+          ],
+        },
+        social_growth: {
+          title: "📈 Growing Your Audience",
+          tips: [
+            "Post consistently — the algorithm rewards regular creators",
+            "Engage with other creators — follow, like, comment to build community",
+            "Share your best work in the Gallery for maximum visibility",
+            "Use 9:16 for TikTok/Reels, 16:9 for YouTube, 1:1 for Instagram feed",
+            "First 3 seconds determine if someone watches — make them count",
+            "Maintain your streak for XP bonuses and achievement badges",
+          ],
+        },
+        credit_optimization: {
+          title: "💰 Maximizing Your Credits",
+          tips: [
+            "Start with 4-6 clips instead of 20 — perfect your prompt first, then expand",
+            "Use 5-second clips (10 credits) vs 10-second (15 credits) unless you need the extra time",
+            "Draft mode is FREE — create drafts, edit prompts, then generate when ready",
+            "Failed clips are auto-refunded — don't fear experimentation",
+            "Use 'critique_prompt' (free) before generating to catch issues early",
+            "The Growth package ($99/1000cr) gives the best per-credit value for serious creators",
+            "Buying in bulk saves 15-20% compared to Mini packages",
+          ],
+        },
+      };
+
+      const result = tips[topic] || tips.beginner_guide;
+      return { ...result, topic, available_topics: Object.keys(tips) };
+    }
+
     default:
       return { error: `Unknown tool: ${toolName}` };
   }
@@ -1723,9 +2461,18 @@ You are a FULLY capable assistant. You can DO everything in the app:
 - **Add music** to completed projects (1cr) — browse the curated music library by genre
 - **Apply visual effects** to projects (1cr) — cinematic bars, vintage film, color boost, slow motion, dreamy glow, B&W, sepia, VHS retro
 
-**🧠 Creative Intelligence** (NEW!)
-- **analyze_video_quality** (1cr) — Deep analysis of a project's clips: pacing, continuity, prompt quality, camera/lighting/emotion cues, and actionable improvement recommendations
-- **enhance_prompt** (1cr) — Transform a basic prompt into a cinematic masterpiece with camera directions, lighting cues, emotional beats, and quality guards
+**🧠 Creative Intelligence & Video Production Mastery**
+- **analyze_video_quality** (1cr) — Deep analysis of pacing, continuity, prompt quality, and improvement recommendations
+- **enhance_prompt** (1cr) — Transform basic prompts into cinematic masterpieces with camera/lighting/emotion
+- **suggest_shot_list** (1cr) — Break any concept into a professional shot list with camera movements, shot sizes, lighting, pacing, and transitions
+- **critique_prompt** (free) — Grade a prompt A-D with specific fixes for camera, lighting, motion, emotion, color, and detail gaps
+- **breakdown_script_to_scenes** (1cr) — Split a script into production-ready scenes with 3-act structure, camera directions, and prompt skeletons
+- **recommend_avatar_for_content** (free) — AI-match the best avatar to your content type, audience, and tone
+- **estimate_production_cost** (free) — Calculate total credits for any production plan with package recommendations
+- **troubleshoot_generation** (free) — Diagnose stuck/failed generations with actionable fixes
+- **suggest_aspect_ratio** (free) — Platform-optimized ratio recommendations (YouTube, TikTok, Instagram, etc.)
+- **compare_projects** (free) — Side-by-side comparison of two projects (clips, quality, engagement)
+- **get_platform_tips** (free) — Expert guides on 12 topics: prompt writing, cinematography, storytelling, pacing, color theory, audio design, transitions, and more
 
 **📸 Photo & Image Awareness**
 - Browse user's uploaded photos and generated images
@@ -1848,6 +2595,12 @@ Users get notified about: follows, video completions, video failures (with refun
 - "Can you add music to my video?" → Yes! I can add music from our curated library — cinematic, pop, ambient, electronic, hip-hop, or classical
 - "Can you apply effects?" → Absolutely! I can apply effects like cinematic bars, vintage film, color boost, slow motion, and more
 - "Can you see my photos?" → I can browse your project thumbnails and generated frames to give you creative feedback!
+- "How do I write better prompts?" → I can critique your prompt for free and grade it A-D with specific fixes, or enhance it for 1 credit!
+- "Help me plan my video" → I can create a professional shot list, break down your script, estimate costs, and recommend the best aspect ratio
+- "Why did my video fail?" → I can troubleshoot your project — checking clip errors, stuck generations, and prompt quality
+- "Which avatar should I use?" → Tell me your content and audience, and I'll recommend the best match from our library
+- "How much will this cost?" → I can calculate exact credit costs for any production plan
+- "Teach me about filmmaking" → I have expert guides on cinematography, storytelling, pacing, color theory, transitions, audio design, and more!
 
 ═══ TERMS & CONDITIONS (COMPLETE) ═══
 You MUST know and accurately communicate these policies when asked:

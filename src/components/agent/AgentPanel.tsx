@@ -329,6 +329,7 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                   key={msg.id}
                   message={msg}
                   onAction={handleAction}
+                  onNavigate={(path) => { navigate(path); onClose(); }}
                   isLatest={i === messages.length - 1}
                 />
               ))}
@@ -497,13 +498,16 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
 function ImmersiveMessageBubble({
   message,
   onAction,
+  onNavigate,
   isLatest,
 }: {
   message: AgentMessage;
   onAction: (action: AgentAction) => void;
+  onNavigate: (path: string) => void;
   isLatest: boolean;
 }) {
   const isUser = message.role === "user";
+  const handleRichBlockNav = onNavigate;
 
   return (
     <motion.div
@@ -561,9 +565,9 @@ function ImmersiveMessageBubble({
           )}
         </div>
 
-        {/* Rich content blocks — premium card rendering */}
+        {/* Rich content blocks — premium card rendering with navigation */}
         {!isUser && message.richBlocks && message.richBlocks.length > 0 && (
-          <RichBlocksRenderer blocks={message.richBlocks} />
+          <RichBlocksRenderer blocks={message.richBlocks} onNavigate={handleRichBlockNav} />
         )}
 
         {/* Meta row */}

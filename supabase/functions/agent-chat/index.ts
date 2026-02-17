@@ -3383,41 +3383,64 @@ serve(async (req) => {
 
     // ── Extract rich content blocks for premium UI rendering ──
     const richBlocks: Array<{ type: string; data: unknown }> = [];
+    
+    // Page route metadata for page_embed blocks
+    const PAGE_META: Record<string, { title: string; description: string; icon: string; accent: string }> = {
+      "/projects": { title: "Your Projects", description: "View and manage all your video projects", icon: "film", accent: "hsl(24, 95%, 53%)" },
+      "/create": { title: "Create Video", description: "Start a new AI video production", icon: "sparkles", accent: "hsl(280, 70%, 55%)" },
+      "/avatars": { title: "AI Avatars", description: "Browse and select AI presenters", icon: "user", accent: "hsl(38, 92%, 50%)" },
+      "/settings": { title: "Settings", description: "Manage your account preferences", icon: "settings", accent: "hsl(var(--muted-foreground))" },
+      "/pricing": { title: "Credits & Pricing", description: "Top up your credit balance", icon: "zap", accent: "hsl(38, 92%, 50%)" },
+      "/gallery": { title: "Gallery", description: "Discover community creations", icon: "play", accent: "hsl(270, 60%, 60%)" },
+      "/profile": { title: "Your Profile", description: "View your public profile and stats", icon: "user", accent: "hsl(145, 55%, 45%)" },
+      "/world-chat": { title: "World Chat", description: "Chat with the community in real-time", icon: "globe", accent: "hsl(195, 100%, 50%)" },
+      "/creators": { title: "Creators", description: "Discover and follow other creators", icon: "users", accent: "hsl(195, 100%, 50%)" },
+      "/how-it-works": { title: "How It Works", description: "Learn how to create AI videos", icon: "info", accent: "hsl(var(--primary))" },
+      "/help": { title: "Help Center", description: "Get support and answers", icon: "help", accent: "hsl(var(--primary))" },
+      "/contact": { title: "Contact Us", description: "Reach out to our team", icon: "send", accent: "hsl(var(--primary))" },
+    };
+
     for (const tr of allToolResults) {
       const r = tr.result as Record<string, unknown> | null;
       if (!r || typeof r !== "object") continue;
       const name = tr.name;
       
-      // Project lists
-      if (name === "list_projects" && Array.isArray(r.projects)) {
-        richBlocks.push({ type: "project_list", data: { projects: r.projects, total: r.total } });
+      // Navigation → page_embed card
+      if (name === "navigate_user" && r.path) {
+        const path = String(r.path);
+        const meta = PAGE_META[path] || { title: path.replace("/", "").replace(/-/g, " "), description: "Navigate to this page", icon: "arrow-right", accent: "hsl(var(--primary))" };
+        richBlocks.push({ type: "page_embed", data: { path, ...meta, reason: r.reason || null } });
+      }
+      // Project lists (actual tool name: get_user_projects)
+      if ((name === "get_user_projects" || name === "list_projects") && Array.isArray(r.projects)) {
+        richBlocks.push({ type: "project_list", data: { projects: r.projects, total: r.total, navigateTo: "/projects" } });
       }
       // Single project detail
       if (name === "get_project_details" && r.id) {
-        richBlocks.push({ type: "project_detail", data: r });
+        richBlocks.push({ type: "project_detail", data: { ...r as any, navigateTo: `/projects` } });
       }
-      // Credits / balance
-      if (name === "get_credits_balance" && (r.balance !== undefined || r.credits !== undefined)) {
-        richBlocks.push({ type: "credits", data: r });
+      // Credits / balance (actual tool name: get_credit_info)
+      if ((name === "get_credit_info" || name === "get_credits_balance") && (r.balance !== undefined || r.credits !== undefined)) {
+        richBlocks.push({ type: "credits", data: { ...r as any, navigateTo: "/pricing" } });
       }
-      // Avatar list
-      if ((name === "list_avatars" || name === "recommend_avatar_for_content") && Array.isArray(r.avatars)) {
-        richBlocks.push({ type: "avatar_list", data: { avatars: r.avatars } });
+      // Avatar list (actual tool name: get_available_avatars)
+      if ((name === "get_available_avatars" || name === "list_avatars" || name === "recommend_avatar_for_content") && Array.isArray(r.avatars)) {
+        richBlocks.push({ type: "avatar_list", data: { avatars: r.avatars, navigateTo: "/avatars" } });
       }
       // Gallery
       if ((name === "browse_gallery" || name === "get_trending_videos" || name === "search_videos") && Array.isArray(r.items)) {
-        richBlocks.push({ type: "gallery", data: { items: r.items, total: r.total } });
+        richBlocks.push({ type: "gallery", data: { items: r.items, total: r.total, navigateTo: "/gallery" } });
       }
       // Profile
       if (name === "get_user_profile" && r.username) {
-        richBlocks.push({ type: "profile", data: r });
+        richBlocks.push({ type: "profile", data: { ...r as any, navigateTo: "/profile" } });
       }
       // Environment templates
       if (name === "browse_environments" && Array.isArray(r.environments)) {
         richBlocks.push({ type: "environments", data: { environments: r.environments } });
       }
       // Gamification
-      if (name === "get_gamification_stats" && r.level !== undefined) {
+      if ((name === "get_gamification_stats" || name === "get_achievements") && r.level !== undefined) {
         richBlocks.push({ type: "gamification", data: r });
       }
       // Shot list
@@ -3430,10 +3453,10 @@ serve(async (req) => {
       }
       // World chat
       if (name === "read_world_chat" && Array.isArray(r.messages)) {
-        richBlocks.push({ type: "world_chat", data: { messages: r.messages } });
+        richBlocks.push({ type: "world_chat", data: { messages: r.messages, navigateTo: "/world-chat" } });
       }
       // Production status
-      if (name === "get_production_status" && r.status) {
+      if ((name === "get_project_pipeline_status" || name === "get_production_status") && r.status) {
         richBlocks.push({ type: "production_status", data: r });
       }
       // Cost estimate
@@ -3446,7 +3469,7 @@ serve(async (req) => {
       }
       // Settings
       if (name === "get_account_settings" && r.settings) {
-        richBlocks.push({ type: "settings", data: r });
+        richBlocks.push({ type: "settings", data: { ...r as any, navigateTo: "/settings" } });
       }
     }
 

@@ -3,6 +3,7 @@
  * 
  * Renders structured data from Hoppy's tool results as 
  * beautiful, page-quality cards inside the chat.
+ * Each card can include a "Go to page" navigation action.
  */
 
 import { motion } from "framer-motion";
@@ -10,7 +11,8 @@ import {
   Film, Sparkles, Zap, Star, Crown, Eye, Heart, Clock, 
   User, MessageCircle, MapPin, Target, CheckCircle, Circle,
   TrendingUp, Palette, Play, ChevronRight, Settings, Send,
-  Award, Flame, Trophy, Globe, CreditCard
+  Award, Flame, Trophy, Globe, CreditCard, ExternalLink,
+  ArrowRight, Users, HelpCircle, Info, Clapperboard
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,9 +23,10 @@ export interface RichBlock {
 
 interface RichBlocksRendererProps {
   blocks: RichBlock[];
+  onNavigate?: (path: string) => void;
 }
 
-export function RichBlocksRenderer({ blocks }: RichBlocksRendererProps) {
+export function RichBlocksRenderer({ blocks, onNavigate }: RichBlocksRendererProps) {
   if (!blocks || blocks.length === 0) return null;
   return (
     <div className="flex flex-col gap-4 mt-3">
@@ -34,30 +37,32 @@ export function RichBlocksRenderer({ blocks }: RichBlocksRendererProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: i * 0.08, duration: 0.3 }}
         >
-          <BlockRouter block={block} />
+          <BlockRouter block={block} onNavigate={onNavigate} />
         </motion.div>
       ))}
     </div>
   );
 }
 
-function BlockRouter({ block }: { block: RichBlock }) {
+function BlockRouter({ block, onNavigate }: { block: RichBlock; onNavigate?: (path: string) => void }) {
+  const nav = onNavigate;
   switch (block.type) {
-    case "project_list": return <ProjectListBlock data={block.data} />;
-    case "project_detail": return <ProjectDetailBlock data={block.data} />;
-    case "credits": return <CreditsBlock data={block.data} />;
-    case "avatar_list": return <AvatarListBlock data={block.data} />;
-    case "gallery": return <GalleryBlock data={block.data} />;
-    case "profile": return <ProfileBlock data={block.data} />;
+    case "page_embed": return <PageEmbedBlock data={block.data} onNavigate={nav} />;
+    case "project_list": return <ProjectListBlock data={block.data} onNavigate={nav} />;
+    case "project_detail": return <ProjectDetailBlock data={block.data} onNavigate={nav} />;
+    case "credits": return <CreditsBlock data={block.data} onNavigate={nav} />;
+    case "avatar_list": return <AvatarListBlock data={block.data} onNavigate={nav} />;
+    case "gallery": return <GalleryBlock data={block.data} onNavigate={nav} />;
+    case "profile": return <ProfileBlock data={block.data} onNavigate={nav} />;
     case "gamification": return <GamificationBlock data={block.data} />;
     case "environments": return <EnvironmentsBlock data={block.data} />;
     case "production_status": return <ProductionStatusBlock data={block.data} />;
     case "cost_estimate": return <CostEstimateBlock data={block.data} />;
     case "comments": return <CommentsBlock data={block.data} />;
-    case "world_chat": return <WorldChatBlock data={block.data} />;
+    case "world_chat": return <WorldChatBlock data={block.data} onNavigate={nav} />;
     case "shot_list": return <ShotListBlock data={block.data} />;
     case "onboarding": return <OnboardingBlock data={block.data} />;
-    case "settings": return <SettingsBlock data={block.data} />;
+    case "settings": return <SettingsBlock data={block.data} onNavigate={nav} />;
     default: return null;
   }
 }
@@ -82,7 +87,10 @@ function RichCard({ children, className, accent }: { children: React.ReactNode; 
   );
 }
 
-function CardHeader({ icon: Icon, title, badge, accentColor }: { icon: any; title: string; badge?: string; accentColor?: string }) {
+function CardHeader({ icon: Icon, title, badge, accentColor, navigateTo, onNavigate }: { 
+  icon: any; title: string; badge?: string; accentColor?: string;
+  navigateTo?: string; onNavigate?: (path: string) => void;
+}) {
   return (
     <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/8">
       <div className="flex items-center gap-2.5">
@@ -91,12 +99,90 @@ function CardHeader({ icon: Icon, title, badge, accentColor }: { icon: any; titl
         </div>
         <span className="font-display text-sm font-semibold text-foreground tracking-tight">{title}</span>
       </div>
-      {badge && (
-        <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary/70">
-          {badge}
-        </span>
-      )}
+      <div className="flex items-center gap-2">
+        {badge && (
+          <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary/70">
+            {badge}
+          </span>
+        )}
+        {navigateTo && onNavigate && (
+          <button
+            onClick={() => onNavigate(navigateTo)}
+            className="flex items-center gap-1 text-[10px] font-display font-semibold px-2.5 py-1 rounded-full
+                       bg-primary/8 text-primary/70 hover:bg-primary/15 hover:text-primary
+                       border border-primary/10 hover:border-primary/20
+                       transition-all duration-150 active:scale-[0.97]"
+          >
+            Open <ExternalLink className="h-2.5 w-2.5" />
+          </button>
+        )}
+      </div>
     </div>
+  );
+}
+
+// Icon resolver for page_embed
+const PAGE_ICONS: Record<string, any> = {
+  film: Film, sparkles: Sparkles, user: User, settings: Settings,
+  zap: Zap, play: Play, globe: Globe, users: Users, info: Info,
+  help: HelpCircle, send: Send, "arrow-right": ArrowRight,
+};
+
+// ═══════════════════════════════════════════════
+// PAGE EMBED — Beautiful page preview card
+// ═══════════════════════════════════════════════
+
+function PageEmbedBlock({ data, onNavigate }: { data: any; onNavigate?: (path: string) => void }) {
+  const Icon = PAGE_ICONS[data.icon] || ArrowRight;
+  const accent = data.accent || "hsl(var(--primary))";
+  
+  return (
+    <RichCard accent={accent}>
+      <button
+        onClick={() => onNavigate?.(data.path)}
+        className="w-full text-left group"
+      >
+        <div className="p-5 flex items-center gap-4">
+          {/* Icon */}
+          <div 
+            className="p-3.5 rounded-2xl border transition-all duration-300 group-hover:scale-105 flex-shrink-0"
+            style={{ 
+              background: `${accent}15`,
+              borderColor: `${accent}20`,
+            }}
+          >
+            <Icon className="h-6 w-6" style={{ color: accent }} />
+          </div>
+          
+          {/* Info */}
+          <div className="flex-1 min-w-0">
+            <p className="font-display text-base font-bold text-foreground tracking-tight group-hover:text-primary transition-colors">
+              {data.title}
+            </p>
+            <p className="text-xs text-muted-foreground/60 mt-1 leading-relaxed">
+              {data.reason || data.description}
+            </p>
+          </div>
+          
+          {/* Arrow */}
+          <div className="p-2.5 rounded-xl bg-primary/8 border border-primary/10 flex-shrink-0
+                        group-hover:bg-primary group-hover:border-primary transition-all duration-200">
+            <ArrowRight className="h-4 w-4 text-primary group-hover:text-primary-foreground transition-colors" />
+          </div>
+        </div>
+        
+        {/* Bottom bar */}
+        <div className="px-5 pb-3 flex items-center gap-2">
+          <span className="text-[10px] text-muted-foreground/30 font-mono tracking-wider uppercase">
+            {data.path}
+          </span>
+          <div className="flex-1" />
+          <span className="text-[10px] text-primary/50 font-display font-medium group-hover:text-primary transition-colors">
+            Click to open →
+          </span>
+        </div>
+      </button>
+    </RichCard>
   );
 }
 
@@ -104,14 +190,14 @@ function CardHeader({ icon: Icon, title, badge, accentColor }: { icon: any; titl
 // PROJECT LIST
 // ═══════════════════════════════════════════════
 
-function ProjectListBlock({ data }: { data: any }) {
+function ProjectListBlock({ data, onNavigate }: { data: any; onNavigate?: (path: string) => void }) {
   const projects = data.projects || [];
   return (
     <RichCard accent="hsl(24, 95%, 53%)">
-      <CardHeader icon={Film} title="Your Projects" badge={`${data.total || projects.length}`} accentColor="hsl(24, 95%, 53%)" />
+      <CardHeader icon={Film} title="Your Projects" badge={`${data.total || projects.length}`} accentColor="hsl(24, 95%, 53%)" navigateTo={data.navigateTo} onNavigate={onNavigate} />
       <div className="divide-y divide-border/6">
         {projects.slice(0, 6).map((p: any) => (
-          <div key={p.id} className="px-5 py-3.5 flex items-center gap-4 hover:bg-surface-2/40 transition-colors">
+          <div key={p.id} className="px-5 py-3.5 flex items-center gap-4 hover:bg-surface-2/40 transition-colors cursor-default">
             {/* Thumbnail */}
             <div className="w-14 h-10 rounded-lg bg-surface-2/80 border border-border/10 overflow-hidden flex-shrink-0 flex items-center justify-center">
               {p.thumbnail_url ? (
@@ -132,6 +218,16 @@ function ProjectListBlock({ data }: { data: any }) {
           </div>
         ))}
       </div>
+      {/* Footer with navigation */}
+      {data.navigateTo && onNavigate && projects.length > 0 && (
+        <button
+          onClick={() => onNavigate(data.navigateTo)}
+          className="w-full px-5 py-3 border-t border-border/8 flex items-center justify-center gap-2
+                     text-xs font-display font-semibold text-primary/70 hover:text-primary hover:bg-primary/5 transition-all"
+        >
+          View All Projects <ArrowRight className="h-3 w-3" />
+        </button>
+      )}
     </RichCard>
   );
 }
@@ -157,7 +253,7 @@ function StatusPill({ status }: { status: string }) {
 // PROJECT DETAIL
 // ═══════════════════════════════════════════════
 
-function ProjectDetailBlock({ data }: { data: any }) {
+function ProjectDetailBlock({ data, onNavigate }: { data: any; onNavigate?: (path: string) => void }) {
   return (
     <RichCard accent="hsl(24, 95%, 53%)">
       <div className="p-5">
@@ -200,6 +296,15 @@ function ProjectDetailBlock({ data }: { data: any }) {
           </div>
         )}
       </div>
+      {data.navigateTo && onNavigate && (
+        <button
+          onClick={() => onNavigate(data.navigateTo)}
+          className="w-full px-5 py-3 border-t border-border/8 flex items-center justify-center gap-2
+                     text-xs font-display font-semibold text-primary/70 hover:text-primary hover:bg-primary/5 transition-all"
+        >
+          Open Project <ArrowRight className="h-3 w-3" />
+        </button>
+      )}
     </RichCard>
   );
 }
@@ -208,7 +313,7 @@ function ProjectDetailBlock({ data }: { data: any }) {
 // CREDITS
 // ═══════════════════════════════════════════════
 
-function CreditsBlock({ data }: { data: any }) {
+function CreditsBlock({ data, onNavigate }: { data: any; onNavigate?: (path: string) => void }) {
   const balance = data.balance ?? data.credits ?? 0;
   return (
     <RichCard accent="hsl(38, 92%, 50%)">
@@ -226,8 +331,17 @@ function CreditsBlock({ data }: { data: any }) {
               </p>
             </div>
           </div>
+          {data.navigateTo && onNavigate && (
+            <button
+              onClick={() => onNavigate(data.navigateTo)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-display font-semibold
+                         bg-amber-500/10 text-amber-400 border border-amber-500/15
+                         hover:bg-amber-500/20 transition-all"
+            >
+              <Zap className="h-3 w-3" /> Buy More
+            </button>
+          )}
         </div>
-        {/* Tier + usage */}
         {(data.tier || data.total_spent !== undefined) && (
           <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border/8">
             {data.tier && (
@@ -251,11 +365,11 @@ function CreditsBlock({ data }: { data: any }) {
 // AVATAR LIST
 // ═══════════════════════════════════════════════
 
-function AvatarListBlock({ data }: { data: any }) {
+function AvatarListBlock({ data, onNavigate }: { data: any; onNavigate?: (path: string) => void }) {
   const avatars = data.avatars || [];
   return (
     <RichCard accent="hsl(38, 92%, 50%)">
-      <CardHeader icon={User} title="Avatars" badge={`${avatars.length}`} accentColor="hsl(38, 92%, 50%)" />
+      <CardHeader icon={User} title="Avatars" badge={`${avatars.length}`} accentColor="hsl(38, 92%, 50%)" navigateTo={data.navigateTo} onNavigate={onNavigate} />
       <div className="p-4 grid grid-cols-3 gap-3">
         {avatars.slice(0, 6).map((a: any) => (
           <div key={a.id || a.name} className="group flex flex-col items-center gap-2 p-3 rounded-xl bg-surface-2/30 border border-border/8 hover:border-primary/20 transition-all cursor-default">
@@ -281,11 +395,11 @@ function AvatarListBlock({ data }: { data: any }) {
 // GALLERY
 // ═══════════════════════════════════════════════
 
-function GalleryBlock({ data }: { data: any }) {
+function GalleryBlock({ data, onNavigate }: { data: any; onNavigate?: (path: string) => void }) {
   const items = data.items || [];
   return (
     <RichCard accent="hsl(270, 60%, 60%)">
-      <CardHeader icon={Play} title="Gallery" badge={`${data.total || items.length}`} accentColor="hsl(270, 60%, 60%)" />
+      <CardHeader icon={Play} title="Gallery" badge={`${data.total || items.length}`} accentColor="hsl(270, 60%, 60%)" navigateTo={data.navigateTo} onNavigate={onNavigate} />
       <div className="p-4 grid grid-cols-2 gap-3">
         {items.slice(0, 4).map((v: any) => (
           <div key={v.id} className="group relative rounded-xl overflow-hidden bg-surface-2/50 border border-border/8 aspect-video">
@@ -296,11 +410,9 @@ function GalleryBlock({ data }: { data: any }) {
                 <Play className="h-6 w-6 text-muted-foreground/20" />
               </div>
             )}
-            {/* Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2.5">
               <span className="text-[11px] font-medium text-white truncate">{v.title || "Untitled"}</span>
             </div>
-            {/* Play button */}
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
                 <Play className="h-3.5 w-3.5 text-white fill-white" />
@@ -317,7 +429,7 @@ function GalleryBlock({ data }: { data: any }) {
 // PROFILE
 // ═══════════════════════════════════════════════
 
-function ProfileBlock({ data }: { data: any }) {
+function ProfileBlock({ data, onNavigate }: { data: any; onNavigate?: (path: string) => void }) {
   return (
     <RichCard accent="hsl(145, 55%, 45%)">
       <div className="p-5">
@@ -333,6 +445,16 @@ function ProfileBlock({ data }: { data: any }) {
             <h3 className="font-display text-base font-bold text-foreground">{data.display_name || data.username}</h3>
             <p className="text-xs text-muted-foreground/50">@{data.username}</p>
           </div>
+          {data.navigateTo && onNavigate && (
+            <button
+              onClick={() => onNavigate(data.navigateTo)}
+              className="flex items-center gap-1 text-[10px] font-display font-semibold px-2.5 py-1.5 rounded-full
+                         bg-primary/8 text-primary/70 hover:bg-primary/15 hover:text-primary
+                         border border-primary/10 transition-all"
+            >
+              View <ExternalLink className="h-2.5 w-2.5" />
+            </button>
+          )}
         </div>
         {data.bio && (
           <p className="text-xs text-muted-foreground/60 mt-3 leading-relaxed">{data.bio}</p>
@@ -385,7 +507,6 @@ function GamificationBlock({ data }: { data: any }) {
             </div>
           )}
         </div>
-        {/* XP Bar */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-muted-foreground/40 font-medium">XP Progress</span>
@@ -400,7 +521,6 @@ function GamificationBlock({ data }: { data: any }) {
             />
           </div>
         </div>
-        {/* Stats row */}
         <div className="grid grid-cols-3 gap-3 mt-4 pt-3 border-t border-border/8">
           {data.total_achievements !== undefined && (
             <div className="text-center">
@@ -552,11 +672,11 @@ function CommentsBlock({ data }: { data: any }) {
 // WORLD CHAT
 // ═══════════════════════════════════════════════
 
-function WorldChatBlock({ data }: { data: any }) {
+function WorldChatBlock({ data, onNavigate }: { data: any; onNavigate?: (path: string) => void }) {
   const messages = data.messages || [];
   return (
     <RichCard accent="hsl(195, 100%, 50%)">
-      <CardHeader icon={Globe} title="World Chat" badge="Live" accentColor="hsl(195, 100%, 50%)" />
+      <CardHeader icon={Globe} title="World Chat" badge="Live" accentColor="hsl(195, 100%, 50%)" navigateTo={data.navigateTo} onNavigate={onNavigate} />
       <div className="divide-y divide-border/4 max-h-48 overflow-y-auto">
         {messages.slice(0, 8).map((m: any, i: number) => (
           <div key={m.id || i} className="px-5 py-2 flex items-start gap-2.5">
@@ -632,12 +752,12 @@ function OnboardingBlock({ data }: { data: any }) {
 // SETTINGS
 // ═══════════════════════════════════════════════
 
-function SettingsBlock({ data }: { data: any }) {
+function SettingsBlock({ data, onNavigate }: { data: any; onNavigate?: (path: string) => void }) {
   const settings = data.settings || data;
-  const entries = Object.entries(settings).filter(([k]) => !k.startsWith("_") && k !== "id");
+  const entries = Object.entries(settings).filter(([k]) => !k.startsWith("_") && k !== "id" && k !== "navigateTo");
   return (
     <RichCard accent="hsl(var(--muted-foreground))">
-      <CardHeader icon={Settings} title="Account Settings" />
+      <CardHeader icon={Settings} title="Account Settings" navigateTo={data.navigateTo} onNavigate={onNavigate} />
       <div className="divide-y divide-border/6">
         {entries.slice(0, 8).map(([key, val]) => (
           <div key={key} className="px-5 py-2.5 flex items-center justify-between">

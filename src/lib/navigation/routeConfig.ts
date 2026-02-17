@@ -59,13 +59,6 @@
      ],
      minDuration: 400,
    },
-   '/clips': {
-     messages: [
-       'Loading your clips...',
-       'Preparing video previews...',
-     ],
-     minDuration: 400,
-   },
    '/templates': {
      messages: [
        'Loading template library...',

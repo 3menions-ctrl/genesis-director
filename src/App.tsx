@@ -39,7 +39,7 @@ const Contact = lazy(() => import("./pages/Contact"));
 
 const ScriptReview = lazy(() => import("./pages/ScriptReview"));
 const Production = lazy(() => import("./pages/Production"));
-const Clips = lazy(() => import("./pages/Clips"));
+
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const Templates = lazy(() => import("./pages/Templates"));
 const Environments = lazy(() => import("./pages/Environments"));
@@ -291,14 +291,8 @@ const App = () => {
                 
                 {/* Keep production route for active productions */}
                 
-                {/* Clips Gallery */}
-                <Route path="/clips" element={
-                  <RouteContainer fallbackMessage="Loading clips...">
-                    <ProtectedRoute>
-                      <Clips />
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
+                {/* Legacy clips route - redirect to editor */}
+                <Route path="/clips" element={<Navigate to="/editor" replace />} />
                 
                 {/* Legacy universe routes - redirect to projects */}
                 <Route path="/universes" element={<Navigate to="/projects" replace />} />

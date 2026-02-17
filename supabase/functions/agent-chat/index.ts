@@ -81,6 +81,25 @@ const TOOL_CREDIT_COSTS: Record<string, number> = {
   breakdown_script_to_scenes: 1,
   compare_projects: 0,
   get_platform_tips: 0,
+  // Gallery & Discovery
+  browse_gallery: 0,
+  get_trending_videos: 0,
+  search_videos: 0,
+  // Comments & Engagement
+  get_video_comments: 0,
+  post_comment: 1,
+  // World Chat
+  read_world_chat: 0,
+  send_world_chat_message: 1,
+  // Settings (write)
+  update_settings: 1,
+  // Environments
+  browse_environments: 0,
+  // Support
+  submit_support_ticket: 0,
+  // Onboarding
+  get_onboarding_status: 0,
+  complete_onboarding_step: 0,
 };
 
 // ══════════════════════════════════════════════════════
@@ -912,6 +931,179 @@ const AGENT_TOOLS = [
         },
         required: ["topic"],
       },
+    },
+  },
+  // ─── GALLERY & DISCOVERY ───
+  {
+    type: "function",
+    function: {
+      name: "browse_gallery",
+      description: "Browse the public gallery showcase of featured videos by category. Returns titles, descriptions, thumbnails, and video URLs. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          category: { type: "string", enum: ["text-to-video", "image-to-video", "avatar", "all"], description: "Filter by category" },
+          limit: { type: "number", description: "Max items (default 12)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_trending_videos",
+      description: "Get trending/popular videos from the community based on likes and recency. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: { type: "number", description: "Max videos (default 10)" },
+          time_range: { type: "string", enum: ["today", "week", "month", "all"], description: "Time range for trending" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "search_videos",
+      description: "Search public videos by title or prompt content. Returns matching projects with metadata. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Search term" },
+          mode: { type: "string", enum: ["text-to-video", "image-to-video", "avatar"], description: "Filter by creation mode" },
+          limit: { type: "number", description: "Max results (default 10)" },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  // ─── COMMENTS & ENGAGEMENT ───
+  {
+    type: "function",
+    function: {
+      name: "get_video_comments",
+      description: "Get comments on a specific video/project. Returns comment text, author, likes, and timestamps. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project UUID" },
+          limit: { type: "number", description: "Max comments (default 20)" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "post_comment",
+      description: "Post a comment on a video/project. Costs 1 credit.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project UUID to comment on" },
+          content: { type: "string", description: "Comment text" },
+          reply_to_id: { type: "string", description: "Optional: comment UUID to reply to" },
+        },
+        required: ["project_id", "content"],
+      },
+    },
+  },
+  // ─── WORLD CHAT ───
+  {
+    type: "function",
+    function: {
+      name: "read_world_chat",
+      description: "Read recent messages from the World Chat public channel. Returns messages with authors. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: { type: "number", description: "Number of messages (default 20, max 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "send_world_chat_message",
+      description: "Send a message to the World Chat public channel on behalf of the user. Costs 1 credit.",
+      parameters: {
+        type: "object",
+        properties: {
+          content: { type: "string", description: "Message to send" },
+          reply_to_id: { type: "string", description: "Optional: message ID to reply to" },
+        },
+        required: ["content"],
+      },
+    },
+  },
+  // ─── SETTINGS (WRITE) ───
+  {
+    type: "function",
+    function: {
+      name: "update_settings",
+      description: "Update user account settings like email notification preferences, display name, bio. Costs 1 credit.",
+      parameters: {
+        type: "object",
+        properties: {
+          display_name: { type: "string", description: "New display name" },
+          bio: { type: "string", description: "New bio" },
+          full_name: { type: "string", description: "New full name" },
+          email: { type: "string", description: "New email (requires re-verification)" },
+        },
+      },
+    },
+  },
+  // ─── ENVIRONMENTS ───
+  {
+    type: "function",
+    function: {
+      name: "browse_environments",
+      description: "Browse available environment presets for video creation — visual styles, lighting presets, atmospheres, and color palettes. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          era: { type: "string", description: "Filter by era name" },
+          atmosphere: { type: "string", description: "Filter by atmosphere: dark, bright, moody, vibrant, etc." },
+          limit: { type: "number", description: "Max environments (default 12)" },
+        },
+      },
+    },
+  },
+  // ─── SUPPORT ───
+  {
+    type: "function",
+    function: {
+      name: "submit_support_ticket",
+      description: "Submit a support ticket/message to the APEX Studios team. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          subject: { type: "string", description: "Brief subject line" },
+          message: { type: "string", description: "Detailed message" },
+          category: { type: "string", enum: ["bug", "billing", "feature_request", "account", "other"], description: "Ticket category" },
+        },
+        required: ["subject", "message"],
+      },
+    },
+  },
+  // ─── ONBOARDING ───
+  {
+    type: "function",
+    function: {
+      name: "get_onboarding_status",
+      description: "Check the user's onboarding completion status and suggest next steps. Free.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "complete_onboarding_step",
+      description: "Mark the user's onboarding as complete. Free.",
+      parameters: { type: "object", properties: {}, required: [] },
     },
   },
 ];
@@ -2381,6 +2573,338 @@ MOTION_GUARD: Ensure continuous micro-movement in every frame to prevent slidesh
       return { ...result, topic, available_topics: Object.keys(tips) };
     }
 
+    // ─── GALLERY & DISCOVERY ───
+
+    case "browse_gallery": {
+      const category = (args.category as string) || "all";
+      const limit = Math.min((args.limit as number) || 12, 24);
+      let q = supabase
+        .from("gallery_showcase")
+        .select("id, title, description, category, thumbnail_url, video_url, sort_order")
+        .eq("is_active", true);
+      if (category !== "all") q = q.eq("category", category);
+      const { data } = await q.order("sort_order").limit(limit);
+      return {
+        items: (data || []).map(item => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          category: item.category,
+          thumbnail_url: item.thumbnail_url,
+          video_url: item.video_url,
+        })),
+        total: data?.length || 0,
+        category,
+      };
+    }
+
+    case "get_trending_videos": {
+      const limit = Math.min((args.limit as number) || 10, 20);
+      const timeRange = (args.time_range as string) || "week";
+      let q = supabase
+        .from("movie_projects")
+        .select("id, title, prompt, mode, aspect_ratio, video_url, thumbnail_url, likes_count, user_id, created_at")
+        .eq("status", "completed")
+        .eq("is_public", true)
+        .not("video_url", "is", null);
+      
+      if (timeRange === "today") q = q.gte("created_at", new Date(Date.now() - 86400000).toISOString());
+      else if (timeRange === "week") q = q.gte("created_at", new Date(Date.now() - 604800000).toISOString());
+      else if (timeRange === "month") q = q.gte("created_at", new Date(Date.now() - 2592000000).toISOString());
+      
+      const { data } = await q.order("likes_count", { ascending: false }).limit(limit);
+      
+      // Get creator names
+      const userIds = [...new Set((data || []).map(v => v.user_id))];
+      const { data: profiles } = userIds.length > 0
+        ? await supabase.from("profiles_public").select("id, display_name, avatar_url").in("id", userIds)
+        : { data: [] };
+      const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+      
+      return {
+        videos: (data || []).map(v => ({
+          id: v.id,
+          title: v.title,
+          prompt_preview: (v.prompt || "").substring(0, 100),
+          mode: v.mode,
+          thumbnail_url: v.thumbnail_url,
+          video_url: v.video_url,
+          likes: v.likes_count,
+          creator: profileMap.get(v.user_id)?.display_name || "Anonymous",
+          created_at: v.created_at,
+        })),
+        total: data?.length || 0,
+        time_range: timeRange,
+      };
+    }
+
+    case "search_videos": {
+      const query = (args.query as string) || "";
+      const limit = Math.min((args.limit as number) || 10, 20);
+      let q = supabase
+        .from("movie_projects")
+        .select("id, title, prompt, mode, aspect_ratio, video_url, thumbnail_url, likes_count, user_id, created_at")
+        .eq("status", "completed")
+        .eq("is_public", true)
+        .not("video_url", "is", null)
+        .or(`title.ilike.%${query}%,prompt.ilike.%${query}%`);
+      
+      if (args.mode) q = q.eq("mode", args.mode);
+      const { data } = await q.order("likes_count", { ascending: false }).limit(limit);
+      
+      const userIds = [...new Set((data || []).map(v => v.user_id))];
+      const { data: profiles } = userIds.length > 0
+        ? await supabase.from("profiles_public").select("id, display_name").in("id", userIds)
+        : { data: [] };
+      const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+      
+      return {
+        results: (data || []).map(v => ({
+          id: v.id,
+          title: v.title,
+          prompt_preview: (v.prompt || "").substring(0, 100),
+          mode: v.mode,
+          likes: v.likes_count,
+          creator: profileMap.get(v.user_id)?.display_name || "Anonymous",
+          thumbnail_url: v.thumbnail_url,
+        })),
+        total: data?.length || 0,
+        query,
+      };
+    }
+
+    // ─── COMMENTS & ENGAGEMENT ───
+
+    case "get_video_comments": {
+      const limit = Math.min((args.limit as number) || 20, 50);
+      const { data: comments } = await supabase
+        .from("project_comments")
+        .select("id, content, user_id, likes_count, reply_to_id, created_at")
+        .eq("project_id", args.project_id)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      
+      const userIds = [...new Set((comments || []).map(c => c.user_id))];
+      const { data: profiles } = userIds.length > 0
+        ? await supabase.from("profiles_public").select("id, display_name, avatar_url").in("id", userIds)
+        : { data: [] };
+      const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+      
+      return {
+        comments: (comments || []).map(c => ({
+          id: c.id,
+          content: c.content,
+          author: profileMap.get(c.user_id)?.display_name || "Anonymous",
+          avatar_url: profileMap.get(c.user_id)?.avatar_url || null,
+          likes: c.likes_count,
+          is_reply: !!c.reply_to_id,
+          created_at: c.created_at,
+          is_own: c.user_id === userId,
+        })),
+        total: comments?.length || 0,
+      };
+    }
+
+    case "post_comment": {
+      const content = (args.content as string)?.trim();
+      if (!content || content.length < 1) return { error: "Comment cannot be empty" };
+      if (content.length > 500) return { error: "Comment must be under 500 characters" };
+      
+      const { error } = await supabase.from("project_comments").insert({
+        project_id: args.project_id,
+        user_id: userId,
+        content,
+        reply_to_id: (args.reply_to_id as string) || null,
+      });
+      if (error) return { error: "Failed to post comment: " + error.message };
+      return { action: "comment_posted", message: "Comment posted! 💬" };
+    }
+
+    // ─── WORLD CHAT ───
+
+    case "read_world_chat": {
+      const limit = Math.min((args.limit as number) || 20, 50);
+      const { data: msgs } = await supabase
+        .from("world_chat_messages")
+        .select("id, user_id, content, reply_to_id, created_at")
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      
+      const userIds = [...new Set((msgs || []).map(m => m.user_id))];
+      const { data: profiles } = userIds.length > 0
+        ? await supabase.from("profiles_public").select("id, display_name, avatar_url").in("id", userIds)
+        : { data: [] };
+      const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+      
+      return {
+        messages: (msgs || []).reverse().map(m => ({
+          id: m.id,
+          content: m.content,
+          author: profileMap.get(m.user_id)?.display_name || "Anonymous",
+          is_own: m.user_id === userId,
+          is_reply: !!m.reply_to_id,
+          created_at: m.created_at,
+        })),
+        total: msgs?.length || 0,
+      };
+    }
+
+    case "send_world_chat_message": {
+      const content = (args.content as string)?.trim();
+      if (!content || content.length < 1) return { error: "Message cannot be empty" };
+      if (content.length > 500) return { error: "Message must be under 500 characters" };
+      
+      const { error } = await supabase.from("world_chat_messages").insert({
+        user_id: userId,
+        content,
+        reply_to_id: (args.reply_to_id as string) || null,
+      });
+      if (error) return { error: "Failed to send message: " + error.message };
+      return { action: "world_chat_sent", message: "Message sent to World Chat! 🌍" };
+    }
+
+    // ─── SETTINGS (WRITE) ───
+
+    case "update_settings": {
+      const updates: Record<string, unknown> = {};
+      if (args.display_name) updates.display_name = args.display_name;
+      if (args.bio) updates.bio = args.bio;
+      if (args.full_name) updates.full_name = args.full_name;
+      
+      if (args.email) {
+        return {
+          error: "Email changes require re-verification for security. Please go to Settings → Account to update your email.",
+          action: "navigate",
+          path: "/settings",
+          reason: "Email change requires the Settings page for re-verification",
+        };
+      }
+      
+      if (Object.keys(updates).length === 0) return { error: "No fields to update. You can change: display_name, bio, full_name" };
+      
+      const { error } = await supabase.from("profiles").update(updates).eq("id", userId);
+      if (error) return { error: "Failed to update settings: " + error.message };
+      return {
+        action: "settings_updated",
+        fields: Object.keys(updates),
+        message: `Settings updated! ⚙️ Changed: ${Object.keys(updates).join(", ")}`,
+      };
+    }
+
+    // ─── ENVIRONMENTS ───
+
+    case "browse_environments": {
+      const limit = Math.min((args.limit as number) || 12, 24);
+      let q = supabase
+        .from("genesis_environment_templates")
+        .select("id, template_name, atmosphere, visual_style, thumbnail_url, prompt_prefix, prompt_suffix, negative_prompts, era_id, location_id");
+      if (args.atmosphere) q = q.ilike("atmosphere", `%${args.atmosphere}%`);
+      const { data } = await q.limit(limit);
+      
+      // Get era names for context
+      const eraIds = [...new Set((data || []).filter(e => e.era_id).map(e => e.era_id))];
+      const { data: eras } = eraIds.length > 0
+        ? await supabase.from("genesis_eras").select("id, name").in("id", eraIds)
+        : { data: [] };
+      const eraMap = new Map((eras || []).map(e => [e.id, e.name]));
+      
+      return {
+        environments: (data || []).map(env => ({
+          id: env.id,
+          name: env.template_name,
+          atmosphere: env.atmosphere,
+          visual_style: env.visual_style,
+          thumbnail_url: env.thumbnail_url,
+          era: env.era_id ? eraMap.get(env.era_id) || null : null,
+          prompt_hints: {
+            prefix: env.prompt_prefix,
+            suffix: env.prompt_suffix,
+          },
+        })),
+        total: data?.length || 0,
+        tip: "Use environment presets as a starting point for your video prompts — they provide consistent visual styles!",
+      };
+    }
+
+    // ─── SUPPORT ───
+
+    case "submit_support_ticket": {
+      const subject = (args.subject as string)?.trim();
+      const message = (args.message as string)?.trim();
+      if (!subject || !message) return { error: "Both subject and message are required" };
+      if (message.length > 2000) return { error: "Message must be under 2000 characters" };
+      
+      // Get user's profile for the ticket
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email, display_name")
+        .eq("id", userId)
+        .single();
+      
+      const { error } = await supabase.from("support_messages").insert({
+        name: profile?.display_name || "User",
+        email: profile?.email || "unknown",
+        subject: `[${(args.category as string) || "general"}] ${subject}`,
+        message,
+        source: "hoppy_agent",
+        user_id: userId,
+      });
+      if (error) return { error: "Failed to submit ticket: " + error.message };
+      return {
+        action: "ticket_submitted",
+        message: "Support ticket submitted! 📩 Our team will review it shortly. You can also reach us at support@apex-studio.ai",
+      };
+    }
+
+    // ─── ONBOARDING ───
+
+    case "get_onboarding_status": {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("onboarding_completed, display_name, bio, avatar_url, credits_balance, created_at")
+        .eq("id", userId)
+        .single();
+      const { count: projectCount } = await supabase
+        .from("movie_projects")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId);
+      const { count: followingCount } = await supabase
+        .from("user_follows")
+        .select("id", { count: "exact", head: true })
+        .eq("follower_id", userId);
+      
+      const steps = [
+        { step: "profile_setup", label: "Set up your profile", done: !!(profile?.display_name && profile?.bio), tip: "Add a display name and bio so other creators can find you!" },
+        { step: "avatar_set", label: "Upload a profile picture", done: !!profile?.avatar_url, tip: "A profile picture helps you stand out in the community!" },
+        { step: "first_project", label: "Create your first video", done: (projectCount || 0) > 0, tip: "Head to /create and make your first AI video!" },
+        { step: "first_follow", label: "Follow a creator", done: (followingCount || 0) > 0, tip: "Discover creators at /creators and follow someone inspiring!" },
+        { step: "credits_ready", label: "Get credits", done: (profile?.credits_balance || 0) > 0, tip: "Visit /pricing to get credits for video generation!" },
+      ];
+      
+      const completedSteps = steps.filter(s => s.done).length;
+      const totalSteps = steps.length;
+      
+      return {
+        onboarding_completed: profile?.onboarding_completed || false,
+        progress: `${completedSteps}/${totalSteps}`,
+        percentage: Math.round((completedSteps / totalSteps) * 100),
+        steps,
+        next_step: steps.find(s => !s.done) || null,
+        message: completedSteps === totalSteps
+          ? "You've completed all onboarding steps! 🎉 You're all set!"
+          : `You're ${Math.round((completedSteps / totalSteps) * 100)}% through onboarding. ${steps.find(s => !s.done)?.tip || ""}`,
+      };
+    }
+
+    case "complete_onboarding_step": {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ onboarding_completed: true })
+        .eq("id", userId);
+      if (error) return { error: "Failed to update onboarding: " + error.message };
+      return { message: "Onboarding marked as complete! 🎉 Welcome to APEX Studios!" };
+    }
+
     default:
       return { error: `Unknown tool: ${toolName}` };
   }
@@ -2497,6 +3021,33 @@ You are a FULLY capable assistant. You can DO everything in the app:
 - View all created characters with voice assignments, backstories
 - Track character lending and borrowing
 
+**🖼️ Gallery & Discovery**
+- **browse_gallery** (free) — Browse featured showcase videos by category
+- **get_trending_videos** (free) — Find trending community videos by time range
+- **search_videos** (free) — Search public videos by title or prompt
+
+**💬 Comments & Engagement**
+- **get_video_comments** (free) — Read comments on any video
+- **post_comment** (1cr) — Post a comment or reply on a video
+
+**🌍 World Chat**
+- **read_world_chat** (free) — Read recent messages from the public chat
+- **send_world_chat_message** (1cr) — Send a message to World Chat
+
+**⚙️ Settings**
+- **update_settings** (1cr) — Update display name, bio, full name
+- View account tier, limits, and preferences
+
+**🌄 Environments**
+- **browse_environments** (free) — Explore visual style presets, atmospheres, and lighting setups for video prompts
+
+**📩 Support**
+- **submit_support_ticket** (free) — Submit a bug report, feature request, or billing question
+
+**🚀 Onboarding**
+- **get_onboarding_status** (free) — Check progress through setup steps
+- **complete_onboarding_step** (free) — Mark onboarding complete
+
 **🔍 Information**
 - Check credits, transactions, pipeline status, avatars, templates
 - Navigate to any page
@@ -2601,7 +3152,14 @@ Users get notified about: follows, video completions, video failures (with refun
 - "Which avatar should I use?" → Tell me your content and audience, and I'll recommend the best match from our library
 - "How much will this cost?" → I can calculate exact credit costs for any production plan
 - "Teach me about filmmaking" → I have expert guides on cinematography, storytelling, pacing, color theory, transitions, audio design, and more!
-
+- "Show me trending videos" → I can browse trending community videos and the gallery showcase!
+- "What are people saying about this video?" → I can read comments on any video and you can post comments too
+- "Send a message to World Chat" → I can read and send messages in the public World Chat channel
+- "Change my settings" → I can update your display name, bio, and profile info
+- "Show me environments" → I can browse visual style presets with lighting, atmosphere, and color palettes
+- "I need help / report a bug" → I can submit a support ticket directly to the team
+- "Am I set up correctly?" → I can check your onboarding progress and guide you through remaining steps
+- "What's popular right now?" → I can show trending videos, browse the gallery, or search for specific content
 ═══ TERMS & CONDITIONS (COMPLETE) ═══
 You MUST know and accurately communicate these policies when asked:
 

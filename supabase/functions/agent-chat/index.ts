@@ -3381,6 +3381,75 @@ serve(async (req) => {
       .filter(t => t.result && typeof t.result === "object" && "action" in (t.result as Record<string, unknown>))
       .map(t => t.result);
 
+    // ── Extract rich content blocks for premium UI rendering ──
+    const richBlocks: Array<{ type: string; data: unknown }> = [];
+    for (const tr of allToolResults) {
+      const r = tr.result as Record<string, unknown> | null;
+      if (!r || typeof r !== "object") continue;
+      const name = tr.name;
+      
+      // Project lists
+      if (name === "list_projects" && Array.isArray(r.projects)) {
+        richBlocks.push({ type: "project_list", data: { projects: r.projects, total: r.total } });
+      }
+      // Single project detail
+      if (name === "get_project_details" && r.id) {
+        richBlocks.push({ type: "project_detail", data: r });
+      }
+      // Credits / balance
+      if (name === "get_credits_balance" && (r.balance !== undefined || r.credits !== undefined)) {
+        richBlocks.push({ type: "credits", data: r });
+      }
+      // Avatar list
+      if ((name === "list_avatars" || name === "recommend_avatar_for_content") && Array.isArray(r.avatars)) {
+        richBlocks.push({ type: "avatar_list", data: { avatars: r.avatars } });
+      }
+      // Gallery
+      if ((name === "browse_gallery" || name === "get_trending_videos" || name === "search_videos") && Array.isArray(r.items)) {
+        richBlocks.push({ type: "gallery", data: { items: r.items, total: r.total } });
+      }
+      // Profile
+      if (name === "get_user_profile" && r.username) {
+        richBlocks.push({ type: "profile", data: r });
+      }
+      // Environment templates
+      if (name === "browse_environments" && Array.isArray(r.environments)) {
+        richBlocks.push({ type: "environments", data: { environments: r.environments } });
+      }
+      // Gamification
+      if (name === "get_gamification_stats" && r.level !== undefined) {
+        richBlocks.push({ type: "gamification", data: r });
+      }
+      // Shot list
+      if (name === "suggest_shot_list" && r.shot_list) {
+        richBlocks.push({ type: "shot_list", data: r });
+      }
+      // Comments
+      if (name === "get_video_comments" && Array.isArray(r.comments)) {
+        richBlocks.push({ type: "comments", data: { comments: r.comments } });
+      }
+      // World chat
+      if (name === "read_world_chat" && Array.isArray(r.messages)) {
+        richBlocks.push({ type: "world_chat", data: { messages: r.messages } });
+      }
+      // Production status
+      if (name === "get_production_status" && r.status) {
+        richBlocks.push({ type: "production_status", data: r });
+      }
+      // Cost estimate
+      if (name === "estimate_production_cost" && r.total_credits !== undefined) {
+        richBlocks.push({ type: "cost_estimate", data: r });
+      }
+      // Onboarding
+      if (name === "get_onboarding_status" && r.steps) {
+        richBlocks.push({ type: "onboarding", data: r });
+      }
+      // Settings
+      if (name === "get_account_settings" && r.settings) {
+        richBlocks.push({ type: "settings", data: r });
+      }
+    }
+
     // Save to conversation
     if (conversationId) {
       const lastUserMsg = messages[messages.length - 1];
@@ -3425,7 +3494,7 @@ serve(async (req) => {
       session_page: currentPage || null,
     }).then(() => {}).catch(() => {});
 
-    return new Response(JSON.stringify({ content, actions, conversationId, creditsCharged: totalCreditsCharged }), {
+    return new Response(JSON.stringify({ content, actions, richBlocks, conversationId, creditsCharged: totalCreditsCharged }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

@@ -11,11 +11,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "react-router-dom";
 import { toast } from "sonner";
 
+export interface RichBlock {
+  type: string;
+  data: any;
+}
+
 export interface AgentMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
   actions?: AgentAction[];
+  richBlocks?: RichBlock[];
   creditsCharged?: number;
   timestamp: Date;
 }
@@ -163,6 +169,7 @@ export function useAgentChat(): UseAgentChatReturn {
         role: "assistant",
         content: data.content || "Hey there! I'm Hoppy — how can I help? 🐰",
         actions: data.actions || [],
+        richBlocks: data.richBlocks || [],
         creditsCharged: data.creditsCharged || 0,
         timestamp: new Date(),
       };

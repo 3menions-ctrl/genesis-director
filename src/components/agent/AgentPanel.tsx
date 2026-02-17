@@ -18,6 +18,7 @@ import { useAgentChat, AgentAction, AgentMessage } from "@/hooks/useAgentChat";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
+import { RichBlocksRenderer } from "./HoppyRichBlocks";
 
 interface AgentPanelProps {
   isOpen: boolean;
@@ -522,7 +523,7 @@ function ImmersiveMessageBubble({
         </div>
       )}
 
-      <div className={cn("max-w-[80%] flex flex-col gap-2")}>
+      <div className={cn(isUser ? "max-w-[80%]" : "max-w-[90%] md:max-w-[85%]", "flex flex-col gap-2")}>
         {/* Message content */}
         <div
           className={cn(
@@ -559,6 +560,11 @@ function ImmersiveMessageBubble({
             </div>
           )}
         </div>
+
+        {/* Rich content blocks — premium card rendering */}
+        {!isUser && message.richBlocks && message.richBlocks.length > 0 && (
+          <RichBlocksRenderer blocks={message.richBlocks} />
+        )}
 
         {/* Meta row */}
         <div className={cn("flex items-center gap-2.5 px-1", isUser ? "justify-end" : "justify-start")}>

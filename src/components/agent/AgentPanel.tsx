@@ -1,16 +1,16 @@
 /**
- * APEX Agent Panel
+ * Hoppy Agent Panel 🐰
  * 
- * Immersive AI agent interface with:
- * - Futuristic digital face with lip-sync
- * - Streaming-style chat messages
- * - Rich action cards with confirmation gates
- * - Pop-up guided flows
+ * Warm, friendly AI assistant interface with:
+ * - Hoppy's animated face
+ * - Persistent chat with memory
+ * - Navigation & action cards
+ * - Conversion-aware suggestions
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, Sparkles, RotateCcw, ChevronDown, Zap, ArrowRight } from "lucide-react";
+import { X, Send, Heart, RotateCcw, Zap, ArrowRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AgentFace } from "./AgentFace";
 import { useAgentChat, AgentAction, AgentMessage } from "@/hooks/useAgentChat";
@@ -24,7 +24,7 @@ interface AgentPanelProps {
 }
 
 export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
-  const { messages, isLoading, sendMessage, clearMessages, agentState } = useAgentChat();
+  const { messages, isLoading, sendMessage, clearMessages, agentState, loadingHistory } = useAgentChat();
   const [input, setInput] = useState("");
   const [pendingAction, setPendingAction] = useState<AgentAction | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -83,9 +83,9 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
   };
 
   const quickPrompts = [
-    "What can you help me with?",
+    "Hey Hoppy! What can you do? 🐰",
     "Show me my projects",
-    "I want to create a video",
+    "Help me create a video ✨",
     "How many credits do I have?",
   ];
 
@@ -110,17 +110,17 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md flex flex-col"
             style={{
-              background: "linear-gradient(180deg, hsl(250 15% 6%) 0%, hsl(250 15% 4%) 100%)",
-              borderLeft: "1px solid hsl(250 10% 16%)",
+              background: "linear-gradient(180deg, hsl(280 20% 8%) 0%, hsl(260 15% 5%) 100%)",
+              borderLeft: "1px solid hsl(280 20% 18%)",
             }}
           >
-            {/* Header with Face */}
+            {/* Header with Hoppy */}
             <div className="flex flex-col items-center pt-6 pb-4 px-4 border-b border-border/30">
               <div className="flex w-full justify-between items-start mb-3">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    APEX Agent
+                  <Heart className="h-4 w-4 text-pink-400" />
+                  <span className="text-xs font-medium text-pink-300/80 uppercase tracking-wider">
+                    Hoppy 🐰
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
@@ -144,23 +144,30 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
 
               <div className="mt-3 text-center">
                 <p className="text-sm font-medium text-foreground">
-                  {agentState === "thinking" && "Analyzing..."}
-                  {agentState === "speaking" && "Here's what I found"}
-                  {agentState === "idle" && "Ready to create"}
-                  {agentState === "listening" && "Listening..."}
+                  {agentState === "thinking" && "Hmm, let me think... 🤔"}
+                  {agentState === "speaking" && "Here you go! ✨"}
+                  {agentState === "idle" && "Hi there! How can I help? 💜"}
+                  {agentState === "listening" && "I'm listening... 👂"}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Your AI creative director
+                  Your friendly creative assistant
                 </p>
               </div>
             </div>
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 scrollbar-hide">
-              {messages.length === 0 && (
+              {loadingHistory && (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  <span className="ml-2 text-xs text-muted-foreground">Loading our chat history...</span>
+                </div>
+              )}
+
+              {!loadingHistory && messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full gap-4">
                   <p className="text-sm text-muted-foreground text-center max-w-xs">
-                    I'm APEX — your AI creative director. Tell me what you want to create, or ask me anything about your projects.
+                    Hey! I'm Hoppy 🐰 — your friendly assistant here to help you create amazing videos, track your projects, and answer any questions!
                   </p>
                   <div className="grid grid-cols-1 gap-2 w-full max-w-xs">
                     {quickPrompts.map((prompt) => (
@@ -168,7 +175,7 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                         key={prompt}
                         onClick={() => sendMessage(prompt)}
                         className="text-left text-xs px-3 py-2.5 rounded-lg border border-border/50 
-                                   hover:border-primary/40 hover:bg-primary/5 transition-all
+                                   hover:border-pink-400/40 hover:bg-pink-400/5 transition-all
                                    text-muted-foreground hover:text-foreground"
                       >
                         {prompt}
@@ -188,13 +195,13 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
 
               {isLoading && (
                 <div className="flex gap-2 items-start">
-                  <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="h-3 w-3 text-primary animate-pulse" />
+                  <div className="h-6 w-6 rounded-full bg-pink-400/20 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs">🐰</span>
                   </div>
                   <div className="flex gap-1 items-center px-3 py-2 rounded-xl bg-muted/30">
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "300ms" }} />
+                    <span className="h-1.5 w-1.5 rounded-full bg-pink-400/60 animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="h-1.5 w-1.5 rounded-full bg-pink-400/60 animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="h-1.5 w-1.5 rounded-full bg-pink-400/60 animate-bounce" style={{ animationDelay: "300ms" }} />
                   </div>
                 </div>
               )}
@@ -209,15 +216,15 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                   initial={{ y: "100%" }}
                   animate={{ y: 0 }}
                   exit={{ y: "100%" }}
-                  className="absolute bottom-20 left-4 right-4 p-4 rounded-xl border border-primary/30 z-10"
-                  style={{ background: "hsl(250 12% 10%)" }}
+                  className="absolute bottom-20 left-4 right-4 p-4 rounded-xl border border-pink-400/30 z-10"
+                  style={{ background: "hsl(280 12% 10%)" }}
                 >
                   <div className="flex items-center gap-2 mb-3">
                     <Zap className="h-4 w-4 text-warning" />
-                    <span className="text-sm font-medium text-foreground">Confirm Action</span>
+                    <span className="text-sm font-medium text-foreground">Just checking! 🐰</span>
                   </div>
                   <p className="text-xs text-muted-foreground mb-3">
-                    This will use approximately <span className="text-warning font-bold">{pendingAction.estimated_credits}</span> credits.
+                    This will use about <span className="text-warning font-bold">{pendingAction.estimated_credits}</span> credits. Ready to go?
                   </p>
                   <div className="flex gap-2">
                     <Button
@@ -226,14 +233,14 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                       onClick={() => setPendingAction(null)}
                       className="flex-1 text-xs"
                     >
-                      Cancel
+                      Not yet
                     </Button>
                     <Button
                       size="sm"
                       onClick={confirmAction}
                       className="flex-1 text-xs bg-primary hover:bg-primary/90"
                     >
-                      Confirm & Create
+                      Let's do it! ✨
                     </Button>
                   </div>
                 </motion.div>
@@ -248,11 +255,11 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Tell me what you want to create..."
+                  placeholder="Ask Hoppy anything... 🐰"
                   rows={1}
                   className="flex-1 resize-none bg-muted/30 border border-border/50 rounded-xl px-4 py-3 text-sm
                            text-foreground placeholder:text-muted-foreground/50
-                           focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20
+                           focus:outline-none focus:border-pink-400/50 focus:ring-1 focus:ring-pink-400/20
                            transition-all max-h-24 scrollbar-hide"
                   style={{ minHeight: "44px" }}
                 />
@@ -297,8 +304,8 @@ function MessageBubble({
       className={cn("flex gap-2", isUser ? "justify-end" : "justify-start")}
     >
       {!isUser && (
-        <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-1">
-          <Sparkles className="h-3 w-3 text-primary" />
+        <div className="h-6 w-6 rounded-full bg-pink-400/20 flex items-center justify-center flex-shrink-0 mt-1">
+          <span className="text-xs">🐰</span>
         </div>
       )}
 
@@ -328,13 +335,13 @@ function MessageBubble({
                 key={i}
                 onClick={() => onAction(action)}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs
-                         border border-primary/30 bg-primary/5 hover:bg-primary/10
-                         text-primary transition-all group"
+                         border border-pink-400/30 bg-pink-400/5 hover:bg-pink-400/10
+                         text-pink-300 transition-all group"
               >
                 <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
                 {action.action === "navigate" && `Go to ${action.path}`}
-                {action.action === "start_creation" && `Create video (${action.estimated_credits} credits)`}
-                {action.action === "generate_script" && "Preview script"}
+                {action.action === "start_creation" && `Create video (${action.estimated_credits} credits) ✨`}
+                {action.action === "generate_script" && "Preview script 📝"}
               </button>
             ))}
           </div>

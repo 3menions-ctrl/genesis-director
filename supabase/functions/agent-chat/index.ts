@@ -12,6 +12,8 @@ const corsHeaders = {
 // ══════════════════════════════════════════════════════
 
 const TOOL_CREDIT_COSTS: Record<string, number> = {
+  // UI tools (free)
+  present_choices: 0,
   // Free lookups (0 credits)
   get_user_profile: 0,
   get_user_projects: 0,
@@ -1253,6 +1255,36 @@ const AGENT_TOOLS = [
       },
     },
   },
+  // ─── PRESENT CHOICES ───
+  {
+    type: "function",
+    function: {
+      name: "present_choices",
+      description: "Present the user with a multiple-choice selection as beautiful interactive cards. Use when you need the user to pick between options — e.g. selecting a style, choosing a template, picking a genre, confirming between alternatives. The user's selection will be sent back as a message. Free. Options should have unique short IDs and clear labels.",
+      parameters: {
+        type: "object",
+        properties: {
+          question: { type: "string", description: "The question or prompt shown above the choices" },
+          options: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "string", description: "Unique short ID for this option (e.g. 'cinematic', 'option_1')" },
+                label: { type: "string", description: "Display label (e.g. 'Cinematic Style')" },
+                description: { type: "string", description: "Optional 1-line description" },
+                icon: { type: "string", description: "Optional icon name: film, sparkles, zap, star, crown, play, globe, users, settings, palette, target, award, flame, trophy, send, heart, eye, credit-card, clapperboard" },
+              },
+              required: ["id", "label"],
+            },
+            description: "2-6 options for the user to choose from",
+          },
+          max_selections: { type: "number", description: "How many options the user can select (default 1, max 3)" },
+        },
+        required: ["question", "options"],
+      },
+    },
+  },
 ];
 
 // ══════════════════════════════════════════════════════
@@ -1658,6 +1690,22 @@ async function executeTool(
         action: "project_updated", project_id: p.id, title: args.title || p.title,
         updated_fields: Object.keys(updates),
         message: `Updated ${Object.keys(updates).join(", ")} for "${args.title || p.title}" ✅`,
+      };
+    }
+
+    // ─── PRESENT CHOICES ───
+
+    case "present_choices": {
+      const options = (args.options as Array<{ id: string; label: string; description?: string; icon?: string }>) || [];
+      const question = (args.question as string) || "Choose an option:";
+      const maxSelections = Math.min(Math.max((args.max_selections as number) || 1, 1), 3);
+      return {
+        _rich_block: "multiple_choice",
+        question,
+        options: options.slice(0, 6),
+        max_selections: maxSelections,
+        id: `choice_${Date.now()}`,
+        message: question,
       };
     }
 
@@ -4209,6 +4257,10 @@ serve(async (req) => {
       // Mood context (internal - no rich block needed, but include for transparency)
       if (name === "get_user_mood_context" && Array.isArray(r.mood_signals)) {
         // This is internal context for Hoppy — no UI block needed
+      }
+      // Multiple choice cards
+      if (name === "present_choices" && r._rich_block === "multiple_choice") {
+        richBlocks.push({ type: "multiple_choice", data: { question: r.question, options: r.options, max_selections: r.max_selections, id: r.id } });
       }
     }
 

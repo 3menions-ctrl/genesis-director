@@ -19,41 +19,43 @@ export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFi
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       className="relative group"
     >
-      {/* Premium glow */}
-      <div className="absolute -inset-2 rounded-3xl opacity-40 group-hover:opacity-60 transition-opacity duration-700 blur-2xl"
-        style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.3), rgba(139,92,246,0.2), rgba(20,184,166,0.3))' }}
+      {/* Premium multi-color glow */}
+      <div className="absolute -inset-3 rounded-3xl opacity-30 group-hover:opacity-50 transition-opacity duration-700 blur-3xl pointer-events-none"
+        style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.3), rgba(139,92,246,0.15), rgba(6,182,212,0.25), rgba(245,158,11,0.1))' }}
       />
       
       <div className={cn(
-        "relative overflow-hidden rounded-2xl",
-        "bg-white/[0.03] border border-white/[0.1]",
-        "backdrop-blur-2xl shadow-2xl shadow-black/30"
+        "relative overflow-hidden rounded-3xl",
+        "bg-black/40 border border-white/[0.08]",
+        "backdrop-blur-3xl shadow-2xl shadow-black/40"
       )}>
-        {/* Gradient accent at top */}
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent" />
+        {/* Top edge light */}
+        <div className="absolute top-0 inset-x-6 h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent" />
         
         {/* Header */}
-        <div className="relative flex items-center justify-between px-6 py-5 border-b border-white/[0.06]">
-          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/[0.03] via-transparent to-violet-500/[0.03]" />
+        <div className="relative flex items-center justify-between px-7 py-6 border-b border-white/[0.05]">
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/[0.03] via-transparent to-violet-500/[0.02]" />
           
           <div className="relative flex items-center gap-4">
             <motion.div 
               className={cn(
-                "w-14 h-14 rounded-xl flex items-center justify-center border",
-                "bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border-emerald-500/30",
+                "w-14 h-14 rounded-2xl flex items-center justify-center border relative overflow-hidden",
+                "bg-gradient-to-br from-emerald-500/15 to-teal-500/10 border-emerald-500/25",
                 "shadow-lg shadow-emerald-500/10"
               )}
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+              animate={{ scale: [1, 1.04, 1] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             >
-              <CheckCircle2 className="w-7 h-7 text-emerald-400" />
+              <CheckCircle2 className="w-7 h-7 text-emerald-400 relative z-10" />
+              {/* Glass highlight */}
+              <div className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-white/[0.06] to-transparent" />
             </motion.div>
             <div>
               <div className="flex items-center gap-2.5">
                 <h3 className="text-lg font-bold text-white">Video Complete</h3>
-                <Sparkles className="w-4.5 h-4.5 text-emerald-400" />
+                <Sparkles className="w-4 h-4 text-emerald-400" />
               </div>
-              <p className="text-xs text-emerald-400/50 mt-0.5 font-medium">Assembled and ready for export</p>
+              <p className="text-xs text-emerald-400/40 mt-0.5 font-medium">✦ Assembled and ready for export</p>
             </div>
           </div>
           
@@ -63,7 +65,7 @@ export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFi
                 <Button 
                   size="sm"
                   variant="ghost"
-                  className="h-10 px-4 text-xs gap-2 text-white/50 hover:text-white hover:bg-white/[0.06] rounded-xl font-semibold"
+                  className="h-10 px-4 text-xs gap-2 text-white/40 hover:text-white hover:bg-white/[0.06] rounded-xl font-semibold"
                   onClick={() => window.open(videoUrl, '_blank')}
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -76,7 +78,7 @@ export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFi
                     "bg-gradient-to-r from-emerald-500 to-teal-500",
                     "hover:from-emerald-400 hover:to-teal-400",
                     "text-white font-bold",
-                    "shadow-lg shadow-emerald-500/25",
+                    "shadow-lg shadow-emerald-500/20",
                     "transition-all duration-200"
                   )}
                   asChild
@@ -102,7 +104,7 @@ export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFi
         </div>
         
         {/* Bottom gradient */}
-        <div className="absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+        <div className="absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
       </div>
     </motion.div>
   );

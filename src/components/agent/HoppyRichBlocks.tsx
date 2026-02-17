@@ -782,10 +782,13 @@ function SettingsBlock({ data, onNavigate }: { data: any; onNavigate?: (path: st
 
 
 function MultipleChoiceBlock({ data, onSendMessage }: { data: any; onSendMessage?: (content: string) => void }) {
-  const options: { id: string; label: string; description?: string; icon?: string }[] = data.options || [];
+  const options: { id: string; label: string; description?: string; icon?: string; image_url?: string }[] = data.options || [];
   const maxSelections: number = data.max_selections || 1;
   const question: string = data.question || "Choose an option:";
   const choiceId: string = data.id || "choice";
+  const layout: string = data.layout || "list";
+  const hasImages = options.some((o) => o.image_url);
+  const useGrid = layout === "grid" || hasImages;
 
   const [selected, setSelected] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
@@ -795,7 +798,6 @@ function MultipleChoiceBlock({ data, onSendMessage }: { data: any; onSendMessage
     setSelected((prev) => {
       if (prev.includes(optId)) return prev.filter((s) => s !== optId);
       if (prev.length >= maxSelections) {
-        // Replace last selection if at max
         return maxSelections === 1 ? [optId] : [...prev.slice(0, -1), optId];
       }
       return [...prev, optId];
@@ -814,6 +816,19 @@ function MultipleChoiceBlock({ data, onSendMessage }: { data: any; onSendMessage
     onSendMessage?.(response);
   };
 
+  // Auto-submit on single-select click for snappier UX
+  const handleOptionClick = (optId: string) => {
+    if (submitted) return;
+    if (maxSelections === 1) {
+      setSelected([optId]);
+      setSubmitted(true);
+      const label = options.find((o) => o.id === optId)?.label || optId;
+      onSendMessage?.(label);
+    } else {
+      toggleOption(optId);
+    }
+  };
+
   const OPTION_ICONS: Record<string, any> = {
     film: Film, sparkles: Sparkles, zap: Zap, star: Star, crown: Crown,
     play: Play, globe: Globe, users: Users, settings: Settings, palette: Palette,
@@ -822,87 +837,187 @@ function MultipleChoiceBlock({ data, onSendMessage }: { data: any; onSendMessage
   };
 
   return (
-    <RichCard accent="hsl(var(--primary))">
-      <div className="px-5 py-4 border-b border-border/8">
-        <div className="flex items-center gap-2.5">
-          <div className="p-1.5 rounded-lg bg-primary/10">
-            <HelpCircle className="h-4 w-4 text-primary" />
-          </div>
-          <span className="font-display text-sm font-semibold text-foreground tracking-tight">{question}</span>
-        </div>
-        {maxSelections > 1 && (
-          <p className="text-[10px] text-muted-foreground/50 mt-1.5 ml-9">
-            Select up to {maxSelections} options
-          </p>
-        )}
+    <div className="mt-3 mb-1">
+      {/* Question header */}
+      <div className="flex items-center gap-2.5 mb-3 px-1">
+        <span className="font-display text-sm font-semibold text-foreground/80 tracking-tight">{question}</span>
       </div>
+      {maxSelections > 1 && (
+        <p className="text-[10px] text-muted-foreground/40 mb-2.5 px-1">
+          Select up to {maxSelections}
+        </p>
+      )}
 
-      <div className="p-3 space-y-2">
+      {/* Options — Grid layout for visual cards, List for text-only */}
+      <div className={cn(
+        useGrid ? "grid grid-cols-2 gap-2" : "space-y-1.5"
+      )}>
         {options.map((opt) => {
           const isSelected = selected.includes(opt.id);
           const IconComp = opt.icon ? OPTION_ICONS[opt.icon] : null;
 
+          if (useGrid) {
+            // ── Grid Card: Visual-first with optional image ──
+            return (
+              <button
+                key={opt.id}
+                onClick={() => handleOptionClick(opt.id)}
+                disabled={submitted && !isSelected}
+                className={cn(
+                  "relative rounded-2xl overflow-hidden text-left transition-all duration-300 group",
+                  "border backdrop-blur-sm",
+                  submitted && isSelected
+                    ? "ring-2 ring-primary/40 border-primary/30 shadow-[0_0_24px_hsl(var(--primary)/0.15)]"
+                    : submitted
+                    ? "opacity-30 cursor-not-allowed border-border/5"
+                    : isSelected
+                    ? "border-primary/30 shadow-[0_0_20px_hsl(var(--primary)/0.1)]"
+                    : "border-border/10 hover:border-primary/20 hover:shadow-[0_0_16px_hsl(var(--primary)/0.06)]"
+                )}
+                style={{
+                  background: isSelected 
+                    ? "linear-gradient(135deg, hsl(var(--primary) / 0.08), hsl(var(--primary) / 0.03))"
+                    : "hsl(var(--surface-1) / 0.4)",
+                }}
+              >
+                {/* Image area */}
+                {opt.image_url && (
+                  <div className="relative w-full aspect-[3/4] overflow-hidden">
+                    <img 
+                      src={opt.image_url} 
+                      alt={opt.label}
+                      className={cn(
+                        "w-full h-full object-cover object-top transition-transform duration-500",
+                        !submitted && "group-hover:scale-105"
+                      )}
+                      loading="lazy"
+                    />
+                    {/* Gradient overlay for text readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                    
+                    {/* Selection check overlay */}
+                    {isSelected && (
+                      <div className="absolute top-2.5 right-2.5 h-6 w-6 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                        <CheckCircle className="h-3.5 w-3.5 text-primary-foreground" />
+                      </div>
+                    )}
+
+                    {/* Label on image */}
+                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                      <p className="text-sm font-display font-semibold text-white leading-tight drop-shadow-lg">
+                        {opt.label}
+                      </p>
+                      {opt.description && (
+                        <p className="text-[10px] text-white/60 mt-0.5 leading-relaxed line-clamp-2">
+                          {opt.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* No image: icon + text grid card */}
+                {!opt.image_url && (
+                  <div className="p-4 flex flex-col gap-2 min-h-[100px]">
+                    <div className="flex items-center justify-between">
+                      {IconComp && (
+                        <div className={cn(
+                          "p-2 rounded-xl transition-colors",
+                          isSelected ? "bg-primary/15" : "bg-surface-2/60 group-hover:bg-primary/8"
+                        )}>
+                          <IconComp className={cn("h-4.5 w-4.5", isSelected ? "text-primary" : "text-muted-foreground/50 group-hover:text-primary/60")} />
+                        </div>
+                      )}
+                      {isSelected && (
+                        <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                          <CheckCircle className="h-3 w-3 text-primary-foreground" />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className={cn(
+                        "text-sm font-display font-semibold transition-colors leading-tight",
+                        isSelected ? "text-foreground" : "text-foreground/75 group-hover:text-foreground"
+                      )}>
+                        {opt.label}
+                      </p>
+                      {opt.description && (
+                        <p className="text-[10px] text-muted-foreground/45 mt-1 leading-relaxed line-clamp-2">
+                          {opt.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </button>
+            );
+          }
+
+          // ── List layout: Horizontal card ──
           return (
             <button
               key={opt.id}
-              onClick={() => toggleOption(opt.id)}
-              disabled={submitted}
+              onClick={() => handleOptionClick(opt.id)}
+              disabled={submitted && !isSelected}
               className={cn(
-                "w-full text-left px-4 py-3.5 rounded-xl border transition-all duration-200",
+                "w-full text-left px-4 py-3.5 rounded-2xl border transition-all duration-200",
                 "flex items-center gap-3.5 group",
                 submitted && isSelected
-                  ? "bg-primary/12 border-primary/30 ring-1 ring-primary/20"
+                  ? "bg-primary/10 border-primary/25 ring-1 ring-primary/15"
                   : submitted
-                  ? "opacity-40 cursor-not-allowed bg-surface-2/20 border-border/8"
+                  ? "opacity-25 cursor-not-allowed border-border/5"
                   : isSelected
-                  ? "bg-primary/10 border-primary/25 shadow-[0_0_20px_hsl(var(--primary)/0.08)]"
-                  : "bg-surface-2/30 border-border/10 hover:border-primary/20 hover:bg-surface-2/50"
+                  ? "bg-primary/8 border-primary/20 shadow-[0_0_16px_hsl(var(--primary)/0.06)]"
+                  : "bg-surface-2/20 border-border/8 hover:border-primary/15 hover:bg-surface-2/40"
               )}
             >
-              {/* Selection indicator */}
-              <div
-                className={cn(
-                  "h-5 w-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all",
-                  isSelected
-                    ? "border-primary bg-primary"
-                    : "border-muted-foreground/25 group-hover:border-primary/40"
-                )}
-              >
-                {isSelected && <CheckCircle className="h-3 w-3 text-primary-foreground" />}
-              </div>
-
-              {/* Icon */}
-              {IconComp && (
-                <div className={cn(
-                  "p-1.5 rounded-lg flex-shrink-0 transition-colors",
-                  isSelected ? "bg-primary/15" : "bg-surface-2/50"
-                )}>
-                  <IconComp className={cn("h-4 w-4", isSelected ? "text-primary" : "text-muted-foreground/60")} />
+              {/* Icon or image */}
+              {opt.image_url ? (
+                <div className="h-11 w-11 rounded-xl overflow-hidden flex-shrink-0 ring-1 ring-border/10">
+                  <img src={opt.image_url} alt={opt.label} className="w-full h-full object-cover" loading="lazy" />
                 </div>
-              )}
+              ) : IconComp ? (
+                <div className={cn(
+                  "p-2 rounded-xl flex-shrink-0 transition-colors",
+                  isSelected ? "bg-primary/12" : "bg-surface-2/50 group-hover:bg-primary/8"
+                )}>
+                  <IconComp className={cn("h-4 w-4", isSelected ? "text-primary" : "text-muted-foreground/50 group-hover:text-primary/60")} />
+                </div>
+              ) : null}
 
               {/* Label & description */}
               <div className="flex-1 min-w-0">
                 <p className={cn(
                   "text-sm font-medium transition-colors",
-                  isSelected ? "text-foreground" : "text-foreground/80"
+                  isSelected ? "text-foreground" : "text-foreground/75 group-hover:text-foreground"
                 )}>
                   {opt.label}
                 </p>
                 {opt.description && (
-                  <p className="text-[11px] text-muted-foreground/50 mt-0.5 leading-relaxed line-clamp-2">
+                  <p className="text-[10px] text-muted-foreground/40 mt-0.5 leading-relaxed line-clamp-1">
                     {opt.description}
                   </p>
                 )}
               </div>
+
+              {/* Selection indicator */}
+              {isSelected && (
+                <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="h-3 w-3 text-primary-foreground" />
+                </div>
+              )}
+
+              {!isSelected && !submitted && (
+                <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/20 group-hover:text-primary/40 transition-colors flex-shrink-0" />
+              )}
             </button>
           );
         })}
       </div>
 
-      {/* Submit button */}
-      {!submitted && (
-        <div className="px-4 pb-4">
+      {/* Multi-select submit button */}
+      {maxSelections > 1 && !submitted && (
+        <div className="mt-3 px-1">
           <button
             onClick={handleSubmit}
             disabled={selected.length === 0}
@@ -910,7 +1025,7 @@ function MultipleChoiceBlock({ data, onSendMessage }: { data: any; onSendMessage
               "w-full py-3 rounded-xl text-sm font-display font-semibold transition-all duration-200",
               selected.length > 0
                 ? "bg-primary text-primary-foreground shadow-[0_4px_16px_hsl(var(--primary)/0.25)] hover:shadow-[0_8px_24px_hsl(var(--primary)/0.3)] active:scale-[0.98]"
-                : "bg-muted/50 text-muted-foreground/40 cursor-not-allowed"
+                : "bg-muted/30 text-muted-foreground/30 cursor-not-allowed"
             )}
           >
             {selected.length === 0
@@ -922,13 +1037,13 @@ function MultipleChoiceBlock({ data, onSendMessage }: { data: any; onSendMessage
 
       {/* Submitted state */}
       {submitted && (
-        <div className="px-5 py-3 border-t border-border/8 flex items-center gap-2">
-          <CheckCircle className="h-3.5 w-3.5 text-primary/60" />
-          <span className="text-[11px] text-primary/60 font-display font-medium">
-            Choice submitted
+        <div className="mt-2 px-1 flex items-center gap-1.5">
+          <CheckCircle className="h-3 w-3 text-primary/50" />
+          <span className="text-[10px] text-primary/50 font-display font-medium">
+            {selected.length === 1 ? options.find(o => o.id === selected[0])?.label : "Choices submitted"}
           </span>
         </div>
       )}
-    </RichCard>
+    </div>
   );
 }

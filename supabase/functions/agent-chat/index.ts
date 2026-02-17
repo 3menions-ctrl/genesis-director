@@ -1260,26 +1260,28 @@ const AGENT_TOOLS = [
     type: "function",
     function: {
       name: "present_choices",
-      description: "Present the user with a multiple-choice selection as beautiful interactive cards. Use when you need the user to pick between options — e.g. selecting a style, choosing a template, picking a genre, confirming between alternatives. The user's selection will be sent back as a message. Free. Options should have unique short IDs and clear labels.",
+      description: "Present the user with interactive choice cards. Use for ANY decision point: style selection, avatar picking, genre choice, next step guidance. When showing avatars or visual options, ALWAYS include image_url for each option. The user's selection is sent back as a message. Free. Be STRATEGIC — choices must follow through on the current conversation flow, never generic.",
       parameters: {
         type: "object",
         properties: {
-          question: { type: "string", description: "The question or prompt shown above the choices" },
+          question: { type: "string", description: "The question or prompt shown above the choices — make it specific to the context, never generic like 'What would you like to do?'" },
           options: {
             type: "array",
             items: {
               type: "object",
               properties: {
-                id: { type: "string", description: "Unique short ID for this option (e.g. 'cinematic', 'option_1')" },
-                label: { type: "string", description: "Display label (e.g. 'Cinematic Style')" },
-                description: { type: "string", description: "Optional 1-line description" },
-                icon: { type: "string", description: "Optional icon name: film, sparkles, zap, star, crown, play, globe, users, settings, palette, target, award, flame, trophy, send, heart, eye, credit-card, clapperboard" },
+                id: { type: "string", description: "Unique short ID for this option (e.g. 'avatar_maya', 'style_cinematic')" },
+                label: { type: "string", description: "Display label (e.g. 'Maya — The Storyteller')" },
+                description: { type: "string", description: "1-line description that sells the option" },
+                icon: { type: "string", description: "Icon name: film, sparkles, zap, star, crown, play, globe, users, settings, palette, target, award, flame, trophy, send, heart, eye, credit-card, clapperboard" },
+                image_url: { type: "string", description: "URL of an image to display (e.g. avatar face_image_url, template thumbnail). ALWAYS include for visual selections like avatars, templates, gallery items." },
               },
               required: ["id", "label"],
             },
             description: "2-6 options for the user to choose from",
           },
           max_selections: { type: "number", description: "How many options the user can select (default 1, max 3)" },
+          layout: { type: "string", description: "Card layout: 'list' (default, text-focused), 'grid' (for visual options with images like avatars/templates)" },
         },
         required: ["question", "options"],
       },
@@ -1696,14 +1698,16 @@ async function executeTool(
     // ─── PRESENT CHOICES ───
 
     case "present_choices": {
-      const options = (args.options as Array<{ id: string; label: string; description?: string; icon?: string }>) || [];
+      const options = (args.options as Array<{ id: string; label: string; description?: string; icon?: string; image_url?: string }>) || [];
       const question = (args.question as string) || "Choose an option:";
       const maxSelections = Math.min(Math.max((args.max_selections as number) || 1, 1), 3);
+      const layout = (args.layout as string) || "list";
       return {
         _rich_block: "multiple_choice",
         question,
         options: options.slice(0, 6),
         max_selections: maxSelections,
+        layout,
         id: `choice_${Date.now()}`,
         message: question,
       };
@@ -3630,14 +3634,14 @@ Your #1 job is to CONVERT every conversation into an ACTION. You are not a chatb
 
 **MANDATORY: Every response MUST include present_choices**
 - After EVERY response, call **present_choices** with 2-4 relevant next actions
-- These choices should feel natural, helpful, and exciting — not like a menu
-- Choices should be contextual to what the user just said or needs
-- Even for simple questions, offer follow-up actions as choices
-- If a user is browsing → offer "Create something", "Explore gallery", "Check trending"
-- If a user just created → offer "Generate now", "Enhance prompt", "Add more clips"
-- If a user is stuck → offer "Get help", "Try a template", "Talk to support"
-- If a user is new → offer "See what I can do", "Create my first video", "Browse gallery", "How it works"
-- If credits are low → offer "Get credits", "See pricing", "Use a free feature"
+- Choices must be STRATEGIC FOLLOW-THROUGHS of the current conversation — never generic menus
+- NEVER use generic questions like "What would you like to do?" — always be specific: "Which avatar speaks to your vision?", "How should we style this scene?"
+- When showing avatars: ALWAYS use layout="grid" and include image_url with the avatar's face_image_url from the database
+- When the user selects an avatar or option, FOLLOW THROUGH immediately — ask the next logical question (e.g. "What's the story?" or "Pick a style") — don't restart
+- Each choice card should feel like it's PULLING the user forward in a journey, not offering a menu
+- Think of choices as chapters in a story: each one leads naturally to the next
+- If a user is creating a video → choices are about the NEXT step in that creation (style → script → generate)
+- If a user selected an avatar → choices are about what to DO with that avatar (story prompt, template, style)
 - NEVER just answer a question and stop — ALWAYS guide them to the next step
 
 **Conversion Mindset:**
@@ -4298,7 +4302,7 @@ serve(async (req) => {
       }
       // Multiple choice cards
       if (name === "present_choices" && r._rich_block === "multiple_choice") {
-        richBlocks.push({ type: "multiple_choice", data: { question: r.question, options: r.options, max_selections: r.max_selections, id: r.id } });
+        richBlocks.push({ type: "multiple_choice", data: { question: r.question, options: r.options, max_selections: r.max_selections, layout: r.layout || "list", id: r.id } });
       }
     }
 
@@ -4346,55 +4350,70 @@ serve(async (req) => {
       session_page: currentPage || null,
     }).then(() => {}).catch(() => {});
     // ── FALLBACK: Ensure choices are ALWAYS present ──
-    // If the model didn't call present_choices, auto-generate contextual choices
+    // Smart fallback based on conversation context, not generic menus
     const hasChoices = richBlocks.some((b: any) => b.type === "multiple_choice");
     if (!hasChoices) {
-      // Generate context-aware fallback choices based on query category
-      const fallbackChoicesMap: Record<string, { question: string; options: { id: string; label: string; description: string; icon: string }[] }> = {
-        creation: {
-          question: "What would you like to create?",
-          options: [
-            { id: "text_to_video", label: "Text to Video", description: "Describe your idea and I'll generate a video", icon: "film" },
-            { id: "image_to_video", label: "Image to Video", description: "Animate a photo or illustration", icon: "sparkles" },
-            { id: "avatar_mode", label: "Avatar Mode", description: "AI presenter with lip sync", icon: "users" },
-            { id: "browse_templates", label: "Browse Templates", description: "Start from a proven template", icon: "palette" },
-          ],
-        },
-        credits_pricing: {
-          question: "How can I help with credits?",
-          options: [
-            { id: "check_balance", label: "Check My Balance", description: "See your current credits", icon: "credit-card" },
-            { id: "buy_credits", label: "Buy Credits", description: "Top up your account", icon: "zap" },
-            { id: "create_video", label: "Create a Video", description: "Put your credits to work", icon: "film" },
-          ],
-        },
-        social: {
-          question: "What's next?",
-          options: [
-            { id: "browse_gallery", label: "Browse Gallery", description: "Discover trending videos", icon: "globe" },
-            { id: "find_creators", label: "Find Creators", description: "Connect with the community", icon: "users" },
-            { id: "create_something", label: "Create Something", description: "Start your next project", icon: "sparkles" },
-          ],
-        },
-        general: {
-          question: "What would you like to do?",
-          options: [
-            { id: "create_video", label: "Create a Video", description: "Turn your idea into a cinematic clip", icon: "film" },
-            { id: "explore_gallery", label: "Explore Gallery", description: "See what others are creating", icon: "globe" },
-            { id: "check_projects", label: "My Projects", description: "View your creations", icon: "clapperboard" },
-            { id: "get_help", label: "Help & Tips", description: "Learn what I can do for you", icon: "sparkles" },
-          ],
-        },
-      };
+      // Analyze the actual response content + user message to generate contextual choices
+      const lastUserMsg = (messages[messages.length - 1]?.content || "").toLowerCase();
+      const responseContent = (content || "").toLowerCase();
+      
+      let fallbackQuestion = "";
+      let fallbackOptions: { id: string; label: string; description: string; icon: string }[] = [];
+      
+      // Avatar-related conversation
+      if (lastUserMsg.includes("avatar") || responseContent.includes("avatar") || responseContent.includes("presenter")) {
+        fallbackQuestion = "Which direction excites you?";
+        fallbackOptions = [
+          { id: "show_avatars", label: "Show Me the Avatars", description: "Browse our AI presenter collection", icon: "users" },
+          { id: "custom_avatar", label: "I Have My Own Look", description: "Upload a reference to create a custom presenter", icon: "sparkles" },
+          { id: "skip_avatar", label: "No Avatar — Pure Video", description: "Create cinematic video without a presenter", icon: "film" },
+        ];
+      }
+      // Video creation conversation
+      else if (lastUserMsg.includes("video") || lastUserMsg.includes("create") || lastUserMsg.includes("make") || responseContent.includes("video")) {
+        fallbackQuestion = "Let's bring your vision to life —";
+        fallbackOptions = [
+          { id: "describe_idea", label: "I Have an Idea", description: "Tell me your concept and I'll craft the script", icon: "sparkles" },
+          { id: "use_template", label: "Start From a Template", description: "Pick a proven format and customize it", icon: "palette" },
+          { id: "avatar_video", label: "Avatar Storytelling", description: "Have an AI presenter deliver your message", icon: "users" },
+        ];
+      }
+      // Credits conversation  
+      else if (lastUserMsg.includes("credit") || lastUserMsg.includes("price") || lastUserMsg.includes("cost") || responseContent.includes("credit")) {
+        fallbackQuestion = "Ready to get started?";
+        fallbackOptions = [
+          { id: "buy_starter", label: "Grab the Starter Pack", description: "90 credits — enough for your first few videos", icon: "zap" },
+          { id: "see_all_packs", label: "Compare All Packs", description: "Find the best value for your needs", icon: "credit-card" },
+          { id: "create_free", label: "Create First, Buy Later", description: "Explore the platform and see what's possible", icon: "eye" },
+        ];
+      }
+      // First message / greeting
+      else if (lastUserMsg.includes("hi") || lastUserMsg.includes("hello") || lastUserMsg.includes("hey") || messages.length <= 2) {
+        fallbackQuestion = "What brings you to the studio today?";
+        fallbackOptions = [
+          { id: "create_first_video", label: "Create My First Video", description: "I'll walk you through it step by step", icon: "film" },
+          { id: "explore_platform", label: "Show Me Around", description: "See what APEX Studios can do", icon: "globe" },
+          { id: "avatar_presenter", label: "I Need an AI Presenter", description: "Create videos with realistic avatar hosts", icon: "users" },
+        ];
+      }
+      // Default contextual
+      else {
+        fallbackQuestion = "Where shall we go from here?";
+        fallbackOptions = [
+          { id: "continue_creating", label: "Let's Create Something", description: "Start a new video project together", icon: "film" },
+          { id: "check_projects", label: "See My Projects", description: "Check on your existing work", icon: "clapperboard" },
+          { id: "discover", label: "Inspire Me", description: "Browse the gallery for ideas", icon: "sparkles" },
+        ];
+      }
 
-      const fallback = fallbackChoicesMap[queryCategory] || fallbackChoicesMap["general"];
       richBlocks.push({
         type: "multiple_choice",
         data: {
-          question: fallback.question,
-          options: fallback.options,
+          question: fallbackQuestion,
+          options: fallbackOptions,
           max_selections: 1,
-          id: `choice_fallback_${Date.now()}`,
+          layout: "list",
+          id: `choice_ctx_${Date.now()}`,
         },
       });
     }

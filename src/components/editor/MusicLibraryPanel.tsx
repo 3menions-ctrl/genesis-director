@@ -147,15 +147,16 @@ export const MusicLibraryPanel = ({ onAddMusic }: MusicLibraryPanelProps) => {
               </div>
 
               {/* Favorite */}
-              <button
+              <span
+                role="button"
                 className={cn(
-                  "p-1 rounded-md transition-all",
+                  "p-1 rounded-md transition-all cursor-pointer",
                   favorites.has(track.id) ? "text-red-400" : "text-white/10 hover:text-white/30"
                 )}
                 onClick={(e) => { e.stopPropagation(); toggleFavorite(track.id); }}
               >
                 <Heart className="h-3 w-3" fill={favorites.has(track.id) ? "currentColor" : "none"} />
-              </button>
+              </span>
             </button>
           ))
         )}

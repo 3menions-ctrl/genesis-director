@@ -170,12 +170,12 @@ describe('EditorSidebar', () => {
   it('shows tools panel when no clip selected', () => {
     render(<EditorSidebar {...defaultProps} />);
     expect(screen.getByText('Tools')).toBeInTheDocument();
-    expect(screen.getByText('Add Text Overlay')).toBeInTheDocument();
+    expect(screen.getByText('Text')).toBeInTheDocument();
   });
 
-  it('calls onAddTextOverlay when button clicked', () => {
+  it('calls onAddTextOverlay when Text button clicked', () => {
     render(<EditorSidebar {...defaultProps} />);
-    fireEvent.click(screen.getByText('Add Text Overlay'));
+    fireEvent.click(screen.getByText('Text'));
     expect(defaultProps.onAddTextOverlay).toHaveBeenCalledOnce();
   });
 

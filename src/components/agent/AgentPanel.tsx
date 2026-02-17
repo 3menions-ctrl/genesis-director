@@ -425,21 +425,30 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
           >
             <div className="max-w-3xl mx-auto">
               <div
-                className="flex items-end gap-3 rounded-2xl px-5 py-3 backdrop-blur-xl"
+                className="flex items-end gap-3 rounded-2xl px-4 py-2.5 backdrop-blur-xl transition-all duration-300 group/input"
                 style={{
-                  background: "hsl(var(--surface-1) / 0.6)",
-                  border: "1px solid hsl(var(--border) / 0.1)",
-                  boxShadow: "0 -4px 40px hsl(0 0% 0% / 0.08)",
+                  background: "linear-gradient(135deg, hsl(var(--surface-1) / 0.7), hsl(var(--surface-1) / 0.5))",
+                  border: "1px solid hsl(var(--border) / 0.08)",
+                  boxShadow: "0 -4px 40px hsl(0 0% 0% / 0.06), inset 0 1px 0 hsl(var(--border) / 0.04)",
                 }}
               >
+                {/* Avatar hint */}
+                <div className="flex-shrink-0 w-7 h-7 rounded-full overflow-hidden ring-1 ring-primary/10 mb-0.5 opacity-60 group-focus-within/input:opacity-100 transition-opacity">
+                  <video
+                    src="/hoppy-blink.mp4"
+                    autoPlay loop muted playsInline
+                    className="w-full h-full object-cover scale-[1.15]"
+                    style={{ objectPosition: "50% 25%" }}
+                  />
+                </div>
                 <textarea
                   ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Ask Hoppy anything..."
-                  className="flex-1 bg-transparent text-[15px] text-foreground placeholder:text-muted-foreground/40 
-                             resize-none border-none outline-none font-sans leading-[1.6] max-h-28 min-h-[24px]"
+                  className="flex-1 bg-transparent text-[15px] text-foreground placeholder:text-muted-foreground/30 
+                             resize-none border-none outline-none focus:outline-none focus:ring-0 font-sans leading-[1.6] max-h-28 min-h-[24px]"
                   rows={1}
                   disabled={isLoading}
                   style={{ fieldSizing: "content" } as any}
@@ -448,10 +457,10 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                   onClick={handleSend}
                   disabled={isLoading || !input.trim()}
                   className={cn(
-                    "p-2.5 rounded-xl transition-all duration-200 flex-shrink-0",
+                    "p-2 rounded-xl transition-all duration-300 flex-shrink-0 mb-0.5",
                     input.trim()
-                      ? "bg-primary text-primary-foreground shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
-                      : "bg-transparent text-muted-foreground/30 cursor-not-allowed"
+                      ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:-translate-y-0.5 active:scale-95"
+                      : "bg-muted/20 text-muted-foreground/20 cursor-not-allowed"
                   )}
                 >
                   {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -563,11 +572,12 @@ function ImmersiveMessageBubble({
 
         {/* Header with avatar + timestamp */}
         <div className="flex items-center gap-3 px-6 pt-5 pb-1">
-          <div className="h-7 w-7 rounded-lg overflow-hidden flex-shrink-0 ring-1 ring-primary/10">
+          <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0 ring-1 ring-primary/15 shadow-sm shadow-primary/10">
             <video
               src="/hoppy-blink.mp4"
               autoPlay loop muted playsInline
-              className="w-full h-full object-cover scale-[1.4] object-top"
+              className="w-full h-full object-cover scale-[1.15]"
+              style={{ objectPosition: "50% 25%" }}
             />
           </div>
           <span className="font-display text-xs font-semibold text-foreground/60 tracking-wide uppercase">Hoppy</span>

@@ -64,6 +64,13 @@ const TOOL_CREDIT_COSTS: Record<string, number> = {
   add_music_to_project: 1,
   apply_video_effect: 1,
   get_music_library: 0,
+  // User inventory & creative tools
+  get_full_inventory: 0,
+  analyze_video_quality: 1,
+  enhance_prompt: 1,
+  get_edit_sessions: 0,
+  get_characters: 0,
+  get_stitch_jobs: 0,
 };
 
 // ══════════════════════════════════════════════════════
@@ -670,6 +677,85 @@ const AGENT_TOOLS = [
         type: "object",
         properties: {
           genre: { type: "string", description: "Filter by genre: cinematic, pop, ambient, electronic, hip-hop, classical" },
+        },
+      },
+    },
+  },
+  // ─── USER INVENTORY & CREATIVE INTELLIGENCE ───
+  {
+    type: "function",
+    function: {
+      name: "get_full_inventory",
+      description: "Get the user's complete data inventory: projects (with counts by status), clips, characters, edit sessions, credit history summary, social stats, gamification, and storage usage. Free.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "analyze_video_quality",
+      description: "Analyze a completed project's clips and provide creative feedback on pacing, continuity, prompt quality, and suggestions for improvement. Costs 1 credit.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project UUID to analyze" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "enhance_prompt",
+      description: "Take a user's video prompt and enhance it with cinematic techniques, camera directions, lighting cues, and emotional beats for better video generation results. Costs 1 credit.",
+      parameters: {
+        type: "object",
+        properties: {
+          prompt: { type: "string", description: "The user's original prompt to enhance" },
+          style: { type: "string", enum: ["cinematic", "documentary", "commercial", "music_video", "dramatic", "whimsical"], description: "Target visual style" },
+          tone: { type: "string", enum: ["epic", "intimate", "energetic", "melancholic", "mysterious", "uplifting"], description: "Emotional tone" },
+        },
+        required: ["prompt"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_edit_sessions",
+      description: "Get the user's video editor sessions with status and timeline info. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: { type: "number", description: "Max sessions to return (default 10)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_characters",
+      description: "Get the user's created characters with voice assignments, appearances, and backstories. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: { type: "number", description: "Max characters to return (default 20)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_stitch_jobs",
+      description: "Get the user's recent video stitch jobs with status and output URLs. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: { type: "number", description: "Max jobs to return (default 10)" },
+          status: { type: "string", enum: ["pending", "processing", "completed", "failed"], description: "Filter by status" },
         },
       },
     },
@@ -1321,6 +1407,242 @@ async function executeTool(
       };
     }
 
+    // ─── USER INVENTORY & CREATIVE INTELLIGENCE ───
+
+    case "get_full_inventory": {
+      // Comprehensive user data snapshot
+      const [
+        { data: profile },
+        { data: gamification },
+        { count: projectCount },
+        { data: projectsByStatus },
+        { count: clipCount },
+        { count: characterCount },
+        { count: editSessionCount },
+        { count: followerCount },
+        { count: followingCount },
+        { count: likeCount },
+        { data: recentTxns },
+        { count: notifCount },
+        { count: stitchCount },
+      ] = await Promise.all([
+        supabase.from("profiles").select("display_name, credits_balance, account_tier, total_credits_used, total_credits_purchased, created_at, bio, avatar_url").eq("id", userId).single(),
+        supabase.from("user_gamification").select("xp_total, level, current_streak, longest_streak, last_activity_date, active_title").eq("user_id", userId).single(),
+        supabase.from("movie_projects").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("movie_projects").select("status").eq("user_id", userId),
+        supabase.from("video_clips").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("characters").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("edit_sessions").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("user_follows").select("id", { count: "exact", head: true }).eq("following_id", userId),
+        supabase.from("user_follows").select("id", { count: "exact", head: true }).eq("follower_id", userId),
+        supabase.from("video_likes").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("credit_transactions").select("amount, transaction_type, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(5),
+        supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("read", false),
+        supabase.from("stitch_jobs").select("id", { count: "exact", head: true }).eq("user_id", userId),
+      ]);
+
+      // Count projects by status
+      const statusCounts: Record<string, number> = {};
+      (projectsByStatus || []).forEach((p: any) => {
+        statusCounts[p.status] = (statusCounts[p.status] || 0) + 1;
+      });
+
+      const totalSpent = recentTxns?.filter((t: any) => t.amount < 0).reduce((sum: number, t: any) => sum + Math.abs(t.amount), 0) || 0;
+
+      return {
+        profile: {
+          name: profile?.display_name || "Not set",
+          tier: profile?.account_tier || "free",
+          member_since: profile?.created_at,
+          has_avatar: !!profile?.avatar_url,
+          has_bio: !!profile?.bio,
+        },
+        credits: {
+          balance: profile?.credits_balance || 0,
+          total_purchased: profile?.total_credits_purchased || 0,
+          total_used: profile?.total_credits_used || 0,
+          recent_spend_5txns: totalSpent,
+        },
+        content: {
+          total_projects: projectCount || 0,
+          projects_by_status: statusCounts,
+          total_clips: clipCount || 0,
+          total_characters: characterCount || 0,
+          total_edit_sessions: editSessionCount || 0,
+          total_stitch_jobs: stitchCount || 0,
+        },
+        social: {
+          followers: followerCount || 0,
+          following: followingCount || 0,
+          likes_given: likeCount || 0,
+          unread_notifications: notifCount || 0,
+        },
+        gamification: {
+          level: gamification?.level || 1,
+          xp: gamification?.xp_total || 0,
+          streak: gamification?.current_streak || 0,
+          longest_streak: gamification?.longest_streak || 0,
+          active_title: gamification?.active_title || null,
+        },
+      };
+    }
+
+    case "analyze_video_quality": {
+      const { data: project } = await supabase
+        .from("movie_projects")
+        .select("id, title, status, prompt, mode, aspect_ratio, clip_count, clip_duration, video_url, likes_count")
+        .eq("id", args.project_id)
+        .eq("user_id", userId)
+        .single();
+      if (!project) return { error: "Project not found or access denied" };
+
+      const { data: clips } = await supabase
+        .from("video_clips")
+        .select("shot_index, prompt, status, duration_seconds, quality_score, error_message, retry_count")
+        .eq("project_id", args.project_id)
+        .order("shot_index");
+
+      const cl = clips || [];
+      const completed = cl.filter(c => c.status === "completed");
+      const failed = cl.filter(c => c.status === "failed");
+      const avgQuality = completed.length > 0
+        ? completed.reduce((sum, c) => sum + (c.quality_score || 0), 0) / completed.length
+        : 0;
+      const totalDuration = completed.reduce((sum, c) => sum + (c.duration_seconds || 0), 0);
+      const totalRetries = cl.reduce((sum, c) => sum + (c.retry_count || 0), 0);
+
+      // Analyze prompt quality
+      const prompts = cl.map(c => c.prompt || "").filter(Boolean);
+      const avgPromptLength = prompts.length > 0 ? prompts.reduce((sum, p) => sum + p.length, 0) / prompts.length : 0;
+      const hasCameraDirections = prompts.some(p => /dolly|pan|zoom|crane|tracking|aerial|close.?up|wide.?shot/i.test(p));
+      const hasLightingCues = prompts.some(p => /golden.?hour|backlit|rim.?light|dramatic.?light|natural.?light|neon|warm|cool/i.test(p));
+      const hasEmotionCues = prompts.some(p => /emotion|feeling|mood|tension|joy|sorrow|excitement|calm|intense/i.test(p));
+
+      return {
+        project_title: project.title,
+        status: project.status,
+        mode: project.mode,
+        overview: {
+          total_clips: cl.length,
+          completed: completed.length,
+          failed: failed.length,
+          total_duration_seconds: totalDuration,
+          total_retries: totalRetries,
+          likes: project.likes_count || 0,
+          has_final_video: !!project.video_url,
+        },
+        quality_analysis: {
+          avg_quality_score: Math.round(avgQuality * 100) / 100,
+          avg_prompt_length: Math.round(avgPromptLength),
+          has_camera_directions: hasCameraDirections,
+          has_lighting_cues: hasLightingCues,
+          has_emotion_cues: hasEmotionCues,
+        },
+        recommendations: [
+          !hasCameraDirections ? "Add camera movement directions (dolly, pan, crane, tracking shot) to prompts for more dynamic visuals" : null,
+          !hasLightingCues ? "Include lighting descriptions (golden hour, backlit, dramatic lighting) for richer atmosphere" : null,
+          !hasEmotionCues ? "Add emotional cues and mood descriptions to create more engaging scenes" : null,
+          avgPromptLength < 80 ? "Your prompts are quite short — try adding more scene detail (aim for 100-200 characters) for better results" : null,
+          avgPromptLength > 300 ? "Your prompts may be too long — the AI focuses best on the first ~200 words. Put key actions first." : null,
+          failed.length > 0 ? `${failed.length} clip(s) failed — you can retry them for free or update their prompts` : null,
+          totalRetries > cl.length ? "Multiple retries detected — consider simplifying complex scene descriptions for more reliable generation" : null,
+        ].filter(Boolean),
+        clip_breakdown: cl.map(c => ({
+          index: c.shot_index,
+          status: c.status,
+          duration: c.duration_seconds,
+          prompt_preview: (c.prompt || "").substring(0, 80),
+          quality: c.quality_score,
+          retries: c.retry_count || 0,
+        })),
+      };
+    }
+
+    case "enhance_prompt": {
+      const original = args.prompt as string;
+      const style = (args.style as string) || "cinematic";
+      const tone = (args.tone as string) || "epic";
+
+      // Build enhancement context
+      const styleGuides: Record<string, string> = {
+        cinematic: "Use wide establishing shots, smooth camera movements (dolly push-ins, crane reveals), and dramatic lighting with deep shadows and rim lighting.",
+        documentary: "Use handheld camera feel, natural lighting, close-up interviews, B-roll cutaways, and observational framing.",
+        commercial: "Bright, clean lighting, product-focused compositions, smooth transitions, aspirational lifestyle framing.",
+        music_video: "Dynamic camera movements, creative angles, strobe/neon lighting, rhythmic editing, performance-focused.",
+        dramatic: "Chiaroscuro lighting, slow deliberate camera movements, extreme close-ups for emotion, wide shots for isolation.",
+        whimsical: "Soft pastel lighting, floating/dreamy camera movements, playful compositions, warm color palette.",
+      };
+
+      const toneGuides: Record<string, string> = {
+        epic: "Grand scale, sweeping vistas, heroic movements, crescendo energy, awe-inspiring moments.",
+        intimate: "Tight framing, shallow depth of field, whispered details, personal moments.",
+        energetic: "Fast cuts, dynamic angles, vibrant colors, explosive action, high tempo.",
+        melancholic: "Muted tones, slow motion, rain/fog atmosphere, solitary figures, reflective pauses.",
+        mysterious: "Deep shadows, fog, partial reveals, unusual angles, suspenseful pacing.",
+        uplifting: "Warm golden light, upward camera movements, smiling faces, blooming nature, sunrise/sunset.",
+      };
+
+      const enhanced = `${original}
+
+--- CINEMATIC ENHANCEMENT ---
+Visual Style: ${styleGuides[style] || styleGuides.cinematic}
+Emotional Tone: ${toneGuides[tone] || toneGuides.epic}
+Camera: Start with an establishing wide shot, transition to medium shots for action, use close-ups for emotional beats.
+Lighting: Natural warm lighting with dramatic rim light accents, volumetric atmosphere.
+Motion: Continuous subtle movement — breathing, wind in hair, gentle sway — to avoid static frames.
+Color: Rich, vibrant palette with strong contrast and cinematic color grading.
+IDENTITY_ANCHOR: Maintain consistent character appearance, clothing, and features across all clips.
+MOTION_GUARD: Ensure continuous micro-movement in every frame to prevent slideshow artifacts.`;
+
+      return {
+        original_prompt: original,
+        enhanced_prompt: enhanced,
+        style_applied: style,
+        tone_applied: tone,
+        tips: [
+          "The enhanced prompt places key actions first for maximum AI attention",
+          "Camera directions and lighting cues are included for cinematic quality",
+          "IDENTITY_ANCHOR and MOTION_GUARD markers ensure consistency",
+          "You can further customize by editing specific clip prompts after project creation",
+        ],
+      };
+    }
+
+    case "get_edit_sessions": {
+      const limit = Math.min((args.limit as number) || 10, 20);
+      const { data } = await supabase
+        .from("edit_sessions")
+        .select("id, title, status, project_id, render_progress, render_url, created_at, updated_at")
+        .eq("user_id", userId)
+        .order("updated_at", { ascending: false })
+        .limit(limit);
+      return { sessions: data || [], total: data?.length || 0 };
+    }
+
+    case "get_characters": {
+      const limit = Math.min((args.limit as number) || 20, 30);
+      const { data } = await supabase
+        .from("characters")
+        .select("id, name, description, personality, appearance, backstory, voice_id, voice_locked, lending_permission, times_borrowed, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      return { characters: data || [], total: data?.length || 0 };
+    }
+
+    case "get_stitch_jobs": {
+      const limit = Math.min((args.limit as number) || 10, 20);
+      let q = supabase
+        .from("stitch_jobs")
+        .select("id, project_id, status, output_url, clip_count, total_duration_seconds, created_at, completed_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (args.status) q = q.eq("status", args.status);
+      const { data } = await q;
+      return { stitch_jobs: data || [], total: data?.length || 0 };
+    }
+
     default:
       return { error: `Unknown tool: ${toolName}` };
   }
@@ -1384,6 +1706,11 @@ For actions costing >5 credits, ALWAYS present the cost and ask before executing
 ═══ YOUR FULL CAPABILITIES ═══
 You are a FULLY capable assistant. You can DO everything in the app:
 
+**📊 User Data & Inventory** (USE THESE TO UNDERSTAND USER'S DATA!)
+- **get_full_inventory** — Complete snapshot: projects by status, clips, characters, edit sessions, credits, social stats, gamification — all in one call. ALWAYS use this when the user asks about their data, "how many videos", "what do I have", etc.
+- View characters, edit sessions, stitch jobs individually for deeper detail
+- Check credit balance, transaction history, spending patterns
+
 **📁 Project Management**
 - Create projects (2cr) • Rename (1cr) • Delete (free) • Duplicate (2cr)
 - Trigger video generation • Check pipeline status • View details
@@ -1395,6 +1722,10 @@ You are a FULLY capable assistant. You can DO everything in the app:
 - **Edit clips directly**: view clip details, update clip prompts (1cr), retry failed clips (free), reorder clips (1cr), delete clips from drafts (free)
 - **Add music** to completed projects (1cr) — browse the curated music library by genre
 - **Apply visual effects** to projects (1cr) — cinematic bars, vintage film, color boost, slow motion, dreamy glow, B&W, sepia, VHS retro
+
+**🧠 Creative Intelligence** (NEW!)
+- **analyze_video_quality** (1cr) — Deep analysis of a project's clips: pacing, continuity, prompt quality, camera/lighting/emotion cues, and actionable improvement recommendations
+- **enhance_prompt** (1cr) — Transform a basic prompt into a cinematic masterpiece with camera directions, lighting cues, emotional beats, and quality guards
 
 **📸 Photo & Image Awareness**
 - Browse user's uploaded photos and generated images
@@ -1414,6 +1745,10 @@ You are a FULLY capable assistant. You can DO everything in the app:
 **🏆 Gamification & Achievements**
 - Check XP, level, streak, achievements/badges
 - View all available achievements and which are unlocked
+
+**🎭 Characters & Universes**
+- View all created characters with voice assignments, backstories
+- Track character lending and borrowing
 
 **🔍 Information**
 - Check credits, transactions, pipeline status, avatars, templates

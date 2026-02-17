@@ -126,14 +126,19 @@ export const EditorPreview = ({
                 style={{
                   filter: (() => {
                     if (!activeVideoClip?.filter) return undefined;
-                    // Look up CSS from EFFECT_PRESETS or FILTER_PRESETS
                     const effectPreset = EFFECT_PRESETS.find(e => e.id === activeVideoClip.filter);
-                    if (effectPreset && 'css' in effectPreset && effectPreset.css) return effectPreset.css;
+                    if (effectPreset && 'css' in effectPreset && effectPreset.css && effectPreset.css !== 'none') return effectPreset.css;
                     const filterPreset = FILTER_PRESETS.find(f => f.id === activeVideoClip.filter);
                     if (filterPreset?.css) return filterPreset.css;
                     return undefined;
                   })(),
-                  transition: 'filter 0.3s ease',
+                  transform: (() => {
+                    if (!activeVideoClip?.filter) return undefined;
+                    const effectPreset = EFFECT_PRESETS.find(e => e.id === activeVideoClip.filter);
+                    if (effectPreset && 'transform' in effectPreset) return (effectPreset as any).transform;
+                    return undefined;
+                  })(),
+                  transition: 'filter 0.3s ease, transform 0.3s ease',
                 }}
               >
                 <video ref={videoARef}

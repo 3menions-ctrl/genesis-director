@@ -259,21 +259,45 @@ export function useGaplessPlayback(
     });
   }, [volume, isMuted]);
 
+  // ── Fallback clock for audio-only / gap playback ──
+  const lastTickTimeRef = useRef<number>(0);
+
   // ── RAF Playback Loop — clip boundary detection + time sync ──
   useEffect(() => {
     if (!isPlaying) {
       cancelAnimationFrame(rafRef.current);
+      lastTickTimeRef.current = 0;
       return;
     }
+
+    lastTickTimeRef.current = performance.now();
 
     const tick = () => {
       const video = getActiveVideo();
       const clip = activeClip;
 
-      if (!video || isSyncingRef.current || !clip) {
+      // No active video clip — drive clock forward manually (for audio-only or gaps)
+      if (!clip || isSyncingRef.current || !video) {
+        const now = performance.now();
+        const delta = (now - lastTickTimeRef.current) / 1000 * playbackSpeed;
+        lastTickTimeRef.current = now;
+
+        const newTime = currentTimeRef.current + delta;
+        if (newTime >= duration) {
+          if (isLoopingRef.current) {
+            onTimeChange(0);
+          } else {
+            onTimeChange(duration);
+            onPlayPause();
+          }
+        } else {
+          onTimeChange(newTime);
+        }
         rafRef.current = requestAnimationFrame(tick);
         return;
       }
+
+      lastTickTimeRef.current = performance.now();
 
       // Sync editor time from video position
       const clipStart = clip.start;
@@ -313,7 +337,7 @@ export function useGaplessPlayback(
 
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [isPlaying, activeClip, sortedVideoClips, duration, onTimeChange, onPlayPause, getActiveVideo, preloadNextClip]);
+  }, [isPlaying, activeClip, sortedVideoClips, duration, playbackSpeed, onTimeChange, onPlayPause, getActiveVideo, preloadNextClip]);
 
   // ── Dual-trigger: also listen for 'ended' event as backup boundary detection ──
   useEffect(() => {

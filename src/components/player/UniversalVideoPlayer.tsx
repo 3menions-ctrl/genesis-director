@@ -40,7 +40,7 @@ import {
   type MSEClip,
   type MSEEngineState,
 } from '@/lib/videoEngine/MSEGaplessEngine';
-import { navigationCoordinator } from '@/lib/navigation';
+import { navigationCoordinator, useMediaCleanup, useRouteCleanup } from '@/lib/navigation';
 import { 
   getPlatformCapabilities, 
   logPlaybackPath, 
@@ -510,12 +510,46 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     // NAVIGATION CLEANUP REGISTRATION
     // ========================================================================
     
+    // CRITICAL: Register ALL video/audio refs with NavigationCoordinator
+    // so abortAllMedia() can pause them BEFORE React unmount races with new page mount
+    useMediaCleanup(mseVideoRef);
+    useMediaCleanup(videoARef);
+    useMediaCleanup(videoBRef);
+    useMediaCleanup(musicRef);
+    useMediaCleanup(masterAudioRef);
+
+    // CRITICAL: Destroy MSE engine and release all media BEFORE navigation starts
+    useRouteCleanup(() => {
+      try {
+        [mseVideoRef, videoARef, videoBRef].forEach(ref => {
+          const video = ref.current;
+          if (video) {
+            video.pause();
+            video.removeAttribute('src');
+            video.load(); // Force release of media resources
+          }
+        });
+        [musicRef, masterAudioRef].forEach(ref => {
+          const audio = ref.current;
+          if (audio) {
+            audio.pause();
+            audio.removeAttribute('src');
+          }
+        });
+      } catch {
+        // Ignore errors on destroyed elements
+      }
+      if (mseEngineRef.current) {
+        mseEngineRef.current.destroy();
+        mseEngineRef.current = null;
+      }
+    }, []);
+
     useEffect(() => {
       mountedRef.current = true;
       
-      // Register cleanup with navigation coordinator
+      // Register cleanup with navigation coordinator (legacy path)
       cleanupUnsubRef.current = navigationCoordinator.registerGlobalCleanup(() => {
-        // Pause all videos on navigation
         try {
           if (mseVideoRef.current && !mseVideoRef.current.paused) {
             mseVideoRef.current.pause();
@@ -533,7 +567,6 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
           // Ignore errors on destroyed elements
         }
         
-        // Destroy MSE engine
         if (mseEngineRef.current) {
           mseEngineRef.current.destroy();
           mseEngineRef.current = null;
@@ -543,7 +576,6 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
       return () => {
         mountedRef.current = false;
         
-        // Unregister cleanup
         if (cleanupUnsubRef.current) {
           cleanupUnsubRef.current();
           cleanupUnsubRef.current = null;

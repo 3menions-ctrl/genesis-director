@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, memo, forwardRef, useRef } from 'react';
 import { lazy, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSafeNavigation } from '@/lib/navigation';
+import { useSafeNavigation, useRouteCleanup } from '@/lib/navigation';
 import { ErrorBoundaryWrapper } from '@/components/ui/error-boundary';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
 import { useGatekeeperLoading, getGatekeeperMessage, GATEKEEPER_PRESETS } from '@/hooks/useGatekeeperLoading';
@@ -69,6 +69,19 @@ export default function Landing() {
   const signUpButtonRef = useRef<HTMLButtonElement>(null);
   const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasAutoTriggeredRef = useRef(false);
+
+  // CRITICAL: Clean up all timers and media state BEFORE navigation starts
+  // This prevents inactivity timers from firing after we've left the page,
+  // and ensures immersive video streams are stopped before new page mounts
+  useRouteCleanup(() => {
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+      inactivityTimerRef.current = null;
+    }
+    hasAutoTriggeredRef.current = true; // Prevent any future triggers
+    setIsImmersive(false);
+    setShowExamples(false);
+  }, []);
 
   // Gatekeeper for clean fade-in
   const { isLoading, progress, phase } = useGatekeeperLoading({

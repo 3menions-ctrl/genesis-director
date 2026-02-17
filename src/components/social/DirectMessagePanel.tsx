@@ -77,7 +77,7 @@ export function DirectMessagePanel({
         .from('profiles_public')
         .select('display_name, avatar_url')
         .eq('id', recipientId)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data;
     },

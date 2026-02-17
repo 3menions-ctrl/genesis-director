@@ -76,7 +76,7 @@ export function useAgentChat(): UseAgentChatReturn {
           .eq("user_id", user.id)
           .order("updated_at", { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         if (conv) {
           setConversationId(conv.id);

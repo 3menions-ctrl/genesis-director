@@ -593,7 +593,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               .from('movie_projects')
               .select('pending_video_tasks, voice_audio_url, video_url')
               .eq('id', source.projectId)
-              .single();
+              .maybeSingle();
             
             const tasks = project?.pending_video_tasks as Record<string, unknown> | null;
             hlsUrl = tasks?.hlsPlaylistUrl as string | null;

@@ -98,7 +98,7 @@ const VideoEditor = () => {
             .from('movie_projects')
             .select('pending_video_tasks, title, mode')
             .eq('id', projectId)
-            .single();
+            .maybeSingle();
 
           if (project?.title) {
             setEditorState(prev => ({ ...prev, title: project.title }));
@@ -153,7 +153,7 @@ const VideoEditor = () => {
           .from('movie_projects')
           .select('title')
           .eq('id', projectId)
-          .single();
+          .maybeSingle();
 
         // Place clips sequentially on Video 1 track
         const timelineClips: TimelineClip[] = clips.map((clip, idx) => {
@@ -502,7 +502,7 @@ const VideoEditor = () => {
           .from("movie_projects")
           .select("title")
           .eq("id", targetProjectId)
-          .single();
+          .maybeSingle();
         if (proj?.title) projectTitle = proj.title;
       }
       loadProjectClips(targetProjectId, projectTitle);

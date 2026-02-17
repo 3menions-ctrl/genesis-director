@@ -103,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       // Race between fetch and timeout
       const result = await Promise.race([fetchPromise, timeoutPromise]);

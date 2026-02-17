@@ -290,7 +290,7 @@ export class PipelineStateMachine {
         .from('movie_projects')
         .select('pipeline_context_snapshot, pending_video_tasks')
         .eq('id', projectId)
-        .single();
+        .maybeSingle();
       
       if (error || !data) return null;
       

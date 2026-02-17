@@ -39,7 +39,7 @@ export function usePublicProfile(userId?: string) {
         .from('profiles_public')
         .select('id, display_name, avatar_url')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (profileError) {
         console.debug('[usePublicProfile] Profile error:', profileError.message);
@@ -73,7 +73,7 @@ export function usePublicProfile(userId?: string) {
           .select('id')
           .eq('follower_id', user.id)
           .eq('following_id', userId)
-          .single();
+          .maybeSingle();
         isFollowing = !!followData;
       }
 

@@ -61,7 +61,7 @@ export default function ResetPassword() {
     setLoading(true);
     try {
       const { error: updateError } = await supabase.auth.updateUser({ password });
-      if (updateError) { setError(updateError.message); }
+      if (updateError) { setError('Failed to update password. Please try again.'); }
       else { setSuccess(true); toast.success('Password updated!'); setTimeout(() => navigate('/auth'), 3000); }
     } catch { setError('Something went wrong.'); } 
     finally { setLoading(false); }

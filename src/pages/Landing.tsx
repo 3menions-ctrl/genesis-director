@@ -11,7 +11,7 @@ import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
-import { PricingSection } from '@/components/landing/PricingSection';
+import { PricingSection, ImmersiveVideoBackground, LetsGoCTA, INACTIVITY_TIMEOUT_MS } from '@/components/landing/PricingSection';
 import { AvatarCTASection } from '@/components/landing/AvatarCTASection';
 import { SocialProofTicker } from '@/components/landing/SocialProofTicker';
 import { PromptResultShowcase } from '@/components/landing/PromptResultShowcase';
@@ -64,7 +64,11 @@ export default function Landing() {
   
   const [showExamples, setShowExamples] = useState(false);
   const [showCinematicTransition, setShowCinematicTransition] = useState(false);
+  const [isImmersive, setIsImmersive] = useState(false);
+  const [showImmersiveCTA, setShowImmersiveCTA] = useState(false);
   const signUpButtonRef = useRef<HTMLButtonElement>(null);
+  const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasAutoTriggeredRef = useRef(false);
 
   // Gatekeeper for clean fade-in
   const { isLoading, progress, phase } = useGatekeeperLoading({
@@ -102,6 +106,47 @@ export default function Landing() {
     setShowExamples(open);
   }, []);
 
+  // Immersive video handlers
+  const handleEnterImmersive = useCallback(() => {
+    hasAutoTriggeredRef.current = true;
+    setIsImmersive(true);
+    setShowImmersiveCTA(false);
+  }, []);
+
+  const handleExitImmersive = useCallback(() => {
+    setIsImmersive(false);
+    setShowImmersiveCTA(false);
+  }, []);
+
+  const handleImmersiveVideoEnded = useCallback(() => {
+    setShowImmersiveCTA(true);
+  }, []);
+
+  // Inactivity detection — auto-enter immersive after 10s of no deliberate interaction
+  useEffect(() => {
+    if (isImmersive || hasAutoTriggeredRef.current) return;
+
+    const startTimer = () => {
+      if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+      inactivityTimerRef.current = setTimeout(() => {
+        if (!hasAutoTriggeredRef.current) {
+          hasAutoTriggeredRef.current = true;
+          setIsImmersive(true);
+        }
+      }, INACTIVITY_TIMEOUT_MS);
+    };
+
+    const handleActivity = () => startTimer();
+    const events = ['mousedown', 'keydown', 'touchstart', 'click'];
+    events.forEach(e => window.addEventListener(e, handleActivity, { passive: true }));
+    startTimer();
+
+    return () => {
+      if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+      events.forEach(e => window.removeEventListener(e, handleActivity));
+    };
+  }, [isImmersive]);
+
   // Scroll reveal observer for landing sections
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -137,6 +182,14 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-black overflow-hidden relative">
+      {/* Immersive fullscreen video — lives at top level so it works from any scroll position */}
+      {isImmersive && (
+        <ImmersiveVideoBackground 
+          onClose={handleExitImmersive} 
+          onVideoEnded={handleImmersiveVideoEnded}
+        />
+      )}
+      {showImmersiveCTA && <LetsGoCTA onNavigate={handleNavigate} />}
       {/* Cinematic Transition - lazy loaded to reduce landing bundle */}
       {showCinematicTransition && (
         <Suspense fallback={<div className="fixed inset-0 z-[99999] bg-black" />}>
@@ -188,7 +241,7 @@ export default function Landing() {
 
       {/* Pricing CTA — scroll reveal */}
       <div className="scroll-reveal" style={{ animationDelay: '200ms' }}>
-        <PricingSection onNavigate={handleNavigate} />
+        <PricingSection onNavigate={handleNavigate} isImmersive={isImmersive} onEnterImmersive={handleEnterImmersive} />
       </div>
 
       {/* FAQ */}

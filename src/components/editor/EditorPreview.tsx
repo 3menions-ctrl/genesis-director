@@ -12,11 +12,6 @@ import { cn } from "@/lib/utils";
 
 /**
  * EditorPreview - Direct MP4 playback with HLS-style seamless transition config
- * 
- * Uses the same gapless/overlap strategy as the HLS stitcher:
- * - Pre-loads next clip while current plays (like #EXT-X-DISCONTINUITY buffering)
- * - Zero-gap transitions between clips (no black frames)
- * - Overlap-ready: clips can share timeline positions
  */
 
 interface EditorPreviewProps {
@@ -32,18 +27,11 @@ interface EditorPreviewProps {
 
 const SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 4, 8, 16];
 const FRAME_STEP = 1 / 30;
-// HLS-style config: pre-buffer threshold before clip end to preload next
 const PRELOAD_THRESHOLD_SEC = 0.5;
 
 export const EditorPreview = ({
-  tracks,
-  currentTime,
-  isPlaying,
-  onPlayPause,
-  onTimeChange,
-  duration,
-  playbackSpeed = 1,
-  onPlaybackSpeedChange,
+  tracks, currentTime, isPlaying, onPlayPause, onTimeChange, duration,
+  playbackSpeed = 1, onPlaybackSpeedChange,
 }: EditorPreviewProps) => {
   const videoARef = useRef<HTMLVideoElement>(null);
   const videoBRef = useRef<HTMLVideoElement>(null);
@@ -63,12 +51,8 @@ export const EditorPreview = ({
 
   isLoopingRef.current = isLooping;
 
-  // === Sorted video clips ===
   const sortedVideoClips = useMemo(() => {
-    return tracks
-      .filter((t) => t.type === "video")
-      .flatMap((t) => t.clips)
-      .sort((a, b) => a.start - b.start);
+    return tracks.filter((t) => t.type === "video").flatMap((t) => t.clips).sort((a, b) => a.start - b.start);
   }, [tracks]);
 
   const activeVideoClip = useMemo(() => {
@@ -81,10 +65,7 @@ export const EditorPreview = ({
   }, [sortedVideoClips, activeVideoClip]);
 
   const activeTextClips = useMemo(() => {
-    return tracks
-      .filter((t) => t.type === "text")
-      .flatMap((t) => t.clips)
-      .filter((c) => currentTime >= c.start && currentTime < c.end);
+    return tracks.filter((t) => t.type === "text").flatMap((t) => t.clips).filter((c) => currentTime >= c.start && currentTime < c.end);
   }, [tracks, currentTime]);
 
   const getActiveVideo = useCallback(() => {
@@ -95,11 +76,10 @@ export const EditorPreview = ({
     return activeSlotRef.current === 'A' ? videoBRef.current : videoARef.current;
   }, []);
 
-  // === HLS-style preloading ===
+  // HLS-style preloading
   useEffect(() => {
     if (!nextVideoClip || !activeVideoClip) return;
     if (preloadedClipIdRef.current === nextVideoClip.id) return;
-
     const timeToEnd = activeVideoClip.end - currentTime;
     if (timeToEnd <= PRELOAD_THRESHOLD_SEC && timeToEnd > 0) {
       const preloadVideo = getPreloadVideo();
@@ -112,29 +92,24 @@ export const EditorPreview = ({
     }
   }, [currentTime, activeVideoClip, nextVideoClip, getPreloadVideo]);
 
-  // === Source switching with HLS-style seamless swap ===
+  // Source switching with HLS-style seamless swap
   useEffect(() => {
     const video = getActiveVideo();
     if (!video) return;
-
     if (!activeVideoClip) {
       if (!video.paused) video.pause();
       activeClipIdRef.current = null;
       setVideoReady(false);
       return;
     }
-
     if (activeClipIdRef.current !== activeVideoClip.id) {
       activeClipIdRef.current = activeVideoClip.id;
       isSyncingRef.current = true;
-
-      // HLS-style seamless swap
       if (preloadedClipIdRef.current === activeVideoClip.id) {
         const newSlot = activeSlotRef.current === 'A' ? 'B' : 'A';
         activeSlotRef.current = newSlot;
         setActiveSlot(newSlot);
         preloadedClipIdRef.current = null;
-
         const swappedVideo = newSlot === 'A' ? videoARef.current : videoBRef.current;
         if (swappedVideo) {
           const clipLocalTime = currentTime - activeVideoClip.start + (activeVideoClip.trimStart || 0);
@@ -147,12 +122,9 @@ export const EditorPreview = ({
         }
         return;
       }
-
-      // Standard load
       const clipLocalTime = currentTime - activeVideoClip.start + (activeVideoClip.trimStart || 0);
       video.src = activeVideoClip.sourceUrl;
       video.load();
-
       const onCanPlay = () => {
         video.currentTime = clipLocalTime;
         setVideoReady(true);
@@ -169,7 +141,6 @@ export const EditorPreview = ({
     }
   }, [activeVideoClip?.id, currentTime, isPlaying, getActiveVideo]);
 
-  // Play/pause sync
   useEffect(() => {
     const video = getActiveVideo();
     if (!video || !activeVideoClip || !videoReady) return;
@@ -177,14 +148,10 @@ export const EditorPreview = ({
     else if (!isPlaying && !video.paused) video.pause();
   }, [isPlaying, videoReady, activeVideoClip, getActiveVideo]);
 
-  // Speed sync
   useEffect(() => {
-    [videoARef.current, videoBRef.current].forEach(v => {
-      if (v) v.playbackRate = playbackSpeed;
-    });
+    [videoARef.current, videoBRef.current].forEach(v => { if (v) v.playbackRate = playbackSpeed; });
   }, [playbackSpeed]);
 
-  // Volume sync
   useEffect(() => {
     [videoARef.current, videoBRef.current].forEach(v => {
       if (!v) return;
@@ -193,48 +160,27 @@ export const EditorPreview = ({
     });
   }, [volume, isMuted]);
 
-  // RAF loop
   useEffect(() => {
-    if (!isPlaying) {
-      cancelAnimationFrame(rafRef.current);
-      return;
-    }
-
+    if (!isPlaying) { cancelAnimationFrame(rafRef.current); return; }
     const tick = () => {
       const video = getActiveVideo();
-      if (!video || isSyncingRef.current || !activeVideoClip) {
-        rafRef.current = requestAnimationFrame(tick);
-        return;
-      }
-
+      if (!video || isSyncingRef.current || !activeVideoClip) { rafRef.current = requestAnimationFrame(tick); return; }
       const clipStart = activeVideoClip.start;
       const editorTime = clipStart + video.currentTime - (activeVideoClip.trimStart || 0);
-
-      if (Math.abs(editorTime - currentTime) > 0.03) {
-        onTimeChange(Math.min(editorTime, duration));
-      }
-
+      if (Math.abs(editorTime - currentTime) > 0.03) onTimeChange(Math.min(editorTime, duration));
       const clipDuration = activeVideoClip.end - activeVideoClip.start;
       if (video.currentTime >= clipDuration + (activeVideoClip.trimStart || 0) - 0.05) {
         const nextClip = sortedVideoClips.find((c) => c.start >= activeVideoClip.end - 0.01);
-        if (nextClip) {
-          onTimeChange(nextClip.start);
-        } else if (isLoopingRef.current) {
-          onTimeChange(0);
-        } else {
-          onTimeChange(duration);
-          onPlayPause();
-        }
+        if (nextClip) onTimeChange(nextClip.start);
+        else if (isLoopingRef.current) onTimeChange(0);
+        else { onTimeChange(duration); onPlayPause(); }
       }
-
       rafRef.current = requestAnimationFrame(tick);
     };
-
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
   }, [isPlaying, activeVideoClip, sortedVideoClips, duration, onTimeChange, onPlayPause, currentTime, getActiveVideo]);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
@@ -242,17 +188,13 @@ export const EditorPreview = ({
         case " ": e.preventDefault(); onPlayPause(); break;
         case "ArrowLeft":
           e.preventDefault();
-          if (e.shiftKey) {
-            const prevBoundary = sortedVideoClips.map(c => c.start).filter(t => t < currentTime - 0.05).pop();
-            onTimeChange(prevBoundary ?? 0);
-          } else onTimeChange(Math.max(0, currentTime - FRAME_STEP));
+          if (e.shiftKey) { const prev = sortedVideoClips.map(c => c.start).filter(t => t < currentTime - 0.05).pop(); onTimeChange(prev ?? 0); }
+          else onTimeChange(Math.max(0, currentTime - FRAME_STEP));
           break;
         case "ArrowRight":
           e.preventDefault();
-          if (e.shiftKey) {
-            const nextBoundary = sortedVideoClips.map(c => c.start).find(t => t > currentTime + 0.05);
-            onTimeChange(nextBoundary ?? duration);
-          } else onTimeChange(Math.min(duration, currentTime + FRAME_STEP));
+          if (e.shiftKey) { const next = sortedVideoClips.map(c => c.start).find(t => t > currentTime + 0.05); onTimeChange(next ?? duration); }
+          else onTimeChange(Math.min(duration, currentTime + FRAME_STEP));
           break;
         case "Home": e.preventDefault(); onTimeChange(0); break;
         case "End": e.preventDefault(); onTimeChange(duration); break;
@@ -292,38 +234,33 @@ export const EditorPreview = ({
   const hasClips = sortedVideoClips.length > 0;
 
   return (
-    <div className="h-full w-full flex flex-col bg-[hsl(0,0%,5%)] overflow-hidden" style={{ contain: 'strict' }}>
+    <div className="h-full w-full flex flex-col bg-[hsl(0,0%,4%)] overflow-hidden" style={{ contain: 'strict' }}>
       {/* Video viewport */}
       <div ref={containerRef} className="flex-1 relative min-h-0 overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center p-4">
+        {/* Ambient glow behind video */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] rounded-full bg-primary/[0.03] blur-[100px]" />
+        </div>
+
+        <div className="absolute inset-0 flex items-center justify-center p-5">
           {hasClips ? (
             <div className="relative w-full h-full flex items-center justify-center">
-              {/* Dual-video for HLS-style seamless transitions */}
-              <div className="max-h-full max-w-full w-full h-full rounded-lg shadow-2xl shadow-black/60 overflow-hidden relative border border-white/[0.04]">
-                <video
-                  ref={videoARef}
-                  className={cn(
-                    "absolute inset-0 w-full h-full object-contain bg-black transition-opacity duration-75",
-                    activeSlot === 'A' ? 'opacity-100 z-10' : 'opacity-0 z-0'
-                  )}
-                  muted={isMuted}
-                  playsInline
-                  preload="auto"
-                />
-                <video
-                  ref={videoBRef}
-                  className={cn(
-                    "absolute inset-0 w-full h-full object-contain bg-black transition-opacity duration-75",
-                    activeSlot === 'B' ? 'opacity-100 z-10' : 'opacity-0 z-0'
-                  )}
-                  muted={isMuted}
-                  playsInline
-                  preload="auto"
-                />
+              {/* Cinematic video frame */}
+              <div className="max-h-full max-w-full w-full h-full rounded-2xl shadow-2xl shadow-black/80 overflow-hidden relative border border-white/[0.06]">
+                <video ref={videoARef}
+                  className={cn("absolute inset-0 w-full h-full object-contain bg-black transition-opacity duration-75", activeSlot === 'A' ? 'opacity-100 z-10' : 'opacity-0 z-0')}
+                  muted={isMuted} playsInline preload="auto" />
+                <video ref={videoBRef}
+                  className={cn("absolute inset-0 w-full h-full object-contain bg-black transition-opacity duration-75", activeSlot === 'B' ? 'opacity-100 z-10' : 'opacity-0 z-0')}
+                  muted={isMuted} playsInline preload="auto" />
+                
+                {/* Cinematic letterbox effect - subtle top/bottom gradient */}
+                <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-black/30 to-transparent pointer-events-none z-20" />
+                <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/30 to-transparent pointer-events-none z-20" />
               </div>
               
               {!activeVideoClip && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/70 rounded-lg z-20">
+                <div className="absolute inset-0 flex items-center justify-center bg-black/70 rounded-2xl z-20">
                   <div className="text-center">
                     <span className="text-[12px] tracking-wider uppercase font-medium text-white/30 block">Gap in timeline</span>
                     <span className="text-[10px] text-white/15 mt-1 block">Move the playhead over a clip</span>
@@ -332,13 +269,14 @@ export const EditorPreview = ({
               )}
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-4 text-white/20">
-              <div className="w-16 h-16 rounded-2xl border border-white/[0.08] flex items-center justify-center bg-white/[0.02]">
-                <Play className="w-7 h-7 ml-0.5" />
+            <div className="flex flex-col items-center gap-5 text-white/15">
+              <div className="w-20 h-20 rounded-3xl border border-white/[0.06] flex items-center justify-center bg-white/[0.02] relative">
+                <Play className="w-8 h-8 ml-1" />
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-white/[0.03] to-transparent" />
               </div>
               <div className="text-center">
-                <span className="text-[12px] tracking-wider uppercase font-medium block">No clip at playhead</span>
-                <span className="text-[10px] text-white/10 mt-1 block">Move the playhead over a clip to preview</span>
+                <span className="text-[13px] tracking-wider uppercase font-medium block text-white/25">No clip at playhead</span>
+                <span className="text-[10px] text-white/10 mt-1.5 block">Move the playhead over a clip to preview</span>
               </div>
             </div>
           )}
@@ -361,10 +299,10 @@ export const EditorPreview = ({
       </div>
 
       {/* Transport bar */}
-      <div className="shrink-0 bg-[hsl(0,0%,8%)] border-t border-white/[0.08]">
+      <div className="shrink-0 bg-[hsl(0,0%,6%)]/80 backdrop-blur-xl border-t border-white/[0.06]">
         {/* Scrubber */}
         <div
-          className="h-2 bg-white/[0.04] cursor-pointer group relative mx-3 mt-1.5 rounded-full overflow-hidden"
+          className="h-2.5 bg-white/[0.03] cursor-pointer group relative mx-4 mt-2 rounded-full overflow-hidden"
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const pct = (e.clientX - rect.left) / rect.width;
@@ -372,39 +310,39 @@ export const EditorPreview = ({
           }}
         >
           {clipMarkers.map((m) => (
-            <div key={m.id} className="absolute top-0 bottom-0 w-px bg-white/10 z-10" style={{ left: `${m.position}%` }} />
+            <div key={m.id} className="absolute top-0 bottom-0 w-px bg-white/[0.08] z-10" style={{ left: `${m.position}%` }} />
           ))}
           <div
-            className="h-full bg-gradient-to-r from-white/40 to-white/70 rounded-full transition-all duration-75 relative z-20"
+            className="h-full bg-gradient-to-r from-primary/60 via-primary to-white/80 rounded-full transition-all duration-75 relative z-20"
             style={{ width: `${progress}%` }}
           >
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white shadow-[0_0_12px_rgba(255,255,255,0.5)] opacity-0 group-hover:opacity-100 transition-opacity translate-x-1/2" />
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-white shadow-[0_0_16px_rgba(255,255,255,0.6)] opacity-0 group-hover:opacity-100 transition-opacity translate-x-1/2 border-2 border-white" />
           </div>
         </div>
 
-        {/* Controls — WHITE BUTTONS */}
-        <div className="h-11 flex items-center gap-0.5 px-3">
+        {/* Controls */}
+        <div className="h-12 flex items-center gap-1 px-4">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all" onClick={() => onTimeChange(0)}>
-                <SkipBack className="h-3 w-3" />
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/30 hover:text-white hover:bg-white/[0.06] rounded-xl transition-all" onClick={() => onTimeChange(0)}>
+                <SkipBack className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="text-[10px] bg-[hsl(0,0%,12%)] border-white/10 text-white">Start</TooltipContent>
+            <TooltipContent side="top" className="text-[10px] bg-[hsl(0,0%,8%)] border-white/[0.08] text-white rounded-xl">Start</TooltipContent>
           </Tooltip>
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all" onClick={jumpToPrevClip}>
-                <FrameBack className="h-2.5 w-2.5" />
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/30 hover:text-white hover:bg-white/[0.06] rounded-xl transition-all" onClick={jumpToPrevClip}>
+                <FrameBack className="h-3 w-3" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="text-[10px] bg-[hsl(0,0%,12%)] border-white/10 text-white">Prev Clip</TooltipContent>
+            <TooltipContent side="top" className="text-[10px] bg-[hsl(0,0%,8%)] border-white/[0.08] text-white rounded-xl">Prev Clip</TooltipContent>
           </Tooltip>
 
-          {/* Play/Pause — White filled button */}
+          {/* Play/Pause — Premium white button */}
           <button
-            className="h-10 w-10 rounded-xl bg-white text-black hover:bg-white/90 flex items-center justify-center transition-all mx-0.5 shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+            className="h-11 w-11 rounded-2xl bg-white text-black hover:bg-white/90 flex items-center justify-center transition-all mx-1 shadow-[0_0_30px_rgba(255,255,255,0.12)] hover:shadow-[0_0_50px_rgba(255,255,255,0.18)] hover:scale-105 active:scale-95"
             onClick={onPlayPause}
           >
             {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
@@ -412,38 +350,38 @@ export const EditorPreview = ({
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all" onClick={jumpToNextClip}>
-                <FrameForward className="h-2.5 w-2.5" />
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/30 hover:text-white hover:bg-white/[0.06] rounded-xl transition-all" onClick={jumpToNextClip}>
+                <FrameForward className="h-3 w-3" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="text-[10px] bg-[hsl(0,0%,12%)] border-white/10 text-white">Next Clip</TooltipContent>
+            <TooltipContent side="top" className="text-[10px] bg-[hsl(0,0%,8%)] border-white/[0.08] text-white rounded-xl">Next Clip</TooltipContent>
           </Tooltip>
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all" onClick={() => onTimeChange(duration)}>
-                <SkipForward className="h-3 w-3" />
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/30 hover:text-white hover:bg-white/[0.06] rounded-xl transition-all" onClick={() => onTimeChange(duration)}>
+                <SkipForward className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="text-[10px] bg-[hsl(0,0%,12%)] border-white/10 text-white">End</TooltipContent>
+            <TooltipContent side="top" className="text-[10px] bg-[hsl(0,0%,8%)] border-white/[0.08] text-white rounded-xl">End</TooltipContent>
           </Tooltip>
 
-          <div className="h-5 w-px bg-white/[0.08] mx-1.5" />
+          <div className="h-5 w-px bg-white/[0.06] mx-2" />
 
-          {/* Timecode */}
-          <div className="flex items-center gap-1.5 bg-white/[0.04] rounded-lg px-3 py-1.5 border border-white/[0.06]">
-            <span className="text-[12px] font-mono text-white tabular-nums tracking-wider">
+          {/* Timecode display — premium glass */}
+          <div className="flex items-center gap-2 bg-white/[0.03] rounded-xl px-4 py-2 border border-white/[0.05]">
+            <span className="text-[13px] font-mono text-white tabular-nums tracking-wider font-medium">
               {formatTime(currentTime)}
             </span>
-            <span className="text-[10px] text-white/15 mx-0.5">/</span>
-            <span className="text-[12px] font-mono text-white/30 tabular-nums tracking-wider">
+            <span className="text-[10px] text-white/10 mx-0.5">/</span>
+            <span className="text-[12px] font-mono text-white/25 tabular-nums tracking-wider">
               {formatTime(duration)}
             </span>
           </div>
 
           {activeVideoClip && (
-            <div className="ml-2 px-2 py-0.5 rounded bg-white/[0.06] border border-white/[0.08]">
-              <span className="text-[9px] text-white/50 font-medium truncate max-w-[100px] block">
+            <div className="ml-2 px-3 py-1 rounded-xl bg-primary/[0.06] border border-primary/[0.12]">
+              <span className="text-[9px] text-primary/70 font-medium truncate max-w-[100px] block">
                 {activeVideoClip.label}
               </span>
             </div>
@@ -456,32 +394,29 @@ export const EditorPreview = ({
             <TooltipTrigger asChild>
               <Button
                 variant="ghost" size="icon"
-                className={cn("h-7 w-7 rounded-lg transition-all", isLooping ? "text-white bg-white/[0.12]" : "text-white/30 hover:text-white hover:bg-white/[0.06]")}
+                className={cn("h-8 w-8 rounded-xl transition-all", isLooping ? "text-white bg-white/[0.10]" : "text-white/25 hover:text-white hover:bg-white/[0.05]")}
                 onClick={() => setIsLooping(!isLooping)}
               >
                 <Repeat className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="text-[10px] bg-[hsl(0,0%,12%)] border-white/10 text-white">Loop <kbd className="ml-1 text-white/30">L</kbd></TooltipContent>
+            <TooltipContent side="top" className="text-[10px] bg-[hsl(0,0%,8%)] border-white/[0.08] text-white rounded-xl">Loop <kbd className="ml-1 text-white/30">L</kbd></TooltipContent>
           </Tooltip>
 
           {/* Speed */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" className={cn("h-7 px-2.5 text-[11px] font-mono gap-1.5 rounded-lg transition-all", playbackSpeed !== 1 ? "text-white bg-white/[0.1]" : "text-white/50 hover:text-white hover:bg-white/[0.06]")}>
+              <Button variant="ghost" size="sm" className={cn("h-8 px-3 text-[11px] font-mono gap-1.5 rounded-xl transition-all", playbackSpeed !== 1 ? "text-white bg-white/[0.08]" : "text-white/30 hover:text-white hover:bg-white/[0.05]")}>
                 <Gauge className="h-3.5 w-3.5" />
                 {playbackSpeed}x
               </Button>
             </PopoverTrigger>
-            <PopoverContent side="top" align="end" className="w-auto p-2 bg-[hsl(0,0%,10%)] border-white/10">
+            <PopoverContent side="top" align="end" className="w-auto p-2 bg-[hsl(0,0%,6%)]/95 backdrop-blur-xl border-white/[0.08] rounded-2xl shadow-2xl shadow-black/50">
               <div className="flex flex-wrap gap-1 max-w-[200px]">
                 {SPEED_PRESETS.map((speed) => (
-                  <Button
-                    key={speed}
-                    variant="ghost"
-                    size="sm"
-                    className={cn("h-7 px-2.5 text-[10px] font-mono rounded-md transition-all",
-                      playbackSpeed === speed ? "bg-white text-black font-bold" : "text-white/40 hover:text-white hover:bg-white/[0.08]"
+                  <Button key={speed} variant="ghost" size="sm"
+                    className={cn("h-7 px-2.5 text-[10px] font-mono rounded-lg transition-all",
+                      playbackSpeed === speed ? "bg-white text-black font-bold" : "text-white/30 hover:text-white hover:bg-white/[0.06]"
                     )}
                     onClick={() => onPlaybackSpeedChange?.(speed)}
                   >
@@ -493,16 +428,16 @@ export const EditorPreview = ({
           </Popover>
 
           {/* Volume */}
-          <div className="flex items-center gap-1 ml-1.5">
+          <div className="flex items-center gap-1.5 ml-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all"
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-white/30 hover:text-white hover:bg-white/[0.05] rounded-xl transition-all"
                   onClick={() => setIsMuted(!isMuted)}>
                   {isMuted ? <VolumeX className="h-3.5 w-3.5" /> :
                     volume > 50 ? <Volume2 className="h-3.5 w-3.5" /> : <Volume1 className="h-3.5 w-3.5" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="top" className="text-[10px] bg-[hsl(0,0%,12%)] border-white/10 text-white">{isMuted ? 'Unmute' : 'Mute'}</TooltipContent>
+              <TooltipContent side="top" className="text-[10px] bg-[hsl(0,0%,8%)] border-white/[0.08] text-white rounded-xl">{isMuted ? 'Unmute' : 'Mute'}</TooltipContent>
             </Tooltip>
             <div className="w-16">
               <Slider

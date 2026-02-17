@@ -813,41 +813,136 @@ const VideoEditor = () => {
 
   const handleApplyTemplate = useCallback((templateId: string) => {
     withHistory((prev) => {
+      const textTrack = prev.tracks.find(t => t.type === 'text') || prev.tracks[2];
+      const textTrackId = textTrack?.id || 'text-0';
+      const now = Date.now();
+      const dur = prev.duration || 10;
+
+      // Helper to make a text clip
+      const mkText = (id: string, start: number, end: number, content: string, fontSize = 48): TimelineClip => ({
+        id: `tpl-${id}-${now}`, trackId: textTrackId, start, end,
+        type: 'text', sourceUrl: '', label: content, effects: [],
+        textContent: content, textStyle: { fontSize, color: '#FFFFFF', fontWeight: 'bold' },
+      });
+
+      // Helper to apply crossfade to all video clips
+      const withCrossfades = (tracks: TimelineTrack[]): TimelineTrack[] =>
+        tracks.map(t => t.type === 'video' ? {
+          ...t, clips: t.clips.map((c, i, arr) => i < arr.length - 1
+            ? { ...c, effects: [{ type: 'transition' as const, name: 'crossfade', duration: 0.5 }] }
+            : c)
+        } : t);
+
       switch (templateId) {
-        case "intro-outro": {
-          const introClip: TimelineClip = {
-            id: `text-intro-${Date.now()}`, trackId: "text-0", start: 0, end: 3,
-            type: "text", sourceUrl: "", label: "Intro Title", effects: [],
-            textContent: "YOUR TITLE", textStyle: { fontSize: 72, color: "#FFFFFF", fontWeight: "bold" },
-          };
-          const outroClip: TimelineClip = {
-            id: `text-outro-${Date.now()}`, trackId: "text-0", start: Math.max(prev.duration - 3, 3), end: Math.max(prev.duration, 6),
-            type: "text", sourceUrl: "", label: "End Card", effects: [],
-            textContent: "THANKS FOR WATCHING", textStyle: { fontSize: 48, color: "#FFFFFF", fontWeight: "bold" },
-          };
+        case 'intro-outro': {
+          const introClip = mkText('intro', 0, 3, 'YOUR TITLE', 72);
+          const outroClip = mkText('outro', Math.max(dur - 3, 3), Math.max(dur, 6), 'THANKS FOR WATCHING');
           return {
             ...prev,
-            tracks: prev.tracks.map((t) =>
-              t.id === "text-0" ? { ...t, clips: [...t.clips, introClip, outroClip] } : t
-            ),
-            duration: Math.max(prev.duration, 6),
+            tracks: prev.tracks.map(t => t.id === textTrackId ? { ...t, clips: [...t.clips, introClip, outroClip] } : t),
+            duration: Math.max(dur, 6),
           };
         }
-        case "slideshow":
+        case 'slideshow':
+          return { ...prev, tracks: withCrossfades(prev.tracks) };
+
+        case 'tiktok-vertical':
+        case 'ig-reel':
+        case 'yt-shorts': {
+          // Add hook text + CTA
+          const hookClip = mkText('hook', 0, 2, '✨ HOOK TEXT HERE', 56);
+          const ctaClip = mkText('cta', Math.max(dur - 3, 2), Math.max(dur, 5), '👉 FOLLOW FOR MORE', 36);
           return {
             ...prev,
-            tracks: prev.tracks.map((t) =>
-              t.type === "video"
-                ? { ...t, clips: t.clips.map((c) => ({ ...c, effects: [{ type: "transition" as const, name: "crossfade", duration: 0.5 }] })) }
-                : t
-            ),
+            tracks: withCrossfades(prev.tracks).map(t => t.id === textTrackId ? { ...t, clips: [...t.clips, hookClip, ctaClip] } : t),
+            duration: Math.max(dur, 5),
           };
+        }
+        case 'story-slides': {
+          // Add slide title overlays at intervals
+          const slideCount = Math.max(3, Math.ceil(dur / 5));
+          const slideDur = dur / slideCount;
+          const slides = Array.from({ length: slideCount }, (_, i) =>
+            mkText(`slide-${i}`, i * slideDur, i * slideDur + 2, `SLIDE ${i + 1}`, 40)
+          );
+          return { ...prev, tracks: withCrossfades(prev.tracks).map(t => t.id === textTrackId ? { ...t, clips: [...t.clips, ...slides] } : t) };
+        }
+        case 'reaction': {
+          const reactText = mkText('react', 0, dur, '😮', 72);
+          return { ...prev, tracks: prev.tracks.map(t => t.id === textTrackId ? { ...t, clips: [...t.clips, reactText] } : t) };
+        }
+        case 'movie-trailer': {
+          const title = mkText('title', 0, 3, 'COMING SOON', 72);
+          const tagline = mkText('tag', 3, 6, 'A STORY LIKE NO OTHER', 36);
+          const date = mkText('date', Math.max(dur - 4, 6), Math.max(dur, 10), 'IN THEATERS EVERYWHERE', 32);
+          return {
+            ...prev,
+            tracks: withCrossfades(prev.tracks).map(t => t.id === textTrackId ? { ...t, clips: [...t.clips, title, tagline, date] } : t),
+            duration: Math.max(dur, 10),
+          };
+        }
+        case 'documentary': {
+          const lower = mkText('lower', 1, 5, 'INTERVIEW SUBJECT — Title', 28);
+          const chapter = mkText('chapter', 0, 3, 'CHAPTER ONE', 56);
+          return { ...prev, tracks: prev.tracks.map(t => t.id === textTrackId ? { ...t, clips: [...t.clips, chapter, lower] } : t) };
+        }
+        case 'music-video':
+          return { ...prev, tracks: withCrossfades(prev.tracks) };
+        case 'short-film': {
+          const act1 = mkText('act1', 0, 3, 'ACT I', 64);
+          const act2 = mkText('act2', dur * 0.33, dur * 0.33 + 3, 'ACT II', 64);
+          const act3 = mkText('act3', dur * 0.66, dur * 0.66 + 3, 'ACT III', 64);
+          return { ...prev, tracks: withCrossfades(prev.tracks).map(t => t.id === textTrackId ? { ...t, clips: [...t.clips, act1, act2, act3] } : t) };
+        }
+        case 'product-showcase': {
+          const hero = mkText('hero', 0, 3, '✨ PRODUCT NAME', 56);
+          const price = mkText('price', Math.max(dur - 3, 3), Math.max(dur, 6), 'SHOP NOW — $XX.XX', 40);
+          return { ...prev, tracks: withCrossfades(prev.tracks).map(t => t.id === textTrackId ? { ...t, clips: [...t.clips, hero, price] } : t), duration: Math.max(dur, 6) };
+        }
+        case 'testimonial': {
+          const quote = mkText('quote', 1, 5, '"This changed everything."', 36);
+          const name = mkText('name', 5, 8, '— Customer Name', 28);
+          return { ...prev, tracks: prev.tracks.map(t => t.id === textTrackId ? { ...t, clips: [...t.clips, quote, name] } : t) };
+        }
+        case 'before-after': {
+          const beforeLabel = mkText('before', 0, dur / 2, 'BEFORE', 48);
+          const afterLabel = mkText('after', dur / 2, dur, 'AFTER', 48);
+          return { ...prev, tracks: prev.tracks.map(t => t.id === textTrackId ? { ...t, clips: [...t.clips, beforeLabel, afterLabel] } : t) };
+        }
+        case 'countdown': {
+          const count = 5;
+          const segDur = dur / count;
+          const numbers = Array.from({ length: count }, (_, i) =>
+            mkText(`num-${i}`, i * segDur, i * segDur + 2, `#${count - i}`, 72)
+          );
+          return { ...prev, tracks: withCrossfades(prev.tracks).map(t => t.id === textTrackId ? { ...t, clips: [...t.clips, ...numbers] } : t) };
+        }
+        case 'promo': {
+          const headline = mkText('hl', 0, 2, '🔥 LIMITED TIME', 48);
+          const cta = mkText('cta', Math.max(dur - 3, 2), Math.max(dur, 5), 'GET YOURS NOW', 40);
+          return { ...prev, tracks: withCrossfades(prev.tracks).map(t => t.id === textTrackId ? { ...t, clips: [...t.clips, headline, cta] } : t), duration: Math.max(dur, 5) };
+        }
+        case 'vlog': {
+          const intro = mkText('intro', 0, 3, 'WHAT\'S UP EVERYONE', 48);
+          return { ...prev, tracks: prev.tracks.map(t => t.id === textTrackId ? { ...t, clips: [...t.clips, intro] } : t) };
+        }
+        case 'tutorial': {
+          const step1 = mkText('s1', 0, 3, 'STEP 1', 48);
+          const step2 = mkText('s2', dur * 0.33, dur * 0.33 + 3, 'STEP 2', 48);
+          const step3 = mkText('s3', dur * 0.66, dur * 0.66 + 3, 'STEP 3', 48);
+          return { ...prev, tracks: prev.tracks.map(t => t.id === textTrackId ? { ...t, clips: [...t.clips, step1, step2, step3] } : t) };
+        }
+        case 'podcast': {
+          const title = mkText('title', 0, 5, '🎙️ PODCAST TITLE', 48);
+          return { ...prev, tracks: prev.tracks.map(t => t.id === textTrackId ? { ...t, clips: [...t.clips, title] } : t) };
+        }
+        case 'montage':
+          return { ...prev, tracks: withCrossfades(prev.tracks) };
         default:
-          toast.info(`Template "${templateId}" applied`);
           return prev;
       }
     });
-    toast.success("Template applied");
+    toast.success('Template applied');
   }, [withHistory]);
 
   const hasClips = editorState.tracks.some((t) => t.clips.length > 0);

@@ -4,8 +4,8 @@ import type { TimelineClip, TimelineTrack, EditorState, ClipEffect, TextStyle } 
 
 describe('Editor Types', () => {
   describe('TRANSITION_TYPES', () => {
-    it('should define all 6 transition types', () => {
-      expect(TRANSITION_TYPES).toHaveLength(6);
+    it('should define all 12 transition types', () => {
+      expect(TRANSITION_TYPES).toHaveLength(12);
     });
 
     it('each transition should have id, name, and icon', () => {

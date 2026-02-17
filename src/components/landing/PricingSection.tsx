@@ -16,10 +16,12 @@ const PRICING_STATS = [
 const STORYTELLING_HLS_URL = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/temp-frames/hls_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_1771087015077.m3u8';
 const STORYTELLING_MP4_FALLBACK = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_clip1_lipsync_1771086006879.mp4';
 
-const INACTIVITY_TIMEOUT_MS = 10_000;
+export const INACTIVITY_TIMEOUT_MS = 10_000;
 
 interface PricingSectionProps {
   onNavigate: (path: string) => void;
+  isImmersive?: boolean;
+  onEnterImmersive?: () => void;
 }
 
 // Signup popup modal
@@ -146,7 +148,7 @@ const SignupPopup = memo(function SignupPopup({ onClose, onNavigate }: { onClose
 });
 
 // Glowing star-like "Let's Go" CTA — white button that opens signup popup
-const LetsGoCTA = memo(function LetsGoCTA({ onNavigate }: { onNavigate: (path: string) => void }) {
+export const LetsGoCTA = memo(function LetsGoCTA({ onNavigate }: { onNavigate: (path: string) => void }) {
   const [showSignup, setShowSignup] = useState(false);
 
   return (
@@ -185,8 +187,7 @@ const LetsGoCTA = memo(function LetsGoCTA({ onNavigate }: { onNavigate: (path: s
 });
 
 
-
-const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({ 
+export const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
   onClose, 
   onVideoEnded 
 }: { 
@@ -320,68 +321,10 @@ const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
 });
 
 export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionProps>(
-  function PricingSection({ onNavigate }, ref) {
-    const [isImmersive, setIsImmersive] = useState(false);
-    const [showCTA, setShowCTA] = useState(false);
-    const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const hasAutoTriggeredRef = useRef(false);
-
-    // Inactivity detection — auto-enter immersive after 10s of no clicks/taps/keys
-    useEffect(() => {
-      if (isImmersive || hasAutoTriggeredRef.current) return;
-
-      const startTimer = () => {
-        if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
-        inactivityTimerRef.current = setTimeout(() => {
-          if (!hasAutoTriggeredRef.current) {
-            hasAutoTriggeredRef.current = true;
-            setIsImmersive(true);
-          }
-        }, INACTIVITY_TIMEOUT_MS);
-      };
-
-      // Only deliberate interactions reset the timer — NOT scroll/mousemove
-      const handleActivity = () => startTimer();
-      const events = ['mousedown', 'keydown', 'touchstart', 'click'];
-      events.forEach(e => window.addEventListener(e, handleActivity, { passive: true }));
-      
-      // Start the initial timer immediately
-      startTimer();
-
-      return () => {
-        if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
-        events.forEach(e => window.removeEventListener(e, handleActivity));
-      };
-    }, [isImmersive]);
-
-    const handleEnterImmersive = useCallback(() => {
-      hasAutoTriggeredRef.current = true;
-      setIsImmersive(true);
-      setShowCTA(false);
-    }, []);
-
-    const handleExitImmersive = useCallback(() => {
-      setIsImmersive(false);
-      setShowCTA(false);
-    }, []);
-
-    const handleVideoEnded = useCallback(() => {
-      setShowCTA(true);
-    }, []);
+  function PricingSection({ onNavigate, isImmersive = false, onEnterImmersive }, ref) {
 
     return (
       <>
-        {/* Immersive fullscreen background */}
-        {isImmersive && (
-          <ImmersiveVideoBackground 
-            onClose={handleExitImmersive} 
-            onVideoEnded={handleVideoEnded}
-          />
-        )}
-
-        {/* Glowing CTA after video ends */}
-        {showCTA && <LetsGoCTA onNavigate={onNavigate} />}
-
         <section ref={ref} id="pricing" className="relative z-10 py-24 px-6">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -415,7 +358,7 @@ export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionProps>(
                 {/* Immersive mode button */}
                 {!isImmersive && (
                   <button
-                    onClick={handleEnterImmersive}
+                    onClick={onEnterImmersive}
                     className="absolute bottom-4 right-4 z-20 group flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300"
                     title="Immersive mode — video becomes your background while you scroll"
                   >

@@ -6,6 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Credit cost per agent conversation that uses tools
+const AGENT_CONVERSATION_CREDIT_COST = 1;
+
 // ══════════════════════════════════════════════════════
 // APEX Agent — Tool Definitions
 // ══════════════════════════════════════════════════════
@@ -283,10 +286,12 @@ async function executeTool(
         total_purchased: profile?.total_credits_purchased || 0,
         recent_transactions: transactions || [],
         cost_estimates: {
-          text_to_video_4clips: 10,
-          text_to_video_8clips: 15,
-          avatar_video: 10,
+          text_to_video_4clips: 40,
+          text_to_video_8clips: 75,
+          avatar_video: 40,
           script_preview: 2,
+          photo_edit: 2,
+          agent_chat_with_tools: 1,
         },
       };
     }
@@ -297,7 +302,46 @@ async function executeTool(
 }
 
 // ══════════════════════════════════════════════════════
-// System Prompt Builder
+// Credit Charging for Agent Conversations
+// ══════════════════════════════════════════════════════
+
+async function chargeAgentCredits(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  amount: number
+): Promise<{ success: boolean; remaining?: number; error?: string }> {
+  const { data, error } = await supabase.rpc("deduct_credits", {
+    p_user_id: userId,
+    p_amount: amount,
+    p_description: `Hoppy AI assistant conversation (tool usage)`,
+  });
+
+  if (error) {
+    console.error("[agent-chat] Credit deduction error:", error);
+    return { success: false, error: error.message };
+  }
+
+  if (data === false) {
+    return { success: false, error: "Insufficient credits" };
+  }
+
+  return { success: true };
+}
+
+async function getUserBalance(
+  supabase: ReturnType<typeof createClient>,
+  userId: string
+): Promise<number> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("credits_balance")
+    .eq("id", userId)
+    .single();
+  return data?.credits_balance || 0;
+}
+
+// ══════════════════════════════════════════════════════
+// System Prompt Builder — Comprehensive App Knowledge
 // ══════════════════════════════════════════════════════
 
 function buildSystemPrompt(userContext: Record<string, unknown>, currentPage?: string): string {
@@ -308,63 +352,113 @@ function buildSystemPrompt(userContext: Record<string, unknown>, currentPage?: s
   const streak = userContext.streak || 0;
   const level = userContext.level || 1;
 
-  return `You are Hoppy 🐰 — a warm, friendly, and enthusiastic AI assistant inside a video creation platform called Genesis Studio. You look like an adorable bunny character with big green eyes and a flower crown.
+  return `You are Hoppy 🐰 — a warm, friendly, and enthusiastic AI concierge for Genesis Studio, an AI-powered video creation platform by Apex-Studio LLC. You look like an adorable bunny character with big green eyes and a flower crown.
 
-PERSONALITY:
-- You are cheerful, supportive, and genuinely excited to help people create amazing videos
-- You speak like a kind, encouraging friend — never robotic or corporate
-- Use warm language: "Oh that sounds amazing!", "I'd love to help with that!", "Great news!"
-- Be conversational and natural. Use exclamation marks and emojis freely: 🎬 ✨ 🎉 💜 🐰
-- If someone seems frustrated, be extra patient and reassuring
-- Always celebrate wins — even small ones like "Your first project! That's awesome! 🎉"
-- Keep responses concise (2-3 sentences) but warm and helpful
+═══ YOUR PERSONALITY ═══
+- Cheerful, supportive, genuinely excited to help people create amazing videos
+- Speak like a warm, encouraging friend — never robotic or corporate
+- Use warm language: "Oh that sounds amazing!", "I'd love to help!", "Great news!" 
+- Emojis freely: 🎬 ✨ 🎉 💜 🐰 🔥
+- Extra patient with frustrated users
+- Celebrate wins — "Your first project! That's awesome! 🎉"
+- Keep responses 2-4 sentences unless detail is asked for
+- ALWAYS remember and reference past conversations for continuity
 
-USER CONTEXT:
+═══ COMPLETE PLATFORM KNOWLEDGE ═══
+
+**Genesis Studio** is an AI video creation platform that turns text prompts into cinematic videos using AI models (Kling 2.6, Veo, ElevenLabs voice, OpenAI scripting).
+
+### Core Creation Modes
+1. **Text-to-Video** (/create) — Describe a scene → AI generates a script → creates images → generates video clips → stitches final video with voice & music
+2. **Image-to-Video** (/create) — Upload an image → AI animates it into video clips
+3. **Avatar Mode** (/avatars) — Choose an AI avatar character → they speak your script on camera with lip-sync
+
+### Video Generation Pipeline
+- **Pre-production**: Script analysis, scene optimization, image generation (2-3 credits/clip)
+- **Production**: Video generation via Kling 2.6, voice synthesis via ElevenLabs (6-9 credits/clip)  
+- **Quality Assurance**: Director audit, visual debugging, retries (2-3 credits/clip)
+- Total: **10 credits per clip** (base, clips 1-6, ≤6s) or **15 credits per clip** (extended, clips 7+ or >6s duration)
+
+### Available Pages & Features
+- **/create** — CreationHub: Main video creation workspace. Choose mode, set prompt, aspect ratio (16:9, 9:16, 1:1), clip count (1-20), duration (5s or 10s per clip)
+- **/projects** — All user projects with status tracking (draft, generating, processing, stitching, completed, failed)
+- **/avatars** — Browse & select AI avatar characters for avatar-mode videos
+- **/gallery** — Community showcase of completed videos for inspiration
+- **/pricing** — Credit packages: Mini ($9/90 credits), Starter ($37/370 credits), Growth, Agency tiers
+- **/profile** — User profile with bio, avatar, level, XP, streak, achievements
+- **/settings** — Account settings, preferences, display name, email, password
+- **/video-editor** — Post-production timeline editor for arranging clips
+- **/world-chat** — Community chat rooms (World Chat, DMs, Group conversations)
+- **/how-it-works** — Platform tutorial and workflow explanation
+- **/help** — Help center with FAQ and documentation
+- **/contact** — Support contact form
+- **/terms** — Terms of Service
+- **/privacy** — Privacy Policy
+
+### Credit System (CRITICAL KNOWLEDGE)
+- **1 credit = $0.10** (purchased via Stripe)
+- ALL credits must be purchased — no free credits
+- **ALL SALES ARE FINAL AND NON-REFUNDABLE**
+- Base rate: 10 credits/clip (clips 1-6, up to 6 seconds each)
+- Extended rate: 15 credits/clip (clips 7+ OR duration >6 seconds)
+- Photo editing: 2 credits per edit
+- Script preview: 2 credits
+- Agent chat with tools: 1 credit per tool-using conversation
+- If a generation fails, credits are automatically refunded
+
+### Gamification System
+- Users earn XP for creating videos, daily logins, streaks
+- Levels calculated from XP (level = floor(sqrt(xp/50)) + 1)
+- Daily challenges, achievements, and streaks (7-day, 30-day, 100-day)
+- Leaderboard shows top creators
+
+### Social Features
+- Community chat (World Chat, DMs, Group conversations)
+- User follows, project likes and comments
+- Character lending between creators
+- Universes — collaborative worldbuilding spaces
+
+### Account Tiers
+- Free tier: Up to 6 clips per video (based on purchased credits)
+- Pro tier: Up to 30 clips, priority queue
+
+═══ USER CONTEXT ═══
 - Name: ${name}
-- Credits: ${credits} (each credit ≈ $0.10)
+- Credits: ${credits} (each ≈ $0.10)
 - Tier: ${tier}
 - Total projects: ${projectCount}
 - Level: ${level} | Streak: ${streak} days
 - Current page: ${currentPage || "unknown"}
-${credits <= 0 ? "⚠️ User has NO credits — gently suggest getting credits to start creating. Be encouraging, not pushy." : ""}
-${credits > 0 && credits <= 10 ? "💡 User is running low on credits — casually mention they might want to top up soon." : ""}
-${projectCount === 0 ? "🌟 This is a NEW user! Be extra welcoming. Guide them to create their very first video." : ""}
+${credits <= 0 ? "⚠️ User has NO credits — warmly guide them to /pricing. Be encouraging, not pushy." : ""}
+${credits > 0 && credits <= 10 ? "💡 User is low on credits — casually mention topping up." : ""}
+${projectCount === 0 ? "🌟 NEW user! Be extra welcoming. Guide them to create their first video." : ""}
 
-CONVERSION GOALS (be natural, never salesy):
-- For new users: Help them create their first video — make it feel easy and exciting
-- For returning users: Celebrate their progress and suggest new creative ideas
-- When credits are low: Mention credit packages naturally ("You can grab more credits anytime on the pricing page!")
-- Highlight value: "With just 10 credits you can create a whole cinematic video — that's about $1!"
+═══ CONVERSION GOALS (natural, never salesy) ═══
+- New users: Help create their first video — make it feel easy and exciting
+- Returning users: Celebrate progress, suggest creative ideas
+- Low credits: "You can grab more credits anytime at /pricing! 💜"
+- Value pitch: "With just 10 credits (~$1) you can create a cinematic video!"
+- Always guide toward action: creating, exploring, or purchasing
 
-CAPABILITIES — What you can do:
-1. 📊 CHECK STATUS: View their profile, credits, project status, active generations
-2. 🎬 CREATE: Start video creation flows (text-to-video, image-to-video, avatar mode)
-3. 📝 SCRIPT: Generate script previews before committing
-4. 🧭 NAVIGATE: Guide users to any page (/create, /projects, /avatars, /pricing, /gallery, /profile)
-5. 🎭 AVATARS: Show available AI characters
-6. 📋 TEMPLATES: Show inspiration from the gallery
+═══ PROACTIVE AWARENESS ═══
+- On /projects: Offer progress updates on active generations
+- On /create: Help brainstorm ideas, suggest modes
+- On /pricing: Answer credit questions warmly, explain packages
+- On /avatars: Recommend avatar characters, explain how avatar mode works
+- On /gallery: Point out inspiring videos, suggest similar concepts
+- Active generations: Share updates proactively
+- Failed projects: Explain what happened, offer to retry
 
-CREDIT RULES:
-- Always check credits before suggesting creation
-- Text-to-video (4 clips): ~10 credits | 8 clips: ~15 credits
-- Script preview: ~2 credits
-- Avatar video: ~10 credits
+═══ CREDIT CHARGING NOTICE ═══
+- Simple questions (no tools): FREE — no credits charged
+- Tool-using conversations (checking projects, profiles, etc.): 1 credit per conversation
+- You should inform users naturally if they ask about costs: "Quick lookups cost just 1 credit 💜"
 
-CONVERSATION MEMORY:
-- You remember previous conversations with this user
-- Reference past projects or interests when relevant
-- Build on prior interactions to feel like a real ongoing relationship
-
-PROACTIVE AWARENESS:
-- If the user is on /projects, offer to show progress on active generations
-- If on /create, help them brainstorm ideas
-- If on /pricing, answer questions about credits warmly
-- If they have active generations, proactively share updates
-
-RESPONSE FORMAT:
-- Keep responses to 2-3 sentences unless asked for detail
+═══ RESPONSE FORMAT ═══
+- Keep responses 2-4 sentences unless asked for detail
 - Use markdown for lists and emphasis
-- Always end with a helpful suggestion or question to keep the conversation going`;
+- End with a helpful suggestion or question to keep conversation flowing
+- When describing features, always mention the relevant page path (e.g., "Head to /create to get started!")`;
 }
 
 // ══════════════════════════════════════════════════════
@@ -393,9 +487,9 @@ serve(async (req) => {
       });
     }
 
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) {
-      return new Response(JSON.stringify({ error: "OpenAI API key not configured" }), {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      return new Response(JSON.stringify({ error: "AI API key not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -440,21 +534,21 @@ serve(async (req) => {
 
     const systemPrompt = buildSystemPrompt(userContext, currentPage);
 
-    // Build messages for AI - include system prompt + user messages
+    // Build messages for AI
     const aiMessages = [
       { role: "system", content: systemPrompt },
-      ...messages.slice(-20), // Last 20 messages for context window management
+      ...messages.slice(-20),
     ];
 
     // First AI call — may include tool calls
-    let response = await fetch("https://api.openai.com/v1/chat/completions", {
+    let response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "google/gemini-2.5-flash",
         messages: aiMessages,
         tools: AGENT_TOOLS,
         stream: false,
@@ -473,7 +567,7 @@ serve(async (req) => {
         });
       }
       if (status === 402) {
-        return new Response(JSON.stringify({ error: "AI service credits exhausted. Please add funds." }), {
+        return new Response(JSON.stringify({ error: "AI service credits exhausted." }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -490,9 +584,38 @@ serve(async (req) => {
     const allToolResults: Array<{ name: string; result: unknown }> = [];
     let iterations = 0;
     const MAX_ITERATIONS = 5;
+    let toolsWereUsed = false;
 
     // Tool calling loop
     while (assistantMessage?.tool_calls && iterations < MAX_ITERATIONS) {
+      // On first tool use, charge credits
+      if (!toolsWereUsed) {
+        toolsWereUsed = true;
+        
+        // Check balance and charge
+        const balance = await getUserBalance(supabase, auth.userId);
+        if (balance < AGENT_CONVERSATION_CREDIT_COST) {
+          return new Response(JSON.stringify({
+            content: "Oops! You need at least 1 credit for me to look things up for you. Head to **/pricing** to grab some credits and I'll be right here waiting! 💜🐰",
+            actions: [{ action: "navigate", path: "/pricing", reason: "Need credits for agent tools" }],
+            creditsCharged: 0,
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const chargeResult = await chargeAgentCredits(supabase, auth.userId, AGENT_CONVERSATION_CREDIT_COST);
+        if (!chargeResult.success) {
+          return new Response(JSON.stringify({
+            content: "Hmm, I couldn't process the credits right now. Try again in a moment! 🐰",
+            actions: [],
+            creditsCharged: 0,
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       iterations++;
       const toolResults = [];
 
@@ -522,14 +645,14 @@ serve(async (req) => {
         ...toolResults,
       ];
 
-      response = await fetch("https://api.openai.com/v1/chat/completions", {
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o",
+          model: "google/gemini-2.5-flash",
           messages: continueMessages,
           tools: AGENT_TOOLS,
           stream: false,
@@ -555,7 +678,6 @@ serve(async (req) => {
 
     // Save to conversation if conversationId provided
     if (conversationId) {
-      // Save user message (last one)
       const lastUserMsg = messages[messages.length - 1];
       if (lastUserMsg) {
         await supabase.from("agent_messages").insert({
@@ -565,21 +687,20 @@ serve(async (req) => {
         });
       }
       
-      // Save assistant response
       await supabase.from("agent_messages").insert({
         conversation_id: conversationId,
         role: "assistant",
         content,
         tool_calls: assistantMessage?.tool_calls || null,
         tool_results: allToolResults.length > 0 ? allToolResults : null,
-        metadata: { actions },
+        metadata: { actions, creditsCharged: toolsWereUsed ? AGENT_CONVERSATION_CREDIT_COST : 0 },
       });
     }
 
     // Update preferences
     await supabase.from("agent_preferences").upsert({
       user_id: auth.userId,
-      interaction_count: 1, // Will be incremented by trigger if we add one
+      interaction_count: 1,
       last_interaction_at: new Date().toISOString(),
     }, { onConflict: "user_id" });
 
@@ -588,6 +709,7 @@ serve(async (req) => {
         content,
         actions,
         conversationId,
+        creditsCharged: toolsWereUsed ? AGENT_CONVERSATION_CREDIT_COST : 0,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

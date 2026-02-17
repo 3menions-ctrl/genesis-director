@@ -455,10 +455,18 @@ function MessageBubble({
           )}
         </div>
 
-        {/* Timestamp */}
-        <span className={cn("text-[10px] text-muted-foreground/40 px-1", isUser ? "text-right" : "text-left")}>
-          {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-        </span>
+        {/* Credits charged + timestamp */}
+        <div className={cn("flex items-center gap-2 px-1", isUser ? "justify-end" : "justify-start")}>
+          {!isUser && message.creditsCharged && message.creditsCharged > 0 ? (
+            <span className="text-[10px] text-warning/60 flex items-center gap-0.5">
+              <Zap className="h-2.5 w-2.5" />
+              {message.creditsCharged} credit used
+            </span>
+          ) : null}
+          <span className="text-[10px] text-muted-foreground/40">
+            {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </span>
+        </div>
 
         {/* Action cards */}
         {message.actions && message.actions.length > 0 && (

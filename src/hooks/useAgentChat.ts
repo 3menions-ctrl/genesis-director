@@ -16,6 +16,7 @@ export interface AgentMessage {
   role: "user" | "assistant";
   content: string;
   actions?: AgentAction[];
+  creditsCharged?: number;
   timestamp: Date;
 }
 
@@ -162,6 +163,7 @@ export function useAgentChat(): UseAgentChatReturn {
         role: "assistant",
         content: data.content || "Hey there! I'm Hoppy — how can I help? 🐰",
         actions: data.actions || [],
+        creditsCharged: data.creditsCharged || 0,
         timestamp: new Date(),
       };
 

@@ -19,7 +19,7 @@ import type { ProFeaturesState, PipelineState, DegradationFlag } from '@/types/p
 import { getErrorMessage } from '@/types/error-handling';
 
 // CRITICAL: Import background directly - prevents flash on page load
-import ClipsBackground from '@/components/clips/ClipsBackground';
+import PipelineBackground from '@/components/production/PipelineBackground';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
 import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
@@ -1283,8 +1283,8 @@ const transitionsData = useMemo(() =>
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Premium Purple Background - matches Clips page */}
-      <ClipsBackground />
+      {/* Premium Pipeline Background */}
+      <PipelineBackground />
       
       {/* App Header */}
       <AppHeader />

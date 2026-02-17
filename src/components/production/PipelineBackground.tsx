@@ -1,6 +1,6 @@
 import { memo, forwardRef } from 'react';
 import { cn } from '@/lib/utils';
-import pipelineAbstractBg from '@/assets/pipeline-abstract-bg.jpg';
+import pipelinePremiumBg from '@/assets/pipeline-premium-bg.jpg';
 
 interface PipelineBackgroundProps {
   className?: string;
@@ -8,57 +8,50 @@ interface PipelineBackgroundProps {
 
 /**
  * Premium background for the Production/Pipeline page
- * Features elegant green flowing lines on pure black - cinematic & premium
+ * Deep violet/indigo flowing light streaks with holographic particles
  */
 const PipelineBackground = memo(forwardRef<HTMLDivElement, PipelineBackgroundProps>(function PipelineBackground({ className }, ref) {
   return (
     <div className={cn("fixed inset-0 -z-10", className)}>
-      {/* Premium abstract background image - emerald green flowing lines */}
+      {/* Premium abstract background */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ 
-          backgroundImage: `url(${pipelineAbstractBg})`,
-        }}
+        style={{ backgroundImage: `url(${pipelinePremiumBg})` }}
       />
       
-      {/* Subtle dark overlay for depth */}
-      <div className="absolute inset-0 bg-black/40" />
+      {/* Deep overlay for legibility */}
+      <div className="absolute inset-0 bg-black/50" />
       
-      {/* Ambient glow - top left emerald */}
+      {/* Violet ambient glow - top */}
       <div 
-        className="absolute top-[-20%] left-[-15%] w-[70vw] h-[70vw] rounded-full opacity-[0.08] blur-[150px] pointer-events-none"
-        style={{ 
-          background: 'radial-gradient(circle, hsl(145 70% 40%) 0%, transparent 70%)' 
-        }}
+        className="absolute top-[-25%] left-[10%] w-[80vw] h-[60vw] rounded-full opacity-[0.07] blur-[150px] pointer-events-none"
+        style={{ background: 'radial-gradient(circle, hsl(270 80% 55%) 0%, transparent 70%)' }}
       />
       
-      {/* Ambient glow - bottom right jade */}
+      {/* Indigo ambient glow - bottom right */}
       <div 
-        className="absolute bottom-[-15%] right-[-10%] w-[60vw] h-[60vw] rounded-full opacity-[0.06] blur-[120px] pointer-events-none"
-        style={{ 
-          background: 'radial-gradient(circle, hsl(160 60% 35%) 0%, transparent 70%)' 
-        }}
+        className="absolute bottom-[-20%] right-[-5%] w-[60vw] h-[50vw] rounded-full opacity-[0.05] blur-[120px] pointer-events-none"
+        style={{ background: 'radial-gradient(circle, hsl(240 70% 50%) 0%, transparent 70%)' }}
       />
-      
-      {/* Center subtle teal accent */}
+
+      {/* Animated scan line effect */}
       <div 
-        className="absolute top-[30%] right-[20%] w-[40vw] h-[40vw] rounded-full opacity-[0.04] blur-[100px] pointer-events-none"
-        style={{ 
-          background: 'radial-gradient(circle, hsl(155 55% 45%) 0%, transparent 70%)' 
+        className="absolute inset-0 pointer-events-none opacity-[0.015]"
+        style={{
+          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)',
+          backgroundSize: '100% 4px',
         }}
       />
       
       {/* Cinematic vignette */}
       <div 
         className="absolute inset-0 pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse at center, transparent 25%, rgba(0,0,0,0.7) 100%)',
-        }}
+        style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.75) 100%)' }}
       />
       
-      {/* Premium noise texture */}
+      {/* Noise texture */}
       <div 
-        className="absolute inset-0 opacity-[0.02] pointer-events-none mix-blend-overlay"
+        className="absolute inset-0 opacity-[0.025] pointer-events-none mix-blend-overlay"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
         }}

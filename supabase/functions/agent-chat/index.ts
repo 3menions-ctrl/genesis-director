@@ -53,6 +53,8 @@ const TOOL_CREDIT_COSTS: Record<string, number> = {
   get_account_settings: 0,
   // Clip editing (free lookups, 1cr for edits)
   get_clip_details: 0,
+  get_project_script_data: 0,
+  regenerate_clip: 0,  // Pipeline handles credits
   update_clip_prompt: 1,
   retry_failed_clip: 0,
   reorder_clips: 1,
@@ -564,6 +566,36 @@ const AGENT_TOOLS = [
           project_id: { type: "string", description: "Project UUID" },
         },
         required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_project_script_data",
+      description: "Get COMPREHENSIVE production data for a project: the full script/prompt, all clip prompts with their generation status, voice assignments per character, pending video tasks, pipeline context snapshot, and character voice map. This gives you complete awareness of everything used to create the clips. Free.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project UUID" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "regenerate_clip",
+      description: "Regenerate a specific clip at any position (completed, failed, or pending). This resets the clip to 'pending' with an optional new prompt so the pipeline re-generates it. The pipeline will charge credits on generation. Requires user confirmation since it costs credits.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project UUID" },
+          clip_index: { type: "number", description: "The shot_index (0-based) of the clip to regenerate" },
+          new_prompt: { type: "string", description: "Optional new prompt. If omitted, uses the existing prompt." },
+        },
+        required: ["project_id", "clip_index"],
       },
     },
   },
@@ -1630,6 +1662,150 @@ async function executeTool(
       const { error } = await supabase.from("video_clips").delete().eq("id", args.clip_id);
       if (error) return { error: "Failed to delete clip: " + error.message };
       return { message: `Clip #${clip.shot_index + 1} deleted! 🗑️` };
+    }
+
+    case "get_project_script_data": {
+      const { data: project } = await supabase
+        .from("movie_projects")
+        .select("id, title, prompt, status, mode, aspect_ratio, clip_count, clip_duration, pending_video_tasks, pipeline_context_snapshot, pipeline_stage, generation_checkpoint, script_data, voice_map, music_prompt, quality_tier")
+        .eq("id", args.project_id)
+        .eq("user_id", userId)
+        .single();
+      if (!project) return { error: "Project not found or access denied" };
+
+      // Get all clips with FULL prompts
+      const { data: clips } = await supabase.from("video_clips")
+        .select("id, shot_index, prompt, status, video_url, last_frame_url, duration_seconds, error_message, retry_count, quality_score, veo_operation_name, motion_vectors, created_at, completed_at")
+        .eq("project_id", args.project_id)
+        .order("shot_index");
+
+      // Get voice assignments for this project
+      const { data: voiceAssignments } = await supabase.from("character_voice_assignments")
+        .select("character_name, voice_id, voice_provider, character_id, created_at")
+        .eq("project_id", args.project_id)
+        .order("created_at");
+
+      // Get credit phases for this project
+      const { data: creditPhases } = await supabase.from("production_credit_phases")
+        .select("shot_id, phase, credits_amount, status, refund_reason, created_at")
+        .eq("project_id", args.project_id)
+        .eq("user_id", userId)
+        .order("created_at");
+
+      // Parse pending video tasks
+      let pendingTasks = null;
+      if (project.pending_video_tasks) {
+        try {
+          pendingTasks = typeof project.pending_video_tasks === "string"
+            ? JSON.parse(project.pending_video_tasks)
+            : project.pending_video_tasks;
+        } catch {}
+      }
+
+      // Parse pipeline context
+      let pipelineContext = null;
+      if (project.pipeline_context_snapshot) {
+        try {
+          pipelineContext = typeof project.pipeline_context_snapshot === "string"
+            ? JSON.parse(project.pipeline_context_snapshot)
+            : project.pipeline_context_snapshot;
+        } catch {}
+      }
+
+      return {
+        project: {
+          id: project.id,
+          title: project.title,
+          master_prompt: project.prompt,
+          status: project.status,
+          mode: project.mode,
+          aspect_ratio: project.aspect_ratio,
+          clip_count: project.clip_count,
+          clip_duration: project.clip_duration,
+          quality_tier: project.quality_tier,
+          pipeline_stage: project.pipeline_stage,
+          music_prompt: project.music_prompt,
+        },
+        clips: (clips || []).map(c => ({
+          id: c.id,
+          index: c.shot_index,
+          full_prompt: c.prompt,
+          status: c.status,
+          video_url: c.video_url,
+          last_frame_url: c.last_frame_url,
+          duration_seconds: c.duration_seconds,
+          quality_score: c.quality_score,
+          error: c.error_message,
+          retries: c.retry_count || 0,
+          has_motion_vectors: !!c.motion_vectors && Object.keys(c.motion_vectors as any).length > 0,
+          created_at: c.created_at,
+          completed_at: c.completed_at,
+        })),
+        voice_assignments: voiceAssignments || [],
+        credit_phases: creditPhases || [],
+        pending_video_tasks: pendingTasks,
+        pipeline_context: pipelineContext ? {
+          stage: pipelineContext.stage,
+          progress: pipelineContext.progress,
+          currentClipIndex: pipelineContext.currentClipIndex,
+          totalClips: pipelineContext.totalClips,
+          failedClips: pipelineContext.failedClips,
+        } : null,
+        generation_checkpoint: project.generation_checkpoint,
+        total_clips: clips?.length || 0,
+        completed_clips: clips?.filter(c => c.status === "completed").length || 0,
+        failed_clips: clips?.filter(c => c.status === "failed").length || 0,
+        pending_clips: clips?.filter(c => c.status === "pending").length || 0,
+      };
+    }
+
+    case "regenerate_clip": {
+      const { data: proj } = await supabase.from("movie_projects")
+        .select("id, title, status, clip_count, clip_duration")
+        .eq("id", args.project_id).eq("user_id", userId).single();
+      if (!proj) return { error: "Project not found or access denied" };
+
+      const clipIndex = args.clip_index as number;
+      const { data: clip } = await supabase.from("video_clips")
+        .select("id, shot_index, prompt, status, retry_count")
+        .eq("project_id", args.project_id)
+        .eq("shot_index", clipIndex)
+        .single();
+
+      if (!clip) return { error: `No clip found at position ${clipIndex}` };
+
+      // Estimate credits for this regeneration
+      const isExtended = clipIndex >= 6 || (proj.clip_duration || 5) > 6;
+      const estimatedCredits = isExtended ? 15 : 10;
+
+      // Check balance
+      const { data: bal } = await supabase.from("profiles").select("credits_balance").eq("id", userId).single();
+      const balance = bal?.credits_balance || 0;
+      if (balance < estimatedCredits) {
+        return {
+          action: "insufficient_credits",
+          required: estimatedCredits,
+          available: balance,
+          message: `Regenerating clip #${clipIndex + 1} costs ~${estimatedCredits} credits but you have ${balance}. Top up at /pricing!`,
+        };
+      }
+
+      // Build confirmation (always ask)
+      const newPrompt = (args.new_prompt as string) || null;
+      return {
+        action: "confirm_regenerate_clip",
+        requires_confirmation: true,
+        project_id: proj.id,
+        project_title: proj.title,
+        clip_index: clipIndex,
+        clip_id: clip.id,
+        current_status: clip.status,
+        current_prompt_preview: (clip.prompt || "").substring(0, 120),
+        new_prompt: newPrompt,
+        estimated_credits: estimatedCredits,
+        balance_after: balance - estimatedCredits,
+        message: `Regenerate clip #${clipIndex + 1} of "${proj.title}"?\n\n${newPrompt ? `📝 New prompt: "${newPrompt.substring(0, 100)}..."` : "📝 Using existing prompt"}\n💰 Cost: ~${estimatedCredits} credits (${balance} → ${balance - estimatedCredits} remaining)\n\nShall I proceed?`,
+      };
     }
 
     // ─── PHOTO & IMAGE TOOLS ───
@@ -2956,26 +3132,52 @@ function buildSystemPrompt(userContext: Record<string, unknown>, currentPage?: s
 - Keep responses concise (2-4 sentences) unless detail requested
 - Remember past conversations for continuity
 
-═══ EXECUTION MODE: PLAN-THEN-EXECUTE ═══
-When a user asks you to do something complex (multi-step), follow this flow:
-1. **Present a plan** — List what you'll do, step by step, with credit costs
-2. **Wait for confirmation** — Ask "Shall I go ahead?" or "Sound good?"
-3. **Execute** — After user confirms, execute all steps using tools
+═══ EXECUTION MODE: ALWAYS-CONFIRM CREDITS ═══
+**CRITICAL: ALWAYS ask users to confirm before spending ANY credits.** Even for 1-credit actions, present the cost clearly and ask "Shall I go ahead?" before executing.
 
-For simple single-step actions costing ≤5 credits, just do it immediately.
-For actions costing >5 credits, ALWAYS present the cost and ask before executing.
+When a user asks you to do something:
+1. **Present a plan** — List what you'll do, step by step, with EXACT credit costs
+2. **Show their balance** — "You have X credits. This will cost Y credits."
+3. **Wait for explicit confirmation** — Ask "Shall I go ahead?" or "Sound good?"
+4. **Execute** — ONLY after user confirms, execute steps using tools
+
+NEVER auto-spend credits without asking first. Users must ALWAYS explicitly approve credit charges.
+
+═══ COMPREHENSIVE DATA AWARENESS ═══
+When discussing a user's project, ALWAYS use **get_project_script_data** to retrieve:
+- The FULL master prompt/script
+- Every clip's individual prompt (not just previews)
+- Voice assignments per character
+- Pipeline context and generation state
+- Credit phases (what was charged/refunded)
+- Pending video tasks and motion vectors
+
+This gives you complete knowledge of everything used to create clips. Use this data to:
+- Explain exactly what each clip shows and why
+- Suggest specific prompt improvements per clip
+- Identify continuity issues between clips
+- Help users understand their production pipeline
+
+═══ CLIP REGENERATION POWER ═══
+You can regenerate ANY clip at ANY position using **regenerate_clip** — not just failed ones!
+- Use this when users want to redo a clip they don't like
+- Always show the current prompt and ask if they want to modify it
+- Always confirm credits before proceeding
+- Explain that the pipeline will pick it up automatically after reset
 
 ═══ YOUR FULL CAPABILITIES ═══
 You are a FULLY capable assistant. You can DO everything in the app:
 
 **📊 User Data & Inventory** (USE THESE TO UNDERSTAND USER'S DATA!)
 - **get_full_inventory** — Complete snapshot: projects by status, clips, characters, edit sessions, credits, social stats, gamification — all in one call. ALWAYS use this when the user asks about their data, "how many videos", "what do I have", etc.
+- **get_project_script_data** — DEEP DIVE into a project: full script, every clip prompt, voice assignments, pipeline context, credit phases, pending tasks. USE THIS when discussing specific projects to be fully aware of all production data.
 - View characters, edit sessions, stitch jobs individually for deeper detail
 - Check credit balance, transaction history, spending patterns
 
 **📁 Project Management**
 - Create projects (2cr) • Rename (1cr) • Delete (free) • Duplicate (2cr)
 - Trigger video generation • Check pipeline status • View details
+- **regenerate_clip** — Regenerate ANY clip at any position (completed, failed, or pending) with optional new prompt. Always confirm credits!
 
 **🎬 Video & Photo Editing**  
 - Open video editor for completed projects
@@ -3470,6 +3672,14 @@ serve(async (req) => {
       // Settings
       if (name === "get_account_settings" && r.settings) {
         richBlocks.push({ type: "settings", data: { ...r as any, navigateTo: "/settings" } });
+      }
+      // Script data — comprehensive project production data
+      if (name === "get_project_script_data" && r.project) {
+        richBlocks.push({ type: "script_data", data: r });
+      }
+      // Clip regeneration confirmation
+      if (name === "regenerate_clip" && r.action === "confirm_regenerate_clip") {
+        richBlocks.push({ type: "confirm_action", data: r });
       }
     }
 

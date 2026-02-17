@@ -1028,8 +1028,8 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) {
       return new Response(JSON.stringify({ error: "AI API key not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -1056,10 +1056,10 @@ serve(async (req) => {
     const systemPrompt = buildSystemPrompt(userContext, currentPage);
     const aiMessages = [{ role: "system", content: systemPrompt }, ...messages.slice(-20)];
 
-    let response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    let response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "google/gemini-2.5-flash", messages: aiMessages, tools: AGENT_TOOLS, stream: false }),
+      headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "gpt-4o", messages: aiMessages, tools: AGENT_TOOLS, stream: false }),
     });
 
     if (!response.ok) {
@@ -1112,10 +1112,10 @@ serve(async (req) => {
       }
 
       const continueMessages = [...aiMessages, assistantMessage, ...toolResults];
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
-        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "google/gemini-2.5-flash", messages: continueMessages, tools: AGENT_TOOLS, stream: false }),
+        headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "gpt-4o", messages: continueMessages, tools: AGENT_TOOLS, stream: false }),
       });
 
       if (!response.ok) { console.error("[agent-chat] follow-up error:", response.status); break; }

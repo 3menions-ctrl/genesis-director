@@ -124,7 +124,8 @@ export default function Landing() {
 
   // Inactivity detection — auto-enter immersive after 10s of no deliberate interaction
   useEffect(() => {
-    if (isImmersive || hasAutoTriggeredRef.current) return;
+    // Don't start/run timer if gallery is open (too many concurrent video players cause crashes)
+    if (isImmersive || hasAutoTriggeredRef.current || showExamples) return;
 
     const startTimer = () => {
       if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);

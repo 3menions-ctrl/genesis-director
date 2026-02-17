@@ -172,7 +172,7 @@ export default function Onboarding() {
       if (error) throw error;
       await refreshProfile();
       toast.success('Welcome to Apex Studio!');
-      navigate('/projects', { replace: true });
+      navigate('/create', { replace: true });
     } catch (err) {
       console.error('Error saving onboarding:', err);
       toast.error('Failed to save your information');
@@ -187,8 +187,8 @@ export default function Onboarding() {
     try {
       await supabase.from('profiles').update({ onboarding_completed: true }).eq('id', user.id);
       await refreshProfile();
-      navigate('/projects', { replace: true });
-    } catch { navigate('/projects', { replace: true }); } finally { setLoading(false); }
+      navigate('/create', { replace: true });
+    } catch { navigate('/create', { replace: true }); } finally { setLoading(false); }
   };
 
   if (authLoading || !isSessionVerified || !sessionChecked) {

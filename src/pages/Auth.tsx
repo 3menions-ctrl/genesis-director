@@ -118,7 +118,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
       if (!profile.onboarding_completed) {
         navigate('/onboarding', { replace: true });
       } else {
-        navigate('/projects', { replace: true });
+        navigate('/create', { replace: true });
       }
     }
   }, [user, profile, authLoading, hasRedirected, navigate, showWelcomeDialog]);
@@ -206,7 +206,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
     if (profile && !profile.onboarding_completed) {
       navigate('/onboarding', { replace: true });
     } else {
-      navigate('/projects', { replace: true });
+      navigate('/create', { replace: true });
     }
   }, [profile, navigate]);
 

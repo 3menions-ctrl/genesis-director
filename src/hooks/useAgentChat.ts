@@ -120,16 +120,25 @@ export function useAgentChat(): UseAgentChatReturn {
       if (navAction) {
         // Will be handled by the UI component
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("[AgentChat] Send error:", err);
       
-      const errorContent = err instanceof Error && err.message.includes("429")
+      // Extract status from FunctionsHttpError context or message
+      const errMsg = String(err?.message || '');
+      const errContext = err?.context;
+      const status = errContext?.status || (errMsg.includes('402') ? 402 : errMsg.includes('429') ? 429 : 0);
+
+      const errorContent = status === 429 || errMsg.includes('429')
         ? "I'm a bit overwhelmed right now. Give me a moment and try again! 🎬"
-        : err instanceof Error && err.message.includes("402")
-        ? "AI service needs credits. Please contact support."
+        : status === 402 || errMsg.includes('402') || errMsg.includes('credits')
+        ? "My AI brain needs a recharge! ⚡ The service credits are temporarily exhausted. Please try again shortly or contact support."
         : "Something went wrong. Let me try again...";
 
-      toast.error("Agent communication error");
+      if (status !== 402) {
+        toast.error("Agent communication error");
+      } else {
+        toast.error("AI service credits exhausted");
+      }
       
       setMessages((prev) => [
         ...prev,

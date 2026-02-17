@@ -1,7 +1,7 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSafeNavigation } from '@/lib/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
@@ -9,20 +9,24 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
 import { UniversalVideoPlayer } from '@/components/player';
+import { VideoCommentsSection } from '@/components/social/VideoCommentsSection';
 import {
-  Search, Play, Heart, Sparkles, Clock, X, ArrowRight, Video, Eye
+  Search, Play, Heart, Sparkles, Clock, X, ArrowRight, Video, Eye, MessageCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export default function Creators() {
   const { user } = useAuth();
   const { navigate } = useSafeNavigation();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [selectedVideo, setSelectedVideo] = useState<{
     id: string;
     title: string;
+    user_id?: string;
   } | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -89,6 +93,51 @@ export default function Creators() {
     const timeoutId = setTimeout(() => setDebouncedQuery(value), 300);
     return () => clearTimeout(timeoutId);
   }, []);
+
+  // User likes
+  const { data: userLikes } = useQuery({
+    queryKey: ['user-likes', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('video_likes')
+        .select('project_id')
+        .eq('user_id', user.id);
+      if (error) throw error;
+      return data.map(like => like.project_id);
+    },
+    enabled: !!user,
+  });
+
+  const likeMutation = useMutation({
+    mutationFn: async ({ projectId, isLiked, ownerId }: { projectId: string; isLiked: boolean; ownerId?: string }) => {
+      if (!user) throw new Error('Must be logged in to like');
+      if (isLiked) {
+        const { error } = await supabase.from('video_likes').delete().eq('user_id', user.id).eq('project_id', projectId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('video_likes').insert({ user_id: user.id, project_id: projectId });
+        if (error) throw error;
+        if (ownerId && ownerId !== user.id) {
+          await supabase.from('notifications').insert({
+            user_id: ownerId, type: 'like', title: 'Someone liked your video!',
+            body: 'Your video received a new like', data: { liker_id: user.id, project_id: projectId },
+          });
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['discover-videos'] });
+      queryClient.invalidateQueries({ queryKey: ['user-likes'] });
+    },
+    onError: () => toast.error("Couldn't update your like"),
+  });
+
+  const handleLike = useCallback((e: React.MouseEvent, projectId: string, isLiked: boolean, ownerId?: string) => {
+    e.stopPropagation();
+    if (!user) { toast.error('Please log in to like videos'); return; }
+    likeMutation.mutate({ projectId, isLiked, ownerId });
+  }, [user, likeMutation]);
 
   const totalVideos = discoverVideos?.length || 0;
 
@@ -205,7 +254,7 @@ export default function Creators() {
                 {/* Large featured card */}
                 <div
                   className="md:col-span-2 md:row-span-2 group relative rounded-3xl overflow-hidden cursor-pointer bg-white/[0.02] border border-white/[0.06]"
-                  onClick={() => setSelectedVideo({ id: featuredVideos[0].id, title: featuredVideos[0].title })}
+                  onClick={() => setSelectedVideo({ id: featuredVideos[0].id, title: featuredVideos[0].title, user_id: featuredVideos[0].user_id })}
                   onMouseEnter={() => setHoveredId(featuredVideos[0].id)}
                   onMouseLeave={() => setHoveredId(null)}
                 >
@@ -223,7 +272,7 @@ export default function Creators() {
                         Featured
                       </div>
                       <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 line-clamp-2">{featuredVideos[0].title}</h3>
-                      <VideoMeta likesCount={featuredVideos[0].likes_count} createdAt={featuredVideos[0].created_at} />
+                      <VideoMeta likesCount={featuredVideos[0].likes_count} createdAt={featuredVideos[0].created_at} isLiked={userLikes?.includes(featuredVideos[0].id)} onLike={(e) => handleLike(e, featuredVideos[0].id, userLikes?.includes(featuredVideos[0].id) || false, featuredVideos[0].user_id)} />
                     </div>
                     <PlayOverlay />
                   </div>
@@ -234,7 +283,7 @@ export default function Creators() {
                   <div
                     key={video.id}
                     className="group relative rounded-3xl overflow-hidden cursor-pointer bg-white/[0.02] border border-white/[0.06]"
-                    onClick={() => setSelectedVideo({ id: video.id, title: video.title })}
+                    onClick={() => setSelectedVideo({ id: video.id, title: video.title, user_id: video.user_id })}
                     onMouseEnter={() => setHoveredId(video.id)}
                     onMouseLeave={() => setHoveredId(null)}
                   >
@@ -248,7 +297,7 @@ export default function Creators() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-5">
                         <h3 className="text-sm font-semibold text-white truncate mb-1">{video.title}</h3>
-                        <VideoMeta likesCount={video.likes_count} createdAt={video.created_at} />
+                        <VideoMeta likesCount={video.likes_count} createdAt={video.created_at} isLiked={userLikes?.includes(video.id)} onLike={(e) => handleLike(e, video.id, userLikes?.includes(video.id) || false, video.user_id)} />
                       </div>
                       <PlayOverlay />
                     </div>
@@ -291,7 +340,7 @@ export default function Creators() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: Math.min(index * 0.03, 0.4) }}
                     className="group rounded-2xl overflow-hidden cursor-pointer bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.14] hover:bg-white/[0.04] transition-all duration-300"
-                    onClick={() => setSelectedVideo({ id: video.id, title: video.title })}
+                    onClick={() => setSelectedVideo({ id: video.id, title: video.title, user_id: video.user_id })}
                     onMouseEnter={() => setHoveredId(video.id)}
                     onMouseLeave={() => setHoveredId(null)}
                   >
@@ -306,7 +355,7 @@ export default function Creators() {
                     </div>
                     <div className="p-4 space-y-2">
                       <h3 className="font-semibold text-sm text-white truncate group-hover:text-violet-300 transition-colors">{video.title}</h3>
-                      <VideoMeta likesCount={video.likes_count} createdAt={video.created_at} />
+                      <VideoMeta likesCount={video.likes_count} createdAt={video.created_at} isLiked={userLikes?.includes(video.id)} onLike={(e) => handleLike(e, video.id, userLikes?.includes(video.id) || false, video.user_id)} />
                     </div>
                   </motion.div>
                 ))}
@@ -364,6 +413,8 @@ export default function Creators() {
           <VideoPlayerModal
             video={selectedVideo}
             onClose={() => setSelectedVideo(null)}
+            isLiked={userLikes?.includes(selectedVideo.id)}
+            onLike={(e) => handleLike(e, selectedVideo.id, userLikes?.includes(selectedVideo.id) || false, selectedVideo.user_id)}
           />
         )}
       </AnimatePresence>
@@ -421,13 +472,19 @@ function VideoThumbnail({
   );
 }
 
-function VideoMeta({ likesCount, createdAt }: { likesCount?: number | null; createdAt: string }) {
+function VideoMeta({ likesCount, createdAt, isLiked, onLike }: { likesCount?: number | null; createdAt: string; isLiked?: boolean; onLike?: (e: React.MouseEvent) => void }) {
   return (
     <div className="flex items-center gap-3 text-[11px] text-white/25 font-medium">
-      <span className="flex items-center gap-1">
-        <Heart className="w-3 h-3" />
+      <button
+        onClick={onLike}
+        className={cn(
+          "flex items-center gap-1 transition-colors",
+          isLiked ? "text-red-400" : "hover:text-white/50"
+        )}
+      >
+        <Heart className={cn("w-3 h-3", isLiked && "fill-red-400")} />
         {likesCount ?? 0}
-      </span>
+      </button>
       <span className="flex items-center gap-1">
         <Clock className="w-3 h-3" />
         {new Date(createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
@@ -438,17 +495,23 @@ function VideoMeta({ likesCount, createdAt }: { likesCount?: number | null; crea
 
 function VideoPlayerModal({
   video,
-  onClose
+  onClose,
+  isLiked,
+  onLike,
 }: {
-  video: { id: string; title: string };
+  video: { id: string; title: string; user_id?: string };
   onClose: () => void;
+  isLiked?: boolean;
+  onLike?: (e: React.MouseEvent) => void;
 }) {
+  const [showComments, setShowComments] = useState(false);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       <motion.div
@@ -456,20 +519,46 @@ function VideoPlayerModal({
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="relative w-full max-w-4xl mx-4"
+        className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <Button
           variant="ghost"
           size="icon"
-          className="absolute -top-12 right-0 text-white/60 hover:text-white hover:bg-white/10"
+          className="absolute -top-12 right-0 text-white/60 hover:text-white hover:bg-white/10 z-10"
           onClick={onClose}
         >
           <X className="w-5 h-5" />
         </Button>
 
-        <div className="mb-3">
+        <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-white">{video.title}</h2>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onLike}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all",
+                isLiked
+                  ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                  : "bg-white/[0.06] text-white/50 border border-white/[0.08] hover:bg-white/[0.1] hover:text-white"
+              )}
+            >
+              <Heart className={cn("w-4 h-4", isLiked && "fill-red-400")} />
+              {isLiked ? 'Liked' : 'Like'}
+            </button>
+            <button
+              onClick={() => setShowComments(!showComments)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all",
+                showComments
+                  ? "bg-violet-500/20 text-violet-300 border border-violet-500/30"
+                  : "bg-white/[0.06] text-white/50 border border-white/[0.08] hover:bg-white/[0.1] hover:text-white"
+              )}
+            >
+              <MessageCircle className="w-4 h-4" />
+              Comments
+            </button>
+          </div>
         </div>
 
         <div className="rounded-xl overflow-hidden bg-black aspect-video ring-1 ring-white/[0.06]">
@@ -480,6 +569,20 @@ function VideoPlayerModal({
             className="w-full h-full"
           />
         </div>
+
+        {/* Comments Section */}
+        <AnimatePresence>
+          {showComments && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] p-5 overflow-hidden"
+            >
+              <VideoCommentsSection projectId={video.id} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </motion.div>
   );

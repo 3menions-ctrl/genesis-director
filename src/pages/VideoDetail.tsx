@@ -80,7 +80,7 @@ export default function VideoDetailPage() {
       } catch (err) {
         console.error('Failed to fetch video:', err);
         toast.error('Video not found');
-        navigateTo('/discover');
+        navigateTo('/creators');
       } finally {
         setIsLoading(false);
       }
@@ -114,7 +114,7 @@ export default function VideoDetailPage() {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
         <p className="text-zinc-500">Video not found</p>
-        <Button onClick={() => navigateTo('/discover')}>Back to Discover</Button>
+        <Button onClick={() => navigateTo('/creators')}>Back to Creators</Button>
       </div>
     );
   }

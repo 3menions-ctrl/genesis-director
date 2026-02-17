@@ -72,10 +72,17 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
     if (action.action === "navigate" && action.path) {
       navigate(action.path);
       onClose();
-    } else if (action.action === "start_creation" && action.requires_confirmation) {
+    } else if (action.action === "open_buy_credits") {
+      navigate("/pricing");
+      onClose();
+    } else if (action.action === "project_created" && (action as any).navigate_to) {
+      navigate((action as any).navigate_to);
+      onClose();
+    } else if (action.action === "confirm_generation" || action.action === "confirm_delete" || action.action === "start_creation") {
       setPendingAction(action);
-    } else if (action.action === "start_creation") {
-      navigate("/create");
+    } else if (action.action === "insufficient_credits") {
+      // Auto-navigate to pricing
+      navigate("/pricing");
       onClose();
     } else if (action.action === "generate_script") {
       navigate("/create");
@@ -83,12 +90,18 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
     }
   };
 
-  const confirmAction = () => {
-    if (pendingAction) {
-      if (pendingAction.action === "start_creation") navigate("/create");
-      setPendingAction(null);
-      onClose();
+  const confirmAction = async () => {
+    if (!pendingAction) return;
+    if (pendingAction.action === "start_creation") {
+      navigate("/create");
+    } else if (pendingAction.action === "confirm_generation") {
+      // Tell Hoppy to confirm
+      await sendMessage(`Yes, go ahead and generate project ${(pendingAction as any).project_id}`);
+    } else if (pendingAction.action === "confirm_delete") {
+      await sendMessage(`Yes, delete project ${(pendingAction as any).project_id}`);
     }
+    setPendingAction(null);
+    if (pendingAction.action === "start_creation") onClose();
   };
 
   const scrollToBottom = () => {
@@ -319,12 +332,13 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                 >
                   <div className="flex items-center gap-2 mb-2.5">
                     <Zap className="h-4 w-4 text-amber-400" />
-                    <span className="text-[13px] font-semibold text-foreground">Confirm action</span>
+                    <span className="text-[13px] font-semibold text-foreground">
+                      {pendingAction.action === "confirm_delete" ? "Confirm deletion" : "Confirm action"}
+                    </span>
                   </div>
                   <p className="text-[12px] text-muted-foreground mb-4 leading-relaxed">
-                    This will use approximately{" "}
-                    <span className="text-amber-400 font-semibold">{pendingAction.estimated_credits}</span>{" "}
-                    credits. Ready to proceed?
+                    {(pendingAction as any).message || 
+                      `This will use approximately ${pendingAction.estimated_credits || 0} credits. Ready to proceed?`}
                   </p>
                   <div className="flex gap-2">
                     <Button
@@ -389,7 +403,7 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                 </button>
               </div>
               <p className="text-[10px] text-muted-foreground/25 text-center mt-2 tracking-wide">
-                Tool lookups cost 1 credit · Free for general questions
+                Free Q&A · Actions may cost credits
               </p>
             </div>
           </motion.div>
@@ -497,8 +511,14 @@ function MessageBubble({
               >
                 <ArrowRight className="h-3 w-3" />
                 {action.action === "navigate" && action.path}
+                {action.action === "open_buy_credits" && "💳 Buy Credits"}
                 {action.action === "start_creation" && `Create · ${action.estimated_credits}cr`}
                 {action.action === "generate_script" && "Preview script"}
+                {action.action === "project_created" && `📁 View Projects`}
+                {action.action === "project_renamed" && "✅ Renamed"}
+                {action.action === "confirm_generation" && `🎬 Generate · ${action.estimated_credits}cr`}
+                {action.action === "confirm_delete" && "🗑️ Confirm Delete"}
+                {action.action === "insufficient_credits" && "💳 Get Credits"}
               </button>
             ))}
           </div>

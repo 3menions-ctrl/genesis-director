@@ -11,7 +11,7 @@ import { EditorSidebar } from "@/components/editor/EditorSidebar";
 import { EditorMediaBrowser } from "@/components/editor/EditorMediaBrowser";
 import { Film, Sparkles } from "lucide-react";
 import { useEditorHistory } from "@/hooks/useEditorHistory";
-import type { EditorState, TimelineTrack, TimelineClip } from "@/components/editor/types";
+import type { EditorState, TimelineTrack, TimelineClip, MusicTrack } from "@/components/editor/types";
 
 const VideoEditor = () => {
   const { user } = useAuth();
@@ -673,6 +673,35 @@ const VideoEditor = () => {
     }));
   }, [editorState.tracks, editorState.currentTime, withHistory]);
 
+  const handleAddMusic = useCallback((track: MusicTrack) => {
+    const audioTrack = editorState.tracks.find((t) => t.type === "audio");
+    if (!audioTrack) { toast.error("Add an audio track first"); return; }
+    const newClip: TimelineClip = {
+      id: `music-${Date.now()}`, trackId: audioTrack.id, start: editorState.currentTime,
+      end: editorState.currentTime + Math.min(track.duration, 30), type: "audio", sourceUrl: "",
+      label: `♪ ${track.title}`, effects: [], volume: 80,
+    };
+    withHistory((prev) => ({ ...prev, tracks: prev.tracks.map((t) => (t.id === audioTrack.id ? { ...t, clips: [...t.clips, newClip] } : t)), selectedClipId: newClip.id }));
+    toast.success(`Added "${track.title}" to audio track`);
+  }, [editorState.tracks, editorState.currentTime, withHistory]);
+
+  const handleAddSticker = useCallback((stickerId: string, content: string, category: string) => {
+    const textTrack = editorState.tracks.find((t) => t.type === "text");
+    if (!textTrack) { toast.error("Add a text track first"); return; }
+    const newClip: TimelineClip = {
+      id: `sticker-${Date.now()}`, trackId: textTrack.id, start: editorState.currentTime,
+      end: editorState.currentTime + 3, type: "text", sourceUrl: "", label: content, effects: [],
+      textContent: content, textStyle: { fontSize: category === "cta" ? 32 : 64, color: "#FFFFFF", fontWeight: "bold" },
+    };
+    withHistory((prev) => ({ ...prev, tracks: prev.tracks.map((t) => (t.id === textTrack.id ? { ...t, clips: [...t.clips, newClip] } : t)), selectedClipId: newClip.id }));
+  }, [editorState.tracks, editorState.currentTime, withHistory]);
+
+  const handleApplyEffect = useCallback((effectId: string) => {
+    if (!editorState.selectedClipId) { toast.error("Select a clip first"); return; }
+    handleUpdateClip(editorState.selectedClipId, { filter: effectId });
+    toast.success(`Applied "${effectId}" effect`);
+  }, [editorState.selectedClipId, handleUpdateClip]);
+
   const handleSave = async () => {
     if (!user) return;
     setIsSaving(true);
@@ -924,6 +953,9 @@ const VideoEditor = () => {
             onAddTransition={handleAddTransition}
             onDeleteClip={handleDeleteClip}
             onApplyTemplate={handleApplyTemplate}
+            onAddMusic={handleAddMusic}
+            onAddSticker={handleAddSticker}
+            onApplyEffect={handleApplyEffect}
           />
         </div>
       </div>

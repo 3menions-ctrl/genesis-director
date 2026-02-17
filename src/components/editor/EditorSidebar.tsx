@@ -1,10 +1,10 @@
-import { Type, Trash2, ArrowRightLeft, Sliders, Volume2, Gauge, Crop, Layout } from "lucide-react";
+import { Type, Trash2, ArrowRightLeft, Sliders, Volume2, Gauge, Crop, Layout, Music, Zap, Smile } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TRANSITION_TYPES, type TimelineTrack, type TimelineClip } from "./types";
+import { TRANSITION_TYPES, type TimelineTrack, type TimelineClip, type MusicTrack } from "./types";
 import { ColorGradingPanel } from "./ColorGradingPanel";
 import { KeyframeEditor } from "./KeyframeEditor";
 import { SpeedControlPanel } from "./SpeedControlPanel";
@@ -15,6 +15,9 @@ import { PipPanel } from "./PipPanel";
 import { ChromaKeyPanel } from "./ChromaKeyPanel";
 import { CaptionsPanel } from "./CaptionsPanel";
 import { TemplatesPanel } from "./TemplatesPanel";
+import { MusicLibraryPanel } from "./MusicLibraryPanel";
+import { TrendingEffectsPanel } from "./TrendingEffectsPanel";
+import { StickersPanel } from "./StickersPanel";
 import { cn } from "@/lib/utils";
 
 interface EditorSidebarProps {
@@ -26,11 +29,15 @@ interface EditorSidebarProps {
   onAddTransition: (clipId: string, type: string) => void;
   onDeleteClip: (clipId: string) => void;
   onApplyTemplate?: (templateId: string) => void;
+  onAddMusic?: (track: MusicTrack) => void;
+  onAddSticker?: (stickerId: string, content: string, category: string) => void;
+  onApplyEffect?: (effectId: string) => void;
 }
 
 export const EditorSidebar = ({
   tracks, selectedClipId, currentTime = 0,
   onUpdateClip, onAddTextOverlay, onAddTransition, onDeleteClip, onApplyTemplate,
+  onAddMusic, onAddSticker, onApplyEffect,
 }: EditorSidebarProps) => {
   const selectedClip = selectedClipId
     ? tracks.flatMap((t) => t.clips).find((c) => c.id === selectedClipId)
@@ -51,19 +58,69 @@ export const EditorSidebar = ({
             <p className="text-[11px] text-white/30 leading-relaxed">
               Select a clip on the timeline, or add new elements.
             </p>
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-2.5 h-9 text-[11px] text-white/70 hover:text-white hover:bg-white/[0.06] border border-white/[0.06] rounded-lg transition-all group"
-              onClick={onAddTextOverlay}
-            >
-              <div className="w-5 h-5 rounded-md bg-amber-500/10 border border-amber-500/20 flex items-center justify-center group-hover:bg-amber-500/15 transition-colors">
-                <Type className="h-2.5 w-2.5 text-amber-400" />
-              </div>
-              Add Text Overlay
-            </Button>
+
+            {/* Quick actions */}
+            <div className="grid grid-cols-2 gap-1.5">
+              <Button
+                variant="ghost"
+                className="justify-start gap-2 h-9 text-[10px] text-white/60 hover:text-white hover:bg-white/[0.06] border border-white/[0.06] rounded-lg transition-all group"
+                onClick={onAddTextOverlay}
+              >
+                <div className="w-5 h-5 rounded-md bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                  <Type className="h-2.5 w-2.5 text-amber-400" />
+                </div>
+                Text
+              </Button>
+              <Button
+                variant="ghost"
+                className="justify-start gap-2 h-9 text-[10px] text-white/60 hover:text-white hover:bg-white/[0.06] border border-white/[0.06] rounded-lg transition-all group"
+                onClick={() => onAddSticker?.("fire", "🔥", "emoji")}
+              >
+                <div className="w-5 h-5 rounded-md bg-pink-500/10 border border-pink-500/20 flex items-center justify-center">
+                  <Smile className="h-2.5 w-2.5 text-pink-400" />
+                </div>
+                Sticker
+              </Button>
+            </div>
 
             <div className="h-px bg-white/[0.04]" />
-            <TemplatesPanel onApplyTemplate={onApplyTemplate || (() => {})} />
+
+            {/* Tabbed tool panels */}
+            <Tabs defaultValue="templates" className="w-full">
+              <TabsList className="w-full h-auto bg-white/[0.03] p-0.5 gap-0.5 rounded-lg border border-white/[0.06]">
+                {[
+                  { value: "templates", label: "Templates", icon: Layout },
+                  { value: "music", label: "Music", icon: Music },
+                  { value: "effects", label: "Effects", icon: Zap },
+                  { value: "stickers", label: "Stickers", icon: Smile },
+                ].map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <TabsTrigger
+                      key={tab.value}
+                      value={tab.value}
+                      className="flex-1 text-[8px] h-6 rounded-md data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm text-white/30 font-medium tracking-wide transition-all gap-1"
+                    >
+                      <Icon className="h-2.5 w-2.5" />
+                      {tab.label}
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+
+              <TabsContent value="templates" className="mt-3">
+                <TemplatesPanel onApplyTemplate={onApplyTemplate || (() => {})} />
+              </TabsContent>
+              <TabsContent value="music" className="mt-3">
+                <MusicLibraryPanel onAddMusic={onAddMusic || (() => {})} />
+              </TabsContent>
+              <TabsContent value="effects" className="mt-3">
+                <TrendingEffectsPanel onApplyEffect={onApplyEffect || (() => {})} />
+              </TabsContent>
+              <TabsContent value="stickers" className="mt-3">
+                <StickersPanel onAddSticker={onAddSticker || (() => {})} />
+              </TabsContent>
+            </Tabs>
           </div>
         ) : selectedClip.type === "text" ? (
           <TextClipInspector clip={selectedClip} onUpdateClip={onUpdateClip} onDeleteClip={onDeleteClip} />
@@ -73,6 +130,7 @@ export const EditorSidebar = ({
               {[
                 { value: "properties", label: "Props" },
                 { value: "filters", label: "Filters" },
+                { value: "effects", label: "FX" },
                 { value: "audio", label: "Audio" },
                 { value: "speed", label: "Speed" },
                 { value: "crop", label: "Crop" },
@@ -97,6 +155,9 @@ export const EditorSidebar = ({
             </TabsContent>
             <TabsContent value="filters" className="mt-3">
               <FiltersPanel clip={selectedClip} onUpdateClip={onUpdateClip} />
+            </TabsContent>
+            <TabsContent value="effects" className="mt-3">
+              <TrendingEffectsPanel onApplyEffect={onApplyEffect || (() => {})} />
             </TabsContent>
             <TabsContent value="audio" className="mt-3">
               <AudioFadePanel clip={selectedClip} onUpdateClip={onUpdateClip} />

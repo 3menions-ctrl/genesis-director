@@ -15,6 +15,7 @@ import { memo, forwardRef, useEffect, useRef, useState, useCallback, useImperati
 import Hls from 'hls.js';
 import { cn } from '@/lib/utils';
 import { safePlay, safePause, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
+import { useMediaCleanup, useRouteCleanup } from '@/lib/navigation';
 import { Play, Pause, Volume2, VolumeX, Maximize2, Loader2 } from 'lucide-react';
 
 export interface SimpleVideoPlayerHandle {
@@ -134,6 +135,24 @@ export const SimpleVideoPlayer = memo(forwardRef<SimpleVideoPlayerHandle, Simple
           hlsRef.current = null;
         }
       };
+    }, []);
+
+    // CRITICAL: Register video with NavigationCoordinator for pre-navigation cleanup
+    useMediaCleanup(videoRef);
+
+    // CRITICAL: Destroy HLS instance before navigation starts (not during React unmount)
+    // This prevents Safari resource exhaustion when old HLS streams overlap with new page loading
+    useRouteCleanup(() => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      const video = videoRef.current;
+      if (video) {
+        video.pause();
+        video.removeAttribute('src');
+        video.load(); // Force release of media resources
+      }
     }, []);
     
     // Initialize video source (HLS or native)

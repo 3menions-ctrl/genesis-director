@@ -2302,6 +2302,112 @@ serve(async (req) => {
       }
     }
 
+    // ==================== PHASE 4: FALSE FAILURE RECOVERY ====================
+    // Detects 'failed' projects that still have clips in 'generating' state.
+    // This happens when continue-production gives up on mutex conflicts but the
+    // project is actually still in progress. We clear the lock and resume.
+    console.log(`[Watchdog] 🔍 Checking for false failure projects...`);
+    
+    const { data: falseFailed } = await supabase
+      .from('movie_projects')
+      .select('id, title, status, user_id, pending_video_tasks, generation_lock, generated_script')
+      .eq('status', 'failed')
+      .gte('updated_at', new Date(Date.now() - 30 * 60 * 1000).toISOString()) // within last 30 min
+      .limit(20);
+    
+    for (const project of (falseFailed || [])) {
+      // Check if any clips are still stuck in 'generating'
+      const { data: generatingClips } = await supabase
+        .from('video_clips')
+        .select('id, shot_index, status, updated_at')
+        .eq('project_id', project.id)
+        .eq('status', 'generating');
+      
+      if (!generatingClips || generatingClips.length === 0) continue;
+      
+      const tasks = (project.pending_video_tasks || {}) as Record<string, any>;
+      
+      // Find last completed clip to resume from
+      const { data: completedClips } = await supabase
+        .from('video_clips')
+        .select('shot_index, last_frame_url, video_url')
+        .eq('project_id', project.id)
+        .eq('status', 'completed')
+        .order('shot_index', { ascending: false })
+        .limit(1);
+      
+      const lastCompletedIndex = completedClips?.[0]?.shot_index ?? -1;
+      const expectedClipCount = tasks.clipCount || 2;
+      
+      console.log(`[Watchdog] ⚠️ FALSE FAILURE: ${project.id} has ${generatingClips.length} stuck-generating clip(s), last completed: ${lastCompletedIndex}`);
+      
+      // Step 1: Release the mutex lock
+      await supabase
+        .from('movie_projects')
+        .update({ generation_lock: null })
+        .eq('id', project.id);
+      
+      // Step 2: Reset stuck clips back to 'pending'
+      const stuckClipIndices = generatingClips.map(c => c.shot_index);
+      for (const clipIndex of stuckClipIndices) {
+        await supabase
+          .from('video_clips')
+          .update({ status: 'pending', updated_at: new Date().toISOString() })
+          .eq('project_id', project.id)
+          .eq('shot_index', clipIndex);
+      }
+      
+      // Step 3: Restore project to 'generating' state and resume
+      await supabase
+        .from('movie_projects')
+        .update({
+          status: 'generating',
+          pipeline_stage: 'clips_generating',
+          last_error: null,
+          pending_video_tasks: {
+            ...tasks,
+            stage: 'production',
+            watchdogFalseFailureRecovery: true,
+            recoveredAt: new Date().toISOString(),
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', project.id);
+      
+      // Step 4: Resume continue-production to generate the missing clips
+      try {
+        const resumeResponse = await fetch(`${supabaseUrl}/functions/v1/continue-production`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({
+            projectId: project.id,
+            userId: project.user_id,
+            completedClipIndex: lastCompletedIndex,
+            totalClips: expectedClipCount,
+            watchdogRecovery: true,
+          }),
+        });
+        
+        if (resumeResponse.ok) {
+          result.productionResumed++;
+          result.details.push({
+            projectId: project.id,
+            action: 'false_failure_recovery',
+            result: `Resumed from clip ${lastCompletedIndex + 2}/${expectedClipCount}`,
+          });
+          console.log(`[Watchdog] ✅ FALSE FAILURE RECOVERED: ${project.id} - resuming clip ${lastCompletedIndex + 2}`);
+        } else {
+          const errText = await resumeResponse.text();
+          console.error(`[Watchdog] ❌ Resume failed for ${project.id}: ${errText}`);
+        }
+      } catch (resumeErr) {
+        console.error(`[Watchdog] Resume error for ${project.id}:`, resumeErr);
+      }
+    }
+
     console.log(`[Watchdog] Complete: ${result.productionResumed} resumed, ${result.stitchingRetried} stitch retries, ${result.retryScheduledProcessed} scheduled retries, ${result.manifestFallbacks} fallbacks`);
 
     return new Response(

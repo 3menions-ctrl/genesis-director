@@ -33,7 +33,7 @@ export function AgentTrigger() {
             onClick={() => setIsOpen(true)}
             className={cn(
               "fixed bottom-6 right-6 z-40",
-              "h-16 w-16 rounded-full",
+              "h-24 w-24 rounded-full",
               "overflow-hidden",
               "shadow-[0_0_30px_hsl(263_70%_58%/0.3)]",
               "transition-shadow hover:shadow-[0_0_50px_hsl(263_70%_58%/0.5)]",

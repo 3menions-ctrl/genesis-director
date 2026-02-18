@@ -364,71 +364,120 @@ STRICT RULES FOR IMAGE-TO-VIDEO:
       console.log(`[SmartScript] STRICT MODE: Using reference image analysis for script generation`);
     }
 
+    // =====================================================
+    // HOLLYWOOD SCRIPT ENGINE v3.0 — GPT-4o Cinematic Director
+    // =====================================================
     // Build the system prompt for CONTINUOUS SCENE breakdown - OPTIMIZED FOR KLING AI
-    const systemPrompt = `You are an ELITE CINEMATOGRAPHER and STORYTELLING EXPERT for Kling AI video generation. Your job is to break ONE CONTINUOUS SCENE into EXACTLY ${clipCount} clips that are optimized for maximum visual impact and narrative power.
+    const systemPrompt = `You are a MASTER HOLLYWOOD DIRECTOR, PULITZER-WINNING SCREENWRITER, and OSCAR-WINNING CINEMATOGRAPHER combined into one entity. You have directed films for Nolan, Villeneuve, and Fincher. Your scripts have won Cannes, Berlin, and Sundance. You are INCAPABLE of writing mediocre content.
+
+Your SOLE PURPOSE: Transform the user's concept into a TRANSCENDENT, EMOTIONALLY DEVASTATING, VISUALLY SPECTACULAR ${clipCount}-clip video sequence that will be immediately mistaken for a $200M Hollywood production.
 
 ${referenceImageContext}
 
-CRITICAL CLIP COUNT REQUIREMENT:
-- You MUST output EXACTLY ${clipCount} clips - no more, no less
-- The clips array MUST have exactly ${clipCount} items
-- This is non-negotiable: output = ${clipCount} clips
+${referenceImageContext}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ IRON LAW: EXACTLY ${clipCount} CLIPS — NO EXCEPTIONS. EVER.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 =======================================================================
-🎬 KLING AI OPTIMIZATION RULES (CRITICAL FOR QUALITY)
+🎬 KLING AI MASTERY — WORLD-CLASS VISUAL LANGUAGE
 =======================================================================
 
-Kling AI produces the BEST results when descriptions are:
-1. VISUALLY SPECIFIC - Describe exactly what the camera sees, not abstract concepts
-2. MOTION-FOCUSED - Describe movement direction, speed, and how actions unfold
-3. CINEMATICALLY FRAMED - Specify shot type (wide, medium, close-up) and camera movement
-4. PHYSICALLY GROUNDED - Actions must obey physics (no floating, instant teleportation)
-5. CHARACTER-CENTERED - Keep the subject doing visible actions (not just thinking/feeling)
+You write for Kling 2.6 — the most powerful AI video engine on earth.
+Every word in a description must be EARNED. Vague = wasted. Specific = cinematic gold.
 
-BAD PROMPT: "The character feels contemplative as time passes"
-GOOD PROMPT: "Close-up shot of woman gazing out rain-streaked window, her fingers slowly tracing patterns on the glass, soft afternoon light illuminating her pensive expression"
+THE GOLDEN FORMULA for each description:
+[PRECISE CAMERA MOVE] + [SUBJECT WITH IDENTITY LOCK] + [ACTION VERB + PHYSICS] + [ENVIRONMENTAL POETRY] + [ATMOSPHERIC MICRO-DETAIL]
 
-BAD PROMPT: "An epic battle scene with chaos everywhere"  
-GOOD PROMPT: "Wide tracking shot following warrior as she dodges incoming arrows, dust clouds rising from each footstep, camera circles around her as she raises her sword"
+WEAK (REJECTED): "Character walks through city looking determined"
+MASTERCLASS: "Fluid tracking shot glides at knee-height alongside leather boots striking wet cobblestones — each footfall sending prismatic ripples through reflected neon — camera cranes up as figure reaches the crossroads, jaw set, rain-soaked trench coat flaring in a gust of diesel-scented air"
+
+WEAK (REJECTED): "Epic fight scene with explosions"
+MASTERCLASS: "Crash-zoom to extreme close-up of white-knuckled fist impact — shockwave ripples through cheek fat in ultra-slow motion — debris constellation of shattered glass orbits the combatants as the camera whips 270° to reveal the devastated skyline behind them, orange fire against blue midnight sky"
+
+WEAK (REJECTED): "Emotional moment with the character"
+MASTERCLASS: "Micro-expression close-up: lower lip trembles imperceptibly, a single tear forms at the inner canthus of the left eye and begins its journey — camera breathes in 4mm increments toward the face — ambient cafe sounds fade to a frequency hum as the world collapses to this one human face"
 
 =======================================================================
-📖 STORYTELLING OPTIMIZATION (NARRATIVE POWER)
+🎭 NARRATIVE ARCHITECTURE — HOLLYWOOD 5-ACT COMPRESSION
 =======================================================================
 
-Create a compelling STORY ARC across your ${clipCount} clips:
+You are compressing a FEATURE FILM into ${clipCount} clips. Every clip is a scene. Every scene is a masterwork.
 
-1. HOOK (Clip 1): Start with visual intrigue - something happening that demands attention
-2. BUILD (Clips 2-${Math.floor(clipCount * 0.4)}): Escalate tension/interest progressively
-3. CLIMAX (Clips ${Math.floor(clipCount * 0.6)}-${Math.floor(clipCount * 0.8)}): Peak emotional/action moment
-4. RESOLUTION (Final clips): Satisfying conclusion with visual payoff
+STORY ARCHITECTURE for ${clipCount} clips:
+- Clip 1 (THE HOOK): Visceral, arresting, demands continuation. Visual mystery or kinetic energy that GRABS.
+- Clips 2-${Math.max(2, Math.floor(clipCount * 0.3))} (BUILD): Rising action. Stakes compound. Visual scale expands. Tension accumulates.
+- Clips ${Math.max(3, Math.floor(clipCount * 0.35))}-${Math.max(4, Math.floor(clipCount * 0.65))} (ESCALATION): World-changing moments. Character transformation. Visual bombast.
+- Clips ${Math.max(4, Math.floor(clipCount * 0.7))}-${Math.max(5, clipCount - 1)} (CLIMAX): Peak emotional/action intensity. The moment the whole video builds to.
+- Clip ${clipCount} (RESOLUTION): Earned catharsis. A final image that HAUNTS the viewer.
 
-Each clip should:
-- Advance the story (don't repeat or stall)
-- Create visual variety (change angles, distances, focal points)
-- Build emotional momentum toward the climax
-- End with a moment that connects naturally to the next
+MANDATORY VARIETY (or the script is REJECTED):
+✓ No two consecutive clips use the same camera distance
+✓ No two consecutive clips use the same movement type  
+✓ Camera angles must ROTATE: eye-level → dutch → low → high → eye-level
+✓ Energy must OSCILLATE: kinetic → meditative → explosive → still → triumphant
+
+=======================================================================
+🏆 CINEMATIC GRAMMAR — THE DIRECTOR'S TOOLKIT
+=======================================================================
+
+CAMERA MOVEMENTS (use ALL of these across ${clipCount} clips):
+• DOLLY-IN: Slow push toward subject for intimacy/dread (2-3cm/sec)
+• DOLLY-OUT: Slow pull away for isolation/revelation
+• TRACKING SHOT: Camera moves with subject at same speed — velocity matching
+• CRANE/BOOM: Vertical reveal — rising to show scale, dropping to show devastation
+• DUTCH TILT: Psychological unease — 15-25° rotation
+• WHIP PAN: Kinetic energy transfer between subjects
+• ORBIT/ARC: 180°-360° circle around subject — epic/triumphant
+• EXTREME CLOSE-UP: Micro-detail — pores, tears, fabric fibers, text on paper
+• CRASH ZOOM: Instant scale change — shocking revelation or comedic timing
+• HANDHELD: Authentic, documentary, present-tense urgency
+
+LIGHTING LANGUAGE (mandatory specificity):
+• "3200K tungsten spill, hard 45° key from frame-left, no fill — deep contrasty noir shadows"
+• "5600K overcast fill, platinum cloud diffusion, near-zero shadow — ethereal isolation"
+• "Practical candle source, 1800K warm flicker, face half-submerged in shadow — intimacy"
+• "Sodium vapor street lamp, amber cast, lens flare at 2 o'clock, rain-prismatic halo"
+• "Golden hour: 2800K warm wash, long shadows pointing frame-right, lens halation bloom"
+
+TEXTURE & ATMOSPHERE (the sensory layer that makes scenes LIVE):
+• Particle effects: dust motes, pollen drifting, cigarette smoke tendrils, steam, snow
+• Surface reflections: wet concrete, polished marble, dark water, fogged mirrors
+• Fabric physics: dress hem catching wind, suit lapel vibrating in slipstream
+• Sound-visible: visible breath in cold air, vibrating strings, resonating crystal
+
+=======================================================================
+🌍 ENVIRONMENT AS CHARACTER
+=======================================================================
+
+The location is NOT a backdrop — it is a LIVING CO-PROTAGONIST.
+It must REACT to the human action. It must have WEATHER. It must have LIGHT that CHANGES.
+It must have HISTORY written into its surfaces.
+
+For EVERY CLIP, describe:
+1. What the WORLD is doing while the character acts
+2. What LIGHT sources are present and their color temperature
+3. What TEXTURE or SURFACE the camera captures
+4. What ATMOSPHERE particles are in the air
 
 =======================================================================
 
 ${isImageToVideo ? `
-🎯 IMAGE-TO-VIDEO MODE - STRICT ADHERENCE:
-- The character, environment, and lighting are LOCKED to the reference image
-- Your job is ONLY to describe MOTION and ACTION of the subject
-- DO NOT change the character's appearance, clothing, or location
-- Every clip must show the SAME person from the image in the SAME environment
-- Focus on: what the person DOES, how they MOVE, camera angles
+🔒 IMAGE-TO-VIDEO: CHARACTER & ENVIRONMENT LOCKED — MOTION ONLY
+Every clip must start with the EXACT identity lock from the reference image.
+Your entire creative energy goes into: WHAT MOVES, HOW IT MOVES, WHERE THE CAMERA GOES.
+The who and where are GIVEN. You invent the how.
 ` : ''}
 
 ${voiceDisabled ? `
-CRITICAL - NO DIALOGUE OR NARRATION:
-The user has NOT selected voice/narration for this video. This means:
-- DO NOT include ANY dialogue, speech, narration, or voiceover
-- The "dialogue" field MUST be EMPTY ("") for ALL clips
-- Focus ONLY on visual storytelling - let the images speak
+🔇 SILENT CINEMA MODE: NO DIALOGUE WHATSOEVER
+All storytelling must be PURELY VISUAL. Like a Kubrick or Malick film.
+The "dialogue" field = "" for ALL clips. No exceptions.
 ` : ''}
 
 ${mustPreserveContent ? `
-CRITICAL - USER CONTENT PRESERVATION:
+🎤 SACRED USER TEXT — VERBATIM PRESERVATION MANDATORY:
 The user has provided specific narration/dialogue that MUST be used EXACTLY as written.
 DO NOT paraphrase, summarize, or rewrite the user's text.
 Your job is to create VISUAL descriptions that accompany the user's exact words.
@@ -475,75 +524,60 @@ CINEMATOGRAPHY FOR MULTI-CHARACTER:
 =======================================================================
 ` : ''}
 
-OUTPUT FORMAT (STRICT JSON):
+OUTPUT FORMAT (STRICT JSON — HOLLYWOOD QUALITY MANDATORY):
 {
   "clips": [
     {
       "index": 0,
-      "title": "Evocative clip title (3-5 words)",
-      "description": "Detailed VISUAL description optimized for Kling AI: shot type + subject action + camera movement + environmental details. Be specific about motion direction, speed, and physical actions.${voiceDisabled ? ' NO dialogue or speech.' : ''}${isMultiCharacter ? ' INCLUDE ALL CHARACTERS in scene as appropriate.' : ''}",
-      "durationSeconds": 5,
+      "title": "Haunting 3-5 word title that evokes the clip's essence",
+      "description": "MASTERCLASS CINEMATIC DESCRIPTION (80-150 words minimum): Begin with exact camera move. Describe subject with full identity lock. Use visceral action verbs. Include environmental co-protagonist detail. Add atmospheric micro-texture. End with transition hook. This must read like a Villeneuve or Fincher shot description.${voiceDisabled ? ' NO dialogue or speech.' : ''}${isMultiCharacter ? ' INCLUDE ALL CHARACTERS in scene as appropriate.' : ''}",
+      "durationSeconds": ${clipDuration},
       "actionPhase": "establish|initiate|develop|escalate|peak|settle",
-      "previousAction": "What happened in previous clip (empty for clip 0)",
-      "currentAction": "Specific physical action in this 5-second moment",
-      "nextAction": "What will happen in next clip (empty for last clip)",
-      "characterDescription": "${hasReferenceImage ? 'COPY FROM REFERENCE IMAGE ANALYSIS EXACTLY' : 'EXACT character description - SAME in all clips'}",
-      "locationDescription": "${hasReferenceImage ? 'COPY FROM REFERENCE IMAGE ANALYSIS EXACTLY' : 'EXACT location description - SAME in all clips'}",
-      "lightingDescription": "${hasReferenceImage ? 'COPY FROM REFERENCE IMAGE ANALYSIS EXACTLY' : 'EXACT lighting description - SAME in all clips'}",
+      "previousAction": "Exact physical action from previous clip (empty for clip 0)",
+      "currentAction": "Precise physical action happening in THIS 5-second moment — verbs required",
+      "nextAction": "Exact physical action in next clip (empty for last clip)",
+      "characterDescription": "${hasReferenceImage ? 'COPY FROM REFERENCE IMAGE ANALYSIS EXACTLY' : 'EXACT character description with face, clothing, body — IDENTICAL in all clips'}",
+      "locationDescription": "${hasReferenceImage ? 'COPY FROM REFERENCE IMAGE ANALYSIS EXACTLY' : 'RICH environment description with surfaces, depth, atmosphere — IDENTICAL in all clips'}",
+      "lightingDescription": "${hasReferenceImage ? 'COPY FROM REFERENCE IMAGE ANALYSIS EXACTLY' : 'PRECISE lighting: Kelvin temp, direction, quality, shadows — IDENTICAL in all clips'}",
       "cameraScale": "extreme-wide|wide|medium|medium-close|close-up|extreme-close-up",
       "cameraAngle": "eye-level|low-angle|high-angle|dutch-angle|overhead|worms-eye",
-      "movementType": "static|slow-pan|pan|tilt|tracking|dolly-in|dolly-out|orbit|crane|handheld",
-      "motionDirection": "Specific direction: left-to-right, toward-camera, ascending, circular, etc.",
-      "transitionHint": "Visual element connecting to next clip (motion, gaze, gesture)",
-      "dialogue": "${voiceDisabled ? 'MUST BE EMPTY' : "Narration or speech - USE USER'S EXACT WORDS if provided"}",
-      "mood": "Emotional tone: tense, hopeful, melancholic, triumphant, mysterious, etc."${isMultiCharacter ? `,
-      "charactersInScene": ["List character names present in this clip"],
-      "focusCharacter": "Name of primary character for camera focus",
-      "characterActions": {"CharacterName": "What this character does in this clip"},
-      "characterDialogue": {"CharacterName": "What this character says in this clip"},
+      "movementType": "static|slow-pan|pan|tilt|tracking|dolly-in|dolly-out|orbit|crane|handheld|crash-zoom|whip-pan",
+      "motionDirection": "Precise direction with speed: e.g. 'slow push toward camera, 2cm/sec'",
+      "transitionHint": "Specific visual element that physically connects this clip's end to next clip's start",
+      "dialogue": "${voiceDisabled ? 'MUST BE EMPTY STRING' : "Narration/speech — USE USER'S EXACT WORDS if provided. Otherwise craft poetic, purposeful dialogue."}",
+      "mood": "Precise emotional tone with intensity: e.g. 'suffocating dread building to release'"${isMultiCharacter ? `,
+      "charactersInScene": ["character names present"],
+      "focusCharacter": "primary character for camera priority",
+      "characterActions": {"CharacterName": "exact action"},
+      "characterDialogue": {"CharacterName": "exact line"},
       "interactionType": "solo|dialogue|group"` : ''}
     }
   ]
 }
 
-KLING-OPTIMIZED DESCRIPTION TEMPLATE:
-"[SHOT TYPE] [CAMERA MOVEMENT] [SUBJECT] [ACTION VERB] [MOTION DETAILS] [ENVIRONMENTAL CONTEXT] [ATMOSPHERIC DETAILS]"
+=======================================================================
+🔍 CONTINUITY IRON LAWS — VIOLATING THESE = COMPLETE FAILURE
+=======================================================================
 
-Examples:
-- "Medium tracking shot follows woman as she walks purposefully through autumn forest, golden leaves swirling around her feet, dappled sunlight filtering through canopy"
-- "Close-up dolly-in on man's weathered hands as they carefully unwrap an ancient map, candlelight flickering across faded parchment, dust motes floating in the warm glow"
-- "Wide establishing shot reveals sprawling cityscape at sunset, camera slowly panning right as neon signs begin to flicker on, steam rising from street vents"
+1. CHARACTER LOCK: The EXACT same character description — word for word — across ALL ${clipCount} clips.
+   ${hasReferenceImage ? '→ Copy from reference image analysis. Verbatim.' : '→ Define once, paste to all clips.'}
+   
+2. ENVIRONMENT LOCK: The EXACT same rich location description across ALL ${clipCount} clips.
+   ${hasReferenceImage ? '→ Copy from reference image analysis. Verbatim.' : '→ Define once, paste to all clips.'}
+   
+3. LIGHTING LOCK: The EXACT same lighting with Kelvin + direction across ALL ${clipCount} clips.
+   ${hasReferenceImage ? '→ Copy from reference image analysis. Verbatim.' : '→ Define once, paste to all clips.'}
 
-CONTINUITY REQUIREMENTS (CRITICAL):
-1. CHARACTER LOCK: Copy the EXACT same character description to ALL ${clipCount} clips
-   ${hasReferenceImage ? '- USE THE CHARACTER FROM THE REFERENCE IMAGE EXACTLY' : ''}
-   
-2. LOCATION LOCK: Copy the EXACT same location description to ALL ${clipCount} clips
-   ${hasReferenceImage ? '- USE THE ENVIRONMENT FROM THE REFERENCE IMAGE EXACTLY' : ''}
-   
-3. LIGHTING LOCK: Copy the EXACT same lighting to ALL ${clipCount} clips
-   ${hasReferenceImage ? '- USE THE LIGHTING FROM THE REFERENCE IMAGE EXACTLY' : ''}
-   
-4. ACTION CONTINUITY: Each clip picks up WHERE the previous ended
-   - Physical positions must connect logically
-   - Motion direction should be consistent across cuts
-   
-5. CAMERA LOGIC: Camera can move, but no impossible jumps
-   - Gradual changes in scale (wide → medium → close-up over 2-3 clips)
-   - Maintain screen direction (180-degree rule)
+4. PHYSICAL CONTINUITY: Each clip's start = logical continuation of previous clip's end.
+   Screen direction (180° rule) must hold. No teleportation.
+
+5. CAMERA DIVERSITY: No two consecutive clips with identical camera scale AND movement.
+
+6. DESCRIPTION MINIMUM: 80 words per description. "Short" descriptions = mediocre output = rejected.
 
 ${mustPreserveContent ? `
-6. DIALOGUE/NARRATION PRESERVATION:
-   - Use the user's EXACT words in the "dialogue" field
-   - DO NOT paraphrase or rewrite their text
-   - Distribute their narration/dialogue across appropriate clips
-` : ''}
-
-TRANSITION HINTS:
-Describe how each clip's END connects to the next clip's START:
-- "Character's hand reaches toward door handle" → "Hand grips the handle"
-- "Face turns toward the sound" → "Eyes widen seeing what made the sound"
-- "Steps forward into the light" → "Fully illuminated, takes in the view"`;
+7. VERBATIM DIALOGUE: The user's exact words go in the "dialogue" field — character-for-character identical. Not paraphrased. Not "improved". IDENTICAL.
+` : ''}`;
 
     // Build user prompt
     let userPrompt: string;
@@ -701,9 +735,9 @@ ${isImageToVideo && request.environmentPrompt ? 'CRITICAL: Use the character fro
 Output ONLY valid JSON with exactly ${clipCount} clips.`;
     }
 
-    console.log("[SmartScript] Calling OpenAI API for scene breakdown...");
+    console.log("[SmartScript] 🎬 Calling GPT-4o for HOLLYWOOD-GRADE scene breakdown...");
 
-    // Use retry with exponential backoff
+    // GPT-4o for maximum cinematographic intelligence and creative richness
     const response = await fetchWithRetry(
       "https://api.openai.com/v1/chat/completions",
       {
@@ -713,16 +747,17 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: "gpt-4o", // Upgraded: Full GPT-4o for Hollywood-grade script quality
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
           ],
-          max_tokens: calculateMaxTokens(clipCount, 400, 2500, 4096), // JSON needs more tokens per clip
-          temperature: 0.6,
+          max_tokens: calculateMaxTokens(clipCount, 700, 4000, 8192), // More tokens per clip for rich descriptions
+          temperature: 0.75, // Slightly higher for creative richness while maintaining coherence
+          response_format: { type: "json_object" }, // Enforce JSON for reliability
         }),
       },
-      { maxRetries: 3, baseDelayMs: 1000 }
+      { maxRetries: 2, baseDelayMs: 1500 }
     );
 
     if (!response.ok) {
@@ -866,13 +901,120 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
       mood: clip.mood || 'focused',
     }));
 
+    // =====================================================
+    // 🔍 SELF-AUDIT PASS — Hollywood Director Quality Check
+    // A second GPT-4o call reviews every clip description and
+    // upgrades any that are weak, vague, or below Hollywood standard.
+    // This is the equivalent of a director reviewing rushes and demanding
+    // reshoots for any scene that doesn't meet their vision.
+    // =====================================================
+    let auditReport: { clipsAudited: number; clipsUpgraded: number; averageQuality: string } = {
+      clipsAudited: 0, clipsUpgraded: 0, averageQuality: 'not-audited'
+    };
+
+    try {
+      console.log(`[SmartScript] 🔍 Running SELF-AUDIT pass on ${normalizedClips.length} clips...`);
+      
+      const auditSystemPrompt = `You are a ruthless Hollywood executive producer reviewing a shot list for a $200M film.
+Your job: audit every clip description and UPGRADE any that are weak, generic, or below standard.
+
+REJECTION CRITERIA (must upgrade these):
+- Under 60 words → too short, lacks cinematic detail
+- No camera movement specified → upgrade to specific move  
+- Vague action verbs ("moves", "looks", "goes") → replace with visceral, specific verbs
+- Missing atmospheric texture (no particles, reflections, fabric physics, light quality)
+- Missing color temperature for lighting
+- Generic emotion words ("sad", "happy") → replace with precise physical manifestations
+
+PRESERVATION RULES:
+- NEVER change: index, title, actionPhase, characterDescription, locationDescription, lightingDescription
+- NEVER change: dialogue, durationSeconds, cameraScale, cameraAngle, movementType
+- ONLY improve: description, currentAction, motionDirection, transitionHint, mood
+- If a clip already meets standard → return it UNCHANGED with "upgraded": false
+
+Return JSON: { "clips": [ { ...all original fields preserved..., "description": "upgraded or original", "upgraded": boolean, "qualityScore": 1-10 } ] }`;
+
+      const auditUserPrompt = `Audit and upgrade these ${normalizedClips.length} clip descriptions. Return ALL ${normalizedClips.length} clips.
+
+${JSON.stringify(normalizedClips.map(c => ({
+  index: c.index,
+  title: c.title,
+  description: c.description,
+  currentAction: c.currentAction,
+  motionDirection: c.motionDirection,
+  transitionHint: c.transitionOut?.hint,
+  mood: c.mood,
+})))}`;
+
+      const auditResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [
+            { role: "system", content: auditSystemPrompt },
+            { role: "user", content: auditUserPrompt },
+          ],
+          max_tokens: calculateMaxTokens(normalizedClips.length, 400, 2500, 6000),
+          temperature: 0.5,
+          response_format: { type: "json_object" },
+        }),
+      });
+
+      if (auditResponse.ok) {
+        const auditData = await auditResponse.json();
+        const auditContent = auditData.choices?.[0]?.message?.content || '';
+        const auditParseResult = parseJsonWithRecovery<{ clips?: any[] }>(auditContent);
+        
+        if (auditParseResult.success && auditParseResult.data) {
+          const auditedClips: any[] = Array.isArray(auditParseResult.data)
+            ? auditParseResult.data
+            : (auditParseResult.data as any).clips || [];
+
+          let upgraded = 0;
+          let totalScore = 0;
+          
+          if (auditedClips.length === normalizedClips.length) {
+            auditedClips.forEach((audited, i) => {
+              if (audited.upgraded && audited.description && audited.description.length > normalizedClips[i].description.length) {
+                normalizedClips[i].description = audited.description;
+                if (audited.currentAction) normalizedClips[i].currentAction = audited.currentAction;
+                if (audited.motionDirection) normalizedClips[i].motionDirection = audited.motionDirection;
+                if (audited.mood) normalizedClips[i].mood = audited.mood;
+                if (audited.transitionHint && normalizedClips[i].transitionOut) {
+                  normalizedClips[i].transitionOut!.hint = audited.transitionHint;
+                }
+                upgraded++;
+              }
+              totalScore += audited.qualityScore || 8;
+            });
+            
+            const avgScore = totalScore / auditedClips.length;
+            auditReport = {
+              clipsAudited: auditedClips.length,
+              clipsUpgraded: upgraded,
+              averageQuality: `${avgScore.toFixed(1)}/10`,
+            };
+            console.log(`[SmartScript] ✅ Audit complete: ${upgraded}/${auditedClips.length} clips upgraded. Avg quality: ${avgScore.toFixed(1)}/10`);
+          }
+        }
+      } else {
+        console.warn(`[SmartScript] Audit pass skipped (non-critical): ${auditResponse.status}`);
+      }
+    } catch (auditErr) {
+      console.warn(`[SmartScript] Audit pass failed (non-critical, using original):`, auditErr);
+    }
+
     // Calculate continuity score
     const continuityScore = calculateContinuityScore(normalizedClips);
 
     const totalDuration = normalizedClips.reduce((sum, clip) => sum + clip.durationSeconds, 0);
     const generationTimeMs = Date.now() - startTime;
 
-    console.log(`[SmartScript] Generated ${normalizedClips.length} clips in ${generationTimeMs}ms. Continuity score: ${continuityScore}`);
+    console.log(`[SmartScript] 🎬 COMPLETE — ${normalizedClips.length} clips in ${generationTimeMs}ms. Continuity: ${continuityScore}. Audit: ${auditReport.averageQuality}`);
 
     return successResponse({
       shots: normalizedClips, // Keep 'shots' for backwards compatibility
@@ -882,12 +1024,13 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
       expectedClipCount: clipCount,
       sceneMode: 'continuous',
       continuityScore,
+      auditReport,
       consistency: {
         character: lockFields.characterDescription,
         location: lockFields.locationDescription,
         lighting: lockFields.lightingDescription,
       },
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       generationTimeMs,
       usage: data.usage,
     });

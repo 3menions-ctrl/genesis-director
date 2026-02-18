@@ -388,8 +388,8 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                   />
                 ))}
 
-                {/* Typing indicator */}
-                {isLoading && (
+                {/* Typing indicator — only show when loading AND no streaming message yet */}
+                {isLoading && !messages.some((m) => m.streaming && m.content.length > 0) && (
                   <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3 items-start">
                     <div className="h-7 w-7 rounded-lg overflow-hidden flex-shrink-0 ring-1 ring-primary/10 mt-0.5">
                       <video src="/hoppy-blink.mp4" autoPlay loop muted playsInline className="w-full h-full object-cover scale-[1.4] object-top" />
@@ -709,20 +709,31 @@ function ImmersiveMessageBubble({
           {/* Accent top bar */}
           <div className="h-[1.5px] w-full" style={{ background: "linear-gradient(90deg, hsl(var(--primary) / 0.35), hsl(var(--accent) / 0.15), transparent)" }} />
 
-          {/* Text */}
+          {/* Text — with blinking cursor while streaming */}
           <div className="px-5 py-4">
-            <HoppyMarkdown content={message.content} />
+            {message.content ? (
+              <HoppyMarkdown content={message.content} />
+            ) : (
+              <span className="text-muted-foreground/30 text-sm italic">Thinking…</span>
+            )}
+            {message.streaming && (
+              <motion.span
+                className="inline-block w-[2px] h-[1.1em] bg-primary/60 ml-0.5 rounded-full align-middle"
+                animate={{ opacity: [1, 0] }}
+                transition={{ duration: 0.55, repeat: Infinity, repeatType: "reverse" }}
+              />
+            )}
           </div>
 
-          {/* Rich blocks */}
-          {message.richBlocks && message.richBlocks.length > 0 && (
+          {/* Rich blocks — only show when streaming is complete */}
+          {!message.streaming && message.richBlocks && message.richBlocks.length > 0 && (
             <div className="px-4 pb-4">
               <RichBlocksRenderer blocks={message.richBlocks} onNavigate={onNavigate} onSendMessage={onSendMessage} />
             </div>
           )}
 
-          {/* Action chips */}
-          {message.actions && message.actions.length > 0 && (
+          {/* Action chips — only show when streaming is complete */}
+          {!message.streaming && message.actions && message.actions.length > 0 && (
             <div className="px-5 pb-4 pt-1">
               <div className="h-px mb-3" style={{ background: "hsl(var(--border) / 0.07)" }} />
               <div className="flex flex-wrap gap-1.5">

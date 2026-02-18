@@ -136,19 +136,41 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
             <span className="text-xs font-medium text-foreground/80 truncate min-w-0">
               {STAGE_MESSAGES[currentStage]?.label ?? 'Processing…'}
             </span>
+            {/* Gradient progress bar */}
             <div
-              className="flex-1 rounded-full overflow-hidden"
-              style={{ height: 3, background: 'hsl(263 65% 58% / 0.12)' }}
+              className="relative flex-1 rounded-full overflow-hidden"
+              style={{ height: 4, background: 'hsl(240 10% 12%)', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.4)' }}
             >
+              {/* Dotted texture */}
+              <div
+                className="absolute inset-0 opacity-15"
+                style={{
+                  backgroundImage: 'radial-gradient(circle, hsl(240 20% 60%) 1px, transparent 1px)',
+                  backgroundSize: '5px 5px',
+                }}
+              />
               <motion.div
-                className="h-full rounded-full"
-                style={{ background: 'hsl(263 65% 60%)' }}
+                className="absolute inset-y-0 left-0 rounded-full"
+                style={{
+                  background: 'linear-gradient(90deg, hsl(220 90% 65%), hsl(270 80% 62%), hsl(320 75% 60%), hsl(45 100% 55%))',
+                  boxShadow: '0 0 10px hsl(270 80% 62% / 0.5)',
+                }}
                 animate={{ width: `${Math.max(2, progress)}%` }}
                 transition={{ duration: 0.8, ease: 'easeOut' }}
               />
             </div>
-            <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">
-              {Math.round(progress)}% · {formatTime(elapsedTime)}
+            <span className="text-[11px] font-semibold tabular-nums shrink-0"
+              style={{
+                background: 'linear-gradient(90deg, hsl(220 90% 70%), hsl(45 100% 60%))',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              {Math.round(progress)}%
+            </span>
+            <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+              {formatTime(elapsedTime)}
             </span>
           </div>
         </div>
@@ -166,10 +188,13 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
       >
         {/* Progress bar at top of bar — no shimmer, clean */}
         {isRunning && (
-          <div className="h-[2px] overflow-hidden" style={{ background: 'hsl(250 12% 12%)' }}>
+          <div className="h-[3px] overflow-hidden relative" style={{ background: 'hsl(240 10% 10%)' }}>
             <motion.div
               className="h-full"
-              style={{ background: 'hsl(263 65% 58%)' }}
+              style={{
+                background: 'linear-gradient(90deg, hsl(220 90% 65%), hsl(270 80% 62%), hsl(320 75% 60%), hsl(45 100% 55%))',
+                boxShadow: '0 0 8px hsl(270 80% 62% / 0.6)',
+              }}
               animate={{ width: `${Math.max(1, progress)}%` }}
               transition={{ duration: 0.8, ease: 'easeOut' }}
             />
@@ -204,11 +229,17 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
                   </div>
 
                   <div className="hidden sm:block">
-                    <p className="text-xs font-medium" style={{ color: 'hsl(240 5% 85%)' }}>
-                      {Math.round(progress)}% · {formatTime(elapsedTime)}
+                    <p className="text-xs font-bold tabular-nums"
+                      style={{
+                        background: 'linear-gradient(90deg, hsl(220 90% 70%), hsl(320 75% 65%), hsl(45 100% 60%))',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                      }}>
+                      {Math.round(progress)}% complete
                     </p>
                     <p className="text-[10px]" style={{ color: 'hsl(240 5% 45%)' }}>
-                      Watch the bubbles ✦
+                      {STAGE_MESSAGES[currentStage]?.label ?? 'Processing…'}
                     </p>
                   </div>
                 </motion.div>

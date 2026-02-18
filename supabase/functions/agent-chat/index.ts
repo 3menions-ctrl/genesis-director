@@ -1301,6 +1301,94 @@ const AGENT_TOOLS = [
 ];
 
 // ══════════════════════════════════════════════════════
+// Lazy Tool Loader — send only relevant tools per page/context
+// Reduces context bloat from 70+ tools to ~15-20 per request
+// ══════════════════════════════════════════════════════
+
+const TOOL_NAMES_BY_CATEGORY = {
+  // Always included — core identity, memory, meta
+  always: [
+    "get_user_profile", "get_credit_info", "navigate_user",
+    "present_choices", "remember_user_preference", "get_conversation_history",
+    "get_platform_overview", "submit_support_ticket",
+  ],
+  // Video creation flow
+  creation: [
+    "create_project", "start_creation_flow", "generate_script_preview",
+    "execute_generation", "trigger_generation", "get_available_templates",
+    "get_available_avatars", "browse_environments", "enhance_prompt",
+    "suggest_shot_list", "breakdown_script_to_scenes", "estimate_production_cost",
+    "suggest_aspect_ratio", "recommend_avatar_for_content",
+  ],
+  // Project management and status
+  projects: [
+    "get_user_projects", "get_project_details", "get_project_pipeline_status",
+    "check_active_pipelines", "rename_project", "delete_project",
+    "duplicate_project", "update_project_settings", "publish_to_gallery",
+    "unpublish_from_gallery", "get_stitch_jobs",
+  ],
+  // Clip-level editing
+  editing: [
+    "get_clip_details", "get_project_script_data", "update_clip_prompt",
+    "regenerate_clip", "retry_failed_clip", "reorder_clips", "delete_clip",
+    "troubleshoot_generation", "analyze_video_quality",
+    "open_video_editor", "add_music_to_project", "get_music_library",
+    "apply_video_effect", "get_edit_sessions", "open_photo_editor",
+    "get_user_photos", "describe_project_thumbnail",
+  ],
+  // Social, community, discovery
+  social: [
+    "search_creators", "follow_user", "unfollow_user", "like_project",
+    "unlike_project", "send_dm", "get_followers", "get_following",
+    "browse_gallery", "get_trending_videos", "search_videos",
+    "get_video_comments", "post_comment", "read_world_chat",
+    "send_world_chat_message",
+  ],
+  // Profile, settings, account
+  account: [
+    "update_profile", "get_account_settings", "update_settings",
+    "get_achievements", "get_gamification_stats", "get_notifications",
+    "mark_notifications_read", "get_recent_transactions", "open_buy_credits",
+    "get_onboarding_status", "complete_onboarding_step",
+    "get_user_mood_context", "get_full_inventory", "compare_projects",
+    "get_platform_tips", "critique_prompt",
+  ],
+};
+
+function getToolsForContext(currentPage: string | undefined): typeof AGENT_TOOLS {
+  const page = currentPage || "/";
+  const toolNameSet = new Set<string>(TOOL_NAMES_BY_CATEGORY.always);
+
+  // Always add creation tools for general pages
+  if (page === "/" || page === "/create" || page.startsWith("/create")) {
+    TOOL_NAMES_BY_CATEGORY.creation.forEach(n => toolNameSet.add(n));
+    TOOL_NAMES_BY_CATEGORY.projects.forEach(n => toolNameSet.add(n));
+  } else if (page.startsWith("/projects")) {
+    TOOL_NAMES_BY_CATEGORY.projects.forEach(n => toolNameSet.add(n));
+    TOOL_NAMES_BY_CATEGORY.editing.forEach(n => toolNameSet.add(n));
+    TOOL_NAMES_BY_CATEGORY.creation.forEach(n => toolNameSet.add(n));
+  } else if (page === "/video-editor" || page.startsWith("/video-editor")) {
+    TOOL_NAMES_BY_CATEGORY.editing.forEach(n => toolNameSet.add(n));
+    TOOL_NAMES_BY_CATEGORY.projects.forEach(n => toolNameSet.add(n));
+  } else if (page === "/gallery" || page === "/creators" || page === "/world-chat") {
+    TOOL_NAMES_BY_CATEGORY.social.forEach(n => toolNameSet.add(n));
+    TOOL_NAMES_BY_CATEGORY.projects.forEach(n => toolNameSet.add(n));
+  } else if (page === "/settings" || page === "/profile" || page === "/pricing") {
+    TOOL_NAMES_BY_CATEGORY.account.forEach(n => toolNameSet.add(n));
+    TOOL_NAMES_BY_CATEGORY.projects.forEach(n => toolNameSet.add(n));
+  } else {
+    // Default: give creation + projects + account for full coverage
+    TOOL_NAMES_BY_CATEGORY.creation.forEach(n => toolNameSet.add(n));
+    TOOL_NAMES_BY_CATEGORY.projects.forEach(n => toolNameSet.add(n));
+    TOOL_NAMES_BY_CATEGORY.account.forEach(n => toolNameSet.add(n));
+  }
+
+  const filtered = AGENT_TOOLS.filter(t => toolNameSet.has(t.function.name));
+  console.log(`[agent-chat] Tools for page "${page}": ${filtered.length} (of ${AGENT_TOOLS.length} total)`);
+  return filtered;
+}
+
+// ══════════════════════════════════════════════════════
 // Tool Execution
 // ══════════════════════════════════════════════════════
 
@@ -3887,7 +3975,7 @@ Step 4 — WHAT IS THE SINGLE BEST NEXT STEP? Not five options — one clear rec
 Step 5 — CONFIRM OR ACT? 
   - Free/read-only → just do it
   - 1-2cr with EXPLICIT clear intent → mention cost, proceed
-  - Any creation action OR 5+cr OR unclear intent → ask once: "This costs X credits (you have ${credits}). Proceed?"
+  - Any creation action OR 5+cr OR unclear intent → ask once: "This costs X credits (you have ${userContext.credits_balance ?? 0}cr). Proceed?"
   - User said "yes/go ahead/do it/now" → EXECUTE IMMEDIATELY, no re-confirmation
 
 Step 6 — ERROR HANDLING: If a tool returns an error or empty data, say so plainly. Don't pretend success.
@@ -4253,7 +4341,9 @@ serve(async (req) => {
     );
     // Always use gpt-4o-2024-11-20 (latest stable) — vision + tools + full reasoning
     const PRIMARY_MODEL = "gpt-4o-2024-11-20";
-    console.log(`[agent-chat] Model: ${PRIMARY_MODEL}, hasImages: ${hasImageContent}`);
+    // Select only the tools relevant to the current page — reduces context bloat
+    const ACTIVE_TOOLS = getToolsForContext(currentPage);
+    console.log(`[agent-chat] Model: ${PRIMARY_MODEL}, hasImages: ${hasImageContent}, tools: ${ACTIVE_TOOLS.length}`);
 
     // ── Helper: call OpenAI non-streaming (used for tool-calling loop) ──
     async function callOpenAI(msgs: unknown[], stream: false): Promise<Response>;
@@ -4272,7 +4362,7 @@ serve(async (req) => {
           res = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ model: PRIMARY_MODEL, messages: msgs, tools: AGENT_TOOLS, stream }),
+            body: JSON.stringify({ model: PRIMARY_MODEL, messages: msgs, tools: ACTIVE_TOOLS, stream }),
             signal: ctrl.signal,
           });
         } catch (e: any) {
@@ -4645,7 +4735,9 @@ serve(async (req) => {
     }
 
     await supabase.from("agent_preferences").upsert({
-      user_id: auth.userId, interaction_count: 1, last_interaction_at: new Date().toISOString(),
+      user_id: auth.userId,
+      interaction_count: (userContext.interaction_count || 0) + 1,
+      last_interaction_at: new Date().toISOString(),
     }, { onConflict: "user_id" });
 
     // ── Query Analytics Tracking ──
@@ -4742,138 +4834,153 @@ serve(async (req) => {
     // so tokens arrive at the client as they're generated — genuine word-by-word streaming.
     const encoder = new TextEncoder();
 
-    // Only stream if there's actual text content to generate (not just tool navigations)
-    const hasTextContent = content && content.length > 0;
-    const onlyNavigation = allToolResults.length > 0 && !content && actions.length === allToolResults.length;
+    const hasNoToolCalls = allToolResults.length === 0;
 
-    if (hasTextContent && !onlyNavigation) {
-      // Build final messages for streaming call — include tool results context
-      // so the model can reflect on what it just did, but tell it NOT to use more tools
-      const finalMessages = content
-        ? null // We already have content from non-streaming loop — just stream it directly
-        : null;
-
-      // We have content from the non-streaming tool loop — stream it character by character
-      // This is real SSE (correct format) even though content is pre-computed.
-      // For responses WITHOUT tools (pure chat), we'll upgrade to true OpenAI streaming below.
-      const hasNoToolCalls = allToolResults.length === 0;
-      
-      if (hasNoToolCalls) {
-        // Pure chat response (no tools used) — stream directly from OpenAI for genuine real-time delivery
-        console.log("[agent-chat] Pure chat — using real OpenAI streaming");
-        let streamResponse: Response | null = null;
-        try {
-          streamResponse = await callOpenAI([...aiMessages, { role: "assistant", content: null, tool_calls: undefined }].filter(m => (m as any).role !== "assistant" || (m as any).content), true);
-        } catch (e: any) {
-          console.error("[agent-chat] Streaming call failed, falling back to pre-computed content:", e.message);
-        }
-
-        if (streamResponse?.ok && streamResponse.body) {
-          // Proxy the real OpenAI SSE stream, translating chunks → our SSE format
-          const outerEncoder = new TextEncoder();
-          const sseStream = new ReadableStream({
-            async start(controller) {
-              const reader = streamResponse!.body!.getReader();
-              const decoder = new TextDecoder();
-              let buffer = "";
-              let accumulatedText = "";
-
-              try {
-                while (true) {
-                  const { done, value } = await reader.read();
-                  if (done) break;
-                  buffer += decoder.decode(value, { stream: true });
-                  const lines = buffer.split("\n");
-                  buffer = lines.pop() ?? "";
-
-                  for (const line of lines) {
-                    if (!line.startsWith("data: ")) continue;
-                    const payload = line.slice(6).trim();
-                    if (!payload || payload === "[DONE]") continue;
-                    try {
-                      const chunk = JSON.parse(payload);
-                      const delta = chunk.choices?.[0]?.delta?.content;
-                      if (delta) {
-                        accumulatedText += delta;
-                        controller.enqueue(outerEncoder.encode(`data: ${JSON.stringify({ type: "token", chunk: delta })}\n\n`));
-                      }
-                    } catch { /* skip malformed */ }
-                  }
-                }
-              } finally {
-                reader.releaseLock();
-              }
-
-              // Save the streamed content to DB
-              if (conversationId && accumulatedText) {
-                const lastUserMsg = messages[messages.length - 1];
-                if (lastUserMsg) {
-                  await supabase.from("agent_messages").insert({ conversation_id: conversationId, role: lastUserMsg.role, content: lastUserMsg.content });
-                }
-                await supabase.from("agent_messages").insert({
-                  conversation_id: conversationId, role: "assistant", content: accumulatedText,
-                  tool_calls: null, tool_results: null,
-                  metadata: { creditsCharged: 0 },
-                });
-              }
-
-              // Flush final metadata frame
-              controller.enqueue(outerEncoder.encode(`data: ${JSON.stringify({
-                type: "done",
-                actions: [],
-                richBlocks,
-                conversationId,
-                creditsCharged: totalCreditsCharged,
-                updatedBalance,
-              })}\n\n`));
-              controller.close();
-            },
-          });
-
-          return new Response(sseStream, {
-            headers: {
-              ...corsHeaders,
-              "Content-Type": "text/event-stream",
-              "Cache-Control": "no-cache",
-              "Connection": "keep-alive",
-              "X-Accel-Buffering": "no",
-            },
-          });
-        }
-        // Fall through to pre-computed streaming if OpenAI stream failed
+    // ── Helper: stream an OpenAI SSE response and forward tokens to client ──
+    async function streamOpenAIResponse(
+      msgsToStream: unknown[],
+      controller: ReadableStreamDefaultController,
+      enc: TextEncoder,
+      saveToDb: boolean,
+      metaPayload: Record<string, unknown>
+    ): Promise<boolean> {
+      let streamResponse: Response | null = null;
+      try {
+        streamResponse = await callOpenAI(msgsToStream, true);
+      } catch (e: any) {
+        console.error("[agent-chat] Streaming call failed:", e.message);
+        return false;
       }
+      if (!streamResponse?.ok || !streamResponse.body) return false;
+
+      const reader = streamResponse.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let accumulatedText = "";
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const payload = line.slice(6).trim();
+            if (!payload || payload === "[DONE]") continue;
+            try {
+              const chunk = JSON.parse(payload);
+              const delta = chunk.choices?.[0]?.delta?.content;
+              if (delta) {
+                accumulatedText += delta;
+                controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: "token", chunk: delta })}\n\n`));
+              }
+            } catch { /* skip malformed */ }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+
+      // Persist to DB
+      if (saveToDb && conversationId && accumulatedText) {
+        const lastUserMsg = messages[messages.length - 1];
+        if (lastUserMsg) {
+          await supabase.from("agent_messages").insert({ conversation_id: conversationId, role: lastUserMsg.role, content: lastUserMsg.content }).catch(() => {});
+        }
+        await supabase.from("agent_messages").insert({
+          conversation_id: conversationId, role: "assistant", content: accumulatedText,
+          tool_calls: null, tool_results: null,
+          metadata: { creditsCharged: 0 },
+        }).catch(() => {});
+      }
+
+      // Flush final metadata frame
+      controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: "done", ...metaPayload })}\n\n`));
+      controller.close();
+      return true;
     }
 
-    // ── Fallback: pre-computed content streamed as SSE ──
-    // Used when: tools were called (content is synthesized post-loop),
-    // or the streaming call failed.
+    const sharedMeta = {
+      actions,
+      richBlocks,
+      conversationId,
+      creditsCharged: totalCreditsCharged,
+      updatedBalance,
+    };
+
+    if (hasNoToolCalls) {
+      // ── CASE 1: Pure chat (no tools) — real OpenAI streaming ──
+      console.log("[agent-chat] Pure chat — real OpenAI streaming");
+      const sseStream = new ReadableStream({
+        async start(controller) {
+          // Send only the actual conversation — no injected empty assistant message
+          const success = await streamOpenAIResponse(aiMessages, controller, encoder, true, sharedMeta);
+          if (!success) {
+            // Fallback: chunk pre-computed content
+            const fallback = assistantMessage?.content || "Let me help with that 🐰";
+            for (let i = 0; i < fallback.length; i += 4) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "token", chunk: fallback.slice(i, i + 4) })}\n\n`));
+            }
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done", ...sharedMeta })}\n\n`));
+            controller.close();
+          }
+        },
+      });
+      return new Response(sseStream, {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no" },
+      });
+    }
+
+    // ── CASE 2: Tool calls were made — post-tool synthesis streaming ──
+    // The tool loop ran with stream:false (required for tool use).
+    // Now we do a REAL streaming call so the model can synthesize its response
+    // with full awareness of what the tools returned — genuine word-by-word delivery.
+    const toolsHaveContent = content && content.length > 0;
+    if (toolsHaveContent) {
+      console.log("[agent-chat] Post-tool synthesis — real OpenAI streaming");
+      // Build synthesis messages: full history + tool results + instruction to synthesize
+      const synthesisMessages = [
+        ...continueMessages,
+        {
+          role: "system" as const,
+          content: "Based on the tool results above, write your final response to the user. Be specific about what the tools returned. Do NOT call any more tools — just respond naturally.",
+        },
+      ];
+      const sseStream = new ReadableStream({
+        async start(controller) {
+          const success = await streamOpenAIResponse(synthesisMessages, controller, encoder, false, sharedMeta);
+          if (!success) {
+            // Fallback: chunk the pre-computed content we already have
+            for (let i = 0; i < content.length; i += 4) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "token", chunk: content.slice(i, i + 4) })}\n\n`));
+            }
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done", ...sharedMeta })}\n\n`));
+            controller.close();
+          }
+        },
+      });
+      return new Response(sseStream, {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no" },
+      });
+    }
+
+    // ── Fallback: pre-computed content chunked as SSE ──
+    // Reached only when tools returned no text content (e.g. pure navigate_user)
+    const finalChunkContent = content || "Done! 🐰";
     const stream = new ReadableStream({
       start(controller) {
-        const CHUNK_SIZE = 3; // Smaller chunks = smoother appearance
-        for (let i = 0; i < content.length; i += CHUNK_SIZE) {
-          const chunk = content.slice(i, i + CHUNK_SIZE);
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "token", chunk })}\n\n`));
+        const CHUNK_SIZE = 4;
+        for (let i = 0; i < finalChunkContent.length; i += CHUNK_SIZE) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "token", chunk: finalChunkContent.slice(i, i + CHUNK_SIZE) })}\n\n`));
         }
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-          type: "done",
-          actions,
-          richBlocks,
-          conversationId,
-          creditsCharged: totalCreditsCharged,
-          updatedBalance,
-        })}\n\n`));
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done", ...sharedMeta })}\n\n`));
         controller.close();
       },
     });
-
     return new Response(stream, {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-        "X-Accel-Buffering": "no",
-      },
+      headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no" },
     });
   } catch (error) {
     console.error("[agent-chat] Error:", error);

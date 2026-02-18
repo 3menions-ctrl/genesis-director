@@ -81,9 +81,8 @@ export default function Landing() {
       clearTimeout(inactivityTimerRef.current);
       inactivityTimerRef.current = null;
     }
-    // NOTE: Do NOT set hasAutoTriggeredRef.current = true here.
-    // useRef persists across React Strict Mode unmount/remount cycles,
-    // so poisoning it here permanently blocks the inactivity timer on the real mount.
+    // hasAutoTriggered is state, not a ref — resetting it here would cause a state update
+    // during cleanup which is harmless but unnecessary. Timer clearance is enough.
     setIsImmersive(false);
     setShowExamples(false);
   }, []);

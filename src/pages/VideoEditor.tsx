@@ -13,6 +13,29 @@ import { Film, Sparkles } from "lucide-react";
 import { useEditorHistory } from "@/hooks/useEditorHistory";
 import type { EditorState, TimelineTrack, TimelineClip, MusicTrack } from "@/components/editor/types";
 
+/**
+ * Extract a clean, human-readable label from the raw AI generation prompt.
+ * Raw prompts contain injection blocks like [CRITICAL: SAME EXACT PERSON...],
+ * [═══ PRIMARY SUBJECT ═══], and long boilerplate suffixes.
+ */
+function extractClipLabel(rawPrompt: string | null | undefined, shotIndex: number): string {
+  if (!rawPrompt) return `Shot ${shotIndex + 1}`;
+  let clean = rawPrompt
+    .replace(/\[═+[^\]]*═+\]/g, '')
+    .replace(/\[[^\]]{0,300}\]/g, '')
+    .replace(/cinematic lighting.*$/i, '')
+    .replace(/,\s*8K resolution.*/i, '')
+    .replace(/ARRI Alexa.*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!clean) return `Shot ${shotIndex + 1}`;
+  const sentence = clean.split(/[.!?]/)[0].trim();
+  if (sentence.length > 2) return sentence.length > 60 ? sentence.slice(0, 57) + '…' : sentence;
+  return clean.slice(0, 60) || `Shot ${shotIndex + 1}`;
+}
+
+
+
 const VideoEditor = () => {
   const { user } = useAuth();
   const { navigate } = useSafeNavigation();
@@ -75,122 +98,9 @@ const VideoEditor = () => {
     };
   }, []);
 
-  // === Auto-load project clips onto timeline when ?project= is set ===
-  const hasAutoLoadedRef = useRef(false);
-  useEffect(() => {
-    if (!projectId || !user || hasAutoLoadedRef.current) return;
-    hasAutoLoadedRef.current = true;
-
-    const loadProjectClips = async () => {
-      try {
-        // Fetch completed clips for this project
-        const { data: clips, error } = await supabase
-          .from('video_clips')
-          .select('id, video_url, duration_seconds, shot_index, prompt')
-          .eq('project_id', projectId)
-          .eq('status', 'completed')
-          .not('video_url', 'is', null)
-          .order('shot_index');
-
-        if (error || !clips || clips.length === 0) {
-          // Also check pending_video_tasks for avatar-style clips
-          const { data: project } = await supabase
-            .from('movie_projects')
-            .select('pending_video_tasks, title, mode')
-            .eq('id', projectId)
-            .maybeSingle();
-
-          if (project?.title) {
-            setEditorState(prev => ({ ...prev, title: project.title }));
-          }
-
-          if (project?.pending_video_tasks) {
-            const tasks = project.pending_video_tasks as Record<string, unknown>;
-            const predictions = tasks.predictions as Array<{ videoUrl?: string; status?: string; clipIndex?: number }> | undefined;
-            if (predictions && Array.isArray(predictions)) {
-              const avatarClips = predictions
-                .filter(p => p.videoUrl && p.status === 'completed')
-                .sort((a, b) => (a.clipIndex ?? 0) - (b.clipIndex ?? 0));
-
-              if (avatarClips.length > 0) {
-                const timelineClips: TimelineClip[] = avatarClips.map((p, idx) => {
-                  const dur = 10;
-                  const start = idx * dur;
-                  // HLS-style: crossfade between sequential clips
-                  const effects: TimelineClip['effects'] = idx < avatarClips.length - 1
-                    ? [{ type: "transition" as const, name: "crossfade", duration: 0.5 }]
-                    : [];
-                  return {
-                    id: `avatar-${idx}-${Date.now()}`,
-                    trackId: 'video-0',
-                    label: `Clip ${idx + 1}`,
-                    sourceUrl: p.videoUrl!,
-                    start,
-                    end: start + dur,
-                    trimStart: 0,
-                    type: 'video' as const,
-                    effects,
-                  };
-                });
-
-                const totalDuration = timelineClips[timelineClips.length - 1]?.end || 0;
-                setEditorState(prev => ({
-                  ...prev,
-                  tracks: prev.tracks.map(t =>
-                    t.id === 'video-0' ? { ...t, clips: timelineClips } : t
-                  ),
-                  duration: totalDuration,
-                }));
-                toast.success(`Loaded ${avatarClips.length} avatar clips`);
-              }
-            }
-          }
-          return;
-        }
-
-        // Fetch project title
-        const { data: project } = await supabase
-          .from('movie_projects')
-          .select('title')
-          .eq('id', projectId)
-          .maybeSingle();
-
-        // Place clips sequentially on Video 1 track
-        const timelineClips: TimelineClip[] = clips.map((clip, idx) => {
-          const dur = clip.duration_seconds || 5;
-          const start = clips.slice(0, idx).reduce((sum, c) => sum + (c.duration_seconds || 5), 0);
-          return {
-            id: clip.id,
-            trackId: 'video-0',
-            label: clip.prompt || `Shot ${(clip.shot_index ?? idx) + 1}`,
-            sourceUrl: clip.video_url!,
-            start,
-            end: start + dur,
-            trimStart: 0,
-            type: 'video' as const,
-            effects: [],
-          };
-        });
-
-        const totalDuration = timelineClips[timelineClips.length - 1]?.end || 0;
-
-        setEditorState(prev => ({
-          ...prev,
-          title: project?.title || prev.title,
-          tracks: prev.tracks.map(t =>
-            t.id === 'video-0' ? { ...t, clips: timelineClips } : t
-          ),
-          duration: totalDuration,
-        }));
-
-        toast.success(`Loaded ${clips.length} clips from project`);
-      } catch (err) {
-        console.error('[Editor] Failed to auto-load project clips:', err);
-      }
-    };
-
-    loadProjectClips();
-  }, [projectId, user]);
+  // NOTE: clip auto-load is handled by the single useEffect at line ~430 (loadLatestOrSpecified).
+  // A duplicate effect that used to live here raced against it on [projectId, user],
+  // causing double loads and the second always overwriting the first.
 
   const withHistory = useCallback(
     (mutator: (prev: EditorState) => EditorState) => {
@@ -511,13 +421,17 @@ const VideoEditor = () => {
   }, [projectId, user]);
 
   const loadProjectClips = async (pid: string, projectTitle?: string) => {
+    // No artificial row limit — fetch all completed clips for the project.
+    // Supabase's default PostgREST limit is 1000; for projects with more clips
+    // we'd need pagination, but this covers all real-world cases.
     const { data: clips, error } = await supabase
       .from("video_clips")
       .select("id, shot_index, video_url, duration_seconds, prompt")
       .eq("project_id", pid)
       .eq("status", "completed")
       .not("video_url", "is", null)
-      .order("shot_index");
+      .order("shot_index")
+      .limit(1000);
 
     if (error) {
       console.error('[VideoEditor] Failed to load clips:', error.message);
@@ -534,7 +448,6 @@ const VideoEditor = () => {
     for (let i = 0; i < clips.length; i++) {
       const clip = clips[i];
       const dur = clip.duration_seconds || 6;
-      // HLS-style: auto-apply crossfade transition between sequential clips (matches HLS transitionOut: 'fade')
       const effects: TimelineClip['effects'] = i < clips.length - 1
         ? [{ type: "transition" as const, name: "crossfade", duration: 0.5 }]
         : [];
@@ -545,7 +458,9 @@ const VideoEditor = () => {
         end: startTime + dur,
         type: "video",
         sourceUrl: clip.video_url || "",
-        label: clip.prompt?.substring(0, 40) || `Shot ${clip.shot_index + 1}`,
+        // Use the same clean label extraction as EditorMediaBrowser —
+        // raw prompts contain hundreds of chars of AI injection blocks.
+        label: extractClipLabel(clip.prompt, clip.shot_index),
         effects,
       });
       startTime += dur;
@@ -558,6 +473,8 @@ const VideoEditor = () => {
       tracks: prev.tracks.map((t) => (t.id === "video-0" ? { ...t, clips: timelineClips } : t)),
       duration: startTime,
     }));
+
+    toast.success(`Loaded ${clips.length} clips`);
   };
 
   const handleAddClipFromBrowser = useCallback((clip: {

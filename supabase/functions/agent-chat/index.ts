@@ -1393,10 +1393,12 @@ async function executeTool(
         .from("avatar_templates")
         .select("id, name, description, personality, gender, style, avatar_type, voice_name, voice_description, tags, age_range, is_premium, face_image_url, thumbnail_url, sample_audio_url, front_image_url, side_image_url, back_image_url, character_bible")
         .eq("is_active", true);
-      if (args.gender) q = q.eq("gender", args.gender);
-      if (args.style) q = q.eq("style", args.style);
-      if (args.avatar_type) q = q.eq("avatar_type", args.avatar_type);
-      const { data } = await q.order("sort_order").limit(30);
+      // Only apply filters when they are specific values (not "any" or empty)
+      if (args.gender && args.gender !== "any") q = q.eq("gender", args.gender);
+      if (args.style && args.style !== "any") q = q.eq("style", args.style);
+      if (args.avatar_type && args.avatar_type !== "any") q = q.eq("avatar_type", args.avatar_type);
+      const { data, error: avatarError } = await q.order("sort_order").limit(30);
+      if (avatarError) console.error("[agent-chat] get_available_avatars error:", avatarError.message);
       return {
         avatars: (data || []).map(a => ({
           id: a.id, name: a.name, description: a.description, personality: a.personality, gender: a.gender,
@@ -4499,10 +4501,13 @@ serve(async (req) => {
     let response: Response | null = null;
     let usedFallbackGateway = false;
 
-    for (let attempt = 0; attempt < 2; attempt++) {
+    // Use gpt-4o-mini to reduce rate limiting (much higher RPM quota)
+    const PRIMARY_MODEL = "gpt-4o-mini";
+    for (let attempt = 0; attempt < 3; attempt++) {
       if (attempt > 0) {
-        console.log(`[agent-chat] Retry attempt ${attempt} after 3000ms backoff...`);
-        await new Promise(r => setTimeout(r, 3000));
+        const backoff = attempt * 5000;
+        console.log(`[agent-chat] Retry attempt ${attempt} after ${backoff}ms backoff...`);
+        await new Promise(r => setTimeout(r, backoff));
       }
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 45000);
@@ -4510,7 +4515,7 @@ serve(async (req) => {
         response = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ model: "gpt-4o", messages: aiMessages, tools: AGENT_TOOLS, stream: false }),
+          body: JSON.stringify({ model: PRIMARY_MODEL, messages: aiMessages, tools: AGENT_TOOLS, stream: false }),
           signal: ctrl.signal,
         });
       } catch (e: any) {
@@ -4607,12 +4612,13 @@ serve(async (req) => {
 
       const continueMessages = [...aiMessages, assistantMessage, ...toolResults];
 
-      // Follow-up call with same retry + fallback logic as initial call
+      // Follow-up call — use gpt-4o-mini for lower rate limit pressure
       response = null;
-      for (let fAttempt = 0; fAttempt < 2; fAttempt++) {
+      for (let fAttempt = 0; fAttempt < 3; fAttempt++) {
         if (fAttempt > 0) {
-          console.log(`[agent-chat] Follow-up retry attempt ${fAttempt} after 3000ms...`);
-          await new Promise(r => setTimeout(r, 3000));
+          const backoff = fAttempt * 5000;
+          console.log(`[agent-chat] Follow-up retry attempt ${fAttempt} after ${backoff}ms...`);
+          await new Promise(r => setTimeout(r, backoff));
         }
         const controllerN = new AbortController();
         const timeoutN = setTimeout(() => controllerN.abort(), 40000);
@@ -4620,7 +4626,7 @@ serve(async (req) => {
           response = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ model: "gpt-4o", messages: continueMessages, tools: AGENT_TOOLS, stream: false }),
+            body: JSON.stringify({ model: "gpt-4o-mini", messages: continueMessages, tools: AGENT_TOOLS, stream: false }),
             signal: controllerN.signal,
           });
         } catch (e: any) {

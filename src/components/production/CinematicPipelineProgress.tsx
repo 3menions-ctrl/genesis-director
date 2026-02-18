@@ -1,9 +1,9 @@
-import React, { useMemo, useEffect, useState, useRef, memo } from 'react';
+import React, { useMemo, useEffect, useState, memo } from 'react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText, Users, Shield, Wand2, Film, Sparkles,
-  CheckCircle2, Loader2, XCircle, Clapperboard, Zap,
+  CheckCircle2, XCircle, Clapperboard, Zap,
 } from 'lucide-react';
 
 // ============= TYPES =============
@@ -35,134 +35,171 @@ interface CinematicPipelineProgressProps {
 
 const STAGE_META: Record<string, {
   icon: React.ElementType;
-  gradient: string;
-  glowColor: string;
-  ringColor: string;
+  hue: number;
   label: string;
-  particleHue: number;
+  activityTexts: string[];
 }> = {
-  'Script':   { icon: FileText, gradient: 'from-violet-500 to-purple-600',  glowColor: 'rgba(139,92,246,0.35)', ringColor: '#8b5cf6', label: 'Crafting narrative',    particleHue: 270 },
-  'Identity': { icon: Users,    gradient: 'from-cyan-500 to-blue-600',      glowColor: 'rgba(6,182,212,0.35)',   ringColor: '#06b6d4', label: 'Locking characters',   particleHue: 190 },
-  'Audit':    { icon: Shield,   gradient: 'from-emerald-500 to-teal-600',   glowColor: 'rgba(16,185,129,0.35)',  ringColor: '#10b981', label: 'Quality check',        particleHue: 160 },
-  'Assets':   { icon: Wand2,    gradient: 'from-amber-500 to-orange-600',   glowColor: 'rgba(245,158,11,0.35)',  ringColor: '#f59e0b', label: 'Generating assets',    particleHue: 35  },
-  'Render':   { icon: Film,     gradient: 'from-rose-500 to-pink-600',      glowColor: 'rgba(244,63,94,0.35)',   ringColor: '#f43f5e', label: 'Rendering video',      particleHue: 350 },
-  'Stitch':   { icon: Sparkles, gradient: 'from-indigo-500 to-violet-600',  glowColor: 'rgba(99,102,241,0.35)',  ringColor: '#6366f1', label: 'Final assembly',       particleHue: 240 },
+  'Script':   { icon: FileText, hue: 270, label: 'Crafting narrative',   activityTexts: ['Analyzing structure...', 'Breaking into shots...', 'Adding camera cues...'] },
+  'Identity': { icon: Users,    hue: 190, label: 'Locking characters',   activityTexts: ['Extracting features...', 'Mapping proportions...', 'Creating anchors...'] },
+  'Audit':    { icon: Shield,   hue: 160, label: 'Quality check',        activityTexts: ['Validating continuity...', 'Scoring coherence...', 'Checking lighting...'] },
+  'Assets':   { icon: Wand2,    hue: 35,  label: 'Generating assets',    activityTexts: ['Creating images...', 'Generating music...', 'Synthesizing voice...'] },
+  'Render':   { icon: Film,     hue: 350, label: 'Rendering video',      activityTexts: ['Processing frames...', 'Applying style...', 'Generating video...'] },
+  'Stitch':   { icon: Sparkles, hue: 240, label: 'Final assembly',       activityTexts: ['Analyzing transitions...', 'Building manifest...', 'Finalizing...'] },
 };
 
-// ============= SUB-COMPONENTS =============
+function hslStr(hue: number, s: number, l: number, a = 1) {
+  return `hsla(${hue}, ${s}%, ${l}%, ${a})`;
+}
 
-const ActivityText = memo(function ActivityText({ stage }: { stage: string }) {
-  const activities: Record<string, string[]> = {
-    'Script': ['Analyzing structure...', 'Breaking into shots...', 'Adding camera cues...'],
-    'Identity': ['Extracting features...', 'Mapping proportions...', 'Creating anchors...'],
-    'Audit': ['Validating continuity...', 'Scoring coherence...', 'Checking lighting...'],
-    'Assets': ['Creating images...', 'Generating music...', 'Synthesizing voice...'],
-    'Render': ['Processing frames...', 'Applying style...', 'Generating video...'],
-    'Stitch': ['Analyzing transitions...', 'Building manifest...', 'Finalizing...'],
-  };
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
 
+// ============= ACTIVITY TEXT (rotating sub-label) =============
+
+const ActivityText = memo(function ActivityText({ texts }: { texts: string[] }) {
   const [index, setIndex] = useState(0);
-  const list = activities[stage] || ['Processing...'];
-
   useEffect(() => {
-    const interval = setInterval(() => setIndex(i => (i + 1) % list.length), 2800);
+    const interval = setInterval(() => setIndex(i => (i + 1) % texts.length), 2800);
     return () => clearInterval(interval);
-  }, [list.length]);
-
+  }, [texts.length]);
   return (
-    <motion.span 
+    <motion.span
       key={index}
-      initial={{ opacity: 0, y: 4 }}
+      initial={{ opacity: 0, y: 3 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -4 }}
-      className="text-[10px] text-white/40 font-mono block"
+      exit={{ opacity: 0, y: -3 }}
+      className="text-[9px] font-mono block truncate"
+      style={{ color: 'hsl(var(--muted-foreground))' }}
     >
-      {list[index]}
+      {texts[index]}
     </motion.span>
   );
 });
 
-// Premium holographic stage node
-function StageNode({ stage, index, totalStages }: { stage: StageStatus; index: number; totalStages: number }) {
+// ============= STAGE NODE =============
+
+function StageNode({ stage }: { stage: StageStatus }) {
   const meta = STAGE_META[stage.shortName] || STAGE_META['Script'];
   const Icon = meta.icon;
   const isActive = stage.status === 'active';
   const isComplete = stage.status === 'complete';
   const isError = stage.status === 'error';
   const isPending = stage.status === 'pending';
+  const hue = meta.hue;
 
   return (
-    <div className="flex flex-col items-center gap-3 min-w-0">
-      {/* Node */}
+    <div className="flex flex-col items-center gap-2.5 min-w-0">
+      {/* Node container */}
       <div className="relative">
-        {/* Outer pulsing ring for active */}
+        {/* Breathing orbital glow for active */}
         {isActive && (
           <>
-            <div 
-              className="absolute -inset-4 rounded-2xl opacity-40 blur-xl animate-[pulse_3s_ease-in-out_infinite]"
-              style={{ background: meta.glowColor }}
+            <motion.div
+              className="absolute -inset-5 rounded-2xl blur-2xl"
+              style={{ background: hslStr(hue, 80, 60, 0.18) }}
+              animate={{ opacity: [0.6, 1, 0.6], scale: [0.9, 1.05, 0.9] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
             />
-            <div 
-              className="absolute -inset-2 rounded-xl border opacity-50 animate-[pulse_2s_ease-in-out_infinite]"
-              style={{ borderColor: meta.ringColor + '40' }}
+            <motion.div
+              className="absolute -inset-2.5 rounded-2xl border"
+              style={{ borderColor: hslStr(hue, 80, 65, 0.35) }}
+              animate={{ opacity: [0.4, 0.9, 0.4] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
             />
           </>
         )}
-        {/* Complete halo */}
+
+        {/* Emerald halo for completed */}
         {isComplete && (
-          <div className="absolute -inset-2 rounded-xl bg-emerald-500/10 blur-md" />
+          <motion.div
+            className="absolute -inset-1.5 rounded-xl"
+            style={{ background: 'hsl(160 80% 50% / 0.1)' }}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, ease: 'backOut' }}
+          />
         )}
-        
-        <motion.div 
+
+        {/* Main node */}
+        <motion.div
           className={cn(
-            "relative w-16 h-16 rounded-xl flex items-center justify-center transition-all duration-500 border",
-            isPending && "bg-white/[0.02] border-white/[0.05] text-white/12",
-            isActive && `bg-gradient-to-br ${meta.gradient} border-white/25 text-white shadow-2xl`,
-            isComplete && "bg-emerald-500/12 border-emerald-500/25 text-emerald-400",
-            isError && "bg-rose-500/12 border-rose-500/25 text-rose-400",
+            "relative w-14 h-14 rounded-xl flex items-center justify-center border transition-colors duration-500 overflow-hidden",
+            isPending && "border-white/[0.06]",
+            isActive && "border-white/20 shadow-2xl",
+            isComplete && "border-emerald-500/25",
+            isError && "border-rose-500/25",
           )}
-          animate={isActive ? { scale: [1, 1.04, 1] } : {}}
-          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+          style={{
+            background: isPending
+              ? 'hsl(0 0% 100% / 0.02)'
+              : isComplete
+                ? 'hsl(160 80% 50% / 0.1)'
+                : isError
+                  ? 'hsl(350 80% 60% / 0.1)'
+                  : `linear-gradient(135deg, ${hslStr(hue, 80, 55, 0.2)}, ${hslStr(hue + 30, 70, 45, 0.12)})`,
+            boxShadow: isActive ? `0 0 24px ${hslStr(hue, 80, 60, 0.25)}, 0 0 8px ${hslStr(hue, 80, 60, 0.15)}` : undefined,
+          }}
+          animate={isActive ? { scale: [1, 1.03, 1] } : {}}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
         >
-          {/* Inner glow ring for active */}
+          {/* Holographic shimmer on active */}
           {isActive && (
-            <div 
-              className="absolute inset-0 rounded-xl opacity-30"
+            <div
+              className="absolute inset-0 pointer-events-none"
               style={{
-                background: `radial-gradient(circle at center, ${meta.glowColor}, transparent 70%)`,
+                background: `linear-gradient(105deg, transparent 40%, ${hslStr(hue, 80, 90, 0.12)} 50%, transparent 60%)`,
+                animation: 'holo-shimmer 3s ease-in-out infinite',
               }}
             />
           )}
-          
+          {/* Glass top reflection */}
+          <div className="absolute top-0 inset-x-0 h-1/3 bg-gradient-to-b from-white/[0.05] to-transparent rounded-t-xl pointer-events-none" />
+
           {isActive ? (
-            <Loader2 className="w-5 h-5 animate-spin relative z-10" />
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+              className="relative z-10"
+              style={{ color: hslStr(hue, 80, 75, 1) }}
+            >
+              <Icon className="w-5 h-5" />
+            </motion.div>
           ) : isComplete ? (
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300 }}>
+            <motion.div
+              initial={{ scale: 0, rotate: -30 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+              className="relative z-10 text-emerald-400"
+            >
               <CheckCircle2 className="w-5 h-5" />
             </motion.div>
           ) : isError ? (
-            <XCircle className="w-5 h-5" />
+            <XCircle className="w-5 h-5 relative z-10 text-rose-400" />
           ) : (
-            <Icon className="w-5 h-5" />
+            <Icon className="w-5 h-5 relative z-10 text-white/15" />
           )}
 
-          {/* Holographic shimmer overlay */}
+          {/* Active indicator bar at bottom */}
           {isActive && (
-            <div 
-              className="absolute inset-0 rounded-xl overflow-hidden"
-              style={{
-                background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.08) 45%, transparent 50%)',
-                animation: 'holographic-shimmer 3s ease-in-out infinite',
-              }}
-            />
+            <div className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full"
+                style={{ background: `linear-gradient(90deg, ${hslStr(hue, 80, 65, 0)}, ${hslStr(hue, 80, 70, 1)}, ${hslStr(hue, 80, 65, 0)})` }}
+                animate={{ x: ['-100%', '200%'] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              />
+            </div>
           )}
         </motion.div>
       </div>
 
       {/* Label */}
-      <div className="text-center min-h-[32px]">
+      <div className="text-center min-h-[34px] px-0.5">
         <p className={cn(
-          "text-[11px] font-semibold tracking-wide uppercase transition-colors duration-300",
+          "text-[10px] font-bold tracking-widest uppercase transition-colors duration-300",
           isPending && "text-white/15",
           isActive && "text-white",
           isComplete && "text-emerald-400/80",
@@ -171,21 +208,62 @@ function StageNode({ stage, index, totalStages }: { stage: StageStatus; index: n
           {stage.shortName}
         </p>
         {isActive && (
-          <div className="mt-0.5 h-4 overflow-hidden">
+          <div className="mt-0.5 overflow-hidden">
             <AnimatePresence mode="wait">
-              <ActivityText stage={stage.shortName} />
+              <ActivityText texts={meta.activityTexts} />
             </AnimatePresence>
           </div>
+        )}
+        {isComplete && (
+          <span className="text-[9px] text-emerald-500/60 font-medium">Done</span>
         )}
       </div>
     </div>
   );
 }
 
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
+// ============= CONNECTING LINE =============
+
+function ConnectorLine({ from, to }: { from: StageStatus; to: StageStatus }) {
+  const fromComplete = from.status === 'complete';
+  const toActive = to.status === 'active';
+  const toComplete = to.status === 'complete';
+  const lit = fromComplete && (toActive || toComplete);
+  const fromMeta = STAGE_META[from.shortName] || STAGE_META['Script'];
+
+  return (
+    <div className="flex-1 flex items-center relative" style={{ marginTop: '-34px' }}>
+      {/* Base rail */}
+      <div className="w-full h-px bg-white/[0.04]" />
+      {/* Lit progress */}
+      {lit && (
+        <motion.div
+          className="absolute inset-y-0 left-0 w-full h-px"
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          style={{
+            background: toComplete
+              ? 'linear-gradient(90deg, hsl(160 80% 50% / 0.5), hsl(160 80% 55% / 0.3))'
+              : `linear-gradient(90deg, ${hslStr(fromMeta.hue, 80, 65, 0.5)}, ${hslStr(fromMeta.hue, 80, 65, 0.15)})`,
+            transformOrigin: 'left',
+          }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+        />
+      )}
+      {/* Energy pulse dot when actively flowing */}
+      {lit && toActive && (
+        <motion.div
+          className="absolute top-0 -translate-y-1/2 w-1.5 h-1.5 rounded-full"
+          style={{
+            background: hslStr(fromMeta.hue, 90, 75, 1),
+            boxShadow: `0 0 6px ${hslStr(fromMeta.hue, 90, 70, 0.8)}`,
+          }}
+          animate={{ x: ['0%', '100%'] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      )}
+    </div>
+  );
 }
 
 // ============= MAIN COMPONENT =============
@@ -203,219 +281,203 @@ export function CinematicPipelineProgress({
     ? ((completedCount + 0.5) / stages.length) * 100
     : (completedCount / stages.length) * 100;
 
+  // Status color hue
+  const statusHue = isComplete ? 160 : isError ? 350 : (activeMeta?.hue ?? 270);
+
   return (
     <div className={cn(
       "relative rounded-3xl overflow-hidden",
-      "bg-black/40 border border-white/[0.06]",
-      "backdrop-blur-3xl shadow-2xl shadow-black/40",
+      "border border-white/[0.06]",
+      "shadow-2xl shadow-black/50",
       className
-    )}>
-      {/* Layered gradient border effect */}
+    )}
+    style={{ background: 'hsl(0 0% 4% / 0.85)', backdropFilter: 'blur(40px)' }}
+    >
+      {/* Gradient border accent */}
       <div className="absolute inset-0 rounded-3xl pointer-events-none overflow-hidden">
-        <div 
+        <div
           className="absolute -inset-[1px] rounded-3xl opacity-40"
           style={{
             background: isComplete
-              ? 'linear-gradient(135deg, rgba(16,185,129,0.4), transparent 40%, rgba(20,184,166,0.2), transparent 70%, rgba(16,185,129,0.15))'
+              ? 'linear-gradient(135deg, hsl(160 80% 50% / 0.5), transparent 45%, hsl(185 90% 50% / 0.2), transparent 70%)'
               : isError
-                ? 'linear-gradient(135deg, rgba(244,63,94,0.3), transparent 50%, rgba(244,63,94,0.1))'
-                : activeMeta 
-                  ? `linear-gradient(135deg, ${activeMeta.glowColor}, transparent 35%, rgba(99,102,241,0.15), transparent 65%, ${activeMeta.glowColor.replace('0.35', '0.1')})`
-                  : 'linear-gradient(135deg, rgba(139,92,246,0.25), transparent 40%, rgba(99,102,241,0.15))',
+                ? 'linear-gradient(135deg, hsl(350 80% 60% / 0.4), transparent 50%)'
+                : activeMeta
+                  ? `linear-gradient(135deg, ${hslStr(activeMeta.hue, 80, 60, 0.35)}, transparent 40%, ${hslStr(activeMeta.hue + 30, 70, 55, 0.15)}, transparent 70%)`
+                  : 'linear-gradient(135deg, hsl(270 80% 60% / 0.25), transparent 45%)',
           }}
         />
         {/* Top edge light */}
-        <div className="absolute top-0 inset-x-8 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+        <div className="absolute top-0 inset-x-12 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent" />
       </div>
 
-      {/* Ambient light effects */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {isComplete && (
-          <>
-            <div className="absolute top-0 right-0 w-[500px] h-[400px] bg-emerald-500/[0.06] blur-[150px] rounded-full translate-x-1/4 -translate-y-1/3" />
-            <div className="absolute bottom-0 left-0 w-80 h-64 bg-teal-500/[0.04] blur-[100px] rounded-full -translate-x-1/4 translate-y-1/4" />
-          </>
-        )}
-        {isRunning && !isComplete && !isError && activeMeta && (
-          <>
-            <div 
-              className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-96 blur-[120px] rounded-full -translate-y-1/2 opacity-30"
-              style={{ background: activeMeta.glowColor }}
-            />
-            {/* Secondary ambient */}
-            <div 
-              className="absolute bottom-0 right-1/4 w-72 h-48 blur-[80px] rounded-full translate-y-1/3 opacity-15"
-              style={{ background: activeMeta.glowColor }}
-            />
-          </>
-        )}
-        {isError && (
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-80 bg-rose-500/[0.06] blur-[120px] rounded-full -translate-y-1/2" />
-        )}
+      {/* Ambient glow */}
+      {isRunning && !isComplete && !isError && activeMeta && (
+        <motion.div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-80 rounded-full -translate-y-2/3 pointer-events-none"
+          style={{ background: hslStr(activeMeta.hue, 80, 60, 0.07), filter: 'blur(80px)' }}
+          animate={{ opacity: [0.5, 0.9, 0.5] }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      )}
+      {isComplete && (
+        <div className="absolute top-0 right-0 w-[500px] h-[400px] translate-x-1/4 -translate-y-1/3 pointer-events-none"
+          style={{ background: 'hsl(160 80% 50% / 0.07)', filter: 'blur(100px)', borderRadius: '50%' }} />
+      )}
 
-        {/* Floating particles */}
-        {isRunning && !isComplete && !isError && (
-          <div className="absolute inset-0">
-            {[...Array(8)].map((_, i) => (
-              <div
-                key={i}
-                className="absolute w-0.5 h-0.5 rounded-full bg-white/20"
-                style={{
-                  left: `${12 + i * 11}%`,
-                  top: `${80 + Math.sin(i) * 15}%`,
-                  animation: `float-particle ${5 + i * 0.7}s ease-in-out infinite`,
-                  animationDelay: `${i * 0.4}s`,
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Floating micro particles */}
+      {isRunning && !isComplete && !isError && (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-0.5 h-0.5 rounded-full"
+              style={{
+                left: `${15 + i * 13}%`,
+                background: activeMeta ? hslStr(activeMeta.hue, 80, 75, 0.4) : 'hsl(0 0% 100% / 0.15)',
+                animation: `float-up-particle ${5 + i * 0.8}s ease-in-out infinite`,
+                animationDelay: `${i * 0.5}s`,
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="relative p-6 md:p-8">
-        {/* Header */}
+        {/* ── Header ── */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
-            <motion.div 
-              className={cn(
-                "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 border relative overflow-hidden",
-                isComplete
-                  ? "bg-gradient-to-br from-emerald-500/20 to-teal-500/15 border-emerald-500/25"
+            {/* Icon badge */}
+            <motion.div
+              className="w-13 h-13 rounded-2xl flex items-center justify-center border relative overflow-hidden"
+              style={{
+                width: 52, height: 52,
+                background: isComplete
+                  ? 'linear-gradient(135deg, hsl(160 80% 50% / 0.2), hsl(185 90% 50% / 0.1))'
                   : isError
-                    ? "bg-gradient-to-br from-rose-500/20 to-pink-500/15 border-rose-500/25"
-                    : "bg-white/[0.04] border-white/[0.08]",
-              )}
-              animate={isRunning && !isComplete && !isError ? { scale: [1, 1.03, 1] } : {}}
+                    ? 'hsl(350 80% 60% / 0.15)'
+                    : 'hsl(0 0% 100% / 0.03)',
+                borderColor: isComplete ? 'hsl(160 80% 50% / 0.3)' : isError ? 'hsl(350 80% 60% / 0.3)' : 'hsl(0 0% 100% / 0.07)',
+              }}
+              animate={isRunning && !isComplete && !isError ? { scale: [1, 1.04, 1] } : {}}
               transition={{ duration: 3, repeat: Infinity }}
             >
               {isComplete ? (
-                <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 4, repeat: Infinity }}>
+                <motion.div animate={{ rotate: [0, 8, -8, 0] }} transition={{ duration: 4, repeat: Infinity }}>
                   <Sparkles className="w-6 h-6 text-emerald-400" />
                 </motion.div>
               ) : isError ? (
                 <XCircle className="w-6 h-6 text-rose-400" />
               ) : isRunning ? (
-                <Zap className="w-6 h-6 text-white/60" />
+                <Zap className="w-6 h-6 text-white/50" />
               ) : (
-                <Clapperboard className="w-6 h-6 text-white/40" />
+                <Clapperboard className="w-6 h-6 text-white/30" />
               )}
-              {/* Glass highlight */}
               <div className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-white/[0.06] to-transparent rounded-t-2xl" />
             </motion.div>
+
             <div>
-              <h2 className="text-lg font-bold text-white tracking-tight">
+              <h2 className="text-lg font-bold text-white tracking-tight leading-tight">
                 {projectTitle || 'Production Pipeline'}
               </h2>
-              <p className="text-xs text-white/35 mt-0.5 max-w-[300px] truncate">
-                {isComplete ? '✦ Your cinematic masterpiece is ready' : isError ? (lastError?.slice(0, 80) || 'Production failed') : activeMeta ? activeMeta.label : 'Initializing pipeline...'}
+              <p className="text-[11px] mt-0.5 max-w-xs truncate" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                {isComplete
+                  ? '✦ Your cinematic masterpiece is ready'
+                  : isError
+                    ? (lastError?.slice(0, 80) || 'Production failed')
+                    : activeMeta
+                      ? activeMeta.label
+                      : 'Initializing pipeline...'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            {/* Action buttons */}
+          <div className="flex items-center gap-3">
+            {/* Cancel button */}
             {onCancel && isRunning && !isComplete && (
               <button
                 onClick={onCancel}
                 disabled={isCancelling}
-                className={cn(
-                  "px-4 py-2 rounded-xl text-xs font-medium transition-all",
-                  "bg-white/[0.03] border border-white/[0.06] text-white/40",
-                  "hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-400",
-                  isCancelling && "opacity-50 cursor-not-allowed"
-                )}
+                className="px-4 py-2 rounded-xl text-xs font-medium transition-all bg-white/[0.03] border border-white/[0.06] text-white/40 hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-400 disabled:opacity-40"
               >
                 {isCancelling ? 'Cancelling...' : 'Cancel'}
               </button>
             )}
 
+            {/* Resume button */}
             {onResume && isError && (
               <button
                 onClick={onResume}
                 disabled={isResuming}
-                className={cn(
-                  "px-5 py-2 rounded-xl text-xs font-bold transition-all",
-                  "bg-gradient-to-r from-violet-500 to-indigo-500 text-white",
-                  "hover:from-violet-400 hover:to-indigo-400 shadow-lg shadow-violet-500/20",
-                  isResuming && "opacity-50 cursor-not-allowed"
-                )}
+                className="px-5 py-2 rounded-xl text-xs font-bold text-white transition-all disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, hsl(270 80% 60%), hsl(240 80% 55%))', boxShadow: '0 4px 20px hsl(270 80% 60% / 0.3)' }}
               >
                 {isResuming ? 'Resuming...' : 'Resume'}
               </button>
             )}
 
-            {/* Live indicator */}
+            {/* Live badge */}
             {isRunning && !isComplete && !isError && (
               <div className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/[0.03] border border-white/[0.06]">
-                <div className="relative">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                  <div className="absolute inset-0 w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                <div className="relative w-2 h-2">
+                  <div className="absolute inset-0 rounded-full bg-emerald-400" />
+                  <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping" />
                 </div>
-                <span className="text-[10px] font-bold text-emerald-400/80 uppercase tracking-[0.2em]">Live</span>
+                <span className="text-[9px] font-black text-emerald-400/80 uppercase tracking-[0.25em]">Live</span>
               </div>
             )}
 
-            {/* Timer + Premium Ring */}
-            <div className="flex items-center gap-5">
-              <div className="text-right hidden sm:block">
-                <p className="text-3xl font-mono font-black text-white/85 tracking-tighter tabular-nums">
-                  {formatTime(elapsedTime)}
-                </p>
-              </div>
+            {/* Timer + progress ring */}
+            <div className="flex items-center gap-4">
+              <p className="text-2xl font-mono font-black tabular-nums tracking-tighter hidden sm:block"
+                style={{ color: 'hsl(0 0% 100% / 0.8)' }}>
+                {formatTime(elapsedTime)}
+              </p>
 
-              {/* Holographic progress ring */}
-              <div className="relative" style={{ width: 76, height: 76 }}>
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 76 76">
-                  {/* Background tracks */}
-                  <circle cx="38" cy="38" r="32" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="3" />
-                  <circle cx="38" cy="38" r="28" fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="1" />
-                  
-                  {/* Gradient progress */}
+              {/* Holographic SVG ring */}
+              <div className="relative" style={{ width: 70, height: 70 }}>
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 70 70">
                   <defs>
-                    <linearGradient id="pipelineProgressGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      {isError ? (
+                    <linearGradient id="cpRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      {isComplete ? (
                         <>
-                          <stop offset="0%" stopColor="#f43f5e" />
-                          <stop offset="100%" stopColor="#e11d48" />
+                          <stop offset="0%" stopColor="hsl(160 80% 50%)" />
+                          <stop offset="100%" stopColor="hsl(185 90% 55%)" />
                         </>
-                      ) : isComplete ? (
+                      ) : isError ? (
                         <>
-                          <stop offset="0%" stopColor="#10b981" />
-                          <stop offset="50%" stopColor="#14b8a6" />
-                          <stop offset="100%" stopColor="#06b6d4" />
+                          <stop offset="0%" stopColor="hsl(350 80% 60%)" />
+                          <stop offset="100%" stopColor="hsl(340 75% 55%)" />
                         </>
                       ) : (
                         <>
-                          <stop offset="0%" stopColor={activeMeta?.ringColor || '#8b5cf6'} />
-                          <stop offset="100%" stopColor="#6366f1" />
+                          <stop offset="0%" stopColor={hslStr(statusHue, 80, 65, 1)} />
+                          <stop offset="100%" stopColor={hslStr(statusHue + 30, 75, 55, 1)} />
                         </>
                       )}
                     </linearGradient>
-                    {/* Glow filter */}
-                    <filter id="progressGlow">
+                    <filter id="cpRingGlow">
                       <feGaussianBlur stdDeviation="2" result="blur" />
-                      <feMerge>
-                        <feMergeNode in="blur" />
-                        <feMergeNode in="SourceGraphic" />
-                      </feMerge>
+                      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
                     </filter>
                   </defs>
+                  {/* Track */}
+                  <circle cx="35" cy="35" r="29" fill="none" stroke="hsl(0 0% 100% / 0.04)" strokeWidth="3" />
+                  {/* Progress arc */}
                   <circle
-                    cx="38" cy="38" r="32" fill="none"
-                    stroke="url(#pipelineProgressGrad)"
+                    cx="35" cy="35" r="29" fill="none"
+                    stroke="url(#cpRingGrad)"
                     strokeWidth="3.5"
                     strokeLinecap="round"
-                    strokeDasharray={2 * Math.PI * 32}
-                    strokeDashoffset={2 * Math.PI * 32 * (1 - progress / 100)}
+                    strokeDasharray={2 * Math.PI * 29}
+                    strokeDashoffset={2 * Math.PI * 29 * (1 - Math.min(progress, 100) / 100)}
                     className="transition-all duration-700 ease-out"
-                    filter="url(#progressGlow)"
+                    filter="url(#cpRingGlow)"
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className={cn(
-                    "text-base font-black tabular-nums",
-                    isError ? "text-rose-400" : isComplete ? "text-emerald-400" : "text-white"
-                  )}>
+                  <span className={cn("text-sm font-black tabular-nums",
+                    isComplete ? "text-emerald-400" : isError ? "text-rose-400" : "text-white")}>
                     {Math.round(progress)}%
                   </span>
                 </div>
@@ -424,89 +486,55 @@ export function CinematicPipelineProgress({
           </div>
         </div>
 
-        {/* Premium gradient progress bar with glow */}
-        <div className="relative h-1.5 bg-white/[0.03] mb-10 overflow-hidden rounded-full">
-          {/* Glow underneath */}
+        {/* ── Progress bar ── */}
+        <div className="relative h-1.5 rounded-full overflow-hidden mb-10" style={{ background: 'hsl(0 0% 100% / 0.03)' }}>
+          {/* Glow blur underneath */}
           <div
-            className={cn(
-              "absolute -inset-y-2 left-0 rounded-full blur-md transition-all duration-700 ease-out opacity-50",
-              isError ? "bg-rose-500" : isComplete ? "bg-emerald-500" : "bg-violet-500"
-            )}
-            style={{ width: `${Math.min(lineProgress, 100)}%` }}
+            className="absolute -inset-y-2 left-0 rounded-full blur-md opacity-50 transition-all duration-700 ease-out"
+            style={{
+              width: `${Math.min(lineProgress, 100)}%`,
+              background: isComplete ? 'hsl(160 80% 50%)' : isError ? 'hsl(350 80% 60%)' : hslStr(statusHue, 80, 60, 1),
+            }}
           />
           <div
-            className={cn(
-              "relative inset-y-0 left-0 h-full rounded-full transition-all duration-700 ease-out",
-              isError ? "bg-gradient-to-r from-rose-500 via-pink-500 to-rose-400" 
-                : isComplete ? "bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400" 
-                : "bg-gradient-to-r from-violet-500 via-indigo-500 to-purple-400"
-            )}
-            style={{ width: `${Math.min(lineProgress, 100)}%` }}
+            className="relative h-full rounded-full transition-all duration-700 ease-out"
+            style={{
+              width: `${Math.min(lineProgress, 100)}%`,
+              background: isComplete
+                ? 'linear-gradient(90deg, hsl(160 80% 50%), hsl(185 90% 55%), hsl(195 90% 55%))'
+                : isError
+                  ? 'linear-gradient(90deg, hsl(350 80% 60%), hsl(340 75% 55%))'
+                  : `linear-gradient(90deg, ${hslStr(statusHue, 80, 65, 1)}, ${hslStr(statusHue + 20, 75, 55, 1)})`,
+            }}
           />
-          {/* Shimmer */}
+          {/* Shimmer sweep */}
           {isRunning && !isComplete && !isError && (
-            <div 
+            <div
               className="absolute inset-y-0 left-0"
-              style={{ 
+              style={{
                 width: `${Math.min(lineProgress, 100)}%`,
-                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
-                animation: 'shimmer 2s ease-in-out infinite',
+                background: 'linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.25), transparent)',
+                animation: 'shimmer-sweep 2.5s ease-in-out infinite',
               }}
             />
           )}
         </div>
 
-        {/* Desktop: Horizontal stage nodes with premium connecting lines */}
+        {/* ── Desktop: Stage nodes with connectors ── */}
         <div className="hidden md:block">
-          <div className="relative">
-            {/* Background connection track with dots */}
-            <div className="absolute top-8 left-[7%] right-[7%] h-px">
-              <div className="w-full h-full bg-white/[0.04]" />
-              {/* Animated dots pattern */}
-              <div 
-                className="absolute inset-0 opacity-30"
-                style={{
-                  backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)',
-                  backgroundSize: '12px 4px',
-                  backgroundPosition: 'center',
-                }}
-              />
-            </div>
-            
-            {/* Animated progress line with glow */}
-            <div className="absolute top-8 left-[7%] h-px" style={{ width: `${Math.min(lineProgress * 0.86, 86)}%` }}>
-              <div 
-                className="h-full transition-all duration-700 ease-out rounded-full"
-                style={{ 
-                  background: isComplete 
-                    ? 'linear-gradient(90deg, rgba(16,185,129,0.6), rgba(20,184,166,0.4), rgba(6,182,212,0.3))' 
-                    : activeMeta
-                      ? `linear-gradient(90deg, ${activeMeta.glowColor}, ${activeMeta.glowColor.replace('0.35', '0.15')})`
-                      : 'linear-gradient(90deg, rgba(139,92,246,0.5), rgba(99,102,241,0.3))'
-                }}
-              />
-              {/* Glow effect on progress line */}
-              <div 
-                className="absolute inset-0 h-[3px] -top-[1px] blur-sm transition-all duration-700"
-                style={{ 
-                  background: isComplete 
-                    ? 'linear-gradient(90deg, rgba(16,185,129,0.4), transparent)' 
-                    : activeMeta
-                      ? `linear-gradient(90deg, ${activeMeta.glowColor.replace('0.35', '0.3')}, transparent)`
-                      : 'linear-gradient(90deg, rgba(139,92,246,0.3), transparent)'
-                }}
-              />
-            </div>
-            
-            <div className="grid grid-cols-6 gap-2 relative">
-              {stages.map((stage, index) => (
-                <StageNode key={stage.name} stage={stage} index={index} totalStages={stages.length} />
-              ))}
-            </div>
+          <div className="flex items-start">
+            {stages.map((stage, index) => (
+              <React.Fragment key={stage.name}>
+                <StageNode stage={stage} />
+                {index < stages.length - 1 && (
+                  <ConnectorLine from={stage} to={stages[index + 1]} />
+                )}
+              </React.Fragment>
+            ))}
           </div>
         </div>
 
-        {/* Mobile: Compact vertical list */}
+        {/* ── Mobile: Compact vertical list ── */}
         <div className="md:hidden space-y-1.5">
           {stages.map((stage) => {
             const meta = STAGE_META[stage.shortName] || STAGE_META['Script'];
@@ -515,42 +543,49 @@ export function CinematicPipelineProgress({
             const isComp = stage.status === 'complete';
             const isErr = stage.status === 'error';
             const isPend = stage.status === 'pending';
-
             return (
               <div
                 key={stage.name}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300",
-                  isActive && "bg-white/[0.04] border border-white/[0.08] shadow-lg",
-                  isPend && "opacity-20",
+                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 border",
+                  isActive ? "border-white/[0.08] shadow-lg" : "border-transparent",
+                  isPend && "opacity-25",
                 )}
+                style={isActive ? { background: `hsl(0 0% 100% / 0.03)` } : {}}
               >
-                <div className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center border",
-                  isPend && "bg-white/[0.02] border-white/[0.04] text-white/15",
-                  isActive && `bg-gradient-to-br ${meta.gradient} border-white/20 text-white`,
-                  isComp && "bg-emerald-500/12 border-emerald-500/20 text-emerald-400",
-                  isErr && "bg-rose-500/12 border-rose-500/20 text-rose-400",
-                )}>
-                  {isActive ? <Loader2 className="w-4 h-4 animate-spin" /> :
-                   isComp ? <CheckCircle2 className="w-4 h-4" /> :
-                   isErr ? <XCircle className="w-4 h-4" /> :
-                   <Icon className="w-4 h-4" />}
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center border text-sm flex-shrink-0"
+                  style={{
+                    background: isPend ? 'hsl(0 0% 100% / 0.02)' : isComp ? 'hsl(160 80% 50% / 0.12)' : isErr ? 'hsl(350 80% 60% / 0.12)' : `hsl(${meta.hue} 80% 60% / 0.15)`,
+                    borderColor: isPend ? 'hsl(0 0% 100% / 0.05)' : isComp ? 'hsl(160 80% 50% / 0.25)' : isErr ? 'hsl(350 80% 60% / 0.25)' : `hsl(${meta.hue} 80% 65% / 0.25)`,
+                    color: isPend ? 'hsl(0 0% 100% / 0.15)' : isComp ? 'hsl(160 80% 60%)' : isErr ? 'hsl(350 80% 65%)' : `hsl(${meta.hue} 80% 70%)`,
+                  }}
+                >
+                  {isActive ? (
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}>
+                      <Icon className="w-4 h-4" />
+                    </motion.div>
+                  ) : isComp ? (
+                    <CheckCircle2 className="w-4 h-4" />
+                  ) : isErr ? (
+                    <XCircle className="w-4 h-4" />
+                  ) : (
+                    <Icon className="w-4 h-4" />
+                  )}
                 </div>
-                <span className={cn(
-                  "text-xs font-semibold",
-                  isPend && "text-white/25",
-                  isActive && "text-white",
-                  isComp && "text-emerald-400/80",
-                  isErr && "text-rose-400/80",
-                )}>
-                  {stage.shortName}
-                </span>
-                {isActive && (
-                  <span className="ml-auto text-[10px] text-white/30 font-mono">
-                    {meta.label}
+                <div className="flex-1 min-w-0">
+                  <span className={cn(
+                    "text-xs font-semibold block",
+                    isPend ? "text-white/25" : isComp ? "text-emerald-400/80" : isErr ? "text-rose-400/80" : "text-white",
+                  )}>
+                    {stage.shortName}
                   </span>
-                )}
+                  {isActive && (
+                    <span className="text-[9px] font-mono" style={{ color: `hsl(${meta.hue} 80% 65% / 0.7)` }}>
+                      {meta.activityTexts[0]}
+                    </span>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -559,17 +594,17 @@ export function CinematicPipelineProgress({
 
       {/* CSS keyframes */}
       <style>{`
-        @keyframes holographic-shimmer {
+        @keyframes holo-shimmer {
           0%, 100% { transform: translateX(-100%); }
           50% { transform: translateX(200%); }
         }
-        @keyframes shimmer {
+        @keyframes shimmer-sweep {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(200%); }
         }
-        @keyframes float-particle {
-          0%, 100% { transform: translateY(0) scale(1); opacity: 0.2; }
-          50% { transform: translateY(-120px) scale(1.5); opacity: 0; }
+        @keyframes float-up-particle {
+          0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; }
+          50% { transform: translateY(-100px) scale(1.8); opacity: 0; }
         }
       `}</style>
     </div>

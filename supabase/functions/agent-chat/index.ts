@@ -3997,7 +3997,19 @@ You are a FULLY capable assistant. You can DO everything in the app:
 
 ### Creation Modes & Pipeline Architecture
 1. **Text-to-Video** — prompt → AI script generator → reference images → video clips (Kling/Veo) → auto-stitch → final video
-2. **Image-to-Video** — animate an existing image. WORKFLOW: The user can either paste an image URL OR attach an image directly in chat (you'll see "[Image attached: <url>]" in their message). When you detect an attached image URL in a message, IMMEDIATELY extract that URL and call start_creation_flow with mode="image-to-video", the image_url set to that URL, and ask the user what motion/animation they want on the image. Do NOT ask them to paste a URL again if they already attached one. If user hasn't provided any image at all, use present_choices to ask them to attach an image using the paperclip button or paste a direct URL.
+2. **Image-to-Video** — animate an existing image. WORKFLOW: The user can either paste an image URL OR attach an image directly in chat (you'll see "[Image attached: <url>]" in their message). 
+
+   **CRITICAL IMAGE-TO-VIDEO RULE**: When a user sends a message containing "[Image attached: <url>]" OR includes an image URL AND any indication they want a video (words like "video", "animate", "make", "create", "turn into", "bring to life", "eruption", "explosion", "cinematic", or any descriptive action word), you MUST **immediately call start_creation_flow** with:
+   - mode="image-to-video"
+   - image_url = the extracted URL from "[Image attached: <url>]"  
+   - prompt = use the user's description/topic from their message as the creative prompt (e.g. "volcanic eruption cinematic", "animate this", etc.)
+   - clip_count = 1 (default)
+   
+   DO NOT ask clarifying questions. DO NOT ask what motion they want. DO NOT ask them to elaborate. Just LAUNCH the creation flow. The AI will generate creative motion based on the image. If user wants changes after, they can say so. 
+   
+   ONLY if the message contains ZERO indication of wanting a video (e.g. they just attached an image with no context), THEN you may ask what they'd like to do with it.
+   
+   Do NOT ask them to paste a URL again if they already attached one. If user hasn't provided any image at all, use present_choices to ask them to attach an image using the paperclip button or paste a direct URL.
 3. **Avatar Mode** — select AI avatar → screenplay generator → scene-by-scene video with lip-sync → stitch
    - Uses "Scene-First" architecture with Emmy-Class screenplay generator
    - Implements Pose Chaining (startPose/endPose) for visual continuity
@@ -4869,8 +4881,12 @@ serve(async (req) => {
         const userWantsVideo = prevTopics.includes("video") || prevTopics.includes("create");
         const userMentionedName = lastUserMsgText.match(/^[a-z]+ [a-z]+$/i); // Likely a name input
         
+        // Detect if user attached an image — if so, NEVER show generic starter choices
+        const hasAttachedImage = lastUserMsgText.includes("[image attached:") || lastUserMsgText.includes("image attached:");
+        const hasVideoIntent = lastUserMsgText.includes("video") || lastUserMsgText.includes("animate") || lastUserMsgText.includes("make") || lastUserMsgText.includes("create") || lastUserMsgText.includes("bring to life") || lastUserMsgText.includes("cinematic");
+        
         // User is deep in a creation flow — guide to next step
-        if (userWantsVideo && allUserMsgs.length > 3) {
+        if (userWantsVideo && allUserMsgs.length > 3 && !hasAttachedImage) {
           fallbackQuestion = "Let's lock in the details —";
           fallbackOptions = [
             { id: "set_aspect_wide", label: "Widescreen (16:9)", description: "Classic cinematic — YouTube, presentations", icon: "film" },
@@ -4878,8 +4894,17 @@ serve(async (req) => {
             { id: "set_aspect_square", label: "Square (1:1)", description: "Instagram feed, versatile", icon: "target" },
           ];
         }
+        // If image is attached with video intent — show creation-specific follow-up options
+        else if (hasAttachedImage && hasVideoIntent) {
+          fallbackQuestion = "Image video is launching! Want to adjust?";
+          fallbackOptions = [
+            { id: "change_to_vertical", label: "Make it Vertical", description: "Switch to 9:16 for TikTok/Reels", icon: "sparkles" },
+            { id: "add_more_clips", label: "More Clips", description: "Extend to 2-3 clips for longer video", icon: "film" },
+            { id: "check_projects", label: "Watch Progress", description: "Track your video generation", icon: "clapperboard" },
+          ];
+        }
         // User provided what seems like a name/concept — ask for more detail
-        else if (userMentionedName || (lastUserMsgText.length > 0 && lastUserMsgText.length < 30 && !lastUserMsgText.includes("?"))) {
+        else if (!hasAttachedImage && (userMentionedName || (lastUserMsgText.length > 0 && lastUserMsgText.length < 30 && !lastUserMsgText.includes("?")))) {
           fallbackQuestion = "Tell me more about your vision —";
           fallbackOptions = [
             { id: "describe_more", label: "Let Me Describe It", description: "I'll share my full concept and you shape it", icon: "sparkles" },
@@ -4887,8 +4912,8 @@ serve(async (req) => {
             { id: "start_over", label: "Different Direction", description: "Let's try something else entirely", icon: "target" },
           ];
         }
-        // First message / greeting
-        else if (lastUserMsgText.includes("hi") || lastUserMsgText.includes("hello") || lastUserMsgText.includes("hey") || messages.length <= 2) {
+        // First message / greeting — only show if NOT an image creation request
+        else if (!hasAttachedImage && (lastUserMsgText.includes("hi") || lastUserMsgText.includes("hello") || lastUserMsgText.includes("hey") || messages.length <= 2)) {
           fallbackQuestion = "What brings you to the studio today?";
           fallbackOptions = [
             { id: "create_first_video", label: "Create My First Video", description: "I'll walk you through it step by step", icon: "film" },

@@ -4593,7 +4593,6 @@ serve(async (req) => {
     // Conversations are free — only tool actions cost credits.
     // Zero cost per message removes friction and encourages natural use.
     const currentBalance = profile?.credits_balance || 0;
-    let totalCreditsCharged = 0;
 
     // ── Load FULL conversation history from DB (includes tool_calls + tool_results) ──
     // The frontend only sends {role, content}, losing all tool memory.

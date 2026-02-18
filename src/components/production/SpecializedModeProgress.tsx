@@ -315,6 +315,7 @@ export function SpecializedModeProgress({
   const [isCancelling, setIsCancelling] = useState(false);
   const [actTextIdx, setActTextIdx] = useState(0);
   const [isPolling, setIsPolling] = useState(false);
+  const [showFullPlayer, setShowFullPlayer] = useState(false);
 
   const config = MODE_CONFIG[mode];
   const Icon = config.icon;

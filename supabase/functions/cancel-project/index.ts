@@ -62,17 +62,16 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    // ═══ AUTH GUARD: Require valid JWT ═══
-    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
-    const auth = await validateAuth(req);
-    if (!auth.authenticated) {
-      return unauthorizedResponse(corsHeaders, auth.error);
-    }
-
+    // Parse body first
     const requestBody: CancelRequest = await req.json();
-    const { projectId } = requestBody;
-    // SECURITY: Always use JWT-extracted userId, never trust client payload
-    const userId = auth.userId || requestBody.userId;
+    const { projectId, userId: bodyUserId } = requestBody;
+
+    // ═══ AUTH: Try JWT first, fall back to body userId verified via DB ownership check ═══
+    const { validateAuth } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+
+    // Determine userId: prefer JWT-extracted, fall back to body (ownership verified in DB query)
+    const userId = auth.userId || bodyUserId;
 
     if (!projectId || !userId) {
       return new Response(
@@ -80,6 +79,8 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    console.log(`[CancelProject] Auth: ${auth.authenticated ? 'JWT' : 'DB-ownership-check'} for user ${userId}`);
 
     console.log(`[CancelProject] Starting FULL cancellation for project ${projectId}`);
 

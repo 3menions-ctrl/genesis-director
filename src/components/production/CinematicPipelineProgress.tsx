@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText, Users, Shield, Wand2, Film, Sparkles,
-  CheckCircle2, XCircle, Clapperboard, Zap,
+  CheckCircle2, XCircle, Clapperboard, Zap, Play,
 } from 'lucide-react';
 
 // ============= TYPES =============
@@ -13,6 +13,13 @@ interface StageStatus {
   shortName: string;
   status: 'pending' | 'active' | 'complete' | 'error' | 'skipped';
   details?: string;
+}
+
+interface ClipData {
+  index: number;
+  status: 'pending' | 'generating' | 'completed' | 'failed';
+  videoUrl?: string;
+  error?: string;
 }
 
 interface CinematicPipelineProgressProps {
@@ -29,6 +36,10 @@ interface CinematicPipelineProgressProps {
   isResuming?: boolean;
   isCancelling?: boolean;
   className?: string;
+  clips?: ClipData[];
+  completedClips?: number;
+  totalClips?: number;
+  onPlayClip?: (url: string) => void;
 }
 
 // ============= STAGE METADATA =============
@@ -272,6 +283,7 @@ export function CinematicPipelineProgress({
   stages, progress, isComplete, isError, isRunning,
   elapsedTime, projectTitle, lastError,
   onResume, onCancel, isResuming, isCancelling, className,
+  clips = [], completedClips = 0, totalClips = 0, onPlayClip,
 }: CinematicPipelineProgressProps) {
   const activeStage = stages.find(s => s.status === 'active');
   const activeMeta = activeStage ? STAGE_META[activeStage.shortName] : null;
@@ -533,6 +545,66 @@ export function CinematicPipelineProgress({
             ))}
           </div>
         </div>
+
+        {/* ── Clips detail row (shown when clip data is available) ── */}
+        {totalClips > 0 && (
+          <div className="mt-8 pt-6 border-t border-white/[0.04]">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: 'hsl(0 0% 100% / 0.25)' }}>
+                Video Clips
+              </span>
+              <span className="text-[10px] font-mono" style={{ color: 'hsl(0 0% 100% / 0.3)' }}>
+                {completedClips}/{totalClips} rendered
+              </span>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {clips.map((clip) => {
+                const clipCompleted = clip.status === 'completed';
+                const clipGenerating = clip.status === 'generating';
+                const clipFailed = clip.status === 'failed';
+                const clipPending = clip.status === 'pending';
+                return (
+                  <button
+                    key={clip.index}
+                    disabled={!clipCompleted || !clip.videoUrl}
+                    onClick={() => clipCompleted && clip.videoUrl && onPlayClip?.(clip.videoUrl)}
+                    className={cn(
+                      "relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border",
+                      clipCompleted && clip.videoUrl && "cursor-pointer hover:scale-105",
+                      clipCompleted ? "border-emerald-500/20" : clipFailed ? "border-rose-500/20" : clipGenerating ? "border-violet-500/20" : "border-white/[0.05]",
+                    )}
+                    style={{
+                      background: clipCompleted
+                        ? 'hsl(160 80% 50% / 0.08)'
+                        : clipFailed
+                          ? 'hsl(350 80% 60% / 0.08)'
+                          : clipGenerating
+                            ? 'hsl(270 80% 60% / 0.08)'
+                            : 'hsl(0 0% 100% / 0.02)',
+                      color: clipCompleted
+                        ? 'hsl(160 75% 65%)'
+                        : clipFailed
+                          ? 'hsl(350 80% 65%)'
+                          : clipGenerating
+                            ? 'hsl(270 80% 70%)'
+                            : 'hsl(0 0% 100% / 0.2)',
+                    }}
+                  >
+                    {clipGenerating && (
+                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}>
+                        <Film className="w-3 h-3" />
+                      </motion.div>
+                    )}
+                    {clipCompleted && <Play className="w-3 h-3" />}
+                    {clipFailed && <XCircle className="w-3 h-3" />}
+                    {clipPending && <Film className="w-3 h-3 opacity-30" />}
+                    Clip {clip.index + 1}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ── Mobile: Compact vertical list ── */}
         <div className="md:hidden space-y-1.5">

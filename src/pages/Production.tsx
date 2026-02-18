@@ -1448,14 +1448,19 @@ const transitionsData = useMemo(() =>
                       onCancel={handleCancelPipeline}
                       isResuming={isResuming}
                       isCancelling={isCancelling}
+                      clips={clipResultsForDashboard}
+                      completedClips={completedClips}
+                      totalClips={expectedClipCount}
+                      onPlayClip={handlePlayClip}
                     />
                   </Suspense>
                 </ErrorBoundaryWrapper>
               )}
 
-              {/* Streamlined Production Dashboard - Real data only */}
-              {/* HIDDEN for specialized modes (avatar/motion-transfer/video-to-video) - they use SpecializedModeProgress instead */}
-              {!['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && (
+              {/* Legacy Production Dashboard - only shown when there are failed clips needing retry
+                  (CinematicPipelineProgress handles the main pipeline visualization) */}
+              {!['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) &&
+               clipResultsForDashboard.some(c => c.status === 'failed') && (
                 <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
                   <Suspense fallback={<SectionLoader />}>
                     <ProductionDashboard

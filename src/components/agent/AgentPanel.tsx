@@ -9,8 +9,10 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, RotateCcw, Zap, ArrowRight, Loader2, Sparkles, ChevronDown, MessageCircle } from "lucide-react";
+import { X, Send, RotateCcw, Zap, ArrowRight, Loader2, Sparkles, ChevronDown, MessageCircle, Paperclip, ImageIcon, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AgentFace } from "./AgentFace";
 import { useAgentChat, AgentAction, AgentMessage } from "@/hooks/useAgentChat";
@@ -29,9 +31,12 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
   const [input, setInput] = useState("");
   const [pendingAction, setPendingAction] = useState<AgentAction | null>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<{ url: string; name: string } | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -71,12 +76,46 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
     }
   }, [isOpen]);
 
+  const handleImageUpload = useCallback(async (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast?.error?.("Image must be less than 10MB");
+      return;
+    }
+    setIsUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("hoppy-uploads").upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from("hoppy-uploads").getPublicUrl(path);
+      setUploadedImage({ url: urlData.publicUrl, name: file.name });
+    } catch (err) {
+      console.error("Image upload failed:", err);
+    } finally {
+      setIsUploading(false);
+    }
+  }, []);
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleImageUpload(file);
+    e.target.value = "";
+  }, [handleImageUpload]);
+
   const handleSend = useCallback(async () => {
-    if (!input.trim() || isLoading) return;
-    const msg = input;
+    if ((!input.trim() && !uploadedImage) || isLoading) return;
+    let msg = input;
+    if (uploadedImage) {
+      // Append image URL as context so Hoppy knows about the image
+      msg = msg
+        ? `${msg}\n\n[Image attached: ${uploadedImage.url}]`
+        : `[Image attached: ${uploadedImage.url}]`;
+    }
     setInput("");
+    setUploadedImage(null);
     await sendMessage(msg);
-  }, [input, isLoading, sendMessage]);
+  }, [input, uploadedImage, isLoading, sendMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -434,6 +473,31 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
             className="relative z-10 px-4 md:px-10 pb-6 pt-3"
           >
             <div className="max-w-3xl mx-auto">
+              {/* Image preview strip */}
+              <AnimatePresence>
+                {uploadedImage && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6, height: 0 }}
+                    animate={{ opacity: 1, y: 0, height: "auto" }}
+                    exit={{ opacity: 0, y: 4, height: 0 }}
+                    className="mb-2 overflow-hidden"
+                  >
+                    <div className="flex items-center gap-2 px-2 py-1.5">
+                      <div className="relative w-14 h-14 rounded-xl overflow-hidden ring-1 ring-primary/20 flex-shrink-0">
+                        <img src={uploadedImage.url} alt="Attached" className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => setUploadedImage(null)}
+                          className="absolute top-0.5 right-0.5 bg-background/80 rounded-full p-0.5 hover:bg-destructive/80 transition-colors"
+                        >
+                          <XCircle className="h-3 w-3 text-foreground/60" />
+                        </button>
+                      </div>
+                      <span className="text-xs text-muted-foreground/60 truncate font-sans">{uploadedImage.name}</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div
                 className="flex items-end gap-3 rounded-2xl px-4 py-2.5 backdrop-blur-xl transition-all duration-300 group/input"
                 style={{
@@ -463,18 +527,47 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                   disabled={isLoading}
                   style={{ fieldSizing: "content" } as any}
                 />
+
+                {/* Image attach button */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isLoading || isUploading}
+                  title="Attach image"
+                  className={cn(
+                    "p-2 rounded-xl transition-all duration-200 flex-shrink-0 mb-0.5",
+                    uploadedImage
+                      ? "text-primary bg-primary/10"
+                      : "text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/20"
+                  )}
+                >
+                  {isUploading
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Paperclip className="h-4 w-4" />
+                  }
+                </button>
+
+                {/* Send button */}
                 <button
                   onClick={handleSend}
-                  disabled={isLoading || !input.trim()}
+                  disabled={isLoading || (!input.trim() && !uploadedImage)}
                   className={cn(
                     "p-2 rounded-xl transition-all duration-300 flex-shrink-0 mb-0.5",
-                    input.trim()
+                    (input.trim() || uploadedImage)
                       ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:-translate-y-0.5 active:scale-95"
                       : "bg-muted/20 text-muted-foreground/20 cursor-not-allowed"
                   )}
                 >
                   {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </button>
+
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
               </div>
             </div>
           </motion.div>

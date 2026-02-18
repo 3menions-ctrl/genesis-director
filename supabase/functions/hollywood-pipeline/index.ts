@@ -780,6 +780,51 @@ async function runPreProduction(
           },
         };
 
+        // =====================================================
+        // BUILD FACE LOCK from characterDNA for image-to-video
+        // This is the highest-priority identity system that prevents
+        // facial drift across clips (same as avatar pipeline)
+        // =====================================================
+        if (si.characterDNA) {
+          const dna = si.characterDNA;
+          const ff = dna.facialFeatures;
+          
+          (state.identityBible as any).faceLock = {
+            // Core face description
+            fullFaceDescription: dna.description || dna.identitySummary || '',
+            goldenReference: dna.identitySummary || dna.description || '',
+            
+            // Facial features
+            faceShape: ff?.faceShape || '',
+            eyeDescription: ff?.eyes || '',
+            skinTone: ff?.skinTone || dna.bodyProfile?.skinTone || '',
+            hairColorExact: dna.hairProfile?.color || '',
+            
+            // Distinguishing features
+            distinguishingFeatures: dna.distinctiveMarkers || [],
+            
+            // Apparent age
+            apparentAge: dna.demographics?.age || '',
+            
+            // Face-specific negatives drawn from all negatives
+            faceNegatives: [
+              ...(si.allNegatives || []).filter((n: string) =>
+                /face|skin|eye|hair|featur|morph|drift|age|ident/i.test(n)
+              ),
+              'different face', 'face swap', 'changed eyes', 'different nose',
+              'different skin tone', 'morphed features', 'different person',
+              'different bone structure', 'different ethnicity', 'altered appearance',
+            ].filter(Boolean).slice(0, 20),
+            
+            // Metadata
+            lockedAt: new Date().toISOString(),
+            confidence: dna.confidence || 0.9,
+            sourceImageUrl: request.referenceImageUrl,
+          };
+          
+          console.log(`[Hollywood] ✓ FACE LOCK built for image-to-video: "${dna.identitySummary?.substring(0, 60) || 'no summary'}..."`);
+        }
+
         // Also populate referenceAnalysis for backward-compat with other pipeline stages
         state.referenceAnalysis = {
           characterIdentity: state.identityBible.characterIdentity,
@@ -825,6 +870,8 @@ async function runPreProduction(
                 ...state.identityBible,
                 savedAt: new Date().toISOString(),
                 savedStage: 'pre_script_identity_lock',
+                // Persist faceLock so it survives edge function resume
+                faceLock: (state.identityBible as any).faceLock || undefined,
               },
               referenceAnalysis: state.referenceAnalysis,
             },
@@ -3333,6 +3380,33 @@ async function runProduction(
     }
     
     // =====================================================
+    // POSE CHAINING: Inject startPose / endPose directives
+    // Ensures the character's body posture at the END of clip N
+    // matches what the next clip begins with (avatar-pipeline technique)
+    // Only applied when we have an identity bible (image-to-video mode)
+    // =====================================================
+    if (state.identityBible?.characterIdentity) {
+      const posePhrases = ['standing', 'walking', 'seated', 'turning', 'reaching', 'gesturing'];
+      // Derive a simple resting pose from the character's reference description
+      const charDesc = (state.identityBible.characterIdentity.description || '').toLowerCase();
+      const inferredPose = posePhrases.find(p => charDesc.includes(p)) || 'standing upright';
+      
+      // startPose: the pose this clip starts in (carried from previous clip's endPose)
+      const startPoseHint = i === 0
+        ? `[START POSE: Character ${inferredPose}, position matching reference image exactly]`
+        : `[START POSE: Character continues directly from end pose of previous clip - same position, same orientation, no teleporting]`;
+      
+      // endPose: mandate a close-up for Close-Up Bridge (mask transitions) for all but last clip
+      const isLastClip = i === clips.length - 1;
+      const endPoseHint = isLastClip
+        ? `[END POSE: Settle naturally into a composed, cinematically strong final frame]`
+        : `[END POSE: Transition to close-up on character's face/upper body — tight framing — this bridges seamlessly into next clip]`;
+      
+      finalPrompt = `${startPoseHint}\n${finalPrompt}\n${endPoseHint}`;
+      console.log(`[Hollywood] Clip ${i + 1}: Pose chaining injected (startPose + ${isLastClip ? 'final frame' : 'close-up bridge endPose'})`);
+    }
+    
+    // =====================================================
     // TIER-AWARE AUTO-RETRY: Use tier maxRetries setting
     // =====================================================
     const tierLimits = (request as any)._tierLimits || { maxRetries: 1 };
@@ -3481,6 +3555,9 @@ async function runProduction(
               || (state.extractedCharacters?.[0] ? 
                   `${state.extractedCharacters[0].name}: ${state.extractedCharacters[0].appearance}` : ''),
           } : undefined,
+          // FACE LOCK: Highest-priority identity system (same as avatar pipeline)
+          // Prevents facial drift across all clips in image-to-video mode
+          faceLock: (state.identityBible as any)?.faceLock || undefined,
           colorGrading: request.colorGrading || 'cinematic',
           qualityTier: request.qualityTier || 'standard',
           aspectRatio: request.aspectRatio || '16:9',
@@ -3520,6 +3597,8 @@ async function runProduction(
                 || (state.extractedCharacters?.[0] ? 
                     `${state.extractedCharacters[0].name}: ${state.extractedCharacters[0].appearance}` : ''),
             } : undefined,
+            // FACE LOCK persisted through callback chain for all subsequent clips
+            faceLock: (state.identityBible as any)?.faceLock || undefined,
             masterSceneAnchor,
             goldenFrameData,
             accumulatedAnchors,

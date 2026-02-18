@@ -4727,7 +4727,7 @@ serve(async (req) => {
       Array.isArray(msg.content) && msg.content.some((part: any) => part.type === "image_url")
     );
     // Always use gpt-4o — it supports vision + tools with full reasoning capability
-    const PRIMARY_MODEL = "gpt-4o";
+    const PRIMARY_MODEL = "gpt-4o"; // force redeploy v2
     console.log(`[agent-chat] Model: ${PRIMARY_MODEL}, hasImages: ${hasImageContent}`);
 
     // ── Helper: call OpenAI non-streaming (used for tool-calling loop) ──

@@ -755,6 +755,13 @@ async function runPreProduction(
             posture: si.characterDNA.bodyProfile?.posture,
           },
           occlusionNegatives: si.allNegatives || [],
+          // CRITICAL: antiMorphingPrompts at top level for prompt-builder injection
+          // These come from the deep identity extraction negatives
+          antiMorphingPrompts: [
+            ...(si.allNegatives || []),
+            'face morphing', 'identity shift', 'character transformation',
+            'different skin tone', 'clothing change', 'hair color change',
+          ].filter(Boolean).slice(0, 20), // Cap at 20 to avoid token bloat
           // NEW: Full scene DNA stored in masterSceneAnchor
           masterSceneAnchor: {
             masterConsistencyPrompt: si.masterConsistencyPrompt,
@@ -3014,10 +3021,21 @@ async function runProduction(
       // =====================================================
       if (projectData?.pro_features_data?.identityBible && !state.identityBible) {
         state.identityBible = projectData.pro_features_data.identityBible;
+        // BACKFILL: Ensure antiMorphingPrompts exist even for legacy projects
+        if (!state.identityBible.antiMorphingPrompts?.length) {
+          const allNeg = state.identityBible.masterSceneAnchor?.allNegatives || [];
+          state.identityBible.antiMorphingPrompts = [
+            ...allNeg,
+            'face morphing', 'identity shift', 'character transformation',
+            'different skin tone', 'clothing change', 'hair color change',
+          ].filter(Boolean).slice(0, 20);
+          console.log(`[Hollywood] ✓ BACKFILLED antiMorphingPrompts (${state.identityBible.antiMorphingPrompts.length} entries)`);
+        }
         console.log(`[Hollywood] ✓ RESTORED identityBible from DB:`);
         console.log(`[Hollywood]   Consistency prompt: ${state.identityBible?.consistencyPrompt?.substring(0, 100)}...`);
         console.log(`[Hollywood]   Character identity: ${state.identityBible?.characterIdentity?.description?.substring(0, 100) || 'none'}...`);
         console.log(`[Hollywood]   Distinctive markers: ${state.identityBible?.characterIdentity?.distinctiveMarkers?.length || 0}`);
+        console.log(`[Hollywood]   Anti-morphing prompts: ${state.identityBible?.antiMorphingPrompts?.length || 0}`);
       }
     } catch (restoreErr) {
       console.warn(`[Hollywood] Could not restore masterSceneAnchor/goldenFrameData/identityBible from DB:`, restoreErr);

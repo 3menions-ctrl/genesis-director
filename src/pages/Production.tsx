@@ -1338,6 +1338,7 @@ const transitionsData = useMemo(() =>
                       onRetry={() => {
                         toast.info('Retry feature coming soon');
                       }}
+                      onCancel={handleCancelPipeline}
                     />
                   </Suspense>
                 </ErrorBoundaryWrapper>

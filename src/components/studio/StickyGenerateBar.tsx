@@ -19,7 +19,7 @@ import {
   TIPS_MESSAGES,
   showOnce,
 } from '@/lib/smartMessages';
-import { HolographicBubblesProgress } from './HolographicBubblesProgress';
+
 
 interface StickyGenerateBarProps {
   isRunning: boolean;
@@ -120,47 +120,37 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
 
   return (
     <div ref={ref} className="fixed bottom-0 left-0 right-0 z-50 pb-safe">
-      {/* Holographic Bubbles Panel — shown when running */}
+      {/* Stage progress zone — calm, minimal */}
       {isRunning && (
         <div
-          className="relative border-t overflow-hidden"
+          className="border-t px-6 py-3"
           style={{
-            background: 'linear-gradient(to top, hsl(250 15% 4% / 0.98), hsl(250 15% 6% / 0.95))',
-            borderColor: 'hsl(263 70% 58% / 0.15)',
+            background: 'hsl(250 15% 4% / 0.97)',
+            borderColor: 'hsl(263 65% 58% / 0.1)',
           }}
         >
-          {/* Subtle grid overlay */}
-          <div
-            className="absolute inset-0 pointer-events-none opacity-[0.03]"
-            style={{
-              backgroundImage: `
-                linear-gradient(hsl(263 70% 65%) 1px, transparent 1px),
-                linear-gradient(90deg, hsl(263 70% 65%) 1px, transparent 1px)
-              `,
-              backgroundSize: '40px 40px',
-            }}
-          />
-
-          {/* Ambient glow at base */}
-          <div
-            className="absolute bottom-0 left-1/2 -translate-x-1/2 pointer-events-none"
-            style={{
-              width: '60%',
-              height: 80,
-              background: 'radial-gradient(ellipse, hsl(263 70% 58% / 0.12) 0%, transparent 70%)',
-              filter: 'blur(12px)',
-            }}
-          />
-
-          <HolographicBubblesProgress
-            currentStage={currentStage}
-            progress={progress}
-            completedClips={completedClips}
-            clipCount={clipCount}
-            elapsedTime={elapsedTime}
-            statusText={statusText}
-            isRunning={isRunning}
-          />
+          <div className="max-w-6xl mx-auto flex items-center gap-4">
+            <span className="text-base leading-none shrink-0">
+              {STAGE_MESSAGES[currentStage]?.icon ?? '⚡'}
+            </span>
+            <span className="text-xs font-medium text-foreground/80 truncate min-w-0">
+              {STAGE_MESSAGES[currentStage]?.label ?? 'Processing…'}
+            </span>
+            <div
+              className="flex-1 rounded-full overflow-hidden"
+              style={{ height: 3, background: 'hsl(263 65% 58% / 0.12)' }}
+            >
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: 'hsl(263 65% 60%)' }}
+                animate={{ width: `${Math.max(2, progress)}%` }}
+                transition={{ duration: 0.8, ease: 'easeOut' }}
+              />
+            </div>
+            <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">
+              {Math.round(progress)}% · {formatTime(elapsedTime)}
+            </span>
+          </div>
         </div>
       )}
 
@@ -174,27 +164,14 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
           boxShadow: '0 -4px 40px hsl(263 70% 58% / 0.08)',
         }}
       >
-        {/* Progress bar at top of bar */}
+        {/* Progress bar at top of bar — no shimmer, clean */}
         {isRunning && (
-          <div className="h-[2px] relative overflow-hidden" style={{ background: 'hsl(250 12% 12%)' }}>
-            <motion.div 
-              className="h-full"
-              style={{
-                background: 'linear-gradient(90deg, hsl(263 70% 58%), hsl(195 90% 50%), hsl(300 70% 65%))',
-                boxShadow: '0 0 12px hsl(263 70% 58% / 0.6)',
-              }}
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
-            />
-            {/* Moving shimmer */}
+          <div className="h-[2px] overflow-hidden" style={{ background: 'hsl(250 12% 12%)' }}>
             <motion.div
-              className="absolute inset-0"
-              style={{
-                background: 'linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.4), transparent)',
-              }}
-              animate={{ x: ['-100%', '200%'] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+              className="h-full"
+              style={{ background: 'hsl(263 65% 58%)' }}
+              animate={{ width: `${Math.max(1, progress)}%` }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
             />
           </div>
         )}

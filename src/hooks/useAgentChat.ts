@@ -164,6 +164,12 @@ export function useAgentChat(): UseAgentChatReturn {
 
       setAgentState("speaking");
 
+      // Refresh credits in the UI if the backend returned an updated balance
+      if (data.updatedBalance !== undefined) {
+        // Trigger a profile refetch by dispatching a custom event
+        window.dispatchEvent(new CustomEvent('credits-updated', { detail: { balance: data.updatedBalance } }));
+      }
+
       const assistantMessage: AgentMessage = {
         id: generateId(),
         role: "assistant",

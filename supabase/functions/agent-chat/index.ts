@@ -4410,9 +4410,89 @@ serve(async (req) => {
       });
     }
 
-    const systemPrompt = buildSystemPrompt(userContext, currentPage);
-    // Send last 20 messages for better context awareness (was 10, caused Hoppy to lose track)
-    const aiMessages = [{ role: "system", content: systemPrompt }, ...messages.slice(-20)];
+    // ── Load FULL conversation history from DB (includes tool_calls + tool_results) ──
+    // The frontend only sends {role, content}, losing all tool memory.
+    // We reconstruct the real history from agent_messages so the model remembers what it showed.
+    let richHistory: Array<Record<string, unknown>> = [];
+    const shownItemIds: string[] = []; // Track IDs of items already shown (avatars, templates, etc.)
+    
+    if (conversationId) {
+      const { data: dbMsgs } = await supabase
+        .from("agent_messages")
+        .select("role, content, tool_calls, tool_results, metadata")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true })
+        .limit(30);
+      
+      if (dbMsgs && dbMsgs.length > 0) {
+        for (const msg of dbMsgs) {
+          if (msg.role === "user") {
+            richHistory.push({ role: "user", content: msg.content || "" });
+          } else if (msg.role === "assistant") {
+            // Reconstruct assistant message WITH tool_calls so model sees what it did
+            const assistantEntry: Record<string, unknown> = { role: "assistant", content: msg.content || "" };
+            if (msg.tool_calls && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
+              assistantEntry.tool_calls = msg.tool_calls;
+              // Don't include content if there are tool_calls (OpenAI format)
+              if (!msg.content) assistantEntry.content = null;
+            }
+            richHistory.push(assistantEntry);
+            
+            // Add tool results as separate messages (OpenAI expects this format)
+            if (msg.tool_results && Array.isArray(msg.tool_results)) {
+              for (const tr of msg.tool_results as Array<{ name: string; result: unknown }>) {
+                // Extract shown item IDs for deduplication
+                const result = tr.result as Record<string, unknown> | null;
+                if (result && typeof result === "object") {
+                  // Track avatar IDs
+                  if (tr.name === "get_available_avatars" && Array.isArray(result.avatars)) {
+                    for (const av of result.avatars as Array<{ id: string }>) {
+                      if (av.id) shownItemIds.push(av.id);
+                    }
+                  }
+                  // Track template IDs
+                  if (tr.name === "get_available_templates" && Array.isArray(result.templates)) {
+                    for (const t of result.templates as Array<{ id: string }>) {
+                      if (t.id) shownItemIds.push(t.id);
+                    }
+                  }
+                  // Track present_choices option IDs
+                  if (tr.name === "present_choices" && Array.isArray(result.options)) {
+                    for (const opt of result.options as Array<{ id: string }>) {
+                      if (opt.id) shownItemIds.push(opt.id);
+                    }
+                  }
+                }
+                
+                // Find matching tool_call_id
+                const matchingCall = (msg.tool_calls as Array<{ id: string; function: { name: string } }>)
+                  ?.find(tc => tc.function?.name === tr.name);
+                if (matchingCall) {
+                  richHistory.push({
+                    role: "tool",
+                    tool_call_id: matchingCall.id,
+                    content: JSON.stringify(tr.result),
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Use rich history if available, fall back to frontend messages
+    const conversationMessages = richHistory.length > 0 
+      ? richHistory.slice(-40) // Keep last 40 entries (includes tool messages)
+      : messages.slice(-20);
+    
+    // Inject dedup context into system prompt
+    const dedupNote = shownItemIds.length > 0
+      ? `\n\n═══ ALREADY SHOWN (DO NOT REPEAT) ═══\nThese IDs were already presented in this conversation. NEVER show them again:\n${shownItemIds.join(", ")}\nWhen fetching avatars/templates, filter these out or pick DIFFERENT ones.\n`
+      : "";
+    
+    const systemPrompt = buildSystemPrompt(userContext, currentPage) + dedupNote;
+    const aiMessages = [{ role: "system", content: systemPrompt }, ...conversationMessages];
 
     // 45s timeout to prevent edge function wall-clock death
     const controller1 = new AbortController();
@@ -4659,10 +4739,10 @@ serve(async (req) => {
 
     // ── Query Analytics Tracking ──
     // Categorize the user's query for app improvement insights
-    const lastUserContent = messages[messages.length - 1]?.content || "";
+    const analyticsUserContent = messages[messages.length - 1]?.content || "";
     const toolsUsed = allToolResults.map(t => t.name);
     let queryCategory = "general";
-    const lc = lastUserContent.toLowerCase();
+    const lc = analyticsUserContent.toLowerCase();
     if (lc.includes("credit") || lc.includes("price") || lc.includes("buy") || lc.includes("cost")) queryCategory = "credits_pricing";
     else if (lc.includes("project") || lc.includes("video") || lc.includes("create") || lc.includes("generate")) queryCategory = "creation";
     else if (lc.includes("edit") || lc.includes("clip") || lc.includes("music") || lc.includes("effect")) queryCategory = "editing";
@@ -4676,7 +4756,7 @@ serve(async (req) => {
     // Fire-and-forget analytics insert (don't block response)
     supabase.from("agent_query_analytics").insert({
       user_id: auth.userId,
-      query_text: lastUserContent.substring(0, 500), // Truncate for storage
+      query_text: analyticsUserContent.substring(0, 500), // Truncate for storage
       query_category: queryCategory,
       tools_used: toolsUsed,
       credits_spent: totalCreditsCharged,

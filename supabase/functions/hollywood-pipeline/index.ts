@@ -716,29 +716,110 @@ async function runPreProduction(
   }
   
   // =====================================================
-  // Analyze reference image AFTER expansion if provided
-  // This ensures script generation uses the correct (expanded) image
+  // IMAGE-TO-VIDEO: Run full identity analysis + identity bible IN PARALLEL
+  // before script generation — so the script knows exactly who the character is.
+  // For text-to-video: only basic analyze-reference-image is run (no identity bible needed).
   // =====================================================
   if (request.referenceImageUrl && !request.referenceImageAnalysis) {
-    console.log(`[Hollywood] Analyzing reference image BEFORE script generation for strict adherence...`);
+    const isImageToVideoMode = !!(request.referenceImageUrl);
+    console.log(`[Hollywood] Pre-script identity analysis (image-to-video mode: ${isImageToVideoMode})...`);
+    
     try {
-      const analysisResult = await callEdgeFunction('analyze-reference-image', {
-        imageUrl: request.referenceImageUrl,
+      await updateProjectProgress(supabase, state.projectId, 'preproduction', 9, {
+        message: 'Analyzing subject identity from image...',
       });
-      
-      if (analysisResult?.analysis) {
-        request.referenceImageAnalysis = analysisResult.analysis;
-        console.log(`[Hollywood] ✓ Reference image analyzed: ${analysisResult.analysis.characterIdentity?.description?.substring(0, 50) || 'character detected'}`);
-        
-        // Store for later stages
-        state.referenceAnalysis = analysisResult.analysis;
+
+      if (isImageToVideoMode) {
+        // Run BOTH in parallel: analyze-reference-image + generate-identity-bible
+        console.log(`[Hollywood] 🎭 IMAGE-TO-VIDEO: Running parallel identity extraction (analyze + bible)...`);
+        const [analysisResult, identityBibleResult] = await Promise.allSettled([
+          callEdgeFunction('analyze-reference-image', {
+            imageUrl: request.referenceImageUrl,
+          }),
+          callEdgeFunction('generate-identity-bible', {
+            imageUrl: request.referenceImageUrl,
+            generateBackView: true,
+            generateSilhouette: true,
+          }),
+        ]);
+
+        // Process reference analysis
+        if (analysisResult.status === 'fulfilled' && analysisResult.value?.analysis) {
+          request.referenceImageAnalysis = analysisResult.value.analysis;
+          state.referenceAnalysis = analysisResult.value.analysis;
+          console.log(`[Hollywood] ✓ Pre-script analysis: ${analysisResult.value.analysis.characterIdentity?.description?.substring(0, 60) || 'subject detected'}`);
+        } else {
+          console.warn(`[Hollywood] Pre-script reference analysis failed:`, analysisResult.status === 'rejected' ? analysisResult.reason : 'no data');
+        }
+
+        // Process identity bible
+        if (identityBibleResult.status === 'fulfilled' && identityBibleResult.value?.success) {
+          const ib = identityBibleResult.value;
+          // Seed state.identityBible early so script generator gets full character context
+          state.identityBible = {
+            characterIdentity: request.referenceImageAnalysis?.characterIdentity,
+            consistencyPrompt: ib.enhancedConsistencyPrompt || ib.characterDescription || request.referenceImageAnalysis?.consistencyPrompt || '',
+            consistencyAnchors: ib.consistencyAnchors || [],
+            originalReferenceUrl: request.referenceImageUrl,
+            nonFacialAnchors: ib.nonFacialAnchors ? {
+              bodyType: ib.nonFacialAnchors.bodyType,
+              clothingSignature: ib.nonFacialAnchors.clothingDescription || ib.nonFacialAnchors.clothingDistinctive,
+              hairFromBehind: ib.nonFacialAnchors.hairFromBehind,
+              silhouetteDescription: ib.nonFacialAnchors.overallSilhouette,
+              gait: ib.nonFacialAnchors.gait,
+              posture: ib.nonFacialAnchors.posture,
+            } : undefined,
+            occlusionNegatives: ib.occlusionNegatives || [],
+          };
+
+          // Populate masterSceneAnchor from referenceAnalysis
+          if (state.referenceAnalysis) {
+            state.identityBible.masterSceneAnchor = {
+              masterConsistencyPrompt: state.referenceAnalysis.consistencyPrompt || state.referenceAnalysis.characterIdentity?.description || '',
+              colorPalette: state.referenceAnalysis.colorPalette?.dominant || [],
+              lighting: state.referenceAnalysis.lighting?.description || state.referenceAnalysis.lighting?.style || '',
+              visualStyle: state.referenceAnalysis.environment?.setting || '',
+            };
+          }
+
+          console.log(`[Hollywood] ✓ Identity Bible seeded PRE-SCRIPT: nonFacialAnchors=${!!state.identityBible.nonFacialAnchors}, anchors=${state.identityBible.consistencyAnchors?.length || 0}`);
+
+          // Persist identity bible to DB immediately so it's available if pipeline restarts
+          try {
+            await supabase.from('movie_projects').update({
+              pro_features_data: {
+                identityBible: {
+                  ...state.identityBible,
+                  savedAt: new Date().toISOString(),
+                  savedStage: 'pre_script_identity_lock',
+                },
+                referenceAnalysis: state.referenceAnalysis,
+              },
+            }).eq('id', state.projectId);
+            console.log(`[Hollywood] ✓ Identity Bible persisted to DB at pre-script stage`);
+          } catch (saveErr) {
+            console.warn(`[Hollywood] Pre-script identity bible DB save failed:`, saveErr);
+          }
+        } else {
+          console.warn(`[Hollywood] Pre-script identity bible failed:`, identityBibleResult.status === 'rejected' ? identityBibleResult.reason : 'no data');
+          // Fall through — identity bible will be attempted again at the later stage
+        }
+      } else {
+        // Text-to-video: basic analysis only
+        const analysisResult = await callEdgeFunction('analyze-reference-image', {
+          imageUrl: request.referenceImageUrl,
+        });
+        if (analysisResult?.analysis) {
+          request.referenceImageAnalysis = analysisResult.analysis;
+          state.referenceAnalysis = analysisResult.analysis;
+          console.log(`[Hollywood] ✓ Reference image analyzed: ${analysisResult.analysis.characterIdentity?.description?.substring(0, 50) || 'character detected'}`);
+        }
       }
     } catch (err) {
-      console.warn(`[Hollywood] Reference image analysis failed (non-fatal):`, err);
-      // Continue without analysis - script will use concept only
+      console.warn(`[Hollywood] Pre-script identity analysis failed (non-fatal):`, err);
     }
   } else if (request.referenceImageAnalysis) {
-    // Already analyzed, store it
+    // Already analyzed (e.g. resume flow), store it
     state.referenceAnalysis = request.referenceImageAnalysis;
     console.log(`[Hollywood] Using pre-analyzed reference image data`);
   }
@@ -1317,43 +1398,81 @@ async function runPreProduction(
     cameraOrchestration: !!(state as any).cameraOrchestration,
   });
   
-  // 1b. Use pre-analyzed reference image OR analyze reference image
-  if (request.referenceImageAnalysis) {
-    console.log(`[Hollywood] Using pre-analyzed reference image...`);
+  // =====================================================
+  // 1b. Identity Bible post-script consolidation
+  //
+  // For IMAGE-TO-VIDEO: Identity Bible was already built in the pre-script phase
+  // (analyze-reference-image + generate-identity-bible ran in parallel before script gen).
+  // We just need to ensure masterSceneAnchor and referenceAnalysis are wired up.
+  //
+  // For TEXT-TO-VIDEO with a reference image: run the full identity bible now as before.
+  // =====================================================
+
+  // Case A: Identity Bible was pre-built (image-to-video fast path)
+  if (state.identityBible && state.identityBible.originalReferenceUrl) {
+    console.log(`[Hollywood] ✓ Identity Bible already seeded from pre-script phase — skipping redundant analysis`);
+
+    // Ensure referenceAnalysis is stored from the pre-phase if it set it
+    if (request.referenceImageAnalysis && !state.referenceAnalysis) {
+      state.referenceAnalysis = request.referenceImageAnalysis;
+    }
+
+    // Ensure masterSceneAnchor is populated if missing (e.g. partial pre-phase)
+    if (!state.identityBible.masterSceneAnchor && state.referenceAnalysis) {
+      const ra = state.referenceAnalysis;
+      state.identityBible.masterSceneAnchor = {
+        masterConsistencyPrompt: ra.consistencyPrompt || ra.characterIdentity?.description || '',
+        colorPalette: ra.colorPalette?.dominant || [],
+        lighting: ra.lighting?.style || ra.lighting?.description || '',
+        visualStyle: ra.environment?.setting || '',
+      };
+      console.log(`[Hollywood] ✓ masterSceneAnchor back-filled from referenceAnalysis`);
+    }
+
+    // Ensure characterIdentity is populated from referenceAnalysis if missing
+    if (!state.identityBible.characterIdentity && request.referenceImageAnalysis?.characterIdentity) {
+      state.identityBible.characterIdentity = request.referenceImageAnalysis.characterIdentity;
+    }
+
+  // Case B: referenceImageAnalysis already passed in (resume flow or external pre-analysis)
+  } else if (request.referenceImageAnalysis && !state.identityBible) {
+    console.log(`[Hollywood] Using pre-analyzed reference image (external)...`);
     state.referenceAnalysis = request.referenceImageAnalysis;
     state.identityBible = {
       characterIdentity: request.referenceImageAnalysis.characterIdentity,
       consistencyPrompt: request.referenceImageAnalysis.consistencyPrompt,
     };
-  } else if (request.referenceImageUrl) {
-    console.log(`[Hollywood] Analyzing reference image...`);
-    
-    // Initialize degradation tracking
+
+  // Case C: reference URL present but no pre-built identity bible (text-to-video with reference image)
+  // Run the full identity bible generation now as a fallback.
+  } else if (request.referenceImageUrl && !state.identityBible) {
+    console.log(`[Hollywood] Running post-script identity bible (text-to-video fallback)...`);
     state.degradation = state.degradation || {};
-    
+
     try {
-      // SAFEGUARD: Identity Bible with retry (2 attempts)
       const MAX_IDENTITY_RETRIES = 2;
       let identityResult = null;
       let identityRetryCount = 0;
-      
-      const analysisResult = await callEdgeFunction('analyze-reference-image', {
-        imageUrl: request.referenceImageUrl,
-      });
-      
-      const analysis = analysisResult.analysis || analysisResult;
-      state.referenceAnalysis = analysis;
-      
+
+      // Use already-stored referenceAnalysis if available, else re-analyze
+      let analysis = state.referenceAnalysis;
+      if (!analysis) {
+        const analysisResult = await callEdgeFunction('analyze-reference-image', {
+          imageUrl: request.referenceImageUrl,
+        });
+        analysis = analysisResult.analysis || analysisResult;
+        state.referenceAnalysis = analysis;
+      }
+
       // Retry loop for Identity Bible
       for (let attempt = 1; attempt <= MAX_IDENTITY_RETRIES; attempt++) {
         try {
-          console.log(`[Hollywood] Identity Bible generation attempt ${attempt}/${MAX_IDENTITY_RETRIES}...`);
+          console.log(`[Hollywood] Identity Bible attempt ${attempt}/${MAX_IDENTITY_RETRIES}...`);
           identityResult = await callEdgeFunction('generate-identity-bible', {
             imageUrl: request.referenceImageUrl,
             generateBackView: true,
             generateSilhouette: true,
           });
-          
           if (identityResult?.success) {
             console.log(`[Hollywood] Identity Bible generated on attempt ${attempt}`);
             break;
@@ -1362,44 +1481,30 @@ async function runPreProduction(
         } catch (err) {
           console.warn(`[Hollywood] Identity Bible attempt ${attempt} failed:`, err);
           identityRetryCount = attempt;
-          if (attempt < MAX_IDENTITY_RETRIES) {
-            await new Promise(r => setTimeout(r, 2000)); // Wait 2s before retry
-          }
+          if (attempt < MAX_IDENTITY_RETRIES) await new Promise(r => setTimeout(r, 2000));
         }
       }
-      
-      // Track degradation if identity bible failed after retries
+
       if (!identityResult?.success) {
         state.degradation.identityBibleFailed = true;
         state.degradation.identityBibleRetries = identityRetryCount;
         state.degradation.reducedConsistencyMode = true;
-        console.warn(`[Hollywood] ⚠️ DEGRADATION: Identity Bible failed after ${identityRetryCount} attempts - entering reduced consistency mode`);
+        console.warn(`[Hollywood] ⚠️ DEGRADATION: Identity Bible failed after ${identityRetryCount} attempts`);
       }
-      
+
       state.identityBible = {
         characterIdentity: analysis.characterIdentity,
         consistencyPrompt: analysis.consistencyPrompt,
-      };
-      
-      // =====================================================
-      // CRITICAL FIX: Always populate masterSceneAnchor from referenceAnalysis
-      // This ensures PromptBuilder has scene DNA even if identity-bible fails
-      // =====================================================
-      if (analysis) {
-        state.identityBible.masterSceneAnchor = {
+        masterSceneAnchor: {
           masterConsistencyPrompt: analysis.consistencyPrompt || analysis.characterIdentity?.description || '',
           colorPalette: analysis.colorPalette?.dominant || analysis.colorPalette || [],
           lighting: analysis.lighting?.description || analysis.lighting?.type || '',
           visualStyle: analysis.visualStyle || analysis.environment?.description || '',
-        };
-        console.log(`[Hollywood] ✓ masterSceneAnchor populated from referenceAnalysis (lighting=${!!analysis.lighting})`);
-      }
-      
+        },
+      };
+
       if (identityResult?.success) {
-        // v3.0: No multi-view generation - use original reference + detailed prompts
         state.identityBible.consistencyAnchors = identityResult.consistencyAnchors || [];
-        
-        // Non-facial anchors for occlusion handling
         if (identityResult.nonFacialAnchors) {
           state.identityBible.nonFacialAnchors = {
             bodyType: identityResult.nonFacialAnchors.bodyType,
@@ -1409,71 +1514,40 @@ async function runPreProduction(
             gait: identityResult.nonFacialAnchors.gait,
             posture: identityResult.nonFacialAnchors.posture,
           };
-          console.log(`[Hollywood] Non-facial anchors extracted: bodyType=${identityResult.nonFacialAnchors.bodyType}`);
         }
-        
-        // Occlusion negatives for anti-morphing
         if (identityResult.occlusionNegatives) {
           state.identityBible.occlusionNegatives = identityResult.occlusionNegatives;
-          console.log(`[Hollywood] Occlusion negatives: ${identityResult.occlusionNegatives.length} anti-morphing prompts`);
         }
-        
         if (identityResult.characterDescription || identityResult.enhancedConsistencyPrompt) {
           state.identityBible.consistencyPrompt = identityResult.enhancedConsistencyPrompt || identityResult.characterDescription;
         }
-        
-        // Store original reference URL for all clips to use
         state.identityBible.originalReferenceUrl = request.referenceImageUrl;
-        
-        console.log(`[Hollywood] Identity Bible v3.0 generated: analysis-only mode, non-facial anchors=${!!identityResult.nonFacialAnchors}`);
       }
-      
-      console.log(`[Hollywood] Reference analyzed: ${analysis.consistencyPrompt?.substring(0, 50)}...`);
-      
-      // =====================================================
-      // IMMEDIATE PERSISTENCE: Save identity bible to DB RIGHT NOW
-      // This ensures it's available even if pipeline crashes/restarts
-      // =====================================================
-      if (state.identityBible) {
-        try {
-          const identityToSave = {
-            ...state.identityBible,
-            characterDescription: state.identityBible.consistencyPrompt 
-              || state.identityBible.characterIdentity?.description
-              || '',
-            savedAt: new Date().toISOString(),
-            savedStage: 'reference_analysis',
-          };
-          
-          const { data: currentData } = await supabase
-            .from('movie_projects')
-            .select('pro_features_data')
-            .eq('id', state.projectId)
-            .single();
-          
-          await supabase
-            .from('movie_projects')
-            .update({
-              pro_features_data: {
-                ...(currentData?.pro_features_data || {}),
-                identityBible: identityToSave,
-                referenceAnalysis: state.referenceAnalysis,
-                identitySavedAt: new Date().toISOString(),
-              },
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', state.projectId);
-          
-          console.log(`[Hollywood] ✓ IMMEDIATE SAVE: identityBible persisted to DB`);
-          console.log(`[Hollywood]   consistencyPrompt: ${identityToSave.consistencyPrompt?.substring(0, 50) || 'NONE'}...`);
-          console.log(`[Hollywood]   characterIdentity: ${identityToSave.characterIdentity ? 'YES' : 'NO'}`);
-          console.log(`[Hollywood]   nonFacialAnchors: ${identityToSave.nonFacialAnchors ? 'YES' : 'NO'}`);
-        } catch (saveErr) {
-          console.error(`[Hollywood] ⚠️ IMMEDIATE SAVE FAILED:`, saveErr);
-        }
+
+      // Persist to DB
+      try {
+        const { data: currentData } = await supabase
+          .from('movie_projects')
+          .select('pro_features_data')
+          .eq('id', state.projectId)
+          .single();
+
+        await supabase.from('movie_projects').update({
+          pro_features_data: {
+            ...(currentData?.pro_features_data || {}),
+            identityBible: { ...state.identityBible, savedAt: new Date().toISOString(), savedStage: 'reference_analysis' },
+            referenceAnalysis: state.referenceAnalysis,
+            identitySavedAt: new Date().toISOString(),
+          },
+          updated_at: new Date().toISOString(),
+        }).eq('id', state.projectId);
+
+        console.log(`[Hollywood] ✓ Identity Bible persisted to DB (post-script stage)`);
+      } catch (saveErr) {
+        console.error(`[Hollywood] ⚠️ Identity Bible DB save failed:`, saveErr);
       }
     } catch (err) {
-      console.warn(`[Hollywood] Reference analysis failed:`, err);
+      console.warn(`[Hollywood] Post-script identity analysis failed:`, err);
       state.degradation = state.degradation || {};
       state.degradation.identityBibleFailed = true;
       state.degradation.reducedConsistencyMode = true;

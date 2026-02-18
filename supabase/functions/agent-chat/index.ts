@@ -4622,24 +4622,27 @@ serve(async (req) => {
             richHistory.push(assistantEntry);
             
             // Add tool results as separate messages (OpenAI expects this format)
-            if (msg.tool_results && Array.isArray(msg.tool_results)) {
-              for (const tr of msg.tool_results as Array<{ name: string; result: unknown }>) {
+            // CRITICAL: Match by tool_call_id (not function name) — multiple calls to same function 
+            // have different IDs. We store results in order matching the tool_calls array.
+            if (msg.tool_results && Array.isArray(msg.tool_results) && msg.tool_calls && Array.isArray(msg.tool_calls)) {
+              const toolCalls = msg.tool_calls as Array<{ id: string; function: { name: string } }>;
+              const toolResults = msg.tool_results as Array<{ name: string; result: unknown; tool_call_id?: string }>;
+              
+              for (let idx = 0; idx < toolResults.length; idx++) {
+                const tr = toolResults[idx];
                 // Extract shown item IDs for deduplication
                 const result = tr.result as Record<string, unknown> | null;
                 if (result && typeof result === "object") {
-                  // Track avatar IDs
                   if (tr.name === "get_available_avatars" && Array.isArray(result.avatars)) {
                     for (const av of result.avatars as Array<{ id: string }>) {
                       if (av.id) shownItemIds.push(av.id);
                     }
                   }
-                  // Track template IDs
                   if (tr.name === "get_available_templates" && Array.isArray(result.templates)) {
                     for (const t of result.templates as Array<{ id: string }>) {
                       if (t.id) shownItemIds.push(t.id);
                     }
                   }
-                  // Track present_choices option IDs
                   if (tr.name === "present_choices" && Array.isArray(result.options)) {
                     for (const opt of result.options as Array<{ id: string }>) {
                       if (opt.id) shownItemIds.push(opt.id);
@@ -4647,13 +4650,16 @@ serve(async (req) => {
                   }
                 }
                 
-                // Find matching tool_call_id
-                const matchingCall = (msg.tool_calls as Array<{ id: string; function: { name: string } }>)
-                  ?.find(tc => tc.function?.name === tr.name);
-                if (matchingCall) {
+                // Match by stored tool_call_id first, then positional fallback (index match),
+                // then name-based as last resort (handles legacy data without stored IDs)
+                const toolCallId = tr.tool_call_id 
+                  || toolCalls[idx]?.id  // positional: result[0] → toolCall[0]
+                  || toolCalls.find(tc => tc.function?.name === tr.name)?.id; // legacy fallback
+                
+                if (toolCallId) {
                   richHistory.push({
                     role: "tool",
-                    tool_call_id: matchingCall.id,
+                    tool_call_id: toolCallId,
                     content: JSON.stringify(tr.result),
                   });
                 }
@@ -4708,8 +4714,8 @@ serve(async (req) => {
     const hasImageContent = conversationMessages.some((msg: any) =>
       Array.isArray(msg.content) && msg.content.some((part: any) => part.type === "image_url")
     );
-    // gpt-4o supports vision + tools; gpt-4o-mini for text-only (higher RPM)
-    const PRIMARY_MODEL = hasImageContent ? "gpt-4o" : "gpt-4o-mini";
+    // Always use gpt-4o — it supports vision + tools with full reasoning capability
+    const PRIMARY_MODEL = "gpt-4o";
     console.log(`[agent-chat] Model: ${PRIMARY_MODEL}, hasImages: ${hasImageContent}`);
 
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -4782,7 +4788,7 @@ serve(async (req) => {
     let assistantMessage = data.choices?.[0]?.message;
     const allToolResults: Array<{ name: string; result: unknown }> = [];
     let iterations = 0;
-    const MAX_ITERATIONS = 5; // Reduced to prevent edge function timeouts
+    const MAX_ITERATIONS = 10;
     let totalCreditsCharged = CONVERSATION_COST; // Start with base conversation cost
 
     while (assistantMessage?.tool_calls && iterations < MAX_ITERATIONS) {
@@ -4815,13 +4821,14 @@ serve(async (req) => {
         }
 
         const result = await executeTool(toolName, toolArgs, supabase, auth.userId);
-        allToolResults.push({ name: toolName, result });
+        // Persist tool_call_id so history reconstruction can match precisely (not by function name)
+        allToolResults.push({ name: toolName, result, tool_call_id: toolCall.id });
         toolResults.push({ role: "tool", tool_call_id: toolCall.id, content: JSON.stringify(result) });
       }
 
       const continueMessages = [...aiMessages, assistantMessage, ...toolResults];
 
-      // Follow-up call — use gpt-4o-mini for lower rate limit pressure
+      // Follow-up call — always use gpt-4o for consistent reasoning quality
       response = null;
       for (let fAttempt = 0; fAttempt < 3; fAttempt++) {
         if (fAttempt > 0) {
@@ -4835,7 +4842,7 @@ serve(async (req) => {
           response = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ model: "gpt-4o-mini", messages: continueMessages, tools: AGENT_TOOLS, stream: false }),
+            body: JSON.stringify({ model: "gpt-4o", messages: continueMessages, tools: AGENT_TOOLS, stream: false }),
             signal: controllerN.signal,
           });
         } catch (e: any) {

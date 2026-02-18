@@ -1,6 +1,5 @@
- import { forwardRef, useState, useEffect, useRef } from 'react';
+import { forwardRef, useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Sparkles, 
   Square, 
@@ -8,29 +7,19 @@ import {
   Coins, 
   Layers,
   Loader2,
-  CheckCircle2,
-  XCircle,
-  ChevronUp,
-  ChevronDown,
-  Terminal,
   Zap,
   AlertCircle,
   CreditCard
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
- import { useNavigate } from 'react-router-dom';
- import { 
-   getCreditWarningLevel,
-   TIPS_MESSAGES,
-   showOnce,
- } from '@/lib/smartMessages';
-
-interface PipelineLog {
-  time: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-}
+import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { 
+  getCreditWarningLevel,
+  TIPS_MESSAGES,
+  showOnce,
+} from '@/lib/smartMessages';
+import { HolographicBubblesProgress } from './HolographicBubblesProgress';
 
 interface StickyGenerateBarProps {
   isRunning: boolean;
@@ -48,7 +37,7 @@ interface StickyGenerateBarProps {
   onBuyCredits?: () => void;
   disabled?: boolean;
   currentStage?: string;
-  pipelineLogs?: PipelineLog[];
+  pipelineLogs?: unknown[];
   isInitializing?: boolean;
 }
 
@@ -80,25 +69,23 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
     onBuyCredits,
     disabled,
     currentStage = 'idle',
-    pipelineLogs = [],
     isInitializing = false,
   }, ref) {
-  const [showLogs, setShowLogs] = useState(false);
   const [statusText, setStatusText] = useState('Initializing...');
-   const navigate = useNavigate();
-   const hasShownClipWarning = useRef(false);
+  const navigate = useNavigate();
+  const hasShownClipWarning = useRef(false);
   
   const hasInsufficientCredits = userCredits < estimatedCredits;
   const creditShortfall = Math.max(0, estimatedCredits - userCredits);
-   const creditLevel = getCreditWarningLevel(userCredits, estimatedCredits);
+  const creditLevel = getCreditWarningLevel(userCredits, estimatedCredits);
    
-   // Show high clip count warning once when user has many clips
-   useEffect(() => {
-     if (!hasShownClipWarning.current && clipCount >= 8 && !isRunning) {
-       hasShownClipWarning.current = true;
-       showOnce(TIPS_MESSAGES.HIGH_CLIP_COUNT_WARNING(clipCount), navigate);
-     }
-   }, [clipCount, isRunning, navigate]);
+  // Show high clip count warning once when user has many clips
+  useEffect(() => {
+    if (!hasShownClipWarning.current && clipCount >= 8 && !isRunning) {
+      hasShownClipWarning.current = true;
+      showOnce(TIPS_MESSAGES.HIGH_CLIP_COUNT_WARNING(clipCount), navigate);
+    }
+  }, [clipCount, isRunning, navigate]);
   
   // Animate status text based on progress
   useEffect(() => {
@@ -133,127 +120,119 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
 
   return (
     <div ref={ref} className="fixed bottom-0 left-0 right-0 z-50 pb-safe">
-      {/* Expandable Logs Panel */}
-      <AnimatePresence>
-        {isRunning && showLogs && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 200, opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="bg-[#0a0a0a] border-t border-white/10 overflow-hidden"
-          >
-            <div className="flex items-center gap-2 px-4 py-2 border-b border-white/[0.06]">
-              <Terminal className="w-3.5 h-3.5 text-white/40" />
-              <span className="text-xs font-semibold text-white/50 uppercase tracking-wider">Pipeline Log</span>
-              <motion.div 
-                className="w-1.5 h-1.5 rounded-full bg-emerald-400 ml-1"
-                animate={{ opacity: [1, 0.3, 1] }}
-                transition={{ duration: 1, repeat: Infinity }}
-              />
-            </div>
-            <ScrollArea className="h-[160px] px-4 py-2">
-              {pipelineLogs.length === 0 ? (
-                <div className="flex items-center gap-2 text-white/30 text-xs py-4">
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  <span>Waiting for pipeline updates...</span>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {pipelineLogs.slice(-20).map((log, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="flex items-start gap-2 text-xs"
-                    >
-                      <span className="text-white/20 font-mono shrink-0">{log.time}</span>
-                      <div className={cn(
-                        "w-1.5 h-1.5 rounded-full mt-1.5 shrink-0",
-                        log.type === 'success' && "bg-emerald-400",
-                        log.type === 'error' && "bg-red-400",
-                        log.type === 'warning' && "bg-amber-400",
-                        log.type === 'info' && "bg-white/30"
-                      )} />
-                      <span className={cn(
-                        log.type === 'success' && "text-emerald-400/80",
-                        log.type === 'error' && "text-red-400/80",
-                        log.type === 'warning' && "text-amber-400/80",
-                        log.type === 'info' && "text-white/50"
-                      )}>
-                        {log.message}
-                      </span>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Holographic Bubbles Panel — shown when running */}
+      {isRunning && (
+        <div
+          className="relative border-t overflow-hidden"
+          style={{
+            background: 'linear-gradient(to top, hsl(250 15% 4% / 0.98), hsl(250 15% 6% / 0.95))',
+            borderColor: 'hsl(263 70% 58% / 0.15)',
+          }}
+        >
+          {/* Subtle grid overlay */}
+          <div
+            className="absolute inset-0 pointer-events-none opacity-[0.03]"
+            style={{
+              backgroundImage: `
+                linear-gradient(hsl(263 70% 65%) 1px, transparent 1px),
+                linear-gradient(90deg, hsl(263 70% 65%) 1px, transparent 1px)
+              `,
+              backgroundSize: '40px 40px',
+            }}
+          />
 
-      {/* Main Bar */}
-      <div className="bg-background/95 backdrop-blur-lg border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
-        {/* Progress bar at top of sticky bar */}
+          {/* Ambient glow at base */}
+          <div
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 pointer-events-none"
+            style={{
+              width: '60%',
+              height: 80,
+              background: 'radial-gradient(ellipse, hsl(263 70% 58% / 0.12) 0%, transparent 70%)',
+              filter: 'blur(12px)',
+            }}
+          />
+
+          <HolographicBubblesProgress
+            currentStage={currentStage}
+            progress={progress}
+            completedClips={completedClips}
+            clipCount={clipCount}
+            elapsedTime={elapsedTime}
+            statusText={statusText}
+            isRunning={isRunning}
+          />
+        </div>
+      )}
+
+      {/* Main Bottom Bar */}
+      <div
+        className="relative border-t"
+        style={{
+          background: 'hsl(250 15% 4% / 0.97)',
+          borderColor: 'hsl(263 70% 58% / 0.12)',
+          backdropFilter: 'blur(16px)',
+          boxShadow: '0 -4px 40px hsl(263 70% 58% / 0.08)',
+        }}
+      >
+        {/* Progress bar at top of bar */}
         {isRunning && (
-          <div className="h-1 bg-muted relative overflow-hidden">
+          <div className="h-[2px] relative overflow-hidden" style={{ background: 'hsl(250 12% 12%)' }}>
             <motion.div 
-              className="h-full bg-primary"
+              className="h-full"
+              style={{
+                background: 'linear-gradient(90deg, hsl(263 70% 58%), hsl(195 90% 50%), hsl(300 70% 65%))',
+                boxShadow: '0 0 12px hsl(263 70% 58% / 0.6)',
+              }}
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
             />
-            {/* Shimmer effect */}
+            {/* Moving shimmer */}
             <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-              animate={{ x: ['-100%', '100%'] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.4), transparent)',
+              }}
+              animate={{ x: ['-100%', '200%'] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
             />
           </div>
         )}
         
-        <div className="max-w-6xl mx-auto px-6 py-4">
+        <div className="max-w-6xl mx-auto px-6 py-3">
           <div className="flex items-center justify-between gap-4">
             {/* Left: Stats & Status */}
-            <div className="flex items-center gap-4">
-              {/* Status indicator when running */}
+            <div className="flex items-center gap-3">
+              {/* Running state — minimal elegant status */}
               {isRunning && (
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
                   className="flex items-center gap-3"
                 >
-                  {/* Pulsing indicator */}
-                  <div className="relative">
+                  {/* Animated orb */}
+                  <div className="relative w-8 h-8">
                     <motion.div
-                      className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center"
-                      animate={{ scale: [1, 1.05, 1] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    >
-                      <Zap className="w-5 h-5 text-primary" />
-                    </motion.div>
-                    <motion.div
-                      className="absolute inset-0 rounded-xl bg-primary/20"
-                      animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
+                      className="absolute inset-0 rounded-full"
+                      style={{ background: 'hsl(263 70% 58% / 0.2)' }}
+                      animate={{ scale: [1, 1.5], opacity: [0.6, 0] }}
                       transition={{ duration: 1.5, repeat: Infinity }}
                     />
-                  </div>
-                  
-                  {/* Status text */}
-                  <div className="hidden sm:block">
-                    <motion.p 
-                      key={statusText}
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-sm font-medium text-foreground"
+                    <div
+                      className="absolute inset-0 rounded-full flex items-center justify-center"
+                      style={{ background: 'hsl(263 70% 58% / 0.15)', border: '1px solid hsl(263 70% 58% / 0.3)' }}
                     >
-                      {statusText}
-                    </motion.p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{Math.round(progress)}% complete</span>
-                      <span>•</span>
-                      <span>{formatTime(elapsedTime)}</span>
+                      <Zap className="w-3.5 h-3.5" style={{ color: 'hsl(263 70% 65%)' }} />
                     </div>
+                  </div>
+
+                  <div className="hidden sm:block">
+                    <p className="text-xs font-medium" style={{ color: 'hsl(240 5% 85%)' }}>
+                      {Math.round(progress)}% · {formatTime(elapsedTime)}
+                    </p>
+                    <p className="text-[10px]" style={{ color: 'hsl(240 5% 45%)' }}>
+                      Watch the bubbles ✦
+                    </p>
                   </div>
                 </motion.div>
               )}
@@ -261,26 +240,34 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
               {/* Static stats when not running */}
               {!isRunning && (
                 <>
-                  <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 text-sm">
-                    <Clock className="w-4 h-4 text-muted-foreground" />
-                    <span className="font-medium">{totalDuration}s</span>
+                  <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm"
+                    style={{ background: 'hsl(250 12% 10%)', border: '1px solid hsl(250 15% 16%)' }}>
+                    <Clock className="w-4 h-4" style={{ color: 'hsl(240 5% 45%)' }} />
+                    <span className="font-medium" style={{ color: 'hsl(240 5% 80%)' }}>{totalDuration}s</span>
                   </div>
                   
-                  <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 text-sm">
-                    <Layers className="w-4 h-4 text-muted-foreground" />
-                    <span className="font-medium">{clipCount} clips</span>
+                  <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm"
+                    style={{ background: 'hsl(250 12% 10%)', border: '1px solid hsl(250 15% 16%)' }}>
+                    <Layers className="w-4 h-4" style={{ color: 'hsl(240 5% 45%)' }} />
+                    <span className="font-medium" style={{ color: 'hsl(240 5% 80%)' }}>{clipCount} clips</span>
                   </div>
 
                   {/* Render time estimate */}
-                  <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm">
-                    <Clock className="w-4 h-4 text-amber-500" />
-                    <span className="font-medium text-amber-600">~{Math.ceil(clipCount * 3)} min</span>
-                    <span className="text-xs text-muted-foreground">(2-4 min/clip)</span>
+                  <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm"
+                    style={{ background: 'hsl(48 100% 60% / 0.08)', border: '1px solid hsl(48 100% 60% / 0.2)' }}>
+                    <Clock className="w-4 h-4" style={{ color: 'hsl(48 100% 55%)' }} />
+                    <span className="font-medium" style={{ color: 'hsl(48 100% 55%)' }}>~{Math.ceil(clipCount * 3)} min</span>
+                    <span className="text-xs" style={{ color: 'hsl(240 5% 45%)' }}>(2-4 min/clip)</span>
                   </div>
                   
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-foreground text-background text-sm">
-                    <Coins className="w-4 h-4" />
-                    <span className="font-medium">~{estimatedCredits}</span>
+                  {/* Credits badge */}
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm"
+                    style={{
+                      background: 'linear-gradient(135deg, hsl(263 70% 58% / 0.15), hsl(195 90% 50% / 0.1))',
+                      border: '1px solid hsl(263 70% 58% / 0.25)',
+                    }}>
+                    <Coins className="w-4 h-4" style={{ color: 'hsl(263 70% 65%)' }} />
+                    <span className="font-semibold" style={{ color: 'hsl(263 70% 75%)' }}>~{estimatedCredits}</span>
                   </div>
                 </>
               )}
@@ -289,84 +276,107 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
             {/* Right: Action Buttons */}
             <div className="flex items-center gap-3">
               {isRunning && (
-                <>
-                  {/* Toggle logs button */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowLogs(!showLogs)}
-                    className="gap-1.5 text-muted-foreground hover:text-foreground"
-                  >
-                    <Terminal className="w-4 h-4" />
-                    <span className="hidden sm:inline">Logs</span>
-                    {showLogs ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
-                  </Button>
-                  
-                  <Button
-                    variant="destructive"
-                    onClick={onCancel}
-                    className="gap-2 h-11 px-6"
-                  >
-                    <Square className="w-4 h-4" />
-                    <span className="hidden sm:inline">Cancel</span>
-                  </Button>
-                </>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onCancel}
+                  className="gap-2 h-9 px-5 rounded-xl font-medium transition-all"
+                  style={{
+                    color: 'hsl(0 84% 60%)',
+                    border: '1px solid hsl(0 84% 60% / 0.25)',
+                    background: 'hsl(0 84% 60% / 0.08)',
+                  }}
+                >
+                  <Square className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Cancel</span>
+                </Button>
               )}
               
               {!isRunning && (
                 <div className="flex items-center gap-3">
                   {/* Insufficient credits warning */}
-                   {(creditLevel === 'critical' || creditLevel === 'empty') && (
+                  {(creditLevel === 'critical' || creditLevel === 'empty') && (
                     <motion.div
                       initial={{ opacity: 0, x: 10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-destructive/10 border border-destructive/20"
+                      className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl"
+                      style={{
+                        background: 'hsl(0 84% 60% / 0.08)',
+                        border: '1px solid hsl(0 84% 60% / 0.2)',
+                      }}
                     >
-                      <AlertCircle className="w-4 h-4 text-destructive" />
-                      <span className="text-sm text-destructive font-medium">
+                      <AlertCircle className="w-4 h-4" style={{ color: 'hsl(0 84% 60%)' }} />
+                      <span className="text-sm font-medium" style={{ color: 'hsl(0 84% 60%)' }}>
                         Need {creditShortfall} more credits
                       </span>
                     </motion.div>
                   )}
                   
-                   {/* Low credits warning (less urgent) */}
-                   {creditLevel === 'low' && (
-                     <motion.div
-                       initial={{ opacity: 0, x: 10 }}
-                       animate={{ opacity: 1, x: 0 }}
-                       className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20"
-                     >
-                       <AlertCircle className="w-4 h-4 text-amber-500" />
-                       <span className="text-sm text-amber-600 font-medium">
-                         Low credits: {userCredits} remaining
-                       </span>
-                     </motion.div>
-                   )}
+                  {/* Low credits warning */}
+                  {creditLevel === 'low' && (
+                    <motion.div
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl"
+                      style={{
+                        background: 'hsl(48 100% 60% / 0.08)',
+                        border: '1px solid hsl(48 100% 60% / 0.2)',
+                      }}
+                    >
+                      <AlertCircle className="w-4 h-4" style={{ color: 'hsl(48 100% 55%)' }} />
+                      <span className="text-sm font-medium" style={{ color: 'hsl(48 100% 55%)' }}>
+                        Low credits: {userCredits} remaining
+                      </span>
+                    </motion.div>
+                  )}
                    
-                  {/* Buy Credits button when insufficient */}
-                   {(creditLevel === 'critical' || creditLevel === 'empty') && onBuyCredits && (
+                  {/* Buy Credits button */}
+                  {(creditLevel === 'critical' || creditLevel === 'empty') && onBuyCredits && (
                     <Button
                       variant="outline"
                       onClick={onBuyCredits}
-                      className="gap-2 h-11 px-6 border-primary text-primary hover:bg-primary/10"
+                      className="gap-2 h-11 px-6 rounded-xl"
+                      style={{
+                        borderColor: 'hsl(263 70% 58% / 0.4)',
+                        color: 'hsl(263 70% 65%)',
+                        background: 'hsl(263 70% 58% / 0.08)',
+                      }}
                     >
                       <CreditCard className="w-4 h-4" />
                       <span>Buy Credits</span>
                     </Button>
                   )}
                   
+                  {/* Generate button */}
                   <Button
                     onClick={onGenerate}
                     disabled={disabled || isInitializing || hasInsufficientCredits}
                     className={cn(
-                      "gap-2 h-11 px-8 font-semibold transition-all",
-                      "bg-foreground hover:bg-foreground/90 text-background",
-                      "shadow-lg hover:shadow-xl hover:scale-[1.02]",
-                      "relative overflow-hidden group",
+                      "gap-2 h-11 px-8 font-semibold rounded-xl relative overflow-hidden group transition-all",
                       isInitializing && "cursor-wait",
-                      hasInsufficientCredits && "opacity-50 cursor-not-allowed"
+                      hasInsufficientCredits && "opacity-40 cursor-not-allowed"
                     )}
+                    style={!hasInsufficientCredits && !isInitializing ? {
+                      background: 'linear-gradient(135deg, hsl(263 70% 55%), hsl(280 60% 60%))',
+                      boxShadow: '0 4px 24px hsl(263 70% 58% / 0.35)',
+                      border: '1px solid hsl(263 70% 65% / 0.3)',
+                      color: 'hsl(0 0% 100%)',
+                    } : {
+                      background: 'hsl(250 12% 14%)',
+                      border: '1px solid hsl(250 15% 20%)',
+                      color: 'hsl(240 5% 55%)',
+                    }}
                   >
+                    {/* Shimmer on hover */}
+                    {!hasInsufficientCredits && !isInitializing && (
+                      <div
+                        className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
+                        style={{
+                          background: 'linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.15), transparent)',
+                        }}
+                      />
+                    )}
+
                     {isInitializing ? (
                       <>
                         <Loader2 className="w-5 h-5 animate-spin" />
@@ -379,8 +389,6 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
                       </>
                     ) : (
                       <>
-                        {/* Shimmer effect */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                         <Sparkles className="w-5 h-5" />
                         <span>Generate Video</span>
                       </>

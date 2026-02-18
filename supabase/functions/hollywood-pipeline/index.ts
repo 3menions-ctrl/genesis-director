@@ -716,103 +716,200 @@ async function runPreProduction(
   }
   
   // =====================================================
-  // IMAGE-TO-VIDEO: Run full identity analysis + identity bible IN PARALLEL
-  // before script generation — so the script knows exactly who the character is.
-  // For text-to-video: only basic analyze-reference-image is run (no identity bible needed).
+  // IMAGE-TO-VIDEO: COMPREHENSIVE SCENE IDENTITY EXTRACTION
+  // "Character-First" approach — runs BEFORE scripting so the writer
+  // knows EXACTLY who the character is and what the environment looks like.
+  //
+  // Uses the new extract-scene-identity engine which:
+  //   1. CHARACTER DNA   — face, body, hair, clothing, distinctive markers
+  //   2. ENVIRONMENT DNA — geometry, props, surfaces, atmospheric conditions
+  //   3. LIGHTING PROFILE — primary/fill/rim lights, shadows, color temp
+  //   4. COLOR SCIENCE   — dominant/accent palette with hex codes, grading style
+  //   5. CINEMATIC STYLE — lens, DOF, film grain, composition, camera angle
+  //   6. ALL NEGATIVES   — morphing & drift prevention
+  //   7. CLIP ANCHORS    — short injectable phrases for every single clip
+  //
+  // Charges 5 credits for this deep analysis phase.
   // =====================================================
   if (request.referenceImageUrl && !request.referenceImageAnalysis) {
-    const isImageToVideoMode = !!(request.referenceImageUrl);
-    console.log(`[Hollywood] Pre-script identity analysis (image-to-video mode: ${isImageToVideoMode})...`);
-    
+    console.log(`[Hollywood] 🔬 IMAGE-TO-VIDEO: Starting COMPREHENSIVE Scene Identity Extraction...`);
+
     try {
       await updateProjectProgress(supabase, state.projectId, 'preproduction', 9, {
-        message: 'Analyzing subject identity from image...',
+        message: '🔬 Extracting deep character & environment identity from image...',
       });
 
-      if (isImageToVideoMode) {
-        // Run BOTH in parallel: analyze-reference-image + generate-identity-bible
-        console.log(`[Hollywood] 🎭 IMAGE-TO-VIDEO: Running parallel identity extraction (analyze + bible)...`);
+      // === COMPREHENSIVE EXTRACTION (new engine — avatar-grade) ===
+      // Runs dual-pass GPT-4o vision: Character DNA + Environment/Lighting/Color/Cinematic DNA
+      const sceneIdentityResult = await callEdgeFunction('extract-scene-identity', {
+        imageUrl: request.referenceImageUrl,
+        projectId: state.projectId,
+        userId: request.userId,
+        skipCreditCharge: request.skipCreditDeduction === true, // honour admin bypass
+      }, {
+        maxRetries: 1,
+        timeoutMs: 120000, // 2 min — two GPT-4o vision passes
+      });
+
+      if (sceneIdentityResult?.success) {
+        const si = sceneIdentityResult;
+        console.log(`[Hollywood] ✓ Scene identity extracted:`);
+        console.log(`[Hollywood]   Character: ${si.characterDNA?.identitySummary?.substring(0, 70)}`);
+        console.log(`[Hollywood]   Environment: ${si.environmentDNA?.environmentLock?.substring(0, 60)}`);
+        console.log(`[Hollywood]   Lighting: ${si.lightingProfile?.style}`);
+        console.log(`[Hollywood]   Color: ${si.colorScience?.gradingStyle}`);
+        console.log(`[Hollywood]   Credits charged for extraction: ${si.creditsCharged}`);
+
+        // === BUILD FULL IDENTITY BIBLE FROM SCENE IDENTITY ===
+        // Map the rich SceneIdentityResult into the existing identityBible structure
+        // so all downstream pipeline stages (audit, generation, frame-chaining) benefit.
+        state.identityBible = {
+          characterIdentity: {
+            description: si.characterDNA.description,
+            facialFeatures: [
+              si.characterDNA.facialFeatures?.faceShape,
+              si.characterDNA.facialFeatures?.eyes,
+              si.characterDNA.facialFeatures?.skinTone,
+            ].filter(Boolean).join(', '),
+            clothing: [
+              si.characterDNA.clothingSignature?.topwear,
+              si.characterDNA.clothingSignature?.bottomwear,
+              si.characterDNA.clothingSignature?.accessories?.join(', '),
+            ].filter(Boolean).join('; '),
+            bodyType: si.characterDNA.bodyProfile?.build,
+            distinctiveMarkers: si.characterDNA.distinctiveMarkers || [],
+          },
+          consistencyPrompt: si.masterConsistencyPrompt,
+          consistencyAnchors: [
+            ...si.characterDNA.faceLockAnchors || [],
+            ...si.environmentDNA.sceneAnchors || [],
+            si.lightingProfile.lightingAnchor,
+            si.colorScience.colorAnchor,
+          ].filter(Boolean),
+          originalReferenceUrl: request.referenceImageUrl,
+          nonFacialAnchors: {
+            bodyType: si.characterDNA.bodyProfile?.build,
+            clothingSignature: si.characterDNA.clothingSignature?.style,
+            hairFromBehind: si.characterDNA.hairProfile?.fromBehind,
+            silhouetteDescription: si.characterDNA.bodyProfile?.silhouette,
+            gait: si.characterDNA.bodyProfile?.gait,
+            posture: si.characterDNA.bodyProfile?.posture,
+          },
+          occlusionNegatives: si.allNegatives || [],
+          // NEW: Full scene DNA stored in masterSceneAnchor
+          masterSceneAnchor: {
+            masterConsistencyPrompt: si.masterConsistencyPrompt,
+            colorPalette: si.colorScience.dominant?.map((c: any) => c.hex || c.name) || [],
+            lighting: si.lightingProfile.lightingAnchor,
+            visualStyle: si.cinematicStyle.cinematicAnchor,
+            // Store the clip-level anchors for direct injection
+            clipAnchors: si.clipAnchors,
+            // Full environment context
+            environmentDNA: si.environmentDNA,
+            lightingProfile: si.lightingProfile,
+            colorScience: si.colorScience,
+            cinematicStyle: si.cinematicStyle,
+            // All negatives for generation
+            allNegatives: si.allNegatives,
+          },
+        };
+
+        // Also populate referenceAnalysis for backward-compat with other pipeline stages
+        state.referenceAnalysis = {
+          characterIdentity: state.identityBible.characterIdentity,
+          environment: {
+            setting: si.environmentDNA.setting,
+            geometry: si.environmentDNA.geometry?.planes || '',
+            keyObjects: si.environmentDNA.keyProps?.map((p: any) => p.object) || [],
+            backgroundElements: si.environmentDNA.backgroundElements || [],
+          },
+          lighting: {
+            style: si.lightingProfile.style,
+            direction: si.lightingProfile.primarySource?.direction || '',
+            quality: si.lightingProfile.shadows?.hardness || '',
+            timeOfDay: si.lightingProfile.timeOfDay || '',
+          },
+          colorPalette: {
+            dominant: si.colorScience.dominant?.map((c: any) => `${c.name} ${c.hex}`) || [],
+            accent: si.colorScience.accent?.map((c: any) => `${c.name} ${c.hex}`) || [],
+            mood: si.colorScience.mood || '',
+            temperature: si.colorScience.temperature,
+          },
+          consistencyPrompt: si.masterConsistencyPrompt,
+        };
+        request.referenceImageAnalysis = state.referenceAnalysis;
+
+        // Persist to DB immediately for pipeline resume resilience
+        try {
+          await supabase.from('movie_projects').update({
+            pro_features_data: {
+              sceneIdentity: {
+                characterDNA: si.characterDNA,
+                environmentDNA: si.environmentDNA,
+                lightingProfile: si.lightingProfile,
+                colorScience: si.colorScience,
+                cinematicStyle: si.cinematicStyle,
+                masterConsistencyPrompt: si.masterConsistencyPrompt,
+                allNegatives: si.allNegatives,
+                clipAnchors: si.clipAnchors,
+                extractedAt: new Date().toISOString(),
+                creditsCharged: si.creditsCharged,
+              },
+              identityBible: {
+                ...state.identityBible,
+                savedAt: new Date().toISOString(),
+                savedStage: 'pre_script_identity_lock',
+              },
+              referenceAnalysis: state.referenceAnalysis,
+            },
+          }).eq('id', state.projectId);
+          console.log(`[Hollywood] ✓ Scene identity + identity bible persisted to DB`);
+        } catch (saveErr) {
+          console.warn(`[Hollywood] Scene identity DB persist failed (non-fatal):`, saveErr);
+        }
+
+        await updateProjectProgress(supabase, state.projectId, 'preproduction', 12, {
+          message: '✓ Character & environment identity locked. Starting script generation...',
+        });
+
+      } else {
+        // Extraction failed — fall back to basic parallel analysis
+        console.warn(`[Hollywood] ⚠️ Deep extraction failed, falling back to basic analysis...`);
         const [analysisResult, identityBibleResult] = await Promise.allSettled([
-          callEdgeFunction('analyze-reference-image', {
-            imageUrl: request.referenceImageUrl,
-          }),
+          callEdgeFunction('analyze-reference-image', { imageUrl: request.referenceImageUrl }),
           callEdgeFunction('generate-identity-bible', {
             imageUrl: request.referenceImageUrl,
             generateBackView: true,
             generateSilhouette: true,
           }),
         ]);
-
-        // Process reference analysis
         if (analysisResult.status === 'fulfilled' && analysisResult.value?.analysis) {
           request.referenceImageAnalysis = analysisResult.value.analysis;
           state.referenceAnalysis = analysisResult.value.analysis;
-          console.log(`[Hollywood] ✓ Pre-script analysis: ${analysisResult.value.analysis.characterIdentity?.description?.substring(0, 60) || 'subject detected'}`);
-        } else {
-          console.warn(`[Hollywood] Pre-script reference analysis failed:`, analysisResult.status === 'rejected' ? analysisResult.reason : 'no data');
         }
-
-        // Process identity bible
         if (identityBibleResult.status === 'fulfilled' && identityBibleResult.value?.success) {
           const ib = identityBibleResult.value;
-          // Seed state.identityBible early so script generator gets full character context
           state.identityBible = {
             characterIdentity: request.referenceImageAnalysis?.characterIdentity,
-            consistencyPrompt: ib.enhancedConsistencyPrompt || ib.characterDescription || request.referenceImageAnalysis?.consistencyPrompt || '',
+            consistencyPrompt: ib.enhancedConsistencyPrompt || '',
             consistencyAnchors: ib.consistencyAnchors || [],
             originalReferenceUrl: request.referenceImageUrl,
             nonFacialAnchors: ib.nonFacialAnchors ? {
               bodyType: ib.nonFacialAnchors.bodyType,
-              clothingSignature: ib.nonFacialAnchors.clothingDescription || ib.nonFacialAnchors.clothingDistinctive,
+              clothingSignature: ib.nonFacialAnchors.clothingDescription,
               hairFromBehind: ib.nonFacialAnchors.hairFromBehind,
               silhouetteDescription: ib.nonFacialAnchors.overallSilhouette,
               gait: ib.nonFacialAnchors.gait,
               posture: ib.nonFacialAnchors.posture,
             } : undefined,
             occlusionNegatives: ib.occlusionNegatives || [],
-          };
-
-          // Populate masterSceneAnchor from referenceAnalysis
-          if (state.referenceAnalysis) {
-            state.identityBible.masterSceneAnchor = {
-              masterConsistencyPrompt: state.referenceAnalysis.consistencyPrompt || state.referenceAnalysis.characterIdentity?.description || '',
+            masterSceneAnchor: state.referenceAnalysis ? {
+              masterConsistencyPrompt: state.referenceAnalysis.consistencyPrompt || '',
               colorPalette: state.referenceAnalysis.colorPalette?.dominant || [],
-              lighting: state.referenceAnalysis.lighting?.description || state.referenceAnalysis.lighting?.style || '',
+              lighting: state.referenceAnalysis.lighting?.style || '',
               visualStyle: state.referenceAnalysis.environment?.setting || '',
-            };
-          }
-
-          console.log(`[Hollywood] ✓ Identity Bible seeded PRE-SCRIPT: nonFacialAnchors=${!!state.identityBible.nonFacialAnchors}, anchors=${state.identityBible.consistencyAnchors?.length || 0}`);
-
-          // Persist identity bible to DB immediately so it's available if pipeline restarts
-          try {
-            await supabase.from('movie_projects').update({
-              pro_features_data: {
-                identityBible: {
-                  ...state.identityBible,
-                  savedAt: new Date().toISOString(),
-                  savedStage: 'pre_script_identity_lock',
-                },
-                referenceAnalysis: state.referenceAnalysis,
-              },
-            }).eq('id', state.projectId);
-            console.log(`[Hollywood] ✓ Identity Bible persisted to DB at pre-script stage`);
-          } catch (saveErr) {
-            console.warn(`[Hollywood] Pre-script identity bible DB save failed:`, saveErr);
-          }
-        } else {
-          console.warn(`[Hollywood] Pre-script identity bible failed:`, identityBibleResult.status === 'rejected' ? identityBibleResult.reason : 'no data');
-          // Fall through — identity bible will be attempted again at the later stage
-        }
-      } else {
-        // Text-to-video: basic analysis only
-        const analysisResult = await callEdgeFunction('analyze-reference-image', {
-          imageUrl: request.referenceImageUrl,
-        });
-        if (analysisResult?.analysis) {
-          request.referenceImageAnalysis = analysisResult.analysis;
-          state.referenceAnalysis = analysisResult.analysis;
-          console.log(`[Hollywood] ✓ Reference image analyzed: ${analysisResult.analysis.characterIdentity?.description?.substring(0, 50) || 'character detected'}`);
+            } : undefined,
+          };
         }
       }
     } catch (err) {
@@ -1046,6 +1143,22 @@ async function runPreProduction(
     const mode = hasReferenceImage ? 'image-to-video' : 'text-to-video';
     
     try {
+      // Build scene identity context from the comprehensive extraction (if available)
+      const sceneIdentityContextStory = state.identityBible?.masterSceneAnchor?.clipAnchors
+        ? {
+            characterAnchor: state.identityBible.masterSceneAnchor.clipAnchors.character,
+            environmentAnchor: state.identityBible.masterSceneAnchor.clipAnchors.environment,
+            lightingAnchor: state.identityBible.masterSceneAnchor.clipAnchors.lighting,
+            colorAnchor: state.identityBible.masterSceneAnchor.clipAnchors.color,
+            cinematicAnchor: state.identityBible.masterSceneAnchor.clipAnchors.cinematic,
+            masterConsistencyPrompt: state.identityBible.consistencyPrompt,
+            allNegatives: state.identityBible.occlusionNegatives,
+            environmentDNA: state.identityBible.masterSceneAnchor.environmentDNA,
+            lightingProfile: state.identityBible.masterSceneAnchor.lightingProfile,
+            colorScience: state.identityBible.masterSceneAnchor.colorScience,
+          }
+        : undefined;
+
       const scriptResult = await callEdgeFunction('smart-script-generator', {
         topic: request.storyTitle || 'Video',
         approvedScene: request.approvedStory,
@@ -1066,6 +1179,8 @@ async function runPreProduction(
         // AVATAR MODE: Pass user's speech text as narration (verbatim TTS)
         userNarration: request.userNarration,
         preserveUserContent: request.preserveUserContent,
+        // SCENE IDENTITY: Full DNA for character/environment aware scripting
+        sceneIdentityContext: sceneIdentityContextStory,
       });
       
       if (scriptResult.shots || scriptResult.clips) {
@@ -1167,6 +1282,22 @@ async function runPreProduction(
     try {
       // For avatar mode, pass the user's speech text as narration to preserve verbatim
       
+      // Build scene identity context from the comprehensive extraction (if available)
+      const sceneIdentityContext = state.identityBible?.masterSceneAnchor?.clipAnchors
+        ? {
+            characterAnchor: state.identityBible.masterSceneAnchor.clipAnchors.character,
+            environmentAnchor: state.identityBible.masterSceneAnchor.clipAnchors.environment,
+            lightingAnchor: state.identityBible.masterSceneAnchor.clipAnchors.lighting,
+            colorAnchor: state.identityBible.masterSceneAnchor.clipAnchors.color,
+            cinematicAnchor: state.identityBible.masterSceneAnchor.clipAnchors.cinematic,
+            masterConsistencyPrompt: state.identityBible.consistencyPrompt,
+            allNegatives: state.identityBible.occlusionNegatives,
+            environmentDNA: state.identityBible.masterSceneAnchor.environmentDNA,
+            lightingProfile: state.identityBible.masterSceneAnchor.lightingProfile,
+            colorScience: state.identityBible.masterSceneAnchor.colorScience,
+          }
+        : undefined;
+
       const scriptResult = await callEdgeFunction('smart-script-generator', {
         topic: request.concept,
         synopsis: request.concept,
@@ -1187,6 +1318,8 @@ async function runPreProduction(
         // AVATAR MODE: Pass user's speech text as narration (verbatim TTS)
         userNarration: request.userNarration,
         preserveUserContent: request.preserveUserContent,
+        // SCENE IDENTITY: Pass comprehensive extraction data for character/environment aware scripting
+        sceneIdentityContext,
       });
       
       if (scriptResult.shots || scriptResult.clips) {

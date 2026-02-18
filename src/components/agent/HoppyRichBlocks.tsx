@@ -700,7 +700,7 @@ function EnvironmentsBlock({ data }: { data: any }) {
 }
 
 // ═══════════════════════════════════════════════
-// GENERATION PROGRESS — Live polling card
+// GENERATION PROGRESS — Pipeline stage card
 // ═══════════════════════════════════════════════
 
 type ClipStatus = "pending" | "generating" | "completed" | "failed";
@@ -711,6 +711,88 @@ interface ClipState {
   video_url?: string | null;
 }
 
+type StageStatus = "done" | "active" | "pending";
+
+const PIPELINE_STAGES = [
+  { key: "script",   label: "SCRIPT"   },
+  { key: "identity", label: "IDENTITY" },
+  { key: "audit",    label: "AUDIT"    },
+  { key: "assets",   label: "ASSETS"   },
+  { key: "render",   label: "RENDER"   },
+  { key: "stitch",   label: "STITCH"   },
+];
+
+function deriveActiveStage(projectStatus: string, clips: ClipState[], totalClips: number): number {
+  if (projectStatus === "completed") return PIPELINE_STAGES.length;
+  if (projectStatus === "stitching") return 5;
+  const completed = clips.filter(c => c.status === "completed").length;
+  const generating = clips.filter(c => c.status === "generating").length;
+  if (completed === totalClips && totalClips > 0) return 5;
+  if (generating > 0 || completed > 0) return 4;
+  return 3;
+}
+
+function CircularProgress({ pct, color }: { pct: number; color: string }) {
+  const r = 14;
+  const circ = 2 * Math.PI * r;
+  const dash = (pct / 100) * circ;
+  return (
+    <svg width="38" height="38" viewBox="0 0 38 38" className="flex-shrink-0">
+      <circle cx="19" cy="19" r={r} fill="none" stroke="hsl(var(--surface-2))" strokeWidth="3" />
+      <circle
+        cx="19" cy="19" r={r} fill="none"
+        stroke={color} strokeWidth="3"
+        strokeDasharray={`${dash} ${circ}`}
+        strokeLinecap="round"
+        transform="rotate(-90 19 19)"
+        style={{ transition: "stroke-dasharray 0.6s ease" }}
+      />
+      <text x="19" y="23" textAnchor="middle" fontSize="8" fontWeight="700" fill={color} fontFamily="monospace">
+        {pct}%
+      </text>
+    </svg>
+  );
+}
+
+function StageNode({ status, isLast }: { status: StageStatus; isLast: boolean }) {
+  const green = "hsl(145, 55%, 45%)";
+  const pink  = "hsl(340, 85%, 60%)";
+  const muted = "hsl(var(--muted-foreground) / 0.2)";
+  return (
+    <div className="relative flex flex-col items-center" style={{ minWidth: 40 }}>
+      {!isLast && (
+        <div
+          className="absolute top-[18px] left-[calc(50%+20px)] h-[2px]"
+          style={{
+            width: "calc(100% - 8px)",
+            background: status === "done" ? `linear-gradient(90deg, ${green}, ${green}88)` : "hsl(var(--border) / 0.12)",
+            transition: "background 0.4s ease",
+          }}
+        />
+      )}
+      <div
+        className="w-9 h-9 rounded-xl flex items-center justify-center border-2 transition-all duration-300"
+        style={{
+          borderColor: status === "done" ? green : status === "active" ? pink : muted,
+          background:  status === "done" ? `${green}18` : status === "active" ? `${pink}18` : "hsl(var(--surface-2) / 0.4)",
+          boxShadow:   status === "active" ? `0 0 16px ${pink}55` : status === "done" ? `0 0 8px ${green}30` : "none",
+        }}
+      >
+        {status === "done" && <CheckCircle className="h-4 w-4" style={{ color: green }} />}
+        {status === "active" && (
+          <motion.div
+            className="w-4 h-4 rounded-full border-2"
+            style={{ borderColor: `${pink}40`, borderTopColor: pink }}
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 0.85, ease: "linear" }}
+          />
+        )}
+        {status === "pending" && <Star className="h-3.5 w-3.5" style={{ color: muted }} />}
+      </div>
+    </div>
+  );
+}
+
 function GenerationProgressBlock({ data, onNavigate }: { data: any; onNavigate?: (path: string) => void }) {
   const projectId: string = data.project_id;
   const title: string = data.title || "Video";
@@ -718,7 +800,9 @@ function GenerationProgressBlock({ data, onNavigate }: { data: any; onNavigate?:
 
   const [clips, setClips] = useState<ClipState[]>([]);
   const [projectStatus, setProjectStatus] = useState<string>("generating");
+  const [elapsedSecs, setElapsedSecs] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef   = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const poll = useCallback(async () => {
     const { data: proj } = await supabase
@@ -733,66 +817,77 @@ function GenerationProgressBlock({ data, onNavigate }: { data: any; onNavigate?:
       .eq("project_id", projectId)
       .order("shot_index");
 
-    if (vc) setClips(vc as ClipState[]);
+    if (vc)   setClips(vc as ClipState[]);
     if (proj) setProjectStatus(proj.status);
 
-    // Stop polling when done
     if (proj && (proj.status === "completed" || proj.status === "failed")) {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      if (timerRef.current)    clearInterval(timerRef.current);
     }
   }, [projectId]);
 
   useEffect(() => {
     poll();
     intervalRef.current = setInterval(poll, 4000);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    timerRef.current    = setInterval(() => setElapsedSecs(s => s + 1), 1000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (timerRef.current)    clearInterval(timerRef.current);
+    };
   }, [poll]);
 
-  const completed = clips.filter(c => c.status === "completed").length;
-  const failed = clips.filter(c => c.status === "failed").length;
+  const completed  = clips.filter(c => c.status === "completed").length;
   const generating = clips.filter(c => c.status === "generating").length;
-  const progress = totalClips > 0 ? Math.round((completed / totalClips) * 100) : 0;
-  const isDone = projectStatus === "completed";
-  const isFailed = projectStatus === "failed" && !generating && completed === 0;
+  const failed     = clips.filter(c => c.status === "failed").length;
+  const progress   = totalClips > 0 ? Math.round((completed / totalClips) * 100) : 0;
+  const isDone     = projectStatus === "completed";
+  const isFailed   = projectStatus === "failed" && !generating && completed === 0;
 
-  const accentColor = isDone
-    ? "hsl(145, 55%, 45%)"
+  const activeStageIdx = deriveActiveStage(projectStatus, clips, totalClips);
+
+  const mins = String(Math.floor(elapsedSecs / 60)).padStart(1, "0");
+  const secs = String(elapsedSecs % 60).padStart(2, "0");
+
+  const green  = "hsl(145, 55%, 45%)";
+  const violet = "hsl(260, 80%, 65%)";
+  const pink   = "hsl(340, 85%, 60%)";
+  const accentColor = isDone ? green : isFailed ? "hsl(0, 70%, 55%)" : violet;
+
+  const activeStageSub = isDone
+    ? "All done!"
     : isFailed
-    ? "hsl(0, 70%, 55%)"
-    : "hsl(195, 100%, 50%)";
-
-  // Build pill slots — use actual clips or placeholders
-  const slots: Array<{ index: number; status: ClipStatus }> = Array.from({ length: totalClips }, (_, i) => {
-    const found = clips.find(c => c.shot_index === i);
-    return { index: i, status: found?.status ?? "pending" };
-  });
+    ? "Failed"
+    : generating > 0
+    ? `Clip ${completed + 1}/${totalClips}…`
+    : completed > 0
+    ? `${completed}/${totalClips} done`
+    : "Preparing…";
 
   return (
     <RichCard accent={accentColor}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "hsl(var(--border) / 0.07)" }}>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <div className="p-1.5 rounded-lg" style={{ background: `${accentColor}18` }}>
             <Clapperboard className="h-3.5 w-3.5" style={{ color: accentColor }} />
           </div>
-          <span className="font-display text-[13px] font-semibold text-foreground/80 tracking-tight truncate max-w-[160px]">
+          <span className="font-display text-[13px] font-semibold text-foreground/80 tracking-tight truncate max-w-[120px]">
             {title}
           </span>
-        </div>
-        <div className="flex items-center gap-2">
           {!isDone && !isFailed && (
-            <span className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground/50">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-              Live
+            <span className="flex items-center gap-1 text-[9px] font-display font-bold px-1.5 py-0.5 rounded-md bg-emerald-500/12 text-emerald-400 border border-emerald-500/20 flex-shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              LIVE
             </span>
           )}
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="font-mono text-sm font-bold text-foreground/50">{mins}:{secs}</span>
+          <CircularProgress pct={isDone ? 100 : progress} color={accentColor} />
           {onNavigate && (
             <button
               onClick={() => onNavigate(`/production/${projectId}`)}
-              className="flex items-center gap-1 text-[10px] font-display font-semibold px-2 py-1 rounded-lg
-                         bg-primary/6 text-primary/60 hover:bg-primary/12 hover:text-primary
-                         border border-primary/8 hover:border-primary/18
-                         transition-all duration-150 active:scale-[0.97]"
+              className="flex items-center gap-1 text-[10px] font-display font-semibold px-2 py-1 rounded-lg bg-primary/6 text-primary/60 hover:bg-primary/12 hover:text-primary border border-primary/8 hover:border-primary/18 transition-all duration-150 active:scale-[0.97]"
             >
               Open <ExternalLink className="h-2.5 w-2.5" />
             </button>
@@ -800,88 +895,68 @@ function GenerationProgressBlock({ data, onNavigate }: { data: any; onNavigate?:
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="px-4 pt-4 pb-2">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] text-muted-foreground/50 font-display">
-            {isDone
-              ? `✓ All ${totalClips} clips ready`
-              : isFailed
-              ? `Generation failed`
-              : generating > 0
-              ? `Clip ${completed + 1} of ${totalClips} generating…`
-              : `${completed} of ${totalClips} clips done`}
-          </span>
-          <span className="text-[11px] font-mono font-medium" style={{ color: accentColor }}>{progress}%</span>
-        </div>
-        <div className="h-1.5 rounded-full overflow-hidden bg-surface-2/80">
-          <motion.div
-            className="h-full rounded-full"
-            style={{ background: accentColor }}
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-          />
-        </div>
+      {/* Gradient progress bar */}
+      <div className="h-1 w-full overflow-hidden">
+        <motion.div
+          className="h-full"
+          style={{ background: `linear-gradient(90deg, ${violet}, ${pink})` }}
+          initial={{ width: 0 }}
+          animate={{ width: `${isDone ? 100 : progress}%` }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+        />
       </div>
 
-      {/* Clip grid */}
-      <div className="px-4 pb-4 pt-2">
-        <div className="flex flex-wrap gap-2">
-          {slots.map(({ index, status }) => {
-            const isGen = status === "generating";
-            const isDoneClip = status === "completed";
-            const isFail = status === "failed";
-            const clipColor = isDoneClip
-              ? "hsl(145, 55%, 45%)"
-              : isFail
-              ? "hsl(0, 70%, 55%)"
-              : isGen
-              ? "hsl(195, 100%, 50%)"
-              : "hsl(var(--muted-foreground))";
+      {/* Pipeline stage nodes */}
+      <div className="px-4 pt-4 pb-2">
+        <div className="flex items-start justify-between">
+          {PIPELINE_STAGES.map((stage, i) => {
+            const stageStatus: StageStatus =
+              isDone || i < activeStageIdx ? "done"
+              : i === activeStageIdx ? "active"
+              : "pending";
 
             return (
-              <div key={index} className="relative flex flex-col items-center gap-1">
-                <div
-                  className="w-9 h-9 rounded-lg border flex items-center justify-center transition-all duration-300"
+              <div key={stage.key} className="flex flex-col items-center gap-1.5 flex-1">
+                <StageNode status={stageStatus} isLast={i === PIPELINE_STAGES.length - 1} />
+                <span
+                  className="text-[7.5px] font-display font-bold tracking-widest text-center leading-tight"
                   style={{
-                    borderColor: `${clipColor}40`,
-                    background: isDoneClip
-                      ? `${clipColor}15`
-                      : isGen
-                      ? `${clipColor}10`
-                      : "hsl(var(--surface-2) / 0.4)",
+                    color: stageStatus === "done"   ? green
+                         : stageStatus === "active" ? pink
+                         : "hsl(var(--muted-foreground) / 0.28)",
                   }}
                 >
-                  {isDoneClip && <CheckCircle className="h-4 w-4" style={{ color: clipColor }} />}
-                  {isFail && <X className="h-4 w-4" style={{ color: clipColor }} />}
-                  {isGen && (
-                    <motion.div
-                      className="w-4 h-4 rounded-full border-2"
-                      style={{ borderColor: `${clipColor}30`, borderTopColor: clipColor }}
-                      animate={{ rotate: 360 }}
-                      transition={{ repeat: Infinity, duration: 0.9, ease: "linear" }}
-                    />
-                  )}
-                  {status === "pending" && (
-                    <span className="text-[11px] font-mono text-muted-foreground/30">{index + 1}</span>
-                  )}
-                </div>
-                <span className="text-[9px] font-mono text-muted-foreground/30">C{index + 1}</span>
+                  {stage.label}
+                </span>
+                {stageStatus === "active" && (
+                  <span className="text-[7px] text-muted-foreground/40 text-center leading-tight max-w-[48px] truncate">
+                    {activeStageSub}
+                  </span>
+                )}
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Failed clip warning */}
-      {failed > 0 && (
-        <div className="px-4 pb-3">
-          <p className="text-[11px] text-red-400/70">
-            {failed} clip{failed > 1 ? "s" : ""} failed — credits auto-refunded.
-          </p>
+      {/* Footer stats */}
+      <div className="flex items-center gap-3 px-4 py-2.5 border-t" style={{ borderColor: "hsl(var(--border) / 0.06)" }}>
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/50">
+          <Film className="h-3 w-3" />
+          <span className="font-mono font-semibold">{completed}/{totalClips}</span>
+          <span>clips</span>
         </div>
-      )}
+        {failed > 0 && (
+          <span className="text-[10px] text-red-400/60 ml-auto">
+            {failed} clip{failed > 1 ? "s" : ""} failed
+          </span>
+        )}
+        {isDone && (
+          <span className="text-[10px] text-emerald-400/80 ml-auto font-display font-semibold">
+            ✓ Ready to watch
+          </span>
+        )}
+      </div>
     </RichCard>
   );
 }

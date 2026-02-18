@@ -791,9 +791,24 @@ export function SpecializedModeProgress({
             <button
               onClick={handleCancel}
               disabled={isCancelling}
-              className="h-10 px-4 rounded-xl text-xs text-white/40 hover:text-rose-400 hover:bg-rose-500/10 transition-all border border-transparent hover:border-rose-500/20 disabled:opacity-40"
+              className="h-10 px-5 rounded-xl text-sm font-medium text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 transition-all border border-rose-500/25 hover:border-rose-500/40 disabled:opacity-40 flex items-center gap-2"
             >
-              {isCancelling ? 'Cancelling...' : 'Cancel'}
+              {isCancelling ? (
+                <>
+                  <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                  Cancelling...
+                </>
+              ) : (
+                <>
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                  Cancel Production
+                </>
+              )}
             </button>
           )}
         </div>

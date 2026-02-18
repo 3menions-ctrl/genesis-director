@@ -4881,7 +4881,7 @@ serve(async (req) => {
     }).then(() => {}).catch(() => {});
     // ── CONTEXTUAL FALLBACK: Only add choices when genuinely helpful ──
     // Do NOT force choices on every response — that makes Hoppy feel robotic.
-    // Only inject fallback choices for specific high-value moments.
+    // Only inject fallback choices for very specific, truly first-time moments.
     const hasChoices = richBlocks.some((b: any) => b.type === "multiple_choice");
     if (!hasChoices) {
       const aiCalledPresentChoices = allToolResults.some(t => t.name === "present_choices");
@@ -4890,12 +4890,14 @@ serve(async (req) => {
       );
       
       if (!aiCalledPresentChoices && !hasInteractiveBlocks) {
-        const allUserMsgs = messages.filter((m: any) => m.role === "user").map((m: any) => m.content.toLowerCase());
-        const lastUserMsgText = allUserMsgs[allUserMsgs.length - 1] || "";
+        const lastUserMsgText = (messages[messages.length - 1]?.content || "").toLowerCase();
         const hasAttachedImage = lastUserMsgText.includes("[image attached:") || lastUserMsgText.includes("image attached:");
         const hasVideoIntent = lastUserMsgText.includes("video") || lastUserMsgText.includes("animate") || lastUserMsgText.includes("make") || lastUserMsgText.includes("create") || lastUserMsgText.includes("bring to life") || lastUserMsgText.includes("cinematic");
-        const isGreeting = lastUserMsgText.includes("hi") || lastUserMsgText.includes("hello") || lastUserMsgText.includes("hey");
-        const isFirstMessage = messages.length <= 2;
+        
+        // True first message = no prior DB history at all (richHistory is empty = brand new conversation)
+        const hasPriorHistory = richHistory.length > 0;
+        const isGreeting = !hasPriorHistory && (lastUserMsgText === "hi" || lastUserMsgText === "hello" || lastUserMsgText === "hey" || lastUserMsgText.trim() === "");
+        const isTrulyFirstMessage = !hasPriorHistory;
 
         // Only inject choices in these specific high-value moments:
         
@@ -4916,8 +4918,8 @@ serve(async (req) => {
             },
           });
         }
-        // 2. Greeting or first message — offer a starting point
-        else if (isGreeting || isFirstMessage) {
+        // 2. Only for true greetings or the very first ever message in a brand new conversation
+        else if (isTrulyFirstMessage && isGreeting) {
           richBlocks.push({
             type: "multiple_choice",
             data: {

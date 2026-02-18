@@ -12,7 +12,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, RotateCcw, Zap, ArrowRight, Loader2, Sparkles, ChevronDown, MessageCircle, Paperclip, ImageIcon, XCircle } from "lucide-react";
+import { X, Send, RotateCcw, Zap, ArrowRight, Loader2, Sparkles, ChevronDown, MessageCircle, Paperclip, ImageIcon, XCircle, Menu, Plus, Trash2, Keyboard, HelpCircle, Settings, ChevronLeft, MessageSquarePlus, Eraser, Info, Moon, Sun, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AgentFace } from "./AgentFace";
 import { useAgentChat, AgentAction, AgentMessage } from "@/hooks/useAgentChat";
@@ -33,6 +33,7 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<{ url: string; name: string } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -193,7 +194,7 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-[100] flex flex-col"
+          className="fixed inset-0 z-[100] flex"
           style={{ background: "hsl(var(--background))" }}
         >
           {/* ─── Ambient Background Graphics ─── */}
@@ -229,14 +230,168 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
             />
           </div>
 
+          {/* ─── Left Settings Sidebar ─── */}
+          <AnimatePresence>
+            {sidebarOpen && (
+              <>
+                {/* Backdrop (mobile) */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setSidebarOpen(false)}
+                  className="absolute inset-0 z-[110] bg-background/40 backdrop-blur-sm"
+                />
+                <motion.aside
+                  initial={{ x: -288 }}
+                  animate={{ x: 0 }}
+                  exit={{ x: -288 }}
+                  transition={{ type: "spring", stiffness: 340, damping: 34 }}
+                  className="absolute left-0 top-0 bottom-0 z-[120] w-72 flex flex-col"
+                  style={{
+                    background: "linear-gradient(160deg, hsl(var(--surface-1) / 0.98) 0%, hsl(var(--background) / 0.99) 100%)",
+                    borderRight: "1px solid hsl(var(--border) / 0.12)",
+                    backdropFilter: "blur(28px)",
+                    boxShadow: "12px 0 56px hsl(0 0% 0% / 0.3)",
+                  }}
+                >
+                  {/* Top accent bar */}
+                  <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: "linear-gradient(90deg, hsl(var(--primary) / 0.7), hsl(var(--accent) / 0.4), transparent)" }} />
+
+                  {/* Sidebar Header */}
+                  <div className="flex items-center justify-between px-5 pt-6 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-xl overflow-hidden ring-1 ring-primary/25 shadow-sm shadow-primary/10">
+                        <video src="/hoppy-blink.mp4" autoPlay loop muted playsInline className="w-full h-full object-cover scale-[1.4] object-top" />
+                      </div>
+                      <div>
+                        <p className="font-display text-sm font-bold text-foreground leading-none">Hoppy</p>
+                        <p className="text-[10px] text-muted-foreground/45 mt-0.5 tracking-[0.1em] uppercase font-medium">Chat Settings</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSidebarOpen(false)}
+                      className="p-2 rounded-xl text-muted-foreground/40 hover:text-foreground hover:bg-muted/15 transition-all"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <div className="mx-4 h-px bg-border/8 mb-1" />
+
+                  {/* Scrollable content */}
+                  <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+
+                    {/* Conversation */}
+                    <SidebarSection label="Conversation">
+                      <SidebarButton
+                        icon={<MessageSquarePlus className="h-[15px] w-[15px]" />}
+                        label="New Chat"
+                        description="Start a fresh conversation"
+                        accent
+                        onClick={() => {
+                          clearMessages();
+                          setSidebarOpen(false);
+                          setTimeout(() => inputRef.current?.focus(), 200);
+                        }}
+                      />
+                      <SidebarButton
+                        icon={<Eraser className="h-[15px] w-[15px]" />}
+                        label="Clear Messages"
+                        description="Wipe all current messages"
+                        onClick={() => {
+                          clearMessages();
+                          setSidebarOpen(false);
+                        }}
+                      />
+                    </SidebarSection>
+
+                    {/* Quick Actions */}
+                    <SidebarSection label="Quick Actions">
+                      <SidebarButton
+                        icon={<Star className="h-[15px] w-[15px]" />}
+                        label="Capabilities"
+                        description="Explore what Hoppy can do"
+                        onClick={() => { sendMessage("What can you do?"); setSidebarOpen(false); }}
+                      />
+                      <SidebarButton
+                        icon={<Zap className="h-[15px] w-[15px]" />}
+                        label="My Credits"
+                        description="Check balance & usage"
+                        onClick={() => { sendMessage("Check my credits"); setSidebarOpen(false); }}
+                      />
+                      <SidebarButton
+                        icon={<Sparkles className="h-[15px] w-[15px]" />}
+                        label="Create Video"
+                        description="Start a new project"
+                        onClick={() => { sendMessage("Create a video"); setSidebarOpen(false); }}
+                      />
+                      <SidebarButton
+                        icon={<MessageCircle className="h-[15px] w-[15px]" />}
+                        label="My Projects"
+                        description="View all your projects"
+                        onClick={() => { sendMessage("Show my projects"); setSidebarOpen(false); }}
+                      />
+                    </SidebarSection>
+
+                    {/* Help */}
+                    <SidebarSection label="Help">
+                      <SidebarButton
+                        icon={<Keyboard className="h-[15px] w-[15px]" />}
+                        label="Keyboard Shortcuts"
+                        description="Enter to send  ·  Shift+Enter for newline"
+                        static
+                      />
+                      <SidebarButton
+                        icon={<HelpCircle className="h-[15px] w-[15px]" />}
+                        label="About Hoppy"
+                        description="Your AI Creative Director"
+                        onClick={() => { sendMessage("Tell me about yourself"); setSidebarOpen(false); }}
+                      />
+                    </SidebarSection>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="px-5 pb-6 pt-2">
+                    <div className="h-px bg-border/8 mb-4" />
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" style={{ boxShadow: "0 0 6px hsl(142 76% 60% / 0.7)" }} />
+                        <span className="text-[11px] text-muted-foreground/45 font-display">Hoppy is online</span>
+                      </span>
+                      <span className="ml-auto text-[10px] text-muted-foreground/25 font-display">v2.0</span>
+                    </div>
+                  </div>
+                </motion.aside>
+              </>
+            )}
+          </AnimatePresence>
+
+          {/* ─── Main Chat Column ─── */}
+          <div className="flex flex-col flex-1 min-w-0 relative z-10">
+
           {/* ─── Header ─── */}
           <motion.div
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.1, duration: 0.4 }}
-            className="relative flex items-center justify-between px-6 md:px-10 pt-6 pb-4 z-10"
+            className="relative flex items-center justify-between px-6 md:px-10 pt-6 pb-4"
           >
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              {/* Menu toggle */}
+              <button
+                onClick={() => setSidebarOpen((v) => !v)}
+                className={cn(
+                  "p-2.5 rounded-xl border transition-all duration-200 backdrop-blur-sm",
+                  sidebarOpen
+                    ? "bg-primary/10 border-primary/20 text-primary"
+                    : "bg-surface-1/60 border-border/10 text-muted-foreground hover:text-foreground hover:bg-surface-2/80"
+                )}
+                title="Chat settings"
+              >
+                <Menu className="h-4 w-4" />
+              </button>
+
               <div className="relative">
                 <div
                   className={cn(
@@ -571,9 +726,84 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
               </div>
             </div>
           </motion.div>
+          </div>{/* end main chat column */}
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// Sidebar sub-components
+// ══════════════════════════════════════════════════════
+
+function SidebarSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="py-2">
+      <p className="text-[9px] font-display font-bold text-muted-foreground/30 tracking-[0.14em] uppercase px-2 mb-1.5">
+        {label}
+      </p>
+      <div className="space-y-0.5">{children}</div>
+    </div>
+  );
+}
+
+function SidebarButton({
+  icon,
+  label,
+  description,
+  accent,
+  static: isStatic,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  description?: string;
+  accent?: boolean;
+  static?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={isStatic}
+      className={cn(
+        "w-full flex items-start gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150 group",
+        isStatic
+          ? "cursor-default opacity-70"
+          : accent
+          ? "hover:bg-primary/10 hover:border-primary/15 border border-transparent active:scale-[0.98]"
+          : "hover:bg-muted/15 border border-transparent hover:border-border/10 active:scale-[0.98]"
+      )}
+    >
+      <span
+        className={cn(
+          "mt-0.5 flex-shrink-0 transition-colors",
+          accent
+            ? "text-primary/70 group-hover:text-primary"
+            : "text-muted-foreground/40 group-hover:text-muted-foreground/80"
+        )}
+      >
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p
+          className={cn(
+            "text-[13px] font-display font-semibold leading-none mb-1 transition-colors",
+            accent
+              ? "text-primary/80 group-hover:text-primary"
+              : "text-foreground/70 group-hover:text-foreground/90"
+          )}
+        >
+          {label}
+        </p>
+        {description && (
+          <p className="text-[11px] text-muted-foreground/35 leading-snug group-hover:text-muted-foreground/50 transition-colors">
+            {description}
+          </p>
+        )}
+      </div>
+    </button>
   );
 }
 

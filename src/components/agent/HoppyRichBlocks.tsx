@@ -6,8 +6,9 @@
  * Each card can include a "Go to page" navigation action.
  */
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Film, Sparkles, Zap, Star, Crown, Eye, Heart, Clock, 
   User, MessageCircle, MapPin, Target, CheckCircle, Circle,
@@ -66,6 +67,7 @@ function BlockRouter({ block, onNavigate, onSendMessage }: { block: RichBlock; o
     case "onboarding": return <OnboardingBlock data={block.data} />;
     case "settings": return <SettingsBlock data={block.data} onNavigate={nav} />;
     case "multiple_choice": return <MultipleChoiceBlock data={block.data} onSendMessage={onSendMessage} />;
+    case "generation_progress": return <GenerationProgressBlock data={block.data} onNavigate={nav} />;
     default: return null;
   }
 }
@@ -693,6 +695,193 @@ function EnvironmentsBlock({ data }: { data: any }) {
           </div>
         ))}
       </div>
+    </RichCard>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// GENERATION PROGRESS — Live polling card
+// ═══════════════════════════════════════════════
+
+type ClipStatus = "pending" | "generating" | "completed" | "failed";
+
+interface ClipState {
+  shot_index: number;
+  status: ClipStatus;
+  video_url?: string | null;
+}
+
+function GenerationProgressBlock({ data, onNavigate }: { data: any; onNavigate?: (path: string) => void }) {
+  const projectId: string = data.project_id;
+  const title: string = data.title || "Video";
+  const totalClips: number = data.total_clips || data.clip_count || 3;
+
+  const [clips, setClips] = useState<ClipState[]>([]);
+  const [projectStatus, setProjectStatus] = useState<string>("generating");
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const poll = useCallback(async () => {
+    const { data: proj } = await supabase
+      .from("movie_projects")
+      .select("status, video_url")
+      .eq("id", projectId)
+      .single();
+
+    const { data: vc } = await supabase
+      .from("video_clips")
+      .select("shot_index, status, video_url")
+      .eq("project_id", projectId)
+      .order("shot_index");
+
+    if (vc) setClips(vc as ClipState[]);
+    if (proj) setProjectStatus(proj.status);
+
+    // Stop polling when done
+    if (proj && (proj.status === "completed" || proj.status === "failed")) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    poll();
+    intervalRef.current = setInterval(poll, 4000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [poll]);
+
+  const completed = clips.filter(c => c.status === "completed").length;
+  const failed = clips.filter(c => c.status === "failed").length;
+  const generating = clips.filter(c => c.status === "generating").length;
+  const progress = totalClips > 0 ? Math.round((completed / totalClips) * 100) : 0;
+  const isDone = projectStatus === "completed";
+  const isFailed = projectStatus === "failed" && !generating && completed === 0;
+
+  const accentColor = isDone
+    ? "hsl(145, 55%, 45%)"
+    : isFailed
+    ? "hsl(0, 70%, 55%)"
+    : "hsl(195, 100%, 50%)";
+
+  // Build pill slots — use actual clips or placeholders
+  const slots: Array<{ index: number; status: ClipStatus }> = Array.from({ length: totalClips }, (_, i) => {
+    const found = clips.find(c => c.shot_index === i);
+    return { index: i, status: found?.status ?? "pending" };
+  });
+
+  return (
+    <RichCard accent={accentColor}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "hsl(var(--border) / 0.07)" }}>
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg" style={{ background: `${accentColor}18` }}>
+            <Clapperboard className="h-3.5 w-3.5" style={{ color: accentColor }} />
+          </div>
+          <span className="font-display text-[13px] font-semibold text-foreground/80 tracking-tight truncate max-w-[160px]">
+            {title}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {!isDone && !isFailed && (
+            <span className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground/50">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              Live
+            </span>
+          )}
+          {onNavigate && (
+            <button
+              onClick={() => onNavigate(`/production/${projectId}`)}
+              className="flex items-center gap-1 text-[10px] font-display font-semibold px-2 py-1 rounded-lg
+                         bg-primary/6 text-primary/60 hover:bg-primary/12 hover:text-primary
+                         border border-primary/8 hover:border-primary/18
+                         transition-all duration-150 active:scale-[0.97]"
+            >
+              Open <ExternalLink className="h-2.5 w-2.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="px-4 pt-4 pb-2">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[11px] text-muted-foreground/50 font-display">
+            {isDone
+              ? `✓ All ${totalClips} clips ready`
+              : isFailed
+              ? `Generation failed`
+              : generating > 0
+              ? `Clip ${completed + 1} of ${totalClips} generating…`
+              : `${completed} of ${totalClips} clips done`}
+          </span>
+          <span className="text-[11px] font-mono font-medium" style={{ color: accentColor }}>{progress}%</span>
+        </div>
+        <div className="h-1.5 rounded-full overflow-hidden bg-surface-2/80">
+          <motion.div
+            className="h-full rounded-full"
+            style={{ background: accentColor }}
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          />
+        </div>
+      </div>
+
+      {/* Clip grid */}
+      <div className="px-4 pb-4 pt-2">
+        <div className="flex flex-wrap gap-2">
+          {slots.map(({ index, status }) => {
+            const isGen = status === "generating";
+            const isDoneClip = status === "completed";
+            const isFail = status === "failed";
+            const clipColor = isDoneClip
+              ? "hsl(145, 55%, 45%)"
+              : isFail
+              ? "hsl(0, 70%, 55%)"
+              : isGen
+              ? "hsl(195, 100%, 50%)"
+              : "hsl(var(--muted-foreground))";
+
+            return (
+              <div key={index} className="relative flex flex-col items-center gap-1">
+                <div
+                  className="w-9 h-9 rounded-lg border flex items-center justify-center transition-all duration-300"
+                  style={{
+                    borderColor: `${clipColor}40`,
+                    background: isDoneClip
+                      ? `${clipColor}15`
+                      : isGen
+                      ? `${clipColor}10`
+                      : "hsl(var(--surface-2) / 0.4)",
+                  }}
+                >
+                  {isDoneClip && <CheckCircle className="h-4 w-4" style={{ color: clipColor }} />}
+                  {isFail && <X className="h-4 w-4" style={{ color: clipColor }} />}
+                  {isGen && (
+                    <motion.div
+                      className="w-4 h-4 rounded-full border-2"
+                      style={{ borderColor: `${clipColor}30`, borderTopColor: clipColor }}
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 0.9, ease: "linear" }}
+                    />
+                  )}
+                  {status === "pending" && (
+                    <span className="text-[11px] font-mono text-muted-foreground/30">{index + 1}</span>
+                  )}
+                </div>
+                <span className="text-[9px] font-mono text-muted-foreground/30">C{index + 1}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Failed clip warning */}
+      {failed > 0 && (
+        <div className="px-4 pb-3">
+          <p className="text-[11px] text-red-400/70">
+            {failed} clip{failed > 1 ? "s" : ""} failed — credits auto-refunded.
+          </p>
+        </div>
+      )}
     </RichCard>
   );
 }

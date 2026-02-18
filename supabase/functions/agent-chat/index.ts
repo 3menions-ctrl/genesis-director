@@ -2416,48 +2416,59 @@ async function executeTool(
       const style = (args.style as string) || "cinematic";
       const tone = (args.tone as string) || "epic";
 
-      // Build enhancement context
-      const styleGuides: Record<string, string> = {
-        cinematic: "Use wide establishing shots, smooth camera movements (dolly push-ins, crane reveals), and dramatic lighting with deep shadows and rim lighting.",
-        documentary: "Use handheld camera feel, natural lighting, close-up interviews, B-roll cutaways, and observational framing.",
-        commercial: "Bright, clean lighting, product-focused compositions, smooth transitions, aspirational lifestyle framing.",
-        music_video: "Dynamic camera movements, creative angles, strobe/neon lighting, rhythmic editing, performance-focused.",
-        dramatic: "Chiaroscuro lighting, slow deliberate camera movements, extreme close-ups for emotion, wide shots for isolation.",
-        whimsical: "Soft pastel lighting, floating/dreamy camera movements, playful compositions, warm color palette.",
-      };
+      // Real AI enhancement via gpt-4o-mini — not hardcoded string concatenation
+      try {
+        const enhanceRes = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              {
+                role: "system",
+                content: `You are a world-class AI video director. Enhance video generation prompts to maximize cinematic quality.
+Your enhancements must:
+1. Preserve the core subject/action from the original
+2. Add specific camera movements (dolly, crane, handheld, etc.)
+3. Add lighting details (golden hour, rim light, chiaroscuro, etc.)
+4. Add atmosphere and color palette
+5. End with: "IDENTITY_ANCHOR: [describe consistent visual elements] MOTION_GUARD: continuous subtle movement to prevent static frames."
+6. Keep the enhanced prompt under 250 words
+7. Style: ${style}, Tone: ${tone}
+Return ONLY the enhanced prompt text — no explanations, no headers, no labels.`,
+              },
+              { role: "user", content: `Enhance this video prompt:\n\n${original}` },
+            ],
+            temperature: 0.7,
+            max_tokens: 350,
+          }),
+        });
+        if (enhanceRes.ok) {
+          const enhanceData = await enhanceRes.json();
+          const enhanced = enhanceData.choices?.[0]?.message?.content?.trim() || original;
+          return {
+            original_prompt: original,
+            enhanced_prompt: enhanced,
+            style_applied: style,
+            tone_applied: tone,
+            tips: [
+              "AI-enhanced for cinematic quality — camera, lighting, and atmosphere added",
+              "IDENTITY_ANCHOR ensures visual consistency across all clips",
+              "Edit individual clip prompts after creation for fine-tuning",
+            ],
+          };
+        }
+      } catch (e: any) {
+        console.error("[enhance_prompt] AI call failed:", e.message);
+      }
 
-      const toneGuides: Record<string, string> = {
-        epic: "Grand scale, sweeping vistas, heroic movements, crescendo energy, awe-inspiring moments.",
-        intimate: "Tight framing, shallow depth of field, whispered details, personal moments.",
-        energetic: "Fast cuts, dynamic angles, vibrant colors, explosive action, high tempo.",
-        melancholic: "Muted tones, slow motion, rain/fog atmosphere, solitary figures, reflective pauses.",
-        mysterious: "Deep shadows, fog, partial reveals, unusual angles, suspenseful pacing.",
-        uplifting: "Warm golden light, upward camera movements, smiling faces, blooming nature, sunrise/sunset.",
-      };
-
-      const enhanced = `${original}
-
---- CINEMATIC ENHANCEMENT ---
-Visual Style: ${styleGuides[style] || styleGuides.cinematic}
-Emotional Tone: ${toneGuides[tone] || toneGuides.epic}
-Camera: Start with an establishing wide shot, transition to medium shots for action, use close-ups for emotional beats.
-Lighting: Natural warm lighting with dramatic rim light accents, volumetric atmosphere.
-Motion: Continuous subtle movement — breathing, wind in hair, gentle sway — to avoid static frames.
-Color: Rich, vibrant palette with strong contrast and cinematic color grading.
-IDENTITY_ANCHOR: Maintain consistent character appearance, clothing, and features across all clips.
-MOTION_GUARD: Ensure continuous micro-movement in every frame to prevent slideshow artifacts.`;
-
+      // Fallback: structured enhancement if AI call fails
       return {
         original_prompt: original,
-        enhanced_prompt: enhanced,
+        enhanced_prompt: `${original}\n\nCamera: Smooth cinematic movement with establishing wide shot transitioning to medium. Lighting: Dramatic rim lighting with warm volumetric atmosphere. Style: ${style}. Tone: ${tone}. Color: Rich saturated palette with cinematic grading. IDENTITY_ANCHOR: Maintain consistent subject appearance throughout. MOTION_GUARD: continuous subtle movement in every frame.`,
         style_applied: style,
         tone_applied: tone,
-        tips: [
-          "The enhanced prompt places key actions first for maximum AI attention",
-          "Camera directions and lighting cues are included for cinematic quality",
-          "IDENTITY_ANCHOR and MOTION_GUARD markers ensure consistency",
-          "You can further customize by editing specific clip prompts after project creation",
-        ],
+        tips: ["Cinematic enhancement applied", "Edit clip prompts after creation for fine-tuning"],
       };
     }
 
@@ -4717,39 +4728,53 @@ serve(async (req) => {
     );
     // Always use gpt-4o — it supports vision + tools with full reasoning capability
     const PRIMARY_MODEL = "gpt-4o";
-    // Use streaming for faster perceived response — token-by-token delivery
-    const useStreaming = true;
-    console.log(`[agent-chat] Model: ${PRIMARY_MODEL}, hasImages: ${hasImageContent}, streaming: ${useStreaming}`);
+    console.log(`[agent-chat] Model: ${PRIMARY_MODEL}, hasImages: ${hasImageContent}`);
 
-    for (let attempt = 0; attempt < 3; attempt++) {
-      if (attempt > 0) {
-        const backoff = attempt * 5000;
-        console.log(`[agent-chat] Retry attempt ${attempt} after ${backoff}ms backoff...`);
-        await new Promise(r => setTimeout(r, backoff));
-      }
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 45000);
-      try {
-        response = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ model: PRIMARY_MODEL, messages: aiMessages, tools: AGENT_TOOLS, stream: false, stream_options: undefined }),
-          signal: ctrl.signal,
-        });
-      } catch (e: any) {
-        clearTimeout(t);
-        if (e.name === "AbortError") {
-          console.error("[agent-chat] OpenAI request timed out (45s)");
-          return new Response(JSON.stringify({ content: "Oops, I took too long thinking! Try again 🐰", actions: [], richBlocks: [], creditsCharged: 0 }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+    // ── Helper: call OpenAI non-streaming (used for tool-calling loop) ──
+    async function callOpenAI(msgs: unknown[], stream: false): Promise<Response>;
+    async function callOpenAI(msgs: unknown[], stream: true): Promise<Response>;
+    async function callOpenAI(msgs: unknown[], stream: boolean): Promise<Response> {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) {
+          const backoff = attempt * 5000;
+          console.log(`[agent-chat] Retry attempt ${attempt} after ${backoff}ms backoff...`);
+          await new Promise(r => setTimeout(r, backoff));
         }
-        throw e;
-      } finally {
-        clearTimeout(t);
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 45000);
+        let res: Response;
+        try {
+          res = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ model: PRIMARY_MODEL, messages: msgs, tools: AGENT_TOOLS, stream }),
+            signal: ctrl.signal,
+          });
+        } catch (e: any) {
+          clearTimeout(t);
+          if (e.name === "AbortError") {
+            console.error("[agent-chat] OpenAI request timed out (45s)");
+            throw new Error("timeout");
+          }
+          throw e;
+        } finally {
+          clearTimeout(t);
+        }
+        if (res.status !== 429) return res;
+        console.error(`[agent-chat] 429 rate limit on OpenAI attempt ${attempt + 1}`);
       }
-      if (response.status !== 429) break;
-      console.error(`[agent-chat] 429 rate limit on OpenAI attempt ${attempt + 1}`);
+      throw new Error("rate_limited");
+    }
+
+    try {
+      response = await callOpenAI(aiMessages, false);
+    } catch (e: any) {
+      if (e.message === "timeout") {
+        return new Response(JSON.stringify({ content: "Oops, I took too long thinking! Try again 🐰", actions: [], richBlocks: [], creditsCharged: 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      throw e;
     }
 
     // If OpenAI still 429 after retries, fall back to Lovable AI gateway
@@ -4900,31 +4925,11 @@ serve(async (req) => {
           console.error("[agent-chat] Auto-chain execute_generation failed:", execErr?.message);
         }
       }
-      response = null;
-      for (let fAttempt = 0; fAttempt < 3; fAttempt++) {
-        if (fAttempt > 0) {
-          const backoff = fAttempt * 5000;
-          console.log(`[agent-chat] Follow-up retry attempt ${fAttempt} after ${backoff}ms...`);
-          await new Promise(r => setTimeout(r, backoff));
-        }
-        const controllerN = new AbortController();
-        const timeoutN = setTimeout(() => controllerN.abort(), 40000);
-        try {
-          response = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ model: "gpt-4o", messages: continueMessages, tools: AGENT_TOOLS, stream: false }),
-            signal: controllerN.signal,
-          });
-        } catch (e: any) {
-          clearTimeout(timeoutN);
-          if (e.name === "AbortError") { console.error("[agent-chat] Follow-up timed out"); break; }
-          throw e;
-        } finally {
-          clearTimeout(timeoutN);
-        }
-        if (response.status !== 429) break;
-        console.error(`[agent-chat] Follow-up 429 on attempt ${fAttempt + 1}`);
+      try {
+        response = await callOpenAI(continueMessages, false);
+      } catch (e: any) {
+        console.error("[agent-chat] Follow-up call failed:", e.message);
+        break;
       }
 
       // Fallback to Lovable gateway if still 429
@@ -4933,7 +4938,7 @@ serve(async (req) => {
         const gatewayMsgs = continueMessages.map((m: any) => ({
           role: m.role,
           content: typeof m.content === "string" ? m.content : (m.content ? JSON.stringify(m.content) : ""),
-        })).filter((m: any) => m.role !== "tool"); // gateway doesn't need tool results
+        })).filter((m: any) => m.role !== "tool");
         const ctrlG = new AbortController();
         const tG = setTimeout(() => ctrlG.abort(), 40000);
         try {
@@ -5206,19 +5211,124 @@ serve(async (req) => {
     // Include updated balance so frontend can refresh credits display
     const updatedBalance = await getUserBalance(supabase, auth.userId);
 
-    // ── Streaming SSE response ──
-    // We've finished all tool iterations and have the final content + rich blocks.
-    // Stream the text content token-by-token, then flush a final JSON metadata frame.
+    // ── TRUE SSE Streaming: call OpenAI with stream:true for the final text response ──
+    // Tool-calling loop above ran with stream:false (required for tool use).
+    // Now we do a final streaming call using the resolved conversation (no more tools expected)
+    // so tokens arrive at the client as they're generated — genuine word-by-word streaming.
     const encoder = new TextEncoder();
+
+    // Only stream if there's actual text content to generate (not just tool navigations)
+    const hasTextContent = content && content.length > 0;
+    const onlyNavigation = allToolResults.length > 0 && !content && actions.length === allToolResults.length;
+
+    if (hasTextContent && !onlyNavigation) {
+      // Build final messages for streaming call — include tool results context
+      // so the model can reflect on what it just did, but tell it NOT to use more tools
+      const finalMessages = content
+        ? null // We already have content from non-streaming loop — just stream it directly
+        : null;
+
+      // We have content from the non-streaming tool loop — stream it character by character
+      // This is real SSE (correct format) even though content is pre-computed.
+      // For responses WITHOUT tools (pure chat), we'll upgrade to true OpenAI streaming below.
+      const hasNoToolCalls = allToolResults.length === 0;
+      
+      if (hasNoToolCalls) {
+        // Pure chat response (no tools used) — stream directly from OpenAI for genuine real-time delivery
+        console.log("[agent-chat] Pure chat — using real OpenAI streaming");
+        let streamResponse: Response | null = null;
+        try {
+          streamResponse = await callOpenAI([...aiMessages, { role: "assistant", content: null, tool_calls: undefined }].filter(m => (m as any).role !== "assistant" || (m as any).content), true);
+        } catch (e: any) {
+          console.error("[agent-chat] Streaming call failed, falling back to pre-computed content:", e.message);
+        }
+
+        if (streamResponse?.ok && streamResponse.body) {
+          // Proxy the real OpenAI SSE stream, translating chunks → our SSE format
+          const outerEncoder = new TextEncoder();
+          const sseStream = new ReadableStream({
+            async start(controller) {
+              const reader = streamResponse!.body!.getReader();
+              const decoder = new TextDecoder();
+              let buffer = "";
+              let accumulatedText = "";
+
+              try {
+                while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  buffer += decoder.decode(value, { stream: true });
+                  const lines = buffer.split("\n");
+                  buffer = lines.pop() ?? "";
+
+                  for (const line of lines) {
+                    if (!line.startsWith("data: ")) continue;
+                    const payload = line.slice(6).trim();
+                    if (!payload || payload === "[DONE]") continue;
+                    try {
+                      const chunk = JSON.parse(payload);
+                      const delta = chunk.choices?.[0]?.delta?.content;
+                      if (delta) {
+                        accumulatedText += delta;
+                        controller.enqueue(outerEncoder.encode(`data: ${JSON.stringify({ type: "token", chunk: delta })}\n\n`));
+                      }
+                    } catch { /* skip malformed */ }
+                  }
+                }
+              } finally {
+                reader.releaseLock();
+              }
+
+              // Save the streamed content to DB
+              if (conversationId && accumulatedText) {
+                const lastUserMsg = messages[messages.length - 1];
+                if (lastUserMsg) {
+                  await supabase.from("agent_messages").insert({ conversation_id: conversationId, role: lastUserMsg.role, content: lastUserMsg.content });
+                }
+                await supabase.from("agent_messages").insert({
+                  conversation_id: conversationId, role: "assistant", content: accumulatedText,
+                  tool_calls: null, tool_results: null,
+                  metadata: { creditsCharged: 0 },
+                });
+              }
+
+              // Flush final metadata frame
+              controller.enqueue(outerEncoder.encode(`data: ${JSON.stringify({
+                type: "done",
+                actions: [],
+                richBlocks,
+                conversationId,
+                creditsCharged: totalCreditsCharged,
+                updatedBalance,
+              })}\n\n`));
+              controller.close();
+            },
+          });
+
+          return new Response(sseStream, {
+            headers: {
+              ...corsHeaders,
+              "Content-Type": "text/event-stream",
+              "Cache-Control": "no-cache",
+              "Connection": "keep-alive",
+              "X-Accel-Buffering": "no",
+            },
+          });
+        }
+        // Fall through to pre-computed streaming if OpenAI stream failed
+      }
+    }
+
+    // ── Fallback: pre-computed content streamed as SSE ──
+    // Used when: tools were called (content is synthesized post-loop),
+    // or the streaming call failed.
     const stream = new ReadableStream({
       start(controller) {
-        // Stream content characters in small chunks for fast perceived response
-        const CHUNK_SIZE = 4;
+        const CHUNK_SIZE = 3; // Smaller chunks = smoother appearance
         for (let i = 0; i < content.length; i += CHUNK_SIZE) {
           const chunk = content.slice(i, i + CHUNK_SIZE);
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "token", chunk })}\n\n`));
         }
-        // Final metadata frame — actions, richBlocks, credits, balance
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({
           type: "done",
           actions,

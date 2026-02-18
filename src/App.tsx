@@ -63,6 +63,7 @@ const VideoEditor = lazy(() => import("./pages/VideoEditor"));
 const Scenes = lazy(() => import("./pages/Scenes"));
 const WidgetLanding = lazy(() => import("./pages/WidgetLanding"));
 const WidgetEmbed = lazy(() => import("./pages/WidgetEmbed"));
+const DesignPicker = lazy(() => import("./pages/DesignPicker"));
 
 // Route change tracker component
 function RouteChangeTracker() {
@@ -365,6 +366,11 @@ const App = () => {
                 
                 {/* Genesis Scenes - redirect to Create page */}
                 <Route path="/scenes" element={<Navigate to="/create" replace />} />
+                <Route path="/design-picker" element={
+                  <RouteContainer>
+                    <DesignPicker />
+                  </RouteContainer>
+                } />
                 <Route path="/w/:slug" element={
                   <RouteContainer fallbackMessage="Loading...">
                     <WidgetLanding />

@@ -1658,6 +1658,7 @@ async function executeTool(
           action: "generation_started",
           project_id: routerData.projectId || gp.id,
           title: gp.title,
+          clip_count: cc,
           estimated_credits: est,
           message: `🎬 Generation started for "${gp.title}"! ${cc} clips are being produced. Tap the card to track progress live!`,
           navigate_to: `/production/${routerData.projectId || gp.id}`,
@@ -5101,9 +5102,16 @@ serve(async (req) => {
       if (name === "present_choices" && r._rich_block === "multiple_choice") {
         richBlocks.push({ type: "multiple_choice", data: { question: r.question, options: r.options, max_selections: r.max_selections, layout: r.layout || "list", id: r.id } });
       }
-      // Generation started — navigate to production page
+      // Generation started — show live progress card in chat
       if ((name === "execute_generation" || name === "trigger_generation") && r.action === "generation_started" && r.project_id) {
-        richBlocks.push({ type: "page_embed", data: { path: `/production/${r.project_id}`, title: r.title || "Your Video", description: "🎬 Generation in progress — watch your clips render in real-time!", icon: "film", accent: "hsl(24, 95%, 53%)" } });
+        richBlocks.push({
+          type: "generation_progress",
+          data: {
+            project_id: r.project_id,
+            title: r.title || "Your Video",
+            total_clips: r.clip_count || r.estimated_clips || 3,
+          },
+        });
       }
       // Project created (without execute) — show project link
       if (name === "create_project" && r.action === "project_created" && r.project_id) {

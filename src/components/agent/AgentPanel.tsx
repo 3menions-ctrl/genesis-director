@@ -115,7 +115,17 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
   const confirmAction = async () => {
     if (!pendingAction) return;
     if (pendingAction.action === "start_creation") {
-      navigate("/create");
+      const params = (pendingAction as any).params || {};
+      // Build query params to pre-fill the creation hub
+      const qp = new URLSearchParams();
+      if (params.mode) qp.set("mode", params.mode);
+      if (params.prompt) qp.set("prompt", params.prompt);
+      if (params.image_url) {
+        // Store image URL in sessionStorage for CreationHub to pick up
+        sessionStorage.setItem("imageToVideoUrl", params.image_url);
+        qp.set("mode", "image-to-video");
+      }
+      navigate(`/create?${qp.toString()}`);
     } else if (pendingAction.action === "confirm_generation") {
       await sendMessage(`Yes, go ahead and generate project ${(pendingAction as any).project_id}`);
     } else if (pendingAction.action === "confirm_delete") {

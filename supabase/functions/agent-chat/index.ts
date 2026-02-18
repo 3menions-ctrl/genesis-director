@@ -332,6 +332,7 @@ const AGENT_TOOLS = [
           style: { type: "string" },
           aspect_ratio: { type: "string", enum: ["16:9", "9:16", "1:1"] },
           clip_count: { type: "number" },
+          image_url: { type: "string", description: "URL of the source image for image-to-video mode. Required when mode is image-to-video." },
         },
         required: ["mode", "prompt"],
       },
@@ -1574,7 +1575,7 @@ async function executeTool(
       for (let i = 0; i < cc; i++) est += (i >= 6) ? 15 : 10;
       return {
         action: "start_creation", requires_confirmation: true, estimated_credits: est,
-        params: { mode: args.mode, prompt: args.prompt, style: args.style || "cinematic", aspect_ratio: args.aspect_ratio || "16:9", clip_count: cc },
+        params: { mode: args.mode, prompt: args.prompt, style: args.style || "cinematic", aspect_ratio: args.aspect_ratio || "16:9", clip_count: cc, image_url: args.image_url || null },
       };
     }
 
@@ -3996,7 +3997,7 @@ You are a FULLY capable assistant. You can DO everything in the app:
 
 ### Creation Modes & Pipeline Architecture
 1. **Text-to-Video** — prompt → AI script generator → reference images → video clips (Kling/Veo) → auto-stitch → final video
-2. **Image-to-Video** — upload image → animate with motion → video clips → stitch
+2. **Image-to-Video** — animate an existing image. WORKFLOW: Ask the user to paste an image URL (direct link to a jpg/png/webp image). Then call start_creation_flow with mode="image-to-video", the user's prompt describing the desired motion, and image_url set to that URL. If user hasn't given you an image URL, use present_choices to ask them to provide one before proceeding.
 3. **Avatar Mode** — select AI avatar → screenplay generator → scene-by-scene video with lip-sync → stitch
    - Uses "Scene-First" architecture with Emmy-Class screenplay generator
    - Implements Pose Chaining (startPose/endPose) for visual continuity

@@ -905,7 +905,10 @@ serve(async (req) => {
       prompt,
       duration = 6,
       sceneContext,
+      // referenceImageUrl is for character IDENTITY only — NOT a start frame.
+      // It is logged for debugging but does NOT trigger image-to-video mode.
       referenceImageUrl,
+      // startImage is the actual frame to use as the video's first frame (image-to-video).
       startImage,
       negativePrompt: inputNegativePrompt,
       transitionOut,
@@ -946,10 +949,16 @@ serve(async (req) => {
       transitionOut
     );
 
-    // Prepare image input if provided
-    const rawStartImage = startImage || referenceImageUrl;
-    const startImageUrl = await ensureImageUrl(rawStartImage);
+    // FIX: Only use startImage as the start frame for image-to-video mode.
+    // referenceImageUrl is identity-only — never use it as a Kling start frame.
+    // This prevents text-to-video clips from accidentally becoming image-to-video
+    // just because a character reference image was passed for consistency.
+    const startImageUrl = await ensureImageUrl(startImage || null);
     const isImageToVideo = !!startImageUrl;
+
+    if (referenceImageUrl) {
+      console.log(`[generate-video] referenceImageUrl provided (identity-only, not a start frame): ${referenceImageUrl.substring(0, 80)}...`);
+    }
 
     // Prepare identity bible reference images (up to 4)
     let referenceImages: string[] = [];

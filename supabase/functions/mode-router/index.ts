@@ -504,13 +504,26 @@ serve(async (req) => {
       case 'text-to-video':
       case 'image-to-video':
       case 'b-roll':
-      default:
+      default: {
+        // VALIDATION: image-to-video requires an image
+        if (mode === 'image-to-video' && !imageUrl) {
+          console.error('[ModeRouter] image-to-video mode requires imageUrl but none was provided');
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'Please upload an image before starting image-to-video generation.',
+            }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
         // CINEMATIC: Full pipeline with script generation
         return await handleCinematicMode({
           projectId: projectId!,
           userId,
           concept: prompt,
           referenceImageUrl: imageUrl,
+          voiceId,
           aspectRatio,
           clipCount,
           clipDuration,
@@ -525,6 +538,7 @@ serve(async (req) => {
           breakoutPlatform,
           supabase,
         });
+      }
     }
 
   } catch (error) {
@@ -1028,6 +1042,7 @@ async function handleCinematicMode(params: {
   userId: string;
   concept: string;
   referenceImageUrl?: string;
+  voiceId?: string;
   aspectRatio: string;
   clipCount: number;
   clipDuration: number;
@@ -1042,7 +1057,7 @@ async function handleCinematicMode(params: {
   breakoutPlatform?: 'facebook' | 'youtube' | 'tiktok' | 'instagram';
   supabase: any;
 }) {
-  const { projectId, userId, concept, referenceImageUrl, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, mode, genre, mood, isBreakout, breakoutStartImageUrl, breakoutPlatform, supabase } = params;
+  const { projectId, userId, concept, referenceImageUrl, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, mode, genre, mood, isBreakout, breakoutStartImageUrl, breakoutPlatform, supabase } = params;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -1068,6 +1083,7 @@ async function handleCinematicMode(params: {
       clipDuration,
       includeVoice: enableNarration,
       includeMusic: enableMusic,
+      voiceId,  // FIX: Pass user's selected voice ID for narration
       qualityTier: 'professional',
       genre,
       mood,

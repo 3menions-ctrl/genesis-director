@@ -421,9 +421,7 @@ const VideoEditor = () => {
   }, [projectId, user]);
 
   const loadProjectClips = async (pid: string, projectTitle?: string) => {
-    // No artificial row limit — fetch all completed clips for the project.
-    // Supabase's default PostgREST limit is 1000; for projects with more clips
-    // we'd need pagination, but this covers all real-world cases.
+    // First try the video_clips table (text-to-video projects)
     const { data: clips, error } = await supabase
       .from("video_clips")
       .select("id, shot_index, video_url, duration_seconds, prompt")
@@ -438,29 +436,92 @@ const VideoEditor = () => {
       toast.error("Couldn't load clips. Please try again.");
       return;
     }
-    if (!clips?.length) {
+
+    // If clips found in video_clips table, use them (text-to-video projects)
+    if (clips?.length) {
+      const timelineClips: TimelineClip[] = [];
+      let startTime = 0;
+      for (let i = 0; i < clips.length; i++) {
+        const clip = clips[i];
+        const dur = clip.duration_seconds || 6;
+        const effects: TimelineClip['effects'] = i < clips.length - 1
+          ? [{ type: "transition" as const, name: "crossfade", duration: 0.5 }]
+          : [];
+        timelineClips.push({
+          id: clip.id,
+          trackId: "video-0",
+          start: startTime,
+          end: startTime + dur,
+          type: "video",
+          sourceUrl: clip.video_url || "",
+          label: extractClipLabel(clip.prompt, clip.shot_index),
+          effects,
+        });
+        startTime += dur;
+      }
+      setEditorState((prev) => ({
+        ...prev,
+        projectId: pid,
+        title: projectTitle || prev.title,
+        tracks: prev.tracks.map((t) => (t.id === "video-0" ? { ...t, clips: timelineClips } : t)),
+        duration: startTime,
+      }));
+      toast.success(`Loaded ${clips.length} clips`);
+      return;
+    }
+
+    // Fallback: avatar projects store clips in movie_projects.video_clips (JSON array)
+    // and movie_projects.pending_video_tasks.predictions[].videoUrl
+    const { data: proj } = await supabase
+      .from("movie_projects")
+      .select("video_clips, pending_video_tasks, mode")
+      .eq("id", pid)
+      .maybeSingle();
+
+    // Build clip URL list from avatar project data
+    const avatarClipUrls: string[] = [];
+
+    // Primary source: pending_video_tasks.predictions (has per-clip segmentText for naming)
+    const tasks = proj?.pending_video_tasks as any;
+    const predictions: any[] = tasks?.predictions || [];
+    if (predictions.length > 0) {
+      predictions
+        .filter((p: any) => p.status === 'completed' && p.videoUrl)
+        .sort((a: any, b: any) => (a.clipIndex ?? 0) - (b.clipIndex ?? 0))
+        .forEach((p: any) => avatarClipUrls.push(p.videoUrl));
+    }
+
+    // Secondary source: movie_projects.video_clips JSON array
+    if (avatarClipUrls.length === 0 && Array.isArray(proj?.video_clips)) {
+      (proj!.video_clips as string[]).forEach((url) => url && avatarClipUrls.push(url));
+    }
+
+    if (!avatarClipUrls.length) {
       toast.info("No completed clips found for this project yet");
       return;
     }
 
     const timelineClips: TimelineClip[] = [];
     let startTime = 0;
-    for (let i = 0; i < clips.length; i++) {
-      const clip = clips[i];
-      const dur = clip.duration_seconds || 6;
-      const effects: TimelineClip['effects'] = i < clips.length - 1
+    for (let i = 0; i < avatarClipUrls.length; i++) {
+      const url = avatarClipUrls[i];
+      const pred = predictions[i];
+      const dur = tasks?.clipDuration || 10;
+      // Use segmentText (the spoken dialogue) as the label for avatar clips
+      const label = pred?.segmentText
+        ? (pred.segmentText.length > 60 ? pred.segmentText.slice(0, 57) + '…' : pred.segmentText)
+        : `Clip ${i + 1}`;
+      const effects: TimelineClip['effects'] = i < avatarClipUrls.length - 1
         ? [{ type: "transition" as const, name: "crossfade", duration: 0.5 }]
         : [];
       timelineClips.push({
-        id: clip.id,
+        id: `avatar-clip-${pid}-${i}`,
         trackId: "video-0",
         start: startTime,
         end: startTime + dur,
         type: "video",
-        sourceUrl: clip.video_url || "",
-        // Use the same clean label extraction as EditorMediaBrowser —
-        // raw prompts contain hundreds of chars of AI injection blocks.
-        label: extractClipLabel(clip.prompt, clip.shot_index),
+        sourceUrl: url,
+        label,
         effects,
       });
       startTime += dur;
@@ -474,7 +535,7 @@ const VideoEditor = () => {
       duration: startTime,
     }));
 
-    toast.success(`Loaded ${clips.length} clips`);
+    toast.success(`Loaded ${timelineClips.length} clips`);
   };
 
   const handleAddClipFromBrowser = useCallback((clip: {

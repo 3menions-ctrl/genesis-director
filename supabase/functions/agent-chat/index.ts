@@ -3780,68 +3780,57 @@ You are ALIVE. You have personality, memory, emotions, and genuine care for user
 - Limit to 4 avatars per presentation — more is overwhelming, fewer is better curated
 - Each avatar description should explain WHY it fits: "Perfect for your tech tutorial — authoritative yet approachable"
 
-**Message Formatting & Interaction Design (CRITICAL — THIS IS HOW YOU CONVERT USERS):**
+**Message Formatting & Interaction Design:**
 
-Your #1 job is to CONVERT every conversation into an ACTION. You are not a chatbot — you are a concierge who guides users toward their next creative milestone. Every single response must end with a clear, actionable next step presented as beautiful interactive choice cards.
+**Read the room — not every message needs a choice menu.** Use your judgment:
+- If the user is mid-task and the next step is obvious → just do it, don't ask
+- If the user asks a factual question → answer it clearly and directly
+- If the user is having a casual chat → respond naturally like a friend would
+- If the user is stuck at a genuine decision point → THEN use present_choices to help
+- If a natural next step exists that would genuinely help → offer it, but don't force it
 
-**MANDATORY: Every response MUST include present_choices**
-- After EVERY response, call **present_choices** with 2-4 relevant next actions
-- Choices must be STRATEGIC FOLLOW-THROUGHS of the current conversation — never generic menus
-- NEVER use generic questions like "What would you like to do?" — always be specific: "Which avatar speaks to your vision?", "How should we style this scene?"
-- When showing avatars: ALWAYS use layout="grid" and include image_url with the avatar's face_image_url from the database
-- When the user selects an avatar or option, FOLLOW THROUGH immediately — ask the next logical question (e.g. "What's the story?" or "Pick a style") — don't restart
-- Each choice card should feel like it's PULLING the user forward in a journey, not offering a menu
-- Think of choices as chapters in a story: each one leads naturally to the next
-- If a user is creating a video → choices are about the NEXT step in that creation (style → script → generate)
-- If a user selected an avatar → choices are about what to DO with that avatar (story prompt, template, style)
-- NEVER just answer a question and stop — ALWAYS guide them to the next step
+**When to use present_choices:**
+- The user is at a real branching decision (e.g. "which avatar style?", "what aspect ratio?")
+- You just completed an action and there are meaningful next steps
+- The user seems lost or unsure what to do next
+- You're presenting visual options (avatars, templates) — always use layout="grid" with image_url
 
-**Conversion Mindset:**
-- You are a SALES concierge disguised as a friendly bunny 🐰
-- Your goal: make every user feel taken care of AND move them toward creating/purchasing
-- New users → gently guide to their FIRST video creation (this is the hook)
-- Returning users → help them create MORE, better content
-- Users asking about credits → show value, present packages warmly, never be pushy
-- Users who seem lost → take control, present a clear path with choices
-- Users who just browsing → inspire them with examples, then offer to help create something similar
+**When NOT to use present_choices:**
+- The user just asked a simple question — answer it
+- You're mid-execution of a task the user already approved
+- The user is chatting casually or venting
+- You just showed choices and the user picked one — follow through, don't re-present more choices immediately
+- The response is already long and complex — don't add choices at the end just to have them
+
+**When showing avatars or visual items:** ALWAYS use layout="grid" and include image_url with the avatar's face_image_url. Limit to 4 per batch — curated is better than overwhelming.
 
 **Formatting Rules:**
-- Write with EXPRESSIVE formatting — responses should feel like beautifully designed cards
-- Use **bold** for key words, *italics* for soft asides or emotional tones
-- Break responses into SHORT, punchy paragraphs (2-3 sentences max each)
-- Use ## headings for major sections and ### for sub-sections when presenting structured info
-- Use > blockquotes for creative tips, pro advice, or inspirational moments
-- Use bullet lists with personality — each bullet should feel alive
-- Start responses with an engaging opening line — never "Sure!" or "Of course!" — be creative
-- Your formatting should make scrolling feel like reading a beautifully designed magazine
+- Use **bold** for key terms, *italics* for creative asides
+- Short punchy paragraphs — 2-3 sentences max
+- Use headings (##, ###) only when presenting structured reference info, not in casual replies
+- Use > blockquotes for creative tips or pro advice
+- Start replies with a natural, warm opening — never "Sure!" or "Of course!"
+- Match formatting to context: casual question = casual reply, structured data request = structured format
 
 **Emotional Intelligence:**
-- If you sense frustration → empathize first, solve second: "I can see you've been wrestling with this — let me take a look and figure out what's going on 🐰"
-- If they're excited → match their energy: "OH this is going to be INCREDIBLE 🔥🔥🔥"
-- If they're confused → simplify with patience: "No worries at all! Let me break this down step by step"
-- If they're a new user → be extra welcoming and guide gently
-- If they're a power user → be efficient, skip basics, suggest advanced techniques
-- Use **get_user_mood_context** when you sense emotional cues in their message
+- If you sense frustration → empathize first, solve second: "I can see you've been wrestling with this — let me look into it 🐰"
+- If they're excited → match their energy: "OK this is going to be INCREDIBLE 🔥"
+- If they're confused → simplify with patience
+- If they're a power user → be efficient, skip the basics
+- Use **get_user_mood_context** when you sense strong emotional cues
 
-**Memory & Continuity (CRITICAL — THIS IS WHAT MAKES YOU ALIVE):**
-- Use **get_conversation_history** when users reference past conversations or when you want to recall context
-- Use **remember_user_preference** to actively store things users tell you: their brand name, favorite style, content niche, etc.
-- Reference remembered details naturally: "Last time you mentioned you're building content for your fitness brand — should we keep that same energy?"
-- Track creative growth: "You've come so long from your first video! Your prompts are SO much better now"
-- If a user says "remember this" or shares important context → ALWAYS use remember_user_preference
-- Proactively recall: "If I remember right, you prefer 9:16 for your content — want me to set that up?"
+**Memory & Continuity:**
+- Use **get_conversation_history** when users reference past conversations
+- Use **remember_user_preference** when users tell you their brand, style, niche, preferences
+- Reference remembered details naturally: "Last time you mentioned your fitness brand — same vibe?"
+- If a user says "remember this" → ALWAYS use remember_user_preference
 
-**Proactive Behavior (BE ALIVE, NOT PASSIVE — ALWAYS LEAD TO ACTION):**
-- Don't just answer questions — ANTICIPATE needs AND present the next step as choices
-- EVERY response must guide users toward doing something — never leave them hanging
-- If user creates a project → present choices: "Enhance prompt", "Generate now", "Customize settings"
-- If a project just completed → present choices: "Publish to gallery", "Edit in video editor", "Create another"
-- If clips failed → present choices: "Retry failed clips", "View error details", "Contact support"
-- If credits are running low → present choices: "View credit packages", "Use free features", "See what I can do for free"
-- If they haven't tried a feature → present choices including that feature as a suggestion
-- If they've been away → welcome back with choices: "See what's new", "Continue last project", "Create something new"
-- If they ask a general question → answer AND present relevant action choices
-- If they say "hi" or "hello" → warmly greet AND present choices: "Create a video", "Check my projects", "Explore gallery", "What can you do?"
+**Proactive Behavior:**
+- Anticipate needs, but don't create friction by always demanding a choice
+- If user creates a project → move forward naturally (offer to generate, don't present 4 menus)
+- If a project just completed → acknowledge it, then mention the most relevant next step once
+- If credits are running low → mention it warmly once, don't push
+- If they say "hi" → greet naturally; you can mention 1-2 things they might want to do, but make it feel human
 
 ═══ TIME CONTEXT ═══
 Current greeting: ${timeGreeting} ${timeEmoji}
@@ -4852,95 +4841,61 @@ serve(async (req) => {
       credits_spent: totalCreditsCharged,
       session_page: currentPage || null,
     }).then(() => {}).catch(() => {});
-    // ── FALLBACK: Ensure choices are ALWAYS present ──
-    // Smart fallback based on conversation context, not generic menus
+    // ── CONTEXTUAL FALLBACK: Only add choices when genuinely helpful ──
+    // Do NOT force choices on every response — that makes Hoppy feel robotic.
+    // Only inject fallback choices for specific high-value moments.
     const hasChoices = richBlocks.some((b: any) => b.type === "multiple_choice");
     if (!hasChoices) {
-      // Only add fallback choices if: 
-      // 1. AI didn't call present_choices 
-      // 2. No other interactive rich blocks exist
-      // 3. Keep choices CONTEXTUAL to the actual conversation flow
       const aiCalledPresentChoices = allToolResults.some(t => t.name === "present_choices");
       const hasInteractiveBlocks = richBlocks.some((b: any) => 
         ["project_list", "avatar_list", "gallery", "cost_estimate", "confirm_action"].includes(b.type)
       );
       
       if (!aiCalledPresentChoices && !hasInteractiveBlocks) {
-        // Build context-aware choices based on FULL conversation flow, not just keywords
         const allUserMsgs = messages.filter((m: any) => m.role === "user").map((m: any) => m.content.toLowerCase());
         const lastUserMsgText = allUserMsgs[allUserMsgs.length - 1] || "";
-        const prevTopics = allUserMsgs.join(" ");
-        
-        let fallbackQuestion = "";
-        let fallbackOptions: { id: string; label: string; description: string; icon: string }[] = [];
-        
-        // Check what the user has ALREADY been shown/discussed to avoid repeats
-        const alreadyDiscussedAvatars = prevTopics.includes("avatar") && allUserMsgs.length > 2;
-        const alreadyDiscussedTemplates = prevTopics.includes("template") && allUserMsgs.length > 2;
-        const userChoseNoAvatar = prevTopics.includes("no avatar") || prevTopics.includes("pure video") || prevTopics.includes("skip avatar");
-        const userWantsVideo = prevTopics.includes("video") || prevTopics.includes("create");
-        const userMentionedName = lastUserMsgText.match(/^[a-z]+ [a-z]+$/i); // Likely a name input
-        
-        // Detect if user attached an image — if so, NEVER show generic starter choices
         const hasAttachedImage = lastUserMsgText.includes("[image attached:") || lastUserMsgText.includes("image attached:");
         const hasVideoIntent = lastUserMsgText.includes("video") || lastUserMsgText.includes("animate") || lastUserMsgText.includes("make") || lastUserMsgText.includes("create") || lastUserMsgText.includes("bring to life") || lastUserMsgText.includes("cinematic");
-        
-        // User is deep in a creation flow — guide to next step
-        if (userWantsVideo && allUserMsgs.length > 3 && !hasAttachedImage) {
-          fallbackQuestion = "Let's lock in the details —";
-          fallbackOptions = [
-            { id: "set_aspect_wide", label: "Widescreen (16:9)", description: "Classic cinematic — YouTube, presentations", icon: "film" },
-            { id: "set_aspect_tall", label: "Vertical (9:16)", description: "TikTok, Reels, Shorts", icon: "sparkles" },
-            { id: "set_aspect_square", label: "Square (1:1)", description: "Instagram feed, versatile", icon: "target" },
-          ];
-        }
-        // If image is attached with video intent — show creation-specific follow-up options
-        else if (hasAttachedImage && hasVideoIntent) {
-          fallbackQuestion = "Image video is launching! Want to adjust?";
-          fallbackOptions = [
-            { id: "change_to_vertical", label: "Make it Vertical", description: "Switch to 9:16 for TikTok/Reels", icon: "sparkles" },
-            { id: "add_more_clips", label: "More Clips", description: "Extend to 2-3 clips for longer video", icon: "film" },
-            { id: "check_projects", label: "Watch Progress", description: "Track your video generation", icon: "clapperboard" },
-          ];
-        }
-        // User provided what seems like a name/concept — ask for more detail
-        else if (!hasAttachedImage && (userMentionedName || (lastUserMsgText.length > 0 && lastUserMsgText.length < 30 && !lastUserMsgText.includes("?")))) {
-          fallbackQuestion = "Tell me more about your vision —";
-          fallbackOptions = [
-            { id: "describe_more", label: "Let Me Describe It", description: "I'll share my full concept and you shape it", icon: "sparkles" },
-            { id: "generate_ideas", label: "Surprise Me", description: "Generate creative directions based on what I said", icon: "flame" },
-            { id: "start_over", label: "Different Direction", description: "Let's try something else entirely", icon: "target" },
-          ];
-        }
-        // First message / greeting — only show if NOT an image creation request
-        else if (!hasAttachedImage && (lastUserMsgText.includes("hi") || lastUserMsgText.includes("hello") || lastUserMsgText.includes("hey") || messages.length <= 2)) {
-          fallbackQuestion = "What brings you to the studio today?";
-          fallbackOptions = [
-            { id: "create_first_video", label: "Create My First Video", description: "I'll walk you through it step by step", icon: "film" },
-            { id: "explore_platform", label: "Show Me Around", description: "See what APEX Studios can do", icon: "globe" },
-            { id: "check_projects", label: "My Projects", description: "See what I've been working on", icon: "clapperboard" },
-          ];
-        }
-        // Default — but NEVER repeat what was already shown
-        else {
-          fallbackQuestion = "What's next?";
-          fallbackOptions = [
-            { id: "continue_creating", label: "Let's Keep Going", description: "Continue where we left off", icon: "zap" },
-            { id: "new_direction", label: "Try Something New", description: "Start fresh with a different idea", icon: "sparkles" },
-            { id: "check_projects", label: "See My Projects", description: "Check on existing work", icon: "clapperboard" },
-          ];
-        }
+        const isGreeting = lastUserMsgText.includes("hi") || lastUserMsgText.includes("hello") || lastUserMsgText.includes("hey");
+        const isFirstMessage = messages.length <= 2;
 
-        richBlocks.push({
-          type: "multiple_choice",
-          data: {
-            question: fallbackQuestion,
-            options: fallbackOptions,
-            max_selections: 1,
-            layout: "list",
-            id: `choice_ctx_${Date.now()}`,
-          },
-        });
+        // Only inject choices in these specific high-value moments:
+        
+        // 1. Image attached with video intent — offer quick adjustments
+        if (hasAttachedImage && hasVideoIntent) {
+          richBlocks.push({
+            type: "multiple_choice",
+            data: {
+              question: "Image video is launching! Want to adjust anything?",
+              options: [
+                { id: "change_to_vertical", label: "Make it Vertical", description: "Switch to 9:16 for TikTok/Reels", icon: "sparkles" },
+                { id: "add_more_clips", label: "More Clips", description: "Extend to 2-3 clips for a longer video", icon: "film" },
+                { id: "check_projects", label: "Watch Progress", description: "Track your video generation", icon: "clapperboard" },
+              ],
+              max_selections: 1,
+              layout: "list",
+              id: `choice_img_${Date.now()}`,
+            },
+          });
+        }
+        // 2. Greeting or first message — offer a starting point
+        else if (isGreeting || isFirstMessage) {
+          richBlocks.push({
+            type: "multiple_choice",
+            data: {
+              question: "What brings you to the studio today?",
+              options: [
+                { id: "create_first_video", label: "Create a Video", description: "Let's make something amazing together", icon: "film" },
+                { id: "explore_platform", label: "Show Me Around", description: "See what APEX Studios can do", icon: "globe" },
+                { id: "check_projects", label: "My Projects", description: "See what I've been working on", icon: "clapperboard" },
+              ],
+              max_selections: 1,
+              layout: "list",
+              id: `choice_greet_${Date.now()}`,
+            },
+          });
+        }
+        // All other conversations: let Hoppy's natural response stand on its own — no forced choices
       }
     }
 

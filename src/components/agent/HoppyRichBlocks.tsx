@@ -6,14 +6,14 @@
  * Each card can include a "Go to page" navigation action.
  */
 
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Film, Sparkles, Zap, Star, Crown, Eye, Heart, Clock, 
   User, MessageCircle, MapPin, Target, CheckCircle, Circle,
   TrendingUp, Palette, Play, ChevronRight, Settings, Send,
   Award, Flame, Trophy, Globe, CreditCard, ExternalLink,
-  ArrowRight, Users, HelpCircle, Info, Clapperboard
+  ArrowRight, Users, HelpCircle, Info, Clapperboard, X, Volume2, VolumeX
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -398,33 +398,113 @@ function AvatarListBlock({ data, onNavigate }: { data: any; onNavigate?: (path: 
 // GALLERY
 // ═══════════════════════════════════════════════
 
-function GalleryBlock({ data, onNavigate }: { data: any; onNavigate?: (path: string) => void }) {
-  const items = data.items || [];
+function VideoPlayerModal({ item, onClose }: { item: any; onClose: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [muted, setMuted] = useState(false);
+
   return (
-    <RichCard accent="hsl(270, 60%, 60%)">
-      <CardHeader icon={Play} title="Gallery" badge={`${data.total || items.length}`} accentColor="hsl(270, 60%, 60%)" navigateTo={data.navigateTo} onNavigate={onNavigate} />
-      <div className="p-4 grid grid-cols-2 gap-3">
-        {items.slice(0, 4).map((v: any) => (
-          <div key={v.id} className="group relative rounded-xl overflow-hidden bg-surface-2/50 border border-border/8 aspect-video">
-            {v.thumbnail_url ? (
-              <img src={v.thumbnail_url} alt="" className="w-full h-full object-cover" />
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-md"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ scale: 0.92, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.92, opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="relative w-full max-w-2xl mx-4 rounded-2xl overflow-hidden bg-black border border-white/10 shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Video */}
+          <div className="relative aspect-video bg-black">
+            {item.video_url ? (
+              <video
+                ref={videoRef}
+                src={item.video_url}
+                autoPlay
+                loop
+                muted={muted}
+                playsInline
+                className="w-full h-full object-contain"
+              />
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <Play className="h-6 w-6 text-muted-foreground/20" />
+              <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+                <Film className="h-10 w-10 text-white/20" />
+                <p className="text-white/40 text-sm">No video available</p>
               </div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2.5">
-              <span className="text-[11px] font-medium text-white truncate">{v.title || "Untitled"}</span>
-            </div>
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <Play className="h-3.5 w-3.5 text-white fill-white" />
-              </div>
+
+            {/* Controls overlay */}
+            <div className="absolute top-3 right-3 flex items-center gap-2">
+              <button
+                onClick={() => setMuted(m => !m)}
+                className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white transition-colors"
+              >
+                {muted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+              </button>
+              <button
+                onClick={onClose}
+                className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
-        ))}
-      </div>
-    </RichCard>
+
+          {/* Title */}
+          {item.title && (
+            <div className="px-4 py-3 border-t border-white/8">
+              <p className="text-sm font-medium text-white/80 truncate">{item.title}</p>
+            </div>
+          )}
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+function GalleryBlock({ data, onNavigate }: { data: any; onNavigate?: (path: string) => void }) {
+  const items = data.items || [];
+  const [activeItem, setActiveItem] = useState<any | null>(null);
+
+  return (
+    <>
+      <RichCard accent="hsl(270, 60%, 60%)">
+        <CardHeader icon={Play} title="Gallery" badge={`${data.total || items.length}`} accentColor="hsl(270, 60%, 60%)" navigateTo={data.navigateTo} onNavigate={onNavigate} />
+        <div className="p-4 grid grid-cols-2 gap-3">
+          {items.slice(0, 4).map((v: any) => (
+            <button
+              key={v.id}
+              onClick={() => setActiveItem(v)}
+              className="group relative rounded-xl overflow-hidden bg-surface-2/50 border border-border/8 aspect-video text-left hover:border-primary/30 transition-all"
+            >
+              {v.thumbnail_url ? (
+                <img src={v.thumbnail_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Play className="h-6 w-6 text-muted-foreground/20" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-2.5">
+                <span className="text-[11px] font-medium text-white/80 truncate">{v.title || "Untitled"}</span>
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center
+                                group-hover:bg-white/25 group-hover:scale-110 transition-all duration-200">
+                  <Play className="h-4 w-4 text-white fill-white ml-0.5" />
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </RichCard>
+
+      {activeItem && <VideoPlayerModal item={activeItem} onClose={() => setActiveItem(null)} />}
+    </>
   );
 }
 

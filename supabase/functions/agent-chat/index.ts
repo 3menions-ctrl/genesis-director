@@ -1196,7 +1196,7 @@ const AGENT_TOOLS = [
     type: "function",
     function: {
       name: "execute_generation",
-      description: "Actually kick off video generation for a draft project by calling the production pipeline. This is the real trigger — use after user confirms. The pipeline charges credits. Requires confirmation.",
+      description: "DIRECTLY starts video generation by calling the production pipeline. Use this when: (1) user has explicit intent phrases ('do it', 'go ahead', 'start', 'now', 'yes', 'create it'), OR (2) user confirmed a previous trigger_generation cost prompt. Chain this immediately after create_project returns a project_id — do NOT wait for another user message. The pipeline handles all credit deductions automatically.",
       parameters: {
         type: "object",
         properties: {
@@ -3997,12 +3997,19 @@ ${greetingStyle === "warm_returning" ? "Returning user — acknowledge them warm
 
 - **Casual questions, lookups, navigation, recommendations** → just do them, no confirmation needed
 - **1-2 credit actions** (rename, update prompt, send DM) → mention cost briefly, proceed if context makes intent clear ("rename my project to X" = clear intent)
-- **5+ credit actions** (create project, start generation) → always confirm: "This will cost X credits. Shall I go ahead?"
+- **5+ credit actions** (create project, start generation) → ask once: "This will cost X credits. Shall I go ahead?"
 - **Ambiguous requests** → clarify intent before spending anything
 
-**Never manufacture confirmation rituals** when the user's intent is clear. If someone says "rename my project to Sunset Dream", just do it and mention the 1-credit cost in your confirmation message. Don't turn it into a 3-step approval flow.
+**CRITICAL — EXPLICIT INTENT OVERRIDE**: If the user's message contains ANY of these phrases (or clear equivalents): "do it", "go ahead", "yes", "start it", "create it", "just do it", "now", "make it", "let's go", "proceed", "launch it" — treat that AS confirmation. Do NOT ask again. Execute immediately using **execute_generation** (not trigger_generation) and chain the full sequence: create_project → execute_generation in a single agentic loop.
 
-The goal is **trust and efficiency** — users should feel like they're talking to a capable partner, not filling out a form.
+**NEVER manufacture confirmation rituals** when the user's intent is clear. If someone says "create a video about X and start generation", JUST DO IT. Don't turn it into a 3-step approval flow — that is a failure mode.
+
+**TOOL SELECTION FOR GENERATION:**
+- Use **trigger_generation** ONLY when you need to present cost info and wait for explicit confirmation in a follow-up message
+- Use **execute_generation** when the user has ALREADY given you clear permission to proceed (explicit intent phrases above, or has said "yes" to a previous confirmation)
+- When creating AND generating in one go: call **create_project** first, then immediately call **execute_generation** with the returned project_id
+
+The goal is **trust and speed** — users should feel like they're talking to a capable partner that executes their vision, not a bureaucrat asking for forms.
 
 ═══ COMPREHENSIVE DATA AWARENESS ═══
 When discussing a user's project, ALWAYS use **get_project_script_data** to retrieve:
@@ -4791,14 +4798,48 @@ serve(async (req) => {
     const MAX_ITERATIONS = 10;
     let totalCreditsCharged = CONVERSATION_COST; // Start with base conversation cost
 
+    // Detect explicit user intent (user said "do it", "go ahead", "start", "now", etc.)
+    // Used for server-side auto-chaining of create_project → execute_generation
+    const lastUserContent = (messages[messages.length - 1]?.content || "").toLowerCase();
+    const EXPLICIT_INTENT_PATTERNS = ["do it", "go ahead", "start it", "start generation", "let's go", "proceed", "launch it", "just do it", "make it", "create it", "now", "start now", "begin", "yes, do", "yes do", "yes please", "yes!", "go for it"];
+    const hasExplicitIntent = EXPLICIT_INTENT_PATTERNS.some(p => lastUserContent.includes(p));
+
     while (assistantMessage?.tool_calls && iterations < MAX_ITERATIONS) {
       iterations++;
       const toolResults = [];
 
-      for (const toolCall of assistantMessage.tool_calls) {
+      // Check if model is trying to call execute_generation and create_project in the same batch
+      // (parallel call — model doesn't know create_project result yet)
+      // Split them: execute create_project calls first, then let the loop handle execute_generation
+      const createCalls = assistantMessage.tool_calls.filter((tc: any) => tc.function.name === "create_project");
+      const executeCalls = assistantMessage.tool_calls.filter((tc: any) => tc.function.name === "execute_generation");
+      const otherCalls = assistantMessage.tool_calls.filter((tc: any) => tc.function.name !== "create_project" && tc.function.name !== "execute_generation");
+      
+      // If model is calling both create + execute in parallel, fix the ordering:
+      // Run only create + other calls now, then execute will be injected after
+      const parallelChainDetected = createCalls.length > 0 && executeCalls.length > 0;
+      const toolCallsToProcess = parallelChainDetected
+        ? [...createCalls, ...otherCalls]
+        : assistantMessage.tool_calls;
+
+      let createdProjectId: string | null = null;
+
+      for (const toolCall of toolCallsToProcess) {
         const toolName = toolCall.function.name;
         let toolArgs = {};
         try { toolArgs = JSON.parse(toolCall.function.arguments || "{}"); } catch {}
+
+        // Reject template literal project IDs (model hallucination)
+        if (toolName === "execute_generation") {
+          const pid = (toolArgs as any).project_id || "";
+          if (!pid || pid.includes("{{") || pid.includes("output_of") || pid.length < 10) {
+            toolResults.push({
+              role: "tool", tool_call_id: toolCall.id,
+              content: JSON.stringify({ error: "Invalid project_id — use the actual UUID returned by create_project, not a template literal." }),
+            });
+            continue;
+          }
+        }
 
         console.log(`[agent-chat] Tool: ${toolName}`, toolArgs);
 
@@ -4824,11 +4865,28 @@ serve(async (req) => {
         // Persist tool_call_id so history reconstruction can match precisely (not by function name)
         allToolResults.push({ name: toolName, result, tool_call_id: toolCall.id });
         toolResults.push({ role: "tool", tool_call_id: toolCall.id, content: JSON.stringify(result) });
+
+        // Track project_id from create_project for auto-chaining
+        if (toolName === "create_project" && (result as any)?.project_id) {
+          createdProjectId = (result as any).project_id;
+        }
       }
 
       const continueMessages = [...aiMessages, assistantMessage, ...toolResults];
 
-      // Follow-up call — always use gpt-4o for consistent reasoning quality
+      // ── SERVER-SIDE AUTO-CHAIN: execute_generation immediately after create_project ──
+      if (createdProjectId && (hasExplicitIntent || parallelChainDetected)) {
+        console.log(`[agent-chat] Auto-chaining execute_generation for project ${createdProjectId}`);
+        try {
+          const autoExecResult = await executeTool("execute_generation", { project_id: createdProjectId }, supabase, auth.userId) as Record<string, unknown>;
+          allToolResults.push({ name: "execute_generation", result: autoExecResult, tool_call_id: `auto_exec_${Date.now()}` });
+          console.log("[agent-chat] Auto-chain result:", JSON.stringify(autoExecResult).substring(0, 200));
+          assistantMessage = { role: "assistant", content: autoExecResult?.message || "🎬 Generation started!", tool_calls: undefined };
+          break;
+        } catch (execErr: any) {
+          console.error("[agent-chat] Auto-chain execute_generation failed:", execErr?.message);
+        }
+      }
       response = null;
       for (let fAttempt = 0; fAttempt < 3; fAttempt++) {
         if (fAttempt > 0) {
@@ -4885,10 +4943,9 @@ serve(async (req) => {
     }
 
     // Context-aware fallback instead of generic message
-    const lastUserContent = messages[messages.length - 1]?.content || "";
-    const fallbackContent = lastUserContent.toLowerCase().includes("avatar")
+    const fallbackContent = lastUserContent.includes("avatar")
       ? "Let me pull up the avatars for you! 🐰"
-      : lastUserContent.toLowerCase().includes("video") || lastUserContent.toLowerCase().includes("create")
+      : lastUserContent.includes("video") || lastUserContent.includes("create")
       ? "Let's get your video started! 🎬🐰"
       : "Got it! Let me help with that 🐰";
     const content = assistantMessage?.content || fallbackContent;

@@ -58,15 +58,17 @@ const EXPLICIT_SEXUAL_TERMS = [
   'topless', 'bottomless',
   'undressing', 'disrobing',
   'seductive', 'seduction', 'seduce',
-  'sensual', 'sensuality',
-  'provocative', 'titillating',
+  // NOTE: 'sensual' removed - false positives in cinematic prompts (e.g. "sensual lighting")
+  // NOTE: 'provocative' removed - false positives in cinematic/political contexts
+  'titillating',
   'aroused', 'arousing', 'arousal',
   'turned on', 'horny',
-  'sexy', 'sexier', 'sexiest', 'hottest',
+  // NOTE: 'sexy', 'hottest' removed - too broad, caught by phrase-level checks instead
   
   // Clothing that implies nudity
-  'lingerie', 'underwear', 'panties', 'bra',
-  'bikini', 'swimsuit', 'revealing',
+  'lingerie', 'panties',
+  // NOTE: 'underwear', 'bra', 'bikini', 'swimsuit' removed - legitimate fashion/sports contexts
+  // NOTE: 'revealing' removed - cinematic false positive (revealing lighting, revealing camera angle)
   
   // Age-related (CRITICAL - child safety)
   'underage', 'minor', 'child porn', 'cp',
@@ -98,8 +100,7 @@ const SUGGESTIVE_PHRASES = [
   // Body-focused requests
   'show body', 'show skin', 'show flesh',
   'expose body', 'exposed body',
-  'body shot', 'body close-up',
-  'curves', 'curvy body',
+  'body close-up', 'curvy body',
   
   // Suggestive poses
   'seductive pose', 'sexy pose', 'provocative pose',
@@ -108,6 +109,13 @@ const SUGGESTIVE_PHRASES = [
   // Romantic escalation
   'passionate kiss', 'french kiss', 'making out',
   'heavy petting', 'foreplay',
+  
+  // Contextual catches for removed broad terms
+  'revealing outfit', 'revealing clothing', 'revealing dress',
+  'sexy outfit', 'sexy clothing', 'sexy body',
+  'sensual dancing', 'sensual touch', 'sensual pleasure',
+  'provocative outfit', 'provocative clothing',
+  'bikini model', 'swimsuit model', 'underwear model',
 ];
 
 /**

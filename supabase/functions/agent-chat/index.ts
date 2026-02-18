@@ -4411,7 +4411,8 @@ serve(async (req) => {
     }
 
     const systemPrompt = buildSystemPrompt(userContext, currentPage);
-    const aiMessages = [{ role: "system", content: systemPrompt }, ...messages.slice(-10)];
+    // Send last 20 messages for better context awareness (was 10, caused Hoppy to lose track)
+    const aiMessages = [{ role: "system", content: systemPrompt }, ...messages.slice(-20)];
 
     // 45s timeout to prevent edge function wall-clock death
     const controller1 = new AbortController();
@@ -4510,7 +4511,14 @@ serve(async (req) => {
       assistantMessage = data.choices?.[0]?.message;
     }
 
-    const content = assistantMessage?.content || "I'm here to help! What would you like to do? 🐰";
+    // Context-aware fallback instead of generic message
+    const lastUserContent = messages[messages.length - 1]?.content || "";
+    const fallbackContent = lastUserContent.toLowerCase().includes("avatar")
+      ? "Let me pull up the avatars for you! 🐰"
+      : lastUserContent.toLowerCase().includes("video") || lastUserContent.toLowerCase().includes("create")
+      ? "Let's get your video started! 🎬🐰"
+      : "Got it! Let me help with that 🐰";
+    const content = assistantMessage?.content || fallbackContent;
     const actions = allToolResults
       .filter(t => t.result && typeof t.result === "object" && "action" in (t.result as Record<string, unknown>))
       .map(t => t.result);
@@ -4678,72 +4686,85 @@ serve(async (req) => {
     // Smart fallback based on conversation context, not generic menus
     const hasChoices = richBlocks.some((b: any) => b.type === "multiple_choice");
     if (!hasChoices) {
-      // Analyze the actual response content + user message to generate contextual choices
-      const lastUserMsg = (messages[messages.length - 1]?.content || "").toLowerCase();
-      const responseContent = (content || "").toLowerCase();
+      // Only add fallback choices if: 
+      // 1. AI didn't call present_choices 
+      // 2. No other interactive rich blocks exist
+      // 3. Keep choices CONTEXTUAL to the actual conversation flow
+      const aiCalledPresentChoices = allToolResults.some(t => t.name === "present_choices");
+      const hasInteractiveBlocks = richBlocks.some((b: any) => 
+        ["project_list", "avatar_list", "gallery", "cost_estimate", "confirm_action"].includes(b.type)
+      );
       
-      let fallbackQuestion = "";
-      let fallbackOptions: { id: string; label: string; description: string; icon: string }[] = [];
-      
-      // Avatar-related conversation
-      if (lastUserMsg.includes("avatar") || responseContent.includes("avatar") || responseContent.includes("presenter")) {
-        fallbackQuestion = "Which direction excites you?";
-        fallbackOptions = [
-          { id: "show_avatars", label: "Show Me the Avatars", description: "Browse our AI presenter collection", icon: "users" },
-          { id: "custom_avatar", label: "I Have My Own Look", description: "Upload a reference to create a custom presenter", icon: "sparkles" },
-          { id: "skip_avatar", label: "No Avatar — Pure Video", description: "Create cinematic video without a presenter", icon: "film" },
-        ];
-      }
-      // Video creation conversation
-      else if (lastUserMsg.includes("video") || lastUserMsg.includes("create") || lastUserMsg.includes("make") || responseContent.includes("video")) {
-        fallbackQuestion = "Let's bring your vision to life —";
-        fallbackOptions = [
-          { id: "describe_idea", label: "I Have an Idea", description: "Tell me your concept and I'll craft the script", icon: "sparkles" },
-          { id: "use_template", label: "Start From a Template", description: "Pick a proven format and customize it", icon: "palette" },
-          { id: "avatar_video", label: "Avatar Storytelling", description: "Have an AI presenter deliver your message", icon: "users" },
-        ];
-      }
-      // Credits conversation  
-      else if (lastUserMsg.includes("credit") || lastUserMsg.includes("price") || lastUserMsg.includes("cost") || responseContent.includes("credit")) {
-        fallbackQuestion = "Ready to get started?";
-        fallbackOptions = [
-          { id: "buy_starter", label: "Grab the Starter Pack", description: "90 credits — enough for your first few videos", icon: "zap" },
-          { id: "see_all_packs", label: "Compare All Packs", description: "Find the best value for your needs", icon: "credit-card" },
-          { id: "create_free", label: "Create First, Buy Later", description: "Explore the platform and see what's possible", icon: "eye" },
-        ];
-      }
-      // First message / greeting
-      else if (lastUserMsg.includes("hi") || lastUserMsg.includes("hello") || lastUserMsg.includes("hey") || messages.length <= 2) {
-        fallbackQuestion = "What brings you to the studio today?";
-        fallbackOptions = [
-          { id: "create_first_video", label: "Create My First Video", description: "I'll walk you through it step by step", icon: "film" },
-          { id: "explore_platform", label: "Show Me Around", description: "See what APEX Studios can do", icon: "globe" },
-          { id: "avatar_presenter", label: "I Need an AI Presenter", description: "Create videos with realistic avatar hosts", icon: "users" },
-        ];
-      }
-      // Default contextual
-      else {
-        fallbackQuestion = "Where shall we go from here?";
-        fallbackOptions = [
-          { id: "continue_creating", label: "Let's Create Something", description: "Start a new video project together", icon: "film" },
-          { id: "check_projects", label: "See My Projects", description: "Check on your existing work", icon: "clapperboard" },
-          { id: "discover", label: "Inspire Me", description: "Browse the gallery for ideas", icon: "sparkles" },
-        ];
-      }
+      if (!aiCalledPresentChoices && !hasInteractiveBlocks) {
+        // Build context-aware choices based on FULL conversation flow, not just keywords
+        const allUserMsgs = messages.filter((m: any) => m.role === "user").map((m: any) => m.content.toLowerCase());
+        const lastUserMsg = allUserMsgs[allUserMsgs.length - 1] || "";
+        const prevTopics = allUserMsgs.join(" ");
+        
+        let fallbackQuestion = "";
+        let fallbackOptions: { id: string; label: string; description: string; icon: string }[] = [];
+        
+        // Check what the user has ALREADY been shown/discussed to avoid repeats
+        const alreadyDiscussedAvatars = prevTopics.includes("avatar") && allUserMsgs.length > 2;
+        const alreadyDiscussedTemplates = prevTopics.includes("template") && allUserMsgs.length > 2;
+        const userChoseNoAvatar = prevTopics.includes("no avatar") || prevTopics.includes("pure video") || prevTopics.includes("skip avatar");
+        const userWantsVideo = prevTopics.includes("video") || prevTopics.includes("create");
+        const userMentionedName = lastUserMsg.match(/^[a-z]+ [a-z]+$/i); // Likely a name input
+        
+        // User is deep in a creation flow — guide to next step
+        if (userWantsVideo && allUserMsgs.length > 3) {
+          fallbackQuestion = "Let's lock in the details —";
+          fallbackOptions = [
+            { id: "set_aspect_wide", label: "Widescreen (16:9)", description: "Classic cinematic — YouTube, presentations", icon: "film" },
+            { id: "set_aspect_tall", label: "Vertical (9:16)", description: "TikTok, Reels, Shorts", icon: "sparkles" },
+            { id: "set_aspect_square", label: "Square (1:1)", description: "Instagram feed, versatile", icon: "target" },
+          ];
+        }
+        // User provided what seems like a name/concept — ask for more detail
+        else if (userMentionedName || (lastUserMsg.length > 0 && lastUserMsg.length < 30 && !lastUserMsg.includes("?"))) {
+          fallbackQuestion = "Tell me more about your vision —";
+          fallbackOptions = [
+            { id: "describe_more", label: "Let Me Describe It", description: "I'll share my full concept and you shape it", icon: "sparkles" },
+            { id: "generate_ideas", label: "Surprise Me", description: "Generate creative directions based on what I said", icon: "flame" },
+            { id: "start_over", label: "Different Direction", description: "Let's try something else entirely", icon: "target" },
+          ];
+        }
+        // First message / greeting
+        else if (lastUserMsg.includes("hi") || lastUserMsg.includes("hello") || lastUserMsg.includes("hey") || messages.length <= 2) {
+          fallbackQuestion = "What brings you to the studio today?";
+          fallbackOptions = [
+            { id: "create_first_video", label: "Create My First Video", description: "I'll walk you through it step by step", icon: "film" },
+            { id: "explore_platform", label: "Show Me Around", description: "See what APEX Studios can do", icon: "globe" },
+            { id: "check_projects", label: "My Projects", description: "See what I've been working on", icon: "clapperboard" },
+          ];
+        }
+        // Default — but NEVER repeat what was already shown
+        else {
+          fallbackQuestion = "What's next?";
+          fallbackOptions = [
+            { id: "continue_creating", label: "Let's Keep Going", description: "Continue where we left off", icon: "zap" },
+            { id: "new_direction", label: "Try Something New", description: "Start fresh with a different idea", icon: "sparkles" },
+            { id: "check_projects", label: "See My Projects", description: "Check on existing work", icon: "clapperboard" },
+          ];
+        }
 
-      richBlocks.push({
-        type: "multiple_choice",
-        data: {
-          question: fallbackQuestion,
-          options: fallbackOptions,
-          max_selections: 1,
-          layout: "list",
-          id: `choice_ctx_${Date.now()}`,
-        },
-      });
+        richBlocks.push({
+          type: "multiple_choice",
+          data: {
+            question: fallbackQuestion,
+            options: fallbackOptions,
+            max_selections: 1,
+            layout: "list",
+            id: `choice_ctx_${Date.now()}`,
+          },
+        });
+      }
     }
 
-    return new Response(JSON.stringify({ content, actions, richBlocks, conversationId, creditsCharged: totalCreditsCharged }), {
+    // Include updated balance so frontend can refresh credits display
+    const updatedBalance = await getUserBalance(supabase, auth.userId);
+
+    return new Response(JSON.stringify({ content, actions, richBlocks, conversationId, creditsCharged: totalCreditsCharged, updatedBalance }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

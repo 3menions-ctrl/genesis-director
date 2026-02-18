@@ -137,13 +137,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (user) {
       setProfileError(null);
       const profileData = await fetchProfile(user.id);
       setProfile(profileData);
     }
-  };
+  }, [user]);
+
+  // Listen for credit updates from Hoppy agent chat
+  useEffect(() => {
+    const handleCreditsUpdated = () => {
+      refreshProfile();
+    };
+    window.addEventListener('credits-updated', handleCreditsUpdated);
+    return () => window.removeEventListener('credits-updated', handleCreditsUpdated);
+  }, [refreshProfile]);
 
   const retryProfileFetch = async () => {
     if (user) {

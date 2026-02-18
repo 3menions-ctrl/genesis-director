@@ -4606,24 +4606,58 @@ serve(async (req) => {
       }
 
       const continueMessages = [...aiMessages, assistantMessage, ...toolResults];
-      const controllerN = new AbortController();
-      const timeoutN = setTimeout(() => controllerN.abort(), 40000);
-      try {
-        response = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ model: "gpt-4o", messages: continueMessages, tools: AGENT_TOOLS, stream: false }),
-          signal: controllerN.signal,
-        });
-      } catch (e: any) {
-        clearTimeout(timeoutN);
-        if (e.name === "AbortError") { console.error("[agent-chat] Follow-up timed out"); break; }
-        throw e;
-      } finally {
-        clearTimeout(timeoutN);
+
+      // Follow-up call with same retry + fallback logic as initial call
+      response = null;
+      for (let fAttempt = 0; fAttempt < 2; fAttempt++) {
+        if (fAttempt > 0) {
+          console.log(`[agent-chat] Follow-up retry attempt ${fAttempt} after 3000ms...`);
+          await new Promise(r => setTimeout(r, 3000));
+        }
+        const controllerN = new AbortController();
+        const timeoutN = setTimeout(() => controllerN.abort(), 40000);
+        try {
+          response = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ model: "gpt-4o", messages: continueMessages, tools: AGENT_TOOLS, stream: false }),
+            signal: controllerN.signal,
+          });
+        } catch (e: any) {
+          clearTimeout(timeoutN);
+          if (e.name === "AbortError") { console.error("[agent-chat] Follow-up timed out"); break; }
+          throw e;
+        } finally {
+          clearTimeout(timeoutN);
+        }
+        if (response.status !== 429) break;
+        console.error(`[agent-chat] Follow-up 429 on attempt ${fAttempt + 1}`);
       }
 
-      if (!response.ok) { console.error("[agent-chat] follow-up error:", response.status); break; }
+      // Fallback to Lovable gateway if still 429
+      if (response?.status === 429 && LOVABLE_API_KEY) {
+        console.log("[agent-chat] Follow-up: falling back to Lovable AI gateway...");
+        const gatewayMsgs = continueMessages.map((m: any) => ({
+          role: m.role,
+          content: typeof m.content === "string" ? m.content : (m.content ? JSON.stringify(m.content) : ""),
+        })).filter((m: any) => m.role !== "tool"); // gateway doesn't need tool results
+        const ctrlG = new AbortController();
+        const tG = setTimeout(() => ctrlG.abort(), 40000);
+        try {
+          response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ model: "openai/gpt-5-mini", messages: gatewayMsgs, stream: false }),
+            signal: ctrlG.signal,
+          });
+        } catch (e: any) {
+          clearTimeout(tG);
+        } finally {
+          clearTimeout(tG);
+        }
+      }
+
+      if (!response || !response.ok) { console.error("[agent-chat] follow-up error:", response?.status); break; }
       data = await response.json();
       assistantMessage = data.choices?.[0]?.message;
     }

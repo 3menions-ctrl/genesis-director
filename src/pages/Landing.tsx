@@ -129,10 +129,14 @@ export default function Landing() {
   const handleExitImmersive = useCallback(() => {
     setIsImmersive(false);
     setShowImmersiveCTA(false);
+    // Reset so inactivity timer can re-trigger after user exits immersive mode
+    hasAutoTriggeredRef.current = false;
   }, []);
 
   const handleImmersiveVideoEnded = useCallback(() => {
     setShowImmersiveCTA(true);
+    // Allow inactivity timer to re-trigger after next interaction cycle
+    hasAutoTriggeredRef.current = false;
   }, []);
 
   // Inactivity detection — auto-enter immersive after 10s of no deliberate interaction

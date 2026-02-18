@@ -195,31 +195,52 @@ function PageEmbedBlock({ data, onNavigate }: { data: any; onNavigate?: (path: s
 
 function ProjectListBlock({ data, onNavigate }: { data: any; onNavigate?: (path: string) => void }) {
   const projects = data.projects || [];
+  const [activeItem, setActiveItem] = useState<any | null>(null);
+
   return (
+    <>
     <RichCard accent="hsl(24, 95%, 53%)">
       <CardHeader icon={Film} title="Your Projects" badge={`${data.total || projects.length}`} accentColor="hsl(24, 95%, 53%)" navigateTo={data.navigateTo} onNavigate={onNavigate} />
       <div className="divide-y divide-border/6">
-        {projects.slice(0, 6).map((p: any) => (
-          <div key={p.id} className="px-5 py-3.5 flex items-center gap-4 hover:bg-surface-2/40 transition-colors cursor-default">
-            {/* Thumbnail */}
-            <div className="w-14 h-10 rounded-lg bg-surface-2/80 border border-border/10 overflow-hidden flex-shrink-0 flex items-center justify-center">
-              {p.thumbnail_url ? (
-                <img src={p.thumbnail_url} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <Film className="h-4 w-4 text-muted-foreground/30" />
+        {projects.slice(0, 6).map((p: any) => {
+          const hasVideo = !!(p.video_url || (p.video_clips && p.video_clips.length > 0));
+          return (
+            <div
+              key={p.id}
+              onClick={() => hasVideo ? setActiveItem(p) : undefined}
+              className={cn(
+                "px-5 py-3.5 flex items-center gap-4 transition-colors",
+                hasVideo ? "cursor-pointer hover:bg-surface-2/50 group" : "cursor-default hover:bg-surface-2/30"
               )}
-            </div>
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{p.title || "Untitled"}</p>
-              <div className="flex items-center gap-3 mt-0.5">
-                <span className="text-[11px] text-muted-foreground/50">{p.clip_count ?? 0} clips</span>
-                <StatusPill status={p.status || "draft"} />
+            >
+              {/* Thumbnail */}
+              <div className="relative w-14 h-10 rounded-lg bg-surface-2/80 border border-border/10 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                {p.thumbnail_url ? (
+                  <img src={p.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <Film className="h-4 w-4 text-muted-foreground/30" />
+                )}
+                {hasVideo && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Play className="h-3.5 w-3.5 text-white fill-white" />
+                  </div>
+                )}
               </div>
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">{p.title || "Untitled"}</p>
+                <div className="flex items-center gap-3 mt-0.5">
+                  <span className="text-[11px] text-muted-foreground/50">{p.clip_count ?? 0} clips</span>
+                  <StatusPill status={p.status || "draft"} />
+                </div>
+              </div>
+              {hasVideo
+                ? <Play className="h-3.5 w-3.5 text-primary/40 flex-shrink-0 group-hover:text-primary transition-colors" />
+                : <ChevronRight className="h-4 w-4 text-muted-foreground/20 flex-shrink-0" />
+              }
             </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground/20 flex-shrink-0" />
-          </div>
-        ))}
+          );
+        })}
       </div>
       {/* Footer with navigation */}
       {data.navigateTo && onNavigate && projects.length > 0 && (
@@ -232,6 +253,9 @@ function ProjectListBlock({ data, onNavigate }: { data: any; onNavigate?: (path:
         </button>
       )}
     </RichCard>
+
+      {activeItem && <VideoPlayerModal item={activeItem} onClose={() => setActiveItem(null)} />}
+    </>
   );
 }
 
@@ -402,6 +426,18 @@ function VideoPlayerModal({ item, onClose }: { item: any; onClose: () => void })
   const videoRef = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(false);
 
+  // Prefer direct MP4 clips over HLS manifest JSON
+  const playableUrl = (() => {
+    if (item.video_clips && item.video_clips.length > 0) {
+      return item.video_clips[0];
+    }
+    // Only use video_url if it's an MP4, not a JSON manifest
+    if (item.video_url && (item.video_url.endsWith('.mp4') || item.video_url.includes('.mp4'))) {
+      return item.video_url;
+    }
+    return null;
+  })();
+
   return (
     <AnimatePresence>
       <motion.div
@@ -421,10 +457,10 @@ function VideoPlayerModal({ item, onClose }: { item: any; onClose: () => void })
         >
           {/* Video */}
           <div className="relative aspect-video bg-black">
-            {item.video_url ? (
+            {playableUrl ? (
               <video
                 ref={videoRef}
-                src={item.video_url}
+                src={playableUrl}
                 autoPlay
                 loop
                 muted={muted}
@@ -434,7 +470,7 @@ function VideoPlayerModal({ item, onClose }: { item: any; onClose: () => void })
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center gap-3">
                 <Film className="h-10 w-10 text-white/20" />
-                <p className="text-white/40 text-sm">No video available</p>
+                <p className="text-white/40 text-sm">No playable video available</p>
               </div>
             )}
 
@@ -459,6 +495,9 @@ function VideoPlayerModal({ item, onClose }: { item: any; onClose: () => void })
           {item.title && (
             <div className="px-4 py-3 border-t border-white/8">
               <p className="text-sm font-medium text-white/80 truncate">{item.title}</p>
+              {item.video_clips && item.video_clips.length > 1 && (
+                <p className="text-[11px] text-white/40 mt-0.5">Showing clip 1 of {item.video_clips.length}</p>
+              )}
             </div>
           )}
         </motion.div>

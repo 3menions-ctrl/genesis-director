@@ -139,7 +139,19 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
     } else if (act === "generation_started" && (action as any).navigate_to) {
       navigate((action as any).navigate_to);
       onClose();
-    } else if (act === "confirm_generation" || act === "confirm_delete" || act === "start_creation") {
+    } else if (act === "start_creation") {
+      // Navigate directly — no confirmation popup needed, user already expressed intent
+      const params = (action as any).params || {};
+      const qp = new URLSearchParams();
+      if (params.mode) qp.set("mode", params.mode);
+      if (params.prompt) qp.set("prompt", params.prompt);
+      if (params.image_url) {
+        sessionStorage.setItem("imageToVideoUrl", params.image_url);
+        qp.set("mode", "image-to-video");
+      }
+      navigate(`/create?${qp.toString()}`);
+      onClose();
+    } else if (act === "confirm_generation" || act === "confirm_delete") {
       setPendingAction(action);
     } else if (act === "insufficient_credits") {
       navigate("/pricing");

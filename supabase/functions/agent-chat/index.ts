@@ -3667,7 +3667,15 @@ async function getUserBalance(supabase: ReturnType<typeof createClient>, userId:
 // System Prompt — Plan-Then-Execute Mode
 // ══════════════════════════════════════════════════════
 
-function buildSystemPrompt(userContext: Record<string, unknown>, currentPage?: string): string {
+function buildSystemPrompt(
+  userContext: Record<string, unknown>,
+  currentPage?: string,
+  liveState?: {
+    activePipelines: Array<{ id: string; title: string; status: string; mode: string; updated_at: string }> | null;
+    recentProjects: Array<{ id: string; title: string; status: string; video_url: string | null; mode: string; updated_at: string }> | null;
+    recentTxns: Array<{ amount: number; transaction_type: string; description: string; created_at: string }> | null;
+  }
+): string {
   const name = userContext.display_name || userContext.greeting_name || "friend";
   const credits = userContext.credits_balance || 0;
   const tier = userContext.account_tier || "free";
@@ -3675,6 +3683,11 @@ function buildSystemPrompt(userContext: Record<string, unknown>, currentPage?: s
   const streak = userContext.streak || 0;
   const level = userContext.level || 1;
   const interactionCount = userContext.interaction_count || 0;
+  const learnedContext = userContext.learned_context as Record<string, unknown> || {};
+  const preferredMode = userContext.preferred_mode as string | undefined;
+  const preferredAspectRatio = userContext.preferred_aspect_ratio as string | undefined;
+  const preferredStyle = userContext.preferred_style as string | undefined;
+  const preferredTone = userContext.preferred_tone as string | undefined;
 
   // Time-of-day awareness
   const hour = new Date().getUTCHours();
@@ -3690,6 +3703,132 @@ function buildSystemPrompt(userContext: Record<string, unknown>, currentPage?: s
   if ((interactionCount as number) > 50) greetingStyle = "familiar_power_user";
   else if ((interactionCount as number) > 10) greetingStyle = "friendly_regular";
   else if ((interactionCount as number) > 3) greetingStyle = "warm_returning";
+
+  // ── Build LIVE STATE block ──
+  const pipelines = liveState?.activePipelines || [];
+  const recentProjects = liveState?.recentProjects || [];
+  const recentTxns = liveState?.recentTxns || [];
+
+  const liveStateBlock = `
+═══ LIVE USER STATE (Real-time snapshot — CRITICAL context for EVERY response) ═══
+**Active Pipelines (${pipelines.length} generating right now):**
+${pipelines.length === 0 ? "None — no active video generations." : pipelines.map(p => `- "${p.title}" [${p.status}] (${p.mode}, last updated ${new Date(p.updated_at).toLocaleTimeString()})`).join("\n")}
+
+**Recent Projects (last 5):**
+${recentProjects.length === 0 ? "No projects yet — this user is brand new." : recentProjects.map(p => `- "${p.title}" → ${p.status}${p.video_url ? " ✅ has video" : ""} [${p.mode}]`).join("\n")}
+
+**Recent Credit Activity:**
+${recentTxns.length === 0 ? "No recent transactions." : recentTxns.map(t => `- ${t.amount > 0 ? "+" : ""}${t.amount}cr (${t.transaction_type}): ${t.description}`).join("\n")}
+
+**Remembered Preferences (from past conversations):**
+${Object.keys(learnedContext).length === 0 && !preferredMode ? "No preferences saved yet." : [
+  preferredMode ? `- Preferred creation mode: ${preferredMode}` : null,
+  preferredAspectRatio ? `- Preferred aspect ratio: ${preferredAspectRatio}` : null,
+  preferredStyle ? `- Preferred video style: ${preferredStyle}` : null,
+  preferredTone ? `- Preferred tone: ${preferredTone}` : null,
+  ...Object.entries(learnedContext).map(([k, v]) => `- ${k}: ${v}`),
+].filter(Boolean).join("\n")}
+
+**WHAT THIS MEANS FOR YOUR RESPONSE:**
+${pipelines.length > 0 ? `⚡ User has ${pipelines.length} active generation(s). PROACTIVELY mention them — offer to check status, troubleshoot, or celebrate when done.` : ""}
+${recentProjects.some(p => p.status === "completed" && !p.video_url) ? "⚠️ Some completed projects may have assembly issues — watch for this." : ""}
+${(credits as number) <= 5 && (credits as number) > 0 ? "💡 User is critically low on credits — gently mention this if they attempt any credit-using action." : ""}
+${(credits as number) === 0 ? "🔴 ZERO CREDITS — guide them to /pricing before any action." : ""}
+${recentProjects.length === 0 ? "🌟 BRAND NEW USER — be extra warm, explain everything, guide them to create their first video." : ""}
+${preferredMode ? `📌 User prefers ${preferredMode} mode — default to this when relevant, skip asking about it.` : ""}
+`;
+
+  // ── Build PAGE-AWARE block ──
+  const pageRules: Record<string, string> = {
+    "/create": `
+═══ PAGE CONTEXT: /create (Video Creation Studio) ═══
+The user is ON the creation page RIGHT NOW. They are ready to make a video.
+- DO NOT navigate them away — they're already in the right place
+- Help them finalize their prompt, pick a mode, or choose settings
+- If they haven't picked a mode yet → guide them: text-to-video (stories/ads), image-to-video (animate photos), avatar (presenter videos)
+- If they seem stuck → offer to generate a script preview or suggest a template
+- Skip the tour — they found the page, they want to CREATE`,
+    "/projects": `
+═══ PAGE CONTEXT: /projects (Projects Dashboard) ═══
+The user is browsing their projects right now.
+- ${pipelines.length > 0 ? `They have ${pipelines.length} active generation(s) — offer to check pipeline status immediately` : "No active generations currently"}
+- Offer to: check project status, open a completed project, start a new video, retry failed clips
+- If they have failed projects → proactively offer to troubleshoot and retry
+- If they have completed projects with no stitch → offer to stitch/export them
+- Primary actions from here: check status, open editor, create new`,
+    "/avatars": `
+═══ PAGE CONTEXT: /avatars (Avatar Library) ═══
+The user is browsing AI avatars right now.
+- They are likely ready to pick an avatar for a video — skip the tour
+- IMMEDIATELY offer to show avatar recommendations based on their content type
+- Ask: "What kind of video are you making?" — then recommend 4 well-curated avatars
+- Help them understand voice options, style, and personality
+- When they pick one → move straight to script/prompt collection`,
+    "/settings": `
+═══ PAGE CONTEXT: /settings (Account Settings) ═══
+The user is on their settings page.
+- Help with: profile editing, notification preferences, tier info, billing
+- If they ask about upgrading → explain tiers clearly and guide to /pricing
+- If they ask about deleting account → handle sensitively, explain data retention
+- Common settings tasks: update display name, bio, email notification preferences`,
+    "/pricing": `
+═══ PAGE CONTEXT: /pricing (Credits & Plans) ═══
+The user is on the pricing/credits page — they likely want to buy credits.
+- Be helpful about which package fits their needs
+- Don't pressure, but DO be informative about what each package enables
+- If they're low on credits: empathize, recommend the right package for their usage
+- Packages: Mini ($9/90cr) • Starter ($37/370cr) • Growth ($99/1000cr, most popular) • Agency ($249/2500cr)`,
+    "/gallery": `
+═══ PAGE CONTEXT: /gallery (Community Gallery) ═══
+The user is browsing community videos.
+- Help them discover, filter, and find inspiration
+- If they see something they like → offer to help them make something similar
+- Use browse_gallery and get_trending_videos to show real content
+- Offer to help them publish their own completed videos here`,
+    "/profile": `
+═══ PAGE CONTEXT: /profile (User Profile) ═══
+The user is viewing their public profile.
+- Help them improve their bio, display name, or public presence
+- Show their stats: followers, videos, XP/level
+- Suggest ways to grow: engaging with the community, publishing videos`,
+    "/world-chat": `
+═══ PAGE CONTEXT: /world-chat (Community Chat) ═══
+The user is in the community chat.
+- Help them participate, read messages, or post
+- Use read_world_chat and send_world_chat_message tools
+- Be social and encourage community engagement`,
+    "/creators": `
+═══ PAGE CONTEXT: /creators (Creator Discovery) ═══
+The user is discovering other creators.
+- Help them find and follow creators based on their interests
+- Use search_creators to find relevant people
+- Encourage following creators in their niche`,
+    "/video-editor": `
+═══ PAGE CONTEXT: /video-editor (Video Editor) ═══
+The user is in the video editing interface.
+- They are editing a video — help with editing-specific questions
+- Available edits: music, effects, color grading, transitions, stickers
+- Use get_edit_sessions to see their current work
+- If they need music → use get_music_library and add_music_to_project`,
+    "/": `
+═══ PAGE CONTEXT: / (Landing Page) ═══
+The user is on the landing page — they may not be logged in or are exploring.
+- Guide them toward signing up or creating their first video
+- Explain APEX Studios value proposition warmly`,
+  };
+
+  // Match current page (handle dynamic routes like /projects/uuid)
+  let pageBlock = "";
+  if (currentPage) {
+    const exactMatch = pageRules[currentPage];
+    if (exactMatch) {
+      pageBlock = exactMatch;
+    } else {
+      // Fuzzy match for dynamic routes
+      const matched = Object.keys(pageRules).find(k => k !== "/" && currentPage.startsWith(k));
+      if (matched) pageBlock = pageRules[matched];
+    }
+  }
 
   return `You are Hoppy 🐰 — a LIVING, breathing AI concierge for APEX Studios, an AI-powered video creation platform by Apex-Studio LLC. You are not just an assistant — you are a creative partner, a cheerful companion, and a production expert who truly cares about every user's creative journey.
 
@@ -4308,13 +4447,18 @@ When appropriate, offer helpful platform tips organically:
 - Name: ${name}
 - Credits: ${credits}
 - Tier: ${tier}
-- Projects: ${projectCount}
-- Level: ${level} | Streak: ${streak} days
-- Page: ${currentPage || "unknown"}
+- Total Projects: ${projectCount}
+- Level: ${level} | XP: ${userContext.xp_total || 0} | Streak: ${streak} days
+- Current Page: ${currentPage || "unknown"}
+- Interaction Count: ${interactionCount} (determines greeting style)
 ${(credits as number) <= 0 ? "⚠️ NO CREDITS — guide to /pricing for actions" : ""}
-${(credits as number) > 0 && (credits as number) <= 10 ? "💡 Low credits — mention topping up if generating" : ""}
+${(credits as number) > 0 && (credits as number) <= 10 ? "💡 CRITICALLY LOW credits — mention topping up if generating" : ""}
 ${(credits as number) > 10 && (credits as number) <= 20 ? "📊 Credits getting low — be mindful of costs" : ""}
 ${(projectCount as number) === 0 ? "🌟 NEW user! Extra welcoming, guide to first video" : ""}
+
+${liveStateBlock}
+
+${pageBlock}
 
 ═══ BOUNDARIES ═══
 - ONLY access current user's data
@@ -4384,20 +4528,41 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Gather user context
-    const { data: profile } = await supabase.from("profiles").select("display_name, credits_balance, account_tier").eq("id", auth.userId).single();
-    const { data: projectCount } = await supabase.from("movie_projects").select("id", { count: "exact", head: true }).eq("user_id", auth.userId);
-    const { data: gamification } = await supabase.from("user_gamification").select("level, current_streak").eq("user_id", auth.userId).single();
-    const { data: prefs } = await supabase.from("agent_preferences").select("greeting_name, interaction_count, learned_context").eq("user_id", auth.userId).single();
+    // Gather user context — all in parallel for speed
+    const [
+      { data: profile },
+      { data: gamification },
+      { data: prefs },
+      { data: activePipelines },
+      { data: recentProjects },
+      { data: recentTxns },
+    ] = await Promise.all([
+      supabase.from("profiles").select("display_name, credits_balance, account_tier").eq("id", auth.userId).single(),
+      supabase.from("user_gamification").select("level, current_streak, xp_total").eq("user_id", auth.userId).single(),
+      supabase.from("agent_preferences").select("greeting_name, interaction_count, learned_context, preferred_mode, preferred_aspect_ratio, preferred_clip_count, preferred_style, preferred_tone").eq("user_id", auth.userId).single(),
+      supabase.from("movie_projects").select("id, title, status, updated_at, mode").eq("user_id", auth.userId).in("status", ["generating", "processing", "stitching", "awaiting_approval"]).order("updated_at", { ascending: false }).limit(3),
+      supabase.from("movie_projects").select("id, title, status, video_url, thumbnail_url, mode, updated_at").eq("user_id", auth.userId).order("updated_at", { ascending: false }).limit(5),
+      supabase.from("credit_transactions").select("amount, transaction_type, description, created_at").eq("user_id", auth.userId).order("created_at", { ascending: false }).limit(3),
+    ]);
+
+    const projectCount = recentProjects?.length ?? 0;
+    const totalProjectCount = recentProjects ? recentProjects.length : 0;
 
     const userContext = {
       ...(profile || {}),
-      project_count: projectCount || 0,
+      project_count: totalProjectCount,
       level: gamification?.level || 1,
       streak: gamification?.current_streak || 0,
+      xp_total: gamification?.xp_total || 0,
       greeting_name: prefs?.greeting_name,
       interaction_count: prefs?.interaction_count || 0,
       learned_context: prefs?.learned_context || {},
+      // Preferences memory
+      preferred_mode: prefs?.preferred_mode,
+      preferred_aspect_ratio: prefs?.preferred_aspect_ratio,
+      preferred_clip_count: prefs?.preferred_clip_count,
+      preferred_style: prefs?.preferred_style,
+      preferred_tone: prefs?.preferred_tone,
     };
 
     // ── Charge 1 credit per conversation ──
@@ -4527,7 +4692,11 @@ serve(async (req) => {
       ? `\n\n═══ ALREADY SHOWN (DO NOT REPEAT) ═══\nThese IDs were already presented in this conversation. NEVER show them again:\n${shownItemIds.join(", ")}\nWhen fetching avatars/templates, filter these out or pick DIFFERENT ones.\n`
       : "";
     
-    const systemPrompt = buildSystemPrompt(userContext, currentPage) + dedupNote;
+    const systemPrompt = buildSystemPrompt(userContext, currentPage, {
+      activePipelines: activePipelines as any,
+      recentProjects: recentProjects as any,
+      recentTxns: recentTxns as any,
+    }) + dedupNote;
     const aiMessages = [{ role: "system", content: systemPrompt }, ...conversationMessages];
 
     // 45s timeout; 2 retries on 429, then fallback to Lovable AI gateway

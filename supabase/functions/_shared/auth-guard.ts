@@ -43,15 +43,30 @@ export async function validateAuth(req: Request): Promise<AuthResult> {
     const authClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
-    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-    
-    if (claimsError || !claimsData?.claims?.sub) {
+
+    // Try getClaims first (fast, local validation)
+    try {
+      const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+      if (!claimsError && claimsData?.claims?.sub) {
+        return { 
+          authenticated: true, 
+          userId: claimsData.claims.sub as string, 
+          isServiceRole: false 
+        };
+      }
+    } catch {
+      // getClaims not available or failed, fall through to getUser
+    }
+
+    // Fallback: validate via getUser (server-side, always reliable)
+    const { data: { user }, error: userError } = await authClient.auth.getUser();
+    if (userError || !user?.id) {
       return { authenticated: false, userId: null, isServiceRole: false, error: 'Invalid or expired token' };
     }
 
     return { 
       authenticated: true, 
-      userId: claimsData.claims.sub as string, 
+      userId: user.id, 
       isServiceRole: false 
     };
   } catch {

@@ -4494,33 +4494,70 @@ serve(async (req) => {
     const systemPrompt = buildSystemPrompt(userContext, currentPage) + dedupNote;
     const aiMessages = [{ role: "system", content: systemPrompt }, ...conversationMessages];
 
-    // 45s timeout to prevent edge function wall-clock death
-    const controller1 = new AbortController();
-    const timeout1 = setTimeout(() => controller1.abort(), 45000);
+    // 45s timeout; 2 retries on 429, then fallback to Lovable AI gateway
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    let response: Response | null = null;
+    let usedFallbackGateway = false;
 
-    let response: Response;
-    try {
-      response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "gpt-4o", messages: aiMessages, tools: AGENT_TOOLS, stream: false }),
-        signal: controller1.signal,
-      });
-    } catch (e: any) {
-      clearTimeout(timeout1);
-      if (e.name === "AbortError") {
-        console.error("[agent-chat] OpenAI request timed out (45s)");
-        return new Response(JSON.stringify({ content: "Oops, I took too long thinking! Try again — I'll be quicker this time 🐰", actions: [], richBlocks: [], creditsCharged: 0 }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt > 0) {
+        console.log(`[agent-chat] Retry attempt ${attempt} after 3000ms backoff...`);
+        await new Promise(r => setTimeout(r, 3000));
       }
-      throw e;
-    } finally {
-      clearTimeout(timeout1);
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 45000);
+      try {
+        response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "gpt-4o", messages: aiMessages, tools: AGENT_TOOLS, stream: false }),
+          signal: ctrl.signal,
+        });
+      } catch (e: any) {
+        clearTimeout(t);
+        if (e.name === "AbortError") {
+          console.error("[agent-chat] OpenAI request timed out (45s)");
+          return new Response(JSON.stringify({ content: "Oops, I took too long thinking! Try again 🐰", actions: [], richBlocks: [], creditsCharged: 0 }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        throw e;
+      } finally {
+        clearTimeout(t);
+      }
+      if (response.status !== 429) break;
+      console.error(`[agent-chat] 429 rate limit on OpenAI attempt ${attempt + 1}`);
     }
 
-    if (!response.ok) {
-      const status = response.status;
+    // If OpenAI still 429 after retries, fall back to Lovable AI gateway
+    if (response?.status === 429 && LOVABLE_API_KEY) {
+      console.log("[agent-chat] OpenAI rate limited — falling back to Lovable AI gateway...");
+      usedFallbackGateway = true;
+      // Strip tool_calls from messages for gateway (use simplified message list)
+      const gatewayMessages = aiMessages.map((m: any) => ({
+        role: m.role,
+        content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+      }));
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 45000);
+      try {
+        response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "openai/gpt-5-mini", messages: gatewayMessages, tools: AGENT_TOOLS, stream: false }),
+          signal: ctrl.signal,
+        });
+      } catch (e: any) {
+        clearTimeout(t);
+        throw e;
+      } finally {
+        clearTimeout(t);
+      }
+      console.log(`[agent-chat] Lovable gateway response: ${response.status}`);
+    }
+
+    if (!response || !response.ok) {
+      const status = response?.status || 500;
       console.error("[agent-chat] AI gateway error:", status);
       if (status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       if (status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted" }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -4778,7 +4815,7 @@ serve(async (req) => {
       if (!aiCalledPresentChoices && !hasInteractiveBlocks) {
         // Build context-aware choices based on FULL conversation flow, not just keywords
         const allUserMsgs = messages.filter((m: any) => m.role === "user").map((m: any) => m.content.toLowerCase());
-        const lastUserMsg = allUserMsgs[allUserMsgs.length - 1] || "";
+        const lastUserMsgText = allUserMsgs[allUserMsgs.length - 1] || "";
         const prevTopics = allUserMsgs.join(" ");
         
         let fallbackQuestion = "";
@@ -4789,7 +4826,7 @@ serve(async (req) => {
         const alreadyDiscussedTemplates = prevTopics.includes("template") && allUserMsgs.length > 2;
         const userChoseNoAvatar = prevTopics.includes("no avatar") || prevTopics.includes("pure video") || prevTopics.includes("skip avatar");
         const userWantsVideo = prevTopics.includes("video") || prevTopics.includes("create");
-        const userMentionedName = lastUserMsg.match(/^[a-z]+ [a-z]+$/i); // Likely a name input
+        const userMentionedName = lastUserMsgText.match(/^[a-z]+ [a-z]+$/i); // Likely a name input
         
         // User is deep in a creation flow — guide to next step
         if (userWantsVideo && allUserMsgs.length > 3) {
@@ -4801,7 +4838,7 @@ serve(async (req) => {
           ];
         }
         // User provided what seems like a name/concept — ask for more detail
-        else if (userMentionedName || (lastUserMsg.length > 0 && lastUserMsg.length < 30 && !lastUserMsg.includes("?"))) {
+        else if (userMentionedName || (lastUserMsgText.length > 0 && lastUserMsgText.length < 30 && !lastUserMsgText.includes("?"))) {
           fallbackQuestion = "Tell me more about your vision —";
           fallbackOptions = [
             { id: "describe_more", label: "Let Me Describe It", description: "I'll share my full concept and you shape it", icon: "sparkles" },
@@ -4810,7 +4847,7 @@ serve(async (req) => {
           ];
         }
         // First message / greeting
-        else if (lastUserMsg.includes("hi") || lastUserMsg.includes("hello") || lastUserMsg.includes("hey") || messages.length <= 2) {
+        else if (lastUserMsgText.includes("hi") || lastUserMsgText.includes("hello") || lastUserMsgText.includes("hey") || messages.length <= 2) {
           fallbackQuestion = "What brings you to the studio today?";
           fallbackOptions = [
             { id: "create_first_video", label: "Create My First Video", description: "I'll walk you through it step by step", icon: "film" },

@@ -513,7 +513,7 @@ export function CinematicPipelineProgress({
             </span>
           )}
 
-          {onCancel && isRunning && !isComplete && (
+          {onCancel && (isRunning || isError) && !isComplete && (
             <button
               onClick={onCancel}
               disabled={isCancelling}

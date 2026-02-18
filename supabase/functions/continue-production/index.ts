@@ -113,8 +113,18 @@ serve(async (req: Request) => {
     return unauthorizedResponse(corsHeaders, auth.error);
   }
 
+  // Parse body ONCE before try/catch to avoid "Body is unusable" error
+  let request: ContinueProductionRequest;
   try {
-    const request: ContinueProductionRequest = await req.json();
+    request = await req.json();
+  } catch (parseError) {
+    return new Response(
+      JSON.stringify({ success: false, error: 'Invalid request body' }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  try {
     const { projectId, userId, completedClipIndex, completedClipResult, totalClips, pipelineContext } = request;
 
     console.log(`[ContinueProduction] Clip ${completedClipIndex + 1}/${totalClips} completed for project ${projectId}`);
@@ -653,17 +663,18 @@ serve(async (req: Request) => {
   } catch (error) {
     console.error("[ContinueProduction] Error:", error);
     
-    // Try to update project with error
+    // Use the already-parsed request (body was consumed once before try block)
     try {
-      const request = await req.clone().json();
-      await supabase
-        .from('movie_projects')
-        .update({
-          status: 'failed',
-          last_error: error instanceof Error ? error.message : 'Unknown error in continue-production',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', request.projectId);
+      if (request?.projectId) {
+        await supabase
+          .from('movie_projects')
+          .update({
+            status: 'failed',
+            last_error: error instanceof Error ? error.message : 'Unknown error in continue-production',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', request.projectId);
+      }
     } catch (e) {
       console.error('[ContinueProduction] Failed to update project status:', e);
     }

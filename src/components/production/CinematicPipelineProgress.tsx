@@ -1,18 +1,19 @@
 /**
- * CinematicPipelineProgress — Waveform Edition
+ * CinematicPipelineProgress — Apex Futuristic HUD
  *
- * Beautiful animated sound-wave visualization inspired by the reference design.
- * Features: animated waveform bars, giant % counter, gradient progress bar,
- * live status text, stage stepper, and completed clip links.
- * All animations are slow and smooth — no rapid flashing or strobing.
+ * Premium sci-fi aesthetic: circular arc ring, glowing radial core,
+ * holographic stage chips, live metrics grid, and clip panel.
+ * Every animation is smooth, slow, and photosensitivity-safe.
  */
 
 import React, { useMemo, memo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, Clock, XCircle, Play, ExternalLink } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, Play, ExternalLink, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// ============= TYPES =============
+// ─────────────────────────────────────────────────────────────────────────────
+// TYPES
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface StageStatus {
   name: string;
@@ -48,436 +49,269 @@ interface CinematicPipelineProgressProps {
   onPlayClip?: (url: string) => void;
 }
 
-// ============= STAGE CONFIGURATIONS =============
+// ─────────────────────────────────────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────────────────────────────────────
 
-const STAGE_META: Record<string, {
-  emoji: string;
-  label: string;
-  sublabel: string;
-  hue: number;
-}> = {
-  'Script':   { emoji: '📝', label: 'Crafting Script',     sublabel: 'Narrative & structure',   hue: 220 },
-  'Identity': { emoji: '👤', label: 'Locking Characters',  sublabel: 'Identity anchoring',       hue: 195 },
-  'Audit':    { emoji: '🔍', label: 'Quality Check',       sublabel: 'Continuity audit',         hue: 160 },
-  'Assets':   { emoji: '🎨', label: 'Creating Assets',     sublabel: 'Images, voice & music',    hue: 280 },
-  'Render':   { emoji: '🎥', label: 'Rendering Video',     sublabel: 'Frame by frame',           hue: 20  },
-  'Stitch':   { emoji: '✨', label: 'Final Assembly',       sublabel: 'Merging clips',            hue: 50  },
+const STAGE_META: Record<string, { emoji: string; label: string; sublabel: string; hue: number }> = {
+  Script:   { emoji: '📝', label: 'Crafting Script',    sublabel: 'Generating narrative structure',  hue: 220 },
+  Identity: { emoji: '👤', label: 'Characters',         sublabel: 'Locking character identities',    hue: 195 },
+  Audit:    { emoji: '🔍', label: 'Quality Audit',      sublabel: 'Running continuity checks',        hue: 160 },
+  Assets:   { emoji: '🎨', label: 'Creating Assets',    sublabel: 'Images, voice & music',           hue: 280 },
+  Render:   { emoji: '🎥', label: 'Rendering',          sublabel: 'Generating video frames',          hue: 20  },
+  Stitch:   { emoji: '✨', label: 'Final Assembly',      sublabel: 'Stitching clips together',         hue: 50  },
 };
 
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
+function formatTime(s: number) {
+  const m = Math.floor(s / 60);
+  return `${m}:${String(s % 60).padStart(2, '0')}`;
 }
 
-// ============= ANIMATED WAVEFORM =============
+// ─────────────────────────────────────────────────────────────────────────────
+// CIRCULAR ARC RING
+// ─────────────────────────────────────────────────────────────────────────────
 
-// ============= WAVE LAYER CONFIG =============
+const ARC_R = 120;
+const ARC_STROKE = 10;
+const ARC_SIZE = (ARC_R + ARC_STROKE + 6) * 2;
+const ARC_CIRCUMFERENCE = 2 * Math.PI * ARC_R;
 
-interface WaveLayer {
-  freq: number;       // spatial frequency
-  amp: number;        // amplitude (fraction of half-height)
-  speed: number;      // time speed
-  phase: number;      // phase offset
-  colorStop: number;  // 0-1 along the blue→orange gradient
-  lineWidth: number;
-  glowWidth: number;
-}
-
-const WAVE_LAYERS: WaveLayer[] = [
-  { freq: 1.4, amp: 0.55, speed: 0.38, phase: 0,    colorStop: 0.0, lineWidth: 2.0, glowWidth: 12 },
-  { freq: 1.9, amp: 0.42, speed: 0.52, phase: 1.2,  colorStop: 0.3, lineWidth: 1.5, glowWidth: 10 },
-  { freq: 2.5, amp: 0.30, speed: 0.28, phase: 2.5,  colorStop: 0.55, lineWidth: 1.2, glowWidth: 8 },
-  { freq: 1.1, amp: 0.60, speed: 0.18, phase: 0.8,  colorStop: 0.78, lineWidth: 1.8, glowWidth: 14 },
-  { freq: 3.0, amp: 0.22, speed: 0.65, phase: 1.8,  colorStop: 1.0, lineWidth: 1.0, glowWidth: 7 },
-];
-
-/** Interpolate the blue→purple→magenta→orange gradient */
-function waveColor(
-  t: number,
-  filled: boolean,
-  isError: boolean,
-  isComplete: boolean,
-  alpha = 1,
-): string {
-  if (isError)    return `rgba(220,50,80,${alpha * (filled ? 1 : 0.15)})`;
-  if (isComplete) return `rgba(50,200,130,${alpha * (filled ? 1 : 0.15)})`;
-  if (!filled)    return `rgba(55,60,90,${alpha * 0.18})`;
-
-  let r: number, g: number, b: number;
-  if (t < 0.33) {
-    const s = t / 0.33;
-    r = Math.round(80  + s * 100); g = Math.round(120 - s * 90); b = 255;
-  } else if (t < 0.66) {
-    const s = (t - 0.33) / 0.33;
-    r = Math.round(180 + s * 65); g = Math.round(30  + s * 30); b = Math.round(255 - s * 130);
-  } else {
-    const s = (t - 0.66) / 0.34;
-    r = 245; g = Math.round(60 + s * 135); b = Math.round(125 - s * 125);
-  }
-  return `rgba(${r},${g},${b},${alpha})`;
-}
-
-/** Build an SVG smooth-curve path for a single wave layer */
-function buildWavePath(
-  layer: WaveLayer,
-  W: number,
-  H: number,
-  time: number,
-  progress: number, // 0-100
-): { filledD: string; dimD: string } {
-  const cy = H / 2;
-  const amp = layer.amp * (H / 2) * 0.85;
-  const filledX = (progress / 100) * W;
-  const STEPS = 120;
-
-  const pts: [number, number][] = [];
-  for (let i = 0; i <= STEPS; i++) {
-    const x = (i / STEPS) * W;
-    const norm = x / W;
-    // Envelope: taper at edges for natural look
-    const envelope = Math.sin(norm * Math.PI) * 0.6 + 0.4;
-    const y = cy - amp * envelope *
-      Math.sin(layer.freq * Math.PI * 2 * norm + time * layer.speed + layer.phase);
-    pts.push([x, y]);
-  }
-
-  const toD = (pts: [number, number][]) => {
-    let d = `M ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
-    for (let i = 1; i < pts.length - 1; i++) {
-      const cpX = (pts[i][0] + pts[i-1][0]) / 2;
-      const cpY = (pts[i][1] + pts[i-1][1]) / 2;
-      d += ` Q ${pts[i][0].toFixed(1)} ${pts[i][1].toFixed(1)}, ${cpX.toFixed(1)} ${cpY.toFixed(1)}`;
-    }
-    return d;
-  };
-
-  // Split path at filledX boundary
-  const filledPts = pts.filter(([x]) => x <= filledX + 5);
-  const dimPts = pts.filter(([x]) => x >= filledX - 5);
-
-  return {
-    filledD: filledPts.length > 1 ? toD(filledPts) : '',
-    dimD: dimPts.length > 1 ? toD(dimPts) : '',
-  };
-}
-
-// ============= SVG WAVEFORM VISUALIZER =============
-
-const WaveformVisualizer = memo(function WaveformVisualizer({
+const CircularRing = memo(function CircularRing({
   progress,
-  isRunning,
   isComplete,
   isError,
+  isRunning,
+  emoji,
+  label,
 }: {
   progress: number;
-  isRunning: boolean;
   isComplete: boolean;
   isError: boolean;
+  isRunning: boolean;
+  emoji: string;
+  label: string;
 }) {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const animRef = useRef<number>(0);
-  const startRef = useRef<number | null>(null);
+  const offset = ARC_CIRCUMFERENCE * (1 - Math.min(progress / 100, 1));
+  const cx = ARC_SIZE / 2;
+  const cy = ARC_SIZE / 2;
 
-  const W = 800;
-  const H = 140;
-
-  useEffect(() => {
-    const svg = svgRef.current;
-    if (!svg) return;
-
-    // Pre-select path elements for performance
-    const filledPaths = WAVE_LAYERS.map((_, i) =>
-      svg.querySelector<SVGPathElement>(`#wf-filled-${i}`)
-    );
-    const glowPaths = WAVE_LAYERS.map((_, i) =>
-      svg.querySelector<SVGPathElement>(`#wf-filled-glow-${i}`)
-    );
-    const dimPaths = WAVE_LAYERS.map((_, i) =>
-      svg.querySelector<SVGPathElement>(`#wf-dim-${i}`)
-    );
-    const sparkleGroup = svg.querySelector<SVGGElement>('#wf-sparkles');
-
-    const draw = (ts: number) => {
-      if (!startRef.current) startRef.current = ts;
-      const time = (ts - startRef.current) / 1000;
-
-      WAVE_LAYERS.forEach((layer, i) => {
-        const { filledD, dimD } = buildWavePath(layer, W, H, time, progress);
-        if (filledPaths[i]) filledPaths[i]!.setAttribute('d', filledD);
-        if (glowPaths[i])   glowPaths[i]!.setAttribute('d', filledD);
-        if (dimPaths[i])    dimPaths[i]!.setAttribute('d', dimD);
-      });
-
-      // Animate sparkle dots near wave tip
-      if (sparkleGroup) {
-        const tipX = (progress / 100) * W;
-        const children = sparkleGroup.querySelectorAll('circle');
-        children.forEach((c, i) => {
-          const jitter = Math.sin(time * 2.5 + i * 1.3) * 12;
-          const jitterY = Math.cos(time * 1.8 + i * 0.9) * 10;
-          const baseX = tipX + (i - 3) * 6 + jitter * 0.6;
-          const baseY = H / 2 + jitterY;
-          c.setAttribute('cx', baseX.toFixed(1));
-          c.setAttribute('cy', baseY.toFixed(1));
-          const opacity = Math.max(0, Math.sin(time * 3 + i * 0.7)) * 0.9;
-          c.setAttribute('opacity', opacity.toFixed(2));
-        });
-      }
-
-      animRef.current = requestAnimationFrame(draw);
-    };
-
-    animRef.current = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(animRef.current);
-  }, [progress, isRunning, isComplete, isError]);
-
-  const filledFrac = progress / 100;
+  const trackColor  = 'hsl(240 15% 12%)';
+  const ringGrad    = isError ? 'url(#ring-error)' : isComplete ? 'url(#ring-done)' : 'url(#ring-active)';
+  const glowColor   = isError ? 'hsl(0 80% 55%)' : isComplete ? 'hsl(155 70% 48%)' : 'hsl(263 75% 62%)';
 
   return (
-    <svg
-      ref={svgRef}
-      viewBox={`0 0 ${W} ${H}`}
-      className="w-full"
-      style={{ height: 140, overflow: 'visible' }}
-      preserveAspectRatio="none"
-    >
-      <defs>
-        {/* Clip to filled region */}
-        <clipPath id="wf-clip-filled">
-          <rect x="0" y="0" width={W * filledFrac} height={H} />
-        </clipPath>
-        {/* Clip to dim region */}
-        <clipPath id="wf-clip-dim">
-          <rect x={W * filledFrac} y="0" width={W * (1 - filledFrac)} height={H} />
-        </clipPath>
-
-        {/* Glow filters per layer */}
-        {WAVE_LAYERS.map((layer, i) => (
-          <filter key={i} id={`wf-glow-${i}`} x="-30%" y="-200%" width="160%" height="500%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation={layer.glowWidth * 0.4} result="blur" />
+    <div className="relative flex items-center justify-center" style={{ width: ARC_SIZE, height: ARC_SIZE }}>
+      <svg
+        width={ARC_SIZE}
+        height={ARC_SIZE}
+        viewBox={`0 0 ${ARC_SIZE} ${ARC_SIZE}`}
+        className="absolute inset-0"
+        style={{ transform: 'rotate(-90deg)' }}
+      >
+        <defs>
+          <linearGradient id="ring-active" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"   stopColor="hsl(215 95% 70%)" />
+            <stop offset="40%"  stopColor="hsl(270 90% 68%)" />
+            <stop offset="70%"  stopColor="hsl(320 85% 65%)" />
+            <stop offset="100%" stopColor="hsl(35 100% 62%)" />
+          </linearGradient>
+          <linearGradient id="ring-done" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"   stopColor="hsl(155 80% 50%)" />
+            <stop offset="100%" stopColor="hsl(185 90% 55%)" />
+          </linearGradient>
+          <linearGradient id="ring-error" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"   stopColor="hsl(0 85% 58%)" />
+            <stop offset="100%" stopColor="hsl(20 90% 55%)" />
+          </linearGradient>
+          <filter id="ring-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
-        ))}
+        </defs>
 
-        {/* Horizontal baseline gradient */}
-        <linearGradient id="wf-baseline-grad" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%"   stopColor="rgba(80,120,255,0.7)" />
-          <stop offset="35%"  stopColor="rgba(180,50,230,0.8)" />
-          <stop offset="65%"  stopColor="rgba(240,80,140,0.7)" />
-          <stop offset="100%" stopColor="rgba(255,180,30,0.4)" />
-        </linearGradient>
-
-        {/* Sparkle dot gradient */}
-        <radialGradient id="wf-sparkle-grad">
-          <stop offset="0%"   stopColor="white" stopOpacity="1" />
-          <stop offset="100%" stopColor="rgba(255,200,100,0)" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-
-      {/* ── Dim (unfilled) wave layers ── */}
-      {WAVE_LAYERS.map((layer, i) => (
-        <path
-          key={`dim-${i}`}
-          id={`wf-dim-${i}`}
-          d=""
+        {/* Track ring */}
+        <circle
+          cx={cx} cy={cy} r={ARC_R}
           fill="none"
-          stroke={waveColor(layer.colorStop, false, isError, isComplete, 1)}
-          strokeWidth={layer.lineWidth * 0.8}
-          clipPath="url(#wf-clip-dim)"
+          stroke={trackColor}
+          strokeWidth={ARC_STROKE}
         />
-      ))}
 
-      {/* ── Filled wave layers (with glow) ── */}
-      {WAVE_LAYERS.map((layer, i) => (
-        <g key={`filled-${i}`} clipPath="url(#wf-clip-filled)">
-          {/* Glow pass */}
-          <path
-            d=""
-            id={`wf-filled-glow-${i}`}
-            fill="none"
-            stroke={waveColor(layer.colorStop, true, isError, isComplete, 0.35)}
-            strokeWidth={layer.lineWidth * 6}
-            filter={`url(#wf-glow-${i})`}
-          />
-          {/* Sharp line pass */}
-          <path
-            id={`wf-filled-${i}`}
-            d=""
-            fill="none"
-            stroke={waveColor(layer.colorStop, true, isError, isComplete, 0.9)}
-            strokeWidth={layer.lineWidth}
-            strokeLinecap="round"
-          />
-        </g>
-      ))}
+        {/* Glow pass (wider, blurred) */}
+        <circle
+          cx={cx} cy={cy} r={ARC_R}
+          fill="none"
+          stroke={ringGrad}
+          strokeWidth={ARC_STROKE * 2.5}
+          strokeDasharray={ARC_CIRCUMFERENCE}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          filter="url(#ring-glow)"
+          opacity={0.35}
+          style={{ transition: 'stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)' }}
+        />
 
-      {/* ── Baseline glow line ── */}
-      <line
-        x1="0" y1={H / 2}
-        x2={W * filledFrac} y2={H / 2}
-        stroke="url(#wf-baseline-grad)"
-        strokeWidth="1.5"
-        opacity="0.6"
+        {/* Sharp ring */}
+        <circle
+          cx={cx} cy={cy} r={ARC_R}
+          fill="none"
+          stroke={ringGrad}
+          strokeWidth={ARC_STROKE}
+          strokeDasharray={ARC_CIRCUMFERENCE}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)' }}
+        />
+
+        {/* Tick marks every 30° */}
+        {Array.from({ length: 12 }).map((_, i) => {
+          const angle = (i / 12) * 2 * Math.PI;
+          const x1 = cx + Math.cos(angle) * (ARC_R - ARC_STROKE / 2 - 14);
+          const y1 = cy + Math.sin(angle) * (ARC_R - ARC_STROKE / 2 - 14);
+          const x2 = cx + Math.cos(angle) * (ARC_R - ARC_STROKE / 2 - 10);
+          const y2 = cy + Math.sin(angle) * (ARC_R - ARC_STROKE / 2 - 10);
+          return (
+            <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}
+              stroke="hsl(240 15% 22%)" strokeWidth="1" />
+          );
+        })}
+      </svg>
+
+      {/* Soft radial inner glow */}
+      <div
+        className="absolute rounded-full pointer-events-none"
+        style={{
+          width: ARC_R * 1.4,
+          height: ARC_R * 1.4,
+          background: `radial-gradient(circle, ${glowColor.replace(')', ' / 0.07)')} 0%, transparent 75%)`,
+          filter: 'blur(8px)',
+        }}
       />
 
-      {/* ── Sparkle burst at wave tip ── */}
-      <g id="wf-sparkles">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <circle
-            key={i}
-            cx={W * filledFrac}
-            cy={H / 2}
-            r={i < 3 ? 2.5 : i < 6 ? 1.8 : 1.2}
-            fill={i < 3 ? 'white' : i < 6 ? 'rgba(255,200,100,0.9)' : 'rgba(180,120,255,0.8)'}
-            opacity="0"
-          />
-        ))}
-      </g>
+      {/* Center content */}
+      <div className="relative z-10 flex flex-col items-center gap-1 select-none">
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={emoji}
+            initial={{ opacity: 0, scale: 0.7 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.7 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+            className="text-3xl"
+          >
+            {emoji}
+          </motion.span>
+        </AnimatePresence>
 
-      {/* ── Vertical tip glow line ── */}
-      {progress > 2 && progress < 99 && (
-        <line
-          x1={W * filledFrac} y1={H * 0.1}
-          x2={W * filledFrac} y2={H * 0.9}
-          stroke="rgba(255,255,255,0.15)"
-          strokeWidth="1"
+        <motion.span
+          key={Math.round(progress)}
+          className="font-black tabular-nums leading-none"
+          style={{
+            fontSize: 52,
+            letterSpacing: '-0.04em',
+            background: isError
+              ? 'linear-gradient(160deg, hsl(0 80% 65%), hsl(20 90% 60%))'
+              : isComplete
+              ? 'linear-gradient(160deg, hsl(155 75% 55%), hsl(185 85% 60%))'
+              : 'linear-gradient(160deg, hsl(215 95% 78%), hsl(270 88% 72%), hsl(320 85% 68%))',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+        >
+          {Math.round(progress)}<span style={{ fontSize: 24, opacity: 0.7 }}>%</span>
+        </motion.span>
+
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={label}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.3 }}
+            className="text-[11px] font-semibold text-center max-w-[120px] leading-tight"
+            style={{ color: 'hsl(240 10% 55%)' }}
+          >
+            {label}
+          </motion.p>
+        </AnimatePresence>
+      </div>
+
+      {/* Slow rotating outer accent ring */}
+      {isRunning && !isComplete && !isError && (
+        <motion.div
+          className="absolute rounded-full pointer-events-none"
+          style={{
+            width: ARC_SIZE + 24,
+            height: ARC_SIZE + 24,
+            border: '1px dashed hsl(263 60% 50% / 0.2)',
+          }}
+          animate={{ rotate: 360 }}
+          transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
         />
       )}
-    </svg>
-  );
-});
-
-// ============= GRADIENT PROGRESS BAR =============
-
-const GradientProgressBar = memo(function GradientProgressBar({
-  progress,
-  isError,
-  isComplete,
-}: {
-  progress: number;
-  isError: boolean;
-  isComplete: boolean;
-}) {
-  const gradient = isError
-    ? 'linear-gradient(90deg, hsl(0 80% 50%), hsl(15 90% 55%))'
-    : isComplete
-    ? 'linear-gradient(90deg, hsl(160 70% 45%), hsl(180 80% 50%))'
-    : 'linear-gradient(90deg, hsl(220 90% 65%), hsl(270 80% 62%), hsl(320 75% 60%), hsl(30 90% 58%), hsl(45 100% 55%))';
-
-  const glowColor = isError
-    ? 'hsl(0 80% 55% / 0.5)'
-    : isComplete
-    ? 'hsl(160 70% 45% / 0.5)'
-    : 'hsl(270 80% 62% / 0.5)';
-
-  return (
-    <div className="w-full flex flex-col gap-2">
-      {/* Bar track */}
-      <div
-        className="relative w-full rounded-full overflow-hidden"
-        style={{
-          height: 8,
-          background: 'hsl(240 10% 12%)',
-          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.4)',
-        }}
-      >
-        {/* Dotted texture overlay on track */}
-        <div
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage: 'radial-gradient(circle, hsl(240 20% 60%) 1px, transparent 1px)',
-            backgroundSize: '6px 6px',
-          }}
-        />
-
-        {/* Fill */}
-        <motion.div
-          className="absolute inset-y-0 left-0 rounded-full"
-          style={{
-            background: gradient,
-            boxShadow: `0 0 16px ${glowColor}, 0 0 4px ${glowColor}`,
-          }}
-          animate={{ width: `${Math.max(1, progress)}%` }}
-          transition={{ duration: 0.9, ease: 'easeOut' }}
-        />
-
-        {/* Shimmer sweep */}
-        <motion.div
-          className="absolute inset-y-0 w-12 rounded-full pointer-events-none"
-          style={{
-            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)',
-          }}
-          animate={{ left: [`${Math.max(0, progress - 10)}%`, `${Math.max(0, progress)}%`] }}
-          transition={{ duration: 1.2, ease: 'easeOut' }}
-        />
-      </div>
     </div>
   );
 });
 
-// ============= STAGE STEPPER =============
+// ─────────────────────────────────────────────────────────────────────────────
+// STAGE STEPPER
+// ─────────────────────────────────────────────────────────────────────────────
 
 const StageStepper = memo(function StageStepper({ stages }: { stages: StageStatus[] }) {
   const visible = stages.filter(s => s.status !== 'skipped');
-  if (visible.length === 0) return null;
+  if (!visible.length) return null;
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap justify-center">
+    <div className="flex items-center justify-center gap-1 flex-wrap">
       {visible.map((stage, i) => {
-        const meta = STAGE_META[stage.shortName];
-        const isDone = stage.status === 'complete';
-        const isActive = stage.status === 'active';
-        const isError = stage.status === 'error';
-        const hue = meta?.hue ?? 263;
-        const color = isError ? '0 72% 55%' : isDone ? '160 60% 48%' : `${hue} 65% 60%`;
+        const meta   = STAGE_META[stage.shortName];
+        const done   = stage.status === 'complete';
+        const active = stage.status === 'active';
+        const error  = stage.status === 'error';
+        const color  = error ? '0 75% 58%' : done ? '155 70% 48%' : `${meta?.hue ?? 263} 65% 62%`;
 
         return (
           <React.Fragment key={stage.shortName}>
             <motion.div
-              initial={{ opacity: 0, scale: 0.85 }}
+              initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.06, duration: 0.3 }}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full"
+              transition={{ delay: i * 0.05, duration: 0.3 }}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold"
               style={{
-                background: (isActive || isDone)
-                  ? `hsl(${color} / 0.12)`
-                  : 'hsl(240 10% 8% / 0.6)',
-                border: `1px solid hsl(${color} / ${isActive ? '0.45' : isDone ? '0.3' : '0.12'})`,
+                background: active
+                  ? `hsl(${color} / 0.15)`
+                  : done
+                  ? `hsl(${color} / 0.08)`
+                  : 'hsl(240 15% 8% / 0.6)',
+                border: `1px solid hsl(${color} / ${active ? '0.5' : done ? '0.3' : '0.1'})`,
+                color: `hsl(${color} / ${active || done ? '1' : '0.38'})`,
+                boxShadow: active ? `0 0 12px hsl(${color} / 0.2)` : 'none',
               }}
             >
-              <span className="text-[10px]">{meta?.emoji ?? '•'}</span>
-              <span
-                className="text-[10px] font-semibold"
-                style={{ color: `hsl(${color} / ${isActive || isDone ? '1' : '0.4'})` }}
-              >
-                {stage.shortName}
-              </span>
-              {isDone && <CheckCircle2 className="w-3 h-3" style={{ color: 'hsl(160 60% 48%)' }} />}
-              {isError && <XCircle className="w-3 h-3 text-destructive" />}
-              {isActive && (
+              <span>{meta?.emoji ?? '·'}</span>
+              <span>{stage.shortName}</span>
+              {done  && <CheckCircle2 className="w-2.5 h-2.5 shrink-0" />}
+              {error && <XCircle className="w-2.5 h-2.5 shrink-0" />}
+              {active && (
                 <motion.div
-                  className="w-1.5 h-1.5 rounded-full"
+                  className="w-1.5 h-1.5 rounded-full shrink-0"
                   style={{ background: `hsl(${color})` }}
-                  animate={{ opacity: [1, 0.3, 1] }}
+                  animate={{ opacity: [1, 0.2, 1] }}
                   transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
                 />
               )}
             </motion.div>
-
             {i < visible.length - 1 && (
-              <div
-                className="w-3 h-px flex-shrink-0"
-                style={{
-                  background: isDone
-                    ? 'hsl(160 60% 48% / 0.4)'
-                    : 'hsl(240 5% 30% / 0.3)',
-                }}
-              />
+              <div className="w-2 h-px shrink-0"
+                style={{ background: done ? `hsl(${color} / 0.4)` : 'hsl(240 8% 20%)' }} />
             )}
           </React.Fragment>
         );
@@ -486,111 +320,156 @@ const StageStepper = memo(function StageStepper({ stages }: { stages: StageStatu
   );
 });
 
-// ============= CLIP LINKS PANEL =============
+// ─────────────────────────────────────────────────────────────────────────────
+// GRADIENT PROGRESS BAR
+// ─────────────────────────────────────────────────────────────────────────────
 
-const ClipLinksPanel = memo(function ClipLinksPanel({
-  clips,
-  onPlayClip,
-}: {
-  clips: ClipData[];
-  onPlayClip?: (url: string) => void;
-}) {
-  const completedClips = clips.filter(c => c.status === 'completed' && c.videoUrl);
-  if (completedClips.length === 0) return null;
+const GradientBar = memo(function GradientBar({
+  progress, isError, isComplete,
+}: { progress: number; isError: boolean; isComplete: boolean }) {
+  return (
+    <div className="w-full flex flex-col gap-2">
+      <div
+        className="relative w-full rounded-full overflow-hidden"
+        style={{ height: 6, background: 'hsl(240 15% 10%)' }}
+      >
+        {/* Subtle dot texture */}
+        <div className="absolute inset-0 opacity-20"
+          style={{
+            backgroundImage: 'radial-gradient(circle, hsl(240 20% 55%) 1px, transparent 1px)',
+            backgroundSize: '5px 5px',
+          }}
+        />
+        {/* Fill */}
+        <motion.div
+          className="absolute inset-y-0 left-0 rounded-full"
+          style={{
+            background: isError
+              ? 'linear-gradient(90deg, hsl(0 85% 55%), hsl(20 90% 58%))'
+              : isComplete
+              ? 'linear-gradient(90deg, hsl(155 75% 48%), hsl(185 85% 55%))'
+              : 'linear-gradient(90deg, hsl(215 90% 68%), hsl(265 85% 65%), hsl(320 80% 63%), hsl(35 95% 60%))',
+            boxShadow: isComplete
+              ? '0 0 18px hsl(155 75% 48% / 0.5)'
+              : isError
+              ? '0 0 18px hsl(0 85% 55% / 0.5)'
+              : '0 0 20px hsl(265 85% 62% / 0.5)',
+          }}
+          animate={{ width: `${Math.max(1, progress)}%` }}
+          transition={{ duration: 0.9, ease: 'easeOut' }}
+        />
+        {/* Moving shimmer */}
+        <motion.div
+          className="absolute inset-y-0 w-16 rounded-full"
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent)' }}
+          animate={{ x: ['0%', '700%'] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', repeatDelay: 1 }}
+        />
+      </div>
+    </div>
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// METRICS ROW
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MetricChip = memo(function MetricChip({
+  label, value, hue = 263,
+}: { label: string; value: string; hue?: number }) {
+  return (
+    <div
+      className="flex flex-col items-center gap-0.5 px-4 py-2.5 rounded-xl"
+      style={{
+        background: `hsl(${hue} 25% 8%)`,
+        border: `1px solid hsl(${hue} 30% 18%)`,
+      }}
+    >
+      <span className="text-[9px] font-semibold uppercase tracking-widest"
+        style={{ color: `hsl(${hue} 50% 50%)` }}>
+        {label}
+      </span>
+      <span className="text-sm font-bold tabular-nums"
+        style={{ color: `hsl(${hue} 70% 72%)` }}>
+        {value}
+      </span>
+    </div>
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CLIP PANEL
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ClipPanel = memo(function ClipPanel({
+  clips, onPlayClip,
+}: { clips: ClipData[]; onPlayClip?: (url: string) => void }) {
+  if (!clips.length) return null;
+
+  const completed = clips.filter(c => c.status === 'completed');
 
   return (
-    <div className="w-full">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
-        Completed Clips ({completedClips.length})
-      </p>
+    <div className="w-full flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <div className="h-px flex-1" style={{ background: 'hsl(240 10% 14%)' }} />
+        <span className="text-[10px] font-bold uppercase tracking-widest"
+          style={{ color: 'hsl(240 10% 35%)' }}>
+          Clips · {completed.length}/{clips.length}
+        </span>
+        <div className="h-px flex-1" style={{ background: 'hsl(240 10% 14%)' }} />
+      </div>
+
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
         {clips.map((clip) => {
-          const isDone = clip.status === 'completed' && clip.videoUrl;
-          const isGenerating = clip.status === 'generating';
-          const isFailed = clip.status === 'failed';
+          const done  = clip.status === 'completed' && !!clip.videoUrl;
+          const busy  = clip.status === 'generating';
+          const fail  = clip.status === 'failed';
+          const idle  = clip.status === 'pending';
+
+          const chipColor = done ? '155 65% 48%' : busy ? '263 65% 60%' : fail ? '0 72% 55%' : '240 10% 30%';
 
           return (
             <motion.div
               key={clip.index}
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: clip.index * 0.05, duration: 0.3 }}
+              transition={{ delay: clip.index * 0.04, duration: 0.3 }}
               className="relative rounded-xl overflow-hidden flex flex-col"
               style={{
-                background: isDone
-                  ? 'hsl(160 60% 48% / 0.06)'
-                  : isGenerating
-                  ? 'hsl(263 65% 58% / 0.06)'
-                  : isFailed
-                  ? 'hsl(0 72% 55% / 0.06)'
-                  : 'hsl(240 10% 8%)',
-                border: `1px solid ${
-                  isDone
-                    ? 'hsl(160 60% 48% / 0.25)'
-                    : isGenerating
-                    ? 'hsl(263 65% 58% / 0.25)'
-                    : isFailed
-                    ? 'hsl(0 72% 55% / 0.25)'
-                    : 'hsl(240 10% 14%)'
-                }`,
+                background: `hsl(${chipColor} / 0.05)`,
+                border: `1px solid hsl(${chipColor} / ${done ? '0.3' : busy ? '0.25' : '0.12'})`,
+                boxShadow: done ? `0 0 14px hsl(${chipColor} / 0.12)` : 'none',
               }}
             >
-              {/* Status bar at top */}
-              <div
-                className="h-0.5 w-full"
-                style={{
-                  background: isDone
-                    ? 'hsl(160 60% 48%)'
-                    : isGenerating
-                    ? 'hsl(263 65% 58%)'
-                    : isFailed
-                    ? 'hsl(0 72% 55%)'
-                    : 'transparent',
-                }}
-              />
+              {/* Color stripe */}
+              <div className="h-0.5 w-full"
+                style={{ background: `hsl(${chipColor})`, opacity: done || busy ? 1 : 0.3 }} />
 
-              <div className="p-3 flex flex-col gap-2 flex-1">
+              <div className="p-2.5 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span
-                    className="text-[11px] font-bold tabular-nums"
-                    style={{
-                      color: isDone
-                        ? 'hsl(160 60% 55%)'
-                        : isGenerating
-                        ? 'hsl(263 65% 65%)'
-                        : isFailed
-                        ? 'hsl(0 72% 60%)'
-                        : 'hsl(240 5% 45%)',
-                    }}
-                  >
+                  <span className="text-[11px] font-bold" style={{ color: `hsl(${chipColor})` }}>
                     Clip {clip.index + 1}
                   </span>
-                  {isDone && (
-                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: 'hsl(160 60% 48%)' }} />
+                  {done && <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: `hsl(${chipColor})` }} />}
+                  {fail && <AlertCircle className="w-3.5 h-3.5 shrink-0 text-destructive" />}
+                  {busy && (
+                    <motion.div className="w-2 h-2 rounded-full shrink-0"
+                      style={{ background: `hsl(${chipColor})` }}
+                      animate={{ opacity: [1, 0.2, 1] }}
+                      transition={{ duration: 1.6, repeat: Infinity }} />
                   )}
-                  {isFailed && (
-                    <XCircle className="w-3.5 h-3.5 shrink-0 text-destructive" />
-                  )}
-                  {isGenerating && (
-                    <motion.div
-                      className="w-2 h-2 rounded-full"
-                      style={{ background: 'hsl(263 65% 58%)' }}
-                      animate={{ opacity: [1, 0.3, 1] }}
-                      transition={{ duration: 1.8, repeat: Infinity }}
-                    />
-                  )}
+                  {idle && <div className="w-2 h-2 rounded-full shrink-0 bg-muted-foreground/20" />}
                 </div>
 
-                {/* Action buttons for completed clips */}
-                {isDone && clip.videoUrl && (
-                  <div className="flex gap-1.5 mt-auto">
+                {done && clip.videoUrl && (
+                  <div className="flex gap-1.5">
                     <button
                       onClick={() => onPlayClip?.(clip.videoUrl!)}
-                      className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-semibold transition-all hover:brightness-110"
+                      className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-semibold transition-all hover:brightness-125"
                       style={{
-                        background: 'hsl(160 60% 48% / 0.15)',
-                        border: '1px solid hsl(160 60% 48% / 0.3)',
-                        color: 'hsl(160 60% 58%)',
+                        background: `hsl(${chipColor} / 0.15)`,
+                        border: `1px solid hsl(${chipColor} / 0.3)`,
+                        color: `hsl(${chipColor})`,
                       }}
                     >
                       <Play className="w-2.5 h-2.5 fill-current" />
@@ -598,12 +477,11 @@ const ClipLinksPanel = memo(function ClipLinksPanel({
                     </button>
                     <a
                       href={clip.videoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center w-7 h-7 rounded-lg transition-all hover:brightness-110"
+                      target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-center w-7 h-7 rounded-lg transition-all hover:brightness-125"
                       style={{
-                        background: 'hsl(263 65% 58% / 0.12)',
-                        border: '1px solid hsl(263 65% 58% / 0.25)',
+                        background: 'hsl(263 40% 12%)',
+                        border: '1px solid hsl(263 30% 22%)',
                         color: 'hsl(263 65% 65%)',
                       }}
                     >
@@ -612,26 +490,17 @@ const ClipLinksPanel = memo(function ClipLinksPanel({
                   </div>
                 )}
 
-                {/* Generating state — tiny progress shimmer */}
-                {isGenerating && (
-                  <div
-                    className="h-1 rounded-full overflow-hidden mt-auto"
-                    style={{ background: 'hsl(263 65% 58% / 0.1)' }}
-                  >
-                    <motion.div
-                      className="h-full rounded-full"
-                      style={{ background: 'hsl(263 65% 58%)' }}
+                {busy && (
+                  <div className="h-0.5 rounded-full overflow-hidden" style={{ background: 'hsl(263 40% 14%)' }}>
+                    <motion.div className="h-full rounded-full"
+                      style={{ background: `hsl(${chipColor})` }}
                       animate={{ x: ['-100%', '200%'] }}
-                      transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-                    />
+                      transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }} />
                   </div>
                 )}
 
-                {/* Failed error message */}
-                {isFailed && clip.error && (
-                  <p className="text-[9px] text-destructive/70 leading-tight mt-1 line-clamp-2">
-                    {clip.error}
-                  </p>
+                {fail && clip.error && (
+                  <p className="text-[9px] text-destructive/60 leading-tight line-clamp-2">{clip.error}</p>
                 )}
               </div>
             </motion.div>
@@ -642,7 +511,47 @@ const ClipLinksPanel = memo(function ClipLinksPanel({
   );
 });
 
-// ============= MAIN COMPONENT =============
+// ─────────────────────────────────────────────────────────────────────────────
+// STARFIELD (subtle atmospheric dots)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const Starfield = memo(function Starfield({ active }: { active: boolean }) {
+  const dots = useMemo(() => Array.from({ length: 30 }, (_, i) => ({
+    id: i,
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    r: 0.8 + Math.random() * 1.4,
+    delay: Math.random() * 6,
+    dur: 4 + Math.random() * 6,
+    hue: [215, 270, 320, 35][Math.floor(Math.random() * 4)],
+  })), []);
+
+  if (!active) return null;
+
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl">
+      {dots.map(d => (
+        <motion.div
+          key={d.id}
+          className="absolute rounded-full"
+          style={{
+            left: `${d.x}%`,
+            top: `${d.y}%`,
+            width: d.r * 2,
+            height: d.r * 2,
+            background: `hsl(${d.hue} 80% 70%)`,
+          }}
+          animate={{ opacity: [0, 0.7, 0], scale: [0.5, 1.2, 0.5] }}
+          transition={{ duration: d.dur, delay: d.delay, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      ))}
+    </div>
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN COMPONENT
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function CinematicPipelineProgress({
   stages,
@@ -663,228 +572,139 @@ export function CinematicPipelineProgress({
   totalClips = 0,
   onPlayClip,
 }: CinematicPipelineProgressProps) {
-  const activeStage = useMemo(
-    () => stages.find(s => s.status === 'active') ?? null,
-    [stages]
-  );
-
-  const activeMeta = useMemo(() => {
+  const activeStage = useMemo(() => stages.find(s => s.status === 'active') ?? null, [stages]);
+  const activeMeta  = useMemo(() => {
     if (!activeStage) return null;
-    return STAGE_META[activeStage.shortName] ?? {
-      emoji: '⚡', label: activeStage.name, sublabel: '', hue: 263,
-    };
+    return STAGE_META[activeStage.shortName] ?? { emoji: '⚡', label: activeStage.name, sublabel: '', hue: 263 };
   }, [activeStage]);
 
-  const roundedProgress = Math.round(progress);
-
-  // Particle dots for atmosphere
-  const particles = useMemo(
-    () => Array.from({ length: 20 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: 1 + Math.random() * 2,
-      delay: Math.random() * 4,
-      duration: 3 + Math.random() * 5,
-    })),
-    []
-  );
+  const emoji = isComplete ? '✅' : isError ? '❌' : (activeMeta?.emoji ?? '⚡');
+  const label = isComplete ? 'Complete!' : isError ? 'Failed' : (activeMeta?.label ?? 'Initializing…');
 
   return (
     <div
-      className={cn('relative flex flex-col gap-6 w-full rounded-2xl overflow-hidden', className)}
+      className={cn('relative flex flex-col gap-6 w-full rounded-3xl overflow-hidden', className)}
       style={{
-        background: 'linear-gradient(160deg, hsl(240 20% 6%) 0%, hsl(260 25% 5%) 50%, hsl(240 15% 4%) 100%)',
-        border: '1px solid hsl(263 40% 25% / 0.3)',
-        padding: '28px 24px',
+        background: 'linear-gradient(145deg, hsl(240 22% 5%) 0%, hsl(258 28% 6%) 50%, hsl(240 18% 4%) 100%)',
+        border: '1px solid hsl(258 30% 16% / 0.7)',
+        boxShadow: '0 0 0 1px hsl(258 20% 10% / 0.5), 0 32px 80px hsl(258 50% 5% / 0.8), inset 0 1px 0 hsl(258 40% 20% / 0.15)',
+        padding: '32px 28px 28px',
       }}
     >
-      {/* Atmospheric particle field */}
-      {isRunning && (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {particles.map(p => (
-            <motion.div
-              key={p.id}
-              className="absolute rounded-full"
-              style={{
-                left: `${p.x}%`,
-                top: `${p.y}%`,
-                width: p.size,
-                height: p.size,
-                background: p.x < 40
-                  ? 'hsl(220 90% 70% / 0.6)'
-                  : p.x < 70
-                  ? 'hsl(280 80% 65% / 0.5)'
-                  : 'hsl(35 100% 65% / 0.5)',
-              }}
-              animate={{
-                opacity: [0, 0.8, 0],
-                scale: [0, 1.5, 0],
-              }}
-              transition={{
-                duration: p.duration,
-                delay: p.delay,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-            />
-          ))}
-        </div>
-      )}
+      {/* Subtle grid lines */}
+      <div
+        className="absolute inset-0 pointer-events-none rounded-3xl opacity-[0.025]"
+        style={{
+          backgroundImage: `
+            linear-gradient(hsl(263 70% 60%) 1px, transparent 1px),
+            linear-gradient(90deg, hsl(263 70% 60%) 1px, transparent 1px)
+          `,
+          backgroundSize: '40px 40px',
+        }}
+      />
 
-      {/* ── Header: Stage stepper + time ── */}
-      <div className="flex flex-col gap-3 relative">
-        <StageStepper stages={stages} />
-      </div>
+      {/* Top edge highlight */}
+      <div
+        className="absolute top-0 left-1/4 right-1/4 h-px pointer-events-none"
+        style={{ background: 'linear-gradient(90deg, transparent, hsl(263 70% 60% / 0.4), transparent)' }}
+      />
 
-      {/* ── Active stage label ── */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={activeStage?.shortName ?? (isComplete ? 'complete' : 'error')}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
-          className="text-center relative"
-        >
-          {!isComplete && !isError && activeMeta && (
-            <>
-              <p className="text-2xl font-bold tracking-wide text-foreground/90 leading-tight">
-                {activeMeta.emoji}&nbsp;&nbsp;{activeMeta.label}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">{activeMeta.sublabel}</p>
-              {activeStage?.details && (
-                <p className="text-xs text-muted-foreground/60 mt-1 max-w-md mx-auto leading-relaxed">
-                  {activeStage.details}
-                </p>
-              )}
-            </>
-          )}
+      {/* Atmospheric starfield */}
+      <Starfield active={isRunning && !isComplete && !isError} />
 
-          {isComplete && (
-            <p className="text-2xl font-bold text-foreground/90">
-              ✅&nbsp;&nbsp;Video Ready!
-            </p>
-          )}
+      {/* ── Stage stepper ── */}
+      <StageStepper stages={stages} />
 
-          {isError && (
-            <p className="text-2xl font-bold text-destructive">
-              ❌&nbsp;&nbsp;Generation Failed
-            </p>
-          )}
-        </motion.div>
-      </AnimatePresence>
-
-      {/* ── Giant % counter ── */}
-      {/* ── Giant % counter with radial glow ── */}
-      <div className="flex items-end justify-center gap-2 relative py-2">
-        {/* Radial ambient glow behind number */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: isError
-              ? 'radial-gradient(ellipse 60% 80% at 50% 55%, hsl(0 80% 50% / 0.12) 0%, transparent 75%)'
-              : isComplete
-              ? 'radial-gradient(ellipse 60% 80% at 50% 55%, hsl(160 70% 45% / 0.12) 0%, transparent 75%)'
-              : 'radial-gradient(ellipse 60% 80% at 50% 55%, hsl(270 80% 60% / 0.14) 0%, transparent 75%)',
-          }}
-        />
-
-        <motion.span
-          key={roundedProgress}
-          className="font-black tabular-nums leading-none select-none relative z-10"
-          style={{
-            fontSize: 'clamp(72px, 14vw, 130px)',
-            background: isError
-              ? 'linear-gradient(160deg, hsl(0 80% 65%), hsl(15 90% 58%))'
-              : isComplete
-              ? 'linear-gradient(160deg, hsl(140 75% 55%), hsl(180 85% 60%))'
-              : 'linear-gradient(160deg, hsl(215 95% 75%) 0%, hsl(270 85% 70%) 35%, hsl(320 85% 68%) 65%, hsl(35 95% 65%) 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            filter: isError
-              ? 'drop-shadow(0 0 40px hsl(0 80% 55% / 0.5))'
-              : isComplete
-              ? 'drop-shadow(0 0 40px hsl(160 70% 50% / 0.5))'
-              : 'drop-shadow(0 0 50px hsl(270 85% 65% / 0.45)) drop-shadow(0 0 20px hsl(215 95% 70% / 0.3))',
-            letterSpacing: '-0.04em',
-          }}
-          initial={{ opacity: 0, scale: 0.92 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
-        >
-          {roundedProgress}
-        </motion.span>
-
-        <div className="flex flex-col items-start pb-4 relative z-10">
-          <span
-            className="font-bold text-5xl leading-none"
-            style={{
-              background: isComplete
-                ? 'linear-gradient(160deg, hsl(180 85% 60%), hsl(160 70% 50%))'
-                : 'linear-gradient(160deg, hsl(320 85% 68%), hsl(35 95% 65%))',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              opacity: 0.85,
-            }}
-          >
-            %
-          </span>
-        </div>
-      </div>
-
-      {/* ── Waveform animation ── */}
-      <div className="relative w-full -my-2">
-        <WaveformVisualizer
+      {/* ── Central ring + sublabel ── */}
+      <div className="flex flex-col items-center gap-4 relative">
+        <CircularRing
           progress={progress}
-          isRunning={isRunning}
           isComplete={isComplete}
           isError={isError}
+          isRunning={isRunning}
+          emoji={emoji}
+          label={label}
         />
+
+        {/* Stage sublabel */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeMeta?.sublabel ?? label}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            transition={{ duration: 0.4 }}
+            className="text-center"
+          >
+            {!isComplete && !isError && activeMeta && (
+              <>
+                <p className="text-sm font-medium" style={{ color: 'hsl(240 10% 65%)' }}>
+                  {activeMeta.sublabel}
+                </p>
+                {activeStage?.details && (
+                  <p className="text-xs mt-1 max-w-xs mx-auto leading-relaxed"
+                    style={{ color: 'hsl(240 8% 42%)' }}>
+                    {activeStage.details}
+                  </p>
+                )}
+              </>
+            )}
+            {isComplete && (
+              <p className="text-sm font-medium" style={{ color: 'hsl(155 65% 55%)' }}>
+                {projectTitle ? `"${projectTitle}" is ready` : 'Your video is ready'}
+              </p>
+            )}
+            {isError && lastError && (
+              <p className="text-xs max-w-xs mx-auto leading-relaxed"
+                style={{ color: 'hsl(0 65% 58%)' }}>
+                {lastError}
+              </p>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {/* ── Gradient progress bar ── */}
-      <GradientProgressBar
-        progress={progress}
-        isError={isError}
-        isComplete={isComplete}
-      />
+      <GradientBar progress={progress} isError={isError} isComplete={isComplete} />
 
-      {/* ── Clip progress counter (during rendering) ── */}
+      {/* ── Metrics row ── */}
+      <div className="grid grid-cols-3 gap-2">
+        <MetricChip label="Progress" value={`${Math.round(progress)}%`} hue={263} />
+        <MetricChip label="Elapsed"  value={formatTime(elapsedTime)}    hue={195} />
+        {totalClips > 0
+          ? <MetricChip label="Clips"   value={`${completedClips}/${totalClips}`} hue={160} />
+          : <MetricChip label="Stage"   value={activeMeta?.label?.split(' ')[0] ?? '—'} hue={220} />
+        }
+      </div>
+
+      {/* ── Clip bar visualiser (during render stage) ── */}
       {totalClips > 0 && !isComplete && (
-        <div className="flex items-center justify-center gap-3">
-          <div className="flex items-end gap-1">
-            {Array.from({ length: Math.min(totalClips, 12) }).map((_, i) => {
-              const done = i < completedClips;
-              return (
-                <motion.div
-                  key={i}
-                  className="rounded-sm flex-shrink-0"
-                  style={{
-                    width: 5,
-                    background: done
-                      ? 'linear-gradient(to top, hsl(160 70% 45%), hsl(180 80% 55%))'
-                      : 'hsl(240 10% 18%)',
-                    boxShadow: done ? '0 0 6px hsl(160 70% 45% / 0.5)' : 'none',
-                  }}
-                  animate={{ height: done ? 20 : 8 }}
-                  transition={{ duration: 0.5, ease: 'easeOut' }}
-                />
-              );
-            })}
-          </div>
-          <span className="text-sm text-muted-foreground font-medium tabular-nums">
-            {completedClips} / {totalClips} clips rendered
-          </span>
+        <div className="flex items-center justify-center gap-1.5">
+          {Array.from({ length: Math.min(totalClips, 14) }).map((_, i) => {
+            const done = i < completedClips;
+            return (
+              <motion.div
+                key={i}
+                className="rounded-full flex-shrink-0"
+                style={{
+                  width: 5,
+                  background: done
+                    ? 'linear-gradient(to top, hsl(155 70% 45%), hsl(185 80% 55%))'
+                    : 'hsl(240 12% 16%)',
+                  boxShadow: done ? '0 0 8px hsl(155 70% 45% / 0.5)' : 'none',
+                }}
+                animate={{ height: done ? 22 : 8 }}
+                transition={{ duration: 0.5, ease: [0.34,1.56,0.64,1] }}
+              />
+            );
+          })}
         </div>
       )}
 
-      {/* ── Footer: elapsed time + cancel ── */}
+      {/* ── Footer: timer + cancel ── */}
       {isRunning && !isComplete && (
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-muted-foreground">
+          <div className="flex items-center gap-2" style={{ color: 'hsl(240 8% 38%)' }}>
             <Clock className="w-3.5 h-3.5" />
             <span className="text-xs tabular-nums font-medium">{formatTime(elapsedTime)}</span>
           </div>
@@ -892,7 +712,12 @@ export function CinematicPipelineProgress({
             <button
               onClick={onCancel}
               disabled={isCancelling}
-              className="text-xs text-muted-foreground/50 hover:text-muted-foreground/80 transition-colors disabled:opacity-40 px-3 py-1.5 rounded-lg hover:bg-destructive/10 border border-transparent hover:border-destructive/20"
+              className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all disabled:opacity-40"
+              style={{
+                color: 'hsl(0 65% 58%)',
+                background: 'hsl(0 65% 50% / 0.06)',
+                border: '1px solid hsl(0 65% 50% / 0.15)',
+              }}
             >
               {isCancelling ? 'Cancelling…' : 'Cancel'}
             </button>
@@ -900,61 +725,28 @@ export function CinematicPipelineProgress({
         </div>
       )}
 
-      {/* ── Error state extras ── */}
-      {isError && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex flex-col items-center gap-3"
-        >
-          {lastError && (
-            <p
-              className="text-sm text-center max-w-sm leading-relaxed px-4 py-3 rounded-xl"
-              style={{
-                color: 'hsl(0 72% 65%)',
-                background: 'hsl(0 72% 55% / 0.06)',
-                border: '1px solid hsl(0 72% 55% / 0.15)',
-              }}
-            >
-              {lastError}
-            </p>
-          )}
-          {onResume && (
-            <button
-              onClick={onResume}
-              disabled={isResuming}
-              className="text-sm px-6 py-2.5 rounded-xl font-semibold transition-all disabled:opacity-50 hover:brightness-110"
-              style={{
-                background: 'linear-gradient(135deg, hsl(263 65% 55% / 0.2), hsl(280 60% 60% / 0.15))',
-                border: '1px solid hsl(263 65% 60% / 0.4)',
-                color: 'hsl(263 65% 72%)',
-              }}
-            >
-              {isResuming ? 'Resuming…' : '↩ Try Again'}
-            </button>
-          )}
-        </motion.div>
-      )}
-
-      {/* ── Clip links panel ── */}
-      {clips.length > 0 && (
-        <div
-          className="pt-4"
-          style={{ borderTop: '1px solid hsl(240 10% 14%)' }}
-        >
-          <ClipLinksPanel clips={clips} onPlayClip={onPlayClip} />
+      {/* ── Error resume button ── */}
+      {isError && onResume && (
+        <div className="flex justify-center">
+          <button
+            onClick={onResume}
+            disabled={isResuming}
+            className="text-sm px-8 py-2.5 rounded-xl font-semibold transition-all disabled:opacity-50 hover:brightness-110"
+            style={{
+              background: 'linear-gradient(135deg, hsl(263 65% 52% / 0.2), hsl(280 60% 55% / 0.15))',
+              border: '1px solid hsl(263 65% 58% / 0.4)',
+              color: 'hsl(263 70% 72%)',
+              boxShadow: '0 0 20px hsl(263 65% 55% / 0.15)',
+            }}
+          >
+            {isResuming ? 'Resuming…' : '↩ Try Again'}
+          </button>
         </div>
       )}
 
-      {/* ── Complete: project title ── */}
-      {isComplete && projectTitle && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center text-sm text-muted-foreground"
-        >
-          "{projectTitle}" has been generated
-        </motion.p>
+      {/* ── Clip links ── */}
+      {clips.length > 0 && (
+        <ClipPanel clips={clips} onPlayClip={onPlayClip} />
       )}
     </div>
   );

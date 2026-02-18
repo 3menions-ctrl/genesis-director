@@ -1497,21 +1497,33 @@ async function executeTool(
     // ─── PROJECT MANAGEMENT ───
 
     case "create_project": {
+      const clipCount = Math.min(Math.max((args.clip_count as number) || 3, 1), 20);
+      const clipDuration = (args.clip_duration as number) || 5;
+      const prompt = (args.prompt as string) || "";
       const { data: newProject, error } = await supabase
         .from("movie_projects")
         .insert({
           user_id: userId,
           title: args.title || "Untitled Project",
-          prompt: args.prompt || "",
+          synopsis: prompt,
+          script_content: prompt,
           mode: args.mode || "text-to-video",
           aspect_ratio: args.aspect_ratio || "16:9",
-          clip_count: Math.min(Math.max((args.clip_count as number) || 6, 1), 20),
-          clip_duration: (args.clip_duration as number) || 5,
           status: "draft",
+          // Store clip settings in pipeline_state for mode-router to read
+          pipeline_state: {
+            clip_count: clipCount,
+            clip_duration: clipDuration,
+            stage: "init",
+            progress: 0,
+          },
         })
         .select("id, title, status")
         .single();
-      if (error) return { error: "Failed to create project: " + error.message };
+      if (error) {
+        console.error("[agent-chat] create_project DB error:", error.message);
+        return { error: "Failed to create project: " + error.message };
+      }
       return {
         action: "project_created",
         project_id: newProject.id, title: newProject.title,
@@ -1589,15 +1601,20 @@ async function executeTool(
 
     case "execute_generation": {
       const { data: gp } = await supabase.from("movie_projects")
-        .select("id, title, status, clip_count, clip_duration, prompt, mode, aspect_ratio, genre, mood, source_image_url, avatar_voice_id")
+        .select("id, title, status, pipeline_state, synopsis, script_content, mode, aspect_ratio, genre, mood, source_image_url, avatar_voice_id")
         .eq("id", args.project_id).eq("user_id", userId).single();
       if (!gp) return { error: "Project not found" };
       if (gp.status !== "draft") return { error: `Project is "${gp.status}" — only drafts can generate.` };
-      if (!gp.prompt?.trim()) return { error: "Project has no prompt/script. Add one first with update_project_settings." };
+      
+      const prompt = gp.synopsis || gp.script_content || "";
+      if (!prompt.trim()) return { error: "Project has no prompt/script. Add one first." };
 
-      // Check credits
-      const cc = gp.clip_count || 6;
-      const cd = gp.clip_duration || 5;
+      // Read clip settings from pipeline_state (where create_project stores them)
+      const ps = gp.pipeline_state as any || {};
+      const cc = ps.clip_count || 3;
+      const cd = ps.clip_duration || 5;
+      
+      // Estimate credits
       let est = 0;
       for (let i = 0; i < cc; i++) est += (i >= 6 || cd > 6) ? 15 : 10;
       const { data: bal } = await supabase.from("profiles").select("credits_balance").eq("id", userId).single();
@@ -1618,7 +1635,7 @@ async function executeTool(
           body: JSON.stringify({
             mode: gp.mode || "text-to-video",
             userId: userId,
-            prompt: gp.prompt,
+            prompt: prompt,
             stylePreset: gp.genre || "cinematic",
             aspectRatio: gp.aspect_ratio || "16:9",
             clipCount: cc,
@@ -1642,8 +1659,8 @@ async function executeTool(
           project_id: routerData.projectId || gp.id,
           title: gp.title,
           estimated_credits: est,
-          message: `🎬 Generation started for "${gp.title}"! ${cc} clips are being produced. Use get_project_pipeline_status to check progress.`,
-          navigate_to: `/projects`,
+          message: `🎬 Generation started for "${gp.title}"! ${cc} clips are being produced. Tap the card to track progress live!`,
+          navigate_to: `/production/${routerData.projectId || gp.id}`,
         };
       } catch (err: any) {
         return { error: "Failed to start pipeline: " + (err?.message || "Unknown error") };
@@ -4793,7 +4810,7 @@ serve(async (req) => {
 
     let data = await response.json();
     let assistantMessage = data.choices?.[0]?.message;
-    const allToolResults: Array<{ name: string; result: unknown }> = [];
+    const allToolResults: Array<{ name: string; result: unknown; tool_call_id?: string }> = [];
     let iterations = 0;
     const MAX_ITERATIONS = 10;
     let totalCreditsCharged = CONVERSATION_COST; // Start with base conversation cost
@@ -4804,6 +4821,7 @@ serve(async (req) => {
     const EXPLICIT_INTENT_PATTERNS = ["do it", "go ahead", "start it", "start generation", "let's go", "proceed", "launch it", "just do it", "make it", "create it", "now", "start now", "begin", "yes, do", "yes do", "yes please", "yes!", "go for it"];
     const hasExplicitIntent = EXPLICIT_INTENT_PATTERNS.some(p => lastUserContent.includes(p));
 
+    let continueMessages: any[] = [...aiMessages]; // declared at loop scope — always defined
     while (assistantMessage?.tool_calls && iterations < MAX_ITERATIONS) {
       iterations++;
       const toolResults = [];
@@ -4872,7 +4890,7 @@ serve(async (req) => {
         }
       }
 
-      const continueMessages = [...aiMessages, assistantMessage, ...toolResults];
+      continueMessages = [...aiMessages, assistantMessage, ...toolResults];
 
       // ── SERVER-SIDE AUTO-CHAIN: execute_generation immediately after create_project ──
       if (createdProjectId && (hasExplicitIntent || parallelChainDetected)) {
@@ -4880,8 +4898,24 @@ serve(async (req) => {
         try {
           const autoExecResult = await executeTool("execute_generation", { project_id: createdProjectId }, supabase, auth.userId) as Record<string, unknown>;
           allToolResults.push({ name: "execute_generation", result: autoExecResult, tool_call_id: `auto_exec_${Date.now()}` });
-          console.log("[agent-chat] Auto-chain result:", JSON.stringify(autoExecResult).substring(0, 200));
-          assistantMessage = { role: "assistant", content: autoExecResult?.message || "🎬 Generation started!", tool_calls: undefined };
+          console.log("[agent-chat] Auto-chain result:", JSON.stringify(autoExecResult).substring(0, 300));
+          
+          if (autoExecResult?.action === "generation_started") {
+            const projectId = autoExecResult.project_id || createdProjectId;
+            const projectTitle = autoExecResult.title || "your video";
+            assistantMessage = { 
+              role: "assistant", 
+              content: `🎬 **Generation started** for "${projectTitle}"! Your clips are being produced right now. I'll watch the progress — tap the card below to track it live!`,
+              tool_calls: undefined 
+            };
+          } else {
+            // exec failed (e.g. insufficient credits, project not found)
+            assistantMessage = { 
+              role: "assistant", 
+              content: (autoExecResult?.message as string) || (autoExecResult?.error as string) || "Project created but generation couldn't start automatically.",
+              tool_calls: undefined 
+            };
+          }
           break;
         } catch (execErr: any) {
           console.error("[agent-chat] Auto-chain execute_generation failed:", execErr?.message);
@@ -5066,6 +5100,17 @@ serve(async (req) => {
       // Multiple choice cards
       if (name === "present_choices" && r._rich_block === "multiple_choice") {
         richBlocks.push({ type: "multiple_choice", data: { question: r.question, options: r.options, max_selections: r.max_selections, layout: r.layout || "list", id: r.id } });
+      }
+      // Generation started — navigate to production page
+      if ((name === "execute_generation" || name === "trigger_generation") && r.action === "generation_started" && r.project_id) {
+        richBlocks.push({ type: "page_embed", data: { path: `/production/${r.project_id}`, title: r.title || "Your Video", description: "🎬 Generation in progress — watch your clips render in real-time!", icon: "film", accent: "hsl(24, 95%, 53%)" } });
+      }
+      // Project created (without execute) — show project link
+      if (name === "create_project" && r.action === "project_created" && r.project_id) {
+        const willExecute = allToolResults.some(t => t.name === "execute_generation");
+        if (!willExecute) {
+          richBlocks.push({ type: "page_embed", data: { path: `/projects`, title: r.title || "New Project", description: "Project created — ready to generate", icon: "film", accent: "hsl(280, 70%, 55%)" } });
+        }
       }
     }
 

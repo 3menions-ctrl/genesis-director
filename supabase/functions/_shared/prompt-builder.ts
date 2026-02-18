@@ -697,12 +697,24 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   // SUBJECT DETECTION - Determine if prompt is about characters or objects/scenes
   // If the subject is NOT a human/character, we SKIP all identity injection
   // This prevents "space shuttle" prompts from generating "man in warehouse"
+  //
+  // CRITICAL OVERRIDE: If an identityBible is present, we ALREADY know this is
+  // a human subject (confirmed by extract-scene-identity). NEVER skip injection
+  // even if the generated script mentions environment words like "ship deck",
+  // "boat", "beach" etc. that could falsely trigger the vehicle/scene detector.
   // ===========================================================================
+  const hasConfirmedHumanSubject = !!(request.identityBible?.characterIdentity);
+  
   const subjectAnalysis = detectPrimarySubject(cleanedBasePrompt);
-  const skipCharacterInjection = subjectAnalysis.type === 'object' || subjectAnalysis.type === 'scene' || subjectAnalysis.type === 'vehicle';
+  // Only skip character injection when we have NO identity bible AND the subject
+  // is clearly a non-human object/vehicle/scene
+  const skipCharacterInjection = !hasConfirmedHumanSubject && 
+    (subjectAnalysis.type === 'object' || subjectAnalysis.type === 'scene' || subjectAnalysis.type === 'vehicle');
   
   if (skipCharacterInjection) {
     console.log(`[PromptBuilder] ⚡ SUBJECT DETECTED: "${subjectAnalysis.subject}" (${subjectAnalysis.type}) - SKIPPING all character/identity injection`);
+  } else if (hasConfirmedHumanSubject && subjectAnalysis.type !== 'character') {
+    console.log(`[PromptBuilder] ✓ identityBible present — OVERRIDING subject detection (was: "${subjectAnalysis.subject}" type:${subjectAnalysis.type}) — treating as confirmed human`);
   }
   
   // Detect pose from prompt (only relevant for character prompts)

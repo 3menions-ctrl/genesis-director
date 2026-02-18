@@ -24,6 +24,8 @@ export interface AgentMessage {
   richBlocks?: RichBlock[];
   creditsCharged?: number;
   timestamp: Date;
+  /** True while SSE tokens are still being received */
+  streaming?: boolean;
 }
 
 export interface AgentAction {
@@ -55,6 +57,8 @@ export function useAgentChat(): UseAgentChatReturn {
   const [agentState, setAgentState] = useState<"idle" | "thinking" | "speaking" | "listening">("idle");
   const messageIdCounter = useRef(0);
   const historyLoaded = useRef(false);
+  // Track the in-progress streaming message id so we can patch it
+  const streamingMsgId = useRef<string | null>(null);
 
   const generateId = () => {
     messageIdCounter.current++;
@@ -69,7 +73,6 @@ export function useAgentChat(): UseAgentChatReturn {
     const loadHistory = async () => {
       setLoadingHistory(true);
       try {
-        // Find most recent conversation
         const { data: conv } = await supabase
           .from("agent_conversations")
           .select("id")
@@ -81,13 +84,12 @@ export function useAgentChat(): UseAgentChatReturn {
         if (conv) {
           setConversationId(conv.id);
 
-          // Load last 30 messages
           const { data: msgs } = await supabase
             .from("agent_messages")
             .select("id, role, content, metadata, created_at")
             .eq("conversation_id", conv.id)
             .order("created_at", { ascending: true })
-            .limit(30);
+            .limit(50);
 
           if (msgs && msgs.length > 0) {
             const loaded: AgentMessage[] = msgs.map((m) => ({
@@ -134,7 +136,7 @@ export function useAgentChat(): UseAgentChatReturn {
 
     const convId = await ensureConversation();
 
-    // Add user message
+    // Add user message immediately
     const userMessage: AgentMessage = {
       id: generateId(),
       role: "user",
@@ -145,76 +147,157 @@ export function useAgentChat(): UseAgentChatReturn {
     setIsLoading(true);
     setAgentState("thinking");
 
+    // Create a placeholder streaming assistant message
+    const placeholderId = generateId();
+    streamingMsgId.current = placeholderId;
+    const placeholderMsg: AgentMessage = {
+      id: placeholderId,
+      role: "assistant",
+      content: "",
+      timestamp: new Date(),
+      streaming: true,
+    };
+    setMessages((prev) => [...prev, placeholderMsg]);
+
     try {
-      // Build messages array — just the new user message
-      // Full history with tool_calls/results is loaded from DB on the backend
-      const apiMessages = [
-        { role: "user" as const, content: content.trim() },
-      ];
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
 
-      const { data, error } = await supabase.functions.invoke("agent-chat", {
-        body: {
-          messages: apiMessages,
-          conversationId: convId,
-          currentPage: location.pathname,
-        },
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-chat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            ...(accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}),
+          },
+          body: JSON.stringify({
+            messages: [{ role: "user", content: content.trim() }],
+            conversationId: convId,
+            currentPage: location.pathname,
+          }),
+        }
+      );
 
-      if (error) throw error;
-
-      setAgentState("speaking");
-
-      // Refresh credits in the UI if the backend returned an updated balance
-      if (data.updatedBalance !== undefined) {
-        // Dispatch with the actual balance so listeners can update immediately
-        window.dispatchEvent(new CustomEvent('credits-updated', { detail: { balance: data.updatedBalance } }));
+      if (!response.ok) {
+        const status = response.status;
+        throw new Error(`HTTP ${status}`);
       }
 
-      const assistantMessage: AgentMessage = {
-        id: generateId(),
-        role: "assistant",
-        content: data.content || "Hey there! I'm Hoppy — how can I help? 🐰",
-        actions: data.actions || [],
-        richBlocks: data.richBlocks || [],
-        creditsCharged: data.creditsCharged || 0,
-        timestamp: new Date(),
-      };
+      const contentType = response.headers.get("content-type") || "";
 
-      await new Promise((r) => setTimeout(r, 300));
-      setMessages((prev) => [...prev, assistantMessage]);
+      // ── SSE Streaming path ──
+      if (contentType.includes("text/event-stream") && response.body) {
+        setAgentState("speaking");
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let accumulatedContent = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const payload = line.slice(6).trim();
+            if (!payload || payload === "[DONE]") continue;
+
+            try {
+              const evt = JSON.parse(payload);
+
+              if (evt.type === "token") {
+                accumulatedContent += evt.chunk;
+                // Patch the placeholder message with the growing text
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === placeholderId
+                      ? { ...m, content: accumulatedContent, streaming: true }
+                      : m
+                  )
+                );
+              } else if (evt.type === "done") {
+                // Final frame: apply full metadata
+                if (evt.updatedBalance !== undefined) {
+                  window.dispatchEvent(new CustomEvent("credits-updated", { detail: { balance: evt.updatedBalance } }));
+                }
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === placeholderId
+                      ? {
+                          ...m,
+                          content: accumulatedContent || m.content,
+                          actions: evt.actions || [],
+                          richBlocks: evt.richBlocks || [],
+                          creditsCharged: evt.creditsCharged || 0,
+                          streaming: false,
+                        }
+                      : m
+                  )
+                );
+              }
+            } catch {
+              // Ignore malformed SSE frames
+            }
+          }
+        }
+      } else {
+        // ── JSON fallback path (e.g. Lovable gateway) ──
+        const data = await response.json();
+        setAgentState("speaking");
+
+        if (data.updatedBalance !== undefined) {
+          window.dispatchEvent(new CustomEvent("credits-updated", { detail: { balance: data.updatedBalance } }));
+        }
+
+        await new Promise((r) => setTimeout(r, 300));
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === placeholderId
+              ? {
+                  ...m,
+                  content: data.content || "Hey there! I'm Hoppy — how can I help? 🐰",
+                  actions: data.actions || [],
+                  richBlocks: data.richBlocks || [],
+                  creditsCharged: data.creditsCharged || 0,
+                  streaming: false,
+                }
+              : m
+          )
+        );
+      }
     } catch (err: any) {
       console.error("[Hoppy] Send error:", err);
-      
-      const errMsg = String(err?.message || '');
-      const errContext = err?.context;
-      const status = errContext?.status || (errMsg.includes('402') ? 402 : errMsg.includes('429') ? 429 : 0);
 
-      const errorContent = status === 429 || errMsg.includes('429')
-        ? "Oops, I'm getting a lot of messages right now! Give me just a sec and try again 💜"
-        : status === 402 || errMsg.includes('402') || errMsg.includes('credits')
-        ? "Oh no, my brain power needs a recharge! ⚡ Try again in a moment — I'll be right back!"
-        : "Hmm, something went a bit wonky. Let me try that again! 🐰";
+      const errMsg = String(err?.message || "");
+      const status = errMsg.includes("429") ? 429 : errMsg.includes("402") ? 402 : 0;
 
-      if (status !== 402) {
-        toast.error("Hoppy had a hiccup — try again!");
-      } else {
-        toast.error("AI service temporarily unavailable");
-      }
-      
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: generateId(),
-          role: "assistant",
-          content: errorContent,
-          timestamp: new Date(),
-        },
-      ]);
+      const errorContent =
+        status === 429
+          ? "Oops, I'm getting a lot of messages right now! Give me just a sec and try again 💜"
+          : "Hmm, something went a bit wonky on my end. Let me try that again! 🐰";
+
+      toast.error("Hoppy had a hiccup — try again!");
+
+      // Replace the placeholder with the error message
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === placeholderId
+            ? { ...m, content: errorContent, streaming: false }
+            : m
+        )
+      );
     } finally {
+      streamingMsgId.current = null;
       setIsLoading(false);
       setTimeout(() => setAgentState("idle"), 1500);
     }
-  }, [messages, isLoading, user?.id, ensureConversation, location.pathname]);
+  }, [isLoading, user?.id, ensureConversation, location.pathname]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);

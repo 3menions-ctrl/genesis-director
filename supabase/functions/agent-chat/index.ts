@@ -4590,33 +4590,10 @@ serve(async (req) => {
       preferred_tone: prefs?.preferred_tone,
     };
 
-    // ── Charge 1 credit per conversation ──
-    const CONVERSATION_COST = 1;
+    // Conversations are free — only tool actions cost credits.
+    // Zero cost per message removes friction and encourages natural use.
     const currentBalance = profile?.credits_balance || 0;
-    if (currentBalance < CONVERSATION_COST) {
-      return new Response(JSON.stringify({
-        content: "You need at least 1 credit to chat with me! Head to the pricing page to grab some credits and we can keep vibing 🐰✨",
-        actions: [{ action: "navigate", path: "/pricing", reason: "Need credits to chat" }],
-        richBlocks: [],
-        creditsCharged: 0,
-        conversationId: conversationId || null,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    // Deduct 1 credit for this conversation
-    const conversationCharge = await chargeToolCredits(supabase, auth.userId, "conversation_base", CONVERSATION_COST);
-    if (!conversationCharge.success) {
-      return new Response(JSON.stringify({
-        content: "Couldn't process the conversation credit. Please try again! 🐰",
-        actions: [],
-        richBlocks: [],
-        creditsCharged: 0,
-        conversationId: conversationId || null,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    let totalCreditsCharged = 0;
 
     // ── Load FULL conversation history from DB (includes tool_calls + tool_results) ──
     // The frontend only sends {role, content}, losing all tool memory.
@@ -4630,7 +4607,7 @@ serve(async (req) => {
         .select("role, content, tool_calls, tool_results, metadata")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true })
-        .limit(30);
+        .limit(50);
       
       if (dbMsgs && dbMsgs.length > 0) {
         for (const msg of dbMsgs) {
@@ -4696,9 +4673,9 @@ serve(async (req) => {
     }
     
     // Use rich history if available, fall back to frontend messages
-    const rawConversationMessages = richHistory.length > 0 
-      ? richHistory.slice(-40) // Keep last 40 entries (includes tool messages)
-      : messages.slice(-20);
+      const rawConversationMessages = richHistory.length > 0 
+      ? richHistory.slice(-60) // Keep last 60 entries (includes tool messages)
+      : messages.slice(-30);
 
     // ── Multimodal: Convert [Image attached: url] text → OpenAI vision format ──
     // This lets the model actually SEE the image rather than just knowing a URL exists.
@@ -4741,7 +4718,9 @@ serve(async (req) => {
     );
     // Always use gpt-4o — it supports vision + tools with full reasoning capability
     const PRIMARY_MODEL = "gpt-4o";
-    console.log(`[agent-chat] Model: ${PRIMARY_MODEL}, hasImages: ${hasImageContent}`);
+    // Use streaming for faster perceived response — token-by-token delivery
+    const useStreaming = true;
+    console.log(`[agent-chat] Model: ${PRIMARY_MODEL}, hasImages: ${hasImageContent}, streaming: ${useStreaming}`);
 
     for (let attempt = 0; attempt < 3; attempt++) {
       if (attempt > 0) {
@@ -4755,7 +4734,7 @@ serve(async (req) => {
         response = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ model: PRIMARY_MODEL, messages: aiMessages, tools: AGENT_TOOLS, stream: false }),
+          body: JSON.stringify({ model: PRIMARY_MODEL, messages: aiMessages, tools: AGENT_TOOLS, stream: false, stream_options: undefined }),
           signal: ctrl.signal,
         });
       } catch (e: any) {
@@ -4814,7 +4793,7 @@ serve(async (req) => {
     const allToolResults: Array<{ name: string; result: unknown; tool_call_id?: string }> = [];
     let iterations = 0;
     const MAX_ITERATIONS = 10;
-    let totalCreditsCharged = CONVERSATION_COST; // Start with base conversation cost
+    let totalCreditsCharged = 0; // Free to chat; tool actions are charged individually
 
     // Detect explicit user intent (user said "do it", "go ahead", "start", "now", etc.)
     // Used for server-side auto-chaining of create_project → execute_generation
@@ -5228,8 +5207,39 @@ serve(async (req) => {
     // Include updated balance so frontend can refresh credits display
     const updatedBalance = await getUserBalance(supabase, auth.userId);
 
-    return new Response(JSON.stringify({ content, actions, richBlocks, conversationId, creditsCharged: totalCreditsCharged, updatedBalance }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // ── Streaming SSE response ──
+    // We've finished all tool iterations and have the final content + rich blocks.
+    // Stream the text content token-by-token, then flush a final JSON metadata frame.
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      start(controller) {
+        // Stream content characters in small chunks for fast perceived response
+        const CHUNK_SIZE = 4;
+        for (let i = 0; i < content.length; i += CHUNK_SIZE) {
+          const chunk = content.slice(i, i + CHUNK_SIZE);
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "token", chunk })}\n\n`));
+        }
+        // Final metadata frame — actions, richBlocks, credits, balance
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+          type: "done",
+          actions,
+          richBlocks,
+          conversationId,
+          creditsCharged: totalCreditsCharged,
+          updatedBalance,
+        })}\n\n`));
+        controller.close();
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+      },
     });
   } catch (error) {
     console.error("[agent-chat] Error:", error);

@@ -892,6 +892,15 @@ function GenerationProgressBlock({ data, onNavigate }: { data: any; onNavigate?:
 
 function ProductionStatusBlock({ data }: { data: any }) {
   const statusColor = data.status === "completed" ? "hsl(145, 55%, 45%)" : data.status === "failed" ? "hsl(0, 70%, 55%)" : "hsl(195, 100%, 50%)";
+  // Safely extract progress as a number — backend may send {total, completed, percentage} or a plain number
+  const rawProgress = data.progress;
+  const progressNum: number | undefined =
+    rawProgress === undefined || rawProgress === null
+      ? undefined
+      : typeof rawProgress === "object"
+      ? (typeof rawProgress.percentage === "number" ? rawProgress.percentage : typeof rawProgress.completed === "number" && typeof rawProgress.total === "number" && rawProgress.total > 0 ? Math.round((rawProgress.completed / rawProgress.total) * 100) : undefined)
+      : Number(rawProgress);
+
   return (
     <RichCard accent={statusColor}>
       <div className="p-5">
@@ -904,12 +913,12 @@ function ProductionStatusBlock({ data }: { data: any }) {
             <StatusPill status={data.status} />
           </div>
         </div>
-        {data.progress !== undefined && (
+        {progressNum !== undefined && !isNaN(progressNum) && (
           <div className="mt-3">
             <div className="h-2 rounded-full bg-surface-2/80 overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${data.progress}%`, background: statusColor }} />
+              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progressNum}%`, background: statusColor }} />
             </div>
-            <p className="text-[10px] text-muted-foreground/40 mt-1.5 text-right font-mono">{data.progress}%</p>
+            <p className="text-[10px] text-muted-foreground/40 mt-1.5 text-right font-mono">{progressNum}%</p>
           </div>
         )}
       </div>

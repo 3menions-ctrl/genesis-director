@@ -68,14 +68,10 @@ export default function Landing() {
   const [showImmersiveCTA, setShowImmersiveCTA] = useState(false);
   const signUpButtonRef = useRef<HTMLButtonElement>(null);
   const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hasAutoTriggeredRef = useRef(false);
-
-  // Reset on mount — critical: useRef persists across React Strict Mode's double-mount,
-  // so without this reset the cleanup from the first mount leaves hasAutoTriggeredRef=true
-  // permanently blocking the inactivity timer on the real mount.
-  useEffect(() => {
-    hasAutoTriggeredRef.current = false;
-  }, []);
+  // Use STATE (not just a ref) so the inactivity useEffect re-runs when this changes.
+  // A ref-only approach means React never re-runs the effect after handleExitImmersive
+  // resets the ref, because ref mutations don't trigger dependency array checks.
+  const [hasAutoTriggered, setHasAutoTriggered] = useState(false);
 
   // CRITICAL: Clean up all timers and media state BEFORE navigation starts
   // This prevents inactivity timers from firing after we've left the page,
@@ -130,7 +126,7 @@ export default function Landing() {
 
   // Immersive video handlers
   const handleEnterImmersive = useCallback(() => {
-    hasAutoTriggeredRef.current = true;
+    setHasAutoTriggered(true);
     setIsImmersive(true);
     setShowImmersiveCTA(false);
   }, []);
@@ -138,28 +134,27 @@ export default function Landing() {
   const handleExitImmersive = useCallback(() => {
     setIsImmersive(false);
     setShowImmersiveCTA(false);
-    // Reset so inactivity timer can re-trigger after user exits immersive mode
-    hasAutoTriggeredRef.current = false;
+    // setState (not ref) so the inactivity useEffect re-runs and restarts the timer
+    setHasAutoTriggered(false);
   }, []);
 
   const handleImmersiveVideoEnded = useCallback(() => {
     setShowImmersiveCTA(true);
-    // Allow inactivity timer to re-trigger after next interaction cycle
-    hasAutoTriggeredRef.current = false;
+    // setState (not ref) so the inactivity useEffect re-runs and restarts the timer
+    setHasAutoTriggered(false);
   }, []);
 
-  // Inactivity detection — auto-enter immersive after 10s of no deliberate interaction
+  // Inactivity detection — auto-enter immersive after 10s of no deliberate interaction.
+  // CRITICAL: hasAutoTriggered must be a STATE variable (not just a ref) so this
+  // effect re-runs when it changes — refs don't trigger dependency checks.
   useEffect(() => {
-    // Don't start/run timer if gallery is open (too many concurrent video players cause crashes)
-    if (isImmersive || hasAutoTriggeredRef.current || showExamples) return;
+    if (isImmersive || hasAutoTriggered || showExamples) return;
 
     const startTimer = () => {
       if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
       inactivityTimerRef.current = setTimeout(() => {
-        if (!hasAutoTriggeredRef.current) {
-          hasAutoTriggeredRef.current = true;
-          setIsImmersive(true);
-        }
+        setHasAutoTriggered(true);
+        setIsImmersive(true);
       }, INACTIVITY_TIMEOUT_MS);
     };
 
@@ -172,7 +167,7 @@ export default function Landing() {
       if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
       events.forEach(e => window.removeEventListener(e, handleActivity));
     };
-  }, [isImmersive, showExamples]);
+  }, [isImmersive, hasAutoTriggered, showExamples]);
 
   // Scroll reveal observer for landing sections — skip when overlay is active
   useEffect(() => {

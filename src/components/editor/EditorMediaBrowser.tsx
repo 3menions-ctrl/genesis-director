@@ -6,6 +6,38 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
+/**
+ * Extract a clean, human-readable label from the raw AI generation prompt.
+ *
+ * The prompt is a multi-hundred-character string full of technical injection blocks
+ * like [CRITICAL: SAME EXACT PERSON...], [═══ PRIMARY SUBJECT ═══], etc.
+ * We strip all bracketed blocks, then take the first meaningful sentence.
+ */
+function extractClipLabel(rawPrompt: string | null | undefined, shotIndex: number): string {
+  if (!rawPrompt) return `Shot ${shotIndex + 1}`;
+
+  // Remove bracketed injection blocks (single-line and multi-line markers like [═══...═══])
+  let clean = rawPrompt
+    .replace(/\[═+[^\]]*═+\]/g, '')          // [═══ SECTION HEADER ═══]
+    .replace(/\[[^\]]{0,300}\]/g, '')          // any [block up to 300 chars]
+    .replace(/cinematic lighting.*$/i, '')     // strip boilerplate suffix
+    .replace(/,\s*8K resolution.*/i, '')       // strip tech suffix
+    .replace(/ARRI Alexa.*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!clean) return `Shot ${shotIndex + 1}`;
+
+  // Take first sentence or first 60 chars, whichever is shorter
+  const sentence = clean.split(/[.!?]/)[0].trim();
+  if (sentence.length > 2) {
+    return sentence.length > 60 ? sentence.slice(0, 57) + '…' : sentence;
+  }
+
+  return clean.slice(0, 60) || `Shot ${shotIndex + 1}`;
+}
+
+
 interface MediaClip {
   id: string;
   prompt: string;
@@ -65,19 +97,24 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
   useEffect(() => {
     if (!user) return;
     const load = async () => {
+      // No .limit() here — fetch all clips. The previous 200-row cap silently dropped clips.
+      // Supabase default is 1000; for very large libraries we paginate below.
       const { data, error } = await supabase
         .from("video_clips")
         .select(`id, prompt, video_url, duration_seconds, shot_index, project_id, movie_projects!inner(title)`)
         .eq("user_id", user.id)
         .eq("status", "completed")
         .not("video_url", "is", null)
-        .order("created_at", { ascending: false })
-        .limit(200);
+        .order("created_at", { ascending: false });
       if (!error && data) {
         setClips(data.map((c: any) => ({
-          id: c.id, prompt: c.prompt || `Shot ${c.shot_index + 1}`, video_url: c.video_url,
-          duration_seconds: c.duration_seconds || 6, shot_index: c.shot_index,
-          project_id: c.project_id, project_title: c.movie_projects?.title || "Untitled",
+          id: c.id,
+          prompt: extractClipLabel(c.prompt, c.shot_index),
+          video_url: c.video_url,
+          duration_seconds: c.duration_seconds || 6,
+          shot_index: c.shot_index,
+          project_id: c.project_id,
+          project_title: c.movie_projects?.title || "Untitled",
         })));
       }
       setLoading(false);

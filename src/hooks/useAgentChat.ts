@@ -146,9 +146,9 @@ export function useAgentChat(): UseAgentChatReturn {
     setAgentState("thinking");
 
     try {
-      // Build messages array for the API (include history for memory)
+      // Build messages array — just the new user message
+      // Full history with tool_calls/results is loaded from DB on the backend
       const apiMessages = [
-        ...messages.map((m) => ({ role: m.role, content: m.content })),
         { role: "user" as const, content: content.trim() },
       ];
 
@@ -166,7 +166,7 @@ export function useAgentChat(): UseAgentChatReturn {
 
       // Refresh credits in the UI if the backend returned an updated balance
       if (data.updatedBalance !== undefined) {
-        // Trigger a profile refetch by dispatching a custom event
+        // Dispatch with the actual balance so listeners can update immediately
         window.dispatchEvent(new CustomEvent('credits-updated', { detail: { balance: data.updatedBalance } }));
       }
 

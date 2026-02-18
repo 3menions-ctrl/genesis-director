@@ -281,6 +281,18 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }
   }, [profile]);
 
+  // Direct credits sync from agent chat responses (instant, no refetch needed)
+  useEffect(() => {
+    const handleCreditsUpdated = (e: Event) => {
+      const balance = (e as CustomEvent).detail?.balance;
+      if (typeof balance === 'number') {
+        setCredits(prev => ({ ...prev, remaining: balance }));
+      }
+    };
+    window.addEventListener('credits-updated', handleCreditsUpdated);
+    return () => window.removeEventListener('credits-updated', handleCreditsUpdated);
+  }, []);
+
   const createProject = async (): Promise<string | null> => {
     // Verify we have a valid session before creating
     const { data: { session: currentSession } } = await supabase.auth.getSession();

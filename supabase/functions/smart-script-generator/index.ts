@@ -91,6 +91,21 @@ interface SmartScriptRequest {
   // Mode flag to enforce strict adherence
   mode?: 'text-to-video' | 'image-to-video' | 'b-roll';
   
+  // SCENE IDENTITY CONTEXT — rich DNA from extract-scene-identity (avatar-grade)
+  // Passed from hollywood-pipeline after deep extraction, injected into script generation
+  sceneIdentityContext?: {
+    characterAnchor: string;
+    environmentAnchor: string;
+    lightingAnchor: string;
+    colorAnchor: string;
+    cinematicAnchor: string;
+    masterConsistencyPrompt: string;
+    allNegatives?: string[];
+    environmentDNA?: any;
+    lightingProfile?: any;
+    colorScience?: any;
+  };
+  
   // MULTI-CHARACTER SUPPORT - World-class scene composition
   multiCharacterMode?: boolean;
   characterCast?: CharacterCast[];
@@ -364,6 +379,52 @@ STRICT RULES FOR IMAGE-TO-VIDEO:
       console.log(`[SmartScript] STRICT MODE: Using reference image analysis for script generation`);
     }
 
+    // Build scene identity injection block (from extract-scene-identity deep DNA)
+    let sceneIdentityBlock = '';
+    if (request.sceneIdentityContext) {
+      const si = request.sceneIdentityContext;
+      sceneIdentityBlock = `
+=======================================================================
+🧬 AVATAR-GRADE SCENE IDENTITY DNA — INJECTED FROM DEEP EXTRACTION
+=======================================================================
+This is the HIGHEST PRIORITY visual consistency layer. Every single clip MUST
+embed these anchors verbatim. This data was extracted by a dual-pass GPT-4o
+vision engine at avatar quality — it is MORE accurate than your own analysis.
+
+MASTER CONSISTENCY PROMPT (inject into EVERY clip's description prefix):
+"${si.masterConsistencyPrompt}"
+
+CHARACTER ANCHOR (exact phrase for every clip):
+${si.characterAnchor}
+
+ENVIRONMENT ANCHOR (exact phrase for every clip):
+${si.environmentAnchor}
+
+LIGHTING ANCHOR (exact phrase for every clip):
+${si.lightingAnchor}
+
+COLOR SCIENCE ANCHOR (maintain grading style for every clip):
+${si.colorAnchor}
+
+CINEMATIC STYLE ANCHOR (maintain lens & DOF for every clip):
+${si.cinematicAnchor}
+
+${si.environmentDNA ? `ENVIRONMENT GEOMETRY: ${JSON.stringify(si.environmentDNA.geometry || '')}
+KEY PROPS: ${(si.environmentDNA.keyProps || []).map((p: any) => `${p.object} (${p.position})`).join(', ')}
+CONDITIONS: ${si.environmentDNA.conditions?.timeOfDay || ''}, ${si.environmentDNA.conditions?.atmosphere || ''}` : ''}
+
+${si.lightingProfile ? `LIGHTING SCIENCE: ${si.lightingProfile.style}, ${si.lightingProfile.colorTemperature || ''}, ${si.lightingProfile.mood || ''}
+SHADOW DIRECTION: ${si.lightingProfile.shadows?.direction || ''}, hardness: ${si.lightingProfile.shadows?.hardness || ''}` : ''}
+
+${si.colorScience ? `COLOR GRADING: ${si.colorScience.gradingStyle || ''}, temperature: ${si.colorScience.temperature || ''}, saturation: ${si.colorScience.saturation || ''}` : ''}
+
+${si.allNegatives?.length ? `STRICT NEGATIVES — NEVER do any of these:
+${si.allNegatives.slice(0, 10).map((n: string) => `• ${n}`).join('\n')}` : ''}
+=======================================================================
+`;
+      console.log(`[SmartScript] ✓ Scene Identity DNA injected: ${si.masterConsistencyPrompt?.substring(0, 60)}...`);
+    }
+
     // =====================================================
     // HOLLYWOOD SCRIPT ENGINE v3.0 — GPT-4o Cinematic Director
     // =====================================================
@@ -373,12 +434,11 @@ STRICT RULES FOR IMAGE-TO-VIDEO:
 Your SOLE PURPOSE: Transform the user's concept into a TRANSCENDENT, EMOTIONALLY DEVASTATING, VISUALLY SPECTACULAR ${clipCount}-clip video sequence that will be immediately mistaken for a $200M Hollywood production.
 
 ${referenceImageContext}
-
-${referenceImageContext}
-
+${sceneIdentityBlock}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⚠️ IRON LAW: EXACTLY ${clipCount} CLIPS — NO EXCEPTIONS. EVER.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 
 =======================================================================
 🎬 KLING AI MASTERY — WORLD-CLASS VISUAL LANGUAGE
@@ -979,7 +1039,14 @@ ${JSON.stringify(normalizedClips.map(c => ({
           
           if (auditedClips.length === normalizedClips.length) {
             auditedClips.forEach((audited, i) => {
-              if (audited.upgraded && audited.description && audited.description.length > normalizedClips[i].description.length) {
+              // Accept upgrade if: auditor flagged it AND the new description is non-trivially different
+              // (removed strict length-only check — quality rewrites can be same length or shorter)
+              const isUpgrade = audited.upgraded === true 
+                && audited.description 
+                && audited.description.trim().length >= 40
+                && audited.description.trim() !== normalizedClips[i].description.trim();
+              
+              if (isUpgrade) {
                 normalizedClips[i].description = audited.description;
                 if (audited.currentAction) normalizedClips[i].currentAction = audited.currentAction;
                 if (audited.motionDirection) normalizedClips[i].motionDirection = audited.motionDirection;

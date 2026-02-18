@@ -70,6 +70,13 @@ export default function Landing() {
   const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasAutoTriggeredRef = useRef(false);
 
+  // Reset on mount — critical: useRef persists across React Strict Mode's double-mount,
+  // so without this reset the cleanup from the first mount leaves hasAutoTriggeredRef=true
+  // permanently blocking the inactivity timer on the real mount.
+  useEffect(() => {
+    hasAutoTriggeredRef.current = false;
+  }, []);
+
   // CRITICAL: Clean up all timers and media state BEFORE navigation starts
   // This prevents inactivity timers from firing after we've left the page,
   // and ensures immersive video streams are stopped before new page mounts
@@ -78,7 +85,9 @@ export default function Landing() {
       clearTimeout(inactivityTimerRef.current);
       inactivityTimerRef.current = null;
     }
-    hasAutoTriggeredRef.current = true; // Prevent any future triggers
+    // NOTE: Do NOT set hasAutoTriggeredRef.current = true here.
+    // useRef persists across React Strict Mode unmount/remount cycles,
+    // so poisoning it here permanently blocks the inactivity timer on the real mount.
     setIsImmersive(false);
     setShowExamples(false);
   }, []);

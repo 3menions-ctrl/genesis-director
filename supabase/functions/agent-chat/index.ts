@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 // ══════════════════════════════════════════════════════
-// Credit Costs — Tiered: free chat, charged actions
+// Credit Costs — 1cr base per conversation, tiered tool actions
 // Auto-spend ≤5cr, confirm >5cr
 // ══════════════════════════════════════════════════════
 
@@ -4315,6 +4315,34 @@ serve(async (req) => {
       learned_context: prefs?.learned_context || {},
     };
 
+    // ── Charge 1 credit per conversation ──
+    const CONVERSATION_COST = 1;
+    const currentBalance = profile?.credits_balance || 0;
+    if (currentBalance < CONVERSATION_COST) {
+      return new Response(JSON.stringify({
+        content: "You need at least 1 credit to chat with me! Head to the pricing page to grab some credits and we can keep vibing 🐰✨",
+        actions: [{ action: "navigate", path: "/pricing", reason: "Need credits to chat" }],
+        richBlocks: [],
+        creditsCharged: 0,
+        conversationId: conversationId || null,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // Deduct 1 credit for this conversation
+    const conversationCharge = await chargeToolCredits(supabase, auth.userId, "conversation_base", CONVERSATION_COST);
+    if (!conversationCharge.success) {
+      return new Response(JSON.stringify({
+        content: "Couldn't process the conversation credit. Please try again! 🐰",
+        actions: [],
+        richBlocks: [],
+        creditsCharged: 0,
+        conversationId: conversationId || null,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const systemPrompt = buildSystemPrompt(userContext, currentPage);
     const aiMessages = [{ role: "system", content: systemPrompt }, ...messages.slice(-10)];
 
@@ -4356,7 +4384,7 @@ serve(async (req) => {
     const allToolResults: Array<{ name: string; result: unknown }> = [];
     let iterations = 0;
     const MAX_ITERATIONS = 5; // Reduced to prevent edge function timeouts
-    let totalCreditsCharged = 0;
+    let totalCreditsCharged = CONVERSATION_COST; // Start with base conversation cost
 
     while (assistantMessage?.tool_calls && iterations < MAX_ITERATIONS) {
       iterations++;

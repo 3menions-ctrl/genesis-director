@@ -4509,7 +4509,7 @@ serve(async (req) => {
       return unauthorizedResponse(corsHeaders, auth.error);
     }
 
-    const { messages, conversationId, currentPage } = await req.json();
+    const { messages, conversationId, currentPage, pageContext } = await req.json();
     
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "Messages array required" }), {

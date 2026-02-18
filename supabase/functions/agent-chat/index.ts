@@ -2422,7 +2422,7 @@ async function executeTool(
           method: "POST",
           headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "gpt-4o-mini",
+            model: "gpt-4o-2024-11-20",
             messages: [
               {
                 role: "system",
@@ -4251,8 +4251,8 @@ serve(async (req) => {
     const hasImageContent = conversationMessages.some((msg: any) =>
       Array.isArray(msg.content) && msg.content.some((part: any) => part.type === "image_url")
     );
-    // Always use gpt-4o — it supports vision + tools with full reasoning capability
-    const PRIMARY_MODEL = "gpt-4o"; // force redeploy v2
+    // Always use gpt-4o-2024-11-20 (latest stable) — vision + tools + full reasoning
+    const PRIMARY_MODEL = "gpt-4o-2024-11-20";
     console.log(`[agent-chat] Model: ${PRIMARY_MODEL}, hasImages: ${hasImageContent}`);
 
     // ── Helper: call OpenAI non-streaming (used for tool-calling loop) ──

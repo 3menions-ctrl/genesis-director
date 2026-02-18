@@ -433,6 +433,38 @@ ${si.allNegatives.slice(0, 10).map((n: string) => `• ${n}`).join('\n')}` : ''}
 
 Your SOLE PURPOSE: Transform the user's concept into a TRANSCENDENT, EMOTIONALLY DEVASTATING, VISUALLY SPECTACULAR ${clipCount}-clip video sequence that will be immediately mistaken for a $200M Hollywood production.
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚫 BANNED WORDS & PHRASES — NEVER USE ANY OF THESE. EVER.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The following words and phrases will BREAK the pipeline and must NEVER appear in any description, dialogue, or narrative field:
+
+BANNED PHRASES (exact — do not use any form of these):
+- "intimate moment" → use "heartfelt exchange" or "quiet connection" instead
+- "getting intimate" / "being intimate" → use "drawing closer" or "sharing a moment"
+- "in bed together" → use "resting" or "sitting together"
+- "sleeping together" → use "resting side by side"
+- "making love" / "make love" → use "embracing" or "holding each other"
+- "having sex" / "sexual encounter" / "love scene" → NEVER use; replace with emotional connection
+- "bedroom scene" / "adult scene" → use "private moment" or "quiet room"
+- "passionate kiss" / "making out" → use "brief tender kiss" or "forehead touch"
+- "lying in bed" → use "seated on the edge" or "resting in a chair"
+- "body shot" / "body close-up" / "show skin" / "show body" → use "portrait shot" or "close-up on face"
+- "seductive pose" / "sexy pose" / "provocative pose" → use "confident stance" or "relaxed posture"
+- "heavy petting" / "foreplay" → NEVER use; not permitted
+- "spread legs" / "bending over" → not permitted; use neutral body positions
+- "curves" / "curvy body" → use "figure" or "silhouette"
+- "strip down" / "getting naked" / "undressing" → not permitted
+- "sensual" → use "tender" or "warm"
+- "provocative" → use "bold" or "striking"
+- "seductive" / "seduce" → use "captivating" or "drawing attention"
+- "aroused" / "arousing" / "arousal" → not permitted; use "moved" or "stirred"
+- "bikini" / "lingerie" / "underwear" → not permitted in scene descriptions
+- "revealing" (when describing clothing) → use "elegant" or "flowing"
+- "topless" / "bottomless" → never permitted
+
+WRITE INSTEAD: Emphasize cinematic action, emotional beats, environmental detail, camera movement, and character psychology. A scene of two people connecting should focus on eye contact, body language, environmental atmosphere, and emotional subtext — NOT physical intimacy.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 ${referenceImageContext}
 ${sceneIdentityBlock}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -927,17 +959,78 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
       forcedLighting = `Natural lighting appropriate for: ${request.environmentPrompt.trim().substring(0, 50)}`;
     }
 
+    // =====================================================
+    // 🛡️ CONTENT SAFETY SANITIZER — Scrub banned phrases before generation
+    // Prevents false-positive blocks from AI-generated language
+    // =====================================================
+    const PHRASE_REPLACEMENTS: [RegExp, string][] = [
+      [/\bintimate moment\b/gi, 'heartfelt exchange'],
+      [/\bgetting intimate\b/gi, 'drawing closer'],
+      [/\bbeing intimate\b/gi, 'sharing a quiet moment'],
+      [/\bin bed together\b/gi, 'sitting together'],
+      [/\bsleeping together\b/gi, 'resting side by side'],
+      [/\bmaking love\b/gi, 'embracing'],
+      [/\bmake love\b/gi, 'embrace'],
+      [/\bhaving sex\b/gi, 'sharing a connection'],
+      [/\bsexual encounter\b/gi, 'personal encounter'],
+      [/\blove scene\b/gi, 'emotional scene'],
+      [/\bbedroom scene\b/gi, 'private moment'],
+      [/\badult scene\b/gi, 'quiet scene'],
+      [/\bpassionate kiss\b/gi, 'tender kiss'],
+      [/\bmaking out\b/gi, 'sharing a moment'],
+      [/\blying in bed\b/gi, 'seated at the edge'],
+      [/\bseductive pose\b/gi, 'confident stance'],
+      [/\bsexy pose\b/gi, 'relaxed posture'],
+      [/\bprovocative pose\b/gi, 'bold stance'],
+      [/\bbody close-up\b/gi, 'portrait shot'],
+      [/\bshow body\b/gi, 'portrait framing'],
+      [/\bshow skin\b/gi, 'close-up framing'],
+      [/\bsensual\b/gi, 'tender'],
+      [/\bseductive\b/gi, 'captivating'],
+      [/\bprovocative\b/gi, 'striking'],
+      [/\barousing\b/gi, 'moving'],
+      [/\baroused\b/gi, 'moved'],
+      [/\bheavy petting\b/gi, 'gentle touch'],
+      [/\bforeplay\b/gi, 'anticipation'],
+      [/\bspread legs\b/gi, 'open stance'],
+      [/\bbending over\b/gi, 'leaning forward'],
+      [/\bstrip down\b/gi, 'unwind'],
+      [/\bgetting naked\b/gi, 'letting go'],
+      [/\bgetting undressed\b/gi, 'preparing to rest'],
+      [/\blingerie\b/gi, 'comfortable clothing'],
+      [/\bunderwear\b/gi, 'casual attire'],
+      [/\bpanties\b/gi, 'clothing'],
+      [/\btopless\b/gi, 'open-shirted'],
+      [/\bbottomless\b/gi, 'casually dressed'],
+      [/\bseduction\b/gi, 'charisma'],
+      [/\bseduce\b/gi, 'captivate'],
+      [/\bsexiest\b/gi, 'most striking'],
+      [/\bsexier\b/gi, 'more striking'],
+      [/\bsexy\b/gi, 'alluring'],
+      [/\bhorny\b/gi, 'eager'],
+      [/\bturned on\b/gi, 'inspired'],
+    ];
+
+    function sanitizeClipText(text: string): string {
+      if (!text) return text;
+      let result = text;
+      for (const [pattern, replacement] of PHRASE_REPLACEMENTS) {
+        result = result.replace(pattern, replacement);
+      }
+      return result;
+    }
+
     // Normalize and ENFORCE CONSISTENCY across all clips
     const normalizedClips: SceneClip[] = parsedClips.map((clip: any, index: number) => ({
       id: `clip_${String(index + 1).padStart(2, '0')}`,
       index,
       title: clip.title || `Clip ${index + 1}`,
-      description: clip.description || '',
+      description: sanitizeClipText(clip.description || ''),
       durationSeconds: clipDuration,
       actionPhase: ACTION_PHASES[index % ACTION_PHASES.length], // Handle variable clip counts
-      previousAction: index > 0 ? (parsedClips[index - 1]?.currentAction || '') : '',
-      currentAction: clip.currentAction || clip.description?.substring(0, 100) || '',
-      nextAction: index < expectedClipCount - 1 ? (parsedClips[index + 1]?.currentAction || '') : '',
+      previousAction: index > 0 ? sanitizeClipText(parsedClips[index - 1]?.currentAction || '') : '',
+      currentAction: sanitizeClipText(clip.currentAction || clip.description?.substring(0, 100) || ''),
+      nextAction: index < expectedClipCount - 1 ? sanitizeClipText(parsedClips[index + 1]?.currentAction || '') : '',
       // ENFORCE CONSISTENCY - same values for all clips
       characterDescription: lockFields.characterDescription,
       // USE FORCED LOCATION/LIGHTING (from user's scene description if provided)

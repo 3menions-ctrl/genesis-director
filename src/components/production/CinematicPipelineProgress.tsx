@@ -105,7 +105,6 @@ const WaveformCanvas = memo(function WaveformCanvas({
         const norm  = i / BARS;
         const lit   = norm <= filled;
 
-        // organic wave shape — two interfering sine waves
         const base  = 4 + Math.sin(i * 0.31) * 3;
         const w1    = Math.sin(t * 1.9  + i * 0.18) * (10 + Math.sin(t * 0.3) * 5);
         const w2    = Math.sin(t * 1.1  + i * 0.29 + 1.2) * 6;
@@ -114,57 +113,37 @@ const WaveformCanvas = memo(function WaveformCanvas({
         const x = startX + i * (BAR_W + GAP);
 
         if (lit) {
-          // Bright lit bar — pure violet
-          const grad = ctx.createLinearGradient(x, cy - bh, x, cy + bh);
-          grad.addColorStop(0,   'hsla(263,70%,80%,0.55)');
-          grad.addColorStop(0.4, 'hsla(263,70%,65%,0.9)');
-          grad.addColorStop(0.5, 'hsla(263,70%,58%,1)');
-          grad.addColorStop(0.6, 'hsla(263,70%,65%,0.9)');
-          grad.addColorStop(1,   'hsla(263,70%,80%,0.55)');
-
-          // soft glow behind lit bars
+          // Monolith: pure white bars, soft glow
           ctx.save();
           ctx.filter = 'blur(4px)';
-          ctx.globalAlpha = 0.22;
-          ctx.fillStyle = 'hsl(263,70%,58%)';
+          ctx.globalAlpha = 0.18;
+          ctx.fillStyle = 'rgba(255,255,255,0.7)';
           ctx.beginPath();
           ctx.roundRect(x - 1, cy - bh - 2, BAR_W + 2, bh * 2 + 4, 2);
           ctx.fill();
           ctx.restore();
 
+          const grad = ctx.createLinearGradient(x, cy - bh, x, cy + bh);
+          grad.addColorStop(0,   'rgba(255,255,255,0.55)');
+          grad.addColorStop(0.5, 'rgba(255,255,255,0.95)');
+          grad.addColorStop(1,   'rgba(255,255,255,0.55)');
           ctx.fillStyle = grad;
         } else {
-          // Dim unlit bar — very dark
-          const dgrad = ctx.createLinearGradient(x, cy - bh * 0.5, x, cy + bh * 0.5);
-          dgrad.addColorStop(0,   'hsla(263,20%,30%,0.08)');
-          dgrad.addColorStop(0.5, 'hsla(263,20%,30%,0.14)');
-          dgrad.addColorStop(1,   'hsla(263,20%,30%,0.08)');
-          ctx.fillStyle = dgrad;
+          ctx.fillStyle = 'rgba(255,255,255,0.05)';
         }
 
         ctx.beginPath();
-        ctx.roundRect(x, cy - bh,  BAR_W, bh, 1.5);
+        ctx.roundRect(x, cy - bh, BAR_W, bh, 1.5);
         ctx.fill();
 
         if (lit) {
-          // subtle reflection
-          ctx.globalAlpha = 0.18;
+          ctx.globalAlpha = 0.1;
           ctx.beginPath();
-          ctx.roundRect(x, cy + 2, BAR_W, bh * 0.35, 1);
+          ctx.roundRect(x, cy + 2, BAR_W, bh * 0.3, 1);
           ctx.fill();
           ctx.globalAlpha = 1;
         }
       }
-
-      // centre line
-      const lg = ctx.createLinearGradient(startX, cy, startX + totalW, cy);
-      lg.addColorStop(0,   'transparent');
-      lg.addColorStop(0.2, 'hsla(263,70%,58%,0.08)');
-      lg.addColorStop(0.5, 'hsla(263,70%,58%,0.14)');
-      lg.addColorStop(0.8, 'hsla(263,70%,58%,0.08)');
-      lg.addColorStop(1,   'transparent');
-      ctx.fillStyle = lg;
-      ctx.fillRect(startX, cy - 0.5, totalW, 1);
 
       if (isActive) rafRef.current = requestAnimationFrame(draw);
     };
@@ -201,7 +180,7 @@ const StagePills = memo(function StagePills({ stages }: { stages: StageStatus[] 
   if (!visible.length) return null;
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-1.5">
+    <div className="flex flex-wrap items-center justify-center gap-2">
       {visible.map((stage, i) => {
         const done   = stage.status === 'complete';
         const active = stage.status === 'active';
@@ -213,36 +192,31 @@ const StagePills = memo(function StagePills({ stages }: { stages: StageStatus[] 
             initial={{ opacity: 0, scale: 0.88 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.04, duration: 0.25, ease: 'easeOut' }}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+            className="flex items-center gap-1.5 px-2.5 py-1"
             style={{
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: '0.02em',
-              background: active
-                ? 'hsl(263 70% 58% / 0.12)'
-                : done
-                ? 'hsl(160 84% 45% / 0.08)'
-                : error
-                ? 'hsl(0 75% 55% / 0.08)'
-                : 'hsl(250 15% 4% / 0.6)',
+              fontSize: 9,
+              fontWeight: 500,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              borderRadius: 4,
               border: `1px solid ${
-                active ? 'hsl(263 70% 58% / 0.35)'
-                : done  ? 'hsl(160 84% 45% / 0.25)'
-                : error ? 'hsl(0 75% 55% / 0.25)'
-                : 'hsl(250 10% 16% / 0.8)'
+                active ? 'rgba(255,255,255,0.5)'
+                : done  ? 'rgba(255,255,255,0.15)'
+                : error ? 'hsl(0 75% 55% / 0.3)'
+                : 'rgba(255,255,255,0.06)'
               }`,
-              color: active ? 'hsl(263 70% 78%)'
-                : done  ? 'hsl(160 84% 55%)'
+              color: active ? 'rgba(255,255,255,0.9)'
+                : done  ? 'rgba(255,255,255,0.35)'
                 : error ? 'hsl(0 75% 65%)'
-                : 'hsl(240 5% 40%)',
+                : 'rgba(255,255,255,0.1)',
             }}
           >
-            {done  && <CheckCircle2 className="w-3 h-3 shrink-0" />}
-            {error && <XCircle      className="w-3 h-3 shrink-0" />}
+            {done  && <CheckCircle2 className="w-2.5 h-2.5 shrink-0" />}
+            {error && <XCircle      className="w-2.5 h-2.5 shrink-0" />}
             {active && (
               <motion.span
                 className="w-1.5 h-1.5 rounded-full shrink-0"
-                style={{ background: 'hsl(263 70% 65%)' }}
+                style={{ background: 'rgba(255,255,255,0.8)' }}
                 animate={{ opacity: [1, 0.2, 1] }}
                 transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
               />
@@ -268,11 +242,11 @@ const ClipGrid = memo(function ClipGrid({
   return (
     <div className="w-full flex flex-col gap-3">
       <div className="flex items-center gap-3">
-        <div className="h-px flex-1" style={{ background: 'hsl(250 10% 16%)' }} />
-        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', color: 'hsl(240 5% 35%)', textTransform: 'uppercase' }}>
-          {done}/{clips.length} clips ready
+        <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <span style={{ fontSize: 9, fontWeight: 400, letterSpacing: '0.22em', color: 'rgba(255,255,255,0.22)', textTransform: 'uppercase' }}>
+          {done} / {clips.length} clips ready
         </span>
-        <div className="h-px flex-1" style={{ background: 'hsl(250 10% 16%)' }} />
+        <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.06)' }} />
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -287,43 +261,43 @@ const ClipGrid = memo(function ClipGrid({
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: clip.index * 0.03, duration: 0.28 }}
-              className="rounded-xl overflow-hidden"
+              className="overflow-hidden"
               style={{
-                background: 'hsl(250 12% 8%)',
+                borderRadius: 8,
+                background: 'rgba(255,255,255,0.03)',
                 border: `1px solid ${
-                  isComp ? 'hsl(160 84% 45% / 0.22)'
-                  : isBusy ? 'hsl(263 70% 58% / 0.2)'
+                  isComp ? 'rgba(255,255,255,0.15)'
+                  : isBusy ? 'rgba(255,255,255,0.1)'
                   : isFail ? 'hsl(0 75% 55% / 0.2)'
-                  : 'hsl(250 10% 14%)'
+                  : 'rgba(255,255,255,0.05)'
                 }`,
               }}
             >
               {/* accent stripe */}
               <div style={{
-                height: 2,
+                height: 1,
                 background: isComp
-                  ? 'hsl(160 84% 45%)'
+                  ? 'rgba(255,255,255,0.6)'
                   : isBusy
-                  ? 'hsl(263 70% 58%)'
+                  ? 'rgba(255,255,255,0.3)'
                   : isFail
                   ? 'hsl(0 75% 55%)'
-                  : 'hsl(250 10% 16%)',
-                opacity: isComp || isBusy ? 1 : 0.4,
+                  : 'rgba(255,255,255,0.06)',
               }} />
 
               <div className="p-2.5 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <span style={{
-                    fontSize: 11, fontWeight: 700,
-                    color: isComp ? 'hsl(160 84% 55%)' : isBusy ? 'hsl(263 70% 72%)' : isFail ? 'hsl(0 75% 65%)' : 'hsl(240 5% 40%)',
+                    fontSize: 10, fontWeight: 500, letterSpacing: '0.05em',
+                    color: isComp ? 'rgba(255,255,255,0.75)' : isBusy ? 'rgba(255,255,255,0.55)' : isFail ? 'hsl(0 75% 65%)' : 'rgba(255,255,255,0.25)',
                   }}>
                     Clip {clip.index + 1}
                   </span>
-                  {isComp && <CheckCircle2 style={{ width: 13, height: 13, color: 'hsl(160 84% 45%)', flexShrink: 0 }} />}
-                  {isFail  && <AlertCircle  style={{ width: 13, height: 13, color: 'hsl(0 75% 55%)',  flexShrink: 0 }} />}
-                  {isBusy  && <Loader2      style={{ width: 13, height: 13, color: 'hsl(263 70% 65%)', flexShrink: 0 }} className="animate-spin" />}
+                  {isComp && <CheckCircle2 style={{ width: 12, height: 12, color: 'rgba(255,255,255,0.5)', flexShrink: 0 }} />}
+                  {isFail  && <AlertCircle  style={{ width: 12, height: 12, color: 'hsl(0 75% 55%)', flexShrink: 0 }} />}
+                  {isBusy  && <Loader2      style={{ width: 12, height: 12, color: 'rgba(255,255,255,0.4)', flexShrink: 0 }} className="animate-spin" />}
                   {!isComp && !isBusy && !isFail && (
-                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'hsl(250 10% 20%)', flexShrink: 0 }} />
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', flexShrink: 0 }} />
                   )}
                 </div>
 
@@ -331,39 +305,40 @@ const ClipGrid = memo(function ClipGrid({
                   <div className="flex gap-1.5">
                     <button
                       onClick={() => onPlayClip?.(clip.videoUrl!)}
-                      className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg transition-all hover:brightness-125"
+                      className="flex-1 flex items-center justify-center gap-1 py-1.5 transition-all hover:brightness-125"
                       style={{
-                        fontSize: 10, fontWeight: 600,
-                        background: 'hsl(263 70% 58% / 0.1)',
-                        border: '1px solid hsl(263 70% 58% / 0.25)',
-                        color: 'hsl(263 70% 72%)',
+                        fontSize: 9, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase',
+                        background: 'transparent',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        color: 'rgba(255,255,255,0.6)',
+                        borderRadius: 4,
                       }}
                     >
-                      <Play style={{ width: 10, height: 10 }} className="fill-current" />
+                      <Play style={{ width: 9, height: 9 }} className="fill-current" />
                       Play
                     </button>
                     <a
                       href={clip.videoUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center rounded-lg transition-all hover:brightness-125"
+                      className="flex items-center justify-center transition-all hover:brightness-125"
                       style={{
-                        width: 28, height: 28,
-                        background: 'hsl(250 12% 12%)',
-                        border: '1px solid hsl(250 10% 18%)',
-                        color: 'hsl(240 5% 50%)',
+                        width: 26, height: 26, borderRadius: 4,
+                        background: 'transparent',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        color: 'rgba(255,255,255,0.35)',
                       }}
                     >
-                      <ExternalLink style={{ width: 11, height: 11 }} />
+                      <ExternalLink style={{ width: 10, height: 10 }} />
                     </a>
                   </div>
                 )}
 
                 {isBusy && (
-                  <div className="rounded-full overflow-hidden" style={{ height: 1.5, background: 'hsl(263 30% 14%)' }}>
+                  <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
                     <motion.div
-                      className="h-full rounded-full"
-                      style={{ background: 'hsl(263 70% 58%)' }}
+                      className="h-full"
+                      style={{ background: 'rgba(255,255,255,0.5)' }}
                       animate={{ x: ['-100%', '200%'] }}
                       transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
                     />
@@ -371,7 +346,7 @@ const ClipGrid = memo(function ClipGrid({
                 )}
 
                 {isFail && clip.error && (
-                  <p style={{ fontSize: 9, color: 'hsl(0 75% 55% / 0.6)', lineHeight: 1.4 }} className="line-clamp-2">
+                  <p style={{ fontSize: 9, color: 'hsl(0 75% 55% / 0.55)', lineHeight: 1.4 }} className="line-clamp-2">
                     {clip.error}
                   </p>
                 )}
@@ -427,47 +402,44 @@ export function CinematicPipelineProgress({
     <div
       className={cn('relative flex flex-col gap-7 w-full overflow-hidden', className)}
       style={{
-        background: 'hsl(250 15% 4%)',
-        border: '1px solid hsl(250 10% 12%)',
+        background: '#050505',
+        border: '1px solid rgba(255,255,255,0.07)',
         borderRadius: 20,
-        boxShadow: `0 0 0 1px hsl(250 10% 8%), 0 40px 80px hsl(250 30% 2% / 0.9), inset 0 1px 0 hsl(0 0% 100% / 0.04)`,
+        boxShadow: `0 40px 80px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.04)`,
         padding: '32px 28px 28px',
       }}
     >
-      {/* Top hairline glow */}
+      {/* Top hairline — pure white */}
       <div
         className="absolute top-0 inset-x-0 h-px pointer-events-none"
         style={{
           background: isError
-            ? 'linear-gradient(90deg, transparent 10%, hsl(0 75% 55% / 0.4) 50%, transparent 90%)'
+            ? 'linear-gradient(90deg, transparent 10%, hsl(0 75% 55% / 0.5) 50%, transparent 90%)'
             : isComplete
-            ? 'linear-gradient(90deg, transparent 10%, hsl(160 84% 45% / 0.4) 50%, transparent 90%)'
-            : 'linear-gradient(90deg, transparent 10%, hsl(263 70% 58% / 0.35) 50%, transparent 90%)',
+            ? 'linear-gradient(90deg, transparent 10%, rgba(255,255,255,0.3) 50%, transparent 90%)'
+            : 'linear-gradient(90deg, transparent 10%, rgba(255,255,255,0.18) 50%, transparent 90%)',
         }}
       />
 
       {/* ── PERCENTAGE ── */}
-      <div className="flex flex-col items-center gap-2 select-none">
+      <div className="flex flex-col items-center gap-3 select-none">
         <div
           className="font-black tabular-nums leading-none"
           style={{
             fontSize: 'clamp(80px, 16vw, 128px)',
-            letterSpacing: '-0.055em',
-            background: isError
-              ? 'linear-gradient(160deg, hsl(0 75% 70%), hsl(0 60% 50%))'
+            letterSpacing: '-0.07em',
+            color: isError ? 'hsl(0 75% 65%)' : 'rgba(255,255,255,0.95)',
+            textShadow: isError
+              ? '0 0 60px hsl(0 75% 45% / 0.3)'
               : isComplete
-              ? 'linear-gradient(160deg, hsl(160 84% 65%), hsl(195 90% 55%))'
-              : 'linear-gradient(160deg, hsl(263 70% 80%) 0%, hsl(263 70% 60%) 60%, hsl(263 60% 45%) 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            filter: `drop-shadow(0 0 48px ${accentColor}33)`,
+              ? '0 0 60px rgba(255,255,255,0.08)'
+              : '0 0 60px rgba(255,255,255,0.06)',
           }}
         >
-          {pct}<span style={{ fontSize: '0.35em', opacity: 0.5, letterSpacing: '-0.02em' }}>%</span>
+          {pct}<span style={{ fontSize: '0.28em', fontWeight: 200, opacity: 0.22 }}>%</span>
         </div>
 
-        {/* Live status */}
+        {/* Live status — uppercase spaced */}
         <AnimatePresence mode="wait">
           <motion.p
             key={statusText}
@@ -476,12 +448,13 @@ export function CinematicPipelineProgress({
             exit={{ opacity: 0, y: -5 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
             style={{
-              fontSize: 13,
-              fontWeight: 500,
-              color: isError ? 'hsl(0 75% 65%)' : isComplete ? 'hsl(160 84% 58%)' : 'hsl(263 30% 65%)',
-              letterSpacing: '0.01em',
+              fontSize: 10,
+              fontWeight: 400,
+              color: isError ? 'hsl(0 75% 55%)' : isComplete ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.28)',
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
               textAlign: 'center',
-              maxWidth: 360,
+              maxWidth: 380,
             }}
           >
             {statusText}
@@ -491,11 +464,12 @@ export function CinematicPipelineProgress({
 
       {/* ── WAVEFORM ── */}
       <div
-        className="relative rounded-2xl overflow-hidden"
+        className="relative overflow-hidden"
         style={{
           height: 96,
-          background: 'hsl(250 18% 6%)',
-          border: '1px solid hsl(263 30% 14% / 0.6)',
+          borderRadius: 10,
+          background: 'rgba(255,255,255,0.015)',
+          border: '1px solid rgba(255,255,255,0.04)',
         }}
       >
         <WaveformCanvas isActive={isRunning && !isComplete && !isError} progress={progress} />
@@ -507,18 +481,17 @@ export function CinematicPipelineProgress({
       {/* ── PROGRESS BAR ── */}
       <div className="flex flex-col gap-2">
         <div
-          className="relative w-full rounded-full overflow-hidden"
-          style={{ height: 3, background: 'hsl(250 10% 10%)' }}
+          className="relative w-full overflow-hidden"
+          style={{ height: 1, background: 'rgba(255,255,255,0.06)' }}
         >
           <motion.div
-            className="absolute inset-y-0 left-0 rounded-full"
+            className="absolute inset-y-0 left-0"
             style={{
               background: isError
                 ? 'hsl(0 75% 55%)'
                 : isComplete
-                ? 'linear-gradient(90deg, hsl(160 84% 45%), hsl(195 90% 50%))'
-                : 'hsl(263 70% 58%)',
-              boxShadow: `0 0 10px ${accentColor}88`,
+                ? 'rgba(255,255,255,0.9)'
+                : 'rgba(255,255,255,0.82)',
             }}
             animate={{ width: `${Math.max(1, pct)}%` }}
             transition={{ duration: 0.9, ease: [0.4, 0, 0.2, 1] }}
@@ -527,16 +500,16 @@ export function CinematicPipelineProgress({
 
         {/* row */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5" style={{ color: 'hsl(240 5% 35%)' }}>
-            <Clock style={{ width: 12, height: 12 }} />
-            <span style={{ fontSize: 11, fontFamily: 'monospace', letterSpacing: '0.02em' }}>
+          <div className="flex items-center gap-1.5" style={{ color: 'rgba(255,255,255,0.2)' }}>
+            <Clock style={{ width: 11, height: 11 }} />
+            <span style={{ fontSize: 10, fontFamily: 'monospace', letterSpacing: '0.1em' }}>
               {formatTime(elapsedTime)}
             </span>
           </div>
 
           {totalClips > 0 && (
-            <span style={{ fontSize: 11, fontWeight: 500, color: 'hsl(263 30% 50%)' }}>
-              {completedClips}/{totalClips} clips
+            <span style={{ fontSize: 10, fontWeight: 400, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.22)' }}>
+              {completedClips} / {totalClips} clips
             </span>
           )}
 
@@ -546,12 +519,14 @@ export function CinematicPipelineProgress({
               disabled={isCancelling}
               className="transition-all disabled:opacity-40"
               style={{
-                fontSize: 11, fontWeight: 500,
-                padding: '4px 12px',
-                borderRadius: 8,
+                fontSize: 10, fontWeight: 500,
+                padding: '3px 12px',
+                borderRadius: 4,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
                 color: 'hsl(0 75% 60%)',
-                background: 'hsl(0 75% 50% / 0.06)',
-                border: '1px solid hsl(0 75% 50% / 0.14)',
+                background: 'transparent',
+                border: '1px solid hsl(0 75% 50% / 0.2)',
               }}
             >
               {isCancelling ? 'Cancelling…' : 'Cancel'}
@@ -570,11 +545,10 @@ export function CinematicPipelineProgress({
                 key={i}
                 className="rounded-sm flex-shrink-0"
                 style={{
-                  width: 4,
-                  background: filled ? 'hsl(160 84% 45%)' : 'hsl(250 10% 12%)',
-                  boxShadow: filled ? '0 0 6px hsl(160 84% 45% / 0.5)' : 'none',
+                  width: 3,
+                  background: filled ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.07)',
                 }}
-                animate={{ height: filled ? 18 : 5 }}
+                animate={{ height: filled ? 18 : 4 }}
                 transition={{ duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}
               />
             );
@@ -590,12 +564,14 @@ export function CinematicPipelineProgress({
             disabled={isResuming}
             className="transition-all disabled:opacity-50 hover:brightness-110"
             style={{
-              fontSize: 13, fontWeight: 600,
-              padding: '10px 32px',
-              borderRadius: 12,
-              background: 'hsl(263 70% 58% / 0.1)',
-              border: '1px solid hsl(263 70% 58% / 0.28)',
-              color: 'hsl(263 70% 72%)',
+              fontSize: 11, fontWeight: 500,
+              padding: '9px 28px',
+              borderRadius: 6,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.2)',
+              color: 'rgba(255,255,255,0.7)',
             }}
           >
             {isResuming ? 'Resuming…' : '↩ Try Again'}

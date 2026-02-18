@@ -72,7 +72,97 @@ function formatTime(seconds: number): string {
 
 // ============= ANIMATED WAVEFORM =============
 
-const WAVE_BARS = 48;
+// ============= WAVE LAYER CONFIG =============
+
+interface WaveLayer {
+  freq: number;       // spatial frequency
+  amp: number;        // amplitude (fraction of half-height)
+  speed: number;      // time speed
+  phase: number;      // phase offset
+  colorStop: number;  // 0-1 along the blue→orange gradient
+  lineWidth: number;
+  glowWidth: number;
+}
+
+const WAVE_LAYERS: WaveLayer[] = [
+  { freq: 1.4, amp: 0.55, speed: 0.38, phase: 0,    colorStop: 0.0, lineWidth: 2.0, glowWidth: 12 },
+  { freq: 1.9, amp: 0.42, speed: 0.52, phase: 1.2,  colorStop: 0.3, lineWidth: 1.5, glowWidth: 10 },
+  { freq: 2.5, amp: 0.30, speed: 0.28, phase: 2.5,  colorStop: 0.55, lineWidth: 1.2, glowWidth: 8 },
+  { freq: 1.1, amp: 0.60, speed: 0.18, phase: 0.8,  colorStop: 0.78, lineWidth: 1.8, glowWidth: 14 },
+  { freq: 3.0, amp: 0.22, speed: 0.65, phase: 1.8,  colorStop: 1.0, lineWidth: 1.0, glowWidth: 7 },
+];
+
+/** Interpolate the blue→purple→magenta→orange gradient */
+function waveColor(
+  t: number,
+  filled: boolean,
+  isError: boolean,
+  isComplete: boolean,
+  alpha = 1,
+): string {
+  if (isError)    return `rgba(220,50,80,${alpha * (filled ? 1 : 0.15)})`;
+  if (isComplete) return `rgba(50,200,130,${alpha * (filled ? 1 : 0.15)})`;
+  if (!filled)    return `rgba(55,60,90,${alpha * 0.18})`;
+
+  let r: number, g: number, b: number;
+  if (t < 0.33) {
+    const s = t / 0.33;
+    r = Math.round(80  + s * 100); g = Math.round(120 - s * 90); b = 255;
+  } else if (t < 0.66) {
+    const s = (t - 0.33) / 0.33;
+    r = Math.round(180 + s * 65); g = Math.round(30  + s * 30); b = Math.round(255 - s * 130);
+  } else {
+    const s = (t - 0.66) / 0.34;
+    r = 245; g = Math.round(60 + s * 135); b = Math.round(125 - s * 125);
+  }
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+/** Build an SVG smooth-curve path for a single wave layer */
+function buildWavePath(
+  layer: WaveLayer,
+  W: number,
+  H: number,
+  time: number,
+  progress: number, // 0-100
+): { filledD: string; dimD: string } {
+  const cy = H / 2;
+  const amp = layer.amp * (H / 2) * 0.85;
+  const filledX = (progress / 100) * W;
+  const STEPS = 120;
+
+  const pts: [number, number][] = [];
+  for (let i = 0; i <= STEPS; i++) {
+    const x = (i / STEPS) * W;
+    const norm = x / W;
+    // Envelope: taper at edges for natural look
+    const envelope = Math.sin(norm * Math.PI) * 0.6 + 0.4;
+    const y = cy - amp * envelope *
+      Math.sin(layer.freq * Math.PI * 2 * norm + time * layer.speed + layer.phase);
+    pts.push([x, y]);
+  }
+
+  const toD = (pts: [number, number][]) => {
+    let d = `M ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const cpX = (pts[i][0] + pts[i-1][0]) / 2;
+      const cpY = (pts[i][1] + pts[i-1][1]) / 2;
+      d += ` Q ${pts[i][0].toFixed(1)} ${pts[i][1].toFixed(1)}, ${cpX.toFixed(1)} ${cpY.toFixed(1)}`;
+    }
+    return d;
+  };
+
+  // Split path at filledX boundary
+  const filledPts = pts.filter(([x]) => x <= filledX + 5);
+  const dimPts = pts.filter(([x]) => x >= filledX - 5);
+
+  return {
+    filledD: filledPts.length > 1 ? toD(filledPts) : '',
+    dimD: dimPts.length > 1 ? toD(dimPts) : '',
+  };
+}
+
+// ============= SVG WAVEFORM VISUALIZER =============
 
 const WaveformVisualizer = memo(function WaveformVisualizer({
   progress,
@@ -85,143 +175,180 @@ const WaveformVisualizer = memo(function WaveformVisualizer({
   isComplete: boolean;
   isError: boolean;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const animRef = useRef<number>(0);
-  const timeRef = useRef(0);
+  const startRef = useRef<number | null>(null);
+
+  const W = 800;
+  const H = 140;
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const svg = svgRef.current;
+    if (!svg) return;
 
-    const draw = (timestamp: number) => {
-      const elapsed = timestamp / 1000;
-      timeRef.current = elapsed;
+    // Pre-select path elements for performance
+    const filledPaths = WAVE_LAYERS.map((_, i) =>
+      svg.querySelector<SVGPathElement>(`#wf-filled-${i}`)
+    );
+    const glowPaths = WAVE_LAYERS.map((_, i) =>
+      svg.querySelector<SVGPathElement>(`#wf-filled-glow-${i}`)
+    );
+    const dimPaths = WAVE_LAYERS.map((_, i) =>
+      svg.querySelector<SVGPathElement>(`#wf-dim-${i}`)
+    );
+    const sparkleGroup = svg.querySelector<SVGGElement>('#wf-sparkles');
 
-      const W = canvas.width;
-      const H = canvas.height;
-      ctx.clearRect(0, 0, W, H);
+    const draw = (ts: number) => {
+      if (!startRef.current) startRef.current = ts;
+      const time = (ts - startRef.current) / 1000;
 
-      const filledFraction = progress / 100;
-      const filledX = W * filledFraction;
+      WAVE_LAYERS.forEach((layer, i) => {
+        const { filledD, dimD } = buildWavePath(layer, W, H, time, progress);
+        if (filledPaths[i]) filledPaths[i]!.setAttribute('d', filledD);
+        if (glowPaths[i])   glowPaths[i]!.setAttribute('d', filledD);
+        if (dimPaths[i])    dimPaths[i]!.setAttribute('d', dimD);
+      });
 
-      // Draw waveform bars
-      for (let i = 0; i < WAVE_BARS; i++) {
-        const x = (i / WAVE_BARS) * W;
-        const barW = (W / WAVE_BARS) * 0.55;
-
-        // Wave shape: combination of sine waves at different frequencies
-        const wave1 = Math.sin(i * 0.35 + elapsed * 0.7) * 0.5;
-        const wave2 = Math.sin(i * 0.6 + elapsed * 0.4) * 0.3;
-        const wave3 = Math.sin(i * 0.2 - elapsed * 0.5) * 0.2;
-        const combined = (wave1 + wave2 + wave3 + 1) / 2; // normalize 0..1
-
-        const minH = H * 0.06;
-        const maxH = H * 0.85;
-        const barH = minH + combined * (maxH - minH);
-
-        const barX = x + (W / WAVE_BARS - barW) / 2;
-        const barY = (H - barH) / 2;
-
-        const isFilled = x <= filledX;
-
-        // Color gradient based on position
-        const posRatio = i / WAVE_BARS;
-        let r: number, g: number, b: number;
-
-        if (isError) {
-          // Red palette for error
-          r = 220; g = 50; b = 80;
-        } else if (isComplete) {
-          // Green palette for complete
-          r = 50; g = 200; b = 130;
-        } else if (isFilled) {
-          // Blue → Purple → Orange gradient for filled portion
-          if (posRatio < 0.4) {
-            // Blue to purple
-            const t = posRatio / 0.4;
-            r = Math.round(100 + t * 80);   // 100→180
-            g = Math.round(140 - t * 100);  // 140→40
-            b = Math.round(255 - t * 30);   // 255→225
-          } else if (posRatio < 0.75) {
-            // Purple to pink/magenta
-            const t = (posRatio - 0.4) / 0.35;
-            r = Math.round(180 + t * 60);   // 180→240
-            g = Math.round(40 + t * 20);    // 40→60
-            b = Math.round(225 - t * 100);  // 225→125
-          } else {
-            // Magenta to orange/gold
-            const t = (posRatio - 0.75) / 0.25;
-            r = Math.round(240 + t * 15);   // 240→255
-            g = Math.round(60 + t * 130);   // 60→190
-            b = Math.round(125 - t * 125);  // 125→0
-          }
-        } else {
-          // Unfilled — dim grey-blue
-          r = 60; g = 65; b = 90;
-        }
-
-        const alpha = isFilled ? (0.7 + combined * 0.3) : 0.2;
-
-        // Glow effect for filled bars
-        if (isFilled && isRunning) {
-          ctx.shadowBlur = 8;
-          ctx.shadowColor = `rgba(${r},${g},${b},0.5)`;
-        } else {
-          ctx.shadowBlur = 0;
-        }
-
-        // Rounded rect bars
-        const radius = Math.min(barW / 2, 3);
-        ctx.beginPath();
-        ctx.roundRect(barX, barY, barW, barH, radius);
-        ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
-        ctx.fill();
+      // Animate sparkle dots near wave tip
+      if (sparkleGroup) {
+        const tipX = (progress / 100) * W;
+        const children = sparkleGroup.querySelectorAll('circle');
+        children.forEach((c, i) => {
+          const jitter = Math.sin(time * 2.5 + i * 1.3) * 12;
+          const jitterY = Math.cos(time * 1.8 + i * 0.9) * 10;
+          const baseX = tipX + (i - 3) * 6 + jitter * 0.6;
+          const baseY = H / 2 + jitterY;
+          c.setAttribute('cx', baseX.toFixed(1));
+          c.setAttribute('cy', baseY.toFixed(1));
+          const opacity = Math.max(0, Math.sin(time * 3 + i * 0.7)) * 0.9;
+          c.setAttribute('opacity', opacity.toFixed(2));
+        });
       }
 
-      // Horizontal baseline glow line
-      const gradient = ctx.createLinearGradient(0, H / 2, W, H / 2);
-      gradient.addColorStop(0, 'rgba(100,140,255,0.3)');
-      gradient.addColorStop(0.45, 'rgba(180,60,220,0.4)');
-      gradient.addColorStop(0.75, 'rgba(240,80,140,0.3)');
-      gradient.addColorStop(1, 'rgba(255,180,30,0.15)');
-
-      ctx.shadowBlur = 0;
-      ctx.beginPath();
-      ctx.moveTo(0, H / 2);
-      ctx.lineTo(W * filledFraction, H / 2);
-      ctx.strokeStyle = gradient;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      if (isRunning) {
-        animRef.current = requestAnimationFrame(draw);
-      }
+      animRef.current = requestAnimationFrame(draw);
     };
 
     animRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(animRef.current);
   }, [progress, isRunning, isComplete, isError]);
 
-  // Handle canvas DPI
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    const ctx = canvas.getContext('2d');
-    if (ctx) ctx.scale(dpr, dpr);
-  }, []);
+  const filledFrac = progress / 100;
 
   return (
-    <canvas
-      ref={canvasRef}
+    <svg
+      ref={svgRef}
+      viewBox={`0 0 ${W} ${H}`}
       className="w-full"
-      style={{ height: 120, display: 'block' }}
-    />
+      style={{ height: 140, overflow: 'visible' }}
+      preserveAspectRatio="none"
+    >
+      <defs>
+        {/* Clip to filled region */}
+        <clipPath id="wf-clip-filled">
+          <rect x="0" y="0" width={W * filledFrac} height={H} />
+        </clipPath>
+        {/* Clip to dim region */}
+        <clipPath id="wf-clip-dim">
+          <rect x={W * filledFrac} y="0" width={W * (1 - filledFrac)} height={H} />
+        </clipPath>
+
+        {/* Glow filters per layer */}
+        {WAVE_LAYERS.map((layer, i) => (
+          <filter key={i} id={`wf-glow-${i}`} x="-30%" y="-200%" width="160%" height="500%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation={layer.glowWidth * 0.4} result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        ))}
+
+        {/* Horizontal baseline gradient */}
+        <linearGradient id="wf-baseline-grad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"   stopColor="rgba(80,120,255,0.7)" />
+          <stop offset="35%"  stopColor="rgba(180,50,230,0.8)" />
+          <stop offset="65%"  stopColor="rgba(240,80,140,0.7)" />
+          <stop offset="100%" stopColor="rgba(255,180,30,0.4)" />
+        </linearGradient>
+
+        {/* Sparkle dot gradient */}
+        <radialGradient id="wf-sparkle-grad">
+          <stop offset="0%"   stopColor="white" stopOpacity="1" />
+          <stop offset="100%" stopColor="rgba(255,200,100,0)" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+
+      {/* ── Dim (unfilled) wave layers ── */}
+      {WAVE_LAYERS.map((layer, i) => (
+        <path
+          key={`dim-${i}`}
+          id={`wf-dim-${i}`}
+          d=""
+          fill="none"
+          stroke={waveColor(layer.colorStop, false, isError, isComplete, 1)}
+          strokeWidth={layer.lineWidth * 0.8}
+          clipPath="url(#wf-clip-dim)"
+        />
+      ))}
+
+      {/* ── Filled wave layers (with glow) ── */}
+      {WAVE_LAYERS.map((layer, i) => (
+        <g key={`filled-${i}`} clipPath="url(#wf-clip-filled)">
+          {/* Glow pass */}
+          <path
+            d=""
+            id={`wf-filled-glow-${i}`}
+            fill="none"
+            stroke={waveColor(layer.colorStop, true, isError, isComplete, 0.35)}
+            strokeWidth={layer.lineWidth * 6}
+            filter={`url(#wf-glow-${i})`}
+          />
+          {/* Sharp line pass */}
+          <path
+            id={`wf-filled-${i}`}
+            d=""
+            fill="none"
+            stroke={waveColor(layer.colorStop, true, isError, isComplete, 0.9)}
+            strokeWidth={layer.lineWidth}
+            strokeLinecap="round"
+          />
+        </g>
+      ))}
+
+      {/* ── Baseline glow line ── */}
+      <line
+        x1="0" y1={H / 2}
+        x2={W * filledFrac} y2={H / 2}
+        stroke="url(#wf-baseline-grad)"
+        strokeWidth="1.5"
+        opacity="0.6"
+      />
+
+      {/* ── Sparkle burst at wave tip ── */}
+      <g id="wf-sparkles">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <circle
+            key={i}
+            cx={W * filledFrac}
+            cy={H / 2}
+            r={i < 3 ? 2.5 : i < 6 ? 1.8 : 1.2}
+            fill={i < 3 ? 'white' : i < 6 ? 'rgba(255,200,100,0.9)' : 'rgba(180,120,255,0.8)'}
+            opacity="0"
+          />
+        ))}
+      </g>
+
+      {/* ── Vertical tip glow line ── */}
+      {progress > 2 && progress < 99 && (
+        <line
+          x1={W * filledFrac} y1={H * 0.1}
+          x2={W * filledFrac} y2={H * 0.9}
+          stroke="rgba(255,255,255,0.15)"
+          strokeWidth="1"
+        />
+      )}
+    </svg>
   );
 });
 
@@ -649,39 +776,63 @@ export function CinematicPipelineProgress({
       </AnimatePresence>
 
       {/* ── Giant % counter ── */}
-      <div className="flex items-end justify-center gap-2 relative">
+      {/* ── Giant % counter with radial glow ── */}
+      <div className="flex items-end justify-center gap-2 relative py-2">
+        {/* Radial ambient glow behind number */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: isError
+              ? 'radial-gradient(ellipse 60% 80% at 50% 55%, hsl(0 80% 50% / 0.12) 0%, transparent 75%)'
+              : isComplete
+              ? 'radial-gradient(ellipse 60% 80% at 50% 55%, hsl(160 70% 45% / 0.12) 0%, transparent 75%)'
+              : 'radial-gradient(ellipse 60% 80% at 50% 55%, hsl(270 80% 60% / 0.14) 0%, transparent 75%)',
+          }}
+        />
+
         <motion.span
           key={roundedProgress}
-          className="font-black tabular-nums leading-none select-none"
+          className="font-black tabular-nums leading-none select-none relative z-10"
           style={{
-            fontSize: 'clamp(64px, 12vw, 120px)',
+            fontSize: 'clamp(72px, 14vw, 130px)',
             background: isError
-              ? 'linear-gradient(135deg, hsl(0 80% 60%), hsl(15 90% 55%))'
+              ? 'linear-gradient(160deg, hsl(0 80% 65%), hsl(15 90% 58%))'
               : isComplete
-              ? 'linear-gradient(135deg, hsl(160 70% 50%), hsl(180 80% 55%))'
-              : 'linear-gradient(135deg, hsl(220 90% 72%), hsl(270 80% 68%), hsl(320 80% 65%), hsl(30 90% 62%))',
+              ? 'linear-gradient(160deg, hsl(140 75% 55%), hsl(180 85% 60%))'
+              : 'linear-gradient(160deg, hsl(215 95% 75%) 0%, hsl(270 85% 70%) 35%, hsl(320 85% 68%) 65%, hsl(35 95% 65%) 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
-            filter: 'drop-shadow(0 0 30px hsl(270 80% 60% / 0.35))',
+            filter: isError
+              ? 'drop-shadow(0 0 40px hsl(0 80% 55% / 0.5))'
+              : isComplete
+              ? 'drop-shadow(0 0 40px hsl(160 70% 50% / 0.5))'
+              : 'drop-shadow(0 0 50px hsl(270 85% 65% / 0.45)) drop-shadow(0 0 20px hsl(215 95% 70% / 0.3))',
+            letterSpacing: '-0.04em',
           }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
+          initial={{ opacity: 0, scale: 0.92 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
         >
           {roundedProgress}
         </motion.span>
-        <span
-          className="font-bold pb-3 text-4xl"
-          style={{
-            background: 'linear-gradient(135deg, hsl(270 80% 68%), hsl(30 90% 62%))',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            opacity: 0.8,
-          }}
-        >
-          %
-        </span>
+
+        <div className="flex flex-col items-start pb-4 relative z-10">
+          <span
+            className="font-bold text-5xl leading-none"
+            style={{
+              background: isComplete
+                ? 'linear-gradient(160deg, hsl(180 85% 60%), hsl(160 70% 50%))'
+                : 'linear-gradient(160deg, hsl(320 85% 68%), hsl(35 95% 65%))',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              opacity: 0.85,
+            }}
+          >
+            %
+          </span>
+        </div>
       </div>
 
       {/* ── Waveform animation ── */}

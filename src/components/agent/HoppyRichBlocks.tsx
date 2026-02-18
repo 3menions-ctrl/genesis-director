@@ -78,12 +78,15 @@ function RichCard({ children, className, accent }: { children: React.ReactNode; 
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border/15 overflow-hidden",
-        "bg-surface-1/60 backdrop-blur-xl",
-        "shadow-[0_4px_24px_hsl(0_0%_0%/0.15)]",
+        "rounded-xl border overflow-hidden",
+        "bg-surface-1/50 backdrop-blur-xl",
+        "shadow-[0_2px_16px_hsl(0_0%_0%/0.12)]",
         className
       )}
-      style={accent ? { borderTopColor: accent, borderTopWidth: 2 } : undefined}
+      style={{
+        borderColor: "hsl(var(--border) / 0.1)",
+        ...(accent ? { borderTopColor: accent, borderTopWidth: "2px" } : {}),
+      }}
     >
       {children}
     </div>
@@ -95,25 +98,25 @@ function CardHeader({ icon: Icon, title, badge, accentColor, navigateTo, onNavig
   navigateTo?: string; onNavigate?: (path: string) => void;
 }) {
   return (
-    <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/8">
-      <div className="flex items-center gap-2.5">
-        <div className="p-1.5 rounded-lg" style={{ background: accentColor ? `${accentColor}20` : 'hsl(var(--primary) / 0.1)' }}>
-          <Icon className="h-4 w-4" style={{ color: accentColor || 'hsl(var(--primary))' }} />
+    <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "hsl(var(--border) / 0.07)" }}>
+      <div className="flex items-center gap-2">
+        <div className="p-1.5 rounded-lg" style={{ background: accentColor ? `${accentColor}18` : 'hsl(var(--primary) / 0.08)' }}>
+          <Icon className="h-3.5 w-3.5" style={{ color: accentColor || 'hsl(var(--primary))' }} />
         </div>
-        <span className="font-display text-sm font-semibold text-foreground tracking-tight">{title}</span>
+        <span className="font-display text-[13px] font-semibold text-foreground/80 tracking-tight">{title}</span>
       </div>
       <div className="flex items-center gap-2">
         {badge && (
-          <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary/70">
+          <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded-full bg-muted/30 text-muted-foreground/50">
             {badge}
           </span>
         )}
         {navigateTo && onNavigate && (
           <button
             onClick={() => onNavigate(navigateTo)}
-            className="flex items-center gap-1 text-[10px] font-display font-semibold px-2.5 py-1 rounded-full
-                       bg-primary/8 text-primary/70 hover:bg-primary/15 hover:text-primary
-                       border border-primary/10 hover:border-primary/20
+            className="flex items-center gap-1 text-[10px] font-display font-semibold px-2 py-1 rounded-lg
+                       bg-primary/6 text-primary/60 hover:bg-primary/12 hover:text-primary
+                       border border-primary/8 hover:border-primary/18
                        transition-all duration-150 active:scale-[0.97]"
           >
             Open <ExternalLink className="h-2.5 w-2.5" />

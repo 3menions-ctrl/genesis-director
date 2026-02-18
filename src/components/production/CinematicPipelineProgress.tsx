@@ -1,10 +1,14 @@
-import React, { useMemo, useEffect, useState, memo } from 'react';
-import { cn } from '@/lib/utils';
+/**
+ * CinematicPipelineProgress — Holographic Bubbles Edition
+ * 
+ * Iridescent soap bubbles with prismatic reflections, pop animations,
+ * and ambient floating particles that represent pipeline stage progression.
+ */
+
+import React, { useMemo, useEffect, useState, useRef, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  FileText, Users, Shield, Wand2, Film, Sparkles,
-  CheckCircle2, XCircle, Clapperboard, Zap, Play,
-} from 'lucide-react';
+import { Sparkles, XCircle, Clapperboard, Zap, Play, CheckCircle2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // ============= TYPES =============
 
@@ -42,25 +46,58 @@ interface CinematicPipelineProgressProps {
   onPlayClip?: (url: string) => void;
 }
 
-// ============= STAGE METADATA =============
+// ============= STAGE CONFIGURATIONS =============
 
 const STAGE_META: Record<string, {
-  icon: React.ElementType;
-  hue: number;
+  emoji: string;
   label: string;
+  sublabel: string;
+  colors: [string, string, string]; // [primary, secondary, tertiary] HSL
   activityTexts: string[];
 }> = {
-  'Script':   { icon: FileText, hue: 270, label: 'Crafting narrative',   activityTexts: ['Analyzing structure...', 'Breaking into shots...', 'Adding camera cues...'] },
-  'Identity': { icon: Users,    hue: 190, label: 'Locking characters',   activityTexts: ['Extracting features...', 'Mapping proportions...', 'Creating anchors...'] },
-  'Audit':    { icon: Shield,   hue: 160, label: 'Quality check',        activityTexts: ['Validating continuity...', 'Scoring coherence...', 'Checking lighting...'] },
-  'Assets':   { icon: Wand2,    hue: 35,  label: 'Generating assets',    activityTexts: ['Creating images...', 'Generating music...', 'Synthesizing voice...'] },
-  'Render':   { icon: Film,     hue: 350, label: 'Rendering video',      activityTexts: ['Processing frames...', 'Applying style...', 'Generating video...'] },
-  'Stitch':   { icon: Sparkles, hue: 240, label: 'Final assembly',       activityTexts: ['Analyzing transitions...', 'Building manifest...', 'Finalizing...'] },
+  'Script':   {
+    emoji: '📝',
+    label: 'Crafting Script',
+    sublabel: 'Narrative & structure',
+    colors: ['270 70% 65%', '240 80% 60%', '290 60% 70%'],
+    activityTexts: ['Analyzing structure...', 'Breaking into shots...', 'Adding camera cues...'],
+  },
+  'Identity': {
+    emoji: '👤',
+    label: 'Locking Characters',
+    sublabel: 'Identity anchoring',
+    colors: ['195 90% 55%', '170 80% 50%', '220 70% 60%'],
+    activityTexts: ['Extracting features...', 'Mapping proportions...', 'Creating anchors...'],
+  },
+  'Audit':    {
+    emoji: '🔍',
+    label: 'Quality Check',
+    sublabel: 'Continuity audit',
+    colors: ['160 84% 45%', '140 70% 50%', '185 80% 50%'],
+    activityTexts: ['Validating continuity...', 'Scoring coherence...', 'Checking lighting...'],
+  },
+  'Assets':   {
+    emoji: '🎨',
+    label: 'Creating Assets',
+    sublabel: 'Images, voice & music',
+    colors: ['35 100% 55%', '48 100% 60%', '20 90% 55%'],
+    activityTexts: ['Creating images...', 'Generating music...', 'Synthesizing voice...'],
+  },
+  'Render':   {
+    emoji: '🎥',
+    label: 'Rendering Video',
+    sublabel: 'Frame by frame',
+    colors: ['350 80% 60%', '330 70% 60%', '10 90% 60%'],
+    activityTexts: ['Processing frames...', 'Applying style...', 'Generating video...'],
+  },
+  'Stitch':   {
+    emoji: '✨',
+    label: 'Final Assembly',
+    sublabel: 'Merging clips',
+    colors: ['263 70% 65%', '280 60% 70%', '240 80% 65%'],
+    activityTexts: ['Analyzing transitions...', 'Building manifest...', 'Finalizing...'],
+  },
 };
-
-function hslStr(hue: number, s: number, l: number, a = 1) {
-  return `hsla(${hue}, ${s}%, ${l}%, ${a})`;
-}
 
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -68,214 +105,393 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-// ============= ACTIVITY TEXT (rotating sub-label) =============
+const generateId = () => Math.random().toString(36).slice(2, 9);
 
-const ActivityText = memo(function ActivityText({ texts }: { texts: string[] }) {
-  const [index, setIndex] = useState(0);
-  useEffect(() => {
-    const interval = setInterval(() => setIndex(i => (i + 1) % texts.length), 2800);
-    return () => clearInterval(interval);
-  }, [texts.length]);
+// ============= BUBBLE COMPONENT =============
+
+interface BubbleProps {
+  id: string;
+  size: number;
+  colors: [string, string, string];
+  emoji: string;
+  label: string;
+  sublabel?: string;
+  isMain?: boolean;
+  isPopping?: boolean;
+  delay?: number;
+  x: number; // px from center
+  y: number; // px from bottom
+  onPop?: () => void;
+}
+
+const Bubble = memo(function Bubble({
+  id, size, colors, emoji, label, sublabel, isMain, isPopping, delay = 0, x, y,
+}: BubbleProps) {
+  const [c1, c2, c3] = colors;
+
   return (
-    <motion.span
-      key={index}
-      initial={{ opacity: 0, y: 3 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -3 }}
-      className="text-[9px] font-mono block truncate"
-      style={{ color: 'hsl(var(--muted-foreground))' }}
+    <motion.div
+      key={id}
+      className="absolute flex items-center justify-center"
+      style={{
+        width: size,
+        height: size,
+        left: `50%`,
+        bottom: y,
+        marginLeft: x - size / 2,
+      }}
+      initial={{ scale: 0, opacity: 0, y: 30 }}
+      animate={isPopping ? {
+        scale: [1, 1.25, 0.1],
+        opacity: [1, 1, 0],
+      } : {
+        scale: [0, 1.08, 0.96, 1],
+        opacity: 1,
+        y: 0,
+      }}
+      exit={{ scale: 0, opacity: 0, transition: { duration: 0.3 } }}
+      transition={isPopping
+        ? { duration: 0.45, ease: [0.4, 0, 0.6, 1] }
+        : { duration: 0.7, delay, ease: [0.34, 1.56, 0.64, 1] }
+      }
     >
-      {texts[index]}
-    </motion.span>
+      {/* Pop burst particles */}
+      {isPopping && (
+        <>
+          {Array.from({ length: 10 }).map((_, pi) => {
+            const angle = (pi / 10) * Math.PI * 2;
+            const dist = size * 0.7;
+            return (
+              <motion.div
+                key={pi}
+                className="absolute rounded-full"
+                style={{
+                  width: pi % 2 === 0 ? 6 : 4,
+                  height: pi % 2 === 0 ? 6 : 4,
+                  background: `hsl(${pi % 2 === 0 ? c1 : c2})`,
+                  boxShadow: `0 0 8px hsl(${c1} / 0.8)`,
+                  top: size / 2,
+                  left: size / 2,
+                }}
+                initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+                animate={{
+                  x: Math.cos(angle) * dist,
+                  y: Math.sin(angle) * dist,
+                  opacity: 0,
+                  scale: 0,
+                }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+              />
+            );
+          })}
+        </>
+      )}
+
+      {/* Outer pulse ring (main only) */}
+      {isMain && !isPopping && (
+        <motion.div
+          className="absolute inset-0 rounded-full pointer-events-none"
+          style={{ border: `1.5px solid hsl(${c1} / 0.35)` }}
+          animate={{ scale: [1, 1.6], opacity: [0.5, 0] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeOut' }}
+        />
+      )}
+
+      {/* Second outer ring */}
+      {isMain && !isPopping && (
+        <motion.div
+          className="absolute inset-0 rounded-full pointer-events-none"
+          style={{ border: `1px solid hsl(${c2} / 0.2)` }}
+          animate={{ scale: [1, 2], opacity: [0.3, 0] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeOut', delay: 0.8 }}
+        />
+      )}
+
+      {/* Bubble shell */}
+      <div
+        className="absolute inset-0 rounded-full"
+        style={{
+          background: `
+            radial-gradient(ellipse at 32% 28%, hsl(${c1} / 0.4) 0%, transparent 55%),
+            radial-gradient(ellipse at 68% 72%, hsl(${c2} / 0.25) 0%, transparent 50%),
+            radial-gradient(ellipse at 50% 50%, hsl(${c3} / 0.12) 0%, transparent 80%),
+            radial-gradient(ellipse at 50% 50%, hsl(250 15% 6% / 0.6) 0%, transparent 100%)
+          `,
+          border: `1.5px solid hsl(${c1} / 0.45)`,
+          boxShadow: `
+            0 0 ${size * 0.35}px hsl(${c1} / 0.2),
+            0 0 ${size * 0.7}px hsl(${c2} / 0.1),
+            inset 0 0 ${size * 0.25}px hsl(${c1} / 0.12)
+          `,
+        }}
+      />
+
+      {/* Prismatic rotating shimmer */}
+      <motion.div
+        className="absolute inset-0 rounded-full overflow-hidden pointer-events-none"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
+        style={{ opacity: 0.55 }}
+      >
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: `conic-gradient(
+              from 0deg,
+              hsl(${c1} / 0.35),
+              hsl(${c2} / 0.25),
+              hsl(${c3} / 0.3),
+              transparent 40%,
+              hsl(${c1} / 0.2) 60%,
+              hsl(${c2} / 0.15),
+              hsl(${c1} / 0.35)
+            )`,
+          }}
+        />
+      </motion.div>
+
+      {/* Counter-rotating inner shimmer */}
+      <motion.div
+        className="absolute rounded-full overflow-hidden pointer-events-none"
+        style={{ inset: '15%', opacity: 0.3 }}
+        animate={{ rotate: -360 }}
+        transition={{ duration: 7, repeat: Infinity, ease: 'linear' }}
+      >
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: `conic-gradient(
+              from 90deg,
+              hsl(${c2} / 0.4),
+              transparent 40%,
+              hsl(${c3} / 0.3),
+              transparent 70%,
+              hsl(${c2} / 0.4)
+            )`,
+          }}
+        />
+      </motion.div>
+
+      {/* Primary glare highlight */}
+      <div
+        className="absolute rounded-full pointer-events-none"
+        style={{
+          width: size * 0.38,
+          height: size * 0.22,
+          top: '16%',
+          left: '20%',
+          background: 'radial-gradient(ellipse, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.2) 50%, transparent 70%)',
+          filter: 'blur(1.5px)',
+          transform: 'rotate(-35deg)',
+        }}
+      />
+      {/* Secondary micro-glare */}
+      <div
+        className="absolute rounded-full pointer-events-none"
+        style={{
+          width: size * 0.12,
+          height: size * 0.12,
+          bottom: '22%',
+          right: '20%',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.45) 0%, transparent 70%)',
+        }}
+      />
+      {/* Third accent glare */}
+      <div
+        className="absolute rounded-full pointer-events-none"
+        style={{
+          width: size * 0.07,
+          height: size * 0.07,
+          top: '30%',
+          right: '25%',
+          background: `radial-gradient(circle, hsl(${c2} / 0.7) 0%, transparent 70%)`,
+        }}
+      />
+
+      {/* Content */}
+      <div className="relative z-10 flex flex-col items-center justify-center text-center select-none" style={{ padding: size * 0.1 }}>
+        {isMain ? (
+          <>
+            <motion.span
+              style={{ fontSize: size * 0.22 }}
+              animate={!isPopping ? { scale: [1, 1.18, 1] } : {}}
+              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              {emoji}
+            </motion.span>
+            <span
+              className="font-bold leading-tight block mt-0.5"
+              style={{
+                fontSize: size * 0.085,
+                color: `hsl(${c1})`,
+                textShadow: `0 0 10px hsl(${c1} / 0.7)`,
+                maxWidth: size * 0.75,
+              }}
+            >
+              {label}
+            </span>
+            {sublabel && (
+              <span
+                className="block mt-0.5 leading-tight"
+                style={{
+                  fontSize: size * 0.065,
+                  color: `hsl(${c2} / 0.75)`,
+                  maxWidth: size * 0.75,
+                }}
+              >
+                {sublabel}
+              </span>
+            )}
+          </>
+        ) : (
+          <>
+            <span style={{ fontSize: size * 0.28 }}>{emoji}</span>
+            <span
+              className="font-bold tabular-nums block"
+              style={{
+                fontSize: size * 0.14,
+                color: `hsl(${c1})`,
+                textShadow: `0 0 8px hsl(${c1} / 0.7)`,
+              }}
+            >
+              {label}
+            </span>
+          </>
+        )}
+      </div>
+    </motion.div>
   );
 });
 
-// ============= STAGE NODE =============
+// ============= AMBIENT MICRO-BUBBLES =============
 
-function StageNode({ stage }: { stage: StageStatus }) {
-  const meta = STAGE_META[stage.shortName] || STAGE_META['Script'];
-  const Icon = meta.icon;
-  const isActive = stage.status === 'active';
-  const isComplete = stage.status === 'complete';
-  const isError = stage.status === 'error';
-  const isPending = stage.status === 'pending';
-  const hue = meta.hue;
+const AmbientBubbles = memo(function AmbientBubbles({ active }: { active: boolean }) {
+  const bubbles = useMemo(() =>
+    Array.from({ length: 18 }, (_, i) => ({
+      id: i,
+      x: 5 + (i * 5.5) % 90,
+      size: 5 + Math.random() * 14,
+      delay: Math.random() * 5,
+      duration: 6 + Math.random() * 9,
+      hue: 200 + Math.floor(Math.random() * 130),
+    })),
+  []);
+
+  if (!active) return null;
 
   return (
-    <div className="flex flex-col items-center gap-2.5 min-w-0">
-      {/* Node container */}
-      <div className="relative">
-        {/* Breathing orbital glow for active */}
-        {isActive && (
-          <>
-            <motion.div
-              className="absolute -inset-5 rounded-2xl blur-2xl"
-              style={{ background: hslStr(hue, 80, 60, 0.18) }}
-              animate={{ opacity: [0.6, 1, 0.6], scale: [0.9, 1.05, 0.9] }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <motion.div
-              className="absolute -inset-2.5 rounded-2xl border"
-              style={{ borderColor: hslStr(hue, 80, 65, 0.35) }}
-              animate={{ opacity: [0.4, 0.9, 0.4] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-            />
-          </>
-        )}
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      {bubbles.map(b => (
+        <motion.div
+          key={b.id}
+          className="absolute rounded-full"
+          style={{
+            width: b.size,
+            height: b.size,
+            left: `${b.x}%`,
+            bottom: -b.size,
+            background: `radial-gradient(circle at 35% 35%, hsl(${b.hue} 80% 70% / 0.4) 0%, transparent 70%)`,
+            border: `1px solid hsl(${b.hue} 80% 70% / 0.2)`,
+          }}
+          animate={{
+            y: [0, -(260 + Math.random() * 80)],
+            opacity: [0, 0.7, 0.5, 0],
+            scale: [0.5, 1, 0.85, 0.6],
+            x: [0, (Math.random() - 0.5) * 30],
+          }}
+          transition={{
+            duration: b.duration,
+            delay: b.delay,
+            repeat: Infinity,
+            ease: 'easeOut',
+          }}
+        />
+      ))}
+    </div>
+  );
+});
 
-        {/* Emerald halo for completed */}
-        {isComplete && (
+// ============= COMPLETED STAGES TRAIL =============
+
+const CompletedTrail = memo(function CompletedTrail({ stages }: { stages: StageStatus[] }) {
+  const completed = stages.filter(s => s.status === 'complete');
+  if (completed.length === 0) return null;
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      {completed.map((stage, i) => {
+        const meta = STAGE_META[stage.shortName];
+        const [c1] = meta?.colors ?? ['263 70% 65%', '195 90% 55%', '300 70% 65%'];
+        return (
           <motion.div
-            className="absolute -inset-1.5 rounded-xl"
-            style={{ background: 'hsl(160 80% 50% / 0.1)' }}
-            initial={{ scale: 0.8, opacity: 0 }}
+            key={stage.shortName}
+            initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5, ease: 'backOut' }}
-          />
-        )}
-
-        {/* Main node */}
-        <motion.div
-          className={cn(
-            "relative w-14 h-14 rounded-xl flex items-center justify-center border transition-colors duration-500 overflow-hidden",
-            isPending && "border-white/[0.06]",
-            isActive && "border-white/20 shadow-2xl",
-            isComplete && "border-emerald-500/25",
-            isError && "border-rose-500/25",
-          )}
-          style={{
-            background: isPending
-              ? 'hsl(0 0% 100% / 0.02)'
-              : isComplete
-                ? 'hsl(160 80% 50% / 0.1)'
-                : isError
-                  ? 'hsl(350 80% 60% / 0.1)'
-                  : `linear-gradient(135deg, ${hslStr(hue, 80, 55, 0.2)}, ${hslStr(hue + 30, 70, 45, 0.12)})`,
-            boxShadow: isActive ? `0 0 24px ${hslStr(hue, 80, 60, 0.25)}, 0 0 8px ${hslStr(hue, 80, 60, 0.15)}` : undefined,
-          }}
-          animate={isActive ? { scale: [1, 1.03, 1] } : {}}
-          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          {/* Holographic shimmer on active */}
-          {isActive && (
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: `linear-gradient(105deg, transparent 40%, ${hslStr(hue, 80, 90, 0.12)} 50%, transparent 60%)`,
-                animation: 'holo-shimmer 3s ease-in-out infinite',
-              }}
-            />
-          )}
-          {/* Glass top reflection */}
-          <div className="absolute top-0 inset-x-0 h-1/3 bg-gradient-to-b from-white/[0.05] to-transparent rounded-t-xl pointer-events-none" />
-
-          {isActive ? (
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-              className="relative z-10"
-              style={{ color: hslStr(hue, 80, 75, 1) }}
-            >
-              <Icon className="w-5 h-5" />
-            </motion.div>
-          ) : isComplete ? (
-            <motion.div
-              initial={{ scale: 0, rotate: -30 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-              className="relative z-10 text-emerald-400"
-            >
-              <CheckCircle2 className="w-5 h-5" />
-            </motion.div>
-          ) : isError ? (
-            <XCircle className="w-5 h-5 relative z-10 text-rose-400" />
-          ) : (
-            <Icon className="w-5 h-5 relative z-10 text-white/15" />
-          )}
-
-          {/* Active indicator bar at bottom */}
-          {isActive && (
-            <div className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full"
-                style={{ background: `linear-gradient(90deg, ${hslStr(hue, 80, 65, 0)}, ${hslStr(hue, 80, 70, 1)}, ${hslStr(hue, 80, 65, 0)})` }}
-                animate={{ x: ['-100%', '200%'] }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-              />
-            </div>
-          )}
-        </motion.div>
-      </div>
-
-      {/* Label */}
-      <div className="text-center min-h-[34px] px-0.5">
-        <p className={cn(
-          "text-[10px] font-bold tracking-widest uppercase transition-colors duration-300",
-          isPending && "text-white/15",
-          isActive && "text-white",
-          isComplete && "text-emerald-400/80",
-          isError && "text-rose-400/80",
-        )}>
-          {stage.shortName}
-        </p>
-        {isActive && (
-          <div className="mt-0.5 overflow-hidden">
-            <AnimatePresence mode="wait">
-              <ActivityText texts={meta.activityTexts} />
-            </AnimatePresence>
-          </div>
-        )}
-        {isComplete && (
-          <span className="text-[9px] text-emerald-500/60 font-medium">Done</span>
-        )}
-      </div>
+            transition={{ delay: i * 0.05, type: 'spring', stiffness: 400, damping: 25 }}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+            style={{
+              background: `hsl(${c1} / 0.08)`,
+              border: `1px solid hsl(${c1} / 0.25)`,
+            }}
+          >
+            <span className="text-xs">{meta?.emoji ?? '✦'}</span>
+            <span className="text-[10px] font-semibold" style={{ color: `hsl(${c1} / 0.85)` }}>
+              {stage.shortName}
+            </span>
+            <CheckCircle2 className="w-3 h-3" style={{ color: 'hsl(160 84% 45%)' }} />
+          </motion.div>
+        );
+      })}
     </div>
   );
-}
+});
 
-// ============= CONNECTING LINE =============
+// ============= CLIP PROGRESS BARS =============
 
-function ConnectorLine({ from, to }: { from: StageStatus; to: StageStatus }) {
-  const fromComplete = from.status === 'complete';
-  const toActive = to.status === 'active';
-  const toComplete = to.status === 'complete';
-  const lit = fromComplete && (toActive || toComplete);
-  const fromMeta = STAGE_META[from.shortName] || STAGE_META['Script'];
+const ClipProgressBars = memo(function ClipProgressBars({
+  clips, completedClips, totalClips,
+}: { clips: ClipData[]; completedClips: number; totalClips: number }) {
+  if (totalClips === 0) return null;
+  const displayCount = Math.min(totalClips, 12);
 
   return (
-    <div className="flex-1 flex items-center relative" style={{ marginTop: '-34px' }}>
-      {/* Base rail */}
-      <div className="w-full h-px bg-white/[0.04]" />
-      {/* Lit progress */}
-      {lit && (
-        <motion.div
-          className="absolute inset-y-0 left-0 w-full h-px"
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          style={{
-            background: toComplete
-              ? 'linear-gradient(90deg, hsl(160 80% 50% / 0.5), hsl(160 80% 55% / 0.3))'
-              : `linear-gradient(90deg, ${hslStr(fromMeta.hue, 80, 65, 0.5)}, ${hslStr(fromMeta.hue, 80, 65, 0.15)})`,
-            transformOrigin: 'left',
-          }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
-        />
-      )}
-      {/* Energy pulse dot when actively flowing */}
-      {lit && toActive && (
-        <motion.div
-          className="absolute top-0 -translate-y-1/2 w-1.5 h-1.5 rounded-full"
-          style={{
-            background: hslStr(fromMeta.hue, 90, 75, 1),
-            boxShadow: `0 0 6px ${hslStr(fromMeta.hue, 90, 70, 0.8)}`,
-          }}
-          animate={{ x: ['0%', '100%'] }}
-          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-        />
-      )}
+    <div className="flex items-end gap-1.5">
+      {Array.from({ length: displayCount }).map((_, i) => {
+        const clip = clips[i];
+        const isDone = clip?.status === 'completed' || i < completedClips;
+        const isActive = clip?.status === 'generating';
+        const isFailed = clip?.status === 'failed';
+        return (
+          <motion.div
+            key={i}
+            className="rounded-sm transition-all duration-500"
+            style={{
+              width: 7,
+              height: isDone ? 22 : isActive ? 16 : 10,
+              background: isFailed
+                ? 'hsl(0 84% 60%)'
+                : isDone
+                  ? 'hsl(160 84% 45%)'
+                  : isActive
+                    ? 'hsl(263 70% 65%)'
+                    : 'hsl(263 70% 65% / 0.18)',
+              boxShadow: isDone
+                ? '0 0 8px hsl(160 84% 45% / 0.5)'
+                : isActive
+                  ? '0 0 8px hsl(263 70% 65% / 0.5)'
+                  : 'none',
+            }}
+            animate={isActive ? { scaleY: [1, 1.3, 1] } : {}}
+            transition={{ duration: 0.8, repeat: Infinity }}
+          />
+        );
+      })}
+      <span className="text-[10px] ml-1 font-medium" style={{ color: 'hsl(240 5% 45%)' }}>
+        {completedClips}/{totalClips}
+      </span>
     </div>
   );
-}
+});
 
 // ============= MAIN COMPONENT =============
 
@@ -287,398 +503,404 @@ export function CinematicPipelineProgress({
 }: CinematicPipelineProgressProps) {
   const activeStage = stages.find(s => s.status === 'active');
   const activeMeta = activeStage ? STAGE_META[activeStage.shortName] : null;
-  const completedCount = stages.filter(s => s.status === 'complete').length;
-  const activeIndex = stages.findIndex(s => s.status === 'active');
-  const lineProgress = activeIndex >= 0
-    ? ((completedCount + 0.5) / stages.length) * 100
-    : (completedCount / stages.length) * 100;
 
-  // Status color hue
-  const statusHue = isComplete ? 160 : isError ? 350 : (activeMeta?.hue ?? 270);
+  // Bubble state
+  const [mainBubbleId, setMainBubbleId] = useState<string>(generateId());
+  const [poppingId, setPoppingId] = useState<string | null>(null);
+  const [activityTextIndex, setActivityTextIndex] = useState(0);
+  const prevStageRef = useRef('');
+  const timerRef = useRef<NodeJS.Timeout[]>([]);
+
+  // Activity text rotation
+  useEffect(() => {
+    if (!activeMeta) return;
+    const texts = activeMeta.activityTexts;
+    const interval = setInterval(() => {
+      setActivityTextIndex(i => (i + 1) % texts.length);
+    }, 2800);
+    return () => clearInterval(interval);
+  }, [activeMeta]);
+
+  // Bubble pop + respawn on stage change
+  useEffect(() => {
+    if (!activeStage || activeStage.shortName === prevStageRef.current) return;
+    prevStageRef.current = activeStage.shortName;
+    setActivityTextIndex(0);
+
+    // Pop current bubble
+    const currentId = mainBubbleId;
+    setPoppingId(currentId);
+
+    const t1 = setTimeout(() => {
+      setPoppingId(null);
+      setMainBubbleId(generateId());
+    }, 550);
+
+    timerRef.current.push(t1);
+    return () => timerRef.current.forEach(t => clearTimeout(t));
+  }, [activeStage?.shortName]);
+
+  const colors = activeMeta?.colors ?? ['263 70% 65%', '195 90% 55%', '300 70% 65%'];
+  const [c1, c2] = colors;
+  const activityText = activeMeta?.activityTexts[activityTextIndex] ?? '';
 
   return (
-    <div className={cn(
-      "relative rounded-3xl overflow-hidden",
-      "border border-white/[0.06]",
-      "shadow-2xl shadow-black/50",
-      className
-    )}
-    style={{ background: 'hsl(0 0% 4% / 0.85)', backdropFilter: 'blur(40px)' }}
+    <div
+      className={cn('relative rounded-3xl overflow-hidden border', className)}
+      style={{
+        background: 'hsl(250 15% 4% / 0.92)',
+        borderColor: activeMeta
+          ? `hsl(${c1} / 0.18)`
+          : isComplete
+            ? 'hsl(160 84% 45% / 0.2)'
+            : 'hsl(263 70% 58% / 0.12)',
+        backdropFilter: 'blur(40px)',
+        boxShadow: activeMeta
+          ? `0 0 80px hsl(${c1} / 0.06), 0 4px 40px hsl(0 0% 0% / 0.5)`
+          : '0 4px 40px hsl(0 0% 0% / 0.5)',
+      }}
     >
-      {/* Gradient border accent */}
-      <div className="absolute inset-0 rounded-3xl pointer-events-none overflow-hidden">
-        <div
-          className="absolute -inset-[1px] rounded-3xl opacity-40"
+      {/* Top edge light */}
+      <div
+        className="absolute top-0 inset-x-0 h-px pointer-events-none"
+        style={{
+          background: `linear-gradient(90deg, transparent, hsl(${c1} / 0.35), hsl(${c2} / 0.2), transparent)`,
+        }}
+      />
+
+      {/* Ambient glow from active stage color */}
+      {isRunning && activeMeta && (
+        <motion.div
+          className="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none"
           style={{
-            background: isComplete
-              ? 'linear-gradient(135deg, hsl(160 80% 50% / 0.5), transparent 45%, hsl(185 90% 50% / 0.2), transparent 70%)'
-              : isError
-                ? 'linear-gradient(135deg, hsl(350 80% 60% / 0.4), transparent 50%)'
-                : activeMeta
-                  ? `linear-gradient(135deg, ${hslStr(activeMeta.hue, 80, 60, 0.35)}, transparent 40%, ${hslStr(activeMeta.hue + 30, 70, 55, 0.15)}, transparent 70%)`
-                  : 'linear-gradient(135deg, hsl(270 80% 60% / 0.25), transparent 45%)',
+            width: 800,
+            height: 300,
+            marginTop: -150,
+            background: `radial-gradient(ellipse, hsl(${c1} / 0.09) 0%, transparent 70%)`,
+            filter: 'blur(40px)',
+          }}
+          animate={{ opacity: [0.6, 1, 0.6] }}
+          transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      )}
+
+      {/* Complete state glow */}
+      {isComplete && (
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse at 50% 0%, hsl(160 84% 45% / 0.08) 0%, transparent 60%)',
           }}
         />
-        {/* Top edge light */}
-        <div className="absolute top-0 inset-x-12 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent" />
-      </div>
-
-      {/* Ambient glow */}
-      {isRunning && !isComplete && !isError && activeMeta && (
-        <motion.div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-80 rounded-full -translate-y-2/3 pointer-events-none"
-          style={{ background: hslStr(activeMeta.hue, 80, 60, 0.07), filter: 'blur(80px)' }}
-          animate={{ opacity: [0.5, 0.9, 0.5] }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-        />
-      )}
-      {isComplete && (
-        <div className="absolute top-0 right-0 w-[500px] h-[400px] translate-x-1/4 -translate-y-1/3 pointer-events-none"
-          style={{ background: 'hsl(160 80% 50% / 0.07)', filter: 'blur(100px)', borderRadius: '50%' }} />
       )}
 
-      {/* Floating micro particles */}
-      {isRunning && !isComplete && !isError && (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {[...Array(6)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-0.5 h-0.5 rounded-full"
-              style={{
-                left: `${15 + i * 13}%`,
-                background: activeMeta ? hslStr(activeMeta.hue, 80, 75, 0.4) : 'hsl(0 0% 100% / 0.15)',
-                animation: `float-up-particle ${5 + i * 0.8}s ease-in-out infinite`,
-                animationDelay: `${i * 0.5}s`,
-              }}
-            />
-          ))}
-        </div>
-      )}
+      {/* Ambient floating micro-bubbles */}
+      <AmbientBubbles active={!!(isRunning && !isComplete && !isError)} />
+
+      {/* Subtle grid */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.025]"
+        style={{
+          backgroundImage: `linear-gradient(hsl(263 70% 65%) 1px, transparent 1px), linear-gradient(90deg, hsl(263 70% 65%) 1px, transparent 1px)`,
+          backgroundSize: '48px 48px',
+        }}
+      />
 
       <div className="relative p-6 md:p-8">
         {/* ── Header ── */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            {/* Icon badge */}
-            <motion.div
-              className="w-13 h-13 rounded-2xl flex items-center justify-center border relative overflow-hidden"
-              style={{
-                width: 52, height: 52,
-                background: isComplete
-                  ? 'linear-gradient(135deg, hsl(160 80% 50% / 0.2), hsl(185 90% 50% / 0.1))'
-                  : isError
-                    ? 'hsl(350 80% 60% / 0.15)'
-                    : 'hsl(0 0% 100% / 0.03)',
-                borderColor: isComplete ? 'hsl(160 80% 50% / 0.3)' : isError ? 'hsl(350 80% 60% / 0.3)' : 'hsl(0 0% 100% / 0.07)',
-              }}
-              animate={isRunning && !isComplete && !isError ? { scale: [1, 1.04, 1] } : {}}
-              transition={{ duration: 3, repeat: Infinity }}
-            >
-              {isComplete ? (
-                <motion.div animate={{ rotate: [0, 8, -8, 0] }} transition={{ duration: 4, repeat: Infinity }}>
-                  <Sparkles className="w-6 h-6 text-emerald-400" />
-                </motion.div>
-              ) : isError ? (
-                <XCircle className="w-6 h-6 text-rose-400" />
-              ) : isRunning ? (
-                <Zap className="w-6 h-6 text-white/50" />
-              ) : (
-                <Clapperboard className="w-6 h-6 text-white/30" />
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <div className="flex items-center gap-4 min-w-0">
+            {/* Icon orb */}
+            <div className="relative shrink-0">
+              {/* Pulse ring around orb */}
+              {isRunning && !isComplete && !isError && (
+                <motion.div
+                  className="absolute -inset-2 rounded-full"
+                  style={{ border: `1px solid hsl(${c1} / 0.3)` }}
+                  animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
+                />
               )}
-              <div className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-white/[0.06] to-transparent rounded-t-2xl" />
-            </motion.div>
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center relative overflow-hidden"
+                style={{
+                  background: isComplete
+                    ? 'linear-gradient(135deg, hsl(160 84% 45% / 0.2), hsl(185 90% 50% / 0.1))'
+                    : isError
+                      ? 'hsl(0 84% 60% / 0.15)'
+                      : activeMeta
+                        ? `linear-gradient(135deg, hsl(${c1} / 0.2), hsl(${c2} / 0.1))`
+                        : 'hsl(263 70% 58% / 0.08)',
+                  border: `1px solid hsl(${isComplete ? '160 84% 45%' : isError ? '0 84% 60%' : c1} / 0.25)`,
+                  boxShadow: activeMeta ? `0 0 20px hsl(${c1} / 0.15)` : 'none',
+                }}
+              >
+                {isComplete ? (
+                  <Sparkles className="w-5 h-5 text-emerald-400" />
+                ) : isError ? (
+                  <XCircle className="w-5 h-5 text-rose-400" />
+                ) : isRunning ? (
+                  <motion.span
+                    style={{ fontSize: 20 }}
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    {activeMeta?.emoji ?? '⚡'}
+                  </motion.span>
+                ) : (
+                  <Clapperboard className="w-5 h-5" style={{ color: 'hsl(263 70% 65% / 0.4)' }} />
+                )}
+                <div className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-white/[0.06] to-transparent rounded-t-2xl" />
+              </div>
+            </div>
 
-            <div>
-              <h2 className="text-lg font-bold text-white tracking-tight leading-tight">
+            <div className="min-w-0">
+              <h2 className="text-base font-bold tracking-tight leading-tight" style={{ color: 'hsl(240 5% 92%)' }}>
                 {projectTitle || 'Production Pipeline'}
               </h2>
-              <p className="text-[11px] mt-0.5 max-w-xs truncate" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                {isComplete
-                  ? '✦ Your cinematic masterpiece is ready'
-                  : isError
-                    ? (lastError?.slice(0, 80) || 'Production failed')
-                    : activeMeta
-                      ? activeMeta.label
-                      : 'Initializing pipeline...'}
-              </p>
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={activityText}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-[11px] mt-0.5 truncate"
+                  style={{ color: 'hsl(240 5% 50%)' }}
+                >
+                  {isComplete
+                    ? '✦ Your cinematic masterpiece is ready'
+                    : isError
+                      ? (lastError?.slice(0, 80) || 'Production failed')
+                      : activityText || (activeMeta ? activeMeta.label : 'Initializing...')}
+                </motion.p>
+              </AnimatePresence>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Cancel button */}
+          {/* Action buttons + Live badge */}
+          <div className="flex items-center gap-2 shrink-0">
             {onCancel && isRunning && !isComplete && (
               <button
                 onClick={onCancel}
                 disabled={isCancelling}
-                className="px-4 py-2 rounded-xl text-xs font-medium transition-all bg-white/[0.03] border border-white/[0.06] text-white/40 hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-400 disabled:opacity-40"
+                className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all disabled:opacity-40"
+                style={{
+                  background: 'hsl(0 84% 60% / 0.08)',
+                  border: '1px solid hsl(0 84% 60% / 0.2)',
+                  color: 'hsl(0 84% 60%)',
+                }}
               >
                 {isCancelling ? 'Cancelling...' : 'Cancel'}
               </button>
             )}
-
-            {/* Resume button */}
             {onResume && isError && (
               <button
                 onClick={onResume}
                 disabled={isResuming}
-                className="px-5 py-2 rounded-xl text-xs font-bold text-white transition-all disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, hsl(270 80% 60%), hsl(240 80% 55%))', boxShadow: '0 4px 20px hsl(270 80% 60% / 0.3)' }}
+                className="px-4 py-1.5 rounded-xl text-xs font-bold text-white transition-all disabled:opacity-50"
+                style={{
+                  background: 'linear-gradient(135deg, hsl(263 70% 55%), hsl(280 60% 60%))',
+                  boxShadow: '0 4px 20px hsl(263 70% 55% / 0.3)',
+                }}
               >
                 {isResuming ? 'Resuming...' : 'Resume'}
               </button>
             )}
-
-            {/* Live badge */}
             {isRunning && !isComplete && !isError && (
-              <div className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/[0.03] border border-white/[0.06]">
-                <div className="relative w-2 h-2">
-                  <div className="absolute inset-0 rounded-full bg-emerald-400" />
-                  <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping" />
-                </div>
-                <span className="text-[9px] font-black text-emerald-400/80 uppercase tracking-[0.25em]">Live</span>
+              <div
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+                style={{ background: 'hsl(160 84% 45% / 0.06)', border: '1px solid hsl(160 84% 45% / 0.15)' }}
+              >
+                <motion.div
+                  className="w-1.5 h-1.5 rounded-full bg-emerald-400"
+                  animate={{ opacity: [1, 0.3, 1] }}
+                  transition={{ duration: 1.2, repeat: Infinity }}
+                />
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-400/80">Live</span>
               </div>
             )}
-
-            {/* Timer + progress ring */}
-            <div className="flex items-center gap-4">
-              <p className="text-2xl font-mono font-black tabular-nums tracking-tighter hidden sm:block"
-                style={{ color: 'hsl(0 0% 100% / 0.8)' }}>
-                {formatTime(elapsedTime)}
-              </p>
-
-              {/* Holographic SVG ring */}
-              <div className="relative" style={{ width: 70, height: 70 }}>
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 70 70">
-                  <defs>
-                    <linearGradient id="cpRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      {isComplete ? (
-                        <>
-                          <stop offset="0%" stopColor="hsl(160 80% 50%)" />
-                          <stop offset="100%" stopColor="hsl(185 90% 55%)" />
-                        </>
-                      ) : isError ? (
-                        <>
-                          <stop offset="0%" stopColor="hsl(350 80% 60%)" />
-                          <stop offset="100%" stopColor="hsl(340 75% 55%)" />
-                        </>
-                      ) : (
-                        <>
-                          <stop offset="0%" stopColor={hslStr(statusHue, 80, 65, 1)} />
-                          <stop offset="100%" stopColor={hslStr(statusHue + 30, 75, 55, 1)} />
-                        </>
-                      )}
-                    </linearGradient>
-                    <filter id="cpRingGlow">
-                      <feGaussianBlur stdDeviation="2" result="blur" />
-                      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                    </filter>
-                  </defs>
-                  {/* Track */}
-                  <circle cx="35" cy="35" r="29" fill="none" stroke="hsl(0 0% 100% / 0.04)" strokeWidth="3" />
-                  {/* Progress arc */}
-                  <circle
-                    cx="35" cy="35" r="29" fill="none"
-                    stroke="url(#cpRingGrad)"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                    strokeDasharray={2 * Math.PI * 29}
-                    strokeDashoffset={2 * Math.PI * 29 * (1 - Math.min(progress, 100) / 100)}
-                    className="transition-all duration-700 ease-out"
-                    filter="url(#cpRingGlow)"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className={cn("text-sm font-black tabular-nums",
-                    isComplete ? "text-emerald-400" : isError ? "text-rose-400" : "text-white")}>
-                    {Math.round(progress)}%
-                  </span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
         {/* ── Progress bar ── */}
-        <div className="relative h-1.5 rounded-full overflow-hidden mb-10" style={{ background: 'hsl(0 0% 100% / 0.03)' }}>
-          {/* Glow blur underneath */}
-          <div
-            className="absolute -inset-y-2 left-0 rounded-full blur-md opacity-50 transition-all duration-700 ease-out"
-            style={{
-              width: `${Math.min(lineProgress, 100)}%`,
-              background: isComplete ? 'hsl(160 80% 50%)' : isError ? 'hsl(350 80% 60%)' : hslStr(statusHue, 80, 60, 1),
-            }}
-          />
-          <div
-            className="relative h-full rounded-full transition-all duration-700 ease-out"
-            style={{
-              width: `${Math.min(lineProgress, 100)}%`,
-              background: isComplete
-                ? 'linear-gradient(90deg, hsl(160 80% 50%), hsl(185 90% 55%), hsl(195 90% 55%))'
-                : isError
-                  ? 'linear-gradient(90deg, hsl(350 80% 60%), hsl(340 75% 55%))'
-                  : `linear-gradient(90deg, ${hslStr(statusHue, 80, 65, 1)}, ${hslStr(statusHue + 20, 75, 55, 1)})`,
-            }}
-          />
-          {/* Shimmer sweep */}
-          {isRunning && !isComplete && !isError && (
-            <div
-              className="absolute inset-y-0 left-0"
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-medium" style={{ color: 'hsl(240 5% 40%)' }}>
+              {Math.round(progress)}% complete
+            </span>
+            <span className="text-[10px] tabular-nums font-medium" style={{ color: 'hsl(240 5% 40%)' }}>
+              {formatTime(elapsedTime)}
+            </span>
+          </div>
+          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'hsl(250 15% 10%)' }}>
+            <motion.div
+              className="h-full rounded-full"
               style={{
-                width: `${Math.min(lineProgress, 100)}%`,
-                background: 'linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.25), transparent)',
-                animation: 'shimmer-sweep 2.5s ease-in-out infinite',
+                background: isComplete
+                  ? 'linear-gradient(90deg, hsl(160 84% 45%), hsl(185 90% 50%))'
+                  : isError
+                    ? 'hsl(0 84% 60%)'
+                    : activeMeta
+                      ? `linear-gradient(90deg, hsl(${c1}), hsl(${c2}))`
+                      : 'linear-gradient(90deg, hsl(263 70% 58%), hsl(195 90% 50%))',
+                boxShadow: activeMeta ? `0 0 12px hsl(${c1} / 0.5)` : 'none',
               }}
+              initial={{ width: 0 }}
+              animate={{ width: `${isComplete ? 100 : progress}%` }}
+              transition={{ duration: 0.6, ease: 'easeOut' }}
             />
+          </div>
+          {/* Shimmer sweep */}
+          {isRunning && !isComplete && (
+            <div className="relative -mt-1.5 h-1.5 overflow-hidden rounded-full pointer-events-none">
+              <motion.div
+                className="absolute inset-0"
+                style={{ background: 'linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.25), transparent)' }}
+                animate={{ x: ['-100%', '200%'] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: 'linear', repeatDelay: 1 }}
+              />
+            </div>
           )}
         </div>
 
-        {/* ── Desktop: Stage nodes with connectors ── */}
-        <div className="hidden md:block">
-          <div className="flex items-start">
-            {stages.map((stage, index) => (
-              <React.Fragment key={stage.name}>
-                <StageNode stage={stage} />
-                {index < stages.length - 1 && (
-                  <ConnectorLine from={stage} to={stages[index + 1]} />
-                )}
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
+        {/* ── Holographic Bubble Stage Visualization ── */}
+        {isRunning && !isComplete && !isError && activeMeta && (
+          <div
+            className="relative rounded-2xl overflow-hidden mb-6"
+            style={{
+              height: 200,
+              background: `linear-gradient(to top, hsl(250 15% 3% / 0.9), hsl(250 15% 6% / 0.6))`,
+              border: `1px solid hsl(${c1} / 0.1)`,
+            }}
+          >
+            {/* Inner ambient glow at bottom */}
+            <div
+              className="absolute bottom-0 left-1/2 -translate-x-1/2 pointer-events-none"
+              style={{
+                width: '80%',
+                height: 100,
+                background: `radial-gradient(ellipse, hsl(${c1} / 0.15) 0%, transparent 70%)`,
+                filter: 'blur(20px)',
+              }}
+            />
 
-        {/* ── Clips detail row (shown when clip data is available) ── */}
-        {totalClips > 0 && (
-          <div className="mt-8 pt-6 border-t border-white/[0.04]">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: 'hsl(0 0% 100% / 0.25)' }}>
-                Video Clips
-              </span>
-              <span className="text-[10px] font-mono" style={{ color: 'hsl(0 0% 100% / 0.3)' }}>
-                {completedClips}/{totalClips} rendered
-              </span>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              {clips.map((clip) => {
-                const clipCompleted = clip.status === 'completed';
-                const clipGenerating = clip.status === 'generating';
-                const clipFailed = clip.status === 'failed';
-                const clipPending = clip.status === 'pending';
-                return (
-                  <button
-                    key={clip.index}
-                    disabled={!clipCompleted || !clip.videoUrl}
-                    onClick={() => clipCompleted && clip.videoUrl && onPlayClip?.(clip.videoUrl)}
-                    className={cn(
-                      "relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border",
-                      clipCompleted && clip.videoUrl && "cursor-pointer hover:scale-105",
-                      clipCompleted ? "border-emerald-500/20" : clipFailed ? "border-rose-500/20" : clipGenerating ? "border-violet-500/20" : "border-white/[0.05]",
-                    )}
-                    style={{
-                      background: clipCompleted
-                        ? 'hsl(160 80% 50% / 0.08)'
-                        : clipFailed
-                          ? 'hsl(350 80% 60% / 0.08)'
-                          : clipGenerating
-                            ? 'hsl(270 80% 60% / 0.08)'
-                            : 'hsl(0 0% 100% / 0.02)',
-                      color: clipCompleted
-                        ? 'hsl(160 75% 65%)'
-                        : clipFailed
-                          ? 'hsl(350 80% 65%)'
-                          : clipGenerating
-                            ? 'hsl(270 80% 70%)'
-                            : 'hsl(0 0% 100% / 0.2)',
-                    }}
-                  >
-                    {clipGenerating && (
-                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}>
-                        <Film className="w-3 h-3" />
-                      </motion.div>
-                    )}
-                    {clipCompleted && <Play className="w-3 h-3" />}
-                    {clipFailed && <XCircle className="w-3 h-3" />}
-                    {clipPending && <Film className="w-3 h-3 opacity-30" />}
-                    Clip {clip.index + 1}
-                  </button>
-                );
-              })}
-            </div>
+            {/* Main stage bubble */}
+            <AnimatePresence>
+              <Bubble
+                key={mainBubbleId}
+                id={mainBubbleId}
+                size={130}
+                colors={colors}
+                emoji={activeMeta.emoji}
+                label={activeMeta.label}
+                sublabel={activeMeta.sublabel}
+                isMain
+                isPopping={poppingId === mainBubbleId}
+                x={0}
+                y={30}
+              />
+            </AnimatePresence>
+
+            {/* Satellite bubble: progress % */}
+            <Bubble
+              id="progress-sat"
+              size={72}
+              colors={['195 90% 55%', '220 80% 60%', '170 80% 50%']}
+              emoji="📊"
+              label={`${Math.round(progress)}%`}
+              x={-130}
+              y={55}
+              delay={0.2}
+            />
+
+            {/* Satellite bubble: time */}
+            <Bubble
+              id="time-sat"
+              size={66}
+              colors={['48 100% 60%', '35 100% 55%', '55 90% 60%']}
+              emoji="⏱"
+              label={formatTime(elapsedTime)}
+              x={130}
+              y={60}
+              delay={0.35}
+            />
+
+            {/* Clip count bubble if in render stage */}
+            {totalClips > 0 && (
+              <Bubble
+                id="clip-sat"
+                size={60}
+                colors={['263 70% 65%', '280 60% 70%', '240 80% 65%']}
+                emoji="🎬"
+                label={`${completedClips}/${totalClips}`}
+                x={0}
+                y={150}
+                delay={0.5}
+              />
+            )}
           </div>
         )}
 
-        {/* ── Mobile: Compact vertical list ── */}
-        <div className="md:hidden space-y-1.5">
-          {stages.map((stage) => {
-            const meta = STAGE_META[stage.shortName] || STAGE_META['Script'];
-            const Icon = meta.icon;
-            const isActive = stage.status === 'active';
-            const isComp = stage.status === 'complete';
-            const isErr = stage.status === 'error';
-            const isPend = stage.status === 'pending';
-            return (
-              <div
-                key={stage.name}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 border",
-                  isActive ? "border-white/[0.08] shadow-lg" : "border-transparent",
-                  isPend && "opacity-25",
-                )}
-                style={isActive ? { background: `hsl(0 0% 100% / 0.03)` } : {}}
-              >
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center border text-sm flex-shrink-0"
-                  style={{
-                    background: isPend ? 'hsl(0 0% 100% / 0.02)' : isComp ? 'hsl(160 80% 50% / 0.12)' : isErr ? 'hsl(350 80% 60% / 0.12)' : `hsl(${meta.hue} 80% 60% / 0.15)`,
-                    borderColor: isPend ? 'hsl(0 0% 100% / 0.05)' : isComp ? 'hsl(160 80% 50% / 0.25)' : isErr ? 'hsl(350 80% 60% / 0.25)' : `hsl(${meta.hue} 80% 65% / 0.25)`,
-                    color: isPend ? 'hsl(0 0% 100% / 0.15)' : isComp ? 'hsl(160 80% 60%)' : isErr ? 'hsl(350 80% 65%)' : `hsl(${meta.hue} 80% 70%)`,
-                  }}
-                >
-                  {isActive ? (
-                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}>
-                      <Icon className="w-4 h-4" />
-                    </motion.div>
-                  ) : isComp ? (
-                    <CheckCircle2 className="w-4 h-4" />
-                  ) : isErr ? (
-                    <XCircle className="w-4 h-4" />
-                  ) : (
-                    <Icon className="w-4 h-4" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className={cn(
-                    "text-xs font-semibold block",
-                    isPend ? "text-white/25" : isComp ? "text-emerald-400/80" : isErr ? "text-rose-400/80" : "text-white",
-                  )}>
-                    {stage.shortName}
-                  </span>
-                  {isActive && (
-                    <span className="text-[9px] font-mono" style={{ color: `hsl(${meta.hue} 80% 65% / 0.7)` }}>
-                      {meta.activityTexts[0]}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+        {/* ── Completed stages trail ── */}
+        {stages.some(s => s.status === 'complete') && (
+          <div className="mb-4">
+            <p className="text-[9px] uppercase tracking-widest font-bold mb-2" style={{ color: 'hsl(240 5% 35%)' }}>
+              Completed stages
+            </p>
+            <CompletedTrail stages={stages} />
+          </div>
+        )}
 
-      {/* CSS keyframes */}
-      <style>{`
-        @keyframes holo-shimmer {
-          0%, 100% { transform: translateX(-100%); }
-          50% { transform: translateX(200%); }
-        }
-        @keyframes shimmer-sweep {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(200%); }
-        }
-        @keyframes float-up-particle {
-          0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; }
-          50% { transform: translateY(-100px) scale(1.8); opacity: 0; }
-        }
-      `}</style>
+        {/* ── Clip progress bars (render stage) ── */}
+        {totalClips > 0 && isRunning && !isComplete && (
+          <div className="mt-4">
+            <p className="text-[9px] uppercase tracking-widest font-bold mb-2" style={{ color: 'hsl(240 5% 35%)' }}>
+              Clips rendering
+            </p>
+            <ClipProgressBars clips={clips} completedClips={completedClips} totalClips={totalClips} />
+          </div>
+        )}
+
+        {/* ── Completed state ── */}
+        {isComplete && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, ease: 'backOut' }}
+            className="flex flex-col items-center justify-center py-8 text-center"
+          >
+            <motion.div
+              className="text-5xl mb-4"
+              animate={{ scale: [1, 1.15, 1], rotate: [0, 5, -5, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              🎉
+            </motion.div>
+            <h3 className="text-xl font-bold mb-1" style={{ color: 'hsl(160 84% 55%)' }}>
+              Your video is ready!
+            </h3>
+            <p className="text-sm" style={{ color: 'hsl(240 5% 50%)' }}>
+              Cinematic masterpiece complete ✦
+            </p>
+          </motion.div>
+        )}
+
+        {/* ── Error state ── */}
+        {isError && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-4 p-4 rounded-xl"
+            style={{ background: 'hsl(0 84% 60% / 0.08)', border: '1px solid hsl(0 84% 60% / 0.2)' }}
+          >
+            <p className="text-sm font-medium mb-1" style={{ color: 'hsl(0 84% 65%)' }}>Production failed</p>
+            {lastError && (
+              <p className="text-xs" style={{ color: 'hsl(0 84% 60% / 0.7)' }}>{lastError.slice(0, 160)}</p>
+            )}
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 }

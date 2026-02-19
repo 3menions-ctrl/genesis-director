@@ -325,18 +325,23 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
                   console.log('[UniversalHLS] Media error, attempting recovery...');
                   hls.recoverMediaError();
                 } else {
-                  // Recovery failed - call onError so parent can fall back to MSE
+                  // Recovery failed - DON'T setError (avoids flash of error UI)
+                  // call onError so parent silently falls back to MSE clip-by-clip playback
                   const errMsg = 'Media failed to load';
-                  console.warn('[UniversalHLS] Media recovery failed, triggering fallback');
-                  setError(errMsg);
+                  console.warn('[UniversalHLS] Media recovery failed, triggering MSE fallback');
                   onErrorRef.current?.(errMsg);
                 }
                 break;
-              default:
+              default: {
+                // For other fatal errors, show error only if parent has no onError handler
                 const errMsg = 'Fatal playback error';
-                setError(errMsg);
-                onErrorRef.current?.(errMsg);
+                if (onErrorRef.current) {
+                  onErrorRef.current(errMsg);
+                } else {
+                  setError(errMsg);
+                }
                 break;
+              }
             }
           }
         });

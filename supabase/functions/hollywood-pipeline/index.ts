@@ -6533,6 +6533,21 @@ serve(async (req) => {
     // Create or use project
     let projectId = request.projectId;
     
+    // Map free-form genre strings to valid DB enum values
+    const GENRE_ENUM_MAP: Record<string, string> = {
+      'action': 'cinematic', 'adventure': 'cinematic', 'drama': 'cinematic',
+      'thriller': 'cinematic', 'horror': 'cinematic', 'scifi': 'cinematic',
+      'sci-fi': 'cinematic', 'fantasy': 'cinematic', 'superhero': 'cinematic',
+      'romance': 'storytelling', 'comedy': 'funny', 'commercial': 'ad',
+      'doc': 'documentary', 'tutorial': 'educational', 'explainer': 'explainer',
+      'vlog': 'vlog', 'motivation': 'motivational', 'spiritual': 'religious',
+    };
+    const rawGenre = (request.genre || 'cinematic').toLowerCase();
+    const mappedGenre = GENRE_ENUM_MAP[rawGenre] || (
+      ['ad','cinematic','documentary','educational','explainer','funny','motivational','religious','storytelling','vlog'].includes(rawGenre) 
+        ? rawGenre : 'cinematic'
+    );
+    
     if (!projectId) {
       const projectTitle = request.projectName?.trim() || `Project ${new Date().toLocaleString()}`;
       const { data: project, error: projectError } = await supabase
@@ -6541,7 +6556,7 @@ serve(async (req) => {
           title: projectTitle,
           user_id: request.userId,
           status: 'generating',
-          genre: request.genre || 'cinematic',
+          genre: mappedGenre,
           mood: request.mood,
           story_structure: 'episodic',
           aspect_ratio: request.aspectRatio || '16:9',

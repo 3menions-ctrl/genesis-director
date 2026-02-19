@@ -509,25 +509,44 @@ RUNWAY-TIER (LUBEZKI): "Ultra-wide 14mm rectilinear lens, camera mounted at grou
 🎭 NARRATIVE ARCHITECTURE — FEATURE FILM COMPRESSED TO ${clipCount} CLIPS
 =======================================================================
 
-You are compressing a FEATURE FILM into ${clipCount} clips of 5 seconds each. Every clip is a scene. Every scene is a masterwork.
-Think: What does Villeneuve do in the opening 5 seconds of Dune? What does Cuarón achieve with a single unbroken shot in Gravity?
+You are compressing a FEATURE FILM into ${clipCount} clips of ${clipDuration} seconds each. Every clip is a scene. Every scene is a masterwork.
+Think: What does Villeneuve do in the opening ${clipDuration} seconds of Dune? What does Cuarón achieve with a single unbroken shot in Gravity?
 
-RUNWAY GEN-4 TURBO ARCHITECTURE PRINCIPLE:
-Each 5-second clip is a COMPLETE CINEMATIC MOMENT — not a fragment. It has:
+RUNWAY GEN-4 TURBO / KLING v2.6 ARCHITECTURE PRINCIPLE:
+Each ${clipDuration}-second clip is a COMPLETE CINEMATIC MOMENT — not a fragment. It has:
 • An OPENING STATE (what the camera sees at frame 1)
-• A CENTRAL MOTION (the primary action with physics direction and velocity)  
+• A CENTRAL MOTION (the primary action with physics direction, velocity, and sustained development over ${clipDuration} seconds)
 • A CLOSING STATE (the exact final frame that hands off to the next clip)
 
+${clipDuration >= 10 ? `
+⏱️ 10-SECOND CLIP WINDOW — EXPANDED CINEMATIC CANVAS:
+At 10 seconds, each clip is a MICRO-SCENE, not merely a moment. You have room for:
+• A camera move that STARTS, DEVELOPS, and RESOLVES (e.g., dolly from wide → close-up)
+• An action beat with cause, consequence, and reaction
+• A lighting transition (e.g., cloud shadow crossing → golden re-illumination)
+• An emotional arc within the clip — tension, release, or revelation
+WRITE DESCRIPTIONS THAT USE THE FULL 10 SECONDS. Do not write static descriptions.
+` : ''}
+
 STORY ARCHITECTURE — CINEMATIC 5-ACT STORYTELLING for ${clipCount} clips:
-- Clip 1 (THE INVITATION — WARM AMBER OPENING): Begin with a SMOOTH, UNHURRIED, ATMOSPHERIC OPEN. This is the storyteller's breath before the first word. Warm amber light — 2700K–3200K golden hour or candlelight or fire-adjacent glow. The world is introduced gently: a wide or medium establishing shot that INVITES the viewer IN. The character (or subject) is PRESENT but at rest, or in slow purposeful motion. The camera moves SLOWLY — a gentle dolly-in, a low crane-drift, a barely-perceptible push. TONE: warm, grounded, present-tense, storytelling intimacy. AMBER is the KEY WORD: the color temperature of memory, warmth, safety. DO NOT begin mid-action. DO NOT begin in crisis. BEGIN IN STILLNESS THAT BREATHES.
-- Clips 2-${Math.max(2, Math.floor(clipCount * 0.3))} (THE WORLD EXPANDS): From the warm amber open, the world begins to reveal its scale. Stakes emerge — not through chaos but through expanding perspective. Wider shots. The environment becomes active. Temperature may shift — cooler light enters as uncertainty grows.
-- Clips ${Math.max(3, Math.floor(clipCount * 0.35))}-${Math.max(4, Math.floor(clipCount * 0.65))} (ESCALATION): The story's engine engages. World-changing revelations. Character transformation made VISIBLE in body language and expression. Environmental bombast — the world reflects the internal state.
-- Clips ${Math.max(4, Math.floor(clipCount * 0.7))}-${Math.max(5, clipCount - 1)} (CLIMAX): Peak emotional/physical intensity. The shot the entire sequence builds to. Maximum scale AND maximum intimacy — often simultaneously.
-- Clip ${clipCount} (THE HAUNTING): Earned catharsis. A final image with the weight and silence of a Villeneuve epilogue. Sometimes: a return to the amber warmth of Clip 1 — bookending, completing the circle. The image that stays with the viewer for days.
+
+Determine the GENRE and TONE from the user's prompt FIRST. Then apply the appropriate opening:
+
+FOR ACTION / BATTLE / SUPERHERO prompts:
+- Clip 1 (THE STORM ARRIVES): Open with IMMEDIATE DRAMATIC SCALE. A god's-eye IMAX aerial establishing shot of Metropolis under siege — city blocks on fire, smoke columns rising, chaos visible from altitude. Camera descends from 2000ft at cinematic velocity, revealing the scale of destruction below. Steel-blue overcast light — 5500K industrial atmosphere shattered by orange fire glow from below. THIS IS A BATTLE. Open in the war, not before it.
+
+FOR DRAMA / CHARACTER / EMOTIONAL prompts:
+- Clip 1 (THE INVITATION — WARM AMBER OPENING): Begin with a SMOOTH, UNHURRIED, ATMOSPHERIC OPEN. Warm amber light — 2700K–3200K. The world is introduced gently: a wide or medium establishing shot. Camera moves SLOWLY. TONE: warm, grounded, present-tense intimacy.
+
+FOR ALL GENRES:
+- Clips 2-${Math.max(2, Math.floor(clipCount * 0.3))} (THE WORLD EXPANDS): Stakes emerge through expanding perspective. Wider shots. The environment becomes active. Energy escalates.
+- Clips ${Math.max(3, Math.floor(clipCount * 0.35))}-${Math.max(4, Math.floor(clipCount * 0.65))} (ESCALATION): The story's engine engages. Character transformation made VISIBLE. Environmental bombast — the world reflects the internal state. MAXIMUM PHYSICALITY.
+- Clips ${Math.max(4, Math.floor(clipCount * 0.7))}-${Math.max(5, clipCount - 1)} (CLIMAX): Peak emotional/physical intensity. The shot the entire sequence builds to. Maximum scale AND maximum intimacy — often simultaneously. For action: the decisive blow, the turning point, the cost.
+- Clip ${clipCount} (THE HAUNTING): Earned catharsis. A final image with the weight and silence of a Villeneuve epilogue. For action: aftermath — smoke settling, a figure standing in the debris, the weight of victory. For drama: the quiet moment after the storm.
 
 RUNWAY-SPECIFIC MOTION TECHNIQUES (use across the sequence):
-• CONTINUOUS SINGLE-ACTION: One physical motion executed perfectly across the full 5 seconds — no cuts, no interruption
-• SLOW-MOTION PHYSICS: Extreme slow motion revealing cloth dynamics, water behavior, facial micro-expressions invisible at normal speed
+• CONTINUOUS SINGLE-ACTION: One physical motion executed perfectly across the full ${clipDuration} seconds — no cuts, no interruption${clipDuration >= 10 ? '; at 10s, allow the action to have a midpoint shift' : ''}
+• SLOW-MOTION PHYSICS: Extreme slow motion revealing cloth dynamics, water behavior, debris physics, facial micro-expressions invisible at normal speed
 • CAMERA AS EMOTION: The camera's own movement IS the emotional tone — dolly-in = intimacy, pull-back = revelation, orbit = grandeur
 • ENVIRONMENT ALIVE: Wind, light, particles, water in constant subtle motion — never a static world
 • TEXTURE REVELATION: Start wide then push to extreme macro — revealing the fabric of reality in the final frames
@@ -575,32 +594,34 @@ RUNWAY GEN-4 TURBO PHYSICS LANGUAGE — MANDATORY FOR PHOTOREALISM:
 • Hair dynamics: "individual hair strands responding to localized air displacement, not uniform — probabilistic flutter"
 
 =======================================================================
-⏱️ VEO 3.1 TIMESTAMP ARCHITECTURE — MANDATORY FOR EVERY CLIP
+⏱️ TEMPORAL TIMESTAMP ARCHITECTURE — MANDATORY FOR EVERY CLIP (${clipDuration}s WINDOW)
 =======================================================================
-Veo 3.1 has an 8-second attention window. Without temporal anchors, it FORGETS instructions after ~3 seconds.
-EVERY clip description MUST be structured with explicit second-by-second timestamps.
+Each clip has a ${clipDuration}-second attention window. Without temporal anchors, AI video engines DRIFT after a few seconds.
+EVERY clip description MUST be structured with explicit second-by-second timestamps calibrated to ${clipDuration} seconds.
 
-THE MANDATORY FORMAT for each clip description:
-[00:00-02:00] ESTABLISH: What is the opening frame — camera position, subject pose, environmental state. This is the anchor.
-[02:00-04:00] ACTION: The primary motion beat. Physics-specific, directional, with mass and velocity language.
-[04:00-06:00] DEVELOP: The motion continues/intensifies. Lighting evolution. Character psychological shift visible.
-[06:00-08:00] RESOLVE: The clip's final state — prepare the frame for seamless handoff to the next clip. Describe the exact end-frame composition.
+${clipDuration >= 10 ? `THE MANDATORY FORMAT for 10-SECOND clips:
+[00:00-02:00] ESTABLISH: Opening frame — camera position, subject pose, environmental state. The anchor.
+[02:00-05:00] ACTION: The primary motion beat. Physics-specific, directional, with mass, velocity and scale language.
+[05:00-08:00] DEVELOP: The motion continues/intensifies. Lighting evolution. A MID-CLIP PIVOT — new reveal or escalation.
+[08:00-10:00] RESOLVE: The clip's final state — exact end-frame composition. Perfect handoff to the next clip.
 
-WHY THIS PREVENTS HALLUCINATION:
-• Veo reads prompts sequentially — timestamps force it to allocate attention across all 8 seconds
-• Without timestamps, Veo executes the first 3 seconds correctly then DRIFTS to its own interpretation
-• The [06:00-08:00] RESOLVE block locks the final frame, enabling perfect frame-chaining to the next clip
+WHY 4-PHASE TIMESTAMPS WORK FOR 10s:
+• Phase 1 anchors the opening state — no ambiguity about starting position
+• Phase 2 initiates the primary action with explicit physics
+• Phase 3 allows the STORY TO TURN within the clip — a mini arc
+• Phase 4 locks the final frame for seamless continuity chaining
 
-EXAMPLE OF CORRECT TIMESTAMP STRUCTURE:
-"[00:00-02:00] ESTABLISH: Anamorphic 32mm wide — figure stands at fog-smeared cobblestone intersection, wool overcoat static, rain suspended mid-fall, 3400K sodium spill from street lamp at frame-left. [02:00-04:00] ACTION: Weight shifts forward, right Oxford heel strikes wet cobblestone — kinetic ripple spreads through puddle reflection at 0.3m/sec, overcoat hem flares 45° in diesel gust, jaw rotates 15° left. [04:00-06:00] DEVELOP: Camera cranes up in continuous S-curve, figure diminishes from medium to long shot, rain intensifies — individual drops now rendered with surface tension physics. Sodium lamp specular elongates on wet pavement. [06:00-08:00] RESOLVE: Figure reaches building entrance, hand contacts door handle — chrome surface reflects distorted amber streetscape. Static on end-frame: door half-open, amber interior warmth spills outward at 2800K."
+EXAMPLE OF CORRECT 10s TIMESTAMP STRUCTURE:
+"[00:00-02:00] ESTABLISH: IMAX 18mm bird's-eye — Metropolis street level, 47 floors below, Superman in red-blue suit suspended at apex of trajectory 80m above the asphalt, cape rigid in 60mph updraft, 5500K overcast sky, orange fire glow rising from below at 2200K. [02:00-05:00] ACTION: Superman descends at terminal velocity — anamorphic vertical track following at identical speed, streaking past 20 floors of shattered glass and smoke, cape physics fully active, suit fabric 100% tension-loaded, Omega Beam impact point still glowing red-white below. [05:00-08:00] DEVELOP: Camera pivots to ground-level Dutch tilt as Superman breaks supersonic below the clouds — a concussive shockwave radiates outward in a perfect 200m circle, car alarms triggering, store windows imploding in sequence. [08:00-10:00] RESOLVE: Close-up — Superman's jaw, set. Eyes beginning to glow red. 2200K fire-orange fills the left cheek. The decision made."` : `THE MANDATORY FORMAT for 5-SECOND clips:
+[00:00-01:30] ESTABLISH: Opening frame — camera position, subject pose, environmental state. The anchor.
+[01:30-03:30] ACTION: The primary motion beat. Physics-specific, directional, with mass and velocity language.
+[03:30-05:00] RESOLVE: The clip's final state — exact end-frame composition. Perfect handoff to the next clip.`}
 
-AUDIO DIRECTION (MANDATORY — Veo 3.1 generates native synchronized audio):
-SFX: [Specific ambient sound effects with intensity — e.g., "rain on cobblestone at 40dB, diesel engine at 200m"]
-AMB: [Continuous atmospheric audio bed — e.g., "urban nightscape, distant traffic hum, wind through alley at 15mph"]
-MUSIC_TONE: [Emotional music direction — e.g., "rising minor strings, tension building, no percussion"]
+AUDIO DIRECTION (MANDATORY — AI video engines generate native synchronized audio):
+SFX: [Specific ambient sound effects with intensity — e.g., "sonic boom at 120dB, glass shattering cascade, steel groaning"]
+AMB: [Continuous atmospheric audio bed — e.g., "city under siege, distant explosions, emergency sirens at 500m"]
+MUSIC_TONE: [Emotional music direction — e.g., "Hans Zimmer-grade brass stabs, choir building, no synth"]
 VOICE: [If dialogue — speaker name, delivery style, reverb environment]
-
-This prevents Veo's audio hallucinations (random music/speech appearing mid-clip without intent).
 =======================================================================
 
 LIGHTING LANGUAGE — KELVIN-ACCURATE, DIRECTION-SPECIFIC:
@@ -633,10 +654,10 @@ For EVERY CLIP, specify ALL of the following:
 5. What STATIC ENVIRONMENTAL ELEMENTS are LOCKED (must not drift or change between clips)
 
 =======================================================================
-🔒 VEO 3.1 ENVIRONMENT CONTINUITY — STATIC ELEMENT LOCK
+🔒 ENVIRONMENT CONTINUITY — STATIC ELEMENT LOCK (KLING / RUNWAY)
 =======================================================================
 
-Veo 3.1 generates each clip independently. Environmental elements CAN DRIFT without explicit anchoring.
+AI video engines generate each clip independently. Environmental elements CAN DRIFT without explicit anchoring.
 For EVERY clip description, reinforce static elements explicitly:
 • "The moon — fixed at upper-right quadrant, apparent diameter 2.1°, blue-white 6000K" → repeat EXACT phrasing every clip
 • "The distant mountain ridge — horizon-left, dark purple silhouette, unchanged" → lock it verbally

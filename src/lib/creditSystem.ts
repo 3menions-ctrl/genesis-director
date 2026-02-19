@@ -17,12 +17,18 @@
  */
 
 export const CREDIT_SYSTEM = {
+  // ── Kling pricing (Avatar mode) ──────────────────────────────────
   // Base cost for clips 1-6 at ≤6 seconds
   BASE_CREDITS_PER_CLIP: 10,
   
   // Extended cost for clips 7+ OR clips >6 seconds
   EXTENDED_CREDITS_PER_CLIP: 15,
   
+  // ── Veo 3 pricing (Text-to-Video & Image-to-Video) — 2× Kling ───
+  VEO_BASE_CREDITS_PER_CLIP: 20,      // Veo base (clips 1-6, 8s fixed)
+  VEO_EXTENDED_CREDITS_PER_CLIP: 30,  // Veo extended (clips 7+)
+  VEO_CLIP_DURATION: 8,               // Veo only generates 8-second clips
+
   // Threshold for base vs extended pricing
   BASE_CLIP_COUNT_THRESHOLD: 6,  // Clips 1-6 are base rate
   BASE_DURATION_THRESHOLD: 6,    // Up to 6 seconds is base rate
@@ -30,7 +36,7 @@ export const CREDIT_SYSTEM = {
   // Stripe pricing: 1 credit = $0.10
   CENTS_PER_CREDIT: 10,
   
-  // Cost per clip breakdown (for base rate clips)
+  // Cost per clip breakdown (for base rate clips – Kling)
   COST_PER_CLIP: {
     PRE_PRODUCTION: 2,    // Script analysis, scene optimization
     PRODUCTION: 6,        // Video generation, voice synthesis
@@ -38,7 +44,7 @@ export const CREDIT_SYSTEM = {
     TOTAL: 10,            // Total per clip (base rate)
   },
   
-  // Cost per clip breakdown (for extended rate clips)
+  // Cost per clip breakdown (for extended rate clips – Kling)
   COST_PER_CLIP_EXTENDED: {
     PRE_PRODUCTION: 3,    // More complex processing
     PRODUCTION: 9,        // Longer generation
@@ -49,7 +55,7 @@ export const CREDIT_SYSTEM = {
   // No welcome bonus — all credits purchased
   WELCOME_CREDITS: 0,
   
-  // Clip duration options (Kling 2.6)
+  // Clip duration options (Kling 2.6 — avatar mode)
   CLIP_DURATIONS: [5, 10] as const,
   DEFAULT_CLIP_DURATION: 5,
   DEFAULT_AVATAR_CLIP_DURATION: 10, // Avatars default to 10s for natural speech
@@ -66,7 +72,7 @@ export const CREDIT_SYSTEM = {
 
 /**
  * Determine if a clip should use extended pricing
- * Extended if: clip index > 6 OR duration > 6 seconds
+ * Extended if: clip index >= 6 OR duration > 6 seconds
  */
 export function isExtendedPricing(clipIndex: number, clipDuration: number): boolean {
   // clipIndex is 0-based, so clip 7 is index 6
@@ -75,11 +81,16 @@ export function isExtendedPricing(clipIndex: number, clipDuration: number): bool
 }
 
 /**
- * Calculate credits for a single clip based on its index and duration
- * Base (10): clips 1-6 at ≤6 seconds
- * Extended (15): clips 7+ OR duration >6 seconds
+ * Calculate credits for a single clip based on its index, duration, and engine
+ * Kling (avatar): Base 10 / Extended 15
+ * Veo 3 (text/image-to-video): Base 20 / Extended 30
  */
-export function calculateCreditsPerClip(clipDuration: number, clipIndex: number = 0): number {
+export function calculateCreditsPerClip(clipDuration: number, clipIndex: number = 0, videoEngine: 'kling' | 'veo' = 'kling'): number {
+  if (videoEngine === 'veo') {
+    return clipIndex >= CREDIT_SYSTEM.BASE_CLIP_COUNT_THRESHOLD
+      ? CREDIT_SYSTEM.VEO_EXTENDED_CREDITS_PER_CLIP
+      : CREDIT_SYSTEM.VEO_BASE_CREDITS_PER_CLIP;
+  }
   if (isExtendedPricing(clipIndex, clipDuration)) {
     return CREDIT_SYSTEM.EXTENDED_CREDITS_PER_CLIP;
   }
@@ -87,13 +98,12 @@ export function calculateCreditsPerClip(clipDuration: number, clipIndex: number 
 }
 
 /**
- * Calculate credits required for a given number of clips at specified duration
- * Accounts for per-clip pricing based on index
+ * Calculate credits required for a given number of clips at specified duration and engine
  */
-export function calculateCreditsRequired(clipCount: number, clipDuration: number = 5): number {
+export function calculateCreditsRequired(clipCount: number, clipDuration: number = 5, videoEngine: 'kling' | 'veo' = 'kling'): number {
   let total = 0;
   for (let i = 0; i < clipCount; i++) {
-    total += calculateCreditsPerClip(clipDuration, i);
+    total += calculateCreditsPerClip(clipDuration, i, videoEngine);
   }
   return total;
 }
@@ -137,7 +147,7 @@ export function formatDuration(totalSeconds: number): string {
 /**
  * Get breakdown of credits for display
  */
-export function getCreditBreakdown(clipCount: number, clipDuration: number): {
+export function getCreditBreakdown(clipCount: number, clipDuration: number, videoEngine: 'kling' | 'veo' = 'kling'): {
   baseClipCount: number;
   extendedClipCount: number;
   baseCredits: number;
@@ -146,21 +156,24 @@ export function getCreditBreakdown(clipCount: number, clipDuration: number): {
   creditsPerClipBase: number;
   creditsPerClipExtended: number;
   isExtended: boolean;
+  isVeo: boolean;
 } {
-  // Determine how many clips are base vs extended
+  const baseRate = videoEngine === 'veo' ? CREDIT_SYSTEM.VEO_BASE_CREDITS_PER_CLIP : CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP;
+  const extRate = videoEngine === 'veo' ? CREDIT_SYSTEM.VEO_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.EXTENDED_CREDITS_PER_CLIP;
+
   let baseClipCount = 0;
   let extendedClipCount = 0;
   
   for (let i = 0; i < clipCount; i++) {
-    if (isExtendedPricing(i, clipDuration)) {
+    if (i >= CREDIT_SYSTEM.BASE_CLIP_COUNT_THRESHOLD) {
       extendedClipCount++;
     } else {
       baseClipCount++;
     }
   }
   
-  const baseCredits = baseClipCount * CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP;
-  const extendedCredits = extendedClipCount * CREDIT_SYSTEM.EXTENDED_CREDITS_PER_CLIP;
+  const baseCredits = baseClipCount * baseRate;
+  const extendedCredits = extendedClipCount * extRate;
   
   return {
     baseClipCount,
@@ -168,9 +181,10 @@ export function getCreditBreakdown(clipCount: number, clipDuration: number): {
     baseCredits,
     extendedCredits,
     totalCredits: baseCredits + extendedCredits,
-    creditsPerClipBase: CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP,
-    creditsPerClipExtended: CREDIT_SYSTEM.EXTENDED_CREDITS_PER_CLIP,
+    creditsPerClipBase: baseRate,
+    creditsPerClipExtended: extRate,
     isExtended: extendedClipCount > 0,
+    isVeo: videoEngine === 'veo',
   };
 }
 

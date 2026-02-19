@@ -41,13 +41,14 @@ const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
 const KLING_ENABLE_AUDIO = true;
 
 // ============================================================================
-// Google Veo 3 via Replicate - Text-to-Video & Image-to-Video
-// Veo 3 generates 8-second clips at 1080p with native synchronized audio
+// Google Veo 3.1 via Replicate - Text-to-Video & Image-to-Video
+// Veo 3.1 generates 8-second clips at 1080p with native synchronized audio
+// Enhanced prompt adherence, superior image-to-video, reference image support
 // ============================================================================
 const VEO3_MODEL_OWNER = "google";
-const VEO3_MODEL_NAME = "veo-3";
+const VEO3_MODEL_NAME = "veo-3.1";
 const VEO3_MODEL_URL = `https://api.replicate.com/v1/models/${VEO3_MODEL_OWNER}/${VEO3_MODEL_NAME}/predictions`;
-const VEO3_CLIP_DURATION = 8; // Veo 3 always generates 8-second clips
+const VEO3_CLIP_DURATION = 8; // Veo 3.1 supports 4, 6, or 8 seconds — we use 8s
 
 // Frame extraction retry configuration - use guard rail config
 const FRAME_EXTRACTION_MAX_RETRIES = GUARD_RAIL_CONFIG.FRAME_EXTRACTION_MAX_RETRIES;
@@ -147,8 +148,8 @@ async function createReplicatePrediction(
 }
 
 // =====================================================
-// GOOGLE VEO 3 PREDICTION (Text-to-Video & Image-to-Video)
-// Veo 3 generates 8-second clips at 1080p with native audio
+// GOOGLE VEO 3.1 PREDICTION (Text-to-Video & Image-to-Video)
+// Veo 3.1 generates 8-second clips at 1080p with native audio
 // =====================================================
 async function createVeo3Prediction(
   prompt: string,
@@ -181,7 +182,7 @@ async function createVeo3Prediction(
     console.log(`[SingleClip][Veo3] Using start image for image-to-video`);
   }
 
-  console.log("[SingleClip] Creating Replicate prediction for Google Veo 3:", {
+  console.log("[SingleClip] Creating Replicate prediction for Google Veo 3.1:", {
     model: `${VEO3_MODEL_OWNER}/${VEO3_MODEL_NAME}`,
     hasStartImage: !!input.first_frame_image,
     duration: input.duration,
@@ -808,9 +809,9 @@ serve(async (req) => {
       }
     }
 
-    // Route to Veo 3 or Kling based on videoEngine param
+    // Route to Veo 3.1 or Kling based on videoEngine param
     const useVeo = videoEngine === "veo";
-    console.log(`[SingleClip] Engine: ${useVeo ? "Google Veo 3 (8s, 1080p)" : "Kling v2.6 (HD Pro)"}`);
+    console.log(`[SingleClip] Engine: ${useVeo ? "Google Veo 3.1 (8s, 1080p)" : "Kling v2.6 (HD Pro)"}`);
     
     const { predictionId } = useVeo
       ? await createVeo3Prediction(

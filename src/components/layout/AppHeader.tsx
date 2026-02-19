@@ -2,7 +2,8 @@ import { useState, memo, forwardRef, useCallback } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { 
   Plus, Coins, User, Settings, HelpCircle, 
-  Menu, X, Shield, LogOut, Sparkles
+  Menu, X, Shield, LogOut, Sparkles, ChevronDown,
+  Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -69,40 +70,61 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
 
   return (
     <nav ref={ref} className={cn("sticky top-0 z-50", className)}>
-      {/* Cinematic top edge glow */}
-      <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-      {/* Bottom separator */}
-      <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
-      
-      {/* Main bar with deep glass */}
-      <div className="relative bg-[hsl(250_15%_4%/0.85)] backdrop-blur-2xl">
-        {/* Subtle violet ambient glow behind the bar */}
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/[0.03] via-transparent to-primary/[0.03] pointer-events-none" />
-        
+      {/* Prismatic top edge — iridescent line */}
+      <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-[hsl(var(--primary)/0.6)] to-transparent" />
+
+      {/* Main glass surface */}
+      <div
+        className="relative"
+        style={{
+          background: 'hsl(250 15% 4% / 0.88)',
+          backdropFilter: 'blur(28px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(28px) saturate(180%)',
+        }}
+      >
+        {/* Ambient violet bloom */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-[600px] h-20 bg-[hsl(var(--primary)/0.06)] blur-3xl rounded-full" />
+        </div>
+
         <div className="relative max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="h-[60px] flex items-center justify-between gap-4">
-            
-            {/* Logo — with ambient glow */}
-            <Link 
+          <div className="h-[62px] flex items-center justify-between gap-4">
+
+            {/* ── Logo ─────────────────────────────────────── */}
+            <Link
               to="/projects"
               className="flex items-center gap-3 group shrink-0"
             >
               <div className="relative">
-                <div className="absolute -inset-2 bg-primary/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <img 
-                  src={logoImage} 
-                  alt="Apex Studio" 
-                  className="relative w-9 h-9 object-contain group-hover:scale-110 transition-transform duration-300"
-                />
+                <div className="absolute -inset-2 bg-[hsl(var(--primary)/0.18)] blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-all duration-500 scale-90 group-hover:scale-100" />
+                <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-[hsl(var(--primary)/0.15)] to-[hsl(var(--primary)/0.05)] border border-[hsl(var(--glass-border))] group-hover:border-[hsl(var(--primary)/0.35)] flex items-center justify-center transition-all duration-300 overflow-hidden">
+                  <img
+                    src={logoImage}
+                    alt="Apex Studio"
+                    className="w-6 h-6 object-contain group-hover:scale-110 transition-transform duration-300"
+                  />
+                </div>
               </div>
-              <span className="text-base font-bold text-foreground tracking-tight hidden sm:block">
-                Apex<span className="text-primary">·</span>Studio
-              </span>
+              <div className="hidden sm:flex flex-col -space-y-0.5">
+                <span className="text-[13px] font-bold text-[hsl(var(--foreground))] tracking-tight leading-none">
+                  Apex<span className="text-[hsl(var(--primary))]">·</span>Studio
+                </span>
+                <span className="text-[9px] font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-[0.18em] leading-none">
+                  AI Cinema
+                </span>
+              </div>
             </Link>
 
-            {/* Center Navigation — Cinematic pill bar */}
+            {/* ── Centre Nav ──────────────────────────────── */}
             <div className="hidden md:flex items-center">
-              <div className="relative flex items-center gap-0.5 rounded-full p-1 bg-[hsl(var(--surface-1)/0.6)] border border-[hsl(var(--glass-border))] backdrop-blur-sm">
+              <div
+                className="relative flex items-center p-[3px] rounded-full"
+                style={{
+                  background: 'hsl(250 15% 7% / 0.8)',
+                  boxShadow: 'inset 0 1px 0 hsl(0 0% 100% / 0.04), 0 1px 12px hsl(250 30% 5% / 0.5)',
+                  border: '1px solid hsl(0 0% 100% / 0.07)',
+                }}
+              >
                 {NAV_ITEMS.map((item) => {
                   const active = isActive(item.path);
                   return (
@@ -110,19 +132,23 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
                       key={item.path}
                       to={item.path}
                       className={cn(
-                        "relative px-5 py-2 text-sm font-medium rounded-full transition-all duration-300 overflow-hidden",
+                        "relative px-4 py-[7px] text-[13px] font-medium rounded-full transition-all duration-300 overflow-hidden select-none",
                         active
-                          ? "text-black" 
-                          : "text-muted-foreground hover:text-foreground"
+                          ? "text-[hsl(250_15%_4%)]"
+                          : "text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
                       )}
                     >
-                      {/* Active pill background */}
                       {active && (
-                        <span className="absolute inset-0 rounded-full bg-white/90 shadow-[0_0_20px_hsl(0_0%_100%/0.3)] animate-fade-in-scale" />
+                        <span
+                          className="absolute inset-0 rounded-full animate-fade-in-scale"
+                          style={{
+                            background: 'hsl(0 0% 96%)',
+                            boxShadow: '0 2px 12px hsl(0 0% 100% / 0.25), 0 0 0 1px hsl(0 0% 100% / 0.15)',
+                          }}
+                        />
                       )}
-                      {/* Hover fill for inactive items */}
                       {!active && (
-                        <span className="absolute inset-0 rounded-full bg-white/0 hover:bg-white/[0.04] transition-colors duration-300" />
+                        <span className="absolute inset-0 rounded-full opacity-0 hover:opacity-100 transition-opacity duration-200 bg-[hsl(0_0%_100%/0.04)]" />
                       )}
                       <span className="relative z-10">{item.label}</span>
                     </NavigationLink>
@@ -131,93 +157,213 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
               </div>
             </div>
 
-            {/* Mobile Menu Button */}
+            {/* ── Mobile hamburger ────────────────────────── */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-white/[0.05] transition-colors"
+              className="md:hidden w-9 h-9 rounded-xl flex items-center justify-center hover:bg-[hsl(var(--glass-bg-hover))] border border-transparent hover:border-[hsl(var(--glass-border))] transition-all duration-200"
             >
               {mobileMenuOpen ? (
-                <X className="w-5 h-5 text-muted-foreground" />
+                <X className="w-4.5 h-4.5 text-[hsl(var(--muted-foreground))]" />
               ) : (
-                <Menu className="w-5 h-5 text-muted-foreground" />
+                <Menu className="w-4.5 h-4.5 text-[hsl(var(--muted-foreground))]" />
               )}
             </button>
 
-            {/* Right Actions */}
-            <div className="hidden md:flex items-center gap-2">
-              {/* Create CTA — cinematic gradient button */}
+            {/* ── Right Actions ───────────────────────────── */}
+            <div className="hidden md:flex items-center gap-1.5">
+
+              {/* Credits pill */}
+              {showCredits && (
+                <button
+                  onClick={() => setShowBuyCreditsModal(true)}
+                  className="group flex items-center gap-2 h-9 px-3 rounded-full transition-all duration-200"
+                  style={{
+                    background: 'hsl(250 15% 7% / 0.7)',
+                    border: '1px solid hsl(0 0% 100% / 0.07)',
+                    boxShadow: 'inset 0 1px 0 hsl(0 0% 100% / 0.04)',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'hsl(42 100% 55% / 0.3)';
+                    (e.currentTarget as HTMLButtonElement).style.background = 'hsl(42 60% 10% / 0.6)';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'hsl(0 0% 100% / 0.07)';
+                    (e.currentTarget as HTMLButtonElement).style.background = 'hsl(250 15% 7% / 0.7)';
+                  }}
+                >
+                  {/* Coin icon with ambient glow */}
+                  <div className="relative flex items-center justify-center">
+                    <div className="absolute inset-0 bg-[hsl(42_100%_55%/0.35)] blur-md rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="relative w-5 h-5 rounded-full bg-gradient-to-br from-[hsl(42_100%_60%)] to-[hsl(30_100%_45%)] flex items-center justify-center shadow-[0_0_8px_hsl(42_100%_55%/0.5)]">
+                      <Zap className="w-2.5 h-2.5 text-white" strokeWidth={2.5} />
+                    </div>
+                  </div>
+                  <span className="text-[13px] font-bold text-[hsl(var(--foreground))] tabular-nums">
+                    {profile?.credits_balance?.toLocaleString() || 0}
+                  </span>
+                  <span className="text-[10px] font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider">cr</span>
+                </button>
+              )}
+
+              {/* Divider */}
+              <div className="h-5 w-px bg-[hsl(var(--glass-border))] mx-0.5" />
+
+              {/* Notifications */}
+              <div className="flex items-center">
+                <NotificationBell />
+              </div>
+
+              {/* Divider */}
+              <div className="h-5 w-px bg-[hsl(var(--glass-border))] mx-0.5" />
+
+              {/* Create CTA */}
               {showCreate && (
-                <Button 
+                <Button
                   onClick={handleCreate}
                   size="sm"
-                  className="h-9 px-5 text-sm font-semibold rounded-full bg-white hover:bg-white/90 text-black shadow-[0_0_24px_hsl(0_0%_100%/0.25)] hover:shadow-[0_0_32px_hsl(0_0%_100%/0.35)] transition-all duration-300 border-0"
+                  className="h-9 px-5 text-[13px] font-semibold rounded-full border-0 transition-all duration-300 hover:scale-[1.03] active:scale-[0.97]"
+                  style={{
+                    background: 'hsl(0 0% 96%)',
+                    color: 'hsl(250 15% 6%)',
+                    boxShadow: '0 0 0 1px hsl(0 0% 100% / 0.15), 0 4px 16px hsl(0 0% 100% / 0.12), 0 0 40px hsl(0 0% 100% / 0.06)',
+                  }}
                 >
-                  <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                  <Sparkles className="w-3.5 h-3.5 mr-1.5 opacity-70" />
                   Create
                 </Button>
               )}
 
-              {/* Credits pill — refined glass */}
-              {showCredits && (
-                <button
-                  onClick={() => setShowBuyCreditsModal(true)}
-                  className="flex items-center gap-2 h-9 px-3.5 rounded-full bg-[hsl(var(--surface-1)/0.5)] border border-[hsl(var(--glass-border))] hover:border-[hsl(var(--glass-border-hover))] hover:bg-[hsl(var(--surface-2)/0.5)] transition-all duration-200 group"
-                >
-                  <div className="w-4.5 h-4.5 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-[0_0_8px_hsl(42_100%_55%/0.3)]">
-                    <Coins className="w-2.5 h-2.5 text-white" />
-                  </div>
-                  <span className="text-sm font-bold text-foreground tabular-nums">{profile?.credits_balance?.toLocaleString() || 0}</span>
-                </button>
-              )}
-
-              {/* Notifications */}
-              <NotificationBell />
-
-              {/* User Menu — refined avatar */}
+              {/* User avatar + dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center p-1 rounded-full hover:bg-white/[0.05] transition-colors group">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/30 to-[hsl(280_70%_60%/0.3)] border border-[hsl(var(--glass-border))] group-hover:border-primary/30 flex items-center justify-center overflow-hidden transition-all duration-300">
+                  <button
+                    className="group flex items-center gap-2 h-9 pl-1.5 pr-2.5 rounded-full transition-all duration-200"
+                    style={{
+                      background: 'hsl(250 15% 7% / 0.7)',
+                      border: '1px solid hsl(0 0% 100% / 0.07)',
+                      boxShadow: 'inset 0 1px 0 hsl(0 0% 100% / 0.04)',
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = 'hsl(var(--primary) / 0.3)';
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = 'hsl(0 0% 100% / 0.07)';
+                    }}
+                  >
+                    {/* Avatar ring */}
+                    <div
+                      className="w-6 h-6 rounded-full flex items-center justify-center overflow-hidden transition-all duration-300"
+                      style={{
+                        background: 'linear-gradient(135deg, hsl(var(--primary)/0.4), hsl(280 70% 60% / 0.3))',
+                        boxShadow: '0 0 0 1.5px hsl(var(--primary)/0.25)',
+                      }}
+                    >
                       {profile?.avatar_url ? (
                         <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <User className="w-3.5 h-3.5 text-muted-foreground" />
+                        <User className="w-3 h-3 text-[hsl(var(--muted-foreground))]" />
                       )}
                     </div>
+                    <span className="text-[12px] font-medium text-[hsl(var(--foreground))] max-w-[80px] truncate">
+                      {profile?.display_name || profile?.full_name?.split(' ')[0] || 'You'}
+                    </span>
+                    <ChevronDown className="w-3 h-3 text-[hsl(var(--muted-foreground))] opacity-60 group-hover:opacity-100 transition-opacity" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52 bg-[hsl(var(--surface-1))] backdrop-blur-2xl border-[hsl(var(--glass-border))] rounded-xl p-1.5 shadow-xl">
-                  <div className="px-3 py-3 border-b border-[hsl(var(--border))]">
-                    <p className="text-sm font-semibold text-foreground truncate">{profile?.display_name || profile?.full_name || 'Creator'}</p>
-                    <p className="text-xs text-muted-foreground truncate">{profile?.email}</p>
+
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={10}
+                  className="w-56 rounded-2xl p-1.5 shadow-2xl"
+                  style={{
+                    background: 'hsl(250 12% 9% / 0.98)',
+                    backdropFilter: 'blur(24px)',
+                    border: '1px solid hsl(0 0% 100% / 0.08)',
+                    boxShadow: '0 24px 64px hsl(250 30% 3% / 0.8), 0 0 0 1px hsl(0 0% 100% / 0.04)',
+                  }}
+                >
+                  {/* Profile header */}
+                  <div className="px-3 py-3 mb-1">
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden shrink-0"
+                        style={{
+                          background: 'linear-gradient(135deg, hsl(var(--primary)/0.5), hsl(280 70% 60% / 0.4))',
+                          boxShadow: '0 0 0 1.5px hsl(var(--primary)/0.3)',
+                        }}
+                      >
+                        {profile?.avatar_url ? (
+                          <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <User className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-semibold text-[hsl(var(--foreground))] truncate leading-tight">
+                          {profile?.display_name || profile?.full_name || 'Creator'}
+                        </p>
+                        <p className="text-[11px] text-[hsl(var(--muted-foreground))] truncate leading-tight">
+                          {profile?.email}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="py-1.5">
-                    <DropdownMenuItem onClick={() => navigateTo('/profile')} className="text-sm text-muted-foreground hover:text-foreground focus:text-foreground focus:bg-white/[0.06] rounded-lg py-2.5 px-3 gap-2.5">
-                      <User className="w-4 h-4" />
-                      Profile
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigateTo('/settings')} className="text-sm text-muted-foreground hover:text-foreground focus:text-foreground focus:bg-white/[0.06] rounded-lg py-2.5 px-3 gap-2.5">
-                      <Settings className="w-4 h-4" />
-                      Settings
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigateTo('/help')} className="text-sm text-muted-foreground hover:text-foreground focus:text-foreground focus:bg-white/[0.06] rounded-lg py-2.5 px-3 gap-2.5">
-                      <HelpCircle className="w-4 h-4" />
-                      Help Center
-                    </DropdownMenuItem>
+
+                  <div
+                    className="mx-1.5 mb-1.5 rounded-xl px-3 py-2.5 flex items-center justify-between"
+                    style={{
+                      background: 'hsl(42 60% 8% / 0.8)',
+                      border: '1px solid hsl(42 100% 55% / 0.12)',
+                    }}
+                  >
+                    <span className="text-[11px] text-[hsl(var(--muted-foreground))]">Credits</span>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-[hsl(42_100%_60%)] to-[hsl(30_100%_45%)] flex items-center justify-center">
+                        <Zap className="w-2 h-2 text-white" strokeWidth={3} />
+                      </div>
+                      <span className="text-[13px] font-bold text-[hsl(42_100%_68%)] tabular-nums">
+                        {profile?.credits_balance?.toLocaleString() || 0}
+                      </span>
+                    </div>
+                  </div>
+
+                  <DropdownMenuSeparator className="bg-[hsl(var(--glass-border))] mx-1.5 my-1" />
+
+                  <div className="space-y-0.5">
+                    {[
+                      { icon: User, label: 'Profile', path: '/profile' },
+                      { icon: Settings, label: 'Settings', path: '/settings' },
+                      { icon: HelpCircle, label: 'Help Center', path: '/help' },
+                    ].map(({ icon: Icon, label, path }) => (
+                      <DropdownMenuItem
+                        key={path}
+                        onClick={() => navigateTo(path)}
+                        className="text-[13px] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] focus:text-[hsl(var(--foreground))] focus:bg-[hsl(var(--glass-bg-hover))] rounded-xl py-2.5 px-3 gap-2.5 cursor-pointer"
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        {label}
+                      </DropdownMenuItem>
+                    ))}
+
                     {isAdmin && (
-                      <DropdownMenuItem onClick={() => navigateTo('/admin')} className="text-sm text-warning hover:text-warning focus:text-warning focus:bg-warning/10 rounded-lg py-2.5 px-3 gap-2.5">
-                        <Shield className="w-4 h-4" />
+                      <DropdownMenuItem
+                        onClick={() => navigateTo('/admin')}
+                        className="text-[13px] text-[hsl(var(--warning))] hover:text-[hsl(var(--warning))] focus:text-[hsl(var(--warning))] focus:bg-[hsl(var(--warning)/0.08)] rounded-xl py-2.5 px-3 gap-2.5 cursor-pointer"
+                      >
+                        <Shield className="w-3.5 h-3.5" />
                         Admin Panel
                       </DropdownMenuItem>
                     )}
                   </div>
-                  <DropdownMenuSeparator className="bg-[hsl(var(--border))]" />
+
+                  <DropdownMenuSeparator className="bg-[hsl(var(--glass-border))] mx-1.5 my-1" />
+
                   <SignOutDialog>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onSelect={(e) => e.preventDefault()}
-                      className="text-sm text-destructive hover:text-destructive focus:text-destructive focus:bg-destructive/10 rounded-lg py-2.5 px-3 gap-2.5 cursor-pointer flex items-center justify-center"
+                      className="text-[13px] text-[hsl(var(--destructive))] hover:text-[hsl(var(--destructive))] focus:text-[hsl(var(--destructive))] focus:bg-[hsl(var(--destructive)/0.08)] rounded-xl py-2.5 px-3 gap-2.5 cursor-pointer"
                     >
-                      <LogOut className="w-4 h-4" />
+                      <LogOut className="w-3.5 h-3.5" />
                       Sign Out
                     </DropdownMenuItem>
                   </SignOutDialog>
@@ -228,76 +374,91 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Bottom hairline */}
+      <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-[hsl(var(--glass-border))] to-transparent" />
+
+      {/* ── Mobile Menu ─────────────────────────────── */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-[hsl(var(--surface-1)/0.95)] backdrop-blur-2xl border-b border-[hsl(var(--border))]">
-          <div className="max-w-7xl mx-auto px-4 py-4 space-y-2">
+        <div
+          className="md:hidden border-b"
+          style={{
+            background: 'hsl(250 15% 5% / 0.97)',
+            backdropFilter: 'blur(28px)',
+            borderColor: 'hsl(var(--glass-border))',
+          }}
+        >
+          <div className="max-w-7xl mx-auto px-4 py-4 space-y-1">
             {NAV_ITEMS.map((item) => (
               <NavigationLink
                 key={item.path}
                 to={item.path}
                 onClick={() => setMobileMenuOpen(false)}
                 className={cn(
-                  "block w-full px-4 py-3 rounded-xl text-sm font-medium transition-all",
+                  "flex items-center w-full px-4 py-3 rounded-xl text-[13px] font-medium transition-all",
                   isActive(item.path)
-                    ? "text-black bg-white/90" 
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]"
+                    ? "bg-[hsl(0_0%_96%)] text-[hsl(250_15%_5%)]"
+                    : "text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--glass-bg-hover))]"
                 )}
               >
                 {item.label}
               </NavigationLink>
             ))}
-            
-            {/* Create & Credits Row */}
-            <div className="pt-2 border-t border-[hsl(var(--border))] flex items-center gap-3">
+
+            <div className="pt-3 mt-2 border-t border-[hsl(var(--glass-border))] flex items-center gap-2">
               {showCreate && (
-                <Button 
-                  onClick={() => {
-                    handleCreate();
-                    setMobileMenuOpen(false);
-                  }}
+                <Button
+                  onClick={() => { handleCreate(); setMobileMenuOpen(false); }}
                   size="sm"
-                  className="flex-1 h-10 bg-white text-black hover:bg-white/90 font-semibold rounded-xl border-0"
+                  className="flex-1 h-10 rounded-xl border-0 font-semibold text-[13px]"
+                  style={{ background: 'hsl(0 0% 95%)', color: 'hsl(250 15% 5%)' }}
                 >
-                  <Sparkles className="w-4 h-4 mr-2" />
+                  <Sparkles className="w-4 h-4 mr-2 opacity-70" />
                   Create
                 </Button>
               )}
-              
               {showCredits && (
                 <button
-                  onClick={() => {
-                    setShowBuyCreditsModal(true);
-                    setMobileMenuOpen(false);
+                  onClick={() => { setShowBuyCreditsModal(true); setMobileMenuOpen(false); }}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl"
+                  style={{
+                    background: 'hsl(42 60% 8% / 0.8)',
+                    border: '1px solid hsl(42 100% 55% / 0.15)',
                   }}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[hsl(var(--surface-2)/0.5)] border border-[hsl(var(--glass-border))]"
                 >
-                  <div className="w-5 h-5 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                    <Coins className="w-3 h-3 text-white" />
-                  </div>
-                  <span className="text-sm font-bold text-foreground">{profile?.credits_balance?.toLocaleString() || 0}</span>
+                  <Zap className="w-3.5 h-3.5 text-[hsl(42_100%_60%)]" />
+                  <span className="text-[13px] font-bold text-[hsl(var(--foreground))]">
+                    {profile?.credits_balance?.toLocaleString() || 0}
+                  </span>
                 </button>
               )}
             </div>
 
-            {/* User Menu Items */}
-            <div className="pt-2 border-t border-[hsl(var(--border))] space-y-1">
-              <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-all">
-                <User className="w-4 h-4" /> Profile
-              </Link>
-              <Link to="/settings" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-all">
-                <Settings className="w-4 h-4" /> Settings
-              </Link>
-              <Link to="/help" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-all">
-                <HelpCircle className="w-4 h-4" /> Help Center
-              </Link>
+            <div className="pt-2 border-t border-[hsl(var(--glass-border))] space-y-0.5">
+              {[
+                { to: '/profile', icon: User, label: 'Profile' },
+                { to: '/settings', icon: Settings, label: 'Settings' },
+                { to: '/help', icon: HelpCircle, label: 'Help Center' },
+              ].map(({ to, icon: Icon, label }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-medium text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--glass-bg-hover))] transition-all"
+                >
+                  <Icon className="w-4 h-4" /> {label}
+                </Link>
+              ))}
               {isAdmin && (
-                <Link to="/admin" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-warning hover:bg-warning/10 transition-all">
+                <Link
+                  to="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-medium text-[hsl(var(--warning))] hover:bg-[hsl(var(--warning)/0.08)] transition-all"
+                >
                   <Shield className="w-4 h-4" /> Admin Panel
                 </Link>
               )}
               <SignOutDialog>
-                <button className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-all">
+                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-medium text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive)/0.08)] transition-all">
                   <LogOut className="w-4 h-4" /> Sign Out
                 </button>
               </SignOutDialog>
@@ -306,10 +467,9 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
         </div>
       )}
 
-      {/* Buy Credits Modal */}
-      <BuyCreditsModal 
-        open={showBuyCreditsModal} 
-        onOpenChange={setShowBuyCreditsModal} 
+      <BuyCreditsModal
+        open={showBuyCreditsModal}
+        onOpenChange={setShowBuyCreditsModal}
       />
     </nav>
   );

@@ -1143,7 +1143,7 @@ serve(async (req) => {
 
     // Log API cost — Runway: $0.05/s real cost; 5 credits charged = 50% margin
     try {
-      const isRunway = useRunway; // defined at routing step above
+      const isRunway = useRunwayI2V || useRunwayT2V; // both flags defined at routing step above
       // Runway real cost: $0.05/s → 5s=$0.25=25 cents, 10s=$0.50=50 cents
       const realCostCents = isRunway
         ? Math.round((durationSeconds <= 5 ? 5 : 10) * 5) // $0.05/s in cents
@@ -1151,6 +1151,11 @@ serve(async (req) => {
       const creditsCharged = isRunway
         ? (durationSeconds <= 5 ? 5 : 10) // Runway 50% margin
         : 10; // Kling legacy
+      const modelLabel = useRunwayI2V
+        ? 'runway/gen-4-turbo'
+        : useRunwayT2V
+          ? 'runway/gen-4.5'
+          : `${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}`;
 
       await supabase.rpc('log_api_cost', {
         p_project_id: projectId,
@@ -1162,7 +1167,8 @@ serve(async (req) => {
         p_duration_seconds: durationSeconds,
         p_status: 'completed',
         p_metadata: JSON.stringify({ 
-          model: isRunway ? RUNWAY_MODEL : `${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}`,
+          model: modelLabel,
+          engine: engineLabel,
           predictionId,
           hasStartImage: !!validatedStartImage,
           hasLastFrame: !!extractedLastFrameUrl,

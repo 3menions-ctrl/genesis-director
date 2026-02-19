@@ -415,7 +415,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       videoUrl: uploadedVideo || undefined,
       aspectRatio,
       clipCount: isBreakoutTemplate ? 3 : clipCount, // Breakout always 3 clips
-      clipDuration: isBreakoutTemplate ? 10 : effectiveDuration, // Veo=8s fixed, Breakout=10s, else user choice
+      clipDuration: isBreakoutTemplate ? 8 : effectiveDuration, // Veo=8s fixed (Breakout routes through Veo), else user choice
       enableNarration: true,
       enableMusic,
       genre: supportsAdvancedOptions || isBreakoutTemplate ? genre : undefined,

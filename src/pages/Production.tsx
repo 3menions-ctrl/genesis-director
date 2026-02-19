@@ -624,7 +624,7 @@ function ProductionContentInner() {
             
             // Also extract clip duration from first shot
             const firstShotDuration = shots[0]?.durationSeconds;
-            if (firstShotDuration && (firstShotDuration === 5 || firstShotDuration === 10)) {
+            if (firstShotDuration && (firstShotDuration === 5 || firstShotDuration === 8 || firstShotDuration === 10)) {
               setClipDuration(firstShotDuration);
             }
             

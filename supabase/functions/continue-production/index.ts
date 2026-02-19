@@ -612,7 +612,7 @@ serve(async (req: Request) => {
     // CRITICAL: Pass ALL continuity and identity data
     // BUG FIX: Ensure durationSeconds is passed through callback chain!
     const clipDuration = context?.clipDuration || 5;
-    const videoEngine = context?.videoEngine || 'kling';
+    const videoEngine = context?.videoEngine || 'veo'; // DEFAULT: Runway (veo=Runway Gen-4 Turbo/Gen-4.5)
     console.log(`[ContinueProduction] Clip ${nextClipIndex + 1} will use duration: ${clipDuration}s`);
     
     const clipResult = await callEdgeFunction('generate-single-clip', {

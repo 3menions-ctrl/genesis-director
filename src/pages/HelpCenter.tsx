@@ -56,8 +56,8 @@ Enter a detailed description of your video. Be specific about:
 
 ### Step 3: Configure Settings
 
-- **Clip Count**: Choose 1-20 clips (each 5-10 seconds)
-- **Clip Duration**: 5 seconds (10 credits) or 10 seconds (15 credits)
+- **Clip Count**: Choose 1-20 clips
+- **Clip Duration**: 8 seconds fixed for Text/Image-to-Video (Google Veo 3); 5 or 10 seconds for Avatar mode (Kling)
 - **Aspect Ratio**: 16:9 (landscape), 9:16 (portrait/mobile), or 1:1 (square)
 - **Narration**: Enable AI voiceover (optional)
 - **Music**: Add background music (optional)
@@ -271,7 +271,7 @@ Transform written descriptions into stunning AI-generated video content.
 ### Configuration Options
 
 - **Clip Count**: 1-20 clips per project
-- **Duration**: 5 seconds (recommended) or 10 seconds
+- **Duration**: 8 seconds (Google Veo 3, fixed) for Text/Image-to-Video; 5 or 10 seconds for Avatar mode
 - **Aspect Ratio**: 16:9, 9:16, or 1:1
 - **Narration**: AI voiceover from your script
 - **Music**: Auto-generated background music
@@ -302,7 +302,7 @@ Animate your photos and images into dynamic video content.
 
 1. **Upload your image** via the Create page
 2. **Describe the motion** you want to see
-3. **Choose duration** (5 or 10 seconds)
+3. **Duration is fixed at 8 seconds** (Google Veo 3 native clip length)
 4. **Generate** and watch your image come alive
 
 ### Supported Image Types

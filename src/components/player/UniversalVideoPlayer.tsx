@@ -123,9 +123,12 @@ export interface UniversalVideoPlayerProps {
 // ============================================================================
 
 const MSE_SUPPORT = detectMSESupport();
-const CROSSFADE_OVERLAP_MS = 30;
-const CROSSFADE_FADEOUT_MS = 30;
-const TRANSITION_TRIGGER_OFFSET = 0.15;
+const CROSSFADE_OVERLAP_MS = 50;
+const CROSSFADE_FADEOUT_MS = 50;
+// How many seconds before clip end to BEGIN the transition (fire early, swap on time)
+const TRANSITION_TRIGGER_OFFSET = 1.8;
+// How many seconds before clip end to START PRELOADING the next clip into the inactive video
+const PRELOAD_TRIGGER_OFFSET = 4.0;
 const CONTROLS_HIDE_DELAY = 3000;
 
 const DEFAULT_CONTROLS: PlayerControls = {
@@ -1062,21 +1065,23 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
       if (nextIndex < clips.length) {
         isTransitioningRef.current = true;
         
-        // Setup next video
         const active = activeIdx === 0 ? videoA : videoB;
         const nextVideo = activeIdx === 0 ? videoB : videoA;
         const nextClip = clips[nextIndex];
         
         if (nextVideo && nextClip) {
-          // Set source only if different (may already be preloaded)
+          // Ensure src is set (preload should have done this already)
           const targetSrc = nextClip.blobUrl || nextClip.url;
           if (nextVideo.src !== targetSrc) {
             nextVideo.src = targetSrc;
+            nextVideo.preload = 'auto';
             nextVideo.load();
           }
-          nextVideo.currentTime = 0;
+          // Only reset currentTime if we're not already at 0
+          if (nextVideo.currentTime > 0.05) {
+            nextVideo.currentTime = 0;
+          }
           
-          // Function to execute the transition
           const executeTransition = async () => {
             if (!mountedRef.current) {
               isTransitioningRef.current = false;
@@ -1084,27 +1089,26 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             }
             
             try {
-              // Start crossfade - bring next video to full opacity
+              // Immediately bring next video to full opacity (no fade delay = no gap)
               if (activeIdx === 0) {
                 setVideoBOpacity(1);
               } else {
                 setVideoAOpacity(1);
               }
               
-              // CRITICAL: Play next video with promise handling
+              // Start next video playing — critical: do this BEFORE fading out old
               const playResult = safePlay(nextVideo);
               if (playResult instanceof Promise) {
-                await playResult;
+                await playResult.catch(() => {}); // swallow autoplay errors
               }
               
-              // Complete transition after overlap period
+              // After brief overlap, hide old video and finalize state
               setTimeout(() => {
                 if (!mountedRef.current) {
                   isTransitioningRef.current = false;
                   return;
                 }
                 
-                // Fadeout old video
                 if (activeIdx === 0) {
                   setVideoAOpacity(0);
                 } else {
@@ -1112,61 +1116,43 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                 }
                 
                 safePause(active);
-                
-                // Update state
                 setActiveVideoIndex(activeIdx === 0 ? 1 : 0);
                 setCurrentClipIndex(nextIndex);
-                
-                // Preload the NEXT next clip (n+2) for even smoother transitions
-                const futureIndex = nextIndex + 1;
-                if (futureIndex < clips.length) {
-                  const futureVideo = activeIdx === 0 ? videoA : videoB;
-                  const futureClip = clips[futureIndex];
-                  if (futureVideo && futureClip) {
-                    setTimeout(() => {
-                      futureVideo.src = futureClip.blobUrl || futureClip.url;
-                      futureVideo.load();
-                    }, 100);
-                  }
-                }
-                
                 isTransitioningRef.current = false;
+                
+                console.log(`[UniversalPlayer] ✅ Seamless transition to clip ${nextIndex}`);
               }, CROSSFADE_OVERLAP_MS);
               
             } catch (err) {
               console.warn('[UniversalPlayer] Transition play error:', err);
-              // Still complete the transition even if play fails
               setActiveVideoIndex(activeIdx === 0 ? 1 : 0);
               setCurrentClipIndex(nextIndex);
               isTransitioningRef.current = false;
             }
           };
           
-          // Wait for video to be ready, with fallback timeout
-          const readyState = nextVideo.readyState;
-          if (readyState >= 3) {
-            // HAVE_FUTURE_DATA or better - video is ready
+          // If video is preloaded and ready, execute immediately (no gap)
+          // readyState >= 2 (HAVE_CURRENT_DATA) is sufficient to start playing
+          if (nextVideo.readyState >= 2) {
             executeTransition();
           } else {
-            // Wait for canplaythrough (more reliable than canplay)
+            // Not ready — wait but with a tight 200ms max timeout to prevent gaps
             const onReady = () => {
-              nextVideo.removeEventListener('canplaythrough', onReady);
               nextVideo.removeEventListener('canplay', onReady);
+              nextVideo.removeEventListener('canplaythrough', onReady);
               executeTransition();
             };
-            
-            nextVideo.addEventListener('canplaythrough', onReady, { once: true });
             nextVideo.addEventListener('canplay', onReady, { once: true });
+            nextVideo.addEventListener('canplaythrough', onReady, { once: true });
             
-            // Fallback: If not ready within 300ms, proceed anyway
+            // Hard timeout: never wait more than 200ms (preload should have handled this)
             setTimeout(() => {
-              if (isTransitioningRef.current && nextVideo.readyState < 3) {
-                nextVideo.removeEventListener('canplaythrough', onReady);
+              if (isTransitioningRef.current) {
                 nextVideo.removeEventListener('canplay', onReady);
-                console.log('[UniversalPlayer] Forcing transition after timeout');
+                nextVideo.removeEventListener('canplaythrough', onReady);
                 executeTransition();
               }
-            }, 300);
+            }, 200);
           }
         } else {
           isTransitioningRef.current = false;
@@ -1212,22 +1198,45 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
         videoB.preload = 'auto';
       }
 
+      // Track which clips have been preloaded so we don't re-trigger
+      const preloadedRef = { current: new Set<number>() };
+
       // Handle clip transitions via timeupdate (proactive trigger near end)
       const handleTimeUpdate = () => {
-        if (!mountedRef.current || isTransitioningRef.current) return;
+        if (!mountedRef.current) return;
         
         const activeIdx = activeVideoIndexRef.current;
         const active = activeIdx === 0 ? videoA : videoB;
+        const inactive = activeIdx === 0 ? videoB : videoA;
         const duration = getSafeDuration(active);
         const currentT = active.currentTime;
         
-        // Trigger transition near end of clip (150ms before end)
-        if (duration > 0 && currentT >= duration - TRANSITION_TRIGGER_OFFSET) {
+        if (duration <= 0) return;
+
+        const currentIdx = currentClipIndexRef.current;
+
+        // STAGE 1: Preload next clip into inactive slot well in advance
+        if (currentT >= duration - PRELOAD_TRIGGER_OFFSET && !isTransitioningRef.current) {
+          const nextIdx = currentIdx + 1;
+          if (nextIdx < clips.length && !preloadedRef.current.has(nextIdx) && inactive) {
+            const nextClip = clips[nextIdx];
+            const targetSrc = nextClip.blobUrl || nextClip.url;
+            if (inactive.src !== targetSrc) {
+              preloadedRef.current.add(nextIdx);
+              inactive.src = targetSrc;
+              inactive.preload = 'auto';
+              inactive.load();
+              console.log(`[UniversalPlayer] Preloading clip ${nextIdx} into inactive slot`);
+            }
+          }
+        }
+
+        // STAGE 2: Execute the visual swap near end of clip
+        if (currentT >= duration - TRANSITION_TRIGGER_OFFSET && !isTransitioningRef.current) {
           transitionToNextClip();
         }
         
-        // Update current time for progress bar
-        const currentIdx = currentClipIndexRef.current;
+        // Update progress bar
         let elapsed = 0;
         for (let i = 0; i < currentIdx; i++) {
           elapsed += clips[i]?.duration || 0;
@@ -1235,23 +1244,17 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
         setCurrentTime(elapsed + currentT);
       };
       
-      // CRITICAL: Handle onEnded as backup trigger for transitions
-      // This catches cases where timeupdate misses the trigger window
+      // CRITICAL: Handle onEnded as backup trigger (catches any missed timeupdate windows)
       const handleEnded = () => {
         if (!mountedRef.current) return;
-        console.log('[UniversalPlayer] Clip ended event fired, ensuring transition');
-        // Small delay to avoid race with timeupdate
-        setTimeout(() => {
-          if (!isTransitioningRef.current) {
-            transitionToNextClip();
-          }
-        }, 10);
+        console.log('[UniversalPlayer] Clip ended — forcing transition');
+        if (!isTransitioningRef.current) {
+          transitionToNextClip();
+        }
       };
 
       videoA.addEventListener('timeupdate', handleTimeUpdate);
       videoB?.addEventListener('timeupdate', handleTimeUpdate);
-      
-      // CRITICAL: Add onEnded listeners as backup for gapless playback
       videoA.addEventListener('ended', handleEnded);
       videoB?.addEventListener('ended', handleEnded);
 

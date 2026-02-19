@@ -19,10 +19,11 @@ const KLING_MODEL = "kwaivgi/kling-v2.6";
 const KLING_ENABLE_AUDIO = false; // Disabled: Kling's auto-generated cinematic music is low quality
 
 // ============================================================================
-// Runway via Replicate - Image-to-Video ONLY
-// Gen-4 Turbo: image-to-video (requires image) — $0.05/s
-// NOTE: Runway Gen-3 Alpha Turbo ALSO requires an image — it is NOT text-to-video.
-//       For pure text-to-video (no image), we fall back to Kling v2.6.
+// Runway via Replicate - Dual-model strategy:
+//   Gen-4 Turbo: IMAGE-TO-VIDEO (requires image) — $0.05/s
+//   Gen-4.5:     TEXT-TO-VIDEO  (no image needed) — #1 ranked T2V benchmark
+// NOTE: Gen-4 Turbo REQUIRES an image — it cannot do pure text-to-video.
+//       Gen-4.5 is the dedicated T2V model (text-only, 5s or 10s).
 // 50% margin pricing: 5s clip → 5cr ($0.50 revenue, $0.25 real cost)
 // ============================================================================
 const RUNWAY_GEN4_MODEL = "runwayml/gen4-turbo";
@@ -600,6 +601,14 @@ const COLOR_ENFORCEMENT_SUFFIX = ". CRITICAL COLOR REQUIREMENTS: Rich saturated 
 // ============================================================================
 const CHARACTER_CONSISTENCY_SUFFIX = ". CHARACTER LOCK: Same exact person throughout clip. No face changes. No body transformation. Identical clothing. Identical hair. Fixed skin tone. Stable identity from first frame to last frame.";
 
+// ============================================================================
+// Runway Gen-4.5 - Pure TEXT-TO-VIDEO (no image required) via Replicate
+// Model: runwayml/gen-4.5
+// Supports: 5s or 10s clips, text-only input, 16:9 / 9:16 / 1:1
+// ============================================================================
+const RUNWAY_GEN45_MODEL = "runwayml/gen-4.5";
+const RUNWAY_GEN45_MODEL_URL = `https://api.replicate.com/v1/models/${RUNWAY_GEN45_MODEL}/predictions`;
+
 // Anti-color-degradation terms for negative prompt - ENHANCED
 const COLOR_DEGRADATION_NEGATIVES = [
   "washed out colors", "desaturated", "gray tones", "muddy colors", "flat colors",
@@ -897,8 +906,9 @@ async function generateWithKling(
   }
 }
 
-// NOTE: Kling 2.6 handles Avatar mode AND text-to-video. Runway Gen-4 Turbo handles Image-to-Video.
-// IMPORTANT: Runway Gen-3 Alpha Turbo ALSO requires an image. There is NO Runway model for pure T2V on Replicate.
+// NOTE: Runway Gen-4.5 handles TEXT-TO-VIDEO (no image required - T2V native).
+//       Runway Gen-4 Turbo handles IMAGE-TO-VIDEO (requires image as first frame).
+//       Kling v2.6 handles Avatar mode ONLY and is the fallback if Runway T2V fails.
 
 // Generate video with Runway Gen-4 Turbo (image-to-video) or Kling (text-to-video fallback)
 async function generateWithRunway(
@@ -951,9 +961,58 @@ async function generateWithRunway(
       return { success: false, error: error instanceof Error ? error.message : "Runway Gen-4 Turbo generation failed" };
     }
   } else {
-    // Text-to-video: Kling v2.6 (Runway has no pure T2V model available via Replicate)
-    console.log("[generate-video] Text-to-video → Kling v2.6 (Runway Gen-4 Turbo requires an image)");
-    return generateWithKling(prompt, enhancedPrompt, negativePrompt, duration, aspectRatio, null, referenceImages, enableAudio);
+    // ─── TEXT-TO-VIDEO: Runway Gen-4.5 (no image required) ───────────────
+    // runwayml/gen-4.5 is Runway's dedicated T2V model — the #1 ranked
+    // text-to-video model on Artificial Analysis benchmark as of Nov 2025.
+    console.log("[generate-video][Runway Gen-4.5] ✅ Pure text-to-video (no image required)");
+    try {
+      const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+      if (!REPLICATE_API_KEY) throw new Error("REPLICATE_API_KEY is not configured");
+
+      const runwayDuration = duration <= 5 ? 5 : 10;
+      const runwayAspectRatio = aspectRatio === "9:16" ? "9:16" : aspectRatio === "1:1" ? "1:1" : "16:9";
+
+      const input: Record<string, any> = {
+        prompt: enhancedPrompt.slice(0, 2000),
+        duration: runwayDuration,
+        aspect_ratio: runwayAspectRatio,
+      };
+
+      console.log("[generate-video][Runway Gen-4.5] Submitting T2V:", {
+        duration: runwayDuration,
+        aspectRatio: runwayAspectRatio,
+        promptLength: enhancedPrompt.length,
+      });
+
+      const response = await fetch(RUNWAY_GEN45_MODEL_URL, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ input }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[generate-video][Runway Gen-4.5] API error:", response.status, errorText);
+        // Fallback to Kling if Runway Gen-4.5 fails
+        console.warn("[generate-video] Falling back to Kling v2.6 for T2V");
+        return generateWithKling(prompt, enhancedPrompt, negativePrompt, duration, aspectRatio, null, referenceImages, enableAudio);
+      }
+
+      const prediction = await response.json();
+      if (!prediction.id) {
+        console.error("[generate-video][Runway Gen-4.5] No prediction ID:", prediction);
+        return generateWithKling(prompt, enhancedPrompt, negativePrompt, duration, aspectRatio, null, referenceImages, enableAudio);
+      }
+
+      console.log("[generate-video][Runway Gen-4.5] ✅ Prediction created:", prediction.id);
+      return { success: true, taskId: prediction.id, provider: "replicate", model: RUNWAY_GEN45_MODEL };
+    } catch (error) {
+      console.error("[generate-video][Runway Gen-4.5] Error, falling back to Kling:", error);
+      return generateWithKling(prompt, enhancedPrompt, negativePrompt, duration, aspectRatio, null, referenceImages, enableAudio);
+    }
   }
 }
 

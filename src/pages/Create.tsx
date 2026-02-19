@@ -120,7 +120,7 @@ function CreateContentInner() {
     avatarVoiceId?: string;
     avatarTemplateId?: string;
     avatarName?: string;
-    // Engine selection: 'veo' for text/image-to-video, 'kling' for avatar
+    // Engine selection: 'veo' key = Runway (Gen-4.5 T2V / Gen-4 Turbo I2V), 'kling' = avatar
     videoEngine?: 'kling' | 'veo';
   }) => {
     if (!user) {
@@ -155,7 +155,7 @@ function CreateContentInner() {
         enableMusic: config.enableMusic,
         genre: config.genre,
         mood: config.mood,
-        videoEngine: config.videoEngine, // 'veo' for text/image-to-video, 'kling' for avatar
+        videoEngine: config.videoEngine, // 'veo' key = Runway (Gen-4.5 T2V / Gen-4 Turbo I2V), 'kling' = avatar
         // Breakout template parameters - for platform UI shattering effect
         isBreakout: config.isBreakout,
         breakoutStartImageUrl: config.breakoutStartImageUrl,

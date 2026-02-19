@@ -11,7 +11,7 @@ const LAYERS = [
   { icon: Shield, title: 'Hallucination Filter', desc: '25 negative prompts remove AI artifacts & extra limbs', color: '#fb7185', stat: '25', statLabel: 'Filters' },
   { icon: Brain, title: 'Smart Script', desc: 'Concept → shot list → timeline with narrative pacing', color: '#22d3ee', stat: '3s', statLabel: 'To timeline' },
   { icon: Music, title: 'Audio Intelligence', desc: '50+ AI voices, cinematic scoring & dialogue ducking', color: '#e879f9', stat: '50+', statLabel: 'Voices' },
-  { icon: Zap, title: 'Multi-Model', desc: 'Kling & Veo orchestrated — best model per shot', color: '#facc15', stat: '2+', statLabel: 'AI models' },
+  { icon: Zap, title: 'Multi-Model', desc: 'Runway & Kling orchestrated — best model per shot', color: '#facc15', stat: '2+', statLabel: 'AI models' },
 ] as const;
 
 const AUTO_CYCLE_MS = 4500;

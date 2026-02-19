@@ -740,31 +740,34 @@ OUTPUT FORMAT (STRICT JSON — NOLAN/CAMERON QUALITY MANDATORY):
 🔍 VEO 3.1 CONTINUITY IRON LAWS — VIOLATING THESE = COMPLETE FAILURE
 =======================================================================
 
-1. CHARACTER LOCK: The EXACT same character description — word for word — across ALL ${clipCount} clips.
-   ${hasReferenceImage ? '→ Copy from reference image analysis. Verbatim.' : '→ Define once, paste to all clips.'}
+1. CHARACTER LOCK: The EXACT same character description — word for word — must appear in BOTH the "characterDescription" field AND the ESTABLISH block of EVERY clip.
+   ${hasReferenceImage ? '-> Copy from reference image analysis. Verbatim.' : '-> Define the character fully in clip 0, then COPY IT VERBATIM to ALL other clips.'}
+   WARNING: Veo 3.1 generates each clip INDEPENDENTLY with ZERO memory of previous clips. Re-stamp the full character description in EVERY clip ESTABLISH block or Veo will invent a different person.
    
-2. ENVIRONMENT LOCK: The EXACT same rich location description across ALL ${clipCount} clips.
-   ${hasReferenceImage ? '→ Copy from reference image analysis. Verbatim.' : '→ Define once, paste to all clips.'}
+2. ENVIRONMENT LOCK: The EXACT same location description in "locationDescription" AND re-stated in the ESTABLISH block of every clip.
+   ${hasReferenceImage ? '-> Copy from reference image analysis. Verbatim.' : '-> Define once in clip 0, paste VERBATIM to ALL clips. Without this, Veo renders a new background every clip.'}
    
-3. LIGHTING LOCK: The EXACT same lighting WITH KELVIN TEMPERATURE + DIRECTION across ALL ${clipCount} clips.
-   ${hasReferenceImage ? '→ Copy from reference image analysis. Verbatim.' : '→ Define once, paste to all clips.'}
+3. LIGHTING LOCK: The EXACT same Kelvin temperature and direction in "lightingDescription" AND anchored in every clip ESTABLISH block.
+   ${hasReferenceImage ? '-> Copy from reference image analysis. Verbatim.' : '-> Define once, paste to all clips.'}
 
-4. STATIC ELEMENT LOCK: Every static background element (moon, sun, mountain, structure, prop) must be described with identical position and scale in EVERY clip description. Veo 3.1 cannot maintain these without verbal reinforcement.
+4. STATIC ELEMENT LOCK: Every static background element (moon, sun, mountain, structure, horizon, props) must appear with IDENTICAL position and scale in EVERY clip using [STATIC: ...] markers.
 
-5. PHYSICAL CONTINUITY: Each clip's START = logical physical continuation of previous clip's END.
-   Screen direction (180° rule) must hold. No teleportation. No velocity discontinuity.
+5. PHYSICAL CONTINUITY: Each clip START equals the logical physical continuation of previous clip END. Screen direction (180 degree rule) must hold. No teleportation.
+   The [06:00-08:00] RESOLVE block of clip N must describe the exact end-frame that clip N+1 begins from.
 
 6. CAMERA DIVERSITY: No two consecutive clips with identical camera scale AND movement type.
 
-7. TIMESTAMP STRUCTURE: Every description MUST use the 4-block format [00:00-02:00] ESTABLISH / [02:00-04:00] ACTION / [04:00-06:00] DEVELOP / [06:00-08:00] RESOLVE. Descriptions without timestamps = rejected. The RESOLVE block is mandatory — it defines the frame-chaining handoff state.
+7. TIMESTAMP STRUCTURE: Every description MUST use 4-block format [00:00-02:00] ESTABLISH / [02:00-04:00] ACTION / [04:00-06:00] DEVELOP / [06:00-08:00] RESOLVE. The ESTABLISH block MUST re-anchor character and environment BEFORE any action begins.
 
-8. AUDIO DIRECTION: sfxDirection, ambientDirection, and musicDirection fields MUST be filled for every clip. This prevents Veo's audio hallucinations (random music appearing mid-clip). Silence is a valid musicDirection.
+8. AUDIO DIRECTION: sfxDirection, ambientDirection, and musicDirection MUST be filled for every clip.
 
-9. DESCRIPTION MINIMUM: 150 words per description (including timestamps). Descriptions under 120 words = mediocre AI output = REJECTED.
-   Forbidden generic words: "beautiful", "stunning", "epic", "amazing", "wonderful", "incredible" — REPLACE WITH SPECIFIC SENSORY DATA.
+9. DESCRIPTION MINIMUM: 150 words per description (including timestamps). Under 120 words = REJECTED.
+   Forbidden: "beautiful", "stunning", "epic", "amazing" - REPLACE WITH SPECIFIC SENSORY DATA.
+
+10. TEXT-TO-VIDEO GENETIC CODE: Clip 0 ESTABLISH block defines the character and environment. COPY THIS BLOCK VERBATIM into every subsequent clip ESTABLISH block. This is the ONLY way to prevent Veo from drifting.
 
 ${mustPreserveContent ? `
-8. VERBATIM DIALOGUE: The user's exact words go in the "dialogue" field — character-for-character identical. Not paraphrased. Not "improved". IDENTICAL.
+11. VERBATIM DIALOGUE: The user exact words go in the dialogue field. Not paraphrased. IDENTICAL.
 ` : ''}`;
 
     // Build user prompt
@@ -1270,6 +1273,48 @@ ${JSON.stringify(normalizedClips.map(c => ({
 
     // Calculate continuity score
     const continuityScore = calculateContinuityScore(normalizedClips);
+
+    // =====================================================
+    // VEO CONTINUITY DNA INJECTION — BAKED INTO EVERY CLIP DESCRIPTION
+    // For text-to-video and image-to-video (Veo) modes, prepend a compact
+    // [CONTINUITY_DNA] block to each clip's description BEFORE returning.
+    // This ensures the locked character / environment / lighting is embedded
+    // in the prompt that reaches Veo, regardless of how the pipeline assembles it.
+    // The block is structured so Veo reads it first (highest attention weight).
+    // =====================================================
+    const isVeoMode = request.mode === 'text-to-video' || request.mode === 'image-to-video';
+    
+    if (isVeoMode) {
+      const lockedChar = lockFields.characterDescription;
+      const lockedEnv  = forcedLocation;
+      const lockedLight = forcedLighting;
+      const masterDNA  = request.sceneIdentityContext?.masterConsistencyPrompt
+        || request.referenceImageAnalysis?.consistencyPrompt
+        || '';
+
+      normalizedClips.forEach((clip) => {
+        const dnaParts: string[] = [];
+        
+        if (lockedChar && lockedChar.length > 10) {
+          dnaParts.push(`[CHARACTER_ANCHOR — SAME IN EVERY CLIP: ${lockedChar.substring(0, 220)}]`);
+        }
+        if (lockedEnv && lockedEnv.length > 10) {
+          dnaParts.push(`[ENVIRONMENT_LOCK — DO NOT CHANGE: ${lockedEnv.substring(0, 220)}]`);
+        }
+        if (lockedLight && lockedLight.length > 5) {
+          dnaParts.push(`[LIGHTING_LOCK: ${lockedLight.substring(0, 120)}]`);
+        }
+        if (masterDNA && masterDNA.length > 10) {
+          dnaParts.push(`[SCENE_DNA: ${masterDNA.substring(0, 280)}]`);
+        }
+        
+        if (dnaParts.length > 0) {
+          clip.description = dnaParts.join('\n') + '\n\n' + clip.description;
+        }
+      });
+      
+      console.log(`[SmartScript] ✓ Veo continuity DNA injected into ${normalizedClips.length} clip descriptions (mode: ${request.mode})`);
+    }
 
     const totalDuration = normalizedClips.reduce((sum, clip) => sum + clip.durationSeconds, 0);
     const generationTimeMs = Date.now() - startTime;

@@ -108,6 +108,10 @@ export interface MasterSceneAnchor {
   colorPalette?: string[] | string;
   lighting?: string;
   visualStyle?: string;
+  // Static environmental elements that must NOT drift between clips
+  // e.g. ["large full moon upper-right quadrant", "distant mountain ridge horizon-left"]
+  sceneAnchors?: string[];
+  environmentLock?: string;
 }
 
 export interface ExtractedCharacter {
@@ -1084,6 +1088,15 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
     if (msa.colorPalette) {
       const colors = Array.isArray(msa.colorPalette) ? msa.colorPalette.join(', ') : msa.colorPalette;
       promptParts.push(`[COLOR PALETTE: ${colors}]`);
+    }
+
+    // STATIC ENVIRONMENT LOCK — prevents moon/sun/horizon/prop drift across clips
+    if (msa.environmentLock) {
+      promptParts.push(`[ENVIRONMENT LOCK: ${msa.environmentLock}. All background elements maintain exact position, scale, and appearance throughout.]`);
+    }
+
+    if (msa.sceneAnchors && msa.sceneAnchors.length > 0) {
+      promptParts.push(`[STATIC ELEMENTS — DO NOT MOVE OR RESIZE: ${msa.sceneAnchors.join('. ')}. Moon, stars, sun, horizon, and all background props remain fixed in exact position and scale across entire clip.]`);
     }
   }
   

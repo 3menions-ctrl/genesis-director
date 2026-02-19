@@ -505,12 +505,12 @@ NOLAN-OPPENHEIMER-TIER: "IMAX 65mm extreme-wide — the fireball rises in utter 
 You are compressing a FEATURE FILM into ${clipCount} clips. Every clip is a scene. Every scene is a masterwork.
 Think: What does Nolan do in the opening 8 seconds of Interstellar? What does Cameron do in the first shot of The Abyss?
 
-STORY ARCHITECTURE — NOLAN-CAMERON 5-ACT COMPRESSION for ${clipCount} clips:
-- Clip 1 (THE HOOK): Begin IN MEDIA RES — visceral, arresting, mid-action. Nolan opens mid-crisis. Cameron opens mid-journey. Demand continuation through visual mystery or kinetic beauty.
-- Clips 2-${Math.max(2, Math.floor(clipCount * 0.3))} (BUILD): Stakes compound with each clip. Scale physically expands — go wider, go deeper, go higher. Tension must be VISIBLE in the environment's behavior.
-- Clips ${Math.max(3, Math.floor(clipCount * 0.35))}-${Math.max(4, Math.floor(clipCount * 0.65))} (ESCALATION): World-changing revelations. Character transformation made VISIBLE in body language and expression. Environmental bombast — the world reflects the internal state.
+STORY ARCHITECTURE — CINEMATIC 5-ACT STORYTELLING for ${clipCount} clips:
+- Clip 1 (THE INVITATION — WARM AMBER OPENING): Begin with a SMOOTH, UNHURRIED, ATMOSPHERIC OPEN. This is the storyteller's breath before the first word. Warm amber light — 2700K–3200K golden hour or candlelight or fire-adjacent glow. The world is introduced gently: a wide or medium establishing shot that INVITES the viewer IN rather than demanding they keep up. Think Terrence Malick's whispered opening. Think the golden wheat fields of Gladiator. Think the firelit prologue of Dune. The character (or subject) is PRESENT but at rest, or in slow purposeful motion. The camera moves SLOWLY — a gentle dolly-in, a low crane-drift, a barely-perceptible push. TONE: warm, grounded, present-tense, storytelling intimacy. The first spoken word or narration — if any — should feel like a friend sitting down to tell you something important. AMBER is the KEY WORD: the color temperature of memory, warmth, safety — before the story begins to move. DO NOT begin mid-action. DO NOT begin in crisis. BEGIN IN STILLNESS THAT BREATHES.
+- Clips 2-${Math.max(2, Math.floor(clipCount * 0.3))} (THE WORLD EXPANDS): From the warm amber open, the world begins to reveal its scale. Stakes emerge — not through chaos but through expanding perspective. Wider shots. The environment becomes active. Temperature may shift — cooler light enters as uncertainty grows.
+- Clips ${Math.max(3, Math.floor(clipCount * 0.35))}-${Math.max(4, Math.floor(clipCount * 0.65))} (ESCALATION): The story's engine engages. World-changing revelations. Character transformation made VISIBLE in body language and expression. Environmental bombast — the world reflects the internal state.
 - Clips ${Math.max(4, Math.floor(clipCount * 0.7))}-${Math.max(5, clipCount - 1)} (CLIMAX): Peak emotional/physical intensity. The shot the entire film builds to. Maximum scale AND maximum intimacy — often simultaneously.
-- Clip ${clipCount} (THE HAUNTING): Earned catharsis. A final image with the weight and silence of a Nolan epilogue. The image that stays with the viewer for days.
+- Clip ${clipCount} (THE HAUNTING): Earned catharsis. A final image with the weight and silence of a Nolan epilogue. Sometimes: a return to the amber warmth of Clip 1 — bookending, completing the circle. The image that stays with the viewer for days.
 
 NOLAN TEMPORAL TECHNIQUES (use at least ONE across the sequence):
 • SLOW MOTION SUSPENDED: Action frozen at 0.02x speed to reveal physics invisible to human eye
@@ -760,6 +760,19 @@ OUTPUT FORMAT (STRICT JSON — NOLAN/CAMERON QUALITY MANDATORY):
 7. TIMESTAMP STRUCTURE: Every description MUST use 4-block format [00:00-02:00] ESTABLISH / [02:00-04:00] ACTION / [04:00-06:00] DEVELOP / [06:00-08:00] RESOLVE. The ESTABLISH block MUST re-anchor character and environment BEFORE any action begins.
 
 8. AUDIO DIRECTION: sfxDirection, ambientDirection, and musicDirection MUST be filled for every clip.
+
+9. CLIP 1 AMBER STORYTELLING LAW — MANDATORY, NEVER VIOLATE:
+   Clip 1 (index 0) MUST open with warm amber storytelling tone:
+   • lightingDescription MUST specify 2700K–3200K warm amber, golden-hour, firelight, or candlelight spectrum
+   • cameraScale MUST be 'wide' or 'medium' — never extreme close-up or macro
+   • movementType MUST be slow and gentle: dolly-in, gentle push, low drift, or subtle crane — NEVER whip-pan, crash-zoom, or handheld urgency
+   • actionPhase MUST be 'establish' — world introduction, not action-initiation
+   • mood MUST be: warm, inviting, intimate, storytelling — like a narrator sitting down before the first word
+   • The ESTABLISH [00:00-02:00] block describes a still or gently-moving world being INTRODUCED, not disrupted
+   • If narration/dialogue is present, Clip 1 delivery is CALM, MEASURED, conversational — the first breath of a story
+   • Think: the amber wheat fields of Gladiator's opening, the firelit tent of Lawrence of Arabia, Malick's whispered prologue
+   • This is the viewer's contract: "trust me, I have a story to tell you"
+   • The description MUST include explicit amber/golden warmth language — DO NOT describe cool, blue, clinical, or high-contrast lighting in Clip 1
 
 9. DESCRIPTION MINIMUM: 150 words per description (including timestamps). Under 120 words = REJECTED.
    Forbidden: "beautiful", "stunning", "epic", "amazing" - REPLACE WITH SPECIFIC SENSORY DATA.

@@ -216,7 +216,8 @@ async function createVeo3Prediction(
   return { predictionId: prediction.id };
 }
 
-
+// Poll a Replicate prediction until it completes (works for both Kling and Veo)
+async function pollReplicatePrediction(
   predictionId: string,
   supabase: any,
   projectId: string,

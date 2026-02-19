@@ -80,6 +80,7 @@ interface ContinueProductionRequest {
   totalClips: number;
   // Context passed from hollywood-pipeline
   pipelineContext?: {
+    videoEngine?: 'kling' | 'veo';
     identityBible?: any;
     masterSceneAnchor?: any;
     goldenFrameData?: any;
@@ -613,11 +614,13 @@ serve(async (req: Request) => {
     // CRITICAL: Pass ALL continuity and identity data
     // BUG FIX: Ensure durationSeconds is passed through callback chain!
     const clipDuration = context?.clipDuration || 5;
+    const videoEngine = context?.videoEngine || 'kling';
     console.log(`[ContinueProduction] Clip ${nextClipIndex + 1} will use duration: ${clipDuration}s`);
     
     const clipResult = await callEdgeFunction('generate-single-clip', {
       userId,
       projectId,
+      videoEngine, // Route to Veo 3 or Kling — persisted from original request
       clipIndex: nextClipIndex,
       prompt: nextClipPrompt,
       totalClips,

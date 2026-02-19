@@ -3,7 +3,6 @@ import { Film, Search, FolderOpen, Plus, Loader2, Layers, Play, Sparkles } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
 /**
@@ -88,24 +87,31 @@ const VideoThumbnail = ({ url }: { url: string }) => {
 };
 
 export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
-  const { user } = useAuth();
   const [clips, setClips] = useState<MediaClip[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
     const load = async () => {
-      // No .limit() here — fetch all clips. The previous 200-row cap silently dropped clips.
-      // Supabase default is 1000; for very large libraries we paginate below.
+      // CRITICAL: Always resolve the session directly from the auth client.
+      // The useAuth() user object may be set before the Supabase client session
+      // is fully hydrated, causing it to send the anon key as the Bearer token,
+      // which makes RLS block all results even when filtering by user_id.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("video_clips")
         .select(`id, prompt, video_url, duration_seconds, shot_index, project_id, movie_projects!inner(title)`)
-        .eq("user_id", user.id)
+        .eq("user_id", session.user.id)
         .eq("status", "completed")
         .not("video_url", "is", null)
         .order("created_at", { ascending: false });
+
       if (!error && data) {
         setClips(data.map((c: any) => ({
           id: c.id,
@@ -120,7 +126,7 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
       setLoading(false);
     };
     load();
-  }, [user]);
+  }, []);
 
   const projects = useMemo(() => {
     const map = new Map<string, { title: string; count: number }>();

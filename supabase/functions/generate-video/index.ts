@@ -16,7 +16,7 @@ type VideoProvider = "replicate";
 // Kling 2.6 via Replicate configuration
 const REPLICATE_API_URL = "https://api.replicate.com/v1/predictions";
 const KLING_MODEL = "kwaivgi/kling-v2.6"; // Official model - use model identifier directly
-const KLING_ENABLE_AUDIO = true; // Native audio generation
+const KLING_ENABLE_AUDIO = false; // Disabled: Kling's auto-generated cinematic music is low quality and unwanted
 
 // Scene context for consistency
 interface SceneContext {

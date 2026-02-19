@@ -612,8 +612,8 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
       mountedRef.current = true;
 
       async function loadSource() {
+        setError(null)
         setIsLoading(true);
-        setError(null);
 
         try {
           let urls: string[] = [];

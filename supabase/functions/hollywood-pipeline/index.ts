@@ -416,10 +416,11 @@ function calculatePipelineParams(
     console.log(`[Hollywood] Reduced clip count to ${clipCount} due to ${maxDuration}s duration limit`);
   }
   
-  // Use tiered credit calculation: 10 credits for clips 1-6, 15 for clips 7+
-  const totalCredits = calculateTotalCredits(clipCount, clipDuration);
+  // Use tiered credit calculation: 10/20 credits base, 15/30 extended (Kling/Veo)
+  const videoEngine: 'kling' | 'veo' = (request as any).videoEngine || 'kling';
+  const totalCredits = calculateTotalCredits(clipCount, clipDuration, videoEngine);
   
-  console.log(`[Hollywood] Pipeline params: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s total (max: ${maxDuration}s, tier limit: ${maxClips} clips)`);
+  console.log(`[Hollywood] Pipeline params: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s total (max: ${maxDuration}s, tier limit: ${maxClips} clips, engine: ${videoEngine})`);
   
   return { clipCount, clipDuration, totalCredits };
 }
@@ -3537,9 +3538,13 @@ async function runProduction(
           }
         }
         
+        // Determine engine: veo for text/image-to-video, kling for avatar
+        const videoEngine = request.videoEngine || 'kling';
+        
         const clipResult = await callEdgeFunction('generate-single-clip', {
           userId: request.userId,
           projectId: state.projectId,
+          videoEngine, // CRITICAL: Route to Veo 3 or Kling v2.6
           clipIndex: i,
           prompt: finalPrompt,
           totalClips: clips.length,
@@ -3593,16 +3598,16 @@ async function runProduction(
           // =====================================================
           triggerNextClip: true,
           pipelineContext: {
+            // CRITICAL: Pass engine so continue-production routes clips correctly
+            videoEngine,
             // CRITICAL FIX: Pass identityBible with characterDescription to pipeline context
             identityBible: state.identityBible ? {
               ...state.identityBible,
-              // Ensure characterDescription is always present for verify-character-identity
               characterDescription: state.identityBible.consistencyPrompt 
                 || state.identityBible.characterIdentity?.description
                 || (state.extractedCharacters?.[0] ? 
                     `${state.extractedCharacters[0].name}: ${state.extractedCharacters[0].appearance}` : ''),
             } : undefined,
-            // FACE LOCK persisted through callback chain for all subsequent clips
             faceLock: (state.identityBible as any)?.faceLock || undefined,
             masterSceneAnchor,
             goldenFrameData,
@@ -3613,17 +3618,8 @@ async function runProduction(
             aspectRatio: request.aspectRatio || '16:9',
             sceneImageLookup,
             tierLimits: (request as any)._tierLimits || { maxRetries: 1 },
-            // CRITICAL FIX: Include extractedCharacters for multi-character scenes
             extractedCharacters: state.extractedCharacters || [],
-            // =====================================================
-            // P0 FIX: Include previousContinuityManifest for pipeline resume
-            // This ensures continuity data survives edge function timeouts
-            // =====================================================
             previousContinuityManifest: previousContinuityManifest,
-            // =====================================================
-            // BUG FIX: Include clipDuration in context for callback chain
-            // This was missing and causing clips 2+ to default to 5s!
-            // =====================================================
             clipDuration: state.clipDuration,
           },
         });

@@ -212,6 +212,9 @@ interface ModeRouterRequest {
   isBreakout?: boolean;
   breakoutStartImageUrl?: string; // Platform interface image (Facebook post, YouTube player, etc.)
   breakoutPlatform?: 'facebook' | 'youtube' | 'tiktok' | 'instagram';
+
+  // Video engine selection: 'veo' for text/image-to-video (8s, 1080p); 'kling' for avatar
+  videoEngine?: 'kling' | 'veo';
 }
 
 serve(async (req) => {
@@ -243,7 +246,7 @@ serve(async (req) => {
     }
 
     const request: ModeRouterRequest = await req.json();
-    const { mode, prompt, imageUrl, videoUrl, stylePreset, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, genre, mood, isBreakout, breakoutStartImageUrl, breakoutPlatform } = request;
+    const { mode, prompt, imageUrl, videoUrl, stylePreset, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, genre, mood, isBreakout, breakoutStartImageUrl, breakoutPlatform, videoEngine } = request;
     
     // Use authenticated userId, fall back to request.userId only if auth fails (for backward compat)
     const userId = authenticatedUserId || request.userId;
@@ -532,6 +535,7 @@ serve(async (req) => {
           mode,
           genre,
           mood,
+          videoEngine, // CRITICAL: Forward engine selection to hollywood-pipeline
           // Breakout template parameters - for platform UI shattering effect
           isBreakout,
           breakoutStartImageUrl,
@@ -1051,13 +1055,14 @@ async function handleCinematicMode(params: {
   mode: string;
   genre?: string;
   mood?: string;
+  videoEngine?: 'kling' | 'veo';
   // Breakout template parameters
   isBreakout?: boolean;
   breakoutStartImageUrl?: string;
   breakoutPlatform?: 'facebook' | 'youtube' | 'tiktok' | 'instagram';
   supabase: any;
 }) {
-  const { projectId, userId, concept, referenceImageUrl, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, mode, genre, mood, isBreakout, breakoutStartImageUrl, breakoutPlatform, supabase } = params;
+  const { projectId, userId, concept, referenceImageUrl, voiceId, aspectRatio, clipCount, clipDuration, enableNarration, enableMusic, mode, genre, mood, videoEngine, isBreakout, breakoutStartImageUrl, breakoutPlatform, supabase } = params;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -1087,6 +1092,7 @@ async function handleCinematicMode(params: {
       qualityTier: 'professional',
       genre,
       mood,
+      videoEngine, // CRITICAL: Route to Veo 3 or Kling based on mode
       // Breakout template parameters - for platform UI shattering effect
       // The first clip will use breakoutStartImageUrl as the starting frame,
       // with the avatar appearing inside the social media interface

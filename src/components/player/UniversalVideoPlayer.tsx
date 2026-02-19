@@ -468,6 +468,8 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     const [error, setError] = useState<string | null>(null);
     const [clips, setClips] = useState<{ url: string; blobUrl?: string; duration: number }[]>([]);
     const [hlsPlaylistUrl, setHlsPlaylistUrl] = useState<string | null>(null);
+    // When HLS fails, fall back to MSE/legacy clip loading
+    const [hlsFailed, setHlsFailed] = useState(false);
     const [masterAudioUrl, setMasterAudioUrl] = useState<string | null>(null);
     // Track if clips have embedded lip-sync audio (should NOT use master audio overlay)
     const [clipsAreLipSynced, setClipsAreLipSynced] = useState(false);
@@ -635,7 +637,8 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             
             // HLS FIRST: Try to use HLS for ALL browsers (not just iOS)
             // This provides the most reliable cross-browser playback via hls.js
-            if (useHLSPlayback && hlsUrl) {
+            // Skip HLS if it has already failed for this source (fall through to MSE)
+            if (useHLSPlayback && hlsUrl && !hlsFailed) {
               logPlaybackPath('HLS_UNIVERSAL', { 
                 projectId: source.projectId, 
                 hlsUrl,
@@ -657,7 +660,8 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             
             // Generate HLS playlist for ALL browsers when content is ready
             // CRITICAL: Don't generate HLS for projects still in progress
-            if (useHLSPlayback && hasVideoContent && !isStillGenerating) {
+            // CRITICAL: Skip HLS generation if HLS already failed (prevents infinite loop)
+            if (useHLSPlayback && hasVideoContent && !isStillGenerating && !hlsFailed) {
               console.log('[UniversalPlayer] Generating server-side HLS playlist for universal playback');
               try {
                 const { data: hlsResult, error: hlsError } = await supabase.functions.invoke('generate-hls-playlist', {
@@ -689,6 +693,8 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               // Fall through to MSE/legacy mode
             } else if (useHLSPlayback && isStillGenerating) {
               console.log('[UniversalPlayer] Project still generating, using MSE/legacy for now');
+            } else if (useHLSPlayback && hlsFailed) {
+              console.log('[UniversalPlayer] HLS previously failed, loading clips directly via MSE');
             } else if (useHLSPlayback && !hasVideoContent) {
               console.log('[UniversalPlayer] No video content found, skipping HLS generation');
             }
@@ -927,7 +933,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
         mountedRef.current = false;
         controller.abort();
       };
-    }, [source, hasValidSource, mode, autoPlay]);
+    }, [source, hasValidSource, mode, autoPlay, hlsFailed]);
 
     // ========================================================================
     // MSE ENGINE INITIALIZATION
@@ -1531,8 +1537,15 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             showControls={mode === 'inline' || mode === 'fullscreen'}
             title={title}
             onEnded={onEnded}
-            onError={(err) => setError(err)}
-            onTimeUpdate={(time, dur) => {
+            onError={(err) => {
+              // HLS failed (likely raw MP4 segments not supported by hls.js)
+              // Fall back to MSE/legacy clip-by-clip playback
+              console.warn('[UniversalPlayer] HLS playback failed, falling back to MSE:', err);
+              setHlsPlaylistUrl(null);
+              setHlsFailed(true);
+              setError(null);
+            }}
+            onTimeUpdate={(time) => {
               setCurrentTime(time);
             }}
             onClose={onClose}

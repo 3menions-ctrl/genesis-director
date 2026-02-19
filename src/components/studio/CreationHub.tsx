@@ -138,7 +138,7 @@ interface CreationHubProps {
     enableMusic: boolean;
     genre?: string;
     mood?: string;
-    /** Which AI engine to use: 'veo' for text/image-to-video, 'kling' for avatar */
+  /** Which AI engine to use: 'veo' (Runway) for text/image-to-video, 'kling' for avatar */
     videoEngine?: 'kling' | 'veo';
     // Breakout template parameters
     isBreakout?: boolean;
@@ -304,26 +304,25 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   // Check if mode supports advanced options
   const supportsAdvancedOptions = selectedMode === 'text-to-video' || selectedMode === 'b-roll';
   
-  // Veo 3 powers text-to-video and image-to-video; Kling powers avatar
-  const isVeoMode = selectedMode === 'text-to-video' || selectedMode === 'image-to-video';
-  // Veo clips are fixed 8s; Kling allows 5s or 10s
-  const effectiveDuration = isVeoMode ? 8 : clipDuration;
-  const videoEngine: 'kling' | 'veo' = isVeoMode ? 'veo' : 'kling';
+  // Runway powers text-to-video (Gen-4.5) and image-to-video (Gen-4 Turbo); Kling powers avatar
+  const isRunwayMode = selectedMode === 'text-to-video' || selectedMode === 'image-to-video';
+  // Both Runway and Kling support 5s or 10s clips
+  const effectiveDuration = clipDuration;
+  const videoEngine: 'kling' | 'veo' = isRunwayMode ? 'veo' : 'kling'; // 'veo' key routes to Runway in the backend
 
   // Calculate estimated duration
   const estimatedDuration = clipCount * effectiveDuration;
   const estimatedMinutes = Math.floor(estimatedDuration / 60);
   const estimatedSeconds = estimatedDuration % 60;
-  // Veo: 20 credits/clip (base), 30 (extended). Kling: 10/15.
+  // Runway: 5 credits/5s clip, 10 credits/10s clip. Kling: 5/10 same structure.
   const estimatedCredits = useMemo(() => {
-    const baseRate = isVeoMode ? 20 : 10;
-    const extRate = isVeoMode ? 30 : 15;
+    const baseRate = effectiveDuration <= 5 ? 5 : 10;
     let total = 0;
     for (let i = 0; i < clipCount; i++) {
-      total += i >= 6 ? extRate : baseRate;
+      total += baseRate;
     }
     return total;
-  }, [clipCount, isVeoMode]);
+  }, [clipCount, effectiveDuration]);
   
   // User credits
   const userCredits = profile?.credits_balance ?? 0;
@@ -415,12 +414,12 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       videoUrl: uploadedVideo || undefined,
       aspectRatio,
       clipCount: isBreakoutTemplate ? 3 : clipCount, // Breakout always 3 clips
-      clipDuration: isBreakoutTemplate ? 8 : effectiveDuration, // Veo=8s fixed (Breakout routes through Veo), else user choice
+      clipDuration: effectiveDuration,
       enableNarration: true,
       enableMusic,
       genre: supportsAdvancedOptions || isBreakoutTemplate ? genre : undefined,
       mood: supportsAdvancedOptions || isBreakoutTemplate ? mood : undefined,
-      videoEngine, // 'veo' for text/image-to-video, 'kling' for avatar
+      videoEngine, // 'veo' key = Runway (Gen-4.5 T2V / Gen-4 Turbo I2V), 'kling' = avatar
     };
     
     // If breakout template is applied, pass the start image, avatar, and breakout flag
@@ -710,40 +709,32 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                   <Label className="text-xs text-white/50 font-medium uppercase tracking-wider flex items-center gap-2">
                     <Clock className="w-3.5 h-3.5" />
                     Clip Duration
-                    {isVeoMode && (
-                      <span className="ml-auto text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                        Veo 3 · Fixed 8s
+                    {isRunwayMode && (
+                      <span className="ml-auto text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                        Runway
                       </span>
                     )}
                   </Label>
-                  {isVeoMode ? (
-                    // Veo 3 clips are always 8 seconds — not user-configurable
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                      <span className="text-sm font-semibold text-blue-300">8 sec</span>
-                      <span className="text-xs text-white/30">Google Veo 3 native clip length</span>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      {CLIP_DURATIONS.map((duration) => (
-                        <button
-                          key={duration.id}
-                          onClick={() => setClipDuration(duration.id)}
-                          className={cn(
-                            "flex-1 flex flex-col items-center gap-1 p-3 rounded-xl border transition-all",
-                            clipDuration === duration.id
-                              ? "bg-white/[0.1] border-white/30"
-                              : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05]"
-                          )}
-                        >
-                          <span className={cn(
-                            "text-sm font-semibold",
-                            clipDuration === duration.id ? "text-white" : "text-white/50"
-                          )}>{duration.name}</span>
-                          <span className="text-xs text-white/30">{duration.description}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  <div className="flex gap-2">
+                    {CLIP_DURATIONS.map((duration) => (
+                      <button
+                        key={duration.id}
+                        onClick={() => setClipDuration(duration.id)}
+                        className={cn(
+                          "flex-1 flex flex-col items-center gap-1 p-3 rounded-xl border transition-all",
+                          clipDuration === duration.id
+                            ? "bg-white/[0.1] border-white/30"
+                            : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05]"
+                        )}
+                      >
+                        <span className={cn(
+                          "text-sm font-semibold",
+                          clipDuration === duration.id ? "text-white" : "text-white/50"
+                        )}>{duration.name}</span>
+                        <span className="text-xs text-white/30">{duration.description}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Audio Options */}
@@ -1083,9 +1074,9 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                     <Clock className="w-3.5 h-3.5 text-white/50" />
                     <span className="text-white/70">{effectiveDuration}s each</span>
                   </div>
-                  {isVeoMode && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20">
-                      <span className="text-blue-300 text-xs font-semibold">Google Veo 3</span>
+                  {isRunwayMode && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20">
+                      <span className="text-orange-300 text-xs font-semibold">Runway</span>
                     </div>
                   )}
                   {supportsAdvancedOptions && (

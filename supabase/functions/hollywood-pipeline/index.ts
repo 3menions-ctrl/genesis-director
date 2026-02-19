@@ -3343,37 +3343,102 @@ async function runProduction(
     // =====================================================
     let finalPrompt = '';
     
+    // =====================================================
+    // VEO CONTINUITY DNA BLOCK (text-to-video & image-to-video only)
+    // Injected at the TOP of EVERY clip prompt to prevent environmental
+    // and character drift across independently-generated 8-second clips.
+    // Kling/avatar mode skips this — it uses its own identity system.
+    // =====================================================
+    const isVeoMode = (request.videoEngine || 'kling') === 'veo';
+    
+    const buildVeoContinuityDNA = (): string => {
+      if (!isVeoMode) return '';
+      
+      const parts: string[] = [];
+      
+      // ── CHARACTER ANCHOR ──────────────────────────────────────────────────
+      // Re-stamp the character description verbatim on every clip.
+      // Without this, Veo drifts to its own interpretation by clip 3+.
+      const charDesc = 
+        clip.sceneContext?.characterDescription ||
+        state.sceneConsistency?.character ||
+        state.identityBible?.characterIdentity?.description ||
+        state.identityBible?.consistencyPrompt ||
+        '';
+      if (charDesc && charDesc.trim().length > 10) {
+        parts.push(`[CHARACTER_ANCHOR — LOCKED ACROSS ALL CLIPS: ${charDesc.substring(0, 250)}]`);
+      }
+      
+      // ── ENVIRONMENT LOCK ──────────────────────────────────────────────────
+      // The exact location, surfaces, depth, and atmospheric conditions must
+      // be verbatim-identical in every clip or Veo will generate a new scene.
+      const envDesc =
+        clip.sceneContext?.locationDescription ||
+        state.sceneConsistency?.location ||
+        masterSceneAnchor?.environmentLock ||
+        state.identityBible?.masterSceneAnchor?.environmentLock ||
+        '';
+      if (envDesc && envDesc.trim().length > 10) {
+        parts.push(`[ENVIRONMENT_LOCK — DO NOT CHANGE LOCATION OR BACKGROUND: ${envDesc.substring(0, 250)}]`);
+      }
+      
+      // ── LIGHTING LOCK ─────────────────────────────────────────────────────
+      // Kelvin temperature + direction + quality must persist.
+      // Veo resets lighting every clip without this anchor.
+      const lightDesc =
+        clip.sceneContext?.lightingDescription ||
+        state.sceneConsistency?.lighting ||
+        masterSceneAnchor?.lighting ||
+        state.identityBible?.masterSceneAnchor?.lighting ||
+        '';
+      if (lightDesc && lightDesc.trim().length > 5) {
+        parts.push(`[LIGHTING_LOCK — MAINTAIN EXACT LIGHTING: ${lightDesc.substring(0, 150)}]`);
+      }
+      
+      // ── MASTER SCENE DNA ──────────────────────────────────────────────────
+      // The master consistency prompt from deep extraction (image-to-video)
+      // or the scene consistency locks (text-to-video). This is the single
+      // most powerful continuity signal — do NOT truncate it aggressively.
+      const masterDNA =
+        masterSceneAnchor?.masterConsistencyPrompt ||
+        state.identityBible?.consistencyPrompt ||
+        '';
+      if (masterDNA && masterDNA.trim().length > 10 && !parts.some(p => p.includes(masterDNA.substring(0, 30)))) {
+        parts.push(`[SCENE_DNA: ${masterDNA.substring(0, 300)}]`);
+      }
+      
+      // ── STATIC ELEMENT LOCK ───────────────────────────────────────────────
+      // Moon, sun, horizon, background props must never drift.
+      const sceneAnchors: string[] = 
+        masterSceneAnchor?.sceneAnchors ||
+        state.identityBible?.masterSceneAnchor?.sceneAnchors ||
+        [];
+      if (sceneAnchors.length > 0) {
+        parts.push(`[STATIC_ELEMENTS — DO NOT MOVE OR RESIZE: ${sceneAnchors.slice(0, 4).join(' | ')}]`);
+      }
+      
+      // ── MOTION CONTINUITY (clips 2+) ──────────────────────────────────────
+      if (i > 0 && previousMotionVectors?.continuityPrompt) {
+        parts.push(`[MOTION_CONTINUITY: ${previousMotionVectors.continuityPrompt.substring(0, 120)}]`);
+      }
+      
+      if (parts.length === 0) return '';
+      return parts.join('\n') + '\n\n';
+    };
+    
+    const veoContinuityDNA = buildVeoContinuityDNA();
+    
     // STEP 1: Use orchestrated prompt if available, else build manually
     if (orchestratedEnhancements.enhancedPrompt) {
-      // Use the continuity orchestrator's enhanced prompt
-      finalPrompt = orchestratedEnhancements.enhancedPrompt;
-      console.log(`[Hollywood] Clip ${i + 1}: Using orchestrator-enhanced prompt`);
-    } else if (i > 0) {
-      // Fallback: Build visual continuity manually (original logic)
-      const visualContinuityParts: string[] = [];
-      
-      // STEP 1: Scene action FIRST (highest priority for Kling's attention window)
-      const scriptGoal = clip.prompt;
-      finalPrompt = scriptGoal;
-      
-      // STEP 2: Append SHORT continuity cues AFTER the action (kept brief to stay within ~1500 chars)
-      const continuityParts: string[] = [];
-      if (previousMotionVectors?.continuityPrompt) {
-        // Truncate to 80 chars to prevent bloating
-        continuityParts.push(`Continue: ${previousMotionVectors.continuityPrompt.substring(0, 80)}`);
-      }
-      if (masterSceneAnchor?.masterConsistencyPrompt) {
-        // Truncate scene DNA to 120 chars - only the most critical info
-        continuityParts.push(masterSceneAnchor.masterConsistencyPrompt.substring(0, 120));
-      }
-      if (continuityParts.length > 0) {
-        finalPrompt += ` [${continuityParts.join('. ')}]`;
-        console.log(`[Hollywood] Clip ${i + 1}: Appended ${continuityParts.length} brief continuity cues AFTER scene action`);
-      }
-      
+      // Use the continuity orchestrator's enhanced prompt, prepend Veo DNA
+      finalPrompt = veoContinuityDNA + orchestratedEnhancements.enhancedPrompt;
+      console.log(`[Hollywood] Clip ${i + 1}: Using orchestrator-enhanced prompt${isVeoMode ? ' + Veo DNA block' : ''}`);
     } else {
-      // Clip 1: Use script directly (no previous clip to continue from)
-      finalPrompt = clip.prompt;
+      // Standard: script prompt as the primary action, Veo DNA as prefix
+      finalPrompt = veoContinuityDNA + clip.prompt;
+      if (isVeoMode) {
+        console.log(`[Hollywood] Clip ${i + 1}: Veo DNA injected (${veoContinuityDNA.length} chars prefix)`);
+      }
     }
     
     // Inject motion hints from orchestrator if available

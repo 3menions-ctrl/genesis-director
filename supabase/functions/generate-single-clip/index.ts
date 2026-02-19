@@ -151,6 +151,71 @@ async function createReplicatePrediction(
 // GOOGLE VEO 3.1 PREDICTION (Text-to-Video & Image-to-Video)
 // Veo 3.1 generates 8-second clips at 1080p with native audio
 // =====================================================
+// =====================================================
+// VEO 3.1 PROMPT OPTIMIZER
+// Applies research-backed techniques to prevent hallucinations:
+// 1. Front-loads critical identity/scene in first 2 sentences
+// 2. Ensures [00:00-08:00] timestamp blocks are present
+// 3. Injects positive stability constraints
+// 4. Adds audio direction blocks (SFX/AMB/MUSIC)
+// 5. Strips Kling-specific markers
+// =====================================================
+function optimizePromptForVeo3(rawPrompt: string): string {
+  // Strip Kling-specific markers that Veo doesn't understand
+  let prompt = rawPrompt
+    .replace(/\[FACE LOCK\]/gi, '')
+    .replace(/\[AVATAR STYLE LOCK\]/gi, '')
+    .replace(/IDENTITY_ANCHOR\([^)]*\)/gi, '')
+    .replace(/MOTION_GUARD\([^)]*\)/gi, '')
+    .replace(/\[ENVIRONMENT LOCK\]/gi, '[SCENE LOCKED]')
+    .replace(/\[STATIC ELEMENTS[^\]]*\]/gi, '[STATIC SCENE]')
+    .trim();
+
+  // TECHNIQUE 1: Ensure timestamp blocks exist — inject scaffolding if missing
+  // Veo 3.1 needs temporal anchors to not forget later instructions
+  const hasTimestamps = /\[0?0:0?0/.test(prompt);
+  if (!hasTimestamps) {
+    // Wrap existing prompt in timestamp structure
+    const sentences = prompt.split(/(?<=[.!?])\s+/);
+    const third = Math.max(1, Math.floor(sentences.length / 3));
+    const twoThirds = Math.max(2, Math.floor(sentences.length * 2 / 3));
+    const establish = sentences.slice(0, third).join(' ');
+    const action = sentences.slice(third, twoThirds).join(' ');
+    const resolve = sentences.slice(twoThirds).join(' ');
+    prompt = `[00:00-02:00] ESTABLISH: ${establish} [02:00-05:00] ACTION: ${action} [05:00-08:00] RESOLVE: ${resolve}`;
+  }
+
+  // TECHNIQUE 2: Front-load identity — extract and prepend the most important identity clause
+  // Veo's attention is highest on the first 2 sentences
+  // Extract identity block from [ENVIRONMENT LOCK] or first sentence and hoist it
+  const environmentLockMatch = prompt.match(/\[SCENE LOCKED\][^.]*\./);
+  const identityPrefix = environmentLockMatch
+    ? `${environmentLockMatch[0]} `
+    : '';
+
+  // TECHNIQUE 3: Positive stability constraints
+  // Research shows positive constraints outperform negative prompts for Veo
+  const stabilityConstraints = [
+    'locked camera on stabilized tripod mount',
+    'consistent identity throughout all 8 seconds',
+    'photorealistic 1080p quality',
+    'continuous smooth motion',
+  ].join(', ');
+
+  // TECHNIQUE 4: Extract and normalize audio direction blocks
+  // If audio direction is already in prompt, keep it; otherwise add placeholder
+  const hasAudioBlock = /\b(SFX:|AMB:|MUSIC_TONE:|VOICE:)/i.test(prompt);
+  const audioSuffix = hasAudioBlock ? '' : '\nAMB: [natural ambient sound, environmental atmosphere] MUSIC_TONE: [cinematic score matching scene mood]';
+
+  // TECHNIQUE 5: Cap at 2000 chars (Veo's effective attention window)
+  // Priority: first 1000 chars (most attended), then fill remaining
+  const fullPrompt = `${identityPrefix}${prompt}${audioSuffix}\n${stabilityConstraints}`;
+  const capped = fullPrompt.slice(0, 2000);
+
+  console.log(`[Veo3Optimizer] Original: ${rawPrompt.length} chars → Optimized: ${capped.length} chars | hasTimestamps: ${hasTimestamps} | hasAudio: ${hasAudioBlock}`);
+  return capped;
+}
+
 async function createVeo3Prediction(
   prompt: string,
   startImageUrl?: string | null,
@@ -161,16 +226,11 @@ async function createVeo3Prediction(
     throw new Error("REPLICATE_API_KEY is not configured");
   }
 
-  // Strip Kling-specific markers that Veo doesn't understand
-  const cleanPrompt = prompt
-    .replace(/\[FACE LOCK\]/gi, '')
-    .replace(/\[AVATAR STYLE LOCK\]/gi, '')
-    .replace(/IDENTITY_ANCHOR\([^)]*\)/gi, '')
-    .replace(/MOTION_GUARD\([^)]*\)/gi, '')
-    .slice(0, 2000);
+  // Apply Veo 3.1 hallucination prevention optimizations
+  const optimizedPrompt = optimizePromptForVeo3(prompt);
 
   const input: Record<string, any> = {
-    prompt: cleanPrompt,
+    prompt: optimizedPrompt,
     aspect_ratio: aspectRatio,
     duration: VEO3_CLIP_DURATION, // Always 8 seconds
     generate_audio: true,         // Native synchronized audio
@@ -187,7 +247,7 @@ async function createVeo3Prediction(
     hasStartImage: !!input.first_frame_image,
     duration: input.duration,
     aspectRatio: input.aspect_ratio,
-    promptLength: cleanPrompt.length,
+    promptLength: optimizedPrompt.length,
   });
 
   const response = await fetch(VEO3_MODEL_URL, {

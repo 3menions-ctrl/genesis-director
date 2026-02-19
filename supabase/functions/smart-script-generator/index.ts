@@ -555,6 +555,35 @@ VEO 3.1 PHYSICS LANGUAGE — MANDATORY FOR REALISM:
 • Impact physics: "kinetic energy transferred through cheek tissue — 0.3-second oscillation ripple visible in slow-motion"
 • Hair dynamics: "individual hair strands responding to localized air displacement, not uniform — probabilistic flutter"
 
+=======================================================================
+⏱️ VEO 3.1 TIMESTAMP ARCHITECTURE — MANDATORY FOR EVERY CLIP
+=======================================================================
+Veo 3.1 has an 8-second attention window. Without temporal anchors, it FORGETS instructions after ~3 seconds.
+EVERY clip description MUST be structured with explicit second-by-second timestamps.
+
+THE MANDATORY FORMAT for each clip description:
+[00:00-02:00] ESTABLISH: What is the opening frame — camera position, subject pose, environmental state. This is the anchor.
+[02:00-04:00] ACTION: The primary motion beat. Physics-specific, directional, with mass and velocity language.
+[04:00-06:00] DEVELOP: The motion continues/intensifies. Lighting evolution. Character psychological shift visible.
+[06:00-08:00] RESOLVE: The clip's final state — prepare the frame for seamless handoff to the next clip. Describe the exact end-frame composition.
+
+WHY THIS PREVENTS HALLUCINATION:
+• Veo reads prompts sequentially — timestamps force it to allocate attention across all 8 seconds
+• Without timestamps, Veo executes the first 3 seconds correctly then DRIFTS to its own interpretation
+• The [06:00-08:00] RESOLVE block locks the final frame, enabling perfect frame-chaining to the next clip
+
+EXAMPLE OF CORRECT TIMESTAMP STRUCTURE:
+"[00:00-02:00] ESTABLISH: Anamorphic 32mm wide — figure stands at fog-smeared cobblestone intersection, wool overcoat static, rain suspended mid-fall, 3400K sodium spill from street lamp at frame-left. [02:00-04:00] ACTION: Weight shifts forward, right Oxford heel strikes wet cobblestone — kinetic ripple spreads through puddle reflection at 0.3m/sec, overcoat hem flares 45° in diesel gust, jaw rotates 15° left. [04:00-06:00] DEVELOP: Camera cranes up in continuous S-curve, figure diminishes from medium to long shot, rain intensifies — individual drops now rendered with surface tension physics. Sodium lamp specular elongates on wet pavement. [06:00-08:00] RESOLVE: Figure reaches building entrance, hand contacts door handle — chrome surface reflects distorted amber streetscape. Static on end-frame: door half-open, amber interior warmth spills outward at 2800K."
+
+AUDIO DIRECTION (MANDATORY — Veo 3.1 generates native synchronized audio):
+SFX: [Specific ambient sound effects with intensity — e.g., "rain on cobblestone at 40dB, diesel engine at 200m"]
+AMB: [Continuous atmospheric audio bed — e.g., "urban nightscape, distant traffic hum, wind through alley at 15mph"]
+MUSIC_TONE: [Emotional music direction — e.g., "rising minor strings, tension building, no percussion"]
+VOICE: [If dialogue — speaker name, delivery style, reverb environment]
+
+This prevents Veo's audio hallucinations (random music/speech appearing mid-clip without intent).
+=======================================================================
+
 LIGHTING LANGUAGE — KELVIN-ACCURATE, DIRECTION-SPECIFIC:
 • "3200K tungsten hard key at 45° from frame-left, negative fill, 10:1 contrast ratio — Caravaggio noir"
 • "5600K overcast platinum diffusion, zero shadow, even illumination — clinical isolation, Kubrick-cold"
@@ -679,7 +708,7 @@ OUTPUT FORMAT (STRICT JSON — NOLAN/CAMERON QUALITY MANDATORY):
     {
       "index": 0,
       "title": "Cinematic 3-5 word title — evocative, poetic, haunting",
-      "description": "VEO 3.1 MASTERCLASS DESCRIPTION (100-160 words MINIMUM — shorter = rejected): Open with EXACT lens + camera movement + speed. Lock subject identity with iron-clad specificity. Use visceral physics-accurate action verbs. Include Kelvin-specified lighting direction. Add atmospheric micro-texture (particle, surface, cloth, breath). Close with a transition image that physically connects to the next clip. This MUST read like Nolan's shot notes for Interstellar or Cameron's shot bible for Avatar. Every sentence must earn its place. Generic adjectives ('beautiful', 'stunning', 'epic') are FORBIDDEN — replace with specific sensory data.${voiceDisabled ? ' NO dialogue or speech.' : ''}${isMultiCharacter ? ' INCLUDE ALL CHARACTERS with distinct physical presence in scene.' : ''}",
+      "description": "VEO 3.1 TIMESTAMP-STRUCTURED DESCRIPTION (150+ words MANDATORY — this IS the contract with the AI engine): MUST use the 4-block timestamp format: [00:00-02:00] ESTABLISH: ... [02:00-04:00] ACTION: ... [04:00-06:00] DEVELOP: ... [06:00-08:00] RESOLVE: ... Each block must have physics-accurate language, Kelvin lighting, and sensory detail. The RESOLVE block must describe the exact end-frame state for frame-chaining. Open each block with EXACT lens + camera movement. Lock subject identity in the ESTABLISH block with iron-clad specificity. Forbidden: 'beautiful', 'stunning', 'epic', 'amazing' — REPLACE WITH SPECIFIC SENSORY DATA.${voiceDisabled ? ' NO dialogue or speech.' : ''}${isMultiCharacter ? ' INCLUDE ALL CHARACTERS with distinct physical presence in scene.' : ''}",
       "durationSeconds": ${clipDuration},
       "actionPhase": "establish|initiate|develop|escalate|peak|settle",
       "previousAction": "Exact physical action from previous clip with velocity and direction (empty for clip 0)",
@@ -692,7 +721,10 @@ OUTPUT FORMAT (STRICT JSON — NOLAN/CAMERON QUALITY MANDATORY):
       "cameraAngle": "eye-level|low-angle|high-angle|dutch-angle|overhead|worms-eye",
       "movementType": "static|slow-pan|pan|tilt|tracking|dolly-in|dolly-out|orbit|crane|handheld|crash-zoom|whip-pan",
       "motionDirection": "Precise direction with speed: e.g. 'slow push toward camera, 2cm/sec'",
-      "transitionHint": "Specific visual element that physically connects this clip's end to next clip's start",
+      "transitionHint": "Specific visual element that physically connects this clip's end to next clip's start — the exact composition of the final frame",
+      "sfxDirection": "Specific sound effects with intensity and distance: e.g. 'rain on cobblestone 40dB, distant traffic hum 20dB'",
+      "ambientDirection": "Continuous atmospheric audio bed: e.g. 'urban nightscape, wind through alley at 15mph, echo reverb medium'",
+      "musicDirection": "Emotional music tone: e.g. 'rising minor strings, building tension, no percussion yet' OR 'silence' if silent moment",
       "dialogue": "${voiceDisabled ? 'MUST BE EMPTY STRING' : "Narration/speech — USE USER'S EXACT WORDS if provided. Otherwise craft poetic, purposeful dialogue."}",
       "mood": "Precise emotional tone with intensity: e.g. 'suffocating dread building to release'"${isMultiCharacter ? `,
       "charactersInScene": ["character names present"],
@@ -724,7 +756,11 @@ OUTPUT FORMAT (STRICT JSON — NOLAN/CAMERON QUALITY MANDATORY):
 
 6. CAMERA DIVERSITY: No two consecutive clips with identical camera scale AND movement type.
 
-7. DESCRIPTION MINIMUM: 100 words per description. Descriptions under 80 words = mediocre AI output = REJECTED.
+7. TIMESTAMP STRUCTURE: Every description MUST use the 4-block format [00:00-02:00] ESTABLISH / [02:00-04:00] ACTION / [04:00-06:00] DEVELOP / [06:00-08:00] RESOLVE. Descriptions without timestamps = rejected. The RESOLVE block is mandatory — it defines the frame-chaining handoff state.
+
+8. AUDIO DIRECTION: sfxDirection, ambientDirection, and musicDirection fields MUST be filled for every clip. This prevents Veo's audio hallucinations (random music appearing mid-clip). Silence is a valid musicDirection.
+
+9. DESCRIPTION MINIMUM: 150 words per description (including timestamps). Descriptions under 120 words = mediocre AI output = REJECTED.
    Forbidden generic words: "beautiful", "stunning", "epic", "amazing", "wonderful", "incredible" — REPLACE WITH SPECIFIC SENSORY DATA.
 
 ${mustPreserveContent ? `

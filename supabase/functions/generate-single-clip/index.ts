@@ -41,12 +41,15 @@ const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
 const KLING_ENABLE_AUDIO = false; // Disabled: Kling's auto-generated music is low quality
 
 // ============================================================================
-// Runway Gen-4 Turbo via Replicate - Text-to-Video & Image-to-Video
-// Gen-4 Turbo: consistent characters/locations across scenes, precise control
-// $0.05/second output, supports image-to-video via first frame
+// Runway via Replicate - Text-to-Video & Image-to-Video
+// Gen-4 Turbo: image-to-video (requires image input) — $0.05/s
+// Gen-3 Alpha Turbo: text-to-video (no image required) — $0.01/s
+// Pricing at 50% margin: 5s clip → 5 credits (charges $0.50, real cost $0.25 for I2V)
 // ============================================================================
-const RUNWAY_MODEL = "runwayml/gen4-turbo";
-const RUNWAY_MODEL_URL = `https://api.replicate.com/v1/models/${RUNWAY_MODEL}/predictions`;
+const RUNWAY_GEN4_MODEL = "runwayml/gen4-turbo";
+const RUNWAY_GEN3_MODEL = "runwayml/gen3a-turbo"; // text-to-video, no image required
+const RUNWAY_GEN4_MODEL_URL = `https://api.replicate.com/v1/models/${RUNWAY_GEN4_MODEL}/predictions`;
+const RUNWAY_GEN3_MODEL_URL = `https://api.replicate.com/v1/models/${RUNWAY_GEN3_MODEL}/predictions`;
 const RUNWAY_CLIP_DURATION = 5; // Gen-4 Turbo supports 5 or 10 seconds
 
 // Frame extraction retry configuration - use guard rail config
@@ -149,9 +152,8 @@ async function createReplicatePrediction(
 }
 
 // =====================================================
-// RUNWAY GEN-4 TURBO PREDICTION (Text-to-Video & Image-to-Video)
-// Gen-4 Turbo: consistent characters/locations, high quality motion
-// Input: prompt, image (optional first frame), duration, aspect_ratio
+// RUNWAY PREDICTION
+// Gen-4 Turbo for image-to-video, Gen-3 Alpha Turbo for text-to-video
 // =====================================================
 async function createRunwayPrediction(
   prompt: string,
@@ -166,6 +168,11 @@ async function createRunwayPrediction(
 
   // Clamp duration to supported values (5 or 10 seconds)
   const duration = durationSeconds <= 5 ? 5 : 10;
+  const hasImage = !!(startImageUrl && startImageUrl.startsWith("http"));
+
+  // Route: Gen-4 Turbo (image-to-video) vs Gen-3 Alpha Turbo (text-to-video)
+  const modelUrl = hasImage ? RUNWAY_GEN4_MODEL_URL : RUNWAY_GEN3_MODEL_URL;
+  const modelName = hasImage ? RUNWAY_GEN4_MODEL : RUNWAY_GEN3_MODEL;
 
   const input: Record<string, any> = {
     prompt: prompt.slice(0, 2000),
@@ -173,21 +180,23 @@ async function createRunwayPrediction(
     aspect_ratio: aspectRatio,
   };
 
-  // Gen-4 Turbo uses `image` for the first frame (image-to-video)
-  if (startImageUrl && startImageUrl.startsWith("http")) {
+  // Gen-4 Turbo uses `image` for first-frame anchoring
+  if (hasImage) {
     input.image = startImageUrl;
-    console.log(`[SingleClip][Runway] Using start image for image-to-video`);
+    console.log(`[SingleClip][Runway] Image-to-video: Gen-4 Turbo with start image`);
+  } else {
+    console.log(`[SingleClip][Runway] Text-to-video: Gen-3 Alpha Turbo`);
   }
 
-  console.log("[SingleClip] Creating Replicate prediction for Runway Gen-4 Turbo:", {
-    model: RUNWAY_MODEL,
-    hasStartImage: !!input.image,
-    duration: input.duration,
+  console.log("[SingleClip] Creating Replicate prediction for Runway:", {
+    model: modelName,
+    mode: hasImage ? "image-to-video" : "text-to-video",
+    duration,
     aspectRatio: input.aspect_ratio,
     promptLength: prompt.length,
   });
 
-  const response = await fetch(RUNWAY_MODEL_URL, {
+  const response = await fetch(modelUrl, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${REPLICATE_API_KEY}`,
@@ -199,17 +208,17 @@ async function createRunwayPrediction(
   if (!response.ok) {
     const errorText = await response.text();
     console.error("[SingleClip][Runway] Replicate API error:", response.status, errorText);
-    throw new Error(`Runway Gen-4 Turbo API error: ${response.status} - ${errorText}`);
+    throw new Error(`Runway API error: ${response.status} - ${errorText}`);
   }
 
   const prediction: ReplicatePrediction = await response.json();
 
   if (!prediction.id) {
     console.error("[SingleClip][Runway] No prediction ID in response:", prediction);
-    throw new Error("No prediction ID in Runway Gen-4 Turbo response");
+    throw new Error("No prediction ID in Runway response");
   }
 
-  console.log("[SingleClip][Runway] Prediction created:", prediction.id);
+  console.log("[SingleClip][Runway] Prediction created:", prediction.id, `(${modelName})`);
   return { predictionId: prediction.id };
 }
 
@@ -1049,23 +1058,33 @@ serve(async (req) => {
       }
     }
 
-    // Log API cost
+    // Log API cost — Runway: $0.05/s real cost; 5 credits charged = 50% margin
     try {
+      const isRunway = useRunway; // defined at routing step above
+      // Runway real cost: $0.05/s → 5s=$0.25=25 cents, 10s=$0.50=50 cents
+      const realCostCents = isRunway
+        ? Math.round((durationSeconds <= 5 ? 5 : 10) * 5) // $0.05/s in cents
+        : 5; // Kling legacy cost estimate
+      const creditsCharged = isRunway
+        ? (durationSeconds <= 5 ? 5 : 10) // Runway 50% margin
+        : 10; // Kling legacy
+
       await supabase.rpc('log_api_cost', {
         p_project_id: projectId,
         p_shot_id: `shot_${shotIndex}`,
-        p_service: 'replicate-kling',
+        p_service: isRunway ? 'replicate-runway' : 'replicate-kling',
         p_operation: 'single_clip_generation',
-        p_credits_charged: 10,
-        p_real_cost_cents: 5, // Replicate Kling pricing
+        p_credits_charged: creditsCharged,
+        p_real_cost_cents: realCostCents,
         p_duration_seconds: durationSeconds,
         p_status: 'completed',
         p_metadata: JSON.stringify({ 
-          model: `${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}`,
+          model: isRunway ? RUNWAY_MODEL : `${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}`,
           predictionId,
           hasStartImage: !!validatedStartImage,
           hasLastFrame: !!extractedLastFrameUrl,
           hasContinuityManifest: !!extractedContinuityManifest,
+          marginPercent: 50,
         }),
       });
     } catch (costError) {

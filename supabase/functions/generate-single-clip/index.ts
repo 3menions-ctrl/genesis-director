@@ -41,15 +41,14 @@ const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
 const KLING_ENABLE_AUDIO = false; // Disabled: Kling's auto-generated music is low quality
 
 // ============================================================================
-// Runway via Replicate - Text-to-Video & Image-to-Video
+// Runway via Replicate - Image-to-Video ONLY
 // Gen-4 Turbo: image-to-video (requires image input) — $0.05/s
-// Gen-3 Alpha Turbo: text-to-video (no image required) — $0.01/s
-// Pricing at 50% margin: 5s clip → 5 credits (charges $0.50, real cost $0.25 for I2V)
+// NOTE: Gen-3 Alpha Turbo also requires an image. For pure text-to-video,
+//       we fall back to Kling v2.6 which has no image requirement.
+// Pricing at 50% margin: 5s clip → 5 credits ($0.50 revenue, $0.25 real cost)
 // ============================================================================
 const RUNWAY_GEN4_MODEL = "runwayml/gen4-turbo";
-const RUNWAY_GEN3_MODEL = "runwayml/gen3a-turbo"; // text-to-video, no image required
 const RUNWAY_GEN4_MODEL_URL = `https://api.replicate.com/v1/models/${RUNWAY_GEN4_MODEL}/predictions`;
-const RUNWAY_GEN3_MODEL_URL = `https://api.replicate.com/v1/models/${RUNWAY_GEN3_MODEL}/predictions`;
 const RUNWAY_CLIP_DURATION = 5; // Gen-4 Turbo supports 5 or 10 seconds
 
 // Frame extraction retry configuration - use guard rail config
@@ -152,12 +151,14 @@ async function createReplicatePrediction(
 }
 
 // =====================================================
-// RUNWAY PREDICTION
-// Gen-4 Turbo for image-to-video, Gen-3 Alpha Turbo for text-to-video
+// RUNWAY PREDICTION - IMAGE-TO-VIDEO ONLY
+// Gen-4 Turbo requires an image input (first frame anchor).
+// IMPORTANT: Runway Gen-3 Alpha Turbo ALSO requires an image — it is NOT
+//            a text-to-video model. For pure T2V, caller must use Kling.
 // =====================================================
 async function createRunwayPrediction(
   prompt: string,
-  startImageUrl?: string | null,
+  startImageUrl: string, // Required — Runway Gen-4 Turbo is I2V only
   aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
   durationSeconds: number = RUNWAY_CLIP_DURATION,
 ): Promise<{ predictionId: string }> {
@@ -166,37 +167,29 @@ async function createRunwayPrediction(
     throw new Error("REPLICATE_API_KEY is not configured");
   }
 
+  if (!startImageUrl || !startImageUrl.startsWith("http")) {
+    throw new Error("Runway Gen-4 Turbo requires a start image URL for image-to-video generation");
+  }
+
   // Clamp duration to supported values (5 or 10 seconds)
   const duration = durationSeconds <= 5 ? 5 : 10;
-  const hasImage = !!(startImageUrl && startImageUrl.startsWith("http"));
-
-  // Route: Gen-4 Turbo (image-to-video) vs Gen-3 Alpha Turbo (text-to-video)
-  const modelUrl = hasImage ? RUNWAY_GEN4_MODEL_URL : RUNWAY_GEN3_MODEL_URL;
-  const modelName = hasImage ? RUNWAY_GEN4_MODEL : RUNWAY_GEN3_MODEL;
 
   const input: Record<string, any> = {
     prompt: prompt.slice(0, 2000),
     duration,
     aspect_ratio: aspectRatio,
+    image: startImageUrl, // Required for Gen-4 Turbo
   };
 
-  // Gen-4 Turbo uses `image` for first-frame anchoring
-  if (hasImage) {
-    input.image = startImageUrl;
-    console.log(`[SingleClip][Runway] Image-to-video: Gen-4 Turbo with start image`);
-  } else {
-    console.log(`[SingleClip][Runway] Text-to-video: Gen-3 Alpha Turbo`);
-  }
-
-  console.log("[SingleClip] Creating Replicate prediction for Runway:", {
-    model: modelName,
-    mode: hasImage ? "image-to-video" : "text-to-video",
+  console.log("[SingleClip][Runway Gen-4 Turbo] Image-to-video prediction:", {
+    model: RUNWAY_GEN4_MODEL,
     duration,
     aspectRatio: input.aspect_ratio,
     promptLength: prompt.length,
+    hasImage: true,
   });
 
-  const response = await fetch(modelUrl, {
+  const response = await fetch(RUNWAY_GEN4_MODEL_URL, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${REPLICATE_API_KEY}`,
@@ -208,7 +201,7 @@ async function createRunwayPrediction(
   if (!response.ok) {
     const errorText = await response.text();
     console.error("[SingleClip][Runway] Replicate API error:", response.status, errorText);
-    throw new Error(`Runway API error: ${response.status} - ${errorText}`);
+    throw new Error(`Runway Gen-4 Turbo API error: ${response.status} - ${errorText}`);
   }
 
   const prediction: ReplicatePrediction = await response.json();
@@ -218,7 +211,7 @@ async function createRunwayPrediction(
     throw new Error("No prediction ID in Runway response");
   }
 
-  console.log("[SingleClip][Runway] Prediction created:", prediction.id, `(${modelName})`);
+  console.log("[SingleClip][Runway Gen-4 Turbo] ✅ Prediction created:", prediction.id);
   return { predictionId: prediction.id };
 }
 
@@ -814,14 +807,22 @@ serve(async (req) => {
       }
     }
 
-    // Route to Runway Gen-4 Turbo or Kling based on videoEngine param
-    const useRunway = videoEngine === "veo"; // "veo" param now routes to Runway Gen-4 Turbo
-    console.log(`[SingleClip] Engine: ${useRunway ? "Runway Gen-4 Turbo" : "Kling v2.6 (HD Pro)"}`);
+    // Route to Runway Gen-4 Turbo or Kling based on videoEngine param + image availability
+    // CRITICAL: Runway Gen-4 Turbo is image-to-video ONLY (requires a start frame).
+    //           For text-to-video (no image), always use Kling v2.6.
+    const wantsRunway = videoEngine === "veo"; // "veo" param routes to Runway Gen-4 Turbo
+    const useRunway = wantsRunway && !!validatedStartImage; // Only if image is available
+    const engineLabel = useRunway
+      ? "Runway Gen-4 Turbo (I2V)"
+      : (wantsRunway && !validatedStartImage)
+        ? "Kling v2.6 (T2V fallback — Runway requires image)"
+        : "Kling v2.6 (HD Pro)";
+    console.log(`[SingleClip] Engine: ${engineLabel}`);
     
     const { predictionId } = useRunway
       ? await createRunwayPrediction(
           enhancedPrompt,
-          validatedStartImage,
+          validatedStartImage!,
           aspectRatio as '16:9' | '9:16' | '1:1',
           durationSeconds,
         )

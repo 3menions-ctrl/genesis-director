@@ -19,15 +19,14 @@ const KLING_MODEL = "kwaivgi/kling-v2.6";
 const KLING_ENABLE_AUDIO = false; // Disabled: Kling's auto-generated cinematic music is low quality
 
 // ============================================================================
-// Runway via Replicate - Text-to-Video & Image-to-Video
+// Runway via Replicate - Image-to-Video ONLY
 // Gen-4 Turbo: image-to-video (requires image) — $0.05/s
-// Gen-3 Alpha Turbo: text-to-video (no image needed) — $0.01/s
-// 50% margin pricing: 5cr/clip ($0.50 revenue, $0.25 real cost I2V)
+// NOTE: Runway Gen-3 Alpha Turbo ALSO requires an image — it is NOT text-to-video.
+//       For pure text-to-video (no image), we fall back to Kling v2.6.
+// 50% margin pricing: 5s clip → 5cr ($0.50 revenue, $0.25 real cost)
 // ============================================================================
 const RUNWAY_GEN4_MODEL = "runwayml/gen4-turbo";
-const RUNWAY_GEN3_MODEL = "runwayml/gen3a-turbo";
 const RUNWAY_GEN4_MODEL_URL = `https://api.replicate.com/v1/models/${RUNWAY_GEN4_MODEL}/predictions`;
-const RUNWAY_GEN3_MODEL_URL = `https://api.replicate.com/v1/models/${RUNWAY_GEN3_MODEL}/predictions`;
 const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
 
 // Scene context for consistency
@@ -898,10 +897,10 @@ async function generateWithKling(
   }
 }
 
-// NOTE: Kling 2.6 handles Avatar mode. Runway Gen-4 Turbo handles Text-to-Video & Image-to-Video.
+// NOTE: Kling 2.6 handles Avatar mode AND text-to-video. Runway Gen-4 Turbo handles Image-to-Video.
+// IMPORTANT: Runway Gen-3 Alpha Turbo ALSO requires an image. There is NO Runway model for pure T2V on Replicate.
 
-// Generate video with Runway via Replicate
-// Gen-4 Turbo for image-to-video (requires image), Kling for text-to-video fallback
+// Generate video with Runway Gen-4 Turbo (image-to-video) or Kling (text-to-video fallback)
 async function generateWithRunway(
   prompt: string,
   enhancedPrompt: string,
@@ -915,7 +914,7 @@ async function generateWithRunway(
   const hasImage = !!(startImageUrl && startImageUrl.startsWith("http"));
 
   if (hasImage) {
-    // Image-to-video: use Runway Gen-4 Turbo
+    // Image-to-video: Runway Gen-4 Turbo (requires image)
     try {
       const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
       if (!REPLICATE_API_KEY) throw new Error("REPLICATE_API_KEY is not configured");
@@ -927,10 +926,10 @@ async function generateWithRunway(
         prompt: enhancedPrompt.slice(0, 2000),
         duration: runwayDuration,
         aspect_ratio: runwayAspectRatio,
-        image: startImageUrl,
+        image: startImageUrl, // Required by Gen-4 Turbo
       };
 
-      console.log("[generate-video][Runway Gen-4 Turbo] Image-to-video:", { duration: runwayDuration, aspectRatio: runwayAspectRatio });
+      console.log("[generate-video][Runway Gen-4 Turbo] ✅ Image-to-video:", { duration: runwayDuration, aspectRatio: runwayAspectRatio });
 
       const response = await fetch(RUNWAY_GEN4_MODEL_URL, {
         method: "POST",
@@ -940,20 +939,20 @@ async function generateWithRunway(
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("[generate-video][Runway] API error:", response.status, errorText);
+        console.error("[generate-video][Runway Gen-4 Turbo] API error:", response.status, errorText);
         return { success: false, error: `Runway Gen-4 Turbo API error: ${response.status} - ${errorText}` };
       }
 
       const prediction = await response.json();
       if (!prediction.id) return { success: false, error: "No prediction ID in Runway response" };
-      console.log("[generate-video][Runway Gen-4 Turbo] Prediction created:", prediction.id);
+      console.log("[generate-video][Runway Gen-4 Turbo] ✅ Prediction created:", prediction.id);
       return { success: true, taskId: prediction.id, provider: "replicate", model: RUNWAY_GEN4_MODEL };
     } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : "Runway generation failed" };
+      return { success: false, error: error instanceof Error ? error.message : "Runway Gen-4 Turbo generation failed" };
     }
   } else {
-    // Text-to-video: use Kling v2.6 (no image required)
-    console.log("[generate-video] Text-to-video: routing to Kling v2.6 (Runway Gen-4 requires image)");
+    // Text-to-video: Kling v2.6 (Runway has no pure T2V model available via Replicate)
+    console.log("[generate-video] Text-to-video → Kling v2.6 (Runway Gen-4 Turbo requires an image)");
     return generateWithKling(prompt, enhancedPrompt, negativePrompt, duration, aspectRatio, null, referenceImages, enableAudio);
   }
 }

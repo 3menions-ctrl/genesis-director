@@ -38,7 +38,7 @@ const KLING_MODEL_OWNER = "kwaivgi";
 const KLING_MODEL_NAME = "kling-v2.6";
 const REPLICATE_MODEL_URL = `https://api.replicate.com/v1/models/${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}/predictions`;
 const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
-const KLING_ENABLE_AUDIO = true;
+const KLING_ENABLE_AUDIO = false; // Disabled: Kling's auto-generated music is low quality
 
 // ============================================================================
 // Google Veo 3.1 via Replicate - Text-to-Video & Image-to-Video
@@ -102,6 +102,8 @@ async function createReplicatePrediction(
     duration: durationSeconds <= 5 ? 5 : 10,
     cfg_scale: 0.7,
     mode: "pro", // CRITICAL: "pro" mode = HD quality, "standard" = lower quality
+    // Disable Kling's auto-generated cinematic music — it's low quality and unwanted
+    enable_audio: KLING_ENABLE_AUDIO,
   };
 
   // Add start image if provided (for image-to-video)

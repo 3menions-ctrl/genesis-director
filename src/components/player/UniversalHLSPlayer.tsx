@@ -313,17 +313,29 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
                   console.log(`[UniversalHLS] Network error, retrying... (${retryCountRef.current}/3)`);
                   hls.startLoad();
                 } else {
-                  setError('Network error - unable to load video');
-                  onErrorRef.current?.('Network error');
+                  const errMsg = 'Network error - unable to load video';
+                  setError(errMsg);
+                  onErrorRef.current?.(errMsg);
                 }
                 break;
               case Hls.ErrorTypes.MEDIA_ERROR:
-                console.log('[UniversalHLS] Media error, attempting recovery...');
-                hls.recoverMediaError();
+                // Only attempt recovery once - if it fails again, call onError for fallback
+                if (retryCountRef.current < 1) {
+                  retryCountRef.current++;
+                  console.log('[UniversalHLS] Media error, attempting recovery...');
+                  hls.recoverMediaError();
+                } else {
+                  // Recovery failed - call onError so parent can fall back to MSE
+                  const errMsg = 'Media failed to load';
+                  console.warn('[UniversalHLS] Media recovery failed, triggering fallback');
+                  setError(errMsg);
+                  onErrorRef.current?.(errMsg);
+                }
                 break;
               default:
-                setError('Fatal playback error');
-                onErrorRef.current?.('Fatal error');
+                const errMsg = 'Fatal playback error';
+                setError(errMsg);
+                onErrorRef.current?.(errMsg);
                 break;
             }
           }

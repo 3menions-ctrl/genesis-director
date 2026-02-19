@@ -187,81 +187,26 @@ serve(async (req) => {
     // Calculate total duration
     const totalDuration = orderedClips.reduce((sum, c) => sum + (c.duration_seconds || 5), 0);
 
-    // Generate HLS playlist content
-    // Using #EXT-X-DISCONTINUITY between each clip since they're from different sources
-    let playlistContent = `#EXTM3U
-#EXT-X-VERSION:3
-#EXT-X-TARGETDURATION:${Math.ceil(Math.max(...orderedClips.map(c => c.duration_seconds || 5)))}
-#EXT-X-MEDIA-SEQUENCE:0
-#EXT-X-PLAYLIST-TYPE:VOD
-`;
+    /**
+     * CRITICAL ARCHITECTURE NOTE:
+     * We do NOT generate an HLS m3u8 playlist here anymore.
+     * 
+     * Veo/Kling MP4 outputs are standard (non-fragmented) MP4 containers.
+     * hls.js requires either MPEG-TS or fragmented MP4 (fMP4) as HLS segments.
+     * Using raw MP4 URLs in an m3u8 causes a hard MEDIA_ERROR in hls.js on every browser.
+     * 
+     * Instead, we return clip URLs directly for MSE crossfade playback in the browser.
+     * This is the correct, reliable approach for multi-clip Veo/Kling projects.
+     */
 
-    // Add each clip with discontinuity marker
-    orderedClips.forEach((clip, index) => {
-      const duration = clip.duration_seconds || 5;
-      
-      if (index > 0) {
-        // Discontinuity tag for clip boundaries
-        playlistContent += `#EXT-X-DISCONTINUITY\n`;
-      }
-      
-      playlistContent += `#EXTINF:${duration.toFixed(6)},\n`;
-      playlistContent += `${clip.video_url}\n`;
-    });
-
-    playlistContent += `#EXT-X-ENDLIST\n`;
-
-    // Upload playlist to storage
-    const timestamp = Date.now();
-    const playlistFileName = `hls_${projectId}_${timestamp}.m3u8`;
-    const playlistBytes = new TextEncoder().encode(playlistContent);
-
-    await supabase.storage
-      .from('temp-frames')
-      .upload(playlistFileName, playlistBytes, { 
-        contentType: 'application/vnd.apple.mpegurl',
-        upsert: true 
-      });
-
-    const hlsUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/${playlistFileName}`;
-
-    // Create comprehensive manifest with both HLS and raw clip data
-    const manifestData = {
-      version: "3.0",
-      projectId,
-      createdAt: new Date().toISOString(),
-      mode: "hls_native",
-      hlsPlaylistUrl: hlsUrl,
-      clips: orderedClips.map((clip, index) => ({
-        index,
-        shotId: clip.id,
-        videoUrl: clip.video_url,
-        duration: clip.duration_seconds || 5,
-        startTime: orderedClips.slice(0, index).reduce((sum, c) => sum + (c.duration_seconds || 5), 0),
-      })),
-      totalDuration,
-      masterAudioUrl: masterAudioUrl || null,
-      voiceUrl: masterAudioUrl || project?.voice_audio_url || null,
-      musicUrl: project?.music_url || null,
-      audioConfig: {
-        // CRITICAL: Always use embedded clip audio - no master audio overlay
-        muteClipAudio: false,
-        musicVolume: project?.include_narration ? 0.3 : 0.8,
-      },
-    };
-
-    // Save manifest
-    const manifestFileName = `manifest_hls_${projectId}_${timestamp}.json`;
-    const manifestBytes = new TextEncoder().encode(JSON.stringify(manifestData, null, 2));
-
-    await supabase.storage
-      .from('temp-frames')
-      .upload(manifestFileName, manifestBytes, { 
-        contentType: 'application/json',
-        upsert: true 
-      });
-
-    const manifestUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/${manifestFileName}`;
+    const clipUrls = orderedClips.map(c => c.video_url);
+    const clipData = orderedClips.map((clip, index) => ({
+      index,
+      shotId: clip.id,
+      videoUrl: clip.video_url,
+      duration: clip.duration_seconds || 5,
+      startTime: orderedClips.slice(0, index).reduce((sum, c) => sum + (c.duration_seconds || 5), 0),
+    }));
 
     // Fetch existing pending_video_tasks to preserve watchdog metadata
     const { data: existingProject } = await supabase
@@ -269,56 +214,53 @@ serve(async (req) => {
       .select('pending_video_tasks, status')
       .eq('id', projectId)
       .single();
-    
+
     const existingTasks = existingProject?.pending_video_tasks as Record<string, unknown> || {};
-    
-    // CRITICAL: For avatar mode, DO NOT mark complete - watchdog handles final completion
-    // HLS playlist just adds the manifest URL for playback reference
     const shouldMarkComplete = !isAvatarMode || existingProject?.status === 'completed';
-    
-    // Merge HLS data into existing pending_video_tasks instead of overwriting
+
+    // Store clip URLs in pending_video_tasks so the player can use them directly
     const updatedTasks = {
       ...existingTasks,
       stage: shouldMarkComplete ? 'complete' : existingTasks.stage,
       progress: shouldMarkComplete ? 100 : existingTasks.progress,
-      mode: 'hls_native',
-      manifestUrl,
-      hlsPlaylistUrl: hlsUrl,
+      mode: 'mse_direct',
+      // CRITICAL: Store clip URLs so UniversalVideoPlayer can play without HLS
+      mseClipUrls: clipUrls,
       clipCount: orderedClips.length,
       totalDuration,
-      hlsGeneratedAt: new Date().toISOString(),
+      // Remove any stale hlsPlaylistUrl to prevent player from attempting broken HLS
+      hlsPlaylistUrl: null,
+      mseGeneratedAt: new Date().toISOString(),
       ...(shouldMarkComplete ? { completedAt: new Date().toISOString() } : {}),
     };
-    
-    // Build update payload - only mark completed if allowed
+
     const updatePayload: Record<string, unknown> = {
-      video_url: manifestUrl,
       pending_video_tasks: updatedTasks,
       updated_at: new Date().toISOString(),
     };
-    
+
     if (shouldMarkComplete) {
       updatePayload.status = 'completed';
     }
-    
+
     await supabase
       .from('movie_projects')
       .update(updatePayload)
       .eq('id', projectId);
-    
-    console.log(`[HLS-Playlist] ✅ Updated project (marked complete: ${shouldMarkComplete})`);
 
-    console.log(`[HLS-Playlist] ✅ Generated HLS playlist: ${hlsUrl}`);
+    console.log(`[HLS-Playlist] ✅ MSE direct mode - returning ${clipUrls.length} clip URLs`);
     console.log(`[HLS-Playlist] ✅ Processing time: ${Date.now() - startTime}ms`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        mode: 'hls_native',
-        hlsPlaylistUrl: hlsUrl,
-        manifestUrl,
-        clipsProcessed: orderedClips.length,
+        // Return mse_direct mode — player will use these URLs for crossfade playback
+        mode: 'mse_direct',
+        clipUrls,
+        clips: clipData,
         totalDuration,
+        masterAudioUrl: masterAudioUrl || null,
+        clipsProcessed: orderedClips.length,
         processingTimeMs: Date.now() - startTime,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

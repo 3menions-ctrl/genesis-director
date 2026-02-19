@@ -119,6 +119,7 @@ describe('Video Pipeline E2E Verification', () => {
         aspectRatio: TEST_CONFIG.aspectRatio,
         enableNarration: false,
         enableMusic: false,
+        videoEngine: 'veo', // CRITICAL: explicitly route to Veo 3.1
       },
     });
     

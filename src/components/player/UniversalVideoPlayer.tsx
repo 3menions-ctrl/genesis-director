@@ -670,14 +670,18 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
 
                 if (!resultError && result?.success) {
                   if (result.mode === 'mse_direct' && result.clipUrls?.length > 0) {
-                    // MSE direct: use clip URLs for crossfade playback (no HLS)
-                    logPlaybackPath('MSE_DIRECT', {
+                    // MSE direct: use clip URLs for DUAL-VIDEO CROSSFADE playback (no HLS, no MSE engine)
+                    // Raw MP4 files from Veo/Kling cannot be appended into MediaSource buffers —
+                    // they must be played via direct src= assignment. The dual-video crossfade
+                    // path handles this correctly without any MSE timeout issues.
+                    logPlaybackPath('CROSSFADE_DIRECT', {
                       projectId: source.projectId,
                       clipCount: result.clipUrls.length,
-                      reason: 'generate-hls-playlist returned mse_direct clip URLs',
+                      reason: 'MSE direct mode — using dual-video crossfade for raw MP4 clips',
                     });
                     urls = result.clipUrls;
-                    // Fall through to MSE clip loading below
+                    // CRITICAL: Disable MSE engine — it cannot handle unfragmented MP4
+                    setUseMSE(false);
                   } else if (result.mode === 'hls_native' && result.hlsPlaylistUrl) {
                     // Legacy path: genuine HLS (e.g. transcoded segments) — still supported
                     setHlsPlaylistUrl(result.hlsPlaylistUrl);
@@ -858,63 +862,52 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             return;
           }
 
-          // Load clip metadata with HARDENED error handling
+          // CROSSFADE PATH: For dual-video crossfade (useMSE=false), skip blob fetching entirely.
+          // Raw MP4 URLs from Veo/Kling work perfectly via direct src= assignment on <video>.
+          // Blob fetching adds latency and CORS complexity without any benefit here.
+          // We probe duration via a temporary video element without fetching to blob.
           const loadedClips = await Promise.all(
             urls.map(async (url, index) => {
               try {
-                // CRITICAL: Check if still mounted before expensive operation
                 if (!mountedRef.current || controller.signal.aborted) {
-                  return { url, blobUrl: undefined, duration: 5 };
+                  return { url, blobUrl: url, duration: 5 };
                 }
-                
-                const blobUrl = await fetchAsBlob(url, controller.signal);
-                
-                // Check mount state again after async operation
-                if (!mountedRef.current) {
-                  // Clean up blob URL if we're unmounted
-                  try { URL.revokeObjectURL(blobUrl); } catch {}
-                  return { url, blobUrl: undefined, duration: 5 };
-                }
-                
-                const video = document.createElement('video');
-                video.preload = 'metadata';
-                video.muted = true;
-                
-                return new Promise<{ url: string; blobUrl: string; duration: number }>((resolve) => {
-                  const timeout = setTimeout(() => {
-                    resolve({ url, blobUrl, duration: 5 });
-                  }, 10000);
-                  
-                  video.onloadedmetadata = () => {
+
+                // Probe duration via temporary video element (no blob fetch)
+                const dur = await new Promise<number>((resolve) => {
+                  const probe = document.createElement('video');
+                  probe.preload = 'metadata';
+                  probe.muted = true;
+                  const timeout = setTimeout(() => resolve(5), 8000);
+                  probe.onloadedmetadata = () => {
                     clearTimeout(timeout);
-                    const dur = video.duration;
-                    resolve({ 
-                      url, 
-                      blobUrl, 
-                      duration: isFinite(dur) && dur > 0 ? dur : 5 
-                    });
+                    const d = probe.duration;
+                    probe.src = '';
+                    resolve(isFinite(d) && d > 0 ? d : 5);
                   };
-                  video.onerror = () => {
+                  probe.onerror = () => {
                     clearTimeout(timeout);
-                    resolve({ url, blobUrl, duration: 5 });
+                    resolve(5);
                   };
-                  video.src = blobUrl;
+                  probe.src = url;
                 });
+
+                return { url, blobUrl: url, duration: dur };
               } catch (err) {
-                // CRITICAL: Suppress AbortError and other fetch errors
                 const errorName = (err as Error)?.name || '';
                 if (errorName === 'AbortError' || !mountedRef.current) {
-                  return { url, blobUrl: undefined, duration: 5 };
+                  return { url, blobUrl: url, duration: 5 };
                 }
-                console.debug('[UniversalPlayer] Clip load failed:', index, err);
-                return { url, blobUrl: undefined, duration: 5 };
+                console.debug('[UniversalPlayer] Clip probe failed:', index, err);
+                return { url, blobUrl: url, duration: 5 };
               }
             })
           );
 
           if (!mountedRef.current) return;
 
-          setClips(loadedClips.filter((c): c is { url: string; blobUrl: string; duration: number } => !!c.blobUrl));
+          // CRITICAL: Keep ALL clips — blobUrl is now always the direct URL
+          setClips(loadedClips as { url: string; blobUrl: string; duration: number }[]);
           setIsLoading(false);
 
           if (autoPlay) {

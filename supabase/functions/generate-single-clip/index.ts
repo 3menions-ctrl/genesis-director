@@ -41,14 +41,13 @@ const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
 const KLING_ENABLE_AUDIO = false; // Disabled: Kling's auto-generated music is low quality
 
 // ============================================================================
-// Google Veo 3.1 via Replicate - Text-to-Video & Image-to-Video
-// Veo 3.1 generates 8-second clips at 1080p with native synchronized audio
-// Enhanced prompt adherence, superior image-to-video, reference image support
+// Runway Gen-4 Turbo via Replicate - Text-to-Video & Image-to-Video
+// Gen-4 Turbo: consistent characters/locations across scenes, precise control
+// $0.05/second output, supports image-to-video via first frame
 // ============================================================================
-const VEO3_MODEL_OWNER = "google";
-const VEO3_MODEL_NAME = "veo-3.1";
-const VEO3_MODEL_URL = `https://api.replicate.com/v1/models/${VEO3_MODEL_OWNER}/${VEO3_MODEL_NAME}/predictions`;
-const VEO3_CLIP_DURATION = 8; // Veo 3.1 supports 4, 6, or 8 seconds — we use 8s
+const RUNWAY_MODEL = "runwayml/gen4-turbo";
+const RUNWAY_MODEL_URL = `https://api.replicate.com/v1/models/${RUNWAY_MODEL}/predictions`;
+const RUNWAY_CLIP_DURATION = 5; // Gen-4 Turbo supports 5 or 10 seconds
 
 // Frame extraction retry configuration - use guard rail config
 const FRAME_EXTRACTION_MAX_RETRIES = GUARD_RAIL_CONFIG.FRAME_EXTRACTION_MAX_RETRIES;
@@ -150,132 +149,67 @@ async function createReplicatePrediction(
 }
 
 // =====================================================
-// GOOGLE VEO 3.1 PREDICTION (Text-to-Video & Image-to-Video)
-// Veo 3.1 generates 8-second clips at 1080p with native audio
+// RUNWAY GEN-4 TURBO PREDICTION (Text-to-Video & Image-to-Video)
+// Gen-4 Turbo: consistent characters/locations, high quality motion
+// Input: prompt, image (optional first frame), duration, aspect_ratio
 // =====================================================
-// =====================================================
-// VEO 3.1 PROMPT OPTIMIZER
-// Applies research-backed techniques to prevent hallucinations:
-// 1. Front-loads critical identity/scene in first 2 sentences
-// 2. Ensures [00:00-08:00] timestamp blocks are present
-// 3. Injects positive stability constraints
-// 4. Adds audio direction blocks (SFX/AMB/MUSIC)
-// 5. Strips Kling-specific markers
-// =====================================================
-function optimizePromptForVeo3(rawPrompt: string): string {
-  // Strip Kling-specific markers that Veo doesn't understand
-  let prompt = rawPrompt
-    .replace(/\[FACE LOCK\]/gi, '')
-    .replace(/\[AVATAR STYLE LOCK\]/gi, '')
-    .replace(/IDENTITY_ANCHOR\([^)]*\)/gi, '')
-    .replace(/MOTION_GUARD\([^)]*\)/gi, '')
-    .replace(/\[ENVIRONMENT LOCK\]/gi, '[SCENE LOCKED]')
-    .replace(/\[STATIC ELEMENTS[^\]]*\]/gi, '[STATIC SCENE]')
-    .trim();
-
-  // TECHNIQUE 1: Ensure timestamp blocks exist — inject scaffolding if missing
-  // Veo 3.1 needs temporal anchors to not forget later instructions
-  const hasTimestamps = /\[0?0:0?0/.test(prompt);
-  if (!hasTimestamps) {
-    // Wrap existing prompt in timestamp structure
-    const sentences = prompt.split(/(?<=[.!?])\s+/);
-    const third = Math.max(1, Math.floor(sentences.length / 3));
-    const twoThirds = Math.max(2, Math.floor(sentences.length * 2 / 3));
-    const establish = sentences.slice(0, third).join(' ');
-    const action = sentences.slice(third, twoThirds).join(' ');
-    const resolve = sentences.slice(twoThirds).join(' ');
-    prompt = `[00:00-02:00] ESTABLISH: ${establish} [02:00-05:00] ACTION: ${action} [05:00-08:00] RESOLVE: ${resolve}`;
-  }
-
-  // TECHNIQUE 2: Front-load identity — extract and prepend the most important identity clause
-  // Veo's attention is highest on the first 2 sentences
-  // Extract identity block from [ENVIRONMENT LOCK] or first sentence and hoist it
-  const environmentLockMatch = prompt.match(/\[SCENE LOCKED\][^.]*\./);
-  const identityPrefix = environmentLockMatch
-    ? `${environmentLockMatch[0]} `
-    : '';
-
-  // TECHNIQUE 3: Positive stability constraints
-  // Research shows positive constraints outperform negative prompts for Veo
-  const stabilityConstraints = [
-    'locked camera on stabilized tripod mount',
-    'consistent identity throughout all 8 seconds',
-    'photorealistic 1080p quality',
-    'continuous smooth motion',
-  ].join(', ');
-
-  // TECHNIQUE 4: Extract and normalize audio direction blocks
-  // If audio direction is already in prompt, keep it; otherwise add placeholder
-  const hasAudioBlock = /\b(SFX:|AMB:|MUSIC_TONE:|VOICE:)/i.test(prompt);
-  const audioSuffix = hasAudioBlock ? '' : '\nAMB: [natural ambient sound, environmental atmosphere] MUSIC_TONE: [cinematic score matching scene mood]';
-
-  // TECHNIQUE 5: Cap at 2000 chars (Veo's effective attention window)
-  // Priority: first 1000 chars (most attended), then fill remaining
-  const fullPrompt = `${identityPrefix}${prompt}${audioSuffix}\n${stabilityConstraints}`;
-  const capped = fullPrompt.slice(0, 2000);
-
-  console.log(`[Veo3Optimizer] Original: ${rawPrompt.length} chars → Optimized: ${capped.length} chars | hasTimestamps: ${hasTimestamps} | hasAudio: ${hasAudioBlock}`);
-  return capped;
-}
-
-async function createVeo3Prediction(
+async function createRunwayPrediction(
   prompt: string,
   startImageUrl?: string | null,
   aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
+  durationSeconds: number = RUNWAY_CLIP_DURATION,
 ): Promise<{ predictionId: string }> {
   const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
   if (!REPLICATE_API_KEY) {
     throw new Error("REPLICATE_API_KEY is not configured");
   }
 
-  // Apply Veo 3.1 hallucination prevention optimizations
-  const optimizedPrompt = optimizePromptForVeo3(prompt);
+  // Clamp duration to supported values (5 or 10 seconds)
+  const duration = durationSeconds <= 5 ? 5 : 10;
 
   const input: Record<string, any> = {
-    prompt: optimizedPrompt,
+    prompt: prompt.slice(0, 2000),
+    duration,
     aspect_ratio: aspectRatio,
-    duration: VEO3_CLIP_DURATION, // Always 8 seconds
-    generate_audio: true,         // Native synchronized audio
   };
 
-  // Veo supports image-to-video via first_frame_image
+  // Gen-4 Turbo uses `image` for the first frame (image-to-video)
   if (startImageUrl && startImageUrl.startsWith("http")) {
-    input.first_frame_image = startImageUrl;
-    console.log(`[SingleClip][Veo3] Using start image for image-to-video`);
+    input.image = startImageUrl;
+    console.log(`[SingleClip][Runway] Using start image for image-to-video`);
   }
 
-  console.log("[SingleClip] Creating Replicate prediction for Google Veo 3.1:", {
-    model: `${VEO3_MODEL_OWNER}/${VEO3_MODEL_NAME}`,
-    hasStartImage: !!input.first_frame_image,
+  console.log("[SingleClip] Creating Replicate prediction for Runway Gen-4 Turbo:", {
+    model: RUNWAY_MODEL,
+    hasStartImage: !!input.image,
     duration: input.duration,
     aspectRatio: input.aspect_ratio,
-    promptLength: optimizedPrompt.length,
+    promptLength: prompt.length,
   });
 
-  const response = await fetch(VEO3_MODEL_URL, {
+  const response = await fetch(RUNWAY_MODEL_URL, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${REPLICATE_API_KEY}`,
       "Content-Type": "application/json",
-      "Prefer": "wait",
     },
     body: JSON.stringify({ input }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("[SingleClip][Veo3] Replicate API error:", response.status, errorText);
-    throw new Error(`Veo 3 API error: ${response.status} - ${errorText}`);
+    console.error("[SingleClip][Runway] Replicate API error:", response.status, errorText);
+    throw new Error(`Runway Gen-4 Turbo API error: ${response.status} - ${errorText}`);
   }
 
   const prediction: ReplicatePrediction = await response.json();
 
   if (!prediction.id) {
-    console.error("[SingleClip][Veo3] No prediction ID in response:", prediction);
-    throw new Error("No prediction ID in Veo 3 response");
+    console.error("[SingleClip][Runway] No prediction ID in response:", prediction);
+    throw new Error("No prediction ID in Runway Gen-4 Turbo response");
   }
 
-  console.log("[SingleClip][Veo3] Prediction created:", prediction.id);
+  console.log("[SingleClip][Runway] Prediction created:", prediction.id);
   return { predictionId: prediction.id };
 }
 
@@ -871,15 +805,16 @@ serve(async (req) => {
       }
     }
 
-    // Route to Veo 3.1 or Kling based on videoEngine param
-    const useVeo = videoEngine === "veo";
-    console.log(`[SingleClip] Engine: ${useVeo ? "Google Veo 3.1 (8s, 1080p)" : "Kling v2.6 (HD Pro)"}`);
+    // Route to Runway Gen-4 Turbo or Kling based on videoEngine param
+    const useRunway = videoEngine === "veo"; // "veo" param now routes to Runway Gen-4 Turbo
+    console.log(`[SingleClip] Engine: ${useRunway ? "Runway Gen-4 Turbo" : "Kling v2.6 (HD Pro)"}`);
     
-    const { predictionId } = useVeo
-      ? await createVeo3Prediction(
+    const { predictionId } = useRunway
+      ? await createRunwayPrediction(
           enhancedPrompt,
           validatedStartImage,
           aspectRatio as '16:9' | '9:16' | '1:1',
+          durationSeconds,
         )
       : await createReplicatePrediction(
           enhancedPrompt,

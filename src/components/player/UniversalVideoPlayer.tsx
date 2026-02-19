@@ -658,44 +658,47 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               (tasks.predictions as Array<{ status?: string }>).some(p => p.status !== 'completed' && p.status !== 'failed');
             const isStillGenerating = tasks?.stage === 'async_video_generation' || hasIncompletePredictions;
             
-            // Generate HLS playlist for ALL browsers when content is ready
-            // CRITICAL: Don't generate HLS for projects still in progress
-            // CRITICAL: Skip HLS generation if HLS already failed (prevents infinite loop)
-            if (useHLSPlayback && hasVideoContent && !isStillGenerating && !hlsFailed) {
-              console.log('[UniversalPlayer] Generating server-side HLS playlist for universal playback');
+            // Resolve clip URLs for MSE direct playback.
+            // generate-hls-playlist now returns mse_direct mode with clip URLs
+            // instead of a broken m3u8 (raw MP4s are not valid HLS segments for hls.js).
+            if (hasVideoContent && !isStillGenerating) {
+              console.log('[UniversalPlayer] Resolving clip URLs via generate-hls-playlist (MSE direct mode)');
               try {
-                const { data: hlsResult, error: hlsError } = await supabase.functions.invoke('generate-hls-playlist', {
+                const { data: result, error: resultError } = await supabase.functions.invoke('generate-hls-playlist', {
                   body: { projectId: source.projectId }
                 });
-                
-                if (!hlsError && hlsResult?.hlsPlaylistUrl) {
-                  logPlaybackPath('HLS_UNIVERSAL', { 
-                    projectId: source.projectId, 
-                    hlsUrl: hlsResult.hlsPlaylistUrl,
-                    reason: 'Generated server-side HLS playlist for universal playback'
-                  });
-                  setHlsPlaylistUrl(hlsResult.hlsPlaylistUrl);
-                  setMasterAudioUrl(audioUrl);
-                  setIsLoading(false);
-                  return;
+
+                if (!resultError && result?.success) {
+                  if (result.mode === 'mse_direct' && result.clipUrls?.length > 0) {
+                    // MSE direct: use clip URLs for crossfade playback (no HLS)
+                    logPlaybackPath('MSE_DIRECT', {
+                      projectId: source.projectId,
+                      clipCount: result.clipUrls.length,
+                      reason: 'generate-hls-playlist returned mse_direct clip URLs',
+                    });
+                    urls = result.clipUrls;
+                    // Fall through to MSE clip loading below
+                  } else if (result.mode === 'hls_native' && result.hlsPlaylistUrl) {
+                    // Legacy path: genuine HLS (e.g. transcoded segments) — still supported
+                    setHlsPlaylistUrl(result.hlsPlaylistUrl);
+                    setMasterAudioUrl(audioUrl);
+                    setIsLoading(false);
+                    return;
+                  }
                 } else {
-                  // Check if this is a "draft_or_incomplete" or "clips_pending" response - not an actual error
-                  const errorReason = hlsResult?.reason || (hlsError as Record<string, unknown> | null)?.reason;
+                  const errorReason = result?.reason;
                   if (errorReason === 'draft_or_incomplete' || errorReason === 'clips_pending') {
-                    console.log(`[UniversalPlayer] Project ${errorReason}, falling back to MSE/legacy`);
+                    console.log(`[UniversalPlayer] Project ${errorReason}, loading from DB clips`);
                   } else {
-                    console.warn('[UniversalPlayer] HLS generation failed, falling back to MSE/legacy:', hlsError);
+                    console.warn('[UniversalPlayer] generate-hls-playlist failed, loading from DB clips:', resultError);
                   }
                 }
-              } catch (hlsGenError) {
-                console.warn('[UniversalPlayer] HLS generation error, using MSE/legacy:', hlsGenError);
+              } catch (err) {
+                console.warn('[UniversalPlayer] generate-hls-playlist error, loading from DB clips:', err);
               }
-              // Fall through to MSE/legacy mode
-            } else if (useHLSPlayback && isStillGenerating) {
+            } else if (isStillGenerating) {
               console.log('[UniversalPlayer] Project still generating, using MSE/legacy for now');
-            } else if (useHLSPlayback && hlsFailed) {
-              console.log('[UniversalPlayer] HLS previously failed, loading clips directly via MSE');
-            } else if (useHLSPlayback && !hasVideoContent) {
+            } else if (!hasVideoContent) {
               console.log('[UniversalPlayer] No video content found, skipping HLS generation');
             }
             

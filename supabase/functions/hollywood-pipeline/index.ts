@@ -348,7 +348,7 @@ function getCreditsForClip(clipIndex: number, clipDuration: number, videoEngine:
     : CREDIT_PRICING.BASE_CREDITS_PER_CLIP;
 }
 
-function calculateTotalCredits(clipCount: number, clipDuration: number, videoEngine: 'kling' | 'veo' = 'kling'): number {
+function calculateTotalCredits(clipCount: number, clipDuration: number, videoEngine: 'kling' | 'veo' = 'veo'): number {
   let total = 0;
   for (let i = 0; i < clipCount; i++) {
     total += getCreditsForClip(i, clipDuration, videoEngine);
@@ -422,7 +422,7 @@ function calculatePipelineParams(
   }
   
   // Use tiered credit calculation: 10/20 credits base, 15/30 extended (Kling/Veo)
-  const videoEngine: 'kling' | 'veo' = (request as any).videoEngine || 'kling';
+  const videoEngine: 'kling' | 'veo' = (request as any).videoEngine || 'veo'; // DEFAULT: Runway (veo param routes to Runway Gen-4 Turbo/Gen-4.5)
   const totalCredits = calculateTotalCredits(clipCount, clipDuration, videoEngine);
   
   console.log(`[Hollywood] Pipeline params: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s total (max: ${maxDuration}s, tier limit: ${maxClips} clips, engine: ${videoEngine})`);
@@ -3354,7 +3354,7 @@ async function runProduction(
     // and character drift across independently-generated 8-second clips.
     // Kling/avatar mode skips this — it uses its own identity system.
     // =====================================================
-    const isVeoMode = (request.videoEngine || 'kling') === 'veo';
+    const isVeoMode = (request.videoEngine || 'veo') === 'veo'; // DEFAULT to veo (Runway)
     
     const buildVeoContinuityDNA = (): string => {
       if (!isVeoMode) return '';
@@ -3614,7 +3614,7 @@ async function runProduction(
         }
         
         // Determine engine: veo for text/image-to-video, kling for avatar
-        const videoEngine = request.videoEngine || 'kling';
+        const videoEngine = request.videoEngine || 'veo'; // DEFAULT: Runway Gen-4 Turbo (I2V) or Gen-4.5 (T2V)
         
         const clipResult = await callEdgeFunction('generate-single-clip', {
           userId: request.userId,

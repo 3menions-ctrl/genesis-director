@@ -120,6 +120,8 @@ function CreateContentInner() {
     avatarVoiceId?: string;
     avatarTemplateId?: string;
     avatarName?: string;
+    // Engine selection: 'veo' for text/image-to-video, 'kling' for avatar
+    videoEngine?: 'kling' | 'veo';
   }) => {
     if (!user) {
       toast.error('Please sign in to create videos');
@@ -153,6 +155,7 @@ function CreateContentInner() {
         enableMusic: config.enableMusic,
         genre: config.genre,
         mood: config.mood,
+        videoEngine: config.videoEngine, // 'veo' for text/image-to-video, 'kling' for avatar
         // Breakout template parameters - for platform UI shattering effect
         isBreakout: config.isBreakout,
         breakoutStartImageUrl: config.breakoutStartImageUrl,

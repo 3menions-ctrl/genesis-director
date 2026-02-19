@@ -661,7 +661,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             // Resolve clip URLs for MSE direct playback.
             // generate-hls-playlist now returns mse_direct mode with clip URLs
             // instead of a broken m3u8 (raw MP4s are not valid HLS segments for hls.js).
-            if (hasVideoContent && !isStillGenerating) {
+          if (hasVideoContent && !isStillGenerating) {
               console.log('[UniversalPlayer] Resolving clip URLs via generate-hls-playlist (MSE direct mode)');
               try {
                 const { data: result, error: resultError } = await supabase.functions.invoke('generate-hls-playlist', {
@@ -679,9 +679,22 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                       clipCount: result.clipUrls.length,
                       reason: 'MSE direct mode — using dual-video crossfade for raw MP4 clips',
                     });
-                    urls = result.clipUrls;
-                    // CRITICAL: Disable MSE engine — it cannot handle unfragmented MP4
+                    // CRITICAL: Build clips directly from the server response — skip duration probing.
+                    // The generate-hls-playlist function already knows each clip's duration from the DB.
+                    // Probing via temporary <video> elements causes 8s timeouts per clip (CORS blocks metadata load),
+                    // resulting in a 48s freeze for a 6-clip project before the player even appears.
+                    const serverClips = result.clips as Array<{ videoUrl: string; duration: number }>;
+                    const directClips = serverClips.map((c) => ({
+                      url: c.videoUrl,
+                      blobUrl: c.videoUrl,
+                      duration: c.duration || 8,
+                    }));
+                    if (!mountedRef.current) return;
                     setUseMSE(false);
+                    setClips(directClips);
+                    setIsLoading(false);
+                    if (autoPlay) setIsPlaying(true);
+                    return; // ← done, skip the rest of loadSource
                   } else if (result.mode === 'hls_native' && result.hlsPlaylistUrl) {
                     // Legacy path: genuine HLS (e.g. transcoded segments) — still supported
                     setHlsPlaylistUrl(result.hlsPlaylistUrl);
@@ -809,9 +822,21 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               }
               
               if (manifest.clips) {
-                urls = manifest.clips.map(c => c.videoUrl);
+                // CRITICAL: Use durations from manifest directly — skip the 8s-per-clip probe.
+                // The manifest already contains accurate durations from the DB.
+                const manifestClips = manifest.clips.map(c => ({
+                  url: c.videoUrl,
+                  blobUrl: c.videoUrl,
+                  duration: c.duration || 8,
+                }));
                 audioUrl = (manifest as any).masterAudioUrl || (manifest as any).voiceUrl || null;
-                setMasterAudioUrl(audioUrl);
+                if (audioUrl) setMasterAudioUrl(audioUrl);
+                if (!mountedRef.current) return;
+                setUseMSE(false);
+                setClips(manifestClips);
+                setIsLoading(false);
+                if (autoPlay) setIsPlaying(true);
+                return; // skip probe loop
               }
             }
           } else if (source.urls) {

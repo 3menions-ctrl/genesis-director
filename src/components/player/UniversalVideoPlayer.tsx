@@ -594,9 +594,16 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
       [clips]
     );
 
+    // Stable primitives extracted from `source` so the loadSource effect
+    // does NOT re-fire every time the parent renders a new object literal.
+    const sourceProjectId = source.projectId ?? null;
+    const sourceManifestUrl = source.manifestUrl ?? null;
+    const sourceUrlsKey = source.urls ? source.urls.join('|') : null;
+    const sourceMasterAudio = source.masterAudioUrl ?? null;
+
     const hasValidSource = useMemo(() => {
-      return (source.urls && source.urls.length > 0) || !!source.manifestUrl || !!source.projectId;
-    }, [source]);
+      return !!sourceUrlsKey || !!sourceManifestUrl || !!sourceProjectId;
+    }, [sourceUrlsKey, sourceManifestUrl, sourceProjectId]);
 
     // ========================================================================
     // SOURCE LOADING
@@ -621,12 +628,12 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
           let audioUrl: string | null = null;
 
           // Fetch from database if projectId provided
-          if (source.projectId) {
+          if (sourceProjectId) {
             // First check for existing HLS playlist in project
             const { data: project } = await supabase
               .from('movie_projects')
               .select('pending_video_tasks, voice_audio_url, video_url')
-              .eq('id', source.projectId)
+              .eq('id', sourceProjectId)
               .maybeSingle();
             
             const tasks = project?.pending_video_tasks as Record<string, unknown> | null;
@@ -640,7 +647,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             // Skip HLS if it has already failed for this source (fall through to MSE)
             if (useHLSPlayback && hlsUrl && !hlsFailed) {
               logPlaybackPath('HLS_UNIVERSAL', { 
-                projectId: source.projectId, 
+                projectId: sourceProjectId, 
                 hlsUrl,
                 reason: 'HLS playlist available - using for all browsers via hls.js'
               });
@@ -665,7 +672,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               console.log('[UniversalPlayer] Resolving clip URLs via generate-hls-playlist (MSE direct mode)');
               try {
                 const { data: result, error: resultError } = await supabase.functions.invoke('generate-hls-playlist', {
-                  body: { projectId: source.projectId }
+                  body: { projectId: sourceProjectId }
                 });
 
                 if (!resultError && result?.success) {
@@ -675,7 +682,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                     // they must be played via direct src= assignment. The dual-video crossfade
                     // path handles this correctly without any MSE timeout issues.
                     logPlaybackPath('CROSSFADE_DIRECT', {
-                      projectId: source.projectId,
+                      projectId: sourceProjectId,
                       clipCount: result.clipUrls.length,
                       reason: 'MSE direct mode — using dual-video crossfade for raw MP4 clips',
                     });
@@ -723,7 +730,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             const { data: dbClips, error: dbError } = await supabase
               .from('video_clips')
               .select('video_url, duration_seconds, shot_index')
-              .eq('project_id', source.projectId)
+              .eq('project_id', sourceProjectId)
               .eq('status', 'completed')
               .not('video_url', 'is', null)
               .order('shot_index', { ascending: true });
@@ -767,7 +774,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                   // Check for HLS playlist in manifest (iOS path)
                   if (useHLSNative && (manifest as any).hlsPlaylistUrl) {
                     logPlaybackPath('HLS_NATIVE', { 
-                      projectId: source.projectId,
+                      projectId: sourceProjectId,
                       hlsUrl: (manifest as any).hlsPlaylistUrl,
                       reason: 'Parsed HLS manifest from project video_url'
                     });
@@ -804,14 +811,14 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             }
           }
           // Parse manifest if provided
-          else if (source.manifestUrl) {
-            const manifest = await parseManifest(source.manifestUrl);
+          else if (sourceManifestUrl) {
+            const manifest = await parseManifest(sourceManifestUrl);
             if (manifest) {
               // Check for HLS playlist in manifest
               const hlsManifest = manifest as any;
               if (useHLSNative && hlsManifest.hlsPlaylistUrl) {
                 logPlaybackPath('HLS_NATIVE', { 
-                  manifestUrl: source.manifestUrl,
+                  manifestUrl: sourceManifestUrl,
                   hlsUrl: hlsManifest.hlsPlaylistUrl,
                   reason: 'iOS Safari detected with HLS manifest'
                 });
@@ -839,9 +846,9 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                 return; // skip probe loop
               }
             }
-          } else if (source.urls) {
-            urls = source.urls;
-            audioUrl = source.masterAudioUrl || null;
+          } else if (sourceUrlsKey) {
+            urls = source.urls!;
+            audioUrl = sourceMasterAudio || null;
             
             // Set master audio URL for direct URL playback
             if (audioUrl) {
@@ -954,7 +961,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
         mountedRef.current = false;
         controller.abort();
       };
-    }, [source, hasValidSource, mode, autoPlay, hlsFailed]);
+    }, [sourceProjectId, sourceManifestUrl, sourceUrlsKey, sourceMasterAudio, hasValidSource, mode, autoPlay, hlsFailed]);
 
     // ========================================================================
     // MSE ENGINE INITIALIZATION

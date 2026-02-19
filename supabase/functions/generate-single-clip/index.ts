@@ -377,17 +377,17 @@ async function pollReplicatePrediction(
           `Clip ${shotIndex + 1}/${totalShots} complete! ${shotIndex + 1 < totalShots ? 'Starting next clip...' : 'Finalizing video...'}`
         );
         
-        console.log(`[SingleClip] ✓ Kling clip completed: ${videoUrl.substring(0, 80)}...`);
+        console.log(`[SingleClip] ✓ Clip completed: ${videoUrl.substring(0, 80)}...`);
         return { videoUrl };
         
       case "failed":
         const errorMsg = prediction.error || "Replicate generation failed";
         await updateProgress('error', overallProgress, `Clip ${shotIndex + 1} failed: ${errorMsg.substring(0, 100)}`);
-        throw new Error(`Kling generation failed: ${errorMsg}`);
+        throw new Error(`Video generation failed: ${errorMsg}`);
         
       case "canceled":
         await updateProgress('canceled', overallProgress, 'Generation was canceled');
-        throw new Error("Kling generation was canceled");
+        throw new Error("Video generation was canceled");
         
       case "starting":
       case "processing":
@@ -866,14 +866,14 @@ serve(async (req) => {
     // "veo" engine param → Runway (Gen-4 Turbo for I2V, Gen-4.5 for T2V)
     // "kling" engine param → Kling v2.6 (avatar mode only)
     const wantsRunway = videoEngine === "veo";
-    const useRunwayI2V = wantsRunway && !!validatedStartImage; // Gen-4 Turbo: image required
+    const useRunwayI2V = wantsRunway && !!validatedStartImage; // Gen-4 Turbo: image-to-video
     const useRunwayT2V = wantsRunway && !validatedStartImage;  // Gen-4.5: pure text-to-video
     const engineLabel = useRunwayI2V
       ? "Runway Gen-4 Turbo (I2V)"
       : useRunwayT2V
         ? "Runway Gen-4.5 (T2V)"
         : "Kling v2.6 (HD Pro)";
-    console.log(`[SingleClip] Engine: ${engineLabel}`);
+    console.log(`[SingleClip] ══ ENGINE SELECTED: ${engineLabel} (videoEngine param="${videoEngine}", hasStartImage=${!!validatedStartImage}) ══`);
     
     let predictionId: string;
     if (useRunwayI2V) {

@@ -774,6 +774,9 @@ async function runPreProduction(
             colorPalette: si.colorScience.dominant?.map((c: any) => c.hex || c.name) || [],
             lighting: si.lightingProfile.lightingAnchor,
             visualStyle: si.cinematicStyle.cinematicAnchor,
+            // STATIC ELEMENT LOCKS — prevents moon/sun/horizon/prop drift
+            sceneAnchors: si.environmentDNA?.sceneAnchors || [],
+            environmentLock: si.environmentDNA?.environmentLock || '',
             // Store the clip-level anchors for direct injection
             clipAnchors: si.clipAnchors,
             // Full environment context
@@ -927,6 +930,8 @@ async function runPreProduction(
               colorPalette: state.referenceAnalysis.colorPalette?.dominant || [],
               lighting: state.referenceAnalysis.lighting?.style || '',
               visualStyle: state.referenceAnalysis.environment?.setting || '',
+              sceneAnchors: state.referenceAnalysis.environment?.sceneAnchors || [],
+              environmentLock: state.referenceAnalysis.environment?.environmentLock || '',
             } : undefined,
           };
         }

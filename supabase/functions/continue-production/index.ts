@@ -80,7 +80,7 @@ interface ContinueProductionRequest {
   totalClips: number;
   // Context passed from hollywood-pipeline
   pipelineContext?: {
-    videoEngine?: 'kling' | 'veo';
+    videoEngine?: 'kling' | 'veo'; // CRITICAL: must survive all callback hops
     identityBible?: any;
     masterSceneAnchor?: any;
     goldenFrameData?: any;
@@ -91,9 +91,7 @@ interface ContinueProductionRequest {
     aspectRatio?: '16:9' | '9:16' | '1:1';
     sceneImageLookup?: Record<number, string>;
     tierLimits?: any;
-    // CRITICAL FIX: Add extractedCharacters to context interface
     extractedCharacters?: any[];
-    // BUG FIX: Add clipDuration to ensure 10s clips propagate through callback chain
     clipDuration?: number;
   };
 }

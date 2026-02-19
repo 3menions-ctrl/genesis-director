@@ -664,7 +664,7 @@ serve(async (req) => {
     }
 
     console.log(`[SingleClip] Starting generation for project ${projectId}, shot ${shotIndex}`);
-    console.log(`[SingleClip] Using Kling v2.6 (HD Pro mode) via Replicate`);
+    console.log(`[SingleClip] Engine param received: videoEngine="${videoEngine}"`);
 
     // =========================================================
     // GUARD RAIL #0: Auto-recover stale mutexes before anything
@@ -1153,6 +1153,9 @@ serve(async (req) => {
     // =========================================================
     const updatedContext = {
       ...pipelineContext,
+      // CRITICAL: Always explicitly carry videoEngine so it survives all callback hops.
+      // Do NOT rely solely on spread — the interface may strip unknown keys during parsing.
+      videoEngine: videoEngine || pipelineContext?.videoEngine || 'kling',
       accumulatedAnchors: [
         ...(pipelineContext?.accumulatedAnchors || []),
         {

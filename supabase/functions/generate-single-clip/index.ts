@@ -32,14 +32,22 @@ import {
 } from "../_shared/pipeline-guard-rails.ts";
 
 // ============================================================================
-// Kling 2.6 via Replicate - Latest Model with HD Pro Quality
-// Using Replicate API with predictions endpoint for maximum quality
+// Kling 2.6 via Replicate - Avatar mode
 // ============================================================================
 const KLING_MODEL_OWNER = "kwaivgi";
 const KLING_MODEL_NAME = "kling-v2.6";
 const REPLICATE_MODEL_URL = `https://api.replicate.com/v1/models/${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}/predictions`;
 const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
 const KLING_ENABLE_AUDIO = true;
+
+// ============================================================================
+// Google Veo 3 via Replicate - Text-to-Video & Image-to-Video
+// Veo 3 generates 8-second clips at 1080p with native synchronized audio
+// ============================================================================
+const VEO3_MODEL_OWNER = "google";
+const VEO3_MODEL_NAME = "veo-3";
+const VEO3_MODEL_URL = `https://api.replicate.com/v1/models/${VEO3_MODEL_OWNER}/${VEO3_MODEL_NAME}/predictions`;
+const VEO3_CLIP_DURATION = 8; // Veo 3 always generates 8-second clips
 
 // Frame extraction retry configuration - use guard rail config
 const FRAME_EXTRACTION_MAX_RETRIES = GUARD_RAIL_CONFIG.FRAME_EXTRACTION_MAX_RETRIES;
@@ -138,8 +146,77 @@ async function createReplicatePrediction(
   return { predictionId: prediction.id };
 }
 
-// Poll Replicate prediction for completion with progress updates
-async function pollReplicatePrediction(
+// =====================================================
+// GOOGLE VEO 3 PREDICTION (Text-to-Video & Image-to-Video)
+// Veo 3 generates 8-second clips at 1080p with native audio
+// =====================================================
+async function createVeo3Prediction(
+  prompt: string,
+  startImageUrl?: string | null,
+  aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
+): Promise<{ predictionId: string }> {
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  if (!REPLICATE_API_KEY) {
+    throw new Error("REPLICATE_API_KEY is not configured");
+  }
+
+  // Strip Kling-specific markers that Veo doesn't understand
+  const cleanPrompt = prompt
+    .replace(/\[FACE LOCK\]/gi, '')
+    .replace(/\[AVATAR STYLE LOCK\]/gi, '')
+    .replace(/IDENTITY_ANCHOR\([^)]*\)/gi, '')
+    .replace(/MOTION_GUARD\([^)]*\)/gi, '')
+    .slice(0, 2000);
+
+  const input: Record<string, any> = {
+    prompt: cleanPrompt,
+    aspect_ratio: aspectRatio,
+    duration: VEO3_CLIP_DURATION, // Always 8 seconds
+    generate_audio: true,         // Native synchronized audio
+  };
+
+  // Veo supports image-to-video via first_frame_image
+  if (startImageUrl && startImageUrl.startsWith("http")) {
+    input.first_frame_image = startImageUrl;
+    console.log(`[SingleClip][Veo3] Using start image for image-to-video`);
+  }
+
+  console.log("[SingleClip] Creating Replicate prediction for Google Veo 3:", {
+    model: `${VEO3_MODEL_OWNER}/${VEO3_MODEL_NAME}`,
+    hasStartImage: !!input.first_frame_image,
+    duration: input.duration,
+    aspectRatio: input.aspect_ratio,
+    promptLength: cleanPrompt.length,
+  });
+
+  const response = await fetch(VEO3_MODEL_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": "wait",
+    },
+    body: JSON.stringify({ input }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[SingleClip][Veo3] Replicate API error:", response.status, errorText);
+    throw new Error(`Veo 3 API error: ${response.status} - ${errorText}`);
+  }
+
+  const prediction: ReplicatePrediction = await response.json();
+
+  if (!prediction.id) {
+    console.error("[SingleClip][Veo3] No prediction ID in response:", prediction);
+    throw new Error("No prediction ID in Veo 3 response");
+  }
+
+  console.log("[SingleClip][Veo3] Prediction created:", prediction.id);
+  return { predictionId: prediction.id };
+}
+
+
   predictionId: string,
   supabase: any,
   projectId: string,
@@ -505,6 +582,7 @@ serve(async (req) => {
       extractedCharacters,
       referenceImageUrl,
       sceneImageUrl,
+      videoEngine = "kling", // 'veo' for text/image-to-video, 'kling' for avatar
     } = body;
 
     if (!projectId || !prompt) {
@@ -729,14 +807,23 @@ serve(async (req) => {
       }
     }
 
-    // Create Replicate prediction with enhanced prompt
-    const { predictionId } = await createReplicatePrediction(
-      enhancedPrompt,
-      fullNegativePrompt,
-      validatedStartImage,
-      aspectRatio as '16:9' | '9:16' | '1:1',
-      durationSeconds
-    );
+    // Route to Veo 3 or Kling based on videoEngine param
+    const useVeo = videoEngine === "veo";
+    console.log(`[SingleClip] Engine: ${useVeo ? "Google Veo 3 (8s, 1080p)" : "Kling v2.6 (HD Pro)"}`);
+    
+    const { predictionId } = useVeo
+      ? await createVeo3Prediction(
+          enhancedPrompt,
+          validatedStartImage,
+          aspectRatio as '16:9' | '9:16' | '1:1',
+        )
+      : await createReplicatePrediction(
+          enhancedPrompt,
+          fullNegativePrompt,
+          validatedStartImage,
+          aspectRatio as '16:9' | '9:16' | '1:1',
+          durationSeconds
+        );
 
     // =========================================================
     // CRITICAL FIX: Register clip in database BEFORE polling

@@ -317,14 +317,16 @@ const MIN_CLIPS_PER_PROJECT = 1; // Allow single-clip projects
 // Kling (avatar): Base 10 / Extended 15 per clip
 // Veo 3 (text/image-to-video): Base 20 / Extended 30 per clip (2× Kling)
 const CREDIT_PRICING = {
-  // Kling
+  // Kling v2.6 (Avatar mode)
   BASE_CREDITS_PER_CLIP: 10,
   EXTENDED_CREDITS_PER_CLIP: 15,
-  // Veo 3 — double
-  VEO_BASE_CREDITS_PER_CLIP: 20,
-  VEO_EXTENDED_CREDITS_PER_CLIP: 30,
+  // Runway Gen-4 Turbo — 50% margin pricing
+  // Real cost: $0.05/s → 5s=$0.25, 10s=$0.50
+  // At $0.10/credit: 5s=5cr ($0.50 revenue, 50% margin), 10s=10cr ($1.00 revenue, 50% margin)
+  RUNWAY_BASE_CREDITS_PER_CLIP: 5,      // 5s clip: $0.25 cost → $0.50 charge = 50% margin
+  RUNWAY_EXTENDED_CREDITS_PER_CLIP: 10, // 10s clip: $0.50 cost → $1.00 charge = 50% margin
   BASE_CLIP_COUNT_THRESHOLD: 6,
-  BASE_DURATION_THRESHOLD: 6,
+  BASE_DURATION_THRESHOLD: 5,
 } as const;
 
 function isExtendedPricing(clipIndex: number, clipDuration: number): boolean {
@@ -332,12 +334,15 @@ function isExtendedPricing(clipIndex: number, clipDuration: number): boolean {
          clipDuration > CREDIT_PRICING.BASE_DURATION_THRESHOLD;
 }
 
-function getCreditsForClip(clipIndex: number, clipDuration: number, videoEngine: 'kling' | 'veo' = 'kling'): number {
-  if (videoEngine === 'veo') {
-    return clipIndex >= CREDIT_PRICING.BASE_CLIP_COUNT_THRESHOLD
-      ? CREDIT_PRICING.VEO_EXTENDED_CREDITS_PER_CLIP
-      : CREDIT_PRICING.VEO_BASE_CREDITS_PER_CLIP;
+function getCreditsForClip(clipIndex: number, clipDuration: number, videoEngine: 'kling' | 'veo' = 'veo'): number {
+  // 'veo' param routes to Runway Gen-4 Turbo (default for all non-avatar modes)
+  if (videoEngine !== 'kling') {
+    // Runway: 5s=5cr, 10s=10cr (50% margin on $0.05/s Replicate cost)
+    return clipDuration > 5
+      ? CREDIT_PRICING.RUNWAY_EXTENDED_CREDITS_PER_CLIP
+      : CREDIT_PRICING.RUNWAY_BASE_CREDITS_PER_CLIP;
   }
+  // Kling (Avatar mode only)
   return isExtendedPricing(clipIndex, clipDuration)
     ? CREDIT_PRICING.EXTENDED_CREDITS_PER_CLIP
     : CREDIT_PRICING.BASE_CREDITS_PER_CLIP;

@@ -10,13 +10,25 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Provider selection - Kling 2.6 via Replicate
+// Provider selection
 type VideoProvider = "replicate";
 
-// Kling 2.6 via Replicate configuration
+// Kling 2.6 via Replicate configuration (Avatar mode)
 const REPLICATE_API_URL = "https://api.replicate.com/v1/predictions";
-const KLING_MODEL = "kwaivgi/kling-v2.6"; // Official model - use model identifier directly
-const KLING_ENABLE_AUDIO = false; // Disabled: Kling's auto-generated cinematic music is low quality and unwanted
+const KLING_MODEL = "kwaivgi/kling-v2.6";
+const KLING_ENABLE_AUDIO = false; // Disabled: Kling's auto-generated cinematic music is low quality
+
+// ============================================================================
+// Runway via Replicate - Text-to-Video & Image-to-Video
+// Gen-4 Turbo: image-to-video (requires image) — $0.05/s
+// Gen-3 Alpha Turbo: text-to-video (no image needed) — $0.01/s
+// 50% margin pricing: 5cr/clip ($0.50 revenue, $0.25 real cost I2V)
+// ============================================================================
+const RUNWAY_GEN4_MODEL = "runwayml/gen4-turbo";
+const RUNWAY_GEN3_MODEL = "runwayml/gen3a-turbo";
+const RUNWAY_GEN4_MODEL_URL = `https://api.replicate.com/v1/models/${RUNWAY_GEN4_MODEL}/predictions`;
+const RUNWAY_GEN3_MODEL_URL = `https://api.replicate.com/v1/models/${RUNWAY_GEN3_MODEL}/predictions`;
+const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
 
 // Scene context for consistency
 interface SceneContext {
@@ -886,7 +898,65 @@ async function generateWithKling(
   }
 }
 
-// NOTE: Veo3 fallback removed - All-in on Kling 2.6
+// NOTE: Kling 2.6 handles Avatar mode. Runway Gen-4 Turbo handles Text-to-Video & Image-to-Video.
+
+// Generate video with Runway via Replicate
+// Gen-4 Turbo for image-to-video (requires image), Kling for text-to-video fallback
+async function generateWithRunway(
+  prompt: string,
+  enhancedPrompt: string,
+  negativePrompt: string,
+  startImageUrl: string | null,
+  duration: number,
+  aspectRatio: string,
+  referenceImages: string[] = [],
+  enableAudio: boolean = false
+): Promise<{ success: true; taskId: string; provider: "replicate"; model: string } | { success: false; error: string }> {
+  const hasImage = !!(startImageUrl && startImageUrl.startsWith("http"));
+
+  if (hasImage) {
+    // Image-to-video: use Runway Gen-4 Turbo
+    try {
+      const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+      if (!REPLICATE_API_KEY) throw new Error("REPLICATE_API_KEY is not configured");
+
+      const runwayDuration = duration <= 5 ? 5 : 10;
+      const runwayAspectRatio = aspectRatio === "9:16" ? "9:16" : aspectRatio === "1:1" ? "1:1" : "16:9";
+
+      const input: Record<string, any> = {
+        prompt: enhancedPrompt.slice(0, 2000),
+        duration: runwayDuration,
+        aspect_ratio: runwayAspectRatio,
+        image: startImageUrl,
+      };
+
+      console.log("[generate-video][Runway Gen-4 Turbo] Image-to-video:", { duration: runwayDuration, aspectRatio: runwayAspectRatio });
+
+      const response = await fetch(RUNWAY_GEN4_MODEL_URL, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ input }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[generate-video][Runway] API error:", response.status, errorText);
+        return { success: false, error: `Runway Gen-4 Turbo API error: ${response.status} - ${errorText}` };
+      }
+
+      const prediction = await response.json();
+      if (!prediction.id) return { success: false, error: "No prediction ID in Runway response" };
+      console.log("[generate-video][Runway Gen-4 Turbo] Prediction created:", prediction.id);
+      return { success: true, taskId: prediction.id, provider: "replicate", model: RUNWAY_GEN4_MODEL };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : "Runway generation failed" };
+    }
+  } else {
+    // Text-to-video: use Kling v2.6 (no image required)
+    console.log("[generate-video] Text-to-video: routing to Kling v2.6 (Runway Gen-4 requires image)");
+    return generateWithKling(prompt, enhancedPrompt, negativePrompt, duration, aspectRatio, null, referenceImages, enableAudio);
+  }
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -903,20 +973,19 @@ serve(async (req) => {
 
     const {
       prompt,
-      duration = 6,
+      duration = 5,
       sceneContext,
       // referenceImageUrl is for character IDENTITY only — NOT a start frame.
-      // It is logged for debugging but does NOT trigger image-to-video mode.
       referenceImageUrl,
       // startImage is the actual frame to use as the video's first frame (image-to-video).
       startImage,
       negativePrompt: inputNegativePrompt,
       transitionOut,
       aspectRatio = "16:9",
-      // NEW: Identity Bible reference images for character consistency
       identityBibleUrls,
-      // NEW: Enable/disable native audio
       enableAudio = KLING_ENABLE_AUDIO,
+      // 'veo' routes to Runway Gen-4 Turbo; 'kling' stays on Kling v2.6
+      videoEngine = "veo",
     } = await req.json();
 
     if (!prompt) {
@@ -924,7 +993,7 @@ serve(async (req) => {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // CONTENT SAFETY CHECK - BLOCK NSFW/PORNOGRAPHIC CONTENT
+    // CONTENT SAFETY CHECK
     // ═══════════════════════════════════════════════════════════════════
     const safetyCheck = checkContentSafety(prompt);
     if (!safetyCheck.isSafe) {
@@ -939,7 +1008,6 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    // ═══════════════════════════════════════════════════════════════════
 
     // Build enhanced prompt
     const { prompt: enhancedPrompt, negativePrompt } = buildConsistentPrompt(
@@ -949,18 +1017,16 @@ serve(async (req) => {
       transitionOut
     );
 
-    // FIX: Only use startImage as the start frame for image-to-video mode.
-    // referenceImageUrl is identity-only — never use it as a Kling start frame.
-    // This prevents text-to-video clips from accidentally becoming image-to-video
-    // just because a character reference image was passed for consistency.
+    // Only use startImage as the start frame for image-to-video mode.
+    // referenceImageUrl is identity-only — never use it as a start frame.
     const startImageUrl = await ensureImageUrl(startImage || null);
     const isImageToVideo = !!startImageUrl;
 
     if (referenceImageUrl) {
-      console.log(`[generate-video] referenceImageUrl provided (identity-only, not a start frame): ${referenceImageUrl.substring(0, 80)}...`);
+      console.log(`[generate-video] referenceImageUrl provided (identity-only): ${referenceImageUrl.substring(0, 80)}...`);
     }
 
-    // Prepare identity bible reference images (up to 4)
+    // Prepare identity bible reference images (Kling only)
     let referenceImages: string[] = [];
     if (identityBibleUrls && Array.isArray(identityBibleUrls)) {
       for (const url of identityBibleUrls.slice(0, 4)) {
@@ -969,28 +1035,55 @@ serve(async (req) => {
       }
     }
 
-    console.log("[generate-video] Starting Kling 2.6 generation:", {
-      provider: "kling",
-      model: KLING_MODEL,
-      mode: isImageToVideo ? "image-to-video" : "text-to-video",
-      duration,
-      aspectRatio,
-      enableAudio,
-      referenceImageCount: referenceImages.length,
-      promptLength: enhancedPrompt.length,
-    });
+    // =====================================================================
+    // ENGINE ROUTING
+    // 'veo' param → Runway Gen-4 Turbo (text-to-video & image-to-video)
+    // 'kling' param → Kling v2.6 (avatar mode)
+    // Default is Runway for all standard production modes
+    // =====================================================================
+    const useRunway = videoEngine !== "kling";
 
-    // Generate with Kling 2.6 (only provider)
-    const result = await generateWithKling(
-      prompt,
-      enhancedPrompt,
-      negativePrompt,
-      duration,
-      aspectRatio,
-      startImageUrl,
-      referenceImages,
-      enableAudio
-    );
+    let result: { success: true; taskId: string; provider: "replicate"; model: string } | { success: false; error: string };
+
+    if (useRunway) {
+      console.log("[generate-video] Routing to Runway Gen-4 Turbo (50% margin pricing active):", {
+        mode: isImageToVideo ? "image-to-video" : "text-to-video",
+        duration,
+        aspectRatio,
+        promptLength: enhancedPrompt.length,
+      });
+
+      result = await generateWithRunway(
+        prompt,
+        enhancedPrompt,
+        negativePrompt,
+        startImageUrl,
+        duration,
+        aspectRatio,
+        referenceImages,
+        enableAudio
+      );
+    } else {
+      console.log("[generate-video] Routing to Kling v2.6 (Avatar mode):", {
+        mode: isImageToVideo ? "image-to-video" : "text-to-video",
+        duration,
+        aspectRatio,
+        enableAudio,
+        referenceImageCount: referenceImages.length,
+        promptLength: enhancedPrompt.length,
+      });
+
+      result = await generateWithKling(
+        prompt,
+        enhancedPrompt,
+        negativePrompt,
+        duration,
+        aspectRatio,
+        startImageUrl,
+        referenceImages,
+        enableAudio
+      );
+    }
 
     if (result.success) {
       return new Response(
@@ -1001,17 +1094,17 @@ serve(async (req) => {
           mode: isImageToVideo ? "image-to-video" : "text-to-video",
           provider: result.provider,
           model: result.model,
-          audioEnabled: enableAudio,
-          referenceImagesUsed: referenceImages.length,
+          engine: useRunway ? "runway" : "kling",
+          audioEnabled: useRunway ? false : enableAudio,
+          referenceImagesUsed: useRunway ? 0 : referenceImages.length,
           promptRewritten: enhancedPrompt !== prompt,
-          message: `Video generation started with ${result.model}. Poll the status endpoint for updates.`,
+          message: `Video generation started with ${result.model}. Poll status endpoint for updates.`,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Kling failed
-    throw new Error(`Kling generation failed: ${result.error}`);
+    throw new Error(`Generation failed: ${result.error}`);
 
   } catch (error: unknown) {
     console.error("Error in generate-video function:", error);

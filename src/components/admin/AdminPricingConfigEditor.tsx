@@ -40,9 +40,9 @@ interface PricingConfig {
   updated_at: string;
 }
 
-// Known API costs for margin calculation
+// Known API costs for margin calculation (Kling V3 via Replicate)
 const API_COSTS = {
-  veo_per_clip: 8, // cents
+  veo_per_clip: 5, // cents — Kling V3 cost per clip (~$0.05)
   tts_per_call: 2,
   stitch_per_call: 2,
 };
@@ -373,7 +373,7 @@ export function AdminPricingConfigEditor() {
                 Margins are calculated based on:
               </p>
               <ul className="text-sm text-muted-foreground mt-2 space-y-1">
-                <li>• Veo API cost: ~$0.08/clip</li>
+                <li>• Kling V3 API cost: ~$0.05/clip</li>
                 <li>• Credit value: ~$0.116/credit (based on package prices)</li>
                 <li>• Additional costs (TTS, stitching) are separate</li>
               </ul>

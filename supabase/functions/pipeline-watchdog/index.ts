@@ -295,6 +295,31 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // ==================== FORCE STITCH MODE ====================
+    // Allows directly triggering stitch for a specific project, bypassing staleness check
+    let forceStitchProjectId: string | null = null;
+    try {
+      const body = await req.clone().json();
+      forceStitchProjectId = body?.forceStitchProjectId || null;
+    } catch { /* no body is fine */ }
+
+    if (forceStitchProjectId) {
+      console.log(`[Watchdog] FORCE STITCH triggered for project: ${forceStitchProjectId}`);
+      const stitchResponse = await fetch(`${supabaseUrl}/functions/v1/simple-stitch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({ projectId: forceStitchProjectId }),
+      });
+      const stitchResult = await stitchResponse.json();
+      console.log(`[Watchdog] Force stitch result:`, JSON.stringify(stitchResult));
+      return new Response(JSON.stringify({ success: stitchResponse.ok, forceStitch: true, result: stitchResult }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const result: WatchdogResult = {
       stalledProjects: 0,
       productionResumed: 0,

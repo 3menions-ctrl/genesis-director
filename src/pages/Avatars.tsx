@@ -364,14 +364,10 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         throw new Error('Failed to create project');
       }
       
-      // Clear creating state BEFORE navigation to prevent stuck overlay
-      setIsCreating(false);
-      setCreationStatus('');
-      
       toast.success('Avatar video creation started!');
       
-      // Use emergencyNavigate to bypass any navigation locks after successful creation
-      // CRITICAL: Always navigate even if component is unmounting - this ensures redirect happens
+      // Navigate immediately — do NOT reset isCreating first (avoids re-render race)
+      // emergencyNavigate bypasses all navigation locks
       emergencyNavigate(`/production/${data.projectId}`);
     } catch (error) {
       // Ignore abort errors - expected during navigation
@@ -379,15 +375,12 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
       
       console.error('Creation error:', error);
       if (isMountedRef.current) {
-        showUserFriendlyError(error, { navigate });
-      }
-    } finally {
-      if (isMountedRef.current) {
         setIsCreating(false);
         setCreationStatus('');
+        showUserFriendlyError(error, { navigate });
       }
     }
-  }, [user, selectedAvatar, prompt, sceneDescription, aspectRatio, clipCount, clipDuration, enableMusic, cinematicMode, navigate, emergencyNavigate, buildCharacterBible]);
+  }, [user, selectedAvatar, prompt, sceneDescription, aspectRatio, clipCount, clipDuration, enableMusic, enableDualAvatar, cinematicMode, navigate, emergencyNavigate, buildCharacterBible]);
   
   const handleClearFilters = useCallback(() => {
     setGenderFilter('all');

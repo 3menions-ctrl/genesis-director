@@ -15,10 +15,10 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { AvatarTemplate } from '@/types/avatar-templates';
 
-// Configuration for chunk loading - CONSERVATIVE for stability
-const INITIAL_CHUNK_SIZE = 10; // Load first 10 immediately
-const CHUNK_SIZE = 6; // Load 6 more at a time
-const CHUNK_DELAY_MS = 200; // Delay between chunks to prevent memory spikes
+// Configuration for chunk loading
+const INITIAL_CHUNK_SIZE = 30; // Show first 30 immediately
+const CHUNK_SIZE = 30; // Load 30 more at a time
+const CHUNK_DELAY_MS = 100; // Fast loading between chunks
 
 interface UseChunkedAvatarsOptions {
   /** Enable/disable progressive loading (default: true) */

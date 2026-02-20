@@ -650,6 +650,10 @@ serve(async (req) => {
             physicalDetail: allSegmentData[i].physicalDetail,
             transitionNote: allSegmentData[i].transitionNote,
             sceneNote: allSegmentData[i].sceneNote,
+            // POSE CHAINING — persisted so watchdog injects into subsequent Kling prompts
+            startPose: allSegmentData[i].startPose || '',
+            endPose: allSegmentData[i].endPose || '',
+            visualContinuity: allSegmentData[i].visualContinuity || '',
           });
         }
 
@@ -714,6 +718,10 @@ serve(async (req) => {
             physicalDetail: (p as any).physicalDetail || '',
             transitionNote: (p as any).transitionNote || '',
             sceneNote: (p as any).sceneNote || '',
+            // POSE CHAINING — persisted so watchdog injects into subsequent Kling prompts
+            startPose: (p as any).startPose || '',
+            endPose: (p as any).endPose || '',
+            visualContinuity: (p as any).visualContinuity || '',
           })),
           sceneImageUrl: sharedAnimationStartImage,
           sceneCompositingApplied: sceneCompositingApplied,
@@ -786,6 +794,10 @@ serve(async (req) => {
         physicalDetail: allSegmentData[i].physicalDetail,
         transitionNote: allSegmentData[i].transitionNote,
         sceneNote: allSegmentData[i].sceneNote,
+        // POSE CHAINING — CRITICAL: endPose of clip N becomes startPose of clip N+1
+        startPose: allSegmentData[i].startPose || '',
+        endPose: allSegmentData[i].endPose || '',
+        visualContinuity: allSegmentData[i].visualContinuity || '',
       });
     }
 
@@ -843,6 +855,10 @@ serve(async (req) => {
             physicalDetail: (p as any).physicalDetail || '',
             transitionNote: (p as any).transitionNote || '',
             sceneNote: (p as any).sceneNote || '',
+            // POSE CHAINING — persisted so watchdog injects into subsequent Kling prompts
+            startPose: (p as any).startPose || '',
+            endPose: (p as any).endPose || '',
+            visualContinuity: (p as any).visualContinuity || '',
           })),
           sceneImageUrl: sharedAnimationStartImage,
           sceneCompositingApplied: sceneCompositingApplied,

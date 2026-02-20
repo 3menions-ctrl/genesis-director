@@ -16,6 +16,8 @@ import {
   selectPrompt,
   detectJourneyType,
   getProgressiveScene,
+  buildPlacementDirective,
+  resolveAvatarPlacement,
 } from "../_shared/world-class-cinematography.ts";
 import {
   GUARD_RAIL_CONFIG,
@@ -115,6 +117,7 @@ const MAX_AGE_MS = 60 * 60 * 1000; // 60 minutes
 // CINEMATOGRAPHY ENGINE: Imported from _shared/world-class-cinematography.ts
 // Contains: CAMERA_MOVEMENTS, CAMERA_ANGLES, SHOT_SIZES, LIGHTING_STYLES, 
 // SUBJECT_MOTION, SCENE_JOURNEYS, progression arrays, and helper functions
+// Also: buildPlacementDirective — scene-aware avatar grounding
 
 /**
  * Build WORLD-CLASS acting prompt for avatar frame-chaining
@@ -177,6 +180,10 @@ function buildAvatarActingPrompt(
   const effectiveScene = sceneNote?.trim() ? `${sceneNote}. ${sceneDescription || ''}` : sceneDescription;
   const progressiveScene = getProgressiveScene(effectiveScene, clipIndex, totalClips, true);
   const sceneContext = `Cinematic scene in ${progressiveScene}, shot on ARRI Alexa with anamorphic lenses.`;
+
+  // SMART PLACEMENT: Derive where/how the avatar is physically situated in the scene
+  // e.g. "witch's house" → standing near cauldron; "car" → seated at wheel; "beach" → standing on sand
+  const placementDirective = buildPlacementDirective(effectiveScene);
   
   // Use transitionNote for continuity enforcement
   const transitionDirective = transitionNote?.trim() 
@@ -271,9 +278,9 @@ function buildAvatarActingPrompt(
   
   const lifelikeDirective = "Continuous lifelike motion: breathing visible in chest/shoulders, natural eye tracking, involuntary micro-expressions, authentic weight shifts, hair/clothing responding to movement.";
   
-  console.log(`[Watchdog] 🎬 Clip ${clipIndex + 1}/${totalClips} | Camera: ${screenplayCameraHint || movementKey} | Movement: ${screenplayMovement || 'default'} | AvatarType: ${avatarType} | IdentityLock: ${identityLock ? 'YES' : 'generic'}`);
+  console.log(`[Watchdog] 🎬 Clip ${clipIndex + 1}/${totalClips} | Camera: ${screenplayCameraHint || movementKey} | Movement: ${screenplayMovement || 'default'} | AvatarType: ${avatarType} | IdentityLock: ${identityLock ? 'YES' : 'generic'} | Placement: ${resolveAvatarPlacement(effectiveScene).label}`);
   
-  return `${staticStartDirective} ${identityDirective} ${avatarTypeLock} ${aspectComposition} ${backgroundLock} ${transitionDirective} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. ${narrativeBeat} ${motionBlock} Speaking naturally: "${segmentText.trim().substring(0, 120)}${segmentText.length > 120 ? '...' : ''}". ${performanceStyle} ${lifelikeDirective} ${qualityBaseline}`;
+  return `${staticStartDirective} ${identityDirective} ${avatarTypeLock} ${aspectComposition} ${backgroundLock} ${placementDirective} ${transitionDirective} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. ${narrativeBeat} ${motionBlock} Speaking naturally: "${segmentText.trim().substring(0, 120)}${segmentText.length > 120 ? '...' : ''}". ${performanceStyle} ${lifelikeDirective} ${qualityBaseline}`;
 }
 
 serve(async (req) => {

@@ -1,6 +1,6 @@
 /**
- * Hoppy Agent Panel 🐰 — Redesigned Premium Chat
- * Modern, immersive AI assistant interface
+ * Hoppy Agent Panel 🐰 — Clean Rebuild
+ * All original features preserved. Focus management completely rewritten.
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   X, Send, RotateCcw, Zap, ArrowRight, Loader2, Sparkles,
   ChevronDown, Paperclip, XCircle, MessageSquarePlus, Eraser,
-  Star, Keyboard, HelpCircle, MessageCircle, Settings,
+  Star, Keyboard, MessageCircle, Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AgentFace } from "./AgentFace";
@@ -26,78 +26,103 @@ interface AgentPanelProps {
 }
 
 export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
-  const { messages, isLoading, sendMessage, clearMessages, agentState, loadingHistory } = useAgentChat();
+  const {
+    messages,
+    isLoading,
+    sendMessage,
+    clearMessages,
+    agentState,
+    loadingHistory,
+  } = useAgentChat();
+
   const [input, setInput] = useState("");
   const [pendingAction, setPendingAction] = useState<AgentAction | null>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<{ url: string; name: string } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
   const navigate = useNavigate();
   const location = useLocation();
 
+  // ── Close panel on route change ──
   const prevPathRef = useRef(location.pathname);
   useEffect(() => {
     if (prevPathRef.current !== location.pathname && isOpen) onClose();
     prevPathRef.current = location.pathname;
   }, [location.pathname, isOpen, onClose]);
 
-  // Scroll to bottom whenever messages update
+  // ── Prevent body scroll when panel is open ──
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, [isOpen]);
+
+  // ── Focus on open ──
+  useEffect(() => {
+    if (isOpen) {
+      const t = setTimeout(() => inputRef.current?.focus(), 350);
+      return () => clearTimeout(t);
+    }
+  }, [isOpen]);
+
+  // ── FOCUS AFTER HOPPY FINISHES — the only reliable approach:
+  //    Watch isLoading via a ref so we never get stale closures.
+  //    The textarea is NOT disabled (disabled elements cannot receive focus),
+  //    so focus always succeeds once loading ends.
+  const isLoadingRef = useRef(isLoading);
+  useEffect(() => {
+    const wasLoading = isLoadingRef.current;
+    isLoadingRef.current = isLoading;
+
+    if (wasLoading && !isLoading && isOpen) {
+      // Two rAF frames: first lets React flush its render,
+      // second ensures the browser has painted before focusing.
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => inputRef.current?.focus())
+      );
+    }
+  }, [isLoading, isOpen]);
+
+  // ── Auto-scroll on new messages ──
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Return focus to input when Hoppy finishes typing (isLoading → false)
-  // NOTE: textarea must NOT be `disabled` — disabled elements cannot receive focus.
-  const prevIsLoadingRef = useRef(false);
-  useEffect(() => {
-    const justFinished = prevIsLoadingRef.current && !isLoading;
-    prevIsLoadingRef.current = isLoading;
-    if (justFinished && isOpen) {
-      // Use rAF to ensure React has flushed the render (removed pointer-events-none)
-      // before we attempt to focus.
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          inputRef.current?.focus();
-        });
-      });
-    }
-  }, [isLoading, isOpen]);
-
-  // Focus on open
-  useEffect(() => {
-    if (isOpen) setTimeout(() => inputRef.current?.focus(), 400);
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-      return () => { document.body.style.overflow = ""; };
-    }
-  }, [isOpen]);
-
+  // ── Show "scroll to bottom" pill ──
   useEffect(() => {
     const el = scrollContainerRef.current;
     if (!el) return;
-    const onScroll = () => setShowScrollDown(el.scrollHeight - el.scrollTop - el.clientHeight > 120);
+    const onScroll = () =>
+      setShowScrollDown(el.scrollHeight - el.scrollTop - el.clientHeight > 120);
     el.addEventListener("scroll", onScroll);
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
 
+  // ── Image upload ──
   const handleImageUpload = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) return;
-    if (file.size > 10 * 1024 * 1024) { toast?.error?.("Image must be less than 10MB"); return; }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Image must be less than 10MB");
+      return;
+    }
     setIsUploading(true);
     try {
       const ext = file.name.split(".").pop();
       const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error } = await supabase.storage.from("hoppy-uploads").upload(path, file, { upsert: true });
+      const { error } = await supabase.storage
+        .from("hoppy-uploads")
+        .upload(path, file, { upsert: true });
       if (error) throw error;
-      const { data: urlData } = supabase.storage.from("hoppy-uploads").getPublicUrl(path);
+      const { data: urlData } = supabase.storage
+        .from("hoppy-uploads")
+        .getPublicUrl(path);
       setUploadedImage({ url: urlData.publicUrl, name: file.name });
     } catch (err) {
       console.error("Image upload failed:", err);
@@ -106,17 +131,23 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
     }
   }, []);
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleImageUpload(file);
-    e.target.value = "";
-  }, [handleImageUpload]);
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) handleImageUpload(file);
+      e.target.value = "";
+    },
+    [handleImageUpload]
+  );
 
+  // ── Send message ──
   const handleSend = useCallback(async () => {
     if ((!input.trim() && !uploadedImage) || isLoading) return;
     let msg = input;
     if (uploadedImage) {
-      msg = msg ? `${msg}\n\n[Image attached: ${uploadedImage.url}]` : `[Image attached: ${uploadedImage.url}]`;
+      msg = msg
+        ? `${msg}\n\n[Image attached: ${uploadedImage.url}]`
+        : `[Image attached: ${uploadedImage.url}]`;
     }
     setInput("");
     setUploadedImage(null);
@@ -124,9 +155,13 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
   }, [input, uploadedImage, isLoading, sendMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
   };
 
+  // ── Action buttons ──
   const handleAction = (action: AgentAction) => {
     const act = action.action;
     if (act === "navigate" && action.path) { navigate(action.path); onClose(); }
@@ -138,7 +173,10 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
       const qp = new URLSearchParams();
       if (params.mode) qp.set("mode", params.mode);
       if (params.prompt) qp.set("prompt", params.prompt);
-      if (params.image_url) { sessionStorage.setItem("imageToVideoUrl", params.image_url); qp.set("mode", "image-to-video"); }
+      if (params.image_url) {
+        sessionStorage.setItem("imageToVideoUrl", params.image_url);
+        qp.set("mode", "image-to-video");
+      }
       navigate(`/create?${qp.toString()}`);
       onClose();
     } else if (act === "confirm_generation" || act === "confirm_delete") {
@@ -154,18 +192,36 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
       const qp = new URLSearchParams();
       if (params.mode) qp.set("mode", params.mode);
       if (params.prompt) qp.set("prompt", params.prompt);
-      if (params.image_url) { sessionStorage.setItem("imageToVideoUrl", params.image_url); qp.set("mode", "image-to-video"); }
+      if (params.image_url) {
+        sessionStorage.setItem("imageToVideoUrl", params.image_url);
+        qp.set("mode", "image-to-video");
+      }
       navigate(`/create?${qp.toString()}`);
     } else if (pendingAction.action === "confirm_generation") {
       await sendMessage(`Yes, go ahead and generate project ${(pendingAction as any).project_id}`);
     } else if (pendingAction.action === "confirm_delete") {
       await sendMessage(`Yes, delete project ${(pendingAction as any).project_id}`);
     }
+    const wasStart = pendingAction.action === "start_creation";
     setPendingAction(null);
-    if (pendingAction.action === "start_creation") onClose();
+    if (wasStart) onClose();
   };
 
-  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = () =>
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+
+  // ── Derived UI state ──
+  const stateLabel =
+    agentState === "thinking" ? "Thinking…" :
+    agentState === "speaking" ? "Responding" :
+    agentState === "listening" ? "Listening…" : "Ready";
+
+  const stateDot =
+    agentState === "thinking" ? "bg-amber-400" :
+    agentState === "speaking" ? "bg-primary" :
+    agentState === "listening" ? "bg-cyan-400" : "bg-emerald-400";
+
+  const canSend = !!(input.trim() || uploadedImage) && !isLoading;
 
   const quickPrompts = [
     { text: "What can you do?", icon: "✦", sub: "Explore capabilities" },
@@ -173,10 +229,6 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
     { text: "Create a video", icon: "▶", sub: "Start generating" },
     { text: "Check my credits", icon: "⚡", sub: "Balance & usage" },
   ];
-
-  const stateLabel = agentState === "thinking" ? "Thinking…" : agentState === "speaking" ? "Responding" : agentState === "listening" ? "Listening…" : "Ready";
-  const stateDot = agentState === "thinking" ? "bg-amber-400" : agentState === "speaking" ? "bg-primary" : agentState === "listening" ? "bg-cyan-400" : "bg-emerald-400";
-  const canSend = (input.trim() || uploadedImage) && !isLoading;
 
   return (
     <AnimatePresence>
@@ -203,9 +255,13 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
               className="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full blur-[100px]"
               style={{ background: "hsl(var(--accent))" }}
             />
-            {/* Dot grid */}
-            <div className="absolute inset-0 opacity-[0.015]"
-              style={{ backgroundImage: `radial-gradient(circle, hsl(var(--foreground)) 1px, transparent 1px)`, backgroundSize: "28px 28px" }} />
+            <div
+              className="absolute inset-0 opacity-[0.015]"
+              style={{
+                backgroundImage: `radial-gradient(circle, hsl(var(--foreground)) 1px, transparent 1px)`,
+                backgroundSize: "28px 28px",
+              }}
+            />
           </div>
 
           {/* ── Header ── */}
@@ -216,16 +272,28 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
             className="relative z-10 flex items-center gap-3 px-5 py-4"
             style={{ borderBottom: "1px solid hsl(var(--border) / 0.07)" }}
           >
-            {/* Avatar + state */}
             <div className="relative flex-shrink-0">
               <motion.div
-                animate={agentState !== "idle" ? { boxShadow: ["0 0 0 0 hsl(var(--primary)/0.4)", "0 0 0 8px hsl(var(--primary)/0)", "0 0 0 0 hsl(var(--primary)/0.4)"] } : {}}
+                animate={
+                  agentState !== "idle"
+                    ? { boxShadow: ["0 0 0 0 hsl(var(--primary)/0.4)", "0 0 0 8px hsl(var(--primary)/0)", "0 0 0 0 hsl(var(--primary)/0.4)"] }
+                    : {}
+                }
                 transition={{ duration: 2, repeat: Infinity }}
                 className="h-9 w-9 rounded-xl overflow-hidden"
               >
-                <video src="/hoppy-blink.mp4" autoPlay loop muted playsInline className="w-full h-full object-cover scale-[1.4] object-top" />
+                <video
+                  src="/hoppy-blink.mp4"
+                  autoPlay loop muted playsInline
+                  className="w-full h-full object-cover scale-[1.4] object-top"
+                />
               </motion.div>
-              <span className={cn("absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background transition-all duration-500", stateDot)} />
+              <span
+                className={cn(
+                  "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background transition-all duration-500",
+                  stateDot
+                )}
+              />
             </div>
 
             <div className="flex-1 min-w-0">
@@ -239,15 +307,17 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
               </div>
             </div>
 
-            {/* Actions */}
+            {/* Header actions */}
             <div className="flex items-center gap-1">
-              {/* Menu */}
+              {/* Settings menu */}
               <div className="relative">
                 <button
-                  onClick={() => setMenuOpen(v => !v)}
+                  onClick={() => setMenuOpen((v) => !v)}
                   className={cn(
                     "p-2 rounded-lg transition-all duration-150",
-                    menuOpen ? "bg-primary/10 text-primary" : "text-muted-foreground/40 hover:text-foreground hover:bg-muted/10"
+                    menuOpen
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground/40 hover:text-foreground hover:bg-muted/10"
                   )}
                 >
                   <Settings className="h-3.5 w-3.5" />
@@ -256,8 +326,11 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                 <AnimatePresence>
                   {menuOpen && (
                     <>
-                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                      <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-10"
+                        onClick={() => setMenuOpen(false)}
+                      />
                       <motion.div
                         initial={{ opacity: 0, scale: 0.95, y: -4 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -272,10 +345,21 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                       >
                         <div className="p-1.5">
                           <MenuGroup label="Conversation">
-                            <MenuItem icon={<MessageSquarePlus className="h-3.5 w-3.5" />} label="New Chat"
-                              onClick={() => { clearMessages(); setMenuOpen(false); setTimeout(() => inputRef.current?.focus(), 100); }} accent />
-                            <MenuItem icon={<Eraser className="h-3.5 w-3.5" />} label="Clear Messages"
-                              onClick={() => { clearMessages(); setMenuOpen(false); }} />
+                            <MenuItem
+                              icon={<MessageSquarePlus className="h-3.5 w-3.5" />}
+                              label="New Chat"
+                              accent
+                              onClick={() => {
+                                clearMessages();
+                                setMenuOpen(false);
+                                setTimeout(() => inputRef.current?.focus(), 100);
+                              }}
+                            />
+                            <MenuItem
+                              icon={<Eraser className="h-3.5 w-3.5" />}
+                              label="Clear Messages"
+                              onClick={() => { clearMessages(); setMenuOpen(false); }}
+                            />
                           </MenuGroup>
                           <div className="h-px bg-border/8 my-1" />
                           <MenuGroup label="Quick Actions">
@@ -290,7 +374,11 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                           </MenuGroup>
                           <div className="h-px bg-border/8 my-1" />
                           <MenuGroup label="Info">
-                            <MenuItem icon={<Keyboard className="h-3.5 w-3.5" />} label="Enter to send · ⇧ for newline" static />
+                            <MenuItem
+                              icon={<Keyboard className="h-3.5 w-3.5" />}
+                              label="Enter to send · ⇧ for newline"
+                              isStatic
+                            />
                           </MenuGroup>
                         </div>
                       </motion.div>
@@ -362,16 +450,20 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 + idx * 0.06 }}
                         onClick={() => sendMessage(prompt.text)}
-                        className={cn(
-                          "group flex flex-col items-start gap-1 px-3.5 py-3 rounded-xl text-left",
-                          "transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]",
-                          "border hover:border-primary/25",
-                          "hover:bg-primary/4"
-                        )}
-                        style={{ background: "hsl(var(--surface-1) / 0.4)", border: "1px solid hsl(var(--border) / 0.08)" }}
+                        className="group flex flex-col items-start gap-1 px-3.5 py-3 rounded-xl text-left
+                                   transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]
+                                   hover:border-primary/25 hover:bg-primary/4"
+                        style={{
+                          background: "hsl(var(--surface-1) / 0.4)",
+                          border: "1px solid hsl(var(--border) / 0.08)",
+                        }}
                       >
-                        <span className="text-sm text-primary/40 group-hover:text-primary/70 transition-colors font-mono">{prompt.icon}</span>
-                        <span className="text-[13px] font-medium text-foreground/70 group-hover:text-foreground transition-colors leading-tight">{prompt.text}</span>
+                        <span className="text-sm text-primary/40 group-hover:text-primary/70 transition-colors font-mono">
+                          {prompt.icon}
+                        </span>
+                        <span className="text-[13px] font-medium text-foreground/70 group-hover:text-foreground transition-colors leading-tight">
+                          {prompt.text}
+                        </span>
                         <span className="text-[10px] text-muted-foreground/30">{prompt.sub}</span>
                       </motion.button>
                     ))}
@@ -392,7 +484,7 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                   />
                 ))}
 
-                {/* Typing indicator */}
+                {/* Typing indicator — only shown before any streaming token arrives */}
                 {isLoading && !messages.some((m) => m.streaming && m.content.length > 0) && (
                   <motion.div
                     initial={{ opacity: 0, y: 6 }}
@@ -400,14 +492,26 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                     className="flex gap-3 items-end"
                   >
                     <div className="h-7 w-7 rounded-xl overflow-hidden flex-shrink-0 ring-1 ring-primary/10">
-                      <video src="/hoppy-blink.mp4" autoPlay loop muted playsInline className="w-full h-full object-cover scale-[1.4] object-top" />
+                      <video
+                        src="/hoppy-blink.mp4"
+                        autoPlay loop muted playsInline
+                        className="w-full h-full object-cover scale-[1.4] object-top"
+                      />
                     </div>
-                    <div className="flex items-center gap-1 px-4 py-3 rounded-2xl rounded-bl-sm"
-                      style={{ background: "hsl(var(--surface-1) / 0.6)", border: "1px solid hsl(var(--border) / 0.08)" }}>
-                      {[0, 1, 2].map((i) => (
-                        <motion.span key={i} className="h-[5px] w-[5px] rounded-full bg-primary/50"
+                    <div
+                      className="flex items-center gap-1 px-4 py-3 rounded-2xl rounded-bl-sm"
+                      style={{
+                        background: "hsl(var(--surface-1) / 0.6)",
+                        border: "1px solid hsl(var(--border) / 0.08)",
+                      }}
+                    >
+                      {[0, 1, 2].map((dot) => (
+                        <motion.span
+                          key={dot}
+                          className="h-[5px] w-[5px] rounded-full bg-primary/50"
                           animate={{ y: [0, -5, 0], opacity: [0.4, 1, 0.4] }}
-                          transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.13, ease: "easeInOut" }} />
+                          transition={{ duration: 0.7, repeat: Infinity, delay: dot * 0.13, ease: "easeInOut" }}
+                        />
                       ))}
                     </div>
                   </motion.div>
@@ -418,17 +522,23 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
             </div>
           </div>
 
-          {/* Scroll down pill */}
+          {/* Scroll-down pill */}
           <AnimatePresence>
             {showScrollDown && (
               <motion.button
-                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
                 onClick={scrollToBottom}
                 className="absolute bottom-28 left-1/2 -translate-x-1/2 z-20
                            flex items-center gap-1.5 px-3.5 py-1.5 rounded-full
                            text-xs text-muted-foreground hover:text-foreground
                            transition-colors shadow-lg"
-                style={{ background: "hsl(var(--surface-1) / 0.95)", border: "1px solid hsl(var(--border) / 0.12)", backdropFilter: "blur(16px)" }}
+                style={{
+                  background: "hsl(var(--surface-1) / 0.95)",
+                  border: "1px solid hsl(var(--border) / 0.12)",
+                  backdropFilter: "blur(16px)",
+                }}
               >
                 <ChevronDown className="h-3 w-3" /> New messages
               </motion.button>
@@ -439,7 +549,9 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
           <AnimatePresence>
             {pendingAction && (
               <motion.div
-                initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 16, opacity: 0 }}
+                initial={{ y: 16, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 16, opacity: 0 }}
                 className="absolute bottom-32 left-1/2 -translate-x-1/2 w-[90%] max-w-sm p-5 rounded-2xl z-30 shadow-2xl"
                 style={{
                   background: "hsl(var(--surface-1) / 0.98)",
@@ -464,8 +576,12 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                   )}
                 </p>
                 <div className="flex gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => setPendingAction(null)} className="flex-1 h-9 rounded-xl">Cancel</Button>
-                  <Button size="sm" onClick={confirmAction} className="flex-1 h-9 rounded-xl">Confirm</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setPendingAction(null)} className="flex-1 h-9 rounded-xl">
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={confirmAction} className="flex-1 h-9 rounded-xl">
+                    Confirm
+                  </Button>
                 </div>
               </motion.div>
             )}
@@ -479,19 +595,29 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
             className="relative z-10 px-4 md:px-6 pb-6 pt-3"
           >
             <div className="max-w-2xl mx-auto">
-              {/* Image preview */}
+
+              {/* Attached image preview */}
               <AnimatePresence>
                 {uploadedImage && (
                   <motion.div
-                    initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
                     className="mb-2.5 overflow-hidden"
                   >
-                    <div className="flex items-center gap-2.5 px-3 py-2 rounded-2xl"
-                      style={{ background: "hsl(var(--surface-1) / 0.5)", border: "1px solid hsl(var(--border) / 0.1)" }}>
+                    <div
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-2xl"
+                      style={{
+                        background: "hsl(var(--surface-1) / 0.5)",
+                        border: "1px solid hsl(var(--border) / 0.1)",
+                      }}
+                    >
                       <div className="relative w-10 h-10 rounded-xl overflow-hidden ring-1 ring-primary/20 flex-shrink-0">
                         <img src={uploadedImage.url} alt="Attached" className="w-full h-full object-cover" />
-                        <button onClick={() => setUploadedImage(null)}
-                          className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => setUploadedImage(null)}
+                          className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                        >
                           <XCircle className="h-3.5 w-3.5 text-white" />
                         </button>
                       </div>
@@ -504,11 +630,16 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                 )}
               </AnimatePresence>
 
-              {/* Input field */}
+              {/* Input container */}
               <div className="group/input relative">
-                {/* Outer glow on focus */}
-                <div className="absolute -inset-px rounded-[22px] opacity-0 group-focus-within/input:opacity-100 transition-all duration-300 pointer-events-none"
-                  style={{ background: "linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(var(--accent) / 0.1))", filter: "blur(8px)" }} />
+                {/* Ambient glow on focus */}
+                <div
+                  className="absolute -inset-px rounded-[22px] opacity-0 group-focus-within/input:opacity-100 transition-all duration-300 pointer-events-none"
+                  style={{
+                    background: "linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(var(--accent) / 0.1))",
+                    filter: "blur(8px)",
+                  }}
+                />
 
                 <div
                   className="relative rounded-[20px] transition-all duration-200"
@@ -519,39 +650,56 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                     boxShadow: "0 4px 32px hsl(0 0% 0% / 0.12), inset 0 1px 0 hsl(var(--foreground) / 0.04)",
                   }}
                 >
-                  {/* Focus border */}
-                  <div className="absolute inset-0 rounded-[20px] opacity-0 group-focus-within/input:opacity-100 transition-opacity pointer-events-none"
-                    style={{ boxShadow: "0 0 0 1.5px hsl(var(--primary) / 0.3), inset 0 0 20px hsl(var(--primary) / 0.02)" }} />
+                  {/* Focus ring */}
+                  <div
+                    className="absolute inset-0 rounded-[20px] opacity-0 group-focus-within/input:opacity-100 transition-opacity pointer-events-none"
+                    style={{ boxShadow: "0 0 0 1.5px hsl(var(--primary) / 0.3), inset 0 0 20px hsl(var(--primary) / 0.02)" }}
+                  />
 
-                  {/* Top row — avatar + textarea */}
+                  {/* Top row — mini avatar + textarea */}
                   <div className="flex items-start gap-3 px-4 pt-4 pb-3">
-                    {/* Hoppy mini avatar */}
-                    <div className="flex-shrink-0 w-6 h-6 rounded-xl overflow-hidden mt-0.5 opacity-35 group-focus-within/input:opacity-60 transition-opacity duration-300"
-                      style={{ boxShadow: "0 0 0 1px hsl(var(--primary) / 0.15)" }}>
-                      <video src="/hoppy-blink.mp4" autoPlay loop muted playsInline className="w-full h-full object-cover scale-[1.25]" style={{ objectPosition: "50% 20%" }} />
+                    <div
+                      className="flex-shrink-0 w-6 h-6 rounded-xl overflow-hidden mt-0.5 opacity-35 group-focus-within/input:opacity-60 transition-opacity duration-300"
+                      style={{ boxShadow: "0 0 0 1px hsl(var(--primary) / 0.15)" }}
+                    >
+                      <video
+                        src="/hoppy-blink.mp4"
+                        autoPlay loop muted playsInline
+                        className="w-full h-full object-cover scale-[1.25]"
+                        style={{ objectPosition: "50% 20%" }}
+                      />
                     </div>
 
+                    {/*
+                      IMPORTANT: Do NOT use `disabled` on this textarea.
+                      Disabled elements cannot receive focus, which breaks our
+                      auto-refocus after Hoppy finishes streaming.
+                      Visual "disabled" state is communicated via opacity + pointer-events.
+                    */}
                     <textarea
                       ref={inputRef}
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      placeholder="Ask Hoppy anything…"
-                      className={cn(
-                        "flex-1 bg-transparent text-[14px] text-foreground placeholder:text-muted-foreground/30",
-                        "resize-none border-none outline-none focus:outline-none focus:ring-0",
-                        "leading-relaxed max-h-40 min-h-[24px] font-sans transition-opacity duration-200",
-                        isLoading && "opacity-50 pointer-events-none select-none"
-                      )}
+                      placeholder={isLoading ? "Hoppy is thinking…" : "Ask Hoppy anything…"}
                       rows={1}
-                      style={{ fieldSizing: "content" } as any}
+                      style={{ fieldSizing: "content" } as React.CSSProperties}
+                      className={cn(
+                        "flex-1 bg-transparent text-[14px] text-foreground",
+                        "resize-none border-none outline-none focus:outline-none focus:ring-0",
+                        "leading-relaxed max-h-40 min-h-[24px] font-sans transition-opacity duration-300",
+                        isLoading
+                          ? "opacity-40 placeholder:text-muted-foreground/20 pointer-events-none"
+                          : "opacity-100 placeholder:text-muted-foreground/30"
+                      )}
                     />
                   </div>
 
-                  {/* Bottom row — actions */}
-                  <div className="flex items-center justify-between px-3.5 pb-3 pt-1"
-                    style={{ borderTop: "1px solid hsl(var(--border) / 0.06)" }}>
-                    {/* Left: attach */}
+                  {/* Bottom row — attach + send */}
+                  <div
+                    className="flex items-center justify-between px-3.5 pb-3 pt-1"
+                    style={{ borderTop: "1px solid hsl(var(--border) / 0.06)" }}
+                  >
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       disabled={isLoading || isUploading}
@@ -562,11 +710,13 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                           : "text-muted-foreground/30 hover:text-muted-foreground/60 hover:bg-muted/8 border border-transparent"
                       )}
                     >
-                      {isUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Paperclip className="h-3 w-3" />}
+                      {isUploading
+                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                        : <Paperclip className="h-3 w-3" />
+                      }
                       <span>Attach</span>
                     </button>
 
-                    {/* Right: hint + send */}
                     <div className="flex items-center gap-2.5">
                       <span className="text-[10px] text-muted-foreground/20 hidden sm:block font-mono">⇧↵ newline</span>
                       <motion.button
@@ -580,16 +730,25 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                             : "bg-muted/12 text-muted-foreground/20 cursor-not-allowed"
                         )}
                         style={canSend ? {
-                          boxShadow: "0 2px 12px hsl(var(--primary) / 0.4), inset 0 1px 0 hsl(var(--primary-foreground) / 0.12)"
+                          boxShadow: "0 2px 12px hsl(var(--primary) / 0.4), inset 0 1px 0 hsl(var(--primary-foreground) / 0.12)",
                         } : {}}
                       >
-                        {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                        {isLoading
+                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          : <Send className="h-3.5 w-3.5" />
+                        }
                       </motion.button>
                     </div>
                   </div>
                 </div>
 
-                <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/gif" onChange={handleFileSelect} className="hidden" />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
               </div>
             </div>
           </motion.div>
@@ -599,19 +758,27 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
   );
 }
 
-// ── Dropdown menu helpers ──
+// ── Menu helpers ────────────────────────────────────────────
 
 function MenuGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="py-1">
-      <p className="text-[9px] font-bold text-muted-foreground/25 tracking-[0.15em] uppercase px-2.5 mb-1">{label}</p>
+      <p className="text-[9px] font-bold text-muted-foreground/25 tracking-[0.15em] uppercase px-2.5 mb-1">
+        {label}
+      </p>
       <div className="space-y-0.5">{children}</div>
     </div>
   );
 }
 
-function MenuItem({ icon, label, accent, static: isStatic, onClick }: {
-  icon: React.ReactNode; label: string; accent?: boolean; static?: boolean; onClick?: () => void;
+function MenuItem({
+  icon, label, accent, isStatic, onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  accent?: boolean;
+  isStatic?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <button
@@ -619,39 +786,45 @@ function MenuItem({ icon, label, accent, static: isStatic, onClick }: {
       disabled={isStatic}
       className={cn(
         "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all text-[13px]",
-        isStatic ? "cursor-default opacity-50 text-muted-foreground/40"
-          : accent ? "text-primary/70 hover:text-primary hover:bg-primary/8"
-          : "text-foreground/60 hover:text-foreground hover:bg-muted/10"
+        isStatic
+          ? "cursor-default opacity-50 text-muted-foreground/40"
+          : accent
+            ? "text-primary/70 hover:text-primary hover:bg-primary/8"
+            : "text-foreground/60 hover:text-foreground hover:bg-muted/10"
       )}
     >
-      <span className={cn("flex-shrink-0", accent ? "text-primary/50" : "text-muted-foreground/35")}>{icon}</span>
+      <span className={cn("flex-shrink-0", accent ? "text-primary/50" : "text-muted-foreground/35")}>
+        {icon}
+      </span>
       {label}
     </button>
   );
 }
 
-// ── Markdown renderer ──
+// ── Markdown renderer ────────────────────────────────────────
 
 function HoppyMarkdown({ content }: { content: string }) {
   try {
     return (
-      <div className={cn(
-        "prose prose-sm max-w-none",
-        "[&>p]:text-[14.5px] [&>p]:leading-[1.85] [&>p]:text-foreground/80 [&>p]:mb-3 [&>p:last-child]:mb-0",
-        "[&>p:first-child]:text-[15px] [&>p:first-child]:text-foreground/90",
-        "[&>ul]:space-y-1.5 [&>ol]:space-y-1.5 [&>ul]:pl-4 [&>ol]:pl-4 [&>ul]:mb-3 [&>ol]:mb-3",
-        "[&_li]:text-[14px] [&_li]:leading-[1.8] [&_li]:text-foreground/75",
-        "[&_li::marker]:text-primary/40",
-        "[&_strong]:text-foreground [&_strong]:font-semibold",
-        "[&_em]:text-primary/70 [&_em]:not-italic",
-        "[&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_a]:decoration-primary/30",
-        "[&_code]:text-primary/80 [&_code]:bg-primary/8 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:text-[12px] [&_code]:font-mono",
-        "[&_pre]:bg-muted/20 [&_pre]:rounded-xl [&_pre]:p-4 [&_pre]:overflow-auto [&_pre]:text-xs [&_pre]:mb-3",
-        "[&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-foreground",
-        "[&_h3]:text-[13px] [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1.5 [&_h3]:text-foreground/90",
-        "[&>blockquote]:border-l-2 [&>blockquote]:border-primary/25 [&>blockquote]:pl-4 [&>blockquote]:py-0.5 [&>blockquote]:text-muted-foreground/60 [&>blockquote]:my-3",
-        "[&>hr]:border-border/8 [&>hr]:my-4",
-      )}>
+      <div
+        className={cn(
+          "prose prose-sm max-w-none",
+          "[&>p]:text-[14.5px] [&>p]:leading-[1.85] [&>p]:text-foreground/80 [&>p]:mb-3 [&>p:last-child]:mb-0",
+          "[&>p:first-child]:text-[15px] [&>p:first-child]:text-foreground/90",
+          "[&>ul]:space-y-1.5 [&>ol]:space-y-1.5 [&>ul]:pl-4 [&>ol]:pl-4 [&>ul]:mb-3 [&>ol]:mb-3",
+          "[&_li]:text-[14px] [&_li]:leading-[1.8] [&_li]:text-foreground/75",
+          "[&_li::marker]:text-primary/40",
+          "[&_strong]:text-foreground [&_strong]:font-semibold",
+          "[&_em]:text-primary/70 [&_em]:not-italic",
+          "[&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_a]:decoration-primary/30",
+          "[&_code]:text-primary/80 [&_code]:bg-primary/8 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:text-[12px] [&_code]:font-mono",
+          "[&_pre]:bg-muted/20 [&_pre]:rounded-xl [&_pre]:p-4 [&_pre]:overflow-auto [&_pre]:text-xs [&_pre]:mb-3",
+          "[&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-foreground",
+          "[&_h3]:text-[13px] [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1.5 [&_h3]:text-foreground/90",
+          "[&>blockquote]:border-l-2 [&>blockquote]:border-primary/25 [&>blockquote]:pl-4 [&>blockquote]:py-0.5 [&>blockquote]:text-muted-foreground/60 [&>blockquote]:my-3",
+          "[&>hr]:border-border/8 [&>hr]:my-4",
+        )}
+      >
         <ReactMarkdown>{content}</ReactMarkdown>
       </div>
     );
@@ -660,7 +833,7 @@ function HoppyMarkdown({ content }: { content: string }) {
   }
 }
 
-// ── Chat Message ──
+// ── Chat Message ─────────────────────────────────────────────
 
 function ChatMessage({
   message, onAction, onNavigate, onSendMessage, isLatest,
@@ -690,9 +863,10 @@ function ChatMessage({
               boxShadow: "0 4px 20px hsl(var(--primary) / 0.3), inset 0 1px 0 hsl(var(--primary-foreground) / 0.1)",
             }}
           >
-            {/* Inner gloss */}
-            <div className="absolute inset-0 pointer-events-none"
-              style={{ background: "linear-gradient(165deg, hsl(var(--primary-foreground) / 0.06) 0%, transparent 50%)" }} />
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{ background: "linear-gradient(165deg, hsl(var(--primary-foreground) / 0.06) 0%, transparent 50%)" }}
+            />
             <span className="relative">{message.content}</span>
           </div>
           <div className="flex justify-end mt-1 pr-1.5">
@@ -715,10 +889,15 @@ function ChatMessage({
     >
       {/* Avatar */}
       <div className="relative flex-shrink-0 mt-0.5">
-        <div className="h-8 w-8 rounded-2xl overflow-hidden"
-          style={{ boxShadow: "0 0 0 1.5px hsl(var(--primary) / 0.18), 0 4px 12px hsl(var(--primary) / 0.12)" }}>
-          <video src="/hoppy-blink.mp4" autoPlay loop muted playsInline
-            className="w-full h-full object-cover scale-[1.4] object-top" />
+        <div
+          className="h-8 w-8 rounded-2xl overflow-hidden"
+          style={{ boxShadow: "0 0 0 1.5px hsl(var(--primary) / 0.18), 0 4px 12px hsl(var(--primary) / 0.12)" }}
+        >
+          <video
+            src="/hoppy-blink.mp4"
+            autoPlay loop muted playsInline
+            className="w-full h-full object-cover scale-[1.4] object-top"
+          />
         </div>
         {isLatest && (
           <motion.div
@@ -733,7 +912,9 @@ function ChatMessage({
       <div className="flex-1 min-w-0">
         {/* Label row */}
         <div className="flex items-center gap-2 mb-1.5">
-          <span className="text-[11px] font-bold text-foreground/35 tracking-[0.12em] uppercase font-mono">Hoppy</span>
+          <span className="text-[11px] font-bold text-foreground/35 tracking-[0.12em] uppercase font-mono">
+            Hoppy
+          </span>
           {message.creditsCharged && message.creditsCharged > 0 && (
             <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-amber-400/60 bg-amber-400/8 px-1.5 py-0.5 rounded-full">
               <Zap className="h-2 w-2" />{message.creditsCharged}cr
@@ -747,7 +928,6 @@ function ChatMessage({
         {/* Bubble */}
         <div
           className="relative rounded-3xl rounded-tl-lg overflow-hidden"
-          tabIndex={-1}
           style={{
             background: "linear-gradient(145deg, hsl(var(--surface-1) / 0.65), hsl(var(--surface-1) / 0.4))",
             border: "1px solid hsl(var(--border) / 0.1)",
@@ -755,9 +935,11 @@ function ChatMessage({
             boxShadow: "0 2px 20px hsl(0 0% 0% / 0.06), inset 0 1px 0 hsl(var(--foreground) / 0.03)",
           }}
         >
-          {/* Top shimmer line */}
-          <div className="h-px w-full"
-            style={{ background: "linear-gradient(90deg, transparent, hsl(var(--primary) / 0.35), hsl(var(--accent) / 0.15), transparent)" }} />
+          {/* Shimmer line */}
+          <div
+            className="h-px w-full"
+            style={{ background: "linear-gradient(90deg, transparent, hsl(var(--primary) / 0.35), hsl(var(--accent) / 0.15), transparent)" }}
+          />
 
           {/* Text */}
           <div className="px-5 py-4">
@@ -778,14 +960,21 @@ function ChatMessage({
           {/* Rich blocks */}
           {!message.streaming && message.richBlocks && message.richBlocks.length > 0 && (
             <div className="px-4 pb-4">
-              <RichBlocksRenderer blocks={message.richBlocks} onNavigate={onNavigate} onSendMessage={onSendMessage} />
+              <RichBlocksRenderer
+                blocks={message.richBlocks}
+                onNavigate={onNavigate}
+                onSendMessage={onSendMessage}
+              />
             </div>
           )}
 
           {/* Action chips */}
           {!message.streaming && message.actions && message.actions.length > 0 && (
             <div className="px-4 pb-4 pt-0.5">
-              <div className="h-px mb-3" style={{ background: "linear-gradient(90deg, hsl(var(--primary) / 0.08), transparent)" }} />
+              <div
+                className="h-px mb-3"
+                style={{ background: "linear-gradient(90deg, hsl(var(--primary) / 0.08), transparent)" }}
+              />
               <div className="flex flex-wrap gap-1.5">
                 {message.actions.map((action, i) => (
                   <motion.button

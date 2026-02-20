@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -88,7 +88,7 @@ export function AdminProjectsBrowser() {
   const [clipsLoading, setClipsLoading] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.rpc('admin_list_projects', {
@@ -117,7 +117,7 @@ export function AdminProjectsBrowser() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, search, sortBy, sortOrder]);
 
   const fetchProjectClips = async (projectId: string) => {
     setClipsLoading(true);
@@ -140,7 +140,7 @@ export function AdminProjectsBrowser() {
 
   useEffect(() => {
     fetchProjects();
-  }, [statusFilter, sortBy, sortOrder]);
+  }, [fetchProjects]);
 
   const handleSearch = () => {
     fetchProjects();

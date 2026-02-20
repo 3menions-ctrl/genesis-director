@@ -952,9 +952,25 @@ function GenerationProgressBlock({ data, onNavigate }: { data: any; onNavigate?:
           </span>
         )}
         {isDone && (
-          <span className="text-[10px] text-emerald-400/80 ml-auto font-display font-semibold">
-            ✓ Ready to watch
-          </span>
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-[10px] text-emerald-400/80 font-display font-semibold">
+              ✓ Ready
+            </span>
+            {onNavigate && (
+              <button
+                onClick={() => onNavigate(`/editor?project=${projectId}`)}
+                className="flex items-center gap-1.5 text-[11px] font-display font-bold px-3 py-1.5 rounded-lg transition-all duration-150 active:scale-[0.97]"
+                style={{
+                  background: `linear-gradient(135deg, ${green}22, ${green}12)`,
+                  color: green,
+                  border: `1px solid ${green}40`,
+                }}
+              >
+                <Film className="h-3 w-3" />
+                Edit in Editor
+              </button>
+            )}
+          </div>
         )}
       </div>
     </RichCard>

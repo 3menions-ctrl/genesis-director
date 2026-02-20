@@ -358,6 +358,15 @@ serve(async (req) => {
         
         // FRAME-CHAINING: Handle pending clips (waiting for previous clip's frame)
         if (pred.status === 'pending') {
+          // CRITICAL RACE-CONDITION GUARD: If this clip already has a predictionId,
+          // it was started in a prior watchdog cycle but the DB write hasn't been reflected yet.
+          // Treat it as 'processing' to avoid firing duplicate Kling predictions.
+          if (pred.predictionId) {
+            allCompleted = false;
+            console.log(`[Watchdog] ⏳ Clip ${pred.clipIndex + 1} already submitted (predictionId: ${pred.predictionId}) — skipping re-submit`);
+            continue;
+          }
+
           // Check if previous clip is completed so we can start this one
           const prevClipIndex = pred.clipIndex - 1;
           const prevPred = tasks.predictions.find((p: { clipIndex: number }) => p.clipIndex === prevClipIndex);
@@ -647,6 +656,20 @@ serve(async (req) => {
                 pred.predictionId = klingPrediction.id;
                 pred.status = 'processing';
                 console.log(`[Watchdog] ✅ Clip ${pred.clipIndex + 1} STARTED with frame-chaining: ${klingPrediction.id}`);
+                
+                // CRITICAL: Immediately persist the predictionId so concurrent watchdog
+                // invocations see this clip as 'processing' and don't fire a duplicate.
+                await supabase
+                  .from('movie_projects')
+                  .update({
+                    pending_video_tasks: {
+                      ...tasks,
+                      predictions: tasks.predictions,
+                      lastProgressAt: new Date().toISOString(),
+                    },
+                  })
+                  .eq('id', project.id);
+                  
                 break; // Success!
               } else {
                 const errorText = await klingResponse.text();

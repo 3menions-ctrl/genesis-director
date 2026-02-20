@@ -1,12 +1,17 @@
 /**
- * Hoppy Agent Panel 🐰 — Modern Immersive Chat
+ * Hoppy Agent Panel 🐰 — Redesigned Premium Chat
+ * Modern, immersive AI assistant interface
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, RotateCcw, Zap, ArrowRight, Loader2, Sparkles, ChevronDown, MessageCircle, Paperclip, XCircle, Menu, Plus, Trash2, Keyboard, HelpCircle, Settings, ChevronLeft, MessageSquarePlus, Eraser, Star } from "lucide-react";
+import {
+  X, Send, RotateCcw, Zap, ArrowRight, Loader2, Sparkles,
+  ChevronDown, Paperclip, XCircle, MessageSquarePlus, Eraser,
+  Star, Keyboard, HelpCircle, MessageCircle, Settings,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AgentFace } from "./AgentFace";
 import { useAgentChat, AgentAction, AgentMessage } from "@/hooks/useAgentChat";
@@ -27,7 +32,7 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<{ url: string; name: string } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -43,8 +48,6 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    // Re-focus input after each message so cursor never gets trapped in the chat container
-    // This is critical on iOS where the cursor can lock into scroll containers
     if (isOpen && !isLoading) {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
@@ -55,21 +58,19 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
   }, [isOpen]);
 
   useEffect(() => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-    const onScroll = () => {
-      setShowScrollDown(el.scrollHeight - el.scrollTop - el.clientHeight > 120);
-    };
-    el.addEventListener("scroll", onScroll);
-    return () => el.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
       return () => { document.body.style.overflow = ""; };
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const onScroll = () => setShowScrollDown(el.scrollHeight - el.scrollTop - el.clientHeight > 120);
+    el.addEventListener("scroll", onScroll);
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
 
   const handleImageUpload = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) return;
@@ -157,8 +158,9 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
     { text: "Check my credits", icon: "⚡", sub: "Balance & usage" },
   ];
 
-  const stateLabel = agentState === "thinking" ? "Thinking..." : agentState === "speaking" ? "Responding" : agentState === "listening" ? "Listening..." : "Online";
+  const stateLabel = agentState === "thinking" ? "Thinking…" : agentState === "speaking" ? "Responding" : agentState === "listening" ? "Listening…" : "Ready";
   const stateDot = agentState === "thinking" ? "bg-amber-400" : agentState === "speaking" ? "bg-primary" : agentState === "listening" ? "bg-cyan-400" : "bg-emerald-400";
+  const canSend = (input.trim() || uploadedImage) && !isLoading;
 
   return (
     <AnimatePresence>
@@ -167,224 +169,204 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.25 }}
-          className="fixed inset-0 z-[100] flex"
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-[100] flex flex-col"
           style={{ background: "hsl(var(--background))" }}
         >
-          {/* Subtle ambient BG */}
+          {/* ── Ambient background ── */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className="absolute -top-1/4 -left-1/4 w-[800px] h-[800px] rounded-full opacity-[0.07] blur-[140px]"
-              style={{ background: "hsl(var(--primary))" }} />
-            <div className="absolute -bottom-1/4 -right-1/4 w-[600px] h-[600px] rounded-full opacity-[0.05] blur-[120px]"
-              style={{ background: "hsl(var(--accent))" }} />
-            {/* Subtle dot grid */}
-            <div className="absolute inset-0 opacity-[0.018]"
-              style={{
-                backgroundImage: `radial-gradient(circle, hsl(var(--foreground)) 1px, transparent 1px)`,
-                backgroundSize: "32px 32px",
-              }} />
+            <motion.div
+              animate={{ scale: [1, 1.05, 1], opacity: [0.06, 0.09, 0.06] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full blur-[120px]"
+              style={{ background: "hsl(var(--primary))" }}
+            />
+            <motion.div
+              animate={{ scale: [1, 1.08, 1], opacity: [0.04, 0.07, 0.04] }}
+              transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+              className="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full blur-[100px]"
+              style={{ background: "hsl(var(--accent))" }}
+            />
+            {/* Dot grid */}
+            <div className="absolute inset-0 opacity-[0.015]"
+              style={{ backgroundImage: `radial-gradient(circle, hsl(var(--foreground)) 1px, transparent 1px)`, backgroundSize: "28px 28px" }} />
           </div>
 
-          {/* ─── Settings Sidebar ─── */}
-          <AnimatePresence>
-            {sidebarOpen && (
-              <>
-                <motion.div
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  onClick={() => setSidebarOpen(false)}
-                  className="absolute inset-0 z-[110] bg-background/50 backdrop-blur-sm"
-                />
-                <motion.aside
-                  initial={{ x: -300 }} animate={{ x: 0 }} exit={{ x: -300 }}
-                  transition={{ type: "spring", stiffness: 380, damping: 38 }}
-                  className="absolute left-0 top-0 bottom-0 z-[120] w-72 flex flex-col"
-                  style={{
-                    background: "hsl(var(--surface-1) / 0.97)",
-                    borderRight: "1px solid hsl(var(--border) / 0.1)",
-                    backdropFilter: "blur(32px)",
-                    boxShadow: "24px 0 64px hsl(0 0% 0% / 0.25)",
-                  }}
-                >
-                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: "linear-gradient(90deg, transparent, hsl(var(--primary) / 0.5), transparent)" }} />
-
-                  <div className="flex items-center justify-between px-5 pt-5 pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-xl overflow-hidden ring-1 ring-primary/20">
-                        <video src="/hoppy-blink.mp4" autoPlay loop muted playsInline className="w-full h-full object-cover scale-[1.4] object-top" />
-                      </div>
-                      <div>
-                        <p className="font-display text-sm font-bold text-foreground">Hoppy</p>
-                        <p className="text-[10px] text-muted-foreground/40 tracking-widest uppercase font-medium mt-0.5">Settings</p>
-                      </div>
-                    </div>
-                    <button onClick={() => setSidebarOpen(false)}
-                      className="p-2 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-muted/10 transition-all">
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  <div className="mx-5 h-px bg-border/8 mb-2" />
-
-                  <div className="flex-1 overflow-y-auto px-3 py-1 space-y-0.5">
-                    <SidebarSection label="Conversation">
-                      <SidebarButton icon={<MessageSquarePlus className="h-3.5 w-3.5" />} label="New Chat" description="Start fresh" accent
-                        onClick={() => { clearMessages(); setSidebarOpen(false); setTimeout(() => inputRef.current?.focus(), 200); }} />
-                      <SidebarButton icon={<Eraser className="h-3.5 w-3.5" />} label="Clear Messages" description="Wipe current thread"
-                        onClick={() => { clearMessages(); setSidebarOpen(false); }} />
-                    </SidebarSection>
-                    <SidebarSection label="Quick Actions">
-                      <SidebarButton icon={<Star className="h-3.5 w-3.5" />} label="Capabilities" description="Explore Hoppy's tools"
-                        onClick={() => { sendMessage("What can you do?"); setSidebarOpen(false); }} />
-                      <SidebarButton icon={<Zap className="h-3.5 w-3.5" />} label="My Credits" description="Check balance"
-                        onClick={() => { sendMessage("Check my credits"); setSidebarOpen(false); }} />
-                      <SidebarButton icon={<Sparkles className="h-3.5 w-3.5" />} label="Create Video" description="Start a new project"
-                        onClick={() => { sendMessage("Create a video"); setSidebarOpen(false); }} />
-                      <SidebarButton icon={<MessageCircle className="h-3.5 w-3.5" />} label="My Projects" description="View all projects"
-                        onClick={() => { sendMessage("Show my projects"); setSidebarOpen(false); }} />
-                    </SidebarSection>
-                    <SidebarSection label="Help">
-                      <SidebarButton icon={<Keyboard className="h-3.5 w-3.5" />} label="Shortcuts" description="Enter to send · Shift+Enter for newline" static />
-                      <SidebarButton icon={<HelpCircle className="h-3.5 w-3.5" />} label="About Hoppy" description="Your AI Creative Director"
-                        onClick={() => { sendMessage("Tell me about yourself"); setSidebarOpen(false); }} />
-                    </SidebarSection>
-                  </div>
-
-                  <div className="px-5 pb-5 pt-3">
-                    <div className="h-px bg-border/8 mb-3" />
-                    <div className="flex items-center gap-2">
-                      <span className={cn("h-1.5 w-1.5 rounded-full", stateDot)} style={{ boxShadow: "0 0 6px currentColor" }} />
-                      <span className="text-[11px] text-muted-foreground/40 font-display">Hoppy is online</span>
-                      <span className="ml-auto text-[10px] text-muted-foreground/20 font-mono">v2.0</span>
-                    </div>
-                  </div>
-                </motion.aside>
-              </>
-            )}
-          </AnimatePresence>
-
-          {/* ─── Main Chat ─── */}
-          <div className="flex flex-col flex-1 min-w-0 relative z-10">
-
-            {/* ─── Top Bar ─── */}
-            <motion.header
-              initial={{ y: -16, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.08, duration: 0.35 }}
-              className="flex items-center gap-3 px-4 md:px-8 py-3.5 border-b"
-              style={{ borderColor: "hsl(var(--border) / 0.08)" }}
-            >
-              {/* Menu */}
-              <button
-                onClick={() => setSidebarOpen(v => !v)}
-                className={cn(
-                  "p-2 rounded-lg transition-all duration-200",
-                  sidebarOpen ? "bg-primary/10 text-primary" : "text-muted-foreground/50 hover:text-foreground hover:bg-muted/10"
-                )}
+          {/* ── Header ── */}
+          <motion.header
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.05, duration: 0.3 }}
+            className="relative z-10 flex items-center gap-3 px-5 py-4"
+            style={{ borderBottom: "1px solid hsl(var(--border) / 0.07)" }}
+          >
+            {/* Avatar + state */}
+            <div className="relative flex-shrink-0">
+              <motion.div
+                animate={agentState !== "idle" ? { boxShadow: ["0 0 0 0 hsl(var(--primary)/0.4)", "0 0 0 8px hsl(var(--primary)/0)", "0 0 0 0 hsl(var(--primary)/0.4)"] } : {}}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="h-9 w-9 rounded-xl overflow-hidden"
               >
-                <Menu className="h-4 w-4" />
+                <video src="/hoppy-blink.mp4" autoPlay loop muted playsInline className="w-full h-full object-cover scale-[1.4] object-top" />
+              </motion.div>
+              <span className={cn("absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background transition-all duration-500", stateDot)} />
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-sm text-foreground tracking-tight">Hoppy</span>
+                <span className="text-[10px] text-muted-foreground/50 font-mono">AI</span>
+              </div>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className={cn("h-1.5 w-1.5 rounded-full flex-shrink-0", stateDot)} />
+                <span className="text-[11px] text-muted-foreground/40">{stateLabel}</span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-1">
+              {/* Menu */}
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen(v => !v)}
+                  className={cn(
+                    "p-2 rounded-lg transition-all duration-150",
+                    menuOpen ? "bg-primary/10 text-primary" : "text-muted-foreground/40 hover:text-foreground hover:bg-muted/10"
+                  )}
+                >
+                  <Settings className="h-3.5 w-3.5" />
+                </button>
+
+                <AnimatePresence>
+                  {menuOpen && (
+                    <>
+                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 top-10 z-20 w-52 rounded-2xl overflow-hidden shadow-2xl"
+                        style={{
+                          background: "hsl(var(--surface-1) / 0.97)",
+                          border: "1px solid hsl(var(--border) / 0.12)",
+                          backdropFilter: "blur(32px)",
+                        }}
+                      >
+                        <div className="p-1.5">
+                          <MenuGroup label="Conversation">
+                            <MenuItem icon={<MessageSquarePlus className="h-3.5 w-3.5" />} label="New Chat"
+                              onClick={() => { clearMessages(); setMenuOpen(false); setTimeout(() => inputRef.current?.focus(), 100); }} accent />
+                            <MenuItem icon={<Eraser className="h-3.5 w-3.5" />} label="Clear Messages"
+                              onClick={() => { clearMessages(); setMenuOpen(false); }} />
+                          </MenuGroup>
+                          <div className="h-px bg-border/8 my-1" />
+                          <MenuGroup label="Quick Actions">
+                            <MenuItem icon={<Star className="h-3.5 w-3.5" />} label="Capabilities"
+                              onClick={() => { sendMessage("What can you do?"); setMenuOpen(false); }} />
+                            <MenuItem icon={<Zap className="h-3.5 w-3.5" />} label="My Credits"
+                              onClick={() => { sendMessage("Check my credits"); setMenuOpen(false); }} />
+                            <MenuItem icon={<Sparkles className="h-3.5 w-3.5" />} label="Create Video"
+                              onClick={() => { sendMessage("Create a video"); setMenuOpen(false); }} />
+                            <MenuItem icon={<MessageCircle className="h-3.5 w-3.5" />} label="My Projects"
+                              onClick={() => { sendMessage("Show my projects"); setMenuOpen(false); }} />
+                          </MenuGroup>
+                          <div className="h-px bg-border/8 my-1" />
+                          <MenuGroup label="Info">
+                            <MenuItem icon={<Keyboard className="h-3.5 w-3.5" />} label="Enter to send · ⇧ for newline" static />
+                          </MenuGroup>
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <button
+                onClick={clearMessages}
+                title="New conversation"
+                className="p-2 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-muted/10 transition-all"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
               </button>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-lg text-muted-foreground/40 hover:text-destructive hover:bg-destructive/8 transition-all"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </motion.header>
 
-              {/* Avatar */}
-              <div className="relative flex-shrink-0">
-                <div className={cn(
-                  "h-9 w-9 rounded-xl overflow-hidden ring-2 ring-offset-1 ring-offset-background transition-all duration-500",
-                  agentState === "thinking" && "ring-amber-400/50",
-                  agentState === "speaking" && "ring-primary/60",
-                  agentState === "listening" && "ring-cyan-400/50",
-                  agentState === "idle" && "ring-emerald-400/40",
-                )}>
-                  <video src="/hoppy-blink.mp4" autoPlay loop muted playsInline className="w-full h-full object-cover scale-[1.4] object-top" />
+          {/* ── Messages ── */}
+          <div
+            ref={scrollContainerRef}
+            className="flex-1 overflow-y-auto relative z-10"
+            style={{ scrollbarWidth: "none" }}
+            onClick={() => inputRef.current?.focus()}
+          >
+            <div className="max-w-2xl mx-auto px-4 md:px-6 pt-8 pb-4">
+
+              {/* Loading history */}
+              {loadingHistory && (
+                <div className="flex flex-col items-center justify-center py-28 gap-3">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary/30" />
+                  <span className="text-xs text-muted-foreground/30">Loading conversation…</span>
                 </div>
-                <div className={cn("absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background transition-colors", stateDot)} />
-              </div>
+              )}
 
-              {/* Title */}
-              <div className="flex flex-col min-w-0">
-                <span className="font-display text-sm font-bold text-foreground leading-none">Hoppy</span>
-                <span className="text-[10px] text-muted-foreground/50 mt-0.5 tracking-wide">{stateLabel}</span>
-              </div>
-
-              <div className="flex-1" />
-
-              {/* Actions */}
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={clearMessages}
-                  title="New conversation"
-                  className="p-2 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-muted/10 transition-all"
+              {/* Empty state */}
+              {!loadingHistory && messages.length === 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="flex flex-col items-center justify-center min-h-[62vh] text-center"
                 >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={onClose}
-                  title="Close"
-                  className="p-2 rounded-lg text-muted-foreground/40 hover:text-destructive hover:bg-destructive/8 transition-all"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </motion.header>
-
-            {/* ─── Messages ─── */}
-            <div
-              ref={scrollContainerRef}
-              className="flex-1 overflow-y-auto px-4 md:px-8 pt-6 pb-4 scroll-smooth"
-              style={{ scrollbarWidth: "none" }}
-              onClick={() => inputRef.current?.focus()}
-            >
-              <div className="max-w-2xl mx-auto space-y-5">
-
-                {loadingHistory && (
-                  <div className="flex flex-col items-center justify-center py-24 gap-3">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary/40" />
-                    <span className="text-sm text-muted-foreground/40 font-display">Resuming conversation...</span>
-                  </div>
-                )}
-
-                {!loadingHistory && messages.length === 0 && (
                   <motion.div
-                    initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.18, duration: 0.45 }}
-                    className="flex flex-col items-center justify-center min-h-[62vh] text-center"
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                   >
-                    <AgentFace state={agentState} size={88} />
-
-                    <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mt-7 tracking-tight">
-                      Hey! I'm Hoppy 🐰
-                    </h2>
-                    <p className="text-sm md:text-base text-muted-foreground/55 max-w-sm mt-3 leading-relaxed">
-                      Your AI studio assistant. Ask about projects, credits, or video creation.
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-2.5 w-full max-w-md mt-9">
-                      {quickPrompts.map((prompt, idx) => (
-                        <motion.button
-                          key={prompt.text}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.3 + idx * 0.07 }}
-                          onClick={() => sendMessage(prompt.text)}
-                          className={cn(
-                            "group flex flex-col items-start gap-1.5 px-4 py-3.5 rounded-xl text-left",
-                            "transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]",
-                            "border border-border/8 hover:border-primary/20",
-                            "bg-surface-1/40 hover:bg-surface-1/70 backdrop-blur-sm"
-                          )}
-                        >
-                          <span className="text-base text-primary/50 group-hover:text-primary transition-colors">
-                            {prompt.icon}
-                          </span>
-                          <span className="font-display text-[13px] font-semibold text-foreground/80 leading-tight group-hover:text-foreground transition-colors">
-                            {prompt.text}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground/35 leading-none">{prompt.sub}</span>
-                        </motion.button>
-                      ))}
-                    </div>
+                    <AgentFace state={agentState} size={80} />
                   </motion.div>
-                )}
 
+                  <h1 className="font-semibold text-2xl md:text-3xl text-foreground mt-7 tracking-tight">
+                    Hey, I'm Hoppy 🐰
+                  </h1>
+                  <p className="text-sm text-muted-foreground/50 max-w-xs mt-2.5 leading-relaxed">
+                    Your AI studio director. Ask me anything about your projects, credits, or creative work.
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-2 w-full max-w-sm mt-8">
+                    {quickPrompts.map((prompt, idx) => (
+                      <motion.button
+                        key={prompt.text}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 + idx * 0.06 }}
+                        onClick={() => sendMessage(prompt.text)}
+                        className={cn(
+                          "group flex flex-col items-start gap-1 px-3.5 py-3 rounded-xl text-left",
+                          "transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]",
+                          "border hover:border-primary/25",
+                          "hover:bg-primary/4"
+                        )}
+                        style={{ background: "hsl(var(--surface-1) / 0.4)", border: "1px solid hsl(var(--border) / 0.08)" }}
+                      >
+                        <span className="text-sm text-primary/40 group-hover:text-primary/70 transition-colors font-mono">{prompt.icon}</span>
+                        <span className="text-[13px] font-medium text-foreground/70 group-hover:text-foreground transition-colors leading-tight">{prompt.text}</span>
+                        <span className="text-[10px] text-muted-foreground/30">{prompt.sub}</span>
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Message list */}
+              <div className="space-y-6">
                 {messages.map((msg, i) => (
-                  <ImmersiveMessageBubble
+                  <ChatMessage
                     key={msg.id}
                     message={msg}
                     onAction={handleAction}
@@ -394,17 +376,22 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                   />
                 ))}
 
-                {/* Typing indicator — only show when loading AND no streaming message yet */}
+                {/* Typing indicator */}
                 {isLoading && !messages.some((m) => m.streaming && m.content.length > 0) && (
-                  <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3 items-start">
-                    <div className="h-7 w-7 rounded-lg overflow-hidden flex-shrink-0 ring-1 ring-primary/10 mt-0.5">
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex gap-3 items-end"
+                  >
+                    <div className="h-7 w-7 rounded-xl overflow-hidden flex-shrink-0 ring-1 ring-primary/10">
                       <video src="/hoppy-blink.mp4" autoPlay loop muted playsInline className="w-full h-full object-cover scale-[1.4] object-top" />
                     </div>
-                    <div className="px-4 py-3 rounded-2xl rounded-tl-sm border border-border/8 bg-surface-1/50 backdrop-blur-xl flex items-center gap-1.5">
+                    <div className="flex items-center gap-1 px-4 py-3 rounded-2xl rounded-bl-sm"
+                      style={{ background: "hsl(var(--surface-1) / 0.6)", border: "1px solid hsl(var(--border) / 0.08)" }}>
                       {[0, 1, 2].map((i) => (
-                        <motion.span key={i} className="h-1.5 w-1.5 rounded-full bg-primary/40"
-                          animate={{ y: [0, -4, 0], opacity: [0.3, 1, 0.3] }}
-                          transition={{ duration: 0.65, repeat: Infinity, delay: i * 0.11, ease: "easeInOut" }} />
+                        <motion.span key={i} className="h-[5px] w-[5px] rounded-full bg-primary/50"
+                          animate={{ y: [0, -5, 0], opacity: [0.4, 1, 0.4] }}
+                          transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.13, ease: "easeInOut" }} />
                       ))}
                     </div>
                   </motion.div>
@@ -413,100 +400,108 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                 <div ref={messagesEndRef} />
               </div>
             </div>
+          </div>
 
-            {/* Scroll down pill */}
-            <AnimatePresence>
-              {showScrollDown && (
-                <motion.button
-                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
-                  onClick={scrollToBottom}
-                  className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[101]
-                             flex items-center gap-1.5 px-3.5 py-1.5 rounded-full
-                             bg-surface-1/95 border border-border/12 backdrop-blur-md
-                             text-xs text-muted-foreground hover:text-foreground
-                             shadow-lg transition-colors font-display"
-                >
-                  <ChevronDown className="h-3 w-3" /> New messages
-                </motion.button>
-              )}
-            </AnimatePresence>
+          {/* Scroll down pill */}
+          <AnimatePresence>
+            {showScrollDown && (
+              <motion.button
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
+                onClick={scrollToBottom}
+                className="absolute bottom-28 left-1/2 -translate-x-1/2 z-20
+                           flex items-center gap-1.5 px-3.5 py-1.5 rounded-full
+                           text-xs text-muted-foreground hover:text-foreground
+                           transition-colors shadow-lg"
+                style={{ background: "hsl(var(--surface-1) / 0.95)", border: "1px solid hsl(var(--border) / 0.12)", backdropFilter: "blur(16px)" }}
+              >
+                <ChevronDown className="h-3 w-3" /> New messages
+              </motion.button>
+            )}
+          </AnimatePresence>
 
-            {/* Confirm overlay */}
-            <AnimatePresence>
-              {pendingAction && (
-                <motion.div
-                  initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 16, opacity: 0 }}
-                  className="fixed bottom-28 left-1/2 -translate-x-1/2 w-[90%] max-w-sm p-5 rounded-2xl z-[102]
-                             bg-surface-1/97 border border-border/12 backdrop-blur-xl
-                             shadow-[0_16px_64px_hsl(0_0%_0%/0.4)]"
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <Zap className="h-4 w-4 text-amber-400" />
-                    <span className="font-display text-sm font-semibold text-foreground">
-                      {pendingAction.action === "confirm_delete" ? "Confirm deletion" : "Confirm action"}
+          {/* Confirm overlay */}
+          <AnimatePresence>
+            {pendingAction && (
+              <motion.div
+                initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 16, opacity: 0 }}
+                className="absolute bottom-32 left-1/2 -translate-x-1/2 w-[90%] max-w-sm p-5 rounded-2xl z-30 shadow-2xl"
+                style={{
+                  background: "hsl(var(--surface-1) / 0.98)",
+                  border: "1px solid hsl(var(--border) / 0.12)",
+                  backdropFilter: "blur(32px)",
+                }}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-7 w-7 rounded-lg bg-amber-400/10 flex items-center justify-center">
+                    <Zap className="h-3.5 w-3.5 text-amber-400" />
+                  </div>
+                  <span className="text-sm font-semibold text-foreground">
+                    {pendingAction.action === "confirm_delete" ? "Confirm deletion" : "Confirm action"}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground/70 mb-4 leading-relaxed">
+                  {pendingAction.reason || "This action requires your confirmation."}
+                  {pendingAction.estimated_credits && (
+                    <span className="block mt-1.5 text-amber-400/80 font-semibold text-xs">
+                      Cost: {pendingAction.estimated_credits} credits
                     </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground/70 mb-4 leading-relaxed">
-                    {pendingAction.reason || "This action requires your confirmation."}
-                    {pendingAction.estimated_credits && (
-                      <span className="block mt-1.5 text-amber-400/80 font-display font-semibold text-xs">
-                        Cost: {pendingAction.estimated_credits} credits
-                      </span>
-                    )}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => setPendingAction(null)} className="flex-1">Cancel</Button>
-                    <Button size="sm" onClick={confirmAction} className="flex-1">Confirm</Button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* ─── Input Bar ─── */}
-            <motion.div
-              initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.12, duration: 0.35 }}
-              className="px-4 md:px-8 pb-5 pt-2 relative z-10"
-            >
-              <div className="max-w-2xl mx-auto">
-                {/* Attached image preview */}
-                <AnimatePresence>
-                  {uploadedImage && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
-                      className="mb-2 overflow-hidden"
-                    >
-                      <div className="flex items-center gap-2 px-1 py-1">
-                        <div className="relative w-12 h-12 rounded-lg overflow-hidden ring-1 ring-primary/20 flex-shrink-0">
-                          <img src={uploadedImage.url} alt="Attached" className="w-full h-full object-cover" />
-                          <button onClick={() => setUploadedImage(null)}
-                            className="absolute top-0.5 right-0.5 bg-background/80 rounded-full p-0.5 hover:bg-destructive/80 transition-colors">
-                            <XCircle className="h-3 w-3" />
-                          </button>
-                        </div>
-                        <span className="text-xs text-muted-foreground/50 truncate">{uploadedImage.name}</span>
-                      </div>
-                    </motion.div>
                   )}
-                </AnimatePresence>
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setPendingAction(null)} className="flex-1 h-9 rounded-xl">Cancel</Button>
+                  <Button size="sm" onClick={confirmAction} className="flex-1 h-9 rounded-xl">Confirm</Button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-                {/* Input field */}
-                <div
-                  className="relative flex items-end gap-2 rounded-2xl px-4 py-3 transition-all duration-200 group/input"
-                  style={{
-                    background: "hsl(var(--surface-1) / 0.6)",
-                    border: "1px solid hsl(var(--border) / 0.12)",
-                    backdropFilter: "blur(20px)",
-                    boxShadow: "0 2px 24px hsl(0 0% 0% / 0.08)",
-                  }}
-                >
-                  {/* Focus glow ring */}
-                  <div className="absolute inset-0 rounded-2xl opacity-0 group-focus-within/input:opacity-100 transition-opacity pointer-events-none"
-                    style={{ boxShadow: "0 0 0 1px hsl(var(--primary) / 0.2), 0 0 20px hsl(var(--primary) / 0.06)" }} />
+          {/* ── Input bar ── */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+            className="relative z-10 px-4 md:px-6 pb-6 pt-3"
+          >
+            <div className="max-w-2xl mx-auto">
+              {/* Image preview */}
+              <AnimatePresence>
+                {uploadedImage && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+                    className="mb-2 overflow-hidden"
+                  >
+                    <div className="flex items-center gap-2 px-1 py-1">
+                      <div className="relative w-10 h-10 rounded-lg overflow-hidden ring-1 ring-primary/20 flex-shrink-0">
+                        <img src={uploadedImage.url} alt="Attached" className="w-full h-full object-cover" />
+                        <button onClick={() => setUploadedImage(null)}
+                          className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                          <XCircle className="h-3.5 w-3.5 text-white" />
+                        </button>
+                      </div>
+                      <span className="text-xs text-muted-foreground/50 truncate">{uploadedImage.name}</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-                  {/* Hoppy avatar hint */}
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full overflow-hidden ring-1 ring-primary/10 mb-0.5 opacity-50 group-focus-within/input:opacity-80 transition-opacity">
-                    <video src="/hoppy-blink.mp4" autoPlay loop muted playsInline className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: "50% 25%" }} />
+              {/* Input field */}
+              <div
+                className="group/input relative rounded-2xl transition-all duration-200"
+                style={{
+                  background: "hsl(var(--surface-1) / 0.7)",
+                  border: "1px solid hsl(var(--border) / 0.12)",
+                  backdropFilter: "blur(24px)",
+                  boxShadow: "0 4px 32px hsl(0 0% 0% / 0.1)",
+                }}
+              >
+                {/* Focus ring */}
+                <div className="absolute inset-0 rounded-2xl opacity-0 group-focus-within/input:opacity-100 transition-opacity pointer-events-none"
+                  style={{ boxShadow: "0 0 0 1.5px hsl(var(--primary) / 0.25), inset 0 0 0 1px hsl(var(--primary) / 0.05)" }} />
+
+                <div className="flex items-end gap-2 px-4 py-3">
+                  {/* Small Hoppy */}
+                  <div className="flex-shrink-0 w-5 h-5 rounded-full overflow-hidden opacity-40 group-focus-within/input:opacity-70 transition-opacity mb-0.5">
+                    <video src="/hoppy-blink.mp4" autoPlay loop muted playsInline className="w-full h-full object-cover scale-[1.2]" style={{ objectPosition: "50% 20%" }} />
                   </div>
 
                   <textarea
@@ -514,95 +509,86 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Ask Hoppy anything..."
+                    placeholder="Ask Hoppy anything…"
                     className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/25
                                resize-none border-none outline-none focus:outline-none focus:ring-0
-                               font-sans leading-[1.6] max-h-32 min-h-[22px]"
+                               leading-relaxed max-h-36 min-h-[22px]"
                     rows={1}
                     disabled={isLoading}
                     style={{ fieldSizing: "content" } as any}
                   />
 
                   <div className="flex items-center gap-1 flex-shrink-0 mb-0.5">
-                    {/* Attach image */}
+                    {/* Attach */}
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       disabled={isLoading || isUploading}
                       className={cn(
-                        "p-1.5 rounded-lg transition-all duration-150",
-                        uploadedImage ? "text-primary bg-primary/10" : "text-muted-foreground/30 hover:text-muted-foreground/70 hover:bg-muted/10"
+                        "p-1.5 rounded-lg transition-all",
+                        uploadedImage ? "text-primary bg-primary/10" : "text-muted-foreground/25 hover:text-muted-foreground/60 hover:bg-muted/10"
                       )}
                     >
                       {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}
                     </button>
 
                     {/* Send */}
-                    <button
+                    <motion.button
                       onClick={handleSend}
-                      disabled={isLoading || (!input.trim() && !uploadedImage)}
+                      disabled={!canSend}
+                      whileTap={canSend ? { scale: 0.9 } : {}}
                       className={cn(
-                        "p-2 rounded-xl transition-all duration-200",
-                        (input.trim() || uploadedImage) && !isLoading
-                          ? "bg-primary text-primary-foreground shadow-[0_2px_12px_hsl(var(--primary)/0.35)] hover:-translate-y-px active:scale-95"
-                          : "bg-muted/20 text-muted-foreground/20 cursor-not-allowed"
+                        "h-8 w-8 rounded-xl flex items-center justify-center transition-all duration-200",
+                        canSend
+                          ? "bg-primary text-primary-foreground shadow-[0_2px_16px_hsl(var(--primary)/0.4)] hover:shadow-[0_4px_20px_hsl(var(--primary)/0.5)] hover:-translate-y-px"
+                          : "bg-muted/15 text-muted-foreground/20 cursor-not-allowed"
                       )}
                     >
                       {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                    </button>
+                    </motion.button>
                   </div>
-
-                  <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/gif" onChange={handleFileSelect} className="hidden" />
                 </div>
 
-                <p className="text-center text-[10px] text-muted-foreground/20 mt-2 font-display tracking-wide">
-                  Enter to send · Shift+Enter for new line
-                </p>
+                <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/gif" onChange={handleFileSelect} className="hidden" />
               </div>
-            </motion.div>
-          </div>
+
+              <p className="text-center text-[10px] text-muted-foreground/18 mt-2">
+                ↵ send · ⇧↵ new line
+              </p>
+            </div>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
   );
 }
 
-// ── Sidebar helpers ──
+// ── Dropdown menu helpers ──
 
-function SidebarSection({ label, children }: { label: string; children: React.ReactNode }) {
+function MenuGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="py-2">
-      <p className="text-[9px] font-display font-bold text-muted-foreground/25 tracking-[0.15em] uppercase px-2 mb-1.5">{label}</p>
+    <div className="py-1">
+      <p className="text-[9px] font-bold text-muted-foreground/25 tracking-[0.15em] uppercase px-2.5 mb-1">{label}</p>
       <div className="space-y-0.5">{children}</div>
     </div>
   );
 }
 
-function SidebarButton({ icon, label, description, accent, static: isStatic, onClick }: {
-  icon: React.ReactNode; label: string; description?: string; accent?: boolean; static?: boolean; onClick?: () => void;
+function MenuItem({ icon, label, accent, static: isStatic, onClick }: {
+  icon: React.ReactNode; label: string; accent?: boolean; static?: boolean; onClick?: () => void;
 }) {
   return (
-    <button onClick={onClick} disabled={isStatic}
+    <button
+      onClick={onClick}
+      disabled={isStatic}
       className={cn(
-        "w-full flex items-start gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150 group",
-        isStatic ? "cursor-default opacity-60"
-          : accent ? "hover:bg-primary/8 border border-transparent active:scale-[0.98]"
-          : "hover:bg-muted/10 border border-transparent active:scale-[0.98]"
-      )}>
-      <span className={cn("mt-0.5 flex-shrink-0 transition-colors",
-        accent ? "text-primary/60 group-hover:text-primary" : "text-muted-foreground/35 group-hover:text-muted-foreground/70"
-      )}>
-        {icon}
-      </span>
-      <div className="min-w-0">
-        <p className={cn("text-[13px] font-display font-medium leading-none mb-0.5 transition-colors",
-          accent ? "text-primary/70 group-hover:text-primary" : "text-foreground/60 group-hover:text-foreground/90"
-        )}>
-          {label}
-        </p>
-        {description && (
-          <p className="text-[11px] text-muted-foreground/30 leading-snug group-hover:text-muted-foreground/45 transition-colors">{description}</p>
-        )}
-      </div>
+        "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all text-[13px]",
+        isStatic ? "cursor-default opacity-50 text-muted-foreground/40"
+          : accent ? "text-primary/70 hover:text-primary hover:bg-primary/8"
+          : "text-foreground/60 hover:text-foreground hover:bg-muted/10"
+      )}
+    >
+      <span className={cn("flex-shrink-0", accent ? "text-primary/50" : "text-muted-foreground/35")}>{icon}</span>
+      {label}
     </button>
   );
 }
@@ -612,30 +598,34 @@ function SidebarButton({ icon, label, description, accent, static: isStatic, onC
 function HoppyMarkdown({ content }: { content: string }) {
   try {
     return (
-      <div className="space-y-3.5
-                     [&>p]:text-[15px] [&>p]:leading-[1.85] [&>p]:text-foreground/80
-                     [&>p:first-child]:text-[16px] [&>p:first-child]:text-foreground/90
-                     [&>ul]:space-y-1.5 [&>ol]:space-y-1.5
-                     [&_li]:text-[14.5px] [&_li]:leading-[1.8] [&_li]:text-foreground/75
-                     [&_strong]:text-foreground [&_strong]:font-semibold
-                     [&_em]:text-primary/70 [&_em]:not-italic
-                     [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_a]:decoration-primary/30
-                     [&_code]:text-primary/80 [&_code]:bg-primary/8 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:text-[12.5px] [&_code]:font-mono
-                     [&_h2]:text-lg [&_h2]:font-display [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-foreground
-                     [&_h3]:text-base [&_h3]:font-display [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1.5 [&_h3]:text-foreground/90
-                     [&>blockquote]:border-l-2 [&>blockquote]:border-primary/25 [&>blockquote]:pl-4 [&>blockquote]:py-1 [&>blockquote]:text-muted-foreground/70 [&>blockquote]:rounded-r-xl [&>blockquote]:my-4
-                     [&>hr]:border-border/8 [&>hr]:my-4">
+      <div className={cn(
+        "prose prose-sm max-w-none",
+        "[&>p]:text-[14.5px] [&>p]:leading-[1.85] [&>p]:text-foreground/80 [&>p]:mb-3 [&>p:last-child]:mb-0",
+        "[&>p:first-child]:text-[15px] [&>p:first-child]:text-foreground/90",
+        "[&>ul]:space-y-1.5 [&>ol]:space-y-1.5 [&>ul]:pl-4 [&>ol]:pl-4 [&>ul]:mb-3 [&>ol]:mb-3",
+        "[&_li]:text-[14px] [&_li]:leading-[1.8] [&_li]:text-foreground/75",
+        "[&_li::marker]:text-primary/40",
+        "[&_strong]:text-foreground [&_strong]:font-semibold",
+        "[&_em]:text-primary/70 [&_em]:not-italic",
+        "[&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_a]:decoration-primary/30",
+        "[&_code]:text-primary/80 [&_code]:bg-primary/8 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:text-[12px] [&_code]:font-mono",
+        "[&_pre]:bg-muted/20 [&_pre]:rounded-xl [&_pre]:p-4 [&_pre]:overflow-auto [&_pre]:text-xs [&_pre]:mb-3",
+        "[&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-foreground",
+        "[&_h3]:text-[13px] [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1.5 [&_h3]:text-foreground/90",
+        "[&>blockquote]:border-l-2 [&>blockquote]:border-primary/25 [&>blockquote]:pl-4 [&>blockquote]:py-0.5 [&>blockquote]:text-muted-foreground/60 [&>blockquote]:my-3",
+        "[&>hr]:border-border/8 [&>hr]:my-4",
+      )}>
         <ReactMarkdown>{content}</ReactMarkdown>
       </div>
     );
   } catch {
-    return <p className="text-[15px] leading-[1.85] text-foreground/80">{content}</p>;
+    return <p className="text-[14.5px] leading-[1.85] text-foreground/80">{content}</p>;
   }
 }
 
-// ── Message Bubble ──
+// ── Chat Message ──
 
-function ImmersiveMessageBubble({
+function ChatMessage({
   message, onAction, onNavigate, onSendMessage, isLatest,
 }: {
   message: AgentMessage;
@@ -649,23 +639,24 @@ function ImmersiveMessageBubble({
   if (isUser) {
     return (
       <motion.div
-        initial={isLatest ? { opacity: 0, y: 6 } : false}
+        initial={isLatest ? { opacity: 0, y: 8 } : false}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.18 }}
+        transition={{ duration: 0.2 }}
         className="flex justify-end"
       >
-        <div className="max-w-[78%]">
+        <div className="max-w-[78%] md:max-w-[70%]">
           <div
-            className="px-4 py-2.5 rounded-2xl rounded-br-sm text-sm leading-[1.7] font-sans"
+            className="px-4 py-2.5 rounded-2xl rounded-br-sm text-[14.5px] leading-[1.75] font-sans"
             style={{
-              background: "hsl(var(--primary))",
+              background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8))",
               color: "hsl(var(--primary-foreground))",
+              boxShadow: "0 2px 16px hsl(var(--primary) / 0.25)",
             }}
           >
             {message.content}
           </div>
-          <div className="flex justify-end mt-1 pr-0.5">
-            <span className="text-[10px] text-muted-foreground/20 tabular-nums font-display">
+          <div className="flex justify-end mt-1 pr-1">
+            <span className="text-[10px] text-muted-foreground/20 tabular-nums">
               {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </span>
           </div>
@@ -677,47 +668,48 @@ function ImmersiveMessageBubble({
   // Hoppy message
   return (
     <motion.div
-      initial={isLatest ? { opacity: 0, y: 10 } : false}
+      initial={isLatest ? { opacity: 0, y: 12 } : false}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
       className="flex gap-3 items-start"
     >
       {/* Avatar */}
-      <div className="h-7 w-7 rounded-lg overflow-hidden flex-shrink-0 ring-1 ring-primary/12 mt-0.5 shadow-sm">
+      <div className="flex-shrink-0 h-7 w-7 rounded-xl overflow-hidden mt-0.5 shadow-sm"
+        style={{ boxShadow: "0 0 0 1px hsl(var(--primary) / 0.12)" }}>
         <video src="/hoppy-blink.mp4" autoPlay loop muted playsInline
           className="w-full h-full object-cover scale-[1.4] object-top" />
       </div>
 
-      {/* Bubble */}
+      {/* Content */}
       <div className="flex-1 min-w-0">
-        {/* Name + time */}
+        {/* Label */}
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-[11px] font-display font-semibold text-foreground/50 tracking-wide uppercase">Hoppy</span>
+          <span className="text-[11px] font-semibold text-foreground/40 tracking-wider uppercase">Hoppy</span>
           {message.creditsCharged && message.creditsCharged > 0 && (
             <span className="text-[10px] text-amber-400/50 flex items-center gap-0.5">
               <Zap className="h-2.5 w-2.5" />{message.creditsCharged}cr
             </span>
           )}
-          <span className="text-[10px] text-muted-foreground/20 tabular-nums font-display ml-auto">
+          <span className="ml-auto text-[10px] text-muted-foreground/18 tabular-nums">
             {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </span>
         </div>
 
-        {/* Content card — tabIndex={-1} prevents iOS from trapping cursor here */}
+        {/* Bubble */}
         <div
           className="rounded-2xl rounded-tl-sm overflow-hidden"
           tabIndex={-1}
           style={{
             background: "hsl(var(--surface-1) / 0.5)",
-            border: "1px solid hsl(var(--border) / 0.09)",
+            border: "1px solid hsl(var(--border) / 0.08)",
             backdropFilter: "blur(16px)",
-            WebkitUserSelect: "none",
           }}
         >
-          {/* Accent top bar */}
-          <div className="h-[1.5px] w-full" style={{ background: "linear-gradient(90deg, hsl(var(--primary) / 0.35), hsl(var(--accent) / 0.15), transparent)" }} />
+          {/* Accent stripe */}
+          <div className="h-[1px] w-full"
+            style={{ background: "linear-gradient(90deg, hsl(var(--primary) / 0.3), hsl(var(--accent) / 0.1), transparent)" }} />
 
-          {/* Text — with blinking cursor while streaming */}
+          {/* Text */}
           <div className="px-5 py-4">
             {message.content ? (
               <HoppyMarkdown content={message.content} />
@@ -726,31 +718,40 @@ function ImmersiveMessageBubble({
             )}
             {message.streaming && (
               <motion.span
-                className="inline-block w-[2px] h-[1.1em] bg-primary/60 ml-0.5 rounded-full align-middle"
+                className="inline-block w-[2px] h-[1em] bg-primary/50 ml-0.5 rounded-full align-middle"
                 animate={{ opacity: [1, 0] }}
-                transition={{ duration: 0.55, repeat: Infinity, repeatType: "reverse" }}
+                transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
               />
             )}
           </div>
 
-          {/* Rich blocks — only show when streaming is complete */}
+          {/* Rich blocks */}
           {!message.streaming && message.richBlocks && message.richBlocks.length > 0 && (
             <div className="px-4 pb-4">
               <RichBlocksRenderer blocks={message.richBlocks} onNavigate={onNavigate} onSendMessage={onSendMessage} />
             </div>
           )}
 
-          {/* Action chips — only show when streaming is complete */}
+          {/* Action chips */}
           {!message.streaming && message.actions && message.actions.length > 0 && (
-            <div className="px-5 pb-4 pt-1">
-              <div className="h-px mb-3" style={{ background: "hsl(var(--border) / 0.07)" }} />
+            <div className="px-4 pb-4 pt-1">
+              <div className="h-px mb-3" style={{ background: "hsl(var(--border) / 0.06)" }} />
               <div className="flex flex-wrap gap-1.5">
                 {message.actions.map((action, i) => (
-                  <button key={i} onClick={() => onAction(action)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12px] font-display font-semibold
-                               bg-primary/6 text-primary/70 border border-primary/10
-                               hover:bg-primary/12 hover:text-primary hover:border-primary/20
-                               transition-all duration-150 active:scale-[0.97]">
+                  <motion.button
+                    key={i}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.05 }}
+                    onClick={() => onAction(action)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium
+                               text-primary/70 hover:text-primary
+                               transition-all duration-150 active:scale-[0.97]"
+                    style={{
+                      background: "hsl(var(--primary) / 0.06)",
+                      border: "1px solid hsl(var(--primary) / 0.1)",
+                    }}
+                  >
                     <ArrowRight className="h-2.5 w-2.5" />
                     {action.action === "navigate" && action.path}
                     {action.action === "open_buy_credits" && "💳 Buy Credits"}
@@ -770,11 +771,11 @@ function ImmersiveMessageBubble({
                     {action.action === "clip_updated" && "✏️ Clip Updated"}
                     {action.action === "clip_retried" && "🔄 Retrying"}
                     {action.action === "clips_reordered" && "🎬 Reordered"}
-                    {action.action === "generation_started" && "🎬 Generating..."}
+                    {action.action === "generation_started" && "🎬 Generating…"}
                     {action.action === "published" && "🌟 Published!"}
                     {action.action === "unpublished" && "🔒 Made Private"}
                     {action.action === "project_updated" && "✅ Updated"}
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>

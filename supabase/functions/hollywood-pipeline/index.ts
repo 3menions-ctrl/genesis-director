@@ -288,62 +288,45 @@ function getBreakoutEffectConfig(effectType: 'post-escape' | 'scroll-grab' | 'fr
   return configs[effectType] || configs['post-escape'];
 }
 
-// Kling 2.6: Configurable clip duration (5 or 10 seconds)
-const DEFAULT_CLIP_DURATION = 5; // 5 seconds for Kling 2.6
-const MIN_CLIP_DURATION = 5;
-const MAX_CLIP_DURATION = 10;
+// Kling V3: Default 10s, supports 3–15s per clip
+const DEFAULT_CLIP_DURATION = 10;
+const MIN_CLIP_DURATION = 3;
+const MAX_CLIP_DURATION = 15; // Kling V3 max
 
-// Tier-based clip limits (fail-safe defaults if DB unavailable)
-// NOTE: These should match DEFAULT_TIER_LIMITS in src/types/tier-limits.ts
-// Primary source of truth is the tier_limits table in DB, accessed via get_user_tier_limits RPC
-// Duration targets: Free=32sec (5 clips), Pro=1min (10 clips), Growth=2min (20 clips), Agency=3min (30 clips)
-// IRON-CLAD: All tiers get 4 retries for quality (matches DB tier_limits)
-// COST OPTIMIZATION: Quality retries disabled to reduce Kling API costs
-// Each clip is generated once and accepted regardless of quality score
 const TIER_CLIP_LIMITS: Record<string, { maxClips: number; maxDuration: number; maxRetries: number; chunkedStitching: boolean }> = {
-  'free': { maxClips: 6, maxDuration: 60, maxRetries: 0, chunkedStitching: false }, // Free tier limit
-  'pro': { maxClips: 10, maxDuration: 60, maxRetries: 0, chunkedStitching: true },
-  'growth': { maxClips: 20, maxDuration: 120, maxRetries: 0, chunkedStitching: true },
-  'agency': { maxClips: 30, maxDuration: 180, maxRetries: 0, chunkedStitching: true },
+  'free': { maxClips: 2, maxDuration: 30, maxRetries: 0, chunkedStitching: false },
+  'pro': { maxClips: 6, maxDuration: 90, maxRetries: 0, chunkedStitching: true },
+  'growth': { maxClips: 12, maxDuration: 180, maxRetries: 0, chunkedStitching: true },
+  'agency': { maxClips: 20, maxDuration: 300, maxRetries: 0, chunkedStitching: true },
 };
 
-// DISABLED: Quality threshold checking - all clips pass regardless of score
-// const MINIMUM_QUALITY_THRESHOLD = 65;
-const MINIMUM_QUALITY_THRESHOLD = 0; // Accept all clips
+const MINIMUM_QUALITY_THRESHOLD = 0;
+const MIN_CLIPS_PER_PROJECT = 1;
 
-const MIN_CLIPS_PER_PROJECT = 1; // Allow single-clip projects
-
-// Tier-aware credit costs (MUST match frontend creditSystem.ts)
-// Kling (avatar): Base 10 / Extended 15 per clip
-// Veo 3 (text/image-to-video): Base 20 / Extended 30 per clip (2× Kling)
+// Kling V3 Credit Pricing (ALL modes — T2V, I2V, Avatar)
 const CREDIT_PRICING = {
-  // Kling v2.6 (Avatar mode)
-  BASE_CREDITS_PER_CLIP: 10,
-  EXTENDED_CREDITS_PER_CLIP: 15,
-  // Runway Gen-4 Turbo — 50% margin pricing
-  // Real cost: $0.05/s → 5s=$0.25, 10s=$0.50
-  // At $0.10/credit: 5s=5cr ($0.50 revenue, 50% margin), 10s=10cr ($1.00 revenue, 50% margin)
-  RUNWAY_BASE_CREDITS_PER_CLIP: 5,      // 5s clip: $0.25 cost → $0.50 charge = 50% margin
-  RUNWAY_EXTENDED_CREDITS_PER_CLIP: 10, // 10s clip: $0.50 cost → $1.00 charge = 50% margin
+  BASE_CREDITS_PER_CLIP: 12,
+  EXTENDED_CREDITS_PER_CLIP: 18,
+  RUNWAY_BASE_CREDITS_PER_CLIP: 12,
+  RUNWAY_EXTENDED_CREDITS_PER_CLIP: 18,
+  AVATAR_BASE_CREDITS_PER_CLIP: 15,
+  AVATAR_EXTENDED_CREDITS_PER_CLIP: 22,
   BASE_CLIP_COUNT_THRESHOLD: 6,
-  BASE_DURATION_THRESHOLD: 5,
+  BASE_DURATION_THRESHOLD: 10,
 } as const;
 
 function isExtendedPricing(clipIndex: number, clipDuration: number): boolean {
-  return clipIndex >= CREDIT_PRICING.BASE_CLIP_COUNT_THRESHOLD || 
+  return clipIndex >= CREDIT_PRICING.BASE_CLIP_COUNT_THRESHOLD ||
          clipDuration > CREDIT_PRICING.BASE_DURATION_THRESHOLD;
 }
 
 function getCreditsForClip(clipIndex: number, clipDuration: number, videoEngine: 'kling' | 'veo' = 'veo'): number {
-  // 'veo' param routes to Runway Gen-4 Turbo (default for all non-avatar modes)
-  if (videoEngine !== 'kling') {
-    // Runway: 5s=5cr, 10s=10cr (50% margin on $0.05/s Replicate cost)
-    return clipDuration > 5
-      ? CREDIT_PRICING.RUNWAY_EXTENDED_CREDITS_PER_CLIP
-      : CREDIT_PRICING.RUNWAY_BASE_CREDITS_PER_CLIP;
+  if (videoEngine === 'kling') {
+    return clipDuration > 10
+      ? CREDIT_PRICING.AVATAR_EXTENDED_CREDITS_PER_CLIP
+      : CREDIT_PRICING.AVATAR_BASE_CREDITS_PER_CLIP;
   }
-  // Kling (Avatar mode only)
-  return isExtendedPricing(clipIndex, clipDuration)
+  return clipDuration > 10
     ? CREDIT_PRICING.EXTENDED_CREDITS_PER_CLIP
     : CREDIT_PRICING.BASE_CREDITS_PER_CLIP;
 }

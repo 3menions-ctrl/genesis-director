@@ -696,7 +696,7 @@ serve(async (req) => {
                 await sleep(delayMs);
               }
               
-              const klingResponse = await resilientFetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
+              const klingResponse = await resilientFetch("https://api.replicate.com/v1/models/kwaivgi/kling-v3-video/predictions", {
                 method: "POST",
                 headers: {
                   "Authorization": `Bearer ${REPLICATE_API_KEY}`,
@@ -706,10 +706,11 @@ serve(async (req) => {
                   input: {
                     mode: "pro",
                     prompt: finalActingPrompt,
-                    duration: videoDuration,
+                    duration: Math.max(3, Math.min(15, videoDuration)), // Kling V3: 3–15s
                     start_image: startImageUrl,
                     aspect_ratio: tasks.aspectRatio || "16:9",
                     negative_prompt: negativePrompt,
+                    generate_audio: true, // Kling V3 native lip-sync audio for avatar
                   },
                 }),
                 maxRetries: 2,

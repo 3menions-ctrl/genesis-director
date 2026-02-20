@@ -658,10 +658,11 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                     style={{ boxShadow: "0 0 0 1.5px hsl(var(--primary) / 0.3), inset 0 0 20px hsl(var(--primary) / 0.02)" }}
                   />
 
-                  {/* Top row — mini avatar + textarea */}
-                  <div className="flex items-start gap-3 px-4 pt-4 pb-3">
+                  {/* Single row — avatar + textarea + actions always visible */}
+                  <div className="flex items-end gap-2 px-3 py-3">
+                    {/* Mini Hoppy avatar */}
                     <div
-                      className="flex-shrink-0 w-6 h-6 rounded-xl overflow-hidden mt-0.5 opacity-35 group-focus-within/input:opacity-60 transition-opacity duration-300"
+                      className="flex-shrink-0 w-7 h-7 rounded-xl overflow-hidden opacity-35 group-focus-within/input:opacity-60 transition-opacity duration-300 mb-0.5"
                       style={{ boxShadow: "0 0 0 1px hsl(var(--primary) / 0.15)" }}
                     >
                       <video
@@ -672,12 +673,7 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                       />
                     </div>
 
-                    {/*
-                      IMPORTANT: Do NOT use `disabled` on this textarea.
-                      Disabled elements cannot receive focus, which breaks our
-                      auto-refocus after Hoppy finishes streaming.
-                      Visual "disabled" state is communicated via opacity + pointer-events.
-                    */}
+                    {/* Textarea — grows with content */}
                     <textarea
                       ref={inputRef}
                       value={input}
@@ -690,38 +686,33 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                       className={cn(
                         "flex-1 bg-transparent text-[14px] text-foreground",
                         "resize-none border-none outline-none focus:outline-none focus:ring-0",
-                        "leading-relaxed max-h-40 min-h-[24px] font-sans transition-opacity duration-300",
+                        "leading-relaxed max-h-32 min-h-[24px] font-sans transition-opacity duration-300 py-0.5",
                         isLoading
                           ? "opacity-40 placeholder:text-muted-foreground/20"
                           : "opacity-100 placeholder:text-muted-foreground/30"
                       )}
                     />
-                  </div>
 
-                  {/* Bottom row — attach + send */}
-                  <div
-                    className="flex items-center justify-between px-3.5 pb-3 pt-1"
-                    style={{ borderTop: "1px solid hsl(var(--border) / 0.06)" }}
-                  >
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isLoading || isUploading}
-                      className={cn(
-                        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[12px] font-medium transition-all duration-150",
-                        uploadedImage
-                          ? "text-primary bg-primary/10 border border-primary/15"
-                          : "text-muted-foreground/30 hover:text-muted-foreground/60 hover:bg-muted/8 border border-transparent"
-                      )}
-                    >
-                      {isUploading
-                        ? <Loader2 className="h-3 w-3 animate-spin" />
-                        : <Paperclip className="h-3 w-3" />
-                      }
-                      <span>Attach</span>
-                    </button>
+                    {/* Action buttons — always in the same row, always visible */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0 mb-0.5">
+                      {/* Attach */}
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isLoading || isUploading}
+                        className={cn(
+                          "flex items-center justify-center w-7 h-7 rounded-xl transition-all duration-150",
+                          uploadedImage
+                            ? "text-primary bg-primary/10 border border-primary/15"
+                            : "text-muted-foreground/40 hover:text-muted-foreground/70 hover:bg-muted/10 border border-transparent"
+                        )}
+                      >
+                        {isUploading
+                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          : <Paperclip className="h-3.5 w-3.5" />
+                        }
+                      </button>
 
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-[10px] text-muted-foreground/20 hidden sm:block font-mono">⇧↵ newline</span>
+                      {/* Send — always rendered, dimmed when disabled */}
                       <motion.button
                         onClick={handleSend}
                         disabled={!canSend}
@@ -729,8 +720,8 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                         className={cn(
                           "h-8 w-8 rounded-2xl flex items-center justify-center transition-all duration-200",
                           canSend
-                            ? "bg-primary text-primary-foreground hover:-translate-y-px"
-                            : "bg-muted/12 text-muted-foreground/20 cursor-not-allowed"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted/20 text-muted-foreground/25 cursor-not-allowed"
                         )}
                         style={canSend ? {
                           boxShadow: "0 2px 12px hsl(var(--primary) / 0.4), inset 0 1px 0 hsl(var(--primary-foreground) / 0.12)",

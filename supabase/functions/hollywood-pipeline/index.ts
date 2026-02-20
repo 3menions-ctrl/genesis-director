@@ -3606,6 +3606,7 @@ async function runProduction(
           clipIndex: i,
           prompt: finalPrompt,
           totalClips: clips.length,
+          skipPolling: true, // CRITICAL: Prevent 6-min polling timeout — watchdog handles completion
           startImageUrl: useStartImage, // Last frame for MOTION continuity
           previousMotionVectors,
           // CRITICAL FIX: Pass duration from clip/state - user's selection
@@ -4121,6 +4122,8 @@ async function runProduction(
                 clipIndex: i,
                 prompt: correctedPrompt,
                 totalClips: clips.length,
+                skipPolling: true, // CRITICAL: Prevent timeout — watchdog handles completion
+                triggerNextClip: true, // Let watchdog chain next clip after retry completes
                 startImageUrl: retryStartImage,
                 previousMotionVectors,
                 previousContinuityManifest: i > 0 ? previousContinuityManifest : undefined,
@@ -4654,6 +4657,8 @@ async function runProduction(
                   clipIndex: i,
                   prompt: correctedPrompt,
                   totalClips: clips.length,
+                  skipPolling: true, // CRITICAL: Prevent timeout — watchdog handles completion
+                  triggerNextClip: true, // Let watchdog chain next clip after identity retry
                   startImageUrl: regenerationStartImage,
                   previousMotionVectors,
                   previousContinuityManifest: i > 0 ? previousContinuityManifest : undefined,

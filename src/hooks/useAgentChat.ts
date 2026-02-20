@@ -59,6 +59,9 @@ export function useAgentChat(): UseAgentChatReturn {
   const historyLoaded = useRef(false);
   // Track the in-progress streaming message id so we can patch it
   const streamingMsgId = useRef<string | null>(null);
+  // Use a ref to track loading so sendMessage closure doesn't go stale
+  // (avoids isLoading being stuck true when the closure is recreated mid-stream)
+  const isLoadingRef = useRef(false);
 
   const generateId = () => {
     messageIdCounter.current++;
@@ -132,7 +135,8 @@ export function useAgentChat(): UseAgentChatReturn {
   }, [conversationId, user?.id]);
 
   const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim() || isLoading || !user?.id) return;
+    // Use ref to check loading so this closure never goes stale
+    if (!content.trim() || isLoadingRef.current || !user?.id) return;
 
     const convId = await ensureConversation();
 
@@ -144,6 +148,7 @@ export function useAgentChat(): UseAgentChatReturn {
       timestamp: new Date(),
     };
     setMessages((prev) => [...prev, userMessage]);
+    isLoadingRef.current = true;
     setIsLoading(true);
     setAgentState("thinking");
 
@@ -294,10 +299,11 @@ export function useAgentChat(): UseAgentChatReturn {
       );
     } finally {
       streamingMsgId.current = null;
+      isLoadingRef.current = false;
       setIsLoading(false);
       setTimeout(() => setAgentState("idle"), 1500);
     }
-  }, [isLoading, user?.id, ensureConversation, location.pathname]);
+  }, [user?.id, ensureConversation, location.pathname]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);

@@ -380,6 +380,58 @@ const VideoEditor = () => {
     t.clips.some((c) => editorState.currentTime > c.start && editorState.currentTime < c.end)
   );
 
+  // Load all completed clips into timeline
+  const loadAllClips = async () => {
+    let query = supabase
+      .from("video_clips")
+      .select("id, shot_index, video_url, duration_seconds, prompt, project_id, movie_projects!inner(title)")
+      .eq("status", "completed")
+      .not("video_url", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1000);
+
+    if (!isAdmin) {
+      query = query.eq("user_id", user!.id);
+    }
+
+    const { data: clips, error } = await query;
+    if (error || !clips?.length) {
+      console.log('[VideoEditor] No completed clips found');
+      return;
+    }
+
+    const timelineClips: TimelineClip[] = [];
+    let startTime = 0;
+    for (let i = 0; i < clips.length; i++) {
+      const clip = clips[i] as any;
+      const dur = clip.duration_seconds || 6;
+      const projectTitle = clip.movie_projects?.title || "Untitled";
+      const effects: TimelineClip['effects'] = i < clips.length - 1
+        ? [{ type: "transition" as const, name: "crossfade", duration: 0.5 }]
+        : [];
+      timelineClips.push({
+        id: clip.id,
+        trackId: "video-0",
+        start: startTime,
+        end: startTime + dur,
+        type: "video",
+        sourceUrl: clip.video_url || "",
+        label: `${projectTitle} — ${extractClipLabel(clip.prompt, clip.shot_index)}`,
+        effects,
+      });
+      startTime += dur;
+    }
+
+    setEditorState((prev) => ({
+      ...prev,
+      projectId: null,
+      title: "All Clips",
+      tracks: prev.tracks.map((t) => (t.id === "video-0" ? { ...t, clips: timelineClips } : t)),
+      duration: startTime,
+    }));
+    toast.success(`Loaded ${clips.length} clips from all projects`);
+  };
+
   // Load project clips on mount or when project param changes
   useEffect(() => {
     if (!user) return;
@@ -394,48 +446,21 @@ const VideoEditor = () => {
       }));
     }
     const loadLatestOrSpecified = async () => {
-      let targetProjectId = projectId;
-      let projectTitle = "Untitled Edit";
-      if (!targetProjectId) {
-        let recentQuery = supabase
-          .from("movie_projects")
-          .select("id, title")
-          .order("updated_at", { ascending: false })
-          .limit(10);
-        // Admins see all projects; regular users see only their own
-        if (!isAdmin) {
-          recentQuery = recentQuery.eq("user_id", user.id);
-        }
-        const { data: recentProject } = await recentQuery;
-        if (recentProject?.length) {
-          for (const proj of recentProject) {
-            const { count } = await supabase
-              .from("video_clips")
-              .select("id", { count: "exact", head: true })
-              .eq("project_id", proj.id)
-              .eq("status", "completed")
-              .not("video_url", "is", null);
-            if (count && count > 0) {
-              targetProjectId = proj.id;
-              projectTitle = proj.title || "Untitled Edit";
-              break;
-            }
-          }
-        }
-        if (!targetProjectId) return;
-        // Sync URL so the auto-detected project ID is reflected without creating a history entry
-        const newParams = new URLSearchParams(searchParams);
-        newParams.set("project", targetProjectId);
-        window.history.replaceState(null, "", `?${newParams.toString()}`);
-      } else {
-        const { data: proj } = await supabase
-          .from("movie_projects")
-          .select("title")
-          .eq("id", targetProjectId)
-          .maybeSingle();
-        if (proj?.title) projectTitle = proj.title;
+      // No project specified → load ALL completed clips across all projects
+      if (!projectId) {
+        await loadAllClips();
+        return;
       }
-      loadProjectClips(targetProjectId, projectTitle);
+
+      let projectTitle = "Untitled Edit";
+      const { data: proj } = await supabase
+        .from("movie_projects")
+        .select("title")
+        .eq("id", projectId)
+        .maybeSingle();
+      if (proj?.title) projectTitle = proj.title;
+
+      loadProjectClips(projectId, projectTitle);
     };
     loadLatestOrSpecified();
   }, [projectId, user]);

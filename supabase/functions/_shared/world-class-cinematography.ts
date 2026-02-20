@@ -597,6 +597,292 @@ export function buildWorldClassCinematicPrompt(
   return `${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. The subject is ${motionPrompt}, speaking naturally with authentic emotion: "${scriptExcerpt.substring(0, 80)}${scriptExcerpt.length > 80 ? '...' : ''}". Lifelike fluid movements, natural micro-expressions, authentic lip sync, subtle breathing motion, realistic eye movements and blinks. ${qualityBaseline}`;
 }
 
+// ============================================================================
+// SMART AVATAR PLACEMENT ENGINE
+// Derives grounded, contextually-correct subject placement from scene description
+// ============================================================================
+
+/**
+ * Avatar placement directive: where in the scene is the subject standing/sitting,
+ * what are they interacting with, and how does the environment anchor them?
+ *
+ * This is injected as a [PLACEMENT] tag in the Kling prompt, giving the model
+ * explicit spatial semantics so the avatar looks NATURAL in the environment
+ * rather than randomly floating in front of a background plate.
+ */
+export interface AvatarPlacement {
+  /** Short label for logging */
+  label: string;
+  /** Posture/position directive for the prompt */
+  posture: string;
+  /** How they relate to the environment */
+  anchoredTo: string;
+  /** Suggested shot size that makes sense for this placement */
+  suggestedShotSize?: string;
+  /** Whether it makes sense to show them seated */
+  seated: boolean;
+}
+
+/**
+ * Resolve the most natural avatar placement given a freeform scene description.
+ *
+ * The function pattern-matches the environment to a placement archetype.
+ * Order matters — more specific matches come first.
+ */
+export function resolveAvatarPlacement(sceneDescription: string | undefined): AvatarPlacement {
+  if (!sceneDescription?.trim()) {
+    return {
+      label: 'neutral_studio',
+      posture: 'standing upright, centered, with confident relaxed posture',
+      anchoredTo: 'standing in a professional studio setting, facing camera directly',
+      seated: false,
+    };
+  }
+
+  const s = sceneDescription.toLowerCase();
+
+  // ── SEATED ENVIRONMENTS ────────────────────────────────────────────────────
+  if (s.includes('driving') || s.includes('car ') || s.includes('vehicle') || s.includes('truck') || s.includes('seat') && (s.includes('car') || s.includes('drive'))) {
+    return {
+      label: 'driver_seat',
+      posture: 'seated in the driver\'s seat, hands resting naturally, upper body visible',
+      anchoredTo: 'inside the vehicle cockpit, dashboard and windshield visible behind them, car interior framing the shot',
+      suggestedShotSize: 'medium_close',
+      seated: true,
+    };
+  }
+
+  if (s.includes('desk') || s.includes('office') || s.includes('workstation') || s.includes('computer') || s.includes('laptop') || s.includes('monitor')) {
+    return {
+      label: 'desk_worker',
+      posture: 'seated at a desk, leaning slightly forward with engaged posture, hands visible on desk surface',
+      anchoredTo: 'at their workstation, desk and monitor visible in the background, professional office environment framing them',
+      suggestedShotSize: 'medium',
+      seated: true,
+    };
+  }
+
+  if (s.includes('sofa') || s.includes('couch') || s.includes('living room') || s.includes('lounge') && !s.includes('bar lounge')) {
+    return {
+      label: 'sofa_seated',
+      posture: 'seated comfortably on the sofa, relaxed posture, leaning slightly forward with engaged energy',
+      anchoredTo: 'on the sofa in the living space, soft furnishings visible beside them, warm ambient environment behind',
+      suggestedShotSize: 'medium',
+      seated: true,
+    };
+  }
+
+  if (s.includes('studio') && (s.includes('record') || s.includes('music') || s.includes('audio') || s.includes('podcast'))) {
+    return {
+      label: 'studio_mic',
+      posture: 'seated at the studio position, leaning slightly toward the microphone with professional poise',
+      anchoredTo: 'in front of the studio microphone, mixing board or acoustic panels visible, professional recording environment surrounding them',
+      suggestedShotSize: 'medium_close',
+      seated: true,
+    };
+  }
+
+  if (s.includes('restaurant') || s.includes('dining') || s.includes('cafe') || s.includes('coffee shop') || s.includes('bistro') || s.includes('table') && (s.includes('eat') || s.includes('drink') || s.includes('food'))) {
+    return {
+      label: 'cafe_table',
+      posture: 'seated at the table, hands relaxed on the table surface, casual and approachable',
+      anchoredTo: 'at a table in the venue, coffee cups or setting visible nearby, warm ambient interior behind them',
+      suggestedShotSize: 'medium',
+      seated: true,
+    };
+  }
+
+  if (s.includes('lecture') || s.includes('classroom') || s.includes('seminar') || s.includes('auditorium')) {
+    return {
+      label: 'lecturer',
+      posture: 'standing at the front of the room, commanding presence, one hand gesturing toward an imaginary board',
+      anchoredTo: 'at the front of the lecture hall, seating rows visible behind them, educational setting providing depth',
+      suggestedShotSize: 'medium_wide',
+      seated: false,
+    };
+  }
+
+  // ── LEANING / COUNTER ENVIRONMENTS ────────────────────────────────────────
+  if (s.includes('kitchen') || s.includes('counter') || s.includes('bar ') || s.includes('bartend') || s.includes('cook')) {
+    return {
+      label: 'kitchen_counter',
+      posture: 'standing with hands resting lightly on the counter, relaxed and at home in the space',
+      anchoredTo: 'leaning against the kitchen counter or bar, appliances and kitchen environment visible behind them, grounded in the domestic or culinary space',
+      suggestedShotSize: 'medium',
+      seated: false,
+    };
+  }
+
+  if (s.includes('library') || s.includes('bookshelf') || s.includes('bookstore') || s.includes('book')) {
+    return {
+      label: 'library_stacks',
+      posture: 'standing among the shelves, one hand resting on a shelf edge, scholarly and present',
+      anchoredTo: 'between towering bookshelves, rows of books visible on both sides and behind, warm library lighting overhead',
+      suggestedShotSize: 'medium_wide',
+      seated: false,
+    };
+  }
+
+  if (s.includes('gym') || s.includes('fitness') || s.includes('workout') || s.includes('exercise') || s.includes('training')) {
+    return {
+      label: 'gym_floor',
+      posture: 'standing on the gym floor with athletic stance, energetic and grounded',
+      anchoredTo: 'on the gym floor, equipment racks and mirrors visible behind them, fitness environment providing context',
+      suggestedShotSize: 'medium_wide',
+      seated: false,
+    };
+  }
+
+  if (s.includes('lab') || s.includes('laboratory') || s.includes('research') || s.includes('science') || s.includes('experiment')) {
+    return {
+      label: 'lab_bench',
+      posture: 'standing at the lab bench, hands resting on the surface, professional and focused',
+      anchoredTo: 'at the laboratory workbench, scientific equipment and instruments visible behind them, clean sterile environment',
+      suggestedShotSize: 'medium',
+      seated: false,
+    };
+  }
+
+  // ── OUTDOOR / ENVIRONMENTAL ENVIRONMENTS ──────────────────────────────────
+  if (s.includes('beach') || s.includes('ocean') || s.includes('sea') || s.includes('shore') || s.includes('coast') || s.includes('sand')) {
+    return {
+      label: 'beach_standing',
+      posture: 'standing on the beach, relaxed and open posture, slight breeze suggested by hair/clothing',
+      anchoredTo: 'on the sandy beach, ocean waves and horizon visible behind them, natural outdoor lighting',
+      suggestedShotSize: 'medium_wide',
+      seated: false,
+    };
+  }
+
+  if (s.includes('forest') || s.includes('woods') || s.includes('jungle') || s.includes('trees') || s.includes('nature trail') || s.includes('hiking')) {
+    return {
+      label: 'forest_trail',
+      posture: 'standing on the forest path, grounded and at ease, surrounded by the natural environment',
+      anchoredTo: 'among the trees on the trail, forest canopy visible above and foliage on both sides providing natural depth',
+      suggestedShotSize: 'medium_wide',
+      seated: false,
+    };
+  }
+
+  if (s.includes('mountain') || s.includes('peak') || s.includes('summit') || s.includes('cliff') || s.includes('overlook') || s.includes('vista')) {
+    return {
+      label: 'mountain_overlook',
+      posture: 'standing at the viewpoint, confident and expansive posture, arms slightly open',
+      anchoredTo: 'at the mountain overlook, dramatic landscape and sky visible behind them, the environment conveying scale and grandeur',
+      suggestedShotSize: 'wide',
+      seated: false,
+    };
+  }
+
+  if (s.includes('rooftop') || s.includes('terrace') || s.includes('balcony') || s.includes('skyline') || s.includes('cityscape')) {
+    return {
+      label: 'rooftop_urban',
+      posture: 'standing at the rooftop edge, slightly turned, city visible behind them with urban energy',
+      anchoredTo: 'on the rooftop or terrace, city skyline and open sky behind them, railing or parapet visible at the edge of frame',
+      suggestedShotSize: 'medium_wide',
+      seated: false,
+    };
+  }
+
+  if (s.includes('garden') || s.includes('park') || s.includes('meadow') || s.includes('flowers') || s.includes('botanical') || s.includes('outdoor')) {
+    return {
+      label: 'garden_path',
+      posture: 'standing on the garden path, relaxed and naturalistic posture, comfortable in the outdoor setting',
+      anchoredTo: 'in the garden or park, lush greenery and flowers surrounding them, natural dappled light filtering through',
+      suggestedShotSize: 'medium_wide',
+      seated: false,
+    };
+  }
+
+  // ── SPECIALTY / NARRATIVE ENVIRONMENTS ────────────────────────────────────
+  if (s.includes('witch') || s.includes('magical') || s.includes('fantasy') || s.includes('castle') || s.includes('dungeon') || s.includes('mystic') || s.includes('enchant')) {
+    return {
+      label: 'fantasy_setting',
+      posture: 'standing with dramatic presence, slightly elevated or positioned near a symbolic prop (cauldron, throne, archway)',
+      anchoredTo: 'within the fantasy environment, magical or period-accurate props visible nearby, atmospheric lighting creating mood depth',
+      suggestedShotSize: 'medium_wide',
+      seated: false,
+    };
+  }
+
+  if (s.includes('stage') || s.includes('theater') || s.includes('spotlight') || s.includes('perform') || s.includes('concert')) {
+    return {
+      label: 'stage_performer',
+      posture: 'standing center stage, commanding the space, slightly forward with performer energy',
+      anchoredTo: 'on stage, dramatic stage lighting cutting through, audience space implied in the distance behind or below',
+      suggestedShotSize: 'medium',
+      seated: false,
+    };
+  }
+
+  if (s.includes('newsroom') || s.includes('anchor') || s.includes('broadcast') || s.includes('news desk') || s.includes('tv set') || s.includes('studio set')) {
+    return {
+      label: 'news_anchor',
+      posture: 'seated at the news desk, upright professional posture, hands folded naturally',
+      anchoredTo: 'behind the broadcast desk, newsroom or studio set visible behind them, professional broadcast environment',
+      suggestedShotSize: 'medium_close',
+      seated: true,
+    };
+  }
+
+  if (s.includes('hospital') || s.includes('clinic') || s.includes('medical') || s.includes('doctor') || s.includes('patient room')) {
+    return {
+      label: 'medical_professional',
+      posture: 'standing in the medical setting, professional and composed, slight forward lean conveying care',
+      anchoredTo: 'in the clinical environment, medical equipment or exam room fixtures visible behind them, clean hygienic setting',
+      suggestedShotSize: 'medium',
+      seated: false,
+    };
+  }
+
+  if (s.includes('courtroom') || s.includes('law firm') || s.includes('attorney') || s.includes('legal office')) {
+    return {
+      label: 'legal_professional',
+      posture: 'standing with authoritative posture, one hand on a desk or podium, commanding presence',
+      anchoredTo: 'in the legal setting, law books or courtroom fixtures visible behind them, formal and serious environment',
+      suggestedShotSize: 'medium',
+      seated: false,
+    };
+  }
+
+  if (s.includes('yoga') || s.includes('meditation') || s.includes('zen') || s.includes('spiritual') || s.includes('retreat') || s.includes('temple')) {
+    return {
+      label: 'mindful_setting',
+      posture: 'seated or standing in a peaceful centered stance, calm and grounded, hands in a natural resting position',
+      anchoredTo: 'in the serene environment, calming décor or nature visible behind them, soft warm lighting enveloping the space',
+      suggestedShotSize: 'medium',
+      seated: false,
+    };
+  }
+
+  if (s.includes('yacht') || s.includes('boat') || s.includes('ship') || s.includes('deck') && s.includes('ocean')) {
+    return {
+      label: 'boat_deck',
+      posture: 'standing on the deck, holding a rail lightly, relaxed seafaring stance with the ocean behind',
+      anchoredTo: 'on the boat deck, open water and horizon visible behind them, marine environment providing context',
+      suggestedShotSize: 'medium_wide',
+      seated: false,
+    };
+  }
+
+  // ── DEFAULT STANDING ───────────────────────────────────────────────────────
+  return {
+    label: 'environment_standing',
+    posture: 'standing naturally and comfortably within the space, grounded and at ease',
+    anchoredTo: `present in the environment, the surroundings — ${sceneDescription.trim()} — visible and contextually integrated behind and around them`,
+    seated: false,
+  };
+}
+
+/**
+ * Build a placement directive string to inject into the Kling prompt.
+ * Ensures the avatar feels physically grounded in the scene rather than composited.
+ */
+export function buildPlacementDirective(sceneDescription: string | undefined): string {
+  const placement = resolveAvatarPlacement(sceneDescription);
+  return `[SUBJECT PLACEMENT — ${placement.label.toUpperCase()}: The person is ${placement.posture}. ${placement.anchoredTo}. They are physically present in this space — NOT floating in front of a greenscreen background — but genuinely situated within the environment. Environment depth, shadows, and ambient light should naturally wrap around the subject.]`;
+}
+
 /**
  * Build a simple variety prompt when cinematic mode is disabled
  */

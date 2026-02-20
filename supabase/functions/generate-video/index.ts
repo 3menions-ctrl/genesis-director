@@ -13,21 +13,12 @@ const corsHeaders = {
 // Provider selection
 type VideoProvider = "replicate";
 
-// Kling 2.6 via Replicate configuration (Avatar mode)
+// ✅ Kling V3 via Replicate — unified engine for ALL modes (T2V, I2V, Avatar)
+// Model: kwaivgi/kling-v3-video — 1080p pro, 3-15s, native audio/lip-sync
 const REPLICATE_API_URL = "https://api.replicate.com/v1/predictions";
-const KLING_MODEL = "kwaivgi/kling-v2.6";
-const KLING_ENABLE_AUDIO = false; // Disabled: Kling's auto-generated cinematic music is low quality
-
-// ============================================================================
-// Runway via Replicate - Dual-model strategy:
-//   Gen-4 Turbo: IMAGE-TO-VIDEO (requires image) — $0.05/s
-//   Gen-4.5:     TEXT-TO-VIDEO  (no image needed) — #1 ranked T2V benchmark
-// NOTE: Gen-4 Turbo REQUIRES an image — it cannot do pure text-to-video.
-//       Gen-4.5 is the dedicated T2V model (text-only, 5s or 10s).
-// 50% margin pricing: 5s clip → 5cr ($0.50 revenue, $0.25 real cost)
-// ============================================================================
-const RUNWAY_GEN4_MODEL = "runwayml/gen4-turbo";
-const RUNWAY_GEN4_MODEL_URL = `https://api.replicate.com/v1/models/${RUNWAY_GEN4_MODEL}/predictions`;
+const KLING_V3_MODEL_URL = "https://api.replicate.com/v1/models/kwaivgi/kling-v3-video/predictions";
+const KLING_MODEL = "kwaivgi/kling-v3-video"; // Updated from v2.6 to v3
+const KLING_ENABLE_AUDIO = false; // T2V/I2V: no audio. Avatar mode uses generate_audio: true
 const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
 
 // Scene context for consistency

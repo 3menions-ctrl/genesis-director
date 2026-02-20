@@ -553,25 +553,28 @@ serve(async (req) => {
     
     console.log(`[AvatarDirect] ═══ Starting Clip 1/${finalClipCount} ═══`);
     console.log(`[AvatarDirect] Start image: ${sharedAnimationStartImage.substring(0, 60)}...`);
+    // ✅ KLING V3: kwaivgi/kling-v3-video — native audio lip-sync, 1080p pro, 3-15s
+    const KLING_V3_URL = "https://api.replicate.com/v1/models/kwaivgi/kling-v3-video/predictions";
+    const clip1Input = {
+      mode: "pro",
+      prompt: `${identityLockPrefix} ${avatarTypeLock} ${actingPrompt}`,
+      duration: videoDuration,
+      start_image: sharedAnimationStartImage,
+      aspect_ratio: aspectRatio,
+      generate_audio: true, // ✅ Kling V3 native lip-sync audio
+      negative_prompt: avatarType === 'animated'
+        ? "photorealistic, real human, live action, photograph, real skin texture, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast, face morphing, identity change, different person, age change, walking into frame, entering scene, arriving, approaching"
+        : "cartoon, animated, CGI, 3D render, anime, illustration, drawing, painting, sketch, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast, face morphing, identity change, different person, age change, walking into frame, entering scene, arriving, approaching",
+    };
+    console.log(`[AvatarDirect] 🎬 Kling V3 input: duration=${clip1Input.duration}s, generateAudio=${clip1Input.generate_audio}, hasStartImage=true`);
     
-    const klingResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
+    const klingResponse = await fetch(KLING_V3_URL, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${REPLICATE_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        input: {
-          mode: "pro",
-          prompt: `${identityLockPrefix} ${avatarTypeLock} ${actingPrompt}`,
-          duration: videoDuration,
-          start_image: sharedAnimationStartImage,
-          aspect_ratio: aspectRatio,
-          negative_prompt: avatarType === 'animated'
-            ? "photorealistic, real human, live action, photograph, real skin texture, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast, face morphing, identity change, different person, age change, walking into frame, entering scene, arriving, approaching"
-            : "cartoon, animated, CGI, 3D render, anime, illustration, drawing, painting, sketch, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast, face morphing, identity change, different person, age change, walking into frame, entering scene, arriving, approaching",
-        },
-      }),
+      body: JSON.stringify({ input: clip1Input }),
     });
 
     if (!klingResponse.ok) {
@@ -584,24 +587,14 @@ serve(async (req) => {
         console.log(`[AvatarDirect] Rate limited by Kling API, waiting 15s and retrying...`);
         await new Promise(resolve => setTimeout(resolve, 15000));
         
-        const retryResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
+        // ✅ KLING V3 retry — same endpoint as initial call
+        const retryResponse = await fetch(KLING_V3_URL, {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${REPLICATE_API_KEY}`,
             "Content-Type": "application/json",
           },
-           body: JSON.stringify({
-            input: {
-              mode: "pro",
-              prompt: `${identityLockPrefix} ${avatarTypeLock} ${actingPrompt}`,
-              duration: videoDuration,
-              start_image: sharedAnimationStartImage,
-              aspect_ratio: aspectRatio,
-              negative_prompt: avatarType === 'animated'
-                ? "photorealistic, real human, live action, photograph, real skin texture, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast, face morphing, identity change, different person, age change"
-                : "cartoon, animated, CGI, 3D render, anime, illustration, drawing, painting, sketch, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast, face morphing, identity change, different person, age change",
-            },
-          }),
+          body: JSON.stringify({ input: clip1Input }),
         });
         
         if (!retryResponse.ok) {

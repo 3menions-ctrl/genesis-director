@@ -16,8 +16,8 @@ export function AgentTrigger() {
   const { user } = useAuth();
   const location = useLocation();
 
-  // Hide on landing page and for unauthenticated users
-  if (!user || location.pathname === "/") return null;
+  // Temporarily hidden — will be rebuilt
+  return null;
 
   return (
     <>

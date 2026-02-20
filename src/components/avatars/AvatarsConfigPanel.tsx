@@ -1,7 +1,7 @@
-import { memo, forwardRef } from 'react';
+import { memo, forwardRef, useState } from 'react';
 import { 
   Mic, Play, Zap, Loader2, Music, MapPin, Video, Camera,
-  RectangleHorizontal, RectangleVertical, Square, Sparkles
+  RectangleHorizontal, RectangleVertical, Square, Sparkles, ChevronUp, ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AvatarTemplate } from '@/types/avatar-templates';
@@ -91,6 +91,9 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
   onClearAvatar,
   onCreate,
 }, ref) {
+  // Collapsed by default on mobile — expanded on desktop
+  const [isExpanded, setIsExpanded] = useState(false);
+
   // Cinematic mode toggle handler
   const handleCinematicToggle = (enabled: boolean) => {
     onCinematicModeChange({ ...cinematicMode, enabled });
@@ -174,22 +177,33 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
       <div className="max-w-4xl mx-auto">
         <div className="rounded-2xl md:rounded-3xl bg-zinc-900/95 border border-white/[0.08] backdrop-blur-2xl shadow-2xl shadow-black/60 overflow-hidden">
           
-          {/* Header with Avatar Badge */}
-          <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-white/[0.06] bg-gradient-to-r from-violet-500/5 to-transparent">
+          {/* Header with Avatar Badge — tappable on mobile to expand/collapse */}
+          <div
+            className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-white/[0.06] bg-gradient-to-r from-violet-500/5 to-transparent md:cursor-default cursor-pointer"
+            onClick={() => setIsExpanded(prev => !prev)}
+          >
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-white">Create Avatar Video</h3>
-                <p className="text-xs text-zinc-500 hidden md:block">Write what your avatar will say</p>
+                <p className="text-xs text-zinc-500">
+                  {isExpanded ? 'Write what your avatar will say' : 'Tap to configure & create'}
+                </p>
               </div>
             </div>
-            <AvatarBadge />
+            <div className="flex items-center gap-2">
+              <AvatarBadge />
+              {/* Collapse chevron — only visible on mobile */}
+              <div className="md:hidden text-zinc-500 ml-1">
+                {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+              </div>
+            </div>
           </div>
 
-          {/* Main Content Area */}
-          <div className="p-4 md:p-6 space-y-4">
+          {/* Main Content Area — hidden on mobile when collapsed */}
+          <div className={cn("p-4 md:p-6 space-y-4", !isExpanded && "hidden md:block")}>
             
             {/* Script Input - Primary Focus */}
             <div className="space-y-2">
@@ -378,8 +392,10 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
           </div>
 
           {/* Footer - Create Button & Cost */}
-          <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-t border-white/[0.06] bg-gradient-to-r from-transparent to-violet-500/5">
-            {/* Cost Info */}
+          <div className={cn(
+            "flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-t border-white/[0.06] bg-gradient-to-r from-transparent to-violet-500/5",
+            !isExpanded && "md:flex hidden"
+          )}>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-zinc-500">Duration:</span>
@@ -399,8 +415,6 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 <span className="text-zinc-300">{userCredits}</span>
               </div>
             </div>
-
-            {/* Create Button */}
             <Button
               onClick={onCreate}
               disabled={!isReadyToCreate || isCreating}
@@ -413,18 +427,39 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
               )}
             >
               {isCreating ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Creating...</span>
-                </>
+                <><Loader2 className="w-4 h-4 animate-spin" /><span>Creating...</span></>
               ) : (
-                <>
-                  <Play className="w-4 h-4" />
-                  <span>Create Video</span>
-                </>
+                <><Play className="w-4 h-4" /><span>Create Video</span></>
               )}
             </Button>
           </div>
+
+          {/* Compact footer — mobile only, shown when panel is collapsed */}
+          {!isExpanded && (
+            <div className="md:hidden flex items-center justify-between px-4 py-2.5 border-t border-white/[0.06]">
+              <div className={cn(
+                "flex items-center gap-1.5 text-xs font-medium",
+                hasInsufficientCredits ? "text-red-400" : "text-amber-400"
+              )}>
+                <Zap className="w-3.5 h-3.5" />
+                <span>{estimatedCredits} credits · {userCredits} balance</span>
+              </div>
+              <Button
+                onClick={isReadyToCreate ? onCreate : () => setIsExpanded(true)}
+                disabled={isCreating}
+                size="sm"
+                className={cn(
+                  "h-8 px-4 text-xs font-semibold rounded-lg gap-1.5",
+                  isReadyToCreate
+                    ? "bg-gradient-to-r from-violet-600 to-violet-500 text-white shadow-lg shadow-violet-500/30"
+                    : "bg-violet-500/20 text-violet-300 border border-violet-500/30"
+                )}
+              >
+                {isCreating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+                <span>{isReadyToCreate ? 'Create' : 'Set up'}</span>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

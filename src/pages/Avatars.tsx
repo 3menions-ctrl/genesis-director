@@ -422,8 +422,38 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   }
   
   // ========== MAIN CONTENT ==========
+  // Shared config panel props
+  const configPanelProps = {
+    selectedAvatar,
+    prompt,
+    onPromptChange: setPrompt,
+    sceneDescription,
+    onSceneDescriptionChange: setSceneDescription,
+    aspectRatio,
+    onAspectRatioChange: setAspectRatio,
+    clipDuration,
+    onClipDurationChange: setClipDuration,
+    clipCount,
+    onClipCountChange: handleClipCountChange,
+    maxClips,
+    enableMusic: false as const,
+    onEnableMusicChange: () => {},
+    enableDualAvatar,
+    onEnableDualAvatarChange: setEnableDualAvatar,
+    cinematicMode,
+    onCinematicModeChange: setCinematicMode,
+    estimatedDuration,
+    estimatedCredits,
+    userCredits,
+    hasInsufficientCredits,
+    isCreating,
+    isReadyToCreate: !!isReadyToCreate,
+    onClearAvatar: handleClearAvatar,
+    onCreate: handleCreate,
+  };
+
   return (
-    <div ref={ref || containerRef} className="relative min-h-screen flex flex-col bg-background overflow-x-hidden" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+    <div ref={ref || containerRef} className="relative h-screen flex flex-col bg-background overflow-hidden">
       <SafeComponent name="AvatarsBackground" silent>
         <AvatarsBackground />
       </SafeComponent>
@@ -431,124 +461,65 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         <AppHeader />
       </SafeComponent>
       
-      <div className="relative z-10 flex-1 pb-4 md:pb-56 animate-fade-in">
-        <SafeComponent name="AvatarsHero" fallback={<div className="pt-24 pb-8" />}>
-          <AvatarsHero />
-        </SafeComponent>
-        
-        <SafeComponent name="AvatarsFilters" fallback={<div className="mb-6 h-12" />}>
-          <div className="mb-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-            <AvatarsFilters
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              genderFilter={genderFilter}
-              onGenderChange={setGenderFilter}
-              styleFilter={styleFilter}
-              onStyleChange={setStyleFilter}
-              hasActiveFilters={hasActiveFilters}
-              onClearFilters={handleClearFilters}
-              onBack={() => navigate('/create')}
-            />
-          </div>
-        </SafeComponent>
-        
-        <SafeComponent name="AvatarsCategoryTabs" fallback={<div className="mb-8 h-12" />}>
-          <div className="mb-8">
-            <AvatarsCategoryTabs
-              activeType={avatarTypeFilter}
-              onTypeChange={setAvatarTypeFilter}
-              totalCount={safeTemplates.length}
-            />
-          </div>
-        </SafeComponent>
-        
-        <SafeComponent name="VirtualAvatarGallery">
-          {/* Mobile: minimal padding since config panel flows below. Desktop: large padding for fixed panel */}
-          <div className="mb-8 pb-8 md:pb-80 lg:pb-96 animate-fade-in w-full overflow-hidden" style={{ animationDelay: '0.2s' }}>
-            {error ? (
-              <div className="text-center py-12 text-destructive max-w-7xl mx-auto px-6">
-                <p>{error}</p>
-              </div>
-            ) : (
-              <VirtualAvatarGallery
-                avatars={safeTemplates}
-                selectedAvatar={selectedAvatar}
-                onAvatarClick={handleAvatarClick}
-                onVoicePreview={handleVoicePreview}
-                previewingVoice={previewingVoice}
-                isLoading={false}
-                isVoiceReady={isVoiceReady}
+      {/* Scrollable content area — grows to fill space above the fixed config panel */}
+      <div className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="animate-fade-in">
+          <SafeComponent name="AvatarsHero" fallback={<div className="pt-24 pb-8" />}>
+            <AvatarsHero />
+          </SafeComponent>
+          
+          <SafeComponent name="AvatarsFilters" fallback={<div className="mb-6 h-12" />}>
+            <div className="mb-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+              <AvatarsFilters
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                genderFilter={genderFilter}
+                onGenderChange={setGenderFilter}
+                styleFilter={styleFilter}
+                onStyleChange={setStyleFilter}
+                hasActiveFilters={hasActiveFilters}
+                onClearFilters={handleClearFilters}
+                onBack={() => navigate('/create')}
               />
-            )}
-          </div>
-        </SafeComponent>
-        
-        {/* Mobile: Config panel is in-flow below avatars */}
-        <div className="md:hidden">
-          <SafeComponent name="AvatarsConfigPanel-mobile" fallback={<div className="h-32" />}>
-            <AvatarsConfigPanel
-              selectedAvatar={selectedAvatar}
-              prompt={prompt}
-              onPromptChange={setPrompt}
-              sceneDescription={sceneDescription}
-              onSceneDescriptionChange={setSceneDescription}
-              aspectRatio={aspectRatio}
-              onAspectRatioChange={setAspectRatio}
-              clipDuration={clipDuration}
-              onClipDurationChange={setClipDuration}
-              clipCount={clipCount}
-              onClipCountChange={handleClipCountChange}
-              maxClips={maxClips}
-              enableMusic={false}
-              onEnableMusicChange={() => {}}
-              enableDualAvatar={enableDualAvatar}
-              onEnableDualAvatarChange={setEnableDualAvatar}
-              cinematicMode={cinematicMode}
-              onCinematicModeChange={setCinematicMode}
-              estimatedDuration={estimatedDuration}
-              estimatedCredits={estimatedCredits}
-              userCredits={userCredits}
-              hasInsufficientCredits={hasInsufficientCredits}
-              isCreating={isCreating}
-              isReadyToCreate={!!isReadyToCreate}
-              onClearAvatar={handleClearAvatar}
-              onCreate={handleCreate}
-            />
+            </div>
+          </SafeComponent>
+          
+          <SafeComponent name="AvatarsCategoryTabs" fallback={<div className="mb-8 h-12" />}>
+            <div className="mb-8">
+              <AvatarsCategoryTabs
+                activeType={avatarTypeFilter}
+                onTypeChange={setAvatarTypeFilter}
+                totalCount={safeTemplates.length}
+              />
+            </div>
+          </SafeComponent>
+          
+          <SafeComponent name="VirtualAvatarGallery">
+            <div className="mb-8 pb-4 animate-fade-in w-full overflow-hidden" style={{ animationDelay: '0.2s' }}>
+              {error ? (
+                <div className="text-center py-12 text-destructive max-w-7xl mx-auto px-6">
+                  <p>{error}</p>
+                </div>
+              ) : (
+                <VirtualAvatarGallery
+                  avatars={safeTemplates}
+                  selectedAvatar={selectedAvatar}
+                  onAvatarClick={handleAvatarClick}
+                  onVoicePreview={handleVoicePreview}
+                  previewingVoice={previewingVoice}
+                  isLoading={false}
+                  isVoiceReady={isVoiceReady}
+                />
+              )}
+            </div>
           </SafeComponent>
         </div>
       </div>
       
-      {/* Desktop: Fixed config panel at bottom */}
-      <div className="hidden md:block">
-        <SafeComponent name="AvatarsConfigPanel-desktop" fallback={<div className="fixed bottom-0 h-32" />}>
-          <AvatarsConfigPanel
-            selectedAvatar={selectedAvatar}
-            prompt={prompt}
-            onPromptChange={setPrompt}
-            sceneDescription={sceneDescription}
-            onSceneDescriptionChange={setSceneDescription}
-            aspectRatio={aspectRatio}
-            onAspectRatioChange={setAspectRatio}
-            clipDuration={clipDuration}
-            onClipDurationChange={setClipDuration}
-            clipCount={clipCount}
-            onClipCountChange={handleClipCountChange}
-            maxClips={maxClips}
-            enableMusic={false}
-            onEnableMusicChange={() => {}}
-            enableDualAvatar={enableDualAvatar}
-            onEnableDualAvatarChange={setEnableDualAvatar}
-            cinematicMode={cinematicMode}
-            onCinematicModeChange={setCinematicMode}
-            estimatedDuration={estimatedDuration}
-            estimatedCredits={estimatedCredits}
-            userCredits={userCredits}
-            hasInsufficientCredits={hasInsufficientCredits}
-            isCreating={isCreating}
-            isReadyToCreate={!!isReadyToCreate}
-            onClearAvatar={handleClearAvatar}
-            onCreate={handleCreate}
-          />
+      {/* Config panel — always fixed/sticky at the bottom, never scrolls away */}
+      <div className="relative z-40 flex-shrink-0">
+        <SafeComponent name="AvatarsConfigPanel" fallback={<div className="h-32" />}>
+          <AvatarsConfigPanel {...configPanelProps} />
         </SafeComponent>
       </div>
       

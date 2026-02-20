@@ -222,27 +222,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!mounted) return;
 
         // ── SECURITY VERSION CHECK ──────────────────────────────────────────
-        // If the server's security_version is higher than what's stored in
-        // localStorage, the admin has invalidated this session. Force sign-out.
+        // The security_version mechanism works as follows:
+        // - On login, we store the CURRENT server version in localStorage (session stamp)
+        // - On subsequent loads, if the server version has INCREASED beyond the stored
+        //   stamp, it means an admin invalidated sessions AFTER this session was created.
+        // - A null/missing localStorage entry means fresh login — always accept and stamp.
         if (profileData?.security_version != null) {
-          const storedVersion = parseInt(
-            localStorage.getItem(SECURITY_VERSION_KEY) || '0', 10
-          );
-          if (profileData.security_version > storedVersion) {
-            console.warn('[AuthContext] Security version mismatch — forcing sign-out');
-            // Store the new version BEFORE sign-out so re-login works
-            localStorage.setItem(SECURITY_VERSION_KEY, String(profileData.security_version));
-            // Sign out globally
-            await supabase.auth.signOut({ scope: 'global' });
-            if (mounted) {
-              setProfile(null);
-              setIsAdmin(false);
-              setLoading(false);
+          const storedRaw = localStorage.getItem(SECURITY_VERSION_KEY);
+          
+          if (storedRaw !== null) {
+            // We have a previously stored stamp — check if server invalidated it
+            const storedVersion = parseInt(storedRaw, 10);
+            if (profileData.security_version > storedVersion) {
+              console.warn('[AuthContext] Security version mismatch — forcing sign-out');
+              // Update stamp BEFORE sign-out so next login succeeds
+              localStorage.setItem(SECURITY_VERSION_KEY, String(profileData.security_version));
+              await supabase.auth.signOut({ scope: 'global' });
+              if (mounted) {
+                setProfile(null);
+                setIsAdmin(false);
+                setLoading(false);
+              }
+              return;
             }
-            return;
+          } else {
+            // No stored stamp = fresh login. Just stamp the current version.
+            localStorage.setItem(SECURITY_VERSION_KEY, String(profileData.security_version));
           }
-          // Keep local version in sync
-          localStorage.setItem(SECURITY_VERSION_KEY, String(profileData.security_version));
         }
         // ────────────────────────────────────────────────────────────────────
 

@@ -37,7 +37,7 @@ function extractClipLabel(rawPrompt: string | null | undefined, shotIndex: numbe
 
 
 const VideoEditor = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { navigate } = useSafeNavigation();
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get("project") || searchParams.get("projectId");
@@ -392,12 +392,16 @@ const VideoEditor = () => {
       let targetProjectId = projectId;
       let projectTitle = "Untitled Edit";
       if (!targetProjectId) {
-        const { data: recentProject } = await supabase
+        let recentQuery = supabase
           .from("movie_projects")
           .select("id, title")
-          .eq("user_id", user.id)
           .order("updated_at", { ascending: false })
           .limit(10);
+        // Admins see all projects; regular users see only their own
+        if (!isAdmin) {
+          recentQuery = recentQuery.eq("user_id", user.id);
+        }
+        const { data: recentProject } = await recentQuery;
         if (recentProject?.length) {
           for (const proj of recentProject) {
             const { count } = await supabase

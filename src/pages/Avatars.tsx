@@ -516,12 +516,14 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         </div>
       </div>
       
-      {/* Config panel — always fixed/sticky at the bottom, never scrolls away */}
-      <div className="relative z-40 flex-shrink-0">
-        <SafeComponent name="AvatarsConfigPanel" fallback={<div className="h-32" />}>
-          <AvatarsConfigPanel {...configPanelProps} />
-        </SafeComponent>
-      </div>
+      {/* Config panel — only shown after an avatar is selected */}
+      {selectedAvatar && (
+        <div className="relative z-40 flex-shrink-0">
+          <SafeComponent name="AvatarsConfigPanel" fallback={<div className="h-32" />}>
+            <AvatarsConfigPanel {...configPanelProps} />
+          </SafeComponent>
+        </div>
+      )}
       
       <SafeComponent name="AvatarPreviewModal" silent>
         <AvatarPreviewModal

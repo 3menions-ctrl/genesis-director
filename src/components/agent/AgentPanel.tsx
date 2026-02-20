@@ -43,7 +43,12 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    // Re-focus input after each message so cursor never gets trapped in the chat container
+    // This is critical on iOS where the cursor can lock into scroll containers
+    if (isOpen && !isLoading) {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [messages, isLoading, isOpen]);
 
   useEffect(() => {
     if (isOpen) setTimeout(() => inputRef.current?.focus(), 400);
@@ -324,6 +329,7 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
               ref={scrollContainerRef}
               className="flex-1 overflow-y-auto px-4 md:px-8 pt-6 pb-4 scroll-smooth"
               style={{ scrollbarWidth: "none" }}
+              onClick={() => inputRef.current?.focus()}
             >
               <div className="max-w-2xl mx-auto space-y-5">
 
@@ -697,13 +703,15 @@ function ImmersiveMessageBubble({
           </span>
         </div>
 
-        {/* Content card */}
+        {/* Content card — tabIndex={-1} prevents iOS from trapping cursor here */}
         <div
           className="rounded-2xl rounded-tl-sm overflow-hidden"
+          tabIndex={-1}
           style={{
             background: "hsl(var(--surface-1) / 0.5)",
             border: "1px solid hsl(var(--border) / 0.09)",
             backdropFilter: "blur(16px)",
+            WebkitUserSelect: "none",
           }}
         >
           {/* Accent top bar */}

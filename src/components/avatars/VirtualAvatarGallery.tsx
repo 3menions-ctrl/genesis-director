@@ -277,9 +277,9 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
     totalCount 
   } = useChunkedAvatars(shuffledAvatars, {
     enabled: true,
-    initialSize: 12, // Start with 12 avatars
-    chunkSize: 6,    // Load 6 more at a time (reduced for stability)
-    chunkDelay: 200, // 200ms between chunks (increased for stability)
+    initialSize: 60, // Show plenty upfront
+    chunkSize: 30,   // Load remaining in large batches
+    chunkDelay: 100, // Fast loading
   });
   
   const isMobile = useIsMobile();

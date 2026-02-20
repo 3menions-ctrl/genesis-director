@@ -72,23 +72,39 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
     }
   }, [isOpen]);
 
-  // ── Keep focus in the textarea at all times while panel is open.
-  //    This is the only 100% reliable approach on mobile (iOS Safari).
-  //    When the textarea loses focus for any reason (Hoppy streaming,
-  //    button clicks, etc.) we immediately reclaim it — UNLESS the user
-  //    tapped an interactive element like the file picker or send button.
-  const handleTextareaBlur = useCallback((e: React.FocusEvent<HTMLTextAreaElement>) => {
+  // ── Refocus after Hoppy finishes streaming ──
+  const prevLoadingRef = useRef(isLoading);
+  useEffect(() => {
+    const wasLoading = prevLoadingRef.current;
+    prevLoadingRef.current = isLoading;
+    if (wasLoading && !isLoading && isOpen) {
+      const t = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => clearTimeout(t);
+    }
+  }, [isLoading, isOpen]);
+
+  // ── Prevent blur when tapping anywhere in the panel (except interactive targets) ──
+  //    On iOS Safari, mousedown fires before blur. Calling preventDefault() on mousedown
+  //    stops the textarea from losing focus when the user taps the message area.
+  const handlePanelMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    const target = e.target as HTMLElement;
+    const isInteractive =
+      target.tagName === "BUTTON" ||
+      target.tagName === "INPUT" ||
+      target.tagName === "A" ||
+      target.tagName === "TEXTAREA" ||
+      target.closest("button") !== null ||
+      target.closest("a") !== null ||
+      target.closest("input") !== null;
+    if (!isInteractive) {
+      e.preventDefault();
+      inputRef.current?.focus();
+    }
+  }, []);
+
+  // Simple blur handler — just immediately reclaim focus
+  const handleTextareaBlur = useCallback(() => {
     if (!isOpen) return;
-    const relatedTarget = e.relatedTarget as HTMLElement | null;
-    // Allow blur if focus moved to a real interactive element
-    const isInteractive = relatedTarget && (
-      relatedTarget.tagName === "BUTTON" ||
-      relatedTarget.tagName === "INPUT" ||
-      relatedTarget.tagName === "A" ||
-      relatedTarget.getAttribute("role") === "button"
-    );
-    if (isInteractive) return;
-    // Otherwise immediately reclaim focus
     requestAnimationFrame(() => inputRef.current?.focus());
   }, [isOpen]);
 
@@ -410,7 +426,8 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
             ref={scrollContainerRef}
             className="flex-1 overflow-y-auto relative z-10"
             style={{ scrollbarWidth: "none" }}
-            onClick={() => inputRef.current?.focus()}
+            onMouseDown={handlePanelMouseDown}
+            onTouchStart={handlePanelMouseDown}
           >
             <div className="max-w-2xl mx-auto px-4 md:px-6 pt-8 pb-4">
 
@@ -712,7 +729,7 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                         }
                       </button>
 
-                      {/* Send — always rendered, dimmed when disabled */}
+                      {/* Send — always a send arrow; spinner shows on attach button when loading */}
                       <motion.button
                         onClick={handleSend}
                         disabled={!canSend}
@@ -721,16 +738,13 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                           "h-8 w-8 rounded-2xl flex items-center justify-center transition-all duration-200",
                           canSend
                             ? "bg-primary text-primary-foreground"
-                            : "bg-muted/20 text-muted-foreground/25 cursor-not-allowed"
+                            : "bg-primary/20 text-primary/40 cursor-not-allowed"
                         )}
                         style={canSend ? {
                           boxShadow: "0 2px 12px hsl(var(--primary) / 0.4), inset 0 1px 0 hsl(var(--primary-foreground) / 0.12)",
                         } : {}}
                       >
-                        {isLoading
-                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          : <Send className="h-3.5 w-3.5" />
-                        }
+                        <Send className="h-3.5 w-3.5" />
                       </motion.button>
                     </div>
                   </div>

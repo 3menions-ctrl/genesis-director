@@ -2387,6 +2387,30 @@ export type Database = {
           },
         ]
       }
+      login_attempts: {
+        Row: {
+          attempted_at: string
+          email: string
+          id: string
+          ip_address: string | null
+          success: boolean
+        }
+        Insert: {
+          attempted_at?: string
+          email: string
+          id?: string
+          ip_address?: string | null
+          success?: boolean
+        }
+        Update: {
+          attempted_at?: string
+          email?: string
+          id?: string
+          ip_address?: string | null
+          success?: boolean
+        }
+        Relationships: []
+      }
       movie_projects: {
         Row: {
           aspect_ratio: string | null
@@ -2826,6 +2850,7 @@ export type Database = {
           onboarding_completed: boolean | null
           preferences: Json | null
           role: string | null
+          security_version: number
           total_credits_purchased: number
           total_credits_used: number
           updated_at: string
@@ -2851,6 +2876,7 @@ export type Database = {
           onboarding_completed?: boolean | null
           preferences?: Json | null
           role?: string | null
+          security_version?: number
           total_credits_purchased?: number
           total_credits_used?: number
           updated_at?: string
@@ -2876,6 +2902,7 @@ export type Database = {
           onboarding_completed?: boolean | null
           preferences?: Json | null
           role?: string | null
+          security_version?: number
           total_credits_purchased?: number
           total_credits_used?: number
           updated_at?: string
@@ -4606,6 +4633,11 @@ export type Database = {
         Args: { p_amount: number; p_reason: string; p_target_user_id: string }
         Returns: Json
       }
+      admin_force_logout_all: { Args: never; Returns: Json }
+      admin_force_logout_user: {
+        Args: { p_target_user_id: string }
+        Returns: Json
+      }
       admin_get_aggregated_stats: { Args: never; Returns: Json }
       admin_get_audit_logs: {
         Args: { p_limit?: number; p_offset?: number }
@@ -4680,6 +4712,7 @@ export type Database = {
         Args: { p_clip_index: number; p_project_id: string }
         Returns: Json
       }
+      check_login_rate_limit: { Args: { p_email: string }; Returns: boolean }
       check_support_rate_limit: { Args: { p_email: string }; Returns: boolean }
       check_widget_view_credits: {
         Args: { p_widget_id: string }
@@ -4810,6 +4843,10 @@ export type Database = {
             }
             Returns: string
           }
+      log_login_attempt: {
+        Args: { p_email: string; p_ip?: string; p_success: boolean }
+        Returns: undefined
+      }
       persist_pipeline_context: {
         Args: { p_context: Json; p_project_id: string }
         Returns: boolean
@@ -4875,6 +4912,10 @@ export type Database = {
             }
             Returns: string
           }
+      validate_session_stamp: {
+        Args: { p_client_version: number; p_user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

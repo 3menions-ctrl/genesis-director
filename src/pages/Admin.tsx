@@ -636,10 +636,31 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            <Button onClick={() => { fetchStats(); fetchCostSummary(); }} variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground">
-              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-              Refresh
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button onClick={() => { fetchStats(); fetchCostSummary(); }} variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground">
+                <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                Refresh
+              </Button>
+              <Button 
+                onClick={async () => {
+                  if (!confirm('Force-logout ALL users? They will need to sign in again. This cannot be undone.')) return;
+                  try {
+                    const { error } = await supabase.rpc('admin_force_logout_all');
+                    if (error) throw error;
+                    toast.success('All users have been logged out');
+                  } catch (err) {
+                    console.error(err);
+                    toast.error('Failed to force logout users');
+                  }
+                }} 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <Shield className="w-3.5 h-3.5 mr-1.5" />
+                Force Logout All
+              </Button>
+            </div>
           </div>
         );
 
@@ -712,6 +733,7 @@ export default function AdminDashboard() {
                                 amount: '', 
                                 reason: '' 
                               })}
+                              title="Adjust Credits"
                             >
                               <Coins className="w-3.5 h-3.5" />
                             </Button>
@@ -720,8 +742,30 @@ export default function AdminDashboard() {
                               variant={u.roles?.includes('admin') ? 'destructive' : 'ghost'}
                               className="h-7 w-7 p-0"
                               onClick={() => handleToggleAdminRole(u)}
+                              title={u.roles?.includes('admin') ? 'Revoke Admin' : 'Grant Admin'}
                             >
                               <UserCog className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 text-warning hover:text-warning hover:bg-warning/10"
+                              title="Force Logout User"
+                              onClick={async () => {
+                                if (!confirm(`Force logout ${u.display_name || u.email}?`)) return;
+                                try {
+                                  const { error } = await supabase.rpc('admin_force_logout_user', {
+                                    p_target_user_id: u.id,
+                                  });
+                                  if (error) throw error;
+                                  toast.success(`${u.display_name || u.email} has been logged out`);
+                                } catch (err) {
+                                  console.error(err);
+                                  toast.error('Failed to force logout user');
+                                }
+                              }}
+                            >
+                              <Shield className="w-3.5 h-3.5" />
                             </Button>
                           </div>
                         </td>

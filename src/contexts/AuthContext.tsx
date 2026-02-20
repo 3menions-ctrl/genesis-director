@@ -24,7 +24,13 @@ interface UserProfile {
   auto_recharge_enabled: boolean | null;
   has_seen_welcome_video: boolean | null;
   has_seen_welcome_offer: boolean | null;
+  security_version: number | null;
 }
+
+// Storage key for the security version stamp
+const SECURITY_VERSION_KEY = 'app_security_version';
+const MAX_LOGIN_ATTEMPTS = 10;
+const LOGIN_LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
 
 interface AuthContextType {
   user: User | null;
@@ -90,6 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       auto_recharge_enabled: false,
       has_seen_welcome_video: false,
       has_seen_welcome_offer: false,
+      security_version: null,
     });
 
     try {
@@ -211,10 +218,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           fetchProfile(userId),
           checkAdminRole(userId)
         ]);
-        if (mounted) {
-          setProfile(profileData);
-          setIsAdmin(adminStatus);
+
+        if (!mounted) return;
+
+        // ── SECURITY VERSION CHECK ──────────────────────────────────────────
+        // If the server's security_version is higher than what's stored in
+        // localStorage, the admin has invalidated this session. Force sign-out.
+        if (profileData?.security_version != null) {
+          const storedVersion = parseInt(
+            localStorage.getItem(SECURITY_VERSION_KEY) || '0', 10
+          );
+          if (profileData.security_version > storedVersion) {
+            console.warn('[AuthContext] Security version mismatch — forcing sign-out');
+            // Store the new version BEFORE sign-out so re-login works
+            localStorage.setItem(SECURITY_VERSION_KEY, String(profileData.security_version));
+            // Sign out globally
+            await supabase.auth.signOut({ scope: 'global' });
+            if (mounted) {
+              setProfile(null);
+              setIsAdmin(false);
+              setLoading(false);
+            }
+            return;
+          }
+          // Keep local version in sync
+          localStorage.setItem(SECURITY_VERSION_KEY, String(profileData.security_version));
         }
+        // ────────────────────────────────────────────────────────────────────
+
+        setProfile(profileData);
+        setIsAdmin(adminStatus);
       } catch (err) {
         console.error('[AuthContext] Failed to complete auth init:', err);
         // CRITICAL: Even on error, set a fallback profile to prevent UI blocking
@@ -239,6 +272,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             auto_recharge_enabled: false,
             has_seen_welcome_video: false,
             has_seen_welcome_offer: false,
+            security_version: null,
           });
           setIsAdmin(false);
         }
@@ -433,31 +467,78 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    // ── BRUTE FORCE PROTECTION ─────────────────────────────────────────────
+    // Check client-side lockout first (localStorage) to avoid unnecessary requests
+    const lockoutKey = `login_lockout_${email.toLowerCase()}`;
+    const lockoutData = localStorage.getItem(lockoutKey);
+    if (lockoutData) {
+      const { count, since } = JSON.parse(lockoutData);
+      const elapsed = Date.now() - since;
+      if (count >= MAX_LOGIN_ATTEMPTS && elapsed < LOGIN_LOCKOUT_MS) {
+        const remaining = Math.ceil((LOGIN_LOCKOUT_MS - elapsed) / 60000);
+        return { error: new Error(`Too many failed attempts. Try again in ${remaining} minute(s).`) };
+      }
+      // Reset if lockout period expired
+      if (elapsed >= LOGIN_LOCKOUT_MS) {
+        localStorage.removeItem(lockoutKey);
+      }
+    }
+    // ──────────────────────────────────────────────────────────────────────
+
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    // Track attempt in DB (fire-and-forget, non-blocking)
+    void supabase.rpc('log_login_attempt', {
+      p_email: email.toLowerCase(),
+      p_success: !error,
+    });
+
+    // Update client-side lockout counter
+    if (error) {
+      const existing = localStorage.getItem(lockoutKey);
+      const parsed = existing ? JSON.parse(existing) : { count: 0, since: Date.now() };
+      // Reset counter if previous lockout window has expired
+      const isExpired = Date.now() - parsed.since >= LOGIN_LOCKOUT_MS;
+      const updated = {
+        count: isExpired ? 1 : parsed.count + 1,
+        since: isExpired ? Date.now() : parsed.since,
+      };
+      localStorage.setItem(lockoutKey, JSON.stringify(updated));
+    } else {
+      // Clear on success
+      localStorage.removeItem(lockoutKey);
+    }
     
     // CRITICAL: Wait for session to be persisted to localStorage before returning
     // This prevents redirect loops where the app navigates before session is saved
-    // FIX: Added max iteration guard to prevent stack overflow on slow networks
     if (!error && data?.session) {
+      // Store the security version so future refreshes don't force-logout the user
+      // who just successfully logged in
+      const profileRes = await supabase
+        .from('profiles')
+        .select('security_version')
+        .eq('id', data.session.user.id)
+        .maybeSingle();
+      if (profileRes.data?.security_version) {
+        localStorage.setItem(SECURITY_VERSION_KEY, String(profileRes.data.security_version));
+      }
+
       // Wait for the session to propagate through the auth state listener
-      // This ensures sessionRef and state are updated before navigation
       await new Promise<void>((resolve) => {
         let iterations = 0;
-        const MAX_ITERATIONS = 40; // 40 * 50ms = 2 seconds max
+        const MAX_ITERATIONS = 40;
         
         const checkSession = () => {
           iterations++;
           if (sessionRef.current?.access_token === data.session?.access_token) {
             resolve();
           } else if (iterations >= MAX_ITERATIONS) {
-            // Failsafe: resolve after max iterations to prevent infinite loop
             console.warn('[AuthContext] Session sync timed out after max iterations');
             resolve();
           } else {
             setTimeout(checkSession, 50);
           }
         };
-        // Give a small initial delay for the listener to fire
         setTimeout(checkSession, 100);
       });
     }

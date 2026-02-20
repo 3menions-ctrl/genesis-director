@@ -1,21 +1,8 @@
 import { forwardRef } from 'react';
-import { 
-  Play, Loader2, Volume2, Sparkles, 
-  User, Mic, Crown, Heart, RotateCcw
-} from 'lucide-react';
+import { Play, Loader2, Mic, Crown, X, CheckCircle2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AvatarTemplate } from '@/types/avatar-templates';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import Avatar3DViewer from './Avatar3DViewer';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 interface AvatarPreviewModalProps {
   avatar: AvatarTemplate | null;
@@ -27,218 +14,177 @@ interface AvatarPreviewModalProps {
   isVoiceReady?: boolean;
 }
 
-// STABILITY: Removed framer-motion - Dialogs handle their own animations
 export const AvatarPreviewModal = forwardRef<HTMLDivElement, AvatarPreviewModalProps>(
-  function AvatarPreviewModal({ 
-    avatar, 
-    open, 
-    onOpenChange, 
-    onSelect, 
+  function AvatarPreviewModal({
+    avatar,
+    open,
+    onOpenChange,
+    onSelect,
     onPreviewVoice,
     isPreviewingVoice,
     isVoiceReady = false,
   }, ref) {
-    const isMobile = useIsMobile();
-    
-    if (!avatar) return null;
+    if (!avatar || !open) return null;
 
-    const hasMultipleViews = avatar.side_image_url || avatar.back_image_url;
+    const imageUrl = avatar.front_image_url || avatar.face_image_url;
 
     return (
-      <Dialog open={open} onOpenChange={onOpenChange} modal={true}>
-        <DialogContent 
+      /* Full-screen overlay */
+      <div
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+        onClick={() => onOpenChange(false)}
+      >
+        {/* Backdrop */}
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+
+        {/* Sheet / Card */}
+        <div
           ref={ref}
-          variant={isMobile ? "sheet" : "default"}
-          hideCloseButton={isMobile}
-          onPointerDownOutside={(e) => e.preventDefault()}
-          onInteractOutside={(e) => e.preventDefault()}
+          onClick={(e) => e.stopPropagation()}
           className={cn(
-            "bg-black/95 border-white/[0.08] backdrop-blur-xl p-0 overflow-hidden flex flex-col",
-            isMobile && "max-h-[85vh]",
-            !isMobile && "sm:max-w-2xl max-h-[90vh]"
+            "relative w-full bg-zinc-950 border border-white/10 shadow-2xl",
+            "flex flex-col overflow-hidden",
+            // Mobile: bottom sheet
+            "rounded-t-3xl max-h-[92dvh]",
+            // Desktop: centered card
+            "sm:rounded-2xl sm:max-w-lg sm:max-h-[85vh] sm:mx-4"
           )}
         >
-          <DialogHeader className="sr-only">
-            <DialogTitle>{avatar.name} - Avatar Preview</DialogTitle>
-            <DialogDescription>Preview and select this avatar for your video</DialogDescription>
-          </DialogHeader>
+          {/* Hero image with gradient overlay */}
+          <div className="relative w-full aspect-[4/3] sm:aspect-[16/9] flex-shrink-0 bg-zinc-900">
+            {imageUrl && (
+              <img
+                src={imageUrl}
+                alt={avatar.name}
+                className="absolute inset-0 w-full h-full object-cover object-top"
+              />
+            )}
+            {/* Bottom fade */}
+            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
 
-          {/* Mobile: Stack vertically, Desktop: Side by side */}
-          <div className="flex flex-col sm:grid sm:grid-cols-2 gap-0 h-full">
-            {/* Avatar Image/Viewer - Compact on mobile */}
-            <div className="relative aspect-[4/3] sm:aspect-auto bg-gradient-to-b from-zinc-900/50 to-black flex-shrink-0">
-              {hasMultipleViews ? (
-                <Avatar3DViewer
-                  frontImage={avatar.front_image_url || avatar.face_image_url}
-                  sideImage={avatar.side_image_url}
-                  backImage={avatar.back_image_url}
-                  name={avatar.name}
-                  className="w-full h-full min-h-[200px] sm:min-h-[300px]"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center p-4 sm:p-6">
-                  <div className="relative w-full max-w-[180px] sm:max-w-[250px] aspect-[3/4] rounded-xl sm:rounded-2xl overflow-hidden">
-                    <img
-                      src={avatar.front_image_url || avatar.face_image_url}
-                      alt={avatar.name}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  </div>
-                </div>
-              )}
-              
-              {avatar.is_premium && (
-                <div className="absolute top-3 sm:top-4 left-3 sm:left-4">
-                  <Badge className="bg-gradient-to-r from-amber-500 to-amber-400 text-black text-[10px] sm:text-xs px-2 py-0.5 sm:py-1">
-                    <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" />
-                    PRO
-                  </Badge>
-                </div>
-              )}
-              
-              {hasMultipleViews && (
-                <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 flex items-center gap-2 text-[10px] sm:text-xs text-white/40">
-                  <RotateCcw className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                  <span>Drag to rotate</span>
-                </div>
-              )}
-            </div>
+            {/* Close button */}
+            <button
+              onClick={() => onOpenChange(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white hover:bg-black/70 transition-all"
+            >
+              <X className="w-4 h-4" />
+            </button>
 
-            {/* Info Panel - scrollable content + sticky button */}
-            <div className="flex flex-col min-h-0">
-              {/* Scrollable details */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5 animate-fade-in">
-                {/* Name & Quick Info */}
-                <div>
-                  <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
-                    <h3 className="text-xl sm:text-2xl font-bold text-white">{avatar.name}</h3>
-                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-violet-400" />
-                  </div>
-                  
-                  <p className="text-xs sm:text-sm text-white/50 leading-relaxed line-clamp-2 sm:line-clamp-none">
-                    {avatar.description || 'Professional AI presenter ready to bring your content to life.'}
-                  </p>
-                </div>
-
-                {/* Tags - Hidden on very small screens */}
-                {avatar.tags && avatar.tags.length > 0 && (
-                  <div className="hidden xs:flex flex-wrap gap-1.5">
-                    {avatar.tags.slice(0, 4).map((tag) => (
-                      <span 
-                        key={tag}
-                        className="text-[9px] sm:text-[10px] px-2 py-0.5 sm:py-1 rounded-full bg-white/[0.05] text-white/50 border border-white/[0.08]"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Personality Section */}
-                {avatar.personality && (
-                  <div className="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                    <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
-                      <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-pink-400" />
-                      <span className="text-[10px] sm:text-xs font-medium text-white/70 uppercase tracking-wider">Personality</span>
-                    </div>
-                    <p className="text-xs sm:text-sm text-white/60 leading-relaxed line-clamp-2 sm:line-clamp-none">
-                      {avatar.personality}
-                    </p>
-                  </div>
-                )}
-
-                {/* Voice Section */}
-                <div className={cn(
-                  "p-3 sm:p-4 rounded-lg sm:rounded-xl border",
-                  isVoiceReady 
-                    ? "bg-emerald-500/10 border-emerald-500/20" 
-                    : "bg-violet-500/10 border-violet-500/20"
-                )}>
-                  <div className="flex items-center justify-between mb-2 sm:mb-3">
-                    <div className="flex items-center gap-2">
-                      <Mic className={cn(
-                        "w-3.5 h-3.5 sm:w-4 sm:h-4",
-                        isVoiceReady ? "text-emerald-400" : "text-violet-400"
-                      )} />
-                      <span className={cn(
-                        "text-[10px] sm:text-xs font-medium uppercase tracking-wider",
-                        isVoiceReady ? "text-emerald-300" : "text-violet-300"
-                      )}>
-                        {isVoiceReady ? 'Voice Ready' : 'Voice'}
-                      </span>
-                      {isVoiceReady && (
-                        <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                          Instant
-                        </span>
-                      )}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onPreviewVoice(avatar)}
-                      disabled={isPreviewingVoice}
-                      className={cn(
-                        "h-7 sm:h-8 px-2.5 sm:px-3 text-xs",
-                        isVoiceReady 
-                          ? "text-emerald-300 hover:text-emerald-200 hover:bg-emerald-500/20"
-                          : "text-violet-300 hover:text-violet-200 hover:bg-violet-500/20"
-                      )}
-                    >
-                      {isPreviewingVoice ? (
-                        <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin mr-1" />
-                      ) : (
-                        <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
-                      )}
-                      {isPreviewingVoice ? 'Playing...' : isVoiceReady ? 'Play' : 'Preview'}
-                    </Button>
-                  </div>
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs sm:text-sm font-medium text-white/80 truncate">{avatar.voice_name || 'Premium Voice'}</p>
-                      <p className="text-[10px] sm:text-xs text-white/40 truncate">{avatar.voice_description || 'Natural, professional tone'}</p>
-                    </div>
-                    <Volume2 className={cn(
-                      "w-4 h-4 sm:w-5 sm:h-5 shrink-0",
-                      isVoiceReady ? "text-emerald-400/50" : "text-violet-400/50"
-                    )} />
-                  </div>
-                </div>
-
-                {/* Details Grid */}
-                <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                  <div className="p-2 sm:p-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-center">
-                    <p className="text-[10px] sm:text-xs text-white/40 mb-0.5 sm:mb-1">Style</p>
-                    <p className="text-xs sm:text-sm font-medium text-white/80 capitalize truncate">{avatar.style || 'Pro'}</p>
-                  </div>
-                  <div className="p-2 sm:p-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-center">
-                    <p className="text-[10px] sm:text-xs text-white/40 mb-0.5 sm:mb-1">Gender</p>
-                    <p className="text-xs sm:text-sm font-medium text-white/80 capitalize truncate">{avatar.gender}</p>
-                  </div>
-                  <div className="p-2 sm:p-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-center">
-                    <p className="text-[10px] sm:text-xs text-white/40 mb-0.5 sm:mb-1">Age</p>
-                    <p className="text-xs sm:text-sm font-medium text-white/80 truncate">{avatar.age_range || '25-35'}</p>
-                  </div>
-                </div>
+            {/* PRO badge */}
+            {avatar.is_premium && (
+              <div className="absolute top-4 left-4 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/90 backdrop-blur-sm">
+                <Crown className="w-3 h-3 text-black" />
+                <span className="text-[10px] font-bold text-black tracking-wider">PRO</span>
               </div>
+            )}
 
-              {/* Action Button - Always visible, centered, pinned to bottom */}
-              <div className="flex-shrink-0 p-4 sm:p-6 pt-3 border-t border-white/[0.06] flex justify-center">
-                <Button
-                  onClick={() => {
-                    onSelect(avatar);
-                    onOpenChange(false);
-                  }}
-                  className="w-full max-w-xs h-11 sm:h-12 bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white font-medium text-sm sm:text-base"
-                >
-                  <User className="w-4 h-4 mr-2" />
-                  Select {avatar.name}
-                </Button>
+            {/* Name + description overlaid on image bottom */}
+            <div className="absolute bottom-0 left-0 right-0 px-5 pb-4">
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-2xl font-bold text-white">{avatar.name}</h2>
+                <Sparkles className="w-4 h-4 text-violet-400" />
               </div>
+              {avatar.description && (
+                <p className="text-sm text-white/60 line-clamp-1">{avatar.description}</p>
+              )}
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+
+          {/* Scrollable info area */}
+          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 min-h-0">
+
+            {/* Stat pills */}
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: avatar.style || 'Pro', sublabel: 'Style' },
+                { label: avatar.gender, sublabel: 'Gender' },
+                { label: avatar.age_range || '25–35', sublabel: 'Age' },
+              ].map((item) => (
+                <div
+                  key={item.sublabel}
+                  className="flex-1 min-w-[70px] px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.07] text-center"
+                >
+                  <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">{item.sublabel}</p>
+                  <p className="text-xs font-semibold text-white/80 capitalize">{item.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Personality */}
+            {avatar.personality && (
+              <div className="px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Personality</p>
+                <p className="text-sm text-white/70 leading-relaxed">{avatar.personality}</p>
+              </div>
+            )}
+
+            {/* Voice row */}
+            <div className={cn(
+              "flex items-center justify-between px-4 py-3 rounded-xl border",
+              isVoiceReady
+                ? "bg-emerald-500/[0.08] border-emerald-500/20"
+                : "bg-violet-500/[0.08] border-violet-500/20"
+            )}>
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center",
+                  isVoiceReady ? "bg-emerald-500/20" : "bg-violet-500/20"
+                )}>
+                  <Mic className={cn("w-4 h-4", isVoiceReady ? "text-emerald-400" : "text-violet-400")} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white/80">{avatar.voice_name || 'Premium Voice'}</p>
+                  <p className="text-[11px] text-white/40">{avatar.voice_description || 'Natural, professional tone'}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => onPreviewVoice(avatar)}
+                disabled={isPreviewingVoice}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                  isVoiceReady
+                    ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30"
+                    : "bg-violet-500/20 text-violet-300 hover:bg-violet-500/30"
+                )}
+              >
+                {isPreviewingVoice
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : <Play className="w-3.5 h-3.5" />
+                }
+                {isPreviewingVoice ? 'Playing' : 'Preview'}
+              </button>
+            </div>
+
+            {/* Tags */}
+            {avatar.tags && avatar.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {avatar.tags.slice(0, 6).map((tag) => (
+                  <span
+                    key={tag}
+                    className="text-[10px] px-2.5 py-1 rounded-full bg-white/[0.04] text-white/40 border border-white/[0.06]"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Pinned CTA — always visible */}
+          <div className="flex-shrink-0 px-5 py-4 border-t border-white/[0.06] bg-zinc-950">
+            <Button
+              onClick={() => {
+                onSelect(avatar);
+                onOpenChange(false);
+              }}
+              className="w-full h-12 text-base font-semibold rounded-xl bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white shadow-lg shadow-violet-500/25 gap-2"
+            >
+              <CheckCircle2 className="w-5 h-5" />
+              Select {avatar.name}
+            </Button>
+          </div>
+        </div>
+      </div>
     );
   }
 );

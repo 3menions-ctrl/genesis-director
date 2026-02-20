@@ -648,6 +648,34 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             audioUrl = null;
             console.log('[UniversalPlayer] 🎵 EMBEDDED AUDIO mode - using clip native audio, no master overlay');
             
+            // ═══ FAST PATH: If mseClipUrls are already stored, use them directly ═══
+            // This avoids calling the edge function when clips are pre-resolved (e.g. recovered projects)
+            const storedMseClipUrls = isMseDirect && Array.isArray(tasks?.mseClipUrls) ? tasks.mseClipUrls as string[] : null;
+            const storedTotalDuration = tasks?.totalDuration as number | undefined;
+            const storedClipCount = tasks?.clipCount as number | undefined;
+            
+            if (storedMseClipUrls && storedMseClipUrls.length > 0) {
+              logPlaybackPath('CROSSFADE_STORED', {
+                projectId: sourceProjectId,
+                clipCount: storedMseClipUrls.length,
+                reason: 'Using pre-stored mseClipUrls — no edge function call needed',
+              });
+              const perClipDuration = storedTotalDuration && storedClipCount 
+                ? storedTotalDuration / storedClipCount 
+                : 6;
+              const directClips = storedMseClipUrls.map((url: string) => ({
+                url,
+                blobUrl: url,
+                duration: perClipDuration,
+              }));
+              if (!mountedRef.current) return;
+              setUseMSE(false);
+              setClips(directClips);
+              setIsLoading(false);
+              if (autoPlay) setIsPlaying(true);
+              return;
+            }
+            
             // HLS FIRST: Try to use HLS for ALL browsers (not just iOS)
             // This provides the most reliable cross-browser playback via hls.js
             // Skip HLS if it has already failed for this source (fall through to MSE)
@@ -665,7 +693,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             }
             
             // Check if we have any video content before trying HLS generation
-            const hasVideoContent = tasks?.predictions || tasks?.hlsPlaylistUrl || project?.video_url;
+            const hasVideoContent = tasks?.predictions || tasks?.hlsPlaylistUrl || tasks?.mseClipUrls || project?.video_url;
             
             // Check if project is still generating (don't trigger HLS for incomplete projects)
             const hasIncompletePredictions = tasks?.predictions && Array.isArray(tasks.predictions) && 

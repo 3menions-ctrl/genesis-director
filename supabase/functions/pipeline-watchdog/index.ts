@@ -348,6 +348,18 @@ serve(async (req) => {
             videoUrl: pred.videoUrl,
             audioUrl: pred.audioUrl,
           });
+          // Ensure the video_clips row exists for already-completed predictions
+          // (handles cases where the watchdog restarted and lost the insert opportunity)
+          if (pred.videoUrl) {
+            await supabase.from('video_clips').upsert({
+              project_id: project.id,
+              shot_index: pred.clipIndex,
+              status: 'completed',
+              video_url: pred.videoUrl,
+              duration_seconds: tasks.clipDuration || 10,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'project_id,shot_index', ignoreDuplicates: false });
+          }
           continue;
         }
         
@@ -892,6 +904,28 @@ serve(async (req) => {
               videoUrl: finalVideoUrl,
               audioUrl: pred.audioUrl,
             });
+
+            // ── CRITICAL: Write clip row to video_clips table so the UI can display it ──
+            try {
+              const { error: clipInsertError } = await supabase
+                .from('video_clips')
+                .upsert({
+                  project_id: project.id,
+                  shot_index: pred.clipIndex,
+                  status: 'completed',
+                  video_url: finalVideoUrl,
+                  duration_seconds: tasks.clipDuration || 10,
+                  updated_at: new Date().toISOString(),
+                }, { onConflict: 'project_id,shot_index', ignoreDuplicates: false });
+
+              if (clipInsertError) {
+                console.warn(`[Watchdog] ⚠️ Failed to upsert video_clips row for clip ${pred.clipIndex + 1}: ${clipInsertError.message}`);
+              } else {
+                console.log(`[Watchdog] ✅ video_clips row saved for clip ${pred.clipIndex + 1}`);
+              }
+            } catch (insertErr) {
+              console.warn(`[Watchdog] video_clips insert failed (non-fatal):`, insertErr);
+            }
           } else if (predictionStatus.status === 'failed') {
             console.error(`[Watchdog] ❌ Clip ${pred.clipIndex + 1} FAILED:`, predictionStatus.error);
             pred.status = 'failed';

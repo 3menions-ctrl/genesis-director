@@ -411,6 +411,36 @@ export type Database = {
         }
         Relationships: []
       }
+      banned_accounts: {
+        Row: {
+          banned_by: string | null
+          created_at: string | null
+          display_name: string | null
+          email: string
+          id: string
+          reason: string | null
+          user_id: string | null
+        }
+        Insert: {
+          banned_by?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          email: string
+          id?: string
+          reason?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          banned_by?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          email?: string
+          id?: string
+          reason?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       character_loans: {
         Row: {
           borrower_id: string
@@ -4745,6 +4775,7 @@ export type Database = {
         Args: { p_conversation_id: string; p_user_id: string }
         Returns: boolean
       }
+      is_email_banned: { Args: { p_email: string }; Returns: boolean }
       is_universe_member: {
         Args: { p_universe_id: string; p_user_id: string }
         Returns: boolean

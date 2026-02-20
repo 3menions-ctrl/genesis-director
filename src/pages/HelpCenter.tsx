@@ -57,7 +57,7 @@ Enter a detailed description of your video. Be specific about:
 ### Step 3: Configure Settings
 
 - **Clip Count**: Choose 1-20 clips
-- **Clip Duration**: 8 seconds fixed for Text/Image-to-Video (Google Veo 3); 5 or 10 seconds for Avatar mode (Kling)
+- **Clip Duration**: 3–15 seconds (Kling V3); default 10s. Avatar mode uses native lip-sync audio
 - **Aspect Ratio**: 16:9 (landscape), 9:16 (portrait/mobile), or 1:1 (square)
 - **Narration**: Enable AI voiceover (optional)
 - **Music**: Add background music (optional)
@@ -271,7 +271,7 @@ Transform written descriptions into stunning AI-generated video content.
 ### Configuration Options
 
 - **Clip Count**: 1-20 clips per project
-- **Duration**: 8 seconds (Google Veo 3, fixed) for Text/Image-to-Video; 5 or 10 seconds for Avatar mode
+- **Duration**: 3–15 seconds per clip (Kling V3, default 10s). Avatar uses native lip-sync audio
 - **Aspect Ratio**: 16:9, 9:16, or 1:1
 - **Narration**: AI voiceover from your script
 - **Music**: Auto-generated background music
@@ -302,7 +302,7 @@ Animate your photos and images into dynamic video content.
 
 1. **Upload your image** via the Create page
 2. **Describe the motion** you want to see
-3. **Duration is fixed at 8 seconds** (Google Veo 3 native clip length)
+3. **Choose your duration** (3–15 seconds via Kling V3, default 10s)
 4. **Generate** and watch your image come alive
 
 ### Supported Image Types

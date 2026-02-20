@@ -118,9 +118,9 @@ const PIPELINE_LAYERS = [
   },
   {
     number: '08',
-    title: 'Multi-Model Orchestration',
-    subtitle: 'Kling · Veo · Unified Pipeline',
-    description: 'We orchestrate across Kling and Veo generation models, selecting the best engine for each shot type — and wrapping both in the same cinematography, identity, and audio layers.',
+    title: 'Kling V3 Engine',
+    subtitle: 'kwaivgi/kling-v3-video · Unified Pipeline',
+    description: 'Every mode — Text-to-Video, Image-to-Video, and Avatar — runs on Kling V3, the latest generation model with native lip-sync audio, 3–15s clips, and 1080p pro quality.',
     details: [
       'Automatic model selection per shot type',
       'Unified prompt engineering across engines',
@@ -292,7 +292,7 @@ export default function HowItWorks() {
           </p>
 
           <p className="text-sm text-white/20 mb-12">
-            Powered by <span className="text-white/40 font-medium">Kling</span> & <span className="text-white/40 font-medium">Veo</span> — orchestrated by Apex
+            Powered by <span className="text-white/40 font-medium">Kling V3</span> — orchestrated by Apex
           </p>
         </motion.div>
 
@@ -345,7 +345,7 @@ export default function HowItWorks() {
               Raw AI vs. Apex Pipeline
             </h2>
             <p className="text-base text-white/35">
-              The difference between prompting Kling or Veo directly and using our production system.
+              The difference between prompting Kling V3 directly and using our full production system.
             </p>
           </motion.div>
 

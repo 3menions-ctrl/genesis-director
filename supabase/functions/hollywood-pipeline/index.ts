@@ -404,8 +404,8 @@ function calculatePipelineParams(
     console.log(`[Hollywood] Reduced clip count to ${clipCount} due to ${maxDuration}s duration limit`);
   }
   
-  // Use tiered credit calculation: 10/20 credits base, 15/30 extended (Kling/Veo)
-  const videoEngine: 'kling' | 'veo' = (request as any).videoEngine || 'veo'; // DEFAULT: Runway (veo param routes to Runway Gen-4 Turbo/Gen-4.5)
+  // Kling V3 credit pricing: 12 credits (≤10s T2V/I2V), 18 credits (>10s), Avatar 15/22
+  const videoEngine: 'kling' | 'veo' = (request as any).videoEngine || 'kling'; // DEFAULT: Kling V3
   const totalCredits = calculateTotalCredits(clipCount, clipDuration, videoEngine);
   
   console.log(`[Hollywood] Pipeline params: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s total (max: ${maxDuration}s, tier limit: ${maxClips} clips, engine: ${videoEngine})`);
@@ -3332,12 +3332,12 @@ async function runProduction(
     let finalPrompt = '';
     
     // =====================================================
-    // VEO CONTINUITY DNA BLOCK (text-to-video & image-to-video only)
+    // CONTINUITY DNA BLOCK (text-to-video & image-to-video mode only)
     // Injected at the TOP of EVERY clip prompt to prevent environmental
-    // and character drift across independently-generated 8-second clips.
-    // Kling/avatar mode skips this — it uses its own identity system.
+    // and character drift across independently-generated clips.
+    // Avatar mode skips this — it uses its own identity system.
     // =====================================================
-    const isVeoMode = (request.videoEngine || 'veo') === 'veo'; // DEFAULT to veo (Runway)
+    const isVeoMode = (request.videoEngine || 'kling') !== 'kling'; // Only non-avatar T2V/I2V
     
     const buildVeoContinuityDNA = (): string => {
       if (!isVeoMode) return '';
@@ -3596,13 +3596,14 @@ async function runProduction(
           }
         }
         
-        // Determine engine: veo for text/image-to-video, kling for avatar
-        const videoEngine = request.videoEngine || 'veo'; // DEFAULT: Runway Gen-4 Turbo (I2V) or Gen-4.5 (T2V)
+        // Determine engine: ALL modes use Kling V3 (kwaivgi/kling-v3-video)
+        // 'kling' = avatar mode with native audio; 'veo' = T2V/I2V (both route to Kling V3)
+        const videoEngine = request.videoEngine || 'kling'; // DEFAULT: Kling V3 (all modes)
         
         const clipResult = await callEdgeFunction('generate-single-clip', {
           userId: request.userId,
           projectId: state.projectId,
-          videoEngine, // CRITICAL: Route to Veo 3 or Kling v2.6
+          videoEngine, // Both 'kling' and 'veo' route to Kling V3 in generate-single-clip
           clipIndex: i,
           prompt: finalPrompt,
           totalClips: clips.length,

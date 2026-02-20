@@ -642,7 +642,11 @@ serve(async (req: Request) => {
       colorGrading: context?.colorGrading || 'cinematic',
       qualityTier: context?.qualityTier || 'standard',
       aspectRatio: context?.aspectRatio || '16:9',
-      // CALLBACK CONTINUATION
+      // CRITICAL FIX: skipPolling prevents 60s Edge Function timeout
+      // The watchdog will poll the prediction and trigger continue-production for the next clip
+      skipPolling: true,
+      // CALLBACK CONTINUATION — triggerNextClip is inert with skipPolling,
+      // but we pass it so the watchdog can use it when resuming
       triggerNextClip: true,
       // FULL CONTEXT FOR PERSISTENCE
       pipelineContext: context,

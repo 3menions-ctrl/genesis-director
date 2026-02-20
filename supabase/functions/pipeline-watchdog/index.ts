@@ -2323,12 +2323,17 @@ serve(async (req) => {
           continue;
         }
         
-        // Incomplete -> resume production
+        // Incomplete -> resume production via DIRECT CHAINING (not heavyweight resume-pipeline)
+        // This calls continue-production which dispatches the next clip with skipPolling=true
         if (completedClips.length > 0 && completedClips.length < expectedClipCount) {
-          console.log(`[Watchdog] Resuming production from clip ${completedClips.length + 1}`);
+          const lastCompletedIndex = Math.max(...completedClips.map((c: any) => c.shot_index));
+          console.log(`[Watchdog] Direct-chaining: triggering clip ${lastCompletedIndex + 2}/${expectedClipCount} via continue-production`);
           
           try {
-            const response = await fetch(`${supabaseUrl}/functions/v1/resume-pipeline`, {
+            // Get last completed clip's data for continuity
+            const lastClip = completedClips.find((c: any) => c.shot_index === lastCompletedIndex);
+            
+            const response = await fetch(`${supabaseUrl}/functions/v1/continue-production`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -2337,7 +2342,12 @@ serve(async (req) => {
               body: JSON.stringify({
                 projectId: project.id,
                 userId: project.user_id,
-                resumeFrom: 'production',
+                completedClipIndex: lastCompletedIndex,
+                completedClipResult: lastClip ? {
+                  videoUrl: lastClip.video_url,
+                  lastFrameUrl: lastClip.last_frame_url,
+                } : undefined,
+                totalClips: expectedClipCount,
               }),
             });
             
@@ -2345,12 +2355,28 @@ serve(async (req) => {
               result.productionResumed++;
               result.details.push({
                 projectId: project.id,
-                action: 'production_resumed',
-                result: `From clip ${completedClips.length + 1}/${expectedClipCount}`,
+                action: 'direct_chain_resumed',
+                result: `Clip ${lastCompletedIndex + 2}/${expectedClipCount} via continue-production`,
               });
+            } else {
+              // Fallback to resume-pipeline if continue-production fails
+              console.warn(`[Watchdog] Direct chain failed (${response.status}), falling back to resume-pipeline`);
+              await fetch(`${supabaseUrl}/functions/v1/resume-pipeline`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseKey}`,
+                },
+                body: JSON.stringify({
+                  projectId: project.id,
+                  userId: project.user_id,
+                  resumeFrom: 'production',
+                }),
+              });
+              result.productionResumed++;
             }
           } catch (error) {
-            console.error(`[Watchdog] Resume error:`, error);
+            console.error(`[Watchdog] Direct chain error:`, error);
           }
           continue;
         }

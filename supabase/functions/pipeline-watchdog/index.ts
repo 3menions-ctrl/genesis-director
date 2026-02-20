@@ -135,6 +135,7 @@ function buildAvatarActingPrompt(
   sceneNote?: string,
   transitionNote?: string,
   identityLock?: string,
+  aspectRatio: string = '16:9',
 ): string {
   const idx = clipIndex % 10;
   
@@ -163,6 +164,15 @@ function buildAvatarActingPrompt(
   const sizePrompt = selectPrompt(SHOT_SIZES[sizeKey] || SHOT_SIZES.medium);
   const lightingPrompt = selectPrompt(LIGHTING_STYLES[lightingKey] || LIGHTING_STYLES.classic_key);
   
+  // Aspect ratio composition directive — informs Kling how to frame the shot
+  const aspectComposition = (() => {
+    if (aspectRatio === '9:16') return '[VERTICAL FRAME: Portrait/mobile format. Subject centered vertically, tight framing, fill the tall frame with energy. Vertical composition with strong headroom.]';
+    if (aspectRatio === '1:1') return '[SQUARE FRAME: Subject centered, balanced composition, fill the square frame naturally.]';
+    if (aspectRatio === '4:3') return '[STANDARD FRAME: Classic 4:3 composition, subject slightly left or right of center.]';
+    // Default 16:9 widescreen
+    return '[WIDESCREEN 16:9: Cinematic horizontal composition. Subject positioned in the frame with environmental context visible on either side. Rule of thirds framing.]';
+  })();
+
   // Use screenplay sceneNote if available, falling back to base scene description
   const effectiveScene = sceneNote?.trim() ? `${sceneNote}. ${sceneDescription || ''}` : sceneDescription;
   const progressiveScene = getProgressiveScene(effectiveScene, clipIndex, totalClips, true);
@@ -263,7 +273,7 @@ function buildAvatarActingPrompt(
   
   console.log(`[Watchdog] 🎬 Clip ${clipIndex + 1}/${totalClips} | Camera: ${screenplayCameraHint || movementKey} | Movement: ${screenplayMovement || 'default'} | AvatarType: ${avatarType} | IdentityLock: ${identityLock ? 'YES' : 'generic'}`);
   
-  return `${staticStartDirective} ${identityDirective} ${avatarTypeLock} ${backgroundLock} ${transitionDirective} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. ${narrativeBeat} ${motionBlock} Speaking naturally: "${segmentText.trim().substring(0, 120)}${segmentText.length > 120 ? '...' : ''}". ${performanceStyle} ${lifelikeDirective} ${qualityBaseline}`;
+  return `${staticStartDirective} ${identityDirective} ${avatarTypeLock} ${aspectComposition} ${backgroundLock} ${transitionDirective} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. ${narrativeBeat} ${motionBlock} Speaking naturally: "${segmentText.trim().substring(0, 120)}${segmentText.length > 120 ? '...' : ''}". ${performanceStyle} ${lifelikeDirective} ${qualityBaseline}`;
 }
 
 serve(async (req) => {
@@ -630,6 +640,7 @@ serve(async (req) => {
             pred.segmentText + fullBodyEnforcement, resolvedSceneDescription, pred.clipIndex, tasks.predictions.length, avatarType,
             pred.action, pred.movement, pred.emotion, pred.cameraHint, pred.physicalDetail,
             pred.sceneNote, pred.transitionNote, characterIdentityLock,
+            tasks.aspectRatio || '16:9',
           );
           // Prepend Kling continuity to the acting prompt
           const finalActingPrompt = klingContinuity ? `${klingContinuity} ${actingPrompt}` : actingPrompt;

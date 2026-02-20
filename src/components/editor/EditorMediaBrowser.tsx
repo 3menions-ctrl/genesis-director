@@ -3,6 +3,7 @@ import { Film, Search, FolderOpen, Plus, Loader2, Layers, Play, Sparkles } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
 /**
@@ -87,6 +88,7 @@ const VideoThumbnail = ({ url }: { url: string }) => {
 };
 
 export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
+  const { isAdmin } = useAuth();
   const [clips, setClips] = useState<MediaClip[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -104,13 +106,20 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
         return;
       }
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("video_clips")
         .select(`id, prompt, video_url, duration_seconds, shot_index, project_id, movie_projects!inner(title)`)
-        .eq("user_id", session.user.id)
         .eq("status", "completed")
         .not("video_url", "is", null)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(1000);
+
+      // Admins see all clips; regular users see only their own
+      if (!isAdmin) {
+        query = query.eq("user_id", session.user.id);
+      }
+
+      const { data, error } = await query;
 
       if (!error && data) {
         setClips(data.map((c: any) => ({
@@ -126,7 +135,7 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
       setLoading(false);
     };
     load();
-  }, []);
+  }, [isAdmin]);
 
   const projects = useMemo(() => {
     const map = new Map<string, { title: string; count: number }>();

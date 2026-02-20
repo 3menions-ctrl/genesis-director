@@ -72,23 +72,25 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
     }
   }, [isOpen]);
 
-  // ── FOCUS AFTER HOPPY FINISHES — the only reliable approach:
-  //    Watch isLoading via a ref so we never get stale closures.
-  //    The textarea is NOT disabled (disabled elements cannot receive focus),
-  //    so focus always succeeds once loading ends.
-  const isLoadingRef = useRef(isLoading);
-  useEffect(() => {
-    const wasLoading = isLoadingRef.current;
-    isLoadingRef.current = isLoading;
-
-    if (wasLoading && !isLoading && isOpen) {
-      // Two rAF frames: first lets React flush its render,
-      // second ensures the browser has painted before focusing.
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => inputRef.current?.focus())
-      );
-    }
-  }, [isLoading, isOpen]);
+  // ── Keep focus in the textarea at all times while panel is open.
+  //    This is the only 100% reliable approach on mobile (iOS Safari).
+  //    When the textarea loses focus for any reason (Hoppy streaming,
+  //    button clicks, etc.) we immediately reclaim it — UNLESS the user
+  //    tapped an interactive element like the file picker or send button.
+  const handleTextareaBlur = useCallback((e: React.FocusEvent<HTMLTextAreaElement>) => {
+    if (!isOpen) return;
+    const relatedTarget = e.relatedTarget as HTMLElement | null;
+    // Allow blur if focus moved to a real interactive element
+    const isInteractive = relatedTarget && (
+      relatedTarget.tagName === "BUTTON" ||
+      relatedTarget.tagName === "INPUT" ||
+      relatedTarget.tagName === "A" ||
+      relatedTarget.getAttribute("role") === "button"
+    );
+    if (isInteractive) return;
+    // Otherwise immediately reclaim focus
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }, [isOpen]);
 
   // ── Auto-scroll on new messages ──
   useEffect(() => {
@@ -681,6 +683,7 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={handleKeyDown}
+                      onBlur={handleTextareaBlur}
                       placeholder={isLoading ? "Hoppy is thinking…" : "Ask Hoppy anything…"}
                       rows={1}
                       style={{ fieldSizing: "content" } as React.CSSProperties}
@@ -689,7 +692,7 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                         "resize-none border-none outline-none focus:outline-none focus:ring-0",
                         "leading-relaxed max-h-40 min-h-[24px] font-sans transition-opacity duration-300",
                         isLoading
-                          ? "opacity-40 placeholder:text-muted-foreground/20 pointer-events-none"
+                          ? "opacity-40 placeholder:text-muted-foreground/20"
                           : "opacity-100 placeholder:text-muted-foreground/30"
                       )}
                     />

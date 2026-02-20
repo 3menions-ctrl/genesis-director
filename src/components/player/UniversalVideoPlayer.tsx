@@ -640,7 +640,10 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               .maybeSingle();
             
             const tasks = project?.pending_video_tasks as Record<string, unknown> | null;
-            hlsUrl = tasks?.hlsPlaylistUrl as string | null;
+            // Only use hlsPlaylistUrl if mode is NOT already mse_direct
+            // mse_direct means raw MP4s that can't be used as HLS segments
+            const isMseDirect = tasks?.mode === 'mse_direct';
+            hlsUrl = (!isMseDirect && tasks?.hlsPlaylistUrl) ? tasks.hlsPlaylistUrl as string : null;
             // EMBEDDED AUDIO: No master audio overlay - clips use their native embedded audio
             audioUrl = null;
             console.log('[UniversalPlayer] 🎵 EMBEDDED AUDIO mode - using clip native audio, no master overlay');
@@ -648,7 +651,8 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             // HLS FIRST: Try to use HLS for ALL browsers (not just iOS)
             // This provides the most reliable cross-browser playback via hls.js
             // Skip HLS if it has already failed for this source (fall through to MSE)
-            if (useHLSPlayback && hlsUrl && !hlsFailed) {
+            // Skip HLS if mode is mse_direct (raw MP4s are not valid HLS segments)
+            if (useHLSPlayback && hlsUrl && !hlsFailed && !isMseDirect) {
               logPlaybackPath('HLS_UNIVERSAL', { 
                 projectId: sourceProjectId, 
                 hlsUrl,

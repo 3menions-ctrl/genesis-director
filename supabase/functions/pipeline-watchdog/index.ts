@@ -311,6 +311,23 @@ serve(async (req) => {
       
       // Check if this is an async avatar job
       if (tasks.type !== 'avatar_async' || !tasks.predictions) continue;
+
+      // ── SCENE DESCRIPTION FALLBACK ──────────────────────────────────────────
+      // If sceneDescription was not stored (user left field blank or a save bug),
+      // derive it from the screenplay's sceneNotes so ALL clips get a real background.
+      // E.g. if sceneNote says "comedy stage with warm spotlight" we use that.
+      const resolvedSceneDescription: string | undefined = (() => {
+        if (tasks.sceneDescription?.trim()) return tasks.sceneDescription.trim();
+        // Find the most descriptive sceneNote from the screenplay predictions
+        const allNotes: string[] = (tasks.predictions as Array<{ sceneNote?: string }>)
+          .map(p => p.sceneNote?.trim() || '')
+          .filter(Boolean);
+        if (allNotes.length === 0) return undefined;
+        // Pick the longest (most descriptive) note as the base scene
+        const best = allNotes.reduce((a, b) => (a.length >= b.length ? a : b), '');
+        // Strip continuity/lighting instructions; keep location description
+        return best.split(';')[0].trim();
+      })();
       
       const completedPredictions = tasks.predictions.filter((p: { status: string }) => p.status === 'completed').length;
       const totalPredictions = tasks.predictions.length;
@@ -610,7 +627,7 @@ serve(async (req) => {
           ].filter(Boolean).join(' ');
           
           const actingPrompt = buildAvatarActingPrompt(
-            pred.segmentText + fullBodyEnforcement, tasks.sceneDescription, pred.clipIndex, tasks.predictions.length, avatarType,
+            pred.segmentText + fullBodyEnforcement, resolvedSceneDescription, pred.clipIndex, tasks.predictions.length, avatarType,
             pred.action, pred.movement, pred.emotion, pred.cameraHint, pred.physicalDetail,
             pred.sceneNote, pred.transitionNote, characterIdentityLock,
           );

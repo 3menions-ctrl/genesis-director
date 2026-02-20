@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, Film, Image, User, Sparkles, Loader2, AlertCircle } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, Film, Image, User, Sparkles, Loader2 } from 'lucide-react';
 import { useMountSafe } from '@/lib/navigation';
 import { useGalleryShowcase } from '@/hooks/useGalleryShowcase';
 import type { GalleryCategory } from '@/types/gallery-showcase';
@@ -252,28 +252,16 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
         {/* Fullscreen Video - No boundaries */}
         <div className="absolute inset-0">
           {/* Loading state */}
-          {(!isLoaded || isResolvingHLS) && !videoError && (
+          {(!isLoaded || isResolvingHLS) && (
             <div className="absolute inset-0 bg-black flex items-center justify-center z-10">
               <div className="w-16 h-16 rounded-full border-2 border-white/20 border-t-white/80 animate-spin" />
             </div>
           )}
 
-          {/* Error state */}
-          {videoError && (
-            <div className="absolute inset-0 bg-black flex flex-col items-center justify-center z-10 gap-4">
-              <AlertCircle className="w-12 h-12 text-red-400/60" />
-              <p className="text-white/60 text-sm max-w-xs text-center">{videoError}</p>
-              <button
-                onClick={goToNext}
-                className="px-4 py-2 rounded-full bg-white/10 text-white/80 hover:bg-white/20 transition-colors text-sm"
-              >
-                Try next video
-              </button>
-            </div>
-          )}
+          {/* Error state: silently auto-advance, no popup shown */}
 
           {/* Video Player - Use HLS for manifest videos (seamless), SimpleVideoPlayer for direct MP4s */}
-          {currentVideo && !videoError && (
+          {currentVideo && (
             // For manifest videos: use resolved HLS URL with SimpleVideoPlayer for seamless playback
             isCurrentManifest ? (
               hlsUrl ? (
@@ -288,7 +276,7 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
                   crossOrigin={undefined}
                   onCanPlay={() => setIsLoaded(true)}
                   onTimeUpdate={handleTimeUpdate}
-                  onError={() => setVideoError('Failed to load HLS stream')}
+                  onError={() => goToNext()}
                   className={cn(
                     "absolute inset-0 w-full h-full object-cover transition-opacity duration-700",
                     isLoaded ? "opacity-100" : "opacity-0"
@@ -323,7 +311,7 @@ const ExamplesGallery = memo(function ExamplesGallery({ open, onOpenChange }: Ex
                 crossOrigin={undefined}
                 onCanPlay={() => setIsLoaded(true)}
                 onTimeUpdate={handleTimeUpdate}
-                onError={() => setVideoError('Failed to load video')}
+                onError={() => goToNext()}
                 className={cn(
                   "absolute inset-0 w-full h-full object-cover transition-opacity duration-700",
                   isLoaded ? "opacity-100" : "opacity-0"

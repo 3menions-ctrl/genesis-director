@@ -248,7 +248,6 @@ serve(async (req) => {
       .from('movie_projects')
       .update({
         status: 'cancelled',
-        pipeline_stage: 'cancelled',
         video_url: null,
         voice_audio_url: null,
         thumbnail_url: null,

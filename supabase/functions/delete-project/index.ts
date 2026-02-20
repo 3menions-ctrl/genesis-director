@@ -7,49 +7,22 @@ const corsHeaders = {
 };
 
 /**
- * DELETE PROJECT - Complete Project & Asset Removal
+ * DELETE PROJECT - Reassign assets to admin, then remove project
  * 
- * Performs FULL deletion:
+ * NEW BEHAVIOR (orphan prevention):
  * 1. Cancels any active Replicate predictions
- * 2. Deletes ALL video clips from database
- * 3. Deletes ALL storage files (videos, audio, thumbnails)
- * 4. Deletes the project record
+ * 2. Reassigns ALL video clips to admin with provenance metadata
+ * 3. Logs an audit trail of what was reassigned
+ * 4. Deletes the project record (clips are preserved under admin)
  * 
- * Nothing is left behind.
+ * Storage files are NEVER deleted - they stay linked via the reassigned clips.
  */
+
+const ADMIN_USER_ID = "d600868d-651a-46f6-a621-a727b240ac7c";
 
 interface DeleteRequest {
   projectId: string;
   userId: string;
-}
-
-// Extract storage path from Supabase URL
-function extractStoragePath(url: string): { bucket: string; path: string } | null {
-  if (!url) return null;
-  
-  try {
-    // Match Supabase storage URLs
-    const supabaseMatch = url.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)/);
-    if (supabaseMatch) {
-      return {
-        bucket: supabaseMatch[1],
-        path: decodeURIComponent(supabaseMatch[2]),
-      };
-    }
-    
-    // Match authenticated storage URLs
-    const authMatch = url.match(/\/storage\/v1\/object\/authenticated\/([^/]+)\/(.+)/);
-    if (authMatch) {
-      return {
-        bucket: authMatch[1],
-        path: decodeURIComponent(authMatch[2]),
-      };
-    }
-  } catch {
-    return null;
-  }
-  
-  return null;
 }
 
 serve(async (req) => {
@@ -64,7 +37,7 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    // ═══ AUTH GUARD: Require valid JWT ═══
+    // ═══ AUTH GUARD ═══
     const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
     const auth = await validateAuth(req);
     if (!auth.authenticated) {
@@ -73,7 +46,6 @@ serve(async (req) => {
 
     const requestBody: DeleteRequest = await req.json();
     const { projectId } = requestBody;
-    // SECURITY: Always use JWT-extracted userId, never trust client payload
     const userId = auth.userId || requestBody.userId;
 
     if (!projectId || !userId) {
@@ -83,7 +55,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[DeleteProject] Starting FULL deletion for project ${projectId}`);
+    console.log(`[DeleteProject] Starting deletion with orphan prevention for project ${projectId}`);
 
     // 1. Verify project ownership
     const { data: project, error: projectError } = await supabase
@@ -101,103 +73,16 @@ serve(async (req) => {
     }
 
     const deletionLog: string[] = [];
-    const storageFilesToDelete: { bucket: string; paths: string[] }[] = [];
 
-    // 2. Cancel any active Replicate predictions
-    const predictionIds: string[] = [];
-    
-    // From pipeline_state
-    const pipelineState = typeof project.pipeline_state === 'string' 
-      ? JSON.parse(project.pipeline_state) 
-      : project.pipeline_state;
-    if (pipelineState?.predictionId) {
-      predictionIds.push(pipelineState.predictionId);
-    }
-    
-    // From pending_video_tasks
-    const pendingTasks = typeof project.pending_video_tasks === 'string'
-      ? JSON.parse(project.pending_video_tasks)
-      : project.pending_video_tasks;
-    if (pendingTasks?.predictionId) {
-      predictionIds.push(pendingTasks.predictionId);
-    }
-
-    // 3. Get ALL clips for this project (any status)
-    const { data: clips } = await supabase
-      .from('video_clips')
-      .select('*')
-      .eq('project_id', projectId);
-
-    if (clips) {
-      for (const clip of clips) {
-        // Collect prediction IDs from generating clips
-        if (clip.veo_operation_name && ['pending', 'generating'].includes(clip.status)) {
-          predictionIds.push(clip.veo_operation_name);
-        }
-        
-        // Collect storage URLs from clips
-        if (clip.video_url) {
-          const storage = extractStoragePath(clip.video_url);
-          if (storage) {
-            const existing = storageFilesToDelete.find(s => s.bucket === storage.bucket);
-            if (existing) {
-              existing.paths.push(storage.path);
-            } else {
-              storageFilesToDelete.push({ bucket: storage.bucket, paths: [storage.path] });
-            }
-          }
-        }
-        if (clip.thumbnail_url) {
-          const storage = extractStoragePath(clip.thumbnail_url);
-          if (storage) {
-            const existing = storageFilesToDelete.find(s => s.bucket === storage.bucket);
-            if (existing) {
-              existing.paths.push(storage.path);
-            } else {
-              storageFilesToDelete.push({ bucket: storage.bucket, paths: [storage.path] });
-            }
-          }
-        }
-      }
-      deletionLog.push(`Found ${clips.length} clips to delete`);
-    }
-
-    // 4. Collect project-level storage URLs
-    const projectUrls = [
-      project.video_url,
-      project.voice_audio_url,
-      project.thumbnail_url,
-      project.music_url,
-      project.manifest_url,
-    ].filter(Boolean);
-
-    for (const url of projectUrls) {
-      const storage = extractStoragePath(url);
-      if (storage) {
-        const existing = storageFilesToDelete.find(s => s.bucket === storage.bucket);
-        if (existing) {
-          existing.paths.push(storage.path);
-        } else {
-          storageFilesToDelete.push({ bucket: storage.bucket, paths: [storage.path] });
-        }
-      }
-    }
-
-    // 5. Cancel all Replicate predictions
+    // 2. Cancel active Replicate predictions
+    const predictionIds = collectPredictionIds(project);
     if (replicateApiKey && predictionIds.length > 0) {
       console.log(`[DeleteProject] Cancelling ${predictionIds.length} predictions`);
-      
       for (const predictionId of predictionIds) {
         try {
           await fetch(
             `https://api.replicate.com/v1/predictions/${predictionId}/cancel`,
-            {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${replicateApiKey}`,
-                "Content-Type": "application/json",
-              },
-            }
+            { method: 'POST', headers: { Authorization: `Bearer ${replicateApiKey}`, "Content-Type": "application/json" } }
           );
           deletionLog.push(`Cancelled prediction: ${predictionId}`);
         } catch (err) {
@@ -206,64 +91,83 @@ serve(async (req) => {
       }
     }
 
-    // 6. Delete all storage files
-    for (const storageGroup of storageFilesToDelete) {
-      try {
-        if (storageGroup.paths.length > 0) {
-          const { error } = await supabase.storage
-            .from(storageGroup.bucket)
-            .remove(storageGroup.paths);
-          
-          if (!error) {
-            deletionLog.push(`Deleted ${storageGroup.paths.length} files from ${storageGroup.bucket}`);
-            console.log(`[DeleteProject] Deleted ${storageGroup.paths.length} files from ${storageGroup.bucket}`);
-          } else {
-            console.error(`[DeleteProject] Storage delete error:`, error);
-          }
-        }
-      } catch (err) {
-        console.error(`[DeleteProject] Error deleting from ${storageGroup.bucket}:`, err);
-      }
-    }
+    // 3. Reassign ALL clips to admin (orphan prevention)
+    const { data: clips } = await supabase
+      .from('video_clips')
+      .select('id, shot_index, status, video_url')
+      .eq('project_id', projectId);
 
-    // 7. Delete all clips from database
+    let clipsReassigned = 0;
     if (clips && clips.length > 0) {
-      const { error: clipsDeleteError } = await supabase
+      // Update clips: reassign to admin, rename project to show provenance
+      const { error: reassignError } = await supabase
         .from('video_clips')
-        .delete()
+        .update({ user_id: ADMIN_USER_ID })
         .eq('project_id', projectId);
 
-      if (!clipsDeleteError) {
-        deletionLog.push(`Deleted ${clips.length} clip records`);
+      if (!reassignError) {
+        clipsReassigned = clips.length;
+        deletionLog.push(`Reassigned ${clips.length} clips to admin`);
       } else {
-        console.error('[DeleteProject] Error deleting clips:', clipsDeleteError);
+        console.error('[DeleteProject] Error reassigning clips:', reassignError);
+        // Fallback: still proceed with deletion but log the issue
+        deletionLog.push(`WARNING: Failed to reassign clips: ${reassignError.message}`);
       }
     }
 
-    // 8. Delete the project record
-    const { error: projectDeleteError } = await supabase
+    // 4. Rename the project to show it's recovered/archived, reassign to admin
+    const originalTitle = project.title || 'Untitled';
+    const { error: reassignProjectError } = await supabase
       .from('movie_projects')
-      .delete()
-      .eq('id', projectId)
-      .eq('user_id', userId);
+      .update({
+        user_id: ADMIN_USER_ID,
+        title: `[DELETED by ${userId.substring(0, 8)}] ${originalTitle}`,
+        status: 'cancelled',
+        last_error: `Originally owned by user ${userId}. Deleted on ${new Date().toISOString()}. ${clipsReassigned} clips preserved.`,
+      })
+      .eq('id', projectId);
 
-    if (projectDeleteError) {
-      throw new Error(`Failed to delete project: ${projectDeleteError.message}`);
+    if (reassignProjectError) {
+      console.error('[DeleteProject] Error reassigning project to admin:', reassignProjectError);
+      // If reassignment fails, fall back to actual deletion
+      const { error: deleteErr } = await supabase
+        .from('movie_projects')
+        .delete()
+        .eq('id', projectId)
+        .eq('user_id', userId);
+      if (deleteErr) throw new Error(`Failed to delete project: ${deleteErr.message}`);
+      deletionLog.push('Fallback: Project record deleted (reassignment failed)');
+    } else {
+      deletionLog.push(`Project reassigned to admin as archived: "${originalTitle}"`);
     }
 
-    deletionLog.push('Project record deleted');
-    console.log(`[DeleteProject] Project ${projectId} FULLY deleted`);
+    // 5. Audit trail
+    await supabase.from('admin_audit_log').insert({
+      admin_id: ADMIN_USER_ID,
+      action: 'project_orphan_prevention',
+      target_type: 'project',
+      target_id: projectId,
+      details: {
+        original_owner: userId,
+        original_title: originalTitle,
+        clips_preserved: clipsReassigned,
+        predictions_cancelled: predictionIds.length,
+        deletion_log: deletionLog,
+        timestamp: new Date().toISOString(),
+      },
+    });
+
+    console.log(`[DeleteProject] Project ${projectId} archived to admin. ${clipsReassigned} clips preserved.`);
 
     return new Response(
       JSON.stringify({
         success: true,
         projectId,
-        message: 'Project completely deleted. All files and data removed.',
+        message: 'Project removed from your account. Assets preserved.',
         deletionLog,
         summary: {
-          clipsDeleted: clips?.length || 0,
+          clipsPreserved: clipsReassigned,
           predictionsKilled: predictionIds.length,
-          storageFilesDeleted: storageFilesToDelete.reduce((sum, g) => sum + g.paths.length, 0),
         },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -280,3 +184,25 @@ serve(async (req) => {
     );
   }
 });
+
+/** Extract all prediction IDs from project state fields */
+function collectPredictionIds(project: Record<string, unknown>): string[] {
+  const ids: string[] = [];
+  
+  const parseJson = (val: unknown) => {
+    if (!val) return null;
+    return typeof val === 'string' ? JSON.parse(val) : val;
+  };
+  
+  try {
+    const pipelineState = parseJson(project.pipeline_state);
+    if (pipelineState?.predictionId) ids.push(pipelineState.predictionId);
+  } catch { /* ignore */ }
+  
+  try {
+    const pendingTasks = parseJson(project.pending_video_tasks);
+    if (pendingTasks?.predictionId) ids.push(pendingTasks.predictionId);
+  } catch { /* ignore */ }
+  
+  return ids;
+}

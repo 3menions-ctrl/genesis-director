@@ -72,41 +72,16 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
     }
   }, [isOpen]);
 
-  // ── Refocus after Hoppy finishes streaming ──
+  // ── Refocus after Hoppy finishes — simple and safe ──
   const prevLoadingRef = useRef(isLoading);
   useEffect(() => {
     const wasLoading = prevLoadingRef.current;
     prevLoadingRef.current = isLoading;
     if (wasLoading && !isLoading && isOpen) {
-      const t = setTimeout(() => inputRef.current?.focus(), 50);
+      const t = setTimeout(() => inputRef.current?.focus(), 100);
       return () => clearTimeout(t);
     }
   }, [isLoading, isOpen]);
-
-  // ── Prevent blur when tapping anywhere in the panel (except interactive targets) ──
-  //    On iOS Safari, mousedown fires before blur. Calling preventDefault() on mousedown
-  //    stops the textarea from losing focus when the user taps the message area.
-  const handlePanelMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    const target = e.target as HTMLElement;
-    const isInteractive =
-      target.tagName === "BUTTON" ||
-      target.tagName === "INPUT" ||
-      target.tagName === "A" ||
-      target.tagName === "TEXTAREA" ||
-      target.closest("button") !== null ||
-      target.closest("a") !== null ||
-      target.closest("input") !== null;
-    if (!isInteractive) {
-      e.preventDefault();
-      inputRef.current?.focus();
-    }
-  }, []);
-
-  // Simple blur handler — just immediately reclaim focus
-  const handleTextareaBlur = useCallback(() => {
-    if (!isOpen) return;
-    requestAnimationFrame(() => inputRef.current?.focus());
-  }, [isOpen]);
 
   // ── Auto-scroll on new messages ──
   useEffect(() => {
@@ -426,8 +401,7 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
             ref={scrollContainerRef}
             className="flex-1 overflow-y-auto relative z-10"
             style={{ scrollbarWidth: "none" }}
-            onMouseDown={handlePanelMouseDown}
-            onTouchStart={handlePanelMouseDown}
+            onClick={() => inputRef.current?.focus()}
           >
             <div className="max-w-2xl mx-auto px-4 md:px-6 pt-8 pb-4">
 
@@ -696,7 +670,6 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      onBlur={handleTextareaBlur}
                       placeholder={isLoading ? "Hoppy is thinking…" : "Ask Hoppy anything…"}
                       rows={1}
                       style={{ fieldSizing: "content" } as React.CSSProperties}

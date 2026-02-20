@@ -199,13 +199,6 @@ function ProjectsContentInner() {
   const [pinnedProjects, setPinnedProjects] = useState<Set<string>>(new Set());
   const [showKeyboardHints, setShowKeyboardHints] = useState(false);
   
-  // Check-In Connection featured video banner
-  const CHECKIN_VIDEO_ID = 'bee0f6ea-e10c-4aa9-b2a5-19ddbfa6fcf7';
-  const CHECKIN_THUMBNAIL = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_bee0f6ea-e10c-4aa9-b2a5-19ddbfa6fcf7.jpg';
-  const [showCheckinBanner, setShowCheckinBanner] = useState(() => {
-    try { return localStorage.getItem('dismissed_checkin_video') !== 'true'; } catch { return true; }
-  });
-  const [checkinVideoOpen, setCheckinVideoOpen] = useState(false);
   
   // Batch-resolved clip URLs to avoid N+1 queries in ProjectCard
   const [resolvedClipUrls, setResolvedClipUrls] = useState<Map<string, string>>(new Map());
@@ -1033,89 +1026,7 @@ function ProjectsContentInner() {
             {/* ===== TAB CONTENT ===== */}
             <div className="space-y-6 animate-fade-in" style={{ animationDelay: '0.3s' }}>
 
-              {/* ===== CHECK-IN CONNECTION FEATURED BANNER ===== */}
-              {showCheckinBanner && (
-                <div className="relative rounded-2xl overflow-hidden border border-primary/20 bg-primary/5 animate-fade-in group">
-                  <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/5" />
-                  </div>
-                  <div className="relative flex items-center gap-4 p-4">
-                    {/* Thumbnail */}
-                    <button
-                      onClick={() => setCheckinVideoOpen(true)}
-                      className="relative flex-shrink-0 w-24 h-16 sm:w-32 sm:h-20 rounded-xl overflow-hidden border border-white/[0.08] group/thumb"
-                    >
-                      <img
-                        src={CHECKIN_THUMBNAIL}
-                        alt="Check-In Connection"
-                        className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover/thumb:bg-black/10 transition-colors">
-                        <div className="w-8 h-8 rounded-full bg-primary/80 backdrop-blur-sm flex items-center justify-center">
-                          <Play className="w-3.5 h-3.5 text-primary-foreground ml-0.5" fill="currentColor" />
-                        </div>
-                      </div>
-                    </button>
 
-                    {/* Text */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[10px] uppercase tracking-wider font-medium text-primary/70">From APEX Studios</span>
-                      </div>
-                      <h3 className="text-sm font-semibold text-foreground leading-tight mb-1">Check-In Connection</h3>
-                      <p className="text-xs text-muted-foreground line-clamp-2">A personal message from the team. Watch now to stay connected with what's new at APEX Studios.</p>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <Button
-                        size="sm"
-                        onClick={() => setCheckinVideoOpen(true)}
-                        className="hidden sm:flex gap-1.5 rounded-xl text-xs h-8 px-3"
-                      >
-                        <Play className="w-3 h-3" fill="currentColor" />
-                        Watch
-                      </Button>
-                      <button
-                        onClick={() => {
-                          setShowCheckinBanner(false);
-                          try { localStorage.setItem('dismissed_checkin_video', 'true'); } catch {}
-                        }}
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                        aria-label="Dismiss"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Check-In Connection Video Modal */}
-              {checkinVideoOpen && (
-                <Dialog open={checkinVideoOpen} onOpenChange={setCheckinVideoOpen}>
-                  <DialogContent className="max-w-3xl p-0 bg-black border-white/[0.08] rounded-2xl overflow-hidden">
-                    <div className="relative">
-                      <button
-                        onClick={() => setCheckinVideoOpen(false)}
-                        className="absolute top-3 right-3 z-10 p-2 rounded-xl bg-black/60 backdrop-blur-sm text-white/60 hover:text-white hover:bg-black/80 transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                      <div className="p-3 pb-0">
-                        <p className="text-[10px] uppercase tracking-wider text-primary/60 mb-1">From APEX Studios</p>
-                        <h2 className="text-base font-semibold text-white">Check-In Connection</h2>
-                      </div>
-                      <UniversalVideoPlayer
-                        source={{ projectId: CHECKIN_VIDEO_ID }}
-                        className="w-full aspect-video"
-                        autoPlay
-                        controls={{ showPlayPause: true, showProgress: true, showVolume: true, showFullscreen: true }}
-                      />
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              )}
 
               {/* ===== TRAINING VIDEOS TAB ===== */}
               {(activeTab === 'all' || activeTab === 'training') && trainingVideos.length > 0 && (

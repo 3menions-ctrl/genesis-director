@@ -4651,6 +4651,37 @@ export type Database = {
           target_type: string
         }[]
       }
+      admin_list_projects: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_sort_by?: string
+          p_sort_order?: string
+          p_status?: string
+        }
+        Returns: {
+          aspect_ratio: string
+          clips_completed: number
+          clips_failed: number
+          clips_pending: number
+          clips_total: number
+          created_at: string
+          genre: string
+          id: string
+          is_public: boolean
+          likes_count: number
+          mode: string
+          status: string
+          thumbnail_url: string
+          title: string
+          updated_at: string
+          user_email: string
+          user_id: string
+          user_name: string
+          video_url: string
+        }[]
+      }
       admin_list_users: {
         Args: { p_limit?: number; p_offset?: number; p_search?: string }
         Returns: {

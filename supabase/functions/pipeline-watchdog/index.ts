@@ -312,7 +312,26 @@ serve(async (req) => {
       // Check if this is an async avatar job
       if (tasks.type !== 'avatar_async' || !tasks.predictions) continue;
       
-      console.log(`[Watchdog] 🎬 ASYNC AVATAR: Polling ${project.id} (${tasks.predictions.length} predictions)`);
+      const completedPredictions = tasks.predictions.filter((p: { status: string }) => p.status === 'completed').length;
+      const totalPredictions = tasks.predictions.length;
+      const progressPct = Math.round(10 + (completedPredictions / totalPredictions) * 75);
+      console.log(`[Watchdog] 🎬 ASYNC AVATAR: Polling ${project.id} (${completedPredictions}/${totalPredictions} predictions done)`);
+      
+      // FIX: Ensure pipeline_stage reflects actual generating state (not stuck on 'draft')
+      if (project.pipeline_stage === 'draft' || !project.pipeline_stage) {
+        await supabase
+          .from('movie_projects')
+          .update({
+            pipeline_stage: 'generating',
+            pending_video_tasks: {
+              ...tasks,
+              progress: progressPct,
+              stage: 'generating',
+              lastProgressAt: new Date().toISOString(),
+            },
+          })
+          .eq('id', project.id);
+      }
       
       let allCompleted = true;
       let anyFailed = false;
@@ -879,11 +898,17 @@ serve(async (req) => {
         progressUpdate.lastCompletedCount = completedClips.length;
       }
       
+      const currentProgressPct = isFullyComplete ? 90 : Math.round(10 + (completedClips.length / Math.max(totalExpectedClips, 1)) * 75);
       await supabase.from('movie_projects').update({
-        pending_video_tasks: progressUpdate,
+        pending_video_tasks: {
+          ...progressUpdate,
+          progress: currentProgressPct,
+          stage: isFullyComplete ? 'finalizing' : 'generating',
+        },
+        pipeline_stage: isFullyComplete ? 'stitching' : 'generating',
         pipeline_state: {
           stage: isFullyComplete ? 'finalizing' : 'async_video_generation',
-          progress: isFullyComplete ? 90 : 25 + (completedClips.length / Math.max(totalExpectedClips, 1)) * 60,
+          progress: currentProgressPct,
           message: isFullyComplete 
             ? 'Finalizing video...' 
             : `Generating clips (${completedClips.length}/${totalExpectedClips})...`,

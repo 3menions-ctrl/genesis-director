@@ -303,38 +303,34 @@ const TIER_CLIP_LIMITS: Record<string, { maxClips: number; maxDuration: number; 
 const MINIMUM_QUALITY_THRESHOLD = 0;
 const MIN_CLIPS_PER_PROJECT = 1;
 
-// Kling V3 Credit Pricing (ALL modes — T2V, I2V, Avatar)
+// ✅ Kling V3 Credit Pricing (ALL modes — T2V, I2V, Avatar use Kling V3)
+// isAvatarMode = request.videoEngine === 'kling' (legacy flag; all modes now use Kling V3)
+// Standard (T2V/I2V): 12cr ≤10s  | 18cr >10s
+// Avatar (native audio): 15cr ≤10s | 22cr >10s
 const CREDIT_PRICING = {
-  BASE_CREDITS_PER_CLIP: 12,
-  EXTENDED_CREDITS_PER_CLIP: 18,
-  RUNWAY_BASE_CREDITS_PER_CLIP: 12,
-  RUNWAY_EXTENDED_CREDITS_PER_CLIP: 18,
-  AVATAR_BASE_CREDITS_PER_CLIP: 15,
-  AVATAR_EXTENDED_CREDITS_PER_CLIP: 22,
-  BASE_CLIP_COUNT_THRESHOLD: 6,
+  BASE_CREDITS_PER_CLIP: 12,           // T2V / I2V ≤10s
+  EXTENDED_CREDITS_PER_CLIP: 18,        // T2V / I2V >10s
+  AVATAR_BASE_CREDITS_PER_CLIP: 15,     // Avatar + native audio ≤10s
+  AVATAR_EXTENDED_CREDITS_PER_CLIP: 22, // Avatar + native audio >10s
   BASE_DURATION_THRESHOLD: 10,
 } as const;
 
-function isExtendedPricing(clipIndex: number, clipDuration: number): boolean {
-  return clipIndex >= CREDIT_PRICING.BASE_CLIP_COUNT_THRESHOLD ||
-         clipDuration > CREDIT_PRICING.BASE_DURATION_THRESHOLD;
-}
-
-function getCreditsForClip(clipIndex: number, clipDuration: number, videoEngine: 'kling' | 'veo' = 'veo'): number {
-  if (videoEngine === 'kling') {
-    return clipDuration > 10
+function getCreditsForClip(clipIndex: number, clipDuration: number, isAvatarMode: boolean = false): number {
+  // Avatar mode (generate_audio=true, pose-chained) carries higher cost
+  if (isAvatarMode) {
+    return clipDuration > CREDIT_PRICING.BASE_DURATION_THRESHOLD
       ? CREDIT_PRICING.AVATAR_EXTENDED_CREDITS_PER_CLIP
       : CREDIT_PRICING.AVATAR_BASE_CREDITS_PER_CLIP;
   }
-  return clipDuration > 10
+  return clipDuration > CREDIT_PRICING.BASE_DURATION_THRESHOLD
     ? CREDIT_PRICING.EXTENDED_CREDITS_PER_CLIP
     : CREDIT_PRICING.BASE_CREDITS_PER_CLIP;
 }
 
-function calculateTotalCredits(clipCount: number, clipDuration: number, videoEngine: 'kling' | 'veo' = 'veo'): number {
+function calculateTotalCredits(clipCount: number, clipDuration: number, isAvatarMode: boolean = false): number {
   let total = 0;
   for (let i = 0; i < clipCount; i++) {
-    total += getCreditsForClip(i, clipDuration, videoEngine);
+    total += getCreditsForClip(i, clipDuration, isAvatarMode);
   }
   return total;
 }
@@ -404,11 +400,14 @@ function calculatePipelineParams(
     console.log(`[Hollywood] Reduced clip count to ${clipCount} due to ${maxDuration}s duration limit`);
   }
   
-  // Kling V3 credit pricing: 12 credits (≤10s T2V/I2V), 18 credits (>10s), Avatar 15/22
-  const videoEngine: 'kling' | 'veo' = (request as any).videoEngine || 'kling'; // DEFAULT: Kling V3
-  const totalCredits = calculateTotalCredits(clipCount, clipDuration, videoEngine);
+  // Kling V3 credit pricing: all modes use Kling V3
+  // avatarMode (videoEngine='kling') = native audio lip-sync → higher cost
+  // T2V/I2V (videoEngine='veo' legacy or anything else) = standard cost
+  const videoEngine: 'kling' | 'veo' = (request as any).videoEngine || 'kling';
+  const isAvatarMode = videoEngine === 'kling' && !!(request as any).isAvatarMode;
+  const totalCredits = calculateTotalCredits(clipCount, clipDuration, isAvatarMode);
   
-  console.log(`[Hollywood] Pipeline params: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s total (max: ${maxDuration}s, tier limit: ${maxClips} clips, engine: ${videoEngine})`);
+  console.log(`[Hollywood] Pipeline params: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s total (max: ${maxDuration}s, engine: KlingV3, avatarMode: ${isAvatarMode}, credits: ${totalCredits})`);
   
   return { clipCount, clipDuration, totalCredits };
 }

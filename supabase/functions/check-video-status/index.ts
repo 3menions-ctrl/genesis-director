@@ -11,9 +11,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Kling 2.6 via Replicate configuration
+// ✅ Kling V3 via Replicate — unified engine for ALL modes
 const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
-const KLING_MODEL = "kwaivgi/kling-v2.6";
+const KLING_MODEL = "kwaivgi/kling-v3-video"; // Updated from v2.6 to v3
 
 // Log API calls for cost tracking
 async function logApiCall(

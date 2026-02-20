@@ -32,26 +32,20 @@ import {
 } from "../_shared/pipeline-guard-rails.ts";
 
 // ============================================================================
-// Kling 2.6 via Replicate - Avatar mode
+// Kling V3 via Replicate - ALL modes: Text-to-Video, Image-to-Video, Avatar
+// Model: kwaivgi/kling-v3-video
+// Supports: up to 15s clips, native audio with lip-sync, 1080p pro mode
+// Both T2V (no image) and I2V (start_image) are supported natively
 // ============================================================================
 const KLING_MODEL_OWNER = "kwaivgi";
-const KLING_MODEL_NAME = "kling-v2.6";
+const KLING_MODEL_NAME = "kling-v3-video";
 const REPLICATE_MODEL_URL = `https://api.replicate.com/v1/models/${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}/predictions`;
 const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
-const KLING_ENABLE_AUDIO = false; // Disabled: Kling's auto-generated music is low quality
-
-// ============================================================================
-// ============================================================================
-// Runway via Replicate - Dual-model strategy:
-//   Gen-4 Turbo: IMAGE-TO-VIDEO (requires image as first frame) — $0.05/s
-//   Gen-4.5:     TEXT-TO-VIDEO  (no image needed, #1 ranked T2V model) — $0.05/s
-// 50% margin pricing: 5s clip → 5cr ($0.50 revenue, $0.25 real cost)
-// ============================================================================
-const RUNWAY_GEN4_MODEL = "runwayml/gen4-turbo";
-const RUNWAY_GEN4_MODEL_URL = `https://api.replicate.com/v1/models/${RUNWAY_GEN4_MODEL}/predictions`;
-const RUNWAY_GEN45_MODEL = "runwayml/gen-4.5";
-const RUNWAY_GEN45_MODEL_URL = `https://api.replicate.com/v1/models/${RUNWAY_GEN45_MODEL}/predictions`;
-const RUNWAY_CLIP_DURATION = 5; // Gen-4 Turbo and Gen-4.5 support 5 or 10 seconds
+// Kling V3: native audio with dialogue lip-sync — enable for avatar mode
+// When enabled, include dialogue in prompt inside quotes for lip-sync
+const KLING_ENABLE_AUDIO_AVATAR = true;   // Avatar: native lip-sync audio
+const KLING_ENABLE_AUDIO_T2V = false;     // T2V: no audio (music overlay instead)
+const KLING_ENABLE_AUDIO_I2V = false;     // I2V: no audio (TTS overlay instead)
 
 // Frame extraction retry configuration - use guard rail config
 const FRAME_EXTRACTION_MAX_RETRIES = GUARD_RAIL_CONFIG.FRAME_EXTRACTION_MAX_RETRIES;
@@ -62,7 +56,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DEFAULT_CLIP_DURATION = 5; // Kling 2.6: Default to 5 seconds
+// Kling V3: Default to 10s (supports 3–15s). Extended = 15s.
+const DEFAULT_CLIP_DURATION = 10;
 
 // =====================================================
 // APEX MANDATORY QUALITY SUFFIX
@@ -84,48 +79,60 @@ interface ReplicatePrediction {
   };
 }
 
-// Create a prediction on Replicate using Kling v2.6 for maximum HD quality
-async function createReplicatePrediction(
+/**
+ * Create a Kling V3 prediction via Replicate.
+ * 
+ * Kling V3 (kwaivgi/kling-v3-video) unifies all modes:
+ *   - Text-to-Video: no start_image, prompt only
+ *   - Image-to-Video: start_image + prompt
+ *   - Avatar: start_image + dialogue in prompt + generate_audio=true for native lip-sync
+ * 
+ * Duration: 3–15 seconds (default 10s)
+ * Mode: "pro" for 1080p
+ */
+async function createKlingV3Prediction(
   prompt: string,
   negativePrompt: string,
   startImageUrl?: string | null,
   aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
-  durationSeconds: number = 5
+  durationSeconds: number = DEFAULT_CLIP_DURATION,
+  enableAudio: boolean = false
 ): Promise<{ predictionId: string }> {
   const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
   if (!REPLICATE_API_KEY) {
     throw new Error("REPLICATE_API_KEY is not configured");
   }
 
-  // Build Replicate input for Kling v2.6 - ALWAYS use "pro" mode for HD quality
+  // Kling V3: clamp duration to 3–15 seconds
+  const duration = Math.max(3, Math.min(15, durationSeconds));
+
+  // Build Kling V3 input — pro mode always for 1080p
   const input: Record<string, any> = {
-    prompt: prompt.slice(0, 1500),
+    prompt: prompt.slice(0, 2500),
     negative_prompt: negativePrompt.slice(0, 1500),
     aspect_ratio: aspectRatio,
-    duration: durationSeconds <= 5 ? 5 : 10,
-    cfg_scale: 0.7,
-    mode: "pro", // CRITICAL: "pro" mode = HD quality, "standard" = lower quality
-    // Disable Kling's auto-generated cinematic music — it's low quality and unwanted
-    enable_audio: KLING_ENABLE_AUDIO,
+    duration,
+    mode: "pro", // 1080p HD
+    generate_audio: enableAudio,
   };
 
-  // Add start image if provided (for image-to-video)
+  // I2V: add start image for frame-chaining continuity
   if (startImageUrl && startImageUrl.startsWith("http")) {
     input.start_image = startImageUrl;
-    console.log(`[SingleClip] Using start image for frame-chaining`);
+    console.log(`[SingleClip][KlingV3] Using start image for I2V frame-chaining`);
   }
 
-  console.log("[SingleClip] Creating Replicate prediction for Kling v2.6 (HD Pro):", {
+  const mode = startImageUrl ? "I2V" : "T2V";
+  console.log(`[SingleClip][KlingV3] Creating ${mode} prediction:`, {
     model: `${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}`,
     mode: input.mode,
     hasStartImage: !!input.start_image,
     duration: input.duration,
     aspectRatio: input.aspect_ratio,
+    generateAudio: input.generate_audio,
     promptLength: prompt.length,
   });
 
-  // Use model-specific endpoint: /models/{owner}/{model}/predictions
-  // This is the CORRECT way to create predictions for official models
   const response = await fetch(REPLICATE_MODEL_URL, {
     method: "POST",
     headers: {
@@ -137,20 +144,23 @@ async function createReplicatePrediction(
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("[SingleClip] Replicate API error:", response.status, errorText);
-    throw new Error(`Replicate API error: ${response.status} - ${errorText}`);
+    console.error("[SingleClip][KlingV3] Replicate API error:", response.status, errorText);
+    throw new Error(`Kling V3 API error: ${response.status} - ${errorText}`);
   }
 
   const prediction: ReplicatePrediction = await response.json();
   
   if (!prediction.id) {
-    console.error("[SingleClip] No prediction ID in response:", prediction);
-    throw new Error("No prediction ID in Replicate response");
+    console.error("[SingleClip][KlingV3] No prediction ID in response:", prediction);
+    throw new Error("No prediction ID in Kling V3 response");
   }
 
-  console.log("[SingleClip] Replicate prediction created:", prediction.id);
+  console.log(`[SingleClip][KlingV3] ✅ ${mode} prediction created: ${prediction.id}`);
   return { predictionId: prediction.id };
 }
+
+// Keep alias for backward compatibility with imports from network-resilience
+const createReplicatePrediction = createKlingV3Prediction;
 
 // =====================================================
 // RUNWAY GEN-4 TURBO PREDICTION - IMAGE-TO-VIDEO ONLY
@@ -862,59 +872,35 @@ serve(async (req) => {
       }
     }
 
-    // Route to Runway Gen-4 Turbo (I2V), Runway Gen-4.5 (T2V), or Kling (avatar fallback)
-    // "veo" engine param → Runway (Gen-4 Turbo for I2V, Gen-4.5 for T2V)
-    // "kling" engine param → Kling v2.6 (avatar mode only)
-    const wantsRunway = videoEngine === "veo";
-    const useRunwayI2V = wantsRunway && !!validatedStartImage; // Gen-4 Turbo: image-to-video
-    const useRunwayT2V = wantsRunway && !validatedStartImage;  // Gen-4.5: pure text-to-video
-    const engineLabel = useRunwayI2V
-      ? "Runway Gen-4 Turbo (I2V)"
-      : useRunwayT2V
-        ? "Runway Gen-4.5 (T2V)"
-        : "Kling v2.6 (HD Pro)";
-    console.log(`[SingleClip] ══ ENGINE SELECTED: ${engineLabel} (videoEngine param="${videoEngine}", hasStartImage=${!!validatedStartImage}) ══`);
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ENGINE: Kling V3 (kwaivgi/kling-v3-video) — ALL modes
+    //   T2V: no start_image → pure text-to-video
+    //   I2V: start_image → image-to-video with frame continuity
+    //   Avatar: start_image + generate_audio=true → native lip-synced dialogue
+    // Legacy "veo" engine param → now routes to Kling V3 I2V/T2V
+    // ═══════════════════════════════════════════════════════════════════════════
+    const isAvatarMode = videoEngine === "kling"; // avatar mode: native audio
+    const hasStartImage = !!validatedStartImage;
+    const engineLabel = isAvatarMode
+      ? `Kling V3 Avatar (I2V + native audio, ${hasStartImage ? 'frame-chained' : 'scene image'})`
+      : hasStartImage
+        ? "Kling V3 I2V (image-to-video)"
+        : "Kling V3 T2V (text-to-video)";
+    console.log(`[SingleClip] ══ ENGINE: ${engineLabel} (videoEngine="${videoEngine}", hasStartImage=${hasStartImage}) ══`);
+    
+    // Avatar mode: enable native audio for lip-sync
+    const enableNativeAudio = isAvatarMode ? KLING_ENABLE_AUDIO_AVATAR : KLING_ENABLE_AUDIO_T2V;
     
     let predictionId: string;
-    if (useRunwayI2V) {
-      const result = await createRunwayPrediction(
-        enhancedPrompt,
-        validatedStartImage!,
-        aspectRatio as '16:9' | '9:16' | '1:1',
-        durationSeconds,
-      );
-      predictionId = result.predictionId;
-    } else if (useRunwayT2V) {
-      // Runway Gen-4.5 — pure text-to-video, no image needed
-      try {
-        const result = await createRunwayT2VPrediction(
-          enhancedPrompt,
-          aspectRatio as '16:9' | '9:16' | '1:1',
-          durationSeconds,
-        );
-        predictionId = result.predictionId;
-      } catch (runwayError) {
-        // Graceful fallback to Kling if Runway Gen-4.5 errors
-        console.error(`[SingleClip][Runway Gen-4.5] Error, falling back to Kling:`, runwayError);
-        const result = await createReplicatePrediction(
-          enhancedPrompt,
-          fullNegativePrompt,
-          null,
-          aspectRatio as '16:9' | '9:16' | '1:1',
-          durationSeconds,
-        );
-        predictionId = result.predictionId;
-      }
-    } else {
-      const result = await createReplicatePrediction(
-        enhancedPrompt,
-        fullNegativePrompt,
-        validatedStartImage,
-        aspectRatio as '16:9' | '9:16' | '1:1',
-        durationSeconds,
-      );
-      predictionId = result.predictionId;
-    }
+    const klingResult = await createKlingV3Prediction(
+      enhancedPrompt,
+      fullNegativePrompt,
+      validatedStartImage,
+      aspectRatio as '16:9' | '9:16' | '1:1',
+      durationSeconds,
+      enableNativeAudio,
+    );
+    predictionId = klingResult.predictionId;
 
     // =========================================================
     // CRITICAL FIX: Register clip in database BEFORE polling

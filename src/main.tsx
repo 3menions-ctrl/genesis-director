@@ -301,6 +301,19 @@ if (import.meta.hot) {
   });
 }
 
+// ── Security: Console self-XSS warning ──────────────────────────────────────
+// This fires on every production page load to deter social engineering attacks
+if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
+  console.log(
+    '%c⚠️ Stop!',
+    'color: #ef4444; font-size: 36px; font-weight: 900; text-shadow: 0 0 8px #ef4444;'
+  );
+  console.log(
+    '%cThis browser feature is intended for developers only.\nIf someone told you to paste something here, they are trying to hack your account.',
+    'color: #1e293b; font-size: 16px; line-height: 1.6;'
+  );
+}
+
 // Log boot status
 console.info('[Boot] Starting React render...', { safeMode: SAFE_MODE });
 

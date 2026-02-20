@@ -3132,6 +3132,42 @@ export type Database = {
         }
         Relationships: []
       }
+      security_events: {
+        Row: {
+          created_at: string
+          details: Json | null
+          event_type: string
+          id: string
+          ip_address: string | null
+          resolved: boolean | null
+          severity: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          resolved?: boolean | null
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          resolved?: boolean | null
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       signup_analytics: {
         Row: {
           city: string | null
@@ -4404,7 +4440,6 @@ export type Database = {
       }
       credit_packages_public: {
         Row: {
-          created_at: string | null
           credits: number | null
           id: string | null
           is_active: boolean | null
@@ -4413,7 +4448,6 @@ export type Database = {
           price_cents: number | null
         }
         Insert: {
-          created_at?: string | null
           credits?: number | null
           id?: string | null
           is_active?: boolean | null
@@ -4422,7 +4456,6 @@ export type Database = {
           price_cents?: number | null
         }
         Update: {
-          created_at?: string | null
           credits?: number | null
           id?: string | null
           is_active?: boolean | null
@@ -4619,7 +4652,7 @@ export type Database = {
           p_stripe_payment_id: string
           p_user_id: string
         }
-        Returns: boolean
+        Returns: Json
       }
       add_user_xp: {
         Args: { p_reason?: string; p_user_id: string; p_xp_amount: number }
@@ -4744,6 +4777,10 @@ export type Database = {
         Returns: Json
       }
       check_login_rate_limit: { Args: { p_email: string }; Returns: boolean }
+      check_refund_eligibility: {
+        Args: { p_project_id: string; p_user_id: string }
+        Returns: boolean
+      }
       check_support_rate_limit: { Args: { p_email: string }; Returns: boolean }
       check_widget_view_credits: {
         Args: { p_widget_id: string }
@@ -4763,6 +4800,10 @@ export type Database = {
           p_project_id?: string
           p_user_id: string
         }
+        Returns: boolean
+      }
+      detect_credit_anomaly: {
+        Args: { p_amount: number; p_user_id: string }
         Returns: boolean
       }
       get_admin_profit_dashboard: {

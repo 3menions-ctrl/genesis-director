@@ -42,6 +42,10 @@ const VideoEditor = () => {
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get("project") || searchParams.get("projectId");
 
+  // Ref to track the active render-status polling interval so it can be safely cleared on unmount
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pollIntervalRef = useRef<any>(null);
+
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showMediaBrowser, setShowMediaBrowser] = useState(true);
   const [snapEnabled, setSnapEnabled] = useState(true);
@@ -331,7 +335,8 @@ const VideoEditor = () => {
         e.preventDefault();
         if (e.shiftKey) {
           handleRippleDelete(editorState.selectedClipId);
-        } else {
+        }
+        if (!e.shiftKey) {
           handleDeleteClip(editorState.selectedClipId);
         }
       }
@@ -418,6 +423,7 @@ const VideoEditor = () => {
           }
         }
         if (!targetProjectId) return;
+        // Sync URL so the auto-detected project ID is reflected without creating a history entry
         const newParams = new URLSearchParams(searchParams);
         newParams.set("project", targetProjectId);
         window.history.replaceState(null, "", `?${newParams.toString()}`);
@@ -762,6 +768,57 @@ const VideoEditor = () => {
       toast.error("Export failed. Try downloading clips individually.");
     }
   };
+
+  // Polls an edit session's render status until it completes, fails, or the component unmounts.
+  // Uses pollIntervalRef so the interval is never leaked — cleared before starting a new one
+  // and also cleared in the cleanup useEffect below.
+  const pollRenderStatus = (sessionId: string) => {
+    // Clear any previous interval before starting a new one
+    clearInterval(pollIntervalRef.current);
+    pollIntervalRef.current = null;
+
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const { data, error } = await supabase
+          .from("edit_sessions")
+          .select("status, render_progress, render_url, render_error")
+          .eq("id", sessionId)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data?.status === "completed") {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+          setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
+          if (data.render_url) toast.success("Render complete!");
+        } else if (data?.status === "failed") {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+          setEditorState((prev) => ({ ...prev, renderStatus: "failed", renderProgress: 0 }));
+          toast.error(data.render_error || "Render failed.");
+        } else {
+          // Still rendering — update progress
+          setEditorState((prev) => ({
+            ...prev,
+            renderProgress: data?.render_progress ?? prev.renderProgress,
+          }));
+        }
+      } catch (err) {
+        console.error("[VideoEditor] pollRenderStatus error:", err);
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+        setEditorState((prev) => ({ ...prev, renderStatus: "failed" }));
+      }
+    }, 3000);
+  };
+
+  // Cleanup poll interval on unmount
+  useEffect(() => {
+    return () => {
+      clearInterval(pollIntervalRef.current);
+    };
+  }, []);
 
   const downloadEditorClips = async (clips: TimelineClip[]) => {
     for (let i = 0; i < clips.length; i++) {

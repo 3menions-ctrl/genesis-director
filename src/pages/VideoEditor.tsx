@@ -375,9 +375,19 @@ const VideoEditor = () => {
     t.clips.some((c) => editorState.currentTime > c.start && editorState.currentTime < c.end)
   );
 
-  // Load project clips on mount
+  // Load project clips on mount or when project param changes
   useEffect(() => {
     if (!user) return;
+    // Clear existing clips when switching projects
+    if (projectId) {
+      setEditorState((prev) => ({
+        ...prev,
+        tracks: prev.tracks.map((t) => t.id === "video-0" ? { ...t, clips: [] } : t),
+        duration: 0,
+        currentTime: 0,
+        projectId: null,
+      }));
+    }
     const loadLatestOrSpecified = async () => {
       let targetProjectId = projectId;
       let projectTitle = "Untitled Edit";

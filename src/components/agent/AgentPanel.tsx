@@ -52,13 +52,19 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
   }, [messages]);
 
   // Return focus to input when Hoppy finishes typing (isLoading → false)
+  // NOTE: textarea must NOT be `disabled` — disabled elements cannot receive focus.
   const prevIsLoadingRef = useRef(false);
   useEffect(() => {
     const justFinished = prevIsLoadingRef.current && !isLoading;
     prevIsLoadingRef.current = isLoading;
     if (justFinished && isOpen) {
-      // Small delay lets the last streamed token render before focusing
-      setTimeout(() => inputRef.current?.focus(), 150);
+      // Use rAF to ensure React has flushed the render (removed pointer-events-none)
+      // before we attempt to focus.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          inputRef.current?.focus();
+        });
+      });
     }
   }, [isLoading, isOpen]);
 
@@ -531,11 +537,13 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder="Ask Hoppy anything…"
-                      className="flex-1 bg-transparent text-[14px] text-foreground placeholder:text-muted-foreground/30
-                                 resize-none border-none outline-none focus:outline-none focus:ring-0
-                                 leading-relaxed max-h-40 min-h-[24px] font-sans"
+                      className={cn(
+                        "flex-1 bg-transparent text-[14px] text-foreground placeholder:text-muted-foreground/30",
+                        "resize-none border-none outline-none focus:outline-none focus:ring-0",
+                        "leading-relaxed max-h-40 min-h-[24px] font-sans transition-opacity duration-200",
+                        isLoading && "opacity-50 pointer-events-none select-none"
+                      )}
                       rows={1}
-                      disabled={isLoading}
                       style={{ fieldSizing: "content" } as any}
                     />
                   </div>

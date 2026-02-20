@@ -1326,7 +1326,7 @@ const transitionsData = useMemo(() =>
                     <SpecializedModeProgress
                       projectId={projectId!}
                       mode={projectMode as 'avatar' | 'motion-transfer' | 'video-to-video'}
-                      pipelineState={pipelineState || { stage: projectStatus === 'completed' ? 'completed' : 'processing', progress: projectStatus === 'completed' ? 100 : realTimeProgress }}
+                      pipelineState={pipelineState || { stage: projectStatus === 'completed' ? 'completed' : 'processing', progress: projectStatus === 'completed' ? 100 : realTimeProgress, totalClips: expectedClipCount || avatarClips.length || undefined, currentClip: (avatarClips.filter(c => c.status === 'completed').length) + 1 }}
                       videoUrl={finalVideoUrl}
                       allClips={avatarClips}
                       masterAudioUrl={masterAudioUrl}

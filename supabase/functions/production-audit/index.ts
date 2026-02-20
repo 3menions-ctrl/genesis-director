@@ -158,11 +158,13 @@ serve(async (req) => {
       clipDuration: 10,
       includeVoice: false,
       includeMusic: false,
-      qualityTier: "professional",
+      qualityTier: "standard",
       genre: campaign.genre,
       mood: campaign.mood,
       videoEngine: "kling-v3",
       skipCreditDeduction: true,
+      // Skip heavy stages to prevent background execution timeout
+      stages: ["preproduction", "production", "postproduction"],
     });
 
     results.launch = { campaign: campaign.title, ...result };
@@ -181,11 +183,12 @@ serve(async (req) => {
       clipDuration: 10,
       includeVoice: false,
       includeMusic: false,
-      qualityTier: "professional",
+      qualityTier: "standard",
       genre: campaign.genre,
       mood: campaign.mood,
       videoEngine: "kling-v3",
       skipCreditDeduction: true,
+      stages: ["preproduction", "production", "postproduction"],
     });
 
     results.launch = { campaign: campaign.title, ...result };

@@ -165,10 +165,9 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
     <div
       ref={ref}
       className={cn(
-        // Mobile: relative flow layout (no fixed positioning)
+        // No fixed/absolute positioning — parent layout controls stickiness
         "relative z-40 p-3 pb-safe landscape-compact animate-fade-in",
-        // Desktop: fixed to bottom
-        "md:fixed md:bottom-0 md:left-0 md:right-0 md:p-4 lg:p-5"
+        "md:p-4 lg:p-5"
       )}
       style={{ animationDelay: '0.4s' }}
     >

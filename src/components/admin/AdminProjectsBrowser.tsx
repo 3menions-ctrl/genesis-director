@@ -91,75 +91,26 @@ export function AdminProjectsBrowser() {
   const fetchProjects = async () => {
     setLoading(true);
     try {
-      // First get projects
-      let query = supabase
-        .from('movie_projects')
-        .select('*')
-        .order(sortBy, { ascending: sortOrder === 'asc' })
-        .limit(100);
-
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
-
-      const { data: projectsData, error: projectsError } = await query;
-      if (projectsError) throw projectsError;
-
-      // Get user info for each project
-      const userIds = [...new Set((projectsData || []).map(p => p.user_id))];
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, email, display_name')
-        .in('id', userIds);
-
-      const profilesMap = new Map(
-        (profilesData || []).map(p => [p.id, p])
-      );
-
-      // Get clip counts for each project
-      const projectIds = (projectsData || []).map(p => p.id);
-      const { data: clipsData } = await supabase
-        .from('video_clips')
-        .select('project_id, status')
-        .in('project_id', projectIds);
-
-      const clipCounts = new Map<string, { total: number; completed: number; failed: number; pending: number }>();
-      (clipsData || []).forEach(clip => {
-        const current = clipCounts.get(clip.project_id) || { total: 0, completed: 0, failed: 0, pending: 0 };
-        current.total++;
-        if (clip.status === 'completed') current.completed++;
-        else if (clip.status === 'failed') current.failed++;
-        else current.pending++;
-        clipCounts.set(clip.project_id, current);
+      const { data, error } = await supabase.rpc('admin_list_projects', {
+        p_limit: 200,
+        p_offset: 0,
+        p_status: statusFilter !== 'all' ? statusFilter : null,
+        p_search: search.trim() || null,
+        p_sort_by: sortBy,
+        p_sort_order: sortOrder,
       });
 
-      const enrichedProjects: ProjectRecord[] = (projectsData || []).map(p => {
-        const profile = profilesMap.get(p.user_id);
-        const counts = clipCounts.get(p.id) || { total: 0, completed: 0, failed: 0, pending: 0 };
-        return {
-          ...p,
-          user_email: profile?.email || 'Unknown',
-          user_name: profile?.display_name || 'Unknown',
-          clips_total: counts.total,
-          clips_completed: counts.completed,
-          clips_failed: counts.failed,
-          clips_pending: counts.pending,
-        };
-      });
+      if (error) throw error;
 
-      // Apply search filter
-      let filtered = enrichedProjects;
-      if (search) {
-        const searchLower = search.toLowerCase();
-        filtered = enrichedProjects.filter(p =>
-          p.title.toLowerCase().includes(searchLower) ||
-          p.user_email?.toLowerCase().includes(searchLower) ||
-          p.user_name?.toLowerCase().includes(searchLower) ||
-          p.id.toLowerCase().includes(searchLower)
-        );
-      }
+      const enrichedProjects: ProjectRecord[] = (data || []).map((p: any) => ({
+        ...p,
+        clips_total: Number(p.clips_total ?? 0),
+        clips_completed: Number(p.clips_completed ?? 0),
+        clips_failed: Number(p.clips_failed ?? 0),
+        clips_pending: Number(p.clips_pending ?? 0),
+      }));
 
-      setProjects(filtered);
+      setProjects(enrichedProjects);
     } catch (err) {
       console.error('Failed to fetch projects:', err);
       toast.error('Failed to load projects');

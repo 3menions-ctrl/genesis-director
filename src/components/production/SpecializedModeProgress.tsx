@@ -396,9 +396,11 @@ export function SpecializedModeProgress({
   // Derived state
   const completedClips = localClips.filter(c => c.status === 'completed');
   const hasMultipleClips = completedClips.length > 1;
-  const totalExpected = localState.totalClips || 1;
+  // totalExpected: use known clip count (from pipelineState.totalClips), or fall back to total clips in array
+  // NEVER default to 1 for avatar mode — that would mark complete after just one clip
+  const totalExpected = localState.totalClips || (mode === 'avatar' && localClips.length > 0 ? localClips.length : 1);
   const isPlayableVideoUrl = localVideoUrl && !localVideoUrl.endsWith('.json') && !localVideoUrl.includes('manifest');
-  const allClipsDone = completedClips.length >= totalExpected && totalExpected > 0;
+  const allClipsDone = completedClips.length >= totalExpected && totalExpected > 1;
   const isComplete = localState.stage === 'completed' || (isPlayableVideoUrl && mode !== 'avatar') || (mode === 'avatar' && allClipsDone);
   const isFailed = localState.stage === 'failed';
   const isProcessing = !isComplete && !isFailed;
@@ -657,7 +659,7 @@ export function SpecializedModeProgress({
         )}
 
         {/* ── Clip status grid (avatar multi-clip during generation) ── */}
-        {mode === 'avatar' && localClips.length > 1 && (
+        {mode === 'avatar' && localClips.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <Film className="w-3.5 h-3.5 text-white/20" />

@@ -102,26 +102,45 @@ serve(async (req) => {
     const cancelledItems: string[] = [];
     const storageFilesToDelete: { bucket: string; paths: string[] }[] = [];
 
-    // 2. Collect prediction IDs from pipeline state
-    const pipelineState = typeof project.pipeline_state === 'string' 
-      ? JSON.parse(project.pipeline_state) 
-      : project.pipeline_state;
-    
-    const predictionIds: string[] = [];
-    
-    if (pipelineState?.predictionId) {
-      predictionIds.push(pipelineState.predictionId);
+    // 2. Collect prediction IDs from ALL possible pipeline sources
+    const predictionIds = new Set<string>();
+
+    // Helper to recursively extract predictionId values from any object
+    function extractPredictionIds(obj: unknown): void {
+      if (!obj || typeof obj !== 'object') return;
+      if (Array.isArray(obj)) {
+        obj.forEach(extractPredictionIds);
+        return;
+      }
+      const record = obj as Record<string, unknown>;
+      for (const [key, val] of Object.entries(record)) {
+        if ((key === 'predictionId' || key === 'prediction_id') && typeof val === 'string' && val.length > 4) {
+          predictionIds.add(val);
+        } else {
+          extractPredictionIds(val);
+        }
+      }
     }
-    
+
+    // Scan pipeline_state
+    const pipelineState = typeof project.pipeline_state === 'string'
+      ? JSON.parse(project.pipeline_state)
+      : project.pipeline_state;
+    extractPredictionIds(pipelineState);
+
+    // Scan pending_video_tasks
     const pendingTasks = typeof project.pending_video_tasks === 'string'
       ? JSON.parse(project.pending_video_tasks)
       : project.pending_video_tasks;
-    
-    if (pendingTasks?.predictionId) {
-      predictionIds.push(pendingTasks.predictionId);
-    }
+    extractPredictionIds(pendingTasks);
 
-    // 3. Get ALL clips for this project
+    // Scan pipeline_context_snapshot (Kling stores predictionId here)
+    const contextSnapshot = typeof project.pipeline_context_snapshot === 'string'
+      ? JSON.parse(project.pipeline_context_snapshot)
+      : project.pipeline_context_snapshot;
+    extractPredictionIds(contextSnapshot);
+
+    // 3. Get ALL clips for this project (any status — cancel even pending ones)
     const { data: clips } = await supabase
       .from('video_clips')
       .select('*')
@@ -129,10 +148,12 @@ serve(async (req) => {
 
     if (clips) {
       for (const clip of clips) {
-        // Collect prediction IDs
-        if (clip.veo_operation_name && ['pending', 'generating'].includes(clip.status)) {
-          predictionIds.push(clip.veo_operation_name);
+        // Collect prediction IDs from veo_operation_name (all clips, not just generating)
+        if (clip.veo_operation_name) {
+          predictionIds.add(clip.veo_operation_name);
         }
+        // Also scan continuity_manifest for embedded prediction IDs
+        extractPredictionIds(clip.continuity_manifest);
         
         // Collect storage URLs
         if (clip.video_url) {
@@ -182,10 +203,11 @@ serve(async (req) => {
     }
 
     // 5. Cancel all Replicate predictions
-    if (replicateApiKey && predictionIds.length > 0) {
-      console.log(`[CancelProject] Cancelling ${predictionIds.length} Replicate predictions`);
+    const predictionIdList = [...predictionIds];
+    if (replicateApiKey && predictionIdList.length > 0) {
+      console.log(`[CancelProject] Cancelling ${predictionIdList.length} Replicate predictions`);
       
-      for (const predictionId of predictionIds) {
+      for (const predictionId of predictionIdList) {
         try {
           const cancelResponse = await fetch(
             `https://api.replicate.com/v1/predictions/${predictionId}/cancel`,
@@ -279,7 +301,7 @@ serve(async (req) => {
         message: 'Project cancelled. All files, clips, and predictions have been removed.',
         cancelledItems,
         summary: {
-          predictionsCancelled: predictionIds.length,
+          predictionsCancelled: predictionIdList.length,
           clipsDeleted: clips?.length || 0,
           storageFilesDeleted: totalFilesDeleted,
         },

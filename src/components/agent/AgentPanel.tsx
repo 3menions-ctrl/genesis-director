@@ -46,13 +46,23 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
     prevPathRef.current = location.pathname;
   }, [location.pathname, isOpen, onClose]);
 
+  // Scroll to bottom whenever messages update
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    if (isOpen && !isLoading) {
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
-  }, [messages, isLoading, isOpen]);
+  }, [messages]);
 
+  // Return focus to input when Hoppy finishes typing (isLoading → false)
+  const prevIsLoadingRef = useRef(false);
+  useEffect(() => {
+    const justFinished = prevIsLoadingRef.current && !isLoading;
+    prevIsLoadingRef.current = isLoading;
+    if (justFinished && isOpen) {
+      // Small delay lets the last streamed token render before focusing
+      setTimeout(() => inputRef.current?.focus(), 150);
+    }
+  }, [isLoading, isOpen]);
+
+  // Focus on open
   useEffect(() => {
     if (isOpen) setTimeout(() => inputRef.current?.focus(), 400);
   }, [isOpen]);

@@ -141,6 +141,17 @@ export interface ParsedApiError {
  * isFatal determines if error is shown to users
  */
 const ERROR_MAPPINGS: Record<string, (data?: Record<string, unknown>) => UserFriendlyError> = {
+  // Content safety block - SHOW (user needs to change their prompt)
+  content_blocked: (data) => ({
+    title: '🚫 Prompt Not Allowed',
+    message: data?.error && typeof data.error === 'string' && !data.error.startsWith('Your')
+      ? data.error
+      : `Your prompt contains content that isn't allowed on this platform. Please revise your prompt and try again.`,
+    severity: 'error' as const,
+    duration: 10000,
+    isFatal: true,
+  }),
+
   // Active project conflict - friendly, reassuring message (SHOW - actionable)
   active_project_exists: (data) => ({
     title: '🎬 Your Video is Generating',
@@ -233,7 +244,15 @@ interface ErrorPattern {
 }
 
 const ERROR_PATTERNS: ErrorPattern[] = [
-  // Active project conflict - check first (highest priority for user experience)
+  // Content safety blocks - check FIRST (highest priority)
+  { pattern: 'content_blocked', code: 'content_blocked' },
+  { pattern: /content.*blocked/i, code: 'content_blocked' },
+  { pattern: /explicit_sexual/i, code: 'content_blocked' },
+  { pattern: /explicit_violence/i, code: 'content_blocked' },
+  { pattern: /hate_speech/i, code: 'content_blocked' },
+  { pattern: /Your prompt contains/i, code: 'content_blocked' },
+
+  // Active project conflict - check next (high priority for user experience)
   { pattern: 'active_project_exists', code: 'active_project_exists' },
   { pattern: /project.*in progress/i, code: 'active_project_exists' },
   { pattern: '409', code: 'active_project_exists' },
@@ -448,6 +467,18 @@ export async function handleEdgeFunctionError(
     }
   }
   
+  // Check for content safety block FIRST — user must fix their prompt
+  if (errorData?.blocked === true || errorData?.category) {
+    const message = typeof errorData?.error === 'string' && errorData.error
+      ? errorData.error as string
+      : 'Your prompt contains content that isn\'t allowed. Please revise it and try again.';
+    toast.error(`🚫 Prompt Not Allowed`, {
+      description: message,
+      duration: 10000,
+    });
+    return { handled: true, parsed: parseApiError('content_blocked', errorData as Record<string, unknown>) };
+  }
+
   // Check for specific error codes in data (these ARE fatal - user needs to act)
   if (errorData?.error === 'active_project_exists' || existingProjectId) {
     const parsed = parseApiError(errorData, errorData as Record<string, unknown>);

@@ -240,20 +240,20 @@ serve(async (req) => {
 
     const launchT2V = async (projectId: string | null, campaign: typeof T2V_CAMPAIGNS[0]) => {
       if (!projectId) return { campaign: campaign.title, projectId: null, success: false, error: "No project ID" };
-      callHollywoodPipeline(supabaseUrl, serviceKey, {
+      const result = await callHollywoodPipeline(supabaseUrl, serviceKey, {
         userId: ADMIN_USER_ID, projectId,
         concept: campaign.concept,
         aspectRatio: "16:9", clipCount: 2, clipDuration: 10,
         includeVoice: false, includeMusic: false,
         qualityTier: "professional", genre: campaign.genre, mood: campaign.mood,
         videoEngine: "kling-v3",
-      }); // intentionally not awaited
-      return { campaign: campaign.title, projectId, success: true };
+      });
+      return { campaign: campaign.title, projectId, success: result.success, error: result.error, data: result.data };
     };
 
     const launchI2V = async (projectId: string | null, campaign: typeof I2V_CAMPAIGNS[0]) => {
       if (!projectId) return { campaign: campaign.title, projectId: null, success: false, error: "No project ID" };
-      callHollywoodPipeline(supabaseUrl, serviceKey, {
+      const result = await callHollywoodPipeline(supabaseUrl, serviceKey, {
         userId: ADMIN_USER_ID, projectId,
         concept: campaign.concept,
         referenceImageUrl: campaign.imageUrl,
@@ -261,21 +261,21 @@ serve(async (req) => {
         includeVoice: false, includeMusic: false,
         qualityTier: "professional", genre: campaign.genre, mood: campaign.mood,
         videoEngine: "kling-v3",
-      }); // intentionally not awaited
-      return { campaign: campaign.title, projectId, success: true };
+      });
+      return { campaign: campaign.title, projectId, success: result.success, error: result.error, data: result.data };
     };
 
     const launchAvatar = async (projectId: string | null, campaign: typeof AVATAR_CAMPAIGNS[0]) => {
       if (!projectId) return { campaign: campaign.title, projectId: null, success: false, error: "No project ID" };
-      callAvatarDirect(supabaseUrl, serviceKey, {
+      const result = await callAvatarDirect(supabaseUrl, serviceKey, {
         userId: ADMIN_USER_ID, projectId,
         script: campaign.script,
         avatarImageUrl: campaign.avatarImageUrl,
         sceneDescription: campaign.sceneDescription,
         aspectRatio: "16:9", clipCount: 2, clipDuration: 10,
         voiceId: "nova", avatarType: "realistic", qualityTier: "professional",
-      }); // intentionally not awaited
-      return { campaign: campaign.title, projectId, success: true };
+      });
+      return { campaign: campaign.title, projectId, success: result.success, error: result.error, data: result.data };
     };
 
     const [t2v1r, t2v2r, i2v1r, i2v2r, av1r, av2r] = await Promise.all([

@@ -444,49 +444,25 @@ serve(async (req) => {
           }
           
           // ═══════════════════════════════════════════════════════════════════
-          // ATOMIC CLAIM GUARD: Prevent concurrent watchdog runs from both
-          // starting the same clip. We do a conditional DB update that only
-          // succeeds if no other watchdog has claimed this clip yet.
+          // ATOMIC CLAIM GUARD (DATABASE-LEVEL MUTEX)
+          // Uses FOR UPDATE row lock — impossible for two watchdogs to both
+          // claim the same clip. The RPC checks claimToken + predictionId +
+          // status inside a single locked transaction.
           // ═══════════════════════════════════════════════════════════════════
           const claimToken = crypto.randomUUID();
-          const { data: freshProject } = await supabase
-            .from('movie_projects')
-            .select('pending_video_tasks')
-            .eq('id', project.id)
-            .single();
+          const { data: claimed, error: claimError } = await supabase.rpc('atomic_claim_clip', {
+            p_project_id: project.id,
+            p_clip_index: pred.clipIndex,
+            p_claim_token: claimToken,
+          });
           
-          const freshTasks = (freshProject?.pending_video_tasks || {}) as Record<string, any>;
-          const freshPred = freshTasks.predictions?.find((p: { clipIndex: number }) => p.clipIndex === pred.clipIndex);
-          
-          // Another watchdog already claimed or started this clip
-          if (freshPred?.predictionId || freshPred?.claimToken || freshPred?.status === 'processing') {
-            console.log(`[Watchdog] ⏳ Clip ${pred.clipIndex + 1} already claimed by another watchdog — skipping`);
-            pred.predictionId = freshPred.predictionId;
-            pred.status = freshPred.status || 'processing';
+          if (claimError || claimed !== true) {
+            console.log(`[Watchdog] ⏳ Clip ${pred.clipIndex + 1} already claimed by another watchdog — skipping (claimed=${claimed}, err=${claimError?.message})`);
             allCompleted = false;
             continue;
           }
           
-          // Atomically set claim token on this prediction
-          const claimedPredictions = freshTasks.predictions.map((p: any) =>
-            p.clipIndex === pred.clipIndex ? { ...p, claimToken } : p
-          );
-          const { error: claimError } = await supabase
-            .from('movie_projects')
-            .update({
-              pending_video_tasks: {
-                ...freshTasks,
-                predictions: claimedPredictions,
-                lastProgressAt: new Date().toISOString(),
-              },
-            })
-            .eq('id', project.id);
-          
-          if (claimError) {
-            console.warn(`[Watchdog] ⚠️ Failed to claim clip ${pred.clipIndex + 1}: ${claimError.message}`);
-            allCompleted = false;
-            continue;
-          }
+          console.log(`[Watchdog] 🔒 Clip ${pred.clipIndex + 1} CLAIMED with token ${claimToken.slice(0, 8)}...`);
 
           // Check if previous clip is completed so we can start this one
           const prevClipIndex = pred.clipIndex - 1;

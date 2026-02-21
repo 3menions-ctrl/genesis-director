@@ -696,6 +696,30 @@ serve(async (req) => {
         const klingPrediction = await retryResponse.json();
         console.log(`[AvatarDirect] Clip 1: Kling STARTED after retry: ${klingPrediction.id}`);
         
+        // IMMEDIATE PREDICTION REGISTRATION (retry path)
+        if (projectId) {
+          console.log(`[AvatarDirect] 🔒 IMMEDIATE prediction registration (retry): ${klingPrediction.id}`);
+          await supabase.from('movie_projects').update({
+            pending_video_tasks: {
+              type: 'avatar_async',
+              _generationLock: new Date().toISOString(),
+              predictions: [{
+                predictionId: klingPrediction.id,
+                clipIndex: 0,
+                status: 'processing',
+                segmentText: clip1Data.segmentText,
+                startImageUrl: sharedAnimationStartImage,
+              }],
+              clipDuration: clipDuration,
+              aspectRatio: aspectRatio,
+              originalScript: script,
+              startedAt: new Date().toISOString(),
+              embeddedAudioOnly: true,
+            },
+            updated_at: new Date().toISOString(),
+          }).eq('id', projectId);
+        }
+
         // Build predictions array - clip 1 is processing, rest are pending
         const pendingPredictions: Array<{
           clipIndex: number;
@@ -836,6 +860,42 @@ serve(async (req) => {
 
     const klingPrediction = await klingResponse.json();
     console.log(`[AvatarDirect] Clip 1: Kling STARTED: ${klingPrediction.id}`);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // IMMEDIATE PREDICTION REGISTRATION — CRITICAL ANTI-ORPHAN FIX
+    // 
+    // THE BUG: Previously, prediction IDs were saved to DB ~100 lines later.
+    // If the function timed out between firing the Kling API and saving state,
+    // the prediction was orphaned (Replicate produces a video, we never know).
+    //
+    // THE FIX: Write the prediction ID to pending_video_tasks IMMEDIATELY after
+    // receiving it from Kling. This ensures that even if the function crashes
+    // before the full state save, the watchdog can find and recover the prediction.
+    // ═══════════════════════════════════════════════════════════════════════════
+    if (projectId) {
+      console.log(`[AvatarDirect] 🔒 IMMEDIATE prediction registration: ${klingPrediction.id}`);
+      await supabase.from('movie_projects').update({
+        pending_video_tasks: {
+          type: 'avatar_async',
+          _generationLock: new Date().toISOString(),
+          predictions: [{
+            predictionId: klingPrediction.id,
+            clipIndex: 0,
+            status: 'processing',
+            segmentText: clip1Data.segmentText,
+            startImageUrl: sharedAnimationStartImage,
+          }],
+          // Minimal metadata for watchdog recovery
+          clipDuration: clipDuration,
+          aspectRatio: aspectRatio,
+          originalScript: script,
+          startedAt: new Date().toISOString(),
+          embeddedAudioOnly: true,
+        },
+        updated_at: new Date().toISOString(),
+      }).eq('id', projectId);
+      console.log(`[AvatarDirect] ✅ Prediction registered in DB before full state save`);
+    }
 
     // Build predictions array - clip 1 is processing, rest are pending
     const pendingPredictions: Array<{

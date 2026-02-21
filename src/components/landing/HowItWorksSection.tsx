@@ -11,7 +11,7 @@ const LAYERS = [
   { icon: Shield, title: 'Hallucination Filter', desc: '25 negative prompts remove AI artifacts & extra limbs', color: '#fb7185', stat: '25', statLabel: 'Filters' },
   { icon: Brain, title: 'Smart Script', desc: 'Concept → shot list → timeline with narrative pacing', color: '#22d3ee', stat: '3s', statLabel: 'To timeline' },
   { icon: Music, title: 'Audio Intelligence', desc: '50+ AI voices, cinematic scoring & dialogue ducking', color: '#e879f9', stat: '50+', statLabel: 'Voices' },
-  { icon: Zap, title: 'Multi-Model', desc: 'Runway & Kling orchestrated — best model per shot', color: '#facc15', stat: '2+', statLabel: 'AI models' },
+  { icon: Zap, title: 'Kling V3 Engine', desc: 'Unified Kling V3 pipeline — 3–15s clips, native audio', color: '#facc15', stat: '1080p', statLabel: 'Pro quality' },
 ] as const;
 
 const AUTO_CYCLE_MS = 4500;
@@ -266,7 +266,7 @@ export const HowItWorksSection = memo(forwardRef<HTMLElement, Record<string, nev
           {/* Footer */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-5 border-t border-white/[0.05]">
             <p className="text-xs text-white/20 tracking-wide">
-              Powered by <span className="text-white/40 font-medium">Kling</span> & <span className="text-white/40 font-medium">Veo</span> — orchestrated by Apex
+              Powered by <span className="text-white/40 font-medium">Kling V3</span> — orchestrated by Apex
             </p>
             <Link
               to="/how-it-works"

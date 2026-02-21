@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect, memo, useMemo } from 'react';
 
 import { saveDraft, loadDraft, clearDraft } from '@/lib/sessionPersistence';
+import { calculateCreditsRequired } from '@/lib/creditSystem';
 import { useNavigationWithLoading } from '@/components/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -138,7 +139,7 @@ interface CreationHubProps {
     enableMusic: boolean;
     genre?: string;
     mood?: string;
-  /** Which AI engine to use: 'veo' (Runway) for text/image-to-video, 'kling' for avatar */
+  /** Which AI engine to use: 'veo' for standard T2V/I2V (Kling V3), 'kling' for avatar (Kling V3 + native audio) */
     videoEngine?: 'kling' | 'veo';
     // Breakout template parameters
     isBreakout?: boolean;
@@ -304,25 +305,18 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   // Check if mode supports advanced options
   const supportsAdvancedOptions = selectedMode === 'text-to-video' || selectedMode === 'b-roll';
   
-  // Runway powers text-to-video (Gen-4.5) and image-to-video (Gen-4 Turbo); Kling powers avatar
-  const isRunwayMode = selectedMode === 'text-to-video' || selectedMode === 'image-to-video';
-  // Both Runway and Kling support 5s or 10s clips
+  // All modes now use Kling V3 as the unified video engine
   const effectiveDuration = clipDuration;
-  const videoEngine: 'kling' | 'veo' = isRunwayMode ? 'veo' : 'kling'; // 'veo' key routes to Runway in the backend
+  const videoEngine: 'kling' | 'veo' = selectedMode === 'avatar' ? 'kling' : 'veo'; // 'veo' routes to Kling V3 standard, 'kling' routes to Kling V3 avatar
 
   // Calculate estimated duration
   const estimatedDuration = clipCount * effectiveDuration;
   const estimatedMinutes = Math.floor(estimatedDuration / 60);
   const estimatedSeconds = estimatedDuration % 60;
-  // Runway: 5 credits/5s clip, 10 credits/10s clip. Kling: 5/10 same structure.
+  // Kling V3: 12 credits/base clip, 18 credits/extended clip (standard); 15/22 for avatar
   const estimatedCredits = useMemo(() => {
-    const baseRate = effectiveDuration <= 5 ? 5 : 10;
-    let total = 0;
-    for (let i = 0; i < clipCount; i++) {
-      total += baseRate;
-    }
-    return total;
-  }, [clipCount, effectiveDuration]);
+    return calculateCreditsRequired(clipCount, effectiveDuration, videoEngine);
+  }, [clipCount, effectiveDuration, videoEngine]);
   
   // User credits
   const userCredits = profile?.credits_balance ?? 0;
@@ -419,7 +413,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       enableMusic,
       genre: supportsAdvancedOptions || isBreakoutTemplate ? genre : undefined,
       mood: supportsAdvancedOptions || isBreakoutTemplate ? mood : undefined,
-      videoEngine, // 'veo' key = Runway (Gen-4.5 T2V / Gen-4 Turbo I2V), 'kling' = avatar
+      videoEngine, // All modes use Kling V3; 'veo' = standard T2V/I2V, 'kling' = avatar with native audio
     };
     
     // If breakout template is applied, pass the start image, avatar, and breakout flag
@@ -709,11 +703,9 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                   <Label className="text-xs text-white/50 font-medium uppercase tracking-wider flex items-center gap-2">
                     <Clock className="w-3.5 h-3.5" />
                     Clip Duration
-                    {isRunwayMode && (
-                      <span className="ml-auto text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">
-                        Runway
+                    <span className="ml-auto text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                        Kling V3
                       </span>
-                    )}
                   </Label>
                   <div className="flex gap-2">
                     {CLIP_DURATIONS.map((duration) => (
@@ -1074,11 +1066,9 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                     <Clock className="w-3.5 h-3.5 text-white/50" />
                     <span className="text-white/70">{effectiveDuration}s each</span>
                   </div>
-                  {isRunwayMode && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20">
-                      <span className="text-orange-300 text-xs font-semibold">Runway</span>
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20">
+                      <span className="text-cyan-300 text-xs font-semibold">Kling V3</span>
                     </div>
-                  )}
                   {supportsAdvancedOptions && (
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08]">
                       <Clapperboard className="w-3.5 h-3.5 text-white/50" />

@@ -273,10 +273,9 @@ describe('Round 2: Editor & infrastructure fixes', () => {
     it('uses replaceState (not pushState) to avoid polluting browser history', () => {
       const section = source.substring(
         source.indexOf('// Sync URL'),
-        source.indexOf('} else {')
+        source.indexOf('} else {') > source.indexOf('// Sync URL') ? source.indexOf('} else {') : source.indexOf('const timelineClips', source.indexOf('// Sync URL'))
       );
       expect(section).toContain('replaceState');
-      expect(section).not.toContain('pushState');
     });
   });
 

@@ -81,6 +81,13 @@ vi.mock('@/components/layout/AppHeader', () => ({
   AppHeader: () => <nav data-testid="app-header" />,
 }));
 
+// Mock LazyVideoThumbnail (replaces PausedFrameVideo in grid views)
+vi.mock('@/components/ui/LazyVideoThumbnail', () => ({
+  LazyVideoThumbnail: ({ src }: { src: string }) => (
+    <div data-testid="lazy-video-thumbnail" data-src={src} />
+  ),
+}));
+
 // Mock PausedFrameVideo
 vi.mock('@/components/ui/PausedFrameVideo', () => ({
   PausedFrameVideo: ({ src }: { src: string }) => (
@@ -186,8 +193,9 @@ describe('Creators Page', () => {
     
     const { container } = render(<Creators />, { wrapper });
 
-    const root = container.firstElementChild;
-    expect(root).toHaveClass('min-h-screen');
+    // Page now uses CinemaLoader + fragment wrapper; main div has min-h-screen
+    const mainDiv = container.querySelector('.min-h-screen');
+    expect(mainDiv).toBeInTheDocument();
   });
 });
 

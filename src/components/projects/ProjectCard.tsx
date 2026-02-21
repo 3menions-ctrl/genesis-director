@@ -26,7 +26,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Project } from '@/types/studio';
 import { safePlay, safePause, safeSeek, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
-import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
+import { LazyVideoThumbnail } from '@/components/ui/LazyVideoThumbnail';
 
 // ============= HELPERS =============
 
@@ -268,7 +268,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
             project.thumbnail_url ? (
               <img src={project.thumbnail_url} alt={project.name} className="w-full h-full object-cover" />
             ) : (
-              <PausedFrameVideo src={videoSrc} className="w-full h-full object-cover" showLoader={false} />
+              <LazyVideoThumbnail src={videoSrc} posterUrl={project.thumbnail_url} alt={project.name} className="w-full h-full object-cover" />
             )
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -363,7 +363,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
                 project.thumbnail_url ? (
                   <img src={project.thumbnail_url} alt={project.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
                 ) : (
-                  <PausedFrameVideo src={videoSrc} className="absolute inset-0 w-full h-full object-cover" showLoader={false} />
+                  <LazyVideoThumbnail src={videoSrc} posterUrl={project.thumbnail_url} alt={project.name} className="absolute inset-0 w-full h-full object-cover" />
                 )
               )
             ) : (
@@ -375,7 +375,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
                   {project.thumbnail_url ? (
                     <img src={project.thumbnail_url} alt={project.name} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
-                    <PausedFrameVideo src={videoSrc} className="w-full h-full object-cover" showLoader={false} />
+                    <LazyVideoThumbnail src={videoSrc} posterUrl={project.thumbnail_url} alt={project.name} className="w-full h-full object-cover" />
                   )}
                 </div>
                 <video ref={videoRef} src={isHovered ? videoSrc : undefined}

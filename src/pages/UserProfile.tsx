@@ -6,7 +6,7 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
+import { LazyVideoThumbnail } from '@/components/ui/LazyVideoThumbnail';
 import { MessageUserButton } from '@/components/social/DirectMessagePanel';
 import { UniversalVideoPlayer } from '@/components/player';
 import { 
@@ -215,16 +215,17 @@ export default function UserProfile() {
                           className="w-full h-full object-cover transition-transform group-hover:scale-105"
                         />
                       ) : (video as { first_clip_url?: string }).first_clip_url ? (
-                        <PausedFrameVideo 
+                        <LazyVideoThumbnail 
                           src={(video as { first_clip_url?: string }).first_clip_url!} 
+                          posterUrl={video.thumbnail_url}
+                          alt={video.title}
                           className="w-full h-full object-cover"
-                          showLoader={false}
                         />
                       ) : video.video_url ? (
-                        <PausedFrameVideo 
+                        <LazyVideoThumbnail 
                           src={video.video_url} 
+                          alt={video.title}
                           className="w-full h-full object-cover"
-                          showLoader={false}
                         />
                       ) : (
                         <div className="w-full h-full bg-white/5 flex items-center justify-center">

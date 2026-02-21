@@ -643,6 +643,35 @@ serve(async (req) => {
     
     console.log(`[AvatarDirect] ═══ Starting Clip 1/${finalClipCount} ═══`);
     console.log(`[AvatarDirect] Start image: ${sharedAnimationStartImage.substring(0, 60)}...`);
+    
+    // ═══════════════════════════════════════════════════════════════════
+    // ATOMIC CLAIM: Database-level mutex to prevent duplicate Kling prompts
+    // Must happen BEFORE any Kling API call
+    // ═══════════════════════════════════════════════════════════════════
+    const atomicClaimToken = crypto.randomUUID();
+    const { data: atomicClaimed, error: atomicClaimError } = await supabase.rpc('atomic_claim_clip', {
+      p_project_id: projectId,
+      p_clip_index: 0,
+      p_claim_token: atomicClaimToken,
+    });
+    
+    if (atomicClaimError) {
+      console.warn(`[AvatarDirect] ⚠️ atomic_claim_clip RPC error (proceeding — may not have pending_video_tasks):`, atomicClaimError.message);
+    } else if (atomicClaimed === false) {
+      console.error(`[AvatarDirect] ❌ ATOMIC CLAIM REJECTED: clip 0 already claimed by another process`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'CLIP_ALREADY_CLAIMED',
+          message: 'Clip 0 was already claimed by another pipeline instance',
+          projectId,
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } else {
+      console.log(`[AvatarDirect] ✓ Atomic claim acquired for clip 0, token: ${atomicClaimToken}`);
+    }
+    
     // ✅ KLING V3: kwaivgi/kling-v3-video — native audio lip-sync, 1080p pro, 3-15s
     const KLING_V3_URL = "https://api.replicate.com/v1/models/kwaivgi/kling-v3-video/predictions";
     const clip1Input = {

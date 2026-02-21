@@ -144,17 +144,67 @@ serve(async (req: Request) => {
         })
         .eq('id', projectId);
 
-      // Trigger final assembly
-      const assemblyResult = await callEdgeFunction('final-assembly', {
-        projectId,
-        userId,
-      });
+      // Trigger final assembly with AUTO-RETRY
+      // FAIL-PROOF: If final-assembly fails, retry up to 3 times with backoff
+      // before falling back to watchdog recovery
+      let assemblyResult: any = null;
+      let assemblySuccess = false;
+      
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          assemblyResult = await callEdgeFunction('final-assembly', {
+            projectId,
+            userId,
+            forceReconcile: attempt > 1, // Force reconcile on retries
+          });
+          assemblySuccess = true;
+          break;
+        } catch (assemblyErr) {
+          console.warn(`[ContinueProduction] final-assembly attempt ${attempt}/3 failed:`, assemblyErr);
+          if (attempt < 3) {
+            const waitMs = 3000 * Math.pow(2, attempt - 1);
+            console.log(`[ContinueProduction] Retrying final-assembly in ${waitMs}ms...`);
+            await new Promise(resolve => setTimeout(resolve, waitMs));
+          }
+        }
+      }
+      
+      if (!assemblySuccess) {
+        // All assembly attempts failed — flag for watchdog manifest fallback
+        console.error(`[ContinueProduction] ⚠️ All 3 final-assembly attempts failed — flagging for watchdog manifest fallback`);
+        
+        const { data: currentProject } = await supabase
+          .from('movie_projects')
+          .select('pending_video_tasks')
+          .eq('id', projectId)
+          .maybeSingle();
+        
+        const currentTasks = (currentProject?.pending_video_tasks || {}) as Record<string, any>;
+        
+        await supabase
+          .from('movie_projects')
+          .update({
+            status: 'stitching', // Keep as stitching so watchdog Phase 3 picks it up
+            pipeline_stage: 'stitching',
+            pending_video_tasks: {
+              ...currentTasks,
+              stage: 'stitching',
+              assemblyFailed: true,
+              assemblyFailedAt: new Date().toISOString(),
+              stitchingStarted: new Date().toISOString(),
+            },
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', projectId);
+      }
 
       return new Response(
         JSON.stringify({
-          success: true,
+          success: assemblySuccess,
           action: 'postproduction',
-          message: 'All clips completed, triggered post-production',
+          message: assemblySuccess 
+            ? 'All clips completed, post-production done' 
+            : 'All clips completed, assembly queued for watchdog recovery',
           assemblyResult,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -685,17 +735,72 @@ serve(async (req: Request) => {
   } catch (error) {
     console.error("[ContinueProduction] Error:", error);
     
-    // Use the already-parsed request (body was consumed once before try block)
+    // FAIL-PROOF: Instead of marking project as permanently 'failed',
+    // set a watchdog recovery flag so the watchdog can auto-resume.
+    // This prevents transient errors (network blips, edge function cold starts,
+    // rate limits, mutex conflicts) from permanently killing the pipeline.
     try {
       if (request?.projectId) {
-        await supabase
-          .from('movie_projects')
-          .update({
-            status: 'failed',
-            last_error: error instanceof Error ? error.message : 'Unknown error in continue-production',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', request.projectId);
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error in continue-production';
+        const isTransient = /rate|timeout|429|503|504|ECONNRESET|fetch failed|AbortError|GENERATION_LOCKED/i.test(errorMsg);
+        
+        if (isTransient) {
+          // TRANSIENT ERROR: Don't mark failed — set watchdog resume flag
+          console.log(`[ContinueProduction] ⚠️ TRANSIENT ERROR detected: "${errorMsg.substring(0, 100)}" — flagging for watchdog recovery`);
+          
+          // Read current tasks to preserve data
+          const { data: currentProject } = await supabase
+            .from('movie_projects')
+            .select('pending_video_tasks')
+            .eq('id', request.projectId)
+            .maybeSingle();
+          
+          const currentTasks = (currentProject?.pending_video_tasks || {}) as Record<string, any>;
+          
+          await supabase
+            .from('movie_projects')
+            .update({
+              // KEEP status as 'generating' — NOT 'failed'
+              status: 'generating',
+              pending_video_tasks: {
+                ...currentTasks,
+                needsWatchdogResume: true,
+                lastCompletedClip: request.completedClipIndex ?? -1,
+                lastTransientError: errorMsg.substring(0, 200),
+                lastErrorAt: new Date().toISOString(),
+                transientRetryCount: (currentTasks.transientRetryCount || 0) + 1,
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', request.projectId);
+        } else {
+          // NON-TRANSIENT ERROR: Mark failed but still set watchdog flag for false-failure recovery
+          console.log(`[ContinueProduction] ❌ NON-TRANSIENT ERROR: "${errorMsg.substring(0, 100)}" — marking failed with recovery flag`);
+          
+          const { data: currentProject } = await supabase
+            .from('movie_projects')
+            .select('pending_video_tasks')
+            .eq('id', request.projectId)
+            .maybeSingle();
+          
+          const currentTasks = (currentProject?.pending_video_tasks || {}) as Record<string, any>;
+          
+          await supabase
+            .from('movie_projects')
+            .update({
+              status: 'failed',
+              last_error: errorMsg,
+              pending_video_tasks: {
+                ...currentTasks,
+                needsWatchdogResume: true, // Watchdog will check if clips completed despite this error
+                lastCompletedClip: request.completedClipIndex ?? -1,
+                lastFatalError: errorMsg.substring(0, 200),
+                lastErrorAt: new Date().toISOString(),
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', request.projectId);
+        }
       }
     } catch (e) {
       console.error('[ContinueProduction] Failed to update project status:', e);

@@ -242,13 +242,20 @@ export const AvatarTemplateSelector = memo(forwardRef<HTMLDivElement, AvatarTemp
                 onClick={() => onSelect(avatar)}
               >
                 {/* Avatar Image */}
-                <div className="aspect-square relative overflow-hidden">
+                <div className="aspect-square relative overflow-hidden bg-gradient-to-br from-violet-500/20 to-muted/30">
                   <img
                     src={avatar.face_image_url}
                     alt={avatar.name}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     loading="lazy"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   />
+                  {/* Fallback initials always present behind image */}
+                  <div className="absolute inset-0 flex items-center justify-center -z-0">
+                    <span className="text-xl font-bold text-white/30">
+                      {avatar.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
+                    </span>
+                  </div>
                   
                   {/* Overlay gradient */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />

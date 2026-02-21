@@ -285,7 +285,7 @@ function getBreakoutEffectConfig(effectType: 'post-escape' | 'scroll-grab' | 'fr
     },
   };
   
-  return configs[effectType] || configs['post-escape'];
+  return configs[effectType] || (console.warn(`[Hollywood] Unknown breakout platform '${effectType}', using default`), configs['post-escape']);
 }
 
 // Kling V3: Default 10s, supports 3–15s per clip

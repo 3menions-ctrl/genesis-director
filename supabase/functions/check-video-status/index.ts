@@ -5,6 +5,7 @@ import {
   getGuaranteedLastFrame,
   GUARD_RAIL_CONFIG,
 } from "../_shared/pipeline-guard-rails.ts";
+import { persistVideoToStorage } from "../_shared/video-persistence.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,45 +46,8 @@ async function logApiCall(
   }
 }
 
-// Store video from URL directly to Supabase storage
-async function storeVideoFromUrl(
-  supabase: any,
-  videoUrl: string,
-  projectId: string,
-  clipIndex: number
-): Promise<string> {
-  console.log(`[CheckStatus] Downloading video from URL for storage...`);
-  
-  const response = await fetch(videoUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to download video: ${response.status}`);
-  }
-  
-  const videoData = await response.arrayBuffer();
-  const fileName = `clip_${projectId}_${clipIndex}_${Date.now()}.mp4`;
-  const storagePath = `${projectId}/${fileName}`;
-  
-  console.log(`[CheckStatus] Uploading ${videoData.byteLength} bytes to storage...`);
-  
-  const { error: uploadError } = await supabase.storage
-    .from('video-clips')
-    .upload(storagePath, new Uint8Array(videoData), {
-      contentType: 'video/mp4',
-      upsert: true,
-    });
-  
-  if (uploadError) {
-    console.error(`[CheckStatus] Storage upload failed:`, uploadError);
-    throw new Error(`Failed to upload video: ${uploadError.message}`);
-  }
-  
-  const { data: { publicUrl } } = supabase.storage
-    .from('video-clips')
-    .getPublicUrl(storagePath);
-  
-  console.log(`[CheckStatus] Video stored successfully: ${publicUrl}`);
-  return publicUrl;
-}
+// Removed local storeVideoFromUrl in favor of shared persistVideoToStorage
+// This ensures consistent behavior and error handling across the platform
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -189,7 +153,7 @@ serve(async (req) => {
                 console.log(`[CheckStatus] Auto-completing clip ${shotIndex + 1}...`);
                 
                 // Store video in Supabase storage
-                storedVideoUrl = await storeVideoFromUrl(supabase, videoUrl, reqProjectId, shotIndex);
+                storedVideoUrl = await persistVideoToStorage(supabase, videoUrl, reqProjectId, { prefix: `auto_clip${shotIndex}`, clipIndex: shotIndex });
                 
                 // GUARD RAIL: For Clip 0, ALWAYS use reference image as last_frame_url
                 let lastFrameUrl: string | null = null;

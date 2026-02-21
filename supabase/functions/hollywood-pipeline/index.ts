@@ -619,6 +619,8 @@ Rules:
 }
 
 // Update project with pipeline progress (includes degradation tracking)
+// CRITICAL FIX: Merge with existing pending_video_tasks to preserve clipDuration/clipCount
+// Previously this replaced the entire object, wiping user-selected duration
 async function updateProjectProgress(
   supabase: any, 
   projectId: string, 
@@ -627,7 +629,20 @@ async function updateProjectProgress(
   details?: any,
   degradation?: DegradationFlags
 ) {
+  // Read existing pending_video_tasks to preserve clipDuration, clipCount, etc.
+  const { data: existing } = await supabase
+    .from('movie_projects')
+    .select('pending_video_tasks')
+    .eq('id', projectId)
+    .single();
+  
+  const existingTasks = existing?.pending_video_tasks || {};
+  
   const pendingTasks = {
+    // Preserve critical pipeline params that must survive across stage transitions
+    clipCount: existingTasks.clipCount,
+    clipDuration: existingTasks.clipDuration,
+    // Apply new stage/progress
     stage,
     progress,
     updatedAt: new Date().toISOString(),
@@ -5236,7 +5251,7 @@ async function runProduction(
           progress: Math.min(80, 20 + (dbCompletedClips.length / clips.length) * 60),
           clipsCompleted: dbCompletedClips.length,
           clipCount: clips.length,
-          clipDuration: (state.production as any)?.clipDuration || 10, // Kling V3 default: 10s
+          clipDuration: state.clipDuration || 10,
           updatedAt: new Date().toISOString(),
         },
         updated_at: new Date().toISOString(),
@@ -5266,6 +5281,7 @@ async function runProduction(
             progress: 85,
             clipsCompleted: dbCompletedClips.length,
             clipCount: clips.length,
+            clipDuration: state.clipDuration || 10,
             failedClips: dbFailedClips.map((c: any) => c.shot_index),
             message: `${clips.length - dbCompletedClips.length} clips need to be regenerated before stitching`,
             canRetryFailed: true,
@@ -6174,6 +6190,8 @@ async function executePipelineInBackground(
         pending_video_tasks: {
           stage: 'complete',
           progress: 100,
+          clipCount: state.clipCount,
+          clipDuration: state.clipDuration,
           finalVideoUrl: state.finalVideoUrl,
           stages: {
             preproduction: {

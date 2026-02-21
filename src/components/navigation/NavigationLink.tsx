@@ -41,10 +41,9 @@ export const NavigationLink = memo(forwardRef<HTMLAnchorElement, NavigationLinkP
         // Start loading overlay
         startNavigation(targetPath);
         
-        // Navigate after a brief delay to ensure overlay is visible
-        requestAnimationFrame(() => {
-          navigate(to);
-        });
+        // Navigate synchronously — the overlay renders on next paint regardless
+        // Using rAF here caused dropped navigations and required double-refresh
+        navigate(to);
       }
       // For non-heavy routes, let the Link handle navigation normally
     }, [to, onClick, skipLoading, isHeavyRoute, startNavigation, navigate]);
@@ -67,12 +66,9 @@ export function useNavigationWithLoading() {
   const navigateTo = useCallback((to: string, options?: { replace?: boolean }) => {
     if (isHeavyRoute(to)) {
       startNavigation(to);
-      requestAnimationFrame(() => {
-        navigate(to, options);
-      });
-    } else {
-      navigate(to, options);
     }
+    // Always navigate synchronously — no rAF delay
+    navigate(to, options);
   }, [navigate, startNavigation, isHeavyRoute]);
 
   return { navigateTo };

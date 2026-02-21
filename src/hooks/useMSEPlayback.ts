@@ -376,8 +376,33 @@ export function useMSEPlayback(config: MSEPlaybackConfig): UseMSEPlaybackResult 
     seek: (time: number) => {
       if (isMSEActive && engineRef.current) {
         engineRef.current.seek(time);
+      } else if (blobCacheRef.current) {
+        // Fallback seek: calculate which clip the target time falls into
+        let accumulated = 0;
+        for (let i = 0; i < clips.length; i++) {
+          const cached = blobCacheRef.current.peek(clips[i]);
+          const clipDur = cached?.duration ?? durations?.[i] ?? 5;
+          if (time < accumulated + clipDur) {
+            // Target falls within clip i
+            const offsetInClip = time - accumulated;
+            const video = activeFallbackIndex === 0 ? fallbackVideoARef.current : fallbackVideoBRef.current;
+            if (video && clips[i]) {
+              const clip = blobCacheRef.current.peek(clips[i]);
+              if (clip) {
+                video.src = clip.blobUrl;
+                video.load();
+                video.addEventListener('loadeddata', () => {
+                  safeSeek(video, offsetInClip);
+                }, { once: true });
+              }
+            }
+            setState(prev => ({ ...prev, currentClipIndex: i, currentTime: time }));
+            onClipChange?.(i);
+            break;
+          }
+          accumulated += clipDur;
+        }
       }
-      // Fallback seek is more complex - would need to calculate clip boundaries
     },
 
     seekToClip: (index: number) => {

@@ -83,6 +83,7 @@ interface ContinueProductionRequest {
     videoEngine?: 'kling' | 'veo'; // CRITICAL: must survive all callback hops
     isAvatarMode?: boolean; // EXPLICIT flag — NOT derived from videoEngine
     identityBible?: any;
+    faceLock?: any; // FACE LOCK — highest priority identity system, must survive callback chain
     masterSceneAnchor?: any;
     goldenFrameData?: any;
     accumulatedAnchors?: any[];
@@ -283,6 +284,16 @@ serve(async (req: Request) => {
         
         // Load identity bible with all its fields
         context.identityBible = context.identityBible || proFeatures.identityBible;
+        
+        // CRITICAL FIX: Load faceLock from pro_features_data or identityBible
+        context.faceLock = context.faceLock 
+          || proFeatures.faceLock 
+          || proFeatures.identityBible?.faceLock;
+        if (context.faceLock) {
+          console.log(`[ContinueProduction] ✓ Loaded faceLock from DB: ${context.faceLock.fullFaceDescription?.substring(0, 50) || 'present'}...`);
+        } else {
+          console.warn(`[ContinueProduction] ⚠️ No faceLock found in pro_features_data`);
+        }
         
         // CRITICAL: Log what we loaded for debugging
         if (context.identityBible) {
@@ -602,7 +613,9 @@ serve(async (req: Request) => {
     console.log(`[ContinueProduction]   - identityBible.nonFacialAnchors: ${context?.identityBible?.nonFacialAnchors ? 'YES' : 'NO'}`);
     console.log(`[ContinueProduction]   - identityBible.antiMorphingPrompts: ${context?.identityBible?.antiMorphingPrompts?.length || 0}`);
     console.log(`[ContinueProduction]   - identityBible.occlusionNegatives: ${context?.identityBible?.occlusionNegatives?.length || 0}`);
+    console.log(`[ContinueProduction]   - faceLock: ${context?.faceLock ? 'YES' : 'NO'}`);
     console.log(`[ContinueProduction]   - masterSceneAnchor: ${context?.masterSceneAnchor ? 'YES' : 'NO'}`);
+
     console.log(`[ContinueProduction]   - previousMotionVectors: ${previousMotionVectors ? 'YES' : 'NO'}`);
     console.log(`[ContinueProduction]   - previousContinuityManifest: ${previousContinuityManifest ? 'YES' : 'NO'}`);
     console.log(`[ContinueProduction]   - extractedCharacters: ${context?.extractedCharacters?.length || 0}`);
@@ -636,6 +649,7 @@ serve(async (req: Request) => {
       goldenFrameData: context?.goldenFrameData,
       // IDENTITY DATA (CRITICAL FOR CHARACTER CONSISTENCY)
       identityBible: context?.identityBible,
+      faceLock: context?.faceLock, // FACE LOCK — prevents facial drift across clips
       extractedCharacters: context?.extractedCharacters,
       // SCENE REFERENCES
       referenceImageUrl: context?.referenceImageUrl,

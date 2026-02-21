@@ -42,6 +42,7 @@ import {
   isRetryableError,
   RESILIENCE_CONFIG,
 } from "../_shared/network-resilience.ts";
+import { persistVideoToStorage, isTemporaryReplicateUrl } from "../_shared/video-persistence.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -974,6 +975,23 @@ serve(async (req) => {
         
         // Sort clips by index - CRITICAL for correct playback order
         completedClips.sort((a, b) => a.clipIndex - b.clipIndex);
+        
+        // PERSIST temporary Replicate URLs to permanent storage BEFORE finalizing
+        for (const clip of completedClips) {
+          if (isTemporaryReplicateUrl(clip.videoUrl)) {
+            console.log(`[Watchdog] ⚠️ Clip ${clip.clipIndex} has temporary Replicate URL — persisting...`);
+            const permanentUrl = await persistVideoToStorage(
+              supabase,
+              clip.videoUrl,
+              project.id,
+              { prefix: `watchdog_clip${clip.clipIndex}`, clipIndex: clip.clipIndex }
+            );
+            if (permanentUrl && permanentUrl !== clip.videoUrl) {
+              clip.videoUrl = permanentUrl;
+              console.log(`[Watchdog] ✅ Clip ${clip.clipIndex} persisted to permanent storage`);
+            }
+          }
+        }
         
         // Build video_clips array from sorted completed clips
         const videoClipsArray = completedClips.map(c => c.videoUrl);
@@ -3099,6 +3117,27 @@ async function createManifestFallback(
   if (!clips || clips.length === 0) {
     console.error(`[Watchdog] No clips for manifest: ${projectId}`);
     return;
+  }
+  
+  // PERSIST temporary Replicate URLs to permanent storage before building manifest
+  for (const clip of clips) {
+    if (isTemporaryReplicateUrl(clip.video_url)) {
+      console.log(`[Watchdog-Manifest] ⚠️ Clip ${clip.shot_index} has temporary URL — persisting...`);
+      const permanentUrl = await persistVideoToStorage(
+        supabase,
+        clip.video_url,
+        projectId,
+        { prefix: `manifest_clip${clip.shot_index}`, clipIndex: clip.shot_index }
+      );
+      if (permanentUrl && permanentUrl !== clip.video_url) {
+        clip.video_url = permanentUrl;
+        // Also update the DB record
+        await supabase.from('video_clips')
+          .update({ video_url: permanentUrl, updated_at: new Date().toISOString() })
+          .eq('id', clip.id);
+        console.log(`[Watchdog-Manifest] ✅ Clip ${clip.shot_index} persisted`);
+      }
+    }
   }
   
   const totalDuration = clips.reduce((sum: number, c: { duration_seconds: number }) => sum + (c.duration_seconds || 10), 0);

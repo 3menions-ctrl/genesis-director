@@ -137,7 +137,7 @@ serve(async (req) => {
     const clipData: ClipData[] = clips.map((clip: { id: string; video_url: string; duration_seconds: number }) => ({
       shotId: clip.id,
       videoUrl: clip.video_url,
-      durationSeconds: clip.duration_seconds || 6,
+      durationSeconds: clip.duration_seconds || 10,
     }));
 
     const totalDuration = clipData.reduce((sum, c) => sum + c.durationSeconds, 0);

@@ -37,7 +37,7 @@ interface PipelineRequest {
   clipDuration?: number;
   qualityTier?: 'standard' | 'professional';
   skipCreditDeduction?: boolean;
-  /** 'veo' for text-to-video & image-to-video (8s, 1080p, 20cr/clip); 'kling' for avatar */
+  /** All modes unified on Kling V3; 'kling' = avatar with native audio */
   videoEngine?: 'kling' | 'veo';
   // Resume support
   resumeFrom?: 'qualitygate' | 'assets' | 'production' | 'postproduction';

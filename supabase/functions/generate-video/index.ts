@@ -90,7 +90,7 @@ const CAMERA_PATTERNS = [
 ];
 
 // ============================================================================
-// APEX PHYSICS ENGINE v2.0 - World-Class Physics Accuracy for Veo 3.1
+// APEX PHYSICS ENGINE v2.0 - World-Class Physics Accuracy for Kling V3
 // ============================================================================
 
 interface PhysicsProfile {

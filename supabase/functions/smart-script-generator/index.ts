@@ -882,7 +882,7 @@ Include in appropriate clips' "dialogue" field. Use EXACT words.
 
 REQUIREMENTS:
 - Extract the ${clipCount} sequential moments from this scene
-- Each clip = 5 seconds of the continuous action (Kling 2.6)
+- Each clip = 10 seconds of the continuous action (Kling V3)
 - Maintain EXACT character/location/lighting consistency
 - Connect each clip's end to the next clip's start with physical continuity (velocity, screen direction)
 - Each description MUST be 100+ words in Nolan/Cameron shot-note style

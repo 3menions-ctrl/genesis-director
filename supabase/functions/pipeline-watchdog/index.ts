@@ -1343,63 +1343,140 @@ serve(async (req) => {
       
       // Terminate if: absolute timeout (regardless of active predictions) OR stalled with no active work
       if ((isAbsoluteTimeout || (isStalled && !hasActivePredictions))) {
-        console.log(`[Watchdog] ❌ ASYNC AVATAR ${project.id} timed out after ${Math.round(asyncAge / 60000)}m (max was ${Math.round(MAX_ASYNC_AGE_MS / 60000)}m)`);
+        console.log(`[Watchdog] ⏰ ASYNC AVATAR ${project.id} timed out after ${Math.round(asyncAge / 60000)}m (max was ${Math.round(MAX_ASYNC_AGE_MS / 60000)}m)`);
         console.log(`[Watchdog]    Completed: ${completedClips.length}/${totalExpectedClipsForTimeout}, hasActive: ${hasActivePredictions}`);
         
-        // Mark failed and refund
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PARTIAL SUCCESS: If ANY clips completed, save them and mark project as
+        // completed instead of failed. Only fail if ZERO clips were generated.
+        // ═══════════════════════════════════════════════════════════════════════════
+        if (completedClips.length > 0) {
+          console.log(`[Watchdog] ✅ PARTIAL SUCCESS: ${completedClips.length}/${totalExpectedClipsForTimeout} clips completed — saving and stitching`);
+          
+          // Upsert completed clips into video_clips table for stitch
+          for (const clip of completedClips) {
+            try {
+              await supabase.from('video_clips').upsert({
+                project_id: project.id,
+                user_id: project.user_id,
+                shot_index: clip.clipIndex,
+                prompt: clip.segmentText || '',
+                status: 'completed',
+                video_url: clip.videoUrl,
+                duration_seconds: tasks.clipDuration || 10,
+                updated_at: new Date().toISOString(),
+              }, { onConflict: 'project_id,shot_index' });
+            } catch (upsertErr) {
+              console.warn(`[Watchdog] Failed to upsert clip ${clip.clipIndex}:`, upsertErr);
+            }
+          }
+          
+          // Refund credits only for the clips that failed
+          const failedClipCount = totalExpectedClipsForTimeout - completedClips.length;
+          if (failedClipCount > 0) {
+            try {
+              const estimatedCredits = failedClipCount * 10;
+              const { data: existingRefund } = await supabase
+                .from('credit_transactions')
+                .select('id')
+                .eq('project_id', project.id)
+                .eq('transaction_type', 'refund')
+                .limit(1);
+              
+              if (!existingRefund || existingRefund.length === 0) {
+                await supabase.rpc('increment_credits', {
+                  user_id_param: project.user_id,
+                  amount_param: estimatedCredits,
+                });
+                await supabase.from('credit_transactions').insert({
+                  user_id: project.user_id,
+                  amount: estimatedCredits,
+                  transaction_type: 'refund',
+                  description: `Partial refund: ${failedClipCount}/${totalExpectedClipsForTimeout} clips timed out`,
+                  project_id: project.id,
+                });
+                console.log(`[Watchdog] 💰 Partial refund: ${estimatedCredits} credits for ${failedClipCount} failed clips`);
+              }
+            } catch (refundError) {
+              console.error(`[Watchdog] Partial refund failed:`, refundError);
+            }
+          }
+          
+          // Trigger stitch with available clips
+          try {
+            console.log(`[Watchdog] 🎬 Triggering stitch for partial completion...`);
+            await fetch(`${supabaseUrl}/functions/v1/simple-stitch`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseKey}`,
+              },
+              body: JSON.stringify({ projectId: project.id }),
+            });
+          } catch (stitchError) {
+            console.error(`[Watchdog] Stitch trigger failed:`, stitchError);
+            // Even if stitch fails, mark completed with the clips we have
+            await supabase.from('movie_projects').update({
+              status: 'completed',
+              pipeline_state: {
+                stage: 'completed',
+                completedClips: completedClips.length,
+                totalExpected: totalExpectedClipsForTimeout,
+                partial: true,
+                completedAt: new Date().toISOString(),
+              },
+              updated_at: new Date().toISOString(),
+            }).eq('id', project.id);
+          }
+          
+          result.projectsResumed++;
+          continue;
+        }
+        
+        // ZERO clips completed — genuine failure
+        console.log(`[Watchdog] ❌ TOTAL FAILURE: 0/${totalExpectedClipsForTimeout} clips completed`);
         await supabase.from('movie_projects').update({
           status: 'failed',
           pipeline_state: {
             stage: 'error',
-            error: 'Avatar generation timed out',
+            error: 'Avatar generation timed out - no clips completed',
             failedAt: new Date().toISOString(),
-            completedClipsBeforeTimeout: completedClips.length,
+            completedClipsBeforeTimeout: 0,
           },
           updated_at: new Date().toISOString(),
         }).eq('id', project.id);
         
-        // Refund credits (only for clips that weren't generated)
+        // Full refund
         try {
-          const failedClipCount = totalExpectedClipsForTimeout - completedClips.length;
-          const estimatedCredits = failedClipCount * 10;
-          if (estimatedCredits > 0) {
-            // IDEMPOTENCY CHECK: Don't issue duplicate refunds
-            const { data: existingRefund } = await supabase
-              .from('credit_transactions')
-              .select('id')
-              .eq('project_id', project.id)
-              .eq('transaction_type', 'refund')
-              .limit(1);
-            
-            if (existingRefund && existingRefund.length > 0) {
-              console.log(`[Watchdog] Skipping duplicate refund for project ${project.id}`);
-            } else {
-              await supabase.rpc('increment_credits', {
-                user_id_param: project.user_id,
-                amount_param: estimatedCredits,
-              });
-              
-              await supabase.from('credit_transactions').insert({
-                user_id: project.user_id,
-                amount: estimatedCredits,
-                transaction_type: 'refund',
-                description: `Auto-refund: Async avatar timeout (${failedClipCount}/${totalExpectedClipsForTimeout} clips failed)`,
-                project_id: project.id,
-              });
-              
-              console.log(`[Watchdog] 💰 Refunded ${estimatedCredits} credits for ${failedClipCount} failed clips`);
-            }
+          const estimatedCredits = totalExpectedClipsForTimeout * 10;
+          const { data: existingRefund } = await supabase
+            .from('credit_transactions')
+            .select('id')
+            .eq('project_id', project.id)
+            .eq('transaction_type', 'refund')
+            .limit(1);
+          
+          if (!existingRefund || existingRefund.length === 0) {
+            await supabase.rpc('increment_credits', {
+              user_id_param: project.user_id,
+              amount_param: estimatedCredits,
+            });
+            await supabase.from('credit_transactions').insert({
+              user_id: project.user_id,
+              amount: estimatedCredits,
+              transaction_type: 'refund',
+              description: `Full refund: Avatar generation timed out (0/${totalExpectedClipsForTimeout} clips)`,
+              project_id: project.id,
+            });
+            console.log(`[Watchdog] 💰 Full refund: ${estimatedCredits} credits`);
           }
         } catch (refundError) {
           console.error(`[Watchdog] Refund failed:`, refundError);
         }
         
-        // Notify user about avatar timeout
-        const failedClipCount2 = totalExpectedClipsForTimeout - completedClips.length;
-        const estimatedCredits2 = failedClipCount2 * 10;
         await notifyVideoFailed(supabase, project.user_id, project.id, project.title, {
           reason: 'Avatar generation timed out',
-          creditsRefunded: estimatedCredits2 > 0 ? estimatedCredits2 : undefined,
+          creditsRefunded: totalExpectedClipsForTimeout * 10,
         });
         
         result.projectsMarkedFailed++;

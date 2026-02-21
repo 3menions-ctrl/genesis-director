@@ -4743,6 +4743,14 @@ export type Database = {
         Args: { p_target_user_id: string }
         Returns: Json
       }
+      atomic_claim_clip: {
+        Args: {
+          p_claim_token: string
+          p_clip_index: number
+          p_project_id: string
+        }
+        Returns: boolean
+      }
       calculate_level: { Args: { xp: number }; Returns: number }
       charge_preproduction_credits:
         | { Args: { p_project_id: string; p_shot_id: string }; Returns: Json }

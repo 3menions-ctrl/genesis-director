@@ -49,19 +49,27 @@ serve(async (req) => {
   }
 
   try {
-    // ═══ AUTH GUARD: Admin or service-role only ═══
-    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
-    const auth = await validateAuth(req);
-    let authorized = auth.authenticated && auth.isServiceRole;
+    // ═══ AUTH GUARD: Service-role key in header or admin user ═══
+    const authHeader = req.headers.get("authorization") || "";
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const isServiceRole = authHeader === `Bearer ${serviceKey}`;
     
-    if (!authorized && auth.authenticated && auth.userId) {
-      const supabaseCheck = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-      const { data: roleData } = await supabaseCheck.from("user_roles").select("role").eq("user_id", auth.userId).eq("role", "admin").maybeSingle();
-      if (roleData) authorized = true;
+    let authorized = isServiceRole;
+    
+    if (!authorized) {
+      try {
+        const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+        const auth = await validateAuth(req);
+        if (auth.authenticated && auth.userId) {
+          const supabaseCheck = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey);
+          const { data: roleData } = await supabaseCheck.from("user_roles").select("role").eq("user_id", auth.userId).eq("role", "admin").maybeSingle();
+          if (roleData) authorized = true;
+        }
+      } catch {}
     }
     
     if (!authorized) {
-      return unauthorizedResponse(corsHeaders, 'Admin or service-role access required');
+      return new Response(JSON.stringify({ error: "Admin or service-role access required" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

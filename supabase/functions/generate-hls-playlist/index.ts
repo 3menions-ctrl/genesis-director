@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { persistVideoToStorage, isTemporaryReplicateUrl } from "../_shared/video-persistence.ts";
 
 /**
  * Generate HLS Playlist Edge Function v2
@@ -174,6 +175,26 @@ serve(async (req) => {
 
     const orderedClips = Array.from(bestClipsMap.values()).sort((a, b) => a.shot_index - b.shot_index);
     console.log(`[HLS-Playlist] Processing ${orderedClips.length} clips`);
+
+    // PERSIST temporary Replicate URLs to permanent storage before building playlist
+    for (const clip of orderedClips) {
+      if (isTemporaryReplicateUrl(clip.video_url)) {
+        console.log(`[HLS-Playlist] ⚠️ Clip ${clip.shot_index} has temporary URL — persisting...`);
+        const permanentUrl = await persistVideoToStorage(
+          supabase,
+          clip.video_url,
+          projectId,
+          { prefix: `hls_clip${clip.shot_index}`, clipIndex: clip.shot_index }
+        );
+        if (permanentUrl && permanentUrl !== clip.video_url) {
+          clip.video_url = permanentUrl;
+          await supabase.from('video_clips')
+            .update({ video_url: permanentUrl, updated_at: new Date().toISOString() })
+            .eq('id', clip.id);
+          console.log(`[HLS-Playlist] ✅ Clip ${clip.shot_index} persisted`);
+        }
+      }
+    }
 
     // Get project audio configuration
     const { data: project } = await supabase

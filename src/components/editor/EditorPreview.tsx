@@ -10,14 +10,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import type { TimelineTrack, TimelineClip } from "./types";
 import { EFFECT_PRESETS, FILTER_PRESETS } from "./types";
 import { cn } from "@/lib/utils";
-import { UniversalHLSPlayer, UniversalHLSPlayerHandle } from "@/components/player/UniversalHLSPlayer";
-import { generateHLSPlaylist, createHLSBlobUrl, type EditorClip } from "@/lib/editor/generateEditorHLS";
+import { safePlay } from "@/lib/video/safeVideoOperations";
 
 /**
- * EditorPreview - Cinematic preview with HLS-only gapless playback
+ * EditorPreview - Direct MP4 clip-by-clip playback
  * 
- * Uses the shared generateEditorHLS utility for HLS playlist generation,
- * ensuring consistency with the production simple-stitch configuration.
+ * Uses direct <video> element with MP4 source URLs for reliable playback.
+ * HLS blob-based playlists were removed because they fail silently when
+ * referencing cross-origin MP4s from CDNs (Replicate, Supabase Storage).
  */
 
 interface EditorPreviewProps {
@@ -39,7 +39,9 @@ export const EditorPreview = ({
   playbackSpeed = 1, onPlaybackSpeedChange,
 }: EditorPreviewProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const hlsPlayerRef = useRef<UniversalHLSPlayerHandle>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const activeClipIdRef = useRef<string | null>(null);
+  const isScrubbing = useRef(false);
 
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
@@ -64,64 +66,93 @@ export const EditorPreview = ({
       .filter((c) => currentTime >= c.start && currentTime < c.end);
   }, [tracks, currentTime]);
 
-  // ── Build HLS playlist using shared utility (matches simple-stitch format) ──
-  const hlsPlaylistUrl = useMemo(() => {
-    if (sortedVideoClips.length === 0) return null;
-
-    const editorClips: EditorClip[] = sortedVideoClips.map((clip) => ({
-      id: clip.id,
-      sourceUrl: clip.sourceUrl,
-      duration: clip.end - clip.start,
-      start: clip.start,
-      end: clip.end,
-    }));
-
-    const playlistContent = generateHLSPlaylist(editorClips);
-    if (!playlistContent) return null;
-
-    return createHLSBlobUrl(playlistContent);
-  }, [sortedVideoClips]);
-
-  // Cleanup blob URL on change
-  const prevBlobUrlRef = useRef<string | null>(null);
+  // ── Load new clip source when active clip changes ──
   useEffect(() => {
-    if (prevBlobUrlRef.current && prevBlobUrlRef.current !== hlsPlaylistUrl) {
-      URL.revokeObjectURL(prevBlobUrlRef.current);
+    const video = videoRef.current;
+    if (!video || !activeVideoClip) {
+      activeClipIdRef.current = null;
+      return;
     }
-    prevBlobUrlRef.current = hlsPlaylistUrl;
-    return () => {
-      if (prevBlobUrlRef.current) {
-        URL.revokeObjectURL(prevBlobUrlRef.current);
-      }
-    };
-  }, [hlsPlaylistUrl]);
 
-  // ── Sync playback speed to HLS player ──
-  useEffect(() => {
-    const video = hlsPlayerRef.current?.getVideoElement();
-    if (video) {
-      video.playbackRate = playbackSpeed;
+    if (activeClipIdRef.current !== activeVideoClip.id) {
+      activeClipIdRef.current = activeVideoClip.id;
+      console.log('[EditorPreview] Loading clip:', activeVideoClip.label, activeVideoClip.sourceUrl?.substring(0, 80));
+      video.src = activeVideoClip.sourceUrl;
+      video.preload = 'auto';
+      video.load();
+
+      const localTime = currentTime - activeVideoClip.start + (activeVideoClip.trimStart || 0);
+      const handleCanPlay = () => {
+        video.currentTime = Math.max(0, localTime);
+        if (isPlaying) safePlay(video);
+        video.removeEventListener('canplay', handleCanPlay);
+      };
+      video.addEventListener('canplay', handleCanPlay);
     }
+    // Only re-run when clip ID changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeVideoClip?.id]);
+
+  // ── Sync scrub position ──
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !activeVideoClip || isPlaying) return;
+    if (activeClipIdRef.current !== activeVideoClip.id) return;
+
+    const localTime = currentTime - activeVideoClip.start + (activeVideoClip.trimStart || 0);
+    const diff = Math.abs(video.currentTime - localTime);
+    if (diff > 0.1) {
+      video.currentTime = Math.max(0, localTime);
+    }
+  }, [currentTime, activeVideoClip, isPlaying]);
+
+  // ── Play/pause sync ──
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (isPlaying) {
+      safePlay(video);
+    } else {
+      video.pause();
+    }
+  }, [isPlaying]);
+
+  // ── Playback speed sync ──
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) video.playbackRate = playbackSpeed;
   }, [playbackSpeed]);
 
-  // ── Sync volume to HLS player ──
+  // ── Volume sync ──
   useEffect(() => {
-    const video = hlsPlayerRef.current?.getVideoElement();
+    const video = videoRef.current;
     if (video) {
       video.volume = volume / 100;
       video.muted = isMuted;
     }
   }, [volume, isMuted]);
 
-  // ── Sync play/pause state ──
-  useEffect(() => {
-    if (!hlsPlayerRef.current) return;
-    if (isPlaying) {
-      hlsPlayerRef.current.play();
-    } else {
-      hlsPlayerRef.current.pause();
+  // ── Time update from video → timeline ──
+  const handleTimeUpdate = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !activeVideoClip || !isPlaying || isScrubbing.current) return;
+
+    const timelineTime = activeVideoClip.start + video.currentTime - (activeVideoClip.trimStart || 0);
+    onTimeChange(timelineTime);
+
+    // Auto-advance to next clip
+    if (timelineTime >= activeVideoClip.end - 0.05) {
+      const nextClip = sortedVideoClips.find(c => c.start >= activeVideoClip.end - 0.01);
+      if (nextClip) {
+        onTimeChange(nextClip.start);
+      } else if (isLooping) {
+        onTimeChange(0);
+      } else {
+        onTimeChange(duration);
+        onPlayPause();
+      }
     }
-  }, [isPlaying]);
+  }, [activeVideoClip, isPlaying, onTimeChange, sortedVideoClips, isLooping, duration, onPlayPause]);
 
   // ── Keyboard shortcuts ──
   useEffect(() => {
@@ -176,6 +207,16 @@ export const EditorPreview = ({
 
   const hasClips = sortedVideoClips.length > 0;
 
+  // Scrub handler
+  const handleScrub = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    const newTime = Math.max(0, Math.min(duration, pct * duration));
+    isScrubbing.current = true;
+    onTimeChange(newTime);
+    setTimeout(() => { isScrubbing.current = false; }, 100);
+  }, [duration, onTimeChange]);
+
   return (
     <div className="h-full w-full flex flex-col bg-background overflow-hidden" style={{ contain: 'strict' }}>
       {/* Video viewport */}
@@ -187,9 +228,9 @@ export const EditorPreview = ({
         </div>
 
         <div className="absolute inset-0 flex items-center justify-center p-5">
-          {hasClips && hlsPlaylistUrl ? (
+          {hasClips ? (
             <div className="relative w-full h-full flex items-center justify-center">
-              {/* HLS video frame with live filter from active clip */}
+              {/* Direct MP4 video frame with live filter from active clip */}
               <div
                 className="max-h-full max-w-full w-full h-full rounded-2xl shadow-2xl shadow-black/80 overflow-hidden relative border border-white/[0.06]"
                 style={{
@@ -210,28 +251,13 @@ export const EditorPreview = ({
                   transition: 'filter 0.3s ease, transform 0.3s ease',
                 }}
               >
-                <UniversalHLSPlayer
-                  ref={hlsPlayerRef}
-                  hlsUrl={hlsPlaylistUrl}
-                  autoPlay={false}
-                  muted={isMuted}
-                  loop={isLooping}
-                  className="w-full h-full"
-                  aspectRatio="auto"
-                  showControls={false}
-                  onTimeUpdate={(time) => {
-                    onTimeChange(time);
-                  }}
-                  onEnded={() => {
-                    if (isLooping) {
-                      onTimeChange(0);
-                    } else {
-                      onTimeChange(duration);
-                      onPlayPause();
-                    }
-                  }}
-                  onError={(err) => {
-                    console.warn('[EditorPreview] HLS playback error:', err);
+                <video
+                  ref={videoRef}
+                  className="w-full h-full object-contain bg-black"
+                  playsInline
+                  onTimeUpdate={handleTimeUpdate}
+                  onError={(e) => {
+                    console.warn('[EditorPreview] Video playback error:', e);
                   }}
                 />
                 
@@ -287,13 +313,7 @@ export const EditorPreview = ({
         {/* Scrubber */}
         <div
           className="h-2.5 bg-muted/50 cursor-pointer group relative mx-4 mt-2 rounded-full overflow-hidden"
-          onClick={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const pct = (e.clientX - rect.left) / rect.width;
-            const newTime = Math.max(0, Math.min(duration, pct * duration));
-            onTimeChange(newTime);
-            hlsPlayerRef.current?.seek(newTime);
-          }}
+          onClick={handleScrub}
         >
           {clipMarkers.map((m) => (
             <div key={m.id} className="absolute top-0 bottom-0 w-px bg-border z-10" style={{ left: `${m.position}%` }} />
@@ -310,7 +330,7 @@ export const EditorPreview = ({
         <div className="h-12 flex items-center gap-1 px-4">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl transition-all" onClick={() => { onTimeChange(0); hlsPlayerRef.current?.seek(0); }}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl transition-all" onClick={() => onTimeChange(0)}>
                 <SkipBack className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
@@ -345,7 +365,7 @@ export const EditorPreview = ({
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl transition-all" onClick={() => { onTimeChange(duration); hlsPlayerRef.current?.seek(duration); }}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl transition-all" onClick={() => onTimeChange(duration)}>
                 <SkipForward className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>

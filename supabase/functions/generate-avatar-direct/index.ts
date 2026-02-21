@@ -679,57 +679,9 @@ serve(async (req) => {
     const klingPrediction = await klingResponse.json();
     console.log(`[AvatarDirect] ✅ Clip 1: Kling prediction created: ${klingPrediction.id}`);
 
-    // IMMEDIATE PREDICTION REGISTRATION — save to DB before anything else
-    if (projectId) {
-      console.log(`[AvatarDirect] 🔒 IMMEDIATE prediction registration: ${klingPrediction.id}`);
-
-      // Build predictions array - clip 1 is processing, rest are pending
-      const pendingPredictions: Array<{
-        clipIndex: number;
-        predictionId: string | null;
-        segmentText: string;
-        startImageUrl: string | null;
-        status: string;
-        videoUrl: string | null;
-        avatarRole?: string;
-      }> = [];
-
-      // Clip 1 - currently processing
-      pendingPredictions.push({
-        clipIndex: 0,
-        predictionId: klingPrediction.id,
-        segmentText: clip1Data.segmentText,
-        startImageUrl: sharedAnimationStartImage,
-        status: 'processing',
-        videoUrl: null,
-      });
-
-      // Clips 2+ - pending, will be started by watchdog after frame extraction
-      for (let i = 1; i < allSegmentData.length; i++) {
-        pendingPredictions.push({
-          clipIndex: i,
-          predictionId: null,
-          segmentText: allSegmentData[i].segmentText,
-          startImageUrl: null,
-          status: 'pending',
-          videoUrl: null,
-          avatarRole: allSegmentData[i].avatarRole,
-            action: allSegmentData[i].action,
-            movement: allSegmentData[i].movement,
-            emotion: allSegmentData[i].emotion,
-            cameraHint: allSegmentData[i].cameraHint,
-            physicalDetail: allSegmentData[i].physicalDetail,
-            transitionNote: allSegmentData[i].transitionNote,
-            sceneNote: allSegmentData[i].sceneNote,
-            // POSE CHAINING — persisted so watchdog injects into subsequent Kling prompts
-            startPose: allSegmentData[i].startPose || '',
-            endPose: allSegmentData[i].endPose || '',
-            visualContinuity: allSegmentData[i].visualContinuity || '',
-          });
-        }
-    }
-
-    // IMMEDIATE PREDICTION REGISTRATION — save to DB before full state save
+    // IMMEDIATE PREDICTION REGISTRATION — minimal write to ensure predictionId is tracked
+    // even if the function crashes before the full state save at Step 4.
+    // The full state (with all clips, poses, screenplay data) is saved below at line ~826.
     if (projectId) {
       console.log(`[AvatarDirect] 🔒 IMMEDIATE prediction registration: ${klingPrediction.id}`);
       await supabase.from('movie_projects').update({

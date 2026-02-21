@@ -1,52 +1,29 @@
 /**
- * UniversalVideoPlayer - Single unified video player for all contexts
+ * UniversalVideoPlayer - HLS-ONLY unified video player
  * 
- * Features:
- * - HLS-first playback strategy for ALL browsers (via hls.js)
- * - MSE gapless fallback when HLS not available
- * - Auto-detects source type (projectId, manifest, clips array, single video)
- * - Multiple display modes: inline, fullscreen, thumbnail, export
- * - Database fetching via projectId for multi-clip projects
- * - Unified controls with customizable visibility
- * - Safe video operations throughout
+ * ALL videos play through HLS. No crossfade. No MSE fallback. No legacy paths.
  * 
- * Playback Path Selection (Priority Order):
- * 1. HLS (ALL browsers) - via UniversalHLSPlayer with hls.js
- *    - Safari/iOS: Native HLS support
- *    - Chrome/Firefox/Edge: hls.js library
- * 2. MSE Gapless - for browsers without HLS playlist
- * 3. Legacy crossfade - fallback for older browsers
+ * Strategy:
+ * - Safari/iOS: Native HLS support
+ * - Chrome/Firefox/Edge: hls.js library
+ * 
+ * If no HLS playlist exists, we generate one via the edge function.
+ * Single-clip videos also go through HLS (1-segment m3u8).
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo, forwardRef, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Play, Pause, SkipForward, SkipBack, Volume2, VolumeX,
+  Play, Pause, Volume2, VolumeX,
   Maximize2, Minimize2, Download, X, Loader2, CheckCircle2,
-  Settings, Zap, Film, ExternalLink, RefreshCw
+  Film, RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  safePlay, safePause, safeSeek, isSafeVideoNumber, 
-  getSafeDuration, isVideoPlayable, safeLoad 
-} from '@/lib/video/safeVideoOperations';
-import {
-  MSEGaplessEngine,
-  createMSEEngine,
-  detectMSESupport,
-  type MSEClip,
-  type MSEEngineState,
-} from '@/lib/videoEngine/MSEGaplessEngine';
-import { navigationCoordinator, useMediaCleanup, useRouteCleanup } from '@/lib/navigation';
-import { 
-  getPlatformCapabilities, 
-  logPlaybackPath, 
-  requiresHLSPlayback 
-} from '@/lib/video/platformDetection';
-import { HLSNativePlayer } from './HLSNativePlayer';
+import { isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
+import { navigationCoordinator } from '@/lib/navigation';
+import { logPlaybackPath } from '@/lib/video/platformDetection';
 import { UniversalHLSPlayer } from './UniversalHLSPlayer';
 
 // ============================================================================
@@ -56,80 +33,44 @@ import { UniversalHLSPlayer } from './UniversalHLSPlayer';
 export type PlayerMode = 'inline' | 'fullscreen' | 'thumbnail' | 'export';
 
 export interface VideoSource {
-  /** Project ID to fetch clips from database */
   projectId?: string;
-  /** Direct video URLs or clip array */
   urls?: string[];
-  /** Manifest URL for JSON-based playback */
   manifestUrl?: string;
-  /** Master audio track (for avatar projects) */
   masterAudioUrl?: string;
-  /** Background music URL */
   musicUrl?: string;
 }
 
 export interface PlayerControls {
-  /** Show play/pause controls */
   showPlayPause?: boolean;
-  /** Show skip controls */
   showSkip?: boolean;
-  /** Show volume controls */
   showVolume?: boolean;
-  /** Show progress bar */
   showProgress?: boolean;
-  /** Show fullscreen toggle */
   showFullscreen?: boolean;
-  /** Show download button */
   showDownload?: boolean;
-  /** Show quality selector */
   showQuality?: boolean;
-  /** Auto-hide controls after inactivity */
   autoHideControls?: boolean;
 }
 
 export interface UniversalVideoPlayerProps {
-  /** Video source configuration */
   source: VideoSource;
-  /** Display mode */
   mode?: PlayerMode;
-  /** Control visibility options */
   controls?: PlayerControls;
-  /** Title for display */
   title?: string;
-  /** CSS class name */
   className?: string;
-  /** Aspect ratio class (e.g., 'aspect-video') */
   aspectRatio?: 'video' | 'square' | 'auto';
-  /** Auto-play on load */
   autoPlay?: boolean;
-  /** Start muted */
   muted?: boolean;
-  /** Loop playback */
   loop?: boolean;
-  /** Callback when playback ends */
   onEnded?: () => void;
-  /** Callback when video is clicked (for thumbnail mode) */
   onClick?: () => void;
-  /** Callback to close fullscreen */
   onClose?: () => void;
-  /** Callback when download is requested */
   onDownload?: () => void;
-  /** Show hover preview (thumbnail mode) */
   hoverPreview?: boolean;
 }
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
-
-const MSE_SUPPORT = detectMSESupport();
-const CROSSFADE_OVERLAP_MS = 50;
-const CROSSFADE_FADEOUT_MS = 50;
-// How many seconds before clip end to BEGIN the transition (fire early, swap on time)
-const TRANSITION_TRIGGER_OFFSET = 1.8;
-// How many seconds before clip end to START PRELOADING the next clip into the inactive video
-const PRELOAD_TRIGGER_OFFSET = 4.0;
-const CONTROLS_HIDE_DELAY = 3000;
 
 const DEFAULT_CONTROLS: PlayerControls = {
   showPlayPause: true,
@@ -143,29 +84,8 @@ const DEFAULT_CONTROLS: PlayerControls = {
 };
 
 // ============================================================================
-// UTILITY FUNCTIONS
+// UTILITY
 // ============================================================================
-
-function doubleRAF(callback: () => void) {
-  requestAnimationFrame(() => {
-    requestAnimationFrame(callback);
-  });
-}
-
-async function fetchAsBlob(url: string, signal?: AbortSignal): Promise<string> {
-  try {
-    const res = await fetch(url, { mode: 'cors', credentials: 'omit', signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const blob = await res.blob();
-    return URL.createObjectURL(blob);
-  } catch (err) {
-    // Re-throw AbortError to be handled by caller
-    if ((err as Error)?.name === 'AbortError') {
-      throw err;
-    }
-    throw new Error(`Failed to fetch blob: ${(err as Error)?.message || 'Unknown'}`);
-  }
-}
 
 function formatTime(seconds: number): string {
   if (!isSafeVideoNumber(seconds)) return '0:00';
@@ -178,23 +98,12 @@ function formatTime(seconds: number): string {
 // MANIFEST PARSER
 // ============================================================================
 
-interface ManifestClip {
-  index: number;
-  shotId: string;
-  videoUrl: string;
-  audioUrl?: string;
-  duration: number;
-  transitionOut: string;
-  startTime: number;
-}
-
 interface VideoManifest {
-  version: string;
-  projectId: string;
-  createdAt: string;
-  clips: ManifestClip[];
+  clips: Array<{ videoUrl: string; duration: number }>;
   totalDuration: number;
+  hlsPlaylistUrl?: string;
   masterAudioUrl?: string;
+  voiceUrl?: string;
 }
 
 async function parseManifest(url: string): Promise<VideoManifest | null> {
@@ -209,7 +118,7 @@ async function parseManifest(url: string): Promise<VideoManifest | null> {
 }
 
 // ============================================================================
-// PLACEHOLDER COMPONENT
+// PLACEHOLDER
 // ============================================================================
 
 const VideoPlaceholder = memo(function VideoPlaceholder({ 
@@ -244,185 +153,6 @@ const LoadingSkeleton = memo(function LoadingSkeleton() {
 });
 
 // ============================================================================
-// CONTROL BAR COMPONENT
-// ============================================================================
-
-interface ControlBarProps {
-  isPlaying: boolean;
-  isMuted: boolean;
-  currentTime: number;
-  totalDuration: number;
-  currentClipIndex: number;
-  totalClips: number;
-  controls: PlayerControls;
-  mode: PlayerMode;
-  onPlayPause: () => void;
-  onMuteToggle: () => void;
-  onSeek: (time: number) => void;
-  onPrevClip: () => void;
-  onNextClip: () => void;
-  onFullscreen: () => void;
-  onDownload?: () => void;
-  onClose?: () => void;
-  isFullscreen: boolean;
-}
-
-const ControlBar = memo(function ControlBar({
-  isPlaying,
-  isMuted,
-  currentTime,
-  totalDuration,
-  currentClipIndex,
-  totalClips,
-  controls,
-  mode,
-  onPlayPause,
-  onMuteToggle,
-  onSeek,
-  onPrevClip,
-  onNextClip,
-  onFullscreen,
-  onDownload,
-  onClose,
-  isFullscreen,
-}: ControlBarProps) {
-  const progressPercent = totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0;
-
-  return (
-    <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-      {/* Progress bar */}
-      {controls.showProgress && (
-        <div 
-          className="w-full h-1 mb-3 bg-white/20 rounded-full cursor-pointer group"
-          onClick={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const percent = (e.clientX - rect.left) / rect.width;
-            onSeek(percent * totalDuration);
-          }}
-        >
-          <div 
-            className="h-full bg-white rounded-full transition-all group-hover:bg-primary"
-            style={{ width: `${Math.min(100, progressPercent)}%` }}
-          />
-        </div>
-      )}
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {/* Play/Pause */}
-          {controls.showPlayPause && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 w-8 p-0 text-white hover:bg-white/20"
-              onClick={onPlayPause}
-            >
-              {isPlaying ? (
-                <Pause className="w-4 h-4" fill="currentColor" />
-              ) : (
-                <Play className="w-4 h-4 ml-0.5" fill="currentColor" />
-              )}
-            </Button>
-          )}
-
-          {/* Skip controls */}
-          {controls.showSkip && totalClips > 1 && (
-            <>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-8 w-8 p-0 text-white hover:bg-white/20"
-                onClick={onPrevClip}
-              >
-                <SkipBack className="w-4 h-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-8 w-8 p-0 text-white hover:bg-white/20"
-                onClick={onNextClip}
-              >
-                <SkipForward className="w-4 h-4" />
-              </Button>
-            </>
-          )}
-
-          {/* Volume */}
-          {controls.showVolume && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 w-8 p-0 text-white hover:bg-white/20"
-              onClick={onMuteToggle}
-            >
-              {isMuted ? (
-                <VolumeX className="w-4 h-4" />
-              ) : (
-                <Volume2 className="w-4 h-4" />
-              )}
-            </Button>
-          )}
-
-          {/* Time display */}
-          <span className="text-xs text-white/80 ml-2">
-            {formatTime(currentTime)} / {formatTime(totalDuration)}
-          </span>
-
-          {/* Clip indicator */}
-          {totalClips > 1 && (
-            <span className="text-xs text-white/60 ml-2">
-              Clip {currentClipIndex + 1}/{totalClips}
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Download */}
-          {controls.showDownload && onDownload && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 w-8 p-0 text-white hover:bg-white/20"
-              onClick={onDownload}
-            >
-              <Download className="w-4 h-4" />
-            </Button>
-          )}
-
-          {/* Fullscreen */}
-          {controls.showFullscreen && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 w-8 p-0 text-white hover:bg-white/20"
-              onClick={onFullscreen}
-            >
-              {isFullscreen ? (
-                <Minimize2 className="w-4 h-4" />
-              ) : (
-                <Maximize2 className="w-4 h-4" />
-              )}
-            </Button>
-          )}
-
-          {/* Close button for fullscreen mode */}
-          {mode === 'fullscreen' && onClose && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 w-8 p-0 text-white hover:bg-white/20"
-              onClick={onClose}
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-});
-
-// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
@@ -443,7 +173,6 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     onDownload,
     hoverPreview = false,
   }, ref) {
-    // Merge controls with defaults based on mode
     const controls = useMemo(() => {
       const modeDefaults: Partial<PlayerControls> = 
         mode === 'thumbnail' 
@@ -455,161 +184,52 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     }, [mode, controlsProp]);
 
     // ========================================================================
-    // PLATFORM DETECTION - HLS first for ALL browsers
-    // ========================================================================
-    
-    const platformCapabilities = useMemo(() => getPlatformCapabilities(), []);
-    // Use HLS for ALL browsers (Safari native, Chrome/Firefox via hls.js)
-    const useHLSPlayback = true; // HLS-first strategy for universal playback
-    const useHLSNative = platformCapabilities.preferredPlaybackMode === 'hls_native'; // Only iOS needs native
-    
-    // ========================================================================
     // STATE
     // ========================================================================
     
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [clips, setClips] = useState<{ url: string; blobUrl?: string; duration: number }[]>([]);
     const [hlsPlaylistUrl, setHlsPlaylistUrl] = useState<string | null>(null);
-    // When HLS fails, fall back to MSE/legacy clip loading
-    const [hlsFailed, setHlsFailed] = useState(false);
-    const [masterAudioUrl, setMasterAudioUrl] = useState<string | null>(null);
-    // Track if clips have embedded lip-sync audio (should NOT use master audio overlay)
-    const [clipsAreLipSynced, setClipsAreLipSynced] = useState(false);
-    const [currentClipIndex, setCurrentClipIndex] = useState(0);
-    const [isPlaying, setIsPlaying] = useState(false);
     const [isMuted, setIsMuted] = useState(initialMuted);
     const [currentTime, setCurrentTime] = useState(0);
-    const [showControlsState, setShowControlsState] = useState(true);
-    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [isPlaying, setIsPlaying] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
-    
-    // MSE state
-    const [useMSE, setUseMSE] = useState(MSE_SUPPORT.supported && !useHLSNative);
-    const [mseReady, setMseReady] = useState(false);
-    const mseEngineRef = useRef<MSEGaplessEngine | null>(null);
-    
-    // Legacy dual-video state for fallback
-    const [activeVideoIndex, setActiveVideoIndex] = useState<0 | 1>(0);
-    const [videoAOpacity, setVideoAOpacity] = useState(1);
-    const [videoBOpacity, setVideoBOpacity] = useState(0);
-    const [isCrossfading, setIsCrossfading] = useState(false);
+    const [hlsRetryCount, setHlsRetryCount] = useState(0);
+    // For thumbnail mode - need a single URL
+    const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+    // For export mode
+    const [exportUrl, setExportUrl] = useState<string | null>(null);
 
     // ========================================================================
     // REFS
     // ========================================================================
     
-    const containerRef = useRef<HTMLDivElement>(null);
-    const mseVideoRef = useRef<HTMLVideoElement>(null);
-    const videoARef = useRef<HTMLVideoElement>(null);
-    const videoBRef = useRef<HTMLVideoElement>(null);
-    const musicRef = useRef<HTMLAudioElement>(null);
-    const masterAudioRef = useRef<HTMLAudioElement>(null);
-    const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
-    const isTransitioningRef = useRef(false);
     const mountedRef = useRef(true);
-    const cleanupUnsubRef = useRef<(() => void) | null>(null);
-    const lastSyncTimeRef = useRef<number>(0);
+    const thumbnailVideoRef = useRef<HTMLVideoElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
-    // ========================================================================
-    // NAVIGATION CLEANUP REGISTRATION
-    // ========================================================================
-    
-    // CRITICAL: Register ALL video/audio refs with NavigationCoordinator
-    // so abortAllMedia() can pause them BEFORE React unmount races with new page mount
-    useMediaCleanup(mseVideoRef);
-    useMediaCleanup(videoARef);
-    useMediaCleanup(videoBRef);
-    useMediaCleanup(musicRef);
-    useMediaCleanup(masterAudioRef);
-
-    // CRITICAL: Destroy MSE engine and release all media BEFORE navigation starts
-    useRouteCleanup(() => {
-      try {
-        [mseVideoRef, videoARef, videoBRef].forEach(ref => {
-          const video = ref.current;
-          if (video) {
-            video.pause();
-            video.removeAttribute('src');
-            video.load(); // Force release of media resources
-          }
-        });
-        [musicRef, masterAudioRef].forEach(ref => {
-          const audio = ref.current;
-          if (audio) {
-            audio.pause();
-            audio.removeAttribute('src');
-          }
-        });
-      } catch {
-        // Ignore errors on destroyed elements
-      }
-      if (mseEngineRef.current) {
-        mseEngineRef.current.destroy();
-        mseEngineRef.current = null;
-      }
-    }, []);
-
-    useEffect(() => {
-      mountedRef.current = true;
-      
-      // Register cleanup with navigation coordinator (legacy path)
-      cleanupUnsubRef.current = navigationCoordinator.registerGlobalCleanup(() => {
-        try {
-          if (mseVideoRef.current && !mseVideoRef.current.paused) {
-            mseVideoRef.current.pause();
-          }
-          if (videoARef.current && !videoARef.current.paused) {
-            videoARef.current.pause();
-          }
-          if (videoBRef.current && !videoBRef.current.paused) {
-            videoBRef.current.pause();
-          }
-          if (musicRef.current && !musicRef.current.paused) {
-            musicRef.current.pause();
-          }
-        } catch {
-          // Ignore errors on destroyed elements
-        }
-        
-        if (mseEngineRef.current) {
-          mseEngineRef.current.destroy();
-          mseEngineRef.current = null;
-        }
-      });
-      
-      return () => {
-        mountedRef.current = false;
-        
-        if (cleanupUnsubRef.current) {
-          cleanupUnsubRef.current();
-          cleanupUnsubRef.current = null;
-        }
-      };
-    }, []);
-
-    // ========================================================================
-    // COMPUTED VALUES
-    // ========================================================================
-    
-    const totalDuration = useMemo(
-      () => clips.reduce((sum, clip) => sum + (clip.duration || 0), 0),
-      [clips]
-    );
-
-    // Stable primitives extracted from `source` so the loadSource effect
-    // does NOT re-fire every time the parent renders a new object literal.
+    // Stable primitives from source
     const sourceProjectId = source.projectId ?? null;
     const sourceManifestUrl = source.manifestUrl ?? null;
     const sourceUrlsKey = source.urls ? source.urls.join('|') : null;
-    const sourceMasterAudio = source.masterAudioUrl ?? null;
 
     const hasValidSource = useMemo(() => {
       return !!sourceUrlsKey || !!sourceManifestUrl || !!sourceProjectId;
     }, [sourceUrlsKey, sourceManifestUrl, sourceProjectId]);
 
     // ========================================================================
-    // SOURCE LOADING
+    // CLEANUP
+    // ========================================================================
+    
+    useEffect(() => {
+      mountedRef.current = true;
+      return () => {
+        mountedRef.current = false;
+      };
+    }, []);
+
+    // ========================================================================
+    // SOURCE LOADING - ALWAYS resolves to HLS
     // ========================================================================
     
     useEffect(() => {
@@ -622,368 +242,206 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
       mountedRef.current = true;
 
       async function loadSource() {
-        setError(null)
+        setError(null);
         setIsLoading(true);
 
         try {
-          let urls: string[] = [];
           let hlsUrl: string | null = null;
-          let audioUrl: string | null = null;
+          let firstClipUrl: string | null = null;
 
-          // Fetch from database if projectId provided
           if (sourceProjectId) {
-            // First check for existing HLS playlist in project
+            // ================================================================
+            // PROJECT-BASED: Fetch HLS playlist or generate one
+            // ================================================================
             const { data: project } = await supabase
               .from('movie_projects')
-              .select('pending_video_tasks, voice_audio_url, video_url')
+              .select('pending_video_tasks, video_url')
               .eq('id', sourceProjectId)
               .maybeSingle();
             
             const tasks = project?.pending_video_tasks as Record<string, unknown> | null;
-            const isMseDirect = tasks?.mode === 'mse_direct';
-            // USE hlsPlaylistUrl even for mse_direct projects — Safari native HLS handles
-            // raw MP4 with #EXT-X-DISCONTINUITY tags for gapless playback.
-            // hls.js (Chrome/Firefox) will attempt it too; if it fails, hlsFailed triggers crossfade fallback.
             hlsUrl = tasks?.hlsPlaylistUrl ? tasks.hlsPlaylistUrl as string : null;
-            // EMBEDDED AUDIO: No master audio overlay - clips use their native embedded audio
-            audioUrl = null;
-            console.log('[UniversalPlayer] 🎵 EMBEDDED AUDIO mode - using clip native audio, no master overlay');
             
-            // HLS FIRST: Try HLS for ALL browsers including mse_direct projects
-            // Safari: native HLS handles raw MP4 segments with discontinuity = gapless
-            // Chrome/Firefox: hls.js attempts; if raw MP4 segments fail, hlsFailed flag triggers crossfade fallback
-            if (useHLSPlayback && hlsUrl && !hlsFailed) {
-              logPlaybackPath('HLS_UNIVERSAL', { 
-                projectId: sourceProjectId, 
-                hlsUrl,
-                isMseDirect,
-                reason: 'HLS playlist available - attempting for all browsers'
-              });
+            // Get first clip URL for thumbnail mode
+            const mseClipUrls = tasks?.mseClipUrls as string[] | undefined;
+            if (mseClipUrls && mseClipUrls.length > 0) {
+              firstClipUrl = mseClipUrls[0];
+            }
+            
+            // If we already have HLS, use it
+            if (hlsUrl) {
+              logPlaybackPath('HLS_UNIVERSAL', { projectId: sourceProjectId, hlsUrl });
+              if (!mountedRef.current) return;
               setHlsPlaylistUrl(hlsUrl);
-              setMasterAudioUrl(audioUrl);
+              setThumbnailUrl(firstClipUrl);
+              setExportUrl(firstClipUrl);
               setIsLoading(false);
               return;
             }
             
-            // CROSSFADE FALLBACK: If HLS failed or no playlist, use stored clip URLs directly
-            if (isMseDirect && Array.isArray(tasks?.mseClipUrls)) {
-              const storedMseClipUrls = tasks.mseClipUrls as string[];
-              const storedTotalDuration = tasks?.totalDuration as number | undefined;
-              const storedClipCount = tasks?.clipCount as number | undefined;
-              
-              if (storedMseClipUrls.length > 0) {
-                logPlaybackPath('CROSSFADE_FALLBACK', {
-                  projectId: sourceProjectId,
-                  clipCount: storedMseClipUrls.length,
-                  reason: hlsFailed ? 'HLS failed, using crossfade fallback' : 'No HLS playlist, using stored clips',
-                });
-                const perClipDuration = storedTotalDuration && storedClipCount 
-                  ? storedTotalDuration / storedClipCount 
-                  : 6;
-                const directClips = storedMseClipUrls.map((url: string) => ({
-                  url,
-                  blobUrl: url,
-                  duration: perClipDuration,
-                }));
-                if (!mountedRef.current) return;
-                setUseMSE(false);
-                setClips(directClips);
-                setIsLoading(false);
-                if (autoPlay) setIsPlaying(true);
-                return;
-              }
-            }
-            
-            // Check if we have any video content before trying HLS generation
-            const hasVideoContent = tasks?.predictions || tasks?.hlsPlaylistUrl || tasks?.mseClipUrls || project?.video_url;
-            
-            // Check if project is still generating (don't trigger HLS for incomplete projects)
+            // Check if project has video content to generate HLS from
+            const hasVideoContent = tasks?.predictions || tasks?.mseClipUrls || project?.video_url;
             const hasIncompletePredictions = tasks?.predictions && Array.isArray(tasks.predictions) && 
               (tasks.predictions as Array<{ status?: string }>).some(p => p.status !== 'completed' && p.status !== 'failed');
             const isStillGenerating = tasks?.stage === 'async_video_generation' || hasIncompletePredictions;
             
-            // Resolve clip URLs for MSE direct playback.
-            // generate-hls-playlist now returns HLS playlist + clip URLs for fallback
-          if (hasVideoContent && !isStillGenerating) {
-              console.log('[UniversalPlayer] Resolving via generate-hls-playlist');
+            if (hasVideoContent && !isStillGenerating) {
+              // Generate HLS playlist via edge function
+              console.log('[UniversalPlayer] Generating HLS playlist...');
               try {
                 const { data: result, error: resultError } = await supabase.functions.invoke('generate-hls-playlist', {
                   body: { projectId: sourceProjectId }
                 });
 
-                if (!resultError && result?.success) {
-                  // NEW: HLS with fallback mode — try HLS first, crossfade if it fails
-                  if (result.hlsPlaylistUrl && !hlsFailed) {
-                    logPlaybackPath('HLS_GENERATED', {
-                      projectId: sourceProjectId,
-                      hlsUrl: result.hlsPlaylistUrl,
-                      clipCount: result.clipUrls?.length,
-                      reason: 'HLS playlist generated — attempting gapless playback',
-                    });
-                    setHlsPlaylistUrl(result.hlsPlaylistUrl);
-                    setMasterAudioUrl(audioUrl);
-                    setIsLoading(false);
-                    return;
-                  }
-                  
-                  // Crossfade fallback: use clip URLs directly
-                  if (result.clipUrls?.length > 0) {
-                    logPlaybackPath('CROSSFADE_DIRECT', {
-                      projectId: sourceProjectId,
-                      clipCount: result.clipUrls.length,
-                      reason: hlsFailed ? 'HLS failed, crossfade fallback' : 'No HLS, using crossfade',
-                    });
-                    const serverClips = result.clips as Array<{ videoUrl: string; duration: number }>;
-                    const directClips = serverClips.map((c) => ({
-                      url: c.videoUrl,
-                      blobUrl: c.videoUrl,
-                      duration: c.duration || 8,
-                    }));
-                    if (!mountedRef.current) return;
-                    setUseMSE(false);
-                    setClips(directClips);
-                    setIsLoading(false);
-                    if (autoPlay) setIsPlaying(true);
-                    return;
-                  }
+                if (!resultError && result?.success && result.hlsPlaylistUrl) {
+                  logPlaybackPath('HLS_GENERATED', {
+                    projectId: sourceProjectId,
+                    hlsUrl: result.hlsPlaylistUrl,
+                    clipCount: result.clipUrls?.length,
+                  });
+                  if (!mountedRef.current) return;
+                  setHlsPlaylistUrl(result.hlsPlaylistUrl);
+                  setThumbnailUrl(result.clipUrls?.[0] || null);
+                  setExportUrl(result.clipUrls?.[0] || null);
+                  setIsLoading(false);
+                  return;
                 } else {
-                  const errorReason = result?.reason;
-                  if (errorReason === 'draft_or_incomplete' || errorReason === 'clips_pending') {
-                    console.log(`[UniversalPlayer] Project ${errorReason}, loading from DB clips`);
-                  } else {
-                    console.warn('[UniversalPlayer] generate-hls-playlist failed, loading from DB clips:', resultError);
-                  }
+                  console.warn('[UniversalPlayer] HLS generation failed:', resultError || result?.error);
                 }
               } catch (err) {
-                console.warn('[UniversalPlayer] generate-hls-playlist error, loading from DB clips:', err);
+                console.warn('[UniversalPlayer] HLS generation error:', err);
               }
             } else if (isStillGenerating) {
-              console.log('[UniversalPlayer] Project still generating, using MSE/legacy for now');
-            } else if (!hasVideoContent) {
-              console.log('[UniversalPlayer] No video content found, skipping HLS generation');
+              console.log('[UniversalPlayer] Project still generating, waiting...');
+              if (!mountedRef.current) return;
+              setError('Video is still being generated...');
+              setIsLoading(false);
+              return;
             }
             
-            // Fetch clips for MSE/legacy
-            const { data: dbClips, error: dbError } = await supabase
-              .from('video_clips')
-              .select('video_url, duration_seconds, shot_index')
-              .eq('project_id', sourceProjectId)
-              .eq('status', 'completed')
-              .not('video_url', 'is', null)
-              .order('shot_index', { ascending: true });
-
-            if (dbError) {
-              console.warn('[UniversalPlayer] DB fetch error:', dbError);
-            } else if (dbClips && dbClips.length > 0) {
-              urls = dbClips.map(c => c.video_url!).filter(Boolean);
-            }
-            
-            // AVATAR FALLBACK: If no clips found, check pending_video_tasks for avatar-style videos
-            if (urls.length === 0 && tasks) {
-              // Check for avatar predictions array
-              const predictions = tasks.predictions as Array<{ videoUrl?: string; status?: string; lipSynced?: boolean }> | undefined;
-              if (predictions && Array.isArray(predictions)) {
-                const completedPredictions = predictions.filter(p => p.videoUrl && p.status === 'completed');
-                const avatarUrls = completedPredictions.map(p => p.videoUrl as string);
-                if (avatarUrls.length > 0) {
-                  urls = avatarUrls;
-                  console.log('[UniversalPlayer] Using avatar predictions for playback:', urls.length, 'clips');
-                  
-                  // Check if ALL clips are lip-synced (have embedded audio)
-                  const allLipSynced = completedPredictions.every(p => p.lipSynced === true);
-                  if (allLipSynced) {
-                    setClipsAreLipSynced(true);
-                    console.log('[UniversalPlayer] All clips are lip-synced - using embedded video audio (no master audio overlay)');
-                  }
+            // If we still have no HLS, try mseClipUrls to build a client-side HLS reference
+            // or try the video_url directly
+            if (mseClipUrls && mseClipUrls.length > 0) {
+              // We have clip URLs but no HLS playlist - the edge function should have created one
+              // Retry once more
+              console.log('[UniversalPlayer] Retrying HLS generation...');
+              try {
+                const { data: retryResult } = await supabase.functions.invoke('generate-hls-playlist', {
+                  body: { projectId: sourceProjectId }
+                });
+                if (retryResult?.success && retryResult.hlsPlaylistUrl) {
+                  if (!mountedRef.current) return;
+                  setHlsPlaylistUrl(retryResult.hlsPlaylistUrl);
+                  setThumbnailUrl(mseClipUrls[0]);
+                  setExportUrl(mseClipUrls[0]);
+                  setIsLoading(false);
+                  return;
                 }
-              }
+              } catch {}
+              
+              // Last resort: if edge function still failed, use first clip as single-segment HLS fallback
+              // This shouldn't happen, but prevents a dead screen
+              if (!mountedRef.current) return;
+              setHlsPlaylistUrl(null);
+              setThumbnailUrl(mseClipUrls[0]);
+              setExportUrl(mseClipUrls[0]);
+              setError('Unable to create seamless playlist. Please try again.');
+              setIsLoading(false);
+              return;
             }
             
-            // MANIFEST FALLBACK: If still no clips, check if video_url is a manifest and parse it
-            if (urls.length === 0 && project?.video_url && typeof project.video_url === 'string') {
+            // Single video URL fallback
+            if (project?.video_url && typeof project.video_url === 'string') {
               const videoUrl = project.video_url;
-              
-              // If it's a manifest URL, parse it to get clip URLs
               if (videoUrl.endsWith('.json')) {
-                console.log('[UniversalPlayer] video_url is manifest, parsing for clips...');
                 const manifest = await parseManifest(videoUrl);
-                if (manifest) {
-                  // Check for HLS playlist in manifest (iOS path)
-                  if (useHLSNative && (manifest as any).hlsPlaylistUrl) {
-                    logPlaybackPath('HLS_NATIVE', { 
-                      projectId: sourceProjectId,
-                      hlsUrl: (manifest as any).hlsPlaylistUrl,
-                      reason: 'Parsed HLS manifest from project video_url'
-                    });
-                    setHlsPlaylistUrl((manifest as any).hlsPlaylistUrl);
-                    setMasterAudioUrl((manifest as any).masterAudioUrl || (manifest as any).voiceUrl || audioUrl);
+                if (manifest?.hlsPlaylistUrl) {
+                  if (!mountedRef.current) return;
+                  setHlsPlaylistUrl(manifest.hlsPlaylistUrl);
+                  setThumbnailUrl(manifest.clips?.[0]?.videoUrl || null);
+                  setExportUrl(manifest.clips?.[0]?.videoUrl || null);
+                  setIsLoading(false);
+                  return;
+                }
+              } else if (videoUrl.endsWith('.mp4') || videoUrl.endsWith('.webm') || videoUrl.includes('/video-clips/')) {
+                // Single video — still use HLS via edge function or direct play
+                if (!mountedRef.current) return;
+                setHlsPlaylistUrl(null);
+                setThumbnailUrl(videoUrl);
+                setExportUrl(videoUrl);
+                // For single videos, we can play directly in HLS player as mp4
+                // Generate HLS manifest for it
+                try {
+                  const { data: singleResult } = await supabase.functions.invoke('generate-hls-playlist', {
+                    body: { projectId: sourceProjectId }
+                  });
+                  if (singleResult?.success && singleResult.hlsPlaylistUrl) {
+                    setHlsPlaylistUrl(singleResult.hlsPlaylistUrl);
                     setIsLoading(false);
                     return;
                   }
-                  
-                  // Extract clip URLs from manifest
-                  if (manifest.clips && manifest.clips.length > 0) {
-                    urls = manifest.clips.map(c => c.videoUrl).filter(Boolean);
-                    console.log('[UniversalPlayer] Extracted', urls.length, 'clips from manifest');
-                    
-                    // Also get audio from manifest if available
-                    if ((manifest as any).masterAudioUrl || (manifest as any).voiceUrl) {
-                      audioUrl = (manifest as any).masterAudioUrl || (manifest as any).voiceUrl;
-                      setMasterAudioUrl(audioUrl);
-                    }
-                  }
-                }
-              }
-              // Direct video URL (not manifest)
-              else if (videoUrl.endsWith('.mp4') || videoUrl.endsWith('.webm') || videoUrl.includes('/video-clips/')) {
-                urls = [videoUrl];
-                console.log('[UniversalPlayer] Using project video_url for playback');
-              }
-            }
-            
-            // Set master audio URL for MSE/Legacy playback (non-HLS path)
-            if (audioUrl) {
-              setMasterAudioUrl(audioUrl);
-              console.log('[UniversalPlayer] Master audio URL set for avatar sync:', audioUrl.substring(0, 60), '...');
-            }
-          }
-          // Parse manifest if provided
-          else if (sourceManifestUrl) {
-            const manifest = await parseManifest(sourceManifestUrl);
-            if (manifest) {
-              // Check for HLS playlist in manifest
-              const hlsManifest = manifest as any;
-              if (useHLSNative && hlsManifest.hlsPlaylistUrl) {
-                logPlaybackPath('HLS_NATIVE', { 
-                  manifestUrl: sourceManifestUrl,
-                  hlsUrl: hlsManifest.hlsPlaylistUrl,
-                  reason: 'iOS Safari detected with HLS manifest'
-                });
-                setHlsPlaylistUrl(hlsManifest.hlsPlaylistUrl);
-                setMasterAudioUrl(hlsManifest.masterAudioUrl || hlsManifest.voiceUrl || null);
+                } catch {}
+                // If HLS generation fails for single video, play it directly
+                // UniversalHLSPlayer can handle a direct MP4 URL via native/hls.js
+                setHlsPlaylistUrl(videoUrl);
                 setIsLoading(false);
                 return;
               }
-              
-              if (manifest.clips) {
-                // CRITICAL: Use durations from manifest directly — skip the 8s-per-clip probe.
-                // The manifest already contains accurate durations from the DB.
-                const manifestClips = manifest.clips.map(c => ({
-                  url: c.videoUrl,
-                  blobUrl: c.videoUrl,
-                  duration: c.duration || 8,
-                }));
-                audioUrl = (manifest as any).masterAudioUrl || (manifest as any).voiceUrl || null;
-                if (audioUrl) setMasterAudioUrl(audioUrl);
-                if (!mountedRef.current) return;
-                setUseMSE(false);
-                setClips(manifestClips);
-                setIsLoading(false);
-                if (autoPlay) setIsPlaying(true);
-                return; // skip probe loop
-              }
-            }
-          } else if (sourceUrlsKey) {
-            urls = source.urls!;
-            audioUrl = sourceMasterAudio || null;
-            
-            // Set master audio URL for direct URL playback
-            if (audioUrl) {
-              setMasterAudioUrl(audioUrl);
-              console.log('[UniversalPlayer] Master audio URL from source:', audioUrl.substring(0, 60), '...');
             }
             
-            // iOS Safari: Use legacy crossfade for direct URLs (server-side HLS needed for true gapless)
-            // NOTE: Client-side blob-based M3U8 doesn't work on iOS (blob URLs can't reference external segments)
-            if (useHLSNative && urls.length > 1) {
-              console.log('[UniversalPlayer] iOS detected with direct URLs - using legacy crossfade (no server HLS available)');
-              // Disable HLS mode, fall through to legacy crossfade
-              setUseMSE(false);
-            }
-          }
-
-          if (!mountedRef.current) return;
-
-          if (urls.length === 0) {
+            // Nothing found
+            if (!mountedRef.current) return;
             setError('No video sources found');
             setIsLoading(false);
-            return;
-          }
-
-          // Log the selected playback path
-          const playbackPath = useMSE ? 'MSE_GAPLESS' : 'LEGACY_CROSSFADE';
-          logPlaybackPath(playbackPath, {
-            clipCount: urls.length,
-            platformMode: platformCapabilities.preferredPlaybackMode,
-            isMSESupported: platformCapabilities.supportsMSE,
-          });
-
-          // Initialize clips with estimated duration
-          const initialClips = urls.map(url => ({
-            url,
-            duration: 5, // Default estimate
-          }));
-          setClips(initialClips);
-
-          // For thumbnail mode, just set loading complete
-          if (mode === 'thumbnail') {
+            
+          } else if (sourceManifestUrl) {
+            // ================================================================
+            // MANIFEST-BASED
+            // ================================================================
+            const manifest = await parseManifest(sourceManifestUrl);
+            if (manifest?.hlsPlaylistUrl) {
+              if (!mountedRef.current) return;
+              setHlsPlaylistUrl(manifest.hlsPlaylistUrl);
+              setThumbnailUrl(manifest.clips?.[0]?.videoUrl || null);
+              setIsLoading(false);
+              return;
+            }
+            // No HLS in manifest - try first clip URL as direct play
+            if (manifest?.clips?.length) {
+              if (!mountedRef.current) return;
+              setHlsPlaylistUrl(manifest.clips[0].videoUrl);
+              setThumbnailUrl(manifest.clips[0].videoUrl);
+              setIsLoading(false);
+              return;
+            }
+            setError('No playable content in manifest');
             setIsLoading(false);
-            return;
-          }
-
-          // CROSSFADE PATH: For dual-video crossfade (useMSE=false), skip blob fetching entirely.
-          // Raw MP4 URLs from Veo/Kling work perfectly via direct src= assignment on <video>.
-          // Blob fetching adds latency and CORS complexity without any benefit here.
-          // We probe duration via a temporary video element without fetching to blob.
-          const loadedClips = await Promise.all(
-            urls.map(async (url, index) => {
-              try {
-                if (!mountedRef.current || controller.signal.aborted) {
-                  return { url, blobUrl: url, duration: 5 };
-                }
-
-                // Probe duration via temporary video element (no blob fetch)
-                const dur = await new Promise<number>((resolve) => {
-                  const probe = document.createElement('video');
-                  probe.preload = 'metadata';
-                  probe.muted = true;
-                  const timeout = setTimeout(() => resolve(5), 8000);
-                  probe.onloadedmetadata = () => {
-                    clearTimeout(timeout);
-                    const d = probe.duration;
-                    probe.src = '';
-                    resolve(isFinite(d) && d > 0 ? d : 5);
-                  };
-                  probe.onerror = () => {
-                    clearTimeout(timeout);
-                    resolve(5);
-                  };
-                  probe.src = url;
-                });
-
-                return { url, blobUrl: url, duration: dur };
-              } catch (err) {
-                const errorName = (err as Error)?.name || '';
-                if (errorName === 'AbortError' || !mountedRef.current) {
-                  return { url, blobUrl: url, duration: 5 };
-                }
-                console.debug('[UniversalPlayer] Clip probe failed:', index, err);
-                return { url, blobUrl: url, duration: 5 };
-              }
-            })
-          );
-
-          if (!mountedRef.current) return;
-
-          // CRITICAL: Keep ALL clips — blobUrl is now always the direct URL
-          setClips(loadedClips as { url: string; blobUrl: string; duration: number }[]);
-          setIsLoading(false);
-
-          if (autoPlay) {
-            setIsPlaying(true);
+            
+          } else if (sourceUrlsKey && source.urls) {
+            // ================================================================
+            // DIRECT URLs - play first URL (single video HLS or direct)
+            // For multiple URLs, we'd need server-side HLS generation
+            // ================================================================
+            const urls = source.urls;
+            if (urls.length === 1) {
+              // Single URL - play directly
+              if (!mountedRef.current) return;
+              setHlsPlaylistUrl(urls[0]);
+              setThumbnailUrl(urls[0]);
+              setExportUrl(urls[0]);
+              setIsLoading(false);
+            } else {
+              // Multiple URLs without a projectId - can't generate HLS server-side
+              // Use first URL and log warning
+              console.warn('[UniversalPlayer] Multiple URLs without projectId - using first URL only');
+              if (!mountedRef.current) return;
+              setHlsPlaylistUrl(urls[0]);
+              setThumbnailUrl(urls[0]);
+              setExportUrl(urls[0]);
+              setIsLoading(false);
+            }
           }
         } catch (err) {
-          // CRITICAL: Suppress AbortError completely
           if ((err as Error)?.name === 'AbortError') return;
           if (!mountedRef.current) return;
           console.warn('[UniversalPlayer] Load error:', err);
@@ -998,443 +456,25 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
         mountedRef.current = false;
         controller.abort();
       };
-    }, [sourceProjectId, sourceManifestUrl, sourceUrlsKey, sourceMasterAudio, hasValidSource, mode, autoPlay, hlsFailed]);
+    }, [sourceProjectId, sourceManifestUrl, sourceUrlsKey, hasValidSource, hlsRetryCount]);
 
     // ========================================================================
-    // MSE ENGINE INITIALIZATION
-    // ========================================================================
-    
-    useEffect(() => {
-      if (clips.length === 0 || mode === 'thumbnail' || !useMSE) return;
-      if (mseEngineRef.current) return;
-      
-      const video = mseVideoRef.current;
-      if (!video) return;
-
-      const initMSE = async () => {
-        try {
-          const mseClips: MSEClip[] = clips.map((clip, index) => ({
-            url: clip.blobUrl || clip.url,
-            duration: clip.duration,
-            index,
-          }));
-
-          const { engine, useFallback } = await createMSEEngine(video, mseClips, {
-            onStateChange: (state) => {
-              if (!mountedRef.current) return;
-              setCurrentClipIndex(state.currentClipIndex);
-              setCurrentTime(state.currentTime);
-            },
-            onClipChange: (index) => {
-              if (!mountedRef.current) return;
-              setCurrentClipIndex(index);
-            },
-            onEnded: () => {
-              if (!mountedRef.current) return;
-              setIsPlaying(false);
-              if (loop) {
-                setCurrentClipIndex(0);
-                setCurrentTime(0);
-              } else {
-                onEnded?.();
-              }
-            },
-            onError: () => {
-              setUseMSE(false);
-            },
-          });
-
-          mseEngineRef.current = engine;
-
-          if (useFallback) {
-            setUseMSE(false);
-          } else {
-            setMseReady(true);
-          }
-        } catch {
-          setUseMSE(false);
-        }
-      };
-
-      initMSE();
-
-      return () => {
-        mseEngineRef.current?.destroy();
-        mseEngineRef.current = null;
-      };
-    }, [clips, mode, useMSE, loop, onEnded]);
-
-    // Autoplay for MSE engine
-    useEffect(() => {
-      if (!useMSE || !mseReady || !autoPlay || mode === 'thumbnail') return;
-      if (mseEngineRef.current && !isPlaying) {
-        mseEngineRef.current.play();
-        setIsPlaying(true);
-      }
-    }, [mseReady, autoPlay, useMSE, mode, isPlaying]);
-
-    // ========================================================================
-    // LEGACY FALLBACK: Dual-video setup with crossfade transitions
-    // ========================================================================
-    
-    // Ref to track the active video for transitions (avoids stale closure issues)
-    const activeVideoIndexRef = useRef(activeVideoIndex);
-    activeVideoIndexRef.current = activeVideoIndex;
-    
-    const currentClipIndexRef = useRef(currentClipIndex);
-    currentClipIndexRef.current = currentClipIndex;
-    
-    // CRITICAL: Transition to next clip (called by both timeupdate and onEnded)
-    const transitionToNextClip = useCallback(() => {
-      if (!mountedRef.current || isTransitioningRef.current) return;
-      
-      const videoA = videoARef.current;
-      const videoB = videoBRef.current;
-      if (!videoA || !videoB) return;
-      
-      const currentIdx = currentClipIndexRef.current;
-      const activeIdx = activeVideoIndexRef.current;
-      const nextIndex = currentIdx + 1;
-      
-      if (nextIndex < clips.length) {
-        isTransitioningRef.current = true;
-        
-        const active = activeIdx === 0 ? videoA : videoB;
-        const nextVideo = activeIdx === 0 ? videoB : videoA;
-        const nextClip = clips[nextIndex];
-        
-        if (nextVideo && nextClip) {
-          // Ensure src is set (preload should have done this already)
-          const targetSrc = nextClip.blobUrl || nextClip.url;
-          if (nextVideo.src !== targetSrc) {
-            nextVideo.src = targetSrc;
-            nextVideo.preload = 'auto';
-            nextVideo.load();
-          }
-          // Only reset currentTime if we're not already at 0
-          if (nextVideo.currentTime > 0.05) {
-            nextVideo.currentTime = 0;
-          }
-          
-          const executeTransition = async () => {
-            if (!mountedRef.current) {
-              isTransitioningRef.current = false;
-              return;
-            }
-            
-            try {
-              // Immediately bring next video to full opacity (no fade delay = no gap)
-              if (activeIdx === 0) {
-                setVideoBOpacity(1);
-              } else {
-                setVideoAOpacity(1);
-              }
-              
-              // Start next video playing — critical: do this BEFORE fading out old
-              const playResult = safePlay(nextVideo);
-              if (playResult instanceof Promise) {
-                await playResult.catch(() => {}); // swallow autoplay errors
-              }
-              
-              // After brief overlap, hide old video and finalize state
-              setTimeout(() => {
-                if (!mountedRef.current) {
-                  isTransitioningRef.current = false;
-                  return;
-                }
-                
-                if (activeIdx === 0) {
-                  setVideoAOpacity(0);
-                } else {
-                  setVideoBOpacity(0);
-                }
-                
-                safePause(active);
-                setActiveVideoIndex(activeIdx === 0 ? 1 : 0);
-                setCurrentClipIndex(nextIndex);
-                isTransitioningRef.current = false;
-                
-                console.log(`[UniversalPlayer] ✅ Seamless transition to clip ${nextIndex}`);
-              }, CROSSFADE_OVERLAP_MS);
-              
-            } catch (err) {
-              console.warn('[UniversalPlayer] Transition play error:', err);
-              setActiveVideoIndex(activeIdx === 0 ? 1 : 0);
-              setCurrentClipIndex(nextIndex);
-              isTransitioningRef.current = false;
-            }
-          };
-          
-          // If video is preloaded and ready, execute immediately (no gap)
-          // readyState >= 2 (HAVE_CURRENT_DATA) is sufficient to start playing
-          if (nextVideo.readyState >= 2) {
-            executeTransition();
-          } else {
-            // Not ready — wait but with a tight 200ms max timeout to prevent gaps
-            const onReady = () => {
-              nextVideo.removeEventListener('canplay', onReady);
-              nextVideo.removeEventListener('canplaythrough', onReady);
-              executeTransition();
-            };
-            nextVideo.addEventListener('canplay', onReady, { once: true });
-            nextVideo.addEventListener('canplaythrough', onReady, { once: true });
-            
-            // Hard timeout: never wait more than 200ms (preload should have handled this)
-            setTimeout(() => {
-              if (isTransitioningRef.current) {
-                nextVideo.removeEventListener('canplay', onReady);
-                nextVideo.removeEventListener('canplaythrough', onReady);
-                executeTransition();
-              }
-            }, 200);
-          }
-        } else {
-          isTransitioningRef.current = false;
-        }
-      } else if (loop) {
-        // Loop back to first clip
-        isTransitioningRef.current = true;
-        setCurrentClipIndex(0);
-        setActiveVideoIndex(0);
-        if (videoA && clips[0]) {
-          videoA.src = clips[0].blobUrl || clips[0].url;
-          videoA.load();
-          videoA.currentTime = 0;
-          setVideoAOpacity(1);
-          setVideoBOpacity(0);
-          safePlay(videoA);
-        }
-        setTimeout(() => {
-          isTransitioningRef.current = false;
-        }, 100);
-      } else {
-        // End of all clips
-        setIsPlaying(false);
-        onEnded?.();
-      }
-    }, [clips, loop, onEnded]);
-    
-    useEffect(() => {
-      if (clips.length === 0 || mode === 'thumbnail' || useMSE) return;
-      
-      const videoA = videoARef.current;
-      const videoB = videoBRef.current;
-      if (!videoA || !clips[0]) return;
-
-      // Set initial source
-      videoA.src = clips[0].blobUrl || clips[0].url;
-      videoA.load();
-
-      // CRITICAL: Preload second clip immediately for seamless first transition
-      if (videoB && clips[1]) {
-        videoB.src = clips[1].blobUrl || clips[1].url;
-        videoB.load();
-        videoB.preload = 'auto';
-      }
-
-      // Track which clips have been preloaded so we don't re-trigger
-      const preloadedRef = { current: new Set<number>() };
-
-      // Handle clip transitions via timeupdate (proactive trigger near end)
-      const handleTimeUpdate = () => {
-        if (!mountedRef.current) return;
-        
-        const activeIdx = activeVideoIndexRef.current;
-        const active = activeIdx === 0 ? videoA : videoB;
-        const inactive = activeIdx === 0 ? videoB : videoA;
-        const duration = getSafeDuration(active);
-        const currentT = active.currentTime;
-        
-        if (duration <= 0) return;
-
-        const currentIdx = currentClipIndexRef.current;
-
-        // STAGE 1: Preload next clip into inactive slot well in advance
-        if (currentT >= duration - PRELOAD_TRIGGER_OFFSET && !isTransitioningRef.current) {
-          const nextIdx = currentIdx + 1;
-          if (nextIdx < clips.length && !preloadedRef.current.has(nextIdx) && inactive) {
-            const nextClip = clips[nextIdx];
-            const targetSrc = nextClip.blobUrl || nextClip.url;
-            if (inactive.src !== targetSrc) {
-              preloadedRef.current.add(nextIdx);
-              inactive.src = targetSrc;
-              inactive.preload = 'auto';
-              inactive.load();
-              console.log(`[UniversalPlayer] Preloading clip ${nextIdx} into inactive slot`);
-            }
-          }
-        }
-
-        // STAGE 2: Execute the visual swap near end of clip
-        if (currentT >= duration - TRANSITION_TRIGGER_OFFSET && !isTransitioningRef.current) {
-          transitionToNextClip();
-        }
-        
-        // Update progress bar
-        let elapsed = 0;
-        for (let i = 0; i < currentIdx; i++) {
-          elapsed += clips[i]?.duration || 0;
-        }
-        setCurrentTime(elapsed + currentT);
-      };
-      
-      // CRITICAL: Handle onEnded as backup trigger (catches any missed timeupdate windows)
-      const handleEnded = () => {
-        if (!mountedRef.current) return;
-        console.log('[UniversalPlayer] Clip ended — forcing transition');
-        if (!isTransitioningRef.current) {
-          transitionToNextClip();
-        }
-      };
-
-      videoA.addEventListener('timeupdate', handleTimeUpdate);
-      videoB?.addEventListener('timeupdate', handleTimeUpdate);
-      videoA.addEventListener('ended', handleEnded);
-      videoB?.addEventListener('ended', handleEnded);
-
-      return () => {
-        videoA.removeEventListener('timeupdate', handleTimeUpdate);
-        videoB?.removeEventListener('timeupdate', handleTimeUpdate);
-        videoA.removeEventListener('ended', handleEnded);
-        videoB?.removeEventListener('ended', handleEnded);
-      };
-    }, [clips, mode, useMSE, transitionToNextClip]);
-
-    // Autoplay for legacy fallback
-    useEffect(() => {
-      if (useMSE || mode === 'thumbnail' || !autoPlay) return;
-      if (clips.length === 0 || isLoading) return;
-      
-      const video = activeVideoIndex === 0 ? videoARef.current : videoBRef.current;
-      if (video) {
-        safePlay(video);
-        setIsPlaying(true);
-      }
-    }, [clips, isLoading, useMSE, mode, autoPlay, activeVideoIndex]);
-
-    // NOTE: Master audio sync effects removed - using embedded video audio only
-    // This ensures perfect audio-video sync without overlay drift issues
-
-    // ========================================================================
-    // PLAYBACK CONTROLS
-    // ========================================================================
-    
-    const togglePlayPause = useCallback(() => {
-      if (useMSE && mseEngineRef.current) {
-        if (isPlaying) {
-          mseEngineRef.current.pause();
-        } else {
-          mseEngineRef.current.play();
-        }
-        setIsPlaying(!isPlaying);
-      } else {
-        const video = activeVideoIndex === 0 ? videoARef.current : videoBRef.current;
-        if (!video) return;
-        
-        if (video.paused) {
-          safePlay(video);
-          setIsPlaying(true);
-        } else {
-          safePause(video);
-          setIsPlaying(false);
-        }
-      }
-    }, [isPlaying, useMSE, activeVideoIndex]);
-
-    const toggleMute = useCallback(() => {
-      const newMuted = !isMuted;
-      setIsMuted(newMuted);
-      
-      // CRITICAL: Always use embedded video audio - do NOT use master audio overlay
-      // The original audio was generated with the video and replacing it causes sync issues
-      if (mseVideoRef.current) mseVideoRef.current.muted = newMuted;
-      if (videoARef.current) videoARef.current.muted = newMuted;
-      if (videoBRef.current) videoBRef.current.muted = newMuted;
-    }, [isMuted]);
-
-    const handleSeek = useCallback((time: number) => {
-      if (useMSE && mseEngineRef.current) {
-        mseEngineRef.current.seek(time);
-      } else {
-        const video = activeVideoIndex === 0 ? videoARef.current : videoBRef.current;
-        safeSeek(video, time);
-      }
-      setCurrentTime(time);
-    }, [useMSE, activeVideoIndex]);
-
-    const goToPrevClip = useCallback(() => {
-      if (currentClipIndex > 0) {
-        setCurrentClipIndex(currentClipIndex - 1);
-      }
-    }, [currentClipIndex]);
-
-    const goToNextClip = useCallback(() => {
-      if (currentClipIndex < clips.length - 1) {
-        setCurrentClipIndex(currentClipIndex + 1);
-      }
-    }, [currentClipIndex, clips.length]);
-
-    const toggleFullscreen = useCallback(() => {
-      const container = containerRef.current;
-      if (!container) return;
-
-      if (!document.fullscreenElement) {
-        container.requestFullscreen?.().then(() => setIsFullscreen(true)).catch(() => {});
-      } else {
-        document.exitFullscreen?.().then(() => setIsFullscreen(false)).catch(() => {});
-      }
-    }, []);
-
-    // ========================================================================
-    // CONTROLS AUTO-HIDE
-    // ========================================================================
-    
-    const handleMouseMove = useCallback(() => {
-      setShowControlsState(true);
-      
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-      
-      if (controls.autoHideControls && isPlaying) {
-        controlsTimeoutRef.current = setTimeout(() => {
-          setShowControlsState(false);
-        }, CONTROLS_HIDE_DELAY);
-      }
-    }, [controls.autoHideControls, isPlaying]);
-
-    // ========================================================================
-    // THUMBNAIL MODE HOVER PREVIEW
+    // THUMBNAIL HOVER PREVIEW
     // ========================================================================
     
     const handleThumbnailHover = useCallback((hovering: boolean) => {
       if (!hoverPreview) return;
-      
       setIsHovered(hovering);
-      const video = videoARef.current;
-      
+      const video = thumbnailVideoRef.current;
       if (hovering && video) {
         video.muted = true;
-        safeSeek(video, 0);
-        safePlay(video);
+        video.currentTime = 0;
+        video.play().catch(() => {});
       } else if (video) {
-        safePause(video);
-        safeSeek(video, 0);
+        video.pause();
+        video.currentTime = 0;
       }
     }, [hoverPreview]);
-
-    // ========================================================================
-    // CLEANUP
-    // ========================================================================
-    
-    useEffect(() => {
-      return () => {
-        mountedRef.current = false;
-        if (controlsTimeoutRef.current) {
-          clearTimeout(controlsTimeoutRef.current);
-        }
-      };
-    }, []);
 
     // ========================================================================
     // RENDER: No source
@@ -1467,8 +507,8 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
           </AnimatePresence>
 
           <video
-            ref={videoARef}
-            src={clips[0]?.blobUrl || clips[0]?.url || source.urls?.[0]}
+            ref={thumbnailVideoRef}
+            src={thumbnailUrl || source.urls?.[0]}
             className={cn(
               "absolute inset-0 w-full h-full object-cover transition-all duration-300",
               isHovered && "scale-105"
@@ -1479,13 +519,11 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             preload="metadata"
           />
 
-          {/* Gradient overlay */}
           <div className={cn(
             "absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-200",
             isHovered ? "opacity-100" : "opacity-50"
           )} />
 
-          {/* Play button on hover */}
           <AnimatePresence>
             {isHovered && (
               <motion.div
@@ -1501,7 +539,6 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             )}
           </AnimatePresence>
 
-          {/* Title */}
           {title && isHovered && (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
@@ -1527,11 +564,9 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
           animate={{ opacity: 1, y: 0, scale: 1 }}
           className={cn("relative group", className)}
         >
-          {/* Success glow */}
           <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-emerald-500/20 rounded-3xl blur-xl opacity-50" />
           
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500/10 via-zinc-900/90 to-teal-500/10 border border-emerald-500/30">
-            {/* Header */}
             <div className="relative flex items-center justify-between px-5 py-4 border-b border-emerald-500/20">
               <div className="flex items-center gap-4">
                 <motion.div 
@@ -1559,15 +594,29 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               )}
             </div>
             
-            {/* Video */}
             <div className="relative aspect-video bg-black/50">
-              <video 
-                ref={mseVideoRef}
-                src={clips[0]?.blobUrl || clips[0]?.url}
-                controls 
-                className="w-full h-full object-contain" 
-                playsInline
-              />
+              {hlsPlaylistUrl ? (
+                <UniversalHLSPlayer
+                  hlsUrl={hlsPlaylistUrl}
+                  autoPlay={false}
+                  muted={isMuted}
+                  loop={loop}
+                  className="w-full h-full"
+                  aspectRatio="auto"
+                  showControls={true}
+                  onEnded={onEnded}
+                  onError={(err) => {
+                    console.warn('[UniversalPlayer] Export HLS error:', err);
+                  }}
+                />
+              ) : (
+                <video 
+                  src={exportUrl || undefined}
+                  controls 
+                  className="w-full h-full object-contain" 
+                  playsInline
+                />
+              )}
             </div>
           </div>
         </motion.div>
@@ -1575,11 +624,9 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     }
 
     // ========================================================================
-    // RENDER: HLS Mode (ALL browsers via UniversalHLSPlayer with hls.js)
+    // RENDER: HLS Playback (ALL inline/fullscreen modes)
     // ========================================================================
     
-    // Use UniversalHLSPlayer for ALL browsers when HLS playlist is available
-    // This uses hls.js for Chrome/Firefox and native HLS for Safari/iOS
     if (hlsPlaylistUrl) {
       return (
         <div 
@@ -1603,16 +650,22 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             title={title}
             onEnded={onEnded}
             onError={(err) => {
-              // HLS failed (likely raw MP4 segments not supported by hls.js)
-              // Fall back to MSE/legacy clip-by-clip playback
-              console.warn('[UniversalPlayer] HLS playback failed, falling back to MSE:', err);
-              setHlsPlaylistUrl(null);
-              setHlsFailed(true);
-              setError(null);
+              // HLS failed — retry up to 3 times, then show error (NO crossfade fallback)
+              console.warn('[UniversalPlayer] HLS playback error:', err, `(retry ${hlsRetryCount}/3)`);
+              if (hlsRetryCount < 3) {
+                setHlsRetryCount(prev => prev + 1);
+                // Force re-trigger of loadSource by incrementing retry count
+                setHlsPlaylistUrl(null);
+              } else {
+                setError('Video playback failed after retries. Please refresh and try again.');
+                setHlsPlaylistUrl(null);
+              }
             }}
             onTimeUpdate={(time) => {
               setCurrentTime(time);
             }}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
             onClose={onClose}
           />
         </div>
@@ -1620,7 +673,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     }
 
     // ========================================================================
-    // RENDER: Inline & Fullscreen Modes (MSE or Legacy)
+    // RENDER: Loading / Error states (while resolving HLS)
     // ========================================================================
     
     return (
@@ -1636,22 +689,20 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
           aspectRatio === 'video' && mode !== 'fullscreen' && 'aspect-video',
           className
         )}
-        onMouseMove={handleMouseMove}
       >
-        {/* Loading */}
         <AnimatePresence>
           {isLoading && <LoadingSkeleton />}
         </AnimatePresence>
 
-        {/* Error - FIXED: Don't use window.location.reload() */}
         {error && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
             <Film className="w-12 h-12 text-muted-foreground/20" />
-            <p className="text-muted-foreground text-sm">{error}</p>
+            <p className="text-muted-foreground text-sm text-center px-4">{error}</p>
             <Button variant="outline" size="sm" onClick={() => {
-              // Reset state to trigger re-initialization instead of page reload
               setError(null);
               setIsLoading(true);
+              setHlsRetryCount(0);
+              setHlsPlaylistUrl(null);
             }}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Retry
@@ -1659,86 +710,12 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
           </div>
         )}
 
-        {/* Playback Path Indicator (dev only) */}
-        {process.env.NODE_ENV === 'development' && !error && !isLoading && (
-          <div className="absolute top-2 left-2 px-2 py-1 bg-primary/80 text-primary-foreground text-xs rounded font-mono z-50">
-            {useMSE ? 'MSE_GAPLESS' : 'LEGACY_CROSSFADE'}
+        {!isLoading && !error && !hlsPlaylistUrl && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Film className="w-8 h-8 text-muted-foreground/20" />
           </div>
         )}
 
-        {/* MSE Video Element - mute when using master audio */}
-        {useMSE && !error && (
-          <video
-            ref={mseVideoRef}
-            className="absolute inset-0 w-full h-full object-contain"
-            muted={isMuted}
-            playsInline
-          />
-        )}
-
-        {/* Legacy Dual Video Elements - always use embedded audio */}
-        {!useMSE && !error && (
-          <>
-            <video
-              ref={videoARef}
-className="absolute inset-0 w-full h-full object-contain transition-opacity"
-              style={{ opacity: videoAOpacity, transitionDuration: '30ms' }}
-              muted={isMuted}
-              playsInline
-            />
-            <video
-              ref={videoBRef}
-className="absolute inset-0 w-full h-full object-contain transition-opacity"
-              style={{ opacity: videoBOpacity, transitionDuration: '30ms' }}
-              muted={isMuted}
-              playsInline
-            />
-          </>
-        )}
-
-        {/* Background Music */}
-        {source.musicUrl && (
-          <audio
-            ref={musicRef}
-            src={source.musicUrl}
-            loop
-            muted={isMuted}
-          />
-        )}
-
-        {/* Controls */}
-        <AnimatePresence>
-          {showControlsState && !isLoading && !error && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ControlBar
-                isPlaying={isPlaying}
-                isMuted={isMuted}
-                currentTime={currentTime}
-                totalDuration={totalDuration}
-                currentClipIndex={currentClipIndex}
-                totalClips={clips.length}
-                controls={controls}
-                mode={mode}
-                onPlayPause={togglePlayPause}
-                onMuteToggle={toggleMute}
-                onSeek={handleSeek}
-                onPrevClip={goToPrevClip}
-                onNextClip={goToNextClip}
-                onFullscreen={toggleFullscreen}
-                onDownload={onDownload}
-                onClose={onClose}
-                isFullscreen={isFullscreen}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Fullscreen close button */}
         {mode === 'fullscreen' && onClose && (
           <Button
             variant="ghost"
@@ -1750,7 +727,6 @@ className="absolute inset-0 w-full h-full object-contain transition-opacity"
           </Button>
         )}
 
-        {/* Title overlay */}
         {title && mode === 'fullscreen' && (
           <div className="absolute top-4 left-4 z-40">
             <h2 className="text-xl font-semibold text-white drop-shadow-lg">{title}</h2>

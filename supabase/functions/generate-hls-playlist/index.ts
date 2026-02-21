@@ -202,7 +202,7 @@ serve(async (req) => {
     const timestamp = Date.now();
     
     try {
-      const maxClipDuration = Math.ceil(Math.max(...orderedClips.map(c => c.duration_seconds || 5)));
+      const maxClipDuration = Math.ceil(Math.max(...orderedClips.map(c => c.duration_seconds || 10))); // Kling V3 default: 10s
       
       let hlsContent = `#EXTM3U\n`;
       hlsContent += `#EXT-X-VERSION:3\n`;
@@ -214,7 +214,7 @@ serve(async (req) => {
         if (index > 0) {
           hlsContent += `#EXT-X-DISCONTINUITY\n`;
         }
-        hlsContent += `#EXTINF:${(clip.duration_seconds || 5).toFixed(6)},\n`;
+        hlsContent += `#EXTINF:${(clip.duration_seconds || 10).toFixed(6)},\n`;
         hlsContent += `${clip.video_url}\n`;
       });
       

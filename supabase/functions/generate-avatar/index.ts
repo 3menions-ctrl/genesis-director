@@ -297,7 +297,7 @@ async function fallbackToKling(params: {
   } = params;
 
   const audioDurationSec = Math.ceil(audioDurationMs / 1000);
-  const videoDuration = audioDurationSec < 4 ? 5 : 10;
+  const videoDuration = Math.max(3, Math.min(15, audioDurationSec || 10)); // Kling V3: 3-15s
   
   const userScene = sceneDescription || environmentPrompt;
   let videoPrompt = "The person in the image is speaking naturally and expressively, direct eye contact with camera, subtle natural head movements, professional presentation style, clear and articulate speech with natural lip movements, engaged expression";
@@ -306,7 +306,7 @@ async function fallbackToKling(params: {
     videoPrompt = `Scene: ${userScene.trim()}. ${videoPrompt}`;
   }
   
-  const klingResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
+  const klingResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v3-video/predictions", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${REPLICATE_API_KEY}`,

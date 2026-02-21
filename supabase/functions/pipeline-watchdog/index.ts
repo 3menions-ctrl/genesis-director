@@ -1065,7 +1065,7 @@ serve(async (req) => {
         let musicUrl: string | null = null;
         let musicSyncPlan: any = null;
         try {
-          const totalDuration = completedClips.length * (tasks.clipDuration || 6);
+          const totalDuration = completedClips.length * (tasks.clipDuration || 10); // Kling V3 default: 10s
           console.log(`[Watchdog] 🎵 Generating AI-enhanced music for avatar (${totalDuration}s)...`);
           
           const script = tasks.originalScript || project.synopsis || '';
@@ -1075,7 +1075,7 @@ serve(async (req) => {
             id: `avatar_shot_${idx}`,
             description: tasks.segmentText?.[idx] || script.substring(idx * 50, (idx + 1) * 50) || `Avatar speaking clip ${idx + 1}`,
             dialogue: tasks.segmentText?.[idx] || script,
-            durationSeconds: tasks.clipDuration || 6,
+            durationSeconds: tasks.clipDuration || 10, // Kling V3 default: 10s
             mood: 'avatar',
           }));
           
@@ -2632,7 +2632,7 @@ async function createManifestFallback(
     return;
   }
   
-  const totalDuration = clips.reduce((sum: number, c: { duration_seconds: number }) => sum + (c.duration_seconds || 6), 0);
+  const totalDuration = clips.reduce((sum: number, c: { duration_seconds: number }) => sum + (c.duration_seconds || 10), 0);
   
   const manifest = {
     version: "1.0",
@@ -2644,8 +2644,8 @@ async function createManifestFallback(
       index,
       shotId: clip.id,
       videoUrl: clip.video_url,
-      duration: clip.duration_seconds || 6,
-      startTime: clips.slice(0, index).reduce((sum: number, c: { duration_seconds: number }) => sum + (c.duration_seconds || 6), 0),
+      duration: clip.duration_seconds || 10,
+      startTime: clips.slice(0, index).reduce((sum: number, c: { duration_seconds: number }) => sum + (c.duration_seconds || 10), 0),
     })),
     totalDuration,
     voiceUrl: (project as { voice_audio_url: string | null } | null)?.voice_audio_url || null,

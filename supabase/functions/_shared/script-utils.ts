@@ -555,7 +555,7 @@ export function detectUserContent(text: string, explicitClipCount?: number): Det
       hasNarration: false,
       dialogueLines: [],
       narrationText: '',
-      estimatedDurationSeconds: defaultClipCount * 5, // Match clip count
+      estimatedDurationSeconds: defaultClipCount * 10, // Kling V3: 10s per clip
       recommendedClipCount: defaultClipCount,
     };
   }
@@ -618,10 +618,9 @@ export function detectUserContent(text: string, explicitClipCount?: number): Det
   const wordCount = allText.split(/\s+/).filter(w => w.length > 0).length;
   
   // Average speaking rate: 150 words per minute = 2.5 words per second
-  // Default clip duration: 5s for standard video, 10s for avatar mode (passed via explicitClipCount logic)
-  // Avatar mode should pre-calculate with 10s clips before calling this function
+  // Kling V3: Default 10s clips for all modes (supports 3-15s)
   const WORDS_PER_SECOND = 2.5;
-  const CLIP_DURATION = 10; // Updated: 10-second clips for avatar (Kling v2.6 max), adjust externally for other modes
+  const CLIP_DURATION = 10; // Kling V3 default: 10s per clip
   const WORDS_PER_CLIP = WORDS_PER_SECOND * CLIP_DURATION;
   
   const estimatedDurationSeconds = Math.max(30, Math.ceil(wordCount / WORDS_PER_SECOND));

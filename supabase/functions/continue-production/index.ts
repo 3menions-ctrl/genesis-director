@@ -611,8 +611,8 @@ serve(async (req: Request) => {
     // Call generate-single-clip with COMPLETE data handoff
     // CRITICAL: Pass ALL continuity and identity data
     // BUG FIX: Ensure durationSeconds is passed through callback chain!
-    const clipDuration = context?.clipDuration || 5;
-    const videoEngine = context?.videoEngine || 'veo'; // DEFAULT: Runway (veo=Runway Gen-4 Turbo/Gen-4.5)
+    const clipDuration = context?.clipDuration || 10; // Kling V3 default: 10s
+    const videoEngine = context?.videoEngine || 'kling'; // DEFAULT: Kling V3 (all modes)
     console.log(`[ContinueProduction] Clip ${nextClipIndex + 1} will use duration: ${clipDuration}s`);
     
     const clipResult = await callEdgeFunction('generate-single-clip', {

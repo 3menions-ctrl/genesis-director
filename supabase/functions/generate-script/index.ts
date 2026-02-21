@@ -299,7 +299,7 @@ Include these dialogue lines in the appropriate shots. Use the EXACT words provi
 
 CRITICAL: 
 - Generate EXACTLY ${clipCount} shots (based on content length)
-- Total duration: ${clipCount * 5} seconds
+- Total duration: ${clipCount * 10} seconds
 - Each shot must transition SMOOTHLY into the next
 - Use BUFFER SHOTS (establishing, detail, reaction beats) between major scene changes
 - This will be stitched by AI, so ensure visual continuity
@@ -409,7 +409,7 @@ Write the script now:`;
       genre: requestData.genre,
       characters: requestData.characters?.map(c => c.name),
       wordCount: script?.split(/\s+/).length || 0,
-      estimatedDuration: actualShotCount * 6,
+      estimatedDuration: actualShotCount * 10, // Kling V3: 10s per clip
       requestedClipCount: clipCount,
       actualClipCount: actualShotCount,
       detectedContent: {

@@ -3611,7 +3611,7 @@ async function runProduction(
           previousMotionVectors,
           // CRITICAL FIX: Pass duration from clip/state - user's selection
           // CRITICAL FIX: Pass duration from state - user's selection
-          durationSeconds: state.clipDuration || 5,
+          durationSeconds: state.clipDuration || 10, // Kling V3 default: 10s
           // NEW: Pass previous shot's continuity manifest for comprehensive consistency
           previousContinuityManifest: i > 0 ? previousContinuityManifest : undefined,
           // NEW: Pass golden frame data from clip 1 to prevent character decay
@@ -3749,7 +3749,7 @@ async function runProduction(
           progress: 25,
           clipsCompleted: 0,
           clipCount: clips.length,
-          clipDuration: state.clipDuration || 5,
+          clipDuration: state.clipDuration || 10, // Kling V3 default: 10s
           callbackChainActive: true,
           startedAt: new Date().toISOString(),
         },
@@ -4132,7 +4132,7 @@ async function runProduction(
                 colorGrading: request.colorGrading || 'cinematic',
                 qualityTier: request.qualityTier || 'standard',
                 aspectRatio: request.aspectRatio || '16:9',
-                durationSeconds: state.clipDuration || 5,
+                durationSeconds: state.clipDuration || 10, // Kling V3 default: 10s
                 referenceImageUrl,
                 isRetry: true,
                 sceneContext: clip.sceneContext,
@@ -4667,7 +4667,7 @@ async function runProduction(
                   colorGrading: request.colorGrading || 'cinematic',
                   qualityTier: request.qualityTier || 'standard',
                   aspectRatio: request.aspectRatio || '16:9',
-                  durationSeconds: state.clipDuration || 5,
+                  durationSeconds: state.clipDuration || 10, // Kling V3 default: 10s
                   referenceImageUrl,
                   isRetry: true,
                   isIdentityRetry: true,
@@ -5236,7 +5236,7 @@ async function runProduction(
           progress: Math.min(80, 20 + (dbCompletedClips.length / clips.length) * 60),
           clipsCompleted: dbCompletedClips.length,
           clipCount: clips.length,
-          clipDuration: (state.production as any)?.clipDuration || 5, // Preserve clip duration
+          clipDuration: (state.production as any)?.clipDuration || 10, // Kling V3 default: 10s
           updatedAt: new Date().toISOString(),
         },
         updated_at: new Date().toISOString(),

@@ -532,7 +532,8 @@ serve(async (req) => {
       extractedCharacters,
       referenceImageUrl,
       sceneImageUrl,
-      videoEngine = "kling", // All modes now Kling V3; 'kling' enables avatar native audio
+      videoEngine = "kling", // All modes now Kling V3
+      isAvatarMode: isAvatarModeFlag = false, // Explicit flag — do NOT derive from videoEngine
     } = body;
 
     if (!projectId || !prompt) {
@@ -762,19 +763,19 @@ serve(async (req) => {
     //   T2V: no start_image → pure text-to-video
     //   I2V: start_image → image-to-video with frame continuity
     //   Avatar: start_image + generate_audio=true → native lip-synced dialogue
-    // Legacy "veo" engine param → now routes to Kling V3 I2V/T2V
+    // isAvatarMode is an EXPLICIT flag from the pipeline — NOT derived from videoEngine
     // ═══════════════════════════════════════════════════════════════════════════
-    const isAvatarMode = videoEngine === "kling"; // avatar mode: native audio
+    const isAvatarMode = !!isAvatarModeFlag; // Explicit flag from pipeline, NOT from videoEngine
     const hasStartImage = !!validatedStartImage;
     const engineLabel = isAvatarMode
       ? `Kling V3 Avatar (I2V + native audio, ${hasStartImage ? 'frame-chained' : 'scene image'})`
       : hasStartImage
-        ? "Kling V3 I2V (image-to-video)"
-        : "Kling V3 T2V (text-to-video)";
-    console.log(`[SingleClip] ══ ENGINE: ${engineLabel} (videoEngine="${videoEngine}", hasStartImage=${hasStartImage}) ══`);
+        ? "Kling V3 I2V (image-to-video, no native audio)"
+        : "Kling V3 T2V (text-to-video, no native audio)";
+    console.log(`[SingleClip] ══ ENGINE: ${engineLabel} (videoEngine="${videoEngine}", isAvatarMode=${isAvatarMode}, hasStartImage=${hasStartImage}) ══`);
     
-    // Avatar mode: enable native audio for lip-sync
-    const enableNativeAudio = isAvatarMode ? KLING_ENABLE_AUDIO_AVATAR : KLING_ENABLE_AUDIO_T2V;
+    // Avatar mode: enable native audio for lip-sync. I2V/T2V: no native audio
+    const enableNativeAudio = isAvatarMode ? KLING_ENABLE_AUDIO_AVATAR : (hasStartImage ? KLING_ENABLE_AUDIO_I2V : KLING_ENABLE_AUDIO_T2V);
     
     let predictionId: string;
     const klingResult = await createKlingV3Prediction(

@@ -81,6 +81,7 @@ interface ContinueProductionRequest {
   // Context passed from hollywood-pipeline
   pipelineContext?: {
     videoEngine?: 'kling' | 'veo'; // CRITICAL: must survive all callback hops
+    isAvatarMode?: boolean; // EXPLICIT flag — NOT derived from videoEngine
     identityBible?: any;
     masterSceneAnchor?: any;
     goldenFrameData?: any;
@@ -613,12 +614,14 @@ serve(async (req: Request) => {
     // BUG FIX: Ensure durationSeconds is passed through callback chain!
     const clipDuration = context?.clipDuration || 10; // Kling V3 default: 10s
     const videoEngine = context?.videoEngine || 'kling'; // DEFAULT: Kling V3 (all modes)
-    console.log(`[ContinueProduction] Clip ${nextClipIndex + 1} will use duration: ${clipDuration}s`);
+    const isAvatarMode = !!context?.isAvatarMode; // EXPLICIT flag from pipeline context
+    console.log(`[ContinueProduction] Clip ${nextClipIndex + 1} will use duration: ${clipDuration}s, isAvatarMode: ${isAvatarMode}`);
     
     const clipResult = await callEdgeFunction('generate-single-clip', {
       userId,
       projectId,
-      videoEngine, // Route to Veo 3 or Kling — persisted from original request
+      videoEngine,
+      isAvatarMode, // EXPLICIT flag — generate-single-clip uses this, NOT videoEngine
       clipIndex: nextClipIndex,
       prompt: nextClipPrompt,
       totalClips,

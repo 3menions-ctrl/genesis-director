@@ -161,9 +161,13 @@ serve(async (req) => {
 
     // ═══ STEP 3: Delete all related database records ═══
     // Order matters: delete children first, then project
+    // ALL tables with FK to movie_projects must be cleaned
 
     // Delete video likes
     await supabase.from('video_likes').delete().eq('project_id', projectId);
+
+    // Delete video reactions
+    await supabase.from('video_reactions').delete().eq('project_id', projectId);
 
     // Delete project comments (and their likes/reactions)
     const { data: comments } = await supabase
@@ -177,12 +181,21 @@ serve(async (req) => {
       await supabase.from('project_comments').delete().eq('project_id', projectId);
     }
 
+    // Delete genesis scene clips
+    await supabase.from('genesis_scene_clips').delete().eq('project_id', projectId);
+
+    // Delete genesis videos referencing this project
+    await supabase.from('genesis_videos').delete().eq('project_id', projectId);
+
     // Delete video clips
     const { count: clipCount } = await supabase
       .from('video_clips')
       .delete({ count: 'exact' })
       .eq('project_id', projectId);
     stats.dbRecordsDeleted += clipCount || 0;
+
+    // Delete stitch jobs
+    await supabase.from('stitch_jobs').delete().eq('project_id', projectId);
 
     // Delete edit sessions
     await supabase.from('edit_sessions').delete().eq('project_id', projectId);
@@ -201,6 +214,18 @@ serve(async (req) => {
 
     // Delete character loans
     await supabase.from('character_loans').delete().eq('project_id', projectId);
+
+    // Delete project characters
+    await supabase.from('project_characters').delete().eq('project_id', projectId);
+
+    // Delete widget configs referencing this project
+    await supabase.from('widget_configs').delete().eq('source_project_id', projectId);
+
+    // Delete universe continuity referencing this project
+    await supabase.from('universe_continuity').delete().eq('source_project_id', projectId);
+
+    // Clear self-referencing parent_project_id
+    await supabase.from('movie_projects').update({ parent_project_id: null }).eq('parent_project_id', projectId);
 
     // ═══ STEP 4: Delete the project itself ═══
     const { error: deleteError } = await supabase

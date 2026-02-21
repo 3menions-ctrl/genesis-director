@@ -1367,9 +1367,10 @@ function getToolsForContext(currentPage: string | undefined): typeof AGENT_TOOLS
     TOOL_NAMES_BY_CATEGORY.projects.forEach(n => toolNameSet.add(n));
     TOOL_NAMES_BY_CATEGORY.editing.forEach(n => toolNameSet.add(n));
     TOOL_NAMES_BY_CATEGORY.creation.forEach(n => toolNameSet.add(n));
-  } else if (page === "/video-editor" || page.startsWith("/video-editor")) {
+  } else if (page === "/editor" || page.startsWith("/editor") || page === "/video-editor" || page.startsWith("/video-editor")) {
     TOOL_NAMES_BY_CATEGORY.editing.forEach(n => toolNameSet.add(n));
     TOOL_NAMES_BY_CATEGORY.projects.forEach(n => toolNameSet.add(n));
+    TOOL_NAMES_BY_CATEGORY.creation.forEach(n => toolNameSet.add(n));
   } else if (page === "/gallery" || page === "/creators" || page === "/world-chat") {
     TOOL_NAMES_BY_CATEGORY.social.forEach(n => toolNameSet.add(n));
     TOOL_NAMES_BY_CATEGORY.projects.forEach(n => toolNameSet.add(n));
@@ -4072,7 +4073,7 @@ Avatar flow: show avatars → user picks → collect script → estimate cost �
 - ALL SALES FINAL. Failed generation credits auto-refunded.
 
 **All Routes:**
-/create, /projects, /production/:id, /script-review, /video-editor, /training-video,
+/create, /projects, /production/:id, /script-review, /editor, /training-video,
 /avatars, /universes, /universes/:id, /gallery, /discover, /creators, /world-chat,
 /templates, /environments, /profile, /settings, /pricing, /onboarding, /auth,
 /how-it-works, /help, /contact, /terms, /privacy, /blog, /press, /
@@ -4091,6 +4092,17 @@ ${currentPage?.startsWith("/projects") ? "User is on their projects page. Focus 
 ${currentPage?.startsWith("/avatars") ? "User is browsing avatars. Get content type from them, then recommend and show 4 well-matched avatars immediately." : ""}
 ${currentPage?.startsWith("/pricing") ? "User is on pricing. Help them pick the right package for their usage, no pressure." : ""}
 ${currentPage === "/" ? "User is on the landing page. May not be logged in. Guide toward signup or first video." : ""}
+${currentPage?.startsWith("/editor") ? `User is IN the Video Editor. You can help them with:
+- Timeline operations: splitting clips (S), duplicating (Cmd+D), deleting (Del), ripple delete (Shift+Del)
+- Adding text overlays, music, effects, stickers, and transitions via the sidebar
+- Beat Sync auto-cutting to sync edits to music beats
+- Applying templates from the Templates panel (20+ presets)
+- Keyboard shortcuts: S=split, B=marker, N=snap, M=media browser, R=reverse, F=freeze, Cmd+Z=undo, Cmd+Shift+Z=redo, Cmd+S=save
+- Export settings (resolution, format, quality)
+- Multi-select clips with Shift+Click or Cmd+Click
+- Moving clips between tracks via drag & drop
+- Track management: mute/lock/add video/audio/text tracks
+Answer editing questions with specific, actionable guidance. If they need clips, help them create a project first.` : ""}
 
 ═══ CAPABILITIES (USE THESE, DON'T INVENT OTHERS) ═══
 

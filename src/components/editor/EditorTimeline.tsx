@@ -286,7 +286,28 @@ export const EditorTimeline = ({
                         </div>
 
                         {/* Content */}
-                        {(track.type === "audio" || track.type === "video") ? (
+                        {track.type === "video" ? (
+                          <div className="flex-1 min-w-0 h-full relative overflow-hidden">
+                            {/* Video frame strip */}
+                            <div className="absolute inset-0 flex">
+                              {Array.from({ length: Math.max(1, Math.floor(width / 48)) }, (_, i) => (
+                                <div
+                                  key={i}
+                                  className="h-full flex-1 bg-cover bg-center border-r border-white/5 last:border-r-0"
+                                  style={{
+                                    backgroundImage: clip.sourceUrl ? `url(${clip.sourceUrl}#t=${((clip.trimStart || 0) + ((clip.end - clip.start) * i / Math.max(1, Math.floor(width / 48)))).toFixed(1)})` : undefined,
+                                    backgroundColor: 'hsl(var(--muted))',
+                                  }}
+                                />
+                              ))}
+                            </div>
+                            {/* Gradient overlay for readability */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
+                            <span className={cn("absolute bottom-1 left-2.5 text-[8px] font-medium truncate z-10 text-white drop-shadow-md")}>
+                              {clip.label}
+                            </span>
+                          </div>
+                        ) : track.type === "audio" ? (
                           <div className="flex-1 min-w-0 h-full relative">
                             <RealAudioWaveform clipId={clip.id} width={Math.max(width, 28)} height={TRACK_HEIGHT - 16} color={colors.text} />
                             <span className={cn("absolute bottom-1 left-2.5 text-[8px] font-medium truncate", colors.text, "opacity-60")}>

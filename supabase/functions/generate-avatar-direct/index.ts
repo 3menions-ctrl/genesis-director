@@ -176,7 +176,7 @@ serve(async (req) => {
       script,
       avatarImageUrl,
       voiceId = 'bella',
-      sceneDescription,
+      sceneDescription: rawSceneDescription,
       projectId,
       userId,
       aspectRatio = '16:9',
@@ -187,6 +187,13 @@ serve(async (req) => {
       enableDualAvatar = false,
       avatarTemplateId,
     } = request;
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DEFAULT SCENE DESCRIPTION: Always provide a background so avatars aren't
+    // rendered floating on a blank canvas. This ensures scene compositing runs.
+    // ═══════════════════════════════════════════════════════════════════════════
+    const sceneDescription = rawSceneDescription?.trim() 
+      || 'Professional modern studio with warm soft lighting, clean elegant background with subtle depth, cinematic atmosphere';
 
     if (!script || !avatarImageUrl) {
       throw new Error("Both 'script' and 'avatarImageUrl' are required");

@@ -26,7 +26,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Project } from '@/types/studio';
 import { safePlay, safePause, safeSeek, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
-import { LazyVideoThumbnail } from '@/components/ui/LazyVideoThumbnail';
+import { LazyVideoThumbnail, requestLoadSlot, releaseLoadSlot } from '@/components/ui/LazyVideoThumbnail';
 
 // ============= HELPERS =============
 
@@ -95,6 +95,8 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
   const videoRef = useRef<HTMLVideoElement>(null);
   const isMountedRef = useRef(true);
   const [isHovered, setIsHovered] = useState(false);
+  const [videoSlotGranted, setVideoSlotGranted] = useState(false);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
@@ -207,38 +209,46 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     }
   }, []);
 
+  // Concurrency-controlled hover: debounce 150ms, request load slot before mounting video
   const handleInteractionStart = useCallback(() => {
     if (!isMountedRef.current) return;
+    // Clear any pending unhover
+    if (hoverTimerRef.current) { clearTimeout(hoverTimerRef.current); hoverTimerRef.current = null; }
     setIsHovered(true);
-    const video = videoRef.current;
-    if (!video || !hasVideo || !videoSrc) return;
-    try {
-      video.muted = true;
-      const attemptPlay = () => {
-        if (!isMountedRef.current || !videoRef.current) return;
-        safeSeek(videoRef.current, 0);
-        safePlay(videoRef.current);
-      };
-      if (video.readyState >= 3) attemptPlay();
-      else {
-        video.addEventListener('canplay', () => attemptPlay(), { once: true });
-        if (video.readyState === 0) video.load();
-      }
-    } catch (err) {}
-  }, [hasVideo, videoSrc]);
-  
-  const handleMouseEnter = handleInteractionStart;
 
+    if (!hasVideo || !videoSrc) return;
+
+    // Debounce: wait 150ms before requesting a load slot (avoids rapid hover storms)
+    hoverTimerRef.current = setTimeout(async () => {
+      if (!isMountedRef.current) return;
+      await requestLoadSlot();
+      if (!isMountedRef.current) { releaseLoadSlot(); return; }
+      setVideoSlotGranted(true);
+    }, 150);
+  }, [hasVideo, videoSrc]);
+
+  // Release load slot on hover end
   const handleInteractionEnd = useCallback(() => {
     if (!isMountedRef.current) return;
+    if (hoverTimerRef.current) { clearTimeout(hoverTimerRef.current); hoverTimerRef.current = null; }
     setIsHovered(false);
-    const video = videoRef.current;
-    if (!video) return;
-    safePause(video);
-    const duration = video.duration;
-    if (isSafeVideoNumber(duration)) safeSeek(video, Math.min(duration * 0.1, 1));
-  }, []);
+    if (videoSlotGranted) {
+      const video = videoRef.current;
+      if (video) safePause(video);
+      releaseLoadSlot();
+      setVideoSlotGranted(false);
+    }
+  }, [videoSlotGranted]);
+
+  // Cleanup on unmount: release slot if held
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+      if (videoSlotGranted) releaseLoadSlot();
+    };
+  }, [videoSlotGranted]);
   
+  const handleMouseEnter = handleInteractionStart;
   const handleMouseLeave = handleInteractionEnd;
   
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -348,11 +358,12 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
         {hasVideo && videoSrc ? (
           <>
             {isIOSSafari ? (
-              isHovered ? (
+              videoSlotGranted ? (
                 <video ref={videoRef} src={videoSrc}
                   className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 scale-[1.08]"
                   loop muted playsInline preload="none"
                   onLoadedMetadata={handleVideoMetadataLoaded}
+                  onCanPlay={(e) => { safeSeek(e.currentTarget, 0); safePlay(e.currentTarget); }}
                   onError={() => setVideoError(true)} />
               ) : (
                 project.thumbnail_url ? (
@@ -373,12 +384,13 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
                     <LazyVideoThumbnail src={videoSrc} posterUrl={project.thumbnail_url} alt={project.name} className="w-full h-full object-cover" />
                   )}
                 </div>
-                {/* Only mount video element when actively hovered to prevent resource waste */}
-                {isHovered && (
+                {/* Only mount video when concurrency slot is granted */}
+                {videoSlotGranted && (
                   <video ref={videoRef} src={videoSrc}
                     className="absolute inset-0 w-full h-full object-cover transition-all duration-700 opacity-100 scale-[1.05]"
                     loop muted playsInline preload="none"
                     onLoadedMetadata={handleVideoMetadataLoaded}
+                    onCanPlay={(e) => { safeSeek(e.currentTarget, 0); safePlay(e.currentTarget); }}
                     onError={() => setVideoError(true)} />
                 )}
               </>

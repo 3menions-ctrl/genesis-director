@@ -322,7 +322,23 @@ ABSOLUTE RULES:
 5. ONE action per clip — what can animate from a single still frame in ${clipDuration}s
 6. Use contractions: "I'm", "can't", "won't" — never formal speech
 7. Scene changes use CLOSE-UP BRIDGE technique
-8. Output ONLY valid JSON, no markdown`;
+8. Output ONLY valid JSON, no markdown
+
+═══ CRITICAL: USER TEXT PRESERVATION ═══
+The user's prompt contains the EXACT MESSAGE they want their avatar to deliver.
+You MUST preserve their words as the core dialogue — do NOT replace, rewrite, or paraphrase them.
+You CAN:
+  ✅ Split their text across clips naturally (at sentence or phrase boundaries)
+  ✅ Add brief fun intros, reactions, transitions, or connective tissue AROUND their words
+  ✅ Add personality flair: a cheeky opener, a dramatic pause cue, a playful sign-off
+  ✅ Adjust phrasing slightly for spoken rhythm (e.g., "do not" → "don't") 
+  ✅ Add stage directions, emotions, and actions that enhance delivery
+You CANNOT:
+  ❌ Remove or skip any of the user's sentences or key points
+  ❌ Replace their message with a completely different script
+  ❌ Summarize or condense their text into something shorter
+  ❌ Change the meaning, tone, or intent of what they wrote
+Think of yourself as a DIRECTOR enhancing a performer's script, not a WRITER replacing it.`;
 }
 
 function buildKlingNativeUserPrompt(
@@ -335,9 +351,15 @@ function buildKlingNativeUserPrompt(
 ): string {
   const wordsPerClip = Math.floor(clipDuration * 2.2);
   
-  return `Write a ${clipCount}-clip screenplay for this concept:
+  return `Write a ${clipCount}-clip screenplay using the user's EXACT text as the core dialogue.
 
+═══ USER'S SCRIPT (MUST BE PRESERVED AS DIALOGUE) ═══
 "${userPrompt}"
+═══ END USER SCRIPT ═══
+
+IMPORTANT: The text above is what the avatar MUST say. Split it naturally across ${clipCount} clips.
+You may add brief fun intros, reactions, or transitions to make it entertaining, but the user's
+original words must appear as dialogue — in order, complete, and unaltered in meaning.
 
 ${isDual 
   ? `${primary.name} (A1) and ${secondary!.name} (A2) tell this story TOGETHER as a TWO-HANDER.
@@ -368,8 +390,9 @@ CHEMISTRY CHECKLIST:
 Each clip renders ONE character. They interact across cuts, not within frames.
 Every endPose must match the next clip's startPose for the same character.` 
   : `${primary.name} tells this story directly to camera — intimate, engaging, and memorable.
-Vary their energy across clips. Use the space around them. Make it feel ALIVE.
-Build a real arc: confession, escalation, callback. Make every second count.`
+Split the user's exact text across clips as natural dialogue. You can add a fun hook at the start
+or a playful sign-off, but the user's words are the BACKBONE of every clip's dialogue.
+Vary energy across clips. Use the space around them. Make it feel ALIVE.`
 }
 
 KLING-SPECIFIC REQUIREMENTS:
@@ -380,9 +403,12 @@ KLING-SPECIFIC REQUIREMENTS:
 5. Actions must be things Kling renders well: gestures, head turns, leaning, reactions, subtle movement
 6. AVOID: running, jumping, complex hand manipulation, rapid movements
 
-Make it genuinely ENTERTAINING — not generic. Give it a real story arc with REAL emotional stakes.
-Write dialogue that sounds like it came from a WRITER, not an AI. Use contractions, rhythm, personality.
-The audience should feel like they're eavesdropping on two fascinating people — or watching a confession unfold.
+DIALOGUE RULE: The user's script above is the CORE dialogue. Distribute it across clips naturally.
+You may add brief personality — a fun opener, a reaction beat, a cheeky aside — but NEVER remove
+or replace the user's original words. Every sentence from their script must appear in the final dialogue.
+
+Make it genuinely ENTERTAINING — add energy, personality, and flair AROUND their words.
+Write stage directions that bring their text to LIFE with great performance and timing.
 
 Output ONLY the JSON object. No markdown.`;
 }

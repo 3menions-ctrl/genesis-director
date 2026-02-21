@@ -403,7 +403,8 @@ function calculatePipelineParams(
   // Kling V3 credit pricing: all modes use Kling V3
   // avatarMode (videoEngine='kling') = native audio lip-sync → higher cost
   // T2V/I2V (videoEngine='veo' legacy or anything else) = standard cost
-  const videoEngine: 'kling' | 'veo' = (request as any).videoEngine || 'kling';
+  // FIX: Default to 'veo' (Kling V3 Standard) for T2V/I2V. Only Avatar explicitly sends 'kling'.
+  const videoEngine: 'kling' | 'veo' = (request as any).videoEngine || ((request as any).isAvatarMode ? 'kling' : 'veo');
   const isAvatarMode = videoEngine === 'kling' && !!(request as any).isAvatarMode;
   const totalCredits = calculateTotalCredits(clipCount, clipDuration, isAvatarMode);
   

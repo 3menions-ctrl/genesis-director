@@ -1014,20 +1014,16 @@ serve(async (req) => {
     }
 
     // Log API cost — Kling V3: all modes unified
-    // MARGIN STANDARD: All operations must maintain ≥50% profit margin
-    // Revenue per credit ≈ $0.10. Cost must be < $0.05/credit.
+    // Credits charged MUST match what mode-router actually deducts per clip:
+    //   Standard: 50cr (≤10s), 75cr (15s) — real cost ~$3.38/10s
+    //   Avatar:   60cr (≤10s), 90cr (15s) — real cost ~$4.00/10s (native audio)
+    // This ensures the admin profit dashboard shows accurate margins.
     try {
-      // FIX: Use isAvatarMode (explicit pipeline flag), NOT videoEngine === 'kling'
-      // since ALL modes now use Kling V3 as the engine.
-      // Kling V3 real cost: ~$0.03/s standard, ~$0.04/s avatar (native audio processing)
-      const realCostCents = Math.round(durationSeconds * (isAvatarMode ? 4 : 3));
-      // Credit pricing: T2V/I2V 12cr ≤10s / 18cr >10s | Avatar 15cr ≤10s / 22cr >10s
-      // Margin check (worst case, 10s standard): 12cr × $0.10 = $1.20 rev, $0.30 cost = 75% ✅
-      // Margin check (worst case, 15s avatar): 22cr × $0.10 = $2.20 rev, $0.60 cost = 73% ✅
+      const realCostCents = Math.round(durationSeconds * (isAvatarMode ? 40 : 34)); // $0.34/s std, $0.40/s avatar
       const isExtended = durationSeconds > 10;
       const creditsCharged = isAvatarMode
-        ? (isExtended ? 22 : 15)
-        : (isExtended ? 18 : 12);
+        ? (isExtended ? 90 : 60)
+        : (isExtended ? 75 : 50);
 
       await supabase.rpc('log_api_cost', {
         p_project_id: projectId,

@@ -1,4 +1,4 @@
-import { Type, Trash2, ArrowRightLeft, Sliders, Volume2, Gauge, Crop, Layout, Music, Zap, Smile } from "lucide-react";
+import { Type, Trash2, ArrowRightLeft, Sliders, Volume2, Gauge, Crop, Layout, Music, Zap, Smile, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,8 @@ import { TemplatesPanel } from "./TemplatesPanel";
 import { MusicLibraryPanel } from "./MusicLibraryPanel";
 import { TrendingEffectsPanel } from "./TrendingEffectsPanel";
 import { StickersPanel } from "./StickersPanel";
+import { TextAnimationPanel } from "./TextAnimationPanel";
+import { BeatSyncPanel } from "./BeatSyncPanel";
 import { cn } from "@/lib/utils";
 
 interface EditorSidebarProps {
@@ -32,6 +34,7 @@ interface EditorSidebarProps {
   onAddMusic?: (track: MusicTrack) => void;
   onAddSticker?: (stickerId: string, content: string, category: string) => void;
   onApplyEffect?: (effectId: string) => void;
+  onBeatSyncAutocut?: (cutPoints: number[]) => void;
 }
 
 export const EditorSidebar = ({

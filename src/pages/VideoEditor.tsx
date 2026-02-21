@@ -9,9 +9,11 @@ import { EditorTimeline } from "@/components/editor/EditorTimeline";
 import { EditorPreview } from "@/components/editor/EditorPreview";
 import { EditorSidebar } from "@/components/editor/EditorSidebar";
 import { EditorMediaBrowser } from "@/components/editor/EditorMediaBrowser";
+import { ExportDialog } from "@/components/editor/ExportDialog";
 import { Film, Sparkles } from "lucide-react";
 import { useEditorHistory } from "@/hooks/useEditorHistory";
-import type { EditorState, TimelineTrack, TimelineClip, MusicTrack, TimelineMarker } from "@/components/editor/types";
+import type { EditorState, TimelineTrack, TimelineClip, MusicTrack, TimelineMarker, ExportSettings } from "@/components/editor/types";
+import { DEFAULT_EXPORT_SETTINGS } from "@/components/editor/types";
 
 /**
  * Extract a clean, human-readable label from the raw AI generation prompt.
@@ -63,10 +65,12 @@ const VideoEditor = () => {
     duration: 0,
     isPlaying: false,
     selectedClipId: null,
+    selectedClipIds: [],
     zoom: 1,
     renderStatus: "idle",
     renderProgress: 0,
     markers: [],
+    exportSettings: DEFAULT_EXPORT_SETTINGS,
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -827,9 +831,57 @@ const VideoEditor = () => {
     toast.success("Clip moved to track");
   }, [withHistory]);
 
-  const handleSelectClip = useCallback((clipId: string | null) => {
-    setEditorState((prev) => ({ ...prev, selectedClipId: clipId }));
+  const handleSelectClip = useCallback((clipId: string | null, additive?: boolean) => {
+    setEditorState((prev) => {
+      if (additive && clipId) {
+        const ids = prev.selectedClipIds.includes(clipId)
+          ? prev.selectedClipIds.filter(id => id !== clipId)
+          : [...prev.selectedClipIds, clipId];
+        return { ...prev, selectedClipId: clipId, selectedClipIds: ids };
+      }
+      return { ...prev, selectedClipId: clipId, selectedClipIds: clipId ? [clipId] : [] };
+    });
   }, []);
+
+  const handleDeleteSelected = useCallback(() => {
+    const ids = editorState.selectedClipIds;
+    if (ids.length === 0) return;
+    withHistory((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map((t) => ({ ...t, clips: t.clips.filter((c) => !ids.includes(c.id)) })),
+      selectedClipId: null,
+      selectedClipIds: [],
+    }));
+    toast.success(`Deleted ${ids.length} clip(s)`);
+  }, [editorState.selectedClipIds, withHistory]);
+
+  const handleBeatSyncAutocut = useCallback((cutPoints: number[]) => {
+    withHistory((prev) => {
+      const videoTrack = prev.tracks.find(t => t.type === 'video');
+      if (!videoTrack || videoTrack.clips.length === 0) return prev;
+      
+      const newClips: TimelineClip[] = [];
+      for (const clip of videoTrack.clips) {
+        const cuts = cutPoints.filter(t => t > clip.start + 0.3 && t < clip.end - 0.3);
+        if (cuts.length === 0) { newClips.push(clip); continue; }
+        
+        let prevStart = clip.start;
+        for (const cut of cuts) {
+          newClips.push({ ...clip, id: `beat-${clip.id}-${cut}`, start: prevStart, end: cut, effects: [{ type: 'transition', name: 'crossfade', duration: 0.3 }] });
+          prevStart = cut;
+        }
+        newClips.push({ ...clip, id: `beat-${clip.id}-end`, start: prevStart, end: clip.end });
+      }
+      
+      return {
+        ...prev,
+        tracks: prev.tracks.map(t => t.id === videoTrack.id ? { ...t, clips: newClips.sort((a, b) => a.start - b.start) } : t),
+      };
+    });
+    toast.success(`Auto-cut: ${cutPoints.length} beat cuts applied`);
+  }, [withHistory]);
+
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   const handleTimeChange = useCallback((time: number) => {
     setEditorState((prev) => ({ ...prev, currentTime: time }));
@@ -1291,6 +1343,7 @@ const VideoEditor = () => {
               duration={editorState.duration}
               zoom={editorState.zoom}
               selectedClipId={editorState.selectedClipId}
+              selectedClipIds={editorState.selectedClipIds}
               snapEnabled={snapEnabled}
               onTimeChange={handleTimeChange}
               onSelectClip={handleSelectClip}
@@ -1302,6 +1355,7 @@ const VideoEditor = () => {
               onMoveClipToTrack={handleMoveClipToTrack}
               onToggleTrackMute={handleToggleTrackMute}
               onToggleTrackLock={handleToggleTrackLock}
+              onDeleteSelected={handleDeleteSelected}
             />
           </div>
         </div>
@@ -1319,9 +1373,19 @@ const VideoEditor = () => {
             onAddMusic={handleAddMusic}
             onAddSticker={handleAddSticker}
             onApplyEffect={handleApplyEffect}
+            onBeatSyncAutocut={handleBeatSyncAutocut}
           />
         </div>
       </div>
+
+      <ExportDialog
+        open={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        settings={editorState.exportSettings}
+        onSettingsChange={(settings) => setEditorState(prev => ({ ...prev, exportSettings: settings }))}
+        onExport={() => { setShowExportDialog(false); handleExport(); }}
+        isExporting={editorState.renderStatus === "rendering"}
+      />
     </div>
   );
 };

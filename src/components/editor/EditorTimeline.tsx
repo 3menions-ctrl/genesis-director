@@ -1,10 +1,10 @@
 import { useRef, useCallback, useState, useMemo } from "react";
-import { Film, Type, Music, Trash2, ZoomIn, ZoomOut, Volume2, VolumeX, Lock, Scissors } from "lucide-react";
+import { Film, Type, Music, Trash2, ZoomIn, ZoomOut, Volume2, VolumeX, Lock, Scissors, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { TimelineTrack, TimelineClip, TimelineMarker } from "./types";
-import { AudioWaveform } from "./AudioWaveform";
+import { RealAudioWaveform } from "./RealAudioWaveform";
 
 interface EditorTimelineProps {
   tracks: TimelineTrack[];
@@ -12,9 +12,10 @@ interface EditorTimelineProps {
   duration: number;
   zoom: number;
   selectedClipId: string | null;
+  selectedClipIds?: string[];
   snapEnabled?: boolean;
   onTimeChange: (time: number) => void;
-  onSelectClip: (clipId: string | null) => void;
+  onSelectClip: (clipId: string | null, additive?: boolean) => void;
   onUpdateClip: (clipId: string, updates: Partial<TimelineClip>) => void;
   onReorderClip: (clipId: string, newStart: number) => void;
   onZoomChange: (zoom: number) => void;
@@ -23,6 +24,7 @@ interface EditorTimelineProps {
   onMoveClipToTrack?: (clipId: string, targetTrackId: string) => void;
   onToggleTrackMute?: (trackId: string) => void;
   onToggleTrackLock?: (trackId: string) => void;
+  onDeleteSelected?: () => void;
 }
 
 const TRACK_HEIGHT = 56;
@@ -38,13 +40,15 @@ const trackColors: Record<string, { bg: string; bgSolid: string; border: string;
 const trackIcons: Record<string, typeof Film> = { video: Film, audio: Music, text: Type };
 
 export const EditorTimeline = ({
-  tracks, currentTime, duration, zoom, selectedClipId, snapEnabled = true,
+  tracks, currentTime, duration, zoom, selectedClipId, selectedClipIds = [], snapEnabled = true,
   onTimeChange, onSelectClip, onUpdateClip, onReorderClip, onZoomChange, onDeleteClip, onRippleDelete, onMoveClipToTrack,
-  onToggleTrackMute, onToggleTrackLock,
+  onToggleTrackMute, onToggleTrackLock, onDeleteSelected,
 }: EditorTimelineProps) => {
   const timelineRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{ clipId: string; startX: number; originalStart: number; mode: "move" | "trim-left" | "trim-right" } | null>(null);
   const [snapLine, setSnapLine] = useState<number | null>(null);
+  const [crossTrackDrag, setCrossTrackDrag] = useState<{ clipId: string; sourceTrackId: string; targetTrackId: string | null } | null>(null);
+  const [scrubPreview, setScrubPreview] = useState<{ time: number; x: number; y: number } | null>(null);
 
   const pxPerSec = PIXELS_PER_SECOND_BASE * zoom;
   const timelineWidth = Math.max(duration * pxPerSec, 800);
@@ -80,12 +84,15 @@ export const EditorTimeline = ({
     if (!rect) return;
     const x = e.clientX - rect.left + (timelineRef.current?.scrollLeft || 0);
     onTimeChange(Math.max(0, x / pxPerSec));
-    onSelectClip(null);
+    if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
+      onSelectClip(null);
+    }
   }, [pxPerSec, onTimeChange, onSelectClip]);
 
   const handleClipMouseDown = useCallback((e: React.MouseEvent, clip: TimelineClip, mode: "move" | "trim-left" | "trim-right") => {
     e.stopPropagation();
-    onSelectClip(clip.id);
+    const additive = e.shiftKey || e.ctrlKey || e.metaKey;
+    onSelectClip(clip.id, additive);
     setDragging({ clipId: clip.id, startX: e.clientX, originalStart: clip.start, mode });
 
     const handleMouseMove = (ev: MouseEvent) => {
@@ -243,11 +250,16 @@ export const EditorTimeline = ({
                     backgroundImage: `repeating-linear-gradient(90deg, transparent, transparent ${pxPerSec - 1}px, hsl(var(--muted)) ${pxPerSec}px)`,
                   }} />
 
-                  {track.clips.map((clip) => {
-                    const left = clip.start * pxPerSec;
-                    const width = (clip.end - clip.start) * pxPerSec;
-                    const isSelected = clip.id === selectedClipId;
-                    const hasTransition = clip.effects.some((e) => e.type === "transition");
+               {track.clips.map((clip, clipIndex) => {
+                     const left = clip.start * pxPerSec;
+                     const width = (clip.end - clip.start) * pxPerSec;
+                     const isSelected = clip.id === selectedClipId || selectedClipIds.includes(clip.id);
+                     const hasTransition = clip.effects.some((e) => e.type === "transition");
+                     // Check for adjacent clip (transition zone)
+                     const nextClip = track.clips
+                       .filter(c => c.start >= clip.end - 0.1 && c.id !== clip.id)
+                       .sort((a, b) => a.start - b.start)[0];
+                     const hasTransitionZone = nextClip && Math.abs(nextClip.start - clip.end) < 0.5;
 
                     return (
                       <div
@@ -265,7 +277,7 @@ export const EditorTimeline = ({
                             ? `0 0 24px ${colors.glow}, inset 0 1px 0 rgba(255,255,255,0.08)`
                             : 'inset 0 1px 0 rgba(255,255,255,0.04)',
                         }}
-                        onClick={(e) => { e.stopPropagation(); onSelectClip(clip.id); }}
+                        onClick={(e) => { e.stopPropagation(); onSelectClip(clip.id, e.shiftKey || e.ctrlKey || e.metaKey); }}
                         onMouseDown={(e) => handleClipMouseDown(e, clip, "move")}
                       >
                         {/* Left trim */}
@@ -276,7 +288,7 @@ export const EditorTimeline = ({
                         {/* Content */}
                         {track.type === "audio" ? (
                           <div className="flex-1 min-w-0 h-full relative">
-                            <AudioWaveform clipId={clip.id} width={Math.max(width, 28)} height={TRACK_HEIGHT - 16} color={colors.text} />
+                            <RealAudioWaveform clipId={clip.id} width={Math.max(width, 28)} height={TRACK_HEIGHT - 16} color={colors.text} />
                             <span className={cn("absolute bottom-1 left-2.5 text-[8px] font-medium truncate", colors.text, "opacity-60")}>
                               {clip.label}
                             </span>

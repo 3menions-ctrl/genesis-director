@@ -109,10 +109,12 @@ describe('Editor Types', () => {
         duration: 30,
         isPlaying: false,
         selectedClipId: null,
+        selectedClipIds: [],
         zoom: 1,
         renderStatus: 'idle',
         renderProgress: 0,
         markers: [],
+        exportSettings: { resolution: '1080p', aspectRatio: '16:9', format: 'mp4', quality: 'high', fps: 30 },
       };
       expect(state.renderStatus).toBe('idle');
       expect(state.duration).toBe(30);

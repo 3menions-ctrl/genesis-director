@@ -36,9 +36,9 @@ export default function Creators() {
     queryFn: async () => {
       let query = supabase
         .from('movie_projects')
-        .select('id, title, thumbnail_url, video_url, video_clips, likes_count, created_at, user_id')
+        .select('id, title, thumbnail_url, video_url, video_clips, likes_count, created_at, user_id, pending_video_tasks')
         .eq('is_public', true)
-        .not('video_url', 'is', null)
+        .eq('status', 'completed')
         .order('created_at', { ascending: false })
         .limit(60);
 
@@ -72,7 +72,14 @@ export default function Creators() {
             const firstMp4 = (p.video_clips as string[]).find((u: string) => u.includes('.mp4'));
             if (firstMp4) clipUrl = firstMp4;
           }
-          return { ...p, first_clip_url: clipUrl };
+          // Resolve effective video_url from pending_video_tasks if missing
+          let effectiveVideoUrl = p.video_url;
+          if (!effectiveVideoUrl) {
+            const tasks = p.pending_video_tasks as Record<string, unknown> | null;
+            if (tasks?.hlsPlaylistUrl) effectiveVideoUrl = tasks.hlsPlaylistUrl as string;
+            else if (tasks?.manifestUrl) effectiveVideoUrl = tasks.manifestUrl as string;
+          }
+          return { ...p, video_url: effectiveVideoUrl, first_clip_url: clipUrl };
         });
       }
 
@@ -82,7 +89,13 @@ export default function Creators() {
           const firstMp4 = (p.video_clips as string[]).find((u: string) => u.includes('.mp4'));
           if (firstMp4) clipUrl = firstMp4;
         }
-        return { ...p, first_clip_url: clipUrl };
+        let effectiveVideoUrl = p.video_url;
+        if (!effectiveVideoUrl) {
+          const tasks = p.pending_video_tasks as Record<string, unknown> | null;
+          if (tasks?.hlsPlaylistUrl) effectiveVideoUrl = tasks.hlsPlaylistUrl as string;
+          else if (tasks?.manifestUrl) effectiveVideoUrl = tasks.manifestUrl as string;
+        }
+        return { ...p, video_url: effectiveVideoUrl, first_clip_url: clipUrl };
       });
     },
     staleTime: 60000,

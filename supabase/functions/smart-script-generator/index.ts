@@ -510,7 +510,7 @@ CHARACTER/ENVIRONMENT CONSISTENCY:
 • Define character appearance fully in clip 1 — same description in ALL clips
 • Same location, same lighting tone across all clips
 • Static background elements mentioned identically in each clip
-${isImageToVideo ? '\n• Reference image defines the character and starting environment — describe MOTION that emerges from it' : ''}
+${isImageToVideo ? '\n• The uploaded photograph IS the story. Clip 1 unfreezes this exact frame. Every clip stays faithful to this person, this world, this light. The image is not a constraint — it is the creative origin.' : ''}
 ${voiceDisabled ? '\n🔇 SILENT MODE: dialogue field = "" for ALL clips. Pure visual storytelling.' : ''}
 ${mustPreserveContent ? '\n🎤 USER TEXT: Use the user\'s exact narration/dialogue VERBATIM in the dialogue field. Do not paraphrase.' : ''}
 
@@ -612,65 +612,117 @@ ${mustPreserveContent ? '- PRESERVE USER\'S EXACT NARRATION/DIALOGUE in the "dia
 Output ONLY valid JSON with exactly ${clipCount} clips.`;
     } else {
       // Generate from topic - create a continuous scene
-      // For image-to-video, the reference image analysis is the PRIMARY source
       const refAnalysis = request.referenceImageAnalysis;
       
-      userPrompt = `Create a continuous scene broken into ${clipCount} clips for:
+      if (isImageToVideo && refAnalysis) {
+        // =====================================================
+        // 🎬 IMAGE-IS-THE-STORY MODE — The uploaded image IS the narrative seed
+        // =====================================================
+        // The script derives its story FROM the image: the frozen moment becomes
+        // a living, breathing cinematic sequence. The user's prompt adds flavor,
+        // but the WHO, WHERE, MOOD, and implied NARRATIVE come from the photo.
+        // =====================================================
+        userPrompt = `You are looking at a FROZEN MOMENT captured in a photograph. Your job is to UNFREEZE it — to imagine the seconds before and after this frame, and build a ${clipCount}-clip cinematic sequence that brings this image to life.
 
-${isImageToVideo && refAnalysis ? `
 =======================================================================
-🎯 IMAGE-TO-VIDEO MODE: FOLLOW THE REFERENCE IMAGE STRICTLY
+🎬 THE IMAGE IS YOUR STORY — DERIVE EVERYTHING FROM IT
 =======================================================================
-The user has uploaded a reference image. The script MUST describe what's IN this image.
 
-USER'S ACTION PROMPT (what should happen):
-"${request.topic}"
+WHAT THE IMAGE SHOWS:
 
-CHARACTER FROM IMAGE (MANDATORY - use in ALL clips):
-${refAnalysis.characterIdentity?.description || 'Person as shown in reference'}
-- Clothing: ${refAnalysis.characterIdentity?.clothing || 'As shown in image'}
-- Features: ${refAnalysis.characterIdentity?.facialFeatures || 'As shown in image'}
-- Body: ${refAnalysis.characterIdentity?.bodyType || 'As shown in image'}
+PERSON / SUBJECT:
+${refAnalysis.characterIdentity?.description || 'Subject as visible in reference'}
+- Appearance: ${refAnalysis.characterIdentity?.facialFeatures || 'As shown'}
+- Clothing: ${refAnalysis.characterIdentity?.clothing || 'As shown'}
+- Body Language: ${refAnalysis.characterIdentity?.bodyType || 'As shown'}
+- Distinctive Features: ${refAnalysis.characterIdentity?.distinctiveMarkers?.join(', ') || 'As visible'}
 
-ENVIRONMENT FROM IMAGE (MANDATORY - use in ALL clips):
+ENVIRONMENT / WORLD:
 ${refAnalysis.environment?.setting || 'Location as shown in reference'}
-- Key Objects: ${refAnalysis.environment?.keyObjects?.join(', ') || 'As visible in image'}
+- Geometry: ${refAnalysis.environment?.geometry || 'As visible'}
+- Key Objects: ${refAnalysis.environment?.keyObjects?.join(', ') || 'As visible'}
+- Background: ${refAnalysis.environment?.backgroundElements?.join(', ') || 'As visible'}
 
-LIGHTING FROM IMAGE (MANDATORY - use in ALL clips):
-${refAnalysis.lighting?.style || 'As shown in reference'}, ${refAnalysis.lighting?.direction || 'natural direction'}
+LIGHTING / ATMOSPHERE:
+${refAnalysis.lighting?.style || 'As shown'}, Direction: ${refAnalysis.lighting?.direction || 'natural'}
+Quality: ${refAnalysis.lighting?.quality || 'as captured'}, Time: ${refAnalysis.lighting?.timeOfDay || 'as shown'}
 
-COLOR MOOD: ${refAnalysis.colorPalette?.mood || 'As shown in reference'}
+COLOR / MOOD:
+Palette: ${refAnalysis.colorPalette?.dominant?.join(', ') || 'as visible'}
+Emotional Mood: ${refAnalysis.colorPalette?.mood || 'as captured'}
 
-CONSISTENCY PROMPT (include in every clip description):
-"${refAnalysis.consistencyPrompt || 'Same person, same location, same lighting as reference image'}"
+CONSISTENCY DNA (embed in EVERY clip):
+"${refAnalysis.consistencyPrompt || 'Same person, same world, same light — exactly as the photograph shows'}"
 
-STRICT RULES:
-1. The character is the EXACT person from the reference image
-2. The location is the EXACT environment from the reference image  
-3. Your job is to describe the ACTIONS specified in the user's prompt
-4. DO NOT invent new characters, locations, or change the appearance
-5. Each clip shows this person doing the actions the user requested
-=======================================================================
+${request.topic ? `
+USER'S CREATIVE DIRECTION (flavor, NOT override):
+"${request.topic}"
+Use this to inspire WHAT HAPPENS (actions, emotion, story beats) — but the WHO and WHERE
+must come from the image above. If the user's prompt conflicts with the image, the IMAGE WINS.
 ` : `
+No specific action requested — derive the story entirely from the image.
+Ask yourself: What was happening 5 seconds before this photo was taken? What happens next?
+What emotion is frozen in this moment? Build a beautiful, cinematic expansion of this frozen instant.
+`}
+
+=======================================================================
+HOW TO BUILD THE STORY FROM THE IMAGE:
+=======================================================================
+1. CLIP 1 opens on this EXACT image — describe the frozen frame coming alive
+   (a breath taken, a blink, light shifting, dust motes resuming their drift)
+2. Each subsequent clip expands outward from this moment — organic, natural motion
+3. The environment BREATHES: wind picks up, light changes subtly, atmosphere responds
+4. The subject's body language tells the emotional story — no need to invent drama
+5. The final clip should feel like a cinematic resolution of the moment's energy
+6. EVERY clip maintains this person, this place, this light — NO departures
+
+FORBIDDEN:
+- Inventing new characters not in the image
+- Changing location or environment
+- Altering the subject's appearance, clothing, or features
+- Generic/stock imagery that ignores the specific photograph
+- Treating the image as just a "starting frame" then going somewhere else
+=======================================================================
+
+
+${request.environmentPrompt ? `
+🎬 USER'S SCENE OVERRIDE: "${request.environmentPrompt}"
+Place the person from the photograph INTO this scene. Use this environment for ALL clips.
+` : ''}
+
+${hasUserNarration ? `
+USER'S NARRATION (USE EXACTLY - DO NOT MODIFY):
+"""
+${request.userNarration}
+"""
+Distribute across the ${clipCount} clips in the "dialogue" field. Use EXACT words.
+` : ''}
+${hasUserDialogue && request.userDialogue ? `
+USER'S DIALOGUE (USE EXACTLY - DO NOT MODIFY):
+${request.userDialogue.map((d, i) => `Line ${i + 1}: "${d}"`).join('\n')}
+` : ''}
+
+Create ONE continuous scene with ${clipCount} progressive clips. Each clip = ${clipDuration} seconds on Kling V3.
+Total duration: ${targetSeconds} seconds.
+The IMAGE is the story origin. Clip 1 unfreezes the photograph. Every clip stays in this world.
+Each description: 80-150 words, vivid and action-dense. No generic adjectives.
+${mustPreserveContent ? 'Use the user\'s EXACT narration/dialogue verbatim in the "dialogue" field.' : ''}
+
+Output ONLY valid JSON with exactly ${clipCount} clips.`;
+      } else {
+        // Standard text-to-video mode
+        userPrompt = `Create a continuous scene broken into ${clipCount} clips for:
+
 TOPIC: ${request.topic}
 ${request.synopsis ? `SYNOPSIS: ${request.synopsis}` : ''}
 ${request.style ? `STYLE: ${request.style}` : ''}
 ${request.genre ? `GENRE: ${request.genre}` : ''}
 ${request.mainSubjects?.length ? `MAIN SUBJECTS: ${request.mainSubjects.join(', ')}` : ''}
 ${request.environmentHints?.length ? `ENVIRONMENT: ${request.environmentHints.join(', ')}` : ''}
-`}
 
 ${request.environmentPrompt ? `
-=======================================================================
-🎬 USER'S SCENE DESCRIPTION (HIGHEST PRIORITY - OVERRIDES REFERENCE IMAGE):
-=======================================================================
+ENVIRONMENT DNA (MANDATORY - ALL clips MUST use this):
 "${request.environmentPrompt}"
-
-This is the user's EXPLICIT scene request. The character from the reference image 
-should be placed INTO THIS SCENE. Do NOT use the reference image's background.
-Use this EXACT environment for ALL clips' locationDescription field.
-Generate appropriate lighting for this scene in the lightingDescription field.
-=======================================================================
 ` : ''}
 
 ${request.characterLock ? `
@@ -692,12 +744,12 @@ USER'S NARRATION (USE EXACTLY - DO NOT MODIFY OR PARAPHRASE):
 """
 ${request.userNarration}
 """
-Distribute this narration across the ${clipCount} clips in the "dialogue" field. Use the EXACT words provided.
+Distribute across the ${clipCount} clips in the "dialogue" field. Use EXACT words.
 ` : ''}
 ${hasUserDialogue && request.userDialogue ? `
 USER'S DIALOGUE (USE EXACTLY - DO NOT MODIFY OR PARAPHRASE):
 ${request.userDialogue.map((d, i) => `Line ${i + 1}: "${d}"`).join('\n')}
-Include these dialogue lines in appropriate clips' "dialogue" field. Use EXACT words.
+Include in appropriate clips' "dialogue" field. Use EXACT words.
 ` : ''}
 
 Create ONE continuous scene with ${clipCount} progressive clips. Each clip = ${clipDuration} seconds on Kling V3.
@@ -707,10 +759,9 @@ Show progressive story arc: hook → build → escalate → climax → resolve.
 Each description: 80-150 words, vivid and action-dense. No generic adjectives.
 ${request.environmentPrompt ? `MANDATORY: Use "${request.environmentPrompt}" as the scene/location for ALL clips.` : ''}
 ${mustPreserveContent ? 'Use the user\'s EXACT narration/dialogue verbatim in the "dialogue" field.' : ''}
-${isImageToVideo && !request.environmentPrompt ? 'Character and environment MUST match the reference image. Describe MOTION emerging from the reference.' : ''}
-${isImageToVideo && request.environmentPrompt ? 'Use character from reference image placed in the USER\'S REQUESTED SCENE.' : ''}
 
 Output ONLY valid JSON with exactly ${clipCount} clips.`;
+      }
     }
 
     console.log("[SmartScript] 🎬 Calling GPT-4o for entertainment-first scene breakdown...");

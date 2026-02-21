@@ -74,19 +74,48 @@ export interface AvatarCategory {
 
 export const AVATAR_CATEGORIES: AvatarCategory[] = [
   { id: 'all', name: 'All', icon: '✨', tags: [] },
-  { id: 'kids', name: 'Kids & Cute', icon: '🧸', tags: ['kids', 'friendly', 'cheerful', 'cute'] },
-  { id: 'holiday', name: 'Holiday', icon: '🎄', tags: ['holiday', 'christmas', 'easter', 'halloween', 'valentines', 'thanksgiving', 'diwali', 'hanukkah', 'kwanzaa', 'lunar-new-year', 'eid', 'carnival', 'st-patricks', 'independence-day', 'new-years'] },
-  { id: 'animal', name: 'Animals', icon: '🦊', tags: ['animal', 'fox', 'bear', 'bunny', 'cat', 'canine', 'owl', 'penguin', 'dragon'] },
-  { id: 'folklore', name: 'Folklore', icon: '🧙', tags: ['folklore', 'mythical', 'fairy-tale', 'legend'] },
-  { id: 'biblical', name: 'Biblical', icon: '📖', tags: ['biblical', 'angel', 'prophet', 'ancient'] },
-  { id: 'historical', name: 'Historical', icon: '🏛️', tags: ['historical', 'emperor', 'leader', 'ancient', 'medieval', 'renaissance'] },
-  { id: 'famous', name: 'Famous Faces', icon: '⭐', tags: ['famous', 'celebrity', 'icon', 'legend'] },
-  { id: 'corporate', name: 'Business', icon: '💼', tags: ['corporate', 'professional'] },
-  { id: 'creative', name: 'Creative', icon: '🎨', tags: ['creative', 'artistic', 'artist'] },
-  { id: 'educational', name: 'Education', icon: '📚', tags: ['educational'] },
-  { id: 'influencer', name: 'Influencer', icon: '📱', tags: ['influencer', 'modern'] },
-  { id: 'luxury', name: 'Premium', icon: '👑', tags: ['luxury'] },
-  { id: 'casual', name: 'Casual', icon: '😎', tags: ['casual'] },
+
+  // ── People & Lifestyle ──
+  { id: 'kids', name: 'Kids & Cute', icon: '🧸', tags: ['kids', 'friendly', 'cheerful', 'cute', 'joyful', 'gentle'] },
+  { id: 'casual', name: 'Casual', icon: '😎', tags: ['casual', 'relaxed', 'relatable', 'lifestyle', 'social', 'funny'] },
+  { id: 'corporate', name: 'Business', icon: '💼', tags: ['corporate', 'professional', 'executive', 'consulting', 'finance', 'investment', 'real-estate', 'sales', 'leadership', 'formal'] },
+  { id: 'influencer', name: 'Influencer', icon: '📱', tags: ['influencer', 'modern', 'streamer', 'gamer', 'esports', 'media', 'entertainment', 'hosting'] },
+  { id: 'creative', name: 'Creative', icon: '🎨', tags: ['creative', 'artistic', 'artist', 'writer', 'art', 'storytelling', 'colorful'] },
+  { id: 'educational', name: 'Education', icon: '📚', tags: ['educational', 'education', 'academic', 'scholarly', 'tutorial', 'mentor', 'guide', 'coaching', 'training'] },
+  { id: 'luxury', name: 'Premium', icon: '👑', tags: ['luxury', 'premium', 'glamorous', 'elegant', 'sophisticated', 'wealthy', 'fashionable', 'fashion', 'beauty', 'style'] },
+
+  // ── Health & Wellness ──
+  { id: 'health', name: 'Health', icon: '🏥', tags: ['health', 'medical', 'dental', 'wellness', 'mindfulness', 'fitness', 'athletic', 'athlete'] },
+
+  // ── Food & Culinary ──
+  { id: 'food', name: 'Food & Chef', icon: '🍳', tags: ['food', 'culinary', 'chef'] },
+
+  // ── Tech & Science ──
+  { id: 'tech', name: 'Tech & Science', icon: '🤖', tags: ['tech', 'AI', 'robot', 'futuristic', 'scientist', 'genius', 'analytical', 'agile', 'space', 'astronaut'] },
+
+  // ── Animals & Creatures ──
+  { id: 'animal', name: 'Animals', icon: '🦊', tags: ['animal', 'fox', 'bear', 'bunny', 'cat', 'canine', 'owl', 'penguin', 'dragon', 'wolf', 'lion', 'tiger', 'eagle', 'falcon', 'horse', 'elephant', 'gorilla', 'dolphin', 'turtle', 'snake', 'parrot', 'raccoon', 'cheetah', 'leopard', 'feline', 'dog', 'reindeer'] },
+
+  // ── Fantasy & Myth ──
+  { id: 'fantasy', name: 'Fantasy', icon: '🧙', tags: ['fantasy', 'magic', 'wizard', 'fairy', 'elf', 'dragon', 'superhero', 'hero', 'demon', 'ghost', 'ninja', 'pirate', 'mystery', 'detective'] },
+
+  // ── History & Royalty ──
+  { id: 'historical', name: 'Historical', icon: '🏛️', tags: ['historical', 'emperor', 'empress', 'leader', 'ancient', 'medieval', 'renaissance', 'roman', 'egyptian', 'victorian', 'viking', 'norse', 'samurai', 'warrior', 'warrior-queen', 'conqueror', 'king', 'queen', 'royalty', 'princess', 'matriarch', 'philosopher', 'heian', 'incan', 'pilgrim'] },
+
+  // ── Biblical & Spiritual ──
+  { id: 'biblical', name: 'Biblical', icon: '📖', tags: ['biblical', 'angel', 'prophet', 'heaven', 'protector', 'wise', 'wisdom', 'elder'] },
+
+  // ── Holiday & Seasonal ──
+  { id: 'holiday', name: 'Holiday', icon: '🎄', tags: ['holiday', 'christmas', 'easter', 'halloween', 'valentine', 'thanksgiving', 'diwali', 'hanukkah', 'kwanzaa', 'lunarnewyear', 'carnival', 'stpatricks', 'independence', 'holi', 'hanami', 'dayofdead', 'santa', 'gingerbread', 'snowman', 'pumpkin', 'ghost', 'cupid', 'leprechaun', 'fireworks', 'turkey', 'frost', 'winter', 'elf', 'reindeer'] },
+
+  // ── World Cultures ──
+  { id: 'cultures', name: 'World Cultures', icon: '🌍', tags: ['african', 'african american', 'african-american', 'asian', 'east asian', 'south asian', 'south-asian', 'indian', 'japanese', 'korean', 'chinese', 'vietnamese', 'hispanic', 'latina', 'latin-american', 'brazilian', 'colombian', 'mexican', 'peruvian', 'british', 'french caucasian', 'german', 'italian', 'spanish', 'swedish', 'scandinavian', 'european', 'middle eastern', 'middle-eastern', 'jewish', 'nigerian', 'ghanaian', 'senegalese', 'malian', 'mongolian', 'bengal'] },
+
+  // ── Adventure & Action ──
+  { id: 'adventure', name: 'Adventure', icon: '⚔️', tags: ['adventure', 'explorer', 'captain', 'bold', 'strong', 'powerful', 'energetic', 'speed', 'fast', 'stealth', 'predator', 'ocean', 'forest', 'arctic', 'majestic', 'independent'] },
+
+  // ── Motivation ──
+  { id: 'motivation', name: 'Motivation', icon: '🔥', tags: ['motivation', 'motivational', 'inspirational', 'passionate', 'edgy', 'expert', 'natural', 'helpful', 'patient', 'clever', 'assistant'] },
 ];
 
 // Style categories for filtering (legacy — kept for popover filter)

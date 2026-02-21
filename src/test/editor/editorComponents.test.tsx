@@ -271,7 +271,7 @@ describe('EditorTimeline', () => {
   it('calls onSelectClip when clip clicked', () => {
     render(<EditorTimeline {...defaultProps} />);
     fireEvent.click(screen.getByText('Shot 1'));
-    expect(defaultProps.onSelectClip).toHaveBeenCalledWith('clip-1');
+    expect(defaultProps.onSelectClip).toHaveBeenCalledWith('clip-1', false);
   });
 
   it('shows transition indicator on clips with effects', () => {

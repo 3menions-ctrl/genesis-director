@@ -200,9 +200,15 @@ serve(async (req) => {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // DUPLICATE PREDICTION GUARD: Prevent double-firing from retries/watchdog
-    // If this project already has active Kling predictions, refuse to start new ones.
-    // This is the CRITICAL fix for the "two videos generated" credit-waste bug.
+    // DUPLICATE PREDICTION GUARD v2.0 — ATOMIC LOCK
+    // 
+    // THE BUG: resilientFetch(maxRetries=1) fires generate-avatar-direct TWICE
+    // if the first call takes >timeout. The first call creates Kling predictions
+    // but hasn't saved state yet when the second call checks. Result: 3 predictions
+    // for a 2-clip job (first call = correct video, retry = wrong video that overwrites).
+    //
+    // THE FIX: Set an atomic lock in pending_video_tasks BEFORE any Kling calls.
+    // Concurrent/retry invocations see the lock and refuse immediately.
     // ═══════════════════════════════════════════════════════════════════════════
     if (projectId) {
       const { data: existingProject } = await supabase
@@ -215,7 +221,7 @@ serve(async (req) => {
         const existingTasks = (existingProject.pending_video_tasks || {}) as Record<string, any>;
         const existingPipeline = (existingProject.pipeline_state || {}) as Record<string, any>;
         
-        // Check if there are active predictions already running
+        // GUARD 1: Check for avatar_async type (predictions already saved from a prior call)
         if (existingTasks.type === 'avatar_async' && Array.isArray(existingTasks.predictions)) {
           const activePredictions = existingTasks.predictions.filter(
             (p: { status: string; predictionId?: string }) => 
@@ -223,39 +229,56 @@ serve(async (req) => {
           );
           
           if (activePredictions.length > 0) {
-            console.warn(`[AvatarDirect] ⛔ DUPLICATE GUARD: Project ${projectId} already has ${activePredictions.length} active predictions. REFUSING to start new ones.`);
-            console.warn(`[AvatarDirect] Active prediction IDs: ${activePredictions.map((p: any) => p.predictionId).join(', ')}`);
-            
+            console.warn(`[AvatarDirect] ⛔ GUARD 1: Project ${projectId} has ${activePredictions.length} active predictions. REFUSING.`);
             return new Response(
               JSON.stringify({
-                success: true,
-                async: true,
-                message: `Avatar already generating — ${activePredictions.length} predictions active. Watchdog will complete them.`,
-                projectId,
-                status: 'already_generating',
-                duplicateGuardTriggered: true,
+                success: true, async: true,
+                message: `Avatar already generating — ${activePredictions.length} predictions active.`,
+                projectId, status: 'already_generating', duplicateGuardTriggered: true,
               }),
               { headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
         }
         
-        // Also check pipeline_state for active predictionId (single-clip path)
+        // GUARD 2: Check atomic lock (set BEFORE Kling calls, catches race condition)
+        if (existingTasks._generationLock) {
+          const lockAge = Date.now() - new Date(existingTasks._generationLock).getTime();
+          if (lockAge < 5 * 60 * 1000) { // Lock valid for 5 min
+            console.warn(`[AvatarDirect] ⛔ GUARD 2 (ATOMIC LOCK): Project ${projectId} locked ${Math.round(lockAge/1000)}s ago. REFUSING.`);
+            return new Response(
+              JSON.stringify({
+                success: true, async: true,
+                message: 'Avatar generation in progress (atomic lock).',
+                projectId, status: 'already_generating', duplicateGuardTriggered: true,
+              }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          console.log(`[AvatarDirect] Stale lock (${Math.round(lockAge/1000)}s old), proceeding...`);
+        }
+        
+        // GUARD 3: Check pipeline_state for active prediction (single-clip path)
         if (existingProject.status === 'generating' && existingPipeline.predictionId && existingPipeline.stage === 'async_video_generation') {
-          console.warn(`[AvatarDirect] ⛔ DUPLICATE GUARD: Project ${projectId} has active pipeline prediction ${existingPipeline.predictionId}. REFUSING to start new one.`);
-          
+          console.warn(`[AvatarDirect] ⛔ GUARD 3: Active pipeline prediction ${existingPipeline.predictionId}. REFUSING.`);
           return new Response(
             JSON.stringify({
-              success: true,
-              async: true,
+              success: true, async: true,
               message: 'Avatar already generating. Watchdog will complete it.',
-              projectId,
-              status: 'already_generating',
-              duplicateGuardTriggered: true,
+              projectId, status: 'already_generating', duplicateGuardTriggered: true,
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
+        
+        // ═══ SET ATOMIC LOCK IMMEDIATELY ═══
+        // MUST happen BEFORE any Kling API calls so concurrent invocations see it
+        console.log(`[AvatarDirect] 🔒 Setting atomic generation lock for project ${projectId}`);
+        await supabase.from('movie_projects').update({
+          pending_video_tasks: {
+            _generationLock: new Date().toISOString(),
+          },
+        }).eq('id', projectId);
       }
     }
 

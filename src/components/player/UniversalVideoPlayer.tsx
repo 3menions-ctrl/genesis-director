@@ -363,6 +363,33 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                   setIsLoading(false);
                   return;
                 }
+                // Manifest has no HLS — generate one from the project's clips
+                if (manifest?.clips?.length) {
+                  console.log('[UniversalPlayer] Manifest found but no HLS — generating HLS playlist...');
+                  try {
+                    const { data: hlsResult } = await supabase.functions.invoke('generate-hls-playlist', {
+                      body: { projectId: sourceProjectId }
+                    });
+                    if (hlsResult?.success && hlsResult.hlsPlaylistUrl) {
+                      if (!mountedRef.current) return;
+                      setHlsPlaylistUrl(hlsResult.hlsPlaylistUrl);
+                      setThumbnailUrl(manifest.clips[0].videoUrl || null);
+                      setExportUrl(manifest.clips[0].videoUrl || null);
+                      setIsLoading(false);
+                      return;
+                    }
+                  } catch (err) {
+                    console.warn('[UniversalPlayer] HLS generation from manifest clips failed:', err);
+                  }
+                  // Last resort: build client-side HLS from manifest clips
+                  // Use first clip as direct MP4 fallback
+                  if (!mountedRef.current) return;
+                  setHlsPlaylistUrl(manifest.clips[0].videoUrl);
+                  setThumbnailUrl(manifest.clips[0].videoUrl);
+                  setExportUrl(manifest.clips[0].videoUrl);
+                  setIsLoading(false);
+                  return;
+                }
               } else if (videoUrl.endsWith('.mp4') || videoUrl.endsWith('.webm') || videoUrl.includes('/video-clips/')) {
                 // Single video — still use HLS via edge function or direct play
                 if (!mountedRef.current) return;

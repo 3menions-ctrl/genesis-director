@@ -86,15 +86,17 @@ serve(async (req) => {
     // Build prompt based on type
     let prompt: string;
     
+    const fullBodyDirective = "CRITICAL: Show the COMPLETE figure from the top of the head to the bottom of the feet. Do NOT crop or cut off any part of the body. Full head-to-toe framing is mandatory. Leave padding/space above the head and below the feet.";
+
     if (isAnimal && isAnimated) {
-      prompt = `Premium 3D animated character portrait of ${name}, a ${ethnicity}. Style: High-end 3D CGI (Pixar/DreamWorks quality). ${personality}. ${clothing}. Full body visible, clean studio background, vibrant colors, expressive features, anthropomorphic with personality. Ultra high resolution 8K.`;
+      prompt = `Premium 3D animated character portrait of ${name}, a ${ethnicity}. Style: High-end 3D CGI (Pixar/DreamWorks quality). ${personality}. ${clothing}. ${fullBodyDirective} Clean studio background, vibrant colors, expressive features, anthropomorphic with personality. Ultra high resolution 8K.`;
     } else if (isAnimal) {
-      prompt = `Ultra-realistic professional wildlife photograph of ${name}, a ${ethnicity}. ${clothing}. ${personality}. National Geographic quality, natural lighting, full body visible, studio backdrop, 8K photorealistic. Ultra high resolution.`;
+      prompt = `Ultra-realistic professional wildlife photograph of ${name}, a ${ethnicity}. ${clothing}. ${personality}. ${fullBodyDirective} National Geographic quality, natural lighting, studio backdrop, 8K photorealistic. Ultra high resolution.`;
     } else if (isAnimated) {
-      prompt = `Premium 3D animated character of ${name}, ${gender} ${ethnicity}. Style: High-end 3D CGI (Pixar/DreamWorks). ${personality}. Age: ${ageRange}. Outfit: ${clothing}. Full body head to toe, clean studio background, expressive engaging pose. Ultra high resolution.`;
+      prompt = `Premium 3D animated character of ${name}, ${gender} ${ethnicity}. Style: High-end 3D CGI (Pixar/DreamWorks). ${personality}. Age: ${ageRange}. Outfit: ${clothing}. ${fullBodyDirective} Clean studio background, expressive engaging pose. Ultra high resolution.`;
     } else {
       // Realistic human
-      prompt = `Ultra-realistic professional photograph of ${name}, ${gender} ${ethnicity}${era ? ` from ${era}` : ""}. Facing camera, full body from head to toe. Age: ${ageRange}. ${personality}. Outfit: ${clothing}. Professional studio lighting, Canon EOS R5, 85mm lens, 8K resolution, clean neutral gray background. Indistinguishable from real photograph. Ultra high resolution.`;
+      prompt = `Ultra-realistic professional photograph of ${name}, ${gender} ${ethnicity}${era ? ` from ${era}` : ""}. Facing camera. Age: ${ageRange}. ${personality}. Outfit: ${clothing}. ${fullBodyDirective} Professional studio lighting, Canon EOS R5, 85mm lens, 8K resolution, clean neutral gray background. Indistinguishable from real photograph. Ultra high resolution.`;
     }
 
     console.log(`[SingleAvatar] Generating: ${name}`);

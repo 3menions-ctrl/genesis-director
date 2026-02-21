@@ -117,7 +117,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   const [cinematicMode, setCinematicMode] = useState<CinematicModeConfig>(DEFAULT_CINEMATIC_CONFIG);
   
   // ========== ACCURATE CLIP COUNT - Auto-calculated from script ==========
-  // Uses 2.5 words/second speaking rate and 10-second avatar clips (Kling v2.6 max)
+  // Uses 2.5 words/second speaking rate and 10-second avatar clips (Kling V3, 3-15s)
   const { warmupState } = usePredictivePipeline(prompt, {
     wordsPerSecond: 2.5,  // Standard speaking rate
     debounceMs: 300,      // Quick updates as user types

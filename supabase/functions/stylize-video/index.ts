@@ -89,8 +89,8 @@ serve(async (req) => {
     console.log(`[stylize-video] Applying ${style} style to video`);
     console.log(`[stylize-video] Prompt: ${styleConfig.prompt}`);
 
-    // Use Kling v2.6 for video-to-video style transfer
-    const response = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
+    // Use Kling V3 for video-to-video style transfer
+    const response = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v3-video/predictions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${REPLICATE_API_KEY}`,
@@ -101,7 +101,7 @@ serve(async (req) => {
           mode: "pro",
           prompt: styleConfig.prompt,
           start_video: videoUrl,
-          duration: 5, // Default duration, will match source
+          duration: 10, // Kling V3 default duration
           negative_prompt: styleConfig.negativePrompt,
         },
       }),

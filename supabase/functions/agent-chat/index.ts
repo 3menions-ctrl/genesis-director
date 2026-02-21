@@ -255,7 +255,7 @@ const AGENT_TOOLS = [
           mode: { type: "string", enum: ["text-to-video", "image-to-video", "avatar"] },
           aspect_ratio: { type: "string", enum: ["16:9", "9:16", "1:1"] },
           clip_count: { type: "number", description: "1-20 clips" },
-          clip_duration: { type: "number", enum: [5, 10] },
+          clip_duration: { type: "number", enum: [5, 10, 15], description: "Duration per clip in seconds (Kling V3: 3-15s)" },
         },
         required: ["title", "prompt", "mode"],
       },
@@ -894,7 +894,7 @@ const AGENT_TOOLS = [
         type: "object",
         properties: {
           clip_count: { type: "number", description: "Number of clips (1-30)" },
-          clip_duration: { type: "number", enum: [5, 10], description: "Duration per clip in seconds" },
+          clip_duration: { type: "number", enum: [5, 10, 15], description: "Duration per clip in seconds (Kling V3: 3-15s)" },
           mode: { type: "string", enum: ["text-to-video", "avatar", "image-to-video"], description: "Generation mode" },
           include_music: { type: "boolean", description: "Whether music will be added" },
           include_effects: { type: "boolean", description: "Whether effects will be applied" },
@@ -1248,7 +1248,7 @@ const AGENT_TOOLS = [
           title: { type: "string", description: "New project title" },
           prompt: { type: "string", description: "Updated creative prompt/script" },
           clip_count: { type: "number", description: "Number of clips (1-20)" },
-          clip_duration: { type: "number", description: "Duration per clip in seconds (5 or 10)" },
+          clip_duration: { type: "number", description: "Duration per clip in seconds (5, 10, or 15 — Kling V3)" },
           aspect_ratio: { type: "string", enum: ["16:9", "9:16", "1:1", "4:3"], description: "Video aspect ratio" },
           genre: { type: "string", description: "Video genre/style" },
           mood: { type: "string", description: "Video mood/tone" },
@@ -1586,7 +1586,7 @@ async function executeTool(
 
     case "create_project": {
       const clipCount = Math.min(Math.max((args.clip_count as number) || 3, 1), 20);
-      const clipDuration = (args.clip_duration as number) || 5;
+      const clipDuration = (args.clip_duration as number) || 10; // Kling V3 default: 10s
       const prompt = (args.prompt as string) || "";
       const { data: newProject, error } = await supabase
         .from("movie_projects")
@@ -1655,9 +1655,10 @@ async function executeTool(
       if (!gp) return { error: "Project not found" };
       if (gp.status !== "draft") return { error: `Project is "${gp.status}" — only drafts can generate.` };
       const cc = gp.clip_count || 6;
-      const cd = gp.clip_duration || 5;
+      const cd = gp.clip_duration || 10;
+      // Kling V3 pricing: base 12 credits (clips 1-6, ≤10s), extended 18 credits (clips 7+ OR >10s)
       let est = 0;
-      for (let i = 0; i < cc; i++) est += (i >= 6 || cd > 6) ? 15 : 10;
+      for (let i = 0; i < cc; i++) est += (i >= 6 || cd > 10) ? 18 : 12;
       const { data: bal } = await supabase.from("profiles").select("credits_balance").eq("id", userId).single();
       const balance = bal?.credits_balance || 0;
       if (balance < est) return { action: "insufficient_credits", required: est, available: balance, message: `Need ${est} credits, have ${balance}.` };
@@ -1700,11 +1701,11 @@ async function executeTool(
       // Read clip settings from pipeline_state (where create_project stores them)
       const ps = gp.pipeline_state as any || {};
       const cc = ps.clip_count || 3;
-      const cd = ps.clip_duration || 5;
+      const cd = ps.clip_duration || 10;
       
-      // Estimate credits
+      // Kling V3 pricing: base 12 credits (clips 1-6, ≤10s), extended 18 credits (clips 7+ OR >10s)
       let est = 0;
-      for (let i = 0; i < cc; i++) est += (i >= 6 || cd > 6) ? 15 : 10;
+      for (let i = 0; i < cc; i++) est += (i >= 6 || cd > 10) ? 18 : 12;
       const { data: bal } = await supabase.from("profiles").select("credits_balance").eq("id", userId).single();
       const balance = bal?.credits_balance || 0;
       if (balance < est) return { action: "insufficient_credits", required: est, available: balance, message: `Need ${est} credits, have ${balance}.` };
@@ -1802,7 +1803,7 @@ async function executeTool(
       if (args.clip_count) updates.clip_count = Math.min(Math.max(args.clip_count as number, 1), 20);
       if (args.clip_duration) {
         const dur = args.clip_duration as number;
-        updates.clip_duration = [5, 10].includes(dur) ? dur : 5;
+        updates.clip_duration = [5, 10, 15].includes(dur) ? dur : 10; // Kling V3: 5, 10, or 15s
       }
       if (args.aspect_ratio) updates.aspect_ratio = args.aspect_ratio;
       if (args.genre) updates.genre = args.genre;

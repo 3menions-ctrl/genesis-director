@@ -47,6 +47,27 @@ export interface AudioFade {
   fadeOut: number; // seconds
 }
 
+export type TextAnimationType = 
+  | "none" | "fade-in" | "fade-out" | "fade-in-out"
+  | "slide-up" | "slide-down" | "slide-left" | "slide-right"
+  | "typewriter" | "scale-up" | "scale-down" | "bounce"
+  | "blur-in" | "rotate-in" | "flip-in";
+
+export interface TextAnimation {
+  enter: TextAnimationType;
+  exit: TextAnimationType;
+  enterDuration: number; // seconds
+  exitDuration: number;  // seconds
+}
+
+export interface ExportSettings {
+  resolution: "720p" | "1080p" | "4k";
+  aspectRatio: "16:9" | "9:16" | "1:1" | "4:3";
+  format: "mp4" | "webm" | "mov";
+  quality: "standard" | "high" | "ultra";
+  fps: 24 | 30 | 60;
+}
+
 export interface PipSettings {
   enabled: boolean;
   x: number;       // 0-100 percentage
@@ -88,6 +109,7 @@ export interface TimelineClip {
   filter?: string;         // preset filter name
   noiseSuppression?: boolean;
   captions?: Caption[];
+  textAnimation?: TextAnimation;
 }
 
 export interface TimelineMarker {
@@ -115,11 +137,46 @@ export interface EditorState {
   duration: number;
   isPlaying: boolean;
   selectedClipId: string | null;
+  selectedClipIds: string[];
   zoom: number;
   renderStatus: "idle" | "rendering" | "completed" | "failed";
   renderProgress: number;
   markers: TimelineMarker[];
+  exportSettings: ExportSettings;
 }
+
+export const DEFAULT_EXPORT_SETTINGS: ExportSettings = {
+  resolution: "1080p",
+  aspectRatio: "16:9",
+  format: "mp4",
+  quality: "high",
+  fps: 30,
+};
+
+export const DEFAULT_TEXT_ANIMATION: TextAnimation = {
+  enter: "none",
+  exit: "none",
+  enterDuration: 0.5,
+  exitDuration: 0.5,
+};
+
+export const TEXT_ANIMATION_PRESETS: { id: TextAnimationType; name: string; category: "fade" | "slide" | "scale" | "special" }[] = [
+  { id: "none", name: "None", category: "fade" },
+  { id: "fade-in", name: "Fade In", category: "fade" },
+  { id: "fade-out", name: "Fade Out", category: "fade" },
+  { id: "fade-in-out", name: "Fade In/Out", category: "fade" },
+  { id: "slide-up", name: "Slide Up", category: "slide" },
+  { id: "slide-down", name: "Slide Down", category: "slide" },
+  { id: "slide-left", name: "Slide Left", category: "slide" },
+  { id: "slide-right", name: "Slide Right", category: "slide" },
+  { id: "typewriter", name: "Typewriter", category: "special" },
+  { id: "scale-up", name: "Scale Up", category: "scale" },
+  { id: "scale-down", name: "Scale Down", category: "scale" },
+  { id: "bounce", name: "Bounce", category: "special" },
+  { id: "blur-in", name: "Blur In", category: "special" },
+  { id: "rotate-in", name: "Rotate In", category: "special" },
+  { id: "flip-in", name: "Flip In", category: "special" },
+];
 
 export const DEFAULT_COLOR_GRADING: ColorGrading = {
   brightness: 100,

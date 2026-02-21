@@ -1072,7 +1072,7 @@ const VideoEditor = () => {
   const hasClips = editorState.tracks.some((t) => t.clips.length > 0);
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-[hsl(0,0%,5%)] overflow-hidden" style={{ contain: 'layout size' }}>
+    <div className="h-screen w-screen flex flex-col bg-background overflow-hidden" style={{ contain: 'layout size' }}>
       <EditorToolbar
         title={editorState.title}
         onTitleChange={(title) => setEditorState((prev) => ({ ...prev, title }))}
@@ -1162,7 +1162,7 @@ const VideoEditor = () => {
           </div>
         </div>
 
-        <div className="w-72 shrink-0 border-l border-white/[0.06] overflow-hidden" style={{ maxHeight: '100%' }}>
+        <div className="w-72 shrink-0 border-l border-border overflow-hidden" style={{ maxHeight: '100%' }}>
           <EditorSidebar
             tracks={editorState.tracks}
             selectedClipId={editorState.selectedClipId}

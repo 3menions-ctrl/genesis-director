@@ -130,25 +130,28 @@ export const EditorTimeline = ({
   }, [zoom, duration]);
 
   return (
-    <div className="h-full flex flex-col bg-[hsl(0,0%,4%)]">
+    <div className="h-full flex flex-col bg-background">
       {/* Toolbar */}
-      <div className="h-10 flex items-center gap-1.5 px-3 border-b border-white/[0.06] shrink-0 bg-[hsl(0,0%,5%)]/80 backdrop-blur-xl">
-        <div className="flex items-center gap-0.5 bg-white/[0.03] rounded-lg p-0.5 border border-white/[0.06]">
-          <Button variant="ghost" size="icon" className="h-6 w-6 text-white/50 hover:text-white hover:bg-white/[0.1] rounded-md transition-all" onClick={() => onZoomChange(Math.min(zoom * 1.5, 10))}>
+      <div className="h-10 flex items-center gap-1.5 px-3 border-b border-border shrink-0 bg-card/80 backdrop-blur-xl relative">
+        {/* Accent line */}
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
+        
+        <div className="flex items-center gap-0.5 bg-secondary/50 rounded-lg p-0.5 border border-border">
+          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-md transition-all" onClick={() => onZoomChange(Math.min(zoom * 1.5, 10))}>
             <ZoomIn className="h-3 w-3" />
           </Button>
-          <div className="w-12 h-1.5 bg-white/[0.06] rounded-full relative mx-1">
-            <div className="h-full bg-gradient-to-r from-white/20 to-white/40 rounded-full transition-all" style={{ width: `${Math.min((Math.log2(zoom) + 3.3) / 6.6 * 100, 100)}%` }} />
+          <div className="w-12 h-1.5 bg-muted rounded-full relative mx-1">
+            <div className="h-full bg-gradient-to-r from-primary/40 to-primary/70 rounded-full transition-all" style={{ width: `${Math.min((Math.log2(zoom) + 3.3) / 6.6 * 100, 100)}%` }} />
           </div>
-          <Button variant="ghost" size="icon" className="h-6 w-6 text-white/50 hover:text-white hover:bg-white/[0.1] rounded-md transition-all" onClick={() => onZoomChange(Math.max(zoom / 1.5, 0.1))}>
+          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-md transition-all" onClick={() => onZoomChange(Math.max(zoom / 1.5, 0.1))}>
             <ZoomOut className="h-3 w-3" />
           </Button>
         </div>
-        <span className="text-[9px] text-white/20 ml-1 tabular-nums font-mono">{Math.round(zoom * 100)}%</span>
+        <span className="text-[9px] text-muted-foreground/50 ml-1 tabular-nums font-mono">{Math.round(zoom * 100)}%</span>
 
         <div className="flex-1" />
 
-        <span className="text-[9px] text-white/15 font-mono mr-2">
+        <span className="text-[9px] text-muted-foreground/30 font-mono mr-2">
           {tracks.reduce((sum, t) => sum + t.clips.length, 0)} clips
         </span>
 
@@ -156,13 +159,13 @@ export const EditorTimeline = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon"
-                className="h-6 w-6 text-white/40 hover:text-white hover:bg-white/[0.1] rounded-lg transition-all mr-0.5"
+                className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all mr-0.5"
                 onClick={() => onRippleDelete(selectedClipId)}>
                 <Scissors className="h-3 w-3" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="text-[10px] bg-[hsl(0,0%,10%)] border-white/10 text-white">
-              Ripple Delete <kbd className="ml-1 text-white/30">⇧Del</kbd>
+            <TooltipContent side="top" className="text-[10px] bg-popover border-border text-foreground">
+              Ripple Delete <kbd className="ml-1 text-muted-foreground">⇧Del</kbd>
             </TooltipContent>
           </Tooltip>
         )}
@@ -170,12 +173,12 @@ export const EditorTimeline = ({
         {selectedClipId && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-6 w-6 text-red-400/50 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all" onClick={() => onDeleteClip(selectedClipId)}>
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/50 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all" onClick={() => onDeleteClip(selectedClipId)}>
                 <Trash2 className="h-3 w-3" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="text-[10px] bg-[hsl(0,0%,10%)] border-white/10 text-white">
-              Delete <kbd className="ml-1 text-white/30">Del</kbd>
+            <TooltipContent side="top" className="text-[10px] bg-popover border-border text-foreground">
+              Delete <kbd className="ml-1 text-muted-foreground">Del</kbd>
             </TooltipContent>
           </Tooltip>
         )}
@@ -184,26 +187,26 @@ export const EditorTimeline = ({
       {/* Body */}
       <div className="flex-1 flex overflow-hidden">
         {/* Track labels */}
-        <div className="w-44 shrink-0 border-r border-white/[0.06] bg-[hsl(0,0%,5%)]/80 backdrop-blur-xl">
-          <div className="h-7 border-b border-white/[0.04]" />
+        <div className="w-44 shrink-0 border-r border-border bg-card/80 backdrop-blur-xl">
+          <div className="h-7 border-b border-border/50" />
           {tracks.map((track) => {
             const Icon = trackIcons[track.type] || Film;
             const colors = trackColors[track.type] || trackColors.video;
             return (
-              <div key={track.id} className="flex items-center gap-2.5 px-3 border-b border-white/[0.03] group hover:bg-white/[0.02] transition-colors" style={{ height: TRACK_HEIGHT }}>
-                <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center bg-white/[0.04] border border-white/[0.06]")}>
+              <div key={track.id} className="flex items-center gap-2.5 px-3 border-b border-border/30 group hover:bg-secondary/30 transition-colors" style={{ height: TRACK_HEIGHT }}>
+                <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center bg-secondary border border-border")}>
                   <Icon className={cn("h-3 w-3", colors.text)} />
                 </div>
-                <span className="text-[10px] font-medium text-white/50 truncate flex-1 tracking-wide">{track.name}</span>
+                <span className="text-[10px] font-medium text-muted-foreground truncate flex-1 tracking-wide">{track.name}</span>
                 <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
-                    className={cn("p-1 rounded-md transition-colors", track.muted ? "text-red-400/60 bg-red-500/10" : "text-white/25 hover:text-white/60 hover:bg-white/[0.06]")}
+                    className={cn("p-1 rounded-md transition-colors", track.muted ? "text-destructive/60 bg-destructive/10" : "text-muted-foreground/40 hover:text-foreground hover:bg-secondary")}
                     onClick={() => onToggleTrackMute?.(track.id)}
                   >
                     {track.muted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
                   </button>
                   <button
-                    className={cn("p-1 rounded-md transition-colors", track.locked ? "text-amber-400/60 bg-amber-500/10" : "text-white/25 hover:text-white/60 hover:bg-white/[0.06]")}
+                    className={cn("p-1 rounded-md transition-colors", track.locked ? "text-amber-400/60 bg-amber-500/10" : "text-muted-foreground/40 hover:text-foreground hover:bg-secondary")}
                     onClick={() => onToggleTrackLock?.(track.id)}
                   >
                     <Lock className="h-2.5 w-2.5" />
@@ -218,15 +221,15 @@ export const EditorTimeline = ({
         <div className="flex-1 overflow-x-auto overflow-y-hidden" ref={timelineRef}>
           <div style={{ width: timelineWidth, position: "relative" }}>
             {/* Ruler */}
-            <div className="h-7 border-b border-white/[0.06] relative bg-[hsl(0,0%,5%)]/60" onClick={handleTimelineClick}>
+            <div className="h-7 border-b border-border relative bg-card/60" onClick={handleTimelineClick}>
               {markers.map((m, i) => (
                 <div key={i} className="absolute top-0 h-full flex flex-col justify-end" style={{ left: m.time * pxPerSec }}>
                   {m.major && (
-                    <span className="text-[8px] text-white/25 px-0.5 tabular-nums font-mono">
+                    <span className="text-[8px] text-muted-foreground/40 px-0.5 tabular-nums font-mono">
                       {Math.floor(m.time / 60)}:{(Math.floor(m.time) % 60).toString().padStart(2, "0")}
                     </span>
                   )}
-                  <div className={cn("w-px", m.major ? "h-2.5 bg-white/15" : "h-1 bg-white/[0.05]")} />
+                  <div className={cn("w-px", m.major ? "h-2.5 bg-border" : "h-1 bg-border/30")} />
                 </div>
               ))}
             </div>
@@ -235,9 +238,9 @@ export const EditorTimeline = ({
             {tracks.map((track) => {
               const colors = trackColors[track.type] || trackColors.video;
               return (
-                <div key={track.id} className="relative border-b border-white/[0.03]" style={{ height: TRACK_HEIGHT }} onClick={handleTimelineClick}>
+                <div key={track.id} className="relative border-b border-border/30" style={{ height: TRACK_HEIGHT }} onClick={handleTimelineClick}>
                   <div className="absolute inset-0 opacity-20" style={{
-                    backgroundImage: `repeating-linear-gradient(90deg, transparent, transparent ${pxPerSec - 1}px, hsl(0 0% 12% / 0.3) ${pxPerSec}px)`,
+                    backgroundImage: `repeating-linear-gradient(90deg, transparent, transparent ${pxPerSec - 1}px, hsl(var(--muted)) ${pxPerSec}px)`,
                   }} />
 
                   {track.clips.map((clip) => {
@@ -253,7 +256,7 @@ export const EditorTimeline = ({
                           "absolute top-2 rounded-lg cursor-grab select-none group/clip border transition-all duration-200",
                           "flex items-center overflow-hidden bg-gradient-to-r",
                           colors.clip, colors.border,
-                          isSelected && "ring-1 ring-white/60 border-white/40 shadow-lg",
+                          isSelected && "ring-1 ring-primary/60 border-primary/40 shadow-lg",
                           "hover:brightness-110"
                         )}
                         style={{
@@ -287,14 +290,14 @@ export const EditorTimeline = ({
                         {/* Transition indicator */}
                         {hasTransition && (
                           <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                            <div className="w-1.5 h-1.5 rounded-full bg-white/70 animate-pulse" />
-                            <span className="text-[7px] text-white/40 font-mono">fade</span>
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary/70 animate-pulse" />
+                            <span className="text-[7px] text-muted-foreground font-mono">fade</span>
                           </div>
                         )}
 
                         {/* Speed badge */}
                         {clip.speed && clip.speed !== 1 && (
-                          <div className="absolute top-1 right-2 bg-black/50 rounded-md px-1.5 py-px text-[7px] font-mono text-white/70">
+                          <div className="absolute top-1 right-2 bg-black/50 rounded-md px-1.5 py-px text-[7px] font-mono text-foreground/70">
                             {clip.speed}x
                           </div>
                         )}

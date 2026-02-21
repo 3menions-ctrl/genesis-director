@@ -17,7 +17,7 @@ const PRICING_TIERS = [
     price: 9,
     credits: 90,
     videosEstimate: '~9 clips',
-    icon: <Star className="w-6 h-6" />,
+    icon: <Star className="w-5 h-5" />,
     features: [
       'HD video export (1080p)',
       'AI-powered script generation',
@@ -27,8 +27,10 @@ const PRICING_TIERS = [
       'Email support',
     ],
     popular: false,
-    gradient: 'from-sky-400 to-cyan-500',
-    glowColor: 'rgba(56, 189, 248, 0.3)',
+    accent: 'from-sky-400 to-cyan-400',
+    borderAccent: 'hover:border-sky-500/30',
+    iconBg: 'bg-sky-500/10 text-sky-400',
+    btnClass: 'bg-white/[0.06] hover:bg-sky-500/20 text-white border border-white/[0.08] hover:border-sky-500/30',
   },
   {
     id: 'starter',
@@ -37,7 +39,7 @@ const PRICING_TIERS = [
     price: 37,
     credits: 370,
     videosEstimate: '~37 clips',
-    icon: <Zap className="w-6 h-6" />,
+    icon: <Zap className="w-5 h-5" />,
     features: [
       'HD video export (1080p)',
       'AI-powered script generation',
@@ -48,8 +50,10 @@ const PRICING_TIERS = [
       'Email support',
     ],
     popular: false,
-    gradient: 'from-slate-500 to-slate-600',
-    glowColor: 'rgba(100, 116, 139, 0.3)',
+    accent: 'from-violet-400 to-purple-500',
+    borderAccent: 'hover:border-violet-500/30',
+    iconBg: 'bg-violet-500/10 text-violet-400',
+    btnClass: 'bg-white/[0.06] hover:bg-violet-500/20 text-white border border-white/[0.08] hover:border-violet-500/30',
   },
   {
     id: 'growth',
@@ -58,7 +62,7 @@ const PRICING_TIERS = [
     price: 100,
     credits: 1000,
     videosEstimate: '~100 clips',
-    icon: <Crown className="w-6 h-6" />,
+    icon: <Crown className="w-5 h-5" />,
     features: [
       '4K video export (2160p)',
       'Priority processing queue',
@@ -69,8 +73,10 @@ const PRICING_TIERS = [
       'Priority support',
     ],
     popular: true,
-    gradient: 'from-white to-slate-100',
-    glowColor: 'rgba(255, 255, 255, 0.4)',
+    accent: 'from-amber-300 via-yellow-200 to-amber-400',
+    borderAccent: '',
+    iconBg: 'bg-black text-white',
+    btnClass: 'bg-black hover:bg-black/80 text-white shadow-xl shadow-black/20',
   },
   {
     id: 'agency',
@@ -79,7 +85,7 @@ const PRICING_TIERS = [
     price: 250,
     credits: 2500,
     videosEstimate: '~250 clips',
-    icon: <Building2 className="w-6 h-6" />,
+    icon: <Building2 className="w-5 h-5" />,
     features: [
       '4K HDR export',
       'API access for automation',
@@ -90,8 +96,10 @@ const PRICING_TIERS = [
       'Dedicated account manager',
     ],
     popular: false,
-    gradient: 'from-amber-400 to-orange-500',
-    glowColor: 'rgba(251, 191, 36, 0.3)',
+    accent: 'from-orange-400 to-rose-500',
+    borderAccent: 'hover:border-orange-500/30',
+    iconBg: 'bg-orange-500/10 text-orange-400',
+    btnClass: 'bg-white/[0.06] hover:bg-orange-500/20 text-white border border-white/[0.08] hover:border-orange-500/30',
   },
 ];
 
@@ -102,32 +110,29 @@ const TRUST_POINTS = [
 ];
 
 export default function Pricing() {
-  // Unified navigation - safe navigation with locking
   const { navigate } = useSafeNavigation();
 
-  // Always scroll to top when page loads
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#000] overflow-hidden relative">
+    <div className="min-h-screen bg-[#030308] overflow-hidden relative">
       {/* Background */}
-      <Suspense fallback={<div className="fixed inset-0 bg-[#000]" />}>
+      <Suspense fallback={<div className="fixed inset-0 bg-[#030308]" />}>
         <AbstractBackground className="fixed inset-0 z-0" />
       </Suspense>
 
-      {/* Ambient glow effects */}
+      {/* Ambient glow */}
       <div className="fixed inset-0 pointer-events-none z-[1]">
-        <div className="absolute top-1/4 left-1/4 w-[700px] h-[700px] bg-violet-500/[0.08] rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/3 right-1/3 w-[600px] h-[600px] bg-fuchsia-500/[0.06] rounded-full blur-[130px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-purple-600/[0.07] rounded-full blur-[100px]" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] bg-violet-600/[0.07] rounded-full blur-[160px]" />
+        <div className="absolute bottom-0 left-1/4 w-[800px] h-[400px] bg-fuchsia-600/[0.05] rounded-full blur-[140px]" />
       </div>
 
       {/* Navigation */}
       <nav className="relative z-50 px-6 py-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link to="/" className="text-xl font-bold text-white tracking-tight">
+          <Link to="/" className="text-xl font-bold text-white tracking-tight font-['Sora']">
             APEX-STUDIO
           </Link>
           <Button
@@ -140,19 +145,21 @@ export default function Pricing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative z-10 pt-16 pb-8 px-6">
+      <section className="relative z-10 pt-20 pb-10 px-6">
         <div className="max-w-4xl mx-auto text-center">
-          <div>
-            <div
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.08] mb-8"
-            >
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.08] mb-8">
               <Sparkles className="w-4 h-4 text-amber-400" />
               <span className="text-sm text-white/60">Simple, transparent pricing</span>
             </div>
 
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white mb-6">
+            <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white mb-6 font-['Sora']">
               <span className="block">Pay once.</span>
-              <span className="block bg-gradient-to-r from-white via-white/80 to-white/60 bg-clip-text text-transparent">
+              <span className="block bg-gradient-to-r from-white via-white/80 to-white/50 bg-clip-text text-transparent">
                 Create forever.
               </span>
             </h1>
@@ -161,116 +168,167 @@ export default function Pricing() {
               No subscriptions. No hidden fees. Just credits that fuel your creativity.
             </p>
 
-            <p className="text-sm text-white/30">
-              1 credit = $0.10 • 10-15 credits per clip
+            <p className="text-sm text-white/25 tracking-wide">
+              1 credit = $0.10 · 10–15 credits per clip
             </p>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Pricing Cards */}
       <section className="relative z-10 py-16 px-6">
         <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {PRICING_TIERS.map((tier, index) => (
-              <div
-                key={tier.id}
-                className={cn(
-                  "relative group rounded-3xl",
-                  tier.popular ? "lg:-mt-4 lg:mb-4" : ""
-                )}
-              >
-                {/* Glow effect - static for popular, subtle on hover for others */}
-                {tier.popular && (
-                  <div
-                    className="absolute -inset-[1px] rounded-3xl blur-xl opacity-50"
-                    style={{ background: tier.glowColor }}
-                  />
-                )}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {PRICING_TIERS.map((tier, index) => {
+              const isPopular = tier.popular;
 
-                {/* Card */}
-                <div
+              return (
+                <motion.div
+                  key={tier.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
                   className={cn(
-                    "relative h-full rounded-3xl p-8 transition-all duration-500 overflow-hidden",
-                    tier.popular
-                      ? "bg-white text-black"
-                      : "bg-transparent border border-white/[0.08] hover:border-white/[0.15]"
+                    "relative group",
+                    isPopular ? "lg:-mt-6 lg:mb-6" : ""
                   )}
                 >
-                  {/* Popular badge */}
-                  {tier.popular && (
-                    <div className="absolute top-0 right-0 px-4 py-1.5 bg-black text-white text-xs font-medium rounded-bl-2xl rounded-tr-3xl">
-                      Most Popular
-                    </div>
+                  {/* Popular outer glow ring */}
+                  {isPopular && (
+                    <div className="absolute -inset-px rounded-[28px] bg-gradient-to-b from-amber-400/60 via-yellow-300/30 to-amber-500/10 blur-sm" />
                   )}
 
-                  {/* Icon */}
+                  {/* Card container */}
                   <div
                     className={cn(
-                      "w-12 h-12 rounded-2xl flex items-center justify-center mb-6",
-                      tier.popular
-                        ? "bg-black text-white"
-                        : "bg-white/[0.05] text-white"
+                      "relative h-full rounded-[26px] overflow-hidden transition-all duration-500",
+                      isPopular
+                        ? "bg-gradient-to-b from-[#fffef5] to-white text-black shadow-2xl shadow-amber-500/10"
+                        : cn(
+                            "bg-white/[0.02] backdrop-blur-sm border border-white/[0.07]",
+                            tier.borderAccent,
+                            "hover:bg-white/[0.04] hover:shadow-lg hover:shadow-white/[0.02]"
+                          )
                     )}
                   >
-                    {tier.icon}
-                  </div>
+                    {/* Top accent line */}
+                    <div className={cn(
+                      "h-[2px] w-full bg-gradient-to-r opacity-60",
+                      tier.accent,
+                      isPopular && "opacity-100"
+                    )} />
 
-                  {/* Tier info */}
-                  <div className="mb-6">
-                    <h3 className={cn("text-2xl font-bold mb-1", tier.popular ? "text-black" : "text-white")}>
-                      {tier.name}
-                    </h3>
-                    <p className={cn("text-sm", tier.popular ? "text-black/60" : "text-white/40")}>
-                      {tier.description}
-                    </p>
-                  </div>
+                    <div className="p-7 flex flex-col h-full">
+                      {/* Popular badge */}
+                      {isPopular && (
+                        <div className="absolute top-3 right-3">
+                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-black text-white text-[11px] font-semibold uppercase tracking-wider">
+                            <Crown className="w-3 h-3" />
+                            Best Value
+                          </span>
+                        </div>
+                      )}
 
-                  {/* Price */}
-                  <div className="mb-6">
-                    <div className="flex items-baseline gap-1">
-                      <span className={cn("text-5xl font-bold tracking-tight", tier.popular ? "text-black" : "text-white")}>
-                        ${tier.price}
-                      </span>
-                      <span className={cn("text-sm", tier.popular ? "text-black/40" : "text-white/30")}>
-                        one-time
-                      </span>
+                      {/* Icon */}
+                      <div className={cn(
+                        "w-11 h-11 rounded-xl flex items-center justify-center mb-5",
+                        tier.iconBg
+                      )}>
+                        {tier.icon}
+                      </div>
+
+                      {/* Tier info */}
+                      <h3 className={cn(
+                        "text-xl font-bold mb-1 font-['Sora']",
+                        isPopular ? "text-black" : "text-white"
+                      )}>
+                        {tier.name}
+                      </h3>
+                      <p className={cn(
+                        "text-[13px] leading-relaxed mb-5",
+                        isPopular ? "text-black/50" : "text-white/35"
+                      )}>
+                        {tier.description}
+                      </p>
+
+                      {/* Price block */}
+                      <div className="mb-6">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className={cn(
+                            "text-[52px] font-extrabold tracking-tighter leading-none font-['Sora']",
+                            isPopular ? "text-black" : "text-white"
+                          )}>
+                            ${tier.price}
+                          </span>
+                          <span className={cn(
+                            "text-xs font-medium uppercase tracking-wider",
+                            isPopular ? "text-black/30" : "text-white/20"
+                          )}>
+                            once
+                          </span>
+                        </div>
+                        <div className={cn(
+                          "mt-3 inline-flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px]",
+                          isPopular
+                            ? "bg-black/[0.04] text-black/60"
+                            : "bg-white/[0.04] text-white/50"
+                        )}>
+                          <span className="font-semibold">{tier.credits.toLocaleString()} credits</span>
+                          <span className={cn(
+                            "w-px h-3",
+                            isPopular ? "bg-black/10" : "bg-white/10"
+                          )} />
+                          <span className="opacity-70">{tier.videosEstimate}</span>
+                        </div>
+                      </div>
+
+                      {/* Divider */}
+                      <div className={cn(
+                        "w-full h-px mb-6",
+                        isPopular ? "bg-black/[0.06]" : "bg-white/[0.06]"
+                      )} />
+
+                      {/* Features */}
+                      <ul className="space-y-2.5 mb-8 flex-1">
+                        {tier.features.map((feature, i) => (
+                          <li key={i} className="flex items-start gap-2.5">
+                            <div className={cn(
+                              "w-4 h-4 rounded-full flex items-center justify-center mt-0.5 shrink-0",
+                              isPopular
+                                ? "bg-black/[0.06]"
+                                : "bg-white/[0.06]"
+                            )}>
+                              <Check className={cn(
+                                "w-2.5 h-2.5",
+                                isPopular ? "text-black/70" : "text-white/50"
+                              )} />
+                            </div>
+                            <span className={cn(
+                              "text-[13px] leading-relaxed",
+                              isPopular ? "text-black/65" : "text-white/50"
+                            )}>
+                              {feature}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      {/* CTA */}
+                      <Button
+                        onClick={() => navigate('/auth?mode=signup')}
+                        className={cn(
+                          "w-full h-12 rounded-xl font-semibold text-sm transition-all duration-300 group/btn",
+                          tier.btnClass
+                        )}
+                      >
+                        Get Started
+                        <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover/btn:translate-x-0.5" />
+                      </Button>
                     </div>
-                    <div className={cn("mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm", tier.popular ? "bg-black/5 text-black/70" : "bg-white/[0.05] text-white/60")}>
-                      <span className="font-medium">{tier.credits.toLocaleString()} credits</span>
-                      <span className="opacity-50">•</span>
-                      <span>{tier.videosEstimate}</span>
-                    </div>
                   </div>
-
-                  {/* Features */}
-                  <ul className="space-y-3 mb-8">
-                    {tier.features.map((feature, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <Check className={cn("w-5 h-5 mt-0.5 shrink-0", tier.popular ? "text-black" : "text-white/50")} />
-                        <span className={cn("text-sm", tier.popular ? "text-black/70" : "text-white/60")}>
-                          {feature}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {/* CTA */}
-                  <Button
-                    onClick={() => navigate('/auth?mode=signup')}
-                    className={cn(
-                      "w-full h-12 rounded-full font-medium text-base transition-all duration-300",
-                      tier.popular
-                        ? "bg-black hover:bg-black/90 text-white shadow-lg"
-                        : "bg-white/[0.08] hover:bg-white/[0.12] text-white border border-white/[0.1]"
-                    )}
-                  >
-                    Get Started
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -285,9 +343,9 @@ export default function Pricing() {
         >
           <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
             {TRUST_POINTS.map((point, i) => (
-              <div key={i} className="flex items-center gap-2 text-white/40">
-                {point.icon}
-                <span className="text-sm">{point.text}</span>
+              <div key={i} className="flex items-center gap-2.5 text-white/35">
+                <span className="text-white/20">{point.icon}</span>
+                <span className="text-sm tracking-wide">{point.text}</span>
               </div>
             ))}
           </div>
@@ -302,7 +360,7 @@ export default function Pricing() {
           viewport={{ once: true }}
           className="max-w-2xl mx-auto text-center"
         >
-          <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4">
+          <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4 font-['Sora']">
             Questions?
           </h2>
           <p className="text-white/40 mb-8">
@@ -335,7 +393,7 @@ export default function Pricing() {
           viewport={{ once: true }}
           className="max-w-4xl mx-auto text-center"
         >
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 font-['Sora']">
             Start creating today
           </h2>
           <p className="text-lg text-white/40 mb-10 max-w-md mx-auto">

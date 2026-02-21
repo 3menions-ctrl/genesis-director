@@ -606,8 +606,11 @@ async function handleAvatarDirectMode(params: {
     },
   }).eq('id', projectId);
 
-  // Call the new direct avatar function WITH RESILIENT FETCH
-  // This handles connection resets, rate limits, and network errors gracefully
+  // Call the new direct avatar function
+  // CRITICAL FIX: maxRetries=1 (NO RETRY) because generate-avatar-direct is fire-and-forget async.
+  // The function starts a Kling prediction and returns immediately — retrying would create
+  // DUPLICATE Kling predictions, wasting credits and producing wrong videos.
+  // The watchdog handles completion polling, so a single call is all that's needed.
   const directResponse = await resilientFetch(`${supabaseUrl}/functions/v1/generate-avatar-direct`, {
     method: 'POST',
     headers: {
@@ -629,7 +632,7 @@ async function handleAvatarDirectMode(params: {
       enableDualAvatar: enableDualAvatar || false,
       avatarTemplateId: avatarTemplateId || null,
     }),
-    maxRetries: 3,
+    maxRetries: 1,
     timeoutMs: 90000,
   });
 

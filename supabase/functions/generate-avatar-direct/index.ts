@@ -200,6 +200,66 @@ serve(async (req) => {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // DUPLICATE PREDICTION GUARD: Prevent double-firing from retries/watchdog
+    // If this project already has active Kling predictions, refuse to start new ones.
+    // This is the CRITICAL fix for the "two videos generated" credit-waste bug.
+    // ═══════════════════════════════════════════════════════════════════════════
+    if (projectId) {
+      const { data: existingProject } = await supabase
+        .from('movie_projects')
+        .select('pending_video_tasks, status, pipeline_state')
+        .eq('id', projectId)
+        .single();
+      
+      if (existingProject) {
+        const existingTasks = (existingProject.pending_video_tasks || {}) as Record<string, any>;
+        const existingPipeline = (existingProject.pipeline_state || {}) as Record<string, any>;
+        
+        // Check if there are active predictions already running
+        if (existingTasks.type === 'avatar_async' && Array.isArray(existingTasks.predictions)) {
+          const activePredictions = existingTasks.predictions.filter(
+            (p: { status: string; predictionId?: string }) => 
+              (p.status === 'processing' || p.status === 'pending') && p.predictionId
+          );
+          
+          if (activePredictions.length > 0) {
+            console.warn(`[AvatarDirect] ⛔ DUPLICATE GUARD: Project ${projectId} already has ${activePredictions.length} active predictions. REFUSING to start new ones.`);
+            console.warn(`[AvatarDirect] Active prediction IDs: ${activePredictions.map((p: any) => p.predictionId).join(', ')}`);
+            
+            return new Response(
+              JSON.stringify({
+                success: true,
+                async: true,
+                message: `Avatar already generating — ${activePredictions.length} predictions active. Watchdog will complete them.`,
+                projectId,
+                status: 'already_generating',
+                duplicateGuardTriggered: true,
+              }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        }
+        
+        // Also check pipeline_state for active predictionId (single-clip path)
+        if (existingProject.status === 'generating' && existingPipeline.predictionId && existingPipeline.stage === 'async_video_generation') {
+          console.warn(`[AvatarDirect] ⛔ DUPLICATE GUARD: Project ${projectId} has active pipeline prediction ${existingPipeline.predictionId}. REFUSING to start new one.`);
+          
+          return new Response(
+            JSON.stringify({
+              success: true,
+              async: true,
+              message: 'Avatar already generating. Watchdog will complete it.',
+              projectId,
+              status: 'already_generating',
+              duplicateGuardTriggered: true,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // CONTENT SAFETY CHECK - BLOCK ALL NSFW/EXPLICIT/ILLEGAL CONTENT
     // ═══════════════════════════════════════════════════════════════════════════
     const safetyCheck = checkMultipleContent([script, sceneDescription]);

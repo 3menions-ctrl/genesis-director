@@ -36,6 +36,37 @@ function extractClipLabel(rawPrompt: string | null | undefined, shotIndex: numbe
   return clean.slice(0, 60) || `Shot ${shotIndex + 1}`;
 }
 
+/**
+ * Generate paired audio clips from video clips.
+ * Each video clip's embedded audio becomes a separate audio track entry,
+ * allowing independent audio/video editing (volume, muting, trimming).
+ */
+function generateAudioClipsFromVideo(videoClips: TimelineClip[]): TimelineClip[] {
+  return videoClips.map((vc) => ({
+    ...vc,
+    id: `audio-${vc.id}`,
+    trackId: "audio-0",
+    type: "audio" as const,
+    label: `🔊 ${vc.label}`,
+    effects: [],
+    volume: vc.volume ?? 100,
+  }));
+}
+
+/**
+ * Helper: set tracks with auto-generated audio from video clips
+ */
+function buildTracksWithAudio(
+  prevTracks: TimelineTrack[],
+  videoClips: TimelineClip[]
+): TimelineTrack[] {
+  const audioClips = generateAudioClipsFromVideo(videoClips);
+  return prevTracks.map((t) => {
+    if (t.id === "video-0") return { ...t, clips: videoClips };
+    if (t.id === "audio-0") return { ...t, clips: audioClips };
+    return t;
+  });
+}
 
 
 const VideoEditor = () => {
@@ -568,7 +599,7 @@ const VideoEditor = () => {
       ...prev,
       projectId: null,
       title: "All Clips",
-      tracks: prev.tracks.map((t) => (t.id === "video-0" ? { ...t, clips: timelineClips } : t)),
+      tracks: buildTracksWithAudio(prev.tracks, timelineClips),
       duration: startTime,
     }));
     toast.success(`Loaded ${clips.length} clips from all projects`);
@@ -681,7 +712,7 @@ const VideoEditor = () => {
         ...prev,
         projectId: pid,
         title: projectTitle || prev.title,
-        tracks: prev.tracks.map((t) => (t.id === "video-0" ? { ...t, clips: timelineClips } : t)),
+        tracks: buildTracksWithAudio(prev.tracks, timelineClips),
         duration: startTime,
       }));
       toast.success(`Loaded ${clips.length} clips`);
@@ -749,7 +780,7 @@ const VideoEditor = () => {
       ...prev,
       projectId: pid,
       title: projectTitle || prev.title,
-      tracks: prev.tracks.map((t) => (t.id === "video-0" ? { ...t, clips: timelineClips } : t)),
+      tracks: buildTracksWithAudio(prev.tracks, timelineClips),
       duration: startTime,
     }));
 

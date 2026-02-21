@@ -325,7 +325,14 @@ const VideoEditor = () => {
     const handler = (e: KeyboardEvent) => {
       if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
 
-      // Split: S
+      // Save: Ctrl/Cmd+S
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        // handleSave is defined below; dispatch a custom event to trigger it
+        window.dispatchEvent(new CustomEvent("editor-save"));
+        return;
+      }
+      // Split: S (without modifier)
       if (e.key === "s" && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         handleSplit();
@@ -361,16 +368,8 @@ const VideoEditor = () => {
         e.preventDefault();
         setShowMediaBrowser((prev) => !prev);
       }
-      // Undo: Ctrl/Cmd+Z
-      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
-        e.preventDefault();
-        handleUndo();
-      }
-      // Redo: Ctrl/Cmd+Shift+Z
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "z") {
-        e.preventDefault();
-        handleRedo();
-      }
+      // NOTE: Undo/Redo (Ctrl+Z / Ctrl+Shift+Z) are handled by useEditorHistory hook.
+      // Do NOT duplicate them here — it causes double-undo.
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -443,10 +442,41 @@ const VideoEditor = () => {
         duration: 0,
         currentTime: 0,
         projectId: null,
+        sessionId: null,
       }));
     }
     const loadLatestOrSpecified = async () => {
-      // No project specified → load ALL completed clips across all projects
+      // Try to restore a saved edit session first
+      const sessionQuery = supabase
+        .from("edit_sessions")
+        .select("id, title, timeline_data, project_id")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false })
+        .limit(1);
+
+      if (projectId) {
+        sessionQuery.eq("project_id", projectId);
+      }
+
+      const { data: savedSession } = await sessionQuery.maybeSingle();
+
+      if (savedSession?.timeline_data) {
+        const td = savedSession.timeline_data as any;
+        if (td.tracks && Array.isArray(td.tracks) && td.tracks.some((t: any) => t.clips?.length > 0)) {
+          setEditorState((prev) => ({
+            ...prev,
+            sessionId: savedSession.id,
+            projectId: savedSession.project_id || projectId || null,
+            title: savedSession.title || prev.title,
+            tracks: td.tracks,
+            duration: td.duration || prev.duration,
+          }));
+          toast.success("Restored saved session");
+          return;
+        }
+      }
+
+      // No saved session — load from project clips
       if (!projectId) {
         await loadAllClips();
         return;
@@ -747,6 +777,13 @@ const VideoEditor = () => {
     }
   };
 
+  // Listen for Ctrl+S keyboard shortcut (dispatched from keyboard handler above)
+  useEffect(() => {
+    const onSave = () => { handleSave(); };
+    window.addEventListener("editor-save", onSave);
+    return () => window.removeEventListener("editor-save", onSave);
+  }, [user, editorState.sessionId, editorState.title, editorState.tracks, editorState.duration, editorState.projectId]);
+
   const handleExport = async () => {
     const videoClips = editorState.tracks
       .filter((t) => t.type === "video")
@@ -758,39 +795,52 @@ const VideoEditor = () => {
       return;
     }
 
-    setEditorState((prev) => ({ ...prev, renderStatus: "rendering", renderProgress: 10 }));
+    // Reset status so subsequent exports work
+    setEditorState((prev) => ({ ...prev, renderStatus: "rendering", renderProgress: 5 }));
+
+    // Auto-save before export
+    try {
+      await handleSave();
+    } catch { /* save failure shouldn't block export */ }
 
     try {
-      // If we have a project ID, use simple-stitch for server-side manifest
+      // If we have a project ID, try simple-stitch for server-side manifest
       if (editorState.projectId && user) {
-        setEditorState((prev) => ({ ...prev, renderProgress: 30 }));
+        setEditorState((prev) => ({ ...prev, renderProgress: 20 }));
         
-        const { data, error } = await supabase.functions.invoke("simple-stitch", {
-          body: { projectId: editorState.projectId, userId: user.id },
-        });
+        try {
+          const { data, error } = await supabase.functions.invoke("simple-stitch", {
+            body: { projectId: editorState.projectId, userId: user.id },
+          });
 
-        if (error) throw error;
-        
-        setEditorState((prev) => ({ ...prev, renderProgress: 80 }));
-
-        if (data?.success && data?.finalVideoUrl) {
-          toast.success("Manifest created! Starting download...");
-          setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
-          
-          // Download each clip individually
-          await downloadEditorClips(videoClips);
-          return;
+          if (!error && data?.success && data?.finalVideoUrl) {
+            toast.success("Manifest created! Starting download...");
+            setEditorState((prev) => ({ ...prev, renderProgress: 40 }));
+          }
+        } catch {
+          // Stitch failed — fall through to direct download
+          console.warn("[Editor Export] simple-stitch failed, falling back to direct download");
         }
       }
 
-      // Fallback: download clips individually from timeline
+      // Download clips individually from timeline
       await downloadEditorClips(videoClips);
       setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
       toast.success("Download complete!");
+      
+      // Reset render status after 5 seconds so Export button becomes available again
+      setTimeout(() => {
+        setEditorState((prev) => {
+          if (prev.renderStatus === "completed") {
+            return { ...prev, renderStatus: "idle", renderProgress: 0 };
+          }
+          return prev;
+        });
+      }, 5000);
     } catch (err) {
       console.error("[Editor Export] Error:", err);
-      setEditorState((prev) => ({ ...prev, renderStatus: "failed" }));
-      toast.error("Export failed. Try downloading clips individually.");
+      setEditorState((prev) => ({ ...prev, renderStatus: "idle", renderProgress: 0 }));
+      toast.error("Export failed. Please try again.");
     }
   };
 
@@ -1028,7 +1078,7 @@ const VideoEditor = () => {
         onTitleChange={(title) => setEditorState((prev) => ({ ...prev, title }))}
         onSave={handleSave}
         onExport={handleExport}
-        onBack={() => window.history.back()}
+        onBack={() => navigate("/projects")}
         onUndo={handleUndo}
         onRedo={handleRedo}
         onSplit={handleSplit}

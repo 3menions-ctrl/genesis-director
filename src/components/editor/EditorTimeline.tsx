@@ -288,24 +288,35 @@ export const EditorTimeline = ({
                         {/* Content */}
                         {track.type === "video" ? (
                           <div className="flex-1 min-w-0 h-full relative overflow-hidden">
-                            {/* Video frame strip */}
+                            {/* Film strip pattern – solid colored segments with tick marks */}
                             <div className="absolute inset-0 flex">
-                              {Array.from({ length: Math.max(1, Math.floor(width / 48)) }, (_, i) => (
+                              {Array.from({ length: Math.max(1, Math.floor(width / 32)) }, (_, i) => (
                                 <div
                                   key={i}
-                                  className="h-full flex-1 bg-cover bg-center border-r border-white/5 last:border-r-0"
+                                  className="h-full flex-1 border-r border-blue-300/10 last:border-r-0"
                                   style={{
-                                    backgroundImage: clip.sourceUrl ? `url(${clip.sourceUrl}#t=${((clip.trimStart || 0) + ((clip.end - clip.start) * i / Math.max(1, Math.floor(width / 48)))).toFixed(1)})` : undefined,
-                                    backgroundColor: 'hsl(var(--muted))',
+                                    background: i % 2 === 0
+                                      ? 'linear-gradient(180deg, hsl(220 70% 50% / 0.18) 0%, hsl(220 70% 40% / 0.10) 100%)'
+                                      : 'linear-gradient(180deg, hsl(220 70% 50% / 0.12) 0%, hsl(220 70% 40% / 0.06) 100%)',
                                   }}
                                 />
                               ))}
                             </div>
+                            {/* Film icon at start */}
+                            <div className="absolute left-1.5 top-1/2 -translate-y-1/2 z-10 opacity-30">
+                              <Film className="h-3 w-3 text-blue-300" />
+                            </div>
                             {/* Gradient overlay for readability */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
-                            <span className={cn("absolute bottom-1 left-2.5 text-[8px] font-medium truncate z-10 text-white drop-shadow-md")}>
+                            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-transparent to-blue-500/5 pointer-events-none" />
+                            <span className={cn("absolute bottom-1 left-6 right-1 text-[8px] font-medium truncate z-10 text-blue-200 drop-shadow-md")}>
                               {clip.label}
                             </span>
+                            {/* Duration badge */}
+                            {width > 60 && (
+                              <span className="absolute top-1 right-1.5 text-[7px] font-mono text-blue-300/50 z-10">
+                                {(clip.end - clip.start).toFixed(1)}s
+                              </span>
+                            )}
                           </div>
                         ) : track.type === "audio" ? (
                           <div className="flex-1 min-w-0 h-full relative">

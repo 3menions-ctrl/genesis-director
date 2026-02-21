@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { AvatarTemplate, AvatarTemplateFilter } from '@/types/avatar-templates';
+import { AvatarTemplate, AvatarTemplateFilter, AVATAR_CATEGORIES } from '@/types/avatar-templates';
 import { useMemo, useEffect } from 'react';
 
 // Cache key for avatar templates
@@ -102,6 +102,18 @@ export function useAvatarTemplatesQuery(filter?: AvatarTemplateFilter) {
         if (template.avatar_type !== filter.avatarType) return false;
       }
 
+      // Tag-based category filter
+      if (filter.categoryId && filter.categoryId !== 'all') {
+        const category = AVATAR_CATEGORIES.find(c => c.id === filter.categoryId);
+        if (category && category.tags.length > 0) {
+          const avatarTags = template.tags || [];
+          const hasMatch = category.tags.some(tag =>
+            avatarTags.some(at => at.toLowerCase() === tag.toLowerCase())
+          );
+          if (!hasMatch) return false;
+        }
+      }
+
       // Gender filter
       if (filter.gender && filter.gender !== 'all') {
         if (template.gender !== filter.gender) return false;
@@ -126,6 +138,26 @@ export function useAvatarTemplatesQuery(filter?: AvatarTemplateFilter) {
     });
   }, [templates, filter]);
 
+  // Compute per-category counts (always from full template list, respecting type filter only)
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const typeFiltered = filter?.avatarType && filter.avatarType !== 'all'
+      ? templates.filter(t => t.avatar_type === filter.avatarType)
+      : templates;
+
+    for (const cat of AVATAR_CATEGORIES) {
+      if (cat.id === 'all') {
+        counts[cat.id] = typeFiltered.length;
+        continue;
+      }
+      counts[cat.id] = typeFiltered.filter(t => {
+        const tags = t.tags || [];
+        return cat.tags.some(tag => tags.some(at => at.toLowerCase() === tag.toLowerCase()));
+      }).length;
+    }
+    return counts;
+  }, [templates, filter?.avatarType]);
+
   // Prefetch function for eager loading
   const prefetchTemplates = () => {
     queryClient.prefetchQuery({
@@ -143,6 +175,7 @@ export function useAvatarTemplatesQuery(filter?: AvatarTemplateFilter) {
   return {
     templates: filteredTemplates,
     allTemplates: templates,
+    categoryCounts,
     isLoading: isLoading && !isFetching, // Only true on initial load
     isFetching, // True during background refetch
     isSuccess, // True when data has been fetched successfully

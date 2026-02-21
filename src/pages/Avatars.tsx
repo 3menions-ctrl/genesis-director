@@ -94,6 +94,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   const [genderFilter, setGenderFilter] = useState('all');
   const [styleFilter, setStyleFilter] = useState('all');
   const [avatarTypeFilter, setAvatarTypeFilter] = useState<AvatarType | 'all'>('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [selectedAvatar, setSelectedAvatar] = useState<AvatarTemplate | null>(null);
   const [previewAvatar, setPreviewAvatar] = useState<AvatarTemplate | null>(null);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
@@ -160,9 +161,10 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     style: styleFilter,
     search: searchQuery,
     avatarType: avatarTypeFilter,
-  }), [genderFilter, styleFilter, searchQuery, avatarTypeFilter]);
+    categoryId: categoryFilter,
+  }), [genderFilter, styleFilter, searchQuery, avatarTypeFilter, categoryFilter]);
   
-  const { templates: rawTemplates, isLoading: templatesLoading, isFetching, isSuccess, error } = useAvatarTemplatesQuery(filterConfig);
+  const { templates: rawTemplates, isLoading: templatesLoading, isFetching, isSuccess, error, categoryCounts } = useAvatarTemplatesQuery(filterConfig);
   
   // ========== CRITICAL: Double-guard against undefined/null templates ==========
   // This is the primary defense against crashes from malformed data
@@ -202,8 +204,8 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   const hasInsufficientCredits = useMemo(() => userCredits < estimatedCredits, [userCredits, estimatedCredits]);
   const estimatedDuration = useMemo(() => clipCount * clipDuration, [clipCount, clipDuration]);
   const hasActiveFilters = useMemo(() => 
-    genderFilter !== 'all' || styleFilter !== 'all' || searchQuery.trim().length > 0,
-    [genderFilter, styleFilter, searchQuery]
+    genderFilter !== 'all' || styleFilter !== 'all' || searchQuery.trim().length > 0 || categoryFilter !== 'all',
+    [genderFilter, styleFilter, searchQuery, categoryFilter]
   );
   const isReadyToCreate = useMemo(() => 
     selectedAvatar && prompt.trim(),
@@ -386,6 +388,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     setGenderFilter('all');
     setStyleFilter('all');
     setSearchQuery('');
+    setCategoryFilter('all');
   }, []);
   
   const handleClosePreviewModal = useCallback(() => {
@@ -482,7 +485,10 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
               <AvatarsCategoryTabs
                 activeType={avatarTypeFilter}
                 onTypeChange={setAvatarTypeFilter}
+                activeCategory={categoryFilter}
+                onCategoryChange={setCategoryFilter}
                 totalCount={safeTemplates.length}
+                categoryCounts={categoryCounts}
               />
             </div>
           </SafeComponent>

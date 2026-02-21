@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { persistVideoToStorage, isTemporaryReplicateUrl } from "../_shared/video-persistence.ts";
 
 /**
  * RESUME-AVATAR-PIPELINE
@@ -188,35 +189,19 @@ serve(async (req) => {
     if (finalVideoUrl) {
       let permanentVideoUrl = finalVideoUrl;
       
-      if (finalVideoUrl.includes('replicate.delivery')) {
-        console.log(`[ResumePipeline] Copying video to permanent storage...`);
-        
-        try {
-          const videoResponse = await fetch(finalVideoUrl);
-          if (videoResponse.ok) {
-            const videoBlob = await videoResponse.blob();
-            const videoArrayBuffer = await videoBlob.arrayBuffer();
-            const videoBytes = new Uint8Array(videoArrayBuffer);
-            
-            const fileName = `avatar_${projectId}_${Date.now()}.mp4`;
-            const storagePath = `avatar-videos/${projectId}/${fileName}`;
-            
-            const { error: uploadError } = await supabase.storage
-              .from('video-clips')
-              .upload(storagePath, videoBytes, {
-                contentType: 'video/mp4',
-                upsert: true,
-              });
-            
-            if (!uploadError) {
-              permanentVideoUrl = `${supabaseUrl}/storage/v1/object/public/video-clips/${storagePath}`;
-              console.log(`[ResumePipeline] ✅ Video copied to permanent storage`);
-            } else {
-              console.warn(`[ResumePipeline] Storage upload failed, using original URL:`, uploadError.message);
-            }
-          }
-        } catch (storageError) {
-          console.warn(`[ResumePipeline] Failed to copy to permanent storage:`, storageError);
+      if (isTemporaryReplicateUrl(finalVideoUrl)) {
+        console.log(`[ResumePipeline] Copying video to permanent storage via shared persistence...`);
+        const persisted = await persistVideoToStorage(
+          supabase,
+          finalVideoUrl,
+          projectId,
+          { prefix: 'resume_avatar' }
+        );
+        if (persisted && persisted !== finalVideoUrl) {
+          permanentVideoUrl = persisted;
+          console.log(`[ResumePipeline] ✅ Video persisted to permanent storage`);
+        } else {
+          console.warn(`[ResumePipeline] Persistence failed, using original URL`);
         }
       }
       

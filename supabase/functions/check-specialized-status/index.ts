@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { persistVideoToStorage, persistAudioToStorage } from "../_shared/video-persistence.ts";
+import { persistVideoToStorage, persistAudioToStorage, isTemporaryReplicateUrl } from "../_shared/video-persistence.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -273,6 +273,25 @@ async function handleMultiClipAvatar(
   
   console.log(`[CheckSpecializedStatus] Video check: ${clipsWithVideo.length}/${totalCount} have video URLs`);
   
+  // PERSIST temporary Replicate URLs before finalizing
+  if (clipsWithVideo.length > 0) {
+    for (const clip of clipsWithVideo) {
+      if (clip.videoUrl && isTemporaryReplicateUrl(clip.videoUrl)) {
+        console.log(`[CheckSpecializedStatus] ⚠️ Clip ${clip.clipIndex} has temporary URL — persisting...`);
+        const permanentUrl = await persistVideoToStorage(
+          supabase as unknown as Parameters<typeof persistVideoToStorage>[0],
+          clip.videoUrl,
+          projectId,
+          { prefix: `specialized_clip${clip.clipIndex}`, clipIndex: clip.clipIndex }
+        );
+        if (permanentUrl && permanentUrl !== clip.videoUrl) {
+          clip.videoUrl = permanentUrl;
+          console.log(`[CheckSpecializedStatus] ✅ Clip ${clip.clipIndex} persisted`);
+        }
+      }
+    }
+  }
+  
   // If ALL clips have video URLs, mark as completed regardless of status flags
   if (hasAllVideos) {
     console.log(`[CheckSpecializedStatus] 🎉 ALL CLIPS HAVE VIDEOS - Finalizing project (override any stale status)`);
@@ -299,6 +318,11 @@ async function handleMultiClipAvatar(
     updateData.pending_video_tasks = {
       ...freshTasks,
       predictions: fixedPredictions,
+      stage: 'complete',
+      progress: 100,
+      mseClipUrls: videoClipsArray,
+      clipCount: videoClipsArray.length,
+      completedAt: new Date().toISOString(),
     };
     
     console.log(`[CheckSpecializedStatus] ✅ Project COMPLETED with ${videoClipsArray.length} clips`);
@@ -322,6 +346,15 @@ async function handleMultiClipAvatar(
         stage: 'completed',
         progress: 100,
         message: 'Video generation complete!',
+        completedAt: new Date().toISOString(),
+      };
+      updateData.pending_video_tasks = {
+        ...freshTasks,
+        predictions: freshPredictions,
+        stage: 'complete',
+        progress: 100,
+        mseClipUrls: videoClipsArray,
+        clipCount: videoClipsArray.length,
         completedAt: new Date().toISOString(),
       };
       

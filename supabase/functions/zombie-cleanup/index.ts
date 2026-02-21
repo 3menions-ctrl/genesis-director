@@ -86,7 +86,7 @@ serve(async (req) => {
       const hasVideoUrl = !!pipelineState.videoUrl;
       const hasAudioUrl = !!pipelineState.audioUrl;
       
-      if ((stage === 'audio_merge' || stage === 'lip_sync') && hasVideoUrl) {
+      if ((stage === 'audio_merge') && hasVideoUrl) {
         // RECOVERY PATH: Kling V3 native audio — video already has audio baked in
         // No separate audio merge needed. Use video as-is.
         console.log(`[ZombieCleanup] Kling V3 recovery for ${project.id} (stage: ${stage})`);
@@ -94,30 +94,7 @@ serve(async (req) => {
         try {
           const videoUrl = pipelineState.videoUrl as string;
           const audioUrl = pipelineState.audioUrl as string | undefined;
-          
-          // For lip_sync stage, check if lip-sync prediction completed
-          let finalVideoUrl = videoUrl;
-          const lipSyncPredictionId = pipelineState.lipSyncPredictionId as string | undefined;
-          
-          if (stage === 'lip_sync' && lipSyncPredictionId) {
-            const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
-            if (REPLICATE_API_KEY) {
-              try {
-                const statusRes = await fetch(`https://api.replicate.com/v1/predictions/${lipSyncPredictionId}`, {
-                  headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` },
-                });
-                const prediction = await statusRes.json();
-                if (prediction.status === "succeeded" && prediction.output) {
-                  finalVideoUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
-                  console.log(`[ZombieCleanup] ✅ Lip-sync recovered for ${project.id}`);
-                } else {
-                  console.log(`[ZombieCleanup] Lip-sync not ready, using Kling V3 native audio video for ${project.id}`);
-                }
-              } catch {
-                console.warn(`[ZombieCleanup] Lip-sync check failed, using video as-is`);
-              }
-            }
-          }
+          const finalVideoUrl = videoUrl;
               
           // Mark project as completed with the video
           await supabase.from('movie_projects').update({

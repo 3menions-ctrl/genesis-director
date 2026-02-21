@@ -1,12 +1,16 @@
 /**
- * Hoppy Chat — Clean Rebuild
- * Messenger-style bottom sheet. No glassmorphism hacks.
- * Send button always works. Focus is simple.
+ * Hoppy Chat — Clean Rebuild v2
+ * 
+ * KEY FIXES:
+ * - Input is NEVER disabled — users can always type and send
+ * - Messages queue when Hoppy is responding
+ * - Clear "responding" indicator in header
+ * - Reliable stream completion detection
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, Paperclip, Loader2, RefreshCw, XCircle, ChevronDown } from "lucide-react";
+import { X, Send, Paperclip, Loader2, RefreshCw, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AgentFace } from "./AgentFace";
 import { useAgentChat, AgentMessage } from "@/hooks/useAgentChat";
@@ -98,7 +102,7 @@ function TypingIndicator() {
 
 // ─── Main panel ───────────────────────────────────────────────────
 export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
-  const { messages, isLoading, agentState, clearMessages, sendMessage, loadingHistory } = useAgentChat();
+  const { messages, isResponding, agentState, clearMessages, sendMessage, loadingHistory } = useAgentChat();
 
   const [input, setInput] = useState("");
   const [uploadedImage, setUploadedImage] = useState<{ url: string; name: string } | null>(null);
@@ -107,7 +111,6 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const prevLoadingRef = useRef(isLoading);
 
   // Focus input when panel opens
   useEffect(() => {
@@ -115,15 +118,6 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
       setTimeout(() => inputRef.current?.focus(), 300);
     }
   }, [isOpen]);
-
-  // Refocus after Hoppy finishes — no blur hacks needed
-  useEffect(() => {
-    const wasLoading = prevLoadingRef.current;
-    prevLoadingRef.current = isLoading;
-    if (wasLoading && !isLoading && isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
-  }, [isLoading, isOpen]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -138,17 +132,20 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
     return () => { document.body.style.overflow = prev; };
   }, [isOpen]);
 
-  const canSend = !!(input.trim() || uploadedImage) && !isLoading;
+  // Input has content (send is ALWAYS possible if there's text, regardless of isResponding)
+  const hasContent = !!(input.trim() || uploadedImage);
 
   const handleSend = useCallback(async () => {
-    if (!canSend) return;
+    if (!hasContent) return;
     let msg = input.trim();
     if (uploadedImage) msg = msg ? `${msg}\n\n[Image: ${uploadedImage.url}]` : `[Image: ${uploadedImage.url}]`;
     setInput("");
     setUploadedImage(null);
+    // sendMessage handles queuing internally — never blocks
     await sendMessage(msg);
+    // Refocus input after send
     setTimeout(() => inputRef.current?.focus(), 50);
-  }, [input, uploadedImage, canSend, sendMessage]);
+  }, [input, uploadedImage, hasContent, sendMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -177,7 +174,7 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
     }
   };
 
-  const showTyping = isLoading && !messages.some((m) => m.streaming && m.content.length > 0);
+  const showTyping = isResponding && !messages.some((m) => m.streaming && m.content.length > 0);
 
   return (
     <AnimatePresence>
@@ -193,7 +190,7 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
             onClick={onClose}
           />
 
-          {/* Panel — full-height right drawer on desktop, full-screen on mobile */}
+          {/* Panel */}
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
@@ -211,8 +208,11 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-foreground text-sm">Hoppy</p>
                 <p className="text-xs text-muted-foreground">
-                  {isLoading ? (
-                    <span className="text-primary">Responding…</span>
+                  {isResponding ? (
+                    <span className="text-primary flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Responding…
+                    </span>
                   ) : "AI Creative Director"}
                 </p>
               </div>
@@ -278,46 +278,50 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
               )}
             </AnimatePresence>
 
-            {/* ── Input ── */}
+            {/* ── Input — NEVER disabled ── */}
             <div className="flex-shrink-0 px-4 py-3 border-t border-border">
+              {/* Queue indicator */}
+              {isResponding && (
+                <p className="text-[10px] text-primary/60 mb-1.5 px-1">
+                  You can keep typing — your message will be sent when Hoppy finishes
+                </p>
+              )}
               <div className="flex items-end gap-2">
                 {/* Attach button */}
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={isLoading || isUploading}
+                  disabled={isUploading}
                   className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-xl border border-border text-muted-foreground hover:text-foreground hover:border-border/80 transition-colors disabled:opacity-40"
                 >
                   {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
                 </button>
 
-                {/* Text input */}
+                {/* Text input — ALWAYS enabled */}
                 <textarea
                   ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Message Hoppy…"
+                  placeholder={isResponding ? "Type your next message…" : "Message Hoppy…"}
                   rows={1}
-                  disabled={isLoading}
                   style={{ fieldSizing: "content" } as React.CSSProperties}
                   className={cn(
                     "flex-1 resize-none bg-muted/30 border border-border rounded-xl px-3 py-2.5",
                     "text-sm text-foreground placeholder:text-muted-foreground/50",
                     "outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40",
-                    "max-h-32 min-h-[40px] leading-relaxed transition-colors",
-                    "disabled:opacity-50 disabled:cursor-not-allowed"
+                    "max-h-32 min-h-[40px] leading-relaxed transition-colors"
                   )}
                 />
 
-                {/* Send button — always bold purple, dimmed when can't send */}
+                {/* Send button — active whenever there's content */}
                 <button
                   type="button"
                   onClick={handleSend}
-                  disabled={!canSend}
+                  disabled={!hasContent}
                   className={cn(
                     "flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-xl transition-all",
-                    canSend
+                    hasContent
                       ? "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95"
                       : "bg-primary/20 text-primary/40 cursor-not-allowed"
                   )}

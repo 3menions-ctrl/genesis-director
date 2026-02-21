@@ -3,6 +3,9 @@
  * 
  * Manages conversation state, message sending, persistent memory,
  * and action handling for the AI agent interface.
+ * 
+ * KEY FIX: Users can now send messages while Hoppy is still responding.
+ * Messages are queued and processed sequentially.
  */
 
 import { useState, useCallback, useRef, useEffect } from "react";
@@ -39,6 +42,9 @@ export interface AgentAction {
 
 interface UseAgentChatReturn {
   messages: AgentMessage[];
+  /** True when Hoppy is actively generating a response */
+  isResponding: boolean;
+  /** @deprecated Use isResponding instead */
   isLoading: boolean;
   conversationId: string | null;
   sendMessage: (content: string) => Promise<void>;
@@ -51,17 +57,17 @@ export function useAgentChat(): UseAgentChatReturn {
   const { user } = useAuth();
   const location = useLocation();
   const [messages, setMessages] = useState<AgentMessage[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isResponding, setIsResponding] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [agentState, setAgentState] = useState<"idle" | "thinking" | "speaking" | "listening">("idle");
   const messageIdCounter = useRef(0);
   const historyLoaded = useRef(false);
-  // Track the in-progress streaming message id so we can patch it
-  const streamingMsgId = useRef<string | null>(null);
-  // Use a ref to track loading so sendMessage closure doesn't go stale
-  // (avoids isLoading being stuck true when the closure is recreated mid-stream)
-  const isLoadingRef = useRef(false);
+  // Abort controller for current stream — allows cancellation
+  const abortRef = useRef<AbortController | null>(null);
+  // Queue for messages sent while Hoppy is responding
+  const messageQueue = useRef<string[]>([]);
+  const processingQueue = useRef(false);
 
   const generateId = () => {
     messageIdCounter.current++;
@@ -134,9 +140,12 @@ export function useAgentChat(): UseAgentChatReturn {
     return data.id;
   }, [conversationId, user?.id]);
 
-  const sendMessage = useCallback(async (content: string) => {
-    // Use ref to check loading so this closure never goes stale
-    if (!content.trim() || isLoadingRef.current || !user?.id) return;
+  /**
+   * Core send logic — processes a single message through the SSE pipeline.
+   * This is separated from the public sendMessage so the queue can call it.
+   */
+  const processSingleMessage = useCallback(async (content: string) => {
+    if (!user?.id) return;
 
     const convId = await ensureConversation();
 
@@ -144,17 +153,15 @@ export function useAgentChat(): UseAgentChatReturn {
     const userMessage: AgentMessage = {
       id: generateId(),
       role: "user",
-      content: content.trim(),
+      content,
       timestamp: new Date(),
     };
     setMessages((prev) => [...prev, userMessage]);
-    isLoadingRef.current = true;
-    setIsLoading(true);
+    setIsResponding(true);
     setAgentState("thinking");
 
-    // Create a placeholder streaming assistant message
+    // Create placeholder streaming assistant message
     const placeholderId = generateId();
-    streamingMsgId.current = placeholderId;
     const placeholderMsg: AgentMessage = {
       id: placeholderId,
       role: "assistant",
@@ -163,6 +170,26 @@ export function useAgentChat(): UseAgentChatReturn {
       streaming: true,
     };
     setMessages((prev) => [...prev, placeholderMsg]);
+
+    // Create abort controller for this stream
+    const abortController = new AbortController();
+    abortRef.current = abortController;
+
+    // Safety timeout: if stream doesn't complete in 90s, force-finish
+    const safetyTimeout = setTimeout(() => {
+      if (abortRef.current === abortController) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === placeholderId && m.streaming
+              ? { ...m, streaming: false }
+              : m
+          )
+        );
+        setIsResponding(false);
+        setAgentState("idle");
+        abortRef.current = null;
+      }
+    }, 90_000);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -178,16 +205,16 @@ export function useAgentChat(): UseAgentChatReturn {
             ...(accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}),
           },
           body: JSON.stringify({
-            messages: [{ role: "user", content: content.trim() }],
+            messages: [{ role: "user", content }],
             conversationId: convId,
             currentPage: location.pathname,
           }),
+          signal: abortController.signal,
         }
       );
 
       if (!response.ok) {
-        const status = response.status;
-        throw new Error(`HTTP ${status}`);
+        throw new Error(`HTTP ${response.status}`);
       }
 
       const contentType = response.headers.get("content-type") || "";
@@ -199,6 +226,7 @@ export function useAgentChat(): UseAgentChatReturn {
         const decoder = new TextDecoder();
         let buffer = "";
         let accumulatedContent = "";
+        let receivedDone = false;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -211,14 +239,16 @@ export function useAgentChat(): UseAgentChatReturn {
           for (const line of lines) {
             if (!line.startsWith("data: ")) continue;
             const payload = line.slice(6).trim();
-            if (!payload || payload === "[DONE]") continue;
+            if (!payload || payload === "[DONE]") {
+              receivedDone = true;
+              continue;
+            }
 
             try {
               const evt = JSON.parse(payload);
 
               if (evt.type === "token") {
                 accumulatedContent += evt.chunk;
-                // Patch the placeholder message with the growing text
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === placeholderId
@@ -227,7 +257,7 @@ export function useAgentChat(): UseAgentChatReturn {
                   )
                 );
               } else if (evt.type === "done") {
-                // Final frame: apply full metadata
+                receivedDone = true;
                 if (evt.updatedBalance !== undefined) {
                   window.dispatchEvent(new CustomEvent("credits-updated", { detail: { balance: evt.updatedBalance } }));
                 }
@@ -251,8 +281,19 @@ export function useAgentChat(): UseAgentChatReturn {
             }
           }
         }
+
+        // Stream ended — ensure streaming flag is cleared even if no "done" event
+        if (!receivedDone) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === placeholderId
+                ? { ...m, content: accumulatedContent || m.content, streaming: false }
+                : m
+            )
+          );
+        }
       } else {
-        // ── JSON fallback path (e.g. Lovable gateway) ──
+        // ── JSON fallback path ──
         const data = await response.json();
         setAgentState("speaking");
 
@@ -277,6 +318,9 @@ export function useAgentChat(): UseAgentChatReturn {
         );
       }
     } catch (err: any) {
+      // Don't show error for intentional aborts
+      if (err?.name === "AbortError") return;
+
       console.error("[Hoppy] Send error:", err);
 
       const errMsg = String(err?.message || "");
@@ -289,7 +333,6 @@ export function useAgentChat(): UseAgentChatReturn {
 
       toast.error("Hoppy had a hiccup — try again!");
 
-      // Replace the placeholder with the error message
       setMessages((prev) =>
         prev.map((m) =>
           m.id === placeholderId
@@ -298,23 +341,72 @@ export function useAgentChat(): UseAgentChatReturn {
         )
       );
     } finally {
-      streamingMsgId.current = null;
-      isLoadingRef.current = false;
-      setIsLoading(false);
-      setTimeout(() => setAgentState("idle"), 1500);
+      clearTimeout(safetyTimeout);
+      abortRef.current = null;
+      setIsResponding(false);
+      setTimeout(() => setAgentState("idle"), 800);
     }
   }, [user?.id, ensureConversation, location.pathname]);
 
+  /**
+   * Process queued messages sequentially
+   */
+  const processQueue = useCallback(async () => {
+    if (processingQueue.current) return;
+    processingQueue.current = true;
+
+    while (messageQueue.current.length > 0) {
+      const nextMessage = messageQueue.current.shift()!;
+      await processSingleMessage(nextMessage);
+    }
+
+    processingQueue.current = false;
+  }, [processSingleMessage]);
+
+  /**
+   * Public send function — NEVER blocks.
+   * If Hoppy is responding, the message is queued and sent after she finishes.
+   */
+  const sendMessage = useCallback(async (content: string) => {
+    if (!content.trim() || !user?.id) return;
+
+    const trimmed = content.trim();
+
+    if (processingQueue.current) {
+      // Hoppy is busy — queue the message and show it immediately
+      messageQueue.current.push(trimmed);
+      // Show user message immediately even though it's queued
+      setMessages((prev) => [...prev, {
+        id: generateId(),
+        role: "user" as const,
+        content: trimmed,
+        timestamp: new Date(),
+      }]);
+      return;
+    }
+
+    // Process immediately — and then drain the queue
+    messageQueue.current.push(trimmed);
+    await processQueue();
+  }, [user?.id, processQueue]);
+
   const clearMessages = useCallback(() => {
+    // Abort any in-flight stream
+    abortRef.current?.abort();
+    abortRef.current = null;
+    messageQueue.current = [];
+    processingQueue.current = false;
     setMessages([]);
     setConversationId(null);
     historyLoaded.current = false;
+    setIsResponding(false);
     setAgentState("idle");
   }, []);
 
   return {
     messages,
-    isLoading,
+    isLoading: isResponding, // backward compat
+    isResponding,
     conversationId,
     sendMessage,
     clearMessages,

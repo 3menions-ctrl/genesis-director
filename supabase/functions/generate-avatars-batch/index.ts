@@ -6,17 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function getVoice(gender: string, personality: string): string {
-  const isDeep = /wise|commanding|authoritative|fierce|strategic/i.test(personality);
-  const isWarm = /warm|nurturing|gentle|friendly/i.test(personality);
-  if (gender === "male") {
-    if (isDeep) return "onyx";
-    if (isWarm) return "fable";
-    return "echo";
-  }
-  return isWarm ? "shimmer" : "nova";
-}
-
 async function generateImage(prompt: string): Promise<string | null> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -46,11 +35,9 @@ async function generateImage(prompt: string): Promise<string | null> {
 async function uploadToStorage(supabase: any, base64Data: string, fileName: string): Promise<string> {
   const base64Content = base64Data.replace(/^data:image\/\w+;base64,/, "");
   const bytes = Uint8Array.from(atob(base64Content), (c) => c.charCodeAt(0));
-
   const { data, error } = await supabase.storage
     .from("avatars")
     .upload(fileName, bytes, { contentType: "image/png", upsert: true });
-
   if (error) throw error;
   const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(data.path);
   return urlData.publicUrl;
@@ -62,7 +49,7 @@ serve(async (req) => {
   }
 
   try {
-    // Auth: service-role, admin user, or batch_key in body
+    // ═══ AUTH GUARD: Admin or service-role only ═══
     const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
     const auth = await validateAuth(req);
     let authorized = auth.authenticated && auth.isServiceRole;
@@ -81,39 +68,41 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get all avatars with placeholder images
+    let body: any = {};
+    try { body = await req.json(); } catch {}
+    const limit = body.limit || 3;
+
+    // Get placeholder avatars
     const { data: avatars, error: fetchError } = await supabase
       .from("avatar_templates")
       .select("id, name, gender, age_range, ethnicity, personality, avatar_type, tags, style, character_bible")
       .eq("is_active", true)
-      .like("face_image_url", "%placehold%");
+      .like("face_image_url", "%placehold%")
+      .limit(limit);
 
     if (fetchError) throw fetchError;
     if (!avatars || avatars.length === 0) {
-      return new Response(JSON.stringify({ message: "No placeholder avatars found", count: 0 }), {
+      return new Response(JSON.stringify({ message: "No placeholder avatars remaining", count: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
 
-    console.log(`[BatchGen] Found ${avatars.length} avatars to generate`);
-
-    const results: { name: string; status: string; imageUrl?: string; error?: string }[] = [];
+    console.log(`[BatchGen] Processing ${avatars.length} of remaining placeholders`);
+    const results: { name: string; status: string; error?: string }[] = [];
     
-    const fullBodyDirective = "CRITICAL: Show the COMPLETE figure from the top of the head to the bottom of the feet. Do NOT crop or cut off any part of the body. Full head-to-toe framing is mandatory. Leave padding/space above the head and below the feet.";
+    const fullBodyDirective = "CRITICAL: Show the COMPLETE figure from the top of the head to the bottom of the feet. Do NOT crop or cut off any part of the body. Full head-to-toe framing is mandatory. Leave padding above the head and below the feet.";
 
     for (const avatar of avatars) {
       try {
         const clothing = avatar.character_bible?.clothing_description || "";
         const isAnimal = avatar.tags?.some((t: string) => 
-          ["lion", "wolf", "eagle", "panther", "tiger", "elephant", "fox", "horse", "dolphin", "bear", "owl", "leopard", "turtle", "gorilla", "falcon", "dog", "cat", "penguin", "bunny", "raccoon", "snake", "parrot", "cheetah", "dragon", "reindeer", "turkey", "pumpkin"].includes(t)
+          ["lion","wolf","eagle","panther","tiger","elephant","fox","horse","dolphin","bear","owl","leopard","turtle","gorilla","falcon","dog","cat","penguin","bunny","raccoon","snake","parrot","cheetah","dragon","reindeer","turkey","pumpkin"].includes(t)
         );
         const isAnimated = avatar.avatar_type === "animated";
 
         let prompt: string;
         if (isAnimal && isAnimated) {
           prompt = `Premium 3D animated character portrait of ${avatar.name}, a ${avatar.ethnicity}. Style: High-end 3D CGI (Pixar/DreamWorks quality). ${avatar.personality}. ${clothing}. ${fullBodyDirective} Clean studio background, vibrant colors, expressive features, anthropomorphic with personality. Ultra high resolution 8K.`;
-        } else if (isAnimal) {
-          prompt = `Ultra-realistic professional wildlife photograph of ${avatar.name}, a ${avatar.ethnicity}. ${clothing}. ${avatar.personality}. ${fullBodyDirective} National Geographic quality, natural lighting, studio backdrop, 8K photorealistic. Ultra high resolution.`;
         } else if (isAnimated) {
           prompt = `Premium 3D animated character of ${avatar.name}, ${avatar.gender} ${avatar.ethnicity}. Style: High-end 3D CGI (Pixar/DreamWorks). ${avatar.personality}. Age: ${avatar.age_range}. Outfit: ${clothing}. ${fullBodyDirective} Clean studio background, expressive engaging pose. Ultra high resolution.`;
         } else {
@@ -132,53 +121,43 @@ serve(async (req) => {
         const baseName = avatar.name.toLowerCase().replace(/[^a-z0-9]/g, "-");
         const imageUrl = await uploadToStorage(supabase, base64, `batch-v2/${baseName}-${timestamp}.png`);
 
-        // Update the avatar record
-        const { error: updateError } = await supabase
+        await supabase
           .from("avatar_templates")
-          .update({
-            face_image_url: imageUrl,
-            thumbnail_url: imageUrl,
-            front_image_url: imageUrl,
-          })
+          .update({ face_image_url: imageUrl, thumbnail_url: imageUrl, front_image_url: imageUrl })
           .eq("id", avatar.id);
 
-        if (updateError) {
-          results.push({ name: avatar.name, status: "upload_ok_db_fail", imageUrl, error: updateError.message });
-        } else {
-          results.push({ name: avatar.name, status: "success", imageUrl });
-          console.log(`[BatchGen] ✓ ${avatar.name}`);
+        results.push({ name: avatar.name, status: "success" });
+        console.log(`[BatchGen] ✓ ${avatar.name}`);
+
+        if (avatars.indexOf(avatar) < avatars.length - 1) {
+          await new Promise(r => setTimeout(r, 1500));
         }
-
-        // Small delay between generations to avoid rate limits
-        await new Promise(r => setTimeout(r, 2000));
-
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Unknown error";
         console.error(`[BatchGen] ✗ ${avatar.name}: ${msg}`);
         results.push({ name: avatar.name, status: "error", error: msg });
-
-        // If rate limited, wait longer
         if (msg === "RATE_LIMITED") {
-          console.log("[BatchGen] Rate limited, waiting 30s...");
-          await new Promise(r => setTimeout(r, 30000));
+          await new Promise(r => setTimeout(r, 15000));
         }
       }
     }
 
-    const successCount = results.filter(r => r.status === "success").length;
-    const failCount = results.filter(r => r.status !== "success").length;
-
-    console.log(`[BatchGen] Complete: ${successCount} success, ${failCount} failed`);
+    const { count } = await supabase
+      .from("avatar_templates")
+      .select("id", { count: "exact", head: true })
+      .eq("is_active", true)
+      .like("face_image_url", "%placehold%");
 
     return new Response(JSON.stringify({
-      total: avatars.length,
-      success: successCount,
-      failed: failCount,
+      processed: avatars.length,
+      success: results.filter(r => r.status === "success").length,
+      failed: results.filter(r => r.status !== "success").length,
+      remaining: count || 0,
       results,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (error) {
-    console.error("[BatchGen] Fatal error:", error);
+    console.error("[BatchGen] Fatal:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Failed" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -4884,17 +4884,21 @@ serve(async (req) => {
         reader.releaseLock();
       }
 
-      // Persist to DB
+      // Persist to DB (use try/catch — PostgrestBuilder lacks .catch())
       if (saveToDb && conversationId && accumulatedText) {
-        const lastUserMsg = messages[messages.length - 1];
-        if (lastUserMsg) {
-          await supabase.from("agent_messages").insert({ conversation_id: conversationId, role: lastUserMsg.role, content: lastUserMsg.content }).catch(() => {});
+        try {
+          const lastUserMsg = messages[messages.length - 1];
+          if (lastUserMsg) {
+            await supabase.from("agent_messages").insert({ conversation_id: conversationId, role: lastUserMsg.role, content: lastUserMsg.content });
+          }
+          await supabase.from("agent_messages").insert({
+            conversation_id: conversationId, role: "assistant", content: accumulatedText,
+            tool_calls: null, tool_results: null,
+            metadata: { creditsCharged: 0 },
+          });
+        } catch (dbErr) {
+          console.error("[agent-chat] Failed to persist messages:", dbErr);
         }
-        await supabase.from("agent_messages").insert({
-          conversation_id: conversationId, role: "assistant", content: accumulatedText,
-          tool_calls: null, tool_results: null,
-          metadata: { creditsCharged: 0 },
-        }).catch(() => {});
       }
 
       // Flush final metadata frame

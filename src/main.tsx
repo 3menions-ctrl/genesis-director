@@ -259,8 +259,8 @@ window.addEventListener("unhandledrejection", (event) => {
     console.error("[Unhandled Rejection]", stabilityEvent.category, event.reason);
   }
   
-  // Prevent crash from async errors - CRITICAL for navigation stability
-  event.preventDefault();
+  // NOTE: Only suppress known-safe rejections (handled above).
+  // Real unhandled rejections should propagate to console for debugging.
 });
 
 // Register service worker for PWA

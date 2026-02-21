@@ -34,6 +34,7 @@ export function checkRateLimit(
 
   if (!entry || now - entry.windowStart > windowMs) {
     rateLimitStore.set(key, { count: 1, windowStart: now });
+    ensureCleanupInterval();
     return true;
   }
 
@@ -46,14 +47,25 @@ export function checkRateLimit(
 }
 
 // Clean up stale entries every 5 minutes to prevent memory leaks
-setInterval(() => {
-  const now = Date.now();
-  rateLimitStore.forEach((entry, key) => {
-    if (now - entry.windowStart > 10 * 60 * 1000) {
-      rateLimitStore.delete(key);
+// Only start cleanup when rateLimitStore has entries (lazy init)
+let cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
+
+function ensureCleanupInterval() {
+  if (cleanupIntervalId) return;
+  cleanupIntervalId = setInterval(() => {
+    const now = Date.now();
+    rateLimitStore.forEach((entry, key) => {
+      if (now - entry.windowStart > 10 * 60 * 1000) {
+        rateLimitStore.delete(key);
+      }
+    });
+    // Stop interval if store is empty
+    if (rateLimitStore.size === 0 && cleanupIntervalId) {
+      clearInterval(cleanupIntervalId);
+      cleanupIntervalId = null;
     }
-  });
-}, 5 * 60 * 1000);
+  }, 5 * 60 * 1000);
+}
 
 // ─── Input Sanitization ──────────────────────────────────────────────────────
 

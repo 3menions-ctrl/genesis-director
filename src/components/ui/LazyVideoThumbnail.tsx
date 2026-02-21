@@ -13,14 +13,14 @@ import { cn } from '@/lib/utils';
 import { Film } from 'lucide-react';
 
 // ============================================================================
-// CONCURRENCY LIMITER - max 6 videos loading at once
+// CONCURRENCY LIMITER - max 6 videos loading at once (exported for reuse)
 // ============================================================================
 
 const MAX_CONCURRENT_LOADS = 6;
 let activeLoads = 0;
 const loadQueue: Array<() => void> = [];
 
-function requestLoadSlot(): Promise<void> {
+export function requestLoadSlot(): Promise<void> {
   return new Promise((resolve) => {
     if (activeLoads < MAX_CONCURRENT_LOADS) {
       activeLoads++;
@@ -34,12 +34,17 @@ function requestLoadSlot(): Promise<void> {
   });
 }
 
-function releaseLoadSlot(): void {
+export function releaseLoadSlot(): void {
   activeLoads--;
   if (loadQueue.length > 0 && activeLoads < MAX_CONCURRENT_LOADS) {
     const next = loadQueue.shift();
     next?.();
   }
+}
+
+/** Check if a load slot is immediately available without queuing */
+export function hasAvailableLoadSlot(): boolean {
+  return activeLoads < MAX_CONCURRENT_LOADS;
 }
 
 // ============================================================================

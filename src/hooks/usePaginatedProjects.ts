@@ -11,7 +11,7 @@ import { Project } from '@/types/studio';
 import { useAuth } from '@/contexts/AuthContext';
 import { debounce, createAsyncGuard } from '@/lib/concurrency/debounce';
 
-const PAGE_SIZE = 5; // Load 5 projects per page to prevent memory exhaustion
+const PAGE_SIZE = 25; // Load 25 projects per page for better visibility
 
 export interface PaginatedProjectsResult {
   projects: Project[];

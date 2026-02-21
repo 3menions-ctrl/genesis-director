@@ -13,11 +13,12 @@ import { VideoCommentsSection } from '@/components/social/VideoCommentsSection';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
 import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
 import {
-  Search, Play, Heart, Sparkles, Clock, X, ArrowRight, Video, Eye, MessageCircle
+  Search, Play, Heart, Sparkles, Clock, X, ArrowRight, Video, Eye, MessageCircle, UserPlus, UserCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
 
 export default function Creators() {
   const { user } = useAuth();
@@ -29,6 +30,7 @@ export default function Creators() {
     id: string;
     title: string;
     user_id?: string;
+    creator?: { display_name: string | null; avatar_url: string | null };
   } | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -52,6 +54,19 @@ export default function Creators() {
       if (error) return [];
       const projects = data || [];
 
+      // Fetch creator profiles for all videos
+      const creatorIds = [...new Set(projects.map(p => p.user_id).filter(Boolean))];
+      let creatorMap = new Map<string, { display_name: string | null; avatar_url: string | null }>();
+      if (creatorIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles_public')
+          .select('id, display_name, avatar_url')
+          .in('id', creatorIds);
+        profiles?.forEach(p => creatorMap.set(p.id, { display_name: p.display_name, avatar_url: p.avatar_url }));
+      }
+
+      // Fetch first clip URLs for thumbnails
+      let clipMap = new Map<string, string>();
       if (projects.length > 0) {
         const projectIds = projects.map(p => p.id);
         const { data: clips } = await supabase
@@ -60,34 +75,16 @@ export default function Creators() {
           .in('project_id', projectIds)
           .eq('shot_index', 0)
           .not('video_url', 'is', null);
-
-        const clipMap = new Map<string, string>();
         clips?.forEach(c => {
           if (c.video_url && c.video_url.includes('.mp4')) {
             clipMap.set(c.project_id, c.video_url);
           }
         });
-
-        return projects.map(p => {
-          let clipUrl = clipMap.get(p.id) || null;
-          if (!clipUrl && p.video_clips && Array.isArray(p.video_clips) && p.video_clips.length > 0) {
-            const firstMp4 = (p.video_clips as string[]).find((u: string) => u.includes('.mp4'));
-            if (firstMp4) clipUrl = firstMp4;
-          }
-          // Resolve effective video_url from pending_video_tasks if missing
-          let effectiveVideoUrl = p.video_url;
-          if (!effectiveVideoUrl) {
-            const tasks = p.pending_video_tasks as Record<string, unknown> | null;
-            if (tasks?.hlsPlaylistUrl) effectiveVideoUrl = tasks.hlsPlaylistUrl as string;
-            else if (tasks?.manifestUrl) effectiveVideoUrl = tasks.manifestUrl as string;
-          }
-          return { ...p, video_url: effectiveVideoUrl, first_clip_url: clipUrl };
-        });
       }
 
       return projects.map(p => {
-        let clipUrl: string | null = null;
-        if (p.video_clips && Array.isArray(p.video_clips) && p.video_clips.length > 0) {
+        let clipUrl = clipMap.get(p.id) || null;
+        if (!clipUrl && p.video_clips && Array.isArray(p.video_clips) && p.video_clips.length > 0) {
           const firstMp4 = (p.video_clips as string[]).find((u: string) => u.includes('.mp4'));
           if (firstMp4) clipUrl = firstMp4;
         }
@@ -97,7 +94,8 @@ export default function Creators() {
           if (tasks?.hlsPlaylistUrl) effectiveVideoUrl = tasks.hlsPlaylistUrl as string;
           else if (tasks?.manifestUrl) effectiveVideoUrl = tasks.manifestUrl as string;
         }
-        return { ...p, video_url: effectiveVideoUrl, first_clip_url: clipUrl };
+        const creator = creatorMap.get(p.user_id) || { display_name: null, avatar_url: null };
+        return { ...p, video_url: effectiveVideoUrl, first_clip_url: clipUrl, creator };
       });
     },
     staleTime: 60000,
@@ -138,6 +136,51 @@ export default function Creators() {
     enabled: !!user,
   });
 
+  // User follows — track who the current user follows
+  const { data: userFollows } = useQuery({
+    queryKey: ['user-follows-list', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('user_follows')
+        .select('following_id')
+        .eq('follower_id', user.id);
+      if (error) return [];
+      return data.map(f => f.following_id);
+    },
+    enabled: !!user,
+  });
+
+  // Follow/unfollow mutation
+  const followMutation = useMutation({
+    mutationFn: async ({ targetUserId, isFollowing }: { targetUserId: string; isFollowing: boolean }) => {
+      if (!user) throw new Error('Must be logged in');
+      if (targetUserId === user.id) return; // Can't follow yourself
+      if (isFollowing) {
+        await supabase.from('user_follows').delete().eq('follower_id', user.id).eq('following_id', targetUserId);
+      } else {
+        const { error } = await supabase.from('user_follows').insert({ follower_id: user.id, following_id: targetUserId });
+        if (error) throw error;
+        await supabase.from('notifications').insert({
+          user_id: targetUserId, type: 'follow', title: 'New Follower!',
+          body: 'Someone started following you', data: { follower_id: user.id },
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-follows-list'] });
+      queryClient.invalidateQueries({ queryKey: ['followers-count'] });
+      queryClient.invalidateQueries({ queryKey: ['following-count'] });
+    },
+  });
+
+  const handleFollow = useCallback((e: React.MouseEvent, targetUserId: string, isFollowing: boolean) => {
+    e.stopPropagation();
+    if (!user) { toast.error('Please log in to follow creators'); return; }
+    if (targetUserId === user.id) return;
+    followMutation.mutate({ targetUserId, isFollowing });
+  }, [user, followMutation]);
+
   const likeMutation = useMutation({
     mutationFn: async ({ projectId, isLiked, ownerId }: { projectId: string; isLiked: boolean; ownerId?: string }) => {
       if (!user) throw new Error('Must be logged in to like');
@@ -147,6 +190,17 @@ export default function Creators() {
       } else {
         const { error } = await supabase.from('video_likes').insert({ user_id: user.id, project_id: projectId });
         if (error) throw error;
+        // Auto-follow the video creator when liking (if not already following and not own video)
+        if (ownerId && ownerId !== user.id && !userFollows?.includes(ownerId)) {
+          await supabase.from('user_follows').insert({ follower_id: user.id, following_id: ownerId }).then(({ error: followErr }) => {
+            if (!followErr) {
+              supabase.from('notifications').insert({
+                user_id: ownerId, type: 'follow', title: 'New Follower!',
+                body: 'Someone liked your video and started following you', data: { follower_id: user.id },
+              });
+            }
+          });
+        }
         if (ownerId && ownerId !== user.id) {
           await supabase.from('notifications').insert({
             user_id: ownerId, type: 'like', title: 'Someone liked your video!',
@@ -158,6 +212,7 @@ export default function Creators() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['discover-videos'] });
       queryClient.invalidateQueries({ queryKey: ['user-likes'] });
+      queryClient.invalidateQueries({ queryKey: ['user-follows-list'] });
     },
     onError: () => toast.error("Couldn't update your like"),
   });
@@ -291,7 +346,7 @@ export default function Creators() {
                 {/* Large featured card */}
                 <div
                   className="md:col-span-2 md:row-span-2 group relative rounded-3xl overflow-hidden cursor-pointer bg-white/[0.02] border border-white/[0.06]"
-                  onClick={() => setSelectedVideo({ id: featuredVideos[0].id, title: featuredVideos[0].title, user_id: featuredVideos[0].user_id })}
+                  onClick={() => setSelectedVideo({ id: featuredVideos[0].id, title: featuredVideos[0].title, user_id: featuredVideos[0].user_id, creator: featuredVideos[0].creator })}
                   onMouseEnter={() => setHoveredId(featuredVideos[0].id)}
                   onMouseLeave={() => setHoveredId(null)}
                 >
@@ -309,6 +364,14 @@ export default function Creators() {
                         Featured
                       </div>
                       <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 line-clamp-2">{featuredVideos[0].title}</h3>
+                      <CreatorRow
+                        creatorName={featuredVideos[0].creator?.display_name}
+                        creatorAvatar={featuredVideos[0].creator?.avatar_url}
+                        creatorId={featuredVideos[0].user_id}
+                        isFollowing={userFollows?.includes(featuredVideos[0].user_id) || false}
+                        onFollow={(e) => handleFollow(e, featuredVideos[0].user_id, userFollows?.includes(featuredVideos[0].user_id) || false)}
+                        isOwnVideo={featuredVideos[0].user_id === user?.id}
+                      />
                       <VideoMeta likesCount={featuredVideos[0].likes_count} createdAt={featuredVideos[0].created_at} isLiked={userLikes?.includes(featuredVideos[0].id)} onLike={(e) => handleLike(e, featuredVideos[0].id, userLikes?.includes(featuredVideos[0].id) || false, featuredVideos[0].user_id)} />
                     </div>
                     <PlayOverlay />
@@ -320,7 +383,7 @@ export default function Creators() {
                   <div
                     key={video.id}
                     className="group relative rounded-3xl overflow-hidden cursor-pointer bg-white/[0.02] border border-white/[0.06]"
-                    onClick={() => setSelectedVideo({ id: video.id, title: video.title, user_id: video.user_id })}
+                    onClick={() => setSelectedVideo({ id: video.id, title: video.title, user_id: video.user_id, creator: video.creator })}
                     onMouseEnter={() => setHoveredId(video.id)}
                     onMouseLeave={() => setHoveredId(null)}
                   >
@@ -334,6 +397,14 @@ export default function Creators() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-5">
                         <h3 className="text-sm font-semibold text-white truncate mb-1">{video.title}</h3>
+                        <CreatorRow
+                          creatorName={video.creator?.display_name}
+                          creatorAvatar={video.creator?.avatar_url}
+                          creatorId={video.user_id}
+                          isFollowing={userFollows?.includes(video.user_id) || false}
+                          onFollow={(e) => handleFollow(e, video.user_id, userFollows?.includes(video.user_id) || false)}
+                          isOwnVideo={video.user_id === user?.id}
+                        />
                         <VideoMeta likesCount={video.likes_count} createdAt={video.created_at} isLiked={userLikes?.includes(video.id)} onLike={(e) => handleLike(e, video.id, userLikes?.includes(video.id) || false, video.user_id)} />
                       </div>
                       <PlayOverlay />
@@ -377,7 +448,7 @@ export default function Creators() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: Math.min(index * 0.03, 0.4) }}
                     className="group rounded-2xl overflow-hidden cursor-pointer bg-white/[0.02] border border-white/[0.06] hover:border-primary/30 hover:bg-white/[0.04] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_12px_40px_-10px_hsl(263_70%_58%/0.15)] holo-shine"
-                    onClick={() => setSelectedVideo({ id: video.id, title: video.title, user_id: video.user_id })}
+                    onClick={() => setSelectedVideo({ id: video.id, title: video.title, user_id: video.user_id, creator: video.creator })}
                     onMouseEnter={() => setHoveredId(video.id)}
                     onMouseLeave={() => setHoveredId(null)}
                   >
@@ -392,6 +463,14 @@ export default function Creators() {
                     </div>
                     <div className="p-4 space-y-2">
                       <h3 className="font-semibold text-sm text-white truncate group-hover:text-violet-300 transition-colors">{video.title}</h3>
+                      <CreatorRow
+                        creatorName={video.creator?.display_name}
+                        creatorAvatar={video.creator?.avatar_url}
+                        creatorId={video.user_id}
+                        isFollowing={userFollows?.includes(video.user_id) || false}
+                        onFollow={(e) => handleFollow(e, video.user_id, userFollows?.includes(video.user_id) || false)}
+                        isOwnVideo={video.user_id === user?.id}
+                      />
                       <VideoMeta likesCount={video.likes_count} createdAt={video.created_at} isLiked={userLikes?.includes(video.id)} onLike={(e) => handleLike(e, video.id, userLikes?.includes(video.id) || false, video.user_id)} />
                     </div>
                   </motion.div>
@@ -452,6 +531,9 @@ export default function Creators() {
             onClose={() => setSelectedVideo(null)}
             isLiked={userLikes?.includes(selectedVideo.id)}
             onLike={(e) => handleLike(e, selectedVideo.id, userLikes?.includes(selectedVideo.id) || false, selectedVideo.user_id)}
+            isFollowing={selectedVideo.user_id ? (userFollows?.includes(selectedVideo.user_id) || false) : false}
+            onFollow={selectedVideo.user_id ? (e) => handleFollow(e, selectedVideo.user_id!, userFollows?.includes(selectedVideo.user_id!) || false) : undefined}
+            isOwnVideo={selectedVideo.user_id === user?.id}
           />
         )}
       </AnimatePresence>
@@ -532,16 +614,73 @@ function VideoMeta({ likesCount, createdAt, isLiked, onLike }: { likesCount?: nu
   );
 }
 
+function CreatorRow({
+  creatorName,
+  creatorAvatar,
+  creatorId,
+  isFollowing,
+  onFollow,
+  isOwnVideo,
+}: {
+  creatorName?: string | null;
+  creatorAvatar?: string | null;
+  creatorId: string;
+  isFollowing: boolean;
+  onFollow: (e: React.MouseEvent) => void;
+  isOwnVideo: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <Link
+        to={`/profile/${creatorId}`}
+        onClick={(e) => e.stopPropagation()}
+        className="flex items-center gap-2 min-w-0 hover:opacity-80 transition-opacity"
+      >
+        {creatorAvatar ? (
+          <img src={creatorAvatar} alt="" className="w-5 h-5 rounded-full object-cover ring-1 ring-white/10 flex-shrink-0" />
+        ) : (
+          <div className="w-5 h-5 rounded-full bg-violet-500/20 flex items-center justify-center flex-shrink-0">
+            <span className="text-[9px] font-bold text-violet-300">
+              {(creatorName || '?')[0]?.toUpperCase()}
+            </span>
+          </div>
+        )}
+        <span className="text-[11px] text-white/40 truncate">{creatorName || 'Creator'}</span>
+      </Link>
+      {!isOwnVideo && (
+        <button
+          onClick={onFollow}
+          className={cn(
+            "flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all flex-shrink-0",
+            isFollowing
+              ? "bg-white/[0.06] text-white/40 border border-white/[0.08]"
+              : "bg-violet-500/20 text-violet-300 border border-violet-500/30 hover:bg-violet-500/30"
+          )}
+        >
+          {isFollowing ? <UserCheck className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+          {isFollowing ? 'Following' : 'Follow'}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function VideoPlayerModal({
   video,
   onClose,
   isLiked,
   onLike,
+  isFollowing,
+  onFollow,
+  isOwnVideo,
 }: {
-  video: { id: string; title: string; user_id?: string };
+  video: { id: string; title: string; user_id?: string; creator?: { display_name: string | null; avatar_url: string | null } };
   onClose: () => void;
   isLiked?: boolean;
   onLike?: (e: React.MouseEvent) => void;
+  isFollowing?: boolean;
+  onFollow?: (e: React.MouseEvent) => void;
+  isOwnVideo?: boolean;
 }) {
   const [showComments, setShowComments] = useState(false);
 
@@ -570,8 +709,41 @@ function VideoPlayerModal({
           <X className="w-5 h-5" />
         </Button>
 
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 space-y-2">
           <h2 className="text-lg font-semibold text-white">{video.title}</h2>
+          {video.user_id && (
+            <div className="flex items-center justify-between">
+              <Link
+                to={`/profile/${video.user_id}`}
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              >
+                {video.creator?.avatar_url ? (
+                  <img src={video.creator.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover ring-1 ring-white/10" />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-violet-500/20 flex items-center justify-center">
+                    <span className="text-[10px] font-bold text-violet-300">
+                      {(video.creator?.display_name || '?')[0]?.toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                <span className="text-sm text-white/50">{video.creator?.display_name || 'Creator'}</span>
+              </Link>
+              {!isOwnVideo && onFollow && (
+                <button
+                  onClick={onFollow}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all",
+                    isFollowing
+                      ? "bg-white/[0.06] text-white/40 border border-white/[0.08]"
+                      : "bg-violet-500/20 text-violet-300 border border-violet-500/30 hover:bg-violet-500/30"
+                  )}
+                >
+                  {isFollowing ? <UserCheck className="w-3.5 h-3.5" /> : <UserPlus className="w-3.5 h-3.5" />}
+                  {isFollowing ? 'Following' : 'Follow'}
+                </button>
+              )}
+            </div>
+          )}
           <div className="flex items-center gap-3">
             <button
               onClick={onLike}

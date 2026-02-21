@@ -188,56 +188,92 @@ For talking-head content, the PERFORMANCE sells it:
 - Reactions (raised eyebrow, slow head turn) can carry a beat with minimal dialogue
 
 ${isDual ? `
-═══ DUAL CHARACTER STRUCTURE (${clipCount} clips) ═══
+═══ DUAL CHARACTER MASTERCLASS (${clipCount} clips) ═══
 CHARACTER A1 (PRIMARY): "${primary.name}"
 CHARACTER A2 (SECONDARY): "${secondary!.name}"
 
 ⚠️ CRITICAL KLING LIMITATION: Kling can only render ONE CHARACTER per clip reliably.
 When two characters need to "interact," they do it ACROSS clips, not within one.
 
+═══ THE ART OF THE TWO-HANDER ═══
+Great dual-character content lives or dies on THREE things:
+1. THE INTRODUCTION — how A2 enters the conversation must feel EARNED, not random
+2. THE CHEMISTRY — they must feel like two REAL people with history, not two chatbots
+3. THE DELIVERY — pacing, pauses, callbacks, and the final payoff
+
+INTRODUCTION TECHNIQUES (pick the best fit for the story):
+• THE INTERRUPTION: A1 is mid-thought when A2 cuts in with something unexpected
+  - A1: "So I was thinking about the meaning of—" → Cut to A2: "Oh please, not this again."
+• THE REACTION: A1 makes a bold claim, A2's face tells us everything before they speak
+  - A1: "I could totally survive in the wild." → Cut to A2: [slow blink, deadpan] "You cried at a bee sting."
+• THE REVEAL: A2 has information that changes everything A1 just said
+  - A1: "Nobody knows about this." → Cut to A2: "Funny. I heard about it from literally everyone."
+• THE CALLBACK ENTRY: A2 enters by referencing something from a previous conversation
+  - A1 finishes a point → Cut to A2: "Remember when you said that exact thing last time? How'd that work out?"
+• THE CONTRAST CUT: Wildly different energy — A1 is hyped, A2 is deadpan (or vice versa)
+  - A1: [Breathless excitement] → Cut to A2: [stares in silence for 2 seconds, then one perfect line]
+
+CHEMISTRY FORMULA — Make them feel REAL:
+• ASYMMETRIC ENERGY: One is always slightly more invested than the other. This creates TENSION.
+• INCOMPLETE SENTENCES: Real friends interrupt. "Wait, hold on—" "No, let me finish—" "OKAY but—"
+• SPECIFIC REFERENCES: "Like that time at the..." makes them feel like they have HISTORY together.
+• PHYSICAL TELLS: One fidgets when lying. One leans back when unimpressed. SHOW don't tell.
+• STATUS GAMES: One is subtly "winning" the conversation — the other is trying to catch up. This REVERSES by the end.
+• DISTINCT VOCAL RHYTHM: A1 speaks in long, flowing sentences. A2 uses short, punchy fragments. (Or reverse it!)
+
+DELIVERY SECRETS:
+• THE PAUSE BEFORE THE PUNCHLINE: A2 stares for a beat, THEN delivers. Comedy is timing.
+• THE DOUBLE-TAKE: A1 starts to move on, then freezes — "Wait, WHAT did you just say?"
+• THE ESCALATION LADDER: Each exchange raises the stakes. Don't plateau.
+• THE QUIET CLOSER: After big energy, the last clip can be quiet. A soft line hits harder after chaos.
+• PLANT & PAYOFF: Something casual from clip 1 becomes devastating/hilarious by clip 6.
+• THE LOOK: Sometimes the best response is NO words — just a look. Use this ONCE for maximum impact.
+
 THE EXACT FLOW:
-CLIP 1 — A1 SOLO (avatarRole: "primary")
-  - A1 is ALREADY in their environment. Speaking to camera or setting up the story.
-  - startPose: Standing or sitting in their main location
-  - endPose: Must end looking toward camera OR slightly to the side (bridge to A2)
+CLIP 1 — A1 SOLO HOOK (avatarRole: "primary")
+  - A1 is ALREADY in their world. They say something that DEMANDS a response.
+  - This clip must make the audience think "I NEED to hear what the other person says."
+  - Don't waste this on setup. Open with the most interesting thing.
+  - startPose: Natural, settled in environment
+  - endPose: Either trailing off (for interruption) or looking to the side (for reaction cut)
 
-CLIP 2 — A2 APPEARS (avatarRole: "secondary")  
-  - A2 is ALREADY POSITIONED in the SAME general space (different angle/position)
-  - A2 responds to what A1 just said — creates conversational continuity
-  - startPose: Already seated/standing in a complementary position
-  - endPose: Engaged, possibly leaning in or gesturing
+CLIP 2 — A2 ENTERS (avatarRole: "secondary")
+  - THIS IS THE MOST IMPORTANT CLIP. The introduction defines the relationship.
+  - A2 doesn't just "respond" — they REFRAME everything A1 said.
+  - Their very first line should tell us: Are they the friend? The rival? The chaos agent?
+  - Use ONE of the introduction techniques above. Make it SPECIFIC to the story.
+  - startPose: Already positioned, energy contrasting with A1
+  - endPose: Engaged, leaning in or gesturing — they own the space now
 
-CLIP 3 — A2 SOLO (avatarRole: "secondary")
+CLIP 3 — A2 SOLO SHOWCASE (avatarRole: "secondary")
   - A2 in a DIFFERENT ENVIRONMENT (use close-up bridge from clip 2)
-  - This is A2's showcase — their personality shines
-  - startPose: In the new location, already settled
-  - endPose: Whatever serves the story
+  - This is A2's moment to SHINE. They reveal something personal, funny, or surprising.
+  - The audience should be thinking "I like this character" by the end of this clip.
+  - startPose: In the new location, comfortable, expressive
+  - endPose: Whatever serves the story — can be mid-gesture for comedic timing
 
-CLIP 4 — A1 RETURNS (avatarRole: "primary")
-  - Cut back to A1 (use close-up bridge if different location)
-  - A1 continues the narrative thread, references what happened
-  - startPose: Back in their environment (same or new)
-  - endPose: Building toward conclusion
+CLIP 4 — A1 RETURNS WITH NEW ENERGY (avatarRole: "primary")
+  - A1 comes back CHANGED — they react to what A2 said/revealed.
+  - Don't just continue — EVOLVE. A1 has a new angle, a confession, a counter-argument.
+  - The status dynamic may shift here: A1 was winning, now A2 has the upper hand (or vice versa).
+  - startPose: Back in their environment
+  - endPose: Building toward the climax
 
-CLIP 5 — A1 ESCALATES (avatarRole: "primary")
-  - A1 delivers the twist, revelation, or build-up
-  - This is the dramatic peak before the payoff
-  - startPose: Continuation from clip 4's end
-  - endPose: Sets up A2's closer
+CLIP 5 — A1 BUILDS TO PEAK (avatarRole: "primary")
+  - THE ESCALATION CLIP. Everything reaches its highest point.
+  - A1 delivers the twist, the revelation, the emotional peak.
+  - End on a cliffhanger moment — the audience NEEDS to see A2's reaction.
+  - startPose: Continuation from clip 4
+  - endPose: Frozen in a dramatic moment — sets up the final cut
 
 CLIP 6 — A2 CLOSES (avatarRole: "secondary")
-  - A2 gets the final word — punchline, callback, emotional button
-  - This is the moment that makes people replay
+  - A2 gets the LAST WORD. This is the moment that makes people share the video.
+  - Options: devastating punchline, tender callback, perfect one-liner, knowing silence.
+  - The best closers REFERENCE clip 1 — circular storytelling is deeply satisfying.
   - startPose: Back in either location
-  - endPose: Definitive — the story is complete
+  - endPose: Definitive — a look, a smile, a freeze. The story is COMPLETE.
 
-${clipCount !== 6 ? `Adapt for ${clipCount} clips. Key beats: A1 opens → A2 enters → A2 solos → A1 returns → A2 closes.` : ''}
-
-DIALOGUE CHEMISTRY:
-- They REFERENCE each other across clips: "Can you believe she said that?"
-- One is the straight man, one is the wild card (or both are chaotic)
-- They have DISTINCT speech patterns — don't make them sound the same
-- Build CALLBACKS: Plant something in clip 1, pay it off in clip 6
+${clipCount !== 6 ? `Adapt for ${clipCount} clips. Key beats: A1 hooks → A2 reframes → A2 shines → A1 evolves → climax → payoff.` : ''}
 ` : `
 ═══ SOLO PERFORMER (${clipCount} clips) ═══
 CHARACTER: "${primary.name}"
@@ -247,6 +283,9 @@ Solo storytelling is about INTIMACY with the camera:
 - Use the environment — pick things up, lean on surfaces, look out windows
 - Vary energy: quiet revelations hit harder after animated excitement
 - Physical comedy: freeze mid-gesture, slow turn to camera, exaggerated reactions
+- THE CONFESSION: Start confident, then let vulnerability crack through
+- THE BUILD: Start quiet, end explosive — or start explosive, end with a whisper
+- THE CALLBACK: Reference your own earlier point with new meaning
 `}
 
 ${sceneDescription ? `SCENE: ${sceneDescription}` : 'SCENE: Let the story determine the perfect environment.'}
@@ -301,20 +340,36 @@ function buildKlingNativeUserPrompt(
 "${userPrompt}"
 
 ${isDual 
-  ? `${primary.name} (A1) and ${secondary!.name} (A2) tell this story TOGETHER.
+  ? `${primary.name} (A1) and ${secondary!.name} (A2) tell this story TOGETHER as a TWO-HANDER.
+
+WHAT MAKES THIS GREAT:
+- A1 opens with something that DEMANDS a response — not generic setup
+- A2's first line REDEFINES what A1 just said (interrupt, react, reveal, or contrast)
+- They have DISTINCT speech patterns: one verbose, one punchy (or one earnest, one sarcastic)
+- Each clip ESCALATES — never plateau
+- Plant something small in clip 1, pay it off devastatingly in clip 6
+- The closer is the moment people SHARE the video
 
 MANDATORY STRUCTURE:
-- CLIP 1: A1 solo — hooks the audience
-- CLIP 2: A2 appears — responds to A1, establishes chemistry  
-- CLIP 3: A2 solo in DIFFERENT location — their showcase moment
-- CLIP 4: Back to A1 — continues the thread
-- CLIP 5: A1 builds to climax
-- CLIP 6: A2 delivers the payoff
+- CLIP 1: A1 solo — the HOOK. Say something that demands a response.
+- CLIP 2: A2 enters — the REFRAME. Their first line changes everything.
+- CLIP 3: A2 solo in DIFFERENT location — their SHOWCASE. We fall for A2 here.
+- CLIP 4: Back to A1 — the EVOLUTION. A1 has changed because of A2.
+- CLIP 5: A1 peak — the CLIMAX. Maximum tension or revelation.
+- CLIP 6: A2 closes — the PAYOFF. Callback, punchline, or emotional landing.
 
-Remember: Each clip renders ONE character. They "interact" across cuts, not within frames.
+CHEMISTRY CHECKLIST:
+□ Do they reference each other across clips? ("Can you believe she said...")
+□ Are their speech patterns DISTINCT? (Long sentences vs. fragments)
+□ Is there a status shift? (One starts "winning," then it flips)
+□ Is there a plant/payoff? (Casual detail in clip 1 → devastating in clip 6)
+□ Does the introduction feel EARNED? (Not "Hi, I'm here" but a genuine reaction)
+
+Each clip renders ONE character. They interact across cuts, not within frames.
 Every endPose must match the next clip's startPose for the same character.` 
   : `${primary.name} tells this story directly to camera — intimate, engaging, and memorable.
-Vary their energy across clips. Use the space around them. Make it feel ALIVE.`
+Vary their energy across clips. Use the space around them. Make it feel ALIVE.
+Build a real arc: confession, escalation, callback. Make every second count.`
 }
 
 KLING-SPECIFIC REQUIREMENTS:
@@ -325,7 +380,9 @@ KLING-SPECIFIC REQUIREMENTS:
 5. Actions must be things Kling renders well: gestures, head turns, leaning, reactions, subtle movement
 6. AVOID: running, jumping, complex hand manipulation, rapid movements
 
-Make it genuinely ENTERTAINING — not generic. Give it a real story arc.
+Make it genuinely ENTERTAINING — not generic. Give it a real story arc with REAL emotional stakes.
+Write dialogue that sounds like it came from a WRITER, not an AI. Use contractions, rhythm, personality.
+The audience should feel like they're eavesdropping on two fascinating people — or watching a confession unfold.
 
 Output ONLY the JSON object. No markdown.`;
 }

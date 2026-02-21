@@ -29,7 +29,6 @@ import {
 import { cn } from '@/lib/utils';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 import { 
-  CREDIT_SYSTEM, 
   getCreditBreakdown 
 } from '@/lib/creditSystem';
 
@@ -57,6 +56,7 @@ interface CostConfirmationDialogProps {
   qualityTier: 'standard' | 'professional';
   userCredits?: number;
   defaultProjectName?: string;
+  videoEngine?: 'kling' | 'veo';
 }
 
 export const CostConfirmationDialog = forwardRef<HTMLDivElement, CostConfirmationDialogProps>(
@@ -73,10 +73,11 @@ export const CostConfirmationDialog = forwardRef<HTMLDivElement, CostConfirmatio
     qualityTier,
     userCredits = 0,
     defaultProjectName = '',
+    videoEngine = 'veo',
   }, ref) {
     const [projectName, setProjectName] = useState(defaultProjectName);
     const [showBuyCredits, setShowBuyCredits] = useState(false);
-    const costs = getCreditBreakdown(clipCount, clipDuration);
+    const costs = getCreditBreakdown(clipCount, clipDuration, videoEngine);
     const hasEnoughCredits = userCredits >= costs.totalCredits;
     const hasValidName = projectName.trim().length > 0;
 
@@ -164,7 +165,7 @@ export const CostConfirmationDialog = forwardRef<HTMLDivElement, CostConfirmatio
               <div className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2 text-muted-foreground">
                   <Zap className="w-4 h-4" />
-                  Base Rate ({costs.baseClipCount} clip{costs.baseClipCount > 1 ? 's' : ''} × {CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP})
+                  Base Rate ({costs.baseClipCount} clip{costs.baseClipCount > 1 ? 's' : ''} × {costs.creditsPerClipBase})
                 </span>
                 <span className="font-medium">{costs.baseCredits}</span>
               </div>
@@ -175,7 +176,7 @@ export const CostConfirmationDialog = forwardRef<HTMLDivElement, CostConfirmatio
               <div className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2 text-muted-foreground">
                   <TrendingUp className="w-4 h-4 text-warning" />
-                  Extended Rate ({costs.extendedClipCount} clip{costs.extendedClipCount > 1 ? 's' : ''} × {CREDIT_SYSTEM.EXTENDED_CREDITS_PER_CLIP})
+                  Extended Rate ({costs.extendedClipCount} clip{costs.extendedClipCount > 1 ? 's' : ''} × {costs.creditsPerClipExtended})
                 </span>
                 <span className="font-medium text-warning">{costs.extendedCredits}</span>
               </div>
@@ -184,7 +185,7 @@ export const CostConfirmationDialog = forwardRef<HTMLDivElement, CostConfirmatio
             {/* Extended pricing explanation */}
             {costs.isExtended && (
               <p className="text-xs text-muted-foreground/70 pl-6">
-                Extended rate applies to clips 7+ or clips longer than 6 seconds
+                Extended rate applies to clips longer than 10 seconds
               </p>
             )}
             

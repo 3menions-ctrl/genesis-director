@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import { validateAuth, unauthorizedResponse } from '../_shared/auth-guard.ts';
+import { checkContentSafety } from '../_shared/content-safety.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -51,6 +52,28 @@ Deno.serve(async (req) => {
     let isPremium = false;
     // Every photo edit costs 2 credits minimum
     let creditsCost = 2;
+
+    // ═══════════════════════════════════════════════════════════════════
+    // CONTENT SAFETY CHECK - Block NSFW/explicit/illegal edit instructions
+    // ═══════════════════════════════════════════════════════════════════
+    if (instruction) {
+      const safetyCheck = checkContentSafety(instruction);
+      if (!safetyCheck.isSafe) {
+        console.error(`[edit-photo] ⛔ CONTENT BLOCKED - ${safetyCheck.category}: ${safetyCheck.matchedTerms.slice(0, 3).join(', ')}`);
+        if (editId) {
+          const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+          await supabase.from('photo_edits').update({
+            status: 'failed',
+            error_message: 'Content policy violation',
+          }).eq('id', editId);
+        }
+        return new Response(
+          JSON.stringify({ error: safetyCheck.message, category: safetyCheck.category }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      console.log(`[edit-photo] ✅ Content safety check passed`);
+    }
 
     if (templateId) {
       const { data: template, error: tErr } = await supabase

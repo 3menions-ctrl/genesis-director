@@ -17,22 +17,25 @@
  */
 const EXPLICIT_TERMS = new Set([
   'porn', 'pornography', 'pornographic', 'xxx', 'nsfw',
-  'nude', 'nudes', 'nudity', 'naked',
+  'nude', 'nudes', 'nudity', 'naked', 'nakedness',
   'sex', 'sexual', 'sexually', 'sexualized',
   'erotic', 'erotica', 'hentai', 'lewd',
-  'genitals', 'genital', 'breasts', 'boobs', 'nipples',
-  'penis', 'dick', 'vagina', 'pussy',
-  'intercourse', 'masturbate', 'orgasm',
-  'blowjob', 'handjob', 'fetish', 'bondage',
-  'stripper', 'striptease', 'escort', 'prostitute',
-  'topless', 'bottomless', 'undressing',
-  'seductive', 'provocative', 'aroused', 'horny',
-  'sexy', 'sexier', 'sexiest', 'hottest',
-  'lingerie', 'underwear', 'panties',
-  'seductive', 'provocative', 'aroused', 'horny',
-  'lingerie', 'underwear', 'panties',
+  'genitals', 'genital', 'genitalia',
+  'breasts', 'boobs', 'tits', 'nipples',
+  'penis', 'dick', 'cock', 'vagina', 'pussy',
+  'buttocks', 'anus', 'anal', 'testicles',
+  'intercourse', 'masturbate', 'masturbation', 'masturbating', 'orgasm',
+  'ejaculate', 'ejaculation', 'cumshot',
+  'blowjob', 'handjob', 'footjob', 'fetish', 'bondage', 'bdsm',
+  'stripper', 'striptease', 'escort', 'prostitute', 'prostitution',
+  'onlyfans', 'camgirl', 'camboy',
+  'topless', 'bottomless', 'undressing', 'disrobing',
+  'seductive', 'seduction', 'seduce', 'titillating',
+  'aroused', 'arousing', 'arousal', 'horny',
+  'lingerie', 'panties',
   // Child safety - CRITICAL
-  'underage', 'child porn', 'loli', 'shota', 'pedo',
+  'underage', 'child porn', 'loli', 'lolita', 'shota',
+  'pedo', 'pedophile', 'pedophilia', 'jailbait',
 ]);
 
 /**
@@ -48,15 +51,25 @@ const SUGGESTIVE_PHRASES = [
   'making love', 'having sex', 'sexual scene',
   'seductive pose', 'sexy pose', 'provocative pose',
   'show body', 'expose body', 'body shot',
+  'revealing outfit', 'revealing clothing', 'revealing dress',
+  'sexy outfit', 'sexy clothing', 'sexy body',
+  'sensual dancing', 'sensual touch', 'sensual pleasure',
+  'provocative outfit', 'provocative clothing',
+  'bikini model', 'swimsuit model', 'underwear model',
+  'spread legs', 'bending over',
+  'passionate kiss', 'french kiss', 'making out',
+  'heavy petting', 'foreplay',
 ];
 
 /**
  * Violence terms
  */
 const VIOLENCE_TERMS = new Set([
-  'gore', 'gory', 'gruesome', 'dismember', 'decapitate',
-  'torture', 'mutilate', 'eviscerate', 'disembowel',
-  'suicide', 'self-harm',
+  'gore', 'gory', 'gruesome', 'dismember', 'dismemberment', 'decapitate', 'decapitation',
+  'torture', 'torturing', 'tortured',
+  'mutilate', 'mutilation', 'mutilated',
+  'eviscerate', 'disembowel',
+  'suicide', 'self-harm', 'self harm', 'selfharm', 'cutting',
 ]);
 
 /**

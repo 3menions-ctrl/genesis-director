@@ -303,14 +303,9 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
 
         <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {hasVideo && (
-            <>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-white/30 hover:text-white hover:bg-white/10" onClick={(e) => { e.stopPropagation(); onPlay(); }}>
-                <Play className="w-3.5 h-3.5" fill="currentColor" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-white/30 hover:text-white hover:bg-white/10" onClick={(e) => { e.stopPropagation(); onDownload(); }}>
-                <Download className="w-3.5 h-3.5" />
-              </Button>
-            </>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-white/30 hover:text-white hover:bg-white/10" onClick={(e) => { e.stopPropagation(); onPlay(); }}>
+              <Play className="w-3.5 h-3.5" fill="currentColor" />
+            </Button>
           )}
           <CardDropdown {...{ onEdit, onTogglePin, isPinned, onRename, hasVideo, onTogglePublic, project, status, onRetryStitch, isRetrying, onBrowserStitch, isBrowserStitching, onDelete }} />
         </div>
@@ -429,26 +424,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
           </div>
         )}
 
-        {/* Quick action buttons — bottom row */}
-        {hasVideo && (
-          <div className={cn(
-            "absolute bottom-16 left-3 right-3 flex items-center justify-center gap-2 z-20 transition-all duration-500",
-            isTouchDevice ? "opacity-100" : (isHovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2")
-          )}>
-            <button
-              onClick={(e) => { e.stopPropagation(); onDownload(); }}
-              className="h-8 px-3 rounded-lg bg-white/10 backdrop-blur-md flex items-center gap-1.5 border border-white/15 hover:bg-white/20 transition-all text-[11px] text-white/80 font-medium"
-            >
-              <Download className="w-3.5 h-3.5" /> Download
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onEdit(); }}
-              className="h-8 px-3 rounded-lg bg-white/10 backdrop-blur-md flex items-center gap-1.5 border border-white/15 hover:bg-white/20 transition-all text-[11px] text-white/80 font-medium"
-            >
-              <Edit2 className="w-3.5 h-3.5" /> Edit
-            </button>
-          </div>
-        )}
+        {/* Quick action buttons removed — download/edit available in editor page */}
 
         {/* Top-left: Status badge */}
         <div className="absolute top-3 left-3 z-20">

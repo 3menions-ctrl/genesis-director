@@ -13,28 +13,28 @@ import { cn } from "@/lib/utils";
  * like [CRITICAL: SAME EXACT PERSON...], [═══ PRIMARY SUBJECT ═══], etc.
  * We strip all bracketed blocks, then take the first meaningful sentence.
  */
-function extractClipLabel(rawPrompt: string | null | undefined, shotIndex: number): string {
-  if (!rawPrompt) return `Shot ${shotIndex + 1}`;
+function extractClipLabel(rawPrompt: string | null | undefined, shotIndex: number, projectTitle?: string): string {
+  const shotNum = shotIndex + 1;
+  const base = projectTitle && projectTitle !== "Untitled" ? projectTitle : null;
 
-  // Remove bracketed injection blocks (single-line and multi-line markers like [═══...═══])
-  let clean = rawPrompt
-    .replace(/\[═+[^\]]*═+\]/g, '')          // [═══ SECTION HEADER ═══]
-    .replace(/\[[^\]]{0,300}\]/g, '')          // any [block up to 300 chars]
-    .replace(/cinematic lighting.*$/i, '')     // strip boilerplate suffix
-    .replace(/,\s*8K resolution.*/i, '')       // strip tech suffix
-    .replace(/ARRI Alexa.*/i, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  // Try to extract a short description from the prompt
+  if (rawPrompt) {
+    let clean = rawPrompt
+      .replace(/\[═+[^\]]*═+\]/g, '')
+      .replace(/\[[^\]]{0,300}\]/g, '')
+      .replace(/cinematic lighting.*$/i, '')
+      .replace(/,\s*8K resolution.*/i, '')
+      .replace(/ARRI Alexa.*/i, '')
+      .replace(/\s+/g, ' ')
+      .trim();
 
-  if (!clean) return `Shot ${shotIndex + 1}`;
-
-  // Take first sentence or first 60 chars, whichever is shorter
-  const sentence = clean.split(/[.!?]/)[0].trim();
-  if (sentence.length > 2) {
-    return sentence.length > 60 ? sentence.slice(0, 57) + '…' : sentence;
+    const sentence = clean ? clean.split(/[.!?]/)[0].trim() : '';
+    if (sentence.length > 5 && sentence.length <= 50) {
+      return base ? `${base} — ${sentence}` : sentence;
+    }
   }
 
-  return clean.slice(0, 60) || `Shot ${shotIndex + 1}`;
+  return base ? `${base} · Shot ${shotNum}` : `Shot ${shotNum}`;
 }
 
 
@@ -156,7 +156,7 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
       if (!error && data) {
         setClips(data.map((c: any) => ({
           id: c.id,
-          prompt: extractClipLabel(c.prompt, c.shot_index),
+          prompt: extractClipLabel(c.prompt, c.shot_index, c.movie_projects?.title),
           video_url: c.video_url,
           duration_seconds: c.duration_seconds || 6,
           shot_index: c.shot_index,

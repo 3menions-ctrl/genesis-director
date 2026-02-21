@@ -11,12 +11,13 @@ import type { TimelineTrack, TimelineClip } from "./types";
 import { EFFECT_PRESETS, FILTER_PRESETS } from "./types";
 import { cn } from "@/lib/utils";
 import { UniversalHLSPlayer, UniversalHLSPlayerHandle } from "@/components/player/UniversalHLSPlayer";
+import { generateHLSPlaylist, createHLSBlobUrl, type EditorClip } from "@/lib/editor/generateEditorHLS";
 
 /**
  * EditorPreview - Cinematic preview with HLS-only gapless playback
  * 
- * Generates a client-side m3u8 blob playlist from timeline clips
- * and feeds it to UniversalHLSPlayer for seamless playback.
+ * Uses the shared generateEditorHLS utility for HLS playlist generation,
+ * ensuring consistency with the production simple-stitch configuration.
  */
 
 interface EditorPreviewProps {
@@ -32,35 +33,6 @@ interface EditorPreviewProps {
 
 const SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 4, 8, 16];
 const FRAME_STEP = 1 / 30;
-
-/**
- * Build a client-side HLS m3u8 playlist blob URL from timeline clips.
- * Uses #EXT-X-DISCONTINUITY between segments for raw MP4 compatibility.
- */
-function buildClientHLSPlaylist(clips: TimelineClip[]): string | null {
-  if (clips.length === 0) return null;
-
-  let m3u8 = '#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:';
-
-  // Calculate max segment duration
-  const maxDuration = Math.ceil(
-    Math.max(...clips.map(c => (c.end - c.start)))
-  );
-  m3u8 += `${maxDuration}\n#EXT-X-MEDIA-SEQUENCE:0\n`;
-
-  clips.forEach((clip, i) => {
-    if (i > 0) {
-      m3u8 += '#EXT-X-DISCONTINUITY\n';
-    }
-    const segDuration = (clip.end - clip.start).toFixed(3);
-    m3u8 += `#EXTINF:${segDuration},\n${clip.sourceUrl}\n`;
-  });
-
-  m3u8 += '#EXT-X-ENDLIST\n';
-
-  const blob = new Blob([m3u8], { type: 'application/vnd.apple.mpegurl' });
-  return URL.createObjectURL(blob);
-}
 
 export const EditorPreview = ({
   tracks, currentTime, isPlaying, onPlayPause, onTimeChange, duration,
@@ -92,9 +64,22 @@ export const EditorPreview = ({
       .filter((c) => currentTime >= c.start && currentTime < c.end);
   }, [tracks, currentTime]);
 
-  // ── Build HLS playlist from clips ──
+  // ── Build HLS playlist using shared utility (matches simple-stitch format) ──
   const hlsPlaylistUrl = useMemo(() => {
-    return buildClientHLSPlaylist(sortedVideoClips);
+    if (sortedVideoClips.length === 0) return null;
+
+    const editorClips: EditorClip[] = sortedVideoClips.map((clip) => ({
+      id: clip.id,
+      sourceUrl: clip.sourceUrl,
+      duration: clip.end - clip.start,
+      start: clip.start,
+      end: clip.end,
+    }));
+
+    const playlistContent = generateHLSPlaylist(editorClips);
+    if (!playlistContent) return null;
+
+    return createHLSBlobUrl(playlistContent);
   }, [sortedVideoClips]);
 
   // Cleanup blob URL on change
@@ -192,12 +177,13 @@ export const EditorPreview = ({
   const hasClips = sortedVideoClips.length > 0;
 
   return (
-    <div className="h-full w-full flex flex-col bg-[hsl(0,0%,4%)] overflow-hidden" style={{ contain: 'strict' }}>
+    <div className="h-full w-full flex flex-col bg-background overflow-hidden" style={{ contain: 'strict' }}>
       {/* Video viewport */}
       <div ref={containerRef} className="flex-1 relative min-h-0 overflow-hidden">
         {/* Ambient glow behind video */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] rounded-full bg-primary/[0.03] blur-[100px]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] rounded-full bg-primary/[0.04] blur-[120px]" />
+          <div className="absolute top-1/4 left-1/3 w-[40%] h-[40%] rounded-full bg-accent/[0.02] blur-[80px]" />
         </div>
 
         <div className="absolute inset-0 flex items-center justify-center p-5">
@@ -255,23 +241,23 @@ export const EditorPreview = ({
               </div>
               
               {!activeVideoClip && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/70 rounded-2xl z-20">
+                <div className="absolute inset-0 flex items-center justify-center bg-black/70 rounded-2xl z-20 backdrop-blur-sm">
                   <div className="text-center">
-                    <span className="text-[12px] tracking-wider uppercase font-medium text-white/30 block">Gap in timeline</span>
-                    <span className="text-[10px] text-white/15 mt-1 block">Move the playhead over a clip</span>
+                    <span className="text-[12px] tracking-wider uppercase font-medium text-muted-foreground block">Gap in timeline</span>
+                    <span className="text-[10px] text-muted-foreground/50 mt-1 block">Move the playhead over a clip</span>
                   </div>
                 </div>
               )}
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-5 text-white/15">
-              <div className="w-20 h-20 rounded-3xl border border-white/[0.06] flex items-center justify-center bg-white/[0.02] relative">
+            <div className="flex flex-col items-center gap-5 text-muted-foreground/40">
+              <div className="w-20 h-20 rounded-3xl border border-border flex items-center justify-center bg-card relative">
                 <Play className="w-8 h-8 ml-1" />
                 <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-white/[0.03] to-transparent" />
               </div>
               <div className="text-center">
-                <span className="text-[13px] tracking-wider uppercase font-medium block text-white/25">No clip at playhead</span>
-                <span className="text-[10px] text-white/10 mt-1.5 block">Move the playhead over a clip to preview</span>
+                <span className="text-[13px] tracking-wider uppercase font-medium block text-muted-foreground">No clip at playhead</span>
+                <span className="text-[10px] text-muted-foreground/40 mt-1.5 block">Move the playhead over a clip to preview</span>
               </div>
             </div>
           )}
@@ -294,10 +280,13 @@ export const EditorPreview = ({
       </div>
 
       {/* Transport bar */}
-      <div className="shrink-0 bg-[hsl(0,0%,6%)]/80 backdrop-blur-xl border-t border-white/[0.06]">
+      <div className="shrink-0 bg-card/80 backdrop-blur-xl border-t border-border">
+        {/* Accent line */}
+        <div className="h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+        
         {/* Scrubber */}
         <div
-          className="h-2.5 bg-white/[0.03] cursor-pointer group relative mx-4 mt-2 rounded-full overflow-hidden"
+          className="h-2.5 bg-muted/50 cursor-pointer group relative mx-4 mt-2 rounded-full overflow-hidden"
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const pct = (e.clientX - rect.left) / rect.width;
@@ -307,10 +296,10 @@ export const EditorPreview = ({
           }}
         >
           {clipMarkers.map((m) => (
-            <div key={m.id} className="absolute top-0 bottom-0 w-px bg-white/[0.08] z-10" style={{ left: `${m.position}%` }} />
+            <div key={m.id} className="absolute top-0 bottom-0 w-px bg-border z-10" style={{ left: `${m.position}%` }} />
           ))}
           <div
-            className="h-full bg-gradient-to-r from-primary/60 via-primary to-white/80 rounded-full transition-all duration-75 relative z-20"
+            className="h-full bg-gradient-to-r from-primary/60 via-primary to-accent/80 rounded-full transition-all duration-75 relative z-20"
             style={{ width: `${progress}%` }}
           >
             <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-white shadow-[0_0_16px_rgba(255,255,255,0.6)] opacity-0 group-hover:opacity-100 transition-opacity translate-x-1/2 border-2 border-white" />
@@ -321,20 +310,20 @@ export const EditorPreview = ({
         <div className="h-12 flex items-center gap-1 px-4">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/30 hover:text-white hover:bg-white/[0.06] rounded-xl transition-all" onClick={() => { onTimeChange(0); hlsPlayerRef.current?.seek(0); }}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl transition-all" onClick={() => { onTimeChange(0); hlsPlayerRef.current?.seek(0); }}>
                 <SkipBack className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="text-[10px] bg-[hsl(0,0%,8%)] border-white/[0.08] text-white rounded-xl">Start</TooltipContent>
+            <TooltipContent side="top" className="text-[10px] bg-card border-border text-foreground rounded-xl">Start</TooltipContent>
           </Tooltip>
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/30 hover:text-white hover:bg-white/[0.06] rounded-xl transition-all" onClick={jumpToPrevClip}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl transition-all" onClick={jumpToPrevClip}>
                 <FrameBack className="h-3 w-3" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="text-[10px] bg-[hsl(0,0%,8%)] border-white/[0.08] text-white rounded-xl">Prev Clip</TooltipContent>
+            <TooltipContent side="top" className="text-[10px] bg-card border-border text-foreground rounded-xl">Prev Clip</TooltipContent>
           </Tooltip>
 
           {/* Play/Pause — Premium white button */}
@@ -347,38 +336,38 @@ export const EditorPreview = ({
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/30 hover:text-white hover:bg-white/[0.06] rounded-xl transition-all" onClick={jumpToNextClip}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl transition-all" onClick={jumpToNextClip}>
                 <FrameForward className="h-3 w-3" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="text-[10px] bg-[hsl(0,0%,8%)] border-white/[0.08] text-white rounded-xl">Next Clip</TooltipContent>
+            <TooltipContent side="top" className="text-[10px] bg-card border-border text-foreground rounded-xl">Next Clip</TooltipContent>
           </Tooltip>
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/30 hover:text-white hover:bg-white/[0.06] rounded-xl transition-all" onClick={() => { onTimeChange(duration); hlsPlayerRef.current?.seek(duration); }}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl transition-all" onClick={() => { onTimeChange(duration); hlsPlayerRef.current?.seek(duration); }}>
                 <SkipForward className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="text-[10px] bg-[hsl(0,0%,8%)] border-white/[0.08] text-white rounded-xl">End</TooltipContent>
+            <TooltipContent side="top" className="text-[10px] bg-card border-border text-foreground rounded-xl">End</TooltipContent>
           </Tooltip>
 
-          <div className="h-5 w-px bg-white/[0.06] mx-2" />
+          <div className="h-5 w-px bg-border mx-2" />
 
           {/* Timecode display */}
-          <div className="flex items-center gap-2 bg-white/[0.03] rounded-xl px-4 py-2 border border-white/[0.05]">
-            <span className="text-[13px] font-mono text-white tabular-nums tracking-wider font-medium">
+          <div className="flex items-center gap-2 bg-secondary/50 rounded-xl px-4 py-2 border border-border">
+            <span className="text-[13px] font-mono text-foreground tabular-nums tracking-wider font-medium">
               {formatTime(currentTime)}
             </span>
-            <span className="text-[10px] text-white/10 mx-0.5">/</span>
-            <span className="text-[12px] font-mono text-white/25 tabular-nums tracking-wider">
+            <span className="text-[10px] text-muted-foreground/30 mx-0.5">/</span>
+            <span className="text-[12px] font-mono text-muted-foreground tabular-nums tracking-wider">
               {formatTime(duration)}
             </span>
           </div>
 
           {activeVideoClip && (
-            <div className="ml-2 px-3 py-1 rounded-xl bg-primary/[0.06] border border-primary/[0.12]">
-              <span className="text-[9px] text-primary/70 font-medium truncate max-w-[100px] block">
+            <div className="ml-2 px-3 py-1 rounded-xl bg-primary/[0.08] border border-primary/[0.15]">
+              <span className="text-[9px] text-primary font-medium truncate max-w-[100px] block">
                 {activeVideoClip.label}
               </span>
             </div>
@@ -391,29 +380,29 @@ export const EditorPreview = ({
             <TooltipTrigger asChild>
               <Button
                 variant="ghost" size="icon"
-                className={cn("h-8 w-8 rounded-xl transition-all", isLooping ? "text-white bg-white/[0.10]" : "text-white/25 hover:text-white hover:bg-white/[0.05]")}
+                className={cn("h-8 w-8 rounded-xl transition-all", isLooping ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-secondary")}
                 onClick={() => setIsLooping(!isLooping)}
               >
                 <Repeat className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="text-[10px] bg-[hsl(0,0%,8%)] border-white/[0.08] text-white rounded-xl">Loop <kbd className="ml-1 text-white/30">L</kbd></TooltipContent>
+            <TooltipContent side="top" className="text-[10px] bg-card border-border text-foreground rounded-xl">Loop <kbd className="ml-1 text-muted-foreground">L</kbd></TooltipContent>
           </Tooltip>
 
           {/* Speed */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" className={cn("h-8 px-3 text-[11px] font-mono gap-1.5 rounded-xl transition-all", playbackSpeed !== 1 ? "text-white bg-white/[0.08]" : "text-white/30 hover:text-white hover:bg-white/[0.05]")}>
+              <Button variant="ghost" size="sm" className={cn("h-8 px-3 text-[11px] font-mono gap-1.5 rounded-xl transition-all", playbackSpeed !== 1 ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-secondary")}>
                 <Gauge className="h-3.5 w-3.5" />
                 {playbackSpeed}x
               </Button>
             </PopoverTrigger>
-            <PopoverContent side="top" align="end" className="w-auto p-2 bg-[hsl(0,0%,6%)]/95 backdrop-blur-xl border-white/[0.08] rounded-2xl shadow-2xl shadow-black/50">
+            <PopoverContent side="top" align="end" className="w-auto p-2 bg-popover/95 backdrop-blur-xl border-border rounded-2xl shadow-2xl shadow-black/50">
               <div className="flex flex-wrap gap-1 max-w-[200px]">
                 {SPEED_PRESETS.map((speed) => (
                   <Button key={speed} variant="ghost" size="sm"
                     className={cn("h-7 px-2.5 text-[10px] font-mono rounded-lg transition-all",
-                      playbackSpeed === speed ? "bg-white text-black font-bold" : "text-white/30 hover:text-white hover:bg-white/[0.06]"
+                      playbackSpeed === speed ? "bg-white text-black font-bold" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                     )}
                     onClick={() => onPlaybackSpeedChange?.(speed)}
                   >
@@ -428,13 +417,13 @@ export const EditorPreview = ({
           <div className="flex items-center gap-1.5 ml-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-white/30 hover:text-white hover:bg-white/[0.05] rounded-xl transition-all"
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl transition-all"
                   onClick={() => setIsMuted(!isMuted)}>
                   {isMuted ? <VolumeX className="h-3.5 w-3.5" /> :
                     volume > 50 ? <Volume2 className="h-3.5 w-3.5" /> : <Volume1 className="h-3.5 w-3.5" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="top" className="text-[10px] bg-[hsl(0,0%,8%)] border-white/[0.08] text-white rounded-xl">{isMuted ? 'Unmute' : 'Mute'}</TooltipContent>
+              <TooltipContent side="top" className="text-[10px] bg-card border-border text-foreground rounded-xl">{isMuted ? 'Unmute' : 'Mute'}</TooltipContent>
             </Tooltip>
             <div className="w-16">
               <Slider

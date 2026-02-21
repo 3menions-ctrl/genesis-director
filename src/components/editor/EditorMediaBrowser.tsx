@@ -8,16 +8,11 @@ import { cn } from "@/lib/utils";
 
 /**
  * Extract a clean, human-readable label from the raw AI generation prompt.
- *
- * The prompt is a multi-hundred-character string full of technical injection blocks
- * like [CRITICAL: SAME EXACT PERSON...], [═══ PRIMARY SUBJECT ═══], etc.
- * We strip all bracketed blocks, then take the first meaningful sentence.
  */
 function extractClipLabel(rawPrompt: string | null | undefined, shotIndex: number, projectTitle?: string): string {
   const shotNum = shotIndex + 1;
   const base = projectTitle && projectTitle !== "Untitled" ? projectTitle : null;
 
-  // Try to extract a short description from the prompt
   if (rawPrompt) {
     let clean = rawPrompt
       .replace(/\[═+[^\]]*═+\]/g, '')
@@ -67,7 +62,7 @@ const VideoThumbnail = ({ url }: { url: string }) => {
   }, [url]);
 
   return (
-    <div className="w-16 h-10 rounded-xl bg-white/[0.03] border border-white/[0.06] shrink-0 overflow-hidden relative group/thumb">
+    <div className="w-16 h-10 rounded-xl bg-secondary border border-border shrink-0 overflow-hidden relative group/thumb">
       <video
         ref={videoRef}
         src={url}
@@ -77,7 +72,7 @@ const VideoThumbnail = ({ url }: { url: string }) => {
       />
       {!loaded && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <Film className="h-3 w-3 text-white/10" />
+          <Film className="h-3 w-3 text-muted-foreground/30" />
         </div>
       )}
       <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover/thumb:opacity-100 transition-opacity rounded-xl">
@@ -96,10 +91,6 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
 
   useEffect(() => {
     const load = async () => {
-      // CRITICAL: Always resolve the session directly from the auth client.
-      // The useAuth() user object may be set before the Supabase client session
-      // is fully hydrated, causing it to send the anon key as the Bearer token,
-      // which makes RLS block all results even when filtering by user_id.
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         setLoading(false);
@@ -107,7 +98,6 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
       }
 
       let allData: any[] = [];
-      // Admins see all clips; regular users see own clips + clips from public projects
       if (isAdmin) {
         const { data, error: err } = await supabase
           .from("video_clips")
@@ -118,7 +108,6 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
           .limit(1000);
         if (!err && data) allData = data;
       } else {
-        // Fetch user's own clips
         const { data: ownData } = await supabase
           .from("video_clips")
           .select(`id, prompt, video_url, duration_seconds, shot_index, project_id, movie_projects!inner(title)`)
@@ -128,7 +117,6 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
           .order("created_at", { ascending: false })
           .limit(1000);
 
-        // Fetch clips from public projects (community library)
         const { data: publicData } = await supabase
           .from("video_clips")
           .select(`id, prompt, video_url, duration_seconds, shot_index, project_id, movie_projects!inner(title, is_public)`)
@@ -139,7 +127,6 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
           .order("created_at", { ascending: false })
           .limit(500);
 
-        // Merge and deduplicate
         const seen = new Set<string>();
         allData = [];
         for (const clip of [...(ownData || []), ...(publicData || [])]) {
@@ -151,9 +138,8 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
       }
 
       const data = allData;
-      const error = null;
 
-      if (!error && data) {
+      if (data) {
         setClips(data.map((c: any) => ({
           id: c.id,
           prompt: extractClipLabel(c.prompt, c.shot_index, c.movie_projects?.title),
@@ -196,33 +182,35 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-[hsl(0,0%,5%)]/80 backdrop-blur-xl">
+    <div className="h-full flex flex-col bg-card/80 backdrop-blur-xl">
       {/* Header */}
-      <div className="h-10 flex items-center px-4 border-b border-white/[0.06] shrink-0">
+      <div className="h-10 flex items-center px-4 border-b border-border shrink-0 relative">
+        {/* Accent line */}
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
         <div className="w-6 h-6 rounded-lg bg-primary/10 border border-primary/15 flex items-center justify-center mr-2.5">
           <Layers className="h-3 w-3 text-primary" />
         </div>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/50">Media</span>
-        <span className="ml-auto text-[9px] text-white/15 tabular-nums font-mono bg-white/[0.03] px-2 py-0.5 rounded-md border border-white/[0.04]">{clips.length}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">Media</span>
+        <span className="ml-auto text-[9px] text-muted-foreground/30 tabular-nums font-mono bg-secondary px-2 py-0.5 rounded-md border border-border">{clips.length}</span>
       </div>
 
       {/* Search */}
-      <div className="px-3 py-2.5 border-b border-white/[0.04]">
+      <div className="px-3 py-2.5 border-b border-border/50">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/20" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search clips..."
-            className="h-8 pl-8 text-[11px] bg-white/[0.03] border-white/[0.05] text-white/60 placeholder:text-white/15 focus-visible:ring-primary/20 focus-visible:border-primary/20 rounded-xl" />
+            className="h-8 pl-8 text-[11px] bg-secondary border-border text-foreground/60 placeholder:text-muted-foreground/30 focus-visible:ring-primary/20 focus-visible:border-primary/20 rounded-xl" />
         </div>
       </div>
 
       {/* Project filters */}
-      <div className="px-3 py-2 border-b border-white/[0.04] flex gap-1.5 overflow-x-auto scrollbar-hide">
+      <div className="px-3 py-2 border-b border-border/50 flex gap-1.5 overflow-x-auto scrollbar-hide">
         <button className={cn("shrink-0 px-3 py-1.5 rounded-xl text-[10px] font-medium transition-all",
-          !selectedProject ? "bg-white text-black font-semibold shadow-lg shadow-white/5" : "text-white/25 hover:text-white hover:bg-white/[0.05] border border-white/[0.04]")}
+          !selectedProject ? "bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-secondary border border-border")}
           onClick={() => setSelectedProject(null)}>All</button>
         {projects.map((p) => (
           <button key={p.id} className={cn("shrink-0 px-3 py-1.5 rounded-xl text-[10px] font-medium transition-all truncate max-w-[120px]",
-            selectedProject === p.id ? "bg-white text-black font-semibold shadow-lg shadow-white/5" : "text-white/25 hover:text-white hover:bg-white/[0.05] border border-white/[0.04]")}
+            selectedProject === p.id ? "bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-secondary border border-border")}
             onClick={() => setSelectedProject(p.id)}>
             {p.title} <span className="opacity-40">({p.count})</span>
           </button>
@@ -237,34 +225,34 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
           </div>
         ) : filteredClips.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-4 px-6">
-            <div className="w-14 h-14 rounded-2xl border border-white/[0.06] flex items-center justify-center bg-white/[0.02] relative">
-              <FolderOpen className="h-6 w-6 text-white/10" />
+            <div className="w-14 h-14 rounded-2xl border border-border flex items-center justify-center bg-secondary relative">
+              <FolderOpen className="h-6 w-6 text-muted-foreground/30" />
               <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary/15 border border-primary/20 flex items-center justify-center">
                 <Sparkles className="w-2.5 h-2.5 text-primary" />
               </div>
             </div>
             <div className="text-center">
-              <p className="text-[12px] text-white/30 font-medium">
+              <p className="text-[12px] text-muted-foreground font-medium">
                 {search ? "No clips match your search" : "No completed clips yet"}
               </p>
-              <p className="text-[10px] text-white/15 mt-1">Create videos to see them here</p>
+              <p className="text-[10px] text-muted-foreground/40 mt-1">Create videos to see them here</p>
             </div>
           </div>
         ) : (
           <div className="p-2 space-y-1">
             {filteredClips.map((clip) => (
-              <div key={clip.id} className="group flex items-center gap-3 px-2.5 py-2.5 rounded-xl hover:bg-white/[0.04] cursor-pointer transition-all duration-200 border border-transparent hover:border-white/[0.06]"
+              <div key={clip.id} className="group flex items-center gap-3 px-2.5 py-2.5 rounded-xl hover:bg-secondary cursor-pointer transition-all duration-200 border border-transparent hover:border-border"
                 onClick={() => onAddClip(clip)}>
                 <VideoThumbnail url={clip.video_url} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] text-white/60 truncate leading-tight font-medium">{clip.prompt}</p>
+                  <p className="text-[11px] text-foreground/60 truncate leading-tight font-medium">{clip.prompt}</p>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[9px] text-white/20 truncate">{clip.project_title}</span>
-                    <span className="text-[8px] text-white/10 font-mono bg-white/[0.03] px-1.5 py-0.5 rounded">{formatDuration(clip.duration_seconds)}</span>
+                    <span className="text-[9px] text-muted-foreground/40 truncate">{clip.project_title}</span>
+                    <span className="text-[8px] text-muted-foreground/30 font-mono bg-secondary px-1.5 py-0.5 rounded">{formatDuration(clip.duration_seconds)}</span>
                   </div>
                 </div>
                 <Button variant="ghost" size="icon"
-                  className="h-7 w-7 opacity-0 group-hover:opacity-100 bg-white text-black hover:bg-white/90 transition-all shrink-0 rounded-lg shadow-lg shadow-white/5 hover:scale-110">
+                  className="h-7 w-7 opacity-0 group-hover:opacity-100 bg-primary text-primary-foreground hover:bg-primary/90 transition-all shrink-0 rounded-lg shadow-lg shadow-primary/10 hover:scale-110">
                   <Plus className="h-3.5 w-3.5" />
                 </Button>
               </div>

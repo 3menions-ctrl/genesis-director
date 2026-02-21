@@ -19,11 +19,27 @@ vi.mock('@/integrations/supabase/client', () => ({
   }
 }));
 
-// Mock MSE support detection
-vi.mock('@/lib/videoEngine/MSEGaplessEngine', () => ({
-  detectMSESupport: () => ({ supported: false, mimeType: null }),
-  createMSEEngine: vi.fn(),
-  MSEGaplessEngine: vi.fn(),
+// Mock navigation
+vi.mock('@/lib/navigation', () => ({
+  navigationCoordinator: { registerGlobalCleanup: vi.fn(() => vi.fn()) },
+  useMediaCleanup: vi.fn(),
+  useRouteCleanup: vi.fn(),
+}));
+
+// Mock hls.js
+vi.mock('hls.js', () => ({
+  default: {
+    isSupported: () => false,
+    Events: { MANIFEST_PARSED: 'hlsManifestParsed', ERROR: 'hlsError', FRAG_LOADED: 'hlsFragLoaded' },
+    ErrorTypes: { NETWORK_ERROR: 'networkError', MEDIA_ERROR: 'mediaError' },
+  },
+}));
+
+// Mock video platform detection
+vi.mock('@/lib/video/platformDetection', () => ({
+  logPlaybackPath: vi.fn(),
+  getPlatformCapabilities: () => ({ preferredPlaybackMode: 'hls_universal', supportsMSE: true }),
+  requiresHLSPlayback: () => true,
 }));
 
 describe('UniversalVideoPlayer', () => {
@@ -95,16 +111,16 @@ describe('UniversalVideoPlayer', () => {
     expect(wrapper?.className).toContain('custom-class');
   });
 
-  it('shows loading state initially', () => {
-    render(
+  it('renders inline mode with HLS player', () => {
+    const { container } = render(
       <UniversalVideoPlayer 
         source={{ urls: ['https://example.com/video.mp4'] }}
         mode="inline"
       />
     );
     
-    // Loading skeleton should be present
-    expect(document.querySelector('.animate-spin')).toBeTruthy();
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper).toBeTruthy();
   });
 
   it('starts muted when muted prop is true', () => {

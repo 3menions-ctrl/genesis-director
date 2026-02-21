@@ -114,12 +114,14 @@ async function createKlingV3Prediction(
     duration,
     mode: "pro", // 1080p HD
     generate_audio: enableAudio,
+    seed: Math.floor(Math.random() * 2147483647), // Random seed for each attempt
   };
 
   // I2V: add start image for frame-chaining continuity
   if (startImageUrl && startImageUrl.startsWith("http")) {
     input.start_image = startImageUrl;
-    console.log(`[SingleClip][KlingV3] Using start image for I2V frame-chaining`);
+    input.safety_tolerance = 2; // Max allowed when images are used — prevents E006 rejections
+    console.log(`[SingleClip][KlingV3] Using start image for I2V frame-chaining (safety_tolerance=2)`);
   }
 
   const mode = startImageUrl ? "I2V" : "T2V";

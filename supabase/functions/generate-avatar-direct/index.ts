@@ -652,6 +652,8 @@ serve(async (req) => {
       start_image: sharedAnimationStartImage,
       aspect_ratio: aspectRatio,
       generate_audio: true, // ✅ Kling V3 native lip-sync audio
+      safety_tolerance: 2, // Max allowed with images — prevents E006 rejections
+      seed: Math.floor(Math.random() * 2147483647),
       negative_prompt: avatarType === 'animated'
         ? "photorealistic, real human, live action, photograph, real skin texture, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast, face morphing, identity change, different person, age change, walking into frame, entering scene, arriving, approaching"
         : "cartoon, animated, CGI, 3D render, anime, illustration, drawing, painting, sketch, static, frozen, robotic, stiff, unnatural, glitchy, distorted, closed mouth, looking away, boring, monotone, lifeless, dark, somber, moody, gloomy, sad, depressed, dim lighting, shadows, desaturated, muted colors, grey, overcast, face morphing, identity change, different person, age change, walking into frame, entering scene, arriving, approaching",

@@ -77,7 +77,13 @@ export function useAvatarTemplatesQuery(filter?: AvatarTemplateFilter) {
   const templates: AvatarTemplate[] = useMemo(() => {
     if (!data) return [];
     if (!Array.isArray(data)) return [];
-    return data.filter(item => item && typeof item === 'object' && item.id);
+    return data.filter(item => {
+      if (!item || typeof item !== 'object' || !item.id) return false;
+      // Filter out placeholder images — only show avatars with real uploaded images
+      const url = item.face_image_url || '';
+      if (url.includes('placehold.co') || url.includes('placeholder')) return false;
+      return true;
+    });
   }, [data]);
   
   // Debug logging for navigation issues

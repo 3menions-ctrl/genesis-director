@@ -15,7 +15,24 @@ import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '
 import {
   Search, Play, Heart, Sparkles, Clock, X, ArrowRight, Video, Eye, MessageCircle, UserPlus, UserCheck
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+// STABILITY: Static shims replace real framer-motion to prevent 60+ concurrent animations crashing Safari
+import { forwardRef } from 'react';
+
+const MotionDiv = forwardRef<HTMLDivElement, any>(({ children, className, style, onClick, onMouseEnter, onMouseLeave, ...rest }, ref) => (
+  <div ref={ref} className={className} style={style} onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>{children}</div>
+));
+MotionDiv.displayName = 'MotionDiv';
+const MotionH1 = forwardRef<HTMLHeadingElement, any>(({ children, className, style, ...rest }, ref) => (
+  <h1 ref={ref} className={className} style={style}>{children}</h1>
+));
+MotionH1.displayName = 'MotionH1';
+const MotionP = forwardRef<HTMLParagraphElement, any>(({ children, className, style, ...rest }, ref) => (
+  <p ref={ref} className={className} style={style}>{children}</p>
+));
+MotionP.displayName = 'MotionP';
+
+const motion = { div: MotionDiv, h1: MotionH1, p: MotionP };
+const AnimatePresence = ({ children }: { children: React.ReactNode }) => <>{children}</>;
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
@@ -229,15 +246,20 @@ export default function Creators() {
   const featuredVideos = discoverVideos?.slice(0, 3) || [];
   const gridVideos = discoverVideos?.slice(3) || [];
 
-  return (
-    <>
-      {/* GATEKEEPER: CinemaLoader overlay */}
+  // CRITICAL: Gate content rendering behind loader to prevent mounting 60+ video thumbnails while loading
+  if (gatekeeper.isLoading) {
+    return (
       <CinemaLoader
-        isVisible={gatekeeper.isLoading}
+        isVisible={true}
         message={getGatekeeperMessage(gatekeeper.phase, GATEKEEPER_PRESETS.discover.messages)}
         progress={gatekeeper.progress}
+        variant="fullscreen"
       />
+    );
+  }
 
+  return (
+    <>
     <div className="min-h-screen bg-[#030303] text-white">
       {/* Subtle gradient background */}
       <div className="fixed inset-0 pointer-events-none">

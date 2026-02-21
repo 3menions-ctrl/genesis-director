@@ -104,12 +104,17 @@ export function usePaginatedProjects(
 ): PaginatedProjectsResult {
   const { user, isAdmin } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
+  // CRITICAL: Track initial load vs filter-change refreshes separately
+  // isLoading = true ONLY on first mount. Filter changes use isRefreshing instead.
+  // This prevents the gatekeeper from re-showing a full-screen CinemaLoader on every filter change.
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [offset, setOffset] = useState(0);
+  const hasLoadedOnceRef = useRef(false);
   
   const isMountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -176,7 +181,13 @@ export function usePaginatedProjects(
     
     if (isRefresh) {
       setOffset(0);
-      setIsLoading(true);
+      // CRITICAL FIX: Only show full loading state on first load
+      // Filter/sort changes use isRefreshing to avoid re-triggering gatekeeper CinemaLoader
+      if (!hasLoadedOnceRef.current) {
+        setIsLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
     }
     
     try {
@@ -207,6 +218,8 @@ export function usePaginatedProjects(
     } finally {
       if (isMountedRef.current) {
         setIsLoading(false);
+        setIsRefreshing(false);
+        hasLoadedOnceRef.current = true;
       }
     }
   }, [user?.id, buildQuery]);

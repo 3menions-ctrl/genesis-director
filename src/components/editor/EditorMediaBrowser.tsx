@@ -106,20 +106,52 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
         return;
       }
 
-      let query = supabase
-        .from("video_clips")
-        .select(`id, prompt, video_url, duration_seconds, shot_index, project_id, movie_projects!inner(title)`)
-        .eq("status", "completed")
-        .not("video_url", "is", null)
-        .order("created_at", { ascending: false })
-        .limit(1000);
+      let allData: any[] = [];
+      // Admins see all clips; regular users see own clips + clips from public projects
+      if (isAdmin) {
+        const { data, error: err } = await supabase
+          .from("video_clips")
+          .select(`id, prompt, video_url, duration_seconds, shot_index, project_id, movie_projects!inner(title)`)
+          .eq("status", "completed")
+          .not("video_url", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(1000);
+        if (!err && data) allData = data;
+      } else {
+        // Fetch user's own clips
+        const { data: ownData } = await supabase
+          .from("video_clips")
+          .select(`id, prompt, video_url, duration_seconds, shot_index, project_id, movie_projects!inner(title)`)
+          .eq("status", "completed")
+          .not("video_url", "is", null)
+          .eq("user_id", session.user.id)
+          .order("created_at", { ascending: false })
+          .limit(1000);
 
-      // Admins see all clips; regular users see only their own
-      if (!isAdmin) {
-        query = query.eq("user_id", session.user.id);
+        // Fetch clips from public projects (community library)
+        const { data: publicData } = await supabase
+          .from("video_clips")
+          .select(`id, prompt, video_url, duration_seconds, shot_index, project_id, movie_projects!inner(title, is_public)`)
+          .eq("status", "completed")
+          .not("video_url", "is", null)
+          .eq("movie_projects.is_public", true)
+          .neq("user_id", session.user.id)
+          .order("created_at", { ascending: false })
+          .limit(500);
+
+        // Merge and deduplicate
+        const seen = new Set<string>();
+        allData = [];
+        for (const clip of [...(ownData || []), ...(publicData || [])]) {
+          if (!seen.has(clip.id)) {
+            seen.add(clip.id);
+            allData.push(clip);
+          }
+        }
       }
 
-      const { data, error } = await query;
+      const data = allData;
+      const error = null;
 
       if (!error && data) {
         setClips(data.map((c: any) => ({

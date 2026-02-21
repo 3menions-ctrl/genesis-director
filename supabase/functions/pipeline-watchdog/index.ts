@@ -997,9 +997,24 @@ serve(async (req) => {
             pred.status = 'failed';
             anyFailed = true;
           } else {
-            // Still processing
-            allCompleted = false;
-            console.log(`[Watchdog] ⏳ Clip ${pred.clipIndex + 1} still processing: ${predictionStatus.status}`);
+            // Still processing — but check for ZOMBIE PREDICTION (stuck at "processing" forever)
+            const PER_PREDICTION_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes per prediction max
+            const predCreatedAt = predictionStatus.created_at 
+              ? new Date(predictionStatus.created_at).getTime() 
+              : 0;
+            const predAge = predCreatedAt ? (Date.now() - predCreatedAt) : 0;
+            
+            if (predCreatedAt && predAge > PER_PREDICTION_TIMEOUT_MS) {
+              // ZOMBIE PREDICTION: Replicate says "processing" but it's been > 15 min
+              // This prevents infinite polling of dead predictions
+              console.error(`[Watchdog] 💀 ZOMBIE PREDICTION: Clip ${pred.clipIndex + 1} (${pred.predictionId}) stuck at "${predictionStatus.status}" for ${Math.round(predAge / 60000)}m — marking FAILED`);
+              pred.status = 'failed';
+              pred.error = `Prediction timed out after ${Math.round(predAge / 60000)} minutes`;
+              anyFailed = true;
+            } else {
+              allCompleted = false;
+              console.log(`[Watchdog] ⏳ Clip ${pred.clipIndex + 1} still processing: ${predictionStatus.status} (${predCreatedAt ? Math.round(predAge / 60000) + 'm' : 'age unknown'})`);
+            }
           }
         } catch (pollError) {
           console.error(`[Watchdog] Poll error for ${pred.predictionId}:`, pollError);
@@ -1304,9 +1319,11 @@ serve(async (req) => {
       const timeSinceProgress = Date.now() - lastProgressMs;
       const STALL_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes with no new clip
       
-      // Fail only if: exceeded dynamic max age AND no clips completed
-      // OR: exceeded stall threshold with partial completion (stuck mid-generation)
-      const isAbsoluteTimeout = asyncAge > MAX_ASYNC_AGE_MS && completedClips.length === 0;
+      // HARD ABSOLUTE TIMEOUT: Fires regardless of active predictions.
+      // Prevents infinite polling of zombie predictions that stay "processing" forever.
+      const isAbsoluteTimeout = asyncAge > MAX_ASYNC_AGE_MS;
+      
+      // STALL DETECTION: No new clip completed in 5+ min with partial progress
       const isStalled = timeSinceProgress > STALL_THRESHOLD_MS && completedClips.length > 0 && completedClips.length < totalExpectedClipsForTimeout;
       
       // For stalled projects, check if any predictions are still processing
@@ -1317,7 +1334,7 @@ serve(async (req) => {
         );
       }
       
-      // Don't fail if predictions are still active (Kling is slow but working)
+      // Terminate if: absolute timeout (regardless of active predictions) OR stalled with no active work
       if ((isAbsoluteTimeout || (isStalled && !hasActivePredictions))) {
         console.log(`[Watchdog] ❌ ASYNC AVATAR ${project.id} timed out after ${Math.round(asyncAge / 60000)}m (max was ${Math.round(MAX_ASYNC_AGE_MS / 60000)}m)`);
         console.log(`[Watchdog]    Completed: ${completedClips.length}/${totalExpectedClipsForTimeout}, hasActive: ${hasActivePredictions}`);

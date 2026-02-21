@@ -1219,51 +1219,11 @@ serve(async (req) => {
         }
         
         // ═══════════════════════════════════════════════════════════════════════════
-        // VOICE TTS GENERATION: Generate proper TTS with user's selected voice
-        // Kling V3's native audio uses a generic AI voice — we replace it with
-        // the user's chosen voiceId for authentic voice matching.
+        // KLING NATIVE AUDIO: No TTS overlay — Kling V3's generate_audio=true
+        // produces consistent voice across all clips with native lip-sync.
+        // The embedded audio IS the final audio. No voice replacement needed.
         // ═══════════════════════════════════════════════════════════════════════════
-        let voiceAudioUrl: string | null = null;
-        try {
-          const userVoiceId = (project as any).avatar_voice_id || tasks.voiceId || 'bella';
-          const fullScript = tasks.originalScript || (project as any).synopsis || '';
-          
-          if (fullScript.trim()) {
-            console.log(`[Watchdog] 🎙️ Generating TTS with user's voice: "${userVoiceId}" for ${fullScript.length} chars...`);
-            
-            const voiceResponse = await fetch(`${supabaseUrl}/functions/v1/generate-voice`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${supabaseKey}`,
-              },
-              body: JSON.stringify({
-                text: fullScript,
-                voiceId: userVoiceId,
-                projectId: project.id,
-              }),
-            });
-            
-            if (voiceResponse.ok) {
-              const voiceResult = await voiceResponse.json();
-              if (voiceResult.success && voiceResult.audioUrl) {
-                voiceAudioUrl = voiceResult.audioUrl;
-                console.log(`[Watchdog] ✅ TTS generated with voice "${userVoiceId}": ${voiceAudioUrl!.substring(0, 60)}...`);
-                
-                // Save voice audio URL to project
-                await supabase.from('movie_projects').update({
-                  voice_audio_url: voiceAudioUrl,
-                }).eq('id', project.id);
-              } else {
-                console.warn(`[Watchdog] TTS returned no audio URL: ${voiceResult.error || 'unknown'}`);
-              }
-            } else {
-              console.warn(`[Watchdog] TTS generation failed (${voiceResponse.status})`);
-            }
-          }
-        } catch (voiceError) {
-          console.warn(`[Watchdog] TTS generation skipped:`, voiceError);
-        }
+        console.log(`[Watchdog] 🎙️ Using Kling V3 native embedded audio (no TTS overlay)`);
         
         // ═══════════════════════════════════════════════════════════════════════════
         // AUTO-STITCH: Concatenate all clips into a single continuous video

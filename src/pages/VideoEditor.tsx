@@ -569,8 +569,25 @@ const VideoEditor = () => {
 
     const { data: clips, error } = await query;
     if (error || !clips?.length) {
-      console.log('[VideoEditor] No completed clips found');
+      // No projects with clips found — nothing to auto-detect
+      console.log('[VideoEditor] No projects with clips found');
       return;
+    }
+
+    // Auto-detect: pick the project with the most clips
+    const projectCounts: Record<string, number> = {};
+    for (const c of clips as any[]) {
+      const pid = c.project_id;
+      if (pid) projectCounts[pid] = (projectCounts[pid] || 0) + 1;
+    }
+    const targetProjectId = Object.entries(projectCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+    // Sync URL so the browser address bar reflects the auto-detected project
+    if (targetProjectId) {
+      const newParams = new URLSearchParams(window.location.search);
+      newParams.set("project", targetProjectId);
+      // Sync URL with replaceState to avoid polluting browser history
+      window.history.replaceState({}, '', `${window.location.pathname}?${newParams.toString()}`);
     }
 
     const timelineClips: TimelineClip[] = [];
@@ -597,7 +614,7 @@ const VideoEditor = () => {
 
     setEditorState((prev) => ({
       ...prev,
-      projectId: null,
+      projectId: targetProjectId || null,
       title: "All Clips",
       tracks: buildTracksWithAudio(prev.tracks, timelineClips),
       duration: startTime,

@@ -23,8 +23,8 @@ export const GUARD_RAIL_CONFIG = {
   CLIP_0_ALWAYS_USE_REFERENCE: true, // Clip 0 always uses uploaded reference image
   
   // Stuck clip detection
-  CLIP_STUCK_THRESHOLD_MS: 3 * 60 * 1000, // 3 minutes before considering stuck
-  CLIP_GENERATING_MAX_AGE_MS: 8 * 60 * 1000, // 8 minutes max for any clip generation
+  CLIP_STUCK_THRESHOLD_MS: 10 * 60 * 1000, // 10 minutes - Kling V3 takes 5-10 min per clip
+  CLIP_GENERATING_MAX_AGE_MS: 15 * 60 * 1000, // 15 minutes max for any clip generation
   
   // Frame extraction
   FRAME_EXTRACTION_MAX_RETRIES: 3,

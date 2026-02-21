@@ -16,9 +16,8 @@ export function AgentTrigger() {
   const { user } = useAuth();
   const location = useLocation();
 
-  // Temporarily hidden — will be rebuilt
-  return null;
-
+  // Only show for logged-in users
+  if (!user) return null;
   return (
     <>
       {/* Floating Hoppy face button */}

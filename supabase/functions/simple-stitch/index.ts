@@ -298,12 +298,14 @@ serve(async (req) => {
       .update({
         status: 'completed',
         video_url: manifestUrl,
-        pending_video_tasks: {
+      pending_video_tasks: {
           stage: 'complete',
           progress: 100,
           mode: 'manifest_playback',
           manifestUrl,
           hlsPlaylistUrl,
+          // mseClipUrls for crossfade fallback and download merge - ORDERED by shot_index
+          mseClipUrls: clipData.map(c => c.videoUrl),
           clipCount: clips.length,
           totalDuration,
           completedAt: new Date().toISOString(),

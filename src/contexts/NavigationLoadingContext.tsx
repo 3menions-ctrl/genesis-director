@@ -180,23 +180,35 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
     readySystemsRef.current.add(systemName);
   }, []);
 
-  // Auto-complete when route changes (fallback) - ONLY if auto-complete not disabled
+  // Auto-complete when route changes (fallback)
   // Pages that manage their own readiness via onReady callbacks should call disableAutoComplete()
   useEffect(() => {
     if (state.isLoading && state.targetRoute === location.pathname) {
-      // Skip auto-complete if page manages its own readiness
       if (autoCompleteDisabledRef.current) {
-        return;
+        // Even if auto-complete is disabled, add a hard safety timeout
+        // This prevents the overlay from EVER getting permanently stuck
+        const safety = setTimeout(() => {
+          console.warn('[NavigationLoading] Safety timeout — forcing completion');
+          completeNavigation();
+        }, 6000);
+        return () => clearTimeout(safety);
       }
       
       // Route has changed to target, auto-complete after a brief delay
-      // This is a fallback for pages that don't explicitly call markReady()
       const timer = setTimeout(() => {
         completeNavigation();
       }, 100);
       return () => clearTimeout(timer);
     }
   }, [location.pathname, state.isLoading, state.targetRoute, completeNavigation]);
+
+  // CRITICAL: Reset autoCompleteDisabled whenever loading starts fresh
+  // This prevents stale refs from a previous page's gatekeeper blocking future navigations
+  useEffect(() => {
+    if (!state.isLoading) {
+      autoCompleteDisabledRef.current = false;
+    }
+  }, [state.isLoading]);
 
   // Cleanup on unmount - FIX: Added cleanup for completion timeouts
   useEffect(() => {

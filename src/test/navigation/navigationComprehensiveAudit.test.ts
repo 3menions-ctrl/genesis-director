@@ -363,7 +363,8 @@ describe('9. NavigationLink Safety', () => {
 
   it('starts loading overlay before navigating', () => {
     expect(NAV_LINK).toContain('startNavigation(targetPath)');
-    expect(NAV_LINK).toContain('requestAnimationFrame');
+    // Navigation is synchronous (no rAF delay) to prevent dropped navigations
+    expect(NAV_LINK).toContain('navigate(to)');
   });
 
   it('respects skipLoading prop', () => {

@@ -11,7 +11,7 @@ import { EditorSidebar } from "@/components/editor/EditorSidebar";
 import { EditorMediaBrowser } from "@/components/editor/EditorMediaBrowser";
 import { Film, Sparkles } from "lucide-react";
 import { useEditorHistory } from "@/hooks/useEditorHistory";
-import type { EditorState, TimelineTrack, TimelineClip, MusicTrack } from "@/components/editor/types";
+import type { EditorState, TimelineTrack, TimelineClip, MusicTrack, TimelineMarker } from "@/components/editor/types";
 
 /**
  * Extract a clean, human-readable label from the raw AI generation prompt.
@@ -66,6 +66,7 @@ const VideoEditor = () => {
     zoom: 1,
     renderStatus: "idle",
     renderProgress: 0,
+    markers: [],
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -273,7 +274,130 @@ const VideoEditor = () => {
     toast.success(`${newTrack.name} track added`);
   }, [editorState.tracks, withHistory]);
 
-  // === FIT TO VIEW ===
+  // === FREEZE FRAME ===
+  const handleFreezeFrame = useCallback(() => {
+    const { selectedClipId, tracks, currentTime } = editorState;
+    if (!selectedClipId) { toast.error("Select a clip first"); return; }
+    const clip = tracks.flatMap(t => t.clips).find(c => c.id === selectedClipId);
+    if (!clip || clip.type !== "video") { toast.error("Select a video clip"); return; }
+
+    // Create a freeze frame clip (2s) at the playhead position
+    const freezeDuration = 2;
+    const freezeClip: TimelineClip = {
+      ...clip,
+      id: `freeze-${Date.now()}`,
+      start: currentTime,
+      end: currentTime + freezeDuration,
+      label: `⏸ Freeze — ${clip.label}`,
+      freezeFrame: true,
+      effects: [],
+    };
+
+    withHistory((prev) => {
+      // Split the current clip at playhead, insert freeze between
+      const targetTrack = prev.tracks.find(t => t.clips.some(c => c.id === selectedClipId));
+      if (!targetTrack) return prev;
+
+      return {
+        ...prev,
+        tracks: prev.tracks.map(t => {
+          if (t.id !== targetTrack.id) return t;
+          // Shift clips after currentTime by freezeDuration
+          const updated = t.clips.map(c => {
+            if (c.start >= currentTime) return { ...c, start: c.start + freezeDuration, end: c.end + freezeDuration };
+            if (c.id === selectedClipId && c.end > currentTime) {
+              // Trim current clip to end at playhead
+              return { ...c, end: currentTime };
+            }
+            return c;
+          });
+          // Add the freeze clip + continuation
+          const continuation: TimelineClip = {
+            ...clip,
+            id: `${clip.id}-cont-${Date.now()}`,
+            start: currentTime + freezeDuration,
+            end: clip.end + freezeDuration,
+            trimStart: (clip.trimStart || 0) + (currentTime - clip.start),
+            label: clip.label,
+          };
+          return { ...t, clips: [...updated, freezeClip, continuation].sort((a, b) => a.start - b.start) };
+        }),
+        duration: Math.max(prev.duration + freezeDuration, currentTime + freezeDuration),
+      };
+    });
+    toast.success("Freeze frame inserted");
+  }, [editorState, withHistory]);
+
+  // === REVERSE CLIP ===
+  const handleReverseClip = useCallback(() => {
+    const { selectedClipId } = editorState;
+    if (!selectedClipId) { toast.error("Select a clip first"); return; }
+    withHistory((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map(track => ({
+        ...track,
+        clips: track.clips.map(c =>
+          c.id === selectedClipId ? { ...c, reverse: !c.reverse, label: c.reverse ? c.label.replace('⏪ ', '') : `⏪ ${c.label}` } : c
+        ),
+      })),
+    }));
+    toast.success("Clip reversed");
+  }, [editorState.selectedClipId, withHistory]);
+
+  // === DETACH AUDIO ===
+  const handleDetachAudio = useCallback(() => {
+    const { selectedClipId, tracks } = editorState;
+    if (!selectedClipId) { toast.error("Select a clip first"); return; }
+    const clip = tracks.flatMap(t => t.clips).find(c => c.id === selectedClipId);
+    if (!clip || clip.type !== "video") { toast.error("Select a video clip"); return; }
+
+    const audioTrack = tracks.find(t => t.type === "audio");
+    if (!audioTrack) { toast.error("Add an audio track first"); return; }
+
+    const audioClip: TimelineClip = {
+      id: `detached-audio-${Date.now()}`,
+      trackId: audioTrack.id,
+      start: clip.start,
+      end: clip.end,
+      type: "audio",
+      sourceUrl: clip.sourceUrl,
+      label: `🔊 ${clip.label}`,
+      effects: [],
+      volume: clip.volume ?? 100,
+    };
+
+    withHistory((prev) => ({
+      ...prev,
+      // Mute original video clip, add audio clip to audio track
+      tracks: prev.tracks.map(t => {
+        if (t.clips.some(c => c.id === selectedClipId)) {
+          return { ...t, clips: t.clips.map(c => c.id === selectedClipId ? { ...c, volume: 0 } : c) };
+        }
+        if (t.id === audioTrack.id) {
+          return { ...t, clips: [...t.clips, audioClip] };
+        }
+        return t;
+      }),
+    }));
+    toast.success("Audio detached to audio track");
+  }, [editorState, withHistory]);
+
+  // === ADD MARKER ===
+  const handleAddMarker = useCallback(() => {
+    const marker: TimelineMarker = {
+      id: `marker-${Date.now()}`,
+      time: editorState.currentTime,
+      label: `M${(editorState.markers?.length || 0) + 1}`,
+      color: ['#ef4444', '#3b82f6', '#22c55e', '#eab308', '#a855f7'][(editorState.markers?.length || 0) % 5],
+    };
+    setEditorState(prev => ({
+      ...prev,
+      markers: [...(prev.markers || []), marker],
+    }));
+    toast.success(`Marker added at ${editorState.currentTime.toFixed(1)}s`);
+  }, [editorState.currentTime, editorState.markers]);
+
+
   const handleFitToView = useCallback(() => {
     if (editorState.duration <= 0) return;
     // Assume ~800px timeline visible width; target zoom so duration fills it
@@ -368,12 +492,27 @@ const VideoEditor = () => {
         e.preventDefault();
         setShowMediaBrowser((prev) => !prev);
       }
+      // Freeze frame: F
+      if (e.key === "f" && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+        e.preventDefault();
+        handleFreezeFrame();
+      }
+      // Reverse clip: R
+      if (e.key === "r" && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        handleReverseClip();
+      }
+      // Add marker: B
+      if (e.key === "b" && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        handleAddMarker();
+      }
       // NOTE: Undo/Redo (Ctrl+Z / Ctrl+Shift+Z) are handled by useEditorHistory hook.
       // Do NOT duplicate them here — it causes double-undo.
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [handleSplit, handleDuplicate, handleFitToView, handleDeleteClip, handleRippleDelete, handleUndo, handleRedo, editorState.selectedClipId, snapEnabled]);
+  }, [handleSplit, handleDuplicate, handleFitToView, handleDeleteClip, handleRippleDelete, handleUndo, handleRedo, handleFreezeFrame, handleReverseClip, handleAddMarker, editorState.selectedClipId, snapEnabled]);
 
   const canSplit = editorState.tracks.some((t) =>
     t.clips.some((c) => editorState.currentTime > c.start && editorState.currentTime < c.end)
@@ -1087,10 +1226,15 @@ const VideoEditor = () => {
         onToggleSnap={() => setSnapEnabled((prev) => !prev)}
         onToggleMediaBrowser={() => setShowMediaBrowser((prev) => !prev)}
         onAddTrack={handleAddTrack}
+        onFreezeFrame={handleFreezeFrame}
+        onReverseClip={handleReverseClip}
+        onDetachAudio={handleDetachAudio}
+        onAddMarker={handleAddMarker}
         canUndo={history.canUndo}
         canRedo={history.canRedo}
         canSplit={canSplit}
         canDuplicate={!!editorState.selectedClipId}
+        hasSelectedClip={!!editorState.selectedClipId}
         snapEnabled={snapEnabled}
         showMediaBrowser={showMediaBrowser}
         isSaving={isSaving}

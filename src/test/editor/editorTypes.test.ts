@@ -112,6 +112,7 @@ describe('Editor Types', () => {
         zoom: 1,
         renderStatus: 'idle',
         renderProgress: 0,
+        markers: [],
       };
       expect(state.renderStatus).toBe('idle');
       expect(state.duration).toBe(30);

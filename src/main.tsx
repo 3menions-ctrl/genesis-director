@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import { toast } from "sonner";
 import App from "./App.tsx";
 import "./index.css";
+// Console shield — must be imported early to intercept all logs
+import { installConsoleShield } from "./lib/consoleShield";
 import { stabilityMonitor, shouldSuppressError } from "./lib/stabilityMonitor";
 import { initializeDiagnostics, setStateSnapshotProvider, getCurrentSnapshot } from "./lib/diagnostics";
 import { crashForensics } from "./lib/crashForensics";
@@ -22,7 +24,11 @@ import {
   getSafeModeConfig 
 } from "./lib/safeMode";
 
-// ============= PHASE 1: SAFE MODE DETECTION (FIRST!) =============
+// ============= PHASE 0: CONSOLE SHIELD (FIRST!) =============
+// Must run before any other code that might log sensitive data
+const cleanupConsoleShield = installConsoleShield();
+
+// ============= PHASE 1: SAFE MODE DETECTION =============
 // This must happen before ANYTHING else
 const SAFE_MODE = getSafeModeStatus();
 const safeModeConfig = getSafeModeConfig();
@@ -284,7 +290,7 @@ if (process.env.NODE_ENV === 'development') {
   setStateSnapshotProvider(getCurrentSnapshot);
 }
 
-// Clean up diagnostics, forensics, and chunk recovery on HMR
+// Clean up diagnostics, forensics, chunk recovery, and console shield on HMR
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     if (cleanupDiagnostics) {
@@ -296,23 +302,13 @@ if (import.meta.hot) {
     if (cleanupChunkRecovery) {
       cleanupChunkRecovery();
     }
+    cleanupConsoleShield();
     // Clear chunk recovery state on HMR success
     clearRecoveryState();
   });
 }
 
-// ── Security: Console self-XSS warning ──────────────────────────────────────
-// This fires on every production page load to deter social engineering attacks
-if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
-  console.log(
-    '%c⚠️ Stop!',
-    'color: #ef4444; font-size: 36px; font-weight: 900; text-shadow: 0 0 8px #ef4444;'
-  );
-  console.log(
-    '%cThis browser feature is intended for developers only.\nIf someone told you to paste something here, they are trying to hack your account.',
-    'color: #1e293b; font-size: 16px; line-height: 1.6;'
-  );
-}
+// Security warning is now handled by consoleShield — no duplicate needed
 
 // Log boot status
 console.info('[Boot] Starting React render...', { safeMode: SAFE_MODE });

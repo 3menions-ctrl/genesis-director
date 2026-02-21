@@ -61,7 +61,7 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlag[] = [
   { id: 'character_lending', name: 'Character Lending', description: 'Allow character sharing between users', enabled: false, category: 'beta' },
   { id: 'ai_script_assist', name: 'AI Script Assistant', description: 'AI-powered script improvements', enabled: true, category: 'beta' },
   { id: 'color_grading', name: 'Color Grading', description: 'Advanced color grading options', enabled: false, category: 'experimental' },
-  { id: 'lip_sync', name: 'Lip Sync Analysis', description: 'Lip sync quality analysis', enabled: false, category: 'experimental' },
+  { id: 'audio_quality', name: 'Audio Quality Analysis', description: 'Audio quality metrics for generated clips', enabled: false, category: 'experimental' },
   { id: 'motion_vectors', name: 'Motion Vectors', description: 'Motion vector analysis for transitions', enabled: false, category: 'experimental' },
 ];
 

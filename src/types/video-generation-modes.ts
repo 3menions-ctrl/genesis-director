@@ -78,7 +78,7 @@ export const VIDEO_MODE_CONFIG: Record<VideoGenerationMode, {
   },
   'avatar': {
     name: 'AI Avatar',
-    description: 'Speaking avatar with lip-sync',
+    description: 'Speaking avatar with native audio',
     icon: 'User',
     requiresScript: true,
     requiresSourceVideo: false,

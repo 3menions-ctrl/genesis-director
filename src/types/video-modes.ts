@@ -4,7 +4,7 @@ export type VideoGenerationMode =
   | 'text-to-video'      // Cinematic text prompts
   | 'image-to-video'     // Animate a static image
   | 'video-to-video'     // Style transfer on existing video
-  | 'avatar'             // Talking head with lip sync
+  | 'avatar'             // Talking head with native audio
   | 'motion-transfer'    // Apply dance/motion to character
   | 'b-roll';            // Quick background footage
 
@@ -41,7 +41,7 @@ export const VIDEO_MODES: VideoModeConfig[] = [
   {
     id: 'avatar',
     name: 'AI Avatar',
-    description: 'Create talking head videos with lip sync',
+    description: 'Create talking head videos with native audio',
     icon: 'User',
     requiresImage: true,
     requiresText: true,

@@ -54,10 +54,10 @@ const MODE_CONFIG = {
   'avatar': {
     name: 'AI Avatar',
     icon: User,
-    description: 'Speaking avatar with lip sync',
+    description: 'Speaking avatar with native audio',
     hue: 270,        // violet
-    stages: ['Initializing', 'Processing Audio', 'Generating Lip Sync', 'Rendering Video', 'Finalizing'],
-    activityTexts: ['Initializing avatar engine...', 'Analyzing audio...', 'Generating lip movements...', 'Rendering avatar video...', 'Applying final touches...'],
+    stages: ['Initializing', 'Building Scene', 'Generating Video', 'Rendering Audio', 'Finalizing'],
+    activityTexts: ['Initializing avatar engine...', 'Composing scene...', 'Generating avatar video...', 'Rendering native audio...', 'Applying final touches...'],
   },
   'motion-transfer': {
     name: 'Motion Transfer',

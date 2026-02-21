@@ -9,7 +9,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
  * Kling V3 native audio pipeline — no separate audio merge needed.
  * Recovery paths:
  * - video_rendering: Check if Kling V3 prediction completed, otherwise restart
- * - lip_sync: Check if Kling lip-sync completed, otherwise use video as-is
  * - audio_merge (legacy): Use video-only since Kling V3 bakes audio natively
  * - failed/unknown: Restart via generate-avatar-direct
  */
@@ -21,7 +20,7 @@ const corsHeaders = {
 
 // Kling V3 — unified engine
 const KLING_V3_URL = "https://api.replicate.com/v1/models/kwaivgi/kling-v3-video/predictions";
-const KLING_LIP_SYNC_URL = "https://api.replicate.com/v1/models/kwaivgi/kling-lip-sync/predictions";
+// Kling V3 — no external lip-sync needed
 
 interface ResumeRequest {
   projectId: string;
@@ -165,28 +164,11 @@ serve(async (req) => {
       } else {
         throw new Error('No prediction ID found for video_rendering stage');
       }
-    } else if (stage === 'lip_sync') {
-      // Kling lip-sync stage — check if lip-sync prediction completed
-      const lipSyncPredictionId = pipelineState.lipSyncPredictionId as string;
-      if (lipSyncPredictionId) {
-        console.log(`[ResumePipeline] Checking Kling lip-sync prediction ${lipSyncPredictionId}...`);
-        const statusRes = await fetch(`https://api.replicate.com/v1/predictions/${lipSyncPredictionId}`, {
-          headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` },
-        });
-        const prediction = await statusRes.json();
-        if (prediction.status === "succeeded" && prediction.output) {
-          finalVideoUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
-          action = 'lip_sync_recovered';
-        } else {
-          // Lip-sync failed/pending — use the base video (Kling V3 already has native audio)
-          finalVideoUrl = videoUrl || null;
-          action = 'lip_sync_fallback_to_native';
-          console.log(`[ResumePipeline] Lip-sync not ready, using Kling V3 native audio video`);
-        }
-      } else if (videoUrl) {
-        finalVideoUrl = videoUrl;
-        action = 'lip_sync_skipped';
-      }
+    } else if (stage === 'lip_sync' && videoUrl) {
+      // Legacy lip_sync stage — Kling V3 already has native audio, just use the video
+      console.log(`[ResumePipeline] Legacy lip_sync stage — using video as-is (Kling V3 native audio)`);
+      finalVideoUrl = videoUrl;
+      action = 'lip_sync_skipped';
     } else if (stage === 'audio_merge' && videoUrl) {
       // LEGACY: audio_merge stage from old pipeline
       // Kling V3 native audio means we can skip the merge — just use video

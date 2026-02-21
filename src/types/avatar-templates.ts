@@ -52,6 +52,7 @@ export interface AvatarTemplateFilter {
   style?: string;
   search?: string;
   avatarType?: AvatarType | 'all';
+  categoryId?: string; // tag-based category filter
 }
 
 // Avatar type categories
@@ -61,7 +62,34 @@ export const AVATAR_TYPES = [
   { id: 'animated', name: 'Animated', description: 'Stylized CGI avatars' },
 ] as const;
 
-// Style categories for filtering
+// ═══ TAG-BASED CATEGORY SYSTEM ═══
+// Each category maps to one or more tags in the avatar_templates.tags column.
+// An avatar matches a category if it has ANY of that category's tags.
+export interface AvatarCategory {
+  id: string;
+  name: string;
+  icon: string; // emoji
+  tags: string[]; // matched against avatar_templates.tags
+}
+
+export const AVATAR_CATEGORIES: AvatarCategory[] = [
+  { id: 'all', name: 'All', icon: '✨', tags: [] },
+  { id: 'kids', name: 'Kids & Cute', icon: '🧸', tags: ['kids', 'friendly', 'cheerful', 'cute'] },
+  { id: 'holiday', name: 'Holiday', icon: '🎄', tags: ['holiday', 'christmas', 'easter', 'halloween', 'valentines', 'thanksgiving', 'diwali', 'hanukkah', 'kwanzaa', 'lunar-new-year', 'eid', 'carnival', 'st-patricks', 'independence-day', 'new-years'] },
+  { id: 'animal', name: 'Animals', icon: '🦊', tags: ['animal', 'fox', 'bear', 'bunny', 'cat', 'canine', 'owl', 'penguin', 'dragon'] },
+  { id: 'folklore', name: 'Folklore', icon: '🧙', tags: ['folklore', 'mythical', 'fairy-tale', 'legend'] },
+  { id: 'biblical', name: 'Biblical', icon: '📖', tags: ['biblical', 'angel', 'prophet', 'ancient'] },
+  { id: 'historical', name: 'Historical', icon: '🏛️', tags: ['historical', 'emperor', 'leader', 'ancient', 'medieval', 'renaissance'] },
+  { id: 'famous', name: 'Famous Faces', icon: '⭐', tags: ['famous', 'celebrity', 'icon', 'legend'] },
+  { id: 'corporate', name: 'Business', icon: '💼', tags: ['corporate', 'professional'] },
+  { id: 'creative', name: 'Creative', icon: '🎨', tags: ['creative', 'artistic', 'artist'] },
+  { id: 'educational', name: 'Education', icon: '📚', tags: ['educational'] },
+  { id: 'influencer', name: 'Influencer', icon: '📱', tags: ['influencer', 'modern'] },
+  { id: 'luxury', name: 'Premium', icon: '👑', tags: ['luxury'] },
+  { id: 'casual', name: 'Casual', icon: '😎', tags: ['casual'] },
+];
+
+// Style categories for filtering (legacy — kept for popover filter)
 export const AVATAR_STYLES = [
   { id: 'all', name: 'All Avatars' },
   { id: 'corporate', name: 'Business' },

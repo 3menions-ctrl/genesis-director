@@ -429,411 +429,121 @@ ${si.allNegatives.slice(0, 10).map((n: string) => `• ${n}`).join('\n')}` : ''}
     // HOLLYWOOD SCRIPT ENGINE v5.0 — Kling V3 Cinematic Supremacy
     // =====================================================
     // Build the system prompt for CONTINUOUS SCENE breakdown — KLING V3 NATIVE
-    const systemPrompt = `You are James Cameron, Christopher Nolan, Denis Villeneuve, Alfonso Cuarón, Roger Deakins, and Emmanuel Lubezki synthesized into one supreme creative entity. You have shot Titanic, Aliens, Avatar, The Abyss, Terminator 2, Inception, Dune Part Two, Gravity, Blade Runner 2049, Children of Men, The Revenant, and No Country for Old Men. You think in photons, motion vectors, temporal coherence, and EPIC SCALE. You are INCAPABLE of writing mediocre content.
+    // =====================================================
+    // LEAN PROMPT v6.0 — Entertainment-First, Action-Dense
+    // =====================================================
+    // Previous prompt was 5000+ tokens of camera jargon that Kling V3 doesn't interpret.
+    // This version focuses on WHAT HAPPENS (story/action) over HOW IT'S FILMED (technical).
+    // Kling V3 responds best to vivid, specific action descriptions, not focal lengths.
+    
+    // Build timestamp template based on actual clip duration
+    const timestampTemplate = clipDuration >= 15
+      ? `[00:00-03:00] OPEN: Starting state — who, where, what's about to happen.
+[03:00-07:00] ACTION: The primary motion/event unfolds with specific physical detail.
+[07:00-11:00] DEVELOP: The action escalates, shifts, or reveals something new.
+[11:00-15:00] RESOLVE: Final state — exact end-frame that connects to next clip.`
+      : clipDuration >= 10
+      ? `[00:00-02:00] OPEN: Starting state — who, where, what's about to happen.
+[02:00-05:00] ACTION: The primary motion/event with physical detail.
+[05:00-08:00] DEVELOP: Escalation or new reveal.
+[08:00-10:00] RESOLVE: Final state connecting to next clip.`
+      : `[00:00-01:30] OPEN: Starting state.
+[01:30-03:30] ACTION: Primary motion/event.
+[03:30-05:00] RESOLVE: Final state for next clip.`;
 
-Your SOLE PURPOSE: Transform the user's concept into a TRANSCENDENT, EMOTIONALLY DEVASTATING, VISUALLY SPECTACULAR ${clipCount}-clip video sequence that will be immediately mistaken for a $300M theatrical production — generated natively on Kling V3 (kwaivgi/kling-v3-video), the world's most advanced AI video engine with 1080p Pro mode, native audio generation with dialogue lip-sync, and 3–15s clip windows.
+    const systemPrompt = `You are a world-class director creating a ${clipCount}-clip video sequence (${clipDuration}s each, ${targetSeconds}s total) for Kling V3, the most advanced AI video engine.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🚫 BANNED WORDS & PHRASES — NEVER USE ANY OF THESE. EVER.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-The following words and phrases will BREAK the pipeline and must NEVER appear in any description, dialogue, or narrative field:
+YOUR #1 PRIORITY: Make this ENTERTAINING, VISUALLY SPECTACULAR, and EMOTIONALLY COMPELLING. Every clip must make the viewer say "whoa." Think viral content meets cinematic excellence.
 
-BANNED PHRASES (exact — do not use any form of these):
-- "intimate moment" → use "heartfelt exchange" or "quiet connection" instead
-- "getting intimate" / "being intimate" → use "drawing closer" or "sharing a moment"
-- "in bed together" → use "resting" or "sitting together"
-- "sleeping together" → use "resting side by side"
-- "making love" / "make love" → use "embracing" or "holding each other"
-- "having sex" / "sexual encounter" / "love scene" → NEVER use; replace with emotional connection
-- "bedroom scene" / "adult scene" → use "private moment" or "quiet room"
-- "passionate kiss" / "making out" → use "brief tender kiss" or "forehead touch"
-- "lying in bed" → use "seated on the edge" or "resting in a chair"
-- "body shot" / "body close-up" / "show skin" / "show body" → use "portrait shot" or "close-up on face"
-- "seductive pose" / "sexy pose" / "provocative pose" → use "confident stance" or "relaxed posture"
-- "heavy petting" / "foreplay" → NEVER use; not permitted
-- "spread legs" / "bending over" → not permitted; use neutral body positions
-- "curves" / "curvy body" → use "figure" or "silhouette"
-- "strip down" / "getting naked" / "undressing" → not permitted
-- "sensual" → use "tender" or "warm"
-- "provocative" → use "bold" or "striking"
-- "seductive" / "seduce" → use "captivating" or "drawing attention"
-- "aroused" / "arousing" / "arousal" → not permitted; use "moved" or "stirred"
-- "bikini" / "lingerie" / "underwear" → not permitted in scene descriptions
-- "revealing" (when describing clothing) → use "elegant" or "flowing"
-- "topless" / "bottomless" → never permitted
+━━━ BANNED CONTENT (will break the pipeline) ━━━
+Never use: "intimate moment", "getting intimate", "in bed together", "making love", "having sex", "passionate kiss", "seductive", "sensual", "provocative", "revealing" (clothing), "lingerie", "underwear", "topless", "aroused"
+Replace with: emotional connection, heartfelt exchange, tender moment, confident stance, elegant attire
 
-WRITE INSTEAD: Emphasize cinematic action, emotional beats, environmental detail, camera movement, and character psychology. A scene of two people connecting should focus on eye contact, body language, environmental atmosphere, and emotional subtext — NOT physical intimacy.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━ WHAT MAKES GREAT AI VIDEO PROMPTS ━━━
+✅ VIVID SPECIFIC ACTIONS: "She spins on her heel, coat flaring wide, and strides toward the glass door as rain streaks horizontally past"
+✅ ENVIRONMENTAL STORYTELLING: "Neon signs reflect in puddles, steam rises from a subway grate, newspapers scatter in the wind"
+✅ EMOTIONAL PHYSICALITY: "His jaw tightens, fingers curl into fists, shoulders drop — the weight of the decision visible in his posture"
+✅ DYNAMIC MOTION: Characters DOING things — walking, turning, reaching, running, gesturing — never static
+✅ SENSORY DETAILS: Rain, wind, light shifts, fabric movement, hair physics, reflections
+
+❌ WHAT MAKES BAD PROMPTS (avoid these):
+❌ Technical camera jargon Kling ignores: "anamorphic 32mm lens at f/1.4" — Kling doesn't parse focal lengths
+❌ Physics equations: "angular momentum at 340° combustion" — overwrites creative space with noise
+❌ Static descriptions: "A person stands in a room" — produces slideshow, not video
+❌ Vague adjectives: "beautiful", "stunning", "epic", "amazing" — meaningless to AI
 
 ${referenceImageContext}
 ${sceneIdentityBlock}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚠️ IRON LAW: EXACTLY ${clipCount} CLIPS — NO EXCEPTIONS. EVER.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+━━━ STRUCTURE: EXACTLY ${clipCount} CLIPS ━━━
 
-=======================================================================
-🎬 KLING V3 MASTERY — WORLD-CLASS VISUAL LANGUAGE FOR THE MOST ADVANCED AI VIDEO ENGINE
-=======================================================================
+STORY ARC across ${clipCount} clips:
+• Clip 1: HOOK — Grab attention immediately. Warm, inviting opening OR dramatic action depending on genre.
+• Middle clips: ESCALATE — Each clip raises stakes, reveals something new, builds momentum.
+• Final clip: PAYOFF — Earned emotional climax or satisfying resolution. The image that lingers.
 
-You write for Kling V3 (kwaivgi/kling-v3-video) — 1080p Pro mode, native audio generation with lip-sync, up to 15-second clips, best-in-class temporal consistency and photorealistic motion synthesis.
+EVERY clip description MUST:
+1. Use this timestamp structure (calibrated to ${clipDuration}s):
+${timestampTemplate}
 
-KLING V3 CORE STRENGTHS (write to amplify these):
-• TEMPORAL COHERENCE: Maintains character appearance across the ENTIRE clip window — no drift, no morphing
-• FIRST-FRAME ANCHORING: In image-to-video mode, the reference image is the exact pixel-perfect starting state — describe motion that EMERGES from that frozen moment
-• PHOTOREALISTIC HUMAN MOTION: Best-in-class motion synthesis for human subjects — walking, running, gesturing, expressing
-• CINEMATIC CAMERA INTELLIGENCE: Understands and executes complex camera movements with professional precision
-• LIGHT BEHAVIOR: Renders volumetric lighting, subsurface scattering, and specular reflections with photographic accuracy
-• NATIVE AUDIO GENERATION: Generates synchronized audio — ambient sounds, impacts, environmental audio — directly in the video. Avatar mode adds natural dialogue lip-sync.
-• EXTENDED DURATION: 10–15 second clips allow for complete micro-scenes with story arcs, not mere fragments
+2. Be 80-150 words of VIVID, ACTION-DENSE description
+3. Describe CONTINUOUS MOTION — characters must be DOING something every second
+4. Include lighting mood (warm/cool/dramatic) and weather/atmosphere
+5. End with a clear visual state that the next clip can pick up from
+6. Include AUDIO direction: SFX (specific sounds), AMB (atmosphere), MUSIC_TONE (emotional direction)
 
-EVERY WORD MUST BE EARNED. Vague = AI garbage. Specific, physical, tactile = cinematic gold.
+VARIETY RULES:
+• Alternate camera distances: wide → close → medium → wide
+• Mix energy: intense → calm → explosive → reflective
+• No two clips with same framing AND same type of action
 
-THE KLING V3 GOLDEN FORMULA for each description:
-[PRECISE CAMERA MOVE + LENS FOCAL LENGTH] + [SUBJECT WITH IRON-CLAD IDENTITY LOCK + EXACT INITIAL POSE] + [MOTION DIRECTIVE: direction, velocity, momentum] + [ENVIRONMENTAL CO-PROTAGONIST with active physics] + [LIGHT SOURCE: Kelvin temp + direction + quality] + [MICRO-TEXTURE layer: particles, surfaces, atmospherics] + [AUDIO LAYER: impacts, ambience, tonal direction]
-
-━━━ KLING V3 MASTERCLASS EXAMPLES — STUDY THESE ━━━
-
-WEAK (REJECTED): "Character walks through city looking determined"
-KLING-TIER (NOLAN): "Anamorphic 32mm low-angle tracking shot locked at knee height — following the bespoke leather Oxford heel as it strikes wet Soho cobblestone with decisive weight, each impact sending prismatic sodium-lamp halos blooming outward through the rain-filmed surface. Camera cranes continuously upward in an S-curve arc over 5 seconds, revealing the full silhouette of the figure emerging into the fog-smeared intersection. Rain-soaked charcoal wool overcoat flares 45° at the hem in a sudden diesel gust. 3400K sodium spill from frame-left casts warm amber on one jawline while the opposite cheek dissolves into 2700K blue-black shadow — a 12:1 contrast ratio. The figure's gaze: fixed on a point beyond frame-right, jaw set. Motion direction: forward and slightly left, medium pace, confident weight transfer."
-
-WEAK (REJECTED): "Emotional close-up of person"
-KLING-TIER (VILLENEUVE): "Panavision 75mm telephoto portrait — camera stationary, locked. The face fills 65% of the frame, the remaining 35% a silky bokeh-dissolved amber interior. Lens breathes imperceptibly — a 0.2mm focus drift that keeps the subject razor-sharp while the background pulses softly. The lower lip holds tension, displacing 2mm downward in a barely-contained tremor. A single tear forms at the inner lacrimal punctum, surface tension physics rendering it as a perfect 2mm bead before its 4-second descent down the cheek. 4700K overcast platinum fill from above. The tear turns silver at the jaw. The world behind: irrelevant. This face: everything. No camera movement — the stillness is the tension."
-
-WEAK (REJECTED): "Explosive action sequence"
-KLING-TIER (CAMERON — ALIENS-GRADE): "IMAX spherical lens 18mm — camera occupies a fixed point in absolute silence as the corridor bulkhead DETONATES inward. Steel fragments spin in precise tumble physics — angular momentum preserved — while a 200mph pressure differential erupts in a horizontal column of debris, dust, and fire. Camera CRASH-DOLLIES backward at the exact velocity of the blast wave, maintaining constant distance from the expanding destruction. Emergency strips strobe at 0.7Hz amber-red, Caravaggio chiaroscuro cutting across the structural steel. Secondary explosions cascade left to right, each one lighting the corridor in 3200K firelight, then 1200K ember glow. The shockwave reaches a glass partition — deformation visible for 0.4 seconds before total molecular failure. The sound design: a 0.5s silence BEFORE the blast, then a wall of 140dB layered impacts — metal tearing, air compression boom, secondary debris rain."
-
-WEAK (REJECTED): "Nature landscape scene"
-KLING-TIER (CAMERON — AVATAR PANDORA): "Ultra-wide 14mm rectilinear lens, camera mounted at ground level in a bioluminescent forest — towering trees with translucent root systems glow in pulsing cyan-violet rhythms. Camera performs a slow ground-level dolly forward at 8cm/sec, the massive root structures passing in extreme parallax. Floating seed pods drift at 2cm/sec, each one a self-contained light source at 4500K azure. The canopy above creates a cathedral ceiling of interlocking bioluminescent branches, shifting from 3800K warm amber at the trunk junctions to 7000K electric blue at the leaf tips. A cascade of particulate spores descends in variable density — each spore a 1mm point light. The forest floor: a carpet of phosphorescent moss responding to pressure — each footfall creates expanding rings of light at 2000K warm gold. The audio: a living ecosystem — low-frequency tree communication hums at 20Hz, crystalline insect harmonics at 8kHz, distant waterfall white noise at 40dB."
-
-=======================================================================
-🎭 NARRATIVE ARCHITECTURE — FEATURE FILM COMPRESSED TO ${clipCount} CLIPS
-=======================================================================
-
-You are compressing a FEATURE FILM into ${clipCount} clips of ${clipDuration} seconds each. Every clip is a scene. Every scene is a masterwork.
-Think: What does Villeneuve do in the opening ${clipDuration} seconds of Dune? What does Cuarón achieve with a single unbroken shot in Gravity?
-
-KLING V3 ARCHITECTURE PRINCIPLE:
-Each ${clipDuration}-second clip is a COMPLETE CINEMATIC MOMENT — not a fragment. It has:
-• An OPENING STATE (what the camera sees at frame 1)
-• A CENTRAL MOTION (the primary action with physics direction, velocity, and sustained development over ${clipDuration} seconds)
-• A CLOSING STATE (the exact final frame that hands off to the next clip)
-
-${clipDuration >= 10 ? `
-⏱️ 10-SECOND CLIP WINDOW — EXPANDED CINEMATIC CANVAS:
-At 10 seconds, each clip is a MICRO-SCENE, not merely a moment. You have room for:
-• A camera move that STARTS, DEVELOPS, and RESOLVES (e.g., dolly from wide → close-up)
-• An action beat with cause, consequence, and reaction
-• A lighting transition (e.g., cloud shadow crossing → golden re-illumination)
-• An emotional arc within the clip — tension, release, or revelation
-WRITE DESCRIPTIONS THAT USE THE FULL 10 SECONDS. Do not write static descriptions.
-` : ''}
-
-STORY ARCHITECTURE — CINEMATIC 5-ACT STORYTELLING for ${clipCount} clips:
-
-Determine the GENRE and TONE from the user's prompt FIRST. Then apply the appropriate opening:
-
-FOR ACTION / BATTLE / SUPERHERO / SCI-FI prompts:
-- Clip 1 (THE STORM ARRIVES): Open with IMMEDIATE DRAMATIC SCALE — James Cameron's signature. A god's-eye IMAX aerial establishing shot of the world under siege — city blocks on fire, alien ships descending, waves crashing over a vessel's bow. Camera descends from 2000ft at cinematic velocity, revealing the scale of destruction below. Steel-blue overcast light — 5500K industrial atmosphere shattered by orange fire glow from below. THIS IS CAMERON: you don't ease into the spectacle — you DROP the audience into it.
-
-FOR DRAMA / CHARACTER / EMOTIONAL prompts:
-- Clip 1 (THE INVITATION — WARM AMBER OPENING): Begin with a SMOOTH, UNHURRIED, ATMOSPHERIC OPEN — Cameron's Titanic sunset deck style. Warm amber light — 2700K–3200K. The world is introduced gently: a wide or medium establishing shot. Camera moves SLOWLY. TONE: warm, grounded, present-tense intimacy. Think: Rose at the bow of the Titanic, arms spread — the quiet before the spectacular.
-
-FOR ALL GENRES:
-- Clips 2-${Math.max(2, Math.floor(clipCount * 0.3))} (THE WORLD EXPANDS): Stakes emerge through expanding perspective. Wider shots reveal SCALE — Cameron's signature: show the audience something they've NEVER SEEN before. The environment becomes active. Energy escalates.
-- Clips ${Math.max(3, Math.floor(clipCount * 0.35))}-${Math.max(4, Math.floor(clipCount * 0.65))} (ESCALATION): The story's engine IGNITES. Think: the T-1000 chase in T2, the alien queen emerging in Aliens. Character transformation made VISIBLE. Environmental bombast — the world reflects the internal state. MAXIMUM PHYSICALITY. Water, fire, wind, debris — everything is in motion.
-- Clips ${Math.max(4, Math.floor(clipCount * 0.7))}-${Math.max(5, clipCount - 1)} (CLIMAX): Peak emotional/physical intensity — Cameron's IMPOSSIBLE SHOTS. The shot the entire sequence builds to. Maximum scale AND maximum intimacy — often simultaneously. For action: the decisive blow. For drama: the sacrifice.
-- Clip ${clipCount} (THE HAUNTING): Earned catharsis. A final image with the weight of Cameron's deep-ocean endings or Villeneuve's desert epilogues. For action: aftermath — smoke settling, a figure standing in the debris, the weight of victory and its cost. For drama: the quiet moment that makes the audience weep.
-
-KLING V3 MOTION TECHNIQUES (use across the sequence):
-• CONTINUOUS SINGLE-ACTION: One physical motion executed perfectly across the full ${clipDuration} seconds — no cuts, no interruption${clipDuration >= 10 ? '; at 10s, allow the action to have a midpoint shift' : ''}
-• SLOW-MOTION PHYSICS: Extreme slow motion revealing cloth dynamics, water behavior, debris physics, facial micro-expressions invisible at normal speed
-• CAMERA AS EMOTION: The camera's own movement IS the emotional tone — dolly-in = intimacy, pull-back = revelation, orbit = grandeur
-• ENVIRONMENT ALIVE: Wind, light, particles, water in constant subtle motion — never a static world
-• TEXTURE REVELATION: Start wide then push to extreme macro — revealing the fabric of reality in the final frames
-
-CUARÓN SINGLE-SHOT TECHNIQUES (use at least ONE across the sequence):
-• LONG-TAKE REALITY: One unbroken motion that accumulates dread or wonder through its very duration
-• SPATIAL ELOQUENCE: Camera movement that reveals spatial relationships through motion rather than editing
-• GRAVITY PHYSICS: Objects, people, and environments responding to gravitational forces with precise scientific accuracy
-• BREATH CONTROL: The rhythm of the camera breath — slow exhale = safety, held breath = tension
-
-VILLENEUVE SCALE TECHNIQUES (use at least ONE across the sequence):
-• MACRO-TO-COSMOS: Begin at microscopic detail, reveal cosmic scale through motion
-• WEIGHT AND SILENCE: Massive objects moving slowly — the contradiction of scale and stillness creates awe
-• ARCHITECTURE AS PROTAGONIST: Built environments as active emotional agents in the story
-• THE PATIENT SHOT: Hold. Wait. Let the image accumulate meaning through duration.
-
-JAMES CAMERON EPIC TECHNIQUES (use at LEAST TWO across the sequence):
-• THE IMPOSSIBLE SHOT: Show audiences something they have NEVER seen before — a ship splitting in half, an alien world's ecosystem, a nuclear blast wave from the perspective of the victim. Scale that defies comprehension.
-• BLUE-LIGHT ABYSS: Cameron's signature deep-blue aquatic/sci-fi lighting — 8000-12000K cobalt-electric-blue environments with warm human skin as contrast anchor. The Abyss, Titanic's sinking, Avatar's bioluminescence.
-• PRACTICAL DESTRUCTION PHYSICS: When things break, they break with REAL mass and inertia — steel bends before it snaps, water flows with fluid dynamics, structures fail in engineering-accurate cascades. Every destruction beat is grounded in physics.
-• THE HUMAN MOMENT IN SPECTACLE: Cameron's greatest secret — in the middle of maximum visual chaos, CUT TO a human face. A hand reaching. Eyes meeting. The spectacle serves the emotion, NEVER the reverse.
-• DEEP-SPACE COMPOSITION: Layer the frame with foreground, midground, and background all in sharp focus — Cameron shoots with IMAX depth of field to make every inch of the frame alive with information.
-• ACOUSTIC SHOCK: Cameron pioneered using SILENCE before catastrophe. 0.5–1 second of dead silence, then the wall of sound hits — makes the impact feel 10x more powerful.
-• WATER AS CHARACTER: Water is never passive — it crashes, floods, reflects, refracts, drowns. Every water surface is a mirror that reveals character psychology.
-
-MANDATORY VARIETY (script is REJECTED if violated):
-✓ No two consecutive clips share the same camera distance
-✓ No two consecutive clips share the same movement type
-✓ Camera angles ROTATE: eye-level → dutch/low → high/overhead → worm's-eye → eye-level
-✓ Energy OSCILLATES: kinetic → meditative → explosive → still → triumphant
-✓ Scale MODULATES: micro-detail → human scale → environmental scale → epic scale
-
-=======================================================================
-🏆 CINEMATIC GRAMMAR — THE DIRECTOR'S MASTER TOOLKIT
-=======================================================================
-
-CAMERA MOVEMENTS — USE THE FULL RANGE across ${clipCount} clips:
-• ANAMORPHIC DOLLY-IN: Slow push toward subject, oval bokeh expanding — intimacy, dread, revelation (Villeneuve signature)
-• DOLLY-OUT: Pull away as subject holds — isolation, scale revelation, existential weight (Cuarón cosmic pull-back)
-• VELOCITY-MATCHED TRACKING: Camera moves WITH subject at identical speed — invisible motion, pure presence
-• CRANE/BOOM REVEAL: Vertical reveal — rise to expose scale, drop to reveal devastation
-• DUTCH TILT 15-25°: Psychological unease — world off-axis signals unreliable reality
-• ORBITAL ARC 90°-180°: Slow revolution around subject — god's-eye dignity shot (Dune style)
-• EXTREME MACRO: 4:1 magnification — pores, tears, fabric weave, condensation physics, surface tension
-• HANDHELD INTIMACY: Micro-jitter 2-4mm — documentary authenticity, present-tense emotional immediacy
-• LOCKED STATIC: Camera perfectly still — accumulates tension through duration alone
-
-KLING V3 PHYSICS LANGUAGE — MANDATORY FOR PHOTOREALISM:
-• Cloth dynamics: "wool coat hem oscillating at 0.3Hz in sustained 15mph wind, lapels at 45° deflection"
-• Water behavior: "surface tension bead on steel, 4mm diameter, oscillating as the floor vibrates — breaks at the 3rd footfall"
-• Fire physics: "upward combustion column at 340°C, convection current visible as heat shimmer distortion in the 2m radius"
-• Atmospheric scatter: "Rayleigh scattering visible in the 100m corridor — blue tint deepening with distance"
-• Impact physics: "kinetic energy transferred through cheek tissue — 0.3-second oscillation ripple visible in slow-motion"
-• Hair dynamics: "individual hair strands responding to localized air displacement, not uniform — probabilistic flutter"
-• CAMERON WATER PHYSICS: "seawater at 4°C floods in at 3m/sec, specific gravity 1.025, foam patterns form as it hits obstacles — spray refracts ambient light into prismatic scatter"
-• CAMERON DESTRUCTION: "structural steel bends 15° before yielding — visible deformation precedes catastrophic failure by 0.8 seconds, rivets shearing in sequence left-to-right"
-
-=======================================================================
-⏱️ TEMPORAL TIMESTAMP ARCHITECTURE — MANDATORY FOR EVERY CLIP (${clipDuration}s WINDOW)
-=======================================================================
-Each clip has a ${clipDuration}-second attention window. Without temporal anchors, AI video engines DRIFT after a few seconds.
-EVERY clip description MUST be structured with explicit second-by-second timestamps calibrated to ${clipDuration} seconds.
-
-${clipDuration >= 10 ? `THE MANDATORY FORMAT for 10-SECOND clips:
-[00:00-02:00] ESTABLISH: Opening frame — camera position, subject pose, environmental state. The anchor.
-[02:00-05:00] ACTION: The primary motion beat. Physics-specific, directional, with mass, velocity and scale language.
-[05:00-08:00] DEVELOP: The motion continues/intensifies. Lighting evolution. A MID-CLIP PIVOT — new reveal or escalation.
-[08:00-10:00] RESOLVE: The clip's final state — exact end-frame composition. Perfect handoff to the next clip.
-
-WHY 4-PHASE TIMESTAMPS WORK FOR 10s:
-• Phase 1 anchors the opening state — no ambiguity about starting position
-• Phase 2 initiates the primary action with explicit physics
-• Phase 3 allows the STORY TO TURN within the clip — a mini arc
-• Phase 4 locks the final frame for seamless continuity chaining
-
-EXAMPLE OF CORRECT 10s TIMESTAMP STRUCTURE:
-"[00:00-02:00] ESTABLISH: IMAX 18mm bird's-eye — Metropolis street level, 47 floors below, Superman in red-blue suit suspended at apex of trajectory 80m above the asphalt, cape rigid in 60mph updraft, 5500K overcast sky, orange fire glow rising from below at 2200K. [02:00-05:00] ACTION: Superman descends at terminal velocity — anamorphic vertical track following at identical speed, streaking past 20 floors of shattered glass and smoke, cape physics fully active, suit fabric 100% tension-loaded, Omega Beam impact point still glowing red-white below. [05:00-08:00] DEVELOP: Camera pivots to ground-level Dutch tilt as Superman breaks supersonic below the clouds — a concussive shockwave radiates outward in a perfect 200m circle, car alarms triggering, store windows imploding in sequence. [08:00-10:00] RESOLVE: Close-up — Superman's jaw, set. Eyes beginning to glow red. 2200K fire-orange fills the left cheek. The decision made."` : `THE MANDATORY FORMAT for 5-SECOND clips:
-[00:00-01:30] ESTABLISH: Opening frame — camera position, subject pose, environmental state. The anchor.
-[01:30-03:30] ACTION: The primary motion beat. Physics-specific, directional, with mass and velocity language.
-[03:30-05:00] RESOLVE: The clip's final state — exact end-frame composition. Perfect handoff to the next clip.`}
-
-AUDIO DIRECTION (MANDATORY — Kling V3 generates native synchronized audio):
-SFX: [Specific impact & action sounds with intensity — e.g., "steel bulkhead groaning under pressure 95dB, rivets popping in sequence, glass shattering cascade at 110dB"]
-AMB: [Continuous atmospheric audio bed — e.g., "deep ocean pressure hum 30Hz, distant whale calls, hull creaking at irregular intervals"]
-MUSIC_TONE: [EPIC scoring direction — think Hans Zimmer, James Horner, Ludwig Göransson — e.g., "Hans Zimmer-grade brass stabs building from pp to fff, war drums at 60BPM doubling to 120BPM, full choir rising in minor key, French horns carrying the hero theme" OR "James Horner-style Celtic pennywhistle over soaring strings, building to full orchestra crescendo" OR "dead silence — the absence IS the score"]
-VOICE: [If dialogue — speaker name, delivery style, reverb environment — e.g., "protagonist, whispered urgency, tight cockpit reverb"]
-=======================================================================
-
-LIGHTING LANGUAGE — KELVIN-ACCURATE, DIRECTION-SPECIFIC:
-• "3200K tungsten hard key at 45° from frame-left, negative fill, 10:1 contrast ratio — Caravaggio noir"
-• "5600K overcast platinum diffusion, zero shadow, even illumination — clinical isolation, Kubrick-cold"
-• "1800K practical candle, 0.3Hz flicker amplitude, face 60% shadow — Malick warmth, confessional intimacy"
-• "2300K sodium vapor street lamp, amber specular on wet asphalt, anamorphic lens flare at 2 o'clock"
-• "2800K golden hour, 89° low key angle, long shadows at 4:1, lens halation bloom in frame-right upper"
-• "IMAX overexposed exterior: 7000K sky vs. 2800K interior — simultaneous UV burn and tungsten warmth at threshold"
-
-TEXTURE & ATMOSPHERE — THE SENSORY LAYER THAT MAKES KLING V3 RENDER HYPERREALISM:
-• Particle systems: dust motes in shaft of light (Brownian motion physics), cigarette smoke tendril rising, snow falling in variable density
-• Surface micro-detail: concrete pore texture visible at 4:1, oxidized steel rust gradient, water-damaged plaster, hand-worn leather
-• Reflections: multiple light sources creating competing reflections in wet surfaces — complexity = photorealism
-• Fabric behavior: silk reacts differently from wool reacts differently from denim — specify material
-• Condensation: cold glass sweating, breath visible at sub-10°C, frost on metal edges
-• Skin subsurface scattering: warm backlight creating blood-orange glow through ear cartilage and fingers
-
-=======================================================================
-🌍 ENVIRONMENT AS LIVING CO-PROTAGONIST (NOLAN'S LAW)
-=======================================================================
-
-"The environment is never passive. It is always doing something to the character." — Nolan's production philosophy.
-
-For EVERY CLIP, specify ALL of the following:
-1. What the WORLD is actively DOING while the character acts (weather, structural behavior, light movement)
-2. What LIGHT SOURCES are present: color temperature in Kelvin, direction, quality (hard/soft/diffused), falloff
-3. What SURFACE TEXTURE the camera is privileged to capture (zoom depth determines detail level)
-4. What ATMOSPHERIC PARTICLES are in the volume between camera and subject
-5. What STATIC ENVIRONMENTAL ELEMENTS are LOCKED (must not drift or change between clips)
-
-=======================================================================
-🔒 ENVIRONMENT CONTINUITY — STATIC ELEMENT LOCK (KLING V3)
-=======================================================================
-
-AI video engines generate each clip independently. Environmental elements CAN DRIFT without explicit anchoring.
-For EVERY clip description, reinforce static elements explicitly:
-• "The moon — fixed at upper-right quadrant, apparent diameter 2.1°, blue-white 6000K" → repeat EXACT phrasing every clip
-• "The distant mountain ridge — horizon-left, dark purple silhouette, unchanged" → lock it verbally
-• "The sun position — 23° above horizon, frame-left" → anchor with compass and elevation
-
-${isImageToVideo ? `
-=======================================================================
-🔒 IMAGE-TO-VIDEO MODE: KLING V3 FIRST-FRAME ANCHORING
-=======================================================================
-The reference image is the GENETIC CODE of every clip. Kling V3 will use it as start_image — the pixel-perfect starting state.
-
-Your entire creative energy in this mode goes to: WHAT MOVES, HOW IT MOVES WITH WHAT PHYSICS, WHERE THE CAMERA TRAVELS.
-
-KLING V3 IMAGE-TO-VIDEO SPECIFIC GUIDANCE:
-• The identity (who) and initial state (where) are GIVEN — the reference image is the ground truth
-• Describe motion with PHYSICAL SPECIFICITY: velocity, mass, direction, resistance
-• Camera moves should feel like they EMERGE from the starting frame — organic, not imposed
-• The motion should feel like the logical physical continuation of the frozen moment in the reference
-• Describe what was ABOUT TO HAPPEN in the reference image, then let it happen
-• Atmospheric elements: what wind, what light temperature shift, what particulate movement begins
-• Use "continuing from its initial position in the reference frame" to anchor each clip's starting state
-
-MOTION PHYSICS LANGUAGE FOR IMAGE-TO-VIDEO:
-• "Body weight begins to shift forward from center of mass — right foot lifts, heel first, 4kg of momentum"
-• "Hair strands release from static position, flutter initiates at crown, propagates toward tips over 0.4 seconds"  
-• "The fabric tension held in the starting frame releases — cloth falls under gravity toward its natural drape at 9.8m/s²"
-• "Eye movement begins: saccade from 0° (held position) tracks 15° right over 0.2 seconds — natural pursuit motion"
-` : ''}
-
-
-${voiceDisabled ? `
-🔇 SILENT CINEMA MODE: NO DIALOGUE WHATSOEVER
-All storytelling must be PURELY VISUAL. Like a Kubrick or Malick film.
-The "dialogue" field = "" for ALL clips. No exceptions.
-` : ''}
-
-${mustPreserveContent ? `
-🎤 SACRED USER TEXT — VERBATIM PRESERVATION MANDATORY:
-The user has provided specific narration/dialogue that MUST be used EXACTLY as written.
-DO NOT paraphrase, summarize, or rewrite the user's text.
-Your job is to create VISUAL descriptions that accompany the user's exact words.
-Distribute the user's narration/dialogue across the ${clipCount} clips appropriately.
-Include the user's exact text in the "dialogue" field of each clip.
-` : ''}
+CHARACTER/ENVIRONMENT CONSISTENCY:
+• Define character appearance fully in clip 1 — same description in ALL clips
+• Same location, same lighting tone across all clips
+• Static background elements mentioned identically in each clip
+${isImageToVideo ? '\n• Reference image defines the character and starting environment — describe MOTION that emerges from it' : ''}
+${voiceDisabled ? '\n🔇 SILENT MODE: dialogue field = "" for ALL clips. Pure visual storytelling.' : ''}
+${mustPreserveContent ? '\n🎤 USER TEXT: Use the user\'s exact narration/dialogue VERBATIM in the dialogue field. Do not paraphrase.' : ''}
 
 ${isMultiCharacter ? `
-=======================================================================
-🎭 MULTI-CHARACTER SCENE COMPOSITION (WORLD-CLASS)
-=======================================================================
-
-This scene features ${characterCast.length} DISTINCT CHARACTERS who must appear together:
-
-${characterCast.map((c, i) => `
-CHARACTER ${i + 1} - ${c.name} (${c.role.toUpperCase()}):
-- Appearance: ${c.appearance}
-${c.role === 'protagonist' ? '- PRIMARY FOCUS: Most screen time, drives the narrative' : ''}
-${c.role === 'supporting' ? '- SECONDARY FOCUS: Interacts with protagonist, adds depth' : ''}
-${c.role === 'antagonist' ? '- CREATES TENSION: Opposition or conflict element' : ''}
-`).join('')}
-
-SCENE TYPE: ${sceneType.toUpperCase()}
-${sceneType === 'dialogue' ? '- Two characters in conversation, cut between them OR frame together' : ''}
-${sceneType === 'group' ? '- Multiple characters in same frame, interacting as ensemble' : ''}
-${sceneType === 'interview' ? '- Interview format with speaker and listener in frame' : ''}
-${sceneType === 'narrative' ? '- Narrator describes while characters perform actions' : ''}
-
-MULTI-CHARACTER COMPOSITION RULES:
-1. ESTABLISH SPATIAL RELATIONSHIPS: Show where each character is positioned
-2. VISUAL DISTINCTION: Each character must be clearly distinguishable
-3. INTERACTION FRAMING: Use two-shots for dialogue, wide shots for groups
-4. CHARACTER FOCUS: Each clip should have a "focusCharacter" for camera priority
-5. DIALOGUE ATTRIBUTION: In "characterDialogue" specify who says what
-6. ACTION ATTRIBUTION: In "characterActions" specify what each character does
-
-CINEMATOGRAPHY FOR MULTI-CHARACTER:
-- Two-Shot: Both characters in frame for important exchanges
-- Over-the-Shoulder: Character A visible, focused on Character B speaking
-- Reaction Shot: Cut to character reacting to what's being said
-- Wide Master: Establish all characters' positions in scene
-- Medium Singles: Individual character moments within the scene
-
-=======================================================================
+🎭 MULTI-CHARACTER SCENE (${characterCast.length} characters):
+${characterCast.map((c, i) => `${c.name} (${c.role}): ${c.appearance.substring(0, 100)}`).join('\n')}
+Scene type: ${sceneType}. Show spatial relationships and distinct actions per character.
 ` : ''}
 
-OUTPUT FORMAT (STRICT JSON — NOLAN/CAMERON QUALITY MANDATORY):
+OUTPUT FORMAT (strict JSON):
 {
   "clips": [
     {
       "index": 0,
-      "title": "Cinematic 3-5 word title — evocative, poetic, haunting",
-      "description": "KLING V3 TIMESTAMP-STRUCTURED DESCRIPTION (150+ words MANDATORY — this IS the contract with the AI engine): MUST use the 4-block timestamp format: [00:00-02:00] ESTABLISH: ... [02:00-04:00] ACTION: ... [04:00-06:00] DEVELOP: ... [06:00-08:00] RESOLVE: ... Each block must have physics-accurate language, Kelvin lighting, sensory detail, and AUDIO direction. The RESOLVE block must describe the exact end-frame state for frame-chaining. Open each block with EXACT lens + camera movement. Lock subject identity in the ESTABLISH block with iron-clad specificity. Include SFX/AMB/MUSIC_TONE notes. Forbidden: 'beautiful', 'stunning', 'epic', 'amazing' — REPLACE WITH SPECIFIC SENSORY DATA.${voiceDisabled ? ' NO dialogue or speech.' : ''}${isMultiCharacter ? ' INCLUDE ALL CHARACTERS with distinct physical presence in scene.' : ''}",
+      "title": "Evocative 3-5 word title",
+      "description": "TIMESTAMP-STRUCTURED vivid description (80-150 words). Action-dense, specific, entertaining.",
       "durationSeconds": ${clipDuration},
       "actionPhase": "establish|initiate|develop|escalate|peak|settle",
-      "previousAction": "Exact physical action from previous clip with velocity and direction (empty for clip 0)",
-      "currentAction": "Precise physical action in THIS ${clipDuration}-second Kling V3 clip — mass, velocity, direction required",
-      "nextAction": "Exact physical action in next clip (empty for last clip)",
-      "characterDescription": "${hasReferenceImage ? 'COPY FROM REFERENCE IMAGE ANALYSIS EXACTLY' : 'EXACT character description with face, clothing, body — IDENTICAL in all clips'}",
-      "locationDescription": "${hasReferenceImage ? 'COPY FROM REFERENCE IMAGE ANALYSIS EXACTLY' : 'RICH environment description with surfaces, depth, atmosphere — IDENTICAL in all clips'}",
-      "lightingDescription": "${hasReferenceImage ? 'COPY FROM REFERENCE IMAGE ANALYSIS EXACTLY' : 'PRECISE lighting: Kelvin temp, direction, quality, shadows — IDENTICAL in all clips'}",
-      "cameraScale": "extreme-wide|wide|medium|medium-close|close-up|extreme-close-up",
-      "cameraAngle": "eye-level|low-angle|high-angle|dutch-angle|overhead|worms-eye",
-      "movementType": "static|slow-pan|pan|tilt|tracking|dolly-in|dolly-out|orbit|crane|handheld|crash-zoom|whip-pan",
-      "motionDirection": "Precise direction with speed: e.g. 'slow push toward camera, 2cm/sec'",
-      "transitionHint": "Specific visual element that physically connects this clip's end to next clip's start — the exact composition of the final frame",
-      "sfxDirection": "Specific sound effects with intensity and distance: e.g. 'rain on cobblestone 40dB, distant traffic hum 20dB'",
-      "ambientDirection": "Continuous atmospheric audio bed: e.g. 'urban nightscape, wind through alley at 15mph, echo reverb medium'",
-      "musicDirection": "Emotional music tone: e.g. 'rising minor strings, building tension, no percussion yet' OR 'silence' if silent moment",
-      "dialogue": "${voiceDisabled ? 'MUST BE EMPTY STRING' : "Narration/speech — USE USER'S EXACT WORDS if provided. Otherwise craft poetic, purposeful dialogue."}",
-      "mood": "Precise emotional tone with intensity: e.g. 'suffocating dread building to release'"${isMultiCharacter ? `,
-      "charactersInScene": ["character names present"],
-      "focusCharacter": "primary character for camera priority",
-      "characterActions": {"CharacterName": "exact action"},
-      "characterDialogue": {"CharacterName": "exact line"},
+      "previousAction": "",
+      "currentAction": "What happens in this clip — specific physical action",
+      "nextAction": "What happens next",
+      "characterDescription": "Full character appearance — identical in all clips",
+      "locationDescription": "Full environment — identical in all clips",
+      "lightingDescription": "Lighting mood and color — identical in all clips",
+      "cameraScale": "wide|medium|close-up|extreme-close-up",
+      "cameraAngle": "eye-level|low-angle|high-angle|dutch-angle",
+      "movementType": "static|tracking|dolly-in|dolly-out|orbit|crane|handheld",
+      "motionDirection": "Direction and speed of camera or subject movement",
+      "transitionHint": "Visual element connecting this clip's end to next clip's start",
+      "sfxDirection": "Specific sound effects",
+      "ambientDirection": "Environmental audio bed",
+      "musicDirection": "Emotional music direction",
+      "dialogue": "${voiceDisabled ? '' : "Narration or speech for this clip"}",
+      "mood": "Emotional tone"${isMultiCharacter ? `,
+      "charactersInScene": ["names"],
+      "focusCharacter": "primary character",
+      "characterActions": {"Name": "action"},
+      "characterDialogue": {"Name": "line"},
       "interactionType": "solo|dialogue|group"` : ''}
     }
   ]
-}
-
-=======================================================================
-🔍 KLING V3 CONTINUITY IRON LAWS — VIOLATING THESE = COMPLETE FAILURE
-=======================================================================
-
-1. CHARACTER LOCK: The EXACT same character description — word for word — must appear in BOTH the "characterDescription" field AND the ESTABLISH block of EVERY clip.
-   ${hasReferenceImage ? '-> Copy from reference image analysis. Verbatim.' : '-> Define the character fully in clip 0, then COPY IT VERBATIM to ALL other clips.'}
-   WARNING: Kling V3 generates each clip INDEPENDENTLY with ZERO memory of previous clips. Re-stamp the full character description in EVERY clip ESTABLISH block or it will invent a different person.
-   
-2. ENVIRONMENT LOCK: The EXACT same location description in "locationDescription" AND re-stated in the ESTABLISH block of every clip.
-   ${hasReferenceImage ? '-> Copy from reference image analysis. Verbatim.' : '-> Define once in clip 0, paste VERBATIM to ALL clips. Without this, Kling renders a new background every clip.'}
-   
-3. LIGHTING LOCK: The EXACT same Kelvin temperature and direction in "lightingDescription" AND anchored in every clip ESTABLISH block.
-   ${hasReferenceImage ? '-> Copy from reference image analysis. Verbatim.' : '-> Define once, paste to all clips.'}
-
-4. STATIC ELEMENT LOCK: Every static background element (moon, sun, mountain, structure, horizon, props) must appear with IDENTICAL position and scale in EVERY clip using [STATIC: ...] markers.
-
-5. PHYSICAL CONTINUITY: Each clip START equals the logical physical continuation of previous clip END. Screen direction (180 degree rule) must hold. No teleportation.
-   The RESOLVE block of clip N must describe the exact end-frame that clip N+1 begins from.
-
-6. CAMERA DIVERSITY: No two consecutive clips with identical camera scale AND movement type.
-
-7. TIMESTAMP STRUCTURE: Every description MUST use the timestamp format. The ESTABLISH block MUST re-anchor character and environment BEFORE any action begins.
-
-8. AUDIO CONTINUITY: sfxDirection, ambientDirection, and musicDirection MUST be filled for every clip. Audio should build across the sequence — Cameron's rule: music BUILDS tension across clips, then releases at the climax. Use SILENCE strategically before impact moments (Cameron's Acoustic Shock technique). musicDirection should reference specific scoring styles:
-   • "Hans Zimmer brass swells building from piano to fortissimo"
-   • "James Horner Celtic-orchestral hybrid, strings carrying melancholy"
-   • "Ludwig Göransson percussion-driven, tribal rhythms accelerating"
-   • "Dead silence — 0.5s before the catastrophic impact"
-   • "Single piano note, reverb tail 4 seconds, echoing into emptiness"
-
-9. CLIP 1 AMBER STORYTELLING LAW — MANDATORY, NEVER VIOLATE (UNLESS ACTION/BATTLE GENRE):
-   Clip 1 (index 0) for non-action genres MUST open with warm amber storytelling tone:
-   • lightingDescription MUST specify 2700K–3200K warm amber, golden-hour, firelight, or candlelight spectrum
-   • cameraScale MUST be 'wide' or 'medium' — never extreme close-up or macro
-   • movementType MUST be slow and gentle: dolly-in, gentle push, low drift, or subtle crane
-   • Think: Titanic's sunset deck, the firelit tent of Lawrence of Arabia, Malick's whispered prologue
-   • The description MUST include explicit amber/golden warmth language
-
-10. DESCRIPTION MINIMUM: 150 words per description (including timestamps). Under 120 words = REJECTED.
-   Forbidden: "beautiful", "stunning", "epic", "amazing" - REPLACE WITH SPECIFIC SENSORY DATA.
-
-11. TEXT-TO-VIDEO GENETIC CODE: Clip 0 ESTABLISH block defines the character and environment. COPY THIS BLOCK VERBATIM into every subsequent clip ESTABLISH block. This is the ONLY way to prevent Kling from drifting.
-
-${mustPreserveContent ? `
-11. VERBATIM DIALOGUE: The user exact words go in the dialogue field. Not paraphrased. IDENTICAL.
-` : ''}`;
+}`;
 
     // Build user prompt
     let userPrompt: string;
@@ -882,10 +592,10 @@ Include in appropriate clips' "dialogue" field. Use EXACT words.
 
 REQUIREMENTS:
 - Extract the ${clipCount} sequential moments from this scene
-- Each clip = 10 seconds of the continuous action (Kling V3)
+- Each clip = ${clipDuration} seconds of continuous action (Kling V3)
 - Maintain EXACT character/location/lighting consistency
-- Connect each clip's end to the next clip's start with physical continuity (velocity, screen direction)
-- Each description MUST be 100+ words in Nolan/Cameron shot-note style
+- Connect each clip's end to the next clip's start
+- Each description: 80-150 words, vivid and action-dense
 - Lock static environmental elements (moon, horizon, structures) verbally in EVERY clip description
 ${request.environmentPrompt ? '- MANDATORY: Use the ENVIRONMENT DNA for ALL clips\' locationDescription and lightingDescription' : ''}
 ${mustPreserveContent ? '- PRESERVE USER\'S EXACT NARRATION/DIALOGUE in the "dialogue" field' : '- Keep dialogue/narration in the appropriate clips'}
@@ -983,19 +693,18 @@ Include these dialogue lines in appropriate clips' "dialogue" field. Use EXACT w
 
 Create ONE continuous scene with ${clipCount} progressive clips. Each clip = ${clipDuration} seconds on Kling V3.
 Total duration: ${targetSeconds} seconds.
-All clips in SAME location with SAME character appearance — identity locked across all clips.
-Show progressive narrative arc: establish → initiate → develop → escalate → peak → settle.
-Each description MUST be 100+ words — Nolan/Cameron shot-note density. No generic adjectives.
-Lock static environmental elements in every single clip description.
-${request.environmentPrompt ? `MANDATORY: Use "${request.environmentPrompt}" as the scene/location for ALL clips - this is the user's explicit request and OVERRIDES any reference image background.` : ''}
-${mustPreserveContent ? 'CRITICAL: Use the user\'s EXACT narration/dialogue text in the "dialogue" field - copy it verbatim, do not paraphrase or rewrite.' : ''}
-${isImageToVideo && !request.environmentPrompt ? 'CRITICAL: The character and environment MUST match the reference image exactly. Kling V3 will use the reference as start_image — describe the PHYSICAL MOTION that begins from that frozen state.' : ''}
-${isImageToVideo && request.environmentPrompt ? 'CRITICAL: Use the character from the reference image but place them in the USER\'S REQUESTED SCENE. Character appearance is locked to the reference, location changes to the user\'s scene description.' : ''}
+All clips in SAME location with SAME character appearance.
+Show progressive story arc: hook → build → escalate → climax → resolve.
+Each description: 80-150 words, vivid and action-dense. No generic adjectives.
+${request.environmentPrompt ? `MANDATORY: Use "${request.environmentPrompt}" as the scene/location for ALL clips.` : ''}
+${mustPreserveContent ? 'Use the user\'s EXACT narration/dialogue verbatim in the "dialogue" field.' : ''}
+${isImageToVideo && !request.environmentPrompt ? 'Character and environment MUST match the reference image. Describe MOTION emerging from the reference.' : ''}
+${isImageToVideo && request.environmentPrompt ? 'Use character from reference image placed in the USER\'S REQUESTED SCENE.' : ''}
 
 Output ONLY valid JSON with exactly ${clipCount} clips.`;
     }
 
-    console.log("[SmartScript] 🎬 Calling GPT-4o for HOLLYWOOD-GRADE scene breakdown...");
+    console.log("[SmartScript] 🎬 Calling GPT-4o for entertainment-first scene breakdown...");
 
     // GPT-4o for maximum cinematographic intelligence and creative richness
     const response = await fetchWithRetry(
@@ -1012,8 +721,8 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
           ],
-          max_tokens: calculateMaxTokens(clipCount, 700, 4000, 8192), // More tokens per clip for rich descriptions
-          temperature: 0.75, // Slightly higher for creative richness while maintaining coherence
+          max_tokens: calculateMaxTokens(clipCount, 500, 3000, 6000), // Lean but sufficient for action-dense descriptions
+          temperature: 0.8, // Higher creativity for entertainment value
           response_format: { type: "json_object" }, // Enforce JSON for reliability
         }),
       },
@@ -1062,11 +771,12 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
       // Pad with placeholder clips if too few
       while (parsedClips.length < expectedClipCount) {
         const phaseIndex = Math.min(parsedClips.length, ACTION_PHASES.length - 1);
+        const prevClip = parsedClips[parsedClips.length - 1];
         parsedClips.push({
           title: `Clip ${parsedClips.length + 1}`,
-          description: 'Scene continuation - action progresses naturally',
+          description: `The action from the previous moment continues — ${prevClip?.currentAction || 'the scene develops'} with increasing intensity. The environment responds: light shifts, atmosphere thickens, momentum builds toward the next beat.`,
           actionPhase: ACTION_PHASES[phaseIndex],
-          currentAction: 'Action continues from previous moment',
+          currentAction: prevClip?.nextAction || 'Scene momentum continues building',
         });
       }
       
@@ -1222,119 +932,10 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
       mood: clip.mood || 'focused',
     }));
 
-    // =====================================================
-    // 🔍 SELF-AUDIT PASS — Hollywood Director Quality Check
-    // A second GPT-4o call reviews every clip description and
-    // upgrades any that are weak, vague, or below Hollywood standard.
-    // This is the equivalent of a director reviewing rushes and demanding
-    // reshoots for any scene that doesn't meet their vision.
-    // =====================================================
-    let auditReport: { clipsAudited: number; clipsUpgraded: number; averageQuality: string } = {
-      clipsAudited: 0, clipsUpgraded: 0, averageQuality: 'not-audited'
-    };
-
-    try {
-      console.log(`[SmartScript] 🔍 Running SELF-AUDIT pass on ${normalizedClips.length} clips...`);
-      
-      const auditSystemPrompt = `You are a ruthless Hollywood executive producer reviewing a shot list for a $200M film.
-Your job: audit every clip description and UPGRADE any that are weak, generic, or below standard.
-
-REJECTION CRITERIA (must upgrade these):
-- Under 60 words → too short, lacks cinematic detail
-- No camera movement specified → upgrade to specific move  
-- Vague action verbs ("moves", "looks", "goes") → replace with visceral, specific verbs
-- Missing atmospheric texture (no particles, reflections, fabric physics, light quality)
-- Missing color temperature for lighting
-- Generic emotion words ("sad", "happy") → replace with precise physical manifestations
-
-PRESERVATION RULES:
-- NEVER change: index, title, actionPhase, characterDescription, locationDescription, lightingDescription
-- NEVER change: dialogue, durationSeconds, cameraScale, cameraAngle, movementType
-- ONLY improve: description, currentAction, motionDirection, transitionHint, mood
-- If a clip already meets standard → return it UNCHANGED with "upgraded": false
-
-Return JSON: { "clips": [ { ...all original fields preserved..., "description": "upgraded or original", "upgraded": boolean, "qualityScore": 1-10 } ] }`;
-
-      const auditUserPrompt = `Audit and upgrade these ${normalizedClips.length} clip descriptions. Return ALL ${normalizedClips.length} clips.
-
-${JSON.stringify(normalizedClips.map(c => ({
-  index: c.index,
-  title: c.title,
-  description: c.description,
-  currentAction: c.currentAction,
-  motionDirection: c.motionDirection,
-  transitionHint: c.transitionOut?.hint,
-  mood: c.mood,
-})))}`;
-
-      const auditResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            { role: "system", content: auditSystemPrompt },
-            { role: "user", content: auditUserPrompt },
-          ],
-          max_tokens: calculateMaxTokens(normalizedClips.length, 400, 2500, 6000),
-          temperature: 0.5,
-          response_format: { type: "json_object" },
-        }),
-      });
-
-      if (auditResponse.ok) {
-        const auditData = await auditResponse.json();
-        const auditContent = auditData.choices?.[0]?.message?.content || '';
-        const auditParseResult = parseJsonWithRecovery<{ clips?: any[] }>(auditContent);
-        
-        if (auditParseResult.success && auditParseResult.data) {
-          const auditedClips: any[] = Array.isArray(auditParseResult.data)
-            ? auditParseResult.data
-            : (auditParseResult.data as any).clips || [];
-
-          let upgraded = 0;
-          let totalScore = 0;
-          
-          if (auditedClips.length === normalizedClips.length) {
-            auditedClips.forEach((audited, i) => {
-              // Accept upgrade if: auditor flagged it AND the new description is non-trivially different
-              // (removed strict length-only check — quality rewrites can be same length or shorter)
-              const isUpgrade = audited.upgraded === true 
-                && audited.description 
-                && audited.description.trim().length >= 40
-                && audited.description.trim() !== normalizedClips[i].description.trim();
-              
-              if (isUpgrade) {
-                normalizedClips[i].description = audited.description;
-                if (audited.currentAction) normalizedClips[i].currentAction = audited.currentAction;
-                if (audited.motionDirection) normalizedClips[i].motionDirection = audited.motionDirection;
-                if (audited.mood) normalizedClips[i].mood = audited.mood;
-                if (audited.transitionHint && normalizedClips[i].transitionOut) {
-                  normalizedClips[i].transitionOut!.hint = audited.transitionHint;
-                }
-                upgraded++;
-              }
-              totalScore += audited.qualityScore || 8;
-            });
-            
-            const avgScore = totalScore / auditedClips.length;
-            auditReport = {
-              clipsAudited: auditedClips.length,
-              clipsUpgraded: upgraded,
-              averageQuality: `${avgScore.toFixed(1)}/10`,
-            };
-            console.log(`[SmartScript] ✅ Audit complete: ${upgraded}/${auditedClips.length} clips upgraded. Avg quality: ${avgScore.toFixed(1)}/10`);
-          }
-        }
-      } else {
-        console.warn(`[SmartScript] Audit pass skipped (non-critical): ${auditResponse.status}`);
-      }
-    } catch (auditErr) {
-      console.warn(`[SmartScript] Audit pass failed (non-critical, using original):`, auditErr);
-    }
+    // Self-audit pass REMOVED — was doubling GPT-4o cost with minimal quality improvement.
+    // The lean prompt v6.0 produces better first-pass results by focusing on entertainment
+    // rather than technical camera jargon that Kling V3 doesn't interpret.
+    const auditReport = { clipsAudited: 0, clipsUpgraded: 0, averageQuality: 'direct' };
 
     // Calculate continuity score
     const continuityScore = calculateContinuityScore(normalizedClips);

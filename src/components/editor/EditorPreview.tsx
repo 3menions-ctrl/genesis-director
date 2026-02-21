@@ -66,6 +66,22 @@ export const EditorPreview = ({
       .filter((c) => currentTime >= c.start && currentTime < c.end);
   }, [tracks, currentTime]);
 
+  // Check if the audio track is muted (controls embedded video audio)
+  const audioTrackMuted = useMemo(() => {
+    const audioTrack = tracks.find((t) => t.type === 'audio');
+    return audioTrack?.muted ?? false;
+  }, [tracks]);
+
+  // Get the active audio clip's volume (for per-clip volume control)
+  const activeAudioClipVolume = useMemo(() => {
+    const audioTrack = tracks.find((t) => t.type === 'audio');
+    if (!audioTrack) return 100;
+    const activeAudio = audioTrack.clips.find(
+      (c) => currentTime >= c.start && currentTime < c.end
+    );
+    return activeAudio?.volume ?? 100;
+  }, [tracks, currentTime]);
+
   // ── Load new clip source when active clip changes ──
   useEffect(() => {
     const video = videoRef.current;
@@ -123,14 +139,16 @@ export const EditorPreview = ({
     if (video) video.playbackRate = playbackSpeed;
   }, [playbackSpeed]);
 
-  // ── Volume sync ──
+  // ── Volume sync (combines UI volume, audio track mute, and per-clip volume) ──
   useEffect(() => {
     const video = videoRef.current;
     if (video) {
-      video.volume = volume / 100;
-      video.muted = isMuted;
+      const clipVolScale = activeAudioClipVolume / 100;
+      const uiVolScale = volume / 100;
+      video.volume = Math.min(1, clipVolScale * uiVolScale);
+      video.muted = isMuted || audioTrackMuted;
     }
-  }, [volume, isMuted]);
+  }, [volume, isMuted, audioTrackMuted, activeAudioClipVolume]);
 
   // ── Time update from video → timeline ──
   const handleTimeUpdate = useCallback(() => {

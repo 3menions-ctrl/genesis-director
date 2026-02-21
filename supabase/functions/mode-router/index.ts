@@ -417,13 +417,11 @@ serve(async (req) => {
           avatar_voice_id: voiceId || null,
           // CRITICAL: Save the user's script to synopsis so it's not lost
           synopsis: prompt || null,
-          // For avatar mode, also save scene description in pending_video_tasks
-          pending_video_tasks: mode === 'avatar' ? {
-            script: prompt,
-            sceneDescription: request.sceneDescription || null,
-            clipCount: clipCount,
-            clipDuration: clipDuration,
-          } : {},
+          // CRITICAL: Do NOT pre-populate pending_video_tasks for avatar mode.
+          // generate-avatar-direct sets type='avatar_async' with prediction data.
+          // Pre-populating created a race where the duplicate guard couldn't detect
+          // the first call's predictions (different shape), causing triple-fire.
+          pending_video_tasks: {},
           pipeline_state: {
             stage: 'init',
             progress: 0,
@@ -607,10 +605,11 @@ async function handleAvatarDirectMode(params: {
   }).eq('id', projectId);
 
   // Call the new direct avatar function
-  // CRITICAL FIX: maxRetries=1 (NO RETRY) because generate-avatar-direct is fire-and-forget async.
-  // The function starts a Kling prediction and returns immediately — retrying would create
-  // DUPLICATE Kling predictions, wasting credits and producing wrong videos.
-  // The watchdog handles completion polling, so a single call is all that's needed.
+  // CRITICAL FIX v2: maxRetries=0 (ZERO retries = exactly 1 attempt).
+  // THE BUG: maxRetries=1 meant 2 attempts (loop: attempt <= maxRetries). If the first call
+  // took >90s (timeout), resilientFetch retried, creating a SECOND set of Kling predictions.
+  // This caused 3 videos to be produced for a 2-clip job, wasting credits.
+  // The watchdog handles completion polling, so exactly one call is all that's needed.
   const directResponse = await resilientFetch(`${supabaseUrl}/functions/v1/generate-avatar-direct`, {
     method: 'POST',
     headers: {
@@ -632,8 +631,8 @@ async function handleAvatarDirectMode(params: {
       enableDualAvatar: enableDualAvatar || false,
       avatarTemplateId: avatarTemplateId || null,
     }),
-    maxRetries: 1,
-    timeoutMs: 90000,
+    maxRetries: 0, // ZERO retries — exactly 1 attempt. Watchdog handles recovery.
+    timeoutMs: 55000, // Under Edge Function 60s limit. If timeout, watchdog recovers.
   });
 
   if (!directResponse.ok) {

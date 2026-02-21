@@ -170,6 +170,7 @@ function ProjectsContentInner() {
     totalCount,
     loadMore,
     refresh: refreshProjects,
+    optimisticRemove,
   } = usePaginatedProjects(sortBy, sortOrder, statusFilter, searchQuery);
   
   const hasLoadedOnce = !isLoadingProjects;
@@ -557,6 +558,14 @@ function ProjectsContentInner() {
     if (p.video_url) return true;
     return false;
   };
+
+  // Wrapped delete: optimistically remove from UI IMMEDIATELY, then hard-delete on backend
+  const handleDeleteProject = useCallback(async (projectId: string) => {
+    // Instant UI removal - don't wait for backend
+    optimisticRemove(projectId);
+    // Fire backend delete (permanent hard delete)
+    await deleteProject(projectId);
+  }, [deleteProject, optimisticRemove]);
   
   const isPlayableProject = (p: Project): boolean => {
     // A project is playable if it has a final video or completed clips
@@ -1267,13 +1276,13 @@ function ProjectsContentInner() {
                           {viewMode === 'list' ? (
                             <div className="space-y-2">
                               {filteredProjects.filter(p => pinnedProjects.has(p.id)).map((project, index) => (
-                                <ProjectCard key={project.id} project={project} index={index} viewMode="list" preResolvedClipUrl={resolvedClipUrls.get(project.id)} onPlay={() => handlePlayVideo(project)} onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }} onRename={() => handleRenameProject(project)} onDelete={() => deleteProject(project.id)} onDownload={() => handleDownloadAll(project)} onRetryStitch={() => handleGoogleStitch(project.id)} onBrowserStitch={() => handleBrowserStitch(project.id)} onTogglePin={() => togglePin(project.id)} onTogglePublic={() => handleTogglePublic(project)} isActive={activeProjectId === project.id} isRetrying={retryingProjectId === project.id} isBrowserStitching={browserStitchingProjectId === project.id} isPinned={true} />
+                                <ProjectCard key={project.id} project={project} index={index} viewMode="list" preResolvedClipUrl={resolvedClipUrls.get(project.id)} onPlay={() => handlePlayVideo(project)} onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }} onRename={() => handleRenameProject(project)} onDelete={() => handleDeleteProject(project.id)} onDownload={() => handleDownloadAll(project)} onRetryStitch={() => handleGoogleStitch(project.id)} onBrowserStitch={() => handleBrowserStitch(project.id)} onTogglePin={() => togglePin(project.id)} onTogglePublic={() => handleTogglePublic(project)} isActive={activeProjectId === project.id} isRetrying={retryingProjectId === project.id} isBrowserStitching={browserStitchingProjectId === project.id} isPinned={true} />
                               ))}
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                               {filteredProjects.filter(p => pinnedProjects.has(p.id)).map((project, index) => (
-                                <ProjectCard key={project.id} project={project} index={index} viewMode="grid" preResolvedClipUrl={resolvedClipUrls.get(project.id)} onPlay={() => handlePlayVideo(project)} onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }} onRename={() => handleRenameProject(project)} onDelete={() => deleteProject(project.id)} onDownload={() => handleDownloadAll(project)} onRetryStitch={() => handleGoogleStitch(project.id)} onBrowserStitch={() => handleBrowserStitch(project.id)} onTogglePin={() => togglePin(project.id)} onTogglePublic={() => handleTogglePublic(project)} isActive={activeProjectId === project.id} isRetrying={retryingProjectId === project.id} isBrowserStitching={browserStitchingProjectId === project.id} isPinned={true} />
+                                <ProjectCard key={project.id} project={project} index={index} viewMode="grid" preResolvedClipUrl={resolvedClipUrls.get(project.id)} onPlay={() => handlePlayVideo(project)} onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }} onRename={() => handleRenameProject(project)} onDelete={() => handleDeleteProject(project.id)} onDownload={() => handleDownloadAll(project)} onRetryStitch={() => handleGoogleStitch(project.id)} onBrowserStitch={() => handleBrowserStitch(project.id)} onTogglePin={() => togglePin(project.id)} onTogglePublic={() => handleTogglePublic(project)} isActive={activeProjectId === project.id} isRetrying={retryingProjectId === project.id} isBrowserStitching={browserStitchingProjectId === project.id} isPinned={true} />
                               ))}
                             </div>
                           )}
@@ -1284,13 +1293,13 @@ function ProjectsContentInner() {
                       {viewMode === 'list' ? (
                         <div className="space-y-1.5">
                           {filteredProjects.filter(p => !pinnedProjects.has(p.id)).map((project, index) => (
-                            <ProjectCard key={project.id} project={project} index={index} viewMode="list" preResolvedClipUrl={resolvedClipUrls.get(project.id)} onPlay={() => handlePlayVideo(project)} onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }} onRename={() => handleRenameProject(project)} onDelete={() => deleteProject(project.id)} onDownload={() => handleDownloadAll(project)} onRetryStitch={() => handleGoogleStitch(project.id)} onBrowserStitch={() => handleBrowserStitch(project.id)} onTogglePin={() => togglePin(project.id)} onTogglePublic={() => handleTogglePublic(project)} isActive={activeProjectId === project.id} isRetrying={retryingProjectId === project.id} isBrowserStitching={browserStitchingProjectId === project.id} isPinned={false} />
+                            <ProjectCard key={project.id} project={project} index={index} viewMode="list" preResolvedClipUrl={resolvedClipUrls.get(project.id)} onPlay={() => handlePlayVideo(project)} onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }} onRename={() => handleRenameProject(project)} onDelete={() => handleDeleteProject(project.id)} onDownload={() => handleDownloadAll(project)} onRetryStitch={() => handleGoogleStitch(project.id)} onBrowserStitch={() => handleBrowserStitch(project.id)} onTogglePin={() => togglePin(project.id)} onTogglePublic={() => handleTogglePublic(project)} isActive={activeProjectId === project.id} isRetrying={retryingProjectId === project.id} isBrowserStitching={browserStitchingProjectId === project.id} isPinned={false} />
                           ))}
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                           {filteredProjects.filter(p => !pinnedProjects.has(p.id)).map((project, index) => (
-                            <ProjectCard key={project.id} project={project} index={index} viewMode="grid" preResolvedClipUrl={resolvedClipUrls.get(project.id)} onPlay={() => handlePlayVideo(project)} onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }} onRename={() => handleRenameProject(project)} onDelete={() => deleteProject(project.id)} onDownload={() => handleDownloadAll(project)} onRetryStitch={() => handleGoogleStitch(project.id)} onBrowserStitch={() => handleBrowserStitch(project.id)} onTogglePin={() => togglePin(project.id)} onTogglePublic={() => handleTogglePublic(project)} isActive={activeProjectId === project.id} isRetrying={retryingProjectId === project.id} isBrowserStitching={browserStitchingProjectId === project.id} isPinned={false} />
+                            <ProjectCard key={project.id} project={project} index={index} viewMode="grid" preResolvedClipUrl={resolvedClipUrls.get(project.id)} onPlay={() => handlePlayVideo(project)} onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }} onRename={() => handleRenameProject(project)} onDelete={() => handleDeleteProject(project.id)} onDownload={() => handleDownloadAll(project)} onRetryStitch={() => handleGoogleStitch(project.id)} onBrowserStitch={() => handleBrowserStitch(project.id)} onTogglePin={() => togglePin(project.id)} onTogglePublic={() => handleTogglePublic(project)} isActive={activeProjectId === project.id} isRetrying={retryingProjectId === project.id} isBrowserStitching={browserStitchingProjectId === project.id} isPinned={false} />
                           ))}
                         </div>
                       )}

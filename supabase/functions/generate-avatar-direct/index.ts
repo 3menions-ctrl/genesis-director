@@ -656,7 +656,16 @@ serve(async (req) => {
     });
     
     if (atomicClaimError) {
-      console.warn(`[AvatarDirect] ⚠️ atomic_claim_clip RPC error (proceeding — may not have pending_video_tasks):`, atomicClaimError.message);
+      console.error(`[AvatarDirect] ❌ atomic_claim_clip RPC FAILED — BLOCKING to prevent duplicate prompt:`, atomicClaimError.message);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'CLAIM_RPC_FAILED',
+          message: `Atomic claim RPC failed for clip 0: ${atomicClaimError.message}. Refusing to proceed to prevent duplicate Kling prompt.`,
+          projectId,
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     } else if (atomicClaimed === false) {
       console.error(`[AvatarDirect] ❌ ATOMIC CLAIM REJECTED: clip 0 already claimed by another process`);
       return new Response(

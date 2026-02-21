@@ -792,8 +792,16 @@ serve(async (req) => {
     });
     
     if (claimError) {
-      console.warn(`[SingleClip] ⚠️ atomic_claim_clip RPC error (proceeding — clip may not be in pending_video_tasks):`, claimError.message);
-      // Don't block if RPC fails (e.g., no pending_video_tasks row) — the mutex lock already protects us
+      console.error(`[SingleClip] ❌ atomic_claim_clip RPC FAILED — BLOCKING to prevent duplicate prompt:`, claimError.message);
+      await releaseLock();
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'CLAIM_RPC_FAILED',
+          message: `Atomic claim RPC failed for clip ${shotIndex}: ${claimError.message}. Refusing to proceed to prevent duplicate Kling prompt.`,
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     } else if (claimed === false) {
       console.error(`[SingleClip] ❌ ATOMIC CLAIM REJECTED: clip ${shotIndex} already claimed by another process`);
       await releaseLock();

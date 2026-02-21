@@ -1037,6 +1037,9 @@ serve(async (req) => {
       }
       
       const currentProgressPct = isFullyComplete ? 90 : Math.round(10 + (completedClips.length / Math.max(totalExpectedClips, 1)) * 75);
+      // CRITICAL FIX: Always touch updated_at during polling so Phase 0a doesn't
+      // see this project as "stuck" and fire a DUPLICATE generate-avatar-direct call.
+      // Phase 0a uses updated_at < 10min threshold — we must keep it fresh while polling.
       await supabase.from('movie_projects').update({
         pending_video_tasks: {
           ...progressUpdate,
@@ -1053,7 +1056,7 @@ serve(async (req) => {
           totalClips: totalExpectedClips,
           completedClips: completedClips.length,
         },
-        updated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(), // HEARTBEAT: prevents Phase 0a duplicate-fire
       }).eq('id', project.id);
       
       // If all completed, finalize the project
@@ -1644,12 +1647,49 @@ serve(async (req) => {
       const MAX_AVATAR_RETRIES = 2;
       
       if (retryCount < MAX_AVATAR_RETRIES && project.source_image_url) {
+        // CRITICAL: Double-check Replicate for active predictions before restarting
+        // This prevents the "two videos generated" bug where Phase 0a restarts while Kling is running
+        const existingTasks = (project.pending_video_tasks || {}) as Record<string, any>;
+        if (existingTasks.type === 'avatar_async' && Array.isArray(existingTasks.predictions)) {
+          const activePreds = existingTasks.predictions.filter(
+            (p: { status: string; predictionId?: string }) => p.predictionId && p.status === 'processing'
+          );
+          
+          // Re-poll Replicate to see if these predictions are ACTUALLY still running
+          let anyStillActive = false;
+          for (const pred of activePreds) {
+            try {
+              const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${pred.predictionId}`, {
+                headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` },
+              });
+              if (pollRes.ok) {
+                const pollData = await pollRes.json();
+                if (pollData.status === 'starting' || pollData.status === 'processing') {
+                  anyStillActive = true;
+                  console.log(`[Watchdog] ⏭️ Phase 0a: Prediction ${pred.predictionId} is STILL ${pollData.status} on Replicate — NOT restarting`);
+                  break;
+                }
+              }
+            } catch (_) { /* ignore poll errors */ }
+          }
+          
+          if (anyStillActive) {
+            // Touch updated_at to prevent re-triggering next cycle
+            await supabase.from('movie_projects').update({
+              updated_at: new Date().toISOString(),
+            }).eq('id', project.id);
+            continue; // Skip restart — predictions are still running
+          }
+        }
+        
         console.log(`[Watchdog] 🔄 Retrying avatar pipeline for ${project.id} (attempt ${retryCount + 1}/${MAX_AVATAR_RETRIES})`);
         
         try {
           await supabase
             .from('movie_projects')
             .update({
+              // CRITICAL: Clear pending_video_tasks so generate-avatar-direct's duplicate guard doesn't block the retry
+              pending_video_tasks: null,
               pipeline_state: {
                 ...pipelineState,
                 watchdogRetryCount: retryCount + 1,

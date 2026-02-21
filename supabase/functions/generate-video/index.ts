@@ -593,12 +593,8 @@ const COLOR_ENFORCEMENT_SUFFIX = ". CRITICAL COLOR REQUIREMENTS: Rich saturated 
 const CHARACTER_CONSISTENCY_SUFFIX = ". CHARACTER LOCK: Same exact person throughout clip. No face changes. No body transformation. Identical clothing. Identical hair. Fixed skin tone. Stable identity from first frame to last frame.";
 
 // ============================================================================
-// Runway Gen-4.5 - Pure TEXT-TO-VIDEO (no image required) via Replicate
-// Model: runwayml/gen-4.5
-// Supports: 5s or 10s clips, text-only input, 16:9 / 9:16 / 1:1
+// REMOVED: Runway Gen-4.5 — All modes now unified on Kling V3
 // ============================================================================
-const RUNWAY_GEN45_MODEL = "runwayml/gen-4.5";
-const RUNWAY_GEN45_MODEL_URL = `https://api.replicate.com/v1/models/${RUNWAY_GEN45_MODEL}/predictions`;
 
 // Anti-color-degradation terms for negative prompt - ENHANCED
 const COLOR_DEGRADATION_NEGATIVES = [
@@ -808,9 +804,9 @@ async function ensureImageUrl(input: string | undefined): Promise<string | null>
   return null;
 }
 
-// Generate video with Kling 2.6 via Replicate API
-// Supports: native audio, image-to-video, frame chaining
-async function generateWithKling(
+// Generate video with Kling V3 via Replicate API
+// Supports: native audio, image-to-video, frame chaining, 3-15s clips
+async function generateWithKlingV3(
   prompt: string,
   enhancedPrompt: string,
   negativePrompt: string,
@@ -818,7 +814,7 @@ async function generateWithKling(
   aspectRatio: string,
   startImageUrl: string | null,
   referenceImages: string[] = [],
-  enableAudio: boolean = true
+  enableAudio: boolean = false
 ): Promise<{ success: true; taskId: string; provider: "replicate"; model: string } | { success: false; error: string }> {
   try {
     const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
@@ -826,19 +822,18 @@ async function generateWithKling(
       throw new Error("REPLICATE_API_KEY is not configured");
     }
 
-    // Kling 2.6 parameters via Replicate
-    const klingDuration = duration <= 6 ? 5 : 10;
+    // Kling V3: supports 3-15s, default 10s
+    const klingDuration = Math.max(3, Math.min(15, duration || 10));
     const klingAspectRatio = aspectRatio === "9:16" ? "9:16" : 
                               aspectRatio === "1:1" ? "1:1" : "16:9";
 
-    // Build Replicate input for Kling v2.6 - ALWAYS use "pro" mode for HD quality
+    // Build Replicate input for Kling V3 - ALWAYS use "pro" mode for 1080p HD
     const replicateInput: Record<string, any> = {
       prompt: enhancedPrompt.slice(0, 1500),
       negative_prompt: negativePrompt.slice(0, 1500),
       aspect_ratio: klingAspectRatio,
       duration: klingDuration,
-      cfg_scale: 0.7,
-      mode: "pro", // CRITICAL: "pro" mode = HD quality, "standard" = lower quality
+      mode: "pro", // CRITICAL: "pro" mode = 1080p HD quality
     };
 
     // Add start image for image-to-video mode
@@ -846,41 +841,46 @@ async function generateWithKling(
       replicateInput.start_image = startImageUrl;
     }
 
-    console.log("[generate-video] Starting Kling 2.6 via Replicate:", {
+    // Enable native audio for avatar mode
+    if (enableAudio) {
+      replicateInput.generate_audio = true;
+    }
+
+    console.log("[generate-video] Starting Kling V3 via Replicate:", {
       mode: startImageUrl ? "image-to-video" : "text-to-video",
       duration: klingDuration,
       aspectRatio: klingAspectRatio,
+      audioEnabled: enableAudio,
       promptLength: enhancedPrompt.length,
     });
 
-    // Call Replicate API - use model identifier for official models
-    const response = await fetch(REPLICATE_API_URL, {
+    // Call Replicate API via model URL for Kling V3
+    const response = await fetch(KLING_V3_MODEL_URL, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${REPLICATE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: KLING_MODEL, // Official model - use model identifier directly
         input: replicateInput,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[generate-video] Replicate API error:", response.status, errorText);
-      return { success: false, error: `Replicate API error: ${response.status} - ${errorText}` };
+      console.error("[generate-video] Kling V3 API error:", response.status, errorText);
+      return { success: false, error: `Kling V3 API error: ${response.status} - ${errorText}` };
     }
 
     const prediction = await response.json();
     const taskId = prediction.id;
     
     if (!taskId) {
-      console.error("[generate-video] No prediction ID in Replicate response:", prediction);
-      return { success: false, error: "No prediction ID in Replicate response" };
+      console.error("[generate-video] No prediction ID in Kling V3 response:", prediction);
+      return { success: false, error: "No prediction ID in Kling V3 response" };
     }
 
-    console.log("[generate-video] Replicate prediction created:", taskId);
+    console.log("[generate-video] Kling V3 prediction created:", taskId);
 
     return {
       success: true,
@@ -889,123 +889,20 @@ async function generateWithKling(
       model: KLING_MODEL,
     };
   } catch (error) {
-    console.error("[generate-video] Replicate error:", error);
+    console.error("[generate-video] Kling V3 error:", error);
     return { 
       success: false, 
-      error: error instanceof Error ? error.message : "Replicate generation failed" 
+      error: error instanceof Error ? error.message : "Kling V3 generation failed" 
     };
   }
 }
 
-// NOTE: Runway Gen-4.5 handles TEXT-TO-VIDEO (no image required - T2V native).
-//       Runway Gen-4 Turbo handles IMAGE-TO-VIDEO (requires image as first frame).
-//       Kling v2.6 handles Avatar mode ONLY and is the fallback if Runway T2V fails.
+// NOTE: ALL modes now unified on Kling V3 (kwaivgi/kling-v3-video)
+// Runway Gen-4 Turbo and Gen-4.5 have been REMOVED.
+// Kling V3 handles T2V (no image), I2V (start_image), and Avatar (native audio).
 
-// Generate video with Runway Gen-4 Turbo (image-to-video) or Kling (text-to-video fallback)
-async function generateWithRunway(
-  prompt: string,
-  enhancedPrompt: string,
-  negativePrompt: string,
-  startImageUrl: string | null,
-  duration: number,
-  aspectRatio: string,
-  referenceImages: string[] = [],
-  enableAudio: boolean = false
-): Promise<{ success: true; taskId: string; provider: "replicate"; model: string } | { success: false; error: string }> {
-  const hasImage = !!(startImageUrl && startImageUrl.startsWith("http"));
-
-  if (hasImage) {
-    // Image-to-video: Runway Gen-4 Turbo (requires image)
-    try {
-      const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
-      if (!REPLICATE_API_KEY) throw new Error("REPLICATE_API_KEY is not configured");
-
-      const runwayDuration = duration <= 5 ? 5 : 10;
-      const runwayAspectRatio = aspectRatio === "9:16" ? "9:16" : aspectRatio === "1:1" ? "1:1" : "16:9";
-
-      const input: Record<string, any> = {
-        prompt: enhancedPrompt.slice(0, 2000),
-        duration: runwayDuration,
-        aspect_ratio: runwayAspectRatio,
-        image: startImageUrl, // Required by Gen-4 Turbo
-      };
-
-      console.log("[generate-video][Runway Gen-4 Turbo] ✅ Image-to-video:", { duration: runwayDuration, aspectRatio: runwayAspectRatio });
-
-      const response = await fetch(RUNWAY_GEN4_MODEL_URL, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ input }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("[generate-video][Runway Gen-4 Turbo] API error:", response.status, errorText);
-        return { success: false, error: `Runway Gen-4 Turbo API error: ${response.status} - ${errorText}` };
-      }
-
-      const prediction = await response.json();
-      if (!prediction.id) return { success: false, error: "No prediction ID in Runway response" };
-      console.log("[generate-video][Runway Gen-4 Turbo] ✅ Prediction created:", prediction.id);
-      return { success: true, taskId: prediction.id, provider: "replicate", model: RUNWAY_GEN4_MODEL };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : "Runway Gen-4 Turbo generation failed" };
-    }
-  } else {
-    // ─── TEXT-TO-VIDEO: Runway Gen-4.5 (no image required) ───────────────
-    // runwayml/gen-4.5 is Runway's dedicated T2V model — the #1 ranked
-    // text-to-video model on Artificial Analysis benchmark as of Nov 2025.
-    console.log("[generate-video][Runway Gen-4.5] ✅ Pure text-to-video (no image required)");
-    try {
-      const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
-      if (!REPLICATE_API_KEY) throw new Error("REPLICATE_API_KEY is not configured");
-
-      const runwayDuration = duration <= 5 ? 5 : 10;
-      const runwayAspectRatio = aspectRatio === "9:16" ? "9:16" : aspectRatio === "1:1" ? "1:1" : "16:9";
-
-      const input: Record<string, any> = {
-        prompt: enhancedPrompt.slice(0, 2000),
-        duration: runwayDuration,
-        aspect_ratio: runwayAspectRatio,
-      };
-
-      console.log("[generate-video][Runway Gen-4.5] Submitting T2V:", {
-        duration: runwayDuration,
-        aspectRatio: runwayAspectRatio,
-        promptLength: enhancedPrompt.length,
-      });
-
-      const response = await fetch(RUNWAY_GEN45_MODEL_URL, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${REPLICATE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ input }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("[generate-video][Runway Gen-4.5] API error:", response.status, errorText);
-        // Fallback to Kling if Runway Gen-4.5 fails
-        console.warn("[generate-video] Falling back to Kling v2.6 for T2V");
-        return generateWithKling(prompt, enhancedPrompt, negativePrompt, duration, aspectRatio, null, referenceImages, enableAudio);
-      }
-
-      const prediction = await response.json();
-      if (!prediction.id) {
-        console.error("[generate-video][Runway Gen-4.5] No prediction ID:", prediction);
-        return generateWithKling(prompt, enhancedPrompt, negativePrompt, duration, aspectRatio, null, referenceImages, enableAudio);
-      }
-
-      console.log("[generate-video][Runway Gen-4.5] ✅ Prediction created:", prediction.id);
-      return { success: true, taskId: prediction.id, provider: "replicate", model: RUNWAY_GEN45_MODEL };
-    } catch (error) {
-      console.error("[generate-video][Runway Gen-4.5] Error, falling back to Kling:", error);
-      return generateWithKling(prompt, enhancedPrompt, negativePrompt, duration, aspectRatio, null, referenceImages, enableAudio);
-    }
-  }
-}
+// REMOVED: generateWithRunway() — replaced by generateWithKlingV3() above
+// Legacy callers that referenced this function will now use the unified Kling V3 path.
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -1022,7 +919,7 @@ serve(async (req) => {
 
     const {
       prompt,
-      duration = 5,
+      duration = 10,
       sceneContext,
       // referenceImageUrl is for character IDENTITY only — NOT a start frame.
       referenceImageUrl,
@@ -1033,8 +930,8 @@ serve(async (req) => {
       aspectRatio = "16:9",
       identityBibleUrls,
       enableAudio = KLING_ENABLE_AUDIO,
-      // 'veo' routes to Runway Gen-4 Turbo; 'kling' stays on Kling v2.6
-      videoEngine = "veo",
+      // Both 'veo' and 'kling' now route to Kling V3; 'kling' enables native audio
+      videoEngine = "kling",
     } = await req.json();
 
     if (!prompt) {
@@ -1085,54 +982,35 @@ serve(async (req) => {
     }
 
     // =====================================================================
-    // ENGINE ROUTING
-    // 'veo' param → Runway Gen-4 Turbo (text-to-video & image-to-video)
-    // 'kling' param → Kling v2.6 (avatar mode)
-    // Default is Runway for all standard production modes
+    // ENGINE ROUTING — ALL modes unified on Kling V3
+    // 'kling' = avatar mode with native audio; 'veo' = standard T2V/I2V
+    // Both route to kwaivgi/kling-v3-video
     // =====================================================================
-    const useRunway = videoEngine !== "kling";
+    const isAvatarMode = videoEngine === "kling";
+    const audioEnabled = isAvatarMode ? true : enableAudio;
+
+    console.log("[generate-video] Routing to Kling V3:", {
+      mode: isImageToVideo ? "image-to-video" : "text-to-video",
+      avatarMode: isAvatarMode,
+      duration,
+      aspectRatio,
+      audioEnabled,
+      referenceImageCount: referenceImages.length,
+      promptLength: enhancedPrompt.length,
+    });
 
     let result: { success: true; taskId: string; provider: "replicate"; model: string } | { success: false; error: string };
 
-    if (useRunway) {
-      console.log("[generate-video] Routing to Runway Gen-4 Turbo (50% margin pricing active):", {
-        mode: isImageToVideo ? "image-to-video" : "text-to-video",
-        duration,
-        aspectRatio,
-        promptLength: enhancedPrompt.length,
-      });
-
-      result = await generateWithRunway(
-        prompt,
-        enhancedPrompt,
-        negativePrompt,
-        startImageUrl,
-        duration,
-        aspectRatio,
-        referenceImages,
-        enableAudio
-      );
-    } else {
-      console.log("[generate-video] Routing to Kling v2.6 (Avatar mode):", {
-        mode: isImageToVideo ? "image-to-video" : "text-to-video",
-        duration,
-        aspectRatio,
-        enableAudio,
-        referenceImageCount: referenceImages.length,
-        promptLength: enhancedPrompt.length,
-      });
-
-      result = await generateWithKling(
-        prompt,
-        enhancedPrompt,
-        negativePrompt,
-        duration,
-        aspectRatio,
-        startImageUrl,
-        referenceImages,
-        enableAudio
-      );
-    }
+    result = await generateWithKlingV3(
+      prompt,
+      enhancedPrompt,
+      negativePrompt,
+      duration,
+      aspectRatio,
+      startImageUrl,
+      referenceImages,
+      audioEnabled
+    );
 
     if (result.success) {
       return new Response(
@@ -1143,11 +1021,11 @@ serve(async (req) => {
           mode: isImageToVideo ? "image-to-video" : "text-to-video",
           provider: result.provider,
           model: result.model,
-          engine: useRunway ? "runway" : "kling",
-          audioEnabled: useRunway ? false : enableAudio,
-          referenceImagesUsed: useRunway ? 0 : referenceImages.length,
+          engine: "kling-v3",
+          audioEnabled,
+          referenceImagesUsed: referenceImages.length,
           promptRewritten: enhancedPrompt !== prompt,
-          message: `Video generation started with ${result.model}. Poll status endpoint for updates.`,
+          message: `Video generation started with Kling V3. Poll status endpoint for updates.`,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

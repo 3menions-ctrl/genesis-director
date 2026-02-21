@@ -391,7 +391,7 @@ CRITICAL REQUIREMENTS:
               mode: "text-to-video",
               prompt: prompt,
               clipCount: 1,
-              clipDuration: firstScene.type === "cta" ? 5 : 6,
+              clipDuration: firstScene.type === "cta" ? 5 : 10, // Kling V3: 5s for CTA, 10s default
               aspectRatio: style === "minimal_embed" ? "9:16" : "16:9",
               includeVoice: firstScene.type === "cta",
               includeMusic: firstScene.type === "hero",

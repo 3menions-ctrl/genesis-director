@@ -192,7 +192,7 @@ serve(async (req) => {
             id: `shot_${clip.shot_index + 1}`,
             title: `Clip ${clip.shot_index + 1}`,
             description: clip.prompt,
-            durationSeconds: clip.duration_seconds || 5, // Kling 2.6: 5s default
+            durationSeconds: clip.duration_seconds || 10, // Kling V3: 10s default
           }))
         };
         console.log(`[ResumePipeline] Rebuilt script from ${existingClips.length} video_clips`);

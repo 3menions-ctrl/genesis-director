@@ -112,7 +112,12 @@ interface WatchdogResult {
 const STALE_TIMEOUT_MS = GUARD_RAIL_CONFIG.CLIP_STUCK_THRESHOLD_MS; // 10 minutes (matches Kling V3 generation time)
 const STITCHING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_STITCHING_ATTEMPTS = 3;
-const MAX_AGE_MS = 60 * 60 * 1000; // 60 minutes
+// CRITICAL FIX: 60 min was too short for multi-clip Kling V3 projects (5 clips × 10 min + retries = 60+ min)
+// Increased to 120 min to allow full pipeline completion with retries
+const MAX_AGE_MS = 120 * 60 * 1000; // 120 minutes
+// PROGRESS STALL DETECTION: If no clip completes in this window, the project is truly stuck
+// This is smarter than a hard age limit — it detects lack of progress, not just time elapsed
+const PROGRESS_STALL_MS = 20 * 60 * 1000; // 20 minutes without any clip completion = stalled
 
 // CINEMATOGRAPHY ENGINE: Imported from _shared/world-class-cinematography.ts
 // Contains: CAMERA_MOVEMENTS, CAMERA_ANGLES, SHOT_SIZES, LIGHTING_STYLES, 
@@ -2399,26 +2404,85 @@ serve(async (req) => {
         }
       }
 
-      // ==================== MAX AGE EXCEEDED ====================
-      if (projectAge > MAX_AGE_MS) {
-        console.log(`[Watchdog] Project ${project.id} exceeded max age`);
+      // ==================== MAX AGE / PROGRESS STALL CHECK ====================
+      // TWO-TIER PROTECTION:
+      // 1. PROGRESS STALL: If no new clip completes in 20 min, try to resume or create manifest
+      // 2. HARD MAX AGE: After 120 min, force-terminate regardless
+      
+      // Check most recent clip completion time to detect stalls
+      const { data: allProjectClips } = await supabase
+        .from('video_clips')
+        .select('id, shot_index, status, video_url, completed_at, updated_at')
+        .eq('project_id', project.id)
+        .order('completed_at', { ascending: false });
+      
+      const completedProjectClips = (allProjectClips || []).filter((c: any) => c.status === 'completed' && c.video_url);
+      const activelyGeneratingClips = (allProjectClips || []).filter((c: any) => {
+        if (c.status !== 'generating') return false;
+        const clipAge = Date.now() - new Date(c.updated_at || 0).getTime();
+        return clipAge < 12 * 60 * 1000; // Active if updated within 12 min
+      });
+      
+      // Calculate time since last progress
+      const lastCompletionTime = completedProjectClips.length > 0 
+        ? new Date(completedProjectClips[0].completed_at || completedProjectClips[0].updated_at).getTime()
+        : new Date(project.created_at).getTime();
+      const timeSinceLastProgress = Date.now() - lastCompletionTime;
+      
+      const isProgressStalled = timeSinceLastProgress > PROGRESS_STALL_MS && activelyGeneratingClips.length === 0;
+      const isHardTimeout = projectAge > MAX_AGE_MS;
+      
+      if (isProgressStalled || isHardTimeout) {
+        const reason = isHardTimeout ? 'hard_timeout_120m' : 'progress_stall_20m';
+        console.log(`[Watchdog] Project ${project.id} ${reason}: age=${Math.round(projectAge/60000)}m, stall=${Math.round(timeSinceLastProgress/60000)}m, active=${activelyGeneratingClips.length}, completed=${completedProjectClips.length}`);
         
-        const { data: clips } = await supabase
-          .from('video_clips')
-          .select('id, video_url')
-          .eq('project_id', project.id)
-          .eq('status', 'completed');
+        // SKIP if clips are actively generating (not truly stalled)
+        if (activelyGeneratingClips.length > 0 && !isHardTimeout) {
+          console.log(`[Watchdog] ⏳ Skipping termination - ${activelyGeneratingClips.length} clip(s) still active`);
+          continue;
+        }
         
-        if (clips && clips.length > 0) {
+        if (completedProjectClips.length > 0) {
+          // PARTIAL COMPLETION: Some clips done — try to resume first, then fallback to manifest
+          const expectedCount = (tasks as any)?.clipCount || completedProjectClips.length;
+          
+          if (completedProjectClips.length < expectedCount && !isHardTimeout) {
+            // Progress stalled but not hard timeout — try ONE more resume before giving up
+            console.log(`[Watchdog] 🔄 Progress stalled with ${completedProjectClips.length}/${expectedCount} clips — attempting resume before manifest fallback`);
+            const lastCompletedIdx = Math.max(...completedProjectClips.map((c: any) => c.shot_index));
+            try {
+              await fetch(`${supabaseUrl}/functions/v1/continue-production`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+                body: JSON.stringify({
+                  projectId: project.id,
+                  userId: project.user_id,
+                  completedClipIndex: lastCompletedIdx,
+                  totalClips: expectedCount,
+                }),
+              });
+              result.productionResumed++;
+              result.details.push({
+                projectId: project.id,
+                action: 'stall_resume_attempted',
+                result: `Resumed from clip ${lastCompletedIdx + 1}, ${completedProjectClips.length}/${expectedCount} done`,
+              });
+              continue; // Give it another chance — next watchdog run will re-evaluate
+            } catch (resumeErr) {
+              console.error(`[Watchdog] Resume failed, falling back to manifest:`, resumeErr);
+            }
+          }
+          
+          // Either hard timeout or resume failed — create manifest with what we have
           await createManifestFallback(supabaseUrl, supabaseKey, project.id);
           result.manifestFallbacks++;
           result.details.push({
             projectId: project.id,
             action: 'max_age_manifest',
-            result: `Manifest for ${clips.length} clips`,
+            result: `Manifest for ${completedProjectClips.length} clips (${reason})`,
           });
         } else {
-          const failError = 'Pipeline exceeded maximum processing time with no clips generated';
+          const failError = `Pipeline ${isHardTimeout ? 'exceeded 120 minute limit' : 'stalled for 20 minutes'} with no clips generated`;
           await supabase
             .from('movie_projects')
             .update({
@@ -2444,7 +2508,6 @@ serve(async (req) => {
               .limit(1);
             
             if (!existingRefund || existingRefund.length === 0) {
-              // Find the original usage charge to determine refund amount
               const { data: usageCharge } = await supabase
                 .from('credit_transactions')
                 .select('amount')
@@ -2452,7 +2515,6 @@ serve(async (req) => {
                 .eq('transaction_type', 'usage')
                 .limit(1);
               
-              // Also check charges without project_id (upfront deduction before project creation)
               const chargeAmount = usageCharge?.[0]?.amount 
                 ? Math.abs(usageCharge[0].amount) 
                 : ((tasks as Record<string, unknown>).clipCount as number || 5) * 10;
@@ -2467,7 +2529,7 @@ serve(async (req) => {
                   user_id: project.user_id,
                   amount: chargeAmount,
                   transaction_type: 'refund',
-                  description: `Auto-refund: Pipeline timeout with 0 clips generated`,
+                  description: `Auto-refund: ${failError}`,
                   project_id: project.id,
                 });
                 
@@ -2482,7 +2544,7 @@ serve(async (req) => {
           result.details.push({
             projectId: project.id,
             action: 'marked_failed',
-            result: 'No clips generated within 60 minutes, credits refunded',
+            result: `No clips generated (${reason}), credits refunded`,
           });
         }
       }

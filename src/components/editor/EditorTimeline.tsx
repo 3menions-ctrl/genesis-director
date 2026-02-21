@@ -286,7 +286,7 @@ export const EditorTimeline = ({
                         </div>
 
                         {/* Content */}
-                        {track.type === "audio" ? (
+                        {(track.type === "audio" || track.type === "video") ? (
                           <div className="flex-1 min-w-0 h-full relative">
                             <RealAudioWaveform clipId={clip.id} width={Math.max(width, 28)} height={TRACK_HEIGHT - 16} color={colors.text} />
                             <span className={cn("absolute bottom-1 left-2.5 text-[8px] font-medium truncate", colors.text, "opacity-60")}>

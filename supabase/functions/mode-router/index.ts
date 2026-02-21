@@ -458,7 +458,7 @@ serve(async (req) => {
     switch (mode) {
       case 'avatar':
         // AVATAR DIRECT PATH - Bypasses Hollywood complexity for avatar videos
-        // User's exact script → TTS → Lip-sync video
+        // User's exact script → Kling V3 with native audio
         // Scene description → Background generation (if provided)
         // Now supports multi-clip generation via clipCount parameter
         return await handleAvatarDirectMode({
@@ -561,7 +561,7 @@ serve(async (req) => {
  * Direct path that ensures:
  * 1. User's exact script is spoken VERBATIM (no AI modification)
  * 2. User's scene description is used for background
- * 3. True lip-sync via Wav2Lip
+ * 3. Kling V3 native audio for natural speech
  * 
  * This bypasses Hollywood complexity for simple avatar videos.
  */

@@ -175,13 +175,14 @@ export function useAgentChat(): UseAgentChatReturn {
     const abortController = new AbortController();
     abortRef.current = abortController;
 
-    // Safety timeout: if stream doesn't complete in 90s, force-finish
+    // Safety timeout: if stream doesn't complete in 120s, force-finish
+    // (Increased from 90s — complex tool calls can take longer)
     const safetyTimeout = setTimeout(() => {
       if (abortRef.current === abortController) {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === placeholderId && m.streaming
-              ? { ...m, streaming: false }
+              ? { ...m, streaming: false, content: m.content || "Sorry, my response timed out. Please try again! 🐰" }
               : m
           )
         );
@@ -189,7 +190,7 @@ export function useAgentChat(): UseAgentChatReturn {
         setAgentState("idle");
         abortRef.current = null;
       }
-    }, 90_000);
+    }, 120_000);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -355,12 +356,15 @@ export function useAgentChat(): UseAgentChatReturn {
     if (processingQueue.current) return;
     processingQueue.current = true;
 
-    while (messageQueue.current.length > 0) {
-      const nextMessage = messageQueue.current.shift()!;
-      await processSingleMessage(nextMessage);
+    try {
+      while (messageQueue.current.length > 0) {
+        const nextMessage = messageQueue.current.shift()!;
+        await processSingleMessage(nextMessage);
+      }
+    } finally {
+      // CRITICAL: Always release the lock, even if processSingleMessage throws
+      processingQueue.current = false;
     }
-
-    processingQueue.current = false;
   }, [processSingleMessage]);
 
   /**
@@ -369,6 +373,12 @@ export function useAgentChat(): UseAgentChatReturn {
    */
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || !user?.id) return;
+
+    // Rate limit: max 5 queued messages to prevent spam
+    if (messageQueue.current.length >= 5) {
+      toast.error("Slow down! Let Hoppy catch up first 🐰");
+      return;
+    }
 
     const trimmed = content.trim();
 

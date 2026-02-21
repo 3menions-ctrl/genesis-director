@@ -12,11 +12,9 @@
 
 // Patterns that indicate sensitive data — these get redacted
 const SENSITIVE_PATTERNS = [
-  // JWTs and auth tokens
+  // JWTs and auth tokens (high priority — always redact)
   /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g,
-  // UUIDs (user IDs, project IDs)
-  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
-  // Supabase URLs
+  // Supabase URLs (prevent endpoint discovery)
   /https?:\/\/[a-z0-9]+\.supabase\.co[^\s"]*/gi,
   // API keys (generic patterns)
   /(?:api[_-]?key|apikey|secret|token|password|authorization)['":\s]*[=:]\s*['"][^'"]{8,}['"]/gi,
@@ -24,6 +22,8 @@ const SENSITIVE_PATTERNS = [
   /Bearer\s+[A-Za-z0-9._~+/=-]{20,}/gi,
   // Email addresses
   /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+  // NOTE: UUIDs intentionally NOT redacted — they are not secrets and
+  // redacting them destroys debugging ability for admins and support.
 ];
 
 // Internal log prefixes to suppress entirely in production
@@ -155,11 +155,9 @@ export function installConsoleShield(): () => void {
   // Show deterrent warning
   showDeterrentWarning(originalLog);
 
-  // Periodically clear console to reduce data exposure window (every 5 min)
-  const clearInterval_ = setInterval(() => {
-    console.clear();
-    showDeterrentWarning(originalLog);
-  }, 5 * 60 * 1000);
+  // NOTE: Periodic console.clear() REMOVED — it destroys error evidence
+  // that users and support staff need for bug reports. The redaction layer
+  // already prevents sensitive data exposure without destroying logs.
 
   // Detect DevTools opening via debugger timing
   let devtoolsCheckInterval: ReturnType<typeof setInterval> | null = null;
@@ -192,7 +190,6 @@ export function installConsoleShield(): () => void {
     console.dir = originalDir;
     console.group = originalGroup;
     console.groupCollapsed = originalGroupCollapsed;
-    clearInterval(clearInterval_);
     if (devtoolsCheckInterval) clearInterval(devtoolsCheckInterval);
   };
 }

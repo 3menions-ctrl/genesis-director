@@ -86,14 +86,6 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'signal is aborted',
   'DOMException: The user aborted a request',
   
-  // Network failures - should show toast, not crash
-  'Failed to fetch',
-  'NetworkError',
-  'net::ERR',
-  'fetch failed',
-  'TypeError: Load failed',
-  'Load failed',
-  
   // Video/audio playback interruptions - harmless
   'play() request was interrupted',
   'The play() request was interrupted',
@@ -107,12 +99,13 @@ const SUPPRESSED_ERROR_PATTERNS = [
   // HMR/Vite development
   'Vite HMR',
   
-  // JSON parsing from network - should show toast, not crash
-  'Unexpected token',
-  'Unexpected end of JSON',
-  
   // Safari BFCache restoration
   'A problem repeatedly occurred',
+  
+  // NOTE: 'Failed to fetch', 'NetworkError', 'Unexpected token', 'Load failed'
+  // were REMOVED from this list. These are real errors that users need to see
+  // (via toast) so they know something went wrong. Suppressing them caused
+  // silent failures where API calls failed with zero feedback.
 ];
 
 // ============= CONSOLE INTERCEPTION (MINIMAL) =============
@@ -236,8 +229,9 @@ window.addEventListener("error", (event) => {
     console.error("[Global Error]", stabilityEvent.category, event.error);
   }
   
-  // Prevent the error from crashing the app if it's any suppressed pattern
-  event.preventDefault();
+  // NOTE: Only suppress known-safe errors via the check above.
+  // Real errors must propagate so they appear in console for debugging.
+  // Removed blanket event.preventDefault() that was hiding all errors.
 });
 
 // Global promise rejection handler with stability monitoring

@@ -40,7 +40,7 @@ interface EditorSidebarProps {
 export const EditorSidebar = ({
   tracks, selectedClipId, currentTime = 0,
   onUpdateClip, onAddTextOverlay, onAddTransition, onDeleteClip, onApplyTemplate,
-  onAddMusic, onAddSticker, onApplyEffect,
+  onAddMusic, onAddSticker, onApplyEffect, onBeatSyncAutocut,
 }: EditorSidebarProps) => {
   const selectedClip = selectedClipId
     ? tracks.flatMap((t) => t.clips).find((c) => c.id === selectedClipId)
@@ -92,19 +92,20 @@ export const EditorSidebar = ({
 
             {/* Tabbed tool panels */}
             <Tabs defaultValue="templates" className="w-full">
-              <TabsList className="w-full h-auto bg-secondary/50 p-0.5 gap-0.5 rounded-lg border border-border">
+              <TabsList className="w-full h-auto bg-secondary/50 p-0.5 gap-0.5 rounded-lg border border-border flex flex-wrap">
                 {[
                   { value: "templates", label: "Templates", icon: Layout },
                   { value: "music", label: "Music", icon: Music },
                   { value: "effects", label: "Effects", icon: Zap },
                   { value: "stickers", label: "Stickers", icon: Smile },
+                  { value: "beatsync", label: "Beat", icon: Wand2 },
                 ].map((tab) => {
                   const Icon = tab.icon;
                   return (
                     <TabsTrigger
                       key={tab.value}
                       value={tab.value}
-                      className="flex-1 text-[8px] h-6 rounded-md data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm text-muted-foreground font-medium tracking-wide transition-all gap-1"
+                      className="flex-1 text-[8px] h-6 min-w-[40px] rounded-md data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm text-muted-foreground font-medium tracking-wide transition-all gap-1"
                     >
                       <Icon className="h-2.5 w-2.5" />
                       {tab.label}
@@ -124,6 +125,9 @@ export const EditorSidebar = ({
               </TabsContent>
               <TabsContent value="stickers" className="mt-3">
                 <StickersPanel onAddSticker={onAddSticker || (() => {})} />
+              </TabsContent>
+              <TabsContent value="beatsync" className="mt-3">
+                <BeatSyncPanel tracks={tracks} onAutocut={onBeatSyncAutocut || (() => {})} />
               </TabsContent>
             </Tabs>
           </div>

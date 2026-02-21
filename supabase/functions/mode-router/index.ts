@@ -333,7 +333,8 @@ serve(async (req) => {
     // Avatar mode bypasses hollywood-pipeline, so credits must be deducted here
     // Text-to-video/cinematic routes to hollywood-pipeline which handles its own credits
     // =========================================================
-    const requiresLocalCreditDeduction = mode === 'avatar' || mode === 'video-to-video' || mode === 'motion-transfer';
+    // FIX #1: Exclude motion-transfer from credit deduction since it's not implemented (returns 501)
+    const requiresLocalCreditDeduction = mode === 'avatar' || mode === 'video-to-video';
     
     if (requiresLocalCreditDeduction) {
       // Calculate total credits needed — Kling V3 tiered pricing
@@ -824,13 +825,15 @@ async function handleAvatarCinematicMode(params: {
   await supabase.from('movie_projects').update({
     status: 'generating',
     pro_features_data: proFeaturesData,
-    pipeline_state: JSON.stringify({
+    // FIX #10: Store pipeline_state as object, not JSON string
+    // Stringifying causes frontend parsing failures
+    pipeline_state: {
       stage: 'avatar_pipeline_init',
       progress: 5,
       message: 'Initializing avatar cinematic pipeline...',
       avatarName: characterBible?.name || 'Avatar',
       clipCount,
-    }),
+    },
   }).eq('id', projectId);
 
   // Route to Hollywood Pipeline with avatar identity injection
@@ -916,12 +919,13 @@ async function handleStyleTransferMode(params: {
   // Update project status
   await supabase.from('movie_projects').update({
     status: 'generating',
-    pipeline_state: JSON.stringify({
+    // FIX #10: Store pipeline_state as object, not JSON string
+    pipeline_state: {
       stage: 'style_transfer',
       progress: 10,
       stylePreset,
       message: `Applying ${stylePreset} style transformation...`
-    })
+    }
   }).eq('id', projectId);
 
   // Call stylize-video directly with correct parameter name
@@ -946,12 +950,12 @@ async function handleStyleTransferMode(params: {
 
   // Update project with prediction ID
   await supabase.from('movie_projects').update({
-    pipeline_state: JSON.stringify({
+    pipeline_state: {
       stage: 'style_rendering',
       progress: 50,
       predictionId: result.predictionId,
       message: 'Rendering stylized video...'
-    })
+    }
   }).eq('id', projectId);
 
   return new Response(
@@ -988,11 +992,11 @@ async function handleMotionTransferMode(params: {
   // Update project status
   await supabase.from('movie_projects').update({
     status: 'generating',
-    pipeline_state: JSON.stringify({
+    pipeline_state: {
       stage: 'motion_extraction',
       progress: 10,
       message: 'Extracting motion sequence from source video...'
-    })
+    }
   }).eq('id', projectId);
 
   // Call motion-transfer directly
@@ -1018,12 +1022,13 @@ async function handleMotionTransferMode(params: {
 
   // Update project with prediction ID
   await supabase.from('movie_projects').update({
-    pipeline_state: JSON.stringify({
+    // FIX #10: Store pipeline_state as object, not JSON string
+    pipeline_state: {
       stage: 'motion_rendering',
       progress: 50,
       predictionId: result.predictionId,
       message: 'Rendering motion-transferred video...'
-    })
+    }
   }).eq('id', projectId);
 
   return new Response(

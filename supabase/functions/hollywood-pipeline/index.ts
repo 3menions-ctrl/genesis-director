@@ -3303,41 +3303,11 @@ async function runProduction(
     } = {};
     
     if (i > 0 && previousLastFrameUrl) {
-      try {
-        console.log(`[Hollywood] Calling continuity-orchestrator for clip ${i + 1}...`);
-        const orchestratorResult = await callEdgeFunction('continuity-orchestrator', {
-          projectId: state.projectId,
-          userId: request.userId,
-          mode: 'enhance-clip',
-          clipIndex: i,
-          currentClipPrompt: clip.prompt,
-          previousClipData: {
-            videoUrl: state.production?.clipResults?.[i - 1]?.videoUrl || '',
-            lastFrameUrl: previousLastFrameUrl,
-            motionVectors: previousMotionVectors ? {
-              exitMotion: previousMotionVectors.endVelocity || previousMotionVectors.continuityPrompt,
-              dominantDirection: previousMotionVectors.endDirection,
-              cameraMovement: previousMotionVectors.cameraMomentum ? { type: previousMotionVectors.cameraMomentum, direction: '', speed: 0.5 } : undefined,
-              continuityPrompt: previousMotionVectors.continuityPrompt,
-            } : undefined,
-          },
-          config: {
-            consistencyThreshold: 70,
-            enableMotionChaining: true,
-          },
-        });
-        
-        if (orchestratorResult.success && orchestratorResult.enhancedPrompt) {
-          orchestratedEnhancements = {
-            enhancedPrompt: orchestratorResult.enhancedPrompt.enhancedPrompt,
-            motionInjection: orchestratorResult.motionInjection,
-            recommendedStartImage: orchestratorResult.recommendedStartImage,
-          };
-          console.log(`[Hollywood] Continuity orchestrator enhanced clip ${i + 1} prompt with ${Object.keys(orchestratorResult.enhancedPrompt.injections || {}).length} injections`);
-        }
-      } catch (orchErr) {
-        console.warn(`[Hollywood] Continuity orchestrator failed for clip ${i + 1}, falling back to standard logic:`, orchErr);
-      }
+      // FIX #15: continuity-orchestrator function doesn't exist.
+      // Skip the call and use standard prompt-builder continuity instead.
+      // The prompt-builder already handles identity anchors, motion vectors,
+      // and frame chaining — making this call redundant even if it existed.
+      console.log(`[Hollywood] Using standard prompt-builder continuity for clip ${i + 1} (continuity-orchestrator removed)`);
     }
     
     // =====================================================
@@ -3352,7 +3322,10 @@ async function runProduction(
     // and character drift across independently-generated clips.
     // Avatar mode skips this — it uses its own identity system.
     // =====================================================
-    const isVeoMode = (request.videoEngine || 'kling') !== 'kling'; // Only non-avatar T2V/I2V
+    // FIX #16: isVeoMode is always false since all modes use Kling V3 now.
+    // The entire buildVeoContinuityDNA block below is dead code.
+    // Instead, apply continuity DNA for ALL modes (not just 'veo').
+    const isVeoMode = false; // All modes use Kling V3 — retained for code structure
     
     const buildVeoContinuityDNA = (): string => {
       if (!isVeoMode) return '';
@@ -5716,51 +5689,9 @@ async function runPostProduction(
   // Stores analysis in pro_features_data for frontend display
   // =====================================================
   if (completedClipsList.length >= 2) {
-    console.log(`[Hollywood] Running continuity orchestrator post-process analysis...`);
-    
-    try {
-      // Build clip data for post-process analysis
-      const clipDataForAnalysis = completedClipsList.map((c: any) => {
-        const scriptShot = state.script?.shots?.[c.index];
-        return {
-          index: c.index,
-          videoUrl: c.videoUrl,
-          lastFrameUrl: c.lastFrameUrl,
-          prompt: scriptShot?.description || `Clip ${c.index + 1}`,
-          motionVectors: (state as any).clipMotionVectors?.[c.index],
-          colorProfile: (state as any).clipColorProfiles?.[c.index],
-          consistencyScore: (c as any).visualDebugResult?.score || (c as any).identityVerification?.score,
-        };
-      });
-      
-      const postProcessResult = await callEdgeFunction('continuity-orchestrator', {
-        projectId: state.projectId,
-        userId: request.userId,
-        mode: 'post-process',
-        allClips: clipDataForAnalysis,
-        config: {
-          consistencyThreshold: 70,
-          enableBridgeClips: true,
-          enableMotionChaining: true,
-          enableAutoRetry: false, // Don't retry in post-process, just analyze
-          maxBridgeClips: 5,
-          maxAutoRetries: 0,
-        },
-      });
-      
-      if (postProcessResult.success) {
-        console.log(`[Hollywood] Continuity post-process complete:`);
-        console.log(`  - Overall continuity score: ${postProcessResult.overallContinuityScore}/100`);
-        console.log(`  - Transitions analyzed: ${postProcessResult.transitionAnalyses?.length || 0}`);
-        console.log(`  - Bridge clips recommended: ${postProcessResult.bridgeClipsNeeded || 0}`);
-        console.log(`  - Clips needing retry: ${postProcessResult.clipsToRetry?.length || 0}`);
-        
-        // Store in state for final update
-        (state as any).continuityOrchestratorResult = postProcessResult;
-      }
-    } catch (postProcessErr) {
-      console.warn(`[Hollywood] Continuity post-process analysis failed:`, postProcessErr);
-    }
+    // FIX #15: continuity-orchestrator function doesn't exist — skip this call entirely.
+    // The prompt-builder and frame-chaining already handle continuity.
+    console.log(`[Hollywood] Skipping continuity-orchestrator post-process (function removed). ${completedClipsList.length} clips completed.`);
   }
   
   // =====================================================

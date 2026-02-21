@@ -553,10 +553,23 @@ Return valid JSON exactly matching this schema:
           },
         };
 
+        // FIX #9: MERGE with existing pro_features_data instead of OVERWRITING
+        // Previous code replaced the entire column, losing identityBible, faceLock, etc.
+        const { data: existingProject } = await supabase
+          .from("movie_projects")
+          .select("pro_features_data")
+          .eq("id", projectId)
+          .maybeSingle();
+        
+        const mergedProFeatures = {
+          ...(existingProject?.pro_features_data || {}),
+          ...sceneIdentityPayload,
+        };
+
         await supabase
           .from("movie_projects")
           .update({
-            pro_features_data: sceneIdentityPayload,
+            pro_features_data: mergedProFeatures,
           })
           .eq("id", projectId);
 

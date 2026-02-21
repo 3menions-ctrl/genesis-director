@@ -779,6 +779,36 @@ serve(async (req) => {
     // Avatar mode: enable native audio for lip-sync. I2V/T2V: no native audio
     const enableNativeAudio = isAvatarMode ? KLING_ENABLE_AUDIO_AVATAR : (hasStartImage ? KLING_ENABLE_AUDIO_I2V : KLING_ENABLE_AUDIO_T2V);
     
+    // ═══════════════════════════════════════════════════════════════════
+    // ATOMIC CLAIM: Database-level mutex to prevent duplicate Kling prompts
+    // This is the LAST LINE OF DEFENSE — even if two instances of this
+    // function run concurrently, only ONE can claim the clip.
+    // ═══════════════════════════════════════════════════════════════════
+    const claimToken = crypto.randomUUID();
+    const { data: claimed, error: claimError } = await supabase.rpc('atomic_claim_clip', {
+      p_project_id: projectId,
+      p_clip_index: shotIndex,
+      p_claim_token: claimToken,
+    });
+    
+    if (claimError) {
+      console.warn(`[SingleClip] ⚠️ atomic_claim_clip RPC error (proceeding — clip may not be in pending_video_tasks):`, claimError.message);
+      // Don't block if RPC fails (e.g., no pending_video_tasks row) — the mutex lock already protects us
+    } else if (claimed === false) {
+      console.error(`[SingleClip] ❌ ATOMIC CLAIM REJECTED: clip ${shotIndex} already claimed by another process`);
+      await releaseLock();
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'CLIP_ALREADY_CLAIMED',
+          message: `Clip ${shotIndex} was already claimed by another pipeline instance`,
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } else {
+      console.log(`[SingleClip] ✓ Atomic claim acquired for clip ${shotIndex}, token: ${claimToken}`);
+    }
+
     let predictionId: string;
     const klingResult = await createKlingV3Prediction(
       enhancedPrompt,
@@ -789,6 +819,37 @@ serve(async (req) => {
       enableNativeAudio,
     );
     predictionId = klingResult.predictionId;
+    
+    // ═══════════════════════════════════════════════════════════════════
+    // IMMEDIATE PREDICTION REGISTRATION in pending_video_tasks
+    // Ensures watchdog sees the predictionId and does NOT re-prompt
+    // ═══════════════════════════════════════════════════════════════════
+    try {
+      const { data: projData } = await supabase
+        .from('movie_projects')
+        .select('pending_video_tasks')
+        .eq('id', projectId)
+        .maybeSingle();
+      
+      if (projData?.pending_video_tasks) {
+        const tasks = projData.pending_video_tasks as any;
+        if (tasks?.predictions && Array.isArray(tasks.predictions)) {
+          const updatedPredictions = tasks.predictions.map((p: any) => {
+            if (p.clipIndex === shotIndex) {
+              return { ...p, predictionId, status: 'processing', claimToken };
+            }
+            return p;
+          });
+          await supabase.from('movie_projects').update({
+            pending_video_tasks: { ...tasks, predictions: updatedPredictions, lastProgressAt: new Date().toISOString() },
+          }).eq('id', projectId);
+          console.log(`[SingleClip] ✓ predictionId ${predictionId} registered in pending_video_tasks for clip ${shotIndex}`);
+        }
+      }
+    } catch (regErr) {
+      console.warn(`[SingleClip] ⚠️ Failed to register predictionId in pending_video_tasks:`, regErr);
+      // Non-fatal — clip record below is the primary tracking mechanism
+    }
 
     // =========================================================
     // CRITICAL FIX: Register clip in database BEFORE polling

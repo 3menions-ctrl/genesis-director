@@ -640,56 +640,58 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               .maybeSingle();
             
             const tasks = project?.pending_video_tasks as Record<string, unknown> | null;
-            // Only use hlsPlaylistUrl if mode is NOT already mse_direct
-            // mse_direct means raw MP4s that can't be used as HLS segments
             const isMseDirect = tasks?.mode === 'mse_direct';
-            hlsUrl = (!isMseDirect && tasks?.hlsPlaylistUrl) ? tasks.hlsPlaylistUrl as string : null;
+            // USE hlsPlaylistUrl even for mse_direct projects — Safari native HLS handles
+            // raw MP4 with #EXT-X-DISCONTINUITY tags for gapless playback.
+            // hls.js (Chrome/Firefox) will attempt it too; if it fails, hlsFailed triggers crossfade fallback.
+            hlsUrl = tasks?.hlsPlaylistUrl ? tasks.hlsPlaylistUrl as string : null;
             // EMBEDDED AUDIO: No master audio overlay - clips use their native embedded audio
             audioUrl = null;
             console.log('[UniversalPlayer] 🎵 EMBEDDED AUDIO mode - using clip native audio, no master overlay');
             
-            // ═══ FAST PATH: If mseClipUrls are already stored, use them directly ═══
-            // This avoids calling the edge function when clips are pre-resolved (e.g. recovered projects)
-            const storedMseClipUrls = isMseDirect && Array.isArray(tasks?.mseClipUrls) ? tasks.mseClipUrls as string[] : null;
-            const storedTotalDuration = tasks?.totalDuration as number | undefined;
-            const storedClipCount = tasks?.clipCount as number | undefined;
-            
-            if (storedMseClipUrls && storedMseClipUrls.length > 0) {
-              logPlaybackPath('CROSSFADE_STORED', {
-                projectId: sourceProjectId,
-                clipCount: storedMseClipUrls.length,
-                reason: 'Using pre-stored mseClipUrls — no edge function call needed',
-              });
-              const perClipDuration = storedTotalDuration && storedClipCount 
-                ? storedTotalDuration / storedClipCount 
-                : 6;
-              const directClips = storedMseClipUrls.map((url: string) => ({
-                url,
-                blobUrl: url,
-                duration: perClipDuration,
-              }));
-              if (!mountedRef.current) return;
-              setUseMSE(false);
-              setClips(directClips);
-              setIsLoading(false);
-              if (autoPlay) setIsPlaying(true);
-              return;
-            }
-            
-            // HLS FIRST: Try to use HLS for ALL browsers (not just iOS)
-            // This provides the most reliable cross-browser playback via hls.js
-            // Skip HLS if it has already failed for this source (fall through to MSE)
-            // Skip HLS if mode is mse_direct (raw MP4s are not valid HLS segments)
-            if (useHLSPlayback && hlsUrl && !hlsFailed && !isMseDirect) {
+            // HLS FIRST: Try HLS for ALL browsers including mse_direct projects
+            // Safari: native HLS handles raw MP4 segments with discontinuity = gapless
+            // Chrome/Firefox: hls.js attempts; if raw MP4 segments fail, hlsFailed flag triggers crossfade fallback
+            if (useHLSPlayback && hlsUrl && !hlsFailed) {
               logPlaybackPath('HLS_UNIVERSAL', { 
                 projectId: sourceProjectId, 
                 hlsUrl,
-                reason: 'HLS playlist available - using for all browsers via hls.js'
+                isMseDirect,
+                reason: 'HLS playlist available - attempting for all browsers'
               });
               setHlsPlaylistUrl(hlsUrl);
               setMasterAudioUrl(audioUrl);
               setIsLoading(false);
               return;
+            }
+            
+            // CROSSFADE FALLBACK: If HLS failed or no playlist, use stored clip URLs directly
+            if (isMseDirect && Array.isArray(tasks?.mseClipUrls)) {
+              const storedMseClipUrls = tasks.mseClipUrls as string[];
+              const storedTotalDuration = tasks?.totalDuration as number | undefined;
+              const storedClipCount = tasks?.clipCount as number | undefined;
+              
+              if (storedMseClipUrls.length > 0) {
+                logPlaybackPath('CROSSFADE_FALLBACK', {
+                  projectId: sourceProjectId,
+                  clipCount: storedMseClipUrls.length,
+                  reason: hlsFailed ? 'HLS failed, using crossfade fallback' : 'No HLS playlist, using stored clips',
+                });
+                const perClipDuration = storedTotalDuration && storedClipCount 
+                  ? storedTotalDuration / storedClipCount 
+                  : 6;
+                const directClips = storedMseClipUrls.map((url: string) => ({
+                  url,
+                  blobUrl: url,
+                  duration: perClipDuration,
+                }));
+                if (!mountedRef.current) return;
+                setUseMSE(false);
+                setClips(directClips);
+                setIsLoading(false);
+                if (autoPlay) setIsPlaying(true);
+                return;
+              }
             }
             
             // Check if we have any video content before trying HLS generation
@@ -701,30 +703,36 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             const isStillGenerating = tasks?.stage === 'async_video_generation' || hasIncompletePredictions;
             
             // Resolve clip URLs for MSE direct playback.
-            // generate-hls-playlist now returns mse_direct mode with clip URLs
-            // instead of a broken m3u8 (raw MP4s are not valid HLS segments for hls.js).
+            // generate-hls-playlist now returns HLS playlist + clip URLs for fallback
           if (hasVideoContent && !isStillGenerating) {
-              console.log('[UniversalPlayer] Resolving clip URLs via generate-hls-playlist (MSE direct mode)');
+              console.log('[UniversalPlayer] Resolving via generate-hls-playlist');
               try {
                 const { data: result, error: resultError } = await supabase.functions.invoke('generate-hls-playlist', {
                   body: { projectId: sourceProjectId }
                 });
 
                 if (!resultError && result?.success) {
-                  if (result.mode === 'mse_direct' && result.clipUrls?.length > 0) {
-                    // MSE direct: use clip URLs for DUAL-VIDEO CROSSFADE playback (no HLS, no MSE engine)
-                    // Raw MP4 files from Veo/Kling cannot be appended into MediaSource buffers —
-                    // they must be played via direct src= assignment. The dual-video crossfade
-                    // path handles this correctly without any MSE timeout issues.
+                  // NEW: HLS with fallback mode — try HLS first, crossfade if it fails
+                  if (result.hlsPlaylistUrl && !hlsFailed) {
+                    logPlaybackPath('HLS_GENERATED', {
+                      projectId: sourceProjectId,
+                      hlsUrl: result.hlsPlaylistUrl,
+                      clipCount: result.clipUrls?.length,
+                      reason: 'HLS playlist generated — attempting gapless playback',
+                    });
+                    setHlsPlaylistUrl(result.hlsPlaylistUrl);
+                    setMasterAudioUrl(audioUrl);
+                    setIsLoading(false);
+                    return;
+                  }
+                  
+                  // Crossfade fallback: use clip URLs directly
+                  if (result.clipUrls?.length > 0) {
                     logPlaybackPath('CROSSFADE_DIRECT', {
                       projectId: sourceProjectId,
                       clipCount: result.clipUrls.length,
-                      reason: 'MSE direct mode — using dual-video crossfade for raw MP4 clips',
+                      reason: hlsFailed ? 'HLS failed, crossfade fallback' : 'No HLS, using crossfade',
                     });
-                    // CRITICAL: Build clips directly from the server response — skip duration probing.
-                    // The generate-hls-playlist function already knows each clip's duration from the DB.
-                    // Probing via temporary <video> elements causes 8s timeouts per clip (CORS blocks metadata load),
-                    // resulting in a 48s freeze for a 6-clip project before the player even appears.
                     const serverClips = result.clips as Array<{ videoUrl: string; duration: number }>;
                     const directClips = serverClips.map((c) => ({
                       url: c.videoUrl,
@@ -736,12 +744,6 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                     setClips(directClips);
                     setIsLoading(false);
                     if (autoPlay) setIsPlaying(true);
-                    return; // ← done, skip the rest of loadSource
-                  } else if (result.mode === 'hls_native' && result.hlsPlaylistUrl) {
-                    // Legacy path: genuine HLS (e.g. transcoded segments) — still supported
-                    setHlsPlaylistUrl(result.hlsPlaylistUrl);
-                    setMasterAudioUrl(audioUrl);
-                    setIsLoading(false);
                     return;
                   }
                 } else {

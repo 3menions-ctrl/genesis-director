@@ -1,4 +1,4 @@
-import { Type, Trash2, ArrowRightLeft, Sliders, Volume2, Gauge, Crop, Layout, Music, Zap, Smile, Wand2 } from "lucide-react";
+import { Type, Trash2, ArrowRightLeft, Sliders, Volume2, Gauge, Crop, Layout, Music, Zap, Smile, Wand2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +20,9 @@ import { TrendingEffectsPanel } from "./TrendingEffectsPanel";
 import { StickersPanel } from "./StickersPanel";
 import { TextAnimationPanel } from "./TextAnimationPanel";
 import { BeatSyncPanel } from "./BeatSyncPanel";
+import { AudioUploadPanel } from "./AudioUploadPanel";
 import { cn } from "@/lib/utils";
+import type { Caption } from "./types";
 
 interface EditorSidebarProps {
   tracks: TimelineTrack[];
@@ -35,12 +37,16 @@ interface EditorSidebarProps {
   onAddSticker?: (stickerId: string, content: string, category: string) => void;
   onApplyEffect?: (effectId: string) => void;
   onBeatSyncAutocut?: (cutPoints: number[]) => void;
+  onAudioUploaded?: (audioUrl: string, duration: number, captions: Caption[]) => void;
+  onGenerateVideosFromAudio?: (segments: { start: number; end: number; prompt: string }[]) => void;
+  isGeneratingFromAudio?: boolean;
 }
 
 export const EditorSidebar = ({
   tracks, selectedClipId, currentTime = 0,
   onUpdateClip, onAddTextOverlay, onAddTransition, onDeleteClip, onApplyTemplate,
   onAddMusic, onAddSticker, onApplyEffect, onBeatSyncAutocut,
+  onAudioUploaded, onGenerateVideosFromAudio, isGeneratingFromAudio,
 }: EditorSidebarProps) => {
   const selectedClip = selectedClipId
     ? tracks.flatMap((t) => t.clips).find((c) => c.id === selectedClipId)
@@ -94,6 +100,7 @@ export const EditorSidebar = ({
             <Tabs defaultValue="templates" className="w-full">
               <TabsList className="w-full h-auto bg-secondary/50 p-0.5 gap-0.5 rounded-lg border border-border flex flex-wrap">
                 {[
+                  { value: "audio-upload", label: "Audio", icon: Upload },
                   { value: "templates", label: "Templates", icon: Layout },
                   { value: "music", label: "Music", icon: Music },
                   { value: "effects", label: "Effects", icon: Zap },
@@ -114,6 +121,13 @@ export const EditorSidebar = ({
                 })}
               </TabsList>
 
+              <TabsContent value="audio-upload" className="mt-3">
+                <AudioUploadPanel
+                  onAudioUploaded={onAudioUploaded || (() => {})}
+                  onGenerateVideos={onGenerateVideosFromAudio || (() => {})}
+                  isGenerating={isGeneratingFromAudio}
+                />
+              </TabsContent>
               <TabsContent value="templates" className="mt-3">
                 <TemplatesPanel onApplyTemplate={onApplyTemplate || (() => {})} />
               </TabsContent>

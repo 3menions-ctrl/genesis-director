@@ -242,3 +242,6 @@ verify_jwt = false
 
 [functions.agent-chat]
 verify_jwt = false
+
+[functions.editor-generate-from-audio]
+verify_jwt = false

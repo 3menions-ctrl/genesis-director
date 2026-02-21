@@ -1388,15 +1388,34 @@ serve(async (req) => {
     // ==================== PHASE 0a: ORPHANED AVATAR COMPLETION RECOVERY ====================
     // CRITICAL FIX: Detect avatar projects where DB write failed but videos exist in storage
     // This catches the "connection closed before message completed" scenario
-    const AVATAR_STUCK_THRESHOLD_MS = 3 * 60 * 1000; // 3 minutes (reduced for faster recovery)
+    // IMPORTANT: Threshold must exceed Kling V3 generation time (3-8 min) to avoid
+    // premature retries that create an infinite restart loop.
+    const AVATAR_STUCK_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes — Kling V3 needs 3-8 min per clip
     
-    const { data: avatarStuckProjects } = await supabase
+    const { data: avatarStuckProjectsRaw } = await supabase
       .from('movie_projects')
-      .select('id, title, status, mode, updated_at, user_id, pipeline_state, source_image_url, avatar_voice_id, synopsis')
+      .select('id, title, status, mode, updated_at, user_id, pipeline_state, source_image_url, avatar_voice_id, synopsis, pending_video_tasks')
       .eq('status', 'generating')
       .eq('mode', 'avatar')
       .lt('updated_at', new Date(Date.now() - AVATAR_STUCK_THRESHOLD_MS).toISOString())
       .limit(20);
+    
+    // CRITICAL: Exclude projects that have active async predictions being polled by Phase 0-ASYNC.
+    // Without this filter, Phase 0a would restart generate-avatar-direct while predictions are
+    // still running on Replicate, creating an infinite retry loop.
+    const avatarStuckProjects = (avatarStuckProjectsRaw || []).filter(p => {
+      const tasks = (p.pending_video_tasks || {}) as Record<string, any>;
+      if (tasks.type === 'avatar_async' && Array.isArray(tasks.predictions)) {
+        const hasActiveWork = tasks.predictions.some(
+          (pred: { status: string }) => pred.status === 'processing' || pred.status === 'pending'
+        );
+        if (hasActiveWork) {
+          console.log(`[Watchdog] ⏭️ Skipping Phase 0a for ${p.id} — has active async predictions (Phase 0-ASYNC handles it)`);
+          return false;
+        }
+      }
+      return true;
+    });
     
     for (const project of (avatarStuckProjects || [])) {
       const projectAge = Date.now() - new Date(project.updated_at).getTime();

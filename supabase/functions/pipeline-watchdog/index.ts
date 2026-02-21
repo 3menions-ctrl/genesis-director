@@ -1787,68 +1787,22 @@ serve(async (req) => {
       if (tasks.type !== 'avatar_async' || !tasks.predictions) continue;
       
       // deno-lint-ignore no-explicit-any
-      const predictions = tasks.predictions as Array<{ clipIndex: number; videoUrl?: string; status: string; predictionId?: string; audioUrl?: string }>;
+      const predictions = tasks.predictions as Array<{ clipIndex: number; videoUrl?: string; status: string; predictionId?: string; audioUrl?: string; [key: string]: unknown }>;
       
       // ══════════════════════════════════════════════════════════════════════════
-      // CRITICAL FIX: Poll Replicate for any 'processing' predictions that may have
-      // completed after the project was marked failed. This is the #1 cause of
-      // "Kling says success but watchdog says failed" — the watchdog timed out
-      // before it could poll the prediction, so videoUrl was never written.
+      // CRITICAL: Re-poll Replicate for ALL predictions missing videoUrl
+      // This is the #1 fix for "Kling says success but watchdog says failed"
       // ══════════════════════════════════════════════════════════════════════════
-      const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
-      for (const pred of predictions) {
-        if (pred.status === 'processing' && pred.predictionId && REPLICATE_API_KEY) {
-          try {
-            const pollResp = await fetch(
-              `https://api.replicate.com/v1/predictions/${pred.predictionId}`,
-              { headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` } }
-            );
-            if (pollResp.ok) {
-              const predStatus = await pollResp.json();
-              if (predStatus.status === 'succeeded' && predStatus.output) {
-                const rawVideoUrl = Array.isArray(predStatus.output) ? predStatus.output[0] : predStatus.output;
-                console.log(`[Watchdog] 🔥 RECOVERED clip ${pred.clipIndex + 1} from Replicate (was 'processing', actually succeeded): ${rawVideoUrl?.substring(0, 60)}...`);
-                
-                // Save to permanent storage
-                let finalUrl = rawVideoUrl;
-                try {
-                  const videoResp = await fetch(rawVideoUrl);
-                  if (videoResp.ok) {
-                    const videoBlob = await videoResp.blob();
-                    const videoBytes = new Uint8Array(await videoBlob.arrayBuffer());
-                    const fileName = `avatar_${project.id}_clip${pred.clipIndex + 1}_recovered_${Date.now()}.mp4`;
-                    const storagePath = `avatar-videos/${project.id}/${fileName}`;
-                    const { error: upErr } = await supabase.storage
-                      .from('video-clips')
-                      .upload(storagePath, videoBytes, { contentType: 'video/mp4', upsert: true });
-                    if (!upErr) {
-                      finalUrl = `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/video-clips/${storagePath}`;
-                      console.log(`[Watchdog] ✅ Recovered clip ${pred.clipIndex + 1} saved to storage`);
-                    }
-                  }
-                } catch (storageErr) {
-                  console.warn(`[Watchdog] Storage save failed for recovered clip (using Replicate URL):`, storageErr);
-                }
-                
-                pred.videoUrl = finalUrl;
-                pred.status = 'completed';
-              } else if (predStatus.status === 'failed') {
-                pred.status = 'failed';
-                console.log(`[Watchdog] Clip ${pred.clipIndex + 1} confirmed failed on Replicate: ${predStatus.error}`);
-              } else {
-                console.log(`[Watchdog] Clip ${pred.clipIndex + 1} still ${predStatus.status} on Replicate`);
-              }
-            }
-          } catch (pollErr) {
-            console.warn(`[Watchdog] Failed to poll Replicate for clip ${pred.clipIndex + 1}:`, pollErr);
-          }
-        }
-      }
+      const { recoverMultiClipPredictions } = await import("../_shared/replicate-recovery.ts");
+      const recoveryResult = await recoverMultiClipPredictions(supabase, project.id, predictions, {
+        logPrefix: '[Watchdog-FalseFailure]',
+        saveToStorage: true,
+      });
       
       const clipsWithVideo = predictions.filter(p => p.videoUrl && p.videoUrl.length > 0);
       const totalClips = predictions.length;
       
-      console.log(`[Watchdog] 🔍 FALSE FAILURE CHECK ${project.id}: ${clipsWithVideo.length}/${totalClips} clips have videos (after Replicate re-poll)`);
+      console.log(`[Watchdog] 🔍 FALSE FAILURE CHECK ${project.id}: ${clipsWithVideo.length}/${totalClips} clips have videos (recovered: ${recoveryResult.recoveredCount})`);
       
       // If ANY clips have video URLs, recover what we can
       if (clipsWithVideo.length > 0) {

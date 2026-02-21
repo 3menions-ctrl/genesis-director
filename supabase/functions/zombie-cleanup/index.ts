@@ -63,7 +63,7 @@ serve(async (req) => {
     // Avatar projects stuck at any pipeline stage (audio_merge, video_rendering, etc.)
     const { data: stalledAvatarProjects, error: avatarError } = await supabase
       .from('movie_projects')
-      .select('id, user_id, title, status, updated_at, pipeline_state, mode, created_at')
+      .select('id, user_id, title, status, updated_at, pipeline_state, mode, created_at, pending_video_tasks')
       .eq('status', 'generating')
       .eq('mode', 'avatar')
       .lt('updated_at', cutoffTime)
@@ -230,6 +230,66 @@ serve(async (req) => {
         }
       }
       
+      // ══════════════════════════════════════════════════════════════════════════
+      // CRITICAL: Check multi-clip async predictions before giving up
+      // ══════════════════════════════════════════════════════════════════════════
+      // deno-lint-ignore no-explicit-any
+      const avatarTasks = (project as any).pending_video_tasks as Record<string, any> | null;
+      if (avatarTasks?.type === 'avatar_async' && Array.isArray(avatarTasks.predictions)) {
+        const { recoverMultiClipPredictions } = await import("../_shared/replicate-recovery.ts");
+        const recovery = await recoverMultiClipPredictions(supabase, project.id, avatarTasks.predictions, {
+          logPrefix: '[ZombieCleanup-Avatar]',
+          saveToStorage: true,
+        });
+        
+        if (recovery.totalWithVideo > 0) {
+          const clipsWithVideo = avatarTasks.predictions
+            .filter((p: { videoUrl?: string }) => p.videoUrl && p.videoUrl.length > 0)
+            .sort((a: { clipIndex: number }, b: { clipIndex: number }) => a.clipIndex - b.clipIndex);
+          const videoClipsArray = clipsWithVideo.map((p: { videoUrl: string }) => p.videoUrl);
+          
+          await supabase.from('movie_projects').update({
+            status: 'completed',
+            video_url: videoClipsArray[0],
+            video_clips: videoClipsArray,
+            pipeline_state: {
+              ...pipelineState,
+              stage: 'completed',
+              progress: 100,
+              message: `Recovered ${recovery.totalWithVideo} clips from stalled avatar`,
+              completedAt: new Date().toISOString(),
+              partial: recovery.totalWithVideo < avatarTasks.predictions.length,
+              recoveredBy: 'zombie-cleanup-avatar-async',
+            },
+            pending_video_tasks: { ...avatarTasks, stage: 'complete' },
+            updated_at: new Date().toISOString(),
+          }).eq('id', project.id);
+          
+          for (const clip of clipsWithVideo) {
+            await supabase.from('video_clips').upsert({
+              project_id: project.id,
+              shot_index: clip.clipIndex,
+              status: 'completed',
+              video_url: clip.videoUrl,
+              duration_seconds: avatarTasks.clipDuration || 10,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'project_id,shot_index', ignoreDuplicates: false });
+          }
+          
+          report.projectsFailed++;
+          report.details.push({
+            entityType: 'project',
+            entityId: project.id,
+            userId: project.user_id,
+            stuckDuration: Math.round(stuckDuration / 1000),
+            action: `avatar_async_recovered_${recovery.totalWithVideo}_clips`,
+            refundAmount: 0,
+          });
+          console.log(`[ZombieCleanup] ✅ RECOVERED stalled avatar ${project.id} with ${recovery.totalWithVideo} clips`);
+          continue;
+        }
+      }
+      
       // No recovery possible - mark as failed with refund
       const projectAge = Date.now() - new Date(project.created_at).getTime();
       const eligibleForRefund = projectAge < MAX_AGE_FOR_REFUND_MS;
@@ -304,13 +364,74 @@ serve(async (req) => {
 
     for (const project of (stuckProjects || [])) {
       const stuckDuration = Date.now() - new Date(project.updated_at).getTime();
-      const tasks = (project.pending_video_tasks || {}) as Record<string, unknown>;
+      // deno-lint-ignore no-explicit-any
+      const tasks = (project.pending_video_tasks || {}) as Record<string, any>;
       
       // Skip if already being handled by watchdog
       if (tasks.watchdogHandling) continue;
       
       console.log(`[ZombieCleanup] Found zombie project: ${project.id} (stuck ${Math.round(stuckDuration / 1000)}s)`);
       report.zombiesFound++;
+      
+      // ══════════════════════════════════════════════════════════════════════════
+      // CRITICAL: Before marking failed, check Replicate for completed predictions
+      // ══════════════════════════════════════════════════════════════════════════
+      if (tasks.type === 'avatar_async' && Array.isArray(tasks.predictions)) {
+        const { recoverMultiClipPredictions } = await import("../_shared/replicate-recovery.ts");
+        const recovery = await recoverMultiClipPredictions(supabase, project.id, tasks.predictions, {
+          logPrefix: '[ZombieCleanup]',
+          saveToStorage: true,
+        });
+        
+        if (recovery.totalWithVideo > 0) {
+          // Recovered clips! Mark as completed instead of failed
+          const clipsWithVideo = tasks.predictions
+            .filter((p: { videoUrl?: string }) => p.videoUrl && p.videoUrl.length > 0)
+            .sort((a: { clipIndex: number }, b: { clipIndex: number }) => a.clipIndex - b.clipIndex);
+          
+          const videoClipsArray = clipsWithVideo.map((p: { videoUrl: string }) => p.videoUrl);
+          
+          await supabase.from('movie_projects').update({
+            status: 'completed',
+            video_url: videoClipsArray[0],
+            video_clips: videoClipsArray,
+            pipeline_state: {
+              stage: 'completed',
+              progress: 100,
+              message: `Recovered ${recovery.totalWithVideo}/${tasks.predictions.length} clips`,
+              completedAt: new Date().toISOString(),
+              partial: recovery.totalWithVideo < tasks.predictions.length,
+              recoveredBy: 'zombie-cleanup',
+            },
+            pending_video_tasks: { ...tasks, stage: 'complete' },
+            updated_at: new Date().toISOString(),
+          }).eq('id', project.id);
+          
+          // Upsert video_clips rows
+          for (const clip of clipsWithVideo) {
+            await supabase.from('video_clips').upsert({
+              project_id: project.id,
+              shot_index: clip.clipIndex,
+              status: 'completed',
+              video_url: clip.videoUrl,
+              duration_seconds: tasks.clipDuration || 10,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'project_id,shot_index', ignoreDuplicates: false });
+          }
+          
+          report.projectsFailed++;
+          report.details.push({
+            entityType: 'project',
+            entityId: project.id,
+            userId: project.user_id,
+            stuckDuration: Math.round(stuckDuration / 1000),
+            action: `recovered_${recovery.totalWithVideo}_clips`,
+            refundAmount: 0,
+          });
+          console.log(`[ZombieCleanup] ✅ RECOVERED project ${project.id} with ${recovery.totalWithVideo} clips`);
+          continue;
+        }
+      }
       
       // Check if eligible for refund (not too old)
       const projectAge = Date.now() - new Date(project.created_at).getTime();
@@ -417,7 +538,48 @@ serve(async (req) => {
       console.log(`[ZombieCleanup] Found zombie clip: ${clip.id} (shot ${clip.shot_index}, stuck ${Math.round(stuckDuration / 1000)}s)`);
       report.zombiesFound++;
       
-      // Mark clip as failed
+      // ══════════════════════════════════════════════════════════════════════════
+      // CRITICAL: Check Replicate before marking clip as failed
+      // ══════════════════════════════════════════════════════════════════════════
+      // Fetch clip with veo_operation_name (stores predictionId)
+      const { data: fullClip } = await supabase
+        .from('video_clips')
+        .select('id, project_id, shot_index, veo_operation_name')
+        .eq('id', clip.id)
+        .single();
+      
+      if (fullClip?.veo_operation_name) {
+        const { recoverReplicatePrediction } = await import("../_shared/replicate-recovery.ts");
+        const result = await recoverReplicatePrediction(
+          supabase,
+          fullClip.veo_operation_name,
+          clip.project_id,
+          { clipIndex: clip.shot_index, logPrefix: '[ZombieCleanup]', saveToStorage: true }
+        );
+        
+        if (result.recovered && result.videoUrl) {
+          await supabase.from('video_clips').update({
+            status: 'completed',
+            video_url: result.videoUrl,
+            error_message: null,
+            updated_at: new Date().toISOString(),
+          }).eq('id', clip.id);
+          
+          report.clipsFailed++;
+          report.details.push({
+            entityType: 'clip',
+            entityId: clip.id,
+            userId: '',
+            stuckDuration: Math.round(stuckDuration / 1000),
+            action: 'recovered_from_replicate',
+            refundAmount: 0,
+          });
+          console.log(`[ZombieCleanup] ✅ RECOVERED clip ${clip.id} from Replicate`);
+          continue;
+        }
+      }
+      
+      // No recovery possible — mark as failed
       const { error: updateError } = await supabase
         .from('video_clips')
         .update({

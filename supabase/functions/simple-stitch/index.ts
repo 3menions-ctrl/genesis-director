@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { persistVideoToStorage, isTemporaryReplicateUrl } from "../_shared/video-persistence.ts";
 
 /**
  * Simple Stitch Edge Function v7 - MANIFEST-ONLY MODE
@@ -170,6 +171,34 @@ serve(async (req) => {
       intensity?: string;
       referenceComposer?: string;
     } | null;
+
+    // =====================================================
+    // PERSIST TEMPORARY REPLICATE URLs TO PERMANENT STORAGE
+    // Replicate delivery URLs expire after ~1 hour. We MUST save
+    // them to permanent storage before creating the manifest.
+    // =====================================================
+    for (const clip of clips) {
+      if (isTemporaryReplicateUrl(clip.video_url)) {
+        console.log(`[SimpleStitch] ⚠️ Clip ${clip.shot_index} has temporary Replicate URL — persisting...`);
+        const permanentUrl = await persistVideoToStorage(
+          supabase,
+          clip.video_url,
+          projectId,
+          { prefix: `stitch_clip${clip.shot_index}`, clipIndex: clip.shot_index }
+        );
+        if (permanentUrl && permanentUrl !== clip.video_url) {
+          // Update the video_clips table with permanent URL
+          await supabase
+            .from('video_clips')
+            .update({ video_url: permanentUrl, updated_at: new Date().toISOString() })
+            .eq('id', clip.id);
+          clip.video_url = permanentUrl;
+          console.log(`[SimpleStitch] ✅ Clip ${clip.shot_index} persisted to permanent storage`);
+        } else {
+          console.warn(`[SimpleStitch] ⚠️ Clip ${clip.shot_index} persistence failed — using original URL (may expire!)`);
+        }
+      }
+    }
 
     // Prepare clip data
     const clipData: ClipData[] = clips.map((clip: { id: string; video_url: string; duration_seconds: number }) => ({

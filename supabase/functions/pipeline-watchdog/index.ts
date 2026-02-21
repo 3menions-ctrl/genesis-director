@@ -2774,6 +2774,72 @@ serve(async (req) => {
         .eq('project_id', project.id)
         .order('shot_index');
       
+      // ═══ CASE 0: Avatar project with 0 clips — needs full regeneration ═══
+      if ((!allClips || allClips.length === 0) && project.mode === 'avatar') {
+        console.log(`[Watchdog] ⚠️ AVATAR FULL REGEN: ${project.id} has 0 clips — triggering generate-avatar-direct`);
+        
+        // Fetch project details needed for avatar generation
+        const { data: projDetails } = await supabase
+          .from('movie_projects')
+          .select('source_image_url, avatar_voice_id, generated_script, script_content, setting, aspect_ratio, pipeline_state')
+          .eq('id', project.id)
+          .single();
+        
+        if (projDetails?.source_image_url) {
+          // Get script from pipeline_state or project fields
+          const pState = projDetails.pipeline_state as Record<string, any> | null;
+          const asyncData = pState?.asyncJobData as Record<string, any> | null;
+          const script = asyncData?.originalScript || projDetails.generated_script || projDetails.script_content || 'Hello!';
+          const sceneDesc = asyncData?.originalSceneDescription || projDetails.setting || '';
+          
+          try {
+            // Reset to generating
+            await supabase
+              .from('movie_projects')
+              .update({
+                status: 'generating',
+                last_error: null,
+                generation_lock: null,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', project.id);
+            
+            const regenResponse = await fetch(`${supabaseUrl}/functions/v1/generate-avatar-direct`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseKey}`,
+              },
+              body: JSON.stringify({
+                script,
+                avatarImageUrl: projDetails.source_image_url,
+                voiceId: projDetails.avatar_voice_id || 'alloy',
+                sceneDescription: sceneDesc,
+                projectId: project.id,
+                userId: project.user_id,
+                aspectRatio: projDetails.aspect_ratio || '16:9',
+                clipCount: expectedClipCount,
+              }),
+            });
+            
+            if (regenResponse.ok) {
+              result.productionResumed++;
+              result.details.push({
+                projectId: project.id,
+                action: 'avatar_full_regeneration',
+                result: `Full avatar regeneration triggered (${expectedClipCount} clips)`,
+              });
+              console.log(`[Watchdog] ✅ AVATAR FULL REGEN triggered: ${project.id}`);
+            } else {
+              console.error(`[Watchdog] Avatar regen failed for ${project.id}: ${regenResponse.status}`);
+            }
+          } catch (regenErr) {
+            console.error(`[Watchdog] Avatar regen error for ${project.id}:`, regenErr);
+          }
+        }
+        continue;
+      }
+      
       if (!allClips || allClips.length === 0) continue;
       
       const completedClips = allClips.filter(c => c.status === 'completed' && c.video_url);

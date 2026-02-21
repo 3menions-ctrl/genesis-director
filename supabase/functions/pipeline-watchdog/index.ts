@@ -1821,6 +1821,24 @@ serve(async (req) => {
         
         // Sort clips and build video array
         clipsWithVideo.sort((a, b) => a.clipIndex - b.clipIndex);
+        
+        // PERSIST temporary Replicate URLs to permanent storage BEFORE using them
+        for (const clip of clipsWithVideo) {
+          if (clip.videoUrl && isTemporaryReplicateUrl(clip.videoUrl)) {
+            console.log(`[Watchdog-FalseFailure] ⚠️ Clip ${clip.clipIndex} has temporary URL — persisting...`);
+            const permanentUrl = await persistVideoToStorage(
+              supabase,
+              clip.videoUrl,
+              project.id,
+              { prefix: `recovery_clip${clip.clipIndex}`, clipIndex: clip.clipIndex }
+            );
+            if (permanentUrl && permanentUrl !== clip.videoUrl) {
+              clip.videoUrl = permanentUrl;
+              console.log(`[Watchdog-FalseFailure] ✅ Clip ${clip.clipIndex} persisted`);
+            }
+          }
+        }
+        
         const videoClipsArray = clipsWithVideo.map(p => p.videoUrl!);
         const primaryVideoUrl = videoClipsArray[0];
         

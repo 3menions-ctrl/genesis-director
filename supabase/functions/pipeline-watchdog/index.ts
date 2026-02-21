@@ -2594,6 +2594,56 @@ serve(async (req) => {
       }
     }
 
+    // ==================== PHASE 5: COMPLETED-NO-VIDEO RECOVERY ====================
+    // Detects projects marked 'completed' but with no video_url.
+    // Creates manifest playback URLs from their completed clips.
+    console.log(`[Watchdog] 🔍 Checking for completed-but-no-video projects...`);
+    
+    const { data: noVideoProjects } = await supabase
+      .from('movie_projects')
+      .select('id, title')
+      .eq('status', 'completed')
+      .is('video_url', null)
+      .limit(50);
+    
+    let noVideoFixed = 0;
+    for (const proj of (noVideoProjects || [])) {
+      try {
+        // Verify clips actually exist with video URLs
+        const { data: clips } = await supabase
+          .from('video_clips')
+          .select('id, video_url')
+          .eq('project_id', proj.id)
+          .eq('status', 'completed')
+          .not('video_url', 'is', null);
+        
+        if (clips && clips.length > 0) {
+          await createManifestFallback(supabaseUrl, supabaseKey, proj.id);
+          noVideoFixed++;
+          result.details.push({
+            projectId: proj.id,
+            action: 'no_video_recovery',
+            result: `Created manifest for ${clips.length} clips`,
+          });
+          console.log(`[Watchdog] ✅ Fixed completed-no-video: ${proj.id} (${clips.length} clips)`);
+        } else {
+          // No clips at all - mark as failed
+          await supabase.from('movie_projects').update({
+            status: 'failed',
+            last_error: 'No video clips generated',
+            updated_at: new Date().toISOString(),
+          }).eq('id', proj.id);
+          console.log(`[Watchdog] ⚠️ Marked ${proj.id} as failed (no clips)`);
+        }
+      } catch (recErr) {
+        console.error(`[Watchdog] No-video recovery error for ${proj.id}:`, recErr);
+      }
+    }
+    
+    if (noVideoFixed > 0) {
+      console.log(`[Watchdog] Fixed ${noVideoFixed} completed-but-no-video projects`);
+    }
+
     console.log(`[Watchdog] Complete: ${result.productionResumed} resumed, ${result.stitchingRetried} stitch retries, ${result.retryScheduledProcessed} scheduled retries, ${result.manifestFallbacks} fallbacks`);
 
     return new Response(

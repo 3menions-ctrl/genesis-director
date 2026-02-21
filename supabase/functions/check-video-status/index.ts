@@ -26,12 +26,13 @@ async function logApiCall(
   userId?: string
 ) {
   try {
-    const POLL_COST_CENTS = 0.01;
+    // Cost is sub-cent per poll; round to nearest integer (0) since column is integer
+    const POLL_COST_CENTS = 0;
     
     await supabase.rpc('log_api_cost', {
       p_service: service,
       p_operation: operation,
-      p_real_cost_cents: Math.round(POLL_COST_CENTS * 100) / 100,
+      p_real_cost_cents: POLL_COST_CENTS,
       p_credits_charged: 0,
       p_status: status,
       p_project_id: projectId || null,

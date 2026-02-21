@@ -2293,10 +2293,14 @@ serve(async (req) => {
         
         console.log(`[Watchdog] After recovery: ${newCompletedCount}/${expectedClipCount} clips`);
         
-        console.log(`[Watchdog] Clips: ${completedClips.length}/${expectedClipCount}`);
+        // CRITICAL: Use refreshed data (updatedClips) not stale pre-recovery data (completedClips)
+        const refreshedCompleted = (updatedClips || []).filter((c: { status: string; video_url: string }) => 
+          c.status === 'completed' && c.video_url
+        );
+        console.log(`[Watchdog] Clips (refreshed): ${refreshedCompleted.length}/${expectedClipCount}`);
         
         // All done -> trigger stitch
-        if (completedClips.length >= expectedClipCount) {
+        if (refreshedCompleted.length >= expectedClipCount) {
           console.log(`[Watchdog] All clips ready, triggering stitch`);
           
           try {
@@ -2314,7 +2318,7 @@ serve(async (req) => {
               result.details.push({
                 projectId: project.id,
                 action: 'stitch_triggered',
-                result: `All ${completedClips.length} clips ready`,
+                result: `All ${refreshedCompleted.length} clips ready`,
               });
             }
           } catch (error) {
@@ -2338,13 +2342,13 @@ serve(async (req) => {
           continue;
         }
         
-        if (completedClips.length > 0 && completedClips.length < expectedClipCount) {
-          const lastCompletedIndex = Math.max(...completedClips.map((c: any) => c.shot_index));
+        if (refreshedCompleted.length > 0 && refreshedCompleted.length < expectedClipCount) {
+          const lastCompletedIndex = Math.max(...refreshedCompleted.map((c: any) => c.shot_index));
           console.log(`[Watchdog] Direct-chaining: triggering clip ${lastCompletedIndex + 2}/${expectedClipCount} via continue-production`);
           
           try {
-            // Get last completed clip's data for continuity
-            const lastClip = completedClips.find((c: any) => c.shot_index === lastCompletedIndex);
+            // Get last completed clip's data for continuity (use refreshed data)
+            const lastClip = refreshedCompleted.find((c: any) => c.shot_index === lastCompletedIndex);
             
             const response = await fetch(`${supabaseUrl}/functions/v1/continue-production`, {
               method: 'POST',

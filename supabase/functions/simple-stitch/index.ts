@@ -153,7 +153,8 @@ serve(async (req) => {
     console.log(`[SimpleStitch] Selected ${clips.length} BEST clips from ${allClips.length} total versions`);
     
     if (lowQualityClips.length > 0) {
-      console.warn(`[SimpleStitch] ⚠️ WARNING: ${lowQualityClips.length} clip(s) below quality threshold (${MINIMUM_QUALITY_THRESHOLD})`);
+      console.warn(`[SimpleStitch] ⚠️ WARNING: ${lowQualityClips.length} clip(s) below quality threshold (${MINIMUM_QUALITY_THRESHOLD}). Visual artifacts may be visible.`);
+      // We proceed anyway to avoid blocking the user, but log it for diagnostics
     }
 
     // Get project details including pro_features_data for musicSyncPlan
@@ -249,14 +250,16 @@ serve(async (req) => {
       
       hlsContent += `#EXT-X-ENDLIST\n`;
       
-      const hlsFileName = `hls_${projectId}_${timestamp}.m3u8`;
+      // Use fixed filename to prevent storage bloat, with cache control for updates
+      const hlsFileName = `hls_${projectId}.m3u8`;
       const hlsBytes = new TextEncoder().encode(hlsContent);
       
       await supabase.storage
         .from('temp-frames')
         .upload(hlsFileName, hlsBytes, { 
           contentType: 'application/vnd.apple.mpegurl',
-          upsert: true 
+          upsert: true,
+          cacheControl: '30' // 30 seconds cache to ensure fresh playlist during generation
         });
       
       hlsPlaylistUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/${hlsFileName}`;

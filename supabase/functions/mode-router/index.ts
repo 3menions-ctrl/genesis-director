@@ -336,11 +336,67 @@ serve(async (req) => {
     // FIX #1: Exclude motion-transfer from credit deduction since it's not implemented (returns 501)
     const requiresLocalCreditDeduction = mode === 'avatar' || mode === 'video-to-video';
     
+    // Create or get project FIRST (status: 'creating' or 'pending_payment')
+    // This ensures we have a record to attach the transaction to, or refund against if needed.
+    let projectId = request.projectId;
+    let projectTitle = '';
+    
+    if (!projectId) {
+      // Generate a proper title from the user's prompt
+      const generatedTitle = await generateVideoTitle(prompt, mode, stylePreset);
+      projectTitle = generatedTitle;
+      
+      const { data: project, error: projectError } = await supabase
+        .from('movie_projects')
+        .insert({
+          user_id: userId,
+          title: generatedTitle,
+          aspect_ratio: aspectRatio,
+          status: requiresLocalCreditDeduction ? 'pending_payment' : 'generating', // Hold status if we need to charge
+          mode: mode,
+          source_image_url: imageUrl || null,
+          source_video_url: videoUrl || null,
+          avatar_voice_id: voiceId || null,
+          // CRITICAL: Save the user's script to synopsis so it's not lost
+          synopsis: prompt || null,
+          // CRITICAL: Do NOT pre-populate pending_video_tasks for avatar mode.
+          pending_video_tasks: {},
+          pipeline_state: {
+            stage: 'init',
+            progress: 0,
+            startedAt: new Date().toISOString(),
+            message: 'Initializing pipeline...',
+          },
+        })
+        .select('id')
+        .single();
+
+      if (projectError || !project) throw new Error(`Failed to create project: ${projectError?.message || 'No project returned'}`);
+      projectId = project.id as string;
+      console.log(`[ModeRouter] ✓ Created project ${projectId} (status: ${requiresLocalCreditDeduction ? 'pending_payment' : 'generating'})`);
+    } else {
+      // Update existing project with mode data
+      await supabase
+        .from('movie_projects')
+        .update({
+          mode: mode,
+          source_image_url: imageUrl || null,
+          source_video_url: videoUrl || null,
+          avatar_voice_id: voiceId || null,
+          status: requiresLocalCreditDeduction ? 'pending_payment' : 'generating',
+          pipeline_state: {
+            stage: 'init',
+            progress: 0,
+            startedAt: new Date().toISOString(),
+            message: 'Initializing pipeline...',
+          },
+        })
+        .eq('id', projectId);
+    }
+
+    // CREDIT DEDUCTION - Now happens AFTER project creation
     if (requiresLocalCreditDeduction) {
       // Calculate total credits needed — Kling V3 tiered pricing
-      // Real cost: $3.38/10s clip. We charge $5 (50 credits) minimum.
-      // Standard: 50cr (≤10s), 75cr (15s)
-      // Avatar: 60cr (≤10s), 90cr (15s) — includes native audio/lip-sync
       const isAvatar = mode === 'avatar';
       const isExtendedDuration = clipDuration > 10;
       const creditsPerClip = isAvatar
@@ -360,11 +416,16 @@ serve(async (req) => {
       
       if (profileError || !profile) {
         console.error('[ModeRouter] Failed to fetch user profile:', profileError);
+        // Fail project
+        await supabase.from('movie_projects').update({ status: 'failed', last_error: 'Failed to verify credit balance' }).eq('id', projectId);
         throw new Error('Failed to verify credit balance');
       }
       
       if (profile.credits_balance < totalCredits) {
         console.log(`[ModeRouter] INSUFFICIENT CREDITS: User has ${profile.credits_balance}, needs ${totalCredits}`);
+        // Mark project as payment failed
+        await supabase.from('movie_projects').update({ status: 'payment_failed', last_error: 'Insufficient credits' }).eq('id', projectId);
+        
         return new Response(
           JSON.stringify({
             success: false,
@@ -376,18 +437,19 @@ serve(async (req) => {
         );
       }
       
-      // DEDUCT CREDITS UPFRONT
-      console.log(`[ModeRouter] Deducting ${totalCredits} credits from user ${userId}`);
+      // DEDUCT CREDITS
+      console.log(`[ModeRouter] Deducting ${totalCredits} credits from user ${userId} for project ${projectId}`);
       const { error: deductError } = await supabase.rpc('deduct_credits', {
         p_user_id: userId,
         p_amount: totalCredits,
         p_description: `Video generation: ${clipCount} clips × ${clipDuration}s`,
-        p_project_id: null, // Will be set after project creation
+        p_project_id: projectId, // Link directly to project!
         p_clip_duration: clipCount * clipDuration,
       });
       
       if (deductError) {
         console.error('[ModeRouter] Credit deduction failed:', deductError);
+        await supabase.from('movie_projects').update({ status: 'payment_failed', last_error: 'Credit deduction failed' }).eq('id', projectId);
         return new Response(
           JSON.stringify({
             success: false,
@@ -398,61 +460,9 @@ serve(async (req) => {
       }
       
       console.log(`[ModeRouter] ✓ Successfully deducted ${totalCredits} credits`);
-    }
-
-    // Create or get project with full mode data
-    let projectId = request.projectId;
-    if (!projectId) {
-      // Generate a proper title from the user's prompt
-      const generatedTitle = await generateVideoTitle(prompt, mode, stylePreset);
       
-      const { data: project, error: projectError } = await supabase
-        .from('movie_projects')
-        .insert({
-          user_id: userId,
-          title: generatedTitle,
-          aspect_ratio: aspectRatio,
-          status: 'generating',
-          mode: mode,
-          source_image_url: imageUrl || null,
-          source_video_url: videoUrl || null,
-          avatar_voice_id: voiceId || null,
-          // CRITICAL: Save the user's script to synopsis so it's not lost
-          synopsis: prompt || null,
-          // CRITICAL: Do NOT pre-populate pending_video_tasks for avatar mode.
-          // generate-avatar-direct sets type='avatar_async' with prediction data.
-          // Pre-populating created a race where the duplicate guard couldn't detect
-          // the first call's predictions (different shape), causing triple-fire.
-          pending_video_tasks: {},
-          pipeline_state: {
-            stage: 'init',
-            progress: 0,
-            startedAt: new Date().toISOString(),
-            message: 'Initializing pipeline...',
-          },
-        })
-        .select('id')
-        .single();
-
-      if (projectError || !project) throw new Error(`Failed to create project: ${projectError?.message || 'No project returned'}`);
-      projectId = project.id as string;
-    } else {
-      // Update existing project with mode data
-      await supabase
-        .from('movie_projects')
-        .update({
-          mode: mode,
-          source_image_url: imageUrl || null,
-          source_video_url: videoUrl || null,
-          avatar_voice_id: voiceId || null,
-          pipeline_state: {
-            stage: 'init',
-            progress: 0,
-            startedAt: new Date().toISOString(),
-            message: 'Initializing pipeline...',
-          },
-        })
-        .eq('id', projectId);
+      // Activate project
+      await supabase.from('movie_projects').update({ status: 'generating' }).eq('id', projectId);
     }
 
     // Route based on mode

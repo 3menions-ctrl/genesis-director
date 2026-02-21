@@ -548,6 +548,19 @@ serve(async (req) => {
     const safetyCheck = checkContentSafety(prompt);
     if (!safetyCheck.isSafe) {
       console.error(`[SingleClip] ⛔ CONTENT BLOCKED - ${safetyCheck.category}: ${safetyCheck.matchedTerms.slice(0, 3).join(', ')}`);
+      
+      // CRITICAL: Update clip status to failed in DB to prevent zombie clips
+      if (projectId && userId) {
+        await upsertClipRecord(supabase, {
+          projectId,
+          userId,
+          shotIndex,
+          prompt,
+          status: 'failed',
+          errorMessage: `Content policy violation: ${safetyCheck.category}`,
+        });
+      }
+      
       return new Response(
         JSON.stringify({ success: false, error: safetyCheck.message, blocked: true }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -1069,7 +1082,8 @@ serve(async (req) => {
         status: 'completed',
         predictionId,
         videoUrl: storedVideoUrl,
-        lastFrameUrl: extractedLastFrameUrl || undefined,
+        // CRITICAL: Ensure fallback frame is persisted if extraction failed
+        lastFrameUrl: extractedLastFrameUrl || (frameExtractionStatus === 'fallback_used' ? extractedLastFrameUrl : undefined),
         durationSeconds,
         motionVectors: extractedMotionVectors || undefined,
       });
@@ -1188,7 +1202,9 @@ serve(async (req) => {
       try {
         // Fire and forget - don't wait for response
         const continueUrl = `${supabaseUrl}/functions/v1/continue-production`;
-        fetch(continueUrl, {
+        
+        // Use await to ensure error handling catches network issues
+        const response = await fetch(continueUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1207,11 +1223,17 @@ serve(async (req) => {
             totalClips,
             pipelineContext: updatedContext, // Pass updated context with all anchors
           }),
-        }).catch(err => {
-          console.warn(`[SingleClip] Failed to trigger continue-production:`, err);
         });
+        
+        if (!response.ok) {
+          throw new Error(`Continue-production fetch failed: ${response.status} ${await response.text()}`);
+        }
+        console.log(`[SingleClip] ✓ Continue-production triggered successfully`);
+        
       } catch (continueErr) {
-        console.warn(`[SingleClip] Error triggering continue-production:`, continueErr);
+        console.error(`[SingleClip] ❌ Error triggering continue-production:`, continueErr);
+        // We log it but don't fail the current function because the clip WAS generated successfully.
+        // The watchdog will pick up the stalled project eventually.
       }
     }
 

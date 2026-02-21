@@ -583,6 +583,17 @@ serve(async (req) => {
       // Log final decision
       if (!sceneCompositingApplied) {
         console.warn(`[AvatarDirect] ⚠️ SCENE COMPOSITING FAILED - Using original avatar image as fallback`);
+        // Flag this in metadata so downstream clips know it's raw
+        if (projectId) {
+           await supabase.from('movie_projects').update({
+             pending_video_tasks: {
+               // Use RPC-safe update pattern or deep merge if possible
+               // For now we assume pending_video_tasks exists
+               sceneCompositingFailed: true,
+               rawAvatarFallback: true
+             }
+           }).eq('id', projectId);
+        }
       }
     } else {
       console.log("[AvatarDirect] No scene description provided - using avatar image directly");

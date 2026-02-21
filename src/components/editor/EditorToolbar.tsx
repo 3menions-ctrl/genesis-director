@@ -1,7 +1,7 @@
 import {
   ArrowLeft, Save, Download, Loader2, Undo2, Redo2, Scissors, Sparkles,
   Copy, Magnet, Maximize, PanelLeftClose, PanelLeft, Plus, Film, Music, Type,
-  ChevronDown,
+  ChevronDown, Bookmark, Pause as FreezeIcon, ArrowDownUp, Unlink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,10 +24,15 @@ interface EditorToolbarProps {
   onToggleSnap?: () => void;
   onToggleMediaBrowser?: () => void;
   onAddTrack?: (type: "video" | "audio" | "text") => void;
+  onFreezeFrame?: () => void;
+  onReverseClip?: () => void;
+  onDetachAudio?: () => void;
+  onAddMarker?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
   canSplit?: boolean;
   canDuplicate?: boolean;
+  hasSelectedClip?: boolean;
   snapEnabled?: boolean;
   showMediaBrowser?: boolean;
   isSaving: boolean;
@@ -91,7 +96,9 @@ const ToolCluster = ({ children, className }: { children: React.ReactNode; class
 export const EditorToolbar = ({
   title, onTitleChange, onSave, onExport, onBack,
   onUndo, onRedo, onSplit, onDuplicate, onFitToView, onToggleSnap, onToggleMediaBrowser, onAddTrack,
+  onFreezeFrame, onReverseClip, onDetachAudio, onAddMarker,
   canUndo = false, canRedo = false, canSplit = false, canDuplicate = false,
+  hasSelectedClip = false,
   snapEnabled = true, showMediaBrowser = true,
   isSaving, renderStatus, renderProgress,
 }: EditorToolbarProps) => {
@@ -151,6 +158,23 @@ export const EditorToolbar = ({
           </ToolbarTooltip>
           <ToolbarTooltip label="Duplicate clip" shortcut="⌘D">
             <ToolBtn onClick={onDuplicate} disabled={!canDuplicate}><Copy className="h-3.5 w-3.5" /></ToolBtn>
+          </ToolbarTooltip>
+        </ToolCluster>
+
+        {/* Clip tools */}
+        <ToolCluster>
+          <ToolbarTooltip label="Freeze frame" shortcut="F">
+            <ToolBtn onClick={onFreezeFrame} disabled={!hasSelectedClip}><FreezeIcon className="h-3.5 w-3.5" /></ToolBtn>
+          </ToolbarTooltip>
+          <ToolbarTooltip label="Reverse clip" shortcut="R">
+            <ToolBtn onClick={onReverseClip} disabled={!hasSelectedClip}><ArrowDownUp className="h-3.5 w-3.5" /></ToolBtn>
+          </ToolbarTooltip>
+          <ToolbarTooltip label="Detach audio">
+            <ToolBtn onClick={onDetachAudio} disabled={!hasSelectedClip}><Unlink className="h-3.5 w-3.5" /></ToolBtn>
+          </ToolbarTooltip>
+          <div className="h-4 w-px bg-border/50" />
+          <ToolbarTooltip label="Add marker" shortcut="B">
+            <ToolBtn onClick={onAddMarker}><Bookmark className="h-3.5 w-3.5" /></ToolBtn>
           </ToolbarTooltip>
         </ToolCluster>
 

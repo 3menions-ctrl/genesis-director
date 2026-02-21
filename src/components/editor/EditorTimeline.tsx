@@ -3,7 +3,7 @@ import { Film, Type, Music, Trash2, ZoomIn, ZoomOut, Volume2, VolumeX, Lock, Sci
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { TimelineTrack, TimelineClip } from "./types";
+import type { TimelineTrack, TimelineClip, TimelineMarker } from "./types";
 import { AudioWaveform } from "./AudioWaveform";
 
 interface EditorTimelineProps {

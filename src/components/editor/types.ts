@@ -79,6 +79,8 @@ export interface TimelineClip {
   keyframes?: Keyframe[];
   volume?: number;
   speed?: number;
+  reverse?: boolean;        // play clip in reverse
+  freezeFrame?: boolean;    // freeze on first frame
   transform?: ClipTransform;
   audioFade?: AudioFade;
   pip?: PipSettings;
@@ -86,6 +88,13 @@ export interface TimelineClip {
   filter?: string;         // preset filter name
   noiseSuppression?: boolean;
   captions?: Caption[];
+}
+
+export interface TimelineMarker {
+  id: string;
+  time: number;
+  label: string;
+  color: string;
 }
 
 export interface TimelineTrack {
@@ -109,6 +118,7 @@ export interface EditorState {
   zoom: number;
   renderStatus: "idle" | "rendering" | "completed" | "failed";
   renderProgress: number;
+  markers: TimelineMarker[];
 }
 
 export const DEFAULT_COLOR_GRADING: ColorGrading = {

@@ -41,7 +41,7 @@ serve(async (req) => {
       });
     }
 
-    const clampedDuration = Math.min(Math.max(duration_seconds, 3), 10);
+    const clampedDuration = Math.min(Math.max(duration_seconds, 3), 15);
     const enhancedPrompt = prompt + QUALITY_SUFFIX;
 
     console.log(`[EditorGenFromAudio] Generating ${clampedDuration}s clip: "${prompt.substring(0, 80)}..."`);

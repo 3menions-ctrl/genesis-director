@@ -270,7 +270,29 @@ serve(async (req) => {
       // No recovery possible - mark as failed with refund
       const projectAge = Date.now() - new Date(project.created_at).getTime();
       const eligibleForRefund = projectAge < MAX_AGE_FOR_REFUND_MS;
-      const refundAmount = eligibleForRefund ? 10 : 0; // Avatar projects use flat rate
+      
+      // Calculate actual credits spent on this project from credit_transactions
+      let refundAmount = 0;
+      if (eligibleForRefund) {
+        const { data: projectCharges } = await supabase
+          .from('credit_transactions')
+          .select('amount')
+          .eq('project_id', project.id)
+          .eq('transaction_type', 'usage');
+        
+        // Sum the absolute value of all usage charges (they're stored as negative)
+        refundAmount = (projectCharges || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+        
+        // If no transaction records found, estimate from pipeline state
+        if (refundAmount === 0) {
+          const clipCount = (avatarTasks?.predictions as unknown[])?.length || 1;
+          const clipDuration = (avatarTasks?.clipDuration as number) || 10;
+          const creditsPerClip = clipDuration > 10 ? 90 : 60; // Avatar rates
+          refundAmount = clipCount * creditsPerClip;
+        }
+        
+        console.log(`[ZombieCleanup] Calculated refund for ${project.id}: ${refundAmount} credits`);
+      }
       
       await supabase.from('movie_projects').update({
         status: 'failed',

@@ -61,38 +61,40 @@ serve(async (req) => {
       logStep("Checkout session completed", { sessionId: session.id, customerEmail: session.customer_email });
 
       // Validate session has required metadata
+      // CRITICAL: Return 200 for non-retryable validation errors to prevent Stripe webhook storms
+      // Stripe retries 400/500 errors for up to 3 days, creating thousands of duplicate calls
       if (!session.metadata) {
-        logStep("Missing session metadata");
-        return new Response(JSON.stringify({ error: "Missing session metadata" }), { status: 400 });
+        logStep("Missing session metadata — acknowledging to prevent retry storm");
+        return new Response(JSON.stringify({ received: true, skipped: true, reason: "missing_metadata" }), { status: 200 });
       }
 
       // Get and validate user_id (must be valid UUID format)
       const userId = session.metadata.user_id;
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!userId || !uuidRegex.test(userId)) {
-        logStep("Invalid user_id in metadata", { userId });
-        return new Response(JSON.stringify({ error: "Invalid user_id" }), { status: 400 });
+        logStep("Invalid user_id in metadata — acknowledging to prevent retry storm", { userId });
+        return new Response(JSON.stringify({ received: true, skipped: true, reason: "invalid_user_id" }), { status: 200 });
       }
 
       // Validate credits is a positive integer within reasonable bounds
       const credits = parseInt(session.metadata.credits || "0", 10);
       if (isNaN(credits) || credits <= 0 || credits > 100000) {
-        logStep("Invalid credits value", { credits: session.metadata.credits });
-        return new Response(JSON.stringify({ error: "Invalid credits value" }), { status: 400 });
+        logStep("Invalid credits value — acknowledging to prevent retry storm", { credits: session.metadata.credits });
+        return new Response(JSON.stringify({ received: true, skipped: true, reason: "invalid_credits" }), { status: 200 });
       }
 
       // Validate package_id is a simple alphanumeric string
       const packageId = session.metadata.package_id;
       if (!packageId || !/^[a-z0-9_-]{1,50}$/i.test(packageId)) {
-        logStep("Invalid package_id", { packageId });
-        return new Response(JSON.stringify({ error: "Invalid package_id" }), { status: 400 });
+        logStep("Invalid package_id — acknowledging to prevent retry storm", { packageId });
+        return new Response(JSON.stringify({ received: true, skipped: true, reason: "invalid_package_id" }), { status: 200 });
       }
 
       // Validate payment_intent or session.id for stripe_payment_id
       const stripePaymentId = (session.payment_intent as string) || session.id;
       if (!stripePaymentId || stripePaymentId.length > 255) {
-        logStep("Invalid payment reference");
-        return new Response(JSON.stringify({ error: "Invalid payment reference" }), { status: 400 });
+        logStep("Invalid payment reference — acknowledging to prevent retry storm");
+        return new Response(JSON.stringify({ received: true, skipped: true, reason: "invalid_payment_ref" }), { status: 200 });
       }
 
       logStep("Adding credits", { userId, credits, packageId });

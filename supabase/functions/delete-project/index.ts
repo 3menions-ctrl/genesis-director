@@ -200,11 +200,10 @@ serve(async (req) => {
     // Delete edit sessions
     await supabase.from('edit_sessions').delete().eq('project_id', projectId);
 
-    // Delete credit transactions referencing this project
-    await supabase.from('credit_transactions').delete().eq('project_id', projectId);
-
-    // Delete api cost logs
-    await supabase.from('api_cost_logs').delete().eq('project_id', projectId);
+    // PRESERVE credit_transactions and api_cost_logs for financial audit trail
+    // Only nullify the project_id reference so FK constraint doesn't block deletion
+    await supabase.from('credit_transactions').update({ project_id: null }).eq('project_id', projectId);
+    await supabase.from('api_cost_logs').update({ project_id: null }).eq('project_id', projectId);
 
     // Delete character voice assignments
     await supabase.from('character_voice_assignments').delete().eq('project_id', projectId);

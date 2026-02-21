@@ -62,14 +62,15 @@ export function useClipRecovery(projectId: string | null, userId: string | null)
 
       console.log(`[ClipRecovery] Found ${stuckClips.length} stuck clips to check`);
 
-      // Check each stuck clip with a prediction ID
-      for (const clip of stuckClips as StuckClip[]) {
-        if (!clip.veo_operation_name || !isMountedRef.current) continue;
-        
-        result.checked++;
+      // Check all stuck clips IN PARALLEL (not sequentially) to avoid blocking page load
+      const clipsToCheck = (stuckClips as StuckClip[]).filter(
+        clip => clip.veo_operation_name && isMountedRef.current
+      );
+      
+      result.checked = clipsToCheck.length;
 
+      const recoveryPromises = clipsToCheck.map(async (clip) => {
         try {
-          // Call check-video-status with autoComplete to recover
           const { data: statusData, error: statusError } = await supabase.functions.invoke(
             'check-video-status',
             {
@@ -86,21 +87,28 @@ export function useClipRecovery(projectId: string | null, userId: string | null)
 
           if (statusError) {
             console.debug(`[ClipRecovery] Error checking clip ${clip.shot_index + 1}:`, statusError.message);
-            result.errors.push(`Clip ${clip.shot_index + 1}: ${statusError.message}`);
-            continue;
+            return { clip, status: 'error' as const, error: statusError.message };
           }
 
           if (statusData?.status === 'SUCCEEDED' && statusData?.autoCompleted) {
             console.log(`[ClipRecovery] ✓ Recovered clip ${clip.shot_index + 1}`);
-            result.recovered++;
+            return { clip, status: 'recovered' as const };
           } else if (statusData?.status === 'FAILED') {
-            console.log(`[ClipRecovery] Clip ${clip.shot_index + 1} failed: ${statusData.error}`);
-          } else if (statusData?.status === 'RUNNING') {
-            console.log(`[ClipRecovery] Clip ${clip.shot_index + 1} still processing`);
+            return { clip, status: 'failed' as const };
           }
+          return { clip, status: 'running' as const };
         } catch (err) {
           console.debug(`[ClipRecovery] Recovery error for clip ${clip.shot_index + 1}:`, err);
-          result.errors.push(`Clip ${clip.shot_index + 1}: recovery failed`);
+          return { clip, status: 'error' as const, error: 'recovery failed' };
+        }
+      });
+
+      const results = await Promise.allSettled(recoveryPromises);
+      
+      for (const r of results) {
+        if (r.status === 'fulfilled') {
+          if (r.value.status === 'recovered') result.recovered++;
+          if (r.value.status === 'error') result.errors.push(`Clip ${r.value.clip.shot_index + 1}: ${r.value.error}`);
         }
       }
 

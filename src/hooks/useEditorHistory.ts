@@ -30,32 +30,31 @@ export function useEditorHistory(initialSnapshot: HistorySnapshot) {
   }, []);
 
   const undo = useCallback((): HistorySnapshot | null => {
-    let result: HistorySnapshot | null = null;
-    setUndoStack((prev) => {
-      if (prev.length === 0) return prev;
-      const newStack = [...prev];
-      const snapshot = newStack.pop()!;
-      result = snapshot;
-      setRedoStack((r) => [...r, currentRef.current]);
-      currentRef.current = snapshot;
-      return newStack;
-    });
-    return result;
-  }, []);
+    // Read directly from the ref-backed stacks to avoid async setState race
+    const stack = undoStack;
+    if (stack.length === 0) return null;
+
+    const snapshot = stack[stack.length - 1];
+    const previous = currentRef.current;
+
+    setUndoStack(stack.slice(0, -1));
+    setRedoStack((r) => [...r, previous]);
+    currentRef.current = snapshot;
+    return snapshot;
+  }, [undoStack]);
 
   const redo = useCallback((): HistorySnapshot | null => {
-    let result: HistorySnapshot | null = null;
-    setRedoStack((prev) => {
-      if (prev.length === 0) return prev;
-      const newStack = [...prev];
-      const snapshot = newStack.pop()!;
-      result = snapshot;
-      setUndoStack((u) => [...u, currentRef.current]);
-      currentRef.current = snapshot;
-      return newStack;
-    });
-    return result;
-  }, []);
+    const stack = redoStack;
+    if (stack.length === 0) return null;
+
+    const snapshot = stack[stack.length - 1];
+    const previous = currentRef.current;
+
+    setRedoStack(stack.slice(0, -1));
+    setUndoStack((u) => [...u, previous]);
+    currentRef.current = snapshot;
+    return snapshot;
+  }, [redoStack]);
 
   // Keyboard shortcuts
   useEffect(() => {

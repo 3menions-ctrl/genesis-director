@@ -162,123 +162,8 @@ async function createKlingV3Prediction(
 // Keep alias for backward compatibility with imports from network-resilience
 const createReplicatePrediction = createKlingV3Prediction;
 
-// =====================================================
-// RUNWAY GEN-4 TURBO PREDICTION - IMAGE-TO-VIDEO ONLY
-// Gen-4 Turbo requires an image input (first frame anchor).
-// =====================================================
-async function createRunwayPrediction(
-  prompt: string,
-  startImageUrl: string, // Required — Runway Gen-4 Turbo is I2V only
-  aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
-  durationSeconds: number = RUNWAY_CLIP_DURATION,
-): Promise<{ predictionId: string }> {
-  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
-  if (!REPLICATE_API_KEY) {
-    throw new Error("REPLICATE_API_KEY is not configured");
-  }
-
-  if (!startImageUrl || !startImageUrl.startsWith("http")) {
-    throw new Error("Runway Gen-4 Turbo requires a start image URL for image-to-video generation");
-  }
-
-  const duration = durationSeconds <= 5 ? 5 : 10;
-
-  const input: Record<string, any> = {
-    prompt: prompt.slice(0, 2000),
-    duration,
-    aspect_ratio: aspectRatio,
-    image: startImageUrl,
-  };
-
-  console.log("[SingleClip][Runway Gen-4 Turbo] Image-to-video prediction:", {
-    model: RUNWAY_GEN4_MODEL,
-    duration,
-    aspectRatio: input.aspect_ratio,
-    promptLength: prompt.length,
-    hasImage: true,
-  });
-
-  const response = await fetch(RUNWAY_GEN4_MODEL_URL, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${REPLICATE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ input }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("[SingleClip][Runway] Replicate API error:", response.status, errorText);
-    throw new Error(`Runway Gen-4 Turbo API error: ${response.status} - ${errorText}`);
-  }
-
-  const prediction: ReplicatePrediction = await response.json();
-
-  if (!prediction.id) {
-    console.error("[SingleClip][Runway] No prediction ID in response:", prediction);
-    throw new Error("No prediction ID in Runway response");
-  }
-
-  console.log("[SingleClip][Runway Gen-4 Turbo] ✅ Prediction created:", prediction.id);
-  return { predictionId: prediction.id };
-}
-
-// =====================================================
-// RUNWAY GEN-4.5 PREDICTION - PURE TEXT-TO-VIDEO
-// Gen-4.5 is Runway's dedicated T2V model — no image required.
-// Ranked #1 on Artificial Analysis T2V benchmark (Nov 2025).
-// =====================================================
-async function createRunwayT2VPrediction(
-  prompt: string,
-  aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
-  durationSeconds: number = RUNWAY_CLIP_DURATION,
-): Promise<{ predictionId: string }> {
-  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
-  if (!REPLICATE_API_KEY) {
-    throw new Error("REPLICATE_API_KEY is not configured");
-  }
-
-  const duration = durationSeconds <= 5 ? 5 : 10;
-
-  const input: Record<string, any> = {
-    prompt: prompt.slice(0, 2000),
-    duration,
-    aspect_ratio: aspectRatio,
-  };
-
-  console.log("[SingleClip][Runway Gen-4.5] Text-to-video prediction:", {
-    model: RUNWAY_GEN45_MODEL,
-    duration,
-    aspectRatio,
-    promptLength: prompt.length,
-  });
-
-  const response = await fetch(RUNWAY_GEN45_MODEL_URL, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${REPLICATE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ input }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("[SingleClip][Runway Gen-4.5] API error:", response.status, errorText);
-    throw new Error(`Runway Gen-4.5 API error: ${response.status} - ${errorText}`);
-  }
-
-  const prediction: ReplicatePrediction = await response.json();
-
-  if (!prediction.id) {
-    console.error("[SingleClip][Runway Gen-4.5] No prediction ID:", prediction);
-    throw new Error("No prediction ID in Runway Gen-4.5 response");
-  }
-
-  console.log("[SingleClip][Runway Gen-4.5] ✅ T2V Prediction created:", prediction.id);
-  return { predictionId: prediction.id };
-}
+// REMOVED: Runway Gen-4 Turbo and Gen-4.5 functions
+// All video generation now unified on Kling V3 (kwaivgi/kling-v3-video)
 
 // Poll a Replicate prediction until it completes (works for both Kling and Veo)
 async function pollReplicatePrediction(
@@ -647,7 +532,7 @@ serve(async (req) => {
       extractedCharacters,
       referenceImageUrl,
       sceneImageUrl,
-      videoEngine = "kling", // 'veo' for text/image-to-video, 'kling' for avatar
+      videoEngine = "kling", // All modes now Kling V3; 'kling' enables avatar native audio
     } = body;
 
     if (!projectId || !prompt) {
@@ -1127,39 +1012,33 @@ serve(async (req) => {
       }
     }
 
-    // Log API cost — Runway: $0.05/s real cost; 5 credits charged = 50% margin
+    // Log API cost — Kling V3: all modes unified
     try {
-      const isRunway = useRunwayI2V || useRunwayT2V; // both flags defined at routing step above
-      // Runway real cost: $0.05/s → 5s=$0.25=25 cents, 10s=$0.50=50 cents
-      const realCostCents = isRunway
-        ? Math.round((durationSeconds <= 5 ? 5 : 10) * 5) // $0.05/s in cents
-        : 5; // Kling legacy cost estimate
-      const creditsCharged = isRunway
-        ? (durationSeconds <= 5 ? 5 : 10) // Runway 50% margin
-        : 10; // Kling legacy
-      const modelLabel = useRunwayI2V
-        ? 'runway/gen-4-turbo'
-        : useRunwayT2V
-          ? 'runway/gen-4.5'
-          : `${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}`;
+      // Kling V3 real cost estimate: ~$0.03/s for standard, ~$0.04/s for avatar
+      const isAvatar = videoEngine === 'kling';
+      const realCostCents = Math.round(durationSeconds * (isAvatar ? 4 : 3));
+      // Kling V3 credits: 12cr standard (≤10s), 18cr extended (11-15s), avatar +3cr
+      const isExtended = durationSeconds > 10;
+      const creditsCharged = isAvatar
+        ? (isExtended ? 22 : 15)
+        : (isExtended ? 18 : 12);
 
       await supabase.rpc('log_api_cost', {
         p_project_id: projectId,
         p_shot_id: `shot_${shotIndex}`,
-        p_service: isRunway ? 'replicate-runway' : 'replicate-kling',
+        p_service: 'replicate-kling-v3',
         p_operation: 'single_clip_generation',
         p_credits_charged: creditsCharged,
         p_real_cost_cents: realCostCents,
         p_duration_seconds: durationSeconds,
         p_status: 'completed',
         p_metadata: JSON.stringify({ 
-          model: modelLabel,
+          model: `${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}`,
           engine: engineLabel,
           predictionId,
           hasStartImage: !!validatedStartImage,
           hasLastFrame: !!extractedLastFrameUrl,
           hasContinuityManifest: !!extractedContinuityManifest,
-          marginPercent: 50,
         }),
       });
     } catch (costError) {

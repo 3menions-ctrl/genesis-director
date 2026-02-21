@@ -2786,18 +2786,17 @@ Return ONLY the enhanced prompt text — no explanations, no headers, no labels.
       const includeEffects = (args.include_effects as boolean) || false;
       const includeEditing = (args.include_editing as boolean) || false;
 
-      // Base credits per clip
-      const baseClips = Math.min(clipCount, 6);
-      const extendedClips = Math.max(0, clipCount - 6);
-      const isExtendedDuration = duration > 6;
+      // Kling V3 tiered credits
+      const isExtendedDuration = duration > 10;
+      const isAvatar = mode === 'avatar';
+      const creditsPerClip = isAvatar
+        ? (isExtendedDuration ? 22 : 15)
+        : (isExtendedDuration ? 18 : 12);
 
-      const baseCost = isExtendedDuration ? 15 : 10;
-      const extendedCost = 15;
-
-      const clipCredits = (baseClips * baseCost) + (extendedClips * extendedCost);
+      const clipCredits = clipCount * creditsPerClip;
       const musicCredits = includeMusic ? 1 : 0;
       const effectsCredits = includeEffects ? 1 : 0;
-      const editingCredits = includeEditing ? 3 : 0; // Estimate: prompt updates + reorder
+      const editingCredits = includeEditing ? 3 : 0;
 
       const totalCredits = clipCredits + musicCredits + effectsCredits + editingCredits;
       const totalDollars = (totalCredits * 0.10).toFixed(2);
@@ -2805,7 +2804,7 @@ Return ONLY the enhanced prompt text — no explanations, no headers, no labels.
 
       return {
         breakdown: {
-          clip_generation: { clips: clipCount, duration_each: `${duration}s`, base_clips: baseClips, extended_clips: extendedClips, credits: clipCredits },
+          clip_generation: { clips: clipCount, duration_each: `${duration}s`, credits_per_clip: creditsPerClip, credits: clipCredits },
           music: { included: includeMusic, credits: musicCredits },
           effects: { included: includeEffects, credits: effectsCredits },
           editing_estimate: { included: includeEditing, credits: editingCredits },
@@ -2816,8 +2815,9 @@ Return ONLY the enhanced prompt text — no explanations, no headers, no labels.
         mode,
         notes: [
           "Failed clips are automatically refunded",
-          clipCount > 6 ? `Clips 7+ use extended rate (15 credits each)` : "All clips at base rate (10 credits each)",
-          isExtendedDuration ? "Extended duration (>6s) uses extended rate" : "Standard duration (≤6s) at base rate",
+          `Standard: 12cr/clip (≤10s), 18cr/clip (11-15s)`,
+          `Avatar: 15cr/clip (≤10s), 22cr/clip (11-15s) — includes native lip-sync`,
+          isExtendedDuration ? "Extended duration (>10s) uses extended rate" : "Standard duration (≤10s) at base rate",
           "Project creation via Hoppy costs 2 additional credits",
         ],
         best_package: totalCredits <= 90 ? "Mini ($9/90cr)" : totalCredits <= 370 ? "Starter ($37/370cr)" : totalCredits <= 1000 ? "Growth ($99/1000cr)" : "Agency ($249/2500cr)",
@@ -4056,9 +4056,9 @@ Avatar flow: show avatars → user picks → collect script → estimate cost �
 - Image-to-Video: animate an existing image into a video clip
 - Avatar Mode: AI presenter → screenplay → scene-by-scene lip-sync video → stitch
 
-**Pipeline Costs:**
-- 10 credits/clip (≤6s, clips 1-6): 2cr pre-prod + 6cr production + 2cr QA
-- 15 credits/clip (7+ clips or >6s)
+**Pipeline Costs (Kling V3):**
+- Standard: 12 credits/clip (≤10s), 18 credits/clip (11-15s)
+- Avatar: 15 credits/clip (≤10s), 22 credits/clip (11-15s) — includes native lip-sync
 - Failed clips → ALWAYS auto-refunded
 
 **Account Tiers:**

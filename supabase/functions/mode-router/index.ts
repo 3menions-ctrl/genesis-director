@@ -213,7 +213,8 @@ interface ModeRouterRequest {
   breakoutStartImageUrl?: string; // Platform interface image (Facebook post, YouTube player, etc.)
   breakoutPlatform?: 'facebook' | 'youtube' | 'tiktok' | 'instagram';
 
-  // Video engine selection: 'veo' for text/image-to-video (8s, 1080p); 'kling' for avatar
+  // Video engine selection — all modes now unified on Kling V3
+  // 'kling' = avatar mode with native audio; anything else = standard T2V/I2V
   videoEngine?: 'kling' | 'veo';
 }
 
@@ -335,18 +336,16 @@ serve(async (req) => {
     const requiresLocalCreditDeduction = mode === 'avatar' || mode === 'video-to-video' || mode === 'motion-transfer';
     
     if (requiresLocalCreditDeduction) {
-      // Calculate total credits needed using the same formula as hollywood-pipeline
-      // Base: 10 credits for clips 1-6 at ≤6s, Extended: 15 credits for clips 7+ OR >6s
-      const BASE_CREDITS = 10;
-      const EXTENDED_CREDITS = 15;
-      const BASE_CLIP_THRESHOLD = 6;
-      const BASE_DURATION_THRESHOLD = 6;
+      // Calculate total credits needed — Kling V3 tiered pricing
+      // Standard: 12cr (≤10s), 18cr (11-15s)
+      // Avatar: 15cr (≤10s), 22cr (11-15s) — includes native audio/lip-sync
+      const isAvatar = mode === 'avatar';
+      const isExtendedDuration = clipDuration > 10;
+      const creditsPerClip = isAvatar
+        ? (isExtendedDuration ? 22 : 15)
+        : (isExtendedDuration ? 18 : 12);
       
-      let totalCredits = 0;
-      for (let i = 0; i < clipCount; i++) {
-        const isExtended = i >= BASE_CLIP_THRESHOLD || clipDuration > BASE_DURATION_THRESHOLD;
-        totalCredits += isExtended ? EXTENDED_CREDITS : BASE_CREDITS;
-      }
+      let totalCredits = clipCount * creditsPerClip;
       
       console.log(`[ModeRouter] Credit check for ${mode}: ${clipCount} clips × ${clipDuration}s = ${totalCredits} credits required`);
       
@@ -1092,7 +1091,7 @@ async function handleCinematicMode(params: {
       qualityTier: 'professional',
       genre,
       mood,
-      videoEngine, // CRITICAL: Route to Veo 3 or Kling based on mode
+      videoEngine, // CRITICAL: Forward engine selection to hollywood-pipeline (all Kling V3)
       // Breakout template parameters - for platform UI shattering effect
       // The first clip will use breakoutStartImageUrl as the starting frame,
       // with the avatar appearing inside the social media interface

@@ -306,7 +306,7 @@ serve(async (req) => {
             progress: progress,
             videoUrl: storedVideoUrl || videoUrl, // Return stored URL if available
             rawVideoUrl: videoUrl,
-            audioIncluded: true, // Kling 2.6 includes native audio
+            audioIncluded: true, // Kling V3 includes native audio
             error: error,
             provider: "replicate",
             model: KLING_MODEL,

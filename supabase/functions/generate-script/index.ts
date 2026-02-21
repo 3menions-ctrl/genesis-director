@@ -198,8 +198,8 @@ serve(async (req) => {
     console.log(`[generate-script] Subject detection: isNonCharacter=${isNonCharacterPrompt}`);
     
     if (isFullMovieMode) {
-      // Full movie script generation - dynamic shot count based on content (Kling 2.6: 5s clips)
-      systemPrompt = `You write cinematic scripts for AI video generation and stitching. Generate EXACTLY ${clipCount} shots, each 5 seconds.
+      // Full movie script generation - dynamic shot count based on content (Kling V3: 10s clips)
+      systemPrompt = `You write cinematic scripts for AI video generation and stitching. Generate EXACTLY ${clipCount} shots, each 10 seconds.
 
 ${isNonCharacterPrompt ? `
 ═══════════════════════════════════════════════════════════════════════════════
@@ -266,7 +266,7 @@ MOTION REQUIREMENTS:
 
 RULES:
 - Generate EXACTLY ${clipCount} shots to fit the content
-- Each shot is EXACTLY 5 seconds (Kling 2.6)
+- Each shot is EXACTLY 10 seconds (Kling V3)
 - Rich visual descriptions with motion and physics
 - Every transition must be seamless - use buffer shots for major scene changes
 - NO static scenes - always movement (even buffer shots have subtle motion)

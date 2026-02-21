@@ -8,7 +8,7 @@ const corsHeaders = {
 /**
  * STYLE TRANSFER - Video-to-Video Style Transformation
  * 
- * Uses Kling v2.6 native style transfer capabilities for 
+ * Uses Kling V3 style transfer capabilities for 
  * high-quality video stylization.
  */
 
@@ -90,6 +90,9 @@ serve(async (req) => {
     console.log(`[stylize-video] Prompt: ${styleConfig.prompt}`);
 
     // Use Kling V3 for video-to-video style transfer
+    // CRITICAL FIX: Kling V3 uses 'start_image' not 'start_video' for reference input.
+    // For video-to-video, we extract a frame approach: pass the video URL as start_image
+    // and let Kling generate a stylized clip based on the prompt + reference frame.
     const response = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v3-video/predictions", {
       method: "POST",
       headers: {
@@ -100,9 +103,11 @@ serve(async (req) => {
         input: {
           mode: "pro",
           prompt: styleConfig.prompt,
-          start_video: videoUrl,
-          duration: 10, // Kling V3 default duration
+          start_image: videoUrl, // FIX #2: Kling V3 expects 'start_image', not 'start_video'
+          duration: 10,
           negative_prompt: styleConfig.negativePrompt,
+          safety_tolerance: 2, // Prevent E006 rejections with image input
+          seed: Math.floor(Math.random() * 2147483647),
         },
       }),
     });

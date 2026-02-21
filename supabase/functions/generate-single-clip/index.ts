@@ -587,17 +587,30 @@ serve(async (req) => {
         console.warn(`[SingleClip]   - ${blocker}`);
       }
       
-      // Store degradation flag for later notification
-      await supabase
-        .from('movie_projects')
-        .update({
-          pending_video_tasks: supabase.rpc('jsonb_set_nested', {
-            target: 'pending_video_tasks',
-            path: '{degradation,continuityCheckFailed}',
-            value: true
+      // FIX #11: Replace broken jsonb_set_nested RPC (doesn't exist) with proper merge
+      try {
+        const { data: currentProject } = await supabase
+          .from('movie_projects')
+          .select('pending_video_tasks')
+          .eq('id', projectId)
+          .maybeSingle();
+        
+        const currentTasks = (currentProject?.pending_video_tasks || {}) as Record<string, any>;
+        await supabase
+          .from('movie_projects')
+          .update({
+            pending_video_tasks: {
+              ...currentTasks,
+              degradation: {
+                ...(currentTasks.degradation || {}),
+                continuityCheckFailed: true,
+              },
+            },
           })
-        })
-        .eq('id', projectId);
+          .eq('id', projectId);
+      } catch (degradeErr) {
+        console.warn('[SingleClip] Failed to store degradation flag:', degradeErr);
+      }
     }
 
     // =========================================================
@@ -1216,7 +1229,17 @@ serve(async (req) => {
     if (projectId) {
       try {
         // Try to release any lock this function might have acquired
-        await releaseGenerationLock(supabase, projectId, '');
+        // FIX #22: Use a valid UUID for lock release instead of empty string
+        // Empty string causes the lock to never actually release (UUID comparison fails)
+        const { data: proj } = await supabase
+          .from('movie_projects')
+          .select('generation_lock')
+          .eq('id', projectId)
+          .maybeSingle();
+        const lockId = (proj?.generation_lock as any)?.lock_id;
+        if (lockId) {
+          await releaseGenerationLock(supabase, projectId, lockId);
+        }
       } catch (lockErr) {
         console.warn(`[SingleClip] Failed to release lock on error:`, lockErr);
       }

@@ -13,7 +13,7 @@ const corsHeaders = {
 
 // ✅ Kling V3 via Replicate — unified engine for ALL modes
 const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
-const KLING_MODEL = "kwaivgi/kling-v3-video"; // Updated from v2.6 to v3
+const KLING_MODEL = "kwaivgi/kling-v3-video";
 
 // Log API calls for cost tracking
 async function logApiCall(
@@ -245,12 +245,21 @@ serve(async (req) => {
                     console.log(`[CheckStatus] ✓ Updated clip ${existingClip.id} to completed`);
                   } else {
                     // Insert new clip record
+                    // FIX #4: Use actual clip duration from project metadata, not hardcoded 5
+                    const { data: projectMeta } = await supabase
+                      .from('movie_projects')
+                      .select('pending_video_tasks')
+                      .eq('id', reqProjectId)
+                      .maybeSingle();
+                    const pendingTasks = (projectMeta?.pending_video_tasks || {}) as Record<string, any>;
+                    const actualDuration = pendingTasks.clipDuration || 10;
+                    
                     const { data: newClip } = await supabase
                       .from('video_clips')
                       .insert({
                         ...clipData,
                         prompt: `Recovered clip ${shotIndex + 1}`,
-                        duration_seconds: 5,
+                        duration_seconds: actualDuration,
                       })
                       .select('id')
                       .single();
@@ -340,7 +349,7 @@ serve(async (req) => {
         status: "FAILED",
         progress: 0,
         videoUrl: null,
-        error: `Unsupported provider. This system uses Kling v2.6 via Replicate.`,
+        error: `Unsupported provider. This system uses Kling V3 via Replicate.`,
         provider: provider,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

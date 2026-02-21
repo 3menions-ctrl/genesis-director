@@ -57,16 +57,17 @@ serve(async (req) => {
     console.log(`[motion-transfer] Source video: ${sourceVideoUrl}`);
     console.log(`[motion-transfer] Target image: ${targetImageUrl}`);
 
-    // Motion transfer is not currently supported
-    // Direct users to avatar mode which provides similar character animation
+    // FIX #1: Motion transfer returns 503 but mode-router still deducts credits.
+    // Return a clear 501 (Not Implemented) so mode-router can detect and skip credit deduction.
     return new Response(
       JSON.stringify({
         success: false,
-        error: "Motion transfer is temporarily unavailable",
+        error: "Motion transfer is not yet available. Use Avatar mode instead for animated character videos.",
         suggestion: "Use Avatar mode for animated character videos. Select an avatar and it will be animated with AI-generated motion.",
         alternativeMode: "avatar",
+        notImplemented: true,
       }),
-      { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 501, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {

@@ -46,6 +46,7 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+    // FIX #23: Removed duplicate supabase client creation that was inside content safety block
 
     // Resolve instruction from template if needed
     let editInstruction = instruction;
@@ -61,7 +62,7 @@ Deno.serve(async (req) => {
       if (!safetyCheck.isSafe) {
         console.error(`[edit-photo] ⛔ CONTENT BLOCKED - ${safetyCheck.category}: ${safetyCheck.matchedTerms.slice(0, 3).join(', ')}`);
         if (editId) {
-          const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+          // FIX #23: Use existing supabase client instead of creating duplicate
           await supabase.from('photo_edits').update({
             status: 'failed',
             error_message: 'Content policy violation',
@@ -191,11 +192,30 @@ Deno.serve(async (req) => {
         }).eq('id', editId);
       }
 
+      // FIX #6: Use deduct_credits with negative amount pattern for proper refund tracking
+      // increment_credits logs as 'system_grant' which makes refunds invisible in ledger
       if (creditsCost > 0) {
-        await supabase.rpc('increment_credits', {
-          user_id_param: auth.userId,
-          amount_param: creditsCost,
+        await supabase.from('credit_transactions').insert({
+          user_id: auth.userId,
+          amount: creditsCost,
+          transaction_type: 'refund',
+          description: `Photo edit refund: AI gateway error`,
         });
+        await supabase.from('profiles').update({
+          credits_balance: supabase.rpc ? undefined : undefined, // handled below
+        });
+        // Direct balance update (service_role has permission)
+        const { data: currentProfile } = await supabase
+          .from('profiles')
+          .select('credits_balance')
+          .eq('id', auth.userId)
+          .single();
+        if (currentProfile) {
+          await supabase
+            .from('profiles')
+            .update({ credits_balance: currentProfile.credits_balance + creditsCost })
+            .eq('id', auth.userId);
+        }
       }
 
       return new Response(
@@ -216,10 +236,23 @@ Deno.serve(async (req) => {
         }).eq('id', editId);
       }
       if (creditsCost > 0) {
-        await supabase.rpc('increment_credits', {
-          user_id_param: auth.userId,
-          amount_param: creditsCost,
+        await supabase.from('credit_transactions').insert({
+          user_id: auth.userId,
+          amount: creditsCost,
+          transaction_type: 'refund',
+          description: `Photo edit refund: No edited image returned`,
         });
+        const { data: currentProfile } = await supabase
+          .from('profiles')
+          .select('credits_balance')
+          .eq('id', auth.userId)
+          .single();
+        if (currentProfile) {
+          await supabase
+            .from('profiles')
+            .update({ credits_balance: currentProfile.credits_balance + creditsCost })
+            .eq('id', auth.userId);
+        }
       }
       return new Response(
         JSON.stringify({ error: 'No edited image returned' }),

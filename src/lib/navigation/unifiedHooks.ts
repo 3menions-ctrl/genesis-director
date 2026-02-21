@@ -271,7 +271,14 @@ export function useSafeNavigation() {
   ): Promise<boolean> => {
     if (pendingNavRef.current === to) return false;
 
-    if (!options?.skipLock) {
+    // FIX: For non-heavy routes, skip the async coordinator lock entirely.
+    // The coordinator's beginNavigation runs cleanup (media abort, DOM queries)
+    // which is async and can block/drop navigations to lightweight pages like /pricing.
+    // Heavy routes still use the full lock to coordinate loading overlays.
+    const { isHeavyRoute } = await import('./routeConfig');
+    const needsLock = !options?.skipLock && isHeavyRoute(to);
+
+    if (needsLock) {
       const canNavigate = await navigationCoordinator.beginNavigation(
         location.pathname,
         to
@@ -280,6 +287,10 @@ export function useSafeNavigation() {
         console.debug('[useSafeNavigation] Navigation rejected (locked)');
         return false;
       }
+    } else if (navigationCoordinator.isLocked()) {
+      // If coordinator is locked from a previous navigation, force-unlock
+      // so this lightweight navigation can proceed
+      navigationCoordinator.forceUnlock(`safeNav:lightRoute:${to}`);
     }
 
     pendingNavRef.current = to;
@@ -288,6 +299,7 @@ export function useSafeNavigation() {
       navigate(to, { replace: options?.replace, state: options?.state });
       return true;
     } finally {
+      // Clear pending ref on next frame
       requestAnimationFrame(() => {
         pendingNavRef.current = null;
       });

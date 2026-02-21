@@ -92,18 +92,47 @@ export const EditorPreview = ({
 
     if (activeClipIdRef.current !== activeVideoClip.id) {
       activeClipIdRef.current = activeVideoClip.id;
-      console.log('[EditorPreview] Loading clip:', activeVideoClip.label, activeVideoClip.sourceUrl?.substring(0, 80));
-      video.src = activeVideoClip.sourceUrl;
+      const src = activeVideoClip.sourceUrl;
+      console.log('[EditorPreview] Loading clip:', activeVideoClip.label, src?.substring(0, 80));
+
+      // Reset & load new source
+      video.pause();
+      video.crossOrigin = 'anonymous';
+      video.src = src;
       video.preload = 'auto';
       video.load();
 
       const localTime = currentTime - activeVideoClip.start + (activeVideoClip.trimStart || 0);
-      const handleCanPlay = () => {
+      const clipId = activeVideoClip.id;
+
+      const handleReady = () => {
+        if (activeClipIdRef.current !== clipId) return;
         video.currentTime = Math.max(0, localTime);
-        if (isPlaying) safePlay(video);
-        video.removeEventListener('canplay', handleCanPlay);
+        if (isPlaying) {
+          video.play().catch((e) => console.warn('[EditorPreview] play() rejected:', e.message));
+        }
+        video.removeEventListener('canplay', handleReady);
+        video.removeEventListener('loadeddata', handleReady);
       };
-      video.addEventListener('canplay', handleCanPlay);
+      video.addEventListener('canplay', handleReady);
+      video.addEventListener('loadeddata', handleReady);
+
+      // Fallback if events never fire
+      const fallback = setTimeout(() => {
+        if (activeClipIdRef.current !== clipId) return;
+        video.removeEventListener('canplay', handleReady);
+        video.removeEventListener('loadeddata', handleReady);
+        if (video.readyState >= 1) {
+          video.currentTime = Math.max(0, localTime);
+          if (isPlaying) video.play().catch(() => {});
+        }
+      }, 5000);
+
+      return () => {
+        clearTimeout(fallback);
+        video.removeEventListener('canplay', handleReady);
+        video.removeEventListener('loadeddata', handleReady);
+      };
     }
     // Only re-run when clip ID changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -127,7 +156,7 @@ export const EditorPreview = ({
     const video = videoRef.current;
     if (!video) return;
     if (isPlaying) {
-      safePlay(video);
+      video.play().catch((e) => console.debug('[EditorPreview] play/pause sync:', e.message));
     } else {
       video.pause();
     }
@@ -272,10 +301,14 @@ export const EditorPreview = ({
                 <video
                   ref={videoRef}
                   className="w-full h-full object-contain bg-black"
+                  crossOrigin="anonymous"
                   playsInline
+                  preload="auto"
                   onTimeUpdate={handleTimeUpdate}
                   onError={(e) => {
-                    console.warn('[EditorPreview] Video playback error:', e);
+                    const vid = e.currentTarget;
+                    const err = vid?.error;
+                    console.warn('[EditorPreview] Video error:', err?.code, err?.message, 'src:', vid?.src?.substring(0, 80));
                   }}
                 />
                 

@@ -304,7 +304,7 @@ const MINIMUM_QUALITY_THRESHOLD = 0;
 const MIN_CLIPS_PER_PROJECT = 1;
 
 // ✅ Kling V3 Credit Pricing (ALL modes — T2V, I2V, Avatar use Kling V3)
-// isAvatarMode = request.videoEngine === 'kling' (legacy flag; all modes now use Kling V3)
+// isAvatarMode is an EXPLICIT boolean flag (request.isAvatarMode), NOT derived from videoEngine
 // Standard (T2V/I2V): 12cr ≤10s  | 18cr >10s
 // Avatar (native audio): 15cr ≤10s | 22cr >10s
 const CREDIT_PRICING = {
@@ -3612,13 +3612,15 @@ async function runProduction(
         }
         
         // Determine engine: ALL modes use Kling V3 (kwaivgi/kling-v3-video)
-        // 'kling' = avatar mode with native audio; 'veo' = T2V/I2V (both route to Kling V3)
+        // isAvatarMode is an EXPLICIT flag — not derived from videoEngine
         const videoEngine = request.videoEngine || 'kling'; // DEFAULT: Kling V3 (all modes)
+        const isAvatarMode = !!request.isAvatarMode;
         
         const clipResult = await callEdgeFunction('generate-single-clip', {
           userId: request.userId,
           projectId: state.projectId,
-          videoEngine, // Both 'kling' and 'veo' route to Kling V3 in generate-single-clip
+          videoEngine,
+          isAvatarMode, // EXPLICIT flag — generate-single-clip uses this, NOT videoEngine
           clipIndex: i,
           prompt: finalPrompt,
           totalClips: clips.length,
@@ -3675,6 +3677,7 @@ async function runProduction(
           pipelineContext: {
             // CRITICAL: Pass engine so continue-production routes clips correctly
             videoEngine,
+            isAvatarMode, // EXPLICIT flag — survives callback chain
             // CRITICAL FIX: Pass identityBible with characterDescription to pipeline context
             identityBible: state.identityBible ? {
               ...state.identityBible,

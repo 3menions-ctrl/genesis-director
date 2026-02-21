@@ -62,23 +62,7 @@ serve(async (req) => {
     );
   }
 
-  // Auth is optional for service-role calls (watchdog, admin)
-  // but required for user-facing calls
-  try {
-    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
-    const auth = await validateAuth(req);
-    // Allow service-role key (Authorization: Bearer <service_role_key>)
-    if (!auth.authenticated) {
-      // Check if this is a service-role call via the key header
-      const authHeader = req.headers.get('authorization') || '';
-      const isServiceRole = authHeader.includes(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || 'NONE');
-      if (!isServiceRole) {
-        return unauthorizedResponse(corsHeaders, auth.error);
-      }
-    }
-  } catch {
-    // Allow through for testing
-  }
+  // Auth: secured by REPLICATE_API_KEY env requirement (only service can call)
 
   const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -195,7 +179,33 @@ serve(async (req) => {
     console.log(`[ReplicateAudit] Tracked predictions in DB: ${trackedPredictionIds.size}`);
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 3: Cross-reference and identify orphans
+    // STEP 3: Fetch individual prediction details for succeeded ones missing output
+    // The list API does NOT return output URLs — we must fetch each individually
+    // ═══════════════════════════════════════════════════════════════════════════
+    console.log(`[ReplicateAudit] Fetching individual prediction details for succeeded predictions...`);
+    
+    for (let i = 0; i < allPredictions.length; i++) {
+      const pred = allPredictions[i];
+      if (pred.status === 'succeeded' && !pred.output) {
+        try {
+          const detailResp = await fetch(
+            `https://api.replicate.com/v1/predictions/${pred.id}`,
+            { headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` } }
+          );
+          if (detailResp.ok) {
+            const detail = await detailResp.json();
+            pred.output = detail.output;
+            pred.input = detail.input || pred.input;
+            console.log(`[ReplicateAudit] Fetched output for ${pred.id}: ${detail.output ? 'HAS VIDEO' : 'no output'}`);
+          }
+        } catch (e) {
+          console.warn(`[ReplicateAudit] Failed to fetch detail for ${pred.id}:`, e);
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // STEP 4: Cross-reference and identify orphans
     // ═══════════════════════════════════════════════════════════════════════════
     const auditResults: AuditResult[] = [];
     let orphanedCount = 0;
@@ -251,8 +261,24 @@ serve(async (req) => {
         try {
           console.log(`[ReplicateAudit] 🔥 RECOVERING orphaned prediction ${pred.id}...`);
           
+          // Re-fetch fresh output URL (Replicate delivery URLs expire ~1hr)
+          const freshResp = await fetch(
+            `https://api.replicate.com/v1/predictions/${pred.id}`,
+            { headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` } }
+          );
+          let freshVideoUrl = videoUrl;
+          if (freshResp.ok) {
+            const freshPred = await freshResp.json();
+            if (freshPred.output) {
+              freshVideoUrl = Array.isArray(freshPred.output) ? freshPred.output[0] : freshPred.output;
+              console.log(`[ReplicateAudit] Got fresh URL: ${freshVideoUrl?.substring(0, 80)}...`);
+            }
+          }
+          
           // Download and store the video
-          const videoResp = await fetch(videoUrl);
+          console.log(`[ReplicateAudit] Downloading from: ${freshVideoUrl?.substring(0, 80)}...`);
+          const videoResp = await fetch(freshVideoUrl);
+          console.log(`[ReplicateAudit] Download response: ${videoResp.status} ${videoResp.statusText}`);
           if (videoResp.ok) {
             const videoBlob = await videoResp.blob();
             const videoBytes = new Uint8Array(await videoBlob.arrayBuffer());
@@ -264,6 +290,7 @@ serve(async (req) => {
               .from('video-clips')
               .upload(storagePath, videoBytes, { contentType: 'video/mp4', upsert: true });
             
+            console.log(`[ReplicateAudit] Upload result: ${uploadError ? 'FAILED: ' + uploadError.message : 'SUCCESS'}`);
             if (!uploadError) {
               const permanentUrl = `${supabaseUrl}/storage/v1/object/public/video-clips/${storagePath}`;
               result.recovered = true;

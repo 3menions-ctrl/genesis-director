@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { EditorToolbar } from '@/components/editor/EditorToolbar';
 import { EditorPreview } from '@/components/editor/EditorPreview';
@@ -7,8 +8,24 @@ import { EditorSidebar } from '@/components/editor/EditorSidebar';
 import { EditorTimeline } from '@/components/editor/EditorTimeline';
 import type { TimelineTrack, TimelineClip } from '@/components/editor/types';
 
-// Helper to wrap components that need TooltipProvider
-const withTooltip = (ui: React.ReactElement) => <TooltipProvider>{ui}</TooltipProvider>;
+// Mock hls.js
+vi.mock('hls.js', () => ({
+  default: {
+    isSupported: () => false,
+    Events: { MANIFEST_PARSED: 'hlsManifestParsed', ERROR: 'hlsError', FRAG_LOADED: 'hlsFragLoaded' },
+    ErrorTypes: { NETWORK_ERROR: 'networkError', MEDIA_ERROR: 'mediaError' },
+  },
+}));
+
+// Mock navigation hooks used by UniversalHLSPlayer
+vi.mock('@/lib/navigation', () => ({
+  navigationCoordinator: { registerGlobalCleanup: vi.fn(() => vi.fn()) },
+  useMediaCleanup: vi.fn(),
+  useRouteCleanup: vi.fn(),
+}));
+
+// Helper to wrap components that need TooltipProvider + Router
+const withTooltip = (ui: React.ReactElement) => <MemoryRouter><TooltipProvider>{ui}</TooltipProvider></MemoryRouter>;
 
 // --- Test data ---
 const makeVideoClip = (overrides?: Partial<TimelineClip>): TimelineClip => ({

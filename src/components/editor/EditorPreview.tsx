@@ -10,10 +10,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import type { TimelineTrack, TimelineClip } from "./types";
 import { EFFECT_PRESETS, FILTER_PRESETS } from "./types";
 import { cn } from "@/lib/utils";
-import { useGaplessPlayback } from "./useGaplessPlayback";
+import { UniversalHLSPlayer, UniversalHLSPlayerHandle } from "@/components/player/UniversalHLSPlayer";
 
 /**
- * EditorPreview - Cinematic preview with rock-solid gapless playback
+ * EditorPreview - Cinematic preview with HLS-only gapless playback
+ * 
+ * Generates a client-side m3u8 blob playlist from timeline clips
+ * and feeds it to UniversalHLSPlayer for seamless playback.
  */
 
 interface EditorPreviewProps {
@@ -30,30 +33,110 @@ interface EditorPreviewProps {
 const SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 4, 8, 16];
 const FRAME_STEP = 1 / 30;
 
+/**
+ * Build a client-side HLS m3u8 playlist blob URL from timeline clips.
+ * Uses #EXT-X-DISCONTINUITY between segments for raw MP4 compatibility.
+ */
+function buildClientHLSPlaylist(clips: TimelineClip[]): string | null {
+  if (clips.length === 0) return null;
+
+  let m3u8 = '#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:';
+
+  // Calculate max segment duration
+  const maxDuration = Math.ceil(
+    Math.max(...clips.map(c => (c.end - c.start)))
+  );
+  m3u8 += `${maxDuration}\n#EXT-X-MEDIA-SEQUENCE:0\n`;
+
+  clips.forEach((clip, i) => {
+    if (i > 0) {
+      m3u8 += '#EXT-X-DISCONTINUITY\n';
+    }
+    const segDuration = (clip.end - clip.start).toFixed(3);
+    m3u8 += `#EXTINF:${segDuration},\n${clip.sourceUrl}\n`;
+  });
+
+  m3u8 += '#EXT-X-ENDLIST\n';
+
+  const blob = new Blob([m3u8], { type: 'application/vnd.apple.mpegurl' });
+  return URL.createObjectURL(blob);
+}
+
 export const EditorPreview = ({
   tracks, currentTime, isPlaying, onPlayPause, onTimeChange, duration,
   playbackSpeed = 1, onPlaybackSpeedChange,
 }: EditorPreviewProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const hlsPlayerRef = useRef<UniversalHLSPlayerHandle>(null);
 
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
   const [isLooping, setIsLooping] = useState(false);
 
-  // ── Gapless playback engine ──
-  const {
-    videoARef,
-    videoBRef,
-    activeSlot,
-    activeClip: activeVideoClip,
-    videoReady,
-    sortedVideoClips,
-    activeTextClips,
-  } = useGaplessPlayback(
-    tracks, currentTime, isPlaying, duration,
-    playbackSpeed, volume, isMuted, isLooping,
-    onTimeChange, onPlayPause,
-  );
+  // ── Derived clip data ──
+  const sortedVideoClips = useMemo(() => {
+    return tracks
+      .filter((t) => t.type === 'video')
+      .flatMap((t) => t.clips)
+      .sort((a, b) => a.start - b.start);
+  }, [tracks]);
+
+  const activeVideoClip = useMemo(() => {
+    return sortedVideoClips.find((c) => currentTime >= c.start && currentTime < c.end) || null;
+  }, [sortedVideoClips, currentTime]);
+
+  const activeTextClips = useMemo(() => {
+    return tracks
+      .filter((t) => t.type === 'text')
+      .flatMap((t) => t.clips)
+      .filter((c) => currentTime >= c.start && currentTime < c.end);
+  }, [tracks, currentTime]);
+
+  // ── Build HLS playlist from clips ──
+  const hlsPlaylistUrl = useMemo(() => {
+    return buildClientHLSPlaylist(sortedVideoClips);
+  }, [sortedVideoClips]);
+
+  // Cleanup blob URL on change
+  const prevBlobUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevBlobUrlRef.current && prevBlobUrlRef.current !== hlsPlaylistUrl) {
+      URL.revokeObjectURL(prevBlobUrlRef.current);
+    }
+    prevBlobUrlRef.current = hlsPlaylistUrl;
+    return () => {
+      if (prevBlobUrlRef.current) {
+        URL.revokeObjectURL(prevBlobUrlRef.current);
+      }
+    };
+  }, [hlsPlaylistUrl]);
+
+  // ── Sync playback speed to HLS player ──
+  useEffect(() => {
+    const video = hlsPlayerRef.current?.getVideoElement();
+    if (video) {
+      video.playbackRate = playbackSpeed;
+    }
+  }, [playbackSpeed]);
+
+  // ── Sync volume to HLS player ──
+  useEffect(() => {
+    const video = hlsPlayerRef.current?.getVideoElement();
+    if (video) {
+      video.volume = volume / 100;
+      video.muted = isMuted;
+    }
+  }, [volume, isMuted]);
+
+  // ── Sync play/pause state ──
+  useEffect(() => {
+    if (!hlsPlayerRef.current) return;
+    if (isPlaying) {
+      hlsPlayerRef.current.play();
+    } else {
+      hlsPlayerRef.current.pause();
+    }
+  }, [isPlaying]);
 
   // ── Keyboard shortcuts ──
   useEffect(() => {
@@ -118,9 +201,9 @@ export const EditorPreview = ({
         </div>
 
         <div className="absolute inset-0 flex items-center justify-center p-5">
-          {hasClips ? (
+          {hasClips && hlsPlaylistUrl ? (
             <div className="relative w-full h-full flex items-center justify-center">
-              {/* Cinematic video frame — with live filter from active clip */}
+              {/* HLS video frame with live filter from active clip */}
               <div
                 className="max-h-full max-w-full w-full h-full rounded-2xl shadow-2xl shadow-black/80 overflow-hidden relative border border-white/[0.06]"
                 style={{
@@ -141,12 +224,30 @@ export const EditorPreview = ({
                   transition: 'filter 0.3s ease, transform 0.3s ease',
                 }}
               >
-                <video ref={videoARef}
-                  className={cn("absolute inset-0 w-full h-full object-contain bg-black transition-opacity duration-75", activeSlot === 'A' ? 'opacity-100 z-10' : 'opacity-0 z-0')}
-                  muted={isMuted} playsInline preload="auto" />
-                <video ref={videoBRef}
-                  className={cn("absolute inset-0 w-full h-full object-contain bg-black transition-opacity duration-75", activeSlot === 'B' ? 'opacity-100 z-10' : 'opacity-0 z-0')}
-                  muted={isMuted} playsInline preload="auto" />
+                <UniversalHLSPlayer
+                  ref={hlsPlayerRef}
+                  hlsUrl={hlsPlaylistUrl}
+                  autoPlay={false}
+                  muted={isMuted}
+                  loop={isLooping}
+                  className="w-full h-full"
+                  aspectRatio="auto"
+                  showControls={false}
+                  onTimeUpdate={(time) => {
+                    onTimeChange(time);
+                  }}
+                  onEnded={() => {
+                    if (isLooping) {
+                      onTimeChange(0);
+                    } else {
+                      onTimeChange(duration);
+                      onPlayPause();
+                    }
+                  }}
+                  onError={(err) => {
+                    console.warn('[EditorPreview] HLS playback error:', err);
+                  }}
+                />
                 
                 {/* Cinematic letterbox effect */}
                 <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-black/30 to-transparent pointer-events-none z-20" />
@@ -200,7 +301,9 @@ export const EditorPreview = ({
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const pct = (e.clientX - rect.left) / rect.width;
-            onTimeChange(Math.max(0, Math.min(duration, pct * duration)));
+            const newTime = Math.max(0, Math.min(duration, pct * duration));
+            onTimeChange(newTime);
+            hlsPlayerRef.current?.seek(newTime);
           }}
         >
           {clipMarkers.map((m) => (
@@ -218,7 +321,7 @@ export const EditorPreview = ({
         <div className="h-12 flex items-center gap-1 px-4">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/30 hover:text-white hover:bg-white/[0.06] rounded-xl transition-all" onClick={() => onTimeChange(0)}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/30 hover:text-white hover:bg-white/[0.06] rounded-xl transition-all" onClick={() => { onTimeChange(0); hlsPlayerRef.current?.seek(0); }}>
                 <SkipBack className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
@@ -253,7 +356,7 @@ export const EditorPreview = ({
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/30 hover:text-white hover:bg-white/[0.06] rounded-xl transition-all" onClick={() => onTimeChange(duration)}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/30 hover:text-white hover:bg-white/[0.06] rounded-xl transition-all" onClick={() => { onTimeChange(duration); hlsPlayerRef.current?.seek(duration); }}>
                 <SkipForward className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
@@ -262,7 +365,7 @@ export const EditorPreview = ({
 
           <div className="h-5 w-px bg-white/[0.06] mx-2" />
 
-          {/* Timecode display — premium glass */}
+          {/* Timecode display */}
           <div className="flex items-center gap-2 bg-white/[0.03] rounded-xl px-4 py-2 border border-white/[0.05]">
             <span className="text-[13px] font-mono text-white tabular-nums tracking-wider font-medium">
               {formatTime(currentTime)}

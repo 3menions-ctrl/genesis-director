@@ -1349,54 +1349,53 @@ const transitionsData = useMemo(() =>
               {/* Transient errors (continuity failures, frame extraction) auto-recover - don't alarm users */}
               {(() => {
                 // CRITICAL: Never show error banners for completed projects
-                // The video is done - showing old transient errors is confusing
                 if (projectStatus === 'completed' && finalVideoUrl) {
                   return null;
                 }
                 
-                const hasGeneratingClips = clipResults.some(c => c.status === 'generating');
-                const hasCompletedClips = clipResults.some(c => c.status === 'completed');
-                const hasPendingClips = clipResults.some(c => c.status === 'pending');
                 const failedClipCount = clipResults.filter(c => c.status === 'failed').length;
                 
-                // Determine if pipeline is actively working (any clips generating OR more to process)
-                const isActivelyProducing = ['generating', 'producing', 'rendering'].includes(projectStatus) && 
-                  (hasGeneratingClips || hasPendingClips || (hasCompletedClips && completedClips < expectedClipCount));
+                // HARDENED: Determine if pipeline is actively working
+                // Check BOTH project-level status AND clip-level states to avoid race windows
+                // (e.g. during watchdog false-failure recovery, clips briefly have no generating/pending status)
+                const projectIsInActiveStatus = ['generating', 'producing', 'rendering', 'stitching', 'assembling'].includes(projectStatus);
+                const pipelineStageIsActive = pipelineStage && ['preproduction', 'qualitygate', 'assets', 'production', 'postproduction'].includes(pipelineStage);
+                const hasGeneratingClips = clipResults.some(c => c.status === 'generating');
+                const hasPendingClips = clipResults.some(c => c.status === 'pending');
+                const hasCompletedClips = clipResults.some(c => c.status === 'completed');
+                const clipsStillPending = hasCompletedClips && completedClips < expectedClipCount;
                 
-                // CRITICAL: Suppress ALL transient errors during active production
-                // These errors auto-recover and confuse users when shown mid-generation
-                const transientErrorPatterns = [
-                  'production incomplete',
-                  'continuity_failure',
-                  'strict_continuity',
-                  'frame extraction',
-                  'last frame',
-                  'no last frame',
-                  'generation_locked',
-                  'mutex',
-                  'rate limit'
-                ];
-                
-                const isTransientError = lastError && transientErrorPatterns.some(
-                  pattern => lastError.toLowerCase().includes(pattern)
+                // Pipeline is active if ANY of these are true — covers all race windows
+                const isActivelyProducing = projectIsInActiveStatus && (
+                  hasGeneratingClips || 
+                  hasPendingClips || 
+                  clipsStillPending || 
+                  !!pipelineStageIsActive
                 );
                 
-                // Only show error banner when:
-                // 1. Pipeline has actually failed (not just transient error during generation)
-                // 2. OR we have real non-transient errors when not actively producing
-                const shouldShowBanner = !isActivelyProducing && 
-                  (lastError || degradationFlags.length > 0 || projectStatus === 'failed');
+                // CRITICAL: During active production, suppress ALL banners
+                // Degradation flags and transient errors are internal recovery states — never show to users mid-generation
+                if (isActivelyProducing) {
+                  return null;
+                }
                 
-                // If actively producing, never show transient errors
-                // If done/failed and still have error, show it
-                const showBanner = shouldShowBanner && !(isActivelyProducing && isTransientError);
+                // Only show banner when pipeline has truly stopped AND there's a real error
+                const hasFatalError = projectStatus === 'failed' || projectStatus === 'stitching_failed';
+                const hasNonTransientError = lastError && !([
+                  'production incomplete', 'continuity_failure', 'strict_continuity',
+                  'frame extraction', 'last frame', 'no last frame',
+                  'generation_locked', 'mutex', 'rate limit', 'false failure',
+                  'degraded continuity', 'fallback', 'recovery'
+                ].some(p => lastError.toLowerCase().includes(p)));
                 
-                // Handler to dismiss error and clear from database
+                // Show banner only for: definitive failures OR real non-transient errors after pipeline stops
+                const showBanner = hasFatalError || (hasNonTransientError && !projectIsInActiveStatus);
+                
+                if (!showBanner) return null;
+                
                 const handleDismissError = async () => {
                   setLastError(null);
                   setDegradationFlags([]);
-                  
-                  // Clear last_error from database to prevent it coming back on refresh
                   if (projectId) {
                     await supabase
                       .from('movie_projects')
@@ -1405,12 +1404,12 @@ const transitionsData = useMemo(() =>
                   }
                 };
                 
-                return showBanner ? (
+                return (
                   <ErrorBoundaryWrapper fallback={null}>
                     <Suspense fallback={null}>
                       <PipelineErrorBanner
                         error={lastError}
-                        degradationFlags={degradationFlags}
+                        degradationFlags={hasFatalError ? degradationFlags : []}
                         projectStatus={projectStatus}
                         failedClipCount={failedClipCount}
                         totalClipCount={expectedClipCount}
@@ -1420,7 +1419,7 @@ const transitionsData = useMemo(() =>
                       />
                     </Suspense>
                   </ErrorBoundaryWrapper>
-                ) : null;
+                );
               })()}
               
               {/* Final Video (for cinematic pipeline) */}

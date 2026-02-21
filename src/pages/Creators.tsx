@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSafeNavigation } from '@/lib/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -7,9 +7,11 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
+import { LazyVideoThumbnail } from '@/components/ui/LazyVideoThumbnail';
 import { UniversalVideoPlayer } from '@/components/player';
 import { VideoCommentsSection } from '@/components/social/VideoCommentsSection';
+import { CinemaLoader } from '@/components/ui/CinemaLoader';
+import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
 import {
   Search, Play, Heart, Sparkles, Clock, X, ArrowRight, Video, Eye, MessageCircle
 } from 'lucide-react';
@@ -101,11 +103,25 @@ export default function Creators() {
     staleTime: 60000,
   });
 
+  // FIX: Proper debounce with cleanup (old version leaked timeouts)
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const handleSearch = useCallback((value: string) => {
     setSearchQuery(value);
-    const timeoutId = setTimeout(() => setDebouncedQuery(value), 300);
-    return () => clearTimeout(timeoutId);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setDebouncedQuery(value), 300);
   }, []);
+  useEffect(() => {
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, []);
+
+  // GATEKEEPER: Unified loading with CinemaLoader
+  const { loading: authLoading } = useAuth();
+  const gatekeeper = useGatekeeperLoading({
+    ...GATEKEEPER_PRESETS.discover,
+    authLoading,
+    dataLoading: isLoading,
+    dataSuccess: !!discoverVideos,
+  });
 
   // User likes
   const { data: userLikes } = useQuery({
@@ -159,6 +175,14 @@ export default function Creators() {
   const gridVideos = discoverVideos?.slice(3) || [];
 
   return (
+    <>
+      {/* GATEKEEPER: CinemaLoader overlay */}
+      <CinemaLoader
+        isVisible={gatekeeper.isLoading}
+        message={getGatekeeperMessage(gatekeeper.phase, GATEKEEPER_PRESETS.discover.messages)}
+        progress={gatekeeper.progress}
+      />
+
     <div className="min-h-screen bg-[#030303] text-white">
       {/* Subtle gradient background */}
       <div className="fixed inset-0 pointer-events-none">
@@ -432,6 +456,7 @@ export default function Creators() {
         )}
       </AnimatePresence>
     </div>
+    </>
   );
 }
 
@@ -464,10 +489,11 @@ function VideoThumbnail({
   return (
     <div className="w-full h-full bg-white/[0.02]">
       {clipSrc ? (
-        <PausedFrameVideo
+        <LazyVideoThumbnail
           src={clipSrc}
+          posterUrl={thumbnailUrl}
+          alt={title}
           className="w-full h-full object-cover"
-          showLoader={false}
         />
       ) : thumbnailUrl ? (
         <img

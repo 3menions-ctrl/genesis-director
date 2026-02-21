@@ -109,7 +109,7 @@ interface WatchdogResult {
 }
 
 // Timeouts - use guard rail config where applicable
-const STALE_TIMEOUT_MS = GUARD_RAIL_CONFIG.CLIP_STUCK_THRESHOLD_MS; // 3 minutes
+const STALE_TIMEOUT_MS = GUARD_RAIL_CONFIG.CLIP_STUCK_THRESHOLD_MS; // 10 minutes (matches Kling V3 generation time)
 const STITCHING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_STITCHING_ATTEMPTS = 3;
 const MAX_AGE_MS = 60 * 60 * 1000; // 60 minutes

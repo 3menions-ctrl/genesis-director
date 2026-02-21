@@ -17,7 +17,7 @@ async function generateImage(prompt: string): Promise<string | null> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-3-pro-image-preview",
+      model: "google/gemini-2.5-flash-image",
       messages: [{ role: "user", content: prompt }],
       modalities: ["image", "text"],
     }),
@@ -49,16 +49,14 @@ serve(async (req) => {
   }
 
   try {
-    // ═══ AUTH GUARD: Service-role key in header or admin user ═══
+    // ═══ AUTH GUARD: Admin or service-role only ═══
     const authHeader = req.headers.get("authorization") || "";
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     const isServiceRole = authHeader === `Bearer ${serviceKey}`;
-    
     let authorized = isServiceRole;
-    
     if (!authorized) {
       try {
-        const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+        const { validateAuth } = await import("../_shared/auth-guard.ts");
         const auth = await validateAuth(req);
         if (auth.authenticated && auth.userId) {
           const supabaseCheck = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey);
@@ -67,7 +65,6 @@ serve(async (req) => {
         }
       } catch {}
     }
-    
     if (!authorized) {
       return new Response(JSON.stringify({ error: "Admin or service-role access required" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -110,11 +107,11 @@ serve(async (req) => {
 
         let prompt: string;
         if (isAnimal && isAnimated) {
-          prompt = `Premium 3D animated character portrait of ${avatar.name}, a ${avatar.ethnicity}. Style: High-end 3D CGI (Pixar/DreamWorks quality). ${avatar.personality}. ${clothing}. ${fullBodyDirective} Clean studio background, vibrant colors, expressive features, anthropomorphic with personality. Ultra high resolution 8K.`;
+          prompt = `Premium 3D animated character portrait of ${avatar.name}, a ${avatar.ethnicity}. Style: High-end 3D CGI (Pixar/DreamWorks quality). ${avatar.personality}. ${clothing}. ${fullBodyDirective} Beautiful scenic background matching the character's personality - lush environment with depth, atmosphere and cinematic lighting. Vibrant colors, expressive features, anthropomorphic with personality. Ultra high resolution 8K.`;
         } else if (isAnimated) {
-          prompt = `Premium 3D animated character of ${avatar.name}, ${avatar.gender} ${avatar.ethnicity}. Style: High-end 3D CGI (Pixar/DreamWorks). ${avatar.personality}. Age: ${avatar.age_range}. Outfit: ${clothing}. ${fullBodyDirective} Clean studio background, expressive engaging pose. Ultra high resolution.`;
+          prompt = `Premium 3D animated character of ${avatar.name}, ${avatar.gender} ${avatar.ethnicity}. Style: High-end 3D CGI (Pixar/DreamWorks). ${avatar.personality}. Age: ${avatar.age_range}. Outfit: ${clothing}. ${fullBodyDirective} Beautiful cinematic background that matches the character's world - rich environment with atmospheric lighting, depth, and vibrant colors. Expressive engaging pose. Ultra high resolution.`;
         } else {
-          prompt = `Ultra-realistic professional photograph of ${avatar.name}, ${avatar.gender} ${avatar.ethnicity}. Facing camera. Age: ${avatar.age_range}. ${avatar.personality}. Outfit: ${clothing}. ${fullBodyDirective} Professional studio lighting, Canon EOS R5, 85mm lens, 8K resolution, clean neutral gray background. Ultra high resolution.`;
+          prompt = `Ultra-realistic professional photograph of ${avatar.name}, ${avatar.gender} ${avatar.ethnicity}. Facing camera. Age: ${avatar.age_range}. ${avatar.personality}. Outfit: ${clothing}. ${fullBodyDirective} Beautiful scenic background matching their profession/personality - elegant environment with bokeh, natural lighting, cinematic depth of field. Canon EOS R5, 85mm lens, 8K resolution. Ultra high resolution.`;
         }
 
         console.log(`[BatchGen] Generating: ${avatar.name}`);

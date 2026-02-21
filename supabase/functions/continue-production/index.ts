@@ -595,7 +595,7 @@ serve(async (req: Request) => {
     console.log(`[ContinueProduction] ═══════════════════════════════════════════════════`);
     console.log(`[ContinueProduction] DATA HANDOFF TO CLIP ${nextClipIndex + 1}:`);
     console.log(`[ContinueProduction]   - startImageUrl: ${startImageUrl ? 'YES' : 'NO'}`);
-    console.log(`[ContinueProduction]   - clipDuration: ${context?.clipDuration || 5}s`);
+    console.log(`[ContinueProduction]   - clipDuration: ${context?.clipDuration || 10}s`);
     console.log(`[ContinueProduction]   - identityBible: ${context?.identityBible ? 'YES' : 'NO'}`);
     console.log(`[ContinueProduction]   - identityBible.characterDescription: ${context?.identityBible?.characterDescription ? 'YES' : 'NO'}`);
     console.log(`[ContinueProduction]   - identityBible.nonFacialAnchors: ${context?.identityBible?.nonFacialAnchors ? 'YES' : 'NO'}`);

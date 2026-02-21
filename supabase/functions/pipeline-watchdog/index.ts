@@ -482,7 +482,7 @@ serve(async (req) => {
                 body: JSON.stringify({
                   videoUrl,
                   projectId: project.id,
-                  clipIndex: forClipIndex,
+                  shotIndex: forClipIndex,
                 }),
               });
               

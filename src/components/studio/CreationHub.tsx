@@ -101,6 +101,7 @@ const ASPECT_RATIOS = [
 const CLIP_DURATIONS = [
   { id: 5, name: '5 sec', description: 'Quick & punchy' },
   { id: 10, name: '10 sec', description: 'Standard length' },
+  { id: 15, name: '15 sec', description: 'Extended scenes' },
 ];
 
 const GENRE_OPTIONS = [

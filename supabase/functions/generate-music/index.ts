@@ -666,8 +666,8 @@ serve(async (req) => {
           p_shot_id: 'world_class_music',
           p_service: 'replicate-musicgen-stereo',
           p_operation: 'generate_world_class_music',
-          p_credits_charged: 0,
-          p_real_cost_cents: 8, // Premium quality
+          p_credits_charged: 0, // Music is bundled into video production credits (no separate charge)
+          p_real_cost_cents: 8, // ~$0.08 cost — absorbed into per-clip margin (75% margin covers this)
           p_duration_seconds: duration,
           p_status: 'completed',
           p_metadata: JSON.stringify({

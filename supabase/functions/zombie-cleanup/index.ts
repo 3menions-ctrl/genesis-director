@@ -86,76 +86,66 @@ serve(async (req) => {
       const hasVideoUrl = !!pipelineState.videoUrl;
       const hasAudioUrl = !!pipelineState.audioUrl;
       
-      if (stage === 'audio_merge' && hasVideoUrl && hasAudioUrl) {
-        // RECOVERY PATH: Both assets exist, attempt to complete the project
-        console.log(`[ZombieCleanup] Attempting audio_merge recovery for ${project.id}`);
+      if ((stage === 'audio_merge' || stage === 'lip_sync') && hasVideoUrl) {
+        // RECOVERY PATH: Kling V3 native audio — video already has audio baked in
+        // No separate audio merge needed. Use video as-is.
+        console.log(`[ZombieCleanup] Kling V3 recovery for ${project.id} (stage: ${stage})`);
         
         try {
-          // Try to merge audio with video
-          const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+          const videoUrl = pipelineState.videoUrl as string;
+          const audioUrl = pipelineState.audioUrl as string | undefined;
           
-          if (REPLICATE_API_KEY) {
-            const videoUrl = pipelineState.videoUrl as string;
-            const audioUrl = pipelineState.audioUrl as string;
-            
-            // Attempt quick merge with short timeout
-            const mergeResponse = await fetch("https://api.replicate.com/v1/predictions", {
-              method: "POST",
-              headers: {
-                "Authorization": `Bearer ${REPLICATE_API_KEY}`,
-                "Content-Type": "application/json",
-                "Prefer": "wait=30", // Short timeout for zombie cleanup
-              },
-              body: JSON.stringify({
-                version: "684cc0e6bff2f0d3b748d7c386ab8a6fb7c5f6d2095a3a38d68d9d6a3a2cb2f6",
-                input: {
-                  video: videoUrl,
-                  audio: audioUrl,
-                  audio_volume: 1.0,
-                  video_volume: 0.0,
-                },
-              }),
-            });
-            
-            if (mergeResponse.ok) {
-              const prediction = await mergeResponse.json();
-              let finalVideoUrl = videoUrl; // Fallback to video without merged audio
-              
-              if (prediction.status === "succeeded" && prediction.output) {
-                finalVideoUrl = prediction.output;
-                console.log(`[ZombieCleanup] ✅ Audio merge succeeded for ${project.id}`);
-              } else {
-                console.log(`[ZombieCleanup] Audio merge pending/failed, using video-only for ${project.id}`);
+          // For lip_sync stage, check if lip-sync prediction completed
+          let finalVideoUrl = videoUrl;
+          const lipSyncPredictionId = pipelineState.lipSyncPredictionId as string | undefined;
+          
+          if (stage === 'lip_sync' && lipSyncPredictionId) {
+            const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+            if (REPLICATE_API_KEY) {
+              try {
+                const statusRes = await fetch(`https://api.replicate.com/v1/predictions/${lipSyncPredictionId}`, {
+                  headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` },
+                });
+                const prediction = await statusRes.json();
+                if (prediction.status === "succeeded" && prediction.output) {
+                  finalVideoUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+                  console.log(`[ZombieCleanup] ✅ Lip-sync recovered for ${project.id}`);
+                } else {
+                  console.log(`[ZombieCleanup] Lip-sync not ready, using Kling V3 native audio video for ${project.id}`);
+                }
+              } catch {
+                console.warn(`[ZombieCleanup] Lip-sync check failed, using video as-is`);
               }
-              
-              // Mark project as completed with the video
-              await supabase.from('movie_projects').update({
-                status: 'completed',
-                video_url: finalVideoUrl,
-                voice_audio_url: audioUrl,
-                pipeline_state: {
-                  ...pipelineState,
-                  stage: 'completed',
-                  progress: 100,
-                  message: 'Video recovered by zombie cleanup',
-                  completedAt: new Date().toISOString(),
-                  recoveredBy: 'zombie-cleanup',
-                },
-                updated_at: new Date().toISOString(),
-              }).eq('id', project.id);
-              
-              report.projectsFailed++; // Count as handled
-              report.details.push({
-                entityType: 'project',
-                entityId: project.id,
-                userId: project.user_id,
-                stuckDuration: Math.round(stuckDuration / 1000),
-                action: 'recovered_audio_merge',
-                refundAmount: 0,
-              });
-              continue;
             }
           }
+              
+          // Mark project as completed with the video
+          await supabase.from('movie_projects').update({
+            status: 'completed',
+            video_url: finalVideoUrl,
+            voice_audio_url: audioUrl || null,
+            pipeline_state: {
+              ...pipelineState,
+              stage: 'completed',
+              progress: 100,
+              message: 'Video recovered by zombie cleanup (Kling V3 native audio)',
+              completedAt: new Date().toISOString(),
+              recoveredBy: 'zombie-cleanup',
+              engine: 'kwaivgi/kling-v3-video',
+            },
+            updated_at: new Date().toISOString(),
+          }).eq('id', project.id);
+              
+          report.projectsFailed++;
+          report.details.push({
+            entityType: 'project',
+            entityId: project.id,
+            userId: project.user_id,
+            stuckDuration: Math.round(stuckDuration / 1000),
+            action: 'recovered_kling_v3_native',
+            refundAmount: 0,
+          });
+          continue;
         } catch (recoveryError) {
           console.warn(`[ZombieCleanup] Recovery failed for ${project.id}:`, recoveryError);
         }

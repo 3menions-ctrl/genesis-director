@@ -111,12 +111,17 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
       )
     : false;
   
+  // mse_direct projects store clips in pending_video_tasks.mseClipUrls
+  const mseClipUrls = Array.isArray(pendingTasks?.mseClipUrls) ? pendingTasks.mseClipUrls as string[] : null;
+  const hasMseClips = Boolean(mseClipUrls && mseClipUrls.length > 0);
+  
   const hasVideo = Boolean(
     project.video_clips?.length || 
     isDirectVideo || 
     isManifest || 
     hasAvatarVideo ||
-    (pendingTasks?.hlsPlaylistUrl)
+    (pendingTasks?.hlsPlaylistUrl) ||
+    hasMseClips
   );
   
   const [isIOSSafari, setIsIOSSafari] = useState(false);
@@ -180,8 +185,12 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     if (isDirectVideo && project.video_url && !project.video_url.includes('replicate.delivery')) {
       return project.video_url;
     }
+    // Fallback: use first mseClipUrl for thumbnail/hover preview
+    if (mseClipUrls && mseClipUrls.length > 0) {
+      return mseClipUrls[0];
+    }
     return null;
-  }, [project.video_url, project.video_clips, isDirectVideo, preResolvedClipUrl, selfResolvedClipUrl]);
+  }, [project.video_url, project.video_clips, isDirectVideo, preResolvedClipUrl, selfResolvedClipUrl, mseClipUrls]);
 
   const handleVideoMetadataLoaded = useCallback(() => {
     if (!isMountedRef.current) return;

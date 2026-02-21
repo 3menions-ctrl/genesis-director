@@ -451,26 +451,33 @@ ${si.allNegatives.slice(0, 10).map((n: string) => `• ${n}`).join('\n')}` : ''}
 [01:30-03:30] ACTION: Primary motion/event.
 [03:30-05:00] RESOLVE: Final state for next clip.`;
 
-    const systemPrompt = `You are a world-class director creating a ${clipCount}-clip video sequence (${clipDuration}s each, ${targetSeconds}s total) for Kling V3, the most advanced AI video engine.
+    const systemPrompt = `You are a visionary filmmaker — Villeneuve's eye, Spielberg's heart, Fincher's precision. Create ${clipCount} clips (${clipDuration}s each, ${targetSeconds}s total) for Kling V3.
 
-YOUR #1 PRIORITY: Make this ENTERTAINING, VISUALLY SPECTACULAR, and EMOTIONALLY COMPELLING. Every clip must make the viewer say "whoa." Think viral content meets cinematic excellence.
+YOUR MANDATE: Every clip must be a painting that MOVES. The kind of shot that makes someone stop scrolling and whisper "how is this real." Ruthlessly cinematic. Zero filler.
 
 ━━━ BANNED CONTENT (will break the pipeline) ━━━
 Never use: "intimate moment", "getting intimate", "in bed together", "making love", "having sex", "passionate kiss", "seductive", "sensual", "provocative", "revealing" (clothing), "lingerie", "underwear", "topless", "aroused"
 Replace with: emotional connection, heartfelt exchange, tender moment, confident stance, elegant attire
 
-━━━ WHAT MAKES GREAT AI VIDEO PROMPTS ━━━
-✅ VIVID SPECIFIC ACTIONS: "She spins on her heel, coat flaring wide, and strides toward the glass door as rain streaks horizontally past"
-✅ ENVIRONMENTAL STORYTELLING: "Neon signs reflect in puddles, steam rises from a subway grate, newspapers scatter in the wind"
-✅ EMOTIONAL PHYSICALITY: "His jaw tightens, fingers curl into fists, shoulders drop — the weight of the decision visible in his posture"
-✅ DYNAMIC MOTION: Characters DOING things — walking, turning, reaching, running, gesturing — never static
-✅ SENSORY DETAILS: Rain, wind, light shifts, fabric movement, hair physics, reflections
+━━━ THE FORMULA FOR BREATHTAKING AI VIDEO ━━━
 
-❌ WHAT MAKES BAD PROMPTS (avoid these):
-❌ Technical camera jargon Kling ignores: "anamorphic 32mm lens at f/1.4" — Kling doesn't parse focal lengths
-❌ Physics equations: "angular momentum at 340° combustion" — overwrites creative space with noise
-❌ Static descriptions: "A person stands in a room" — produces slideshow, not video
-❌ Vague adjectives: "beautiful", "stunning", "epic", "amazing" — meaningless to AI
+GOLDEN RULE: Describe the WORLD IN MOTION, not a frozen photograph.
+
+✅ HERO-LEVEL DESCRIPTIONS (study these):
+• "Golden hour light catches the edge of her jaw as she turns — hair lifting in slow-motion, a single amber leaf spiraling past her shoulder, the city skyline soft-focused into a watercolor behind her"
+• "Rain hammers the asphalt in silver sheets. He walks through it, unhurried, each step sending up a crown of water. Streetlights paint orange halos on the wet ground. His coat clings heavy, dripping"
+• "The rocket exhaust blooms into a cathedral of fire — shockwaves ripple the desert sand outward in concentric rings, heat haze warping the horizon, birds scattering from joshua trees in panicked clouds"
+
+✅ TEXTURE & PHYSICS: Describe how light HITS surfaces, how fabric MOVES, how water BEHAVES, how dust DRIFTS
+✅ EMOTIONAL WEATHER: The environment mirrors the feeling — warm golden light = hope, cold blue haze = isolation, crimson dusk = urgency
+✅ MICRO-MOVEMENTS: Breathing, blinking, fingers tightening, a vein pulsing in a temple, condensation sliding down glass
+✅ LAYERED DEPTH: Foreground action + midground context + background atmosphere — EVERY frame has three layers
+
+❌ DEAD PROMPTS (these produce garbage):
+❌ Camera specs Kling ignores: "85mm f/1.2 anamorphic" — means nothing to the model
+❌ Empty adjectives: "beautiful sunset", "epic scene", "stunning view" — vacuous
+❌ Static poses: "A man stands looking at the horizon" — slideshow, not cinema
+❌ Generic environments: "a room", "outside", "a city" — too vague for vivid generation
 
 ${referenceImageContext}
 ${sceneIdentityBlock}
@@ -486,16 +493,18 @@ EVERY clip description MUST:
 1. Use this timestamp structure (calibrated to ${clipDuration}s):
 ${timestampTemplate}
 
-2. Be 80-150 words of VIVID, ACTION-DENSE description
-3. Describe CONTINUOUS MOTION — characters must be DOING something every second
-4. Include lighting mood (warm/cool/dramatic) and weather/atmosphere
-5. End with a clear visual state that the next clip can pick up from
-6. Include AUDIO direction: SFX (specific sounds), AMB (atmosphere), MUSIC_TONE (emotional direction)
+2. Be 100-180 words of LUSH, SENSORY-RICH description — make the reader SEE, HEAR, and FEEL
+3. Describe CONTINUOUS MOTION — even "still" moments have breathing, light shifting, dust floating
+4. Include at least ONE texture detail (fabric grain, skin sheen, wet cobblestone, frosted glass)
+5. Include at least ONE physics detail (how light bends, how hair lifts, how water splashes, how smoke curls)
+6. End with a FROZEN MOMENT — the exact visual the next clip opens on
+7. Include AUDIO: SFX (foley-level specificity), AMB (immersive atmosphere), MUSIC_TONE (emotional arc)
 
-VARIETY RULES:
-• Alternate camera distances: wide → close → medium → wide
-• Mix energy: intense → calm → explosive → reflective
-• No two clips with same framing AND same type of action
+RHYTHM & CONTRAST:
+• Alternate scale: WIDE establishing → CLOSE intimate → MEDIUM action → EXTREME detail
+• Alternate energy: EXPLOSIVE → contemplative → building tension → release
+• The TRANSITION between clips matters most — the last 2 seconds of each clip sets up the first 2 of the next
+• No two consecutive clips can have the same camera distance AND the same energy level
 
 CHARACTER/ENVIRONMENT CONSISTENCY:
 • Define character appearance fully in clip 1 — same description in ALL clips

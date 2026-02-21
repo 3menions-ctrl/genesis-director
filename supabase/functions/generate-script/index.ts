@@ -199,79 +199,47 @@ serve(async (req) => {
     
     if (isFullMovieMode) {
       // Full movie script generation - dynamic shot count based on content (Kling V3: 10s clips)
-      systemPrompt = `You write cinematic scripts for AI video generation and stitching. Generate EXACTLY ${clipCount} shots, each 10 seconds.
+      systemPrompt = `You are a visionary filmmaker creating ${clipCount} shots (${10}s each) for Kling V3. Every shot must be a PAINTING THAT MOVES.
 
 ${isNonCharacterPrompt ? `
-═══════════════════════════════════════════════════════════════════════════════
-CRITICAL - NON-CHARACTER PROMPT DETECTED:
-The user is asking for a VIDEO OF AN OBJECT, VEHICLE, SCENE, OR EVENT - NOT A PERSON.
-- DO NOT invent human characters, observers, scientists, or narrators
-- DO NOT add "ground crew", "spectators", "witnesses", or any other humans
-- Focus ONLY on the subject the user requested: ${userIntent.coreAction || inputText.substring(0, 100)}
-- If no humans are mentioned, NO HUMANS should appear in any shot
-═══════════════════════════════════════════════════════════════════════════════
+⚠️ NON-CHARACTER PROMPT: The user wants a video of an OBJECT, VEHICLE, SCENE, or EVENT — NOT a person.
+DO NOT invent humans, observers, narrators, or spectators. Focus ONLY on: ${userIntent.coreAction || inputText.substring(0, 100)}
 ` : ''}
 
 ${mustPreserveContent ? `
-CRITICAL - USER CONTENT PRESERVATION:
-The user has provided specific narration/dialogue that MUST be used EXACTLY as written.
-DO NOT paraphrase, summarize, or rewrite the user's text.
-Your job is to create VISUAL descriptions that accompany the user's exact words.
+🎤 USER CONTENT: The user provided specific narration/dialogue. Use their EXACT words verbatim.
+Your job: create VISUAL descriptions to accompany their text. DO NOT paraphrase.
 ` : ''}
 
 ${userIntent.coreAction ? `
-═══════════════════════════════════════════════════════════════════════════════
-MANDATORY USER REQUEST - THIS MUST APPEAR IN THE VIDEO:
-The user SPECIFICALLY asked for: ${userIntent.coreAction}
-${userIntent.keyElements.length > 0 ? `Key elements that MUST appear: ${userIntent.keyElements.join(', ')}` : ''}
-${userIntent.forbiddenElements.length > 0 ? `Elements to AVOID: ${userIntent.forbiddenElements.join(', ')}` : ''}
-
-YOU MUST INCLUDE ${userIntent.coreAction.toUpperCase()} IN AT LEAST ONE SHOT.
-If you fail to include what the user asked for, the script is INVALID.
-═══════════════════════════════════════════════════════════════════════════════
+━━━ MANDATORY: "${userIntent.coreAction.toUpperCase()}" MUST APPEAR ━━━
+${userIntent.keyElements.length > 0 ? `Include: ${userIntent.keyElements.join(', ')}` : ''}
+${userIntent.forbiddenElements.length > 0 ? `Avoid: ${userIntent.forbiddenElements.join(', ')}` : ''}
 ` : ''}
 
-FORMAT (use exactly this):
-[SHOT 1] Visual description with motion and physics.
+━━━ FORMULA FOR BREATHTAKING AI VIDEO ━━━
+✅ TEXTURE & PHYSICS: How light hits surfaces, fabric moves, water behaves, dust drifts
+✅ EMOTIONAL WEATHER: Environment mirrors feeling — golden light = hope, blue haze = isolation
+✅ LAYERED DEPTH: Foreground action + midground context + background atmosphere in EVERY frame
+✅ MICRO-MOVEMENTS: Breathing, blinking, condensation sliding, leaves trembling
+❌ AVOID: Camera specs ("85mm f/1.2"), empty adjectives ("beautiful", "epic"), static poses
+
+FORMAT:
+[SHOT 1] 100-150 words of lush, sensory-rich visual description with continuous motion and physics.
 ${hasUserNarration ? '[NARRATION] (User\'s exact narration for this shot)' : ''}
 ${hasUserDialogue ? '[DIALOGUE] (User\'s exact dialogue for this shot)' : ''}
-[SHOT 2] Visual description continuing the motion seamlessly.
-...continue for all shots...
+[SHOT 2] Seamless continuation — the frozen moment from Shot 1 thaws into new action.
+...continue for all ${clipCount} shots...
 
-CRITICAL: BUFFER SHOTS FOR SMOOTH STITCHING
-When transitioning between significantly different scenes, include BUFFER SHOTS:
-- ENVIRONMENTAL PAUSE: Wide establishing shot before new location
-- REACTION BEAT: Close-up of subject processing the moment
-- OBJECT DETAIL: Focus on prop/element to bridge scenes
-- TRANSITIONAL MOVEMENT: Camera movement that bridges locations
-
-INSERT BUFFER SHOTS:
-- Before major location changes (interior → exterior)
-- After intense action sequences (fight → calm moment)
-- When changing primary subjects
-- At emotional tone shifts
-
-CINEMATIC TRANSITION RULES (CRITICAL):
-1. PHYSICS CONTINUITY: If shot ends with motion (falling, running, reaching), next shot MUST continue that momentum OR use buffer shot
-2. SPATIAL FLOW: Camera perspective flows naturally - if ending on a close-up, use a buffer to reset OR continue movement
-3. MATCH-ACTION: Character's gesture/movement at end of one shot continues at start of next
-4. LIGHTING BRIDGE: Maintain consistent light direction across cuts, or use buffer to establish new lighting
-5. GAZE DIRECTION: If character looks left at end, next shot shows what they see OR buffer establishes new POV
-
-MOTION REQUIREMENTS:
-- Every shot includes visible movement (character action, physics motion, or camera drift)
-- End each shot with momentum that carries into the next OR with a neutral "safe" position
-- For difficult transitions, use a BUFFER SHOT with establishing/detail content
-- Describe body mechanics: weight shifts, reach, tension, release
+TRANSITIONS: Each shot's last 2 seconds set up the next shot's first 2 seconds.
+Use BUFFER SHOTS between major scene changes (establishing wide, detail close-up, reaction beat).
 
 RULES:
-- Generate EXACTLY ${clipCount} shots to fit the content
-- Each shot is EXACTLY 10 seconds (Kling V3)
-- Rich visual descriptions with motion and physics
-- Every transition must be seamless - use buffer shots for major scene changes
-- NO static scenes - always movement (even buffer shots have subtle motion)
-${mustPreserveContent ? '- PRESERVE USER\'S EXACT NARRATION/DIALOGUE - do not modify their words' : ''}
-${userIntent.coreAction ? `- YOU MUST INCLUDE "${userIntent.coreAction.toUpperCase()}" IN THE SCRIPT - THIS IS NON-NEGOTIABLE` : ''}`;
+- EXACTLY ${clipCount} shots, each 10 seconds
+- Every description: 100-150 words, vivid and sensory-rich
+- NO static scenes — even calm moments have breathing, light shifts, particles floating
+${mustPreserveContent ? '- PRESERVE user\'s exact narration/dialogue verbatim' : ''}
+${userIntent.coreAction ? `- "${userIntent.coreAction.toUpperCase()}" IS NON-NEGOTIABLE` : ''}`;
 
       // Build character descriptions if provided
       const characterDescriptions = hasCharacters 
@@ -280,66 +248,64 @@ ${userIntent.coreAction ? `- YOU MUST INCLUDE "${userIntent.coreAction.toUpperCa
           ).join(', ')
         : '';
 
-      userPrompt = `Write EXACTLY ${clipCount} shots for: "${requestData.title}"
+      userPrompt = `Write EXACTLY ${clipCount} breathtaking shots for: "${requestData.title}"
 Genre: ${requestData.genre || 'Drama'}
-${requestData.synopsis ? `Concept: ${requestData.synopsis.substring(0, 200)}` : ''}
+${requestData.synopsis ? `Concept: ${requestData.synopsis.substring(0, 300)}` : ''}
 ${characterDescriptions ? `Characters: ${characterDescriptions}` : ''}
 ${hasUserNarration ? `
-USER'S NARRATION (USE EXACTLY - DO NOT CHANGE):
+USER'S NARRATION (VERBATIM — DO NOT CHANGE A SINGLE WORD):
 """
 ${requestData.userNarration}
 """
-Distribute this narration across the ${clipCount} shots. Use the EXACT words provided.
+Distribute across the ${clipCount} shots.
 ` : ''}
 ${hasUserDialogue && requestData.userDialogue ? `
-USER'S DIALOGUE (USE EXACTLY - DO NOT CHANGE):
+USER'S DIALOGUE (VERBATIM — DO NOT CHANGE):
 ${requestData.userDialogue.map((d, i) => `Line ${i + 1}: "${d}"`).join('\n')}
-Include these dialogue lines in the appropriate shots. Use the EXACT words provided.
 ` : ''}
 
-CRITICAL: 
-- Generate EXACTLY ${clipCount} shots (based on content length)
-- Total duration: ${clipCount * 10} seconds
-- Each shot must transition SMOOTHLY into the next
-- Use BUFFER SHOTS (establishing, detail, reaction beats) between major scene changes
-- This will be stitched by AI, so ensure visual continuity
-${mustPreserveContent ? '- The user\'s narration/dialogue MUST appear exactly as written - only add visual descriptions' : ''}
-Write ${clipCount} shots. Rich visual descriptions. Go:`;
+REQUIREMENTS:
+- EXACTLY ${clipCount} shots × 10 seconds = ${clipCount * 10}s total
+- Each shot: 100-150 words of LUSH visual description with texture, physics, and emotion
+- Shot 1 opens with a HOOK — an image so vivid it stops scrolling
+- Each shot's final frame flows into the next shot's opening
+- Include at least one texture detail per shot (surface grain, light quality, material feel)
+${mustPreserveContent ? '- User\'s narration/dialogue appears EXACTLY as written' : ''}
+Write ${clipCount} shots now:`;
 
     } else {
       // Legacy simple mode - for topic-based requests
-      systemPrompt = `You are a visual storyteller. Write scripts that are VISUALLY RICH with cinematic precision.
-Include specific visual details: colors, lighting, textures, movements.
-After each key point, add a [VISUAL: description] tag.
+      systemPrompt = `You are a cinematic visual poet. Every word you write becomes a moving image.
+Your scripts read like the opening of an award-winning film — sensory, specific, alive.
+Describe TEXTURES (wet cobblestone, frosted glass, sun-bleached wood), PHYSICS (how light bends through rain, how fabric catches wind), and EMOTION through environment (warm golden light = hope, cold blue haze = isolation).
+After each key moment, add a [VISUAL: description] tag with foley-level detail.
 ${mustPreserveContent ? `
-CRITICAL: The user has provided specific narration/dialogue. You MUST use their EXACT words.
-DO NOT paraphrase or rewrite. Only add visual descriptions to accompany their text.
+The user provided specific narration/dialogue. Use their EXACT words verbatim.
+Only add visual descriptions to accompany their text.
 ` : ''}`;
 
-      // Use synopsis OR topic for the content
       const content = requestData.synopsis || requestData.topic || 'a visually engaging scene';
 
-      userPrompt = `Write a VISUALLY DESCRIPTIVE ${requestData.duration || '60 second'} video script about: ${content}
-Style: ${requestData.style || 'Professional and engaging'}
+      userPrompt = `Write a CINEMATIC ${requestData.duration || '60 second'} video script about: ${content}
+Style: ${requestData.style || 'Cinematic and immersive'}
 Title: ${requestData.title || 'Untitled'}
 ${hasUserNarration ? `
-USER'S NARRATION (USE EXACTLY - DO NOT MODIFY):
+USER'S NARRATION (USE EXACTLY):
 """
 ${requestData.userNarration}
 """
 ` : ''}
 ${hasUserDialogue && requestData.userDialogue ? `
-USER'S DIALOGUE (USE EXACTLY - DO NOT MODIFY):
+USER'S DIALOGUE (USE EXACTLY):
 ${requestData.userDialogue.map((d, i) => `"${d}"`).join('\n')}
 ` : ''}
 
 Requirements:
-- Follow the user's concept EXACTLY
-${mustPreserveContent ? '- USE THE USER\'S EXACT NARRATION/DIALOGUE - do not paraphrase or rewrite their words' : ''}
-- Start with an attention-grabbing hook AND opening visual
-- Include [VISUAL: ...] tags describing imagery
-- Use descriptive language for environments and characters
-- Keep the script focused on what the user asked for
+- Open with an image that GRABS — a texture, a motion, a light shift that hooks immediately
+- Every [VISUAL] tag describes a MOVING scene, not a photograph
+- Include at least one texture detail per visual (grain of wood, sheen of rain, warmth of skin)
+- Environment should BREATHE — wind, particles, shifting light, living atmosphere
+${mustPreserveContent ? '- USE the user\'s EXACT narration/dialogue verbatim' : ''}
 
 Write the script now:`;
     }

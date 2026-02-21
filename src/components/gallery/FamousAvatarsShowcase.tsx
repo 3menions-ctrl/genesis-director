@@ -233,8 +233,7 @@ const AvatarCard = memo(function AvatarCard({ avatar, index }: AvatarCardProps) 
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className={cn(
-        "group relative cursor-pointer animate-fade-in",
-        imageLoaded ? "opacity-100" : "opacity-0"
+        "group relative cursor-pointer animate-fade-in opacity-100"
       )}
       style={{
         animationDelay: `${animationDelay}s`,
@@ -253,7 +252,13 @@ const AvatarCard = memo(function AvatarCard({ avatar, index }: AvatarCardProps) 
         
         {/* Shimmer loading state */}
         {!imageLoaded && (
-          <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-white/10 to-white/5 animate-pulse" />
+          <div className="absolute inset-0 bg-gradient-to-br from-violet-500/20 via-muted/30 to-muted/50 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+              <span className="text-lg font-bold text-white/40">
+                {avatar.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
+              </span>
+            </div>
+          </div>
         )}
         
         {/* Avatar image */}
@@ -262,10 +267,10 @@ const AvatarCard = memo(function AvatarCard({ avatar, index }: AvatarCardProps) 
           alt={avatar.name}
           loading="lazy"
           onLoad={() => setImageLoaded(true)}
+          onError={() => setImageLoaded(true)}
           className={cn(
             "w-full h-full object-cover object-top transition-all duration-500",
             isHovered ? "scale-105 brightness-110" : "scale-100 brightness-90",
-            imageLoaded ? "opacity-100" : "opacity-0"
           )}
         />
         

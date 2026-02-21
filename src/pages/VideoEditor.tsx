@@ -1018,6 +1018,93 @@ const VideoEditor = () => {
     setIsGeneratingFromAudio(false);
   }, [user, withHistory]);
 
+  // ═══ Text-to-Video Generation ═══
+  const [isGeneratingTextToVideo, setIsGeneratingTextToVideo] = useState(false);
+
+  const handleGenerateTextToVideo = useCallback(async (prompt: string, durationSeconds: number, insertAt: number) => {
+    if (!user) {
+      toast.error("Please sign in to generate videos");
+      return;
+    }
+
+    setIsGeneratingTextToVideo(true);
+    toast.info(`Generating ${durationSeconds}s video clip…`);
+
+    try {
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/editor-generate-from-audio`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            prompt,
+            duration_seconds: durationSeconds,
+          }),
+        }
+      );
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Generation failed" }));
+        toast.error(err.error || "Video generation failed");
+        setIsGeneratingTextToVideo(false);
+        return;
+      }
+
+      const data = await resp.json();
+
+      if (data.video_url) {
+        // Determine insertion point
+        const videoTrack = editorState.tracks.find(t => t.type === "video");
+        let startTime: number;
+        if (insertAt >= 0) {
+          startTime = insertAt;
+        } else {
+          // Append to end: find the last clip's end time
+          const maxEnd = videoTrack
+            ? Math.max(0, ...videoTrack.clips.map(c => c.end))
+            : 0;
+          startTime = maxEnd;
+        }
+
+        const newClip: TimelineClip = {
+          id: `t2v-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          trackId: "video-0",
+          start: startTime,
+          end: startTime + (data.duration || durationSeconds),
+          type: "video",
+          sourceUrl: data.video_url,
+          label: prompt.substring(0, 50),
+          effects: [],
+        };
+
+        withHistory((prev) => ({
+          ...prev,
+          tracks: buildTracksWithAudio(
+            prev.tracks,
+            [
+              ...(prev.tracks.find(t => t.id === "video-0")?.clips || []),
+              newClip,
+            ].sort((a, b) => a.start - b.start)
+          ),
+          duration: Math.max(prev.duration, newClip.end),
+          selectedClipId: newClip.id,
+        }));
+
+        toast.success(`${durationSeconds}s clip generated and placed on timeline!`);
+      } else {
+        toast.error("No video URL returned. Try again.");
+      }
+    } catch (err) {
+      console.error("[TextToVideo] Error:", err);
+      toast.error("Generation failed. Check credits and try again.");
+    }
+
+    setIsGeneratingTextToVideo(false);
+  }, [user, editorState.tracks, withHistory]);
+
   const [showExportDialog, setShowExportDialog] = useState(false);
 
   const handleTimeChange = useCallback((time: number) => {
@@ -1514,6 +1601,8 @@ const VideoEditor = () => {
             onAudioUploaded={handleAudioUploaded}
             onGenerateVideosFromAudio={handleGenerateVideosFromAudio}
             isGeneratingFromAudio={isGeneratingFromAudio}
+            onGenerateTextToVideo={handleGenerateTextToVideo}
+            isGeneratingTextToVideo={isGeneratingTextToVideo}
           />
         </div>
       </div>

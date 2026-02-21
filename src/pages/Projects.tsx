@@ -138,13 +138,7 @@ function ProjectsContentInner() {
   
   // FIX: useAuth and useStudio now return safe fallbacks if context is missing
   // No try-catch needed - that violated React's hook rules
-  const { user } = useAuth();
-  
-  // CENTRALIZED GATEKEEPER - world-class loading structure
-  // Note: dataLoading will be false initially, gets real value from usePaginatedProjects below
-  const gatekeeper = useGatekeeperLoading({
-    ...GATEKEEPER_PRESETS.projects,
-  });
+  const { user, loading: authLoading } = useAuth();
   
   const { 
     activeProjectId, 
@@ -174,6 +168,15 @@ function ProjectsContentInner() {
   } = usePaginatedProjects(sortBy, sortOrder, statusFilter, searchQuery);
   
   const hasLoadedOnce = !isLoadingProjects;
+
+  // CENTRALIZED GATEKEEPER - connected to real loading states
+  // Must be AFTER usePaginatedProjects so we can pass dataLoading
+  const gatekeeper = useGatekeeperLoading({
+    ...GATEKEEPER_PRESETS.projects,
+    authLoading: authLoading,
+    dataLoading: isLoadingProjects,
+    dataSuccess: hasLoadedOnce,
+  });
   
   // Thumbnail generation hook
   const { generateMissingThumbnails } = useProjectThumbnails();
@@ -856,16 +859,17 @@ function ProjectsContentInner() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
-      {/* Gatekeeper loading screen */}
-      {gatekeeper.isLoading && (
+      {/* Gatekeeper loading screen - renders EXCLUSIVELY, no background or content behind it */}
+      {gatekeeper.isLoading ? (
         <CinemaLoader
           isVisible={true}
           message={getGatekeeperMessage(gatekeeper.phase, GATEKEEPER_PRESETS.projects.messages)}
           showProgress={true}
           progress={gatekeeper.progress}
         />
-      )}
-      {/* Premium Animated Background */}
+      ) : (
+        <>
+      {/* Premium Animated Background - only mounts AFTER loading completes */}
       <ProjectsBackground />
 
       {/* Navigation */}
@@ -1539,6 +1543,8 @@ function ProjectsContentInner() {
         clipUrls={mergeDownloadClips}
         masterAudioUrl={mergeDownloadAudioUrl}
       />
+        </>
+      )}
     </div>
   );
 }

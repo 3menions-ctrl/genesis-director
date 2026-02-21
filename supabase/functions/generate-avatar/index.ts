@@ -132,6 +132,8 @@ serve(async (req) => {
           start_image: avatarImageUrl,
           aspect_ratio: aspectRatio,
           generate_audio: true, // ✅ Kling V3 native lip-sync audio
+          safety_tolerance: 2, // Max allowed with images — prevents E006 rejections
+          seed: Math.floor(Math.random() * 2147483647),
           negative_prompt: "blurry, distorted, glitchy, unnatural movements, closed mouth, frozen face, robotic, stiff, static, face morphing, identity change, different person, age change",
         },
       }),

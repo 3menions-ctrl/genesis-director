@@ -1,7 +1,9 @@
 // Quality Tier System Types
-// Pricing: 
-// - Base: 10 credits per clip (clips 1-6, up to 6 seconds)
-// - Extended: 15 credits per clip (clips 7+ OR duration >6 seconds)
+// Pricing:
+// - Standard 10s: 50 credits per clip ($5.00)
+// - Standard 15s: 75 credits per clip ($7.50)
+// - Avatar 10s: 60 credits per clip ($6.00)
+// - Avatar 15s: 90 credits per clip ($9.00)
 // 1 credit = $0.10
 
 // Single unified tier - all production is premium quality
@@ -14,16 +16,15 @@ export interface QualityTierConfig {
   extendedCredits: number;
   description: string;
   features: string[];
-  maxRetries: number; // Autonomous retries per shot
+  maxRetries: number;
   includesAudit: boolean;
   includesVisualDebugger: boolean;
 }
 
-// Single premium tier configuration - all users get the same quality
 const PREMIUM_TIER_CONFIG: Omit<QualityTierConfig, 'id'> = {
   name: 'Premium',
-  baseCredits: 10, // Clips 1-6, ≤6 seconds
-  extendedCredits: 15, // Clips 7+ OR >6 seconds
+  baseCredits: 50,     // 10s clips
+  extendedCredits: 75,  // 15s clips
   description: 'Zero-Waste quality with autonomous retries',
   features: [
     'Script-to-video generation',
@@ -51,20 +52,20 @@ export function getTierConfig(tier: QualityTier = 'standard'): QualityTierConfig
   return QUALITY_TIERS.find(t => t.id === tier) ?? QUALITY_TIERS[0];
 }
 
-// Credit cost breakdown - Base rate (clips 1-6, ≤6 seconds)
+// Credit cost breakdown — Standard T2V/I2V 10s rate
 export const BASE_CREDIT_BREAKDOWN = {
-  PRE_PRODUCTION: 2,    // Script analysis per clip
-  PRODUCTION: 6,        // Video generation per clip
-  QUALITY_INSURANCE: 2, // Audit + debugger + retries per clip
-  TOTAL: 10,            // = 10 credits per clip
+  PRE_PRODUCTION: 8,
+  PRODUCTION: 34,
+  QUALITY_INSURANCE: 8,
+  TOTAL: 50,
 } as const;
 
-// Extended rate (clips 7+ OR >6 seconds)
+// Extended rate (15s clips)
 export const EXTENDED_CREDIT_BREAKDOWN = {
-  PRE_PRODUCTION: 3,
-  PRODUCTION: 9,
-  QUALITY_INSURANCE: 3,
-  TOTAL: 15,
+  PRE_PRODUCTION: 12,
+  PRODUCTION: 51,
+  QUALITY_INSURANCE: 12,
+  TOTAL: 75,
 } as const;
 
 // Legacy exports for backward compatibility

@@ -337,13 +337,14 @@ serve(async (req) => {
     
     if (requiresLocalCreditDeduction) {
       // Calculate total credits needed — Kling V3 tiered pricing
-      // Standard: 12cr (≤10s), 18cr (11-15s)
-      // Avatar: 15cr (≤10s), 22cr (11-15s) — includes native audio/lip-sync
+      // Real cost: $3.38/10s clip. We charge $5 (50 credits) minimum.
+      // Standard: 50cr (≤10s), 75cr (15s)
+      // Avatar: 60cr (≤10s), 90cr (15s) — includes native audio/lip-sync
       const isAvatar = mode === 'avatar';
       const isExtendedDuration = clipDuration > 10;
       const creditsPerClip = isAvatar
-        ? (isExtendedDuration ? 22 : 15)
-        : (isExtendedDuration ? 18 : 12);
+        ? (isExtendedDuration ? 90 : 60)
+        : (isExtendedDuration ? 75 : 50);
       
       let totalCredits = clipCount * creditsPerClip;
       

@@ -2283,7 +2283,7 @@ serve(async (req) => {
         // Re-fetch clips after recovery attempt
         const { data: updatedClips } = await supabase
           .from('video_clips')
-          .select('id, shot_index, status, video_url')
+          .select('id, shot_index, status, video_url, updated_at')
           .eq('project_id', project.id)
           .order('shot_index');
         
@@ -2325,6 +2325,19 @@ serve(async (req) => {
         
         // Incomplete -> resume production via DIRECT CHAINING (not heavyweight resume-pipeline)
         // This calls continue-production which dispatches the next clip with skipPolling=true
+        // GUARD: Do NOT resume if any clip is actively generating (Kling V3 takes 5-10 min)
+        const activelyGenerating = (updatedClips || []).filter((c: { status: string; updated_at?: string }) => {
+          if (c.status !== 'generating') return false;
+          // Consider "active" if updated within last 12 minutes (Kling V3 worst-case)
+          const clipAge = Date.now() - new Date((c as any).updated_at || 0).getTime();
+          return clipAge < 12 * 60 * 1000;
+        });
+        
+        if (activelyGenerating.length > 0) {
+          console.log(`[Watchdog] ⏳ Skipping resume for ${project.id} - ${activelyGenerating.length} clip(s) actively generating (within 12min window)`);
+          continue;
+        }
+        
         if (completedClips.length > 0 && completedClips.length < expectedClipCount) {
           const lastCompletedIndex = Math.max(...completedClips.map((c: any) => c.shot_index));
           console.log(`[Watchdog] Direct-chaining: triggering clip ${lastCompletedIndex + 2}/${expectedClipCount} via continue-production`);

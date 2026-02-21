@@ -254,10 +254,10 @@ serve(async (req) => {
         };
       }),
       totalDuration,
-      // VOICE TTS: Use user's selected voice (TTS) instead of Kling's generic AI voice
-      // When voice_audio_url exists, the player uses it as voice overlay and mutes clip audio
-      voiceUrl: isAvatarProject ? ((project as any)?.voice_audio_url || null) : null,
-      masterAudioUrl: isAvatarProject ? ((project as any)?.voice_audio_url || null) : null,
+      // KLING NATIVE AUDIO: All clips use Kling V3's embedded audio for consistency
+      // No TTS overlay — native lip-sync audio is the final audio
+      voiceUrl: null,
+      masterAudioUrl: null,
       isAvatarProject,
       musicUrl: project?.music_url || null,
       // Volume automation keyframes for real-time ducking
@@ -272,13 +272,13 @@ serve(async (req) => {
       } : null,
       audioConfig: {
         includeNarration: false,
-        // VOICE TTS: Mute clip's embedded Kling audio when we have proper TTS voice
-        muteClipAudio: isAvatarProject && !!(project as any)?.voice_audio_url,
+        // KLING NATIVE AUDIO: Never mute — embedded audio IS the final audio
+        muteClipAudio: false,
         musicVolume: isAvatarProject ? 0.3 : 0.8,
         fadeIn: 1,
         fadeOut: 2,
         enableDialogueDucking: volumeAutomation.length > 0,
-        embeddedAudioOnly: !(isAvatarProject && !!(project as any)?.voice_audio_url),
+        embeddedAudioOnly: true,
       },
     };
 

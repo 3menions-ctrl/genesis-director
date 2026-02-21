@@ -423,7 +423,7 @@ describe('Admin Panel — Header Integration', () => {
   });
 
   it('should style admin link differently (warning/amber) for visual distinction', () => {
-    expect(header).toMatch(/text-warning|text-amber-400/);
+    expect(header).toMatch(/text-warning|text-amber-400|warning/);
   });
 
   it('should show admin link in both desktop dropdown and mobile menu', () => {

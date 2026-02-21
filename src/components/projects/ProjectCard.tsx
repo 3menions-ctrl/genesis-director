@@ -378,14 +378,14 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
                     <LazyVideoThumbnail src={videoSrc} posterUrl={project.thumbnail_url} alt={project.name} className="w-full h-full object-cover" />
                   )}
                 </div>
-                <video ref={videoRef} src={isHovered ? videoSrc : undefined}
-                  className={cn(
-                    "absolute inset-0 w-full h-full object-cover transition-all duration-700",
-                    isHovered ? "opacity-100 scale-[1.05]" : "opacity-0 scale-100"
-                  )}
-                  loop muted playsInline preload="none"
-                  onLoadedMetadata={handleVideoMetadataLoaded}
-                  onError={() => setVideoError(true)} />
+                {/* Only mount video element when actively hovered to prevent resource waste */}
+                {isHovered && (
+                  <video ref={videoRef} src={videoSrc}
+                    className="absolute inset-0 w-full h-full object-cover transition-all duration-700 opacity-100 scale-[1.05]"
+                    loop muted playsInline preload="none"
+                    onLoadedMetadata={handleVideoMetadataLoaded}
+                    onError={() => setVideoError(true)} />
+                )}
               </>
             )}
           </>

@@ -14,7 +14,7 @@ import {
   Image, Sparkles, Clapperboard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
+import { LazyVideoThumbnail } from '@/components/ui/LazyVideoThumbnail';
 import { safePlay, safePause, safeSeek } from '@/lib/video/safeVideoOperations';
 import { Input } from '@/components/ui/input';
 import {
@@ -1070,10 +1070,9 @@ function ProjectsContentInner() {
                           "bg-white/[0.02] border border-white/[0.06]",
                           "hover:border-primary/30 hover:-translate-y-1 hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.7)] transition-all duration-500"
                         )}>
-                          <PausedFrameVideo
+                          <LazyVideoThumbnail
                             src={video.video_url}
                             className="w-full h-full object-cover"
-                            showLoader={false}
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500">

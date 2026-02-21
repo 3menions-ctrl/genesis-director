@@ -12,7 +12,7 @@ import { EditorMediaBrowser } from "@/components/editor/EditorMediaBrowser";
 import { ExportDialog } from "@/components/editor/ExportDialog";
 import { Film, Sparkles } from "lucide-react";
 import { useEditorHistory } from "@/hooks/useEditorHistory";
-import type { EditorState, TimelineTrack, TimelineClip, MusicTrack, TimelineMarker, ExportSettings } from "@/components/editor/types";
+import type { EditorState, TimelineTrack, TimelineClip, MusicTrack, TimelineMarker, ExportSettings, Caption } from "@/components/editor/types";
 import { DEFAULT_EXPORT_SETTINGS } from "@/components/editor/types";
 
 /**
@@ -881,6 +881,112 @@ const VideoEditor = () => {
     toast.success(`Auto-cut: ${cutPoints.length} beat cuts applied`);
   }, [withHistory]);
 
+  // ═══ Audio Upload → Transcribe → Generate Workflow ═══
+  const [isGeneratingFromAudio, setIsGeneratingFromAudio] = useState(false);
+
+  const handleAudioUploaded = useCallback((audioUrl: string, duration: number, captions: Caption[]) => {
+    // Add audio to the audio track AND set it on the voice track
+    const audioTrack = editorState.tracks.find((t) => t.type === "audio");
+    if (!audioTrack) return;
+
+    const newClip: TimelineClip = {
+      id: `audio-upload-${Date.now()}`,
+      trackId: audioTrack.id,
+      start: 0,
+      end: duration,
+      type: "audio",
+      sourceUrl: audioUrl,
+      label: "🎙️ Uploaded Audio",
+      effects: [],
+      volume: 100,
+      captions,
+    };
+
+    withHistory((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map((t) =>
+        t.id === audioTrack.id ? { ...t, clips: [...t.clips, newClip] } : t
+      ),
+      duration: Math.max(prev.duration, duration),
+    }));
+  }, [editorState.tracks, withHistory]);
+
+  const handleGenerateVideosFromAudio = useCallback(async (segments: { start: number; end: number; prompt: string }[]) => {
+    if (!user) {
+      toast.error("Please sign in to generate videos");
+      return;
+    }
+
+    setIsGeneratingFromAudio(true);
+    toast.info(`Generating ${segments.length} video clips from audio prompts...`);
+
+    let successCount = 0;
+    const generatedClips: TimelineClip[] = [];
+
+    for (const seg of segments) {
+      try {
+        const clipDuration = Math.min(Math.max(Math.round(seg.end - seg.start), 3), 15);
+
+        const resp = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/editor-generate-from-audio`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({
+              prompt: seg.prompt,
+              duration_seconds: clipDuration,
+            }),
+          }
+        );
+
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({ error: "Generation failed" }));
+          console.error(`Segment ${seg.start}-${seg.end} failed:`, err);
+          continue;
+        }
+
+        const data = await resp.json();
+
+        if (data.video_url) {
+          const newClip: TimelineClip = {
+            id: `audio-gen-${Date.now()}-${successCount}`,
+            trackId: "video-0",
+            start: seg.start,
+            end: seg.start + clipDuration,
+            type: "video",
+            sourceUrl: data.video_url,
+            label: seg.prompt.substring(0, 40),
+            effects: successCount > 0 ? [{ type: "transition" as const, name: "crossfade", duration: 0.5 }] : [],
+          };
+          generatedClips.push(newClip);
+          successCount++;
+        }
+      } catch (err) {
+        console.error(`Error generating segment:`, err);
+      }
+    }
+
+    if (generatedClips.length > 0) {
+      withHistory((prev) => ({
+        ...prev,
+        tracks: prev.tracks.map((t) =>
+          t.id === "video-0"
+            ? { ...t, clips: [...t.clips, ...generatedClips].sort((a, b) => a.start - b.start) }
+            : t
+        ),
+        duration: Math.max(prev.duration, ...generatedClips.map(c => c.end)),
+      }));
+      toast.success(`${successCount}/${segments.length} video clips generated and placed on timeline`);
+    } else {
+      toast.error("No clips could be generated. Check your credits or try again.");
+    }
+
+    setIsGeneratingFromAudio(false);
+  }, [user, withHistory]);
+
   const [showExportDialog, setShowExportDialog] = useState(false);
 
   const handleTimeChange = useCallback((time: number) => {
@@ -1374,6 +1480,9 @@ const VideoEditor = () => {
             onAddSticker={handleAddSticker}
             onApplyEffect={handleApplyEffect}
             onBeatSyncAutocut={handleBeatSyncAutocut}
+            onAudioUploaded={handleAudioUploaded}
+            onGenerateVideosFromAudio={handleGenerateVideosFromAudio}
+            isGeneratingFromAudio={isGeneratingFromAudio}
           />
         </div>
       </div>

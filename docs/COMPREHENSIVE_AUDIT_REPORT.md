@@ -134,9 +134,11 @@ stuck_generating_projects: 0
 ```
 
 ### 3.3 Credit System Integrity ✅
-- Formula: `balance = 60 + purchased - used`
+- Formula: `balance = 0 + purchased - used` (signup gives 0 welcome credits)
+- Signup trigger: `handle_new_user` sets `credits_balance = 0`
 - Race condition protection: Uses database transactions via RPC
 - Webhook security: Stripe signature verification enforced
+- Idempotency: `add_credits()` checks for duplicate `stripe_payment_id`
 
 ### 3.4 Foreign Key Relationships
 - All critical relationships have proper constraints

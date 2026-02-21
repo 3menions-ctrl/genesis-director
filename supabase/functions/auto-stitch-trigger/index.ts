@@ -48,10 +48,10 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Step 1: Get project details
+    // Step 1: Get project details (include pipeline_state for avatar totalClips)
     const { data: project, error: projectError } = await supabase
       .from('movie_projects')
-      .select('id, title, status, pending_video_tasks')
+      .select('id, title, status, pending_video_tasks, pipeline_state, mode')
       .eq('id', projectId)
       .single();
 
@@ -72,11 +72,21 @@ serve(async (req) => {
       );
     }
 
-    // Step 2: Get expected clip count
+    // Step 2: Get expected clip count — check MULTIPLE sources for accuracy
     const tasks = project.pending_video_tasks as Record<string, unknown> | null;
-    const expectedClipCount = (tasks?.clipCount as number) || 6;
+    const pipelineState = project.pipeline_state as Record<string, unknown> | null;
+    const asyncJobData = pipelineState?.asyncJobData as Record<string, unknown> | null;
+    const predictions = asyncJobData?.predictions as Array<unknown> | undefined;
     
-    console.log(`[AutoStitch] Expected clip count: ${expectedClipCount}`);
+    // Priority: pipeline_state.asyncJobData.totalClips > predictions.length > tasks.clipCount > tasks.shotCount > 6
+    const expectedClipCount = 
+      (asyncJobData?.totalClips as number) ||
+      (predictions?.length) ||
+      (tasks?.clipCount as number) || 
+      (tasks?.shotCount as number) || 
+      6;
+    
+    console.log(`[AutoStitch] Expected clip count: ${expectedClipCount} (mode: ${project.mode}, source: ${asyncJobData?.totalClips ? 'pipeline_state' : predictions?.length ? 'predictions' : tasks?.clipCount ? 'tasks.clipCount' : 'default'})`);
 
     // Step 3: Count completed clips
     const { data: clips, error: clipsError } = await supabase

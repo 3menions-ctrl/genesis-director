@@ -53,6 +53,28 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // =====================================================
+    // CHECK EXPECTED CLIP COUNT FROM PIPELINE STATE
+    // For avatar projects, pipeline_state.asyncJobData has the true clip count
+    // =====================================================
+    const { data: projectMeta } = await supabase
+      .from('movie_projects')
+      .select('pipeline_state, mode, pending_video_tasks')
+      .eq('id', projectId)
+      .single();
+    
+    const pipelineState = projectMeta?.pipeline_state as Record<string, unknown> | null;
+    const asyncJobData = pipelineState?.asyncJobData as Record<string, unknown> | null;
+    const predictions = asyncJobData?.predictions as Array<{ status?: string; videoUrl?: string }> | undefined;
+    const existingTasks = projectMeta?.pending_video_tasks as Record<string, unknown> | null;
+    
+    // Calculate expected clip count from pipeline_state (authoritative for avatar projects)
+    const expectedFromPipeline = (asyncJobData?.totalClips as number) || predictions?.length || 0;
+    const expectedFromTasks = (existingTasks?.clipCount as number) || (existingTasks?.shotCount as number) || 0;
+    const expectedClipCount = expectedFromPipeline || expectedFromTasks;
+    
+    console.log(`[SimpleStitch] Expected clips: ${expectedClipCount} (pipeline: ${expectedFromPipeline}, tasks: ${expectedFromTasks})`);
+
+    // =====================================================
     // IRON-CLAD BEST CLIP SELECTION
     // Step 1: Load ALL completed clips with quality_score
     // Then select the BEST clip per shot_index (highest quality_score)
@@ -73,6 +95,22 @@ serve(async (req) => {
 
     if (!allClips || allClips.length === 0) {
       throw new Error("No completed clips found for this project");
+    }
+
+    // GUARD: If we know the expected count and don't have enough clips, refuse to stitch
+    if (expectedClipCount > 0 && allClips.length < expectedClipCount) {
+      console.warn(`[SimpleStitch] ⚠️ BLOCKING PREMATURE STITCH: Only ${allClips.length}/${expectedClipCount} clips ready`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Only ${allClips.length} of ${expectedClipCount} clips are ready. Cannot stitch incomplete project.`,
+          reason: 'clips_pending',
+          clipsReady: allClips.length,
+          clipsExpected: expectedClipCount,
+          processingTimeMs: Date.now() - startTime,
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     console.log(`[SimpleStitch] Found ${allClips.length} total completed clip versions`);

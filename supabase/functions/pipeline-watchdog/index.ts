@@ -1170,6 +1170,50 @@ serve(async (req) => {
         
         const finalVideoUrl = stitchedVideoUrl || primaryVideoUrl;
         
+        // ═══════════════════════════════════════════════════════════════════
+        // GENERATE HLS PLAYLIST for avatar projects — ensures immediate playback
+        // ═══════════════════════════════════════════════════════════════════
+        let avatarHlsPlaylistUrl: string | null = null;
+        if (videoClipsArray.length > 0) {
+          try {
+            const clipDurationSec = tasks.clipDuration || 10;
+            const maxClipDuration = Math.ceil(clipDurationSec);
+            
+            let hlsContent = `#EXTM3U\n`;
+            hlsContent += `#EXT-X-VERSION:3\n`;
+            hlsContent += `#EXT-X-TARGETDURATION:${maxClipDuration}\n`;
+            hlsContent += `#EXT-X-MEDIA-SEQUENCE:0\n`;
+            hlsContent += `#EXT-X-PLAYLIST-TYPE:VOD\n`;
+
+            videoClipsArray.forEach((url: string, index: number) => {
+              if (index > 0) {
+                hlsContent += `#EXT-X-DISCONTINUITY\n`;
+              }
+              hlsContent += `#EXTINF:${clipDurationSec.toFixed(6)},\n`;
+              hlsContent += `${url}\n`;
+            });
+            
+            hlsContent += `#EXT-X-ENDLIST\n`;
+            
+            const hlsFileName = `hls_${project.id}_${Date.now()}.m3u8`;
+            const hlsBytes = new TextEncoder().encode(hlsContent);
+            
+            const { error: hlsUploadError } = await supabase.storage
+              .from('temp-frames')
+              .upload(hlsFileName, hlsBytes, { 
+                contentType: 'application/vnd.apple.mpegurl',
+                upsert: true 
+              });
+            
+            if (!hlsUploadError) {
+              avatarHlsPlaylistUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/${hlsFileName}`;
+              console.log(`[Watchdog] ✅ Avatar HLS playlist: ${avatarHlsPlaylistUrl}`);
+            }
+          } catch (hlsErr) {
+            console.warn(`[Watchdog] Avatar HLS generation failed (non-fatal):`, hlsErr);
+          }
+        }
+        
         const { error: updateError } = await supabase.from('movie_projects').update({
           status: 'completed',
           video_url: finalVideoUrl,
@@ -1187,10 +1231,15 @@ serve(async (req) => {
           },
           pending_video_tasks: {
             ...tasks,
+            stage: 'complete',
             status: 'completed',
+            progress: 100,
             completedAt: new Date().toISOString(),
             musicUrl,
             stitchedVideoUrl,
+            hlsPlaylistUrl: avatarHlsPlaylistUrl,
+            mseClipUrls: videoClipsArray,
+            clipCount: videoClipsArray.length,
           },
           updated_at: new Date().toISOString(),
         }).eq('id', project.id);
@@ -2988,12 +3037,59 @@ async function createManifestFallback(
   
   const totalDuration = clips.reduce((sum: number, c: { duration_seconds: number }) => sum + (c.duration_seconds || 10), 0);
   
+  // ═══════════════════════════════════════════════════════════════════
+  // GENERATE HLS PLAYLIST inline — ensures immediate playback
+  // without requiring a separate edge function call
+  // ═══════════════════════════════════════════════════════════════════
+  let hlsPlaylistUrl: string | null = null;
+  try {
+    const maxClipDuration = Math.ceil(Math.max(...clips.map((c: { duration_seconds: number }) => c.duration_seconds || 10)));
+    
+    let hlsContent = `#EXTM3U\n`;
+    hlsContent += `#EXT-X-VERSION:3\n`;
+    hlsContent += `#EXT-X-TARGETDURATION:${maxClipDuration}\n`;
+    hlsContent += `#EXT-X-MEDIA-SEQUENCE:0\n`;
+    hlsContent += `#EXT-X-PLAYLIST-TYPE:VOD\n`;
+
+    clips.forEach((clip: { video_url: string; duration_seconds: number }, index: number) => {
+      if (index > 0) {
+        hlsContent += `#EXT-X-DISCONTINUITY\n`;
+      }
+      hlsContent += `#EXTINF:${(clip.duration_seconds || 10).toFixed(6)},\n`;
+      hlsContent += `${clip.video_url}\n`;
+    });
+    
+    hlsContent += `#EXT-X-ENDLIST\n`;
+    
+    const hlsFileName = `hls_${projectId}_${Date.now()}.m3u8`;
+    const hlsBytes = new TextEncoder().encode(hlsContent);
+    
+    const { error: hlsUploadError } = await supabase.storage
+      .from('temp-frames')
+      .upload(hlsFileName, hlsBytes, { 
+        contentType: 'application/vnd.apple.mpegurl',
+        upsert: true 
+      });
+    
+    if (!hlsUploadError) {
+      hlsPlaylistUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/${hlsFileName}`;
+      console.log(`[Watchdog] ✅ HLS playlist created: ${hlsPlaylistUrl}`);
+    } else {
+      console.warn(`[Watchdog] HLS upload failed:`, hlsUploadError);
+    }
+  } catch (hlsErr) {
+    console.warn(`[Watchdog] HLS generation failed (non-fatal):`, hlsErr);
+  }
+  
+  const clipUrls = clips.map((c: { video_url: string }) => c.video_url);
+  
   const manifest = {
     version: "1.0",
     projectId,
     mode: "client_side_concat",
     createdAt: new Date().toISOString(),
     source: "watchdog_fallback",
+    hlsPlaylistUrl,
     clips: clips.map((clip: { id: string; video_url: string; duration_seconds: number }, index: number) => ({
       index,
       shotId: clip.id,
@@ -3025,6 +3121,8 @@ async function createManifestFallback(
         progress: 100,
         mode: 'manifest_playback',
         manifestUrl,
+        hlsPlaylistUrl,
+        mseClipUrls: clipUrls,
         clipCount: clips.length,
         totalDuration,
         source: 'watchdog_fallback',
@@ -3034,5 +3132,5 @@ async function createManifestFallback(
     })
     .eq('id', projectId);
 
-  console.log(`[Watchdog] ✅ Manifest: ${manifestUrl}`);
+  console.log(`[Watchdog] ✅ Manifest + HLS: ${manifestUrl}`);
 }

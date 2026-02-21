@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       use_case: null,
       company: null,
       country: null,
-      onboarding_completed: true, // Assume completed to prevent redirect loops
+      onboarding_completed: true, // Assume completed to prevent redirect loops on network fallback
       created_at: new Date().toISOString(),
       preferences: null,
       notification_settings: null,
@@ -271,7 +271,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             use_case: null,
             company: null,
             country: null,
-            onboarding_completed: true,
+            onboarding_completed: true, // Assume completed to prevent redirect loops on network fallback
             created_at: new Date().toISOString(),
             preferences: null,
             notification_settings: null,

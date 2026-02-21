@@ -22,6 +22,7 @@ export interface PaginatedProjectsResult {
   totalCount: number;
   loadMore: () => Promise<void>;
   refresh: () => Promise<void>;
+  optimisticRemove: (projectId: string) => void;
 }
 
 interface ProjectRow {
@@ -274,6 +275,12 @@ export function usePaginatedProjects(
     };
   }, []);
 
+  // Optimistically remove a project from the list (instant UI update)
+  const optimisticRemove = useCallback((projectId: string) => {
+    setProjects(prev => prev.filter(p => p.id !== projectId));
+    setTotalCount(prev => Math.max(0, prev - 1));
+  }, []);
+
   return {
     projects,
     isLoading,
@@ -283,5 +290,6 @@ export function usePaginatedProjects(
     totalCount,
     loadMore,
     refresh,
+    optimisticRemove,
   };
 }

@@ -2,17 +2,16 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 /**
- * Generate HLS Playlist Edge Function
+ * Generate HLS Playlist Edge Function v2
  * 
- * Creates an HLS master playlist (m3u8) that references video clips in sequence.
- * This enables seamless playback on iOS Safari which cannot use MSE properly.
+ * Creates a REAL HLS playlist (m3u8) with #EXT-X-DISCONTINUITY tags
+ * for seamless playback. Also returns clip URLs for crossfade fallback.
  * 
  * Strategy:
- * - Generate #EXT-X-DISCONTINUITY tags between clips (required for different sources)
- * - Calculate accurate durations from video_clips table
- * - Store playlist in Supabase storage for persistence
- * 
- * CRITICAL: This is the key to seamless iOS Safari playback.
+ * - Safari/iOS: Native HLS handles raw MP4 with discontinuity markers = gapless
+ * - Chrome/Firefox: hls.js attempts HLS; if raw MP4 segments fail, player
+ *   falls back to crossfade mode using the returned clipUrls
+ * - Always stores hlsPlaylistUrl so all future plays attempt HLS first
  */
 
 const corsHeaders = {
@@ -33,7 +32,6 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    // ═══ AUTH GUARD: Prevent unauthorized access ═══
     const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
     const auth = await validateAuth(req);
     if (!auth.authenticated) {
@@ -64,13 +62,12 @@ serve(async (req) => {
       throw new Error(`Failed to fetch clips: ${clipsError.message}`);
     }
 
-    // Check if we have clips, if not check for avatar-style videos in pending_video_tasks
+    // Check for avatar-style videos if no clips in video_clips table
     let avatarClips: Array<{ id: string; shot_index: number; video_url: string; duration_seconds: number; quality_score: number | null }> = [];
     let expectedClipCount = 0;
     let isAvatarMode = false;
     
     if (!clips || clips.length === 0) {
-      // Fetch project to check for avatar-style videos
       const { data: projectData, error: projectError } = await supabase
         .from('movie_projects')
         .select('pending_video_tasks, video_url, mode')
@@ -81,53 +78,66 @@ serve(async (req) => {
       
       if (!projectError && projectData?.pending_video_tasks) {
         const tasks = projectData.pending_video_tasks as Record<string, unknown>;
-        const predictions = tasks.predictions as Array<{ videoUrl?: string; status?: string; clipIndex?: number }> | undefined;
         
-        // CRITICAL: Track expected clip count to prevent premature completion
-        expectedClipCount = predictions?.length || 0;
+        // Check for mseClipUrls (recovered projects)
+        const mseClipUrls = tasks.mseClipUrls as string[] | undefined;
+        if (mseClipUrls && Array.isArray(mseClipUrls) && mseClipUrls.length > 0) {
+          const clipDuration = (tasks.totalDuration as number || mseClipUrls.length * 6) / mseClipUrls.length;
+          avatarClips = mseClipUrls.map((url, idx) => ({
+            id: `mse-clip-${idx}`,
+            shot_index: idx,
+            video_url: url,
+            duration_seconds: clipDuration,
+            quality_score: 1,
+          }));
+          console.log(`[HLS-Playlist] Found ${avatarClips.length} clips from mseClipUrls`);
+        }
         
-        if (predictions && Array.isArray(predictions)) {
-          avatarClips = predictions
-            .filter(p => p.videoUrl && p.status === 'completed')
-            .map((p, idx) => ({
-              id: `avatar-clip-${idx}`,
-              shot_index: p.clipIndex ?? idx,
-              video_url: p.videoUrl as string,
-              duration_seconds: 10, // Avatar clips are typically 10s
-              quality_score: 1,
-            }));
+        // Check for avatar predictions
+        if (avatarClips.length === 0) {
+          const predictions = tasks.predictions as Array<{ videoUrl?: string; status?: string; clipIndex?: number }> | undefined;
+          expectedClipCount = predictions?.length || 0;
           
-          console.log(`[HLS-Playlist] Found ${avatarClips.length}/${expectedClipCount} avatar clips in pending_video_tasks`);
-          
-          // CRITICAL FIX: Block HLS generation if not all clips are complete
-          if (isAvatarMode && expectedClipCount > 0 && avatarClips.length < expectedClipCount) {
-            console.log(`[HLS-Playlist] ⏸️ BLOCKING: Only ${avatarClips.length}/${expectedClipCount} clips ready - waiting for all clips`);
-            return new Response(
-              JSON.stringify({
-                success: false,
-                error: `Only ${avatarClips.length} of ${expectedClipCount} clips ready`,
-                reason: "clips_pending",
-                clipsReady: avatarClips.length,
-                clipsExpected: expectedClipCount,
-                processingTimeMs: Date.now() - startTime,
-              }),
-              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
+          if (predictions && Array.isArray(predictions)) {
+            avatarClips = predictions
+              .filter(p => p.videoUrl && p.status === 'completed')
+              .map((p, idx) => ({
+                id: `avatar-clip-${idx}`,
+                shot_index: p.clipIndex ?? idx,
+                video_url: p.videoUrl as string,
+                duration_seconds: 10,
+                quality_score: 1,
+              }));
+            
+            console.log(`[HLS-Playlist] Found ${avatarClips.length}/${expectedClipCount} avatar clips`);
+            
+            if (isAvatarMode && expectedClipCount > 0 && avatarClips.length < expectedClipCount) {
+              return new Response(
+                JSON.stringify({
+                  success: false,
+                  error: `Only ${avatarClips.length} of ${expectedClipCount} clips ready`,
+                  reason: "clips_pending",
+                  clipsReady: avatarClips.length,
+                  clipsExpected: expectedClipCount,
+                  processingTimeMs: Date.now() - startTime,
+                }),
+                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              );
+            }
           }
         }
         
-        // Also check for single video_url on project
+        // Single video_url fallback
         if (avatarClips.length === 0 && projectData.video_url && typeof projectData.video_url === 'string') {
           const videoUrl = projectData.video_url;
           if (videoUrl.endsWith('.mp4') || videoUrl.endsWith('.webm') || videoUrl.includes('/video-clips/')) {
             avatarClips = [{
-              id: 'avatar-single-clip',
+              id: 'single-clip',
               shot_index: 0,
               video_url: videoUrl,
               duration_seconds: 10,
               quality_score: 1,
             }];
-            console.log(`[HLS-Playlist] Using project video_url as single clip`);
           }
         }
       }
@@ -136,7 +146,6 @@ serve(async (req) => {
     const allClips = (clips && clips.length > 0) ? clips : avatarClips;
 
     if (allClips.length === 0) {
-      // Return graceful response instead of error - project may be a draft
       return new Response(
         JSON.stringify({
           success: false,
@@ -164,7 +173,6 @@ serve(async (req) => {
     }
 
     const orderedClips = Array.from(bestClipsMap.values()).sort((a, b) => a.shot_index - b.shot_index);
-    
     console.log(`[HLS-Playlist] Processing ${orderedClips.length} clips`);
 
     // Get project audio configuration
@@ -174,31 +182,65 @@ serve(async (req) => {
       .eq('id', projectId)
       .single();
 
-    // Ensure isAvatarMode is set correctly (may not have been set if clips came from video_clips table)
     if (project?.mode === 'avatar') {
       isAvatarMode = true;
     }
 
     const pipelineState = project?.pipeline_state as Record<string, unknown> | null;
-    // Check both pipeline_state and voice_audio_url for master audio
-    // Avatar mode stores master audio in voice_audio_url column
     const masterAudioUrl = (pipelineState?.masterAudioUrl as string) || project?.voice_audio_url || undefined;
 
     // Calculate total duration
     const totalDuration = orderedClips.reduce((sum, c) => sum + (c.duration_seconds || 5), 0);
 
-    /**
-     * CRITICAL ARCHITECTURE NOTE:
-     * We do NOT generate an HLS m3u8 playlist here anymore.
-     * 
-     * Veo/Kling MP4 outputs are standard (non-fragmented) MP4 containers.
-     * hls.js requires either MPEG-TS or fragmented MP4 (fMP4) as HLS segments.
-     * Using raw MP4 URLs in an m3u8 causes a hard MEDIA_ERROR in hls.js on every browser.
-     * 
-     * Instead, we return clip URLs directly for MSE crossfade playback in the browser.
-     * This is the correct, reliable approach for multi-clip Veo/Kling projects.
-     */
+    // ═══════════════════════════════════════════════════════════════════
+    // GENERATE REAL HLS PLAYLIST (m3u8) WITH DISCONTINUITY MARKERS
+    // Safari native HLS handles raw MP4 with discontinuity tags = gapless
+    // Chrome/Firefox: hls.js will attempt; falls back to crossfade if it fails
+    // ═══════════════════════════════════════════════════════════════════
+    
+    let hlsPlaylistUrl: string | null = null;
+    const timestamp = Date.now();
+    
+    try {
+      const maxClipDuration = Math.ceil(Math.max(...orderedClips.map(c => c.duration_seconds || 5)));
+      
+      let hlsContent = `#EXTM3U\n`;
+      hlsContent += `#EXT-X-VERSION:3\n`;
+      hlsContent += `#EXT-X-TARGETDURATION:${maxClipDuration}\n`;
+      hlsContent += `#EXT-X-MEDIA-SEQUENCE:0\n`;
+      hlsContent += `#EXT-X-PLAYLIST-TYPE:VOD\n`;
 
+      orderedClips.forEach((clip, index) => {
+        if (index > 0) {
+          hlsContent += `#EXT-X-DISCONTINUITY\n`;
+        }
+        hlsContent += `#EXTINF:${(clip.duration_seconds || 5).toFixed(6)},\n`;
+        hlsContent += `${clip.video_url}\n`;
+      });
+      
+      hlsContent += `#EXT-X-ENDLIST\n`;
+      
+      const hlsFileName = `hls_${projectId}_${timestamp}.m3u8`;
+      const hlsBytes = new TextEncoder().encode(hlsContent);
+      
+      const { error: uploadError } = await supabase.storage
+        .from('temp-frames')
+        .upload(hlsFileName, hlsBytes, { 
+          contentType: 'application/vnd.apple.mpegurl',
+          upsert: true 
+        });
+      
+      if (uploadError) {
+        console.warn(`[HLS-Playlist] HLS upload failed:`, uploadError);
+      } else {
+        hlsPlaylistUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/${hlsFileName}`;
+        console.log(`[HLS-Playlist] ✅ HLS playlist created: ${hlsPlaylistUrl}`);
+      }
+    } catch (hlsErr) {
+      console.warn("[HLS-Playlist] HLS generation failed (non-fatal):", hlsErr);
+    }
+
+    // Build clip data for crossfade fallback
     const clipUrls = orderedClips.map(c => c.video_url);
     const clipData = orderedClips.map((clip, index) => ({
       index,
@@ -208,7 +250,7 @@ serve(async (req) => {
       startTime: orderedClips.slice(0, index).reduce((sum, c) => sum + (c.duration_seconds || 5), 0),
     }));
 
-    // Fetch existing pending_video_tasks to preserve watchdog metadata
+    // Fetch existing pending_video_tasks to preserve metadata
     const { data: existingProject } = await supabase
       .from('movie_projects')
       .select('pending_video_tasks, status')
@@ -218,18 +260,18 @@ serve(async (req) => {
     const existingTasks = existingProject?.pending_video_tasks as Record<string, unknown> || {};
     const shouldMarkComplete = !isAvatarMode || existingProject?.status === 'completed';
 
-    // Store clip URLs in pending_video_tasks so the player can use them directly
+    // Store BOTH hlsPlaylistUrl and mseClipUrls so player can try HLS first, crossfade as fallback
     const updatedTasks = {
       ...existingTasks,
       stage: shouldMarkComplete ? 'complete' : existingTasks.stage,
       progress: shouldMarkComplete ? 100 : existingTasks.progress,
       mode: 'mse_direct',
-      // CRITICAL: Store clip URLs so UniversalVideoPlayer can play without HLS
+      // HLS playlist for gapless playback (Safari native, hls.js attempt)
+      hlsPlaylistUrl: hlsPlaylistUrl,
+      // Clip URLs for crossfade fallback
       mseClipUrls: clipUrls,
       clipCount: orderedClips.length,
       totalDuration,
-      // Remove any stale hlsPlaylistUrl to prevent player from attempting broken HLS
-      hlsPlaylistUrl: null,
       mseGeneratedAt: new Date().toISOString(),
       ...(shouldMarkComplete ? { completedAt: new Date().toISOString() } : {}),
     };
@@ -248,14 +290,14 @@ serve(async (req) => {
       .update(updatePayload)
       .eq('id', projectId);
 
-    console.log(`[HLS-Playlist] ✅ MSE direct mode - returning ${clipUrls.length} clip URLs`);
-    console.log(`[HLS-Playlist] ✅ Processing time: ${Date.now() - startTime}ms`);
+    console.log(`[HLS-Playlist] ✅ Done - HLS: ${!!hlsPlaylistUrl}, Clips: ${clipUrls.length}, Time: ${Date.now() - startTime}ms`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        // Return mse_direct mode — player will use these URLs for crossfade playback
-        mode: 'mse_direct',
+        // Return both modes so player can try HLS first, crossfade as fallback
+        mode: hlsPlaylistUrl ? 'hls_with_fallback' : 'mse_direct',
+        hlsPlaylistUrl: hlsPlaylistUrl || null,
         clipUrls,
         clips: clipData,
         totalDuration,

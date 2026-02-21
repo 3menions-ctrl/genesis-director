@@ -81,7 +81,6 @@ Deno.serve(async (req) => {
     await supabaseAdmin.from('video_clips').delete().eq('user_id', userId)
     await supabaseAdmin.from('stitch_jobs').delete().eq('user_id', userId)
     await supabaseAdmin.from('production_credit_phases').delete().eq('user_id', userId)
-    await supabaseAdmin.from('api_cost_logs').delete().eq('user_id', userId)
     await supabaseAdmin.from('edit_sessions').delete().eq('user_id', userId)
     await supabaseAdmin.from('training_videos').delete().eq('user_id', userId)
 
@@ -89,8 +88,10 @@ Deno.serve(async (req) => {
     await supabaseAdmin.from('genesis_videos').delete().eq('user_id', userId)
     await supabaseAdmin.from('genesis_character_castings').delete().eq('user_id', userId)
 
-    // ===== BILLING =====
-    await supabaseAdmin.from('credit_transactions').delete().eq('user_id', userId)
+    // ===== BILLING: PRESERVE for financial audit trail (GDPR allows anonymized retention) =====
+    // Nullify user_id to anonymize while preserving transaction records for accounting
+    await supabaseAdmin.from('credit_transactions').update({ user_id: null as any }).eq('user_id', userId)
+    await supabaseAdmin.from('api_cost_logs').update({ user_id: null as any }).eq('user_id', userId)
 
     // ===== PROJECTS =====
     await supabaseAdmin.from('movie_projects').delete().eq('user_id', userId)

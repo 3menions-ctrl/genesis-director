@@ -304,14 +304,15 @@ const MINIMUM_QUALITY_THRESHOLD = 0;
 const MIN_CLIPS_PER_PROJECT = 1;
 
 // ✅ Kling V3 Credit Pricing (ALL modes — T2V, I2V, Avatar use Kling V3)
+// MUST MATCH src/lib/creditSystem.ts (SINGLE SOURCE OF TRUTH)
 // isAvatarMode is an EXPLICIT boolean flag (request.isAvatarMode), NOT derived from videoEngine
-// Standard (T2V/I2V): 12cr ≤10s  | 18cr >10s
-// Avatar (native audio): 15cr ≤10s | 22cr >10s
+// Standard (T2V/I2V): 50cr ≤10s  | 75cr >10s
+// Avatar (native audio): 60cr ≤10s | 90cr >10s
 const CREDIT_PRICING = {
-  BASE_CREDITS_PER_CLIP: 12,           // T2V / I2V ≤10s
-  EXTENDED_CREDITS_PER_CLIP: 18,        // T2V / I2V >10s
-  AVATAR_BASE_CREDITS_PER_CLIP: 15,     // Avatar + native audio ≤10s
-  AVATAR_EXTENDED_CREDITS_PER_CLIP: 22, // Avatar + native audio >10s
+  BASE_CREDITS_PER_CLIP: 50,           // T2V / I2V ≤10s
+  EXTENDED_CREDITS_PER_CLIP: 75,        // T2V / I2V >10s
+  AVATAR_BASE_CREDITS_PER_CLIP: 60,     // Avatar + native audio ≤10s
+  AVATAR_EXTENDED_CREDITS_PER_CLIP: 90, // Avatar + native audio >10s
   BASE_DURATION_THRESHOLD: 10,
 } as const;
 

@@ -1793,9 +1793,10 @@ serve(async (req) => {
       
       console.log(`[Watchdog] 🔍 FALSE FAILURE CHECK ${project.id}: ${clipsWithVideo.length}/${totalClips} clips have videos`);
       
-      // If ALL clips have video URLs, this is a false failure - recover it!
-      if (clipsWithVideo.length === totalClips && totalClips > 0) {
-        console.log(`[Watchdog] ⚠️ FALSE FAILURE DETECTED: ${project.id} has all ${totalClips} videos but status='failed'`);
+      // If ANY clips have video URLs, recover what we can
+      if (clipsWithVideo.length > 0) {
+        const isPartial = clipsWithVideo.length < totalClips;
+        console.log(`[Watchdog] ⚠️ ${isPartial ? 'PARTIAL' : 'FALSE'} FAILURE DETECTED: ${project.id} has ${clipsWithVideo.length}/${totalClips} videos but status='failed'`);
         
         // Sort clips and build video array
         clipsWithVideo.sort((a, b) => a.clipIndex - b.clipIndex);
@@ -1807,41 +1808,111 @@ serve(async (req) => {
           ...p,
           status: p.videoUrl ? 'completed' : p.status,
         }));
-        
-        const { error: recoveryError } = await supabase
-          .from('movie_projects')
-          .update({
-            status: 'completed',
-            video_url: primaryVideoUrl,
-            video_clips: videoClipsArray,
-            pipeline_stage: 'completed',
-            pipeline_state: {
-              stage: 'completed',
-              progress: 100,
-              message: 'Video generation complete!',
-              completedAt: new Date().toISOString(),
-              recoveredFromFalseFailure: true,
-              recoveredByWatchdog: true,
-            },
-            pending_video_tasks: {
-              ...tasks,
-              predictions: fixedPredictions,
-              stage: 'complete',
-            },
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', project.id);
-        
-        if (!recoveryError) {
-          result.productionResumed++;
-          result.details.push({
-            projectId: project.id,
-            action: 'false_failure_recovered',
-            result: `Recovered ${totalClips} clips from false failure state`,
-          });
-          console.log(`[Watchdog] ✅ FALSE FAILURE RECOVERED: ${project.id} now completed with ${totalClips} clips`);
+
+        // Upsert completed clips into video_clips table
+        for (const clip of clipsWithVideo) {
+          try {
+            await supabase.rpc('upsert_video_clip', {
+              p_project_id: project.id,
+              p_user_id: project.user_id,
+              p_shot_index: clip.clipIndex,
+              p_prompt: (clip as Record<string, unknown>).segmentText as string || 'Avatar clip',
+              p_status: 'completed',
+              p_video_url: clip.videoUrl!,
+              p_duration_seconds: tasks.clipDuration || 10,
+            });
+          } catch (e) {
+            console.error(`[Watchdog] Failed to upsert clip ${clip.clipIndex}:`, e);
+          }
+        }
+
+        // If we have enough clips for a usable video, trigger stitch or mark complete
+        if (clipsWithVideo.length === 1) {
+          // Single clip - use it directly as the final video
+          const { error: recoveryError } = await supabase
+            .from('movie_projects')
+            .update({
+              status: 'completed',
+              video_url: primaryVideoUrl,
+              video_clips: videoClipsArray,
+              pipeline_stage: 'completed',
+              pipeline_state: {
+                stage: 'completed',
+                progress: 100,
+                message: isPartial 
+                  ? `Completed with ${clipsWithVideo.length}/${totalClips} clips` 
+                  : 'Video generation complete!',
+                completedAt: new Date().toISOString(),
+                partial: isPartial,
+                recoveredFromFalseFailure: true,
+                recoveredByWatchdog: true,
+              },
+              pending_video_tasks: {
+                ...tasks,
+                predictions: fixedPredictions,
+                stage: 'complete',
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', project.id);
+          
+          if (!recoveryError) {
+            result.productionResumed++;
+            result.details.push({
+              projectId: project.id,
+              action: 'false_failure_recovered',
+              result: `Recovered ${clipsWithVideo.length}/${totalClips} clips from failed state`,
+            });
+            console.log(`[Watchdog] ✅ RECOVERED: ${project.id} now completed with ${clipsWithVideo.length}/${totalClips} clips`);
+          } else {
+            console.error(`[Watchdog] Failed to recover ${project.id}:`, recoveryError);
+          }
         } else {
-          console.error(`[Watchdog] Failed to recover ${project.id}:`, recoveryError);
+          // Multiple clips - trigger stitch
+          const { error: recoveryError } = await supabase
+            .from('movie_projects')
+            .update({
+              status: 'stitching',
+              video_clips: videoClipsArray,
+              pipeline_stage: 'stitching',
+              pipeline_state: {
+                stage: 'stitching',
+                progress: 80,
+                message: `Stitching ${clipsWithVideo.length} clips...`,
+                partial: isPartial,
+                recoveredFromFalseFailure: true,
+              },
+              pending_video_tasks: {
+                ...tasks,
+                predictions: fixedPredictions,
+                stage: 'stitching',
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', project.id);
+          
+          if (!recoveryError) {
+            // Trigger simple-stitch
+            try {
+              await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/simple-stitch`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                },
+                body: JSON.stringify({ projectId: project.id }),
+              });
+              console.log(`[Watchdog] 🎬 Triggered stitch for recovered project ${project.id}`);
+            } catch (e) {
+              console.error(`[Watchdog] Failed to trigger stitch for ${project.id}:`, e);
+            }
+            result.productionResumed++;
+            result.details.push({
+              projectId: project.id,
+              action: 'partial_failure_recovered_stitching',
+              result: `Recovered ${clipsWithVideo.length}/${totalClips} clips, triggered stitch`,
+            });
+          }
         }
       }
     }

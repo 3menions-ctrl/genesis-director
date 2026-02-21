@@ -442,6 +442,51 @@ serve(async (req) => {
             console.log(`[Watchdog] ⏳ Clip ${pred.clipIndex + 1} already submitted (predictionId: ${pred.predictionId}) — skipping re-submit`);
             continue;
           }
+          
+          // ═══════════════════════════════════════════════════════════════════
+          // ATOMIC CLAIM GUARD: Prevent concurrent watchdog runs from both
+          // starting the same clip. We do a conditional DB update that only
+          // succeeds if no other watchdog has claimed this clip yet.
+          // ═══════════════════════════════════════════════════════════════════
+          const claimToken = crypto.randomUUID();
+          const { data: freshProject } = await supabase
+            .from('movie_projects')
+            .select('pending_video_tasks')
+            .eq('id', project.id)
+            .single();
+          
+          const freshTasks = (freshProject?.pending_video_tasks || {}) as Record<string, any>;
+          const freshPred = freshTasks.predictions?.find((p: { clipIndex: number }) => p.clipIndex === pred.clipIndex);
+          
+          // Another watchdog already claimed or started this clip
+          if (freshPred?.predictionId || freshPred?.claimToken || freshPred?.status === 'processing') {
+            console.log(`[Watchdog] ⏳ Clip ${pred.clipIndex + 1} already claimed by another watchdog — skipping`);
+            pred.predictionId = freshPred.predictionId;
+            pred.status = freshPred.status || 'processing';
+            allCompleted = false;
+            continue;
+          }
+          
+          // Atomically set claim token on this prediction
+          const claimedPredictions = freshTasks.predictions.map((p: any) =>
+            p.clipIndex === pred.clipIndex ? { ...p, claimToken } : p
+          );
+          const { error: claimError } = await supabase
+            .from('movie_projects')
+            .update({
+              pending_video_tasks: {
+                ...freshTasks,
+                predictions: claimedPredictions,
+                lastProgressAt: new Date().toISOString(),
+              },
+            })
+            .eq('id', project.id);
+          
+          if (claimError) {
+            console.warn(`[Watchdog] ⚠️ Failed to claim clip ${pred.clipIndex + 1}: ${claimError.message}`);
+            allCompleted = false;
+            continue;
+          }
 
           // Check if previous clip is completed so we can start this one
           const prevClipIndex = pred.clipIndex - 1;

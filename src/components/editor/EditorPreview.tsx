@@ -168,19 +168,19 @@ export const EditorPreview = ({
     let onReadyCleanup: (() => void) | null = null;
     
     if (isPlaying) {
-      // Use safePlay for robust cross-browser playback
-      safePlay(video).then((started) => {
-        if (!started && video.readyState < 2) {
-          // Video not ready yet — wait for it, then play
-          const onReady = () => {
-            // Use ref for fresh isPlaying value (avoids stale closure)
-            if (!isPlayingRef.current) return;
-            safePlay(video);
-            video.removeEventListener('canplay', onReady);
-          };
-          video.addEventListener('canplay', onReady);
-          onReadyCleanup = () => video.removeEventListener('canplay', onReady);
-        }
+      // Always set up a canplay fallback first, so if play() fails we retry
+      const onReady = () => {
+        if (!isPlayingRef.current) return;
+        video.play().catch(() => {});
+        video.removeEventListener('canplay', onReady);
+      };
+      video.addEventListener('canplay', onReady);
+      onReadyCleanup = () => video.removeEventListener('canplay', onReady);
+
+      // Attempt play immediately — works if video is already loaded
+      video.play().catch(() => {
+        // Silently fail — the canplay listener above will retry
+        console.debug('[EditorPreview] Initial play deferred to canplay event');
       });
     } else {
       video.pause();

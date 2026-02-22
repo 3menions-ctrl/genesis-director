@@ -26,18 +26,14 @@ export async function safePlay(video: HTMLVideoElement | null): Promise<boolean>
   if (!video) return false;
   
   try {
-    // Check if video is in a valid state
-    if (video.readyState < 1) {
-      console.debug('[SafeVideo] Video not ready for play (readyState:', video.readyState, ')');
-      return false;
-    }
-    
-    // Additional safety: check if video element is still in DOM
+    // Check if video element is still in DOM
     if (!video.isConnected) {
       console.debug('[SafeVideo] Video element not in DOM');
       return false;
     }
     
+    // Always attempt play — the browser will queue it if not ready yet.
+    // Returning false only for truly unrecoverable states.
     await video.play();
     return true;
   } catch (err) {

@@ -75,7 +75,7 @@ const UserProfile = lazy(() => import("./pages/UserProfile"));
 const VideoDetail = lazy(() => import("./pages/VideoDetail"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const WorldChat = lazy(() => import("./pages/WorldChat"));
-const VideoEditor = lazy(() => import("./pages/VideoEditor"));
+
 const WidgetLanding = lazy(() => import("./pages/WidgetLanding"));
 const WidgetEmbed = lazy(() => import("./pages/WidgetEmbed"));
 const AppInventory = lazy(() => import("./pages/AppInventory"));
@@ -303,8 +303,8 @@ const App = () => {
                 
                 {/* Keep production route for active productions */}
                 
-                {/* Legacy clips route - redirect to editor */}
-                <Route path="/clips" element={<Navigate to="/editor" replace />} />
+                {/* Legacy clips route - redirect to projects */}
+                <Route path="/clips" element={<Navigate to="/projects" replace />} />
                 
                 {/* Legacy universe routes - redirect to projects */}
                 <Route path="/universes" element={<Navigate to="/projects" replace />} />
@@ -366,14 +366,8 @@ const App = () => {
                   </RouteContainer>
                 } />
                 
-                {/* Video Editor */}
-                <Route path="/editor" element={
-                  <RouteContainer fallbackMessage="Loading editor...">
-                    <ProtectedRoute>
-                      <VideoEditor />
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
+                {/* Legacy editor route - redirect to projects */}
+                <Route path="/editor" element={<Navigate to="/projects" replace />} />
                 
                 {/* Legacy route redirects */}
                 <Route path="/long-video" element={<Navigate to="/create" replace />} />

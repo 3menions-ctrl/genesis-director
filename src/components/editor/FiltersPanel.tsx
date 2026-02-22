@@ -11,7 +11,7 @@ export const FiltersPanel = ({ clip, onUpdateClip }: FiltersPanelProps) => {
 
   return (
     <div className="space-y-3">
-      <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/30">
+      <span className="text-[9px] font-semibold uppercase tracking-[0.25em] text-white/20">
         Filters & Presets
       </span>
 
@@ -22,8 +22,8 @@ export const FiltersPanel = ({ clip, onUpdateClip }: FiltersPanelProps) => {
             className={cn(
               "relative rounded-md border p-2 transition-all text-center",
               currentFilter === preset.id
-                ? "bg-white text-black border-white/20 font-semibold"
-                : "bg-white/[0.03] border-white/[0.06] text-white/40 hover:text-white hover:bg-white/[0.06]"
+                ? "bg-white text-black border-white/20 font-semibold shadow-[0_2px_12px_rgba(255,255,255,0.08)]"
+                : "bg-white/[0.02] border-white/[0.04] text-white/25 hover:text-white/60 hover:bg-white/[0.04]"
             )}
             onClick={() => onUpdateClip(clip.id, { filter: preset.id })}
           >
@@ -38,8 +38,8 @@ export const FiltersPanel = ({ clip, onUpdateClip }: FiltersPanelProps) => {
       </div>
 
       {currentFilter !== "none" && (
-        <div className="p-2 rounded-md bg-black/20 border border-white/[0.04]">
-          <span className="text-[7px] text-white/15 font-mono break-all leading-relaxed">
+        <div className="p-2 rounded-md bg-black/30 border border-white/[0.03]">
+          <span className="text-[7px] text-white/10 font-mono break-all leading-relaxed">
             {FILTER_PRESETS.find((f) => f.id === currentFilter)?.css}
           </span>
         </div>

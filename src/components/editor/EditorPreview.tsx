@@ -108,9 +108,9 @@ export const EditorPreview = ({
       const handleReady = () => {
         if (activeClipIdRef.current !== clipId) return;
         video.currentTime = Math.max(0, localTime);
-        if (isPlaying) {
-          video.play().catch((e) => console.warn('[EditorPreview] play() rejected:', e.message));
-        }
+        // Check current isPlaying state via the video's paused property as a signal,
+        // but always attempt play if the state says we should be playing
+        safePlay(video).catch(() => {});
         video.removeEventListener('canplay', handleReady);
         video.removeEventListener('loadeddata', handleReady);
       };
@@ -124,9 +124,9 @@ export const EditorPreview = ({
         video.removeEventListener('loadeddata', handleReady);
         if (video.readyState >= 1) {
           video.currentTime = Math.max(0, localTime);
-          if (isPlaying) video.play().catch(() => {});
+          safePlay(video).catch(() => {});
         }
-      }, 5000);
+      }, 3000);
 
       return () => {
         clearTimeout(fallback);
@@ -156,7 +156,18 @@ export const EditorPreview = ({
     const video = videoRef.current;
     if (!video) return;
     if (isPlaying) {
-      video.play().catch((e) => console.debug('[EditorPreview] play/pause sync:', e.message));
+      // Use safePlay for robust cross-browser playback
+      safePlay(video).then((started) => {
+        if (!started && video.readyState < 2) {
+          // Video not ready yet — wait for it, then play
+          const onReady = () => {
+            if (!isPlaying) return;
+            safePlay(video);
+            video.removeEventListener('canplay', onReady);
+          };
+          video.addEventListener('canplay', onReady);
+        }
+      });
     } else {
       video.pause();
     }

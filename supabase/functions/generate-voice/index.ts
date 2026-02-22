@@ -354,7 +354,7 @@ serve(async (req) => {
         .from('characters')
         .select('voice_id, name')
         .eq('id', characterId)
-        .single();
+        .maybeSingle();
       
       if (character?.voice_id) {
         resolvedVoice = character.voice_id;

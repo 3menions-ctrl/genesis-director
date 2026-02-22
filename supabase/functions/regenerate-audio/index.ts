@@ -48,7 +48,7 @@ serve(async (req) => {
       .from('movie_projects')
       .select('id, title, generated_script, pending_video_tasks, mood, genre')
       .eq('id', projectId)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !project) {
       throw new Error(`Project not found: ${fetchError?.message}`);

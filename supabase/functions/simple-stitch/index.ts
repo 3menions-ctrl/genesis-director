@@ -61,7 +61,7 @@ serve(async (req) => {
       .from('movie_projects')
       .select('pipeline_state, mode, pending_video_tasks')
       .eq('id', projectId)
-      .single();
+      .maybeSingle();
     
     const pipelineState = projectMeta?.pipeline_state as Record<string, unknown> | null;
     const asyncJobData = pipelineState?.asyncJobData as Record<string, unknown> | null;
@@ -162,7 +162,7 @@ serve(async (req) => {
       .from('movie_projects')
       .select('title, voice_audio_url, music_url, user_id, include_narration, pipeline_state, mode, pro_features_data')
       .eq('id', projectId)
-      .single();
+      .maybeSingle();
 
     // Extract music sync plan for dialogue ducking and volume automation
     const proFeatures = project?.pro_features_data as Record<string, unknown> | null;
@@ -178,28 +178,34 @@ serve(async (req) => {
     // Replicate delivery URLs expire after ~1 hour. We MUST save
     // them to permanent storage before creating the manifest.
     // =====================================================
-    for (const clip of clips) {
-      if (isTemporaryReplicateUrl(clip.video_url)) {
+    // PERF FIX: Parallelize persistence instead of sequential to prevent timeouts
+    const persistPromises = clips
+      .filter(clip => isTemporaryReplicateUrl(clip.video_url))
+      .map(async (clip) => {
         console.log(`[SimpleStitch] ⚠️ Clip ${clip.shot_index} has temporary Replicate URL — persisting...`);
-        const permanentUrl = await persistVideoToStorage(
-          supabase,
-          clip.video_url,
-          projectId,
-          { prefix: `stitch_clip${clip.shot_index}`, clipIndex: clip.shot_index }
-        );
-        if (permanentUrl && permanentUrl !== clip.video_url) {
-          // Update the video_clips table with permanent URL
-          await supabase
-            .from('video_clips')
-            .update({ video_url: permanentUrl, updated_at: new Date().toISOString() })
-            .eq('id', clip.id);
-          clip.video_url = permanentUrl;
-          console.log(`[SimpleStitch] ✅ Clip ${clip.shot_index} persisted to permanent storage`);
-        } else {
-          console.warn(`[SimpleStitch] ⚠️ Clip ${clip.shot_index} persistence failed — using original URL (may expire!)`);
+        try {
+          const permanentUrl = await persistVideoToStorage(
+            supabase,
+            clip.video_url,
+            projectId,
+            { prefix: `stitch_clip${clip.shot_index}`, clipIndex: clip.shot_index }
+          );
+          if (permanentUrl && permanentUrl !== clip.video_url) {
+            await supabase
+              .from('video_clips')
+              .update({ video_url: permanentUrl, updated_at: new Date().toISOString() })
+              .eq('id', clip.id);
+            clip.video_url = permanentUrl;
+            console.log(`[SimpleStitch] ✅ Clip ${clip.shot_index} persisted to permanent storage`);
+          } else {
+            console.warn(`[SimpleStitch] ⚠️ Clip ${clip.shot_index} persistence failed — using original URL (may expire!)`);
+          }
+        } catch (err) {
+          console.warn(`[SimpleStitch] ⚠️ Clip ${clip.shot_index} persistence error:`, err);
         }
-      }
-    }
+      });
+
+    await Promise.allSettled(persistPromises);
 
     // Prepare clip data
     const clipData: ClipData[] = clips.map((clip: { id: string; video_url: string; duration_seconds: number }) => ({

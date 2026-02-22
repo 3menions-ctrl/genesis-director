@@ -73,7 +73,7 @@ serve(async (req) => {
         .from('movie_projects')
         .select('pending_video_tasks, video_url, mode')
         .eq('id', projectId)
-        .single();
+        .maybeSingle();
       
       isAvatarMode = projectData?.mode === 'avatar';
       
@@ -201,7 +201,7 @@ serve(async (req) => {
       .from('movie_projects')
       .select('voice_audio_url, music_url, include_narration, pipeline_state, mode')
       .eq('id', projectId)
-      .single();
+      .maybeSingle();
 
     if (project?.mode === 'avatar') {
       isAvatarMode = true;
@@ -276,7 +276,7 @@ serve(async (req) => {
       .from('movie_projects')
       .select('pending_video_tasks, status')
       .eq('id', projectId)
-      .single();
+      .maybeSingle();
 
     const existingTasks = existingProject?.pending_video_tasks as Record<string, unknown> || {};
     const shouldMarkComplete = !isAvatarMode || existingProject?.status === 'completed';

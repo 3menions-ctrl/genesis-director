@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
         .from('photo_edit_templates')
         .select('prompt_instruction, is_premium, credits_cost')
         .eq('id', templateId)
-        .single();
+        .maybeSingle();
 
       if (tErr || !template) {
         return new Response(
@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
         .from('profiles')
         .select('credits_balance')
         .eq('id', auth.userId)
-        .single();
+        .maybeSingle();
 
       if (!profile || profile.credits_balance < creditsCost) {
         if (editId) {
@@ -218,7 +218,7 @@ Deno.serve(async (req) => {
             .from('profiles')
             .select('credits_balance')
             .eq('id', auth.userId)
-            .single();
+            .maybeSingle();
             
           if (currentProfile) {
             await supabase
@@ -257,7 +257,7 @@ Deno.serve(async (req) => {
           .from('profiles')
           .select('credits_balance')
           .eq('id', auth.userId)
-          .single();
+          .maybeSingle();
         if (currentProfile) {
           await supabase
             .from('profiles')

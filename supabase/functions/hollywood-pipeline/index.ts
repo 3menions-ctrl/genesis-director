@@ -636,7 +636,7 @@ async function updateProjectProgress(
     .from('movie_projects')
     .select('pending_video_tasks')
     .eq('id', projectId)
-    .single();
+    .maybeSingle();
   
   const existingTasks = existing?.pending_video_tasks || {};
   
@@ -5913,7 +5913,7 @@ async function executePipelineInBackground(
         .from('movie_projects')
         .select('pending_video_tasks, generated_script')
         .eq('id', projectId)
-        .single();
+        .maybeSingle();
       
       if (project?.pending_video_tasks) {
         const tasks = project.pending_video_tasks;
@@ -6431,7 +6431,7 @@ serve(async (req) => {
         .from('profiles')
         .select('credits_balance')
         .eq('id', request.userId)
-        .single();
+        .maybeSingle();
 
       if (profileError || !profile) {
         throw new Error("Failed to fetch user profile");

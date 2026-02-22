@@ -7,7 +7,7 @@
 import { useState, useEffect } from "react";
 import { Outlet, Link, useLocation, Navigate } from "react-router-dom";
 import {
-  LayoutDashboard,
+  LayoutDashboard, FileText,
   Users,
   FolderKanban,
   DollarSign,
@@ -73,6 +73,7 @@ const NAV_SECTIONS: NavSection[] = [
       { key: "gallery", label: "Gallery", icon: Film, path: "/admin/gallery" },
       { key: "avatars", label: "Avatars", icon: Sparkles, path: "/admin/avatars" },
       { key: "config", label: "Config", icon: Settings, path: "/admin/config" },
+      { key: "inventory", label: "Inventory", icon: FileText, path: "/admin/inventory" },
     ],
   },
 ];

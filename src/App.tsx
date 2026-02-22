@@ -416,14 +416,9 @@ const App = () => {
                   <Route path="gallery" element={<AdminGalleryPage />} />
                   <Route path="avatars" element={<AdminAvatarsPage />} />
                   <Route path="config" element={<AdminConfigPage />} />
+                  <Route path="inventory" element={<AppInventory />} />
                 </Route>
                 
-                {/* App Inventory — full feature catalog */}
-                <Route path="/inventory" element={
-                  <RouteContainer fallbackMessage="Loading inventory...">
-                    <AppInventory />
-                  </RouteContainer>
-                } />
                 
                 {/* Legacy redirect — extract-thumbnails had no nav entry */}
                 <Route path="/extract-thumbnails" element={<Navigate to="/projects" replace />} />

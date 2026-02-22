@@ -2576,16 +2576,21 @@ serve(async (req) => {
         
         // Incomplete -> resume production via DIRECT CHAINING (not heavyweight resume-pipeline)
         // This calls continue-production which dispatches the next clip with skipPolling=true
-        // GUARD: Do NOT resume if any clip is actively generating (Kling V3 takes 5-10 min)
-        const activelyGenerating = (updatedClips || []).filter((c: { status: string; updated_at?: string }) => {
+        // 
+        // WEBHOOK-ERA FIX: We no longer blindly skip clips that are "actively generating".
+        // The webhook handles completion. The watchdog only skips if Replicate CONFIRMS
+        // the prediction is still running (already checked above via check-video-status).
+        // If a clip has been "generating" for >15 min with no Replicate confirmation, resume.
+        const activelyGenerating = (updatedClips || []).filter((c: { status: string; updated_at?: string; veo_operation_name?: string }) => {
           if (c.status !== 'generating') return false;
-          // Consider "active" if updated within last 12 minutes (Kling V3 worst-case)
           const clipAge = Date.now() - new Date((c as any).updated_at || 0).getTime();
-          return clipAge < 12 * 60 * 1000;
+          // Only consider "active" if it has a prediction ID and is < 15 min old
+          // The check-video-status call above already verified Replicate status
+          return (c as any).veo_operation_name && clipAge < 15 * 60 * 1000;
         });
         
         if (activelyGenerating.length > 0) {
-          console.log(`[Watchdog] ⏳ Skipping resume for ${project.id} - ${activelyGenerating.length} clip(s) actively generating (within 12min window)`);
+          console.log(`[Watchdog] ⏳ ${activelyGenerating.length} clip(s) confirmed still processing on Replicate (webhook will handle completion)`);
           continue;
         }
         

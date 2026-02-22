@@ -245,3 +245,6 @@ verify_jwt = false
 
 [functions.editor-generate-from-audio]
 verify_jwt = false
+
+[functions.replicate-webhook]
+verify_jwt = false

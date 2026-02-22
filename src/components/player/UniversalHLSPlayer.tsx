@@ -716,7 +716,8 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
       <div 
         ref={containerRef}
         className={cn(
-          "relative bg-black rounded-xl overflow-hidden group",
+          "relative bg-black overflow-hidden group",
+          aspectRatio !== 'auto' && 'rounded-xl',
           aspectClass,
           className
         )}
@@ -724,7 +725,7 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
         {/* Video element */}
         <video
           ref={videoRef}
-          className="w-full h-full object-contain"
+          className={cn("w-full h-full", aspectRatio === 'auto' ? 'object-cover' : 'object-contain')}
           playsInline
           muted={muteClipAudio || isMuted}
           loop={loop}

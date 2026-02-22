@@ -33,12 +33,15 @@ export const CaptionsPanel = ({ clip, onUpdateClip }: CaptionsPanelProps) => {
       const formData = new FormData();
       formData.append("audio", file);
 
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/editor-transcribe`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${token}`,
           },
           body: formData,
         }
@@ -71,13 +74,16 @@ export const CaptionsPanel = ({ clip, onUpdateClip }: CaptionsPanelProps) => {
 
     setIsSpeaking(true);
     try {
+      const { data: { session: ttsSession } } = await supabase.auth.getSession();
+      const ttsToken = ttsSession?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/editor-tts`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${ttsToken}`,
           },
           body: JSON.stringify({ text: ttsText }),
         }

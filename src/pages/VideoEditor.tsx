@@ -991,13 +991,16 @@ const VideoEditor = () => {
       try {
         const clipDuration = Math.min(Math.max(Math.round(seg.end - seg.start), 3), 15);
 
+        const { data: { session: authSession } } = await supabase.auth.getSession();
+        const authToken = authSession?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
         const resp = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/editor-generate-from-audio`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+              Authorization: `Bearer ${authToken}`,
             },
             body: JSON.stringify({
               prompt: seg.prompt,
@@ -1064,13 +1067,16 @@ const VideoEditor = () => {
     toast.info(`Generating ${durationSeconds}s video clip…`);
 
     try {
+      const { data: { session: authSession } } = await supabase.auth.getSession();
+      const authToken = authSession?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/editor-generate-from-audio`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${authToken}`,
           },
           body: JSON.stringify({
             prompt,

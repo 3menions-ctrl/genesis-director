@@ -1003,7 +1003,11 @@ serve(async (req) => {
             shotIndex,
             totalClips: totalClips || 3,
             chainDepth: 0,
-            pipelineContext: {
+            // CRITICAL FIX: Pass the FULL pipelineContext from upstream, not a stripped version.
+            // The stripped version was missing pendingVideoTasks (avatar dialogue),
+            // extractedCharacters, masterSceneAnchor, goldenFrameData, accumulatedAnchors,
+            // and sceneImageLookup — forcing continue-production into fragile DB fallbacks.
+            pipelineContext: pipelineContext || {
               videoEngine: videoEngine || 'kling',
               isAvatarMode,
               identityBible,

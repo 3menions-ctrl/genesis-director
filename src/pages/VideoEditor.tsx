@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Loader2, Sparkles, Film, Check } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -89,8 +89,7 @@ export default function VideoEditor() {
 }
 
 /**
- * Inner component that uses Twick context hooks.
- * Auto-injects user clips into the timeline via the editor API.
+ * Inner component that sets up Twick providers and injects clips into the media library.
  */
 function TwickEditorInner({ modules, navigate, projectId }: { modules: any; navigate: any; projectId: string | null }) {
   const {
@@ -98,8 +97,7 @@ function TwickEditorInner({ modules, navigate, projectId }: { modules: any; navi
     LivePlayerProvider,
     TimelineProvider,
     INITIAL_TIMELINE_DATA,
-    useTimelineContext,
-    VideoElement: VideoElementClass,
+    BrowserMediaManager,
   } = modules.studio;
 
   const { useBrowserRenderer } = modules.browserRender;
@@ -111,10 +109,9 @@ function TwickEditorInner({ modules, navigate, projectId }: { modules: any; navi
         initialData={INITIAL_TIMELINE_DATA}
         analytics={{ enabled: false }}
       >
-        <EditorWithClips
+        <EditorWithMediaInjection
           TwickStudio={TwickStudio}
-          useTimelineContext={useTimelineContext}
-          VideoElementClass={VideoElementClass}
+          BrowserMediaManager={BrowserMediaManager}
           useBrowserRenderer={useBrowserRenderer}
           navigate={navigate}
           projectId={projectId}
@@ -124,25 +121,26 @@ function TwickEditorInner({ modules, navigate, projectId }: { modules: any; navi
   );
 }
 
-function EditorWithClips({
+/**
+ * Main editor component that injects user clips into Twick's BrowserMediaManager (IndexedDB).
+ * Clips appear in the studio's built-in Video panel so users can drag them to the timeline.
+ */
+function EditorWithMediaInjection({
   TwickStudio,
-  useTimelineContext,
-  VideoElementClass,
+  BrowserMediaManager,
   useBrowserRenderer,
   navigate,
   projectId,
 }: {
   TwickStudio: any;
-  useTimelineContext: any;
-  VideoElementClass: any;
+  BrowserMediaManager: any;
   useBrowserRenderer: any;
   navigate: any;
   projectId: string | null;
 }) {
-  const { editor, videoResolution } = useTimelineContext();
   const { clips, loading: clipsLoading } = useEditorClips(projectId);
-  const [showSuccess, setShowSuccess] = useState(false);
   const [clipsInjected, setClipsInjected] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const injectedRef = useRef(false);
 
   const { render, progress, isRendering, error, reset } = useBrowserRenderer({
@@ -153,52 +151,51 @@ function EditorWithClips({
     autoDownload: true,
   });
 
-  // Auto-inject clips into the timeline when they load
+  // Inject clips into the BrowserMediaManager so they appear in the Video panel
   useEffect(() => {
-    if (clipsLoading || clips.length === 0 || injectedRef.current || !editor) return;
+    if (clipsLoading || clips.length === 0 || injectedRef.current) return;
 
-    async function injectClips() {
+    async function injectIntoMediaLibrary() {
       try {
-        const parentSize = videoResolution || { width: 1920, height: 1080 };
-        
-        // Create a video track for the clips
-        const track = editor.addTrack("Project Clips", "video");
-        
-        let currentTime = 0;
+        // BrowserMediaManager uses IndexedDB "mediaStore" / "mediaItems" — 
+        // same DB as the singleton inside TwickStudio, so items show up in the Video panel.
+        const manager = new BrowserMediaManager();
         let addedCount = 0;
-        
+
         for (const clip of clips) {
           if (!clip.videoUrl) continue;
-          
+
           try {
-            const element = new VideoElementClass(clip.videoUrl, parentSize);
-            const duration = clip.durationSeconds || 6;
-            
-            element.setStart(currentTime);
-            element.setEnd(currentTime + duration);
-            element.setName(`Shot ${clip.shotIndex + 1}`);
-            
-            await editor.addElementToTrack(track, element);
-            currentTime += duration;
+            await manager.addItem({
+              name: `Shot ${clip.shotIndex + 1} – ${clip.projectTitle}`,
+              type: "video",
+              url: clip.videoUrl,
+              thumbnail: clip.thumbnailUrl || undefined,
+              duration: clip.durationSeconds || undefined,
+              size: 0,
+              width: 1920,
+              height: 1080,
+              createdAt: new Date(),
+            });
             addedCount++;
           } catch (err) {
-            console.warn(`Failed to add clip ${clip.id}:`, err);
+            console.warn(`Failed to add clip ${clip.id} to media library:`, err);
           }
         }
 
         if (addedCount > 0) {
-          toast.success(`Loaded ${addedCount} clip${addedCount > 1 ? 's' : ''} into timeline`);
+          toast.success(`${addedCount} clip${addedCount > 1 ? "s" : ""} loaded into media library`);
         }
-        
+
         injectedRef.current = true;
         setClipsInjected(true);
       } catch (err) {
-        console.error("Failed to inject clips:", err);
+        console.error("Failed to inject clips into media library:", err);
       }
     }
 
-    injectClips();
-  }, [clips, clipsLoading, editor, videoResolution, VideoElementClass]);
+    injectIntoMediaLibrary();
+  }, [clips, clipsLoading, BrowserMediaManager]);
 
   const onExportVideo = useCallback(async () => {
     try {
@@ -249,7 +246,6 @@ function EditorWithClips({
           <span className="text-[12px] font-semibold text-foreground/50 tracking-tight font-display">
             Apex Editor
           </span>
-          {/* Clips loading indicator */}
           {clipsLoading && (
             <div className="flex items-center gap-1 ml-2 text-[10px] text-muted-foreground/40">
               <Loader2 className="w-2.5 h-2.5 animate-spin" />
@@ -257,9 +253,9 @@ function EditorWithClips({
             </div>
           )}
           {clipsInjected && (
-            <div className="flex items-center gap-1 ml-2 text-[10px] text-success/60">
+            <div className="flex items-center gap-1 ml-2 text-[10px] text-emerald-400/60">
               <Check className="w-2.5 h-2.5" />
-              {clips.length} clips loaded
+              {clips.length} clips in library
             </div>
           )}
         </div>
@@ -311,7 +307,7 @@ function EditorWithClips({
         )}
       </AnimatePresence>
 
-      {/* Full Twick Studio — clips are injected directly into its timeline */}
+      {/* Full Twick Studio — clips are in the Video panel's media library */}
       <div className="flex-1 min-h-0">
         <TwickStudio />
       </div>
@@ -336,7 +332,7 @@ function EditorWithClips({
             initial={{ opacity: 0, y: 16, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8 }}
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-success/90 text-success-foreground text-xs font-medium px-5 py-2.5 rounded-full backdrop-blur-xl border border-success/30 shadow-lg z-20 flex items-center gap-2"
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-emerald-500/90 text-white text-xs font-medium px-5 py-2.5 rounded-full backdrop-blur-xl border border-emerald-400/30 shadow-lg z-20 flex items-center gap-2"
           >
             <span>✓</span> Video downloaded
           </motion.div>

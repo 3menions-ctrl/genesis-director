@@ -164,7 +164,65 @@ serve(async (req) => {
       }
     }
 
-    // 5. Delete clip record from database
+    // 5. Refund credits if clip was pending/generating (never produced output)
+    let creditsRefunded = 0;
+    if (['pending', 'generating'].includes(clip.status) && !clip.video_url) {
+      try {
+        // Look up the usage charge for this project
+        const { data: usageCharge } = await supabase
+          .from('credit_transactions')
+          .select('amount')
+          .eq('user_id', userId)
+          .eq('project_id', clip.project_id)
+          .eq('transaction_type', 'usage')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (usageCharge) {
+          // Get total clips and this clip's share
+          const { count: totalClips } = await supabase
+            .from('video_clips')
+            .select('id', { count: 'exact', head: true })
+            .eq('project_id', clip.project_id);
+
+          if (totalClips && totalClips > 0) {
+            creditsRefunded = Math.round(Math.abs(usageCharge.amount) / totalClips);
+          }
+        }
+
+        if (creditsRefunded > 0) {
+          // Restore balance
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('credits_balance')
+            .eq('id', userId)
+            .single();
+
+          if (profile) {
+            await supabase
+              .from('profiles')
+              .update({ credits_balance: profile.credits_balance + creditsRefunded })
+              .eq('id', userId);
+          }
+
+          // Record refund
+          await supabase.from('credit_transactions').insert({
+            user_id: userId,
+            amount: creditsRefunded,
+            transaction_type: 'refund',
+            description: `Clip deleted (was ${clip.status}): shot ${clip.shot_index}`,
+            project_id: clip.project_id,
+          });
+
+          deletionLog.push(`Refunded ${creditsRefunded} credits`);
+        }
+      } catch (refundErr) {
+        console.error('[DeleteClip] Refund error (non-fatal):', refundErr);
+      }
+    }
+
+    // 6. Delete clip record from database
     const { error: deleteError } = await supabase
       .from('video_clips')
       .delete()
@@ -175,14 +233,17 @@ serve(async (req) => {
     }
 
     deletionLog.push('Clip record deleted');
-    console.log(`[DeleteClip] Clip ${clipId} FULLY deleted`);
+    console.log(`[DeleteClip] Clip ${clipId} FULLY deleted${creditsRefunded > 0 ? ` (${creditsRefunded} credits refunded)` : ''}`);
 
     return new Response(
       JSON.stringify({
         success: true,
         clipId,
-        message: 'Clip completely deleted. All files removed.',
+        message: creditsRefunded > 0 
+          ? `Clip deleted. ${creditsRefunded} credits refunded.`
+          : 'Clip completely deleted. All files removed.',
         deletionLog,
+        creditsRefunded,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

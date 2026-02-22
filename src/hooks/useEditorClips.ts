@@ -13,19 +13,29 @@ export interface EditorClip {
   prompt: string;
 }
 
+export interface EditorImage {
+  id: string;
+  url: string;
+  label: string;
+  source: "frame" | "source_image";
+  shotIndex?: number;
+}
+
 /**
- * Fetches the user's completed video clips, optionally filtered by project.
- * Returns clips ready for the editor media panel.
+ * Fetches completed video clips AND associated images for a single project.
+ * Requires a projectId — returns nothing if not provided.
  */
 export function useEditorClips(projectId?: string | null) {
   const { user } = useAuth();
   const [clips, setClips] = useState<EditorClip[]>([]);
+  const [images, setImages] = useState<EditorImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !projectId) {
       setClips([]);
+      setImages([]);
       setLoading(false);
       return;
     }
@@ -37,45 +47,35 @@ export function useEditorClips(projectId?: string | null) {
       setError(null);
 
       try {
-        // Fetch completed clips with project info
-        let query = supabase
-          .from("video_clips")
-          .select("id, project_id, shot_index, video_url, last_frame_url, duration_seconds, prompt, status")
-          .eq("user_id", user!.id)
-          .eq("status", "completed")
-          .not("video_url", "is", null)
-          .order("shot_index", { ascending: true });
-
-        if (projectId) {
-          query = query.eq("project_id", projectId);
-        }
-
-        const { data: clipsData, error: clipsErr } = await query.limit(200);
-
-        if (clipsErr) throw clipsErr;
-        if (cancelled) return;
-
-        // Get unique project IDs to fetch titles
-        const projectIds = [...new Set((clipsData || []).map((c) => c.project_id))];
-
-        let projectMap: Record<string, string> = {};
-        if (projectIds.length > 0) {
-          const { data: projects } = await supabase
+        // Fetch clips for this specific project only
+        const [clipsResult, projectResult] = await Promise.all([
+          supabase
+            .from("video_clips")
+            .select("id, project_id, shot_index, video_url, last_frame_url, duration_seconds, prompt, status")
+            .eq("project_id", projectId!)
+            .eq("user_id", user!.id)
+            .eq("status", "completed")
+            .not("video_url", "is", null)
+            .order("shot_index", { ascending: true })
+            .limit(200),
+          supabase
             .from("movie_projects")
-            .select("id, title")
-            .in("id", projectIds);
+            .select("id, title, source_image_url")
+            .eq("id", projectId!)
+            .single(),
+        ]);
 
-          if (projects) {
-            projectMap = Object.fromEntries(projects.map((p) => [p.id, p.title || "Untitled"]));
-          }
-        }
-
+        if (clipsResult.error) throw clipsResult.error;
         if (cancelled) return;
 
-        const mapped: EditorClip[] = (clipsData || []).map((c) => ({
+        const projectTitle = projectResult.data?.title || "Untitled";
+        const sourceImageUrl = projectResult.data?.source_image_url;
+
+        // Map clips
+        const mapped: EditorClip[] = (clipsResult.data || []).map((c) => ({
           id: c.id,
           projectId: c.project_id,
-          projectTitle: projectMap[c.project_id] || "Untitled",
+          projectTitle,
           shotIndex: c.shot_index,
           videoUrl: c.video_url!,
           thumbnailUrl: c.last_frame_url,
@@ -83,7 +83,34 @@ export function useEditorClips(projectId?: string | null) {
           prompt: c.prompt,
         }));
 
-        setClips(mapped);
+        // Collect images: last_frame_url from each clip + source_image_url from project
+        const collectedImages: EditorImage[] = [];
+
+        for (const c of clipsResult.data || []) {
+          if (c.last_frame_url) {
+            collectedImages.push({
+              id: `frame-${c.id}`,
+              url: c.last_frame_url,
+              label: `Shot ${c.shot_index + 1} – Frame`,
+              source: "frame",
+              shotIndex: c.shot_index,
+            });
+          }
+        }
+
+        if (sourceImageUrl) {
+          collectedImages.push({
+            id: `source-${projectId}`,
+            url: sourceImageUrl,
+            label: "Source Image",
+            source: "source_image",
+          });
+        }
+
+        if (!cancelled) {
+          setClips(mapped);
+          setImages(collectedImages);
+        }
       } catch (err: any) {
         if (!cancelled) {
           console.error("Failed to fetch editor clips:", err);
@@ -98,5 +125,5 @@ export function useEditorClips(projectId?: string | null) {
     return () => { cancelled = true; };
   }, [user, projectId]);
 
-  return { clips, loading, error, refetch: () => {} };
+  return { clips, images, loading, error, refetch: () => {} };
 }

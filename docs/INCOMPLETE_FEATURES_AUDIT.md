@@ -66,12 +66,12 @@
 - **Resolution**: No fix needed. The `useTemplateEnvironment` hook correctly consumes the param and applies settings to CreationHub.
 
 #### INC-03: Video Editor Export — No Render Server Configured
-- **Severity**: High
-- **Evidence**: `supabase/functions/render-video/index.ts` lines 56-65 and 87-112. When `RENDER_SERVER_URL` is not set (which it isn't — checked secrets), the function returns `fallback: "ffmpeg_wasm"` and saves timeline as draft.
-- **What exists**: Full NLE editor UI (1639 lines), timeline, tracks, clips, transitions, audio. Export dialog exists.
-- **What's missing**: `RENDER_SERVER_URL` secret is not configured. The FFmpeg.wasm fallback path in the editor likely doesn't produce a downloadable file (the ExportDialog submits to the edge function, not local FFmpeg).
-- **User impact**: User edits a video, clicks Export → gets "Timeline saved" but no rendered video. Editor is presentable but export is dead.
-- **Minimal fix**: Either (a) configure a MoviePy render server + set `RENDER_SERVER_URL`, or (b) implement browser-side FFmpeg.wasm rendering in `ExportDialog`. Option (b) is more feasible short-term.
+- **Severity**: Medium (downgraded — browser export now works via ZIP/MP4 download)
+- **Evidence**: `supabase/functions/render-video/index.ts` lines 56-65 and 87-112. When `RENDER_SERVER_URL` is not set, the function saves timeline as draft.
+- **What exists**: Full NLE editor UI, timeline, tracks, clips, transitions, audio. Export dialog exists. Browser-side export downloads single MP4 or multi-clip ZIP.
+- **What's missing**: `RENDER_SERVER_URL` secret is not configured for server-side rendering. Browser export works but doesn't merge clips into a single video.
+- **User impact**: User edits a video, clicks Export → gets working ZIP/MP4 download. Server-rendered single-file export is not available.
+- **Minimal fix**: Configure a render server + set `RENDER_SERVER_URL` for true single-file rendering.
 - **Tests**: Contract test for `render-video` with/without `RENDER_SERVER_URL`.
 
 #### INC-04: Photo Editor Manual Mode — "Coming Soon" Placeholder
@@ -223,7 +223,7 @@ These routes exist but have **no navigation links** in the header/sidebar:
 | # | Location | Gap | Impact |
 |---|----------|-----|--------|
 | D1 | `Environments.tsx` → `CreationHub` | Environment ID passed as query param but never read | Silent data loss |
-| D2 | `render-video` response | Returns `fallback: "ffmpeg_wasm"` but frontend doesn't handle this field | Export silently fails |
+| D2 | `render-video` response | Returns fallback info but frontend now handles export via browser-side ZIP/MP4 | Low impact — browser export works |
 | D3 | `motion-transfer` response | Returns `notImplemented: true` but `mode-router` doesn't fully handle 501 status from function invocations (Supabase client wraps non-2xx as errors) | Inconsistent error handling |
 
 ---
@@ -243,7 +243,7 @@ These routes exist but have **no navigation links** in the header/sidebar:
 | # | Issue | Fix | Effort | Dependencies |
 |---|-------|-----|--------|-------------|
 | 4 | INC-04: Photo Manual tab | Implement CSS filter sliders OR remove tab | **M** | None |
-| 5 | INC-03: Video Editor Export | Implement FFmpeg.wasm browser-side rendering | **L** | `@ffmpeg/ffmpeg` already installed |
+| 5 | INC-03: Video Editor Export | Configure render server for single-file output (browser ZIP export already works) | **L** | Render server infrastructure |
 | 6 | INC-06: 2FA section | Remove placeholder section until ready | **S** | None |
 | 7 | INC-08: Templates selection persistence | Verify `CreationHub` reads `selectedTemplate` from localStorage | **S** | None |
 | 8 | INC-07: Blog CMS | Create `blog_articles` table + admin CRUD | **L** | Admin panel extension |

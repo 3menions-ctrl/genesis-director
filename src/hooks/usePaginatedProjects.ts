@@ -210,14 +210,21 @@ export function usePaginatedProjects(
     }
   }, [buildQuery]); // Stable - buildQuery is stable
 
-  // Load more (pagination)
+  // Load more (pagination) - STABILITY FIX: Use refs for state to keep identity stable
+  const offsetRef = useRef(0);
+  offsetRef.current = offset;
+  const isLoadingMoreRef = useRef(false);
+  isLoadingMoreRef.current = isLoadingMore;
+  const hasMoreRef = useRef(true);
+  hasMoreRef.current = hasMore;
+  
   const loadMore = useCallback(async () => {
-    if (!userIdRef.current || isLoadingMore || !hasMore) return;
+    if (!userIdRef.current || isLoadingMoreRef.current || !hasMoreRef.current) return;
     
     setIsLoadingMore(true);
     
     try {
-      const query = buildQuery(offset);
+      const query = buildQuery(offsetRef.current);
       const { data, error: queryError } = await query;
       
       if (!isMountedRef.current) return;
@@ -238,7 +245,7 @@ export function usePaginatedProjects(
         setIsLoadingMore(false);
       }
     }
-  }, [offset, isLoadingMore, hasMore, buildQuery]);
+  }, [buildQuery]); // Stable - reads from refs
 
   // Stable refresh - always uses latest filters via refs
   const refresh = useCallback(async () => {

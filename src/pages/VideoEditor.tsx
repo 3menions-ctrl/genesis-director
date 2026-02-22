@@ -1238,6 +1238,79 @@ const VideoEditor = () => {
     return () => window.removeEventListener("editor-save", onSave);
   }, [user, editorState.sessionId, editorState.title, editorState.tracks, editorState.duration, editorState.projectId]);
 
+  /** Build a simple uncompressed ZIP from named blobs (no external deps) */
+  async function buildSimpleZip(files: { name: string; blob: Blob }[]): Promise<Blob> {
+    const encoder = new TextEncoder();
+    const parts: Uint8Array[] = [];
+    const centralDir: Uint8Array[] = [];
+    let offset = 0;
+
+    for (const file of files) {
+      const nameBytes = encoder.encode(file.name);
+      const data = new Uint8Array(await file.blob.arrayBuffer());
+
+      // Local file header (30 + name + data)
+      const header = new ArrayBuffer(30);
+      const hv = new DataView(header);
+      hv.setUint32(0, 0x04034b50, true); // signature
+      hv.setUint16(4, 20, true); // version needed
+      hv.setUint16(6, 0, true); // flags
+      hv.setUint16(8, 0, true); // compression (store)
+      hv.setUint16(10, 0, true); // mod time
+      hv.setUint16(12, 0, true); // mod date
+      hv.setUint32(14, 0, true); // crc32 (skip for simplicity)
+      hv.setUint32(18, data.length, true); // compressed size
+      hv.setUint32(22, data.length, true); // uncompressed size
+      hv.setUint16(26, nameBytes.length, true); // name length
+      hv.setUint16(28, 0, true); // extra length
+
+      const localHeader = new Uint8Array(header);
+      parts.push(localHeader, nameBytes, data);
+
+      // Central directory entry
+      const cd = new ArrayBuffer(46);
+      const cv = new DataView(cd);
+      cv.setUint32(0, 0x02014b50, true);
+      cv.setUint16(4, 20, true);
+      cv.setUint16(6, 20, true);
+      cv.setUint16(8, 0, true);
+      cv.setUint16(10, 0, true);
+      cv.setUint16(12, 0, true);
+      cv.setUint16(14, 0, true);
+      cv.setUint32(16, 0, true);
+      cv.setUint32(20, data.length, true);
+      cv.setUint32(24, data.length, true);
+      cv.setUint16(28, nameBytes.length, true);
+      cv.setUint16(30, 0, true);
+      cv.setUint16(32, 0, true);
+      cv.setUint16(34, 0, true);
+      cv.setUint16(36, 0, true);
+      cv.setUint32(38, 0, true);
+      cv.setUint32(42, offset, true); // local header offset
+
+      centralDir.push(new Uint8Array(cd), nameBytes);
+      offset += 30 + nameBytes.length + data.length;
+    }
+
+    const cdOffset = offset;
+    let cdSize = 0;
+    centralDir.forEach((b) => (cdSize += b.length));
+
+    // End of central directory
+    const eocd = new ArrayBuffer(22);
+    const ev = new DataView(eocd);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(4, 0, true);
+    ev.setUint16(6, 0, true);
+    ev.setUint16(8, files.length, true);
+    ev.setUint16(10, files.length, true);
+    ev.setUint32(12, cdSize, true);
+    ev.setUint32(16, cdOffset, true);
+    ev.setUint16(20, 0, true);
+
+    return new Blob([...parts.map(p => p.buffer as ArrayBuffer), ...centralDir.map(p => p.buffer as ArrayBuffer), eocd], { type: "application/zip" });
+  }
+
   const handleExport = async () => {
     const videoClips = editorState.tracks
       .filter((t) => t.type === "video")
@@ -1328,15 +1401,14 @@ const VideoEditor = () => {
         }
       }
 
-      // MULTI-CLIP: Use mp4box.js (pure JS, no SharedArrayBuffer needed)
-      // to merge all clips into a single seamless MP4 file
+      // MULTI-CLIP: Try mp4box.js concat first, fall back to ZIP download
       setEditorState((prev) => ({ ...prev, renderProgress: 20 }));
       toast.info(`Merging ${allClipUrls.length} clips into one video...`);
 
       try {
         const { concatMP4Clips } = await import("@/lib/video/mp4Concat");
         const result = await concatMP4Clips(allClipUrls, (p) => {
-          setEditorState((prev) => ({ ...prev, renderProgress: 20 + Math.round(p.progress * 0.8) }));
+          setEditorState((prev) => ({ ...prev, renderProgress: 20 + Math.round(p.progress * 0.7) }));
         });
 
         if (result.success && result.blob) {
@@ -1352,25 +1424,66 @@ const VideoEditor = () => {
         console.warn("[Editor Export] mp4box concat error:", concatErr);
       }
 
-      // LAST RESORT fallback: Download clips individually (only on iOS or if FFmpeg fails)
-      toast.info(`Downloading ${allClipUrls.length} clips individually...`);
-      for (let i = 0; i < allClipUrls.length; i++) {
-        try {
-          const response = await fetch(allClipUrls[i], { mode: "cors" });
-          if (!response.ok) continue;
-          const blob = await response.blob();
-          downloadBlobToUser(blob, `${sanitizedName}-clip${i + 1}.mp4`);
-          if (i < allClipUrls.length - 1) {
-            await new Promise((r) => setTimeout(r, 800));
-          }
-        } catch (err) {
-          console.warn(`[Editor Export] Clip ${i + 1} download error:`, err);
-        }
-      }
+      // FALLBACK: Download all clips as a ZIP file
+      toast.info(`Packaging ${allClipUrls.length} clips as ZIP...`);
+      setEditorState((prev) => ({ ...prev, renderProgress: 75 }));
 
-      setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
-      toast.success(`Downloaded ${allClipUrls.length} clips!`);
-      resetExportStatus();
+      try {
+        // Use a simple ZIP builder (no external dependency)
+        const clipBlobs: { name: string; blob: Blob }[] = [];
+        for (let i = 0; i < allClipUrls.length; i++) {
+          setEditorState((prev) => ({
+            ...prev,
+            renderProgress: 75 + Math.round((i / allClipUrls.length) * 20),
+          }));
+          try {
+            const response = await fetch(allClipUrls[i], { mode: "cors" });
+            if (!response.ok) continue;
+            const blob = await response.blob();
+            clipBlobs.push({ name: `${sanitizedName}-clip${i + 1}.mp4`, blob });
+          } catch (err) {
+            console.warn(`[Editor Export] Clip ${i + 1} download error:`, err);
+          }
+        }
+
+        if (clipBlobs.length === 0) {
+          toast.error("Failed to download clips");
+          setEditorState((prev) => ({ ...prev, renderStatus: "idle", renderProgress: 0 }));
+          return;
+        }
+
+        // If only 1 clip downloaded, just give them the MP4
+        if (clipBlobs.length === 1) {
+          downloadBlobToUser(clipBlobs[0].blob, clipBlobs[0].name);
+        } else {
+          // Build a simple uncompressed ZIP
+          const zipBlob = await buildSimpleZip(clipBlobs);
+          downloadBlobToUser(zipBlob, `${sanitizedName}-clips.zip`);
+        }
+
+        setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
+        toast.success(`Downloaded ${clipBlobs.length} clips as ZIP!`);
+        resetExportStatus();
+      } catch (zipErr) {
+        console.error("[Editor Export] ZIP fallback error:", zipErr);
+        // Last resort: download clips individually
+        for (let i = 0; i < allClipUrls.length; i++) {
+          try {
+            const response = await fetch(allClipUrls[i], { mode: "cors" });
+            if (!response.ok) continue;
+            const blob = await response.blob();
+            downloadBlobToUser(blob, `${sanitizedName}-clip${i + 1}.mp4`);
+            if (i < allClipUrls.length - 1) {
+              await new Promise((r) => setTimeout(r, 800));
+            }
+          } catch (err) {
+            console.warn(`[Editor Export] Clip ${i + 1} download error:`, err);
+          }
+        }
+        setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
+        toast.success(`Downloaded ${allClipUrls.length} clips!`);
+        resetExportStatus();
+      }
     } catch (err) {
       console.error("[Editor Export] Error:", err);
       setEditorState((prev) => ({ ...prev, renderStatus: "idle", renderProgress: 0 }));
@@ -1735,9 +1848,6 @@ const VideoEditor = () => {
             onDeleteClip={handleDeleteClip}
             onApplyTemplate={handleApplyTemplate}
             onAddMusic={handleAddMusic}
-            onAddSticker={handleAddSticker}
-            onApplyEffect={handleApplyEffect}
-            onBeatSyncAutocut={handleBeatSyncAutocut}
             onAudioUploaded={handleAudioUploaded}
             onGenerateVideosFromAudio={handleGenerateVideosFromAudio}
             isGeneratingFromAudio={isGeneratingFromAudio}

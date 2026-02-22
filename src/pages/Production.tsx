@@ -417,35 +417,54 @@ function ProductionContentInner() {
       const manifestUrl = pendingTasksForVideo?.manifestUrl;
       const isManifestMode = pendingTasksForVideo?.mode === 'manifest_playback';
       
-      // Extract avatar clips from pending_video_tasks.predictions OR video_clips array
+      // Extract avatar clips by MERGING video_clips DB data + predictions
+      // CRITICAL FIX: predictions array can be incomplete (watchdog recovery removes completed entries)
+      // Always use video_clips table as the source of truth for completed clips
       if (project.mode === 'avatar') {
         const predictions = (pendingTasksRaw as any)?.predictions as Array<{ clipIndex: number; videoUrl?: string; status?: string }> | undefined;
         const videoClipsArray = project.video_clips as string[] | undefined;
+        const mseClipUrls = (pendingTasksRaw as any)?.mseClipUrls as string[] | undefined;
         
-        if (predictions && predictions.length > 0) {
-          // Extract ALL clips from predictions array (not just completed ones)
-          // This allows the UI to show pending/generating clips during production
-          const clips = predictions
-            .map((p: any) => ({
-              index: p.clipIndex ?? 0,
+        // Build a merged map: index -> clip data
+        // Priority: DB video_clips (most reliable) > predictions > video_clips column > mseClipUrls
+        const clipMap = new Map<number, { index: number; videoUrl: string; status: 'completed' | 'failed' | 'generating' | 'pending' }>();
+        
+        // 1. Start with predictions (includes pending/generating clips)
+        if (predictions) {
+          for (const p of predictions) {
+            const idx = p.clipIndex ?? 0;
+            clipMap.set(idx, {
+              index: idx,
               videoUrl: p.videoUrl || '',
-              // Map backend statuses correctly: only ONE clip should be 'generating' at a time
-              // 'pending' clips are waiting in queue, 'processing' is actively generating
-              status: (p.status === 'completed' && p.videoUrl) ? 'completed' as const :
-                      (p.status === 'processing' || p.status === 'generating') ? 'generating' as const :
-                      p.status === 'failed' ? 'failed' as const : 
-                      p.status === 'pending' ? 'pending' as const : 'pending' as const,
-            }))
-            .sort((a, b) => a.index - b.index);
-          setAvatarClips(clips);
-        } else if (videoClipsArray && videoClipsArray.length > 0) {
-          // Fallback to video_clips column
-          const clips = videoClipsArray.map((url, idx) => ({
-            index: idx,
-            videoUrl: url,
-            status: 'completed' as const,
-          }));
-          setAvatarClips(clips);
+              status: (p.status === 'completed' && p.videoUrl) ? 'completed' :
+                      (p.status === 'processing' || p.status === 'generating') ? 'generating' :
+                      p.status === 'failed' ? 'failed' : 'pending',
+            });
+          }
+        }
+        
+        // 2. Overlay mseClipUrls (completed clips from manifest)
+        if (mseClipUrls) {
+          mseClipUrls.forEach((url, idx) => {
+            if (url) {
+              clipMap.set(idx, { index: idx, videoUrl: url, status: 'completed' });
+            }
+          });
+        }
+        
+        // 3. Overlay video_clips column
+        if (videoClipsArray) {
+          videoClipsArray.forEach((url, idx) => {
+            if (url) {
+              clipMap.set(idx, { index: idx, videoUrl: url, status: 'completed' });
+            }
+          });
+        }
+        
+        // 4. DB video_clips will be overlaid after loadVideoClips() runs (see effect below)
+        // For now, set what we have
+        if (clipMap.size > 0) {
+          setAvatarClips(Array.from(clipMap.values()).sort((a, b) => a.index - b.index));
         }
         
         // Extract master audio URL
@@ -791,26 +810,50 @@ function ProductionContentInner() {
         }
         
         // REALTIME: Update avatar clips from predictions array
-        // This ensures the UI reflects clip completion in real-time
+        // CRITICAL FIX: Merge predictions with existing avatarClips (don't replace)
+        // Predictions can be incomplete - DB video_clips sync handles completed clips
         const pendingTasksRaw = project.pending_video_tasks as Record<string, unknown> | null;
         const predictions = (pendingTasksRaw as any)?.predictions as Array<{ clipIndex: number; videoUrl?: string; status?: string }> | undefined;
+        const mseClipUrls = (pendingTasksRaw as any)?.mseClipUrls as string[] | undefined;
         
-        if (predictions && predictions.length > 0) {
-          const clips = predictions
-            .map((p: any) => ({
-              index: p.clipIndex ?? 0,
-              videoUrl: p.videoUrl || '',
-              status: (p.status === 'completed' && p.videoUrl) ? 'completed' as const :
-                      (p.status === 'processing' || p.status === 'generating') ? 'generating' as const :
-                      p.status === 'failed' ? 'failed' as const : 
-                      p.status === 'pending' ? 'pending' as const : 'pending' as const,
-            }))
-            .sort((a, b) => a.index - b.index);
-          setAvatarClips(clips);
+        if (predictions || mseClipUrls) {
+          setAvatarClips(prev => {
+            const merged = new Map<number, typeof prev[0]>();
+            
+            // Keep existing completed clips from DB sync
+            for (const clip of prev) {
+              merged.set(clip.index, clip);
+            }
+            
+            // Add/update from mseClipUrls (completed clips in manifest)
+            if (mseClipUrls) {
+              mseClipUrls.forEach((url, idx) => {
+                if (url) merged.set(idx, { index: idx, videoUrl: url, status: 'completed' });
+              });
+            }
+            
+            // Add/update from predictions (generating/pending/failed)
+            if (predictions) {
+              for (const p of predictions) {
+                const idx = p.clipIndex ?? 0;
+                const existing = merged.get(idx);
+                // Don't downgrade a completed clip to generating
+                if (existing?.status === 'completed' && existing.videoUrl) continue;
+                merged.set(idx, {
+                  index: idx,
+                  videoUrl: p.videoUrl || '',
+                  status: (p.status === 'completed' && p.videoUrl) ? 'completed' :
+                          (p.status === 'processing' || p.status === 'generating') ? 'generating' :
+                          p.status === 'failed' ? 'failed' : 'pending',
+                });
+              }
+            }
+            
+            return Array.from(merged.values()).sort((a, b) => a.index - b.index);
+          });
           
-          // Update completed clip count for progress calculation
-          const completedCount = clips.filter(c => c.status === 'completed').length;
-          setCompletedClips(completedCount);
+          // Also trigger a DB clip reload to get latest from video_clips table
+          loadVideoClipsRef.current();
         }
       })
       .subscribe();
@@ -854,6 +897,49 @@ function ProductionContentInner() {
       if (clipsDebounce) clearTimeout(clipsDebounce);
     };
   }, [projectId, user?.id]); // STABILITY FIX: Only projectId and user.id - callbacks via refs
+
+  // CRITICAL FIX: Sync DB video_clips into avatarClips for avatar projects
+  // The predictions array can be incomplete (watchdog recovery removes entries),
+  // but video_clips table is always the source of truth for completed clips
+  useEffect(() => {
+    if (!['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode)) return;
+    if (clipResults.length === 0) return;
+    
+    setAvatarClips(prev => {
+      const merged = new Map<number, typeof prev[0]>();
+      
+      // Start with existing avatarClips (has pending/generating from predictions)
+      for (const clip of prev) {
+        merged.set(clip.index, clip);
+      }
+      
+      // Overlay DB clips - DB is source of truth for completed/failed
+      for (const dbClip of clipResults) {
+        const existing = merged.get(dbClip.index);
+        if (dbClip.status === 'completed' && dbClip.videoUrl) {
+          // DB says completed with URL - always trust this
+          merged.set(dbClip.index, {
+            index: dbClip.index,
+            videoUrl: dbClip.videoUrl,
+            status: 'completed',
+          });
+        } else if (!existing) {
+          // Clip exists in DB but not in predictions - add it
+          merged.set(dbClip.index, {
+            index: dbClip.index,
+            videoUrl: dbClip.videoUrl || '',
+            status: dbClip.status as 'completed' | 'failed' | 'generating' | 'pending',
+          });
+        }
+      }
+      
+      const result = Array.from(merged.values()).sort((a, b) => a.index - b.index);
+      
+      // Only update if actually changed (prevent infinite loops)
+      if (JSON.stringify(result) === JSON.stringify(prev)) return prev;
+      return result;
+    });
+  }, [clipResults, projectMode]);
 
   // CRITICAL: Auto-clear errors when all clips complete successfully
   // This prevents stale CONTINUITY_FAILURE errors from showing after recovery

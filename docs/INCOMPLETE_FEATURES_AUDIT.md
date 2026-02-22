@@ -145,15 +145,14 @@
 
 | File | Type | Impact |
 |------|------|--------|
-| `supabase/functions/motion-transfer/index.ts` | Returns 501 "Not Implemented" | Users can select this mode but it fails |
+| `supabase/functions/motion-transfer/index.ts` | Returns 501 "Not Implemented" | ~~Users can select this mode~~ Hidden from UI ✅ |
 
-### "Coming Soon" UI Elements
+### ~~"Coming Soon" UI Elements~~ ✅ ALL FIXED
 
-| File | Line | Text | Impact |
-|------|------|------|--------|
-| `src/components/photo-editor/PhotoEditorHub.tsx` | 498 | "coming soon" for manual adjustments | Tab exists but empty |
-| `src/components/settings/SecuritySettings.tsx` | 304 | "Coming Soon" badge on 2FA | Section visible but non-functional |
-| `src/pages/Production.tsx` | 1339 | `toast.info('Retry feature coming soon')` | Retry button does nothing for specialized modes |
+All "coming soon" placeholders have been resolved:
+- ~~Photo Editor Manual tab~~ → Removed from UI ✅
+- ~~Security Settings 2FA badge~~ → Removed from UI ✅
+- ~~Production retry toast~~ → Wired to `resume-avatar-pipeline` ✅
 
 ### render-video Mock/Fallback
 

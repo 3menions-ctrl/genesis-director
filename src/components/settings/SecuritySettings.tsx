@@ -17,7 +17,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { 
-  Shield, Key, Smartphone, Monitor, LogOut,
+  Shield, Key, Monitor, LogOut,
   Trash2, AlertTriangle, Loader2, CheckCircle2, Eye, EyeOff, Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -281,30 +281,6 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
         )}
       </motion.div>
 
-      {/* Two-Factor Authentication */}
-      <motion.div 
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className={cardClass}
-      >
-        <div className={topAccent} />
-        
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className={cn(iconBoxClass, "bg-white/[0.04]")}>
-              <Smartphone className="w-5 h-5 text-white/30" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-white">Two-Factor Authentication</h3>
-              <p className="text-sm text-white/40">Add an extra layer of security</p>
-            </div>
-          </div>
-          <span className="px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-[10px] font-medium text-white/35 uppercase tracking-wider">
-            Coming Soon
-          </span>
-        </div>
-      </motion.div>
 
       {/* Active Sessions */}
       <motion.div 

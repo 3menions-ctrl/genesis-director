@@ -232,32 +232,27 @@ export const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
 
   return (
     <>
-      {/* Video background layer - above all content */}
-      <div className="fixed inset-0 z-[100] animate-fade-in" style={{ animationDuration: '1.2s', pointerEvents: 'none' }}>
-        {/* Fullscreen HLS video — plays ALL clips via UniversalHLSPlayer */}
+      {/* Video background layer — BEHIND all content (z-[1]) so page scrolls over it */}
+      <div className="fixed inset-0 z-[1] animate-fade-in" style={{ animationDuration: '1.2s', pointerEvents: 'none' }}>
+        {/* Fullscreen HLS video — covers entire viewport */}
         <UniversalHLSPlayer
           ref={playerRef}
           hlsUrl={STORYTELLING_HLS_URL}
           fallbackMp4Url={STORYTELLING_MP4_FALLBACK}
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover [min-width:100vw] [min-height:100vh]"
           autoPlay
           muted={isMuted}
           loop={false}
           showControls={false}
           onEnded={stopPlayback}
-          onTimeUpdate={() => {
-            // NO premature stop check here — rely solely on onEnded.
-            // The previous duration-based check was killing playback after clip 1
-            // because HLS discontinuity segments can cause stale/incorrect duration
-            // values during early buffering.
-          }}
+          onTimeUpdate={() => {}}
         />
         
-        {/* Dark gradient overlay for content readability */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/65" />
+        {/* Subtle overlay for content readability — lighter so video shows through */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
       </div>
 
-      {/* Controls - separate from video layer so z-index works */}
+      {/* Controls - float above everything */}
       <div className="fixed top-20 right-6 z-[9999] flex items-center gap-2 animate-fade-in" style={{ pointerEvents: 'auto', animationDelay: '0.6s' }}>
         {/* Unmute/Mute button */}
         <button

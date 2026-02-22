@@ -161,55 +161,13 @@ describe('Round 1: Core stability fixes', () => {
 // ROUND 2 — FIXES 5–9
 // ═══════════════════════════════════════════════════════════════════════════════
 
-describe('Round 2: Editor & infrastructure fixes', () => {
-
-  // ─── FIX 5: Poll Interval Leak ──────────────────────────────────────────
-  describe('Fix #5 — pollRenderStatus interval cleaned up on unmount', () => {
-    const source = readSrc('pages/VideoEditor.tsx');
-
-    it('stores poll interval in a ref (pollIntervalRef)', () => {
-      expect(source).toContain('const pollIntervalRef = useRef<');
-    });
-
-    it('clears previous interval before starting new one', () => {
-      const fnBody = source.substring(
-        source.indexOf('const pollRenderStatus'),
-        source.indexOf('// Cleanup poll interval')
-      );
-      // Should clear at the start of the function
-      const firstClear = fnBody.indexOf('clearInterval(pollIntervalRef.current)');
-      const setIntervalPos = fnBody.indexOf('pollIntervalRef.current = setInterval');
-      expect(firstClear).toBeGreaterThan(-1);
-      expect(setIntervalPos).toBeGreaterThan(firstClear);
-    });
-
-    it('has a cleanup useEffect that clears the interval on unmount', () => {
-      const cleanupSection = source.substring(
-        source.indexOf('// Cleanup poll interval on unmount')
-      );
-      expect(cleanupSection).toContain('return () => {');
-      expect(cleanupSection).toContain('clearInterval(pollIntervalRef.current)');
-    });
-
-    it('nullifies the ref after clearing inside the poll callback', () => {
-      const fnBody = source.substring(
-        source.indexOf('const pollRenderStatus'),
-        source.indexOf('// Cleanup poll interval')
-      );
-      // After clearing, should set to null
-      const nullAssignments = (fnBody.match(/pollIntervalRef\.current = null/g) || []).length;
-      // Should null it on completed, failed, AND catch
-      expect(nullAssignments).toBeGreaterThanOrEqual(3);
-    });
-  });
+describe('Round 2: Infrastructure fixes', () => {
 
   // ─── FIX 6: Double-fetch on Mount ──────────────────────────────────────
   describe('Fix #6 — usePaginatedProjects single fetch on mount', () => {
     const source = readSrc('hooks/usePaginatedProjects.ts');
 
     it('the main re-fetch effect uses [fetchProjects] as sole dependency', () => {
-      // The key fix: the effect that re-fetches on filter change uses fetchProjects
-      // as the only dep, not the raw filter values
       const effectSection = source.substring(
         source.indexOf('// Re-fetch when filters/sort change')
       );
@@ -218,7 +176,6 @@ describe('Round 2: Editor & infrastructure fixes', () => {
     });
 
     it('uses [fetchProjects] as the sole dependency', () => {
-      // Find the effect that calls fetchProjects(true)
       const effectSection = source.substring(
         source.indexOf('// Re-fetch when filters/sort change')
       );
@@ -226,7 +183,6 @@ describe('Round 2: Editor & infrastructure fixes', () => {
     });
 
     it('does NOT have sortBy, sortOrder, statusFilter, searchQuery in the effect deps', () => {
-      // The old pattern had these as direct deps causing double-fire
       const effectSection = source.substring(
         source.indexOf('// Re-fetch when filters/sort change'),
         source.indexOf('// Cleanup debounce')
@@ -240,42 +196,14 @@ describe('Round 2: Editor & infrastructure fixes', () => {
     });
 
     it('buildQuery useCallback captures the filter state (single dep chain)', () => {
-      // buildQuery's useCallback deps must include filter variables
-      // so that fetchProjects (which depends on buildQuery) re-fires when filters change
       const buildQuerySection = source.substring(
         source.indexOf('const buildQuery = useCallback'),
         source.indexOf('// Initial fetch')
       );
-      // Find the last [...] which is the deps array (after the function body)
       const allBrackets = [...buildQuerySection.matchAll(/\[([^\]]*)\]/g)];
       const depsArray = allBrackets[allBrackets.length - 1]?.[1] || '';
       expect(depsArray).toContain('statusFilter');
       expect(depsArray).toContain('sortBy');
-    });
-  });
-
-  // ─── FIX 7: URL Sync ──────────────────────────────────────────────────
-  describe('Fix #7 — Auto-detected project ID synced to URL', () => {
-    const source = readSrc('pages/VideoEditor.tsx');
-
-    it('uses window.history.replaceState to update URL after auto-detect', () => {
-      const autoDetectSection = source.substring(
-        source.indexOf('No projects with clips found'),
-        source.indexOf('} else {')
-      );
-      expect(autoDetectSection).toContain('window.history.replaceState');
-    });
-
-    it('sets the "project" search param in the URL', () => {
-      expect(source).toContain('newParams.set("project", targetProjectId)');
-    });
-
-    it('uses replaceState (not pushState) to avoid polluting browser history', () => {
-      const section = source.substring(
-        source.indexOf('// Sync URL'),
-        source.indexOf('} else {') > source.indexOf('// Sync URL') ? source.indexOf('} else {') : source.indexOf('const timelineClips', source.indexOf('// Sync URL'))
-      );
-      expect(section).toContain('replaceState');
     });
   });
 
@@ -308,41 +236,10 @@ describe('Round 2: Editor & infrastructure fixes', () => {
       const effectSection = source.substring(
         source.indexOf('// Subscribe to realtime notifications')
       );
-      // Find the closing deps
       const depsMatch = effectSection.match(/\}, \[([^\]]*)\]/);
       expect(depsMatch).not.toBeNull();
       expect(depsMatch![1]).toContain('user?.id');
       expect(depsMatch![1]).not.toContain('queryClient');
-    });
-  });
-
-  // ─── FIX 9: Error Recovery in loadProjectClips ─────────────────────────
-  describe('Fix #9 — loadProjectClips separates error from empty state', () => {
-    const source = readSrc('pages/VideoEditor.tsx');
-
-    it('handles network errors with console.error and toast.error', () => {
-      const loadFnSection = source.substring(
-        source.indexOf('const loadProjectClips'),
-        source.indexOf('const handleAddClipFromBrowser')
-      );
-      expect(loadFnSection).toContain("console.error('[VideoEditor] Failed to load clips:'");
-      expect(loadFnSection).toContain("toast.error(\"Couldn't load clips. Please try again.\")");
-    });
-
-    it('handles empty results with toast.info (not toast.error)', () => {
-      const loadFnSection = source.substring(
-        source.indexOf('const loadProjectClips'),
-        source.indexOf('const handleAddClipFromBrowser')
-      );
-      expect(loadFnSection).toContain('toast.info("No completed clips found for this project yet")');
-    });
-
-    it('does NOT use combined if (error || !clips?.length) anymore', () => {
-      const loadFnSection = source.substring(
-        source.indexOf('const loadProjectClips'),
-        source.indexOf('const handleAddClipFromBrowser')
-      );
-      expect(loadFnSection).not.toContain('error || !clips');
     });
   });
 });
@@ -352,11 +249,6 @@ describe('Round 2: Editor & infrastructure fixes', () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe('Cross-cutting: No regressions', () => {
-  
-  it('VideoEditor imports useRef', () => {
-    const source = readSrc('pages/VideoEditor.tsx');
-    expect(source).toMatch(/import\s*\{[^}]*useRef[^}]*\}\s*from\s*["']react["']/);
-  });
 
   it('useNotifications imports useRef', () => {
     const source = readSrc('hooks/useNotifications.ts');
@@ -375,7 +267,6 @@ describe('Cross-cutting: No regressions', () => {
 
   it('AuthContext never gives 60 free credits anywhere in the file', () => {
     const source = readSrc('contexts/AuthContext.tsx');
-    // The string "credits_balance: 60" should not appear
     expect(source).not.toContain('credits_balance: 60');
   });
 });

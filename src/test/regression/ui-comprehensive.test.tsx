@@ -578,20 +578,6 @@ describe('Component Architecture Audit', () => {
     }
   });
 
-  describe('Editor components', () => {
-    const files = [
-      'src/components/editor/EditorToolbar.tsx',
-      'src/components/editor/EditorPreview.tsx',
-      'src/components/editor/EditorSidebar.tsx',
-      'src/components/editor/EditorTimeline.tsx',
-    ];
-
-    for (const f of files) {
-      it(`${path.basename(f)} exists`, () => {
-        expect(fs.existsSync(path.resolve(f))).toBe(true);
-      });
-    }
-  });
 
   describe('Player components', () => {
     const files = [
@@ -796,7 +782,6 @@ describe('Component Directory Structure', () => {
     'src/components/landing',
     'src/components/projects',
     'src/components/production',
-    'src/components/editor',
     'src/components/player',
     'src/components/social',
     'src/components/settings',

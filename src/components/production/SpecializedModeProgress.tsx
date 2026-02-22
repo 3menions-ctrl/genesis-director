@@ -789,7 +789,7 @@ export function SpecializedModeProgress({
 
               <Button
                 variant="ghost"
-                onClick={() => navigateTo('/editor')}
+                onClick={() => navigateTo('/projects')}
                 className="h-10 px-4 text-white/60 hover:text-white hover:bg-white/[0.06] text-sm"
               >
                 <Eye className="w-4 h-4 mr-2" />

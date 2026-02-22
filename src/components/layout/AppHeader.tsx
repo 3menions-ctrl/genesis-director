@@ -29,7 +29,6 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'Library', path: '/projects' },
   { label: 'Pipeline', path: '/production' },
-  { label: 'Editor', path: '/editor' },
   { label: 'Creators', path: '/creators' },
   { label: 'Chat', path: '/chat' },
 ];

@@ -143,11 +143,13 @@ export default function Landing() {
     setHasAutoTriggered(false);
   }, []);
 
-  // Inactivity detection — auto-enter immersive after 10s of no deliberate interaction.
-  // CRITICAL: hasAutoTriggered must be a STATE variable (not just a ref) so this
-  // effect re-runs when it changes — refs don't trigger dependency checks.
+  // Inactivity detection — auto-enter immersive after idle.
+  // DISABLED on touch devices to prevent Safari mobile crash from loading
+  // a full HLS video stream on top of everything else.
+  const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  
   useEffect(() => {
-    if (isImmersive || hasAutoTriggered || showExamples) return;
+    if (isImmersive || hasAutoTriggered || showExamples || isTouchDevice) return;
 
     const startTimer = () => {
       if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
@@ -166,7 +168,7 @@ export default function Landing() {
       if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
       events.forEach(e => window.removeEventListener(e, handleActivity));
     };
-  }, [isImmersive, hasAutoTriggered, showExamples]);
+  }, [isImmersive, hasAutoTriggered, showExamples, isTouchDevice]);
 
   // Scroll reveal observer for landing sections — skip when overlay is active
   useEffect(() => {

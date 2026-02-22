@@ -17,7 +17,7 @@ export interface AuthResult {
 /**
  * Validate the Authorization header and extract user identity.
  * 
- * - User JWTs: Validates via getClaims() and extracts sub claim
+ * - User JWTs: Validates via getUser(token) 
  * - Service role key: Allows internal function-to-function calls
  * - No auth: Returns authenticated=false
  */
@@ -38,30 +38,17 @@ export async function validateAuth(req: Request): Promise<AuthResult> {
     return { authenticated: true, userId: null, isServiceRole: true };
   }
 
-  // Validate user JWT
+  // Validate user JWT via getUser(token) — always reliable
   try {
-    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
 
-    // Try getClaims first (fast, local validation)
-    try {
-      const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-      if (!claimsError && claimsData?.claims?.sub) {
-        return { 
-          authenticated: true, 
-          userId: claimsData.claims.sub as string, 
-          isServiceRole: false 
-        };
-      }
-    } catch {
-      // getClaims not available or failed, fall through to getUser
-    }
-
-    // Fallback: validate via getUser (server-side, always reliable)
-    const { data: { user }, error: userError } = await authClient.auth.getUser();
+    // Pass the token explicitly to getUser for reliable validation
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user?.id) {
-      return { authenticated: false, userId: null, isServiceRole: false, error: 'Invalid or expired token' };
+      console.error('[auth-guard] getUser failed:', userError?.message);
+      return { authenticated: false, userId: null, isServiceRole: false, error: userError?.message || 'Invalid or expired token' };
     }
 
     return { 
@@ -69,7 +56,8 @@ export async function validateAuth(req: Request): Promise<AuthResult> {
       userId: user.id, 
       isServiceRole: false 
     };
-  } catch {
+  } catch (err) {
+    console.error('[auth-guard] Token validation exception:', err);
     return { authenticated: false, userId: null, isServiceRole: false, error: 'Token validation failed' };
   }
 }

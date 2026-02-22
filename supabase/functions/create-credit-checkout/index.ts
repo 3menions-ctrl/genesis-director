@@ -1,13 +1,13 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Credit packages with Stripe price IDs (must match database stripe_price_id)
+// Credit packages with Stripe price IDs
 // Pricing: $1 = 10 credits
 const CREDIT_PACKAGES: Record<string, { priceId: string; credits: number }> = {
   mini: {
@@ -52,7 +52,6 @@ serve(async (req) => {
       throw new Error("Invalid JSON body");
     }
 
-    // Validate packageId is a string and exists in allowed packages
     const parsedBody = typeof body === 'object' && body !== null ? body as Record<string, unknown> : {};
     const packageId = 'packageId' in parsedBody
       ? String(parsedBody.packageId).toLowerCase().trim()
@@ -67,28 +66,47 @@ serve(async (req) => {
     const pkg = CREDIT_PACKAGES[packageId];
     logStep("Package selected", { packageId, credits: pkg.credits });
 
-    // Validate auth using shared guard (getClaims + getUser fallback)
-    const { validateAuth } = await import("../_shared/auth-guard.ts");
-    const auth = await validateAuth(req);
-    if (!auth.authenticated || !auth.userId) {
-      throw new Error("User not authenticated");
+    // ─── Auth validation ──────────────────────────────────────────
+    const authHeader = req.headers.get("Authorization");
+    logStep("Auth header check", { hasAuth: !!authHeader, prefix: authHeader?.substring(0, 20) });
+    
+    if (!authHeader?.startsWith("Bearer ")) {
+      throw new Error("Missing or invalid authorization header");
     }
-    const userId = auth.userId;
-    // Get email from the supabase client for Stripe customer lookup
-    const authHeader = req.headers.get("Authorization")!;
+    
+    const token = authHeader.replace("Bearer ", "");
     const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: userData } = await supabaseClient.auth.getUser();
-    const userEmail = userData?.user?.email;
-    if (!userEmail) throw new Error("User email not available");
+    
+    // Validate token and get user in one call
+    const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser(token);
+    
+    if (authError) {
+      logStep("Auth failed", { error: authError.message, code: authError.status });
+      throw new Error(`Authentication failed: ${authError.message}`);
+    }
+    
+    if (!authUser?.id || !authUser?.email) {
+      logStep("Auth missing user data", { hasId: !!authUser?.id, hasEmail: !!authUser?.email });
+      throw new Error("User not authenticated or email not available");
+    }
+    
+    const userId = authUser.id;
+    const userEmail = authUser.email;
     logStep("User authenticated", { userId, email: userEmail });
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    // ─── Stripe checkout ──────────────────────────────────────────
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) {
+      throw new Error("Stripe configuration missing");
+    }
+    
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Check if customer exists
+    // Check if Stripe customer exists
     const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
     let customerId: string | undefined;
     if (customers.data.length > 0) {
@@ -102,18 +120,13 @@ serve(async (req) => {
     const WELCOME_COUPON_ID = '0ZMvRAjk';
     const discounts = isWelcomeOffer ? [{ coupon: WELCOME_COUPON_ID }] : undefined;
     if (isWelcomeOffer) {
-      logStep("Applying welcome 30% off coupon", { couponId: WELCOME_COUPON_ID });
+      logStep("Applying welcome coupon", { couponId: WELCOME_COUPON_ID });
     }
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : userEmail,
-      line_items: [
-        {
-          price: pkg.priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: pkg.priceId, quantity: 1 }],
       mode: "payment",
       discounts,
       success_url: `${origin}/profile?payment=success&credits=${pkg.credits}`,

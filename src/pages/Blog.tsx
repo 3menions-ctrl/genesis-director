@@ -1,4 +1,5 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense, useEffect } from 'react';
+import { usePageMeta } from '@/hooks/usePageMeta';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Calendar, Clock, User, Tag, ChevronRight, Share2, BookOpen } from 'lucide-react';
@@ -392,6 +393,7 @@ The era of AI avatar video is here, transforming how we create and consume visua
 const ALL_BLOG_ARTICLES = [...BLOG_ARTICLES, ...ADDITIONAL_ARTICLES];
 
 export default function Blog() {
+  usePageMeta({ title: 'Blog — Genesis Director', description: 'Insights on AI video creation, avatar generation, and the future of filmmaking with Genesis Director.' });
   const [selectedArticle, setSelectedArticle] = useState<BlogArticle | null>(null);
 
   if (selectedArticle) {

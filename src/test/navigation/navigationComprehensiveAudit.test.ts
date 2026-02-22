@@ -130,7 +130,7 @@ describe('2. Protected Route Coverage', () => {
     '/settings', '/profile', '/clips',
     '/templates', '/training-video', '/environments',
     '/chat', '/editor', '/admin', '/onboarding',
-    '/discover', '/script-review', '/extract-thumbnails',
+    '/discover', '/script-review',
   ];
 
   MUST_PROTECT.forEach(route => {

@@ -49,7 +49,7 @@ const Environments = lazy(() => import("./pages/Environments"));
 const Blog = lazy(() => import("./pages/Blog"));
 const Press = lazy(() => import("./pages/Press"));
 const TrainingVideo = lazy(() => import("./pages/TrainingVideo"));
-const ExtractThumbnails = lazy(() => import("./pages/ExtractThumbnails"));
+// ExtractThumbnails removed — orphan utility with no nav entry
 const Create = lazy(() => import("./pages/Create"));
 const Gallery = lazy(() => import("./pages/Gallery"));
 const Pricing = lazy(() => import("./pages/Pricing"));
@@ -385,14 +385,8 @@ const App = () => {
                   </RouteContainer>
                 } />
                 
-                {/* Thumbnail extraction utility */}
-                <Route path="/extract-thumbnails" element={
-                  <RouteContainer>
-                    <ProtectedRoute>
-                      <ExtractThumbnails />
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
+                {/* Legacy redirect — extract-thumbnails had no nav entry */}
+                <Route path="/extract-thumbnails" element={<Navigate to="/projects" replace />} />
                 
                 <Route path="*" element={
                   <RouteContainer>

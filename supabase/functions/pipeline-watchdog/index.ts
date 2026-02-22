@@ -2795,7 +2795,7 @@ serve(async (req) => {
       .from('movie_projects')
       .select('id, title, status, user_id, pending_video_tasks, generation_lock, generated_script, mode')
       .eq('status', 'failed')
-      .gte('updated_at', new Date(Date.now() - 60 * 60 * 1000).toISOString()) // extended to 60 min
+      .gte('updated_at', new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()) // extended to 6 hours for orphan prediction recovery
       .limit(30);
     
     for (const project of (falseFailed || [])) {

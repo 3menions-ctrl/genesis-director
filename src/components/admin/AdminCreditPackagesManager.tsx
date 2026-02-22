@@ -171,25 +171,35 @@ export function AdminCreditPackagesManager() {
 
     setSaving(true);
     try {
-      const packageData = {
-        name: form.name,
-        credits,
-        price_cents: priceCents,
-        is_active: form.is_active,
-        is_popular: form.is_popular,
-        stripe_price_id: form.stripe_price_id || null,
-      };
-
       if (editDialog.isNew) {
-        // Note: RLS blocks client inserts, this would need an admin function
-        // For now, show a message about using SQL
-        toast.error('Package creation requires database admin access. Use SQL editor to insert.');
+        const { data, error } = await supabase.rpc('admin_manage_credit_package', {
+          p_action: 'create',
+          p_name: form.name,
+          p_credits: credits,
+          p_price_cents: priceCents,
+          p_is_active: form.is_active,
+          p_is_popular: form.is_popular,
+          p_stripe_price_id: form.stripe_price_id || null,
+        });
+        if (error) throw error;
+        toast.success('Package created successfully');
       } else if (editDialog.package) {
-        // Note: RLS blocks client updates, this would need an admin function
-        toast.error('Package updates require database admin access. Use SQL editor to update.');
+        const { data, error } = await supabase.rpc('admin_manage_credit_package', {
+          p_action: 'update',
+          p_package_id: editDialog.package.id,
+          p_name: form.name,
+          p_credits: credits,
+          p_price_cents: priceCents,
+          p_is_active: form.is_active,
+          p_is_popular: form.is_popular,
+          p_stripe_price_id: form.stripe_price_id || null,
+        });
+        if (error) throw error;
+        toast.success('Package updated successfully');
       }
       
       setEditDialog({ open: false, package: null, isNew: false });
+      fetchPackages();
     } catch (err) {
       console.error('Failed to save package:', err);
       toast.error('Failed to save package');
@@ -201,9 +211,22 @@ export function AdminCreditPackagesManager() {
   const handleDelete = async () => {
     if (!deleteDialog.package) return;
     
-    // Note: RLS blocks client deletes
-    toast.error('Package deletion requires database admin access. Use SQL editor to delete.');
-    setDeleteDialog({ open: false, package: null });
+    setSaving(true);
+    try {
+      const { error } = await supabase.rpc('admin_manage_credit_package', {
+        p_action: 'delete',
+        p_package_id: deleteDialog.package.id,
+      });
+      if (error) throw error;
+      toast.success('Package deleted');
+      setDeleteDialog({ open: false, package: null });
+      fetchPackages();
+    } catch (err) {
+      console.error('Failed to delete package:', err);
+      toast.error('Failed to delete package');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const formatCurrency = (cents: number) => {

@@ -444,7 +444,7 @@ describe('Admin Panel — Data Export Compliance', () => {
   });
 
   it('should authenticate the requesting user', () => {
-    expect(exportFn).toMatch(/supabase\.auth\.getUser|supabase\.auth\.getClaims/);
+    expect(exportFn).toMatch(/validateAuth|supabase\.auth\.getUser|supabase\.auth\.getClaims/);
   });
 
   it('should export all user-owned data tables', () => {

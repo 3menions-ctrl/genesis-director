@@ -40,6 +40,7 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTierLimits } from '@/hooks/useTierLimits';
 import { supabase } from '@/integrations/supabase/client';
+import { calculateCreditsRequired } from '@/lib/creditSystem';
 import { handleError } from '@/lib/errorHandler';
 import { handleEdgeFunctionError, showUserFriendlyError } from '@/lib/userFriendlyErrors';
 import { ErrorBoundary, SafeComponent } from '@/components/ui/error-boundary';
@@ -200,7 +201,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   
   // ========== Computed Values ==========
   const userCredits = useMemo(() => profile?.credits_balance ?? 0, [profile?.credits_balance]);
-  const estimatedCredits = useMemo(() => clipCount * 15, [clipCount]);
+  const estimatedCredits = useMemo(() => calculateCreditsRequired(clipCount, clipDuration, 'kling'), [clipCount, clipDuration]);
   const hasInsufficientCredits = useMemo(() => userCredits < estimatedCredits, [userCredits, estimatedCredits]);
   const estimatedDuration = useMemo(() => clipCount * clipDuration, [clipCount, clipDuration]);
   const hasActiveFilters = useMemo(() => 

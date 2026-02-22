@@ -4,14 +4,14 @@ import { ArrowLeft, Download, Loader2, Sparkles, Film, Check } from "lucide-reac
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEditorClips, EditorClip } from "@/hooks/useEditorClips";
+import { useEditorClips, EditorClip, EditorImage } from "@/hooks/useEditorClips";
 import "@twick/studio/dist/studio.css";
 
 /**
  * Writes clips directly to the IndexedDB store that Twick's BrowserMediaManager reads from.
  * This must complete BEFORE TwickStudio mounts so the MediaProvider sees the items on init.
  */
-async function prePopulateMediaStore(clips: EditorClip[]): Promise<number> {
+async function prePopulateMediaStore(clips: EditorClip[], images: EditorImage[]): Promise<{ videos: number; images: number }> {
   const DB_NAME = "mediaStore";
   const STORE_NAME = "mediaItems";
 
@@ -30,10 +30,8 @@ async function prePopulateMediaStore(clips: EditorClip[]): Promise<number> {
     request.onsuccess = () => {
       const db = request.result;
 
-      // Ensure the store exists
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.close();
-        // Re-open with version bump to create the store
         const version = db.version + 1;
         const upgradeReq = indexedDB.open(DB_NAME, version);
         upgradeReq.onupgradeneeded = () => {
@@ -43,68 +41,83 @@ async function prePopulateMediaStore(clips: EditorClip[]): Promise<number> {
           }
         };
         upgradeReq.onsuccess = () => {
-          writeClips(upgradeReq.result, clips).then(resolve).catch(reject);
+          writeMedia(upgradeReq.result, clips, images).then(resolve).catch(reject);
         };
         upgradeReq.onerror = () => reject(upgradeReq.error);
         return;
       }
 
-      writeClips(db, clips).then(resolve).catch(reject);
+      writeMedia(db, clips, images).then(resolve).catch(reject);
     };
   });
 }
 
-async function writeClips(db: IDBDatabase, clips: EditorClip[]): Promise<number> {
+async function writeMedia(
+  db: IDBDatabase,
+  clips: EditorClip[],
+  images: EditorImage[]
+): Promise<{ videos: number; images: number }> {
   const STORE_NAME = "mediaItems";
 
-  // First read existing URLs to avoid duplicates
-  const existingUrls = await new Promise<Set<string>>((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readonly");
+  // First clear existing items so we only show this project's media
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
-    const req = store.getAll();
-    req.onsuccess = () => {
-      const urls = new Set((req.result || []).map((item: any) => item.url));
-      resolve(urls);
-    };
-    req.onerror = () => reject(req.error);
+    store.clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
   });
 
-  const newClips = clips.filter(c => c.videoUrl && !existingUrls.has(c.videoUrl));
-  if (newClips.length === 0) {
+  const videoItems = clips.filter(c => c.videoUrl).map(clip => ({
+    name: `Shot ${clip.shotIndex + 1} – ${clip.projectTitle}`,
+    url: clip.videoUrl,
+    type: "video",
+    thumbnail: clip.thumbnailUrl || undefined,
+    duration: clip.durationSeconds || undefined,
+    size: 0,
+    width: 1920,
+    height: 1080,
+    createdAt: new Date(),
+    metadata: {
+      name: `Shot ${clip.shotIndex + 1}`,
+      source: "apex",
+      projectId: clip.projectId,
+      prompt: clip.prompt,
+    },
+  }));
+
+  const imageItems = images.map(img => ({
+    name: img.label,
+    url: img.url,
+    type: "image",
+    size: 0,
+    width: 1920,
+    height: 1080,
+    createdAt: new Date(),
+    metadata: {
+      source: img.source,
+      shotIndex: img.shotIndex,
+    },
+  }));
+
+  const allItems = [...videoItems, ...imageItems];
+
+  if (allItems.length === 0) {
     db.close();
-    return 0;
+    return { videos: 0, images: 0 };
   }
 
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
-    let added = 0;
 
-    for (const clip of newClips) {
-      const item = {
-        name: `Shot ${clip.shotIndex + 1} – ${clip.projectTitle}`,
-        url: clip.videoUrl,
-        type: "video",
-        thumbnail: clip.thumbnailUrl || undefined,
-        duration: clip.durationSeconds || undefined,
-        size: 0,
-        width: 1920,
-        height: 1080,
-        createdAt: new Date(),
-        metadata: {
-          name: `Shot ${clip.shotIndex + 1}`,
-          source: "apex",
-          projectId: clip.projectId,
-          prompt: clip.prompt,
-        },
-      };
-      const req = store.add(item);
-      req.onsuccess = () => { added++; };
+    for (const item of allItems) {
+      store.add(item);
     }
 
     tx.oncomplete = () => {
       db.close();
-      resolve(added);
+      resolve({ videos: videoItems.length, images: imageItems.length });
     };
     tx.onerror = () => {
       db.close();
@@ -156,9 +169,9 @@ export default function VideoEditor() {
   const projectId = searchParams.get("project");
 
   const { modules, loading: modulesLoading, error: loadError } = useTwickModules();
-  const { clips, loading: clipsLoading } = useEditorClips(projectId);
+  const { clips, images, loading: clipsLoading } = useEditorClips(projectId);
   const [mediaReady, setMediaReady] = useState(false);
-  const [clipCount, setClipCount] = useState(0);
+  const [mediaCounts, setMediaCounts] = useState({ videos: 0, images: 0 });
   const populatedRef = useRef(false);
 
   // Phase 2: Once clips are fetched, write them to IndexedDB before mounting studio
@@ -166,25 +179,24 @@ export default function VideoEditor() {
     if (clipsLoading || populatedRef.current) return;
     populatedRef.current = true;
 
-    if (clips.length === 0) {
+    if (clips.length === 0 && images.length === 0) {
       setMediaReady(true);
       return;
     }
 
-    prePopulateMediaStore(clips)
-      .then((count) => {
-        setClipCount(count);
-        if (count > 0) {
-          console.log(`[Apex] Pre-loaded ${count} clips into media library`);
+    prePopulateMediaStore(clips, images)
+      .then((counts) => {
+        setMediaCounts(counts);
+        if (counts.videos > 0 || counts.images > 0) {
+          console.log(`[Apex] Pre-loaded ${counts.videos} clips + ${counts.images} images into media library`);
         }
         setMediaReady(true);
       })
       .catch((err) => {
         console.error("[Apex] Failed to pre-populate media store:", err);
-        // Still mount the studio even if pre-population fails
         setMediaReady(true);
       });
-  }, [clips, clipsLoading]);
+  }, [clips, images, clipsLoading]);
 
   const isLoading = modulesLoading || clipsLoading || !mediaReady;
 
@@ -233,13 +245,13 @@ export default function VideoEditor() {
   }
 
   // Phase 3: Mount studio — media is already in IndexedDB
-  return <StudioShell modules={modules} navigate={navigate} clipCount={clipCount} />;
+  return <StudioShell modules={modules} navigate={navigate} mediaCounts={mediaCounts} />;
 }
 
 /**
  * Thin wrapper that sets up Twick providers and renders the studio.
  */
-function StudioShell({ modules, navigate, clipCount }: { modules: any; navigate: any; clipCount: number }) {
+function StudioShell({ modules, navigate, mediaCounts }: { modules: any; navigate: any; mediaCounts: { videos: number; images: number } }) {
   const {
     TwickStudio,
     LivePlayerProvider,
@@ -260,7 +272,7 @@ function StudioShell({ modules, navigate, clipCount }: { modules: any; navigate:
           TwickStudio={TwickStudio}
           useBrowserRenderer={useBrowserRenderer}
           navigate={navigate}
-          clipCount={clipCount}
+          mediaCounts={mediaCounts}
         />
       </TimelineProvider>
     </LivePlayerProvider>
@@ -274,12 +286,12 @@ function EditorChrome({
   TwickStudio,
   useBrowserRenderer,
   navigate,
-  clipCount,
+  mediaCounts,
 }: {
   TwickStudio: any;
   useBrowserRenderer: any;
   navigate: any;
-  clipCount: number;
+  mediaCounts: { videos: number; images: number };
 }) {
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -340,10 +352,10 @@ function EditorChrome({
           <span className="text-[12px] font-semibold text-foreground/50 tracking-tight font-display">
             Apex Editor
           </span>
-          {clipCount > 0 && (
+          {(mediaCounts.videos > 0 || mediaCounts.images > 0) && (
             <div className="flex items-center gap-1 ml-2 text-[10px] text-emerald-400/60">
               <Check className="w-2.5 h-2.5" />
-              {clipCount} clips in library
+              {mediaCounts.videos} clips, {mediaCounts.images} images
             </div>
           )}
         </div>

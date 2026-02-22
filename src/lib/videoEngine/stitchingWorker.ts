@@ -207,7 +207,7 @@ async function extractFramesWithWebCodecs(
   // This is a placeholder for the WebCodecs VideoDecoder pipeline
   
   // WebCodecs requires:
-  // 1. Demuxing the video container (need mp4box.js or similar)
+  // 1. Demuxing the video container (a demuxer library)
   // 2. Creating a VideoDecoder with the codec config
   // 3. Feeding encoded chunks and collecting VideoFrames
   // 4. Converting VideoFrames to ImageBitmaps

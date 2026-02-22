@@ -181,10 +181,3 @@ export function downloadBlob(blob: Blob, filename: string): void {
     URL.revokeObjectURL(url);
   }, 100);
 }
-
-/**
- * Cleanup (no-op — FFmpeg has been removed)
- */
-export function cleanupFFmpeg(): void {
-  // No-op
-}

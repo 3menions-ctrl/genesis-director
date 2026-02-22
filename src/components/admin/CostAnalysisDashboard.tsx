@@ -37,48 +37,25 @@ import { cn } from '@/lib/utils';
 type DateRangePreset = 'today' | '7days' | '30days' | 'all' | 'custom';
 
 // ============================================
-// REAL COST DEFINITIONS - UPDATE THESE VALUES
+// REAL COST DEFINITIONS — matched to actual DB services
 // ============================================
+// Services in api_cost_logs: replicate-kling, replicate_minimax, openai-tts, replicate-musicgen-stereo
+// The DB already stores real_cost_cents per call — we use that as source of truth.
+// These fallbacks are only used if real_cost_cents is 0/null.
 
-// Kling 2.6 Pricing (per 5-second clip)
-// Kling 2.6: $0.04 per 5-second clip (more cost-effective)
-const KLING_COST_PER_CLIP_CENTS = 4;
-
-// Kling Status Poll Pricing (minimal)
-// Each status poll costs ~$0.0001
-const KLING_POLL_COST_CENTS = 0.01;
-
-// OpenAI TTS Pricing
-// HD voices: $0.030 per 1,000 characters (roughly 2 cents for 60 words)
-const OPENAI_TTS_COST_PER_CALL_CENTS = 2;
-
-// Cloud Run Stitcher (estimate based on CPU/memory usage)
-// 2 vCPU, 4GB RAM for ~30 seconds = ~$0.02
-const CLOUD_RUN_STITCH_COST_CENTS = 2;
-
-// OpenAI API for Script Generation (GPT-4)
-// ~$0.03 per 1K input tokens, ~$0.06 per 1K output tokens
-// Average script gen uses ~2K input, 1K output = ~$0.12
-const OPENAI_SCRIPT_COST_CENTS = 12;
-
-// DALL-E 3 for scene images
-// $0.040 per 1024×1024 image
-const DALLE_COST_PER_IMAGE_CENTS = 4;
-
-// Gemini Flash for analysis
-const GEMINI_FLASH_COST_CENTS = 1;
+const FALLBACK_COST_MAP: Record<string, number> = {
+  'replicate-kling': 5,           // ~$0.05 per clip generation
+  'replicate_minimax': 1,         // ~$0.01 per TTS call
+  'openai-tts': 1,                // ~$0.01 per TTS call  
+  'replicate-musicgen-stereo': 8, // ~$0.08 per music generation
+};
 
 // Supabase Storage Pricing
-// Free: 1GB, then $0.021/GB per month
 const STORAGE_COST_PER_GB_CENTS = 2.1;
 
-// Lovable Platform Monthly Cost (estimate your plan)
-const LOVABLE_MONTHLY_COST_DOLLARS = 49; // Update based on your plan
-
-// Development Hourly Rate (for tracking ROI)
+// Platform Monthly Costs
+const LOVABLE_MONTHLY_COST_DOLLARS = 49;
 const DEV_HOURLY_RATE_DOLLARS = 100;
-
-// Supabase Costs (estimate for Pro plan)
 const SUPABASE_MONTHLY_COST_DOLLARS = 25;
 
 // ============================================
@@ -206,38 +183,13 @@ export function CostAnalysisDashboard() {
         apiAggregated[key].total_credits += row.credits_charged || 0;
         apiAggregated[key].logged_cost_cents += row.real_cost_cents || 0;
         
-        // Calculate real costs based on service - EVEN FOR FAILED CALLS
-        // Failed API calls still cost us money!
-        switch (row.service) {
-          case 'kling':
-            apiAggregated[key].calculated_cost_cents += KLING_COST_PER_CLIP_CENTS;
-            break;
-          case 'kling_poll':
-            // Status polling calls - minimal cost but adds up
-            apiAggregated[key].calculated_cost_cents += KLING_POLL_COST_CENTS;
-            break;
-          case 'openai-tts':
-            apiAggregated[key].calculated_cost_cents += OPENAI_TTS_COST_PER_CALL_CENTS;
-            break;
-          case 'cloud_run_stitcher':
-            apiAggregated[key].calculated_cost_cents += CLOUD_RUN_STITCH_COST_CENTS;
-            break;
-          case 'openai':
-            apiAggregated[key].calculated_cost_cents += OPENAI_SCRIPT_COST_CENTS;
-            break;
-          case 'dalle':
-            apiAggregated[key].calculated_cost_cents += DALLE_COST_PER_IMAGE_CENTS;
-            break;
-          case 'gemini':
-            apiAggregated[key].calculated_cost_cents += GEMINI_FLASH_COST_CENTS;
-            break;
-          case 'music-generation':
-            // Skipped music generation has no cost but still track it
-            apiAggregated[key].calculated_cost_cents += 0;
-            break;
-          default:
-            // Use logged cost if service not recognized
-            apiAggregated[key].calculated_cost_cents += row.real_cost_cents || 0;
+        // Use the real_cost_cents from DB as source of truth
+        // Fall back to estimate only if real_cost_cents is 0
+        const realCost = row.real_cost_cents || 0;
+        if (realCost > 0) {
+          apiAggregated[key].calculated_cost_cents += realCost;
+        } else {
+          apiAggregated[key].calculated_cost_cents += FALLBACK_COST_MAP[row.service] || 0;
         }
       });
       
@@ -260,7 +212,7 @@ export function CostAnalysisDashboard() {
       const clips = clipsData || [];
       const totalRetries = clips.reduce((sum, c) => sum + (c.retry_count || 0), 0);
       const clipsWithRetries = clips.filter(c => (c.retry_count || 0) > 0).length;
-      const retryCostCents = totalRetries * KLING_COST_PER_CLIP_CENTS; // Each retry is a Kling call
+      const retryCostCents = totalRetries * (FALLBACK_COST_MAP['replicate-kling'] || 5);
       
       setRetryData({
         total_retries: totalRetries,
@@ -451,13 +403,10 @@ export function CostAnalysisDashboard() {
 
   const getServiceIcon = (service: string) => {
     switch (service) {
-      case 'kling': return <Video className="w-4 h-4" />;
-      case 'kling_poll': return <RefreshCw className="w-4 h-4" />;
+      case 'replicate-kling': return <Video className="w-4 h-4" />;
+      case 'replicate_minimax': return <Mic className="w-4 h-4" />;
       case 'openai-tts': return <Mic className="w-4 h-4" />;
-      case 'cloud_run_stitcher': return <Scissors className="w-4 h-4" />;
-      case 'music-generation': return <Music className="w-4 h-4" />;
-      case 'openai': return <Sparkles className="w-4 h-4" />;
-      case 'dalle': return <Image className="w-4 h-4" />;
+      case 'replicate-musicgen-stereo': return <Music className="w-4 h-4" />;
       default: return <Cpu className="w-4 h-4" />;
     }
   };
@@ -967,50 +916,34 @@ export function CostAnalysisDashboard() {
                 <div className="p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <Video className="w-4 h-4 text-primary" />
-                    <span className="font-medium">Kling 2.6</span>
+                    <span className="font-medium">Replicate Kling</span>
                   </div>
-                  <p className="text-lg font-bold">${(KLING_COST_PER_CLIP_CENTS / 100).toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">per 5s clip</p>
+                  <p className="text-lg font-bold">${(FALLBACK_COST_MAP['replicate-kling'] / 100).toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">per clip generation</p>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Mic className="w-4 h-4 text-primary" />
+                    <span className="font-medium">Minimax TTS</span>
+                  </div>
+                  <p className="text-lg font-bold">${(FALLBACK_COST_MAP['replicate_minimax'] / 100).toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">per narration</p>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <Mic className="w-4 h-4 text-primary" />
                     <span className="font-medium">OpenAI TTS</span>
                   </div>
-                  <p className="text-lg font-bold">${(OPENAI_TTS_COST_PER_CALL_CENTS / 100).toFixed(2)}</p>
+                  <p className="text-lg font-bold">${(FALLBACK_COST_MAP['openai-tts'] / 100).toFixed(2)}</p>
                   <p className="text-xs text-muted-foreground">per narration</p>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
-                    <Scissors className="w-4 h-4 text-primary" />
-                    <span className="font-medium">Cloud Run Stitch</span>
+                    <Music className="w-4 h-4 text-primary" />
+                    <span className="font-medium">MusicGen Stereo</span>
                   </div>
-                  <p className="text-lg font-bold">${(CLOUD_RUN_STITCH_COST_CENTS / 100).toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">per stitch</p>
-                </div>
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="w-4 h-4 text-primary" />
-                    <span className="font-medium">GPT-4 Script</span>
-                  </div>
-                  <p className="text-lg font-bold">${(OPENAI_SCRIPT_COST_CENTS / 100).toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">per script</p>
-                </div>
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Image className="w-4 h-4 text-primary" />
-                    <span className="font-medium">DALL-E 3</span>
-                  </div>
-                  <p className="text-lg font-bold">${(DALLE_COST_PER_IMAGE_CENTS / 100).toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">per image</p>
-                </div>
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Database className="w-4 h-4 text-primary" />
-                    <span className="font-medium">Gemini Flash</span>
-                  </div>
-                  <p className="text-lg font-bold">${(GEMINI_FLASH_COST_CENTS / 100).toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">per analysis</p>
+                  <p className="text-lg font-bold">${(FALLBACK_COST_MAP['replicate-musicgen-stereo'] / 100).toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">per track</p>
                 </div>
               </div>
             </CardContent>

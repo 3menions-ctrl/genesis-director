@@ -44,7 +44,7 @@ interface CostSummary {
   wastePercentage: number;
 }
 
-const VEO_COST_PER_CLIP_CENTS = 8;
+const KLING_COST_PER_CLIP_CENTS = 5; // replicate-kling actual cost
 
 function StatPill({ icon: Icon, label, value, sub, accent }: {
   icon: React.ElementType;
@@ -117,18 +117,16 @@ export default function AdminDashboardPage() {
       ]);
 
       let totalApiCost = 0, failedApiCost = 0, failedClips = 0;
-      const costMap: Record<string, number> = {
-        google_veo: 8, "openai-tts": 2, cloud_run_stitcher: 2, openai: 12, dalle: 4, gemini: 1,
-      };
 
       apiData.forEach((log: any) => {
-        const cost = costMap[log.service] ?? (log.real_cost_cents || 0);
+        // Use the actual real_cost_cents from DB — this is the source of truth
+        const cost = log.real_cost_cents || 0;
         totalApiCost += cost;
         if (log.status === "failed") { failedApiCost += cost; failedClips++; }
       });
 
       const totalRetries = clipsData.reduce((s: number, c: any) => s + (c.retry_count || 0), 0);
-      const retryCost = totalRetries * VEO_COST_PER_CLIP_CENTS;
+      const retryCost = totalRetries * KLING_COST_PER_CLIP_CENTS;
       const totalRefunds = (refundsResult.data || []).reduce((s: number, r: any) => s + Math.abs(r.amount || 0), 0);
       const totalWastedCost = failedApiCost + retryCost;
 
@@ -183,7 +181,7 @@ export default function AdminDashboardPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatPill icon={DollarSign} label="API Spend" value={formatCurrency(costSummary?.totalApiCost || 0)} sub="All-time" accent="primary" />
           <StatPill icon={AlertTriangle} label="Wasted" value={formatCurrency(costSummary?.totalWastedCost || 0)} sub={`${(costSummary?.wastePercentage || 0).toFixed(1)}% of total`} accent="destructive" />
-          <StatPill icon={RefreshCw} label="Retries" value={costSummary?.totalRetries?.toLocaleString() || "0"} sub={formatCurrency((costSummary?.totalRetries || 0) * VEO_COST_PER_CLIP_CENTS)} accent="warning" />
+          <StatPill icon={RefreshCw} label="Retries" value={costSummary?.totalRetries?.toLocaleString() || "0"} sub={formatCurrency((costSummary?.totalRetries || 0) * KLING_COST_PER_CLIP_CENTS)} accent="warning" />
           <StatPill icon={ArrowDownRight} label="Refunds" value={costSummary?.totalRefunds?.toLocaleString() || "0"} sub="Credits refunded" accent="info" />
         </div>
       </div>

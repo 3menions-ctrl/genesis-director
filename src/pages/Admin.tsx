@@ -116,13 +116,8 @@ interface SupportMessage {
   created_at: string;
 }
 
-// Cost pricing constants (must match CostAnalysisDashboard)
-const VEO_COST_PER_CLIP_CENTS = 8;
-const OPENAI_TTS_COST_PER_CALL_CENTS = 2;
-const CLOUD_RUN_STITCH_COST_CENTS = 2;
-const OPENAI_SCRIPT_COST_CENTS = 12;
-const DALLE_COST_PER_IMAGE_CENTS = 4;
-const GEMINI_FLASH_COST_CENTS = 1;
+// Use real_cost_cents from DB as source of truth
+const KLING_RETRY_COST_CENTS = 5; // replicate-kling fallback for retries
 
 interface CostSummary {
   totalApiCost: number;
@@ -312,21 +307,10 @@ export default function AdminDashboard() {
       let failedClips = 0;
 
       apiData.forEach((log: { service: string; status: string; real_cost_cents: number }) => {
-        let costPerCall = 0;
-        switch (log.service) {
-          case 'google_veo': costPerCall = VEO_COST_PER_CLIP_CENTS; break;
-          case 'openai-tts': costPerCall = 2; break;
-          case 'cloud_run_stitcher': costPerCall = 2; break;
-          case 'openai': costPerCall = 12; break;
-          case 'dalle': costPerCall = 4; break;
-          case 'gemini': costPerCall = 1; break;
-          case 'music-generation': costPerCall = 0; break;
-          default: costPerCall = log.real_cost_cents || 0;
-        }
-        
-        totalApiCost += costPerCall;
+        const cost = log.real_cost_cents || 0;
+        totalApiCost += cost;
         if (log.status === 'failed') {
-          failedApiCost += costPerCall;
+          failedApiCost += cost;
           failedClips++;
         }
       });
@@ -335,7 +319,7 @@ export default function AdminDashboard() {
       clipsData.forEach((clip: { retry_count: number | null }) => {
         totalRetries += clip.retry_count || 0;
       });
-      const retryCost = totalRetries * VEO_COST_PER_CLIP_CENTS;
+      const retryCost = totalRetries * KLING_RETRY_COST_CENTS;
 
       const totalRefundCredits = refundsData.reduce(
         (sum: number, r: { amount: number }) => sum + Math.abs(r.amount || 0), 
@@ -424,7 +408,7 @@ export default function AdminDashboard() {
       while (true) {
         const { data } = await supabase
           .from('api_cost_logs')
-          .select('service, status')
+          .select('service, status, real_cost_cents')
           .range(offset, offset + 999);
         if (!data || data.length === 0) break;
         allApiData.push(...data);
@@ -448,25 +432,16 @@ export default function AdminDashboard() {
       let totalCost = 0;
       let opCount = 0;
       
-      allApiData.forEach((log: { service: string; status: string }) => {
+      allApiData.forEach((log: { service: string; status: string; real_cost_cents?: number }) => {
         opCount++;
-        switch (log.service) {
-          case 'google_veo': totalCost += VEO_COST_PER_CLIP_CENTS; break;
-          case 'openai-tts': totalCost += OPENAI_TTS_COST_PER_CALL_CENTS; break;
-          case 'cloud_run_stitcher': totalCost += CLOUD_RUN_STITCH_COST_CENTS; break;
-          case 'openai': totalCost += OPENAI_SCRIPT_COST_CENTS; break;
-          case 'dalle': totalCost += DALLE_COST_PER_IMAGE_CENTS; break;
-          case 'gemini': totalCost += GEMINI_FLASH_COST_CENTS; break;
-          case 'music-generation': totalCost += 0; break;
-          default: totalCost += 0;
-        }
+        totalCost += (log as any).real_cost_cents || 0;
       });
       
       const totalRetries = allClipsData.reduce(
         (sum: number, clip: { retry_count: number | null }) => sum + (clip.retry_count || 0), 
         0
       );
-      totalCost += totalRetries * VEO_COST_PER_CLIP_CENTS;
+      totalCost += totalRetries * KLING_RETRY_COST_CENTS;
       
       setCalculatedApiCost(totalCost);
       setTotalOperations(opCount + totalRetries);
@@ -652,7 +627,7 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatPill icon={DollarSign} label="API Spend" value={formatCurrency(costSummary?.totalApiCost || 0)} sub="All-time" accent="primary" />
                 <StatPill icon={AlertTriangle} label="Wasted" value={formatCurrency(costSummary?.totalWastedCost || 0)} sub={`${(costSummary?.wastePercentage || 0).toFixed(1)}% of total`} accent="destructive" />
-                <StatPill icon={RefreshCw} label="Retries" value={costSummary?.totalRetries?.toLocaleString() || '0'} sub={formatCurrency((costSummary?.totalRetries || 0) * VEO_COST_PER_CLIP_CENTS)} accent="warning" />
+                <StatPill icon={RefreshCw} label="Retries" value={costSummary?.totalRetries?.toLocaleString() || '0'} sub={formatCurrency((costSummary?.totalRetries || 0) * KLING_RETRY_COST_CENTS)} accent="warning" />
                 <StatPill icon={ArrowDownRight} label="Refunds" value={costSummary?.totalRefunds?.toLocaleString() || '0'} sub="Credits refunded" accent="info" />
               </div>
             </div>

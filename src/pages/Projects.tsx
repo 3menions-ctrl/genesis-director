@@ -167,7 +167,10 @@ function ProjectsContentInner() {
     optimisticRemove,
   } = usePaginatedProjects(sortBy, sortOrder, statusFilter, searchQuery);
   
-  const hasLoadedOnce = !isLoadingProjects;
+  // STABILITY: Track whether data has loaded at least once — never resets to false
+  const hasLoadedOnceRef2 = useRef(false);
+  if (!isLoadingProjects) hasLoadedOnceRef2.current = true;
+  const hasLoadedOnce = hasLoadedOnceRef2.current;
 
   // CENTRALIZED GATEKEEPER - connected to real loading states
   // Must be AFTER usePaginatedProjects so we can pass dataLoading
@@ -177,6 +180,21 @@ function ProjectsContentInner() {
     dataLoading: isLoadingProjects,
     dataSuccess: hasLoadedOnce,
   });
+  
+  // EXCLUSIVE GATING: Track when gatekeeper has released — heavy components wait for this
+  const gatekeeperReleasedRef = useRef(false);
+  const [contentReady, setContentReady] = useState(false);
+  
+  useEffect(() => {
+    if (!gatekeeper.isLoading && !gatekeeperReleasedRef.current) {
+      gatekeeperReleasedRef.current = true;
+      // Stagger content mount: let the main UI paint first, then mount heavy stuff
+      const timer = setTimeout(() => {
+        if (isMountedRef.current) setContentReady(true);
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [gatekeeper.isLoading]);
   
   // Thumbnail generation hook
   const { generateMissingThumbnails } = useProjectThumbnails();
@@ -270,7 +288,7 @@ function ProjectsContentInner() {
   const clipResolutionDoneRef = useRef(false);
   
   useEffect(() => {
-    if (!user || !hasLoadedOnce || !Array.isArray(projects) || projects.length === 0) return;
+    if (!user || !hasLoadedOnce || !contentReady || !Array.isArray(projects) || projects.length === 0) return;
     
     const callId = ++clipResolutionIdRef.current;
     clipResolutionDoneRef.current = false;
@@ -335,7 +353,7 @@ function ProjectsContentInner() {
   // Auto-generate missing thumbnails - runs ONCE after clip resolution completes
   const thumbnailsGeneratedRef = useRef(false);
   useEffect(() => {
-    if (!user || !hasLoadedOnce || projects.length === 0) return;
+    if (!user || !hasLoadedOnce || !contentReady || projects.length === 0) return;
     if (resolvedClipUrls.size === 0) return;
     if (thumbnailsGeneratedRef.current) return;
     
@@ -358,7 +376,7 @@ function ProjectsContentInner() {
   // Fetch training videos
   useEffect(() => {
     const fetchTrainingVideos = async () => {
-      if (!user) return;
+      if (!user || !contentReady) return;
       
       setIsLoadingTrainingVideos(true);
       try {
@@ -378,12 +396,12 @@ function ProjectsContentInner() {
     };
     
     fetchTrainingVideos();
-  }, [user]);
+  }, [user, contentReady]);
 
   // Fetch completed photo edits
   useEffect(() => {
     const fetchPhotoEdits = async () => {
-      if (!user) return;
+      if (!user || !contentReady) return;
       setIsLoadingPhotoEdits(true);
       try {
         const { data, error } = await supabase
@@ -404,7 +422,7 @@ function ProjectsContentInner() {
       }
     };
     fetchPhotoEdits();
-  }, [user]);
+  }, [user, contentReady]);
 
   // Delete training video handler
   const handleDeleteTrainingVideo = useCallback(async (videoId: string) => {
@@ -515,7 +533,7 @@ function ProjectsContentInner() {
   refreshRef.current = refreshProjects;
   
   useEffect(() => {
-    if (!user) return;
+    if (!user || !contentReady) return;
     
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     
@@ -542,7 +560,7 @@ function ProjectsContentInner() {
       if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [user?.id]); // Stable dep - only user ID, not refreshProjects
+  }, [user?.id, contentReady]); // Only subscribe after content is ready
 
   // Helper functions
   const status = (p: Project) => p.status as string;
@@ -620,10 +638,15 @@ function ProjectsContentInner() {
   const loadMoreFnRef = useRef(loadMore);
   loadMoreFnRef.current = loadMore;
   
+  // STABILITY: contentReadyRef tracks contentReady without causing observer re-creation
+  const contentReadyRef = useRef(false);
+  contentReadyRef.current = contentReady;
+  
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) {
+        // Only fire loadMore AFTER content is fully ready — prevents premature fetches during gatekeeper
+        if (entries[0]?.isIntersecting && contentReadyRef.current) {
           loadMoreFnRef.current();
         }
       },
@@ -632,7 +655,7 @@ function ProjectsContentInner() {
     const el = loadMoreRef.current;
     if (el) observer.observe(el);
     return () => { if (el) observer.unobserve(el); };
-  }, []); // Mount once - loadMore reads from refs internally
+  }, []); // Mount once - reads from refs internally
 
   // Handlers
   const handleCreateProject = () => {

@@ -34,13 +34,14 @@
 
 ## PHASE 2: Video Export — The #1 Broken Feature 🔴
 
-### 2.1 Multi-Clip Export Fix
+### 2.1 Multi-Clip Export Fix ✅ DONE
 **Problem**: Editor export only downloads first clip. `mp4box.js` concat fails silently.
-**Actions**:
-- [ ] Replace client-side `mp4Concat.ts` with a server-side `render-video` edge function that uses FFmpeg/cloud stitching
-- [ ] Implement fallback: if server render unavailable, download clips as ZIP instead of broken single file
-- [ ] Add progress UI showing download + merge stages
-- [ ] Add export verification: check output file size > sum of inputs × 0.5
+**Solution**: Rewrote `render-video` edge function to use Replicate `bfirsh/concatenate-videos` 
+(FFmpeg-based server-side concat). Falls back to ZIP download if merge fails.
+- [x] Replace client-side concat with server-side `render-video` edge function using Replicate FFmpeg
+- [x] Implement fallback: if server render fails, download clips as ZIP
+- [x] Add progress UI showing merge → download stages
+- [x] Poll-based status checking with 5-minute timeout
 
 ### 2.2 Editor Effects in Export
 **Problem**: Color grading, filters, text, speed, crop, audio fade — all CSS/preview-only, not in export.

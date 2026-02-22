@@ -1341,9 +1341,8 @@ const VideoEditor = () => {
       let allClipUrls = videoClips.map((c) => c.sourceUrl).filter(Boolean) as string[];
 
       // If we have a project ID, try simple-stitch to get the ORDERED, persisted clip URLs
-      // (simple-stitch persists temporary Replicate URLs and returns the permanent ones)
       if (editorState.projectId && user) {
-        setEditorState((prev) => ({ ...prev, renderProgress: 15 }));
+        setEditorState((prev) => ({ ...prev, renderProgress: 10 }));
 
         try {
           const { data, error } = await supabase.functions.invoke("simple-stitch", {
@@ -1351,9 +1350,6 @@ const VideoEditor = () => {
           });
 
           if (!error && data?.success) {
-            // simple-stitch returns a manifest JSON URL as finalVideoUrl — NOT an actual MP4!
-            // The real video URLs are stored in pending_video_tasks.mseClipUrls
-            // Fetch them from the project data
             const { data: projectData } = await supabase
               .from("movie_projects")
               .select("pending_video_tasks")
@@ -1401,73 +1397,189 @@ const VideoEditor = () => {
         }
       }
 
-      // MULTI-CLIP: Download all clips as a ZIP file
-      setEditorState((prev) => ({ ...prev, renderProgress: 20 }));
-      toast.info(`Packaging ${allClipUrls.length} clips as ZIP...`);
-      setEditorState((prev) => ({ ...prev, renderProgress: 75 }));
+      // MULTI-CLIP: Server-side merge into single MP4
+      setEditorState((prev) => ({ ...prev, renderProgress: 15 }));
+      toast.info(`Merging ${allClipUrls.length} clips into a single video...`);
 
-      try {
-        // Use a simple ZIP builder (no external dependency)
-        const clipBlobs: { name: string; blob: Blob }[] = [];
-        for (let i = 0; i < allClipUrls.length; i++) {
-          setEditorState((prev) => ({
-            ...prev,
-            renderProgress: 75 + Math.round((i / allClipUrls.length) * 20),
-          }));
-          try {
-            const response = await fetch(allClipUrls[i], { mode: "cors" });
-            if (!response.ok) continue;
-            const blob = await response.blob();
-            clipBlobs.push({ name: `${sanitizedName}-clip${i + 1}.mp4`, blob });
-          } catch (err) {
-            console.warn(`[Editor Export] Clip ${i + 1} download error:`, err);
-          }
+      // Ensure we have a session ID for render tracking
+      let sessionId = editorState.sessionId;
+      if (!sessionId) {
+        try {
+          const { data: newSession, error: sessErr } = await supabase
+            .from("edit_sessions")
+            .insert([{
+              user_id: user!.id,
+              project_id: editorState.projectId ?? undefined,
+              title: editorState.title,
+              timeline_data: { tracks: editorState.tracks, duration: editorState.duration } as unknown as import("@/integrations/supabase/types").Json,
+            }])
+            .select("id")
+            .single();
+          if (sessErr) throw sessErr;
+          sessionId = newSession.id;
+          setEditorState((prev) => ({ ...prev, sessionId }));
+        } catch (sessErr) {
+          console.warn("[Editor Export] Session creation failed:", sessErr);
         }
+      }
 
-        if (clipBlobs.length === 0) {
-          toast.error("Failed to download clips");
-          setEditorState((prev) => ({ ...prev, renderStatus: "idle", renderProgress: 0 }));
+      if (!sessionId) {
+        // Fallback to ZIP if we can't create a session
+        console.warn("[Editor Export] No session ID, falling back to ZIP");
+        await fallbackZipDownload(allClipUrls, sanitizedName);
+        return;
+      }
+
+      // Submit merge job to render-video
+      setEditorState((prev) => ({ ...prev, renderProgress: 20 }));
+      const { data: renderData, error: renderError } = await supabase.functions.invoke("render-video", {
+        body: {
+          action: "submit",
+          sessionId,
+          clipUrls: allClipUrls,
+        },
+      });
+
+      if (renderError || !renderData?.success) {
+        console.warn("[Editor Export] Server merge failed, falling back to ZIP:", renderError || renderData?.error);
+        toast.info("Server merge unavailable, downloading clips as ZIP...");
+        await fallbackZipDownload(allClipUrls, sanitizedName);
+        return;
+      }
+
+      console.log(`[Editor Export] Merge job submitted: ${renderData.predictionId}`);
+      toast.info(`Merging ${allClipUrls.length} clips... Estimated: ${renderData.estimatedTime}`);
+      setEditorState((prev) => ({ ...prev, renderProgress: 25 }));
+
+      // Poll for completion
+      const maxPolls = 60; // 5 minutes max (5s interval)
+      let pollCount = 0;
+
+      const pollMerge = async (): Promise<void> => {
+        pollCount++;
+        if (pollCount > maxPolls) {
+          toast.error("Merge timed out. Downloading clips as ZIP instead.");
+          await fallbackZipDownload(allClipUrls, sanitizedName);
           return;
         }
 
-        // If only 1 clip downloaded, just give them the MP4
-        if (clipBlobs.length === 1) {
-          downloadBlobToUser(clipBlobs[0].blob, clipBlobs[0].name);
-        } else {
-          // Build a simple uncompressed ZIP
-          const zipBlob = await buildSimpleZip(clipBlobs);
-          downloadBlobToUser(zipBlob, `${sanitizedName}-clips.zip`);
-        }
+        try {
+          const { data: statusData, error: statusError } = await supabase.functions.invoke("render-video", {
+            body: { action: "status", sessionId },
+          });
 
-        setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
-        toast.success(`Downloaded ${clipBlobs.length} clips as ZIP!`);
-        resetExportStatus();
-      } catch (zipErr) {
-        console.error("[Editor Export] ZIP fallback error:", zipErr);
-        // Last resort: download clips individually
-        for (let i = 0; i < allClipUrls.length; i++) {
-          try {
-            const response = await fetch(allClipUrls[i], { mode: "cors" });
-            if (!response.ok) continue;
-            const blob = await response.blob();
-            downloadBlobToUser(blob, `${sanitizedName}-clip${i + 1}.mp4`);
-            if (i < allClipUrls.length - 1) {
-              await new Promise((r) => setTimeout(r, 800));
+          if (statusError) throw statusError;
+
+          if (statusData?.status === "completed" && statusData?.outputUrl) {
+            // Download the merged video
+            setEditorState((prev) => ({ ...prev, renderProgress: 90 }));
+            toast.info("Downloading merged video...");
+
+            try {
+              const response = await fetch(statusData.outputUrl, { mode: "cors" });
+              if (!response.ok) throw new Error(`HTTP ${response.status}`);
+              const blob = await response.blob();
+              downloadBlobToUser(blob, `${sanitizedName}.mp4`);
+              setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
+              toast.success("Merged video downloaded!");
+              resetExportStatus();
+            } catch (dlErr) {
+              console.warn("[Editor Export] Download failed, opening in new tab:", dlErr);
+              window.open(statusData.outputUrl, "_blank");
+              toast.info("Opened merged video in new tab");
+              setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
+              resetExportStatus();
             }
-          } catch (err) {
-            console.warn(`[Editor Export] Clip ${i + 1} download error:`, err);
+            return;
           }
+
+          if (statusData?.status === "failed") {
+            console.warn("[Editor Export] Merge failed:", statusData.error);
+            toast.info("Merge failed, downloading clips as ZIP...");
+            await fallbackZipDownload(allClipUrls, sanitizedName);
+            return;
+          }
+
+          // Still processing — update progress and poll again
+          const progress = statusData?.progress || 30;
+          setEditorState((prev) => ({ ...prev, renderProgress: Math.min(85, progress) }));
+
+          await new Promise((r) => setTimeout(r, 5000));
+          return pollMerge();
+        } catch (pollErr) {
+          console.warn("[Editor Export] Poll error:", pollErr);
+          if (pollCount < 3) {
+            await new Promise((r) => setTimeout(r, 5000));
+            return pollMerge();
+          }
+          toast.info("Connection issue, downloading clips as ZIP...");
+          await fallbackZipDownload(allClipUrls, sanitizedName);
         }
-        setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
-        toast.success(`Downloaded ${allClipUrls.length} clips!`);
-        resetExportStatus();
-      }
+      };
+
+      await pollMerge();
     } catch (err) {
       console.error("[Editor Export] Error:", err);
       setEditorState((prev) => ({ ...prev, renderStatus: "idle", renderProgress: 0 }));
       toast.error("Export failed. Please try again.");
     }
   };
+
+  /** Fallback: download clips as ZIP when server merge is unavailable */
+  async function fallbackZipDownload(clipUrls: string[], sanitizedName: string) {
+    setEditorState((prev) => ({ ...prev, renderProgress: 60 }));
+    try {
+      const clipBlobs: { name: string; blob: Blob }[] = [];
+      for (let i = 0; i < clipUrls.length; i++) {
+        setEditorState((prev) => ({
+          ...prev,
+          renderProgress: 60 + Math.round((i / clipUrls.length) * 30),
+        }));
+        try {
+          const response = await fetch(clipUrls[i], { mode: "cors" });
+          if (!response.ok) continue;
+          const blob = await response.blob();
+          clipBlobs.push({ name: `${sanitizedName}-clip${i + 1}.mp4`, blob });
+        } catch (err) {
+          console.warn(`[Editor Export] Clip ${i + 1} download error:`, err);
+        }
+      }
+
+      if (clipBlobs.length === 0) {
+        toast.error("Failed to download clips");
+        setEditorState((prev) => ({ ...prev, renderStatus: "idle", renderProgress: 0 }));
+        return;
+      }
+
+      if (clipBlobs.length === 1) {
+        downloadBlobToUser(clipBlobs[0].blob, clipBlobs[0].name);
+      } else {
+        const zipBlob = await buildSimpleZip(clipBlobs);
+        downloadBlobToUser(zipBlob, `${sanitizedName}-clips.zip`);
+      }
+
+      setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
+      toast.success(`Downloaded ${clipBlobs.length} clip${clipBlobs.length > 1 ? "s" : ""}!`);
+      resetExportStatus();
+    } catch (zipErr) {
+      console.error("[Editor Export] ZIP fallback error:", zipErr);
+      // Last resort: individual downloads
+      for (let i = 0; i < clipUrls.length; i++) {
+        try {
+          const response = await fetch(clipUrls[i], { mode: "cors" });
+          if (!response.ok) continue;
+          const blob = await response.blob();
+          downloadBlobToUser(blob, `${sanitizedName}-clip${i + 1}.mp4`);
+          if (i < clipUrls.length - 1) await new Promise((r) => setTimeout(r, 800));
+        } catch (err) {
+          console.warn(`[Editor Export] Clip ${i + 1} download error:`, err);
+        }
+      }
+      setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
+      toast.success(`Downloaded ${clipUrls.length} clips!`);
+      resetExportStatus();
+    }
+  }
 
   function downloadBlobToUser(blob: Blob, filename: string) {
     const url = URL.createObjectURL(blob);

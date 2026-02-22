@@ -202,18 +202,29 @@ serve(async (req) => {
         storedVideoUrl, lastFrameUrl
       );
       
-      // Log cost
+      // Log cost — use per-output-second pricing for Kling v3
       try {
+        const clipDuration = clip.duration_seconds || 6;
+        const KLING_V3_COST_PER_SEC_CENTS = 28;
+        const realCostCents = Math.round(clipDuration * KLING_V3_COST_PER_SEC_CENTS);
+        
         await supabase.rpc('log_api_cost', {
           p_service: 'replicate-kling',
           p_operation: 'webhook-completion',
-          p_real_cost_cents: 0,
-          p_credits_charged: 0,
+          p_real_cost_cents: realCostCents,
+          p_credits_charged: 0, // credits already charged at generation start
           p_status: 'completed',
           p_project_id: clip.project_id,
           p_shot_id: predictionId,
           p_user_id: clip.user_id,
-          p_metadata: { webhookReceived: true, shotIndex: clip.shot_index },
+          p_metadata: { 
+            webhookReceived: true, 
+            shotIndex: clip.shot_index,
+            predict_time: prediction.metrics?.predict_time || null,
+            total_time: prediction.metrics?.total_time || null,
+            cost_method: 'per_output_second',
+            cost_rate: KLING_V3_COST_PER_SEC_CENTS,
+          },
         });
       } catch (_) { /* non-fatal */ }
       

@@ -44,7 +44,7 @@ interface CostSummary {
   wastePercentage: number;
 }
 
-const KLING_COST_PER_CLIP_CENTS = 5; // replicate-kling actual cost
+// Removed hardcoded cost constant — real costs are now tracked in api_cost_logs
 
 function StatPill({ icon: Icon, label, value, sub, accent }: {
   icon: React.ElementType;
@@ -126,17 +126,17 @@ export default function AdminDashboardPage() {
       });
 
       const totalRetries = clipsData.reduce((s: number, c: any) => s + (c.retry_count || 0), 0);
-      const retryCost = totalRetries * KLING_COST_PER_CLIP_CENTS;
+      // Retry cost is already included in api_cost_logs (each retry creates a new log entry)
       const totalRefunds = (refundsResult.data || []).reduce((s: number, r: any) => s + Math.abs(r.amount || 0), 0);
-      const totalWastedCost = failedApiCost + retryCost;
+      const totalWastedCost = failedApiCost;
 
       setCostSummary({
-        totalApiCost: totalApiCost + retryCost,
+        totalApiCost,
         totalWastedCost,
         totalRetries,
         totalRefunds,
         failedClips,
-        wastePercentage: (totalApiCost + retryCost) > 0 ? (totalWastedCost / (totalApiCost + retryCost)) * 100 : 0,
+        wastePercentage: totalApiCost > 0 ? (totalWastedCost / totalApiCost) * 100 : 0,
       });
     } catch { /* silent */ }
   };
@@ -181,7 +181,7 @@ export default function AdminDashboardPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatPill icon={DollarSign} label="API Spend" value={formatCurrency(costSummary?.totalApiCost || 0)} sub="All-time" accent="primary" />
           <StatPill icon={AlertTriangle} label="Wasted" value={formatCurrency(costSummary?.totalWastedCost || 0)} sub={`${(costSummary?.wastePercentage || 0).toFixed(1)}% of total`} accent="destructive" />
-          <StatPill icon={RefreshCw} label="Retries" value={costSummary?.totalRetries?.toLocaleString() || "0"} sub={formatCurrency((costSummary?.totalRetries || 0) * KLING_COST_PER_CLIP_CENTS)} accent="warning" />
+          <StatPill icon={RefreshCw} label="Retries" value={costSummary?.totalRetries?.toLocaleString() || "0"} sub="Clip retries" accent="warning" />
           <StatPill icon={ArrowDownRight} label="Refunds" value={costSummary?.totalRefunds?.toLocaleString() || "0"} sub="Credits refunded" accent="info" />
         </div>
       </div>

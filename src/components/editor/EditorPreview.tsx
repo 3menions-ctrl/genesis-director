@@ -42,6 +42,12 @@ export const EditorPreview = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const activeClipIdRef = useRef<string | null>(null);
   const isScrubbing = useRef(false);
+  const isPlayingRef = useRef(isPlaying);
+
+  // Keep ref in sync with prop
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
 
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
@@ -108,9 +114,10 @@ export const EditorPreview = ({
       const handleReady = () => {
         if (activeClipIdRef.current !== clipId) return;
         video.currentTime = Math.max(0, localTime);
-        // Check current isPlaying state via the video's paused property as a signal,
-        // but always attempt play if the state says we should be playing
-        safePlay(video).catch(() => {});
+        // Only auto-play if user has pressed play (use ref for fresh value)
+        if (isPlayingRef.current) {
+          safePlay(video).catch(() => {});
+        }
         video.removeEventListener('canplay', handleReady);
         video.removeEventListener('loadeddata', handleReady);
       };
@@ -124,7 +131,9 @@ export const EditorPreview = ({
         video.removeEventListener('loadeddata', handleReady);
         if (video.readyState >= 1) {
           video.currentTime = Math.max(0, localTime);
-          safePlay(video).catch(() => {});
+          if (isPlayingRef.current) {
+            safePlay(video).catch(() => {});
+          }
         }
       }, 3000);
 
@@ -155,22 +164,31 @@ export const EditorPreview = ({
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+    
+    let onReadyCleanup: (() => void) | null = null;
+    
     if (isPlaying) {
       // Use safePlay for robust cross-browser playback
       safePlay(video).then((started) => {
         if (!started && video.readyState < 2) {
           // Video not ready yet — wait for it, then play
           const onReady = () => {
-            if (!isPlaying) return;
+            // Use ref for fresh isPlaying value (avoids stale closure)
+            if (!isPlayingRef.current) return;
             safePlay(video);
             video.removeEventListener('canplay', onReady);
           };
           video.addEventListener('canplay', onReady);
+          onReadyCleanup = () => video.removeEventListener('canplay', onReady);
         }
       });
     } else {
       video.pause();
     }
+    
+    return () => {
+      onReadyCleanup?.();
+    };
   }, [isPlaying]);
 
   // ── Playback speed sync ──

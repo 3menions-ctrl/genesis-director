@@ -24,7 +24,7 @@ import {
 interface InventoryItem {
   name: string;
   description: string;
-  status: "active" | "beta" | "internal" | "deprecated";
+  status: "active" | "beta" | "internal" | "deprecated" | "broken" | "stub";
   tags?: string[];
 }
 
@@ -38,6 +38,36 @@ interface InventorySection {
 }
 
 const INVENTORY: InventorySection[] = [
+  {
+    id: "issues",
+    title: "⚠ Non-Functional & Half-Baked",
+    icon: AlertTriangle,
+    color: "text-red-400",
+    description: "Features that are broken, stubs, or incomplete — needs attention",
+    items: [
+      { name: "Video Editor Export (Multi-Clip)", description: "Export only downloads first clip instead of merged multi-clip video. mp4box.js concat frequently fails silently, falling back to individual clip downloads.", status: "broken", tags: ["critical", "editor"] },
+      { name: "Motion Transfer Mode", description: "Edge function returns 501 Not Implemented. Placeholder that tells users to use Avatar mode instead. Commented out from mode selector UI.", status: "stub", tags: ["pipeline"] },
+      { name: "generate-trailer (Edge Function)", description: "Edge function exists but is never called from any frontend component. No UI to trigger trailer generation.", status: "stub", tags: ["pipeline"] },
+      { name: "stylize-video (Edge Function)", description: "Edge function exists with style presets but is never invoked from any frontend component. No UI exposes video style transfer.", status: "stub", tags: ["pipeline"] },
+      { name: "Press Kit Download", description: "Press page has a 'Download Press Kit' button that does nothing — no file, no download handler, purely decorative.", status: "stub", tags: ["public page"] },
+      { name: "Press Page — Media Inquiries", description: "'Media Inquiries' button on Press page has no action handler — not linked to email or contact form.", status: "stub", tags: ["public page"] },
+      { name: "Leaderboard (Profile Page)", description: "Leaderboard button in Profile quick actions has onClick={() => {}} — does nothing. Leaderboard data loads but there's no dedicated leaderboard page.", status: "broken", tags: ["gamification"] },
+      { name: "Beat Sync (Editor)", description: "UI panel exists with BPM selector but auto-cut logic uses simple math division — no actual audio analysis or beat detection. Cuts are evenly spaced, not synced to beats.", status: "stub", tags: ["editor"] },
+      { name: "Chroma Key (Editor)", description: "UI panel exists with color picker and tolerance sliders but applies CSS-only greenscreen via mix-blend-mode. No actual chroma key compositing in export/render.", status: "stub", tags: ["editor"] },
+      { name: "Picture-in-Picture (Editor)", description: "PiP panel stores position/size metadata on clips but no rendering logic applies PiP during playback or export. Data is stored but never used.", status: "stub", tags: ["editor"] },
+      { name: "Keyframe Editor", description: "Keyframe panel UI exists with add/delete keyframe controls but keyframe interpolation is not applied during preview or export. Purely cosmetic.", status: "stub", tags: ["editor"] },
+      { name: "Stickers (Editor)", description: "Sticker panel shows emoji/CTA stickers and fires onAddSticker callback, but stickers are not rendered on the video canvas or included in exports.", status: "stub", tags: ["editor"] },
+      { name: "Trending Effects (Editor)", description: "Effects panel shows TikTok-style effect names but effects are not applied to video clips during preview or export. UI only.", status: "stub", tags: ["editor"] },
+      { name: "Color Grading (Editor)", description: "Color grading sliders exist and store values but grading is applied via CSS filters on preview only — not baked into exported video.", status: "beta", tags: ["editor"] },
+      { name: "Filters (Editor)", description: "Filter presets (cinematic, vintage) apply CSS filters to preview. Not applied in final export — exported video is unfiltered.", status: "beta", tags: ["editor"] },
+      { name: "Crop & Rotate (Editor)", description: "Crop/rotate UI stores transform metadata but crops are CSS-only in preview. Not applied during export.", status: "beta", tags: ["editor"] },
+      { name: "Text Animation (Editor)", description: "Text overlay system works in preview but text is not burned into exported video — exports are text-free.", status: "beta", tags: ["editor"] },
+      { name: "Speed Control (Editor)", description: "Speed slider changes playback rate in preview but does not re-encode video at altered speed during export.", status: "beta", tags: ["editor"] },
+      { name: "Audio Fade (Editor)", description: "Fade in/out controls store metadata but fades are applied via Web Audio API in preview only — not in export.", status: "beta", tags: ["editor"] },
+      { name: "HLS Playlist Generation", description: "Edge function generate-hls-playlist exists but no frontend component consumes or offers HLS streaming to users.", status: "stub", tags: ["pipeline"] },
+      { name: "Blog Page", description: "Blog exists with 5 hardcoded articles — not backed by a CMS or database. Cannot add/edit articles without code changes.", status: "beta", tags: ["public page"] },
+    ],
+  },
   {
     id: "pages",
     title: "Pages & Routes",
@@ -485,6 +515,8 @@ const statusConfig = {
   beta: { label: "Beta", className: "bg-amber-500/20 text-amber-300 border-amber-500/30" },
   internal: { label: "Internal", className: "bg-slate-500/20 text-slate-300 border-slate-500/30" },
   deprecated: { label: "Deprecated", className: "bg-red-500/20 text-red-300 border-red-500/30" },
+  broken: { label: "Broken", className: "bg-red-600/30 text-red-400 border-red-500/40" },
+  stub: { label: "Stub", className: "bg-orange-500/20 text-orange-300 border-orange-500/30" },
 };
 
 // ─── Component ───────────────────────────────────────────────
@@ -522,6 +554,8 @@ export default function AppInventory() {
   const totalItems = INVENTORY.reduce((acc, s) => acc + s.items.length, 0);
   const totalActive = INVENTORY.reduce((acc, s) => acc + s.items.filter(i => i.status === "active").length, 0);
   const totalBeta = INVENTORY.reduce((acc, s) => acc + s.items.filter(i => i.status === "beta").length, 0);
+  const totalBroken = INVENTORY.reduce((acc, s) => acc + s.items.filter(i => i.status === "broken").length, 0);
+  const totalStub = INVENTORY.reduce((acc, s) => acc + s.items.filter(i => i.status === "stub").length, 0);
 
   return (
     <div className="text-foreground">
@@ -534,7 +568,15 @@ export default function AppInventory() {
               Complete catalog of every service, feature, and component
             </p>
           </div>
-          <div className="hidden sm:flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20">
+              <div className="w-2 h-2 rounded-full bg-red-400" />
+              <span className="text-xs font-medium text-red-300">{totalBroken} Broken</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20">
+              <div className="w-2 h-2 rounded-full bg-orange-400" />
+              <span className="text-xs font-medium text-orange-300">{totalStub} Stub</span>
+            </div>
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
               <div className="w-2 h-2 rounded-full bg-emerald-400" />
               <span className="text-xs font-medium text-emerald-300">{totalActive} Active</span>

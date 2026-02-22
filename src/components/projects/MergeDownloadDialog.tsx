@@ -26,7 +26,6 @@ import {
 import { 
   mergeVideoClips, 
   downloadBlob, 
-  cleanupFFmpeg,
   canMergeVideos,
   type MergeProgress 
 } from '@/lib/video/browserVideoMerger';
@@ -68,12 +67,7 @@ export function MergeDownloadDialog({
     }
   }, [open]);
 
-  // Cleanup FFmpeg on unmount
-  useEffect(() => {
-    return () => {
-      cleanupFFmpeg();
-    };
-  }, []);
+  // No cleanup needed — ZIP packaging is stateless
 
   const handleMergeAndDownload = useCallback(async () => {
     if (clipUrls.length === 0) {
@@ -192,7 +186,7 @@ export function MergeDownloadDialog({
             Download Complete Video
           </DialogTitle>
           <DialogDescription className="text-zinc-400">
-            Merge {clipUrls.length} clips into a single video file
+            {clipUrls.length === 1 ? 'Download your video' : `Download ${clipUrls.length} clips as ZIP`}
           </DialogDescription>
         </DialogHeader>
 

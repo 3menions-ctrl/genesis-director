@@ -168,23 +168,29 @@
 | 1 | Hollywood credit pricing 12→50 per clip | `hollywood-pipeline/index.ts` | Updated CREDIT_PRICING constants |
 | 2 | Delete-user-account destroys audit trail | `delete-user-account/index.ts` | Changed DELETE to UPDATE (nullify user_id) |
 
-## ROUND 4 FIXES (Current Session)
+## ROUND 4 FIXES (Previous Session)
 
 | # | Category | Issue | Files Fixed | Change |
 |---|----------|-------|-------------|--------|
 | 1 | **Auth Bypass** | retry-failed-clip uses inline JWT parsing instead of shared auth-guard | `retry-failed-clip/index.ts` | Replaced 15-line inline JWT parsing with `validateAuth()` from `_shared/auth-guard.ts` |
 | 2 | **Auth Bypass** | resume-pipeline uses inline JWT parsing instead of shared auth-guard | `resume-pipeline/index.ts` | Replaced 15-line inline JWT parsing with `validateAuth()` from `_shared/auth-guard.ts`, also fixed `.single()` → `.maybeSingle()` |
-| 3 | **Crash Vector** | `.single()` in continue-production (3 calls) | `continue-production/index.ts` | Changed 3× `.single()` → `.maybeSingle()` at lines 320, 407, 430 |
-| 4 | **Crash Vector** | `.single()` in simple-stitch (2 calls) | `simple-stitch/index.ts` | Changed 2× `.single()` → `.maybeSingle()` at lines 64, 165 |
-| 5 | **Crash Vector** | `.single()` in generate-hls-playlist (3 calls) | `generate-hls-playlist/index.ts` | Changed 3× `.single()` → `.maybeSingle()` at lines 76, 204, 279 |
-| 6 | **Crash Vector** | `.single()` in retry-failed-clip (3 calls) | `retry-failed-clip/index.ts` | Changed 3× `.single()` → `.maybeSingle()` at lines 139, 157, 173 |
-| 7 | **Crash Vector** | `.single()` in edit-photo (4 calls) | `edit-photo/index.ts` | Changed 4× `.single()` → `.maybeSingle()` at lines 84, 105, 221, 260 |
-| 8 | **Crash Vector** | `.single()` in regenerate-audio (1 call) | `regenerate-audio/index.ts` | Changed 1× `.single()` → `.maybeSingle()` at line 51 |
-| 9 | **Crash Vector** | `.single()` in generate-voice (1 call) | `generate-voice/index.ts` | Changed 1× `.single()` → `.maybeSingle()` at line 357 |
-| 10 | **Crash Vector** | `.single()` in generate-project-thumbnail (2 calls) | `generate-project-thumbnail/index.ts` | Changed 2× `.single()` → `.maybeSingle()` at lines 54, 171 |
-| 11 | **Crash Vector** | `.single()` in mode-router (2 calls) | `mode-router/index.ts` | Changed 2× `.single()` → `.maybeSingle()` at lines 372, 415 |
-| 12 | **Crash Vector** | `.single()` in hollywood-pipeline (2 critical calls) | `hollywood-pipeline/index.ts` | Changed 2× `.single()` → `.maybeSingle()` at lines 639, 6434 |
+| 3-12 | **Crash Vector** | 26× `.single()` → `.maybeSingle()` across 10 functions | Multiple | Prevents PGRST116 crashes |
 | 13 | **Performance** | Sequential video persistence in simple-stitch causes timeouts | `simple-stitch/index.ts` | Replaced sequential `for` loop with `Promise.allSettled()` parallel persistence |
+
+## ROUND 5 FIXES (Current Session)
+
+| # | Category | Issue | Files Fixed | Change |
+|---|----------|-------|-------------|--------|
+| 1 | **Stability** | auto-stitch-trigger error recovery uses fragile `req.clone().json()` | `auto-stitch-trigger/index.ts` | Parse body once at top; use closure variable in catch block |
+| 2 | **Crash Vector** | auto-stitch-trigger `.single()` on project lookup | `auto-stitch-trigger/index.ts` | `.single()` → `.maybeSingle()` |
+| 3 | **Auth Bypass** | delete-project falls back to `requestBody.userId` if JWT missing | `delete-project/index.ts` | Always use `auth.userId` — never trust client payload |
+| 4 | **Crash Vector** | delete-project `.single()` on project lookup | `delete-project/index.ts` | `.single()` → `.maybeSingle()` |
+| 5 | **Auth Naming** | delete-project misleading `isAdmin` variable name | `delete-project/index.ts` | Renamed to `isOwnerOrServiceRole` |
+| 6 | **Crash Vector** | cancel-project `.single()` on project lookup | `cancel-project/index.ts` | `.single()` → `.maybeSingle()` |
+| 7 | **OOM Risk** | generate-single-clip loads entire video into memory via `arrayBuffer()` | `generate-single-clip/index.ts` | Stream upload with chunked reading + 50MB safety limit |
+| 8-20 | **Crash Vector** | 13× `.single()` → `.maybeSingle()` across 13 functions | `delete-clip`, `extract-scene-identity`, `export-user-data`, `generate-widget-config`, `log-widget-event`, `check-video-status`, `generate-avatar-direct` (3×), `cleanup-stale-drafts`, `extract-first-frame` (2×), `extract-video-frame`, `pipeline-watchdog` (3×), `_shared/pipeline-guard-rails`, `_shared/pipeline-failsafes`, `generate-character-for-scene` | Prevents PGRST116 crashes |
+| 21 | **Financial** | `charge_preproduction_credits` RPC hardcoded at 5 credits | DB migration | Updated to 10 credits (proportional to Kling V3 50-credit total) |
+| 22 | **Financial** | `charge_production_credits` RPC hardcoded at 20 credits | DB migration | Updated to 40 credits (10 pre + 40 prod = 50 total matching Kling V3) |
 
 ## CUMULATIVE FIX COUNT
 
@@ -193,15 +199,16 @@
 | Round 1 | 6 | 6 |
 | Round 2 | 8 | 14 |
 | Round 3 | 2 | 16 |
-| Round 4 | 13 | **29** |
+| Round 4 | 13 | 29 |
+| Round 5 | 22 | **51** |
 
-**Remaining issues from original 100:** ~71
+**Remaining issues from original 100:** ~49
 
 ---
 
 **Next Priority Actions:**
-1. Fix remaining ~118 `.single()` calls in hollywood-pipeline (low-risk interior reads, batch fix)
-2. Add pipeline stage transition validator (DB trigger to prevent invalid status changes)
-3. Reduce watchdog stall threshold from 45m to 15m
-4. Add idempotency keys to generate-single-clip to prevent duplicate predictions
-5. Fix DM realtime data leak (missing RLS filter on conversation membership)
+1. Add pipeline stage transition validator (DB trigger to prevent invalid status changes)
+2. Reduce watchdog stall threshold from 45m to 15m
+3. Add idempotency keys to generate-single-clip to prevent duplicate predictions
+4. Fix remaining ~20 `.single()` calls in hollywood-pipeline interior reads
+5. Add N+1 query prevention in frontend hooks (useSocial, usePaginatedProjects)

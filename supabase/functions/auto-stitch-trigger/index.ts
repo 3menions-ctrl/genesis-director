@@ -36,7 +36,15 @@ serve(async (req) => {
       return unauthorizedResponse(corsHeaders, auth.error);
     }
 
-    const { projectId, userId, forceStitch = false } = await req.json() as AutoStitchRequest;
+    // Parse body ONCE — use closure for error recovery below
+    let projectId: string | undefined;
+    let userId: string | undefined;
+    let forceStitch = false;
+    
+    const body = await req.json() as AutoStitchRequest;
+    projectId = body.projectId;
+    userId = body.userId;
+    forceStitch = body.forceStitch ?? false;
 
     if (!projectId) {
       throw new Error("projectId is required");
@@ -53,7 +61,7 @@ serve(async (req) => {
       .from('movie_projects')
       .select('id, title, status, pending_video_tasks, pipeline_state, mode')
       .eq('id', projectId)
-      .single();
+      .maybeSingle();
 
     if (projectError || !project) {
       throw new Error(`Project not found: ${projectError?.message || 'Unknown'}`);
@@ -194,8 +202,7 @@ serve(async (req) => {
     
     // Recovery: mark as completed if clips exist
     try {
-      const body = await req.clone().json() as AutoStitchRequest;
-      if (body.projectId) {
+      if (projectId) {
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
         const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
         const supabase = createClient(supabaseUrl, supabaseKey);

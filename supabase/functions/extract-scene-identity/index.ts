@@ -232,7 +232,7 @@ serve(async (req) => {
         .from("profiles")
         .select("credits_balance")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
 
       const balance = profile?.credits_balance ?? 0;
       if (balance < IDENTITY_EXTRACTION_CREDITS) {

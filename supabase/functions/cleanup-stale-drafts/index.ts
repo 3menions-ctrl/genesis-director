@@ -90,7 +90,7 @@ serve(async (req) => {
         .from('movie_projects')
         .select('created_at, updated_at')
         .eq('id', draft.id)
-        .single();
+        .maybeSingle();
       
       if (fullDraft && fullDraft.created_at === fullDraft.updated_at) {
         untouchedDrafts.push(draft);

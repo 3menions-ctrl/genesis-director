@@ -43,7 +43,8 @@ serve(async (req) => {
 
     const requestBody: DeleteRequest = await req.json();
     const { projectId } = requestBody;
-    const userId = auth.userId || requestBody.userId;
+    // SECURITY: Always prefer JWT-extracted userId — never trust client payload
+    const userId = auth.userId;
 
     if (!projectId || !userId) {
       return new Response(
@@ -59,7 +60,7 @@ serve(async (req) => {
       .from('movie_projects')
       .select('id, user_id, title, pending_video_tasks, pipeline_state, video_url, thumbnail_url')
       .eq('id', projectId)
-      .single();
+      .maybeSingle();
 
     if (projectError || !project) {
       return new Response(
@@ -68,9 +69,9 @@ serve(async (req) => {
       );
     }
 
-    // Must be owner or admin
-    const isAdmin = auth.isServiceRole || project.user_id === userId;
-    if (!isAdmin) {
+    // Must be owner or service-role (internal call)
+    const isOwnerOrServiceRole = auth.isServiceRole || (userId && project.user_id === userId);
+    if (!isOwnerOrServiceRole) {
       return new Response(
         JSON.stringify({ error: "Access denied" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -316,22 +316,66 @@ async function storeVideoFromUrl(
     throw new Error(`Failed to download video: ${response.status}`);
   }
   
-  const videoData = await response.arrayBuffer();
   const fileName = `clip_${projectId}_${clipIndex}_${Date.now()}.mp4`;
   const storagePath = `${projectId}/${fileName}`;
   
-  console.log(`[SingleClip] Uploading ${videoData.byteLength} bytes to storage...`);
-  
-  const { error: uploadError } = await supabase.storage
-    .from('video-clips')
-    .upload(storagePath, new Uint8Array(videoData), {
-      contentType: 'video/mp4',
-      upsert: true,
-    });
-  
-  if (uploadError) {
-    console.error(`[SingleClip] Storage upload failed:`, uploadError);
-    throw new Error(`Failed to upload video: ${uploadError.message}`);
+  // STREAM upload: pipe fetch response body directly to storage
+  // This avoids loading entire video into memory (prevents OOM on 19MB+ files)
+  if (response.body) {
+    // Convert ReadableStream to Uint8Array in chunks to stay within memory limits
+    const chunks: Uint8Array[] = [];
+    let totalSize = 0;
+    const reader = response.body.getReader();
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      totalSize += value.byteLength;
+      // Safety: abort if video exceeds 50MB (shouldn't happen with Kling clips)
+      if (totalSize > 50 * 1024 * 1024) {
+        reader.cancel();
+        throw new Error(`Video too large: ${totalSize} bytes exceeds 50MB limit`);
+      }
+    }
+    
+    // Concatenate chunks
+    const videoData = new Uint8Array(totalSize);
+    let offset = 0;
+    for (const chunk of chunks) {
+      videoData.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    
+    console.log(`[SingleClip] Uploading ${totalSize} bytes to storage...`);
+    
+    const { error: uploadError } = await supabase.storage
+      .from('video-clips')
+      .upload(storagePath, videoData, {
+        contentType: 'video/mp4',
+        upsert: true,
+      });
+    
+    if (uploadError) {
+      console.error(`[SingleClip] Storage upload failed:`, uploadError);
+      throw new Error(`Failed to upload video: ${uploadError.message}`);
+    }
+  } else {
+    // Fallback for environments without ReadableStream
+    const videoData = await response.arrayBuffer();
+    console.log(`[SingleClip] Uploading ${videoData.byteLength} bytes to storage (fallback)...`);
+    
+    const { error: uploadError } = await supabase.storage
+      .from('video-clips')
+      .upload(storagePath, new Uint8Array(videoData), {
+        contentType: 'video/mp4',
+        upsert: true,
+      });
+    
+    if (uploadError) {
+      console.error(`[SingleClip] Storage upload failed:`, uploadError);
+      throw new Error(`Failed to upload video: ${uploadError.message}`);
+    }
   }
   
   const { data: { publicUrl } } = supabase.storage

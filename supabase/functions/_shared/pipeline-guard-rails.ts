@@ -230,7 +230,7 @@ export async function checkAndRecoverStaleMutex(
     .from('movie_projects')
     .select('generation_lock')
     .eq('id', projectId)
-    .single();
+    .maybeSingle();
   
   if (error || !project?.generation_lock) {
     return { wasStale: false };

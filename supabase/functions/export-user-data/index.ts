@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
       universesResult,
       templatesResult
     ] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', userId).single(),
+      supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
       supabase.from('movie_projects').select('*').eq('user_id', userId),
       supabase.from('video_clips').select('*').eq('user_id', userId),
       supabase.from('credit_transactions').select('*').eq('user_id', userId),

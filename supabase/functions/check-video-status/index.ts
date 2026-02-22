@@ -226,7 +226,7 @@ serve(async (req) => {
                         duration_seconds: actualDuration,
                       })
                       .select('id')
-                      .single();
+                      .maybeSingle();
                     console.log(`[CheckStatus] ✓ Created clip record ${newClip?.id}`);
                   }
                 }

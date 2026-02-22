@@ -56,14 +56,15 @@ export const VIDEO_MODES: VideoModeConfig[] = [
     requiresText: false,
     popular: true, // Featured mode - shows by default
   },
-  {
-    id: 'motion-transfer',
-    name: 'Motion Transfer',
-    description: 'Apply dance moves to any character',
-    icon: 'Dices',
-    requiresVideo: true,
-    requiresImage: true,
-  },
+  // Motion Transfer hidden — edge function returns 501 (not implemented)
+  // {
+  //   id: 'motion-transfer',
+  //   name: 'Motion Transfer',
+  //   description: 'Apply dance moves to any character',
+  //   icon: 'Dices',
+  //   requiresVideo: true,
+  //   requiresImage: true,
+  // },
   {
     id: 'b-roll',
     name: 'B-Roll Generator',

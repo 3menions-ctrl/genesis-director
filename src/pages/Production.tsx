@@ -1335,8 +1335,24 @@ const transitionsData = useMemo(() =>
                         setProgress(100);
                         toast.success('Video generation complete!');
                       }}
-                      onRetry={() => {
-                        toast.info('Retry feature coming soon');
+                      onRetry={async () => {
+                        if (!projectId || !user) return;
+                        try {
+                          toast.info('Retrying generation...');
+                          const { data, error } = await supabase.functions.invoke('resume-avatar-pipeline', {
+                            body: { projectId, userId: user.id },
+                          });
+                          if (error) throw error;
+                          if (data?.success) {
+                            toast.success('Pipeline resumed successfully');
+                            await loadVideoClips();
+                          } else {
+                            toast.error(data?.error || 'Failed to resume pipeline');
+                          }
+                        } catch (err) {
+                          console.error('[Production] Retry specialized mode failed:', err);
+                          toast.error('Could not retry. Please try again.');
+                        }
                       }}
                       onCancel={handleCancelPipeline}
                     />

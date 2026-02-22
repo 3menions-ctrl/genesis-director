@@ -274,10 +274,10 @@ async function chainContinueProduction(
   lastFrameUrl: string | null,
 ) {
   try {
-    // Get total clip count
+    // Get total clip count AND pipeline context for continue-production
     const { data: projMeta } = await supabase
       .from('movie_projects')
-      .select('pending_video_tasks, generated_script')
+      .select('pending_video_tasks, generated_script, pro_features_data, mode')
       .eq('id', projectId)
       .maybeSingle();
     
@@ -292,7 +292,31 @@ async function chainContinueProduction(
       } catch { /* ignore */ }
     }
     
-    console.log(`[ReplicateWebhook] 🔗 Chaining continue-production: clip ${completedShotIndex + 1}/${totalClips}`);
+    // ═══════════════════════════════════════════════════════════════════
+    // CRITICAL FIX: Build pipelineContext from DB so continue-production
+    // has access to pendingVideoTasks, isAvatarMode, clipDuration, etc.
+    // Previously this was passed as NOTHING, causing clips 2+ to lose
+    // all dialogue, identity, and mode information.
+    // ═══════════════════════════════════════════════════════════════════
+    const proFeatures = (projMeta?.pro_features_data || {}) as Record<string, any>;
+    const isAvatarMode = projMeta?.mode === 'avatar' || tasks.isAvatarMode || tasks.type === 'avatar_async';
+    
+    const pipelineContext: Record<string, any> = {
+      isAvatarMode,
+      videoEngine: isAvatarMode ? 'kling' : (tasks.videoEngine || 'kling'),
+      clipDuration: tasks.clipDuration || 10,
+      pendingVideoTasks: tasks, // CRITICAL: contains predictions[].segmentText
+      identityBible: proFeatures.identityBible || null,
+      faceLock: proFeatures.faceLock || proFeatures.identityBible?.faceLock || null,
+      extractedCharacters: proFeatures.extractedCharacters || [],
+      masterSceneAnchor: proFeatures.masterSceneAnchor || null,
+      goldenFrameData: proFeatures.goldenFrameData || null,
+      referenceImageUrl: proFeatures.referenceAnalysis?.imageUrl 
+        || proFeatures.identityBible?.originalReferenceUrl || null,
+      aspectRatio: tasks.aspectRatio || '16:9',
+    };
+    
+    console.log(`[ReplicateWebhook] 🔗 Chaining continue-production: clip ${completedShotIndex + 1}/${totalClips}, avatar=${isAvatarMode}, predictions=${tasks.predictions?.length || 0}`);
     
     const response = await fetch(`${supabaseUrl}/functions/v1/continue-production`, {
       method: 'POST',
@@ -309,6 +333,7 @@ async function chainContinueProduction(
           lastFrameUrl: lastFrameUrl || null,
         },
         totalClips,
+        pipelineContext, // NOW INCLUDES pendingVideoTasks, isAvatarMode, etc.
       }),
     });
     

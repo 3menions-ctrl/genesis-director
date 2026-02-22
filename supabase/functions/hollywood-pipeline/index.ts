@@ -1219,8 +1219,10 @@ async function runPreProduction(
           description: shot.description || '',
           durationSeconds: shot.durationSeconds || state.clipDuration,
           mood: shot.mood || request.mood || 'cinematic',
-          // VOICE CONTROL: Only include dialogue if voice is enabled
-          dialogue: request.includeVoice ? (shot.dialogue || '') : '',
+          // CRITICAL FIX: Always preserve dialogue in generated_script for prompt construction.
+          // The includeVoice flag should only control TTS/narration audio, NOT the visual prompt text.
+          // continue-production reads shot.dialogue to build Kling prompts — stripping it kills clips 2+.
+          dialogue: shot.dialogue || '',
           // NEW: Capture scene context for continuous flow
           sceneContext: shot.actionPhase ? {
             actionPhase: shot.actionPhase,
@@ -1233,13 +1235,14 @@ async function runPreProduction(
           } : undefined,
         }));
         
-        // Pad if needed
+        // Pad if needed — CRITICAL: padded shots must also carry dialogue from concept
         while (shots.length < state.clipCount) {
           const prevShot = shots[shots.length - 1];
           shots.push({
             id: `shot_${shots.length + 1}`,
             title: `Clip ${shots.length + 1}`,
             description: `Continuation of the scene. Clip ${shots.length + 1}.`,
+            dialogue: '', // Explicit empty — continue-production will check predictions[] as fallback
             durationSeconds: state.clipDuration,
             mood: request.mood || 'cinematic',
             sceneContext: prevShot?.sceneContext ? {
@@ -1358,8 +1361,8 @@ async function runPreProduction(
           description: shot.description || '',
           durationSeconds: shot.durationSeconds || state.clipDuration,
           mood: shot.mood || request.mood || 'cinematic',
-          // VOICE CONTROL: Only include dialogue if voice is enabled
-          dialogue: request.includeVoice ? (shot.dialogue || '') : '',
+          // CRITICAL FIX: Always preserve dialogue — includeVoice only controls TTS audio, not prompts
+          dialogue: shot.dialogue || '',
           // Capture scene context
           sceneContext: shot.actionPhase ? {
             actionPhase: shot.actionPhase,
@@ -1378,6 +1381,7 @@ async function runPreProduction(
             id: `shot_${shots.length + 1}`,
             title: `Clip ${shots.length + 1}`,
             description: `${request.concept}. Clip ${shots.length + 1} of ${state.clipCount}.`,
+            dialogue: '', // Explicit empty — continue-production checks predictions[] as fallback
             durationSeconds: state.clipDuration,
             mood: request.mood || 'cinematic',
             sceneContext: {

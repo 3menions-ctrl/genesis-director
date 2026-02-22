@@ -3,10 +3,12 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { lazy, Suspense } from "react";
 import { Logo } from "@/components/ui/Logo";
+import { usePageMeta } from '@/hooks/usePageMeta';
 
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 
 const Terms = () => {
+  usePageMeta({ title: 'Terms of Service — Genesis Director', description: 'Read the terms and conditions governing your use of the Genesis Director platform.' });
   return (
     <div className="min-h-screen bg-[#000] overflow-hidden relative">
       {/* Abstract Background */}

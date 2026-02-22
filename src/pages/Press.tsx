@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { usePageMeta } from '@/hooks/usePageMeta';
 import { Link } from "react-router-dom";
 import { 
   Film, 
@@ -162,6 +163,7 @@ const itemVariants = {
 };
 
 export default function Press() {
+  usePageMeta({ title: 'Press — Genesis Director', description: 'Press kit, media resources, and the latest news about Genesis Director AI video platform.' });
   return (
     <div className="min-h-screen bg-background overflow-hidden">
       {/* Animated Background */}

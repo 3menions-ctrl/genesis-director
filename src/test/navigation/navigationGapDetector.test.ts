@@ -276,14 +276,9 @@ describe('REAL GAP DETECTOR: Error Message Leaks', () => {
     expect(typeof leaks).toBe('boolean');
   });
 
-  it('ExtractThumbnails shows String(e) to users (GAP 6)', () => {
-    const content = readFile('src/pages/ExtractThumbnails.tsx');
-    const leaks = content.includes('setError(String(e))');
-    
-    if (leaks) {
-      console.log('  ⚠️  ExtractThumbnails.tsx: raw String(e) shown to user');
-    }
-    expect(typeof leaks).toBe('boolean');
+  it('ExtractThumbnails removed (GAP 6 — resolved)', () => {
+    // ExtractThumbnails.tsx was deleted as an orphan page with no nav entry
+    expect(true).toBe(true);
   });
 
   it('useClipRecovery pushes raw err to result.errors (GAP 8)', () => {
@@ -411,7 +406,7 @@ describe('GAP ANALYSIS SUMMARY', () => {
       errorMessageLeaks: leaks.length,
       retryStitchLeak: readFile('src/hooks/useRetryStitch.ts').includes("err instanceof Error ? err.message"),
       mergeDialogLeak: readFile('src/components/projects/MergeDownloadDialog.tsx').includes("err instanceof Error ? err.message"),
-      extractThumbnailsLeak: readFile('src/pages/ExtractThumbnails.tsx').includes('String(e)'),
+      extractThumbnailsLeak: false, // File deleted — orphan page removed
       clipRecoveryLeak: readFile('src/hooks/useClipRecovery.ts').includes('${err}'),
     };
     

@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 /**
@@ -81,8 +81,13 @@ serve(async (req) => {
     const maxDuration = Math.max(...clips.map((c) => c.duration_seconds || 6));
     m3u8 += `${maxDuration}\n#EXT-X-MEDIA-SEQUENCE:0\n`;
 
-    for (const clip of clips) {
+    for (let i = 0; i < clips.length; i++) {
+      const clip = clips[i];
       const duration = clip.duration_seconds || 6;
+      // Each AI-generated clip is from a separate source — requires discontinuity tag
+      if (i > 0) {
+        m3u8 += `#EXT-X-DISCONTINUITY\n`;
+      }
       m3u8 += `#EXTINF:${duration.toFixed(3)},\n${clip.video_url}\n`;
     }
     m3u8 += "#EXT-X-ENDLIST\n";

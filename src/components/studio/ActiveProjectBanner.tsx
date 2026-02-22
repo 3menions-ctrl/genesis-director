@@ -82,30 +82,36 @@ const ActiveProjectBannerInner = memo(forwardRef<HTMLDivElement, ActiveProjectBa
     fetchActiveProject();
 
     // Set up realtime subscription for project status changes
+    // STABILITY FIX: Debounce to prevent rapid-fire queries during pipeline activity
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    
     const channel = supabase
       .channel('active-project-banner')
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'UPDATE',
           schema: 'public',
           table: 'movie_projects',
           filter: `user_id=eq.${user.id}`,
         },
         () => {
-          // Only refetch if still mounted
-          if (isMountedRef.current) {
-            fetchActiveProject();
-          }
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            if (isMountedRef.current) {
+              fetchActiveProject();
+            }
+          }, 2000); // 2s debounce - banner is low-priority UI
         }
       )
       .subscribe();
 
     return () => {
       isMountedRef.current = false;
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [user, safeSetActiveProject, safeSetIsLoading]);
+  }, [user?.id]); // STABILITY FIX: Only user.id, not callback refs
 
   const handleResume = () => {
     if (activeProject) {

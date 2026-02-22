@@ -659,6 +659,16 @@ function ProductionContentInner() {
   }, [projectId, navigate, updateStageStatus, loadVideoClips, loadAllProductionProjects, addLog]);
 
   // Realtime subscriptions
+  // STABILITY FIX: Store callbacks in refs to keep subscription deps stable
+  const loadVideoClipsRef = useRef(loadVideoClips);
+  loadVideoClipsRef.current = loadVideoClips;
+  const addLogRef = useRef(addLog);
+  addLogRef.current = addLog;
+  const updateStageStatusRef = useRef(updateStageStatus);
+  updateStageStatusRef.current = updateStageStatus;
+  const stagesRef = useRef(stages);
+  stagesRef.current = stages;
+  
   useEffect(() => {
     if (!projectId || !user) return;
 
@@ -748,12 +758,12 @@ function ProductionContentInner() {
             'production': 4, 'postproduction': 5,
           };
 
-          if (tasks.stage && stageMap[tasks.stage] !== undefined) {
+           if (tasks.stage && stageMap[tasks.stage] !== undefined) {
             const idx = stageMap[tasks.stage];
             for (let i = 0; i < idx; i++) {
-              if (stages[i]?.status !== 'complete') updateStageStatus(i, 'complete');
+              if (stagesRef.current[i]?.status !== 'complete') updateStageStatusRef.current(i, 'complete');
             }
-            updateStageStatus(idx, 'active');
+            updateStageStatusRef.current(idx, 'active');
           }
           
           if (tasks.stage === 'awaiting_approval' && tasks.script?.shots) {
@@ -775,7 +785,7 @@ function ProductionContentInner() {
               mood: shot.mood,
             }));
             setScriptShots(shots);
-            addLog('Script ready for approval', 'info');
+            addLogRef.current('Script ready for approval', 'info');
             toast.info('Script ready! Review and approve to continue.');
           }
         }
@@ -805,6 +815,9 @@ function ProductionContentInner() {
       })
       .subscribe();
 
+    // STABILITY FIX: Debounce clips channel to prevent rapid-fire reloads during generation
+    let clipsDebounce: ReturnType<typeof setTimeout> | null = null;
+    
     const clipsChannel = supabase
       .channel(`clips_${projectId}`)
       .on('postgres_changes', {
@@ -813,8 +826,11 @@ function ProductionContentInner() {
         table: 'video_clips',
         filter: `project_id=eq.${projectId}`,
       }, (payload) => {
-        // Always reload clips on any change (INSERT, UPDATE, DELETE)
-        loadVideoClips();
+        // Debounce clip reloads - during generation, many updates fire in quick succession
+        if (clipsDebounce) clearTimeout(clipsDebounce);
+        clipsDebounce = setTimeout(() => {
+          loadVideoClipsRef.current();
+        }, 1000); // 1s debounce for clip reloads
         
         if (payload.new) {
           const clip = payload.new as Record<string, unknown>;
@@ -822,11 +838,11 @@ function ProductionContentInner() {
           const shotIndex = (clip.shot_index as number) + 1;
           
           if (status === 'completed') {
-            addLog(`Clip ${shotIndex} done`, 'success');
+            addLogRef.current(`Clip ${shotIndex} done`, 'success');
           } else if (status === 'generating' && payload.eventType === 'INSERT') {
-            addLog(`Clip ${shotIndex} generating...`, 'info');
+            addLogRef.current(`Clip ${shotIndex} generating...`, 'info');
           } else if (status === 'failed') {
-            addLog(`Clip ${shotIndex} failed`, 'error');
+            addLogRef.current(`Clip ${shotIndex} failed`, 'error');
           }
         }
       })
@@ -835,8 +851,9 @@ function ProductionContentInner() {
     return () => {
       supabase.removeChannel(projectChannel);
       supabase.removeChannel(clipsChannel);
+      if (clipsDebounce) clearTimeout(clipsDebounce);
     };
-  }, [projectId, user, stages, updateStageStatus, addLog, loadVideoClips]);
+  }, [projectId, user?.id]); // STABILITY FIX: Only projectId and user.id - callbacks via refs
 
   // CRITICAL: Auto-clear errors when all clips complete successfully
   // This prevents stale CONTINUITY_FAILURE errors from showing after recovery

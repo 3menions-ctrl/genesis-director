@@ -1,4 +1,4 @@
-import { Type, Trash2, ArrowRightLeft, Sliders, Volume2, Gauge, Crop, Layout, Music, Zap, Smile, Wand2, Upload, Sparkles } from "lucide-react";
+import { Type, Trash2, ArrowRightLeft, Sliders, Volume2, Gauge, Crop, Layout, Music, Upload, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,20 +6,14 @@ import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TRANSITION_TYPES, type TimelineTrack, type TimelineClip, type MusicTrack } from "./types";
 import { ColorGradingPanel } from "./ColorGradingPanel";
-import { KeyframeEditor } from "./KeyframeEditor";
 import { SpeedControlPanel } from "./SpeedControlPanel";
 import { CropRotatePanel } from "./CropRotatePanel";
 import { FiltersPanel } from "./FiltersPanel";
 import { AudioFadePanel } from "./AudioFadePanel";
-import { PipPanel } from "./PipPanel";
-import { ChromaKeyPanel } from "./ChromaKeyPanel";
 import { CaptionsPanel } from "./CaptionsPanel";
 import { TemplatesPanel } from "./TemplatesPanel";
 import { MusicLibraryPanel } from "./MusicLibraryPanel";
-import { TrendingEffectsPanel } from "./TrendingEffectsPanel";
-import { StickersPanel } from "./StickersPanel";
 import { TextAnimationPanel } from "./TextAnimationPanel";
-import { BeatSyncPanel } from "./BeatSyncPanel";
 import { AudioUploadPanel } from "./AudioUploadPanel";
 import { TextToVideoPanel } from "./TextToVideoPanel";
 import { cn } from "@/lib/utils";
@@ -35,9 +29,6 @@ interface EditorSidebarProps {
   onDeleteClip: (clipId: string) => void;
   onApplyTemplate?: (templateId: string) => void;
   onAddMusic?: (track: MusicTrack) => void;
-  onAddSticker?: (stickerId: string, content: string, category: string) => void;
-  onApplyEffect?: (effectId: string) => void;
-  onBeatSyncAutocut?: (cutPoints: number[]) => void;
   onAudioUploaded?: (audioUrl: string, duration: number, captions: Caption[]) => void;
   onGenerateVideosFromAudio?: (segments: { start: number; end: number; prompt: string }[]) => void;
   isGeneratingFromAudio?: boolean;
@@ -48,7 +39,7 @@ interface EditorSidebarProps {
 export const EditorSidebar = ({
   tracks, selectedClipId, currentTime = 0,
   onUpdateClip, onAddTextOverlay, onAddTransition, onDeleteClip, onApplyTemplate,
-  onAddMusic, onAddSticker, onApplyEffect, onBeatSyncAutocut,
+  onAddMusic,
   onAudioUploaded, onGenerateVideosFromAudio, isGeneratingFromAudio,
   onGenerateTextToVideo, isGeneratingTextToVideo,
 }: EditorSidebarProps) => {
@@ -86,21 +77,11 @@ export const EditorSidebar = ({
                 </div>
                 Text
               </Button>
-              <Button
-                variant="ghost"
-                className="justify-start gap-2 h-9 text-[10px] text-white/30 hover:text-white/70 hover:bg-white/[0.04] border border-white/[0.04] rounded-lg transition-all group"
-                onClick={() => onAddSticker?.("fire", "🔥", "emoji")}
-              >
-                <div className="w-5 h-5 rounded-md bg-pink-500/10 border border-pink-500/20 flex items-center justify-center">
-                  <Smile className="h-2.5 w-2.5 text-pink-400" />
-                </div>
-                Sticker
-              </Button>
             </div>
 
             <div className="h-px bg-white/[0.03]" />
 
-            {/* Tabbed tool panels */}
+            {/* Tabbed tool panels — only functional tools */}
             <Tabs defaultValue="generate" className="w-full">
               <TabsList className="w-full h-auto bg-white/[0.02] p-0.5 gap-0.5 rounded-lg border border-white/[0.04] flex flex-wrap">
                 {[
@@ -108,9 +89,6 @@ export const EditorSidebar = ({
                   { value: "audio-upload", label: "Audio", icon: Upload },
                   { value: "templates", label: "Templates", icon: Layout },
                   { value: "music", label: "Music", icon: Music },
-                  { value: "effects", label: "Effects", icon: Zap },
-                  { value: "stickers", label: "Stickers", icon: Smile },
-                  { value: "beatsync", label: "Beat", icon: Wand2 },
                 ].map((tab) => {
                   const Icon = tab.icon;
                   return (
@@ -146,15 +124,6 @@ export const EditorSidebar = ({
               <TabsContent value="music" className="mt-3">
                 <MusicLibraryPanel onAddMusic={onAddMusic || (() => {})} />
               </TabsContent>
-              <TabsContent value="effects" className="mt-3">
-                <TrendingEffectsPanel onApplyEffect={onApplyEffect || (() => {})} />
-              </TabsContent>
-              <TabsContent value="stickers" className="mt-3">
-                <StickersPanel onAddSticker={onAddSticker || (() => {})} />
-              </TabsContent>
-              <TabsContent value="beatsync" className="mt-3">
-                <BeatSyncPanel tracks={tracks} onAutocut={onBeatSyncAutocut || (() => {})} />
-              </TabsContent>
             </Tabs>
           </div>
         ) : selectedClip.type === "text" ? (
@@ -165,15 +134,11 @@ export const EditorSidebar = ({
               {[
                 { value: "properties", label: "Props" },
                 { value: "filters", label: "Filters" },
-                { value: "effects", label: "FX" },
                 { value: "audio", label: "Audio" },
                 { value: "speed", label: "Speed" },
                 { value: "crop", label: "Crop" },
                 { value: "color", label: "Color" },
-                { value: "pip", label: "PiP" },
-                { value: "chroma", label: "Green" },
                 { value: "captions", label: "Caption" },
-                { value: "keyframes", label: "Anim" },
               ].map((tab) => (
                 <TabsTrigger
                   key={tab.value}
@@ -191,9 +156,6 @@ export const EditorSidebar = ({
             <TabsContent value="filters" className="mt-3">
               <FiltersPanel clip={selectedClip} onUpdateClip={onUpdateClip} />
             </TabsContent>
-            <TabsContent value="effects" className="mt-3">
-              <TrendingEffectsPanel onApplyEffect={onApplyEffect || (() => {})} />
-            </TabsContent>
             <TabsContent value="audio" className="mt-3">
               <AudioFadePanel clip={selectedClip} onUpdateClip={onUpdateClip} />
             </TabsContent>
@@ -206,17 +168,8 @@ export const EditorSidebar = ({
             <TabsContent value="color" className="mt-3">
               <ColorGradingPanel clip={selectedClip} onUpdateClip={onUpdateClip} />
             </TabsContent>
-            <TabsContent value="pip" className="mt-3">
-              <PipPanel clip={selectedClip} onUpdateClip={onUpdateClip} />
-            </TabsContent>
-            <TabsContent value="chroma" className="mt-3">
-              <ChromaKeyPanel clip={selectedClip} onUpdateClip={onUpdateClip} />
-            </TabsContent>
             <TabsContent value="captions" className="mt-3">
               <CaptionsPanel clip={selectedClip} onUpdateClip={onUpdateClip} />
-            </TabsContent>
-            <TabsContent value="keyframes" className="mt-3">
-              <KeyframeEditor clip={selectedClip} currentTime={currentTime} onUpdateClip={onUpdateClip} />
             </TabsContent>
           </Tabs>
         )}

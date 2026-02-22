@@ -1401,30 +1401,8 @@ const VideoEditor = () => {
         }
       }
 
-      // MULTI-CLIP: Try mp4box.js concat first, fall back to ZIP download
+      // MULTI-CLIP: Download all clips as a ZIP file
       setEditorState((prev) => ({ ...prev, renderProgress: 20 }));
-      toast.info(`Merging ${allClipUrls.length} clips into one video...`);
-
-      try {
-        const { concatMP4Clips } = await import("@/lib/video/mp4Concat");
-        const result = await concatMP4Clips(allClipUrls, (p) => {
-          setEditorState((prev) => ({ ...prev, renderProgress: 20 + Math.round(p.progress * 0.7) }));
-        });
-
-        if (result.success && result.blob) {
-          downloadBlobToUser(result.blob, `${sanitizedName}-complete.mp4`);
-          setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
-          toast.success("Merged video downloaded!");
-          resetExportStatus();
-          return;
-        }
-
-        console.warn("[Editor Export] mp4box concat failed:", result.error);
-      } catch (concatErr) {
-        console.warn("[Editor Export] mp4box concat error:", concatErr);
-      }
-
-      // FALLBACK: Download all clips as a ZIP file
       toast.info(`Packaging ${allClipUrls.length} clips as ZIP...`);
       setEditorState((prev) => ({ ...prev, renderProgress: 75 }));
 

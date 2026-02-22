@@ -1,32 +1,25 @@
 /**
- * Browser Video Merger - FFmpeg.wasm based video concatenation
+ * Browser Video Merger (Lightweight)
  * 
- * Combines multiple video clips into a single downloadable video file
- * using FFmpeg compiled to WebAssembly for browser execution.
- * 
- * For unsupported browsers (iOS Safari, etc.), falls back to server-side
- * stitching via the stitch-video edge function.
+ * Downloads clips and packages them as a ZIP file.
+ * FFmpeg.wasm and mp4box have been removed for bundle size optimization.
  */
 
-import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { fetchFile, toBlobURL } from '@ffmpeg/util';
-import { supabase } from '@/integrations/supabase/client';
-
 export interface MergeProgress {
-  stage: 'loading' | 'downloading' | 'processing' | 'encoding' | 'complete' | 'error' | 'server_stitching';
-  progress: number; // 0-100
-  message: string;
+  stage: 'initializing' | 'loading' | 'downloading' | 'processing' | 'encoding' | 'complete' | 'error' | 'server_stitching';
+  progress: number;
   currentClip?: number;
   totalClips?: number;
+  message?: string;
 }
 
 export interface MergeOptions {
   clipUrls: string[];
   outputFilename?: string;
-  onProgress?: (progress: MergeProgress) => void;
-  masterAudioUrl?: string | null;
-  projectId?: string; // Required for server-side fallback
+  projectId?: string;
   projectName?: string;
+  masterAudioUrl?: string | null;
+  onProgress?: (progress: MergeProgress) => void;
 }
 
 export interface MergeResult {
@@ -35,420 +28,146 @@ export interface MergeResult {
   filename?: string;
   duration?: number;
   error?: string;
-  serverStitchedUrl?: string; // URL to download from server
+  serverStitchedUrl?: string;
 }
 
-// Singleton FFmpeg instance
-let ffmpegInstance: FFmpeg | null = null;
-let ffmpegLoaded = false;
-
 /**
- * Check if FFmpeg.wasm is supported on this browser.
- * We use the SINGLE-THREADED (UMD) core which does NOT require
- * SharedArrayBuffer or crossOriginIsolated headers.
- * Only iOS Safari is truly unsupported due to WASM memory limits.
+ * Check if video merging is available (always true — ZIP fallback)
  */
-function isFFmpegSupported(): boolean {
-  // Check if we're on iOS (FFmpeg.wasm doesn't work reliably on iOS)
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && 
-                !(window as unknown as { MSStream?: unknown }).MSStream;
-  if (isIOS) {
-    console.log('[FFmpeg] iOS detected - FFmpeg.wasm not supported');
-    return false;
-  }
-  
-  // Check basic WebAssembly support
-  if (typeof WebAssembly === 'undefined') {
-    console.log('[FFmpeg] WebAssembly not available');
-    return false;
-  }
-  
+export function canMergeVideos(): boolean {
   return true;
 }
 
 /**
- * Initialize FFmpeg with WebAssembly binaries
+ * Build a simple uncompressed ZIP from files
  */
-async function getFFmpeg(onProgress?: (progress: MergeProgress) => void): Promise<FFmpeg> {
-  if (ffmpegInstance && ffmpegLoaded) {
-    return ffmpegInstance;
+async function buildZip(files: { name: string; blob: Blob }[]): Promise<Blob> {
+  const entries: { name: string; data: Uint8Array }[] = [];
+  for (const f of files) {
+    const buf = await f.blob.arrayBuffer();
+    entries.push({ name: f.name, data: new Uint8Array(buf) });
   }
 
-  // Check browser support before attempting to load
-  if (!isFFmpegSupported()) {
-    throw new Error('UNSUPPORTED_BROWSER');
+  const parts: Uint8Array[] = [];
+  const centralDir: Uint8Array[] = [];
+  let offset = 0;
+
+  for (const entry of entries) {
+    const nameBytes = new TextEncoder().encode(entry.name);
+    const header = new Uint8Array(30 + nameBytes.length);
+    const view = new DataView(header.buffer);
+    view.setUint32(0, 0x04034b50, true);
+    view.setUint16(4, 20, true);
+    view.setUint16(8, 0, true);
+    view.setUint32(18, entry.data.length, true);
+    view.setUint32(22, entry.data.length, true);
+    view.setUint16(26, nameBytes.length, true);
+    header.set(nameBytes, 30);
+    parts.push(header);
+    parts.push(entry.data);
+
+    const cdEntry = new Uint8Array(46 + nameBytes.length);
+    const cdView = new DataView(cdEntry.buffer);
+    cdView.setUint32(0, 0x02014b50, true);
+    cdView.setUint16(4, 20, true);
+    cdView.setUint16(6, 20, true);
+    cdView.setUint32(20, entry.data.length, true);
+    cdView.setUint32(24, entry.data.length, true);
+    cdView.setUint16(28, nameBytes.length, true);
+    cdView.setUint32(42, offset, true);
+    cdEntry.set(nameBytes, 46);
+    centralDir.push(cdEntry);
+
+    offset += header.length + entry.data.length;
   }
 
-  onProgress?.({
-    stage: 'loading',
-    progress: 0,
-    message: 'Loading video processor...',
-  });
-
-  ffmpegInstance = new FFmpeg();
-
-  // Set up progress logging
-  ffmpegInstance.on('log', ({ message }) => {
-    console.debug('[FFmpeg]', message);
-  });
-
-  ffmpegInstance.on('progress', ({ progress }) => {
-    onProgress?.({
-      stage: 'encoding',
-      progress: Math.round(progress * 100),
-      message: `Encoding video... ${Math.round(progress * 100)}%`,
-    });
-  });
-
-  // Load FFmpeg with CDN-hosted core files
-  // Use the SINGLE-THREADED (UMD) core — works WITHOUT SharedArrayBuffer/crossOriginIsolated
-  const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
-  
-  try {
-    await ffmpegInstance.load({
-      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-    });
-    
-    ffmpegLoaded = true;
-    
-    onProgress?.({
-      stage: 'loading',
-      progress: 100,
-      message: 'Video processor ready',
-    });
-    
-    return ffmpegInstance;
-  } catch (error) {
-    console.error('[FFmpeg] Failed to load:', error);
-    throw new Error('Failed to load video processor. Please try again.');
+  const cdOffset = offset;
+  let cdSize = 0;
+  for (const cd of centralDir) {
+    parts.push(cd);
+    cdSize += cd.length;
   }
+
+  const eocd = new Uint8Array(22);
+  const eocdView = new DataView(eocd.buffer);
+  eocdView.setUint32(0, 0x06054b50, true);
+  eocdView.setUint16(8, entries.length, true);
+  eocdView.setUint16(10, entries.length, true);
+  eocdView.setUint32(12, cdSize, true);
+  eocdView.setUint32(16, cdOffset, true);
+  parts.push(eocd);
+
+  return new Blob(parts as unknown as BlobPart[], { type: 'application/zip' });
 }
 
 /**
- * Download a video clip and write it to FFmpeg's virtual filesystem
- */
-async function downloadClip(
-  ffmpeg: FFmpeg,
-  url: string,
-  filename: string,
-  clipIndex: number,
-  totalClips: number,
-  onProgress?: (progress: MergeProgress) => void
-): Promise<void> {
-  onProgress?.({
-    stage: 'downloading',
-    progress: Math.round((clipIndex / totalClips) * 50),
-    message: `Downloading clip ${clipIndex + 1} of ${totalClips}...`,
-    currentClip: clipIndex + 1,
-    totalClips,
-  });
-
-  try {
-    const data = await fetchFile(url);
-    await ffmpeg.writeFile(filename, data);
-  } catch (error) {
-    console.error(`[FFmpeg] Failed to download clip ${clipIndex + 1}:`, error);
-    throw new Error(`Failed to download clip ${clipIndex + 1}`);
-  }
-}
-
-/**
- * Merge multiple video clips into a single video file
+ * Download clips and package as ZIP (or single MP4)
  */
 export async function mergeVideoClips(options: MergeOptions): Promise<MergeResult> {
-  const { 
-    clipUrls, 
-    outputFilename = 'merged-video.mp4', 
-    onProgress,
-    masterAudioUrl,
-  } = options;
+  const { clipUrls, outputFilename, projectName, onProgress } = options;
 
-  if (clipUrls.length === 0) {
+  if (!clipUrls || clipUrls.length === 0) {
     return { success: false, error: 'No clips provided' };
   }
 
-  // Single clip - just download directly (this always works)
-  if (clipUrls.length === 1 && !masterAudioUrl) {
-    return await downloadSingleClip(clipUrls[0], outputFilename, onProgress);
-  }
-
-  // Use mp4box.js-based concatenation (pure JS, works on ALL browsers)
   try {
-    const { concatMP4Clips } = await import('@/lib/video/mp4Concat');
-    
-    const result = await concatMP4Clips(clipUrls, (p) => {
-      onProgress?.({
-        stage: p.stage === 'complete' ? 'complete' : p.stage === 'error' ? 'error' : p.stage === 'downloading' ? 'downloading' : 'processing',
-        progress: p.progress,
-        message: p.message,
-        currentClip: p.currentClip,
-        totalClips: p.totalClips,
-      });
-    });
+    onProgress?.({ stage: 'initializing', progress: 0, message: 'Preparing download...' });
 
-    if (result.success && result.blob) {
-      onProgress?.({ stage: 'complete', progress: 100, message: 'Video merged successfully!' });
-      return { success: true, blob: result.blob, filename: outputFilename };
-    }
+    const files: { name: string; blob: Blob }[] = [];
+    const baseName = projectName || 'video';
 
-    console.warn('[Merger] mp4box concat failed:', result.error);
-    // Fall through to single-clip fallback
-  } catch (err) {
-    console.warn('[Merger] mp4box concat unavailable:', err);
-  }
-
-  // Fallback: download first clip only
-  return await downloadSingleClip(clipUrls[0], outputFilename, onProgress);
-}
-
-/**
- * Download a single clip directly - always works on all browsers
- */
-async function downloadSingleClip(
-  url: string,
-  outputFilename: string,
-  onProgress?: (progress: MergeProgress) => void
-): Promise<MergeResult> {
-  try {
-    onProgress?.({
-      stage: 'downloading',
-      progress: 25,
-      message: 'Downloading video...',
-      currentClip: 1,
-      totalClips: 1,
-    });
-
-    const response = await fetch(url, { mode: 'cors' });
-    if (!response.ok) {
-      throw new Error(`Failed to fetch video: ${response.status} ${response.statusText}`);
-    }
-    
-    const blob = await response.blob();
-
-    onProgress?.({
-      stage: 'complete',
-      progress: 100,
-      message: 'Download complete!',
-    });
-
-    return {
-      success: true,
-      blob,
-      filename: outputFilename,
-    };
-  } catch (error) {
-    console.error('[Download] Single clip download failed:', error);
-    const errorMessage = 'Failed to download video. Please try again.';
-    
-    onProgress?.({
-      stage: 'error',
-      progress: 0,
-      message: errorMessage,
-    });
-
-    return {
-      success: false,
-      error: errorMessage,
-    };
-  }
-}
-
-/**
- * Fallback download for browsers that don't support FFmpeg.wasm (iOS Safari, etc.)
- * Uses server-side manifest/HLS generation for playback, but for downloads
- * we need to inform users of limitations or use alternative approach.
- */
-async function fallbackDownload(
-  clipUrls: string[],
-  outputFilename: string,
-  onProgress?: (progress: MergeProgress) => void,
-  projectId?: string,
-  projectName?: string
-): Promise<MergeResult> {
-  console.log('[FFmpeg] Using server-side fallback for unsupported browser');
-  
-  // Single clip - just download directly
-  if (clipUrls.length === 1) {
-    return await downloadSingleClip(clipUrls[0], outputFilename, onProgress);
-  }
-  
-  // Multi-clip: Try to use server-side stitching
-  if (!projectId) {
-    console.warn('[FFmpeg] No projectId provided for server-side stitching');
-    onProgress?.({
-      stage: 'error',
-      progress: 0,
-      message: 'Cannot merge videos on this device without project context. Please download clips individually.',
-    });
-    return {
-      success: false,
-      error: 'Cannot merge videos on this device without project context. Please download clips individually.',
-    };
-  }
-  
-  onProgress?.({
-    stage: 'server_stitching',
-    progress: 10,
-    message: 'Requesting server-side video merge...',
-  });
-  
-  try {
-    // First, ensure HLS playlist exists for this project
-    const { data: hlsResult, error: hlsError } = await supabase.functions.invoke('generate-hls-playlist', {
-      body: { projectId }
-    });
-    
-    if (hlsError) {
-      console.warn('[FFmpeg] HLS generation failed:', hlsError);
-    }
-    
-    // If HLS generation succeeded and we have a manifest, try to get a stitched URL
-    if (hlsResult?.success && hlsResult?.manifestUrl) {
-      onProgress?.({
-        stage: 'downloading',
-        progress: 30,
-        message: 'Fetching manifest...',
-      });
-      
-      // Parse the manifest to check if there's a stitched video URL
-      const manifestResponse = await fetch(hlsResult.manifestUrl);
-      if (manifestResponse.ok) {
-        const manifest = await manifestResponse.json();
-        
-        // Check if we have an actual video URL (not just clips array)
-        if (manifest.stitchedVideoUrl) {
-          // Download the stitched video
-          onProgress?.({
-            stage: 'downloading',
-            progress: 50,
-            message: 'Downloading merged video...',
-          });
-          
-          const videoResponse = await fetch(manifest.stitchedVideoUrl);
-          if (videoResponse.ok) {
-            const blob = await videoResponse.blob();
-            
-            onProgress?.({
-              stage: 'complete',
-              progress: 100,
-              message: 'Download complete!',
-            });
-            
-            return {
-              success: true,
-              blob,
-              filename: outputFilename,
-              serverStitchedUrl: manifest.stitchedVideoUrl,
-            };
-          }
-        }
-      }
-    }
-    
-    // No stitched video available - provide alternative for iOS users
-    // iOS Safari can play HLS natively, so the playback in-app works fine
-    // For download, we'll download clips sequentially into a zip-like package or inform user
-    
-    onProgress?.({
-      stage: 'downloading',
-      progress: 20,
-      message: 'Preparing clips for download...',
-    });
-    
-    // Download all clips as individual files
-    const downloadedBlobs: { blob: Blob; index: number }[] = [];
-    
     for (let i = 0; i < clipUrls.length; i++) {
       onProgress?.({
         stage: 'downloading',
-        progress: 20 + Math.round((i / clipUrls.length) * 60),
-        message: `Downloading clip ${i + 1} of ${clipUrls.length}...`,
+        progress: (i / clipUrls.length) * 80,
         currentClip: i + 1,
         totalClips: clipUrls.length,
+        message: `Downloading clip ${i + 1}/${clipUrls.length}...`,
       });
-      
+
       try {
-        const response = await fetch(clipUrls[i]);
-        if (response.ok) {
-          const blob = await response.blob();
-          downloadedBlobs.push({ blob, index: i });
-        }
+        const response = await fetch(clipUrls[i], { mode: 'cors' });
+        if (!response.ok) continue;
+        const blob = await response.blob();
+        files.push({ name: `${baseName}-clip-${i + 1}.mp4`, blob });
       } catch (err) {
-        console.warn(`[FFmpeg] Failed to download clip ${i}:`, err);
+        console.warn(`[VideoMerger] Clip ${i + 1} download failed:`, err);
       }
     }
-    
-    if (downloadedBlobs.length === 0) {
-      throw new Error('Failed to download any clips');
+
+    if (files.length === 0) {
+      return { success: false, error: 'Failed to download any clips' };
     }
-    
-    // If we only got one clip, return that
-    if (downloadedBlobs.length === 1) {
-      onProgress?.({
-        stage: 'complete',
-        progress: 100,
-        message: 'Downloaded 1 clip (others failed)',
-      });
-      
+
+    // Single clip — return directly as MP4
+    if (files.length === 1) {
+      onProgress?.({ stage: 'complete', progress: 100, message: 'Done!' });
       return {
         success: true,
-        blob: downloadedBlobs[0].blob,
-        filename: outputFilename.replace('.mp4', '-clip1.mp4'),
+        blob: files[0].blob,
+        filename: outputFilename || `${baseName}.mp4`,
       };
     }
-    
-    // For multiple clips, we can't merge them in-browser on iOS
-    // Return the first clip but inform user about limitation
-    onProgress?.({
-      stage: 'complete',
-      progress: 100,
-      message: `Downloaded ${downloadedBlobs.length} clips. Merging not available on this device.`,
-    });
-    
-    // Download all clips individually
-    for (let i = 0; i < downloadedBlobs.length; i++) {
-      const { blob, index } = downloadedBlobs[i];
-      const clipFilename = outputFilename.replace('.mp4', `-clip${index + 1}.mp4`);
-      downloadBlob(blob, clipFilename);
-      // Small delay between downloads to avoid browser blocking
-      if (i < downloadedBlobs.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
-    }
-    
+
+    // Multiple clips — package as ZIP
+    onProgress?.({ stage: 'encoding', progress: 85, message: 'Packaging clips...' });
+    const zipBlob = await buildZip(files);
+
+    onProgress?.({ stage: 'complete', progress: 100, message: 'Done!' });
     return {
       success: true,
-      blob: downloadedBlobs[0].blob,
-      filename: outputFilename.replace('.mp4', '-clip1.mp4'),
+      blob: zipBlob,
+      filename: outputFilename?.replace('.mp4', '.zip') || `${baseName}-clips.zip`,
     };
-    
-  } catch (error) {
-    console.error('[FFmpeg] Server-side fallback failed:', error);
-    const errorMessage = 'Download failed. Please try again.';
-    
-    onProgress?.({
-      stage: 'error',
-      progress: 0,
-      message: errorMessage,
-    });
-    
-    return {
-      success: false,
-      error: errorMessage,
-    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'An unexpected error occurred';
+    onProgress?.({ stage: 'error', progress: 0, message: msg });
+    return { success: false, error: msg };
   }
 }
 
 /**
- * Check if browser supports video merging
- */
-export function canMergeVideos(): boolean {
-  return isFFmpegSupported();
-}
-
-/**
- * Download merged video to user's device
+ * Download a blob as a file
  */
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
@@ -457,17 +176,15 @@ export function downloadBlob(blob: Blob, filename: string): void {
   a.download = filename;
   document.body.appendChild(a);
   a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 100);
 }
 
 /**
- * Cleanup FFmpeg instance (call when component unmounts)
+ * Cleanup (no-op — FFmpeg has been removed)
  */
 export function cleanupFFmpeg(): void {
-  if (ffmpegInstance) {
-    ffmpegInstance.terminate();
-    ffmpegInstance = null;
-    ffmpegLoaded = false;
-  }
+  // No-op
 }

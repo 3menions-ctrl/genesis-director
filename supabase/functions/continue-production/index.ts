@@ -546,6 +546,10 @@ serve(async (req: Request) => {
       const cameraHint = seg.cameraHint?.trim() || '';
       const physicalDetail = seg.physicalDetail?.trim() || '';
       const sceneNote = seg.sceneNote?.trim() || '';
+      const transitionNote = seg.transitionNote?.trim() || '';
+      const startPoseNote = seg.startPose?.trim() || '';
+      const endPoseNote = seg.endPose?.trim() || '';
+      const visualContinuityNote = seg.visualContinuity?.trim() || '';
       const sceneDesc = context?.pendingVideoTasks?.sceneDescription || context?.pendingVideoTasks?.originalSceneDescription || '';
       
       // Build comprehensive acting prompt matching buildWorldClassPrompt quality
@@ -600,6 +604,22 @@ serve(async (req: Request) => {
         promptParts.push(`SCENE NOTE: ${sceneNote}.`);
       }
       
+      // Transition note — narrative bridge from previous clip
+      if (transitionNote) {
+        promptParts.push(`TRANSITION: ${transitionNote}.`);
+      }
+      
+      // Pose chaining — continuity between clips
+      if (startPoseNote) {
+        promptParts.push(`STARTING POSE: Character begins in this position: ${startPoseNote}.`);
+      }
+      if (endPoseNote) {
+        promptParts.push(`ENDING POSE: Character must end in this position for next clip continuity: ${endPoseNote}.`);
+      }
+      if (visualContinuityNote) {
+        promptParts.push(`VISUAL CONTINUITY: ${visualContinuityNote}.`);
+      }
+      
       // Dialogue — the backbone
       if (dialogue) {
         promptParts.push(`Speaking naturally with authentic delivery: "${dialogue}".`);
@@ -621,11 +641,11 @@ serve(async (req: Request) => {
         // Merge: use script description as base, but ENRICH with prediction acting data
         const enrichedPrompt = promptParts.join(' ');
         nextClipPrompt = `${nextClipPrompt} ${enrichedPrompt}`;
-        console.log(`[ContinueProduction] ✅ ENRICHED script prompt with acting data: action="${action}", movement="${movement}", emotion="${emotion}"`);
+        console.log(`[ContinueProduction] ✅ ENRICHED script prompt with acting data: action="${action}", movement="${movement}", emotion="${emotion}", transition="${transitionNote}", startPose="${startPoseNote}"`);
       } else {
         // No script data — use fully reconstructed prompt
         nextClipPrompt = promptParts.join(' ');
-        console.log(`[ContinueProduction] ✅ BUILT full acting prompt from prediction data: action="${action}", movement="${movement}", dialogue="${dialogue.substring(0, 60)}..."`);
+        console.log(`[ContinueProduction] ✅ BUILT full acting prompt from prediction data: action="${action}", movement="${movement}", dialogue="${dialogue.substring(0, 60)}...", transition="${transitionNote}"`);
       }
     } else if (!nextClipPrompt || nextClipPrompt.length < 20) {
       // No prediction data and no script data — truly empty

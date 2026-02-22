@@ -3,15 +3,16 @@
  * 
  * Replaces the "fetch all 196 projects" pattern that crashes Safari.
  * Implements cursor-based pagination with lazy loading.
+ * 
+ * STABILITY: Uses stable refs for filter state to prevent cascading re-renders.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Project } from '@/types/studio';
 import { useAuth } from '@/contexts/AuthContext';
-import { debounce, createAsyncGuard } from '@/lib/concurrency/debounce';
 
-const PAGE_SIZE = 25; // Load 25 projects per page for better visibility
+const PAGE_SIZE = 25;
 
 export interface PaginatedProjectsResult {
   projects: Project[];
@@ -48,13 +49,10 @@ interface ProjectRow {
 }
 
 function mapDbProjectToProject(row: ProjectRow): Project {
-  // Parse pending_video_tasks to check for actual video content
   const pendingTasks = row.pending_video_tasks as Record<string, unknown> | null;
   
-  // Determine actual video URL - prefer HLS/manifest from pending_video_tasks
   let effectiveVideoUrl = row.video_url || undefined;
   
-  // If video_url is empty but pending_video_tasks has HLS/manifest, use that
   if (!effectiveVideoUrl && pendingTasks) {
     if (pendingTasks.hlsPlaylistUrl) {
       effectiveVideoUrl = pendingTasks.hlsPlaylistUrl as string;
@@ -63,7 +61,6 @@ function mapDbProjectToProject(row: ProjectRow): Project {
     }
   }
   
-  // Extract video_clips from pending_video_tasks.predictions if main array is empty
   let effectiveVideoClips = row.video_clips || undefined;
   if (!effectiveVideoClips?.length && pendingTasks?.predictions) {
     const predictions = pendingTasks.predictions as Array<{ videoUrl?: string; status?: string }>;
@@ -91,7 +88,6 @@ function mapDbProjectToProject(row: ProjectRow): Project {
     avatar_voice_id: row.avatar_voice_id || undefined,
     video_clips: effectiveVideoClips,
     voice_audio_url: row.voice_audio_url || undefined,
-    // CRITICAL: Include pending_video_tasks for downstream hasVideo detection
     pending_video_tasks: pendingTasks || undefined,
   };
 }
@@ -104,11 +100,7 @@ export function usePaginatedProjects(
 ): PaginatedProjectsResult {
   const { user, isAdmin } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
-  // CRITICAL: Track initial load vs filter-change refreshes separately
-  // isLoading = true ONLY on first mount. Filter changes use isRefreshing instead.
-  // This prevents the gatekeeper from re-showing a full-screen CinemaLoader on every filter change.
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +110,16 @@ export function usePaginatedProjects(
   
   const isMountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const fetchGuardRef = useRef(createAsyncGuard());
+  
+  // STABILITY FIX: Store filter state in refs to prevent callback identity changes
+  const filtersRef = useRef({ sortBy, sortOrder, statusFilter, searchQuery });
+  filtersRef.current = { sortBy, sortOrder, statusFilter, searchQuery };
+  
+  const userIdRef = useRef(user?.id);
+  userIdRef.current = user?.id;
+  
+  const isAdminRef = useRef(isAdmin);
+  isAdminRef.current = isAdmin;
   
   // Cleanup on unmount
   useEffect(() => {
@@ -129,65 +130,54 @@ export function usePaginatedProjects(
     };
   }, []);
 
-  // Build query based on filters
+  // Build query using current ref values (no deps that change identity)
   const buildQuery = useCallback((currentOffset: number) => {
+    const { sortBy: sb, sortOrder: so, statusFilter: sf, searchQuery: sq } = filtersRef.current;
+    
     let query = supabase
       .from('movie_projects')
       .select('id, user_id, title, status, mode, genre, video_url, video_clips, voice_audio_url, thumbnail_url, created_at, updated_at, likes_count, is_public, aspect_ratio, pipeline_state, source_image_url, avatar_voice_id, pending_video_tasks', { count: 'exact' });
     
-    // Admins see all projects; regular users see only their own
-    if (!isAdmin) {
-      query = query.eq('user_id', user?.id);
+    if (!isAdminRef.current) {
+      query = query.eq('user_id', userIdRef.current);
     }
     
     query = query
-      // ALWAYS exclude draft projects - they're incomplete pipeline shells
       .neq('status', 'draft')
       .range(currentOffset, currentOffset + PAGE_SIZE - 1);
     
-    // Apply status filter
-    if (statusFilter === 'completed') {
+    if (sf === 'completed') {
       query = query.eq('status', 'completed');
-    } else if (statusFilter === 'processing') {
+    } else if (sf === 'processing') {
       query = query.in('status', ['generating', 'stitching', 'pending', 'awaiting_approval']);
-    } else if (statusFilter === 'failed') {
+    } else if (sf === 'failed') {
       query = query.eq('status', 'failed');
     }
     
-    // Apply search
-    if (searchQuery.trim()) {
-      query = query.ilike('title', `%${searchQuery.trim()}%`);
+    if (sq.trim()) {
+      query = query.ilike('title', `%${sq.trim()}%`);
     }
     
-    // Apply sort
-    const sortColumn = sortBy === 'updated' ? 'updated_at' : sortBy === 'created' ? 'created_at' : 'title';
-    query = query.order(sortColumn, { ascending: sortOrder === 'asc' });
+    const sortColumn = sb === 'updated' ? 'updated_at' : sb === 'created' ? 'created_at' : 'title';
+    query = query.order(sortColumn, { ascending: so === 'asc' });
     
     return query;
-  }, [user?.id, isAdmin, statusFilter, searchQuery, sortBy, sortOrder]);
+  }, []); // Stable - reads from refs
 
-  // Initial fetch
-  const fetchProjects = useCallback(async (isRefresh = false) => {
-    if (!user?.id) {
+  // Core fetch - stable callback identity
+  const fetchProjects = useCallback(async () => {
+    if (!userIdRef.current) {
       setProjects([]);
       setIsLoading(false);
       return;
     }
     
-    // Cancel previous request and reset guard
     abortControllerRef.current?.abort();
     abortControllerRef.current = new AbortController();
-    fetchGuardRef.current.reset();
     
-    if (isRefresh) {
-      setOffset(0);
-      // CRITICAL FIX: Only show full loading state on first load
-      // Filter/sort changes use isRefreshing to avoid re-triggering gatekeeper CinemaLoader
-      if (!hasLoadedOnceRef.current) {
-        setIsLoading(true);
-      } else {
-        setIsRefreshing(true);
-      }
+    // Only show full loading on first load
+    if (!hasLoadedOnceRef.current) {
+      setIsLoading(true);
     }
     
     try {
@@ -208,25 +198,21 @@ export function usePaginatedProjects(
       setHasMore((data?.length || 0) === PAGE_SIZE);
       setOffset(PAGE_SIZE);
       setError(null);
-      
-      console.log(`[usePaginatedProjects] Loaded ${mappedProjects.length} of ${count} projects`);
     } catch (err: any) {
       if (err.name !== 'AbortError' && isMountedRef.current) {
-        console.debug('[usePaginatedProjects] Fetch error (non-abort):', err.message);
-        // Don't set error state for transient failures - let user retry manually
+        console.debug('[usePaginatedProjects] Fetch error:', err.message);
       }
     } finally {
       if (isMountedRef.current) {
         setIsLoading(false);
-        setIsRefreshing(false);
         hasLoadedOnceRef.current = true;
       }
     }
-  }, [user?.id, buildQuery]);
+  }, [buildQuery]); // Stable - buildQuery is stable
 
   // Load more (pagination)
   const loadMore = useCallback(async () => {
-    if (!user?.id || isLoadingMore || !hasMore) return;
+    if (!userIdRef.current || isLoadingMore || !hasMore) return;
     
     setIsLoadingMore(true);
     
@@ -245,8 +231,6 @@ export function usePaginatedProjects(
       setProjects(prev => [...prev, ...newProjects]);
       setHasMore(newProjects.length === PAGE_SIZE);
       setOffset(prev => prev + PAGE_SIZE);
-      
-      console.log(`[usePaginatedProjects] Loaded ${newProjects.length} more projects`);
     } catch (err) {
       console.error('[usePaginatedProjects] LoadMore failed:', err);
     } finally {
@@ -254,41 +238,33 @@ export function usePaginatedProjects(
         setIsLoadingMore(false);
       }
     }
-  }, [user?.id, offset, isLoadingMore, hasMore, buildQuery]);
+  }, [offset, isLoadingMore, hasMore, buildQuery]);
 
-  // Refresh (reset pagination)
-  // DEBOUNCED: Prevent rapid-fire refreshes from realtime subscriptions
-  const debouncedRefreshRef = useRef(
-    debounce(() => {
-      fetchProjects(true);
-    }, 300)
-  );
-  
-  // Update debounced function when fetchProjects changes
-  useEffect(() => {
-    debouncedRefreshRef.current = debounce(() => {
-      fetchProjects(true);
-    }, 300);
-  }, [fetchProjects]);
-  
+  // Stable refresh - always uses latest filters via refs
   const refresh = useCallback(async () => {
-    debouncedRefreshRef.current();
-  }, []);
-
-  // Re-fetch when filters/sort change — fetchProjects already depends on these
-  // so we use fetchProjects as the sole dep to avoid double-fetch on mount
-  useEffect(() => {
-    fetchProjects(true);
+    fetchProjects();
   }, [fetchProjects]);
-  
-  // Cleanup debounce on unmount
-  useEffect(() => {
-    return () => {
-      debouncedRefreshRef.current.cancel();
-    };
-  }, []);
 
-  // Optimistically remove a project from the list (instant UI update)
+  // Initial fetch on mount
+  useEffect(() => {
+    if (user?.id) {
+      fetchProjects();
+    }
+  }, [user?.id]); // Only re-fetch when user changes, NOT on filter changes
+
+  // Re-fetch when filters change (debounced via timeout)
+  useEffect(() => {
+    // Skip first render (handled by mount effect above)
+    if (!hasLoadedOnceRef.current) return;
+    
+    const timer = setTimeout(() => {
+      fetchProjects();
+    }, 200); // Small debounce to batch rapid filter changes
+    
+    return () => clearTimeout(timer);
+  }, [sortBy, sortOrder, statusFilter, searchQuery]); // Intentionally uses values, not fetchProjects
+
+  // Optimistically remove a project from the list
   const optimisticRemove = useCallback((projectId: string) => {
     setProjects(prev => prev.filter(p => p.id !== projectId));
     setTotalCount(prev => Math.max(0, prev - 1));

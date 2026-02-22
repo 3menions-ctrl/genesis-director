@@ -42,6 +42,8 @@ export const EditorPreview = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const activeClipIdRef = useRef<string | null>(null);
   const isScrubbing = useRef(false);
+  const isTransitioningRef = useRef(false);
+  const lastAdvancedToRef = useRef<string | null>(null);
   const isPlayingRef = useRef(isPlaying);
 
   // Keep ref in sync with prop
@@ -114,6 +116,8 @@ export const EditorPreview = ({
       const handleReady = () => {
         if (activeClipIdRef.current !== clipId) return;
         video.currentTime = Math.max(0, localTime);
+        // Clear transition lock now that new clip is loaded
+        isTransitioningRef.current = false;
         // Only auto-play if user has pressed play (use ref for fresh value)
         if (isPlayingRef.current) {
           safePlay(video).catch(() => {});
@@ -129,6 +133,7 @@ export const EditorPreview = ({
         if (activeClipIdRef.current !== clipId) return;
         video.removeEventListener('canplay', handleReady);
         video.removeEventListener('loadeddata', handleReady);
+        isTransitioningRef.current = false;
         if (video.readyState >= 1) {
           video.currentTime = Math.max(0, localTime);
           if (isPlayingRef.current) {
@@ -212,6 +217,9 @@ export const EditorPreview = ({
   const handleTimeUpdate = useCallback(() => {
     const video = videoRef.current;
     if (!video || !activeVideoClip || !isPlaying || isScrubbing.current) return;
+    
+    // Skip timeupdate events while transitioning to prevent bounce-back
+    if (isTransitioningRef.current) return;
 
     const timelineTime = activeVideoClip.start + video.currentTime - (activeVideoClip.trimStart || 0);
     onTimeChange(timelineTime);
@@ -220,8 +228,12 @@ export const EditorPreview = ({
     if (timelineTime >= activeVideoClip.end - 0.05) {
       const nextClip = sortedVideoClips.find(c => c.start >= activeVideoClip.end - 0.01);
       if (nextClip) {
+        // Mark transitioning to prevent bounce-back from stale timeupdate events
+        isTransitioningRef.current = true;
+        lastAdvancedToRef.current = nextClip.id;
         onTimeChange(nextClip.start);
       } else if (isLooping) {
+        isTransitioningRef.current = true;
         onTimeChange(0);
       } else {
         onTimeChange(duration);

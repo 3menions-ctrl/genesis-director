@@ -232,6 +232,53 @@ serve(async (req) => {
                 }
                 
                 console.log(`[CheckStatus] ✓ Clip ${shotIndex + 1} auto-completed`);
+                
+                // ═══════════════════════════════════════════════════════
+                // CRITICAL FIX: Trigger continue-production to chain next clip
+                // Without this, the pipeline stops dead after recovering a clip.
+                // ═══════════════════════════════════════════════════════
+                if (storedVideoUrl) {
+                  try {
+                    // Get totalClips from pending_video_tasks
+                    const { data: projMeta } = await supabase
+                      .from('movie_projects')
+                      .select('pending_video_tasks')
+                      .eq('id', reqProjectId)
+                      .maybeSingle();
+                    const pendingMeta = (projMeta?.pending_video_tasks || {}) as Record<string, any>;
+                    const totalClips = pendingMeta.clipCount || 3;
+                    
+                    console.log(`[CheckStatus] 🔗 Triggering continue-production: clip ${shotIndex + 1}/${totalClips}`);
+                    
+                    const continueResponse = await fetch(`${supabaseUrl}/functions/v1/continue-production`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${supabaseKey}`,
+                      },
+                      body: JSON.stringify({
+                        projectId: reqProjectId,
+                        userId,
+                        completedClipIndex: shotIndex,
+                        completedClipResult: {
+                          videoUrl: storedVideoUrl,
+                          lastFrameUrl: lastFrameUrl || null,
+                        },
+                        totalClips,
+                      }),
+                    });
+                    
+                    if (continueResponse.ok) {
+                      console.log(`[CheckStatus] ✅ continue-production triggered successfully`);
+                    } else {
+                      const errText = await continueResponse.text();
+                      console.warn(`[CheckStatus] continue-production returned ${continueResponse.status}: ${errText}`);
+                    }
+                  } catch (chainErr) {
+                    console.error(`[CheckStatus] Failed to chain continue-production:`, chainErr);
+                    // Non-fatal: watchdog will eventually pick this up
+                  }
+                }
               } catch (storeError) {
                 console.error(`[CheckStatus] Auto-complete failed:`, storeError);
                 // Don't fail the whole request, just report the error

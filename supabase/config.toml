@@ -248,3 +248,6 @@ verify_jwt = false
 
 [functions.replicate-webhook]
 verify_jwt = false
+
+[functions.poll-replicate-prediction]
+verify_jwt = false

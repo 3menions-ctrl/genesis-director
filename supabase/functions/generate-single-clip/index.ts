@@ -983,8 +983,41 @@ serve(async (req) => {
       console.log(`[SingleClip] ✓ Clip ${shotIndex + 1} registered with predictionId=${predictionId}`);
     }
 
-    // If skipPolling, return the prediction ID for external polling
+    // If skipPolling, fire the dedicated poller and return immediately
     if (skipPolling) {
+      // 🚀 CRITICAL: Fire poll-replicate-prediction to aggressively track this prediction
+      // This replaces the broken webhook approach with a reliable self-chaining poller
+      const supabaseUrlForPoller = Deno.env.get("SUPABASE_URL");
+      const supabaseKeyForPoller = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (supabaseUrlForPoller && supabaseKeyForPoller) {
+        fetch(`${supabaseUrlForPoller}/functions/v1/poll-replicate-prediction`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKeyForPoller}`,
+          },
+          body: JSON.stringify({
+            predictionId,
+            projectId,
+            userId,
+            shotIndex,
+            totalClips: totalClips || 3,
+            chainDepth: 0,
+            pipelineContext: {
+              videoEngine: videoEngine || 'kling',
+              isAvatarMode,
+              identityBible,
+              faceLock,
+              multiViewIdentityBible,
+              referenceImageUrl: startImageUrl,
+              clipDuration: durationSeconds,
+              aspectRatio,
+            },
+          }),
+        }).catch(err => console.warn(`[SingleClip] Failed to fire poller:`, err));
+        console.log(`[SingleClip] 🚀 Fired poll-replicate-prediction for prediction ${predictionId}`);
+      }
+
       return new Response(
         JSON.stringify({
           success: true,
@@ -992,6 +1025,7 @@ serve(async (req) => {
           predictionId,
           provider: "replicate",
           model: `${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}`,
+          pollerFired: true,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

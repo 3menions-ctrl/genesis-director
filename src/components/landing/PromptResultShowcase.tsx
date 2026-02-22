@@ -44,33 +44,47 @@ export const PromptResultShowcase = memo(function PromptResultShowcase({ suspend
   const [sliderPos, setSliderPos] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
+  const [isInView, setIsInView] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const timerRef = useRef<NodeJS.Timeout>();
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   const pair = SHOWCASE_PAIRS[currentIdx];
 
-  // Auto-cycle through pairs — suspend when gallery/immersive is active
+  // MOBILE CRASH FIX: Only load video when component is in viewport
   useEffect(() => {
-    if (isDragging || suspended) return;
+    const el = containerRef.current;
+    if (!el) return;
+    observerRef.current = new IntersectionObserver(
+      ([entry]) => setIsInView(entry.isIntersecting),
+      { rootMargin: '200px' } // Start loading slightly before visible
+    );
+    observerRef.current.observe(el);
+    return () => observerRef.current?.disconnect();
+  }, []);
+
+  // Auto-cycle through pairs — suspend when gallery/immersive is active OR out of view
+  useEffect(() => {
+    if (isDragging || suspended || !isInView) return;
     timerRef.current = setInterval(() => {
       setVideoReady(false);
       setCurrentIdx((prev) => (prev + 1) % SHOWCASE_PAIRS.length);
       setSliderPos(50);
     }, CYCLE_INTERVAL);
     return () => clearInterval(timerRef.current);
-  }, [isDragging, suspended]);
+  }, [isDragging, suspended, isInView]);
 
-  // Pause/resume video when suspended changes
+  // Pause/resume video when suspended or out of view
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    if (suspended) {
+    if (suspended || !isInView) {
       video.pause();
     } else {
       video.play().catch(() => {});
     }
-  }, [suspended]);
+  }, [suspended, isInView]);
 
   // Register video with NavigationCoordinator for pre-navigation cleanup
   useMediaCleanup(videoRef);
@@ -131,16 +145,21 @@ export const PromptResultShowcase = memo(function PromptResultShowcase({ suspend
               transition={{ duration: 0.6 }}
               className="absolute inset-0"
             >
-              <video
-                ref={setVideoRef}
-                src={pair.videoUrl}
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                onCanPlay={() => setVideoReady(true)}
-                className="w-full h-full object-cover"
-              />
+              {/* Only mount video element when in viewport — prevents mobile OOM */}
+              {isInView && !suspended ? (
+                <video
+                  ref={setVideoRef}
+                  src={pair.videoUrl}
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  onCanPlay={() => setVideoReady(true)}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-black/80" />
+              )}
             </motion.div>
           </AnimatePresence>
           {/* AFTER label */}

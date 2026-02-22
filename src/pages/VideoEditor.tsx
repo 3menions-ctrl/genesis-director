@@ -903,6 +903,22 @@ const VideoEditor = () => {
     toast.success(`Deleted ${ids.length} clip(s)`);
   }, [editorState.selectedClipIds, withHistory]);
 
+  const handleClearTrack = useCallback((trackId: string) => {
+    const track = editorState.tracks.find((t) => t.id === trackId);
+    if (!track || track.clips.length === 0) {
+      toast.info("Track is already empty");
+      return;
+    }
+    const clipCount = track.clips.length;
+    withHistory((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map((t) => t.id === trackId ? { ...t, clips: [] } : t),
+      selectedClipId: null,
+      selectedClipIds: [],
+    }));
+    toast.success(`Cleared ${clipCount} clip(s) from ${track.name}`);
+  }, [editorState.tracks, withHistory]);
+
   const handleBeatSyncAutocut = useCallback((cutPoints: number[]) => {
     withHistory((prev) => {
       const videoTrack = prev.tracks.find(t => t.type === 'video');
@@ -1236,7 +1252,7 @@ const VideoEditor = () => {
     } catch { /* save failure shouldn't block export */ }
 
     try {
-      // If we have a project ID, try simple-stitch for server-side manifest
+      // If we have a project ID, try simple-stitch for server-side stitched video
       if (editorState.projectId && user) {
         setEditorState((prev) => ({ ...prev, renderProgress: 20 }));
         
@@ -1246,28 +1262,80 @@ const VideoEditor = () => {
           });
 
           if (!error && data?.success && data?.finalVideoUrl) {
-            toast.success("Manifest created! Starting download...");
-            setEditorState((prev) => ({ ...prev, renderProgress: 40 }));
+            toast.success("Video stitched! Starting download...");
+            setEditorState((prev) => ({ ...prev, renderProgress: 60 }));
+
+            // Download the full stitched video
+            try {
+              const response = await fetch(data.finalVideoUrl, { mode: "cors" });
+              if (response.ok) {
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `${editorState.title.replace(/[^a-zA-Z0-9]/g, "_")}_full.mp4`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
+                toast.success("Full video downloaded!");
+
+                setTimeout(() => {
+                  setEditorState((prev) => prev.renderStatus === "completed" ? { ...prev, renderStatus: "idle", renderProgress: 0 } : prev);
+                }, 5000);
+                return; // Success — don't fall through to individual clip download
+              }
+            } catch (dlErr) {
+              console.warn("[Editor Export] Stitched download failed, trying merge fallback:", dlErr);
+            }
           }
         } catch {
-          // Stitch failed — fall through to direct download
-          console.warn("[Editor Export] simple-stitch failed, falling back to direct download");
+          console.warn("[Editor Export] simple-stitch failed, falling back to browser merge");
         }
       }
 
-      // Download clips individually from timeline
+      // Fallback: use browser-based ffmpeg merge for a single stitched file
+      setEditorState((prev) => ({ ...prev, renderProgress: 30 }));
+      const clipUrls = videoClips.map((c) => c.sourceUrl).filter(Boolean) as string[];
+
+      if (clipUrls.length > 1) {
+        try {
+          const { mergeVideoClips, downloadBlob } = await import("@/lib/video/browserVideoMerger");
+          const sanitizedName = editorState.title.replace(/[^a-zA-Z0-9\s-]/g, "").replace(/\s+/g, "-").toLowerCase().slice(0, 50);
+
+          const result = await mergeVideoClips({
+            clipUrls,
+            outputFilename: `${sanitizedName}-complete.mp4`,
+            projectId: editorState.projectId || "editor",
+            projectName: editorState.title,
+            onProgress: (p) => {
+              setEditorState((prev) => ({ ...prev, renderProgress: 30 + Math.round(p.progress * 0.7) }));
+            },
+          });
+
+          if (result.success && result.blob) {
+            downloadBlob(result.blob, result.filename || `${sanitizedName}-complete.mp4`);
+            setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
+            toast.success("Merged video downloaded!");
+            setTimeout(() => {
+              setEditorState((prev) => prev.renderStatus === "completed" ? { ...prev, renderStatus: "idle", renderProgress: 0 } : prev);
+            }, 5000);
+            return;
+          }
+        } catch (mergeErr) {
+          console.warn("[Editor Export] Browser merge failed, falling back to individual clips:", mergeErr);
+        }
+      }
+
+      // Final fallback: download clips individually
       await downloadEditorClips(videoClips);
       setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
       toast.success("Download complete!");
       
-      // Reset render status after 5 seconds so Export button becomes available again
       setTimeout(() => {
-        setEditorState((prev) => {
-          if (prev.renderStatus === "completed") {
-            return { ...prev, renderStatus: "idle", renderProgress: 0 };
-          }
-          return prev;
-        });
+        setEditorState((prev) => prev.renderStatus === "completed" ? { ...prev, renderStatus: "idle", renderProgress: 0 } : prev);
       }, 5000);
     } catch (err) {
       console.error("[Editor Export] Error:", err);
@@ -1597,6 +1665,7 @@ const VideoEditor = () => {
               onToggleTrackMute={handleToggleTrackMute}
               onToggleTrackLock={handleToggleTrackLock}
               onDeleteSelected={handleDeleteSelected}
+              onClearTrack={handleClearTrack}
             />
           </div>
         </div>

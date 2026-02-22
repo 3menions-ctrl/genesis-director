@@ -1,9 +1,10 @@
-import { memo, forwardRef } from 'react';
+import { memo, forwardRef, useCallback, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Download, Sparkles, ExternalLink } from 'lucide-react';
+import { CheckCircle2, Download, Sparkles, ExternalLink, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UniversalVideoPlayer } from '@/components/player';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface ProductionFinalVideoProps {
   videoUrl: string;
@@ -11,6 +12,32 @@ interface ProductionFinalVideoProps {
 
 export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFinalVideoProps>(function ProductionFinalVideo({ videoUrl }, ref) {
   const isManifest = videoUrl.endsWith('.json');
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = useCallback(async () => {
+    setDownloading(true);
+    try {
+      const response = await fetch(videoUrl, { mode: 'cors' });
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'video-complete.mp4';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Video downloaded!');
+    } catch (err) {
+      console.error('[ProductionFinalVideo] Download error:', err);
+      // Fallback: open in new tab
+      window.open(videoUrl, '_blank');
+      toast.info('Opening video in new tab for download');
+    } finally {
+      setDownloading(false);
+    }
+  }, [videoUrl]);
 
   return (
     <motion.div
@@ -73,6 +100,7 @@ export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFi
                 </Button>
                 <Button 
                   size="sm" 
+                  disabled={downloading}
                   className={cn(
                     "h-10 px-5 text-xs gap-2 rounded-xl",
                     "bg-gradient-to-r from-emerald-500 to-teal-500",
@@ -81,12 +109,10 @@ export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFi
                     "shadow-lg shadow-emerald-500/20",
                     "transition-all duration-200"
                   )}
-                  asChild
+                  onClick={handleDownload}
                 >
-                  <a href={videoUrl} download>
-                    <Download className="w-3.5 h-3.5" />
-                    Download
-                  </a>
+                  {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                  {downloading ? 'Downloading...' : 'Download'}
                 </Button>
               </>
             )}

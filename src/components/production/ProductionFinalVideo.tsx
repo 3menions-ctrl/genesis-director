@@ -17,27 +17,66 @@ export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFi
   const handleDownload = useCallback(async () => {
     setDownloading(true);
     try {
-      const response = await fetch(videoUrl, { mode: 'cors' });
-      if (!response.ok) throw new Error('Download failed');
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'video-complete.mp4';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success('Video downloaded!');
+      if (isManifest) {
+        // videoUrl is a manifest JSON — parse it to get the actual clip URLs
+        const manifestRes = await fetch(videoUrl, { mode: 'cors' });
+        if (!manifestRes.ok) throw new Error('Failed to fetch manifest');
+        const manifest = await manifestRes.json();
+        
+        // Extract actual video clip URLs from manifest
+        const clipUrls: string[] = manifest.clips?.map((c: { videoUrl?: string }) => c.videoUrl).filter(Boolean) || [];
+        
+        if (clipUrls.length === 0) {
+          throw new Error('No clip URLs found in manifest');
+        }
+        
+        // Download each clip
+        toast.info(`Downloading ${clipUrls.length} clips...`);
+        for (let i = 0; i < clipUrls.length; i++) {
+          try {
+            const res = await fetch(clipUrls[i], { mode: 'cors' });
+            if (!res.ok) continue;
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = clipUrls.length === 1 ? 'video-complete.mp4' : `video-clip${i + 1}.mp4`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+            // Stagger downloads
+            if (i < clipUrls.length - 1) {
+              await new Promise(r => setTimeout(r, 800));
+            }
+          } catch (clipErr) {
+            console.warn(`[ProductionFinalVideo] Clip ${i + 1} download failed:`, clipErr);
+          }
+        }
+        toast.success(`Downloaded ${clipUrls.length} clip(s)!`);
+      } else {
+        // Direct MP4 URL — download normally
+        const response = await fetch(videoUrl, { mode: 'cors' });
+        if (!response.ok) throw new Error('Download failed');
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'video-complete.mp4';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        toast.success('Video downloaded!');
+      }
     } catch (err) {
       console.error('[ProductionFinalVideo] Download error:', err);
-      // Fallback: open in new tab
       window.open(videoUrl, '_blank');
       toast.info('Opening video in new tab for download');
     } finally {
       setDownloading(false);
     }
-  }, [videoUrl]);
+  }, [videoUrl, isManifest]);
 
   return (
     <motion.div
@@ -87,35 +126,31 @@ export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFi
           </div>
           
           <div className="relative flex gap-2.5">
-            {!isManifest && (
-              <>
-                <Button 
-                  size="sm"
-                  variant="ghost"
-                  className="h-10 px-4 text-xs gap-2 text-white/40 hover:text-white hover:bg-white/[0.06] rounded-xl font-semibold"
-                  onClick={() => window.open(videoUrl, '_blank')}
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  Open
-                </Button>
-                <Button 
-                  size="sm" 
-                  disabled={downloading}
-                  className={cn(
-                    "h-10 px-5 text-xs gap-2 rounded-xl",
-                    "bg-gradient-to-r from-emerald-500 to-teal-500",
-                    "hover:from-emerald-400 hover:to-teal-400",
-                    "text-white font-bold",
-                    "shadow-lg shadow-emerald-500/20",
-                    "transition-all duration-200"
-                  )}
-                  onClick={handleDownload}
-                >
-                  {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                  {downloading ? 'Downloading...' : 'Download'}
-                </Button>
-              </>
-            )}
+            <Button 
+              size="sm"
+              variant="ghost"
+              className="h-10 px-4 text-xs gap-2 text-white/40 hover:text-white hover:bg-white/[0.06] rounded-xl font-semibold"
+              onClick={() => window.open(videoUrl, '_blank')}
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Open
+            </Button>
+            <Button 
+              size="sm" 
+              disabled={downloading}
+              className={cn(
+                "h-10 px-5 text-xs gap-2 rounded-xl",
+                "bg-gradient-to-r from-emerald-500 to-teal-500",
+                "hover:from-emerald-400 hover:to-teal-400",
+                "text-white font-bold",
+                "shadow-lg shadow-emerald-500/20",
+                "transition-all duration-200"
+              )}
+              onClick={handleDownload}
+            >
+              {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              {downloading ? 'Downloading...' : 'Download'}
+            </Button>
           </div>
         </div>
         

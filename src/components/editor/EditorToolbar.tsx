@@ -1,7 +1,7 @@
 import {
   ArrowLeft, Save, Download, Loader2, Undo2, Redo2, Scissors, 
   Copy, Magnet, Maximize, PanelLeftClose, PanelLeft, Plus, Film, Music, Type,
-  ChevronDown, Bookmark, Pause as FreezeIcon, ArrowDownUp, Unlink,
+  ChevronDown, Bookmark, Pause as FreezeIcon, ArrowDownUp, Unlink, ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,7 @@ interface EditorToolbarProps {
   onReverseClip?: () => void;
   onDetachAudio?: () => void;
   onAddMarker?: () => void;
+  onOpenInOpenReel?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
   canSplit?: boolean;
@@ -92,7 +93,7 @@ const ToolGroup = ({ children }: { children: React.ReactNode }) => (
 export const EditorToolbar = ({
   title, onTitleChange, onSave, onExport, onBack,
   onUndo, onRedo, onSplit, onDuplicate, onFitToView, onToggleSnap, onToggleMediaBrowser, onAddTrack,
-  onFreezeFrame, onReverseClip, onDetachAudio, onAddMarker,
+  onFreezeFrame, onReverseClip, onDetachAudio, onAddMarker, onOpenInOpenReel,
   canUndo = false, canRedo = false, canSplit = false, canDuplicate = false,
   hasSelectedClip = false,
   snapEnabled = true, showMediaBrowser = true,
@@ -254,6 +255,16 @@ export const EditorToolbar = ({
             <Download className="h-3 w-3" />
             Export
           </button>
+
+          <ToolbarTooltip label="Open clips in OpenReel Video — a professional browser editor with full export">
+            <button
+              onClick={onOpenInOpenReel}
+              className="h-7 px-3 rounded-lg flex items-center gap-1.5 text-[11px] font-medium text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-all duration-150"
+            >
+              <ExternalLink className="h-3 w-3" />
+              OpenReel
+            </button>
+          </ToolbarTooltip>
         </div>
       </div>
     </TooltipProvider>

@@ -432,6 +432,33 @@ const VideoEditor = () => {
     toast.success(`Marker added at ${editorState.currentTime.toFixed(1)}s`);
   }, [editorState.currentTime, editorState.markers]);
 
+  // === OPEN IN OPENREEL ===
+  const handleOpenInOpenReel = useCallback(() => {
+    const videoClips = editorState.tracks
+      .filter(t => t.type === "video")
+      .flatMap(t => t.clips)
+      .filter(c => c.sourceUrl);
+
+    if (videoClips.length > 0) {
+      videoClips.forEach((clip, i) => {
+        const a = document.createElement("a");
+        a.href = clip.sourceUrl!;
+        a.download = `clip-${i + 1}.mp4`;
+        a.style.display = "none";
+        document.body.appendChild(a);
+        // Stagger downloads to avoid browser blocking
+        setTimeout(() => { a.click(); document.body.removeChild(a); }, i * 300);
+      });
+      toast.success("Clips downloading! Import them into OpenReel to continue editing.");
+    } else {
+      toast.info("No clips to download — opening OpenReel directly.");
+    }
+
+    setTimeout(() => {
+      window.open("https://openreel.video", "_blank");
+    }, videoClips.length * 300 + 500);
+  }, [editorState.tracks]);
+
 
   const handleFitToView = useCallback(() => {
     if (editorState.duration <= 0) return;
@@ -1848,6 +1875,7 @@ const VideoEditor = () => {
         onReverseClip={handleReverseClip}
         onDetachAudio={handleDetachAudio}
         onAddMarker={handleAddMarker}
+        onOpenInOpenReel={handleOpenInOpenReel}
         canUndo={history.canUndo}
         canRedo={history.canRedo}
         canSplit={canSplit}

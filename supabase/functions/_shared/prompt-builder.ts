@@ -374,6 +374,15 @@ const MOTION_PATTERNS: { pattern: RegExp; type: MotionAnalysis['motionType']; in
   { pattern: /\b(turning|rotating|spinning|pivoting|looking\s+around)\b/i, type: 'subtle', intensity: 'low' },
   { pattern: /\b(gazing|observing|watching|surveying|scanning)\b/i, type: 'subtle', intensity: 'low' },
   { pattern: /\b(breathing|swaying|shifting)\b/i, type: 'subtle', intensity: 'low' },
+  
+  // Body position actions (leaning, squatting, kneeling, etc.) — MUST be detected
+  // so they are NOT overridden by "static pose" negatives
+  { pattern: /\b(leaning|slouching|reclining|propping)\b/i, type: 'subtle', intensity: 'low' },
+  { pattern: /\b(squatting|crouching|ducking|hunching)\b/i, type: 'subtle', intensity: 'low' },
+  { pattern: /\b(kneeling|bending|stooping|bowing)\b/i, type: 'subtle', intensity: 'low' },
+  { pattern: /\b(sitting\s+down|standing\s+up|rising|lowering)\b/i, type: 'moving', intensity: 'medium' },
+  { pattern: /\b(stretching|flexing|arching|twisting)\b/i, type: 'subtle', intensity: 'low' },
+  { pattern: /\b(dancing|swinging|rocking|bouncing)\b/i, type: 'moving', intensity: 'medium' },
 ];
 
 function detectMotionFromPrompt(prompt: string): MotionAnalysis {

@@ -1404,7 +1404,7 @@ async function resolveUserId(
       .select("id")
       .ilike("display_name", `%${args.display_name}%`)
       .limit(1)
-      .single();
+      .maybeSingle();
     return data?.id || null;
   }
   return null;
@@ -1422,12 +1422,12 @@ async function executeTool(
         .from("profiles")
         .select("display_name, full_name, credits_balance, account_tier, total_credits_used, total_credits_purchased, created_at, avatar_url, bio")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
       const { data: gamification } = await supabase
         .from("user_gamification")
         .select("xp_total, level, current_streak")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
       const { count: followerCount } = await supabase
         .from("user_follows")
         .select("id", { count: "exact", head: true })
@@ -1458,7 +1458,7 @@ async function executeTool(
         .select("*")
         .eq("id", args.project_id)
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
       if (!project) return { error: "Project not found or access denied" };
       const { data: clips } = await supabase
         .from("video_clips")
@@ -1510,7 +1510,7 @@ async function executeTool(
         .select("id, title, status, mode, video_url, last_error, pipeline_context_snapshot")
         .eq("id", args.project_id)
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
       if (!p) return { error: "Project not found" };
       const { data: clips } = await supabase
         .from("video_clips")
@@ -1550,7 +1550,7 @@ async function executeTool(
         .from("profiles")
         .select("credits_balance, total_credits_used, total_credits_purchased")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
       const { data: txns } = await supabase
         .from("credit_transactions")
         .select("amount, transaction_type, description, created_at")
@@ -1608,7 +1608,7 @@ async function executeTool(
           },
         })
         .select("id, title, status")
-        .single();
+        .maybeSingle();
       if (error) {
         console.error("[agent-chat] create_project DB error:", error.message);
         return { error: "Failed to create project: " + error.message };
@@ -1622,7 +1622,7 @@ async function executeTool(
     }
 
     case "rename_project": {
-      const { data: ex } = await supabase.from("movie_projects").select("id, title").eq("id", args.project_id).eq("user_id", userId).single();
+      const { data: ex } = await supabase.from("movie_projects").select("id, title").eq("id", args.project_id).eq("user_id", userId).maybeSingle();
       if (!ex) return { error: "Project not found" };
       const { error } = await supabase.from("movie_projects").update({ title: args.new_title }).eq("id", args.project_id).eq("user_id", userId);
       if (error) return { error: "Failed to rename: " + error.message };
@@ -1630,7 +1630,7 @@ async function executeTool(
     }
 
     case "delete_project": {
-      const { data: d } = await supabase.from("movie_projects").select("id, title, status").eq("id", args.project_id).eq("user_id", userId).single();
+      const { data: d } = await supabase.from("movie_projects").select("id, title, status").eq("id", args.project_id).eq("user_id", userId).maybeSingle();
       if (!d) return { error: "Project not found" };
       if (!["draft", "failed"].includes(d.status)) return { error: `Can't delete "${d.status}" project` };
       return { action: "confirm_delete", requires_confirmation: true, project_id: d.id, title: d.title, message: `Delete "${d.title}"? This can't be undone.` };
@@ -1639,12 +1639,12 @@ async function executeTool(
     case "duplicate_project": {
       const { data: src } = await supabase.from("movie_projects")
         .select("title, prompt, mode, aspect_ratio, clip_count, clip_duration")
-        .eq("id", args.project_id).eq("user_id", userId).single();
+        .eq("id", args.project_id).eq("user_id", userId).maybeSingle();
       if (!src) return { error: "Source project not found" };
       const newTitle = (args.new_title as string) || `${src.title} (copy)`;
       const { data: dup, error } = await supabase.from("movie_projects")
         .insert({ user_id: userId, title: newTitle, prompt: src.prompt, mode: src.mode, aspect_ratio: src.aspect_ratio, clip_count: src.clip_count, clip_duration: src.clip_duration, status: "draft" })
-        .select("id, title").single();
+        .select("id, title").maybeSingle();
       if (error) return { error: "Failed to duplicate: " + error.message };
       return { action: "project_created", project_id: dup.id, title: dup.title, message: `Duplicated as "${dup.title}"`, navigate_to: "/projects" };
     }
@@ -1652,7 +1652,7 @@ async function executeTool(
     case "trigger_generation": {
       const { data: gp } = await supabase.from("movie_projects")
         .select("id, title, status, clip_count, clip_duration, prompt, mode")
-        .eq("id", args.project_id).eq("user_id", userId).single();
+        .eq("id", args.project_id).eq("user_id", userId).maybeSingle();
       if (!gp) return { error: "Project not found" };
       if (gp.status !== "draft") return { error: `Project is "${gp.status}" — only drafts can generate.` };
       const cc = gp.clip_count || 6;
@@ -1660,7 +1660,7 @@ async function executeTool(
       // Kling V3 pricing: base 12 credits (clips 1-6, ≤10s), extended 18 credits (clips 7+ OR >10s)
       let est = 0;
       for (let i = 0; i < cc; i++) est += (i >= 6 || cd > 10) ? 18 : 12;
-      const { data: bal } = await supabase.from("profiles").select("credits_balance").eq("id", userId).single();
+      const { data: bal } = await supabase.from("profiles").select("credits_balance").eq("id", userId).maybeSingle();
       const balance = bal?.credits_balance || 0;
       if (balance < est) return { action: "insufficient_credits", required: est, available: balance, message: `Need ${est} credits, have ${balance}.` };
       return {
@@ -1692,7 +1692,7 @@ async function executeTool(
     case "execute_generation": {
       const { data: gp } = await supabase.from("movie_projects")
         .select("id, title, status, pipeline_state, synopsis, script_content, mode, aspect_ratio, genre, mood, source_image_url, avatar_voice_id")
-        .eq("id", args.project_id).eq("user_id", userId).single();
+        .eq("id", args.project_id).eq("user_id", userId).maybeSingle();
       if (!gp) return { error: "Project not found" };
       if (gp.status !== "draft") return { error: `Project is "${gp.status}" — only drafts can generate.` };
       
@@ -1707,7 +1707,7 @@ async function executeTool(
       // Kling V3 pricing: base 12 credits (clips 1-6, ≤10s), extended 18 credits (clips 7+ OR >10s)
       let est = 0;
       for (let i = 0; i < cc; i++) est += (i >= 6 || cd > 10) ? 18 : 12;
-      const { data: bal } = await supabase.from("profiles").select("credits_balance").eq("id", userId).single();
+      const { data: bal } = await supabase.from("profiles").select("credits_balance").eq("id", userId).maybeSingle();
       const balance = bal?.credits_balance || 0;
       if (balance < est) return { action: "insufficient_credits", required: est, available: balance, message: `Need ${est} credits, have ${balance}.` };
 

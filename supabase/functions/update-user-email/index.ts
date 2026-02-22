@@ -37,26 +37,24 @@ Deno.serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-    // Validate JWT claims
+    // Validate JWT using shared auth guard (with getUser fallback)
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated || !auth.userId) {
+      return unauthorizedResponse(corsHeaders, auth.error);
+    }
+
+    const userId = auth.userId
+    // We need the current email from the JWT claims for logging, 
+    // but the auth guard already validated — fetch from profiles
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
     const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     })
-
-    const token = authHeader.replace('Bearer ', '')
-    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token)
-    if (claimsError || !claimsData?.claims) {
-      console.error('Auth error:', claimsError)
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    const userId = claimsData.claims.sub
-    const currentEmail = claimsData.claims.email as string
+    const { data: userData } = await anonClient.auth.getUser()
+    const currentEmail = userData?.user?.email || 'unknown'
     console.log('User verified:', userId, 'Current email:', currentEmail, 'New email:', newEmail)
 
     // Use admin client to update email

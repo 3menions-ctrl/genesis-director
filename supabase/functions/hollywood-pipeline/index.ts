@@ -1691,7 +1691,7 @@ async function runPreProduction(
           .from('movie_projects')
           .select('pro_features_data')
           .eq('id', state.projectId)
-          .single();
+          .maybeSingle();
 
         await supabase.from('movie_projects').update({
           pro_features_data: {
@@ -1839,7 +1839,7 @@ async function runPreProduction(
       .from('movie_projects')
       .select('pro_features_data')
       .eq('id', state.projectId)
-      .single();
+      .maybeSingle();
     
     // CRITICAL: Add characterDescription to identityBible for verify-character-identity compatibility
     const identityBibleWithDescription = state.identityBible ? {
@@ -2309,7 +2309,7 @@ async function runAssetCreation(
               .from('movie_projects')
               .select('pro_features_data')
               .eq('id', state.projectId)
-              .single();
+              .maybeSingle();
             
             await supabase
               .from('movie_projects')
@@ -2637,7 +2637,7 @@ async function runProduction(
         .from('movie_projects')
         .select('scene_images, pro_features_data')
         .eq('id', state.projectId)
-        .single();
+        .maybeSingle();
       
       // Load scene_images from DB
       if (projectData?.scene_images && Array.isArray(projectData.scene_images)) {
@@ -2686,7 +2686,7 @@ async function runProduction(
         .from('movie_projects')
         .select('pro_features_data, scene_images')
         .eq('id', state.projectId)
-        .single();
+        .maybeSingle();
       
       // Try multiple sources in priority order - ORIGINAL UPLOADED IMAGE FIRST
       const possibleRefs = [
@@ -2763,7 +2763,7 @@ async function runProduction(
         .from('movie_projects')
         .select('pro_features_data')
         .eq('id', state.projectId)
-        .single();
+        .maybeSingle();
       
       const dbIdentityBible = identityData?.pro_features_data?.identityBible;
       const dbExtractedCharacters = identityData?.pro_features_data?.extractedCharacters;
@@ -2811,7 +2811,7 @@ async function runProduction(
       .from('movie_projects')
       .update({ 
         pending_video_tasks: {
-          ...((await supabase.from('movie_projects').select('pending_video_tasks').eq('id', state.projectId).single()).data?.pending_video_tasks || {}),
+          ...((await supabase.from('movie_projects').select('pending_video_tasks').eq('id', state.projectId).maybeSingle()).data?.pending_video_tasks || {}),
           preflightWarnings,
           preflightAt: new Date().toISOString(),
         }
@@ -2959,7 +2959,7 @@ async function runProduction(
         .from('movie_projects')
         .select('pro_features_data')
         .eq('id', state.projectId)
-        .single();
+        .maybeSingle();
       
       // Restore accumulated anchors from persisted data
       if (projectData?.pro_features_data?.accumulatedAnchors) {
@@ -3006,7 +3006,7 @@ async function runProduction(
         .eq('status', 'completed')
         .order('shot_index', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
       
       if (lastClip?.continuity_manifest && Object.keys(lastClip.continuity_manifest).length > 0) {
         previousContinuityManifest = lastClip.continuity_manifest;
@@ -3054,7 +3054,7 @@ async function runProduction(
         .from('movie_projects')
         .select('pro_features_data')
         .eq('id', state.projectId)
-        .single();
+        .maybeSingle();
       
       if (projectData?.pro_features_data?.masterSceneAnchor) {
         masterSceneAnchor = projectData.pro_features_data.masterSceneAnchor;
@@ -3121,7 +3121,7 @@ async function runProduction(
         .eq('project_id', state.projectId)
         .eq('shot_index', 0)
         .eq('status', 'completed')
-        .single();
+        .maybeSingle();
       
       if (clip1Data?.last_frame_url) {
         clip1FrameUrl = clip1Data.last_frame_url;
@@ -3224,7 +3224,7 @@ async function runProduction(
           .from('movie_projects')
           .select('pro_features_data')
           .eq('id', state.projectId)
-          .single();
+          .maybeSingle();
         
         const updatedProFeatures = {
           ...(currentProject?.pro_features_data || {}),
@@ -4377,7 +4377,7 @@ async function runProduction(
                 .from('movie_projects')
                 .select('pro_features_data')
                 .eq('id', state.projectId)
-                .single();
+                .maybeSingle();
               
               const existingData = currentProject?.pro_features_data || {};
               
@@ -4417,7 +4417,7 @@ async function runProduction(
                   .from('movie_projects')
                   .select('pro_features_data')
                   .eq('id', state.projectId)
-                  .single();
+                  .maybeSingle();
                 
                 const savedAnchors = verifyData?.pro_features_data?.accumulatedAnchors?.length || 0;
                 const savedGolden = verifyData?.pro_features_data?.goldenFrameData ? 'YES' : 'NO';
@@ -4536,7 +4536,7 @@ async function runProduction(
               .from('movie_projects')
               .select('pro_features_data')
               .eq('id', state.projectId)
-              .single();
+              .maybeSingle();
             
             const updatedProData = {
               ...(currentProject?.pro_features_data || {}),
@@ -4790,7 +4790,7 @@ async function runProduction(
             .from('movie_projects')
             .select('pro_features_data')
             .eq('id', state.projectId)
-            .single();
+            .maybeSingle();
           
           await supabase
             .from('movie_projects')
@@ -4878,7 +4878,7 @@ async function runProduction(
             .select('video_url, last_frame_url')
             .eq('project_id', state.projectId)
             .eq('shot_index', i)
-            .single();
+            .maybeSingle();
           
           const videoUrlMatch = verifyData?.video_url === videoUrlToSave;
           const frameUrlMatch = !frameToSave || verifyData?.last_frame_url === frameToSave;
@@ -5121,7 +5121,7 @@ async function runProduction(
           .from('movie_projects')
           .select('pro_features_data')
           .eq('id', state.projectId)
-          .single();
+          .maybeSingle();
         
         const updatedProFeatures = {
           ...(currentProject?.pro_features_data || {}),
@@ -5147,7 +5147,7 @@ async function runProduction(
             .from('movie_projects')
             .select('pro_features_data')
             .eq('id', state.projectId)
-            .single();
+            .maybeSingle();
           
           if (verifyData?.pro_features_data?.goldenFrameData?.goldenFrameUrl) {
             console.log(`[Hollywood] ✓ VERIFIED goldenFrameData persisted:`);
@@ -6028,7 +6028,7 @@ async function executePipelineInBackground(
       .from('movie_projects')
       .select('pro_features_data')
       .eq('id', projectId)
-      .single();
+      .maybeSingle();
     
     const existingProFeatures = existingProject?.pro_features_data || {};
     
@@ -6179,7 +6179,7 @@ async function executePipelineInBackground(
       .from('movie_projects')
       .select('pro_features_data, scene_images')
       .eq('id', projectId)
-      .single();
+      .maybeSingle();
     
     const existingProFeatures = existingProject?.pro_features_data || {};
     
@@ -6513,7 +6513,7 @@ serve(async (req) => {
           },
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (projectError) throw projectError;
       projectId = project.id;

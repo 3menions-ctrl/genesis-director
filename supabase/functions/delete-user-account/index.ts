@@ -19,26 +19,16 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Create authenticated client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    })
-
-    // Validate JWT claims
-    const token = authHeader.replace('Bearer ', '')
-    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token)
-    if (claimsError || !claimsData?.claims) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    // Validate JWT using shared auth guard
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated || !auth.userId) {
+      return unauthorizedResponse(corsHeaders, auth.error);
     }
-
-    const userId = claimsData.claims.sub
+    const userId = auth.userId;
 
     // Create admin client for deletions
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)

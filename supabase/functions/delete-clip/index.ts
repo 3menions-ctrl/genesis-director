@@ -72,18 +72,12 @@ serve(async (req) => {
       );
     }
 
-    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    const { validateAuth, unauthorizedResponse } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated || !auth.userId) {
+      return unauthorizedResponse(corsHeaders, auth.error);
     }
-    const userId = claimsData.claims.sub as string;
+    const userId = auth.userId;
 
     const { clipId }: DeleteClipRequest = await req.json();
 

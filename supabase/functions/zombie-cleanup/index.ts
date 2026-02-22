@@ -545,7 +545,7 @@ serve(async (req) => {
         .from('video_clips')
         .select('id, project_id, shot_index, veo_operation_name')
         .eq('id', clip.id)
-        .single();
+        .maybeSingle();
       
       if (fullClip?.veo_operation_name) {
         const { recoverReplicatePrediction } = await import("../_shared/replicate-recovery.ts");
@@ -596,7 +596,7 @@ serve(async (req) => {
           .from('movie_projects')
           .select('user_id')
           .eq('id', clip.project_id)
-          .single();
+          .maybeSingle();
         
         if (project) {
           // Refund 10 credits for the failed clip

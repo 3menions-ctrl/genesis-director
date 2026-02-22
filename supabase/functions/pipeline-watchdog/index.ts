@@ -2181,13 +2181,14 @@ serve(async (req) => {
     }
 
     // ==================== PHASE 3: STALLED PROJECTS ====================
-    const cutoffTime = new Date(Date.now() - STALE_TIMEOUT_MS).toISOString();
-    
+    // FIX: Don't filter by updated_at here. The watchdog itself bumps updated_at
+    // when writing pending_video_tasks, creating a self-defeating loop where stalled
+    // projects never qualify. Instead, fetch ALL generating projects and check
+    // individual clip staleness inside the loop.
     const { data: stalledProjects, error: stalledError } = await supabase
       .from('movie_projects')
-      .select('id, title, status, updated_at, pending_video_tasks, user_id, generated_script, stitch_attempts')
+      .select('id, title, status, updated_at, pending_video_tasks, user_id, generated_script, stitch_attempts, pro_features_data, created_at')
       .in('status', ['generating', 'stitching', 'rendering', 'assembling'])
-      .lt('updated_at', cutoffTime)
       .limit(30);
     
     if (stalledError) {
@@ -2201,8 +2202,14 @@ serve(async (req) => {
     for (const project of (stalledProjects as StalledProject[] || [])) {
       const tasks = project.pending_video_tasks || {};
       const projectAge = Date.now() - new Date(project.updated_at).getTime();
+      const projectTotalAge = Date.now() - new Date((project as any).created_at || project.updated_at).getTime();
       const stage = (tasks as Record<string, unknown>).stage || 'unknown';
       const stitchAttempts = project.stitch_attempts || 0;
+      
+      // GUARD: Skip projects less than 2 minutes old — still in initial pipeline
+      if (projectTotalAge < 2 * 60 * 1000) {
+        continue;
+      }
       
       console.log(`[Watchdog] Processing: ${project.id} (status=${project.status}, stage=${stage}, age=${Math.round(projectAge / 1000)}s)`);
 

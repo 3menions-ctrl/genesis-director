@@ -543,13 +543,27 @@ serve(async (req: Request) => {
         try {
           const extractResult = await callEdgeFunction('extract-last-frame', {
             projectId,
-            clipIndex: completedClipIndex,
+            shotIndex: completedClipIndex,
             videoUrl: prevClip.video_url,
           });
-          if (extractResult?.success && extractResult?.lastFrameUrl) {
-            startImageUrl = extractResult.lastFrameUrl;
+          if (extractResult?.success && (extractResult?.frameUrl || extractResult?.lastFrameUrl)) {
+            startImageUrl = extractResult.frameUrl || extractResult.lastFrameUrl;
             frameSource = 'emergency_extraction';
-            console.log(`[ContinueProduction] ✓ TIER 2B: Emergency frame extraction succeeded`);
+            console.log(`[ContinueProduction] ✓ TIER 2B: Emergency frame extraction succeeded: ${startImageUrl!.substring(0, 60)}...`);
+          } else {
+            // Extraction may have saved to DB even if response parsing failed - re-query
+            console.log(`[ContinueProduction] TIER 2B: Extraction response unclear, re-querying DB...`);
+            const { data: recheck } = await supabase
+              .from('video_clips')
+              .select('last_frame_url')
+              .eq('project_id', projectId)
+              .eq('shot_index', completedClipIndex)
+              .maybeSingle();
+            if (recheck?.last_frame_url) {
+              startImageUrl = recheck.last_frame_url;
+              frameSource = 'db_recheck_after_extraction';
+              console.log(`[ContinueProduction] ✓ TIER 2B (recheck): Found frame in DB after extraction: ${startImageUrl!.substring(0, 60)}...`);
+            }
           }
         } catch (extractErr) {
           console.warn(`[ContinueProduction] TIER 2B extraction failed:`, extractErr);

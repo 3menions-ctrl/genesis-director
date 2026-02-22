@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { 
   Film, Mic, Image, Wand2, Shield, CreditCard, Users, MessageSquare, 
   LayoutDashboard, Palette, Bot, Puzzle, Database, Server, Globe, 
@@ -524,77 +524,52 @@ export default function AppInventory() {
   const totalBeta = INVENTORY.reduce((acc, s) => acc + s.items.filter(i => i.status === "beta").length, 0);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="text-foreground">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate(-1)}
-              className="p-2 rounded-lg hover:bg-muted transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-muted-foreground" />
-            </button>
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold tracking-tight">App Inventory</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Complete catalog of every service, feature, and component
-              </p>
+      <div className="mb-6">
+        <div className="flex items-center gap-4">
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold tracking-tight">App Inventory</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Complete catalog of every service, feature, and component
+            </p>
+          </div>
+          <div className="hidden sm:flex items-center gap-3">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+              <div className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="text-xs font-medium text-emerald-300">{totalActive} Active</span>
             </div>
-            <div className="hidden sm:flex items-center gap-3">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span className="text-xs font-medium text-emerald-300">{totalActive} Active</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20">
-                <div className="w-2 h-2 rounded-full bg-amber-400" />
-                <span className="text-xs font-medium text-amber-300">{totalBeta} Beta</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted border border-border">
-                <span className="text-xs font-medium text-muted-foreground">{totalItems} Total</span>
-              </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+              <div className="w-2 h-2 rounded-full bg-amber-400" />
+              <span className="text-xs font-medium text-amber-300">{totalBeta} Beta</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted border border-border">
+              <span className="text-xs font-medium text-muted-foreground">{totalItems} Total</span>
             </div>
           </div>
-
-          {/* Search */}
-          <div className="mt-4 flex items-center gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search features, functions, hooks, tables..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 bg-muted/50 border-border/50"
-              />
-            </div>
-            <button
-              onClick={expandAll}
-              className="px-3 py-2 text-xs font-medium rounded-md hover:bg-muted transition-colors text-muted-foreground"
-            >
-              Expand All
-            </button>
-            <button
-              onClick={collapseAll}
-              className="px-3 py-2 text-xs font-medium rounded-md hover:bg-muted transition-colors text-muted-foreground"
-            >
-              Collapse All
-            </button>
+        </div>
+        <div className="mt-4 flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search features, functions, hooks, tables..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 bg-muted/50 border-border/50"
+            />
           </div>
-        </div>
-      </header>
-
-      {/* Stats bar (mobile) */}
-      <div className="sm:hidden px-4 py-3 flex items-center gap-2 border-b border-border/30">
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-          <span className="text-[10px] font-medium text-emerald-300">{totalActive}</span>
-        </div>
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
-          <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-          <span className="text-[10px] font-medium text-amber-300">{totalBeta}</span>
-        </div>
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted border border-border">
-          <span className="text-[10px] font-medium text-muted-foreground">{totalItems} total</span>
+          <button
+            onClick={expandAll}
+            className="px-3 py-2 text-xs font-medium rounded-md hover:bg-muted transition-colors text-muted-foreground"
+          >
+            Expand All
+          </button>
+          <button
+            onClick={collapseAll}
+            className="px-3 py-2 text-xs font-medium rounded-md hover:bg-muted transition-colors text-muted-foreground"
+          >
+            Collapse All
+          </button>
         </div>
       </div>
 

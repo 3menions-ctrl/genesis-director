@@ -1763,7 +1763,7 @@ async function executeTool(
     case "publish_to_gallery": {
       const { data: p } = await supabase.from("movie_projects")
         .select("id, title, status, video_url, is_public")
-        .eq("id", args.project_id).eq("user_id", userId).single();
+        .eq("id", args.project_id).eq("user_id", userId).maybeSingle();
       if (!p) return { error: "Project not found" };
       if (!p.video_url) return { error: "This project doesn't have a finished video yet. Generate it first!" };
       if (p.is_public) return { message: `"${p.title}" is already published to Discover! 🌟` };
@@ -1778,7 +1778,7 @@ async function executeTool(
     case "unpublish_from_gallery": {
       const { data: p } = await supabase.from("movie_projects")
         .select("id, title, is_public")
-        .eq("id", args.project_id).eq("user_id", userId).single();
+        .eq("id", args.project_id).eq("user_id", userId).maybeSingle();
       if (!p) return { error: "Project not found" };
       if (!p.is_public) return { message: `"${p.title}" is already private.` };
       
@@ -1794,7 +1794,7 @@ async function executeTool(
     case "update_project_settings": {
       const { data: p } = await supabase.from("movie_projects")
         .select("id, title, status")
-        .eq("id", args.project_id).eq("user_id", userId).single();
+        .eq("id", args.project_id).eq("user_id", userId).maybeSingle();
       if (!p) return { error: "Project not found" };
       if (p.status !== "draft") return { error: `Can only edit draft projects. This project is "${p.status}".` };
       
@@ -1951,7 +1951,7 @@ async function executeTool(
 
     case "open_video_editor": {
       const { data: ep } = await supabase.from("movie_projects").select("id, title, status, video_url")
-        .eq("id", args.project_id).eq("user_id", userId).single();
+        .eq("id", args.project_id).eq("user_id", userId).maybeSingle();
       if (!ep) return { error: "Project not found" };
       if (!ep.video_url && ep.status !== "completed") return { error: "Project needs to be completed first to edit." };
       return { action: "navigate", path: `/video-editor?project=${ep.id}`, reason: `Opening editor for "${ep.title}"` };
@@ -1995,7 +1995,7 @@ async function executeTool(
     case "get_gamification_stats": {
       const { data: gam } = await supabase.from("user_gamification")
         .select("xp_total, level, current_streak, longest_streak, last_activity_date, titles_unlocked, active_title")
-        .eq("user_id", userId).single();
+        .eq("user_id", userId).maybeSingle();
       const { count: achievementCount } = await supabase.from("user_achievements").select("id", { count: "exact", head: true }).eq("user_id", userId);
       return {
         ...(gam || { xp_total: 0, level: 1, current_streak: 0, longest_streak: 0 }),
@@ -2007,9 +2007,9 @@ async function executeTool(
     case "get_account_settings": {
       const { data: prof } = await supabase.from("profiles")
         .select("account_tier, email, display_name, created_at, onboarding_completed, deactivated_at")
-        .eq("id", userId).single();
+        .eq("id", userId).maybeSingle();
       const tier = prof?.account_tier || "free";
-      const { data: limits } = await supabase.from("tier_limits").select("*").eq("tier", tier).single();
+      const { data: limits } = await supabase.from("tier_limits").select("*").eq("tier", tier).maybeSingle();
       return {
         tier,
         email: prof?.email,
@@ -2024,7 +2024,7 @@ async function executeTool(
     // ─── CLIP EDITING ───
 
     case "get_clip_details": {
-      const { data: proj } = await supabase.from("movie_projects").select("id").eq("id", args.project_id).eq("user_id", userId).single();
+      const { data: proj } = await supabase.from("movie_projects").select("id").eq("id", args.project_id).eq("user_id", userId).maybeSingle();
       if (!proj) return { error: "Project not found or access denied" };
       const { data: clips } = await supabase.from("video_clips")
         .select("id, shot_index, prompt, status, video_url, duration_seconds, error_message, retry_count, quality_score, created_at")
@@ -2036,9 +2036,9 @@ async function executeTool(
     case "update_clip_prompt": {
       const { data: clip } = await supabase.from("video_clips")
         .select("id, project_id, status, prompt")
-        .eq("id", args.clip_id).single();
+        .eq("id", args.clip_id).maybeSingle();
       if (!clip) return { error: "Clip not found" };
-      const { data: proj } = await supabase.from("movie_projects").select("id, status").eq("id", clip.project_id).eq("user_id", userId).single();
+      const { data: proj } = await supabase.from("movie_projects").select("id, status").eq("id", clip.project_id).eq("user_id", userId).maybeSingle();
       if (!proj) return { error: "Access denied" };
       if (!["draft", "failed"].includes(clip.status) && clip.status !== "pending") return { error: `Can't edit a "${clip.status}" clip — only draft/pending/failed clips can be updated.` };
       const { error } = await supabase.from("video_clips").update({ prompt: args.new_prompt, status: "pending" }).eq("id", args.clip_id);
@@ -2049,9 +2049,9 @@ async function executeTool(
     case "retry_failed_clip": {
       const { data: clip } = await supabase.from("video_clips")
         .select("id, project_id, status, error_message, retry_count")
-        .eq("id", args.clip_id).single();
+        .eq("id", args.clip_id).maybeSingle();
       if (!clip) return { error: "Clip not found" };
-      const { data: proj } = await supabase.from("movie_projects").select("id").eq("id", clip.project_id).eq("user_id", userId).single();
+      const { data: proj } = await supabase.from("movie_projects").select("id").eq("id", clip.project_id).eq("user_id", userId).maybeSingle();
       if (!proj) return { error: "Access denied" };
       if (clip.status !== "failed") return { error: `Clip is "${clip.status}" — only failed clips can be retried.` };
       const { error } = await supabase.from("video_clips").update({ status: "pending", error_message: null, retry_count: (clip.retry_count || 0) + 1 }).eq("id", args.clip_id);
@@ -2060,7 +2060,7 @@ async function executeTool(
     }
 
     case "reorder_clips": {
-      const { data: proj } = await supabase.from("movie_projects").select("id, status").eq("id", args.project_id).eq("user_id", userId).single();
+      const { data: proj } = await supabase.from("movie_projects").select("id, status").eq("id", args.project_id).eq("user_id", userId).maybeSingle();
       if (!proj) return { error: "Project not found or access denied" };
       if (proj.status !== "draft" && proj.status !== "completed") return { error: `Can only reorder clips in draft or completed projects.` };
       const clipOrder = args.clip_order as Array<{ clip_id: string; new_index: number }>;
@@ -2075,9 +2075,9 @@ async function executeTool(
     case "delete_clip": {
       const { data: clip } = await supabase.from("video_clips")
         .select("id, project_id, status, shot_index")
-        .eq("id", args.clip_id).single();
+        .eq("id", args.clip_id).maybeSingle();
       if (!clip) return { error: "Clip not found" };
-      const { data: proj } = await supabase.from("movie_projects").select("id, status").eq("id", clip.project_id).eq("user_id", userId).single();
+      const { data: proj } = await supabase.from("movie_projects").select("id, status").eq("id", clip.project_id).eq("user_id", userId).maybeSingle();
       if (!proj) return { error: "Access denied" };
       if (proj.status !== "draft") return { error: "Can only delete clips from draft projects." };
       const { error } = await supabase.from("video_clips").delete().eq("id", args.clip_id);
@@ -2091,7 +2091,7 @@ async function executeTool(
         .select("id, title, prompt, status, mode, aspect_ratio, clip_count, clip_duration, pending_video_tasks, pipeline_context_snapshot, pipeline_stage, generation_checkpoint, script_data, voice_map, music_prompt, quality_tier")
         .eq("id", args.project_id)
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
       if (!project) return { error: "Project not found or access denied" };
 
       // Get all clips with FULL prompts
@@ -2183,7 +2183,7 @@ async function executeTool(
     case "regenerate_clip": {
       const { data: proj } = await supabase.from("movie_projects")
         .select("id, title, status, clip_count, clip_duration")
-        .eq("id", args.project_id).eq("user_id", userId).single();
+        .eq("id", args.project_id).eq("user_id", userId).maybeSingle();
       if (!proj) return { error: "Project not found or access denied" };
 
       const clipIndex = args.clip_index as number;
@@ -2191,7 +2191,7 @@ async function executeTool(
         .select("id, shot_index, prompt, status, retry_count")
         .eq("project_id", args.project_id)
         .eq("shot_index", clipIndex)
-        .single();
+        .maybeSingle();
 
       if (!clip) return { error: `No clip found at position ${clipIndex}` };
 
@@ -2200,7 +2200,7 @@ async function executeTool(
       const estimatedCredits = isExtended ? 15 : 10;
 
       // Check balance
-      const { data: bal } = await supabase.from("profiles").select("credits_balance").eq("id", userId).single();
+      const { data: bal } = await supabase.from("profiles").select("credits_balance").eq("id", userId).maybeSingle();
       const balance = bal?.credits_balance || 0;
       if (balance < estimatedCredits) {
         return {
@@ -2278,7 +2278,7 @@ async function executeTool(
         .select("id, title, thumbnail_url, prompt, mode, aspect_ratio, status")
         .eq("id", args.project_id)
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
       if (!proj) return { error: "Project not found or access denied" };
       return {
         title: proj.title,
@@ -2302,7 +2302,7 @@ async function executeTool(
         .select("id, title, status")
         .eq("id", args.project_id)
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
       if (!proj) return { error: "Project not found or access denied" };
       if (proj.status !== "completed") return { error: "Project must be completed before adding music. Try opening the Video Editor instead!" };
       return {
@@ -2319,7 +2319,7 @@ async function executeTool(
         .select("id, title, status")
         .eq("id", args.project_id)
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
       if (!proj) return { error: "Project not found or access denied" };
       if (proj.status !== "completed") return { error: "Project must be completed before applying effects." };
       return {
@@ -2369,8 +2369,8 @@ async function executeTool(
         { count: notifCount },
         { count: stitchCount },
       ] = await Promise.all([
-        supabase.from("profiles").select("display_name, credits_balance, account_tier, total_credits_used, total_credits_purchased, created_at, bio, avatar_url").eq("id", userId).single(),
-        supabase.from("user_gamification").select("xp_total, level, current_streak, longest_streak, last_activity_date, active_title").eq("user_id", userId).single(),
+        supabase.from("profiles").select("display_name, credits_balance, account_tier, total_credits_used, total_credits_purchased, created_at, bio, avatar_url").eq("id", userId).maybeSingle(),
+        supabase.from("user_gamification").select("xp_total, level, current_streak, longest_streak, last_activity_date, active_title").eq("user_id", userId).maybeSingle(),
         supabase.from("movie_projects").select("id", { count: "exact", head: true }).eq("user_id", userId),
         supabase.from("movie_projects").select("status").eq("user_id", userId),
         supabase.from("video_clips").select("id", { count: "exact", head: true }).eq("user_id", userId),
@@ -2436,7 +2436,7 @@ async function executeTool(
         .select("id, title, status, prompt, mode, aspect_ratio, clip_count, clip_duration, video_url, likes_count")
         .eq("id", args.project_id)
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
       if (!project) return { error: "Project not found or access denied" };
 
       const { data: clips } = await supabase
@@ -2831,7 +2831,7 @@ Return ONLY the enhanced prompt text — no explanations, no headers, no labels.
         .select("id, title, status, prompt, mode, aspect_ratio, clip_count, clip_duration, video_url, last_error, pipeline_context_snapshot, generation_lock, created_at, updated_at")
         .eq("id", args.project_id)
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
       if (!project) return { error: "Project not found or access denied" };
 
       const { data: clips } = await supabase
@@ -2998,8 +2998,8 @@ Return ONLY the enhanced prompt text — no explanations, no headers, no labels.
 
     case "compare_projects": {
       const [{ data: projA }, { data: projB }] = await Promise.all([
-        supabase.from("movie_projects").select("id, title, status, prompt, mode, aspect_ratio, clip_count, clip_duration, video_url, likes_count, created_at").eq("id", args.project_id_a).eq("user_id", userId).single(),
-        supabase.from("movie_projects").select("id, title, status, prompt, mode, aspect_ratio, clip_count, clip_duration, video_url, likes_count, created_at").eq("id", args.project_id_b).eq("user_id", userId).single(),
+        supabase.from("movie_projects").select("id, title, status, prompt, mode, aspect_ratio, clip_count, clip_duration, video_url, likes_count, created_at").eq("id", args.project_id_a).eq("user_id", userId).maybeSingle(),
+        supabase.from("movie_projects").select("id, title, status, prompt, mode, aspect_ratio, clip_count, clip_duration, video_url, likes_count, created_at").eq("id", args.project_id_b).eq("user_id", userId).maybeSingle(),
       ]);
 
       if (!projA || !projB) return { error: "One or both projects not found" };
@@ -3447,7 +3447,7 @@ Return ONLY the enhanced prompt text — no explanations, no headers, no labels.
         .from("profiles")
         .select("email, display_name")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
       
       const { error } = await supabase.from("support_messages").insert({
         name: profile?.display_name || "User",
@@ -3471,7 +3471,7 @@ Return ONLY the enhanced prompt text — no explanations, no headers, no labels.
         .from("profiles")
         .select("onboarding_completed, display_name, bio, avatar_url, credits_balance, created_at")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
       const { count: projectCount } = await supabase
         .from("movie_projects")
         .select("id", { count: "exact", head: true })
@@ -3526,7 +3526,7 @@ Return ONLY the enhanced prompt text — no explanations, no headers, no labels.
         .from("agent_preferences")
         .select("learned_context")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
       const existingContext = (prefs?.learned_context as Record<string, unknown>) || {};
       const categoryContext = (existingContext[category] as Record<string, unknown>) || {};
@@ -3580,7 +3580,7 @@ Return ONLY the enhanced prompt text — no explanations, no headers, no labels.
         .from("agent_preferences")
         .select("learned_context, preferred_style, preferred_tone, preferred_mode, preferred_aspect_ratio, greeting_name, interaction_count")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
       return {
         conversations: conversations.map(c => ({
@@ -3626,11 +3626,11 @@ Return ONLY the enhanced prompt text — no explanations, no headers, no labels.
         supabase.from("user_gamification")
           .select("xp_total, level, current_streak, longest_streak, last_activity_date")
           .eq("user_id", userId)
-          .single(),
+          .maybeSingle(),
         supabase.from("agent_preferences")
           .select("interaction_count, last_interaction_at, learned_context, greeting_name")
           .eq("user_id", userId)
-          .single(),
+          .maybeSingle(),
       ]);
 
       const clips = recentClips || [];
@@ -3692,9 +3692,9 @@ Return ONLY the enhanced prompt text — no explanations, no headers, no labels.
         supabase.from("avatar_templates").select("id, name, gender, style, avatar_type, is_premium, face_image_url", { count: "exact" }).eq("is_active", true),
         supabase.from("gallery_showcase").select("id", { count: "exact" }).eq("is_active", true),
         supabase.from("movie_projects").select("id", { count: "exact" }).eq("user_id", userId),
-        supabase.from("profiles").select("credits_balance, account_tier, total_credits_used, total_credits_purchased, created_at").eq("id", userId).single(),
+        supabase.from("profiles").select("credits_balance, account_tier, total_credits_used, total_credits_purchased, created_at").eq("id", userId).maybeSingle(),
         supabase.from("movie_projects").select("id, status").eq("user_id", userId),
-        supabase.from("user_gamification").select("xp_total, level, current_streak").eq("user_id", userId).single(),
+        supabase.from("user_gamification").select("xp_total, level, current_streak").eq("user_id", userId).maybeSingle(),
       ]);
 
       const avatars = avatarResult.data || [];
@@ -3778,7 +3778,7 @@ async function chargeToolCredits(
 }
 
 async function getUserBalance(supabase: ReturnType<typeof createClient>, userId: string): Promise<number> {
-  const { data } = await supabase.from("profiles").select("credits_balance").eq("id", userId).single();
+  const { data } = await supabase.from("profiles").select("credits_balance").eq("id", userId).maybeSingle();
   return data?.credits_balance || 0;
 }
 
@@ -4199,9 +4199,9 @@ serve(async (req) => {
       { data: recentProjects },
       { data: recentTxns },
     ] = await Promise.all([
-      supabase.from("profiles").select("display_name, credits_balance, account_tier").eq("id", auth.userId).single(),
-      supabase.from("user_gamification").select("level, current_streak, xp_total").eq("user_id", auth.userId).single(),
-      supabase.from("agent_preferences").select("greeting_name, interaction_count, learned_context, preferred_mode, preferred_aspect_ratio, preferred_clip_count, preferred_style, preferred_tone").eq("user_id", auth.userId).single(),
+      supabase.from("profiles").select("display_name, credits_balance, account_tier").eq("id", auth.userId).maybeSingle(),
+      supabase.from("user_gamification").select("level, current_streak, xp_total").eq("user_id", auth.userId).maybeSingle(),
+      supabase.from("agent_preferences").select("greeting_name, interaction_count, learned_context, preferred_mode, preferred_aspect_ratio, preferred_clip_count, preferred_style, preferred_tone").eq("user_id", auth.userId).maybeSingle(),
       supabase.from("movie_projects").select("id, title, status, updated_at, mode").eq("user_id", auth.userId).in("status", ["generating", "processing", "stitching", "awaiting_approval"]).order("updated_at", { ascending: false }).limit(3),
       supabase.from("movie_projects").select("id, title, status, video_url, thumbnail_url, mode, updated_at").eq("user_id", auth.userId).order("updated_at", { ascending: false }).limit(5),
       supabase.from("credit_transactions").select("amount, transaction_type, description, created_at").eq("user_id", auth.userId).order("created_at", { ascending: false }).limit(3),

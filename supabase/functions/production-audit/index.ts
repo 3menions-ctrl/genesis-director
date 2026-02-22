@@ -138,7 +138,7 @@ serve(async (req) => {
     .from("profiles")
     .select("credits_balance, display_name")
     .eq("id", ADMIN_USER_ID)
-    .single();
+    .maybeSingle();
 
   const creditBalance = adminProfile?.credits_balance ?? 0;
   log.push(`👤 Admin: ${adminProfile?.display_name} — Credits: ${creditBalance}`);
@@ -189,7 +189,7 @@ serve(async (req) => {
         },
       })
       .select("id")
-      .single();
+      .maybeSingle();
 
     if (projectError || !project) {
       log.push(`  ❌ Project creation failed: ${projectError?.message}`);

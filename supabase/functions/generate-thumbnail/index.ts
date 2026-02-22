@@ -48,7 +48,7 @@ serve(async (req) => {
       .from('movie_projects')
       .select('video_url, thumbnail_url, pro_features_data, scene_images')
       .eq('id', projectId)
-      .single();
+      .maybeSingle();
 
     // Skip if already has thumbnail
     if (project?.thumbnail_url) {

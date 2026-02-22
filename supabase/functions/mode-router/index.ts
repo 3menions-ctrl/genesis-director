@@ -236,11 +236,11 @@ serve(async (req) => {
     
     if (authHeader) {
       try {
-        const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-        const authClient = createClient(supabaseUrl, anonKey);
-        const token = authHeader.replace("Bearer ", "");
-        const { data: claimsData } = await authClient.auth.getClaims(token);
-        authenticatedUserId = (claimsData?.claims?.sub as string) || null;
+        const { validateAuth } = await import("../_shared/auth-guard.ts");
+        const authResult = await validateAuth(req);
+        if (authResult.authenticated && authResult.userId) {
+          authenticatedUserId = authResult.userId;
+        }
       } catch (authErr) {
         console.error("[ModeRouter] Auth extraction failed:", authErr);
       }

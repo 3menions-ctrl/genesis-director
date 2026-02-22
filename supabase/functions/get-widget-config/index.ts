@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
       query = query.eq('slug', slug)
     }
 
-    const { data, error } = await query.eq('status', 'published').single()
+    const { data, error } = await query.eq('status', 'published').maybeSingle()
 
     if (error || !data) {
       return new Response(

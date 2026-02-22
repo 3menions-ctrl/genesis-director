@@ -2907,6 +2907,103 @@ serve(async (req) => {
         continue;
       }
       
+      // ═══ CASE 1.5: 0 completed clips but generating clips with prediction IDs — poll Replicate ═══
+      // This catches the scenario where the pipeline marked itself complete/failed before clips finished,
+      // and the Replicate webhook never fired back. We poll predictions directly to recover.
+      if (completedClips.length === 0 && generatingClips.length > 0) {
+        const clipsWithPredictions = generatingClips.filter((c: any) => c.veo_operation_name);
+        
+        if (clipsWithPredictions.length > 0) {
+          console.log(`[Watchdog] ⚠️ ORPHAN PREDICTIONS: ${project.id} has 0 completed clips, ${clipsWithPredictions.length} generating with prediction IDs`);
+          
+          let recovered = 0;
+          for (const clip of clipsWithPredictions) {
+            try {
+              const pollResponse = await fetch(`${supabaseUrl}/functions/v1/check-video-status`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseKey}`,
+                },
+                body: JSON.stringify({
+                  taskId: clip.veo_operation_name,
+                  provider: 'replicate',
+                  projectId: project.id,
+                  userId: project.user_id,
+                  shotIndex: clip.shot_index,
+                  autoComplete: true,
+                }),
+              });
+              
+              if (pollResponse.ok) {
+                const pollResult = await pollResponse.json();
+                if (pollResult.status === 'SUCCEEDED' && pollResult.autoCompleted) {
+                  recovered++;
+                  console.log(`[Watchdog] ✓ Recovered orphan clip ${clip.shot_index + 1} from prediction ${clip.veo_operation_name}`);
+                } else if (pollResult.status === 'FAILED') {
+                  await supabase
+                    .from('video_clips')
+                    .update({ status: 'failed', error_message: pollResult.error || 'Prediction failed', updated_at: new Date().toISOString() })
+                    .eq('id', clip.id);
+                  console.log(`[Watchdog] ✗ Orphan clip ${clip.shot_index + 1} prediction failed`);
+                } else {
+                  console.log(`[Watchdog] Orphan clip ${clip.shot_index + 1} still ${pollResult.status}`);
+                }
+              }
+            } catch (pollErr) {
+              console.error(`[Watchdog] Orphan poll error for clip ${clip.shot_index + 1}:`, pollErr);
+            }
+          }
+          
+          if (recovered > 0) {
+            // Restore project to generating and trigger continue-production
+            await supabase
+              .from('movie_projects')
+              .update({
+                status: 'generating',
+                pipeline_stage: 'clips_generating',
+                last_error: null,
+                generation_lock: null,
+                pending_video_tasks: {
+                  ...tasks,
+                  stage: 'production',
+                  watchdogOrphanRecovery: true,
+                  recoveredAt: new Date().toISOString(),
+                },
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', project.id);
+            
+            try {
+              await fetch(`${supabaseUrl}/functions/v1/continue-production`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseKey}`,
+                },
+                body: JSON.stringify({
+                  projectId: project.id,
+                  userId: project.user_id,
+                  completedClipIndex: 0,
+                  totalClips: expectedClipCount,
+                }),
+              });
+              console.log(`[Watchdog] ✅ ORPHAN RECOVERY: ${project.id} — ${recovered} clips recovered, production resumed`);
+            } catch (resumeErr) {
+              console.error(`[Watchdog] Resume after orphan recovery failed:`, resumeErr);
+            }
+            
+            result.productionResumed++;
+            result.details.push({
+              projectId: project.id,
+              action: 'orphan_prediction_recovery',
+              result: `${recovered} clips recovered from orphaned Replicate predictions`,
+            });
+          }
+          continue;
+        }
+      }
+      
       // ═══ CASE 2: Some clips completed, some still generating — resume ═══
       if (completedClips.length > 0 && (generatingClips.length > 0 || tasks.needsWatchdogResume)) {
         const lastCompletedIndex = Math.max(...completedClips.map(c => c.shot_index));

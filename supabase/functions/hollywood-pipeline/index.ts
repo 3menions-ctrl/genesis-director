@@ -6009,6 +6009,16 @@ async function executePipelineInBackground(
       // Pass the resume clip index to production
       (request as any)._resumeFromClipIndex = resumeFromClipIndex;
       state = await runProduction(request, state, supabase);
+      
+      // ═══ CRITICAL GUARD: If callback chaining is active, STOP the pipeline here.
+      // The continue-production callback chain handles clips 2+ and post-production.
+      // Without this guard, the pipeline races ahead to post-production with 0 completed clips,
+      // incorrectly marking the project as 'complete' with stage='complete' and status='failed'.
+      if ((state as any)._exitClipLoopNow) {
+        console.log(`[Hollywood] ⚡ Callback chain active — stopping pipeline. continue-production handles the rest.`);
+        console.log(`[Hollywood] Function shutdown: early_drop`);
+        return;
+      }
     }
     
     if (stages.includes('postproduction')) {

@@ -4,6 +4,7 @@ import { ArrowLeft, Download, Loader2, Sparkles, Film } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import "@twick/studio/dist/studio.css";
 
 // Dynamically import Twick to avoid 504 bundling timeouts
 function useTwickModules() {

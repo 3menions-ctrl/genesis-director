@@ -78,9 +78,9 @@ Complete inventory of all processes in the application. Each process represents 
 | P057 | Delete User Account | API | `delete-user-account` | Auth | P0 |
 | P058 | Update User Email | API | `update-user-email` | Auth | P1 |
 | P059 | Extract Video Frame | API | `extract-video-frame` | video URL | P2 |
-| P060 | Extract First Frame | API | `extract-first-frame` | video URL | P2 |
-| P061 | Extract Last Frame | API | `extract-last-frame` | video URL | P2 |
-| P062 | Generate Thumbnail | API | `generate-thumbnail` | video URL | P2 |
+| P060 | ~~Extract First Frame~~ | Removed | Consolidated into `extract-video-frame` | — | — |
+| P061 | ~~Extract Last Frame~~ | Removed | Consolidated into `extract-video-frame` | — | — |
+| P062 | ~~Generate Thumbnail~~ | Removed | Consolidated into `generate-project-thumbnail` | — | — |
 | P063 | Generate Project Thumbnail | API | `generate-project-thumbnail` | project ID | P2 |
 | P064 | Generate Upload URL | API | `generate-upload-url` | Auth, project ID | P1 |
 | P065 | Analyze Reference Image | API | `analyze-reference-image` | image URL | P2 |
@@ -90,7 +90,7 @@ Complete inventory of all processes in the application. Each process represents 
 | P069 | Smart Script Generator | API | `smart-script-generator` | Auth, params | P1 |
 | P070 | Composite Character | API | `composite-character` | images | P2 |
 | P071 | Generate Story | API | `generate-story` | Auth, prompt | P1 |
-| P072 | Generate Trailer | API | `generate-trailer` | Auth, project | P2 |
+| P072 | ~~Generate Trailer~~ | Removed | — | — | — |
 | P073 | Seed Avatar Library | API | `seed-avatar-library` | Admin | P2 |
 | P074 | ~~Regenerate Stock Avatars~~ | Removed | — | — | — |
 

@@ -6,7 +6,7 @@ import {
   checkContinuityReady,
   loadPipelineContext,
 } from "../_shared/generation-mutex.ts";
-// Note: Prompt building now happens in generate-single-clip via prompt-builder.ts
+import { validateAuth, unauthorizedResponse } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,31 +54,22 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // ═══ AUTH GUARD: Use shared auth-guard instead of inline JWT parsing ═══
+  const auth = await validateAuth(req);
+  if (!auth.authenticated) {
+    return unauthorizedResponse(corsHeaders, auth.error);
+  }
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
     const request: RetryRequest = await req.json();
 
-    // SECURITY: Extract userId from JWT instead of trusting client payload
-    const authHeader = req.headers.get("Authorization");
-    let authenticatedUserId: string | null = null;
-    if (authHeader?.startsWith("Bearer ") && !authHeader.includes(supabaseKey)) {
-      try {
-        const authClient = createClient(supabaseUrl, anonKey);
-        const token = authHeader.replace("Bearer ", "");
-        const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-        if (!claimsError && claimsData?.claims?.sub) {
-          authenticatedUserId = claimsData.claims.sub as string;
-        }
-      } catch (authErr) {
-        console.warn("[RetryClip] JWT validation failed:", authErr);
-      }
-    }
-    if (authenticatedUserId) {
-      request.userId = authenticatedUserId;
+    // Use authenticated userId from JWT (never trust client payload)
+    if (auth.userId) {
+      request.userId = auth.userId;
     }
     
     if (!request.userId || !request.projectId || request.clipIndex === undefined) {
@@ -136,7 +127,7 @@ serve(async (req) => {
       .select('*')
       .eq('project_id', request.projectId)
       .eq('shot_index', request.clipIndex)
-      .single();
+      .maybeSingle();
     
     if (clipError || !failedClip) {
       await releaseGenerationLock(supabase, request.projectId, lockId);
@@ -153,7 +144,7 @@ serve(async (req) => {
       .from('movie_projects')
       .select('*')
       .eq('id', request.projectId)
-      .single();
+      .maybeSingle();
     
     if (projectError || !project) {
       throw new Error(`Project not found: ${projectError?.message}`);
@@ -170,7 +161,7 @@ serve(async (req) => {
         .eq('project_id', request.projectId)
         .eq('shot_index', request.clipIndex - 1)
         .eq('status', 'completed')
-        .single();
+        .maybeSingle();
       
       if (prevClip) {
         startImageUrl = prevClip.last_frame_url || undefined;

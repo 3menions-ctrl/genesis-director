@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { validateAuth, unauthorizedResponse } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,7 +20,6 @@ interface ResumeRequest {
   projectId: string;
   userId: string;
   resumeFrom?: 'qualitygate' | 'assets' | 'production' | 'postproduction';
-  // Support both formats for backwards compatibility
   approvedShots?: Array<{
     id: string;
     title: string;
@@ -29,7 +29,6 @@ interface ResumeRequest {
     mood?: string;
     [key: string]: any;
   }>;
-  // Also accept approvedScript.shots format from frontend
   approvedScript?: {
     shots: Array<{
       id: string;
@@ -48,6 +47,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // ═══ AUTH GUARD: Use shared auth-guard instead of inline JWT parsing ═══
+  const auth = await validateAuth(req);
+  if (!auth.authenticated) {
+    return unauthorizedResponse(corsHeaders, auth.error);
+  }
+
   try {
     const request: ResumeRequest = await req.json();
     console.log("[ResumePipeline] Resuming project:", request.projectId, "resumeFrom:", request.resumeFrom);
@@ -58,38 +63,23 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // SECURITY: Extract userId from JWT instead of trusting client payload
-    const authHeader = req.headers.get("Authorization");
-    let authenticatedUserId: string | null = null;
-    if (authHeader?.startsWith("Bearer ") && !authHeader.includes(supabaseKey)) {
-      try {
-        const authClient = createClient(supabaseUrl, anonKey);
-        const token = authHeader.replace("Bearer ", "");
-        const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-        if (!claimsError && claimsData?.claims?.sub) {
-          authenticatedUserId = claimsData.claims.sub as string;
-        }
-      } catch (authErr) {
-        console.warn("[ResumePipeline] JWT validation failed:", authErr);
-      }
-    }
-    if (authenticatedUserId) {
-      request.userId = authenticatedUserId;
+    // Use authenticated userId from JWT (never trust client payload)
+    if (auth.userId) {
+      request.userId = auth.userId;
     }
 
     if (!request.projectId || !request.userId) {
       throw new Error("Missing projectId or userId");
     }
 
-    // Get current project state
+    // Get current project state — use .maybeSingle() to prevent crash on missing project
     const { data: project, error: fetchError } = await supabase
       .from('movie_projects')
       .select('*')
       .eq('id', request.projectId)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !project) {
       throw new Error(`Project not found: ${fetchError?.message}`);

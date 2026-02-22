@@ -369,7 +369,7 @@ serve(async (req) => {
           },
         })
         .select('id')
-        .single();
+        .maybeSingle();
 
       if (projectError || !project) throw new Error(`Failed to create project: ${projectError?.message || 'No project returned'}`);
       projectId = project.id as string;
@@ -412,7 +412,7 @@ serve(async (req) => {
         .from('profiles')
         .select('credits_balance')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
       
       if (profileError || !profile) {
         console.error('[ModeRouter] Failed to fetch user profile:', profileError);

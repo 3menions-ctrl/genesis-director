@@ -51,7 +51,7 @@ serve(async (req) => {
       .from('movie_projects')
       .select('thumbnail_url')
       .eq('id', projectId)
-      .single();
+      .maybeSingle();
 
     if (project?.thumbnail_url) {
       return new Response(
@@ -168,7 +168,7 @@ serve(async (req) => {
           .from('movie_projects')
           .select('pro_features_data, scene_images')
           .eq('id', projectId)
-          .single();
+          .maybeSingle();
 
         const proData = proj?.pro_features_data as Record<string, any> | null;
         const candidates = [

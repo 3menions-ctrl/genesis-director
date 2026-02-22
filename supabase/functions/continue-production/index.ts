@@ -317,7 +317,7 @@ serve(async (req: Request) => {
         .from('movie_projects')
         .select('pro_features_data, generated_script, scene_images, pending_video_tasks')
         .eq('id', projectId)
-        .single();
+        .maybeSingle();
 
       if (projectData) {
         context = context || {};
@@ -404,7 +404,7 @@ serve(async (req: Request) => {
         .eq('project_id', projectId)
         .eq('shot_index', 0)
         .eq('status', 'completed')
-        .single();
+        .maybeSingle();
       
       if (clip1?.last_frame_url) {
         console.log(`[ContinueProduction] ✓ Recovered referenceImageUrl from clip 1 in DB`);
@@ -427,7 +427,7 @@ serve(async (req: Request) => {
       .from('movie_projects')
       .select('generated_script, pro_features_data')
       .eq('id', projectId)
-      .single();
+      .maybeSingle();
 
     let nextClipPrompt = '';
     let shots: any[] = [];

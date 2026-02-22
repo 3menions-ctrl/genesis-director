@@ -1,0 +1,160 @@
+/**
+ * Apex Studio — Twick Studio CSS overrides
+ * Rebrand & retheme the embedded Twick editor to match Apex's identity.
+ */
+
+/* ═══════════════════════════════════════════════
+   1. COLOR SYSTEM OVERRIDE
+   Map Twick's neutral palette to Apex's deeper dark tones
+   ═══════════════════════════════════════════════ */
+
+.studio-container {
+  --color-neutral-900: #08080c;
+  --color-neutral-800: #0e0e14;
+  --color-neutral-700: #1a1a24;
+  --color-neutral-600: #2a2a38;
+  --color-neutral-500: #444460;
+  --color-neutral-400: #8888a4;
+  --color-neutral-300: #b0b0c8;
+
+  --color-gray-100: #e8e8f0;
+  --color-gray-200: #d0d0dc;
+  --color-gray-300: #b0b0c0;
+  --color-gray-400: #8888a0;
+  --color-gray-500: #606078;
+  --color-gray-600: #3a3a50;
+  --color-gray-700: #252536;
+  --color-gray-800: #161622;
+  --color-gray-900: #0c0c14;
+
+  /* Swap purple to Apex's primary violet */
+  --color-purple-400: hsl(263 70% 68%);
+  --color-purple-500: hsl(263 84% 58%);
+  --color-purple-600: hsl(263 84% 48%);
+  --color-purple-700: hsl(263 80% 40%);
+  --color-purple-muted: rgba(124, 58, 237, 0.15);
+
+  /* Elevation */
+  --elevation-panel: 0 0 0 1px rgba(124, 58, 237, 0.06), 0 8px 32px rgba(0,0,0,0.5);
+  --elevation-scrubber: 0 0 8px rgba(124, 58, 237, 0.8);
+}
+
+/* ═══════════════════════════════════════════════
+   2. HEADER REBRAND
+   ═══════════════════════════════════════════════ */
+
+/* Deeper header with Apex accent line */
+.header {
+  background: rgba(10, 10, 16, 0.92) !important;
+  border-bottom: 1px solid rgba(124, 58, 237, 0.12) !important;
+  box-shadow: 0 1px 0 0 rgba(124, 58, 237, 0.08), 0 2px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Hide "Twick Studio" text and Clapperboard icon, replace with Apex branding */
+.header .text-gradient {
+  font-size: 0 !important;
+  line-height: 0 !important;
+  overflow: hidden;
+  width: auto;
+}
+
+.header .text-gradient::after {
+  content: "Apex Studio";
+  font-size: 0.8125rem;
+  line-height: normal;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  background: linear-gradient(135deg, hsl(263 84% 68%), hsl(280 70% 60%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-family: 'Sora', 'Inter', sans-serif;
+}
+
+/* Hide the Clapperboard icon next to title */
+.header .flex-container > .icon-lg.accent-purple {
+  display: none !important;
+}
+
+/* ═══════════════════════════════════════════════
+   3. SURFACE OVERRIDES
+   ═══════════════════════════════════════════════ */
+
+/* Studio container */
+.studio-container {
+  background: #08080c !important;
+}
+
+.studio-content {
+  background: #08080c !important;
+}
+
+.main-container {
+  background-color: #08080c !important;
+}
+
+/* Left panel */
+.studio-left-panel {
+  background-color: rgba(10, 10, 16, 0.98) !important;
+  border-right: 1px solid rgba(124, 58, 237, 0.08) !important;
+}
+
+/* Canvas area — deeper ambient */
+.canvas-wrapper {
+  background: radial-gradient(
+    circle at center,
+    rgba(124, 58, 237, 0.02),
+    rgba(0, 0, 0, 0.7)
+  ) !important;
+}
+
+/* ═══════════════════════════════════════════════
+   4. ACCENT INTERACTIONS
+   ═══════════════════════════════════════════════ */
+
+/* Media hover glow */
+.media-item:hover {
+  box-shadow: 0 4px 6px -1px rgba(124, 58, 237, 0.2) !important;
+}
+
+/* Progress bar */
+.progress-bar {
+  background: linear-gradient(to right, hsl(263 84% 58%), hsl(280 70% 60%)) !important;
+}
+
+/* Aspect ratio button active */
+.aspect-ratio-btn:hover {
+  color: hsl(263 70% 68%) !important;
+}
+
+/* ═══════════════════════════════════════════════
+   5. SCROLLBAR STYLING
+   ═══════════════════════════════════════════════ */
+
+.studio-container ::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.studio-container ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.studio-container ::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.2);
+  border-radius: 2px;
+}
+
+.studio-container ::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.35);
+}
+
+/* ═══════════════════════════════════════════════
+   6. HIDE TWICK-SPECIFIC UI NOT NEEDED
+   ═══════════════════════════════════════════════ */
+
+/* Hide any "Powered by Twick" or external links if present */
+.studio-container a[href*="twick"],
+.studio-container [data-twick-brand] {
+  display: none !important;
+}

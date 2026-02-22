@@ -75,6 +75,7 @@ const UserProfile = lazy(() => import("./pages/UserProfile"));
 const VideoDetail = lazy(() => import("./pages/VideoDetail"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const WorldChat = lazy(() => import("./pages/WorldChat"));
+const VideoEditorPage = lazy(() => import("./pages/VideoEditor"));
 
 const WidgetLanding = lazy(() => import("./pages/WidgetLanding"));
 const WidgetEmbed = lazy(() => import("./pages/WidgetEmbed"));
@@ -366,8 +367,14 @@ const App = () => {
                   </RouteContainer>
                 } />
                 
-                {/* Legacy editor route - redirect to projects */}
-                <Route path="/editor" element={<Navigate to="/projects" replace />} />
+                {/* Video Editor - Twick Studio */}
+                <Route path="/editor" element={
+                  <RouteContainer fallbackMessage="Loading editor...">
+                    <ProtectedRoute>
+                      <VideoEditorPage />
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
                 
                 {/* Legacy route redirects */}
                 <Route path="/long-video" element={<Navigate to="/create" replace />} />

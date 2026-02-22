@@ -138,9 +138,10 @@ export default function Landing() {
   }, []);
 
   const handleImmersiveVideoEnded = useCallback(() => {
+    setIsImmersive(false);
     setShowImmersiveCTA(true);
-    // setState (not ref) so the inactivity useEffect re-runs and restarts the timer
-    setHasAutoTriggered(false);
+    // Keep hasAutoTriggered = true so the inactivity timer does NOT re-arm
+    // and create an infinite loop of the video re-launching.
   }, []);
 
   // Inactivity detection — auto-enter immersive after idle.
@@ -160,7 +161,7 @@ export default function Landing() {
     };
 
     const handleActivity = () => startTimer();
-    const events = ['mousedown', 'keydown', 'touchstart', 'click'];
+    const events = ['mousedown', 'mousemove', 'scroll', 'keydown', 'touchstart', 'click'];
     events.forEach(e => window.addEventListener(e, handleActivity, { passive: true }));
     startTimer();
 

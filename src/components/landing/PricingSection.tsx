@@ -16,7 +16,7 @@ const PRICING_STATS = [
 const STORYTELLING_HLS_URL = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/temp-frames/hls_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_1771087015077.m3u8';
 const STORYTELLING_MP4_FALLBACK = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_clip1_lipsync_1771086006879.mp4';
 
-export const INACTIVITY_TIMEOUT_MS = 10_000;
+export const INACTIVITY_TIMEOUT_MS = 15_000;
 
 interface PricingSectionProps {
   onNavigate: (path: string) => void;
@@ -240,10 +240,20 @@ export const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
         <video
           ref={(el) => {
             if (el) {
-              // Expose via playerRef for mute/end controls
               (playerRef as any).current = { getVideoElement: () => el };
               el.muted = isMuted;
-              el.play().catch(() => {});
+              // Robust play with retry — browsers can reject the first attempt
+              const tryPlay = () => {
+                el.play().catch(() => {
+                  // Retry once after a short delay
+                  setTimeout(() => el.play().catch(() => {}), 500);
+                });
+              };
+              if (el.readyState >= 2) {
+                tryPlay();
+              } else {
+                el.addEventListener('canplay', tryPlay, { once: true });
+              }
             }
           }}
           src={STORYTELLING_MP4_FALLBACK}

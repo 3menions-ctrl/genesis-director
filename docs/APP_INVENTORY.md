@@ -131,18 +131,11 @@
 
 | Function | Purpose |
 |---|---|
-| `generate-avatar` | Generate a single avatar |
-| `generate-avatar-direct` | Direct avatar generation (bypasses queue) |
-| `generate-avatar-image` | Avatar image generation |
-| `generate-avatar-scene` | Avatar placed in scene generation |
-| `generate-single-avatar` | Single avatar variant generation |
-| `generate-avatars-batch` | Batch avatar generation |
-| `batch-avatar-generator` | Batch avatar generator v2 |
-| `generate-avatar-batch` | Another batch generation variant |
+| `generate-avatar-direct` | Core avatar production pipeline (Kling V3) |
+| `generate-avatar-image` | Avatar still-image generation (used by seeder) |
+| `generate-avatar-scene` | Scene-first avatar compositing |
 | `seed-avatar-library` | Seeds the avatar template library |
 | `seed-avatar-batch-v2` | Avatar batch seeder v2 |
-| `regenerate-animated-avatars` | Regenerates animated avatar variants |
-| `regenerate-stock-avatars` | Regenerates stock avatar images |
 | `resume-avatar-pipeline` | Resumes interrupted avatar pipeline |
 | `composite-character` | Composites character reference images |
 | `generate-character-for-scene` | Generates character for specific scene context |

@@ -130,27 +130,19 @@ export function AdminContentModeration() {
     
     setProcessing(actionDialog.video.id);
     try {
-      if (actionDialog.action === 'hide') {
-        const { error } = await supabase
-          .from('movie_projects')
-          .update({ is_public: false })
-          .eq('id', actionDialog.video.id);
-        
-        if (error) throw error;
-        toast.success('Video hidden from public');
-      } else if (actionDialog.action === 'delete') {
-        const { error } = await supabase
-          .from('movie_projects')
-          .delete()
-          .eq('id', actionDialog.video.id);
-        
-        if (error) throw error;
-        toast.success('Video deleted');
-      } else if (actionDialog.action === 'approve') {
-        // Just mark as reviewed (could add a reviewed_at column)
-        toast.success('Video approved');
-      }
+      const { data, error } = await supabase.rpc('admin_moderate_content', {
+        p_project_id: actionDialog.video.id,
+        p_action: actionDialog.action,
+      });
       
+      if (error) throw error;
+      
+      const messages = {
+        hide: 'Video hidden from public',
+        delete: 'Video deleted',
+        approve: 'Video approved',
+      };
+      toast.success(messages[actionDialog.action]);
       fetchVideos();
     } catch (err) {
       console.error('Failed to perform action:', err);

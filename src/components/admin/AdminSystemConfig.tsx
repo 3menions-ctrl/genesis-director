@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,7 +52,7 @@ interface SystemStatus {
   database: 'operational' | 'degraded' | 'down';
 }
 
-// Feature flags — stored in-memory only (no database table yet)
+// Feature flags — default values, overridden by DB
 const DEFAULT_FEATURE_FLAGS: FeatureFlag[] = [
   { id: 'video_generation', name: 'Video Generation', description: 'Enable video generation pipeline', enabled: true, category: 'core' },
   { id: 'multi_character', name: 'Multi-Character Bible', description: 'Multi-character identity tracking', enabled: true, category: 'core' },
@@ -82,6 +83,43 @@ export function AdminSystemConfig() {
   });
   
   const [saving, setSaving] = useState(false);
+  const [loadingConfig, setLoadingConfig] = useState(true);
+
+  // Load persisted config from DB on mount
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('system_config')
+          .select('key, value');
+        
+        if (error) throw error;
+        
+        (data || []).forEach((row: { key: string; value: any }) => {
+          if (row.key === 'maintenance_mode') {
+            setMaintenanceMode(row.value?.enabled ?? false);
+            setMaintenanceMessage(row.value?.message ?? '');
+          } else if (row.key === 'announcement_banner') {
+            setBannerEnabled(row.value?.enabled ?? false);
+            setAnnouncementBanner(row.value?.message ?? '');
+            setBannerType(row.value?.type ?? 'info');
+          } else if (row.key === 'feature_flags') {
+            // Merge persisted overrides with defaults
+            const overrides = row.value || {};
+            setFeatureFlags(prev => prev.map(f => ({
+              ...f,
+              enabled: overrides[f.id] !== undefined ? overrides[f.id] : f.enabled,
+            })));
+          }
+        });
+      } catch (err) {
+        console.error('Failed to load system config:', err);
+      } finally {
+        setLoadingConfig(false);
+      }
+    };
+    loadConfig();
+  }, []);
 
   const toggleFeatureFlag = (flagId: string) => {
     setFeatureFlags(flags => 
@@ -92,9 +130,38 @@ export function AdminSystemConfig() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Note: No system_config table exists yet — changes are session-only
-      toast.info('Configuration changes are session-only. A system_config table is needed for persistence.');
+      // Persist maintenance mode
+      await supabase
+        .from('system_config')
+        .upsert({ 
+          key: 'maintenance_mode', 
+          value: { enabled: maintenanceMode, message: maintenanceMessage },
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'key' });
+
+      // Persist announcement banner
+      await supabase
+        .from('system_config')
+        .upsert({ 
+          key: 'announcement_banner', 
+          value: { enabled: bannerEnabled, message: announcementBanner, type: bannerType },
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'key' });
+
+      // Persist feature flags as override map
+      const flagOverrides: Record<string, boolean> = {};
+      featureFlags.forEach(f => { flagOverrides[f.id] = f.enabled; });
+      await supabase
+        .from('system_config')
+        .upsert({ 
+          key: 'feature_flags', 
+          value: flagOverrides,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'key' });
+
+      toast.success('Configuration saved successfully');
     } catch (err) {
+      console.error('Failed to save configuration:', err);
       toast.error('Failed to save configuration');
     } finally {
       setSaving(false);

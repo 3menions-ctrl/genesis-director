@@ -155,10 +155,11 @@ export function AdminProjectsBrowser() {
     if (!confirm('Are you sure you want to delete this project? This cannot be undone.')) return;
     
     try {
-      // Delete clips first
-      await supabase.from('video_clips').delete().eq('project_id', projectId);
-      // Delete project
-      const { error } = await supabase.from('movie_projects').delete().eq('id', projectId);
+      const { data, error } = await supabase.rpc('admin_moderate_content', {
+        p_project_id: projectId,
+        p_action: 'delete',
+        p_reason: 'Admin manual deletion',
+      });
       if (error) throw error;
       
       toast.success('Project deleted');

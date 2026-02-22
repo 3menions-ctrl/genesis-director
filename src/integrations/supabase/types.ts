@@ -2428,6 +2428,7 @@ export type Database = {
           last_error: string | null
           likes_count: number | null
           mode: string | null
+          moderation_status: string | null
           mood: string | null
           movie_intro_style: string | null
           music_url: string | null
@@ -2474,6 +2475,7 @@ export type Database = {
           last_error?: string | null
           likes_count?: number | null
           mode?: string | null
+          moderation_status?: string | null
           mood?: string | null
           movie_intro_style?: string | null
           music_url?: string | null
@@ -2520,6 +2522,7 @@ export type Database = {
           last_error?: string | null
           likes_count?: number | null
           mode?: string | null
+          moderation_status?: string | null
           mood?: string | null
           movie_intro_style?: string | null
           music_url?: string | null
@@ -3368,6 +3371,27 @@ export type Database = {
           submitted_count?: number | null
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      system_config: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
         }
         Relationships: []
       }
@@ -4731,12 +4755,29 @@ export type Database = {
           total_credits_used: number
         }[]
       }
+      admin_manage_credit_package: {
+        Args: {
+          p_action: string
+          p_credits?: number
+          p_is_active?: boolean
+          p_is_popular?: boolean
+          p_name?: string
+          p_package_id?: string
+          p_price_cents?: number
+          p_stripe_price_id?: string
+        }
+        Returns: Json
+      }
       admin_manage_role: {
         Args: {
           p_action: string
           p_role: Database["public"]["Enums"]["app_role"]
           p_target_user_id: string
         }
+        Returns: Json
+      }
+      admin_moderate_content: {
+        Args: { p_action: string; p_project_id: string; p_reason?: string }
         Returns: Json
       }
       admin_view_user_profile: {

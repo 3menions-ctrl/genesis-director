@@ -265,24 +265,53 @@ export default function AdminDashboard() {
 
   const fetchCostSummary = async () => {
     try {
-      const { data: apiData } = await supabase
-        .from('api_cost_logs')
-        .select('service, operation, status, credits_charged, real_cost_cents');
-      
-      const { data: clipsData } = await supabase
-        .from('video_clips')
-        .select('id, status, retry_count');
-      
-      const { data: refundsData } = await supabase
-        .from('credit_transactions')
-        .select('amount')
-        .eq('transaction_type', 'refund');
+      // Paginate to avoid 1000-row Supabase default limit
+      const fetchAllApiLogs = async () => {
+        const allRows: any[] = [];
+        let offset = 0;
+        const batchSize = 1000;
+        while (true) {
+          const { data } = await supabase
+            .from('api_cost_logs')
+            .select('service, operation, status, credits_charged, real_cost_cents')
+            .range(offset, offset + batchSize - 1);
+          if (!data || data.length === 0) break;
+          allRows.push(...data);
+          if (data.length < batchSize) break;
+          offset += batchSize;
+        }
+        return allRows;
+      };
+
+      const fetchAllClips = async () => {
+        const allRows: any[] = [];
+        let offset = 0;
+        const batchSize = 1000;
+        while (true) {
+          const { data } = await supabase
+            .from('video_clips')
+            .select('id, status, retry_count')
+            .range(offset, offset + batchSize - 1);
+          if (!data || data.length === 0) break;
+          allRows.push(...data);
+          if (data.length < batchSize) break;
+          offset += batchSize;
+        }
+        return allRows;
+      };
+
+      const [apiData, clipsData, refundsResult] = await Promise.all([
+        fetchAllApiLogs(),
+        fetchAllClips(),
+        supabase.from('credit_transactions').select('amount').eq('transaction_type', 'refund'),
+      ]);
+      const refundsData = refundsResult.data || [];
 
       let totalApiCost = 0;
       let failedApiCost = 0;
       let failedClips = 0;
 
-      (apiData || []).forEach((log: { service: string; status: string; real_cost_cents: number }) => {
+      apiData.forEach((log: { service: string; status: string; real_cost_cents: number }) => {
         let costPerCall = 0;
         switch (log.service) {
           case 'google_veo': costPerCall = VEO_COST_PER_CLIP_CENTS; break;
@@ -303,12 +332,12 @@ export default function AdminDashboard() {
       });
 
       let totalRetries = 0;
-      (clipsData || []).forEach((clip: { retry_count: number | null }) => {
+      clipsData.forEach((clip: { retry_count: number | null }) => {
         totalRetries += clip.retry_count || 0;
       });
       const retryCost = totalRetries * VEO_COST_PER_CLIP_CENTS;
 
-      const totalRefundCredits = (refundsData || []).reduce(
+      const totalRefundCredits = refundsData.reduce(
         (sum: number, r: { amount: number }) => sum + Math.abs(r.amount || 0), 
         0
       );
@@ -389,18 +418,37 @@ export default function AdminDashboard() {
 
   const fetchCalculatedApiCost = async () => {
     try {
-      const { data: apiData } = await supabase
-        .from('api_cost_logs')
-        .select('service, status');
-      
-      const { data: clipsData } = await supabase
-        .from('video_clips')
-        .select('retry_count');
+      // Paginate api_cost_logs to avoid 1000-row limit
+      const allApiData: any[] = [];
+      let offset = 0;
+      while (true) {
+        const { data } = await supabase
+          .from('api_cost_logs')
+          .select('service, status')
+          .range(offset, offset + 999);
+        if (!data || data.length === 0) break;
+        allApiData.push(...data);
+        if (data.length < 1000) break;
+        offset += 1000;
+      }
+
+      const allClipsData: any[] = [];
+      offset = 0;
+      while (true) {
+        const { data } = await supabase
+          .from('video_clips')
+          .select('retry_count')
+          .range(offset, offset + 999);
+        if (!data || data.length === 0) break;
+        allClipsData.push(...data);
+        if (data.length < 1000) break;
+        offset += 1000;
+      }
       
       let totalCost = 0;
       let opCount = 0;
       
-      (apiData || []).forEach((log: { service: string; status: string }) => {
+      allApiData.forEach((log: { service: string; status: string }) => {
         opCount++;
         switch (log.service) {
           case 'google_veo': totalCost += VEO_COST_PER_CLIP_CENTS; break;
@@ -414,7 +462,7 @@ export default function AdminDashboard() {
         }
       });
       
-      const totalRetries = (clipsData || []).reduce(
+      const totalRetries = allClipsData.reduce(
         (sum: number, clip: { retry_count: number | null }) => sum + (clip.retry_count || 0), 
         0
       );

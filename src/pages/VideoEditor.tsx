@@ -1,39 +1,29 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Loader2, Sparkles, Film, Check } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowLeft, Download, Loader2, Sparkles, Film, FolderOpen, Check } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEditorClips, EditorClip, EditorImage } from "@/hooks/useEditorClips";
+import { useEditorClips, EditorClip, EditorImage, ProjectSummary } from "@/hooks/useEditorClips";
+import { ProjectBrowser } from "@/components/editor/ProjectBrowser";
 import "@twick/studio/dist/studio.css";
 
 /**
- * Pre-populate Twick's media library using BrowserMediaManager.
- * Must complete BEFORE TwickStudio mounts so the MediaProvider sees items on init.
+ * Load a single project's clips into Twick's media library on demand.
+ * Uses BrowserMediaManager so items appear in Video/Image panels.
  */
-async function prePopulateMediaStore(
+async function loadClipsIntoLibrary(
   clips: EditorClip[],
   images: EditorImage[],
   BrowserMediaManager: any
 ): Promise<{ videos: number; images: number }> {
   const manager = new BrowserMediaManager();
 
-  // Clear existing items to only show this project's media
-  try {
-    const existing = await manager.getItems({ page: 1, limit: 500 });
-    if (existing.length > 0) {
-      await manager.deleteItems(existing.map((item: any) => item.id));
-    }
-  } catch {
-    // Store may be empty, that's fine
-  }
-
-  // Build video items — sorted by shot index for proper ordering
   const videoItems = clips
     .filter(c => c.videoUrl)
     .sort((a, b) => a.shotIndex - b.shotIndex)
     .map(clip => ({
-      name: `Shot ${clip.shotIndex + 1}`,
+      name: `Shot ${clip.shotIndex + 1} – ${clip.projectTitle}`,
       type: "video" as const,
       url: clip.videoUrl,
       thumbnail: clip.thumbnailUrl || undefined,
@@ -49,7 +39,6 @@ async function prePopulateMediaStore(
       },
     }));
 
-  // Build image items
   const imageItems = images.map(img => ({
     name: img.label,
     type: "image" as const,
@@ -70,7 +59,6 @@ async function prePopulateMediaStore(
     const added = await manager.addItems(videoItems);
     videosAdded = added.length;
   }
-
   if (imageItems.length > 0) {
     const added = await manager.addItems(imageItems);
     imagesAdded = added.length;
@@ -78,6 +66,7 @@ async function prePopulateMediaStore(
 
   return { videos: videosAdded, images: imagesAdded };
 }
+
 // Dynamically import Twick to avoid 504 bundling timeouts
 function useTwickModules() {
   const [modules, setModules] = useState<any>(null);
@@ -110,51 +99,13 @@ function useTwickModules() {
 }
 
 /**
- * Phase-based editor loading:
- * 1. Load Twick modules + fetch clips from DB (parallel)
- * 2. Pre-populate IndexedDB with clips
- * 3. Mount TwickStudio (reads clips from IndexedDB on init)
+ * VideoEditor — loads studio immediately, clips load on-demand via project browser.
  */
 export default function VideoEditor() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const projectId = searchParams.get("project");
-
   const { modules, loading: modulesLoading, error: loadError } = useTwickModules();
-  const { clips, images, loading: clipsLoading } = useEditorClips(projectId);
-  const [mediaReady, setMediaReady] = useState(false);
-  const [mediaCounts, setMediaCounts] = useState({ videos: 0, images: 0 });
-  const populatedRef = useRef(false);
 
-  // Phase 2: Once clips + modules are fetched, populate media library before mounting studio
-  useEffect(() => {
-    if (clipsLoading || modulesLoading || !modules || populatedRef.current) return;
-    populatedRef.current = true;
-
-    if (clips.length === 0 && images.length === 0) {
-      setMediaReady(true);
-      return;
-    }
-
-    const { BrowserMediaManager } = modules.studio;
-
-    prePopulateMediaStore(clips, images, BrowserMediaManager)
-      .then((counts) => {
-        setMediaCounts(counts);
-        if (counts.videos > 0 || counts.images > 0) {
-          console.log(`[Apex] Pre-loaded ${counts.videos} clips + ${counts.images} images into media library`);
-        }
-        setMediaReady(true);
-      })
-      .catch((err) => {
-        console.error("[Apex] Failed to pre-populate media store:", err);
-        setMediaReady(true);
-      });
-  }, [clips, images, clipsLoading, modulesLoading, modules]);
-
-  const isLoading = modulesLoading || clipsLoading || !mediaReady;
-
-  if (isLoading) {
+  if (modulesLoading) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#08080c] gap-6 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
@@ -172,10 +123,7 @@ export default function VideoEditor() {
               <Film className="w-6 h-6 text-primary animate-pulse-soft" />
             </div>
           </div>
-          <p className="text-sm font-medium text-foreground/70 font-display">
-            {!modulesLoading && !clipsLoading ? "Preparing media library…" : 
-             clipsLoading ? "Loading your clips…" : "Loading Studio…"}
-          </p>
+          <p className="text-sm font-medium text-foreground/70 font-display">Loading Studio…</p>
           <div className="w-48 h-0.5 bg-border/30 rounded-full overflow-hidden">
             <div className="h-full bg-gradient-to-r from-primary/60 via-primary to-primary/60 rounded-full animate-loader-progress" />
           </div>
@@ -198,14 +146,10 @@ export default function VideoEditor() {
     );
   }
 
-  // Phase 3: Mount studio — media is already in IndexedDB
-  return <StudioShell modules={modules} navigate={navigate} mediaCounts={mediaCounts} />;
+  return <StudioShell modules={modules} navigate={navigate} />;
 }
 
-/**
- * Thin wrapper that sets up Twick providers and renders the studio.
- */
-function StudioShell({ modules, navigate, mediaCounts }: { modules: any; navigate: any; mediaCounts: { videos: number; images: number } }) {
+function StudioShell({ modules, navigate }: { modules: any; navigate: any }) {
   const {
     TwickStudio,
     LivePlayerProvider,
@@ -225,29 +169,33 @@ function StudioShell({ modules, navigate, mediaCounts }: { modules: any; navigat
         <EditorChrome
           TwickStudio={TwickStudio}
           useBrowserRenderer={useBrowserRenderer}
+          BrowserMediaManager={modules.studio.BrowserMediaManager}
           navigate={navigate}
-          mediaCounts={mediaCounts}
         />
       </TimelineProvider>
     </LivePlayerProvider>
   );
 }
 
-/**
- * Editor chrome: top bar, export controls, and TwickStudio.
- */
 function EditorChrome({
   TwickStudio,
   useBrowserRenderer,
+  BrowserMediaManager,
   navigate,
-  mediaCounts,
 }: {
   TwickStudio: any;
   useBrowserRenderer: any;
+  BrowserMediaManager: any;
   navigate: any;
-  mediaCounts: { videos: number; images: number };
 }) {
   const [showSuccess, setShowSuccess] = useState(false);
+  const [browserOpen, setBrowserOpen] = useState(false);
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
+  const [loadedProjectIds, setLoadedProjectIds] = useState<Set<string>>(new Set());
+  const [mediaCounts, setMediaCounts] = useState({ videos: 0, images: 0 });
+
+  const { listProjects, loadProjectClips, loading: clipsLoading } = useEditorClips();
 
   const { render, progress, isRendering, error, reset } = useBrowserRenderer({
     width: 1920,
@@ -256,6 +204,40 @@ function EditorChrome({
     includeAudio: true,
     autoDownload: true,
   });
+
+  // Fetch project list when browser opens
+  const openBrowser = useCallback(async () => {
+    setBrowserOpen(true);
+    if (!projectsLoaded) {
+      const result = await listProjects();
+      setProjects(result);
+      setProjectsLoaded(true);
+    }
+  }, [listProjects, projectsLoaded]);
+
+  // Load a single project's clips into the library on demand
+  const handleSelectProject = useCallback(async (projectId: string) => {
+    if (loadedProjectIds.has(projectId)) return;
+
+    try {
+      const { clips, images } = await loadProjectClips(projectId);
+      const counts = await loadClipsIntoLibrary(clips, images, BrowserMediaManager);
+
+      setLoadedProjectIds(prev => new Set(prev).add(projectId));
+      setMediaCounts(prev => ({
+        videos: prev.videos + counts.videos,
+        images: prev.images + counts.images,
+      }));
+
+      const project = projects.find(p => p.id === projectId);
+      toast.success(`Loaded ${counts.videos} clips from "${project?.title || "project"}"`);
+
+      console.log(`[Apex] On-demand: loaded ${counts.videos} clips + ${counts.images} images for project ${projectId}`);
+    } catch (err) {
+      console.error("[Apex] Failed to load project clips:", err);
+      toast.error("Failed to load clips. Please try again.");
+    }
+  }, [loadedProjectIds, loadProjectClips, BrowserMediaManager, projects]);
 
   const onExportVideo = useCallback(async () => {
     try {
@@ -288,15 +270,28 @@ function EditorChrome({
         className="h-12 flex items-center justify-between px-3 border-b border-white/[0.06] bg-[#0a0a10]/90 backdrop-blur-2xl shrink-0 z-10"
       >
         {/* Left */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate("/projects")}
-          className="text-muted-foreground/60 hover:text-foreground gap-1 hover:bg-white/[0.04] h-8 px-2"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span className="text-[12px] hidden sm:inline">Back</span>
-        </Button>
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/projects")}
+            className="text-muted-foreground/60 hover:text-foreground gap-1 hover:bg-white/[0.04] h-8 px-2"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span className="text-[12px] hidden sm:inline">Back</span>
+          </Button>
+
+          {/* Import button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={openBrowser}
+            className="h-8 px-3 text-[11px] gap-1.5 rounded-full border-border/30 hover:border-primary/30 hover:bg-primary/5"
+          >
+            <FolderOpen className="w-3 h-3" />
+            <span>Import Clips</span>
+          </Button>
+        </div>
 
         {/* Center */}
         <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
@@ -361,10 +356,21 @@ function EditorChrome({
         )}
       </AnimatePresence>
 
-      {/* Full Twick Studio — clips are already in its IndexedDB media library */}
+      {/* Twick Studio — starts empty, clips loaded on demand */}
       <div className="flex-1 min-h-0">
         <TwickStudio />
       </div>
+
+      {/* Project Browser overlay */}
+      <ProjectBrowser
+        open={browserOpen}
+        onClose={() => setBrowserOpen(false)}
+        projects={projects}
+        loadingProjects={!projectsLoaded && clipsLoading}
+        onSelectProject={handleSelectProject}
+        loadingClips={clipsLoading}
+        loadedProjectIds={loadedProjectIds}
+      />
 
       {/* Floating notifications */}
       <AnimatePresence>

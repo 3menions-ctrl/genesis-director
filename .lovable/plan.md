@@ -1,94 +1,139 @@
+# Complete Development Plan — Foundation Up
 
-
-# Neuter Landing Page & Unify Loading Architecture
-
-## Overview
-Strip the landing page of its heavy, crash-simulating, and bandwidth-hogging elements while ensuring every page and feature loads through the existing world-class CinemaLoader + Gatekeeper pattern.
-
----
-
-## Phase 1: Remove ScreenCrashOverlay (Three.js elimination)
-
-**Problem**: ~500KB bundle bloat from Three.js/React Three Fiber. Simulates a crash, confusing users. 10-second countdown blocks interaction.
-
-**Action**:
-- Delete `src/components/landing/ScreenCrashOverlay.tsx`
-- Delete `src/components/landing/glass-shatter/` directory (GlassShatterScene.tsx, GlassShard.tsx, shardGenerator.ts, index.ts)
-- Remove the ScreenCrashOverlay import, state, and JSX from `Landing.tsx`
-- Remove `screenCrashDismissed` state and `handleDismissScreenCrash` callback
+## Priority Legend
+- 🔴 P0 — Critical (blocks core UX or revenue)
+- 🟡 P1 — Important (degrades experience)
+- 🟢 P2 — Polish (nice-to-have)
 
 ---
 
-## Phase 2: Neuter CinematicTransition (650-line animation monster)
+## PHASE 1: Backend Cleanup & Foundation 🔴
 
-**Problem**: 150 particles, 32 rays, 12 orbs, 5 pulse rings, 13-second sequence. Massive Framer Motion overhead.
+### 1.1 Edge Function Consolidation
+**Problem**: 91 edge functions, many redundant or orphaned.
+**Actions**:
+- [ ] Merge `generate-avatar`, `generate-avatar-image`, `generate-single-avatar` → single `generate-avatar-direct`
+- [ ] Merge `generate-avatars-batch`, `generate-avatar-batch`, `batch-avatar-generator` → single `generate-avatar-batch`
+- [ ] Merge `extract-video-frame`, `extract-first-frame`, `extract-last-frame` → single `extract-video-frame` with `position` param
+- [ ] Merge `generate-thumbnail`, `generate-project-thumbnail`, `generate-video-thumbnails`, `generate-missing-thumbnails` → single `generate-thumbnail`
+- [ ] Delete `motion-transfer/` (returns 501, no frontend)
+- [ ] Delete `stylize-video/` (no frontend trigger)
+- [ ] Delete `generate-trailer/` (no frontend trigger)
+- [ ] Delete `generate-hls-playlist/` (no frontend consumer)
+- [ ] Update all frontend callers to use consolidated function names
+- **Target**: 91 → ~45 edge functions
 
-**Action**:
-- Replace the entire `CinematicTransition.tsx` with a clean 2-second fade-to-black using the existing `CinemaLoader` component
-- Transition: fade in CinemaLoader -> navigate after 1.5s -> fade out
-- Removes ~600 lines of particle/ray/orb animation code
-
----
-
-## Phase 3: Fix PromptResultShowcase video preloading
-
-**Problem**: 4 videos with `preload="auto"` = 40-80MB loaded on page mount.
-
-**Action**:
-- Change `preload="auto"` to `preload="none"` on the showcase video element
-- Videos only load when the typewriter cycle reaches the reveal phase (already happens via `.play()`)
-
----
-
-## Phase 4: Fix AvatarCTASection video preloading
-
-**Problem**: Avatar CTA video uses `preload="auto"`, loading eagerly.
-
-**Action**:
-- Change `preload="auto"` to `preload="none"`
+### 1.2 Stripe Checkout Hardening
+**Problem**: Recurring CORS and auth failures in `create-credit-checkout`.
+**Actions**:
+- [ ] Rewrite `create-credit-checkout` with expanded CORS headers and inline auth
+- [ ] Add integration test that exercises the full checkout→webhook→credit flow
+- [ ] Verify `stripe-webhook` idempotency with duplicate event IDs
 
 ---
 
-## Phase 5: Remove duplicate SocialProofTicker
+## PHASE 2: Video Export — The #1 Broken Feature 🔴
 
-**Problem**: Two identical `<SocialProofTicker />` instances in Landing.tsx, each running independent intervals.
+### 2.1 Multi-Clip Export Fix
+**Problem**: Editor export only downloads first clip. `mp4box.js` concat fails silently.
+**Actions**:
+- [ ] Replace client-side `mp4Concat.ts` with a server-side `render-video` edge function that uses FFmpeg/cloud stitching
+- [ ] Implement fallback: if server render unavailable, download clips as ZIP instead of broken single file
+- [ ] Add progress UI showing download + merge stages
+- [ ] Add export verification: check output file size > sum of inputs × 0.5
 
-**Action**:
-- Remove the second `<SocialProofTicker />` (between FeaturesShowcase and PricingSection)
+### 2.2 Editor Effects in Export
+**Problem**: Color grading, filters, text, speed, crop, audio fade — all CSS/preview-only, not in export.
+**Actions**:
+- [ ] Design an export manifest format: `{ clips: [...], effects: { colorGrading, filters, text, speed, crop, audioFade } }`
+- [ ] Pass manifest to `render-video` edge function
+- [ ] For MVP: apply effects server-side via FFmpeg filter chains
+- [ ] For fallback (no server): clearly label export as "preview quality — effects not included"
 
 ---
 
-## Phase 6: Landing page gatekeeper integration
+## PHASE 3: Stub Features — Remove or Complete 🟡
 
-**Problem**: Landing page has no loading gatekeeper -- it just renders everything immediately, causing layout thrash as lazy components pop in.
+### 3.1 Remove Dead Stubs
+Features with no backend AND no realistic path to completion:
+- [ ] **Motion Transfer Mode**: Remove from `VIDEO_MODE_CONFIG`, remove edge function
+- [ ] **Beat Sync**: Remove panel from editor (simple division ≠ beat detection)
+- [ ] **Chroma Key**: Remove panel from editor (CSS mix-blend-mode ≠ chroma key)
+- [ ] **Keyframe Editor**: Remove panel (no interpolation engine)
+- [ ] **Picture-in-Picture**: Remove panel (metadata stored but never rendered)
+- [ ] **Stickers**: Remove panel (never rendered on canvas)
+- [ ] **Trending Effects**: Remove panel (names only, no effect application)
 
-**Action**:
-- Add the landing page to the gatekeeper system via `useGatekeeperLoading` with a lightweight config
-- Show `CinemaLoader` briefly while the AbstractBackground image and hero section mount
-- Signal ready once the background image loads and auth check completes
-- This gives a clean fade-in instead of content popping
+### 3.2 Fix Actionable Stubs
+Features that are close to working:
+- [ ] **Press Kit Download**: Create actual press kit PDF/ZIP in storage, wire download button
+- [ ] **Press Media Inquiries**: Wire to `mailto:press@[domain]` or contact form
+- [ ] **Leaderboard**: Create `/leaderboard` page using existing `user_gamification` data, wire profile button
+- [ ] **Blog**: Move articles to database table `blog_posts`, build simple CMS in admin panel
 
 ---
 
-## Technical Details
+## PHASE 4: Frontend Polish & Design Excellence 🟡
 
-### Files to delete:
-- `src/components/landing/ScreenCrashOverlay.tsx`
-- `src/components/landing/glass-shatter/GlassShatterScene.tsx`
-- `src/components/landing/glass-shatter/GlassShard.tsx`
-- `src/components/landing/glass-shatter/shardGenerator.ts`
-- `src/components/landing/glass-shatter/index.ts`
+### 4.1 Design System Audit
+- [ ] Audit all components for hardcoded colors → replace with semantic tokens
+- [ ] Ensure dark/light mode consistency across all 34 pages
+- [ ] Typography audit: enforce Sora headings / Instrument Sans body everywhere
+- [ ] Spacing audit: consistent padding/margins using design scale
 
-### Files to modify:
-- `src/pages/Landing.tsx` -- Remove ScreenCrashOverlay, remove duplicate ticker, add gatekeeper
-- `src/components/landing/CinematicTransition.tsx` -- Replace with minimal CinemaLoader-based transition
-- `src/components/landing/PromptResultShowcase.tsx` -- `preload="none"`
-- `src/components/landing/AvatarCTASection.tsx` -- `preload="none"`
-- `src/hooks/useGatekeeperLoading.ts` -- Add `landing` preset
+### 4.2 Landing Page Performance (from existing plan)
+- [ ] Remove ScreenCrashOverlay (Three.js → -500KB)
+- [ ] Replace CinematicTransition with minimal CinemaLoader fade
+- [ ] Fix video preloading (`preload="auto"` → `preload="none"`)
+- [ ] Remove duplicate SocialProofTicker
+- [ ] Add gatekeeper loading integration
 
-### Expected impact:
-- ~500KB bundle size reduction (Three.js removal)
-- ~40-80MB less bandwidth on landing page load
-- Consistent loading UX via CinemaLoader across all entry points
-- Faster LCP and Time to Interactive
+### 4.3 Critical UX Fixes
+- [ ] Production page: add clear "what's happening" status messages for each pipeline stage
+- [ ] Error states: ensure every API call has proper error UI (not just console.warn)
+- [ ] Loading states: audit all data-fetching pages for skeleton/spinner coverage
+- [ ] Empty states: ensure all list views have proper empty state illustrations
 
+---
+
+## PHASE 5: Security & Stability 🟡
+
+### 5.1 RLS Audit
+- [ ] Run database linter
+- [ ] Review all 40+ table policies for correctness
+- [ ] Verify no tables allow unrestricted public writes
+
+### 5.2 Edge Function Auth
+- [ ] Verify all 91 edge functions use `auth-guard.ts`
+- [ ] Ensure no function accepts raw SQL or user-provided queries
+- [ ] Rate limiting on all public-facing endpoints
+
+---
+
+## PHASE 6: Testing Infrastructure 🟢
+
+- [ ] Add E2E tests for: signup → create project → production → export
+- [ ] Add integration tests for Stripe checkout flow
+- [ ] Add integration tests for avatar generation pipeline
+- [ ] Monitor: set up alerting for pipeline-watchdog failures
+
+---
+
+## Execution Order
+
+```
+Week 1: Phase 1 (Backend cleanup) + Phase 2 (Export fix)
+Week 2: Phase 3 (Stubs) + Phase 4.2 (Landing perf)
+Week 3: Phase 4.1 + 4.3 (Design + UX)
+Week 4: Phase 5 (Security) + Phase 6 (Testing)
+```
+
+---
+
+## Success Metrics
+- 0 broken features in inventory
+- 0 stub features in inventory  
+- Export produces correct multi-clip video 100% of the time
+- Landing page LCP < 2.5s
+- Edge functions reduced from 91 to ~45
+- All tables pass RLS linter

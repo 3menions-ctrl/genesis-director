@@ -185,8 +185,8 @@ Intentional `FIXME`/`FIX` comments (previously resolved issues, kept as document
 | `kling-v3-audit-test` | Test Kling V3 | Development tool, acceptable |
 | `seed-avatar-batch-v2` | Seed avatar data | One-time setup, acceptable |
 | `seed-avatar-library` | Seed avatar data | One-time setup, acceptable |
-| `regenerate-stock-avatars` | Refresh stock avatars | Admin maintenance, acceptable |
-| `regenerate-animated-avatars` | Refresh animated avatars | Admin maintenance, acceptable |
+| ~~`regenerate-stock-avatars`~~ | ~~Refresh stock avatars~~ | **Deleted** — consolidated into `seed-avatar-library` |
+| ~~`regenerate-animated-avatars`~~ | ~~Refresh animated avatars~~ | **Deleted** — consolidated into `seed-avatar-library` |
 | `revoke-demo-sessions` | Clean demo sessions | Maintenance, acceptable |
 | `zombie-cleanup` | Clean stale processes | Called by watchdog, acceptable |
 

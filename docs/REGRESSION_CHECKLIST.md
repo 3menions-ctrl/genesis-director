@@ -41,7 +41,7 @@
 - [ ] Editor loads and restores last session
 - [ ] Clips can be added to timeline
 - [ ] Single-clip export downloads MP4
-- [ ] Multi-clip export merges via mp4box.js and downloads single file
+- [ ] Multi-clip export downloads as ZIP
 - [ ] Ctrl+S saves session
 - [ ] Back button navigates to `/projects`
 

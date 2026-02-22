@@ -1,8 +1,7 @@
 /**
  * Browser Video Merger (Lightweight)
  * 
- * Downloads clips and packages them as a ZIP file.
- * FFmpeg.wasm and mp4box have been removed for bundle size optimization.
+ * Downloads clips and packages them as a ZIP file (multi-clip) or direct MP4 (single clip).
  */
 
 export interface MergeProgress {

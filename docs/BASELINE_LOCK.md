@@ -53,7 +53,7 @@
 1. **Auth Flow**: Sign up → email verification → sign in → profile fetch → redirect
 2. **Creation Flow**: `/create` → mode select → prompt → script gen → `/script-review` → approve → `/production/:id`
 3. **Production Pipeline**: Clips generate → poll status → stitch → video_url populated → playback
-4. **Editor Export**: Open editor → add clips → export → multi-clip MP4 merge (mp4box.js) → download
+4. **Editor Export**: Open editor → add clips → export → single MP4 download or multi-clip ZIP package → download
 5. **Credit Purchase**: Select package → Stripe checkout → credits added to balance
 6. **Gallery**: Public videos load with thumbnails, playable
 7. **Social**: Follow/unfollow, comments, likes, DMs

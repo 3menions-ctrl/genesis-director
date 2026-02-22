@@ -1322,35 +1322,28 @@ const VideoEditor = () => {
         }
       }
 
-      // MULTI-CLIP: Use FFmpeg.wasm (single-threaded core, no SharedArrayBuffer needed)
+      // MULTI-CLIP: Use mp4box.js (pure JS, no SharedArrayBuffer needed)
       // to merge all clips into a single seamless MP4 file
       setEditorState((prev) => ({ ...prev, renderProgress: 20 }));
       toast.info(`Merging ${allClipUrls.length} clips into one video...`);
 
       try {
-        const { mergeVideoClips, downloadBlob } = await import("@/lib/video/browserVideoMerger");
-        const result = await mergeVideoClips({
-          clipUrls: allClipUrls,
-          outputFilename: `${sanitizedName}-complete.mp4`,
-          projectId: editorState.projectId || "editor",
-          projectName: editorState.title,
-          onProgress: (p) => {
-            setEditorState((prev) => ({ ...prev, renderProgress: 20 + Math.round(p.progress * 0.8) }));
-          },
+        const { concatMP4Clips } = await import("@/lib/video/mp4Concat");
+        const result = await concatMP4Clips(allClipUrls, (p) => {
+          setEditorState((prev) => ({ ...prev, renderProgress: 20 + Math.round(p.progress * 0.8) }));
         });
 
         if (result.success && result.blob) {
-          downloadBlob(result.blob, result.filename || `${sanitizedName}-complete.mp4`);
+          downloadBlobToUser(result.blob, `${sanitizedName}-complete.mp4`);
           setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
           toast.success("Merged video downloaded!");
           resetExportStatus();
           return;
         }
 
-        // If merge returned an error, show it and fall through to individual download
-        console.warn("[Editor Export] FFmpeg merge failed:", result.error);
-      } catch (mergeErr) {
-        console.warn("[Editor Export] FFmpeg merge unavailable:", mergeErr);
+        console.warn("[Editor Export] mp4box concat failed:", result.error);
+      } catch (concatErr) {
+        console.warn("[Editor Export] mp4box concat error:", concatErr);
       }
 
       // LAST RESORT fallback: Download clips individually (only on iOS or if FFmpeg fails)

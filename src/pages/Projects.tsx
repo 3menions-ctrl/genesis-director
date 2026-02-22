@@ -4,7 +4,7 @@ import { withSafePageRef } from '@/lib/withSafeRef';
 import { useSafeNavigation, useRouteCleanup, useNavigationAbort } from '@/lib/navigation';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
 import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
-import { debounce } from '@/lib/concurrency/debounce';
+// debounce removed - realtime subscription uses inline setTimeout for stability
 import { 
   Plus, Film, Play, Download, Trash2, Edit2,
   Loader2, Clock,
@@ -265,29 +265,29 @@ function ProjectsContentInner() {
   }, [user, selectedPhotoEdit]);
   
   // BATCH RESOLVE: Fetch all clip URLs for projects that need them in ONE query
+  // STABILITY FIX: Use project IDs string as dep key instead of projects array reference
+  const projectIdsKey = useMemo(() => projects.map(p => p.id).join(','), [projects]);
+  const clipResolutionDoneRef = useRef(false);
+  
   useEffect(() => {
-    // Guard: Wait for user, hasLoadedOnce, and projects before resolving
     if (!user || !hasLoadedOnce || !Array.isArray(projects) || projects.length === 0) return;
     
-    // RACE CONDITION FIX: Track this call to prevent stale updates
     const callId = ++clipResolutionIdRef.current;
+    clipResolutionDoneRef.current = false;
     
     const resolveClipUrls = async () => {
-      // ALWAYS check video_clips for ALL completed projects to avoid expired Replicate URLs
-      // Replicate delivery URLs are temporary - we must use permanent Supabase storage URLs
       const projectsNeedingResolution = projects.filter(p => {
         const isCompleted = p.status === 'completed';
-        const hasClipsArray = p.video_clips && p.video_clips.length > 0;
-        // Also resolve for projects with Replicate URLs (they expire!)
         const hasReplicateUrl = p.video_url?.includes('replicate.delivery');
         const hasManifest = isManifestUrl(p.video_url);
-        // Need resolution if: completed, has manifest, has Replicate URL, or missing clips array
-        return isCompleted || hasManifest || hasReplicateUrl || !hasClipsArray;
+        return isCompleted || hasManifest || hasReplicateUrl;
       });
       
-      if (projectsNeedingResolution.length === 0) return;
+      if (projectsNeedingResolution.length === 0) {
+        clipResolutionDoneRef.current = true;
+        return;
+      }
       
-      // Batch query: get first clip for all projects at once
       const projectIds = projectsNeedingResolution.map(p => p.id);
       
       try {
@@ -299,25 +299,16 @@ function ProjectsContentInner() {
           .not('video_url', 'is', null)
           .order('shot_index', { ascending: true });
         
-        // RACE CONDITION FIX: Abort if a newer call has started
-        if (clipResolutionIdRef.current !== callId) {
-          console.debug('[Projects] Clip resolution aborted - newer call in progress');
-          return;
-        }
+        if (clipResolutionIdRef.current !== callId) return;
         
         if (clips && clips.length > 0) {
-          console.log('[Projects] Batch resolved clips:', clips.length, 'clips for', projectIds.length, 'projects');
-          
-          // Group by project_id and take first clip for each
           const clipsByProject = new Map<string, string>();
           for (const clip of clips) {
-            const isReplicateUrl = clip.video_url?.includes('replicate.delivery');
-            if (!clipsByProject.has(clip.project_id) && clip.video_url && !isReplicateUrl) {
+            if (!clipsByProject.has(clip.project_id) && clip.video_url && !clip.video_url.includes('replicate.delivery')) {
               clipsByProject.set(clip.project_id, clip.video_url);
             }
           }
           
-          // Fallback: for projects not found in video_clips table, check video_clips column (avatar projects)
           for (const p of projectsNeedingResolution) {
             if (!clipsByProject.has(p.id) && p.video_clips && p.video_clips.length > 0) {
               const firstMp4 = p.video_clips.find((u: string) => u?.includes('.mp4') && !u.includes('replicate.delivery'));
@@ -325,27 +316,30 @@ function ProjectsContentInner() {
             }
           }
           
-          // Merge with existing resolved URLs (don't lose previously resolved ones on Load More)
           setResolvedClipUrls(prev => {
             const merged = new Map(prev);
             clipsByProject.forEach((url, id) => merged.set(id, url));
             return merged;
           });
         }
+        clipResolutionDoneRef.current = true;
       } catch (err) {
         console.debug('[Projects] Batch clip resolution failed:', err);
+        clipResolutionDoneRef.current = true;
       }
     };
     
     resolveClipUrls();
-  }, [user, hasLoadedOnce, projects]);
+  }, [user, hasLoadedOnce, projectIdsKey]); // Stable string key, not array reference
   
-  // Auto-generate missing thumbnails when projects load (uses resolved clip URLs)
+  // Auto-generate missing thumbnails - runs ONCE after clip resolution completes
+  const thumbnailsGeneratedRef = useRef(false);
   useEffect(() => {
-    // Guard: Wait for user and valid projects array
-    if (!user || !hasLoadedOnce || !Array.isArray(projects) || projects.length === 0) return;
-    // Wait for clip resolution to complete before generating thumbnails
+    if (!user || !hasLoadedOnce || projects.length === 0) return;
     if (resolvedClipUrls.size === 0) return;
+    if (thumbnailsGeneratedRef.current) return;
+    
+    thumbnailsGeneratedRef.current = true;
     
     try {
       const projectsNeedingThumbnails = projects.map(p => ({
@@ -358,7 +352,7 @@ function ProjectsContentInner() {
     } catch (err) {
       console.debug('[Projects] Thumbnail generation skipped:', err);
     }
-  }, [user, hasLoadedOnce, projects, resolvedClipUrls, generateMissingThumbnails]);
+  }, [user, hasLoadedOnce, projects.length, resolvedClipUrls.size, generateMissingThumbnails]);
 
 
   // Fetch training videos
@@ -516,14 +510,14 @@ function ProjectsContentInner() {
   }, []);
 
   // Realtime subscription for project updates
+  // STABILITY FIX: Use ref for refresh to keep subscription stable
+  const refreshRef = useRef(refreshProjects);
+  refreshRef.current = refreshProjects;
+  
   useEffect(() => {
     if (!user) return;
     
-    // DEBOUNCED: Prevent rapid-fire refreshes from bursting realtime updates
-    const debouncedRefresh = debounce(() => {
-      console.debug('[Projects] Debounced realtime refresh triggered');
-      refreshProjects();
-    }, 500);
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     
     const channel = supabase
       .channel('projects_realtime')
@@ -536,16 +530,19 @@ function ProjectsContentInner() {
           filter: `user_id=eq.${user.id}`,
         },
         () => {
-          debouncedRefresh();
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            refreshRef.current();
+          }, 500);
         }
       )
       .subscribe();
 
     return () => {
-      debouncedRefresh.cancel();
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [user, refreshProjects]);
+  }, [user?.id]); // Stable dep - only user ID, not refreshProjects
 
   // Helper functions
   const status = (p: Project) => p.status as string;

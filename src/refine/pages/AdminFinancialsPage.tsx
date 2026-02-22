@@ -78,12 +78,10 @@ export default function AdminFinancialsPage() {
         }
         return rows;
       };
-      const [api, clips] = await Promise.all([fetchAll("api_cost_logs", "service, status, real_cost_cents"), fetchAll("video_clips", "retry_count")]);
+      const api = await fetchAll("api_cost_logs", "service, status, real_cost_cents");
       let cost = 0, ops = 0;
       api.forEach((l: any) => { ops++; cost += l.real_cost_cents || 0; });
-      const retries = clips.reduce((s: number, c: any) => s + (c.retry_count || 0), 0);
-      cost += retries * 5; // replicate-kling fallback cost per retry
-      setApiCost(cost); setTotalOps(ops + retries);
+      setApiCost(cost); setTotalOps(ops);
     } catch { /* silent */ }
   };
 

@@ -77,6 +77,13 @@ interface ReplicatePrediction {
     get: string;
     cancel: string;
   };
+  metrics?: {
+    predict_time?: number; // GPU seconds billed by Replicate
+    total_time?: number;
+  };
+  // Official models may include per-output pricing
+  model?: string;
+  version?: string;
 }
 
 /**
@@ -193,7 +200,7 @@ async function pollReplicatePrediction(
   totalShots: number,
   maxAttempts = 90,      // 90 attempts x 4 seconds = 6 minutes max
   pollInterval = 4000    // 4 second intervals
-): Promise<{ videoUrl: string }> {
+): Promise<{ videoUrl: string; predictTime?: number; totalTime?: number }> {
   const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
   if (!REPLICATE_API_KEY) {
     throw new Error("REPLICATE_API_KEY is not configured");
@@ -291,8 +298,8 @@ async function pollReplicatePrediction(
           `Clip ${shotIndex + 1}/${totalShots} complete! ${shotIndex + 1 < totalShots ? 'Starting next clip...' : 'Finalizing video...'}`
         );
         
-        console.log(`[SingleClip] ✓ Clip completed: ${videoUrl.substring(0, 80)}...`);
-        return { videoUrl };
+        console.log(`[SingleClip] ✓ Clip completed: ${videoUrl.substring(0, 80)}... (predict_time: ${prediction.metrics?.predict_time || 'N/A'}s)`);
+        return { videoUrl, predictTime: prediction.metrics?.predict_time, totalTime: prediction.metrics?.total_time };
         
       case "failed":
         const errorMsg = prediction.error || "Replicate generation failed";
@@ -1036,7 +1043,7 @@ serve(async (req) => {
     }
 
     // Poll for completion with real-time progress updates
-    const { videoUrl } = await pollReplicatePrediction(
+    const { videoUrl, predictTime, totalTime } = await pollReplicatePrediction(
       predictionId,
       supabase,
       projectId,
@@ -1230,13 +1237,19 @@ serve(async (req) => {
       }
     }
 
-    // Log API cost — Kling V3: all modes unified
-    // Credits charged MUST match what mode-router actually deducts per clip:
-    //   Standard: 50cr (≤10s), 75cr (15s) — real cost ~$3.38/10s
-    //   Avatar:   60cr (≤10s), 90cr (15s) — real cost ~$4.00/10s (native audio)
-    // This ensures the admin profit dashboard shows accurate margins.
+    // Log API cost — Kling V3 (official model on Replicate)
+    // Replicate bills Kling v3 per output-second at ~$0.25-0.30/sec
+    // We use predict_time from the API response when available for actual GPU cost,
+    // and estimate per-output-second cost for the billing component.
+    // Credits charged MUST match what mode-router actually deducts per clip.
     try {
-      const realCostCents = Math.round(durationSeconds * (isAvatarMode ? 40 : 34)); // $0.34/s std, $0.40/s avatar
+      // Kling v3 official model pricing: ~$0.28/sec of output video (avg of $2-3/10s)
+      const KLING_V3_COST_PER_OUTPUT_SEC_CENTS = 28; // $0.28/sec
+      const KLING_V3_AVATAR_COST_PER_OUTPUT_SEC_CENTS = 35; // $0.35/sec (native audio adds cost)
+      
+      const perSecRate = isAvatarMode ? KLING_V3_AVATAR_COST_PER_OUTPUT_SEC_CENTS : KLING_V3_COST_PER_OUTPUT_SEC_CENTS;
+      const realCostCents = Math.round(durationSeconds * perSecRate);
+      
       const isExtended = durationSeconds > 10;
       const creditsCharged = isAvatarMode
         ? (isExtended ? 90 : 60)
@@ -1258,8 +1271,13 @@ serve(async (req) => {
           hasStartImage: !!validatedStartImage,
           hasLastFrame: !!extractedLastFrameUrl,
           hasContinuityManifest: !!extractedContinuityManifest,
+          replicate_predict_time_sec: predictTime || null,
+          replicate_total_time_sec: totalTime || null,
+          cost_method: 'per_output_second',
+          cost_rate_cents_per_sec: perSecRate,
         }),
       });
+      console.log(`[SingleClip] 💰 Cost logged: ${realCostCents}¢ (${durationSeconds}s × ${perSecRate}¢/s), predict_time=${predictTime || 'N/A'}s`);
     } catch (costError) {
       console.warn('[SingleClip] Failed to log cost:', costError);
     }

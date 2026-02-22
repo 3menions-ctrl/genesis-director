@@ -109,7 +109,10 @@ serve(async (req) => {
           if (typeof output === "string") videoUrl = output;
           else if (Array.isArray(output) && output.length > 0) videoUrl = output[0];
 
-          console.log(`[PollReplicate] ✅ Prediction ${predictionId} SUCCEEDED after ${Math.round((Date.now() - startTime) / 1000)}s`);
+          // Capture Replicate metrics for cost tracking
+          const predictTime = prediction.metrics?.predict_time;
+          const totalTime = prediction.metrics?.total_time;
+          console.log(`[PollReplicate] ✅ Prediction ${predictionId} SUCCEEDED after ${Math.round((Date.now() - startTime) / 1000)}s (predict_time: ${predictTime || 'N/A'}s)`);
           break;
         }
 
@@ -219,18 +222,23 @@ serve(async (req) => {
         console.error(`[PollReplicate] Failed to chain continue-production:`, chainErr);
       }
 
-      // Log cost
+      // Log cost — use per-output-second pricing for Kling v3
+      // Kling v3 official model: ~$0.28/sec of output video
       try {
+        const clipDuration = 6; // default clip duration in seconds
+        const KLING_V3_COST_PER_SEC_CENTS = 28;
+        const realCostCents = Math.round(clipDuration * KLING_V3_COST_PER_SEC_CENTS);
+        
         await supabase.rpc('log_api_cost', {
           p_service: 'replicate-kling',
           p_operation: 'poll-completion',
-          p_real_cost_cents: 0,
-          p_credits_charged: 0,
+          p_real_cost_cents: realCostCents,
+          p_credits_charged: 0, // credits already charged at generation start
           p_status: 'completed',
           p_project_id: projectId,
           p_shot_id: predictionId,
           p_user_id: userId,
-          p_metadata: { pollDurationMs: Date.now() - startTime, chainDepth, shotIndex },
+          p_metadata: { pollDurationMs: Date.now() - startTime, chainDepth, shotIndex, cost_method: 'per_output_second', cost_rate: KLING_V3_COST_PER_SEC_CENTS },
         });
       } catch (_) { /* non-fatal */ }
 

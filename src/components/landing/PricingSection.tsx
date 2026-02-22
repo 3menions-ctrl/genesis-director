@@ -209,7 +209,13 @@ export const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
     onVideoEnded();
   }, [onVideoEnded]);
 
-  // Muted state is synced inline via the video ref callback and onTimeUpdate
+  // Sync muted state to underlying video element
+  useEffect(() => {
+    const video = playerRef.current?.getVideoElement?.();
+    if (video) {
+      video.muted = isMuted;
+    }
+  }, [isMuted]);
 
   // Escape key to exit
   useEffect(() => {
@@ -224,50 +230,24 @@ export const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
     return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [onClose]);
 
-  // Sync muted state to the underlying video element
-  useEffect(() => {
-    const video = playerRef.current?.getVideoElement?.();
-    if (video) {
-      video.muted = isMuted;
-    }
-  }, [isMuted]);
-
   return (
     <>
       {/* Video background layer - above all content */}
       <div className="fixed inset-0 z-[100] animate-fade-in" style={{ animationDuration: '1.2s', pointerEvents: 'none' }}>
-        {/* Fullscreen MP4 video — HLS m3u8 has corrupt segments, MP4 is reliable */}
-        <video
-          ref={(el) => {
-            if (el) {
-              (playerRef as any).current = { getVideoElement: () => el };
-              el.muted = isMuted;
-              // Robust play with retry — browsers can reject the first attempt
-              const tryPlay = () => {
-                el.play().catch(() => {
-                  // Retry once after a short delay
-                  setTimeout(() => el.play().catch(() => {}), 500);
-                });
-              };
-              if (el.readyState >= 2) {
-                tryPlay();
-              } else {
-                el.addEventListener('canplay', tryPlay, { once: true });
-              }
-            }
-          }}
-          src={STORYTELLING_MP4_FALLBACK}
+        {/* Fullscreen HLS video — plays ALL clips via UniversalHLSPlayer */}
+        <UniversalHLSPlayer
+          ref={playerRef}
+          hlsUrl={STORYTELLING_HLS_URL}
+          fallbackMp4Url={STORYTELLING_MP4_FALLBACK}
           className="absolute inset-0 w-full h-full object-cover"
           autoPlay
           muted={isMuted}
           loop={false}
-          playsInline
+          showControls={false}
           onEnded={stopPlayback}
-          onTimeUpdate={(e) => {
-            const v = e.currentTarget;
+          onTimeUpdate={(currentTime, duration) => {
             if (hasEndedRef.current) return;
-            const dur = v.duration;
-            if (dur && isFinite(dur) && dur > 0 && v.currentTime >= dur - 0.3) {
+            if (duration && isFinite(duration) && duration > 0 && currentTime >= duration - 0.3) {
               stopPlayback();
             }
           }}
@@ -276,7 +256,6 @@ export const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
         {/* Dark gradient overlay for content readability */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/65" />
       </div>
-
 
       {/* Controls - separate from video layer so z-index works */}
       <div className="fixed top-20 right-6 z-[9999] flex items-center gap-2 animate-fade-in" style={{ pointerEvents: 'auto', animationDelay: '0.6s' }}>

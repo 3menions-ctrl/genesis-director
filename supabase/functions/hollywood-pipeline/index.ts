@@ -6323,6 +6323,7 @@ serve(async (req) => {
     // SECURITY: Extract userId from JWT instead of trusting client payload
     const authHeader = req.headers.get("Authorization");
     let authenticatedUserId: string | null = null;
+    let isServiceRoleCall = false;
     
     if (authHeader?.startsWith("Bearer ")) {
       try {
@@ -6331,11 +6332,19 @@ serve(async (req) => {
         if (authResult.authenticated && authResult.userId) {
           authenticatedUserId = authResult.userId;
         } else if (authResult.isServiceRole) {
+          isServiceRoleCall = true;
           // Service-role call (e.g., watchdog) — userId comes from request body
         }
       } catch (authErr) {
         console.warn("[Hollywood] Auth validation failed:", authErr);
       }
+    }
+    
+    // Also detect service-role from apikey header (e.g., mode-router calling with service key)
+    const apikeyHeader = req.headers.get("apikey") || "";
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    if (!isServiceRoleCall && serviceRoleKey && apikeyHeader === serviceRoleKey) {
+      isServiceRoleCall = true;
     }
     
     // Prioritize JWT identity; fall back to request.userId for service-role calls (e.g., watchdog)

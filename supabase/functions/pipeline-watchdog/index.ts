@@ -118,7 +118,7 @@ const MAX_STITCHING_ATTEMPTS = 3;
 const MAX_AGE_MS = 120 * 60 * 1000; // 120 minutes
 // PROGRESS STALL DETECTION: If no clip completes in this window, the project is truly stuck
 // This is smarter than a hard age limit — it detects lack of progress, not just time elapsed
-const PROGRESS_STALL_MS = 45 * 60 * 1000; // 45 minutes without any clip completion = stalled (Kling V3 queues can be long)
+const PROGRESS_STALL_MS = 15 * 60 * 1000; // 15 minutes without any clip completion = stalled (reduced from 45m for faster recovery)
 
 // CINEMATOGRAPHY ENGINE: Imported from _shared/world-class-cinematography.ts
 // Contains: CAMERA_MOVEMENTS, CAMERA_ANGLES, SHOT_SIZES, LIGHTING_STYLES, 
@@ -1903,6 +1903,11 @@ serve(async (req) => {
               result: `Recovered ${clipsWithVideo.length}/${totalClips} clips from failed state`,
             });
             console.log(`[Watchdog] ✅ RECOVERED: ${project.id} now completed with ${clipsWithVideo.length}/${totalClips} clips`);
+            // Notify user their project was auto-recovered
+            await notifyVideoComplete(supabase, project.user_id, project.id, project.title, {
+              clipCount: clipsWithVideo.length,
+              videoUrl: primaryVideoUrl,
+            });
           } else {
             console.error(`[Watchdog] Failed to recover ${project.id}:`, recoveryError);
           }

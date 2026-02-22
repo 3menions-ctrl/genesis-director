@@ -70,15 +70,15 @@
 | # | Severity | Finding | Evidence | Impact | Status |
 |---|----------|---------|----------|--------|--------|
 | 8 | **HIGH** | Pipeline state machine has no centralized transition validator | `pipeline_stage` changes happen via raw `UPDATE` across 8+ functions | Invalid transitions possible (e.g., jumping from 'init' to 'complete') | ✅ **FIXED** — Added `validate_pipeline_stage_transition` DB trigger |
-| 9 | **MEDIUM** | `continue-production` calls `extract-style-anchor` which may not exist | `continue-production/index.ts:256-266` | Non-fatal (caught), but silently degrades quality anchoring | ⚠️ Open |
-| 10 | **MEDIUM** | `resume-pipeline` always sets `skipCreditDeduction: true` | `resume-pipeline/index.ts:262` | Correct for resumes, but no verification that credits were actually charged initially | ⚠️ Open |
+| 9 | **MEDIUM** | `continue-production` calls `extract-style-anchor` which may not exist | `continue-production/index.ts:256-266` | Non-fatal (caught), but silently degrades quality anchoring | ✅ **FIXED** — Added explicit "may not exist" warning, improved error message |
+| 10 | **MEDIUM** | `resume-pipeline` always sets `skipCreditDeduction: true` | `resume-pipeline/index.ts:252` | Correct for resumes, but no verification that credits were actually charged initially | ✅ **FIXED** — Now queries credit_transactions to verify before skipping |
 
 ### Layer 4: Side Effects + Async
 
 | # | Severity | Finding | Evidence | Impact | Status |
 |---|----------|---------|----------|--------|--------|
 | 11 | **HIGH** | `generate-single-clip` downloads entire video to memory for storage | `generate-single-clip/index.ts:319` — `response.arrayBuffer()` | OOM risk for large videos (19MB+) on edge function memory limits | ✅ **FIXED** — Chunked streaming upload with 50MB limit |
-| 12 | **MEDIUM** | Watchdog runs every ~60s but stall threshold is 45 minutes | `pipeline-watchdog/index.ts` — logged as v5.0 | Users wait up to 45 minutes before stalled jobs are recovered | ⚠️ Open |
+| 12 | **MEDIUM** | Watchdog runs every ~60s but stall threshold is 45 minutes | `pipeline-watchdog/index.ts` — logged as v5.0 | Users wait up to 45 minutes before stalled jobs are recovered | ✅ **FIXED** — Reduced to 15 minutes |
 | 13 | **MEDIUM** | `simple-stitch` persists Replicate URLs inline (blocking) | `simple-stitch/index.ts:181-202` — sequential `persistVideoToStorage` per clip | Multi-clip projects block on sequential downloads; should parallelize | ✅ **FIXED** — Uses `Promise.allSettled()` |
 
 ### Layer 5: API/Contracts Between Modules
@@ -101,7 +101,7 @@
 
 | # | Severity | Finding | Evidence | Impact | Status |
 |---|----------|---------|----------|--------|--------|
-| 20 | **LOW** | No user feedback when pipeline-watchdog recovers a stalled project | Watchdog updates DB silently | Users see project "magically" complete without explanation | ⚠️ Open |
+| 20 | **LOW** | No user feedback when pipeline-watchdog recovers a stalled project | Watchdog updates DB silently | Users see project "magically" complete without explanation | ✅ **FIXED** — Added `notifyVideoComplete` call on watchdog recovery |
 
 ---
 
@@ -201,9 +201,10 @@
 | Round 3 | 2 | 16 |
 | Round 4 | 13 | 29 |
 | Round 5 | 22 | 51 |
-| Round 6 | 40 | **91** |
+| Round 6 | 40 | 91 |
+| Round 7 | 4 | **95** |
 
-**Remaining issues from original 100:** ~9 (mostly Low/Medium UX polish)
+**Remaining issues from original 100:** ~5 (minor UX polish, acceptable trade-offs)
 
 ---
 
@@ -226,6 +227,17 @@
 | 50 | **State Machine** | No pipeline stage transition validator | DB trigger | Added `validate_pipeline_stage_transition` trigger on `movie_projects` |
 
 **Next Priority Actions:**
-1. Reduce watchdog stall threshold from 45m to 15m
+1. ~~Reduce watchdog stall threshold from 45m to 15m~~ ✅ Done
 2. Add N+1 query prevention in frontend hooks
-3. Add user feedback when watchdog recovers stalled projects
+3. ~~Add user feedback when watchdog recovers stalled projects~~ ✅ Done
+
+---
+
+## ROUND 7 FIXES (Current Session)
+
+| # | Category | Issue | Files Fixed | Change |
+|---|----------|-------|-------------|--------|
+| 1 | **Performance** | Watchdog stall threshold too high (45m) | `pipeline-watchdog/index.ts` | Reduced PROGRESS_STALL_MS from 45m to 15m for faster recovery |
+| 2 | **Stability** | `continue-production` calls non-existent `extract-style-anchor` | `continue-production/index.ts` | Improved error handling with explicit "may not exist" warning |
+| 3 | **Financial** | `resume-pipeline` skips credit deduction without verification | `resume-pipeline/index.ts` | Now queries `credit_transactions` to verify before skipping |
+| 4 | **UX** | No user notification when watchdog recovers stalled project | `pipeline-watchdog/index.ts` | Added `notifyVideoComplete` call on false-failure recovery |

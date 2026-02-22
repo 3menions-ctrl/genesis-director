@@ -249,9 +249,10 @@ serve(async (req: Request) => {
           clipIndex: 0,
         };
         
-        // CRITICAL: Extract style anchor from clip 1's last frame for scene DNA
+        // Extract style anchor from clip 1's last frame for scene DNA
+        // NOTE: extract-style-anchor may not be deployed — skip gracefully if unavailable
         if (!context.masterSceneAnchor) {
-          console.log(`[ContinueProduction] Extracting style anchor from clip 1's last frame...`);
+          console.log(`[ContinueProduction] Attempting style anchor extraction from clip 1's last frame...`);
           try {
             const styleResponse = await fetch(`${supabaseUrl}/functions/v1/extract-style-anchor`, {
               method: 'POST',
@@ -302,7 +303,9 @@ serve(async (req: Request) => {
               }
             }
           } catch (styleErr) {
-            console.warn(`[ContinueProduction] Style anchor extraction failed:`, styleErr);
+            // Non-fatal: extract-style-anchor may not exist or may be temporarily unavailable
+            // Quality anchoring degrades gracefully — clips still generate, just with less style consistency
+            console.warn(`[ContinueProduction] Style anchor extraction unavailable (non-fatal):`, styleErr instanceof Error ? styleErr.message : styleErr);
           }
         }
       }

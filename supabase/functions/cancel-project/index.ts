@@ -92,7 +92,7 @@ serve(async (req) => {
       .select('*')
       .eq('id', projectId)
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (projectError || !project) {
       return new Response(

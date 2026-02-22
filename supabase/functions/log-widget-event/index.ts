@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
       .from('widget_configs')
       .select('id, status, user_id')
       .eq('id', widget_id)
-      .single()
+      .maybeSingle()
 
     if (widgetError || !widget || widget.status === 'archived') {
       return new Response(

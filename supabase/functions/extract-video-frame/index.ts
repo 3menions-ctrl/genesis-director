@@ -134,7 +134,7 @@ serve(async (req) => {
     try {
       const { data: proj } = await supabase
         .from('movie_projects').select('pro_features_data, scene_images')
-        .eq('id', projectId).single();
+        .eq('id', projectId).maybeSingle();
 
       if (proj?.pro_features_data) {
         const pd = proj.pro_features_data as Record<string, any>;

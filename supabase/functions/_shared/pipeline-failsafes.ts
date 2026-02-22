@@ -411,7 +411,7 @@ export async function verifyTransaction(
       query = query.eq(k.column, k.value);
     }
     
-    const { data, error } = await query.single();
+    const { data, error } = await query.maybeSingle();
     
     if (error) {
       return { verified: false, error: error.message };

@@ -193,7 +193,7 @@ serve(async (req) => {
       .from("widget_configs")
       .select("id, user_id")
       .eq("id", widget_id)
-      .single();
+      .maybeSingle();
 
     if (widgetError || !widget || widget.user_id !== user.id) {
       return new Response(JSON.stringify({ error: "Widget not found" }), {

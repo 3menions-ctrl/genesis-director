@@ -215,7 +215,7 @@ serve(async (req) => {
         .from('movie_projects')
         .select('pending_video_tasks, status, pipeline_state')
         .eq('id', projectId)
-        .single();
+        .maybeSingle();
       
       if (existingProject) {
         const existingTasks = (existingProject.pending_video_tasks || {}) as Record<string, any>;
@@ -350,7 +350,7 @@ serve(async (req) => {
           .from('avatar_templates')
           .select('gender, voice_id, personality, style')
           .eq('id', avatarTemplateId)
-          .single();
+          .maybeSingle();
         
         const { data: candidates } = await supabase
           .from('avatar_templates')
@@ -452,7 +452,7 @@ serve(async (req) => {
         .from('avatar_templates')
         .select('name')
         .eq('id', avatarTemplateId)
-        .single();
+        .maybeSingle();
       if (templateData?.name) primaryChar.name = templateData.name;
     }
     

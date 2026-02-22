@@ -104,7 +104,7 @@ serve(async (req) => {
         project:movie_projects!inner(user_id)
       `)
       .eq('id', clipId)
-      .single();
+      .maybeSingle();
 
     if (clipError || !clip) {
       return new Response(

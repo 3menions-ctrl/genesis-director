@@ -185,7 +185,7 @@ serve(async (req) => {
           tags: [role, characterSpec.style, characterSpec.ageRange, 'generated'],
         })
         .select('id')
-        .single();
+        .maybeSingle();
 
       if (insertError) {
         console.warn("[GenerateCharacter] Failed to save to library:", insertError);

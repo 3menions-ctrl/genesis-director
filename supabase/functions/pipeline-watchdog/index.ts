@@ -2268,7 +2268,7 @@ serve(async (req) => {
           .from('movie_projects')
           .select('scene_images')
           .eq('id', project.id)
-          .single();
+          .maybeSingle();
         
         const sceneImages = projectData?.scene_images;
         const hasSceneImages = sceneImages && Array.isArray(sceneImages) && sceneImages.length > 0;
@@ -2819,7 +2819,7 @@ serve(async (req) => {
           .from('movie_projects')
           .select('source_image_url, avatar_voice_id, generated_script, script_content, setting, aspect_ratio, pipeline_state')
           .eq('id', project.id)
-          .single();
+          .maybeSingle();
         
         if (projDetails?.source_image_url) {
           // Get script from pipeline_state or project fields
@@ -3123,7 +3123,7 @@ async function createManifestFallback(
     .from('movie_projects')
     .select('title, voice_audio_url, music_url')
     .eq('id', projectId)
-    .single();
+    .maybeSingle();
   
   const { data: clips } = await supabase
     .from('video_clips')

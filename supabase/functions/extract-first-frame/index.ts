@@ -115,7 +115,7 @@ serve(async (req) => {
             .from('video_clips')
             .select('motion_vectors')
             .eq('id', shotId)
-            .single();
+            .maybeSingle();
           
           if (existingClip) {
             const existingVectors = (existingClip.motion_vectors as Record<string, unknown>) || {};
@@ -298,7 +298,7 @@ serve(async (req) => {
           .from('movie_projects')
           .select('pro_features_data, scene_images')
           .eq('id', projectId)
-          .single();
+          .maybeSingle();
         
         if (projectData?.pro_features_data) {
           const proData = projectData.pro_features_data as Record<string, any>;

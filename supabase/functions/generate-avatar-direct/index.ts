@@ -828,6 +828,8 @@ serve(async (req) => {
     if (projectId) {
       const { error: updateError } = await supabase.from('movie_projects').update({
         synopsis: script,
+        // ROOT CAUSE FIX #2: Persist avatar_voice_id to DB column for watchdog recovery paths
+        avatar_voice_id: voiceId,
         pipeline_state: {
           stage: 'async_video_generation',
           progress: 25,
@@ -839,6 +841,10 @@ serve(async (req) => {
           type: 'avatar_async',
           embeddedAudioOnly: true,
           avatarType: avatarType,
+          // ROOT CAUSE FIX #2: Persist voiceId so watchdog/continue-production can pass it through
+          voiceId: voiceId,
+          // ROOT CAUSE FIX #4: Persist isAvatarMode so downstream functions enable audio
+          isAvatarMode: true,
           // DUAL AVATAR: Persist secondary avatar data for watchdog
           secondaryAvatar: secondaryAvatar || null,
           // IDENTITY ANCHOR: Original unmodified avatar reference image

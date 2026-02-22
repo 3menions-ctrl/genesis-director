@@ -513,6 +513,12 @@ serve(async (req) => {
                 const extractedFrame = frameResult.frameUrl || frameResult.lastFrameUrl;
                 if (frameResult.success && extractedFrame) {
                   console.log(`[Watchdog] ✅ Extracted last frame from clip ${forClipIndex + 1} (${frameResult.method}): ${extractedFrame.substring(0, 60)}...`);
+                  // ROOT CAUSE FIX #5: Persist extracted frame to video_clips table
+                  await supabase
+                    .from('video_clips')
+                    .update({ last_frame_url: extractedFrame, updated_at: new Date().toISOString() })
+                    .eq('project_id', project.id)
+                    .eq('shot_index', forClipIndex);
                   return extractedFrame;
                 }
               }
@@ -738,6 +744,9 @@ serve(async (req) => {
                     aspect_ratio: tasks.aspectRatio || "16:9",
                     negative_prompt: negativePrompt,
                     generate_audio: true, // Kling V3 native lip-sync audio for avatar
+                    // ROOT CAUSE FIX #1: safety_tolerance + seed prevent E006 rejections
+                    ...(startImageUrl ? { safety_tolerance: 2 } : {}),
+                    seed: Math.floor(Math.random() * 2147483647),
                   },
                 }),
                 maxRetries: 2,

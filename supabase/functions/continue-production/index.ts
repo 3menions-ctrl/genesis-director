@@ -335,6 +335,21 @@ serve(async (req: Request) => {
           console.log(`[ContinueProduction] ✓ Loaded clipDuration from pending_video_tasks: ${context.clipDuration}s`);
         }
         
+        // ROOT CAUSE FIX #2/#4: Recover isAvatarMode, voiceId, and pendingVideoTasks from DB
+        if (context.isAvatarMode === undefined && (pendingTasks.isAvatarMode || pendingTasks.type === 'avatar_async')) {
+          context.isAvatarMode = true;
+          console.log(`[ContinueProduction] ✓ Recovered isAvatarMode=true from pending_video_tasks`);
+        }
+        if (!context.videoEngine && pendingTasks.type === 'avatar_async') {
+          context.videoEngine = 'kling';
+          console.log(`[ContinueProduction] ✓ Set videoEngine=kling for avatar pipeline`);
+        }
+        // Persist pending_video_tasks predictions for pose chaining (ROOT CAUSE FIX #6)
+        if (pendingTasks.predictions && !context.pendingVideoTasks) {
+          context.pendingVideoTasks = pendingTasks;
+          console.log(`[ContinueProduction] ✓ Loaded ${pendingTasks.predictions.length} prediction records for pose chaining`);
+        }
+        
         // Load identity bible with all its fields
         context.identityBible = context.identityBible || proFeatures.identityBible;
         
@@ -697,12 +712,29 @@ serve(async (req: Request) => {
     const isAvatarMode = !!context?.isAvatarMode; // EXPLICIT flag from pipeline context
     console.log(`[ContinueProduction] Clip ${nextClipIndex + 1} will use duration: ${clipDuration}s, isAvatarMode: ${isAvatarMode}`);
     
+    // ROOT CAUSE FIX #6: Extract pose chaining data from pending_video_tasks predictions
+    let startPose = '';
+    let endPose = '';
+    let visualContinuity = '';
+    if (context?.pendingVideoTasks?.predictions) {
+      const nextPredData = context.pendingVideoTasks.predictions.find(
+        (p: { clipIndex: number }) => p.clipIndex === nextClipIndex
+      );
+      if (nextPredData) {
+        startPose = nextPredData.startPose || '';
+        endPose = nextPredData.endPose || '';
+        visualContinuity = nextPredData.visualContinuity || '';
+      }
+    }
+
     const clipResult = await callEdgeFunction('generate-single-clip', {
       userId,
       projectId,
       videoEngine,
       isAvatarMode, // EXPLICIT flag — generate-single-clip uses this, NOT videoEngine
-      clipIndex: nextClipIndex,
+      // ROOT CAUSE FIX #3: Use shotIndex as primary key (not clipIndex)
+      shotIndex: nextClipIndex,
+      clipIndex: nextClipIndex, // keep as fallback for backwards compat
       prompt: nextClipPrompt,
       totalClips,
       startImageUrl,
@@ -711,6 +743,10 @@ serve(async (req: Request) => {
       // CONTINUITY DATA FROM PREVIOUS CLIP
       previousMotionVectors,
       previousContinuityManifest,
+      // ROOT CAUSE FIX #6: Pass pose chaining data
+      startPose,
+      endPose,
+      visualContinuity,
       // MASTER ANCHORS
       masterSceneAnchor: context?.masterSceneAnchor,
       goldenFrameData: context?.goldenFrameData,

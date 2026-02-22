@@ -59,11 +59,9 @@ Complete inventory of all processes in the application. Each process represents 
 | P036 | Generate Single Clip | API | `generate-single-clip` | Auth, shot data | P0 |
 | P037 | Generate Voice | API | `generate-voice` | Auth, text | P1 |
 | P038 | Generate Music | API | `generate-music` | Auth, mood | P1 |
-| P039 | Generate Avatar | API | `generate-avatar` | Auth, config | P0 |
-| P040 | Generate Avatar Direct | API | `generate-avatar-direct` | Auth, avatar ID | P0 |
-| P041 | Generate Avatar Batch | API | `generate-avatar-batch` | Auth, batch config | P1 |
-| P042 | Generate Avatar Image | API | `generate-avatar-image` | Auth, face URL | P1 |
-| P043 | Generate Avatar Scene | API | `generate-avatar-scene` | Auth, scene data | P1 |
+| P039 | Generate Avatar Direct | API | `generate-avatar-direct` | Auth, avatar ID | P0 |
+| P040 | Generate Avatar Image | API | `generate-avatar-image` | Auth, face URL | P1 |
+| P041 | Generate Avatar Scene | API | `generate-avatar-scene` | Auth, scene data | P1 |
 | P044 | Simple Stitch | API | `simple-stitch` | Auth, clip URLs | P0 |
 | P045 | Check Video Status | API | `check-video-status` | Auth, prediction ID | P0 |
 | P046 | Check Specialized Status | API | `check-specialized-status` | Auth, project ID | P1 |
@@ -94,7 +92,7 @@ Complete inventory of all processes in the application. Each process represents 
 | P071 | Generate Story | API | `generate-story` | Auth, prompt | P1 |
 | P072 | Generate Trailer | API | `generate-trailer` | Auth, project | P2 |
 | P073 | Seed Avatar Library | API | `seed-avatar-library` | Admin | P2 |
-| P074 | Regenerate Stock Avatars | API | `regenerate-stock-avatars` | Admin | P2 |
+| P074 | ~~Regenerate Stock Avatars~~ | Removed | — | — | — |
 
 ---
 

@@ -193,9 +193,7 @@ describe('P033: Mode Router Edge Function', () => {
 describe('P039-P043: Avatar Generation Pipeline', () => {
   it('should have all avatar generation functions', () => {
     const functions = [
-      'generate-avatar',
       'generate-avatar-direct',
-      'generate-avatar-batch',
       'generate-avatar-image',
       'generate-avatar-scene',
     ];

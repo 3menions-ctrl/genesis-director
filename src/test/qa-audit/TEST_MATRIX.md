@@ -23,7 +23,7 @@ Mapping of processes to test coverage. Status: EXISTS / MISSING / PARTIAL
 | P001-P032 (forwardRef) | `src/components/stability/__tests__/forwardRefAudit.test.ts` | 9 cases | Static | EXISTS |
 | P040 (Avatar Voices) | `src/hooks/__tests__/useAvatarVoices.test.ts` | 12 cases | Unit | EXISTS |
 | P* (Async Safety) | `src/hooks/__tests__/useStableAsync.test.ts` | 12 cases | Unit | EXISTS |
-| P039 (Generate Avatar) | `supabase/functions/generate-avatar/index_test.ts` | 3 cases | Integration | EXISTS |
+| P039 (Generate Avatar) | ~~`supabase/functions/generate-avatar/index_test.ts`~~ | Removed (consolidated into generate-avatar-direct) | Integration | DELETED |
 
 **Total Existing Tests: 177 + 27 = 204 tests**
 

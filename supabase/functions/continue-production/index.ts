@@ -716,6 +716,7 @@ serve(async (req: Request) => {
     let startPose = '';
     let endPose = '';
     let visualContinuity = '';
+    let nextAvatarRole: 'primary' | 'secondary' = 'primary';
     if (context?.pendingVideoTasks?.predictions) {
       const nextPredData = context.pendingVideoTasks.predictions.find(
         (p: { clipIndex: number }) => p.clipIndex === nextClipIndex
@@ -724,7 +725,145 @@ serve(async (req: Request) => {
         startPose = nextPredData.startPose || '';
         endPose = nextPredData.endPose || '';
         visualContinuity = nextPredData.visualContinuity || '';
+        nextAvatarRole = nextPredData.avatarRole || 'primary';
       }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DUAL AVATAR: Swap start image when switching to secondary character
+    // Mirrors the watchdog's dual avatar logic for the callback chain path
+    // ═══════════════════════════════════════════════════════════════════════════
+    const secondaryAvatarData = context?.pendingVideoTasks?.secondaryAvatar;
+    let characterIdentityLock = '';
+    
+    if (isAvatarMode && nextAvatarRole === 'secondary' && secondaryAvatarData?.imageUrl) {
+      console.log(`[ContinueProduction] 🎭 DUAL AVATAR: Clip ${nextClipIndex + 1} uses SECONDARY avatar (${secondaryAvatarData.name})`);
+      
+      // Determine if this is a character switch (previous clip was primary)
+      const prevPredData = context?.pendingVideoTasks?.predictions?.find(
+        (p: { clipIndex: number }) => p.clipIndex === completedClipIndex
+      );
+      const prevWasSecondary = prevPredData?.avatarRole === 'secondary';
+      const isCharacterSwitch = !prevWasSecondary;
+      
+      // Find the most recent completed clip of the secondary character
+      let secondaryFrameUrl: string | null = null;
+      if (!isCharacterSwitch) {
+        // Same character continuing — use last frame from previous clip (already resolved above)
+        console.log(`[ContinueProduction] 🔗 SECONDARY CONTINUITY: Same character continuing, using last frame`);
+        // startImageUrl already has the previous clip's last frame — correct for continuity
+      } else {
+        // CHARACTER SWITCH: Need to use secondary avatar's reference image
+        // Check if we have a cached composite
+        const cachedSecondaryScene = context?.pendingVideoTasks?._secondarySceneCache;
+        if (cachedSecondaryScene) {
+          secondaryFrameUrl = cachedSecondaryScene;
+          console.log(`[ContinueProduction] ✅ Using CACHED secondary composite`);
+        } else {
+          // Use secondary avatar's original image as start image
+          secondaryFrameUrl = secondaryAvatarData.imageUrl;
+          console.log(`[ContinueProduction] 🎭 Using secondary avatar reference image: ${secondaryFrameUrl.substring(0, 60)}...`);
+          
+          // Try scene compositing for the secondary avatar
+          if (context?.pendingVideoTasks?.sceneDescription) {
+            try {
+              const sceneResponse = await fetch(`${supabaseUrl}/functions/v1/generate-avatar-scene`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseKey}`,
+                },
+                body: JSON.stringify({
+                  avatarImageUrl: secondaryAvatarData.imageUrl,
+                  sceneDescription: context.pendingVideoTasks.sceneDescription,
+                  aspectRatio: context?.aspectRatio || '16:9',
+                  placement: 'center',
+                }),
+              });
+              
+              if (sceneResponse.ok) {
+                const sceneResult = await sceneResponse.json();
+                if (sceneResult.success && sceneResult.sceneImageUrl) {
+                  secondaryFrameUrl = sceneResult.sceneImageUrl;
+                  console.log(`[ContinueProduction] ✅ Secondary scene compositing succeeded`);
+                  
+                  // Cache for future secondary clips
+                  if (context.pendingVideoTasks) {
+                    context.pendingVideoTasks._secondarySceneCache = secondaryFrameUrl;
+                  }
+                }
+              }
+            } catch (sceneErr) {
+              console.warn(`[ContinueProduction] Secondary scene compositing failed (non-fatal):`, sceneErr);
+            }
+          }
+        }
+        
+        // Override startImageUrl with secondary avatar's image
+        if (secondaryFrameUrl) {
+          startImageUrl = secondaryFrameUrl;
+          frameSource = 'secondary_avatar';
+          console.log(`[ContinueProduction] 🎭 START IMAGE SWAPPED to secondary avatar`);
+        }
+      }
+      
+      characterIdentityLock = `[SECONDARY CHARACTER: This clip features ${secondaryAvatarData.name}. The character must look EXACTLY like the person in the start frame reference image. Preserve their exact facial features, hair, skin tone, eye color, body build, and outfit.]`;
+    } else if (isAvatarMode && nextAvatarRole === 'primary') {
+      // Ensure primary clips after a secondary clip use the PRIMARY avatar's image
+      const prevPredData = context?.pendingVideoTasks?.predictions?.find(
+        (p: { clipIndex: number }) => p.clipIndex === completedClipIndex
+      );
+      const prevWasSecondary = prevPredData?.avatarRole === 'secondary';
+      
+      if (prevWasSecondary) {
+        // Switching BACK to primary — need to find primary's last frame or original image
+        console.log(`[ContinueProduction] 🎭 DUAL AVATAR: Switching BACK to primary avatar`);
+        
+        // Find the most recent primary clip's last frame
+        let primaryFrameFound = false;
+        if (context?.pendingVideoTasks?.predictions) {
+          for (let searchIdx = completedClipIndex - 1; searchIdx >= 0; searchIdx--) {
+            const candidate = context.pendingVideoTasks.predictions.find(
+              (p: { clipIndex: number }) => p.clipIndex === searchIdx
+            );
+            if (candidate?.avatarRole === 'primary' && candidate?.status === 'completed') {
+              // Try to get this clip's last frame from DB
+              const { data: primaryClip } = await supabase
+                .from('video_clips')
+                .select('last_frame_url, video_url')
+                .eq('project_id', projectId)
+                .eq('shot_index', searchIdx)
+                .eq('status', 'completed')
+                .maybeSingle();
+              
+              if (primaryClip?.last_frame_url) {
+                startImageUrl = primaryClip.last_frame_url;
+                frameSource = 'primary_avatar_last_frame';
+                primaryFrameFound = true;
+                console.log(`[ContinueProduction] ✅ Using primary avatar's last frame from clip ${searchIdx + 1}`);
+                break;
+              }
+            }
+          }
+        }
+        
+        // Fallback: use original avatar image
+        if (!primaryFrameFound) {
+          const originalImage = context?.pendingVideoTasks?.originalAvatarImageUrl
+            || context?.pendingVideoTasks?.sceneImageUrl
+            || context?.referenceImageUrl;
+          if (originalImage) {
+            startImageUrl = originalImage;
+            frameSource = 'primary_avatar_original';
+            console.log(`[ContinueProduction] ✅ Using primary avatar's original image`);
+          }
+        }
+      }
+    }
+    
+    // Prepend character identity lock to prompt for dual avatar clips
+    if (characterIdentityLock) {
+      nextClipPrompt = `${characterIdentityLock}\n${nextClipPrompt}`;
     }
 
     const clipResult = await callEdgeFunction('generate-single-clip', {
@@ -747,6 +886,9 @@ serve(async (req: Request) => {
       startPose,
       endPose,
       visualContinuity,
+      // DUAL AVATAR: Pass avatar role so downstream knows which character this is
+      avatarRole: nextAvatarRole,
+      secondaryAvatar: secondaryAvatarData || null,
       // MASTER ANCHORS
       masterSceneAnchor: context?.masterSceneAnchor,
       goldenFrameData: context?.goldenFrameData,

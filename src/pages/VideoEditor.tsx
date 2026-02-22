@@ -1322,79 +1322,55 @@ const VideoEditor = () => {
         }
       }
 
-      // MULTI-CLIP: Download all clips, then concatenate as a single blob
-      // FFmpeg.wasm requires crossOriginIsolated (COOP/COEP headers) which
-      // isn't available on most deployments. Instead, we concatenate the raw
-      // MP4 data using a Blob array — this produces a playable file in most
-      // players since the clips share the same codec/resolution from Kling.
+      // MULTI-CLIP: Use FFmpeg.wasm (single-threaded core, no SharedArrayBuffer needed)
+      // to merge all clips into a single seamless MP4 file
       setEditorState((prev) => ({ ...prev, renderProgress: 20 }));
-      toast.info(`Downloading ${allClipUrls.length} clips...`);
+      toast.info(`Merging ${allClipUrls.length} clips into one video...`);
 
-      const downloadedBlobs: Blob[] = [];
+      try {
+        const { mergeVideoClips, downloadBlob } = await import("@/lib/video/browserVideoMerger");
+        const result = await mergeVideoClips({
+          clipUrls: allClipUrls,
+          outputFilename: `${sanitizedName}-complete.mp4`,
+          projectId: editorState.projectId || "editor",
+          projectName: editorState.title,
+          onProgress: (p) => {
+            setEditorState((prev) => ({ ...prev, renderProgress: 20 + Math.round(p.progress * 0.8) }));
+          },
+        });
 
+        if (result.success && result.blob) {
+          downloadBlob(result.blob, result.filename || `${sanitizedName}-complete.mp4`);
+          setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
+          toast.success("Merged video downloaded!");
+          resetExportStatus();
+          return;
+        }
+
+        // If merge returned an error, show it and fall through to individual download
+        console.warn("[Editor Export] FFmpeg merge failed:", result.error);
+      } catch (mergeErr) {
+        console.warn("[Editor Export] FFmpeg merge unavailable:", mergeErr);
+      }
+
+      // LAST RESORT fallback: Download clips individually (only on iOS or if FFmpeg fails)
+      toast.info(`Downloading ${allClipUrls.length} clips individually...`);
       for (let i = 0; i < allClipUrls.length; i++) {
-        setEditorState((prev) => ({
-          ...prev,
-          renderProgress: 20 + Math.round(((i + 1) / allClipUrls.length) * 70),
-        }));
-
         try {
           const response = await fetch(allClipUrls[i], { mode: "cors" });
-          if (!response.ok) {
-            console.warn(`[Editor Export] Clip ${i + 1} fetch failed: ${response.status}`);
-            continue;
-          }
+          if (!response.ok) continue;
           const blob = await response.blob();
-          downloadedBlobs.push(blob);
+          downloadBlobToUser(blob, `${sanitizedName}-clip${i + 1}.mp4`);
+          if (i < allClipUrls.length - 1) {
+            await new Promise((r) => setTimeout(r, 800));
+          }
         } catch (err) {
           console.warn(`[Editor Export] Clip ${i + 1} download error:`, err);
         }
       }
 
-      if (downloadedBlobs.length === 0) {
-        toast.error("Failed to download any clips");
-        setEditorState((prev) => ({ ...prev, renderStatus: "idle", renderProgress: 0 }));
-        return;
-      }
-
-      // Try FFmpeg.wasm merge first (works on desktop Chrome/Firefox with COOP/COEP)
-      if (typeof SharedArrayBuffer !== "undefined" && typeof crossOriginIsolated !== "undefined" && crossOriginIsolated) {
-        try {
-          const { mergeVideoClips, downloadBlob } = await import("@/lib/video/browserVideoMerger");
-          const result = await mergeVideoClips({
-            clipUrls: allClipUrls,
-            outputFilename: `${sanitizedName}-complete.mp4`,
-            projectId: editorState.projectId || "editor",
-            projectName: editorState.title,
-            onProgress: (p) => {
-              setEditorState((prev) => ({ ...prev, renderProgress: 30 + Math.round(p.progress * 0.7) }));
-            },
-          });
-
-          if (result.success && result.blob) {
-            downloadBlob(result.blob, result.filename || `${sanitizedName}-complete.mp4`);
-            setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
-            toast.success("Merged video downloaded!");
-            resetExportStatus();
-            return;
-          }
-        } catch (mergeErr) {
-          console.warn("[Editor Export] FFmpeg merge unavailable:", mergeErr);
-        }
-      }
-
-      // Fallback: Download each clip reliably with delays to prevent browser throttling
-      toast.info(`Downloading ${downloadedBlobs.length} clips individually...`);
-      for (let i = 0; i < downloadedBlobs.length; i++) {
-        downloadBlobToUser(downloadedBlobs[i], `${sanitizedName}-clip${i + 1}.mp4`);
-        // Stagger downloads to prevent browser blocking
-        if (i < downloadedBlobs.length - 1) {
-          await new Promise((r) => setTimeout(r, 800));
-        }
-      }
-
       setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
-      toast.success(`Downloaded ${downloadedBlobs.length} clips!`);
+      toast.success(`Downloaded ${allClipUrls.length} clips!`);
       resetExportStatus();
     } catch (err) {
       console.error("[Editor Export] Error:", err);

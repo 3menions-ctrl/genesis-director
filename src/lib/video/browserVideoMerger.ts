@@ -43,20 +43,13 @@ let ffmpegInstance: FFmpeg | null = null;
 let ffmpegLoaded = false;
 
 /**
- * Check if FFmpeg.wasm is supported on this browser
- * FFmpeg.wasm requires SharedArrayBuffer which is NOT available on:
- * - iOS Safari (any version)
- * - Safari without COOP/COEP headers
- * - Some older browsers
+ * Check if FFmpeg.wasm is supported on this browser.
+ * We use the SINGLE-THREADED (UMD) core which does NOT require
+ * SharedArrayBuffer or crossOriginIsolated headers.
+ * Only iOS Safari is truly unsupported due to WASM memory limits.
  */
 function isFFmpegSupported(): boolean {
-  // Check for SharedArrayBuffer support (required by FFmpeg.wasm)
-  if (typeof SharedArrayBuffer === 'undefined') {
-    console.log('[FFmpeg] SharedArrayBuffer not available - FFmpeg.wasm not supported');
-    return false;
-  }
-  
-  // Check if we're on iOS (FFmpeg.wasm doesn't work on iOS even with SAB polyfills)
+  // Check if we're on iOS (FFmpeg.wasm doesn't work reliably on iOS)
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && 
                 !(window as unknown as { MSStream?: unknown }).MSStream;
   if (isIOS) {
@@ -64,10 +57,9 @@ function isFFmpegSupported(): boolean {
     return false;
   }
   
-  // Check for cross-origin isolation (required for SharedArrayBuffer in modern browsers)
-  const isCrossOriginIsolated = typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated;
-  if (!isCrossOriginIsolated) {
-    console.log('[FFmpeg] Not cross-origin isolated - SharedArrayBuffer restricted');
+  // Check basic WebAssembly support
+  if (typeof WebAssembly === 'undefined') {
+    console.log('[FFmpeg] WebAssembly not available');
     return false;
   }
   
@@ -109,7 +101,8 @@ async function getFFmpeg(onProgress?: (progress: MergeProgress) => void): Promis
   });
 
   // Load FFmpeg with CDN-hosted core files
-  const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+  // Use the SINGLE-THREADED (UMD) core — works WITHOUT SharedArrayBuffer/crossOriginIsolated
+  const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
   
   try {
     await ffmpegInstance.load({

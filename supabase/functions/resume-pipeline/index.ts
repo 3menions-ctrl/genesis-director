@@ -242,14 +242,29 @@ serve(async (req) => {
     
     console.log(`[ResumePipeline] Found ${completedClips.length} completed clips, resuming from clip ${resumeFromClipIndex + 1}`);
 
+    // Verify credits were actually charged before skipping deduction
+    const { data: creditTx } = await supabase
+      .from('credit_transactions')
+      .select('id')
+      .eq('user_id', request.userId)
+      .eq('project_id', request.projectId)
+      .eq('transaction_type', 'generation')
+      .limit(1);
+    
+    const creditsAlreadyCharged = (creditTx && creditTx.length > 0);
+    if (!creditsAlreadyCharged) {
+      console.warn(`[ResumePipeline] ⚠️ No credit transaction found for project ${request.projectId} — credits will be charged on resume`);
+    } else {
+      console.log(`[ResumePipeline] ✓ Credits verified for project ${request.projectId} — skipping deduction`);
+    }
+
     // Call hollywood-pipeline to continue
-    // CRITICAL: skipCreditDeduction=true because credits were already charged on initial run
     const pipelineRequest = {
       userId: request.userId,
       projectId: request.projectId,
       resumeFrom,
       skipApproval: true,
-      skipCreditDeduction: true, // CRITICAL FIX: Don't double-charge on resume
+      skipCreditDeduction: creditsAlreadyCharged, // Only skip if credits were actually charged initially
       approvedScript: script,
       // CRITICAL: Include manualPrompts OR concept so hollywood-pipeline doesn't reject
       manualPrompts: manualPrompts.length > 0 ? manualPrompts : undefined,

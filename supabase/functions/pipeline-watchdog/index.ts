@@ -286,7 +286,10 @@ function buildAvatarActingPrompt(
   
   console.log(`[Watchdog] 🎬 Clip ${clipIndex + 1}/${totalClips} | Camera: ${screenplayCameraHint || movementKey} | Movement: ${screenplayMovement || 'default'} | AvatarType: ${avatarType} | IdentityLock: ${identityLock ? 'YES' : 'generic'} | Placement: ${resolveAvatarPlacement(effectiveScene).label}`);
   
-  return `${staticStartDirective} ${identityDirective} ${avatarTypeLock} ${aspectComposition} ${backgroundLock} ${placementDirective} ${transitionDirective} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. ${narrativeBeat} ${motionBlock} Speaking naturally: "${segmentText.trim().substring(0, 120)}${segmentText.length > 120 ? '...' : ''}". ${performanceStyle} ${lifelikeDirective} ${qualityBaseline}`;
+  // CRITICAL: Include FULL dialogue text for Kling V3 native audio generation
+  // Kling uses the prompt text to generate spoken audio with lip-sync — truncation kills dialogue
+  const dialogueText = segmentText.trim();
+  return `${staticStartDirective} ${identityDirective} ${avatarTypeLock} ${aspectComposition} ${backgroundLock} ${placementDirective} ${transitionDirective} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. ${narrativeBeat} ${motionBlock} Speaking naturally: "${dialogueText}". ${performanceStyle} ${lifelikeDirective} ${qualityBaseline}`;
 }
 
 serve(async (req) => {

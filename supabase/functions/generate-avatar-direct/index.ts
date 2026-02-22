@@ -1097,7 +1097,10 @@ function buildWorldClassPrompt(
   
   console.log(`[AvatarDirect] 🎬 Clip ${clipIndex + 1}/${totalClips} | Camera: ${cameraHint || movementKey} | Emotion: ${performanceStyle.substring(0, 30)}...`);
   
-  return `${backgroundLock} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. ${narrativeBeat} ${motionBlock} Speaking naturally with authentic delivery: "${script.substring(0, 120)}${script.length > 120 ? '...' : ''}". ${performanceStyle} ${lifelikeDirective} ${qualityBaseline}`;
+  // CRITICAL: Include FULL dialogue text for Kling V3 native audio generation
+  // Kling uses the prompt text to generate spoken audio with lip-sync — truncation kills dialogue
+  const dialogueText = script.trim();
+  return `${backgroundLock} ${sceneContext} ${sizePrompt}. ${anglePrompt}. ${movementPrompt}. ${lightingPrompt}. ${narrativeBeat} ${motionBlock} Speaking naturally with authentic delivery: "${dialogueText}". ${performanceStyle} ${lifelikeDirective} ${qualityBaseline}`;
 }
 
 function analyzeEmotionalTone(script: string): string {

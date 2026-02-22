@@ -1,16 +1,21 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Loader2, Sparkles, Film, FolderOpen, Check } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Download, Loader2, Sparkles, FolderOpen, Check, Save } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEditorClips, EditorClip, EditorImage, ProjectSummary } from "@/hooks/useEditorClips";
 import { ProjectBrowser } from "@/components/editor/ProjectBrowser";
+import { EditorLoadingScreen } from "@/components/editor/EditorLoadingScreen";
+import { EditorErrorScreen } from "@/components/editor/EditorErrorScreen";
+import { Logo } from "@/components/ui/Logo";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import "@twick/studio/dist/studio.css";
+import "@/styles/apex-studio-overrides.css";
 
 /**
  * Load a single project's clips into Twick's media library on demand.
- * Uses BrowserMediaManager so items appear in Video/Image panels.
  */
 async function loadClipsIntoLibrary(
   clips: EditorClip[],
@@ -67,7 +72,7 @@ async function loadClipsIntoLibrary(
   return { videos: videosAdded, images: imagesAdded };
 }
 
-// Dynamically import Twick to avoid 504 bundling timeouts
+// Dynamic import to avoid 504 bundling timeouts
 function useTwickModules() {
   const [modules, setModules] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -98,53 +103,12 @@ function useTwickModules() {
   return { modules, loading, error };
 }
 
-/**
- * VideoEditor — loads studio immediately, clips load on-demand via project browser.
- */
 export default function VideoEditor() {
   const navigate = useNavigate();
   const { modules, loading: modulesLoading, error: loadError } = useTwickModules();
 
-  if (modulesLoading) {
-    return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#08080c] gap-6 relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px]" />
-        </div>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="relative z-10 flex flex-col items-center gap-5"
-        >
-          <div className="relative w-16 h-16">
-            <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-loader-ring-pulse" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Film className="w-6 h-6 text-primary animate-pulse-soft" />
-            </div>
-          </div>
-          <p className="text-sm font-medium text-foreground/70 font-display">Loading Studio…</p>
-          <div className="w-48 h-0.5 bg-border/30 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-primary/60 via-primary to-primary/60 rounded-full animate-loader-progress" />
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (loadError || !modules) {
-    return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#08080c] gap-5">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center gap-4 p-8 rounded-2xl border border-border/20 bg-card/30 backdrop-blur-xl">
-          <Film className="w-6 h-6 text-destructive" />
-          <p className="text-sm text-foreground/80">Failed to load editor</p>
-          <p className="text-xs text-muted-foreground/60">{loadError}</p>
-          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>Try Again</Button>
-        </motion.div>
-      </div>
-    );
-  }
+  if (modulesLoading) return <EditorLoadingScreen />;
+  if (loadError || !modules) return <EditorErrorScreen error={loadError} />;
 
   return <StudioShell modules={modules} navigate={navigate} />;
 }
@@ -170,6 +134,7 @@ function StudioShell({ modules, navigate }: { modules: any; navigate: any }) {
           TwickStudio={TwickStudio}
           useBrowserRenderer={useBrowserRenderer}
           BrowserMediaManager={modules.studio.BrowserMediaManager}
+          useTimelineContext={modules.studio.useTimelineContext}
           navigate={navigate}
         />
       </TimelineProvider>
@@ -181,19 +146,26 @@ function EditorChrome({
   TwickStudio,
   useBrowserRenderer,
   BrowserMediaManager,
+  useTimelineContext,
   navigate,
 }: {
   TwickStudio: any;
   useBrowserRenderer: any;
   BrowserMediaManager: any;
+  useTimelineContext: any;
   navigate: any;
 }) {
+  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const sessionId = searchParams.get("session");
+
   const [showSuccess, setShowSuccess] = useState(false);
   const [browserOpen, setBrowserOpen] = useState(false);
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [loadedProjectIds, setLoadedProjectIds] = useState<Set<string>>(new Set());
   const [mediaCounts, setMediaCounts] = useState({ videos: 0, images: 0 });
+  const [saving, setSaving] = useState(false);
 
   const { listProjects, loadProjectClips, loading: clipsLoading } = useEditorClips();
 
@@ -205,7 +177,90 @@ function EditorChrome({
     autoDownload: true,
   });
 
-  // Fetch project list when browser opens
+  // === StudioConfig callbacks for Twick ===
+
+  const saveProject = useCallback(async (project: any, fileName: string) => {
+    if (!user) return { status: false, message: "Not signed in" };
+    setSaving(true);
+    try {
+      const payload = {
+        user_id: user.id,
+        title: fileName || "Untitled Session",
+        timeline_data: project,
+        status: "draft",
+        updated_at: new Date().toISOString(),
+      };
+
+      if (sessionId) {
+        const { error: err } = await supabase
+          .from("edit_sessions")
+          .update(payload)
+          .eq("id", sessionId)
+          .eq("user_id", user.id);
+        if (err) throw err;
+      } else {
+        const { error: err } = await supabase
+          .from("edit_sessions")
+          .insert(payload);
+        if (err) throw err;
+      }
+
+      toast.success("Project saved");
+      return { status: true, message: "Saved" };
+    } catch (err: any) {
+      console.error("Save failed:", err);
+      toast.error("Failed to save project");
+      return { status: false, message: err.message };
+    } finally {
+      setSaving(false);
+    }
+  }, [user, sessionId]);
+
+  const loadProject = useCallback(async () => {
+    if (!user || !sessionId) {
+      toast.error("No session to load");
+      return { properties: { width: 1920, height: 1080, fps: 30 }, tracks: [] };
+    }
+    try {
+      const { data, error: err } = await supabase
+        .from("edit_sessions")
+        .select("timeline_data")
+        .eq("id", sessionId)
+        .eq("user_id", user.id)
+        .single();
+      if (err) throw err;
+      toast.success("Project loaded");
+      return data.timeline_data;
+    } catch (err: any) {
+      console.error("Load failed:", err);
+      toast.error("Failed to load project");
+      return { properties: { width: 1920, height: 1080, fps: 30 }, tracks: [] };
+    }
+  }, [user, sessionId]);
+
+  const exportVideo = useCallback(async (project: any, videoSettings: any) => {
+    try {
+      setShowSuccess(false);
+      reset();
+      await render({ input: project });
+      setShowSuccess(true);
+      toast.success("Video exported successfully!");
+      return { status: true, message: "Exported" };
+    } catch (err: any) {
+      console.error("Export failed:", err);
+      toast.error("Export failed. Please try again.");
+      return { status: false, message: err.message };
+    }
+  }, [render, reset]);
+
+  const studioConfig = {
+    saveProject,
+    loadProject,
+    exportVideo,
+  };
+
+  // === Project browser ===
+
   const openBrowser = useCallback(async () => {
     setBrowserOpen(true);
     if (!projectsLoaded) {
@@ -215,7 +270,6 @@ function EditorChrome({
     }
   }, [listProjects, projectsLoaded]);
 
-  // Load a single project's clips into the library on demand
   const handleSelectProject = useCallback(async (projectId: string) => {
     if (loadedProjectIds.has(projectId)) return;
 
@@ -231,38 +285,18 @@ function EditorChrome({
 
       const project = projects.find(p => p.id === projectId);
       toast.success(`Loaded ${counts.videos} clips from "${project?.title || "project"}"`);
-
-      console.log(`[Apex] On-demand: loaded ${counts.videos} clips + ${counts.images} images for project ${projectId}`);
     } catch (err) {
       console.error("[Apex] Failed to load project clips:", err);
       toast.error("Failed to load clips. Please try again.");
     }
   }, [loadedProjectIds, loadProjectClips, BrowserMediaManager, projects]);
 
-  const onExportVideo = useCallback(async () => {
-    try {
-      setShowSuccess(false);
-      reset();
-      await render({
-        input: {
-          properties: { width: 1920, height: 1080, fps: 30 },
-          tracks: [],
-        },
-      });
-      setShowSuccess(true);
-      toast.success("Video exported successfully!");
-    } catch (err) {
-      console.error("Export failed:", err);
-      toast.error("Export failed. Please try again.");
-    }
-  }, [render, reset]);
-
   return (
     <div className="h-screen w-screen flex flex-col bg-[#08080c] overflow-hidden relative">
-      {/* Top accent line */}
+      {/* Apex accent line */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent z-20" />
 
-      {/* Top bar */}
+      {/* Apex top bar — overlays Twick's header */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -281,7 +315,6 @@ function EditorChrome({
             <span className="text-[12px] hidden sm:inline">Back</span>
           </Button>
 
-          {/* Import button */}
           <Button
             variant="outline"
             size="sm"
@@ -293,13 +326,11 @@ function EditorChrome({
           </Button>
         </div>
 
-        {/* Center */}
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
-          <div className="w-5 h-5 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center">
-            <Sparkles className="w-2.5 h-2.5 text-primary" />
-          </div>
-          <span className="text-[12px] font-semibold text-foreground/50 tracking-tight font-display">
-            Apex Editor
+        {/* Center — Apex branding */}
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2.5">
+          <Logo size="sm" />
+          <span className="text-[12px] font-semibold tracking-tight font-display bg-gradient-to-r from-primary to-violet-400 bg-clip-text text-transparent">
+            Apex Studio
           </span>
           {(mediaCounts.videos > 0 || mediaCounts.images > 0) && (
             <div className="flex items-center gap-1 ml-2 text-[10px] text-emerald-400/60">
@@ -310,33 +341,46 @@ function EditorChrome({
         </div>
 
         {/* Right */}
-        <Button
-          size="sm"
-          onClick={onExportVideo}
-          disabled={isRendering}
-          className="h-8 px-4 text-[11px] font-semibold rounded-full gap-1.5 relative overflow-hidden group border-0"
-          style={{
-            background: isRendering
-              ? 'hsl(var(--muted))'
-              : 'linear-gradient(135deg, hsl(var(--primary)), hsl(270 80% 60%))',
-            color: 'white',
-          }}
-        >
-          {!isRendering && (
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-          )}
-          {isRendering ? (
-            <>
-              <Loader2 className="w-3 h-3 animate-spin" />
-              <span>{Math.round(progress * 100)}%</span>
-            </>
-          ) : (
-            <>
-              <Download className="w-3 h-3" />
-              <span>Export</span>
-            </>
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => saveProject({}, "Untitled")}
+            disabled={saving}
+            className="h-8 px-3 text-[11px] gap-1.5 text-muted-foreground hover:text-foreground"
+          >
+            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+            <span className="hidden sm:inline">Save</span>
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={() => exportVideo({}, {})}
+            disabled={isRendering}
+            className="h-8 px-4 text-[11px] font-semibold rounded-full gap-1.5 relative overflow-hidden group border-0"
+            style={{
+              background: isRendering
+                ? 'hsl(var(--muted))'
+                : 'linear-gradient(135deg, hsl(var(--primary)), hsl(270 80% 60%))',
+              color: 'white',
+            }}
+          >
+            {!isRendering && (
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+            )}
+            {isRendering ? (
+              <>
+                <Loader2 className="w-3 h-3 animate-spin" />
+                <span>{Math.round(progress * 100)}%</span>
+              </>
+            ) : (
+              <>
+                <Download className="w-3 h-3" />
+                <span>Export</span>
+              </>
+            )}
+          </Button>
+        </div>
       </motion.div>
 
       {/* Render progress bar */}
@@ -356,9 +400,9 @@ function EditorChrome({
         )}
       </AnimatePresence>
 
-      {/* Twick Studio — starts empty, clips loaded on demand */}
+      {/* Twick Studio with Apex config */}
       <div className="flex-1 min-h-0">
-        <TwickStudio />
+        <TwickStudio studioConfig={studioConfig} />
       </div>
 
       {/* Project Browser overlay */}

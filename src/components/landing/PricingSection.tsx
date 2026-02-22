@@ -320,7 +320,7 @@ export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionExtende
                 </p>
               </div>
               
-              <div className="relative aspect-video max-w-3xl mx-auto rounded-2xl overflow-hidden bg-black/50 border border-white/[0.08]">
+              <div className="relative aspect-video w-full overflow-hidden">
                 {suppressVideo ? (
                   /* Video suppressed to free GPU/memory for gallery or immersive */
                   <div className="absolute inset-0 flex items-center justify-center bg-black/60">

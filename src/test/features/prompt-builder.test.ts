@@ -91,10 +91,27 @@ describe("Pose Detection", () => {
 const MOTION_PATTERNS: { pattern: RegExp; type: string; intensity: string }[] = [
   { pattern: /\b(running|sprinting|dashing|chasing)\b/i, type: 'running', intensity: 'high' },
   { pattern: /\b(jumping|leaping|diving|tumbling)\b/i, type: 'moving', intensity: 'high' },
+  { pattern: /\b(fighting|attacking|punching|kicking)\b/i, type: 'moving', intensity: 'high' },
+  { pattern: /\b(swimming|surfing|skating|skiing)\b/i, type: 'moving', intensity: 'high' },
+  { pattern: /\b(throwing|hurling|tossing)\b/i, type: 'moving', intensity: 'high' },
   { pattern: /\b(walking|strolling|wandering|hiking)\b/i, type: 'walking', intensity: 'medium' },
   { pattern: /\b(exploring|discovering|searching)\b/i, type: 'exploring', intensity: 'medium' },
+  { pattern: /\b(dancing|swinging|rocking|bouncing)\b/i, type: 'moving', intensity: 'medium' },
+  { pattern: /\b(carrying|dragging|pushing|pulling)\b/i, type: 'moving', intensity: 'medium' },
+  { pattern: /\b(sitting\s+down|standing\s+up|rising|getting\s+up)\b/i, type: 'moving', intensity: 'medium' },
   { pattern: /\b(gesturing|pointing|waving|reaching)\b/i, type: 'gesturing', intensity: 'low' },
   { pattern: /\b(breathing|swaying|shifting)\b/i, type: 'subtle', intensity: 'low' },
+  { pattern: /\b(leaning|slouching|reclining|propping)\b/i, type: 'body-position', intensity: 'low' },
+  { pattern: /\b(squatting|crouching|ducking|hunching)\b/i, type: 'body-position', intensity: 'low' },
+  { pattern: /\b(kneeling|bending|stooping|bowing)\b/i, type: 'body-position', intensity: 'low' },
+  { pattern: /\b(sitting|seated|sat\b)/i, type: 'body-position', intensity: 'low' },
+  { pattern: /\b(standing|stood|stands)\b/i, type: 'body-position', intensity: 'low' },
+  { pattern: /\b(lying\s+down|laying|sprawled|prone|supine)\b/i, type: 'body-position', intensity: 'low' },
+  { pattern: /\b(stretching|flexing|arching|twisting)\b/i, type: 'body-position', intensity: 'low' },
+  { pattern: /\b(holding|gripping|clutching|grasping)\b/i, type: 'interaction', intensity: 'low' },
+  { pattern: /\b(typing|writing|drawing|painting)\b/i, type: 'interaction', intensity: 'low' },
+  { pattern: /\b(eating|drinking|sipping|chewing)\b/i, type: 'interaction', intensity: 'low' },
+  { pattern: /\b(hugging|embracing|kissing)\b/i, type: 'interaction', intensity: 'low' },
 ];
 
 function detectMotion(prompt: string): { hasMotion: boolean; type: string; intensity: string } {
@@ -114,16 +131,37 @@ describe("Motion Detection", () => {
   it("detects high-intensity motion", () => {
     expect(detectMotion("Character running through the forest").intensity).toBe('high');
     expect(detectMotion("Subject jumping over obstacles").intensity).toBe('high');
+    expect(detectMotion("Two warriors fighting in the arena").intensity).toBe('high');
+    expect(detectMotion("Athlete swimming across the lake").intensity).toBe('high');
   });
 
   it("detects medium-intensity motion", () => {
     expect(detectMotion("Person walking down the street").intensity).toBe('medium');
     expect(detectMotion("Explorer discovering ancient ruins").intensity).toBe('medium');
+    expect(detectMotion("Character sitting down at the table").intensity).toBe('medium');
+    expect(detectMotion("Worker carrying heavy boxes").intensity).toBe('medium');
   });
 
   it("detects low-intensity motion", () => {
     expect(detectMotion("Speaker gesturing emphatically").intensity).toBe('low');
     expect(detectMotion("Subject breathing calmly").intensity).toBe('low');
+  });
+
+  it("detects body-position actions", () => {
+    expect(detectMotion("Character leaning against the wall").type).toBe('body-position');
+    expect(detectMotion("Subject squatting near the fire").type).toBe('body-position');
+    expect(detectMotion("Person kneeling in prayer").type).toBe('body-position');
+    expect(detectMotion("Man sitting on a bench").type).toBe('body-position');
+    expect(detectMotion("Woman standing at the window").type).toBe('body-position');
+    expect(detectMotion("Child lying down on the grass").type).toBe('body-position');
+    expect(detectMotion("Athlete stretching before the race").type).toBe('body-position');
+  });
+
+  it("detects interaction actions", () => {
+    expect(detectMotion("Character holding a sword").type).toBe('interaction');
+    expect(detectMotion("Person typing on a laptop").type).toBe('interaction');
+    expect(detectMotion("Woman eating breakfast").type).toBe('interaction');
+    expect(detectMotion("Couple hugging at sunset").type).toBe('interaction');
   });
 
   it("returns static for no motion", () => {
@@ -136,6 +174,12 @@ describe("Motion Detection", () => {
     const result = detectMotion("Running and gesturing wildly");
     expect(result.intensity).toBe('high');
     expect(result.type).toBe('running');
+  });
+
+  it("body-position actions are NOT static", () => {
+    expect(detectMotion("Character leaning on railing").hasMotion).toBe(true);
+    expect(detectMotion("Person squatting").hasMotion).toBe(true);
+    expect(detectMotion("Man seated at desk").hasMotion).toBe(true);
   });
 });
 

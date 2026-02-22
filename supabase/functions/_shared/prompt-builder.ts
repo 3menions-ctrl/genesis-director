@@ -350,7 +350,7 @@ function detectPoseFromPrompt(prompt: string): { pose: string; confidence: numbe
 
 interface MotionAnalysis {
   hasMotion: boolean;
-  motionType: 'walking' | 'running' | 'exploring' | 'moving' | 'gesturing' | 'static' | 'subtle';
+  motionType: 'walking' | 'running' | 'exploring' | 'moving' | 'gesturing' | 'static' | 'subtle' | 'body-position' | 'interaction';
   intensity: 'high' | 'medium' | 'low' | 'static';
   detectedActions: string[];
   motionEnforcementPrompt: string;
@@ -361,28 +361,51 @@ const MOTION_PATTERNS: { pattern: RegExp; type: MotionAnalysis['motionType']; in
   // High-intensity motion
   { pattern: /\b(running|sprinting|dashing|racing|chasing|fleeing|escaping)\b/i, type: 'running', intensity: 'high' },
   { pattern: /\b(jumping|leaping|diving|tumbling|rolling)\b/i, type: 'moving', intensity: 'high' },
+  { pattern: /\b(fighting|attacking|punching|kicking|sparring|wrestling|dodging)\b/i, type: 'moving', intensity: 'high' },
+  { pattern: /\b(swimming|surfing|skating|skiing)\b/i, type: 'moving', intensity: 'high' },
+  { pattern: /\b(throwing|hurling|tossing|launching)\b/i, type: 'moving', intensity: 'high' },
   
-  // Medium-intensity motion (walking, exploring)
+  // Medium-intensity motion (walking, exploring, transitional)
   { pattern: /\b(walking|strolling|wandering|roaming|hiking|trekking)\b/i, type: 'walking', intensity: 'medium' },
   { pattern: /\b(exploring|discovering|searching|investigating|navigating)\b/i, type: 'exploring', intensity: 'medium' },
   { pattern: /\b(stepping|stepping\s+through|steps\s+through|moving\s+through)\b/i, type: 'walking', intensity: 'medium' },
   { pattern: /\b(approaching|retreating|advancing|entering|exiting)\b/i, type: 'moving', intensity: 'medium' },
   { pattern: /\b(climbing|descending|ascending)\b/i, type: 'moving', intensity: 'medium' },
+  { pattern: /\b(dancing|swinging|rocking|bouncing)\b/i, type: 'moving', intensity: 'medium' },
+  { pattern: /\b(carrying|dragging|pushing|pulling)\b/i, type: 'moving', intensity: 'medium' },
+  { pattern: /\b(catching|grabbing|snatching|seizing)\b/i, type: 'moving', intensity: 'medium' },
+  { pattern: /\b(sitting\s+down|standing\s+up|rising|getting\s+up|lowering)\b/i, type: 'moving', intensity: 'medium' },
   
-  // Low-intensity motion (gestures, subtle)
+  // Low-intensity motion (gestures, subtle movement)
   { pattern: /\b(gesturing|pointing|waving|reaching|touching)\b/i, type: 'gesturing', intensity: 'low' },
   { pattern: /\b(turning|rotating|spinning|pivoting|looking\s+around)\b/i, type: 'subtle', intensity: 'low' },
   { pattern: /\b(gazing|observing|watching|surveying|scanning)\b/i, type: 'subtle', intensity: 'low' },
   { pattern: /\b(breathing|swaying|shifting)\b/i, type: 'subtle', intensity: 'low' },
+  { pattern: /\b(nodding|shaking\s+head|tilting|cocking\s+head)\b/i, type: 'gesturing', intensity: 'low' },
   
-  // Body position actions (leaning, squatting, kneeling, etc.) — MUST be detected
-  // so they are NOT overridden by "static pose" negatives
-  { pattern: /\b(leaning|slouching|reclining|propping)\b/i, type: 'subtle', intensity: 'low' },
-  { pattern: /\b(squatting|crouching|ducking|hunching)\b/i, type: 'subtle', intensity: 'low' },
-  { pattern: /\b(kneeling|bending|stooping|bowing)\b/i, type: 'subtle', intensity: 'low' },
-  { pattern: /\b(sitting\s+down|standing\s+up|rising|lowering)\b/i, type: 'moving', intensity: 'medium' },
-  { pattern: /\b(stretching|flexing|arching|twisting)\b/i, type: 'subtle', intensity: 'low' },
-  { pattern: /\b(dancing|swinging|rocking|bouncing)\b/i, type: 'moving', intensity: 'medium' },
+  // Body position actions — CRITICAL: these must be detected so the model
+  // renders the CHARACTER IN THE SPECIFIED POSE rather than standing upright
+  { pattern: /\b(leaning|slouching|reclining|propping|lounging)\b/i, type: 'body-position', intensity: 'low' },
+  { pattern: /\b(squatting|crouching|ducking|hunching|hunkering)\b/i, type: 'body-position', intensity: 'low' },
+  { pattern: /\b(kneeling|bending|stooping|bowing|genuflecting)\b/i, type: 'body-position', intensity: 'low' },
+  { pattern: /\b(sitting|seated|sat\b)/i, type: 'body-position', intensity: 'low' },
+  { pattern: /\b(standing|stood|stands)\b/i, type: 'body-position', intensity: 'low' },
+  { pattern: /\b(lying\s+down|laying|recumbent|sprawled|prone|supine)\b/i, type: 'body-position', intensity: 'low' },
+  { pattern: /\b(stretching|flexing|arching|twisting)\b/i, type: 'body-position', intensity: 'low' },
+  { pattern: /\b(hanging|suspended|dangling|clinging)\b/i, type: 'body-position', intensity: 'low' },
+  
+  // Interaction actions — character interacting with objects/environment
+  { pattern: /\b(holding|gripping|clutching|grasping|cradling)\b/i, type: 'interaction', intensity: 'low' },
+  { pattern: /\b(lifting|raising|hoisting|picking\s+up)\b/i, type: 'interaction', intensity: 'low' },
+  { pattern: /\b(typing|writing|drawing|painting|sketching)\b/i, type: 'interaction', intensity: 'low' },
+  { pattern: /\b(eating|drinking|sipping|chewing|tasting)\b/i, type: 'interaction', intensity: 'low' },
+  { pattern: /\b(reading|studying|examining|inspecting)\b/i, type: 'interaction', intensity: 'low' },
+  { pattern: /\b(cooking|stirring|chopping|mixing|pouring)\b/i, type: 'interaction', intensity: 'low' },
+  { pattern: /\b(opening|closing|locking|unlocking|shutting)\b/i, type: 'interaction', intensity: 'low' },
+  { pattern: /\b(hugging|embracing|kissing|caressing)\b/i, type: 'interaction', intensity: 'low' },
+  { pattern: /\b(smoking|vaping|inhaling)\b/i, type: 'interaction', intensity: 'low' },
+  { pattern: /\b(playing\s+(guitar|piano|drums|violin|instrument))\b/i, type: 'interaction', intensity: 'low' },
+  { pattern: /\b(looking\s+at|staring\s+at|peering\s+at|glancing\s+at)\b/i, type: 'subtle', intensity: 'low' },
 ];
 
 function detectMotionFromPrompt(prompt: string): MotionAnalysis {
@@ -416,12 +439,22 @@ function detectMotionFromPrompt(prompt: string): MotionAnalysis {
         motionNegatives = ['static pose', 'frozen', 'still', 'motionless', 'stationary', 'standing still', 'not moving', 'paused', 'stopped', 'idle'];
         break;
       case 'medium':
-        motionEnforcementPrompt = `[MOTION REQUIRED - CONTINUOUS MOVEMENT: Character must be visibly ${primaryType} - legs moving, body in motion, traveling through scene. Show actual locomotion with each step visible. The character is NOT standing still.]`;
+        motionEnforcementPrompt = `[MOTION REQUIRED - CONTINUOUS MOVEMENT: Character must be visibly ${primaryType} with natural body motion throughout the clip. The character is NOT frozen or standing still.]`;
         motionNegatives = ['static', 'frozen', 'still', 'motionless', 'stationary', 'standing still', 'not moving', 'stuck in place', 'no movement', 'idle pose'];
         break;
       case 'low':
-        motionEnforcementPrompt = `[SUBTLE MOTION REQUIRED: Character performs visible ${primaryType} action - body shifts, gestures are animated, natural micro-movements present throughout.]`;
-        motionNegatives = ['completely frozen', 'totally still', 'no movement at all', 'statue-like'];
+        if (primaryType === 'body-position') {
+          // SPECIFIC enforcement for body positions — tells the model the EXACT pose
+          motionEnforcementPrompt = `[BODY POSITION MANDATORY: Character MUST be in the described pose (${detectedActions.join(', ')}). This is NOT a standing pose. The character's body position is the primary visual element. Show natural micro-movements and breathing while maintaining this specific body position throughout.]`;
+          motionNegatives = ['standing upright', 'default standing pose', 'straight posture', 'standing still', 'T-pose', 'neutral standing'];
+        } else if (primaryType === 'interaction') {
+          // SPECIFIC enforcement for object interactions
+          motionEnforcementPrompt = `[ACTION MANDATORY: Character MUST be actively performing: ${detectedActions.join(', ')}. Hands and body are engaged in this specific action. Show the interaction clearly with natural movement and purpose throughout the clip.]`;
+          motionNegatives = ['hands at sides', 'idle hands', 'empty hands', 'no interaction', 'passive', 'disengaged'];
+        } else {
+          motionEnforcementPrompt = `[SUBTLE MOTION REQUIRED: Character performs visible ${primaryType} action - body shifts, gestures are animated, natural micro-movements present throughout.]`;
+          motionNegatives = ['completely frozen', 'totally still', 'no movement at all', 'statue-like'];
+        }
         break;
     }
   }

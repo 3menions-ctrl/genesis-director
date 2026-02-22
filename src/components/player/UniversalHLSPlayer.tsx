@@ -118,8 +118,38 @@ export function detectHLSPlaybackMethod(): 'native' | 'hlsjs' | null {
 }
 
 // ============================================================================
-// HELPER
+// HELPERS
 // ============================================================================
+
+/**
+ * Parse an m3u8 manifest to extract individual MP4/TS segment URLs.
+ * Used as a fallback when hls.js can't handle discontinuity segments.
+ */
+async function parseM3u8ForClipUrls(m3u8Url: string): Promise<string[]> {
+  try {
+    const resp = await fetch(m3u8Url);
+    if (!resp.ok) return [];
+    const text = await resp.text();
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const urls: string[] = [];
+    for (const line of lines) {
+      if (!line.startsWith('#') && (line.startsWith('http') || line.endsWith('.mp4') || line.endsWith('.ts'))) {
+        // Resolve relative URLs
+        if (line.startsWith('http')) {
+          urls.push(line);
+        } else {
+          const base = m3u8Url.substring(0, m3u8Url.lastIndexOf('/') + 1);
+          urls.push(base + line);
+        }
+      }
+    }
+    console.log(`[UniversalHLS] Parsed m3u8: found ${urls.length} clip URLs`);
+    return urls;
+  } catch (e) {
+    console.error('[UniversalHLS] Failed to parse m3u8:', e);
+    return [];
+  }
+}
 
 function formatTime(seconds: number): string {
   if (!isSafeVideoNumber(seconds)) return '0:00';
@@ -161,7 +191,7 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
     const [error, setError] = useState<string | null>(null);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
-    const [playbackMethod, setPlaybackMethod] = useState<'native' | 'hlsjs' | null>(null);
+    const [playbackMethod, setPlaybackMethod] = useState<'native' | 'hlsjs' | 'sequential' | null>(null);
     const [buffered, setBuffered] = useState(0);
     
     // Refs
@@ -173,6 +203,12 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
     const retryCountRef = useRef(0);
     const initializingRef = useRef(false);
     const fallbackTriedRef = useRef(false);
+    
+    // Sequential playback fallback refs
+    const sequentialClipsRef = useRef<string[]>([]);
+    const sequentialIndexRef = useRef(0);
+    const sequentialTotalDurationRef = useRef(0);
+    const sequentialElapsedRef = useRef(0);
     
     // Stable callback refs to prevent re-initialization loops
     const onErrorRef = useRef(onError);
@@ -241,6 +277,9 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
     useEffect(() => {
       const video = videoRef.current;
       if (!video || !hlsUrl) return;
+      
+      // If already in sequential fallback mode, don't re-init HLS
+      if (sequentialClipsRef.current.length > 0) return;
       
       // Prevent concurrent initialization
       if (initializingRef.current) return;
@@ -319,17 +358,41 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
                 }
                 break;
               case Hls.ErrorTypes.MEDIA_ERROR:
-                // Only attempt recovery once - if it fails again, call onError for fallback
+                // Media errors with full MP4 + discontinuity = use sequential fallback
                 if (retryCountRef.current < 1) {
                   retryCountRef.current++;
                   console.log('[UniversalHLS] Media error, attempting recovery...');
                   hls.recoverMediaError();
                 } else {
-                  // Recovery failed - DON'T setError (avoids flash of error UI)
-                  // call onError so parent silently falls back to MSE clip-by-clip playback
-                  const errMsg = 'Media failed to load';
-                  console.warn('[UniversalHLS] Media recovery failed, triggering MSE fallback');
-                  onErrorRef.current?.(errMsg);
+                  // Recovery failed — switch to sequential clip-by-clip playback
+                  console.warn('[UniversalHLS] Media recovery failed, switching to SEQUENTIAL fallback');
+                  hls.destroy();
+                  hlsRef.current = null;
+                  // Parse m3u8 and play clips sequentially
+                  parseM3u8ForClipUrls(hlsUrl).then(clips => {
+                    if (!mountedRef.current || clips.length === 0) {
+                      // Last resort: single MP4 fallback
+                      if (fallbackMp4Url && video) {
+                        video.src = fallbackMp4Url;
+                        video.load();
+                        if (autoPlay) safePlay(video);
+                      }
+                      return;
+                    }
+                    sequentialClipsRef.current = clips;
+                    sequentialIndexRef.current = 0;
+                    sequentialElapsedRef.current = 0;
+                    // Estimate 10s per clip (from m3u8 EXTINF)
+                    sequentialTotalDurationRef.current = clips.length * 10;
+                    setPlaybackMethod('sequential');
+                    setDuration(clips.length * 10);
+                    setIsLoading(false);
+                    setError(null);
+                    console.log(`[UniversalHLS] Sequential mode: ${clips.length} clips`);
+                    video.src = clips[0];
+                    video.load();
+                    if (autoPlay) safePlay(video);
+                  });
                 }
                 break;
               default: {
@@ -380,8 +443,9 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
       const handleLoadedMetadata = () => {
         if (!mountedRef.current) return;
         const dur = video.duration;
-        if (isSafeVideoNumber(dur)) {
+        if (isSafeVideoNumber(dur) && dur > 0) {
           setDuration(dur);
+          console.log(`[UniversalHLS] loadedmetadata: duration=${dur.toFixed(2)}s`);
         }
         // For native HLS, this is when we're ready
         if (playbackMethod === 'native') {
@@ -394,16 +458,39 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
         }
       };
       
+      // HLS duration can update as more segments are discovered
+      const handleDurationChange = () => {
+        if (!mountedRef.current) return;
+        const dur = video.duration;
+        if (isSafeVideoNumber(dur) && dur > 0) {
+          setDuration(dur);
+        }
+      };
+      
       const handleTimeUpdate = () => {
         if (!mountedRef.current) return;
         const time = video.currentTime;
-        setCurrentTime(time);
-        onTimeUpdateRef.current?.(time, duration);
+        const liveDuration = video.duration;
         
-        // Update buffered amount
+        // Sequential mode: report cumulative time (check ref, not stale state)
+        if (sequentialClipsRef.current.length > 0) {
+          const totalElapsed = sequentialElapsedRef.current + time;
+          const totalDur = sequentialTotalDurationRef.current;
+          setCurrentTime(totalElapsed);
+          setDuration(totalDur);
+          onTimeUpdateRef.current?.(totalElapsed, totalDur);
+          return;
+        }
+        
+        setCurrentTime(time);
+        if (isSafeVideoNumber(liveDuration) && liveDuration > 0) {
+          setDuration(liveDuration);
+        }
+        onTimeUpdateRef.current?.(time, isSafeVideoNumber(liveDuration) ? liveDuration : 0);
+        
         if (video.buffered.length > 0) {
           const bufferedEnd = video.buffered.end(video.buffered.length - 1);
-          setBuffered(duration > 0 ? (bufferedEnd / duration) * 100 : 0);
+          setBuffered(liveDuration > 0 ? (bufferedEnd / liveDuration) * 100 : 0);
         }
       };
       
@@ -430,6 +517,26 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
       
       const handleEnded = () => {
         if (!mountedRef.current) return;
+        
+        // Sequential mode: advance to next clip (check ref, not stale state)
+        const clips = sequentialClipsRef.current;
+        if (clips.length > 0) {
+          const nextIndex = sequentialIndexRef.current + 1;
+          const clipDur = video.duration;
+          if (isSafeVideoNumber(clipDur)) {
+            sequentialElapsedRef.current += clipDur;
+          }
+          if (nextIndex < clips.length) {
+            sequentialIndexRef.current = nextIndex;
+            console.log(`[UniversalHLS] Sequential: advancing to clip ${nextIndex + 1}/${clips.length}`);
+            video.src = clips[nextIndex];
+            video.load();
+            safePlay(video);
+            return; // Don't fire onEnded yet
+          }
+          console.log('[UniversalHLS] Sequential: all clips finished');
+        }
+        
         setIsPlaying(false);
         console.log('[UniversalHLS] Playback ended');
         onEndedRef.current?.();
@@ -474,6 +581,7 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
       };
       
       video.addEventListener('loadedmetadata', handleLoadedMetadata);
+      video.addEventListener('durationchange', handleDurationChange);
       video.addEventListener('timeupdate', handleTimeUpdate);
       video.addEventListener('play', handlePlay);
       video.addEventListener('pause', handlePause);
@@ -484,6 +592,7 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
       
       return () => {
         video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        video.removeEventListener('durationchange', handleDurationChange);
         video.removeEventListener('timeupdate', handleTimeUpdate);
         video.removeEventListener('play', handlePlay);
         video.removeEventListener('pause', handlePause);
@@ -492,7 +601,7 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
         video.removeEventListener('waiting', handleWaiting);
         video.removeEventListener('canplay', handleCanPlay);
       };
-    }, [autoPlay, duration, masterAudioUrl, playbackMethod]);
+    }, [autoPlay, masterAudioUrl, playbackMethod]);
     
     // Sync master audio with video
     useEffect(() => {

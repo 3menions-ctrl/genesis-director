@@ -245,11 +245,11 @@ export const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
           loop={false}
           showControls={false}
           onEnded={stopPlayback}
-          onTimeUpdate={(currentTime, duration) => {
-            if (hasEndedRef.current) return;
-            if (duration && isFinite(duration) && duration > 0 && currentTime >= duration - 0.3) {
-              stopPlayback();
-            }
+          onTimeUpdate={() => {
+            // NO premature stop check here — rely solely on onEnded.
+            // The previous duration-based check was killing playback after clip 1
+            // because HLS discontinuity segments can cause stale/incorrect duration
+            // values during early buffering.
           }}
         />
         

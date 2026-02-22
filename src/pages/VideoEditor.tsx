@@ -4,8 +4,114 @@ import { ArrowLeft, Download, Loader2, Sparkles, Film, Check } from "lucide-reac
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEditorClips } from "@/hooks/useEditorClips";
+import { useEditorClips, EditorClip } from "@/hooks/useEditorClips";
 import "@twick/studio/dist/studio.css";
+
+/**
+ * Writes clips directly to the IndexedDB store that Twick's BrowserMediaManager reads from.
+ * This must complete BEFORE TwickStudio mounts so the MediaProvider sees the items on init.
+ */
+async function prePopulateMediaStore(clips: EditorClip[]): Promise<number> {
+  const DB_NAME = "mediaStore";
+  const STORE_NAME = "mediaItems";
+
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME);
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
+      }
+    };
+
+    request.onerror = () => reject(request.error);
+
+    request.onsuccess = () => {
+      const db = request.result;
+
+      // Ensure the store exists
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.close();
+        // Re-open with version bump to create the store
+        const version = db.version + 1;
+        const upgradeReq = indexedDB.open(DB_NAME, version);
+        upgradeReq.onupgradeneeded = () => {
+          const udb = upgradeReq.result;
+          if (!udb.objectStoreNames.contains(STORE_NAME)) {
+            udb.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
+          }
+        };
+        upgradeReq.onsuccess = () => {
+          writeClips(upgradeReq.result, clips).then(resolve).catch(reject);
+        };
+        upgradeReq.onerror = () => reject(upgradeReq.error);
+        return;
+      }
+
+      writeClips(db, clips).then(resolve).catch(reject);
+    };
+  });
+}
+
+async function writeClips(db: IDBDatabase, clips: EditorClip[]): Promise<number> {
+  const STORE_NAME = "mediaItems";
+
+  // First read existing URLs to avoid duplicates
+  const existingUrls = await new Promise<Set<string>>((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.getAll();
+    req.onsuccess = () => {
+      const urls = new Set((req.result || []).map((item: any) => item.url));
+      resolve(urls);
+    };
+    req.onerror = () => reject(req.error);
+  });
+
+  const newClips = clips.filter(c => c.videoUrl && !existingUrls.has(c.videoUrl));
+  if (newClips.length === 0) {
+    db.close();
+    return 0;
+  }
+
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    const store = tx.objectStore(STORE_NAME);
+    let added = 0;
+
+    for (const clip of newClips) {
+      const item = {
+        name: `Shot ${clip.shotIndex + 1} – ${clip.projectTitle}`,
+        url: clip.videoUrl,
+        type: "video",
+        thumbnail: clip.thumbnailUrl || undefined,
+        duration: clip.durationSeconds || undefined,
+        size: 0,
+        width: 1920,
+        height: 1080,
+        createdAt: new Date(),
+        metadata: {
+          name: `Shot ${clip.shotIndex + 1}`,
+          source: "apex",
+          projectId: clip.projectId,
+          prompt: clip.prompt,
+        },
+      };
+      const req = store.add(item);
+      req.onsuccess = () => { added++; };
+    }
+
+    tx.oncomplete = () => {
+      db.close();
+      resolve(added);
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error);
+    };
+  });
+}
 
 // Dynamically import Twick to avoid 504 bundling timeouts
 function useTwickModules() {
@@ -38,13 +144,51 @@ function useTwickModules() {
   return { modules, loading, error };
 }
 
+/**
+ * Phase-based editor loading:
+ * 1. Load Twick modules + fetch clips from DB (parallel)
+ * 2. Pre-populate IndexedDB with clips
+ * 3. Mount TwickStudio (reads clips from IndexedDB on init)
+ */
 export default function VideoEditor() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get("project");
-  const { modules, loading, error: loadError } = useTwickModules();
 
-  if (loading) {
+  const { modules, loading: modulesLoading, error: loadError } = useTwickModules();
+  const { clips, loading: clipsLoading } = useEditorClips(projectId);
+  const [mediaReady, setMediaReady] = useState(false);
+  const [clipCount, setClipCount] = useState(0);
+  const populatedRef = useRef(false);
+
+  // Phase 2: Once clips are fetched, write them to IndexedDB before mounting studio
+  useEffect(() => {
+    if (clipsLoading || populatedRef.current) return;
+    populatedRef.current = true;
+
+    if (clips.length === 0) {
+      setMediaReady(true);
+      return;
+    }
+
+    prePopulateMediaStore(clips)
+      .then((count) => {
+        setClipCount(count);
+        if (count > 0) {
+          console.log(`[Apex] Pre-loaded ${count} clips into media library`);
+        }
+        setMediaReady(true);
+      })
+      .catch((err) => {
+        console.error("[Apex] Failed to pre-populate media store:", err);
+        // Still mount the studio even if pre-population fails
+        setMediaReady(true);
+      });
+  }, [clips, clipsLoading]);
+
+  const isLoading = modulesLoading || clipsLoading || !mediaReady;
+
+  if (isLoading) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#08080c] gap-6 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
@@ -62,7 +206,10 @@ export default function VideoEditor() {
               <Film className="w-6 h-6 text-primary animate-pulse-soft" />
             </div>
           </div>
-          <p className="text-sm font-medium text-foreground/70 font-display">Loading Studio</p>
+          <p className="text-sm font-medium text-foreground/70 font-display">
+            {!modulesLoading && !clipsLoading ? "Preparing media library…" : 
+             clipsLoading ? "Loading your clips…" : "Loading Studio…"}
+          </p>
           <div className="w-48 h-0.5 bg-border/30 rounded-full overflow-hidden">
             <div className="h-full bg-gradient-to-r from-primary/60 via-primary to-primary/60 rounded-full animate-loader-progress" />
           </div>
@@ -85,19 +232,19 @@ export default function VideoEditor() {
     );
   }
 
-  return <TwickEditorInner modules={modules} navigate={navigate} projectId={projectId} />;
+  // Phase 3: Mount studio — media is already in IndexedDB
+  return <StudioShell modules={modules} navigate={navigate} clipCount={clipCount} />;
 }
 
 /**
- * Inner component that sets up Twick providers and injects clips into the media library.
+ * Thin wrapper that sets up Twick providers and renders the studio.
  */
-function TwickEditorInner({ modules, navigate, projectId }: { modules: any; navigate: any; projectId: string | null }) {
+function StudioShell({ modules, navigate, clipCount }: { modules: any; navigate: any; clipCount: number }) {
   const {
     TwickStudio,
     LivePlayerProvider,
     TimelineProvider,
     INITIAL_TIMELINE_DATA,
-    BrowserMediaManager,
   } = modules.studio;
 
   const { useBrowserRenderer } = modules.browserRender;
@@ -109,12 +256,11 @@ function TwickEditorInner({ modules, navigate, projectId }: { modules: any; navi
         initialData={INITIAL_TIMELINE_DATA}
         analytics={{ enabled: false }}
       >
-        <EditorWithMediaInjection
+        <EditorChrome
           TwickStudio={TwickStudio}
-          BrowserMediaManager={BrowserMediaManager}
           useBrowserRenderer={useBrowserRenderer}
           navigate={navigate}
-          projectId={projectId}
+          clipCount={clipCount}
         />
       </TimelineProvider>
     </LivePlayerProvider>
@@ -122,26 +268,20 @@ function TwickEditorInner({ modules, navigate, projectId }: { modules: any; navi
 }
 
 /**
- * Main editor component that injects user clips into Twick's BrowserMediaManager (IndexedDB).
- * Clips appear in the studio's built-in Video panel so users can drag them to the timeline.
+ * Editor chrome: top bar, export controls, and TwickStudio.
  */
-function EditorWithMediaInjection({
+function EditorChrome({
   TwickStudio,
-  BrowserMediaManager,
   useBrowserRenderer,
   navigate,
-  projectId,
+  clipCount,
 }: {
   TwickStudio: any;
-  BrowserMediaManager: any;
   useBrowserRenderer: any;
   navigate: any;
-  projectId: string | null;
+  clipCount: number;
 }) {
-  const { clips, loading: clipsLoading } = useEditorClips(projectId);
-  const [clipsInjected, setClipsInjected] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const injectedRef = useRef(false);
 
   const { render, progress, isRendering, error, reset } = useBrowserRenderer({
     width: 1920,
@@ -150,52 +290,6 @@ function EditorWithMediaInjection({
     includeAudio: true,
     autoDownload: true,
   });
-
-  // Inject clips into the BrowserMediaManager so they appear in the Video panel
-  useEffect(() => {
-    if (clipsLoading || clips.length === 0 || injectedRef.current) return;
-
-    async function injectIntoMediaLibrary() {
-      try {
-        // BrowserMediaManager uses IndexedDB "mediaStore" / "mediaItems" — 
-        // same DB as the singleton inside TwickStudio, so items show up in the Video panel.
-        const manager = new BrowserMediaManager();
-        let addedCount = 0;
-
-        for (const clip of clips) {
-          if (!clip.videoUrl) continue;
-
-          try {
-            await manager.addItem({
-              name: `Shot ${clip.shotIndex + 1} – ${clip.projectTitle}`,
-              type: "video",
-              url: clip.videoUrl,
-              thumbnail: clip.thumbnailUrl || undefined,
-              duration: clip.durationSeconds || undefined,
-              size: 0,
-              width: 1920,
-              height: 1080,
-              createdAt: new Date(),
-            });
-            addedCount++;
-          } catch (err) {
-            console.warn(`Failed to add clip ${clip.id} to media library:`, err);
-          }
-        }
-
-        if (addedCount > 0) {
-          toast.success(`${addedCount} clip${addedCount > 1 ? "s" : ""} loaded into media library`);
-        }
-
-        injectedRef.current = true;
-        setClipsInjected(true);
-      } catch (err) {
-        console.error("Failed to inject clips into media library:", err);
-      }
-    }
-
-    injectIntoMediaLibrary();
-  }, [clips, clipsLoading, BrowserMediaManager]);
 
   const onExportVideo = useCallback(async () => {
     try {
@@ -246,16 +340,10 @@ function EditorWithMediaInjection({
           <span className="text-[12px] font-semibold text-foreground/50 tracking-tight font-display">
             Apex Editor
           </span>
-          {clipsLoading && (
-            <div className="flex items-center gap-1 ml-2 text-[10px] text-muted-foreground/40">
-              <Loader2 className="w-2.5 h-2.5 animate-spin" />
-              Loading clips...
-            </div>
-          )}
-          {clipsInjected && (
+          {clipCount > 0 && (
             <div className="flex items-center gap-1 ml-2 text-[10px] text-emerald-400/60">
               <Check className="w-2.5 h-2.5" />
-              {clips.length} clips in library
+              {clipCount} clips in library
             </div>
           )}
         </div>
@@ -307,7 +395,7 @@ function EditorWithMediaInjection({
         )}
       </AnimatePresence>
 
-      {/* Full Twick Studio — clips are in the Video panel's media library */}
+      {/* Full Twick Studio — clips are already in its IndexedDB media library */}
       <div className="flex-1 min-h-0">
         <TwickStudio />
       </div>

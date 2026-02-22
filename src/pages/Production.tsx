@@ -1458,6 +1458,7 @@ const transitionsData = useMemo(() =>
                         }
                       }}
                       onCancel={handleCancelPipeline}
+                      onPlayClip={handlePlayClip}
                     />
                   </Suspense>
                 </ErrorBoundaryWrapper>

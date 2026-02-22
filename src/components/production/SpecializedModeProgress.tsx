@@ -44,6 +44,7 @@ interface SpecializedModeProgressProps {
   onComplete?: () => void;
   onRetry?: () => void;
   onCancel?: () => void;
+  onPlayClip?: (url: string) => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -225,7 +226,7 @@ function StageConnector({ lit, hue, flowing }: { lit: boolean; hue: number; flow
 // CLIP CARD (matches ProductionDashboard clip cards)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ClipCard({ clip, hue }: { clip: ClipInfo; hue: number }) {
+function ClipCard({ clip, hue, onPlay }: { clip: ClipInfo; hue: number; onPlay?: (url: string) => void }) {
   return (
     <motion.div
       whileHover={clip.status === 'completed' ? { scale: 1.07, y: -2 } : {}}
@@ -259,7 +260,8 @@ function ClipCard({ clip, hue }: { clip: ClipInfo; hue: number }) {
       }}
       onClick={() => {
         if (clip.status === 'completed' && clip.videoUrl) {
-          window.open(clip.videoUrl, '_blank');
+          if (onPlay) onPlay(clip.videoUrl);
+          else window.open(clip.videoUrl, '_blank');
         }
       }}
     >
@@ -304,7 +306,7 @@ function ClipCard({ clip, hue }: { clip: ClipInfo; hue: number }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function SpecializedModeProgress({
-  projectId, mode, pipelineState, videoUrl, allClips = [], masterAudioUrl, onComplete, onRetry, onCancel,
+  projectId, mode, pipelineState, videoUrl, allClips = [], masterAudioUrl, onComplete, onRetry, onCancel, onPlayClip,
 }: SpecializedModeProgressProps) {
   const { navigateTo } = useNavigationWithLoading();
   const [localState, setLocalState] = useState<PipelineState>(pipelineState);
@@ -669,7 +671,7 @@ export function SpecializedModeProgress({
             </div>
             <div className="flex flex-wrap gap-2.5">
               {localClips.map(clip => (
-                <ClipCard key={clip.index} clip={clip} hue={hue} />
+                <ClipCard key={clip.index} clip={clip} hue={hue} onPlay={onPlayClip} />
               ))}
             </div>
           </div>
@@ -712,14 +714,20 @@ export function SpecializedModeProgress({
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: idx * 0.08 }}
-                  className="rounded-2xl overflow-hidden ring-1 ring-white/[0.08]"
+                  className="rounded-2xl overflow-hidden ring-1 ring-white/[0.08] cursor-pointer group/clip"
                   style={{ background: 'hsl(0 0% 0% / 0.5)' }}
+                  onClick={() => onPlayClip?.(clip.videoUrl)}
                 >
-                  <PausedFrameVideo src={clip.videoUrl} controls className="w-full aspect-video" />
+                  <div className="relative">
+                    <PausedFrameVideo src={clip.videoUrl} controls={false} className="w-full aspect-video" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover/clip:opacity-100 transition-opacity">
+                      <PlayCircle className="w-10 h-10 text-white/90" />
+                    </div>
+                  </div>
                   <div className="p-3 flex items-center justify-between border-t border-white/[0.05]">
                     <span className="text-xs font-medium text-white/60">Clip {clip.index + 1}</span>
                     <button
-                      onClick={() => { const a = document.createElement('a'); a.href = clip.videoUrl; a.download = `${mode}-clip-${clip.index + 1}.mp4`; a.click(); }}
+                      onClick={(e) => { e.stopPropagation(); const a = document.createElement('a'); a.href = clip.videoUrl; a.download = `${mode}-clip-${clip.index + 1}.mp4`; a.click(); }}
                       className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/80 transition-colors"
                     >
                       <Download className="w-3 h-3" />

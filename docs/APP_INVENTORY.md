@@ -106,7 +106,7 @@
 | `hollywood-pipeline` | Full Hollywood-mode pipeline orchestration | Multiple AI services |
 | `check-video-status` | Polls clip generation status | Replicate |
 | `check-specialized-status` | Checks specialized mode generation status | Replicate |
-| `simple-stitch` | Stitches individual clips into final video | FFmpeg/Replicate |
+| `simple-stitch` | Stitches individual clips into final video | Replicate |
 | `auto-stitch-trigger` | Auto-triggers stitching when all clips are ready | — |
 | `render-video` | Renders/exports final video from editor | — |
 | `final-assembly` | Genesis final assembly of clips | — |

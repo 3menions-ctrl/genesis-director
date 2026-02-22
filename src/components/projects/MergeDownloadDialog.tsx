@@ -263,7 +263,7 @@ export function MergeDownloadDialog({
           {!isMerging && !error && mergeProgress?.stage !== 'complete' && canMerge && (
             <div className="bg-violet-500/10 border border-violet-500/20 rounded-lg p-3">
               <p className="text-xs text-violet-300">
-                This will download and merge all clips in your browser. 
+              This will download all clips and package them as a ZIP file. 
                 Processing time depends on the number and size of clips.
               </p>
             </div>

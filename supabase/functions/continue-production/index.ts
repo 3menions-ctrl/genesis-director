@@ -488,12 +488,56 @@ serve(async (req: Request) => {
       }
     }
     
-    // CRITICAL VALIDATION: Ensure prompt is valid before proceeding
-    // A corrupted prompt will break the entire pipeline
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CRITICAL FIX: For avatar mode, generated_script often has only 1 shot,
+    // but the REAL per-clip dialogue lives in pending_video_tasks.predictions[].
+    // This was the ROOT CAUSE of clips 2+ getting generic "Continue the narrative"
+    // instead of actual dialogue content.
+    // ═══════════════════════════════════════════════════════════════════════════
     if (!nextClipPrompt || nextClipPrompt.length < 20) {
-      console.warn(`[ContinueProduction] ⚠️ Prompt too short or empty, building from context...`);
+      // SOURCE 1: pending_video_tasks.predictions[].segmentText (avatar pipeline stores dialogue here)
+      const predictions = context?.pendingVideoTasks?.predictions || [];
+      const predForClip = predictions.find(
+        (p: { clipIndex: number }) => p.clipIndex === nextClipIndex
+      );
       
-      // Try to build from extracted characters
+      if (predForClip?.segmentText) {
+        nextClipPrompt = `Speaking naturally with authentic delivery: "${predForClip.segmentText}"`;
+        if (predForClip.prompt) {
+          // Use the full prompt that was originally composed for this clip
+          nextClipPrompt = predForClip.prompt;
+        }
+        console.log(`[ContinueProduction] ✅ AVATAR FIX: Loaded dialogue from predictions[${nextClipIndex}].segmentText: "${predForClip.segmentText.substring(0, 80)}..."`);
+      }
+      
+      // SOURCE 2: Also check pending_video_tasks directly from DB if context didn't have it
+      if ((!nextClipPrompt || nextClipPrompt.length < 20) && !predForClip) {
+        try {
+          const { data: pvtData } = await supabase
+            .from('movie_projects')
+            .select('pending_video_tasks')
+            .eq('id', projectId)
+            .maybeSingle();
+          
+          const dbPredictions = (pvtData?.pending_video_tasks as any)?.predictions || [];
+          const dbPred = dbPredictions.find(
+            (p: { clipIndex: number }) => p.clipIndex === nextClipIndex
+          );
+          
+          if (dbPred?.segmentText) {
+            nextClipPrompt = dbPred.prompt || `Speaking naturally with authentic delivery: "${dbPred.segmentText}"`;
+            console.log(`[ContinueProduction] ✅ AVATAR FIX (DB): Loaded dialogue from DB predictions[${nextClipIndex}].segmentText: "${dbPred.segmentText.substring(0, 80)}..."`);
+          }
+        } catch (dbErr) {
+          console.warn(`[ContinueProduction] Failed to load predictions from DB:`, dbErr);
+        }
+      }
+    }
+    
+    // FINAL FALLBACK: If still no prompt, use generic continuation
+    if (!nextClipPrompt || nextClipPrompt.length < 20) {
+      console.warn(`[ContinueProduction] ⚠️ Prompt still empty after all sources, using generic fallback...`);
+      
       const chars = scriptData?.pro_features_data?.extractedCharacters || context?.extractedCharacters || [];
       if (chars.length > 0) {
         const charDesc = chars.map((c: any) => `${c.name}: ${c.appearance}`).join('; ');

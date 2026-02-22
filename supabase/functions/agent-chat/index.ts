@@ -4308,8 +4308,18 @@ serve(async (req) => {
       }
     }
     
-    // Use rich history if available, fall back to frontend messages
-      const rawConversationMessages = richHistory.length > 0 
+    // Use rich history if available, fall back to frontend messages.
+    // CRITICAL: The current user message is NOT in the DB yet (saved after response),
+    // so we MUST append it from the request payload to avoid the model ignoring it.
+    if (richHistory.length > 0) {
+      // Append current user message(s) from the request — these aren't in DB yet
+      for (const msg of messages) {
+        if (msg.role === "user" && msg.content) {
+          richHistory.push({ role: "user", content: msg.content });
+        }
+      }
+    }
+    const rawConversationMessages = richHistory.length > 0 
       ? richHistory.slice(-60) // Keep last 60 entries (includes tool messages)
       : messages.slice(-30);
 

@@ -34,7 +34,23 @@ const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Settings = lazy(() => import("./pages/Settings"));
 const NotFound = lazy(() => import("./pages/NotFound"));
-const Admin = lazy(() => import("./pages/Admin"));
+// Legacy Admin removed — replaced by Refine admin
+const RefineAdminLayout = lazy(() => import("./refine/AdminLayout").then(m => ({ default: m.RefineAdminLayout })));
+const AdminDashboardPage = lazy(() => import("./refine/pages/AdminDashboardPage"));
+const AdminUsersPage = lazy(() => import("./refine/pages/AdminUsersPage"));
+const AdminProjectsPage = lazy(() => import("./refine/pages/AdminProjectsPage"));
+const AdminCreditsPage = lazy(() => import("./refine/pages/AdminCreditsPage"));
+const AdminMessagesPage = lazy(() => import("./refine/pages/AdminMessagesPage"));
+const AdminFinancialsPage = lazy(() => import("./refine/pages/AdminFinancialsPage"));
+const AdminCostsPage = lazy(() => import("./refine/pages/AdminCostsPage"));
+const AdminPipelinePage = lazy(() => import("./refine/pages/AdminPipelinePage"));
+const AdminFailedPage = lazy(() => import("./refine/pages/AdminFailedPage"));
+const AdminAuditPage = lazy(() => import("./refine/pages/AdminAuditPage"));
+const AdminPackagesPage = lazy(() => import("./refine/pages/AdminPackagesPage"));
+const AdminModerationPage = lazy(() => import("./refine/pages/AdminModerationPage"));
+const AdminGalleryPage = lazy(() => import("./refine/pages/AdminGalleryPage"));
+const AdminAvatarsPage = lazy(() => import("./refine/pages/AdminAvatarsPage"));
+const AdminConfigPage = lazy(() => import("./refine/pages/AdminConfigPage"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Contact = lazy(() => import("./pages/Contact"));
@@ -376,14 +392,30 @@ const App = () => {
                   </RouteContainer>
                 } />
                 
-                {/* Admin Dashboard */}
+                {/* Admin — Refine-powered */}
                 <Route path="/admin" element={
                   <RouteContainer fallbackMessage="Loading admin...">
                     <ProtectedRoute>
-                      <Admin />
+                      <RefineAdminLayout />
                     </ProtectedRoute>
                   </RouteContainer>
-                } />
+                }>
+                  <Route index element={<AdminDashboardPage />} />
+                  <Route path="users" element={<AdminUsersPage />} />
+                  <Route path="projects" element={<AdminProjectsPage />} />
+                  <Route path="credits" element={<AdminCreditsPage />} />
+                  <Route path="messages" element={<AdminMessagesPage />} />
+                  <Route path="financials" element={<AdminFinancialsPage />} />
+                  <Route path="costs" element={<AdminCostsPage />} />
+                  <Route path="pipeline" element={<AdminPipelinePage />} />
+                  <Route path="failed" element={<AdminFailedPage />} />
+                  <Route path="audit" element={<AdminAuditPage />} />
+                  <Route path="packages" element={<AdminPackagesPage />} />
+                  <Route path="moderation" element={<AdminModerationPage />} />
+                  <Route path="gallery" element={<AdminGalleryPage />} />
+                  <Route path="avatars" element={<AdminAvatarsPage />} />
+                  <Route path="config" element={<AdminConfigPage />} />
+                </Route>
                 
                 {/* Legacy redirect — extract-thumbnails had no nav entry */}
                 <Route path="/extract-thumbnails" element={<Navigate to="/projects" replace />} />

@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { MUSIC_LIBRARY, type MusicTrack } from "./types";
 
 interface MusicLibraryPanelProps {
@@ -118,6 +119,9 @@ export const MusicLibraryPanel = ({ onAddMusic }: MusicLibraryPanelProps) => {
     if (previewAudio) { previewAudio.pause(); setPreviewAudio(null); setIsPlaying(false); }
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-music`,
         {
@@ -125,7 +129,7 @@ export const MusicLibraryPanel = ({ onAddMusic }: MusicLibraryPanelProps) => {
           headers: {
             "Content-Type": "application/json",
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ prompt, duration }),
         }
@@ -155,6 +159,9 @@ export const MusicLibraryPanel = ({ onAddMusic }: MusicLibraryPanelProps) => {
     if (sfxPreviewAudio) { sfxPreviewAudio.pause(); setSfxPreviewAudio(null); setIsSfxPlaying(false); }
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-sfx`,
         {
@@ -162,7 +169,7 @@ export const MusicLibraryPanel = ({ onAddMusic }: MusicLibraryPanelProps) => {
           headers: {
             "Content-Type": "application/json",
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ prompt, duration }),
         }

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Upload, Mic, Wand2, Play, Pause, Pencil, Video, Check, X, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import type { TimelineClip, Caption } from "./types";
 
 interface AudioUploadPanelProps {
@@ -62,12 +63,15 @@ export const AudioUploadPanel = ({ onAudioUploaded, onGenerateVideos, isGenerati
       const formData = new FormData();
       formData.append("audio", file);
 
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/editor-transcribe`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${token}`,
           },
           body: formData,
         }

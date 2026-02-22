@@ -1,19 +1,77 @@
-import { useState, useCallback } from "react";
-import {
-  TwickStudio,
-  LivePlayerProvider,
-  TimelineProvider,
-  INITIAL_TIMELINE_DATA,
-} from "@twick/studio";
-import { useBrowserRenderer } from "@twick/browser-render";
-import "@twick/studio/dist/studio.css";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
+// Dynamically import Twick to avoid 504 bundling timeouts
+function useTwickModules() {
+  const [modules, setModules] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      import("@twick/studio"),
+      import("@twick/browser-render"),
+    ])
+      .then(([studio, browserRender]) => {
+        if (!cancelled) {
+          setModules({ studio, browserRender });
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error("Failed to load Twick modules:", err);
+          setError(err.message || "Failed to load editor modules");
+          setLoading(false);
+        }
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  return { modules, loading, error };
+}
+
 export default function VideoEditor() {
   const navigate = useNavigate();
+  const { modules, loading, error: loadError } = useTwickModules();
+
+  if (loading) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-background gap-4">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">Loading editor...</p>
+      </div>
+    );
+  }
+
+  if (loadError || !modules) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-background gap-4">
+        <p className="text-sm text-destructive">Failed to load editor: {loadError}</p>
+        <Button variant="outline" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  return <TwickEditorInner modules={modules} navigate={navigate} />;
+}
+
+function TwickEditorInner({ modules, navigate }: { modules: any; navigate: any }) {
+  const {
+    TwickStudio,
+    LivePlayerProvider,
+    TimelineProvider,
+    INITIAL_TIMELINE_DATA,
+  } = modules.studio;
+
+  const { useBrowserRenderer } = modules.browserRender;
+
   const [showSuccess, setShowSuccess] = useState(false);
 
   const { render, progress, isRendering, error, reset } = useBrowserRenderer({

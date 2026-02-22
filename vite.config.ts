@@ -139,6 +139,11 @@ export default defineConfig(({ mode }) => ({
   },
   // Optimize deps
   optimizeDeps: {
-    include: ["react", "react-dom", "react-router-dom", "@tanstack/react-query"],
+    include: [
+      "react", "react-dom", "react-router-dom", "@tanstack/react-query",
+      "@twick/studio", "@twick/browser-render", "@twick/timeline", 
+      "@twick/live-player", "@twick/canvas", "@twick/video-editor",
+      "@twick/media-utils", "@twick/core",
+    ],
   },
 }));

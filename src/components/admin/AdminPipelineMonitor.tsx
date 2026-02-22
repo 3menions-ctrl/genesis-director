@@ -132,12 +132,10 @@ export function AdminPipelineMonitor() {
       });
 
       const serviceConfigs = [
-        { key: 'kling', name: 'Kling 2.6 Video', icon: Video },
+        { key: 'replicate-kling', name: 'Replicate Kling', icon: Video },
+        { key: 'replicate_minimax', name: 'Minimax TTS', icon: Mic },
         { key: 'openai-tts', name: 'OpenAI TTS', icon: Mic },
-        { key: 'cloud_run_stitcher', name: 'Cloud Run Stitcher', icon: Scissors },
-        { key: 'openai', name: 'OpenAI GPT', icon: Sparkles },
-        { key: 'dalle', name: 'DALL-E', icon: Image },
-        { key: 'music-generation', name: 'Music Gen', icon: Music },
+        { key: 'replicate-musicgen-stereo', name: 'MusicGen Stereo', icon: Music },
       ];
 
       const healthData: ServiceHealth[] = serviceConfigs.map(config => {

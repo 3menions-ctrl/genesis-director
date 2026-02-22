@@ -5,7 +5,7 @@ import {
   Upload, Image, Wand2, Download, Trash2,
   Loader2, CheckCircle2, AlertCircle, Layers,
   MessageSquare, Sparkles, X, Plus, Zap,
-  SlidersHorizontal, RotateCcw, ChevronRight, ChevronDown, ChevronUp, Video,
+  RotateCcw, ChevronRight, ChevronDown, ChevronUp, Video,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,7 +20,7 @@ import { PhotoEditCanvas } from './PhotoEditCanvas';
 import { PhotoBulkPanel } from './PhotoBulkPanel';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 
-export type PhotoEditMode = 'templates' | 'chat' | 'manual' | 'bulk';
+export type PhotoEditMode = 'templates' | 'chat' | 'bulk';
 
 interface UploadedPhoto {
   id: string;
@@ -252,7 +252,6 @@ export function PhotoEditorHub() {
   const modes = [
     { id: 'templates' as const, label: 'Templates', icon: Layers },
     { id: 'chat' as const, label: 'AI Chat', icon: MessageSquare },
-    { id: 'manual' as const, label: 'Adjust', icon: SlidersHorizontal },
     { id: 'bulk' as const, label: 'Bulk', icon: Sparkles },
   ];
 
@@ -430,7 +429,7 @@ export function PhotoEditorHub() {
             className="lg:hidden w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] mb-2"
           >
             <span className="text-sm font-medium text-white/60">
-              {mode === 'templates' ? 'Templates' : mode === 'chat' ? 'AI Chat' : mode === 'manual' ? 'Adjustments' : 'Bulk Edit'}
+              {mode === 'templates' ? 'Templates' : mode === 'chat' ? 'AI Chat' : 'Bulk Edit'}
             </span>
             {showControls ? (
               <ChevronUp className="w-4 h-4 text-white/40" />
@@ -490,23 +489,6 @@ export function PhotoEditorHub() {
                     </div>
                   )}
 
-                  {mode === 'manual' && (
-                    <div className="space-y-4 sm:space-y-6">
-                      <h3 className="text-sm font-medium text-white/60">Manual Adjustments</h3>
-                      <p className="text-xs text-white/30">
-                        Manual adjustment controls (brightness, contrast, saturation, crop, rotate) 
-                        are coming soon. Use AI Chat mode for now — it can handle any adjustment you describe!
-                      </p>
-                      <Button
-                        variant="outline"
-                        onClick={() => setMode('chat')}
-                        className="w-full border-white/10 text-white/60"
-                      >
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                        Switch to AI Chat
-                      </Button>
-                    </div>
-                  )}
 
                   {mode === 'bulk' && (
                     <PhotoBulkPanel

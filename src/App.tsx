@@ -78,6 +78,7 @@ const WorldChat = lazy(() => import("./pages/WorldChat"));
 const VideoEditor = lazy(() => import("./pages/VideoEditor"));
 const WidgetLanding = lazy(() => import("./pages/WidgetLanding"));
 const WidgetEmbed = lazy(() => import("./pages/WidgetEmbed"));
+const EditorConcepts = lazy(() => import("./pages/EditorConcepts"));
 
 // Route change tracker component
 function RouteChangeTracker() {
@@ -219,6 +220,11 @@ const App = () => {
                 <Route path="/how-it-works" element={
                   <RouteContainer>
                     <HowItWorks />
+                  </RouteContainer>
+                } />
+                <Route path="/editor-concepts" element={
+                  <RouteContainer>
+                    <EditorConcepts />
                   </RouteContainer>
                 } />
                 

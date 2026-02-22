@@ -2912,7 +2912,7 @@ serve(async (req) => {
       // and the Replicate webhook never fired back. We poll predictions directly to recover.
       if (completedClips.length === 0 && generatingClips.length > 0) {
         const clipsWithPredictions = generatingClips.filter((c: any) => c.veo_operation_name);
-        
+        let lastRecoveredIndex = -1;
         if (clipsWithPredictions.length > 0) {
           console.log(`[Watchdog] ⚠️ ORPHAN PREDICTIONS: ${project.id} has 0 completed clips, ${clipsWithPredictions.length} generating with prediction IDs`);
           
@@ -2937,9 +2937,20 @@ serve(async (req) => {
               
               if (pollResponse.ok) {
                 const pollResult = await pollResponse.json();
-                if (pollResult.status === 'SUCCEEDED' && pollResult.autoCompleted) {
-                  recovered++;
-                  console.log(`[Watchdog] ✓ Recovered orphan clip ${clip.shot_index + 1} from prediction ${clip.veo_operation_name}`);
+                if (pollResult.status === 'SUCCEEDED') {
+                  if (pollResult.autoCompleted) {
+                    recovered++;
+                    lastRecoveredIndex = Math.max(lastRecoveredIndex, clip.shot_index);
+                    console.log(`[Watchdog] ✓ Recovered orphan clip ${clip.shot_index + 1} from prediction ${clip.veo_operation_name}`);
+                  } else {
+                    // Prediction succeeded but storage failed (CDN URL expired?)
+                    // Mark as failed so it can be retried with a fresh prediction
+                    await supabase
+                      .from('video_clips')
+                      .update({ status: 'failed', error_message: 'Prediction succeeded but video storage failed (CDN URL may have expired)', updated_at: new Date().toISOString() })
+                      .eq('id', clip.id);
+                    console.warn(`[Watchdog] ⚠️ Orphan clip ${clip.shot_index + 1}: SUCCEEDED but autoComplete failed (CDN expired?)`);
+                  }
                 } else if (pollResult.status === 'FAILED') {
                   await supabase
                     .from('video_clips')
@@ -2984,7 +2995,7 @@ serve(async (req) => {
                 body: JSON.stringify({
                   projectId: project.id,
                   userId: project.user_id,
-                  completedClipIndex: 0,
+                  completedClipIndex: lastRecoveredIndex >= 0 ? lastRecoveredIndex : 0,
                   totalClips: expectedClipCount,
                 }),
               });

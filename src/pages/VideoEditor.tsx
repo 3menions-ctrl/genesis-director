@@ -1,11 +1,10 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Loader2, Sparkles, Film, PanelLeftClose, PanelLeft } from "lucide-react";
+import { ArrowLeft, Download, Loader2, Sparkles, Film, Check } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEditorClips, EditorClip } from "@/hooks/useEditorClips";
-import { EditorMediaPanel } from "@/components/editor/EditorMediaPanel";
+import { useEditorClips } from "@/hooks/useEditorClips";
 import "@twick/studio/dist/studio.css";
 
 // Dynamically import Twick to avoid 504 bundling timeouts
@@ -50,26 +49,20 @@ export default function VideoEditor() {
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#08080c] gap-6 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px]" />
-          <div className="absolute top-1/3 left-1/3 w-[300px] h-[300px] bg-violet-500/8 rounded-full blur-[100px] animate-pulse-glow" />
         </div>
-
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          transition={{ duration: 0.5 }}
           className="relative z-10 flex flex-col items-center gap-5"
         >
           <div className="relative w-16 h-16">
             <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-loader-ring-pulse" />
-            <div className="absolute inset-1 rounded-full border-2 border-primary/30 animate-loader-ring-inner" />
             <div className="absolute inset-0 flex items-center justify-center">
               <Film className="w-6 h-6 text-primary animate-pulse-soft" />
             </div>
           </div>
-          <div className="flex flex-col items-center gap-1.5">
-            <p className="text-sm font-medium text-foreground/70 tracking-wide font-display">Loading Studio</p>
-            <p className="text-xs text-muted-foreground/50">Preparing your creative workspace...</p>
-          </div>
+          <p className="text-sm font-medium text-foreground/70 font-display">Loading Studio</p>
           <div className="w-48 h-0.5 bg-border/30 rounded-full overflow-hidden">
             <div className="h-full bg-gradient-to-r from-primary/60 via-primary to-primary/60 rounded-full animate-loader-progress" />
           </div>
@@ -80,25 +73,13 @@ export default function VideoEditor() {
 
   if (loadError || !modules) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#08080c] gap-5 relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-destructive/5 rounded-full blur-[100px]" />
-        </div>
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative z-10 flex flex-col items-center gap-4 p-8 rounded-2xl border border-border/20 bg-card/30 backdrop-blur-xl"
-        >
-          <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
-            <Film className="w-5 h-5 text-destructive" />
-          </div>
-          <div className="text-center">
-            <p className="text-sm font-medium text-foreground/80 mb-1">Failed to load editor</p>
-            <p className="text-xs text-muted-foreground/60 max-w-[280px]">{loadError}</p>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="mt-1">
-            Try Again
-          </Button>
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#08080c] gap-5">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col items-center gap-4 p-8 rounded-2xl border border-border/20 bg-card/30 backdrop-blur-xl">
+          <Film className="w-6 h-6 text-destructive" />
+          <p className="text-sm text-foreground/80">Failed to load editor</p>
+          <p className="text-xs text-muted-foreground/60">{loadError}</p>
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>Try Again</Button>
         </motion.div>
       </div>
     );
@@ -107,18 +88,62 @@ export default function VideoEditor() {
   return <TwickEditorInner modules={modules} navigate={navigate} projectId={projectId} />;
 }
 
+/**
+ * Inner component that uses Twick context hooks.
+ * Auto-injects user clips into the timeline via the editor API.
+ */
 function TwickEditorInner({ modules, navigate, projectId }: { modules: any; navigate: any; projectId: string | null }) {
   const {
     TwickStudio,
     LivePlayerProvider,
     TimelineProvider,
     INITIAL_TIMELINE_DATA,
+    useTimelineContext,
+    VideoElement: VideoElementClass,
   } = modules.studio;
 
   const { useBrowserRenderer } = modules.browserRender;
-  const { clips, loading: clipsLoading, error: clipsError } = useEditorClips(projectId);
-  const [showMediaPanel, setShowMediaPanel] = useState(true);
+
+  return (
+    <LivePlayerProvider>
+      <TimelineProvider
+        contextId="main-editor"
+        initialData={INITIAL_TIMELINE_DATA}
+        analytics={{ enabled: false }}
+      >
+        <EditorWithClips
+          TwickStudio={TwickStudio}
+          useTimelineContext={useTimelineContext}
+          VideoElementClass={VideoElementClass}
+          useBrowserRenderer={useBrowserRenderer}
+          navigate={navigate}
+          projectId={projectId}
+        />
+      </TimelineProvider>
+    </LivePlayerProvider>
+  );
+}
+
+function EditorWithClips({
+  TwickStudio,
+  useTimelineContext,
+  VideoElementClass,
+  useBrowserRenderer,
+  navigate,
+  projectId,
+}: {
+  TwickStudio: any;
+  useTimelineContext: any;
+  VideoElementClass: any;
+  useBrowserRenderer: any;
+  navigate: any;
+  projectId: string | null;
+}) {
+  const { editor, videoResolution } = useTimelineContext();
+  const { clips, loading: clipsLoading } = useEditorClips(projectId);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [clipsInjected, setClipsInjected] = useState(false);
+  const injectedRef = useRef(false);
 
   const { render, progress, isRendering, error, reset } = useBrowserRenderer({
     width: 1920,
@@ -127,6 +152,53 @@ function TwickEditorInner({ modules, navigate, projectId }: { modules: any; navi
     includeAudio: true,
     autoDownload: true,
   });
+
+  // Auto-inject clips into the timeline when they load
+  useEffect(() => {
+    if (clipsLoading || clips.length === 0 || injectedRef.current || !editor) return;
+
+    async function injectClips() {
+      try {
+        const parentSize = videoResolution || { width: 1920, height: 1080 };
+        
+        // Create a video track for the clips
+        const track = editor.addTrack("Project Clips", "video");
+        
+        let currentTime = 0;
+        let addedCount = 0;
+        
+        for (const clip of clips) {
+          if (!clip.videoUrl) continue;
+          
+          try {
+            const element = new VideoElementClass(clip.videoUrl, parentSize);
+            const duration = clip.durationSeconds || 6;
+            
+            element.setStart(currentTime);
+            element.setEnd(currentTime + duration);
+            element.setName(`Shot ${clip.shotIndex + 1}`);
+            
+            await editor.addElementToTrack(track, element);
+            currentTime += duration;
+            addedCount++;
+          } catch (err) {
+            console.warn(`Failed to add clip ${clip.id}:`, err);
+          }
+        }
+
+        if (addedCount > 0) {
+          toast.success(`Loaded ${addedCount} clip${addedCount > 1 ? 's' : ''} into timeline`);
+        }
+        
+        injectedRef.current = true;
+        setClipsInjected(true);
+      } catch (err) {
+        console.error("Failed to inject clips:", err);
+      }
+    }
+
+    injectClips();
+  }, [clips, clipsLoading, editor, videoResolution, VideoElementClass]);
 
   const onExportVideo = useCallback(async () => {
     try {
@@ -146,12 +218,6 @@ function TwickEditorInner({ modules, navigate, projectId }: { modules: any; navi
     }
   }, [render, reset]);
 
-  const handleAddToTimeline = useCallback((clip: EditorClip) => {
-    toast.info(`Added "${clip.projectTitle} — Shot ${clip.shotIndex + 1}" to workspace`);
-    // Twick Studio's internal state management will handle adding media
-    // The user can drag from the URL-based import or use the built-in media tools
-  }, []);
-
   return (
     <div className="h-screen w-screen flex flex-col bg-[#08080c] overflow-hidden relative">
       {/* Top accent line */}
@@ -165,28 +231,15 @@ function TwickEditorInner({ modules, navigate, projectId }: { modules: any; navi
         className="h-12 flex items-center justify-between px-3 border-b border-white/[0.06] bg-[#0a0a10]/90 backdrop-blur-2xl shrink-0 z-10"
       >
         {/* Left */}
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/projects")}
-            className="text-muted-foreground/60 hover:text-foreground gap-1 hover:bg-white/[0.04] h-8 px-2"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span className="text-[12px] hidden sm:inline">Back</span>
-          </Button>
-
-          <div className="w-px h-5 bg-white/[0.06] mx-1" />
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowMediaPanel(!showMediaPanel)}
-            className="text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.04] h-8 px-2"
-          >
-            {showMediaPanel ? <PanelLeftClose className="w-3.5 h-3.5" /> : <PanelLeft className="w-3.5 h-3.5" />}
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate("/projects")}
+          className="text-muted-foreground/60 hover:text-foreground gap-1 hover:bg-white/[0.04] h-8 px-2"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span className="text-[12px] hidden sm:inline">Back</span>
+        </Button>
 
         {/* Center */}
         <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
@@ -196,10 +249,18 @@ function TwickEditorInner({ modules, navigate, projectId }: { modules: any; navi
           <span className="text-[12px] font-semibold text-foreground/50 tracking-tight font-display">
             Apex Editor
           </span>
-          {projectId && (
-            <span className="text-[10px] text-muted-foreground/30 font-mono">
-              • Project
-            </span>
+          {/* Clips loading indicator */}
+          {clipsLoading && (
+            <div className="flex items-center gap-1 ml-2 text-[10px] text-muted-foreground/40">
+              <Loader2 className="w-2.5 h-2.5 animate-spin" />
+              Loading clips...
+            </div>
+          )}
+          {clipsInjected && (
+            <div className="flex items-center gap-1 ml-2 text-[10px] text-success/60">
+              <Check className="w-2.5 h-2.5" />
+              {clips.length} clips loaded
+            </div>
           )}
         </div>
 
@@ -233,7 +294,7 @@ function TwickEditorInner({ modules, navigate, projectId }: { modules: any; navi
         </Button>
       </motion.div>
 
-      {/* Render progress */}
+      {/* Render progress bar */}
       <AnimatePresence>
         {isRendering && (
           <motion.div
@@ -250,39 +311,9 @@ function TwickEditorInner({ modules, navigate, projectId }: { modules: any; navi
         )}
       </AnimatePresence>
 
-      {/* Main content: Media panel + Editor */}
-      <div className="flex-1 min-h-0 flex">
-        {/* Clips panel */}
-        <AnimatePresence mode="popLayout">
-          {showMediaPanel && (
-            <motion.div
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 240, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="shrink-0 overflow-hidden"
-            >
-              <EditorMediaPanel
-                clips={clips}
-                loading={clipsLoading}
-                error={clipsError}
-                onAddToTimeline={handleAddToTimeline}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Twick Studio */}
-        <div className="flex-1 min-w-0">
-          <LivePlayerProvider>
-            <TimelineProvider
-              contextId="main-editor"
-              initialData={INITIAL_TIMELINE_DATA}
-            >
-              <TwickStudio />
-            </TimelineProvider>
-          </LivePlayerProvider>
-        </div>
+      {/* Full Twick Studio — clips are injected directly into its timeline */}
+      <div className="flex-1 min-h-0">
+        <TwickStudio />
       </div>
 
       {/* Floating notifications */}
@@ -291,7 +322,7 @@ function TwickEditorInner({ modules, navigate, projectId }: { modules: any; navi
           <motion.div
             initial={{ opacity: 0, y: 16, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+            exit={{ opacity: 0, y: 8 }}
             className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-destructive/90 text-destructive-foreground text-xs font-medium px-5 py-2.5 rounded-full backdrop-blur-xl border border-destructive/30 shadow-lg z-20"
           >
             Export error: {error.message}
@@ -304,7 +335,7 @@ function TwickEditorInner({ modules, navigate, projectId }: { modules: any; navi
           <motion.div
             initial={{ opacity: 0, y: 16, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+            exit={{ opacity: 0, y: 8 }}
             className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-success/90 text-success-foreground text-xs font-medium px-5 py-2.5 rounded-full backdrop-blur-xl border border-success/30 shadow-lg z-20 flex items-center gap-2"
           >
             <span>✓</span> Video downloaded

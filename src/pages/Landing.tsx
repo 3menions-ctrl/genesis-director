@@ -145,12 +145,15 @@ export default function Landing() {
   }, []);
 
   // Inactivity detection — auto-enter immersive after idle.
-  // DISABLED on touch devices to prevent Safari mobile crash from loading
-  // a full HLS video stream on top of everything else.
-  const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  // Only disabled on actual mobile/tablet devices (small screens) to prevent
+  // Safari mobile crashes from loading a full HLS stream. Touchscreen laptops
+  // are fine — the real issue was iOS Safari, not touch support in general.
+  const isMobileDevice = typeof window !== 'undefined' && (
+    /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) && window.innerWidth < 1024
+  );
   
   useEffect(() => {
-    if (isImmersive || hasAutoTriggered || showExamples || isTouchDevice) return;
+    if (isImmersive || hasAutoTriggered || showExamples || isMobileDevice) return;
 
     const startTimer = () => {
       if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
@@ -160,8 +163,10 @@ export default function Landing() {
       }, INACTIVITY_TIMEOUT_MS);
     };
 
+    // Only reset on DELIBERATE interactions — NOT mousemove/scroll which fire
+    // continuously and would make the timer nearly impossible to reach.
     const handleActivity = () => startTimer();
-    const events = ['mousedown', 'mousemove', 'scroll', 'keydown', 'touchstart', 'click'];
+    const events = ['mousedown', 'keydown', 'touchstart', 'click'];
     events.forEach(e => window.addEventListener(e, handleActivity, { passive: true }));
     startTimer();
 
@@ -169,7 +174,7 @@ export default function Landing() {
       if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
       events.forEach(e => window.removeEventListener(e, handleActivity));
     };
-  }, [isImmersive, hasAutoTriggered, showExamples, isTouchDevice]);
+  }, [isImmersive, hasAutoTriggered, showExamples, isMobileDevice]);
 
   // Scroll reveal observer for landing sections — skip when overlay is active
   useEffect(() => {

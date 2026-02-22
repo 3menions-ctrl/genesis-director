@@ -693,12 +693,47 @@ export function SpecializedModeProgress({
                 variant="ghost"
                 size="sm"
                 onClick={async () => {
-                  for (const clip of completedClips) {
+                  const clipUrls = completedClips.map(c => c.videoUrl);
+                  if (clipUrls.length <= 1) {
+                    // Single clip — direct download
                     const a = document.createElement('a');
-                    a.href = clip.videoUrl;
-                    a.download = `${mode}-clip-${clip.index + 1}.mp4`;
+                    a.href = clipUrls[0];
+                    a.download = `${mode}-clip-1.mp4`;
                     a.click();
-                    await new Promise(r => setTimeout(r, 500));
+                    return;
+                  }
+                  // Multiple clips — merge with ffmpeg.wasm
+                  toast.info('Merging clips into single video...');
+                  try {
+                    const { mergeVideoClips, downloadBlob } = await import('@/lib/video/browserVideoMerger');
+                    const result = await mergeVideoClips({
+                      clipUrls,
+                      outputFilename: `${mode}-complete.mp4`,
+                      projectId: 'production',
+                      projectName: mode,
+                      onProgress: (p) => {
+                        if (p.stage === 'downloading') toast.loading(`Downloading clip ${p.currentClip}/${p.totalClips}...`, { id: 'merge-progress' });
+                        else if (p.stage === 'encoding') toast.loading('Encoding final video...', { id: 'merge-progress' });
+                      },
+                    });
+                    toast.dismiss('merge-progress');
+                    if (result.success && result.blob) {
+                      downloadBlob(result.blob, result.filename || `${mode}-complete.mp4`);
+                      toast.success('Merged video downloaded!');
+                    } else {
+                      throw new Error(result.error || 'Merge failed');
+                    }
+                  } catch (err) {
+                    toast.dismiss('merge-progress');
+                    console.error('[DownloadAll] Merge failed, falling back to individual:', err);
+                    toast.info('Downloading clips individually...');
+                    for (const clip of completedClips) {
+                      const a = document.createElement('a');
+                      a.href = clip.videoUrl;
+                      a.download = `${mode}-clip-${clip.index + 1}.mp4`;
+                      a.click();
+                      await new Promise(r => setTimeout(r, 500));
+                    }
                   }
                 }}
                 className="text-white/50 hover:text-white gap-1.5 text-xs"

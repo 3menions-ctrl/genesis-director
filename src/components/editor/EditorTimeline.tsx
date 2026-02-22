@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState, useMemo } from "react";
-import { Film, Type, Music, Trash2, ZoomIn, ZoomOut, Volume2, VolumeX, Lock, Scissors, ArrowRightLeft } from "lucide-react";
+import { Film, Type, Music, Trash2, ZoomIn, ZoomOut, Volume2, VolumeX, Lock, Scissors, ArrowRightLeft, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,7 @@ interface EditorTimelineProps {
   onToggleTrackMute?: (trackId: string) => void;
   onToggleTrackLock?: (trackId: string) => void;
   onDeleteSelected?: () => void;
+  onClearTrack?: (trackId: string) => void;
 }
 
 const TRACK_HEIGHT = 56;
@@ -42,7 +43,7 @@ const trackIcons: Record<string, typeof Film> = { video: Film, audio: Music, tex
 export const EditorTimeline = ({
   tracks, currentTime, duration, zoom, selectedClipId, selectedClipIds = [], snapEnabled = true,
   onTimeChange, onSelectClip, onUpdateClip, onReorderClip, onZoomChange, onDeleteClip, onRippleDelete, onMoveClipToTrack,
-  onToggleTrackMute, onToggleTrackLock, onDeleteSelected,
+  onToggleTrackMute, onToggleTrackLock, onDeleteSelected, onClearTrack,
 }: EditorTimelineProps) => {
   const timelineRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{ clipId: string; startX: number; originalStart: number; mode: "move" | "trim-left" | "trim-right" } | null>(null);
@@ -218,6 +219,21 @@ export const EditorTimeline = ({
                   >
                     <Lock className="h-2.5 w-2.5" />
                   </button>
+                  {track.clips.length > 0 && onClearTrack && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          className="p-1 rounded-md transition-colors text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => onClearTrack(track.id)}
+                        >
+                          <XCircle className="h-2.5 w-2.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-[10px] bg-popover border-border text-foreground">
+                        Clear all clips from track
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
               </div>
             );

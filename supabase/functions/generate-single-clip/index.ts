@@ -135,13 +135,30 @@ async function createKlingV3Prediction(
     promptLength: prompt.length,
   });
 
+  // ═══════════════════════════════════════════════════════════════
+  // WEBHOOK: Tell Replicate to call us the INSTANT this prediction
+  // finishes. This eliminates ALL polling gaps.
+  // ═══════════════════════════════════════════════════════════════
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const webhookUrl = supabaseUrl 
+    ? `${supabaseUrl}/functions/v1/replicate-webhook`
+    : null;
+
+  const requestBody: Record<string, any> = { input };
+  
+  if (webhookUrl) {
+    requestBody.webhook = webhookUrl;
+    requestBody.webhook_events_filter = ["completed"]; // Only fire on terminal states
+    console.log(`[SingleClip][KlingV3] 📡 Webhook registered: ${webhookUrl}`);
+  }
+
   const response = await fetch(REPLICATE_MODEL_URL, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${REPLICATE_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ input }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {
@@ -157,7 +174,7 @@ async function createKlingV3Prediction(
     throw new Error("No prediction ID in Kling V3 response");
   }
 
-  console.log(`[SingleClip][KlingV3] ✅ ${mode} prediction created: ${prediction.id}`);
+  console.log(`[SingleClip][KlingV3] ✅ ${mode} prediction created: ${prediction.id} (webhook=${!!webhookUrl})`);
   return { predictionId: prediction.id };
 }
 

@@ -1243,9 +1243,13 @@ serve(async (req) => {
     // and estimate per-output-second cost for the billing component.
     // Credits charged MUST match what mode-router actually deducts per clip.
     try {
-      // Kling v3 official model pricing: ~$0.28/sec of output video (avg of $2-3/10s)
-      const KLING_V3_COST_PER_OUTPUT_SEC_CENTS = 28; // $0.28/sec
-      const KLING_V3_AVATAR_COST_PER_OUTPUT_SEC_CENTS = 35; // $0.35/sec (native audio adds cost)
+      // Kling v3 ACTUAL Replicate pricing (from replicate.com/kwaivgi/kling-v3-video):
+      // Pro mode (1080p), no audio: $0.224/sec of output video
+      // Pro mode (1080p), with audio: $0.336/sec of output video
+      // Standard mode (720p), no audio: $0.168/sec | with audio: $0.252/sec
+      // We use Pro mode → rates below are for Pro
+      const KLING_V3_COST_PER_OUTPUT_SEC_CENTS = 22.4; // $0.224/sec (pro, no audio)
+      const KLING_V3_AVATAR_COST_PER_OUTPUT_SEC_CENTS = 33.6; // $0.336/sec (pro + audio)
       
       const perSecRate = isAvatarMode ? KLING_V3_AVATAR_COST_PER_OUTPUT_SEC_CENTS : KLING_V3_COST_PER_OUTPUT_SEC_CENTS;
       const realCostCents = Math.round(durationSeconds * perSecRate);

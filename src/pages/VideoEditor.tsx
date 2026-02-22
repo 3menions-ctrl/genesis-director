@@ -1651,9 +1651,9 @@ const VideoEditor = () => {
         renderProgress={editorState.renderProgress}
       />
 
-      <div className="flex-1 flex min-h-0 min-w-0" style={{ height: 'calc(100vh - 44px)', contain: 'strict' }}>
+      <div className="flex-1 flex min-h-0 min-w-0 bg-[#040d08]" style={{ height: 'calc(100vh - 44px)', contain: 'strict' }}>
         {showMediaBrowser && (
-          <div className="w-64 shrink-0 border-r border-white/[0.06] overflow-hidden" style={{ maxHeight: '100%' }}>
+          <div className="w-64 shrink-0 border-r border-emerald-400/[0.06] overflow-hidden" style={{ maxHeight: '100%' }}>
             <EditorMediaBrowser onAddClip={handleAddClipFromBrowser} />
           </div>
         )}
@@ -1672,19 +1672,19 @@ const VideoEditor = () => {
                 onPlaybackSpeedChange={setPlaybackSpeed}
               />
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-[hsl(0,0%,4%)] gap-6">
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#040d08] gap-6">
                 <div className="relative">
-                  <div className="absolute inset-0 rounded-3xl bg-primary/[0.04] blur-[40px]" />
-                  <div className="relative w-20 h-20 rounded-3xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-center">
-                    <Film className="w-8 h-8 text-white/10" />
-                    <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center">
-                      <Sparkles className="w-2.5 h-2.5 text-primary" />
+                  <div className="absolute inset-0 rounded-3xl bg-emerald-500/[0.04] blur-[40px]" />
+                  <div className="relative w-20 h-20 rounded-3xl bg-emerald-400/[0.03] border border-emerald-400/[0.08] flex items-center justify-center">
+                    <Film className="w-8 h-8 text-emerald-400/15" />
+                    <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-400/[0.08] border border-emerald-400/[0.15] flex items-center justify-center">
+                      <Sparkles className="w-2.5 h-2.5 text-emerald-400/50" />
                     </div>
                   </div>
                 </div>
                 <div className="text-center">
-                  <p className="text-[14px] text-white/40 font-medium tracking-wide">No clips in timeline</p>
-                  <p className="text-[11px] text-white/15 mt-2 max-w-[260px] leading-relaxed">
+                  <p className="text-[14px] text-emerald-200/30 font-medium tracking-wide">No clips in timeline</p>
+                  <p className="text-[11px] text-emerald-300/15 mt-2 max-w-[260px] leading-relaxed">
                     Browse clips in the media panel and click to add them to your edit
                   </p>
                 </div>
@@ -1692,7 +1692,7 @@ const VideoEditor = () => {
             )}
           </div>
 
-          <div className="h-px bg-white/[0.06]" />
+          <div className="h-px bg-emerald-400/[0.06]" />
           <div className="shrink-0 overflow-hidden" style={{ height: '35%', minHeight: 180, maxHeight: 320 }}>
             <EditorTimeline
               tracks={editorState.tracks}
@@ -1718,7 +1718,7 @@ const VideoEditor = () => {
           </div>
         </div>
 
-        <div className="w-72 shrink-0 border-l border-border overflow-hidden" style={{ maxHeight: '100%' }}>
+        <div className="w-72 shrink-0 border-l border-emerald-400/[0.06] overflow-hidden" style={{ maxHeight: '100%' }}>
           <EditorSidebar
             tracks={editorState.tracks}
             selectedClipId={editorState.selectedClipId}

@@ -834,7 +834,7 @@ serve(async (req) => {
             console.log(`[Watchdog] ✅ Clip ${pred.clipIndex + 1} video generated: ${videoUrl.substring(0, 60)}...`);
             
             // Kling V3 native audio — video already has audio baked in, no post-processing needed
-            const finalVideoUrl = videoUrl;
+            let finalVideoUrl = videoUrl;
             
             // ═══════════════════════════════════════════════════════════════════════════
             // STEP 2: Save to permanent storage
@@ -881,10 +881,13 @@ serve(async (req) => {
                 .from('video_clips')
                 .upsert({
                   project_id: project.id,
+                  user_id: project.user_id,
                   shot_index: pred.clipIndex,
+                  prompt: pred.prompt || `Avatar clip ${pred.clipIndex + 1}`,
                   status: 'completed',
                   video_url: finalVideoUrl,
                   duration_seconds: tasks.clipDuration || 10,
+                  completed_at: new Date().toISOString(),
                   updated_at: new Date().toISOString(),
                 }, { onConflict: 'project_id,shot_index', ignoreDuplicates: false });
 

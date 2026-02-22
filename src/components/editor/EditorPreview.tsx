@@ -43,8 +43,11 @@ export const EditorPreview = ({
   const activeClipIdRef = useRef<string | null>(null);
   const isScrubbing = useRef(false);
   const isTransitioningRef = useRef(false);
-  const lastAdvancedToRef = useRef<string | null>(null);
   const isPlayingRef = useRef(isPlaying);
+  
+  // Refs that mirror memo values — used inside event handlers to avoid stale closures
+  const activeVideoClipRef = useRef<TimelineClip | null>(null);
+  const sortedVideoClipsRef = useRef<TimelineClip[]>([]);
 
   // Keep ref in sync with prop
   useEffect(() => {
@@ -57,14 +60,18 @@ export const EditorPreview = ({
 
   // ── Derived clip data ──
   const sortedVideoClips = useMemo(() => {
-    return tracks
+    const sorted = tracks
       .filter((t) => t.type === 'video')
       .flatMap((t) => t.clips)
       .sort((a, b) => a.start - b.start);
+    sortedVideoClipsRef.current = sorted;
+    return sorted;
   }, [tracks]);
 
   const activeVideoClip = useMemo(() => {
-    return sortedVideoClips.find((c) => currentTime >= c.start && currentTime < c.end) || null;
+    const clip = sortedVideoClips.find((c) => currentTime >= c.start && currentTime < c.end) || null;
+    activeVideoClipRef.current = clip;
+    return clip;
   }, [sortedVideoClips, currentTime]);
 
   const activeTextClips = useMemo(() => {
@@ -214,23 +221,29 @@ export const EditorPreview = ({
   }, [volume, isMuted, audioTrackMuted, activeAudioClipVolume]);
 
   // ── Time update from video → timeline ──
+  // Uses REFS not closure values to avoid stale closure bounce-back
   const handleTimeUpdate = useCallback(() => {
     const video = videoRef.current;
-    if (!video || !activeVideoClip || !isPlaying || isScrubbing.current) return;
+    const clip = activeVideoClipRef.current;
+    if (!video || !clip || !isPlayingRef.current || isScrubbing.current) return;
     
     // Skip timeupdate events while transitioning to prevent bounce-back
     if (isTransitioningRef.current) return;
 
-    const timelineTime = activeVideoClip.start + video.currentTime - (activeVideoClip.trimStart || 0);
+    // Verify this video element is actually playing the clip we think it is
+    // If activeClipIdRef doesn't match, we're in a stale state
+    if (activeClipIdRef.current !== clip.id) return;
+
+    const timelineTime = clip.start + video.currentTime - (clip.trimStart || 0);
     onTimeChange(timelineTime);
 
     // Auto-advance to next clip
-    if (timelineTime >= activeVideoClip.end - 0.05) {
-      const nextClip = sortedVideoClips.find(c => c.start >= activeVideoClip.end - 0.01);
+    if (timelineTime >= clip.end - 0.05) {
+      const clips = sortedVideoClipsRef.current;
+      const nextClip = clips.find(c => c.start >= clip.end - 0.01);
       if (nextClip) {
-        // Mark transitioning to prevent bounce-back from stale timeupdate events
+        // Mark transitioning — cleared when new clip source loads
         isTransitioningRef.current = true;
-        lastAdvancedToRef.current = nextClip.id;
         onTimeChange(nextClip.start);
       } else if (isLooping) {
         isTransitioningRef.current = true;
@@ -240,7 +253,8 @@ export const EditorPreview = ({
         onPlayPause();
       }
     }
-  }, [activeVideoClip, isPlaying, onTimeChange, sortedVideoClips, isLooping, duration, onPlayPause]);
+  // Minimal deps — all real values read from refs
+  }, [onTimeChange, isLooping, duration, onPlayPause]);
 
   // ── Keyboard shortcuts ──
   useEffect(() => {
@@ -295,15 +309,36 @@ export const EditorPreview = ({
 
   const hasClips = sortedVideoClips.length > 0;
 
-  // Scrub handler
+  // Scrub handler — also clears transition lock since user is manually seeking
   const handleScrub = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const pct = (e.clientX - rect.left) / rect.width;
     const newTime = Math.max(0, Math.min(duration, pct * duration));
     isScrubbing.current = true;
+    isTransitioningRef.current = false; // User override
     onTimeChange(newTime);
     setTimeout(() => { isScrubbing.current = false; }, 100);
   }, [duration, onTimeChange]);
+
+  // Handle video ended event — advance to next clip
+  const handleVideoEnded = useCallback(() => {
+    const clip = activeVideoClipRef.current;
+    if (!clip || !isPlayingRef.current) return;
+    if (isTransitioningRef.current) return;
+
+    const clips = sortedVideoClipsRef.current;
+    const nextClip = clips.find(c => c.start >= clip.end - 0.01);
+    if (nextClip) {
+      isTransitioningRef.current = true;
+      onTimeChange(nextClip.start);
+    } else if (isLooping) {
+      isTransitioningRef.current = true;
+      onTimeChange(0);
+    } else {
+      onTimeChange(duration);
+      onPlayPause();
+    }
+  }, [onTimeChange, isLooping, duration, onPlayPause]);
 
   return (
     <div className="h-full w-full flex flex-col bg-background overflow-hidden" style={{ contain: 'strict' }}>
@@ -346,6 +381,7 @@ export const EditorPreview = ({
                   playsInline
                   preload="auto"
                   onTimeUpdate={handleTimeUpdate}
+                  onEnded={handleVideoEnded}
                   onError={(e) => {
                     const vid = e.currentTarget;
                     const err = vid?.error;

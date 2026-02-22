@@ -10,11 +10,12 @@ const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackg
 
 // Pricing constants
 const CREDIT_PRICE = 0.10; // $ per credit
-const CREDITS_PER_CLIP_MIN = 10;
-const CREDITS_PER_CLIP_MAX = 15;
+// Actual credit costs: standard 50-75, avatar 60-90
+const CREDITS_PER_CLIP_MIN = 50;  // standard 10s clip
+const CREDITS_PER_CLIP_MAX = 90;  // avatar 15s clip
 
-// Slider snap points
-const CREDIT_STOPS = [50, 100, 200, 370, 500, 1000, 2000, 2500];
+// Slider snap points aligned with actual DB packages
+const CREDIT_STOPS = [90, 200, 370, 500, 1000, 1500, 2000, 2500];
 
 // Features unlocked by credit amount
 const getFeatures = (credits: number) => {

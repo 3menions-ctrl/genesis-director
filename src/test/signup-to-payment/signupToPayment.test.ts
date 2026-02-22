@@ -484,12 +484,12 @@ describe('PAYMENT: Credit system calculation correctness', () => {
     creditSource = readFile('src/lib/creditSystem.ts');
   });
 
-  it('base rate is 10 credits per clip', () => {
-    expect(creditSource).toContain('BASE_CREDITS_PER_CLIP: 10');
+  it('base rate is 50 credits per clip', () => {
+    expect(creditSource).toContain('BASE_CREDITS_PER_CLIP: 50');
   });
 
-  it('extended rate is 15 credits per clip', () => {
-    expect(creditSource).toContain('EXTENDED_CREDITS_PER_CLIP: 15');
+  it('extended rate is 75 credits per clip', () => {
+    expect(creditSource).toContain('EXTENDED_CREDITS_PER_CLIP: 75');
   });
 
   it('extended pricing triggers at clip 7 (index 6)', () => {

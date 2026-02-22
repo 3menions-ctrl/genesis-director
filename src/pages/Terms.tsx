@@ -134,7 +134,7 @@ const Terms = () => {
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li><strong className="text-white">Non-Refundable:</strong> All credit purchases are final sales. No refunds will be issued for any reason, including but not limited to: unused credits, dissatisfaction with AI-generated results, account termination, or service changes</li>
                 <li><strong className="text-white">No Expiration:</strong> Purchased credits do not expire and remain in your account indefinitely while your account is active</li>
-                <li><strong className="text-white">Credit Pricing:</strong> Each credit is valued at $0.10 USD. Video generation costs 10-15 credits per clip depending on duration (≤6 seconds: 10 credits; &gt;6 seconds: 15 credits)</li>
+                <li><strong className="text-white">Credit Pricing:</strong> Each credit is valued at $0.10 USD. Video generation costs 50–90 credits per clip depending on mode and duration (standard 10s: 50 credits; standard 15s: 75 credits; avatar 10s: 60 credits; avatar 15s: 90 credits)</li>
                 <li><strong className="text-white">Account Responsibility:</strong> You are solely responsible for all charges incurred under your account</li>
                 <li><strong className="text-white">Payment Processing:</strong> All payments are processed securely by Stripe. We do not store your payment card details</li>
                 <li><strong className="text-white">Price Changes:</strong> Pricing and credit packages are subject to change with reasonable notice. Changes will not affect previously purchased credits</li>

@@ -497,49 +497,139 @@ serve(async (req: Request) => {
     }
     
     // ═══════════════════════════════════════════════════════════════════════════
-    // CRITICAL FIX: For avatar mode, generated_script often has only 1 shot,
-    // but the REAL per-clip dialogue lives in pending_video_tasks.predictions[].
-    // This was the ROOT CAUSE of clips 2+ getting generic "Continue the narrative"
-    // instead of actual dialogue content.
+    // COMPREHENSIVE AVATAR PROMPT ENRICHMENT
+    // 
+    // For avatar mode, the REAL per-clip data lives in pending_video_tasks.predictions[].
+    // Each prediction stores: segmentText (dialogue), action, movement, emotion,
+    // cameraHint, physicalDetail, sceneNote, transitionNote.
+    // 
+    // We ALWAYS look up this data — even when generated_script provided a basic prompt —
+    // because generated_script only has description+dialogue, missing all the rich
+    // acting/staging metadata that makes clips come alive.
     // ═══════════════════════════════════════════════════════════════════════════
-    if (!nextClipPrompt || nextClipPrompt.length < 20) {
-      // SOURCE 1: pending_video_tasks.predictions[].segmentText (avatar pipeline stores dialogue here)
-      const predictions = context?.pendingVideoTasks?.predictions || [];
-      const predForClip = predictions.find(
-        (p: { clipIndex: number }) => p.clipIndex === nextClipIndex
-      );
-      
-      if (predForClip?.segmentText) {
-        nextClipPrompt = `Speaking naturally with authentic delivery: "${predForClip.segmentText}"`;
-        if (predForClip.prompt) {
-          // Use the full prompt that was originally composed for this clip
-          nextClipPrompt = predForClip.prompt;
+    
+    // Resolve prediction data from context or DB
+    let predForClip: any = null;
+    const predictions = context?.pendingVideoTasks?.predictions || [];
+    predForClip = predictions.find(
+      (p: { clipIndex: number }) => p.clipIndex === nextClipIndex
+    );
+    
+    // DB fallback if context didn't have predictions
+    if (!predForClip) {
+      try {
+        const { data: pvtData } = await supabase
+          .from('movie_projects')
+          .select('pending_video_tasks')
+          .eq('id', projectId)
+          .maybeSingle();
+        
+        const dbPredictions = (pvtData?.pending_video_tasks as any)?.predictions || [];
+        predForClip = dbPredictions.find(
+          (p: { clipIndex: number }) => p.clipIndex === nextClipIndex
+        );
+        if (predForClip) {
+          console.log(`[ContinueProduction] ✅ Loaded prediction data from DB for clip ${nextClipIndex}`);
         }
-        console.log(`[ContinueProduction] ✅ AVATAR FIX: Loaded dialogue from predictions[${nextClipIndex}].segmentText: "${predForClip.segmentText.substring(0, 80)}..."`);
+      } catch (dbErr) {
+        console.warn(`[ContinueProduction] Failed to load predictions from DB:`, dbErr);
+      }
+    }
+    
+    // If we have prediction data, build a RICH cinematic prompt
+    if (predForClip?.segmentText) {
+      const seg = predForClip;
+      const dialogue = seg.segmentText?.trim() || '';
+      const action = seg.action?.trim() || '';
+      const movement = seg.movement?.trim() || '';
+      const emotion = seg.emotion?.trim() || '';
+      const cameraHint = seg.cameraHint?.trim() || '';
+      const physicalDetail = seg.physicalDetail?.trim() || '';
+      const sceneNote = seg.sceneNote?.trim() || '';
+      const sceneDesc = context?.pendingVideoTasks?.sceneDescription || context?.pendingVideoTasks?.originalSceneDescription || '';
+      
+      // Build comprehensive acting prompt matching buildWorldClassPrompt quality
+      const promptParts: string[] = [];
+      
+      // Scene context (from original scene description)
+      if (sceneDesc) {
+        promptParts.push(`Cinematic scene set in ${sceneDesc}, shot on ARRI Alexa with anamorphic lenses.`);
       }
       
-      // SOURCE 2: Also check pending_video_tasks directly from DB if context didn't have it
-      if ((!nextClipPrompt || nextClipPrompt.length < 20) && !predForClip) {
-        try {
-          const { data: pvtData } = await supabase
-            .from('movie_projects')
-            .select('pending_video_tasks')
-            .eq('id', projectId)
-            .maybeSingle();
-          
-          const dbPredictions = (pvtData?.pending_video_tasks as any)?.predictions || [];
-          const dbPred = dbPredictions.find(
-            (p: { clipIndex: number }) => p.clipIndex === nextClipIndex
-          );
-          
-          if (dbPred?.segmentText) {
-            nextClipPrompt = dbPred.prompt || `Speaking naturally with authentic delivery: "${dbPred.segmentText}"`;
-            console.log(`[ContinueProduction] ✅ AVATAR FIX (DB): Loaded dialogue from DB predictions[${nextClipIndex}].segmentText: "${dbPred.segmentText.substring(0, 80)}..."`);
-          }
-        } catch (dbErr) {
-          console.warn(`[ContinueProduction] Failed to load predictions from DB:`, dbErr);
-        }
+      // Same environment lock for clips 2+
+      promptParts.push('[SAME ENVIRONMENT: Continue in the exact same location with consistent lighting and props.]');
+      
+      // Camera direction
+      if (cameraHint) {
+        const cameraDescriptions: Record<string, string> = {
+          'tracking': 'Smooth Steadicam tracking shot gliding alongside the subject',
+          'close-up': 'Intimate close-up isolating facial micro-expressions, shallow depth of field',
+          'wide': 'Wide shot placing the subject in their full environment',
+          'over-shoulder': 'Over-the-shoulder perspective creating intimacy',
+          'medium': 'Classic medium shot from waist up, balanced composition',
+          'panning': 'Slow deliberate pan revealing the scene around the subject',
+          'dolly-in': 'Slow dolly push-in toward the subject, building intensity',
+          'low-angle': 'Low-angle shot looking up at the subject, conveying authority',
+          'crane': 'Subtle crane movement adding vertical dimension',
+        };
+        const camDesc = cameraDescriptions[cameraHint] || cameraHint;
+        promptParts.push(camDesc + '.');
       }
+      
+      // Narrative beat based on clip position
+      const totalClipsNum = totalClips || 6;
+      if (nextClipIndex === totalClipsNum - 1) {
+        promptParts.push('CLOSING MOMENT: This is the payoff — land the final beat with impact and conviction.');
+      } else {
+        promptParts.push('BUILDING MOMENTUM: The story is developing — natural escalation of energy and engagement.');
+      }
+      
+      // Physical action & movement — THE KEY MISSING PIECE
+      if (action) {
+        promptParts.push(`CHARACTER ACTION: ${action}.`);
+      }
+      if (movement) {
+        promptParts.push(`CHARACTER MOVEMENT: ${movement}.`);
+      }
+      if (physicalDetail) {
+        promptParts.push(`PHYSICAL DETAIL: ${physicalDetail}.`);
+      }
+      
+      // Scene-specific note
+      if (sceneNote) {
+        promptParts.push(`SCENE NOTE: ${sceneNote}.`);
+      }
+      
+      // Dialogue — the backbone
+      if (dialogue) {
+        promptParts.push(`Speaking naturally with authentic delivery: "${dialogue}".`);
+      }
+      
+      // Emotion/performance style
+      if (emotion) {
+        promptParts.push(`Performance energy: ${emotion}.`);
+      }
+      
+      // Lifelike motion directive
+      promptParts.push('Continuous lifelike motion: breathing visible in chest/shoulders, natural eye movements, involuntary micro-expressions, authentic weight shifts, hair/clothing responding to movement.');
+      
+      // Quality baseline
+      promptParts.push('Ultra-high definition 4K cinematic quality. Natural skin tones. Rich vibrant colors with cinematic color grading. Shallow depth of field with natural bokeh.');
+      
+      // Use the existing base prompt if it had real content from generated_script
+      if (nextClipPrompt && nextClipPrompt.length >= 20) {
+        // Merge: use script description as base, but ENRICH with prediction acting data
+        const enrichedPrompt = promptParts.join(' ');
+        nextClipPrompt = `${nextClipPrompt} ${enrichedPrompt}`;
+        console.log(`[ContinueProduction] ✅ ENRICHED script prompt with acting data: action="${action}", movement="${movement}", emotion="${emotion}"`);
+      } else {
+        // No script data — use fully reconstructed prompt
+        nextClipPrompt = promptParts.join(' ');
+        console.log(`[ContinueProduction] ✅ BUILT full acting prompt from prediction data: action="${action}", movement="${movement}", dialogue="${dialogue.substring(0, 60)}..."`);
+      }
+    } else if (!nextClipPrompt || nextClipPrompt.length < 20) {
+      // No prediction data and no script data — truly empty
+      console.warn(`[ContinueProduction] ⚠️ No prediction data or script data for clip ${nextClipIndex}`);
     }
     
     // FINAL FALLBACK: If still no prompt, use generic continuation

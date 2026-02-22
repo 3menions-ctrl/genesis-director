@@ -78,6 +78,7 @@ const WorldChat = lazy(() => import("./pages/WorldChat"));
 const VideoEditor = lazy(() => import("./pages/VideoEditor"));
 const WidgetLanding = lazy(() => import("./pages/WidgetLanding"));
 const WidgetEmbed = lazy(() => import("./pages/WidgetEmbed"));
+const AppInventory = lazy(() => import("./pages/AppInventory"));
 
 // Route change tracker component
 function RouteChangeTracker() {
@@ -416,6 +417,13 @@ const App = () => {
                   <Route path="avatars" element={<AdminAvatarsPage />} />
                   <Route path="config" element={<AdminConfigPage />} />
                 </Route>
+                
+                {/* App Inventory — full feature catalog */}
+                <Route path="/inventory" element={
+                  <RouteContainer fallbackMessage="Loading inventory...">
+                    <AppInventory />
+                  </RouteContainer>
+                } />
                 
                 {/* Legacy redirect — extract-thumbnails had no nav entry */}
                 <Route path="/extract-thumbnails" element={<Navigate to="/projects" replace />} />

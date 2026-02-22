@@ -45,7 +45,7 @@ const INVENTORY: InventorySection[] = [
     color: "text-red-400",
     description: "Features that are broken, stubs, or incomplete — needs attention",
     items: [
-      { name: "Video Editor Export (Multi-Clip)", description: "Export tries mp4box.js merge first, then falls back to ZIP download. Merge may fail on some codecs — ZIP fallback ensures users always get their clips.", status: "beta", tags: ["editor"] },
+      { name: "Video Editor Export (Multi-Clip)", description: "Export downloads clips as ZIP for multi-clip projects, or direct MP4 for single clips. Reliable cross-browser.", status: "beta", tags: ["editor"] },
       { name: "Motion Transfer Mode", description: "Edge function returns 501. Removed from UI — edge function pending deletion.", status: "stub", tags: ["pipeline"] },
       { name: "generate-trailer (Edge Function)", description: "Edge function exists but is never called from any frontend component.", status: "stub", tags: ["pipeline"] },
       { name: "stylize-video (Edge Function)", description: "Edge function exists but no frontend trigger.", status: "stub", tags: ["pipeline"] },

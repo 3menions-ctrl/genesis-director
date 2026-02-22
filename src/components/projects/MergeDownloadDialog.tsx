@@ -1,8 +1,7 @@
 /**
  * Merge Download Dialog
  * 
- * Dialog that allows users to download multi-clip projects as a single merged video.
- * Uses browser-based FFmpeg.wasm for video concatenation.
+ * Dialog that allows users to download multi-clip projects as a merged ZIP or single MP4.
  */
 
 import React, { useState, useCallback, useEffect } from 'react';

@@ -809,7 +809,7 @@ function ProjectsContentInner() {
     if (retryingProjectId) return;
     
     setRetryingProjectId(projectId);
-    toast.info('Starting Google Cloud stitch...', { description: 'Processing with FFmpeg - this may take 2-3 minutes' });
+    toast.info('Starting server-side stitch...', { description: 'Processing — this may take 2-3 minutes' });
     
     try {
       const { data: clips, error: clipsError } = await supabase

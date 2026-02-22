@@ -294,6 +294,79 @@ serve(async (req) => {
     }
 
     cancelledItems.push('project:cancelled');
+
+    // 9. REFUND CREDITS for incomplete clips
+    // Look up the original usage charge for this project and calculate refund
+    let creditsRefunded = 0;
+    try {
+      // Find the original usage charge for this project
+      const { data: usageCharge } = await supabase
+        .from('credit_transactions')
+        .select('amount')
+        .eq('user_id', userId)
+        .eq('project_id', projectId)
+        .eq('transaction_type', 'usage')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      // Check if already refunded
+      const { data: existingRefund } = await supabase
+        .from('credit_transactions')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('project_id', projectId)
+        .eq('transaction_type', 'refund')
+        .limit(1);
+
+      if (usageCharge && (!existingRefund || existingRefund.length === 0)) {
+        const totalCharged = Math.abs(usageCharge.amount);
+        // Count completed clips — only refund for incomplete ones
+        const completedCount = clips?.filter(c => c.status === 'completed' && c.video_url).length || 0;
+        const totalClips = clips?.length || 0;
+
+        // If no clips completed, full refund. Otherwise proportional.
+        if (totalClips > 0 && completedCount < totalClips) {
+          creditsRefunded = Math.round(totalCharged * ((totalClips - completedCount) / totalClips));
+        } else if (totalClips === 0) {
+          // All clips already deleted or none existed — full refund
+          creditsRefunded = totalCharged;
+        }
+
+        if (creditsRefunded > 0) {
+          // Record refund transaction
+          await supabase.from('credit_transactions').insert({
+            user_id: userId,
+            amount: creditsRefunded,
+            transaction_type: 'refund',
+            description: `Cancellation refund: ${completedCount}/${totalClips || '?'} clips completed`,
+            project_id: projectId,
+          });
+
+          // Restore balance
+          const { data: currentProfile } = await supabase
+            .from('profiles')
+            .select('credits_balance')
+            .eq('id', userId)
+            .single();
+
+          if (currentProfile) {
+            await supabase
+              .from('profiles')
+              .update({ credits_balance: currentProfile.credits_balance + creditsRefunded })
+              .eq('id', userId);
+          }
+
+          cancelledItems.push(`refund:${creditsRefunded} credits`);
+          console.log(`[CancelProject] Refunded ${creditsRefunded} credits to user ${userId}`);
+        }
+      } else if (existingRefund && existingRefund.length > 0) {
+        console.log(`[CancelProject] Skipping duplicate refund for project ${projectId}`);
+      }
+    } catch (refundErr) {
+      console.error(`[CancelProject] Credit refund error (non-fatal):`, refundErr);
+    }
+
     console.log(`[CancelProject] Project ${projectId} FULLY cancelled and cleaned`);
 
     return new Response(
@@ -306,6 +379,7 @@ serve(async (req) => {
           predictionsCancelled: predictionIdList.length,
           clipsDeleted: clips?.length || 0,
           storageFilesDeleted: totalFilesDeleted,
+          creditsRefunded,
         },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

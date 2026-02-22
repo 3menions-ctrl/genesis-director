@@ -6326,21 +6326,21 @@ serve(async (req) => {
     
     if (authHeader?.startsWith("Bearer ")) {
       try {
-        const authClient = createClient(supabaseUrl, anonKey);
-        const token = authHeader.replace("Bearer ", "");
-        const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-        if (!claimsError && claimsData?.claims?.sub) {
-          authenticatedUserId = claimsData.claims.sub as string;
+        const { validateAuth } = await import("../_shared/auth-guard.ts");
+        const authResult = await validateAuth(req);
+        if (authResult.authenticated && authResult.userId) {
+          authenticatedUserId = authResult.userId;
+        } else if (authResult.isServiceRole) {
+          // Service-role call (e.g., watchdog) — userId comes from request body
         }
       } catch (authErr) {
-        console.warn("[Hollywood] JWT validation failed, falling back to request.userId:", authErr);
+        console.warn("[Hollywood] Auth validation failed:", authErr);
       }
     }
     
     // Prioritize JWT identity; fall back to request.userId for service-role calls (e.g., watchdog)
-    const isServiceRoleCall = authHeader?.includes(supabaseKey);
     if (authenticatedUserId) {
-      if (request.userId && request.userId !== authenticatedUserId && !isServiceRoleCall) {
+      if (request.userId && request.userId !== authenticatedUserId) {
         console.warn(`[Hollywood] userId mismatch: JWT=${authenticatedUserId}, request=${request.userId}. Using JWT.`);
       }
       request.userId = authenticatedUserId;

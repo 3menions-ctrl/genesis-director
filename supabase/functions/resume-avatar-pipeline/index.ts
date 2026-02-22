@@ -71,7 +71,7 @@ serve(async (req) => {
       .from('movie_projects')
       .select('*')
       .eq('id', projectId)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !project) {
       throw new Error(`Project not found: ${projectId}`);

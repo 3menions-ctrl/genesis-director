@@ -189,7 +189,7 @@ serve(async (req) => {
       auditTest: true,
       startedAt: new Date().toISOString(),
     },
-  }).select("id").single();
+  }).select("id").maybeSingle();
 
   if (t2vProj && t2v1) {
     await supabase.from("video_clips").insert([
@@ -256,7 +256,7 @@ serve(async (req) => {
       auditTest: true,
       startedAt: new Date().toISOString(),
     },
-  }).select("id").single();
+  }).select("id").maybeSingle();
 
   if (i2vProj && i2v1) {
     await supabase.from("video_clips").insert([
@@ -345,7 +345,7 @@ serve(async (req) => {
       auditTest: true,
       startedAt: new Date().toISOString(),
     },
-  }).select("id").single();
+  }).select("id").maybeSingle();
 
   if (avatarProj && av1) {
     await supabase.from("video_clips").insert([

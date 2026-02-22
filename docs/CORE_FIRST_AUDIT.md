@@ -202,9 +202,10 @@
 | Round 4 | 13 | 29 |
 | Round 5 | 22 | 51 |
 | Round 6 | 40 | 91 |
-| Round 7 | 4 | **95** |
+| Round 7 | 4 | 95 |
+| Round 8 | 45 | **140** |
 
-**Remaining issues from original 100:** ~5 (minor UX polish, acceptable trade-offs)
+**All critical, high, and medium issues resolved. Remaining: 2 acceptable `.single()` on INSERT (correct usage).**
 
 ---
 

@@ -315,7 +315,7 @@ serve(async (req) => {
           .select('last_frame_url, frame_extraction_status')
           .eq('project_id', projectId)
           .eq('shot_index', shotIndex - 1)
-          .single();
+          .maybeSingle();
         
         if (prevClip?.last_frame_url && isValidImageUrl(prevClip.last_frame_url) && prevClip.frame_extraction_status === 'completed') {
           await saveFrameToDb(prevClip.last_frame_url);
@@ -375,7 +375,7 @@ serve(async (req) => {
         .from('movie_projects')
         .select('scene_images, pro_features_data')
         .eq('id', projectId)
-        .single();
+        .maybeSingle();
       
       // Try pro_features_data for original uploaded images
       if (projectData?.pro_features_data) {
@@ -432,7 +432,7 @@ serve(async (req) => {
           .select('last_frame_url')
           .eq('project_id', projectId)
           .eq('shot_index', shotIndex - 1)
-          .single();
+          .maybeSingle();
         
         if (prevClip?.last_frame_url && isValidImageUrl(prevClip.last_frame_url)) {
           await saveFrameToDb(prevClip.last_frame_url);

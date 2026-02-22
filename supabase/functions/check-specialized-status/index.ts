@@ -67,7 +67,7 @@ serve(async (req) => {
       .from('movie_projects')
       .select('mode, pipeline_state, status, voice_audio_url, pending_video_tasks')
       .eq('id', projectId)
-      .single();
+      .maybeSingle();
 
     if (projectError || !project) {
       throw new Error(`Project not found: ${projectError?.message}`);
@@ -221,7 +221,7 @@ async function handleMultiClipAvatar(
     .from('movie_projects')
     .select('pending_video_tasks, pipeline_state')
     .eq('id', projectId)
-    .single();
+    .maybeSingle();
   
   // deno-lint-ignore no-explicit-any
   const freshTasks = (freshProject?.pending_video_tasks || pendingTasks) as Record<string, any>;

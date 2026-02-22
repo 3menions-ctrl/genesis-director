@@ -1,5 +1,5 @@
 import {
-  ArrowLeft, Save, Download, Loader2, Undo2, Redo2, Scissors, Sparkles,
+  ArrowLeft, Save, Download, Loader2, Undo2, Redo2, Scissors, 
   Copy, Magnet, Maximize, PanelLeftClose, PanelLeft, Plus, Film, Music, Type,
   ChevronDown, Bookmark, Pause as FreezeIcon, ArrowDownUp, Unlink,
 } from "lucide-react";
@@ -40,10 +40,10 @@ interface EditorToolbarProps {
   renderProgress: number;
 }
 
-const Divider = () => <div className="h-6 w-px bg-border/50 mx-1 shrink-0" />;
+const Divider = () => <div className="h-5 w-px bg-white/[0.06] mx-1.5 shrink-0" />;
 
 const Kbd = ({ children }: { children: React.ReactNode }) => (
-  <kbd className="ml-1.5 px-1.5 py-0.5 rounded-md bg-secondary text-[9px] font-mono text-muted-foreground border border-border leading-none">
+  <kbd className="ml-1.5 px-1.5 py-0.5 rounded bg-white/[0.06] text-[9px] font-mono text-white/30 leading-none">
     {children}
   </kbd>
 );
@@ -54,7 +54,7 @@ const ToolbarTooltip = ({ children, label, shortcut }: { children: React.ReactNo
     <TooltipContent
       side="bottom"
       sideOffset={8}
-      className="text-[11px] font-medium bg-popover border-border text-foreground shadow-2xl shadow-black/50 px-3 py-2 flex items-center gap-1 rounded-xl"
+      className="text-[11px] font-medium bg-[#1a1a1f] border-white/[0.08] text-white/80 shadow-2xl px-3 py-2 flex items-center gap-1 rounded-lg"
     >
       {label}
       {shortcut && <Kbd>{shortcut}</Kbd>}
@@ -71,11 +71,11 @@ const ToolBtn = ({
     onClick={onClick}
     disabled={disabled}
     className={cn(
-      "h-8 w-8 rounded-xl flex items-center justify-center transition-all duration-200",
-      "text-muted-foreground hover:text-foreground hover:bg-secondary",
-      "disabled:opacity-15 disabled:pointer-events-none",
-      "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/30",
-      active && "text-primary bg-primary/10 hover:bg-primary/15 shadow-inner shadow-primary/[0.03]",
+      "h-7 w-7 rounded-lg flex items-center justify-center transition-all duration-150",
+      "text-white/35 hover:text-white/80 hover:bg-white/[0.06]",
+      "disabled:opacity-[0.12] disabled:pointer-events-none",
+      "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20",
+      active && "text-white/90 bg-white/[0.08]",
       className,
     )}
   >
@@ -83,12 +83,8 @@ const ToolBtn = ({
   </button>
 );
 
-const ToolCluster = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <div className={cn(
-    "flex items-center gap-0.5 rounded-xl p-0.5",
-    "bg-secondary/50 border border-border backdrop-blur-sm",
-    className,
-  )}>
+const ToolGroup = ({ children }: { children: React.ReactNode }) => (
+  <div className="flex items-center gap-px">
     {children}
   </div>
 );
@@ -103,125 +99,109 @@ export const EditorToolbar = ({
   isSaving, renderStatus, renderProgress,
 }: EditorToolbarProps) => {
   return (
-    <TooltipProvider delayDuration={300}>
-      <div className="h-14 bg-card/80 backdrop-blur-xl border-b border-border flex items-center gap-2 px-3 shrink-0 relative z-20">
-        {/* Top accent line */}
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-        {/* Bottom subtle line */}
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
+    <TooltipProvider delayDuration={400}>
+      <div className="h-12 bg-[#0d0d11]/95 backdrop-blur-2xl border-b border-white/[0.04] flex items-center gap-1.5 px-3 shrink-0 relative z-20">
 
         {/* Back + Logo */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <ToolbarTooltip label="Back to projects">
-            <ToolBtn onClick={onBack} className="hover:bg-secondary">
-              <ArrowLeft className="h-4 w-4" />
+            <ToolBtn onClick={onBack}>
+              <ArrowLeft className="h-3.5 w-3.5" />
             </ToolBtn>
           </ToolbarTooltip>
-          <Logo size="sm" className="opacity-60 hover:opacity-100 transition-opacity cursor-pointer" />
+          <Logo size="sm" className="opacity-40 hover:opacity-70 transition-opacity cursor-pointer" />
         </div>
 
         <Divider />
 
         <ToolbarTooltip label="Media Panel" shortcut="M">
           <ToolBtn onClick={onToggleMediaBrowser} active={showMediaBrowser}>
-            {showMediaBrowser ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
+            {showMediaBrowser ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeft className="h-3.5 w-3.5" />}
           </ToolBtn>
         </ToolbarTooltip>
 
         <Divider />
 
-        {/* Project title */}
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary/25 to-accent/10 border border-primary/15 flex items-center justify-center shrink-0 shadow-lg shadow-primary/5">
-            <Film className="h-3.5 w-3.5 text-primary" />
-          </div>
-          <Input
-            value={title}
-            onChange={(e) => onTitleChange(e.target.value)}
-            className="max-w-[200px] h-8 text-xs font-semibold bg-transparent border-none text-foreground/80 placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-secondary rounded-lg px-2.5 transition-colors"
-          />
-        </div>
+        {/* Project title — clean, no icon */}
+        <Input
+          value={title}
+          onChange={(e) => onTitleChange(e.target.value)}
+          className="max-w-[180px] h-7 text-[12px] font-medium bg-transparent border-none text-white/50 placeholder:text-white/20 focus-visible:ring-0 focus-visible:ring-offset-0 hover:text-white/70 hover:bg-white/[0.03] rounded-lg px-2 transition-all"
+        />
 
         <Divider />
 
         {/* Edit tools */}
-        <ToolCluster>
+        <ToolGroup>
           <ToolbarTooltip label="Undo" shortcut="⌘Z">
             <ToolBtn onClick={onUndo} disabled={!canUndo}><Undo2 className="h-3.5 w-3.5" /></ToolBtn>
           </ToolbarTooltip>
           <ToolbarTooltip label="Redo" shortcut="⌘⇧Z">
             <ToolBtn onClick={onRedo} disabled={!canRedo}><Redo2 className="h-3.5 w-3.5" /></ToolBtn>
           </ToolbarTooltip>
-          <div className="h-4 w-px bg-border/50" />
-          <ToolbarTooltip label="Split at playhead" shortcut="S">
+          <Divider />
+          <ToolbarTooltip label="Split" shortcut="S">
             <ToolBtn onClick={onSplit} disabled={!canSplit}><Scissors className="h-3.5 w-3.5" /></ToolBtn>
           </ToolbarTooltip>
-          <ToolbarTooltip label="Duplicate clip" shortcut="⌘D">
+          <ToolbarTooltip label="Duplicate" shortcut="⌘D">
             <ToolBtn onClick={onDuplicate} disabled={!canDuplicate}><Copy className="h-3.5 w-3.5" /></ToolBtn>
           </ToolbarTooltip>
-        </ToolCluster>
+        </ToolGroup>
+
+        <Divider />
 
         {/* Clip tools */}
-        <ToolCluster>
+        <ToolGroup>
           <ToolbarTooltip label="Freeze frame" shortcut="F">
             <ToolBtn onClick={onFreezeFrame} disabled={!hasSelectedClip}><FreezeIcon className="h-3.5 w-3.5" /></ToolBtn>
           </ToolbarTooltip>
-          <ToolbarTooltip label="Reverse clip" shortcut="R">
+          <ToolbarTooltip label="Reverse" shortcut="R">
             <ToolBtn onClick={onReverseClip} disabled={!hasSelectedClip}><ArrowDownUp className="h-3.5 w-3.5" /></ToolBtn>
           </ToolbarTooltip>
           <ToolbarTooltip label="Detach audio">
             <ToolBtn onClick={onDetachAudio} disabled={!hasSelectedClip}><Unlink className="h-3.5 w-3.5" /></ToolBtn>
           </ToolbarTooltip>
-          <div className="h-4 w-px bg-border/50" />
-          <ToolbarTooltip label="Add marker" shortcut="B">
+          <Divider />
+          <ToolbarTooltip label="Marker" shortcut="B">
             <ToolBtn onClick={onAddMarker}><Bookmark className="h-3.5 w-3.5" /></ToolBtn>
           </ToolbarTooltip>
-        </ToolCluster>
+        </ToolGroup>
 
         <Divider />
 
         {/* View tools */}
-        <ToolCluster>
+        <ToolGroup>
           <ToolbarTooltip label={`Snap ${snapEnabled ? "On" : "Off"}`} shortcut="N">
             <ToolBtn onClick={onToggleSnap} active={snapEnabled}><Magnet className="h-3.5 w-3.5" /></ToolBtn>
           </ToolbarTooltip>
-          <ToolbarTooltip label="Fit timeline to view" shortcut="⌘⇧F">
+          <ToolbarTooltip label="Fit to view" shortcut="⌘⇧F">
             <ToolBtn onClick={onFitToView}><Maximize className="h-3.5 w-3.5" /></ToolBtn>
           </ToolbarTooltip>
-        </ToolCluster>
+        </ToolGroup>
 
         <Divider />
 
-        {/* Add Track */}
+        {/* Add Track — minimal popover */}
         <Popover>
           <PopoverTrigger asChild>
-            <button className={cn(
-              "h-8 px-3.5 rounded-xl flex items-center gap-1.5 text-xs font-medium transition-all duration-200",
-              "text-muted-foreground hover:text-foreground hover:bg-secondary",
-              "border border-border hover:border-primary/20",
-            )}>
-              <Plus className="h-3.5 w-3.5" />
+            <button className="h-7 px-2.5 rounded-lg flex items-center gap-1 text-[11px] font-medium text-white/35 hover:text-white/70 hover:bg-white/[0.06] transition-all duration-150">
+              <Plus className="h-3 w-3" />
               <span>Track</span>
-              <ChevronDown className="h-3 w-3 opacity-30" />
+              <ChevronDown className="h-2.5 w-2.5 opacity-40" />
             </button>
           </PopoverTrigger>
-          <PopoverContent className="w-52 p-2 bg-popover/95 backdrop-blur-xl border-border rounded-2xl shadow-2xl shadow-black/50" side="bottom" align="start" sideOffset={8}>
-            <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-[0.2em] px-3 pt-1 pb-2">
-              Add Track
-            </p>
+          <PopoverContent className="w-44 p-1.5 bg-[#1a1a1f]/95 backdrop-blur-2xl border-white/[0.08] rounded-xl shadow-2xl" side="bottom" align="start" sideOffset={6}>
             {[
-              { type: "video" as const, icon: Film, label: "Video Track", color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/15" },
-              { type: "audio" as const, icon: Music, label: "Audio Track", color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/15" },
-              { type: "text" as const, icon: Type, label: "Text Overlay", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/15" },
-            ].map(({ type, icon: Icon, label, color, bg }) => (
+              { type: "video" as const, icon: Film, label: "Video Track" },
+              { type: "audio" as const, icon: Music, label: "Audio Track" },
+              { type: "text" as const, icon: Type, label: "Text Overlay" },
+            ].map(({ type, icon: Icon, label }) => (
               <button
                 key={type}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs text-secondary-foreground hover:text-foreground hover:bg-secondary transition-all group"
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] text-white/50 hover:text-white/90 hover:bg-white/[0.06] transition-all"
                 onClick={() => onAddTrack?.(type)}
               >
-                <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center border", bg, color, "group-hover:scale-110 transition-transform")}>
-                  <Icon className="h-3.5 w-3.5" />
-                </div>
+                <Icon className="h-3.5 w-3.5" />
                 <span className="font-medium">{label}</span>
               </button>
             ))}
@@ -230,54 +210,50 @@ export const EditorToolbar = ({
 
         <div className="flex-1" />
 
-        {/* Render progress */}
+        {/* Render progress — minimal */}
         {renderStatus === "rendering" && (
-          <div className="flex items-center gap-3 mr-3 animate-in fade-in duration-300">
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-            <div className="w-32 h-1.5 bg-muted rounded-full overflow-hidden">
+          <div className="flex items-center gap-2.5 mr-3 animate-in fade-in duration-300">
+            <Loader2 className="h-3 w-3 animate-spin text-white/40" />
+            <div className="w-24 h-1 bg-white/[0.06] rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-primary via-primary to-accent rounded-full transition-all duration-700 ease-out"
+                className="h-full bg-white/40 rounded-full transition-all duration-700 ease-out"
                 style={{ width: `${renderProgress}%` }}
               />
             </div>
-            <span className="text-[10px] text-muted-foreground tabular-nums font-mono">{renderProgress}%</span>
+            <span className="text-[10px] text-white/25 tabular-nums font-mono">{renderProgress}%</span>
           </div>
         )}
 
         {renderStatus === "completed" && (
-          <div className="flex items-center gap-2 mr-3 animate-in fade-in duration-300">
-            <div className="w-2 h-2 rounded-full bg-[hsl(var(--success))] shadow-lg shadow-[hsl(var(--success))]/30 animate-pulse" />
-            <span className="text-[11px] text-[hsl(var(--success))] font-semibold">Ready</span>
+          <div className="flex items-center gap-1.5 mr-3 animate-in fade-in duration-300">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/80" />
+            <span className="text-[10px] text-emerald-400/70 font-medium">Ready</span>
           </div>
         )}
 
-        {/* Actions */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
+        {/* Actions — clean, minimal */}
+        <div className="flex items-center gap-1.5">
+          <button
             onClick={onSave}
             disabled={isSaving}
-            className="h-9 px-4 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary gap-1.5 rounded-xl font-medium border border-border hover:border-primary/20 transition-all"
+            className="h-7 px-3 rounded-lg flex items-center gap-1.5 text-[11px] font-medium text-white/40 hover:text-white/70 hover:bg-white/[0.06] disabled:opacity-30 transition-all duration-150"
           >
-            {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
             Save
-          </Button>
+          </button>
 
-          <Button
-            size="sm"
+          <button
             onClick={onExport}
             disabled={renderStatus === "rendering"}
             className={cn(
-              "h-9 px-6 text-xs font-semibold rounded-xl gap-2 transition-all duration-300",
+              "h-7 px-4 text-[11px] font-semibold rounded-lg flex items-center gap-1.5 transition-all duration-200",
               "bg-white text-black hover:bg-white/90",
-              "shadow-[0_0_30px_rgba(255,255,255,0.10)] hover:shadow-[0_0_50px_rgba(255,255,255,0.18)]",
-              "hover:scale-[1.02] active:scale-[0.98]",
+              "disabled:opacity-30",
             )}
           >
-            <Download className="h-3.5 w-3.5" />
+            <Download className="h-3 w-3" />
             Export
-          </Button>
+          </button>
         </div>
       </div>
     </TooltipProvider>

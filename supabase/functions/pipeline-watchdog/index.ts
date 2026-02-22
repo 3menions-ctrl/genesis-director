@@ -498,7 +498,7 @@ serve(async (req) => {
           // ═══════════════════════════════════════════════════════════════════════
           const extractLastFrameFromVideo = async (videoUrl: string, forClipIndex: number): Promise<string | null> => {
             try {
-              const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-last-frame`, {
+              const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-video-frame`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',

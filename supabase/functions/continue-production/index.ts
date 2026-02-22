@@ -725,7 +725,7 @@ serve(async (req: Request) => {
         // TIER 2B: Trigger emergency frame extraction
         console.log(`[ContinueProduction] TIER 2B: Clip has video but no frame - triggering extraction...`);
         try {
-          const extractResult = await callEdgeFunction('extract-last-frame', {
+          const extractResult = await callEdgeFunction('extract-video-frame', {
             projectId,
             shotIndex: completedClipIndex,
             videoUrl: prevClip.video_url,

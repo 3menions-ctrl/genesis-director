@@ -9,7 +9,7 @@ import { describe, it, expect } from "vitest";
  * The 7-tier fallback chain:
  * 1. Callback result (previous clip's last frame URL)
  * 2. Database query (video_clips.last_frame_url)
- * 3. Emergency frame extraction (extract-last-frame call)
+ * 3. Emergency frame extraction (extract-video-frame call)
  * 4. Any completed clip's last frame (scan backwards)
  * 5. Golden frame from context
  * 6. Scene image for clip

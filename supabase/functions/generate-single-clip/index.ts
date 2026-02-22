@@ -1072,7 +1072,7 @@ serve(async (req) => {
       frameExtractionAttempts = attempt;
       
       try {
-        const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-last-frame`, {
+        const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-video-frame`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

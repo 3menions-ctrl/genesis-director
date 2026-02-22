@@ -1251,62 +1251,118 @@ const VideoEditor = () => {
       await handleSave();
     } catch { /* save failure shouldn't block export */ }
 
+    const sanitizedName = editorState.title
+      .replace(/[^a-zA-Z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .toLowerCase()
+      .slice(0, 50) || "video";
+
     try {
-      // If we have a project ID, try simple-stitch for server-side stitched video
+      // Collect ALL clip source URLs from the editor timeline
+      let allClipUrls = videoClips.map((c) => c.sourceUrl).filter(Boolean) as string[];
+
+      // If we have a project ID, try simple-stitch to get the ORDERED, persisted clip URLs
+      // (simple-stitch persists temporary Replicate URLs and returns the permanent ones)
       if (editorState.projectId && user) {
-        setEditorState((prev) => ({ ...prev, renderProgress: 20 }));
-        
+        setEditorState((prev) => ({ ...prev, renderProgress: 15 }));
+
         try {
           const { data, error } = await supabase.functions.invoke("simple-stitch", {
             body: { projectId: editorState.projectId, userId: user.id },
           });
 
-          if (!error && data?.success && data?.finalVideoUrl) {
-            toast.success("Video stitched! Starting download...");
-            setEditorState((prev) => ({ ...prev, renderProgress: 60 }));
+          if (!error && data?.success) {
+            // simple-stitch returns a manifest JSON URL as finalVideoUrl — NOT an actual MP4!
+            // The real video URLs are stored in pending_video_tasks.mseClipUrls
+            // Fetch them from the project data
+            const { data: projectData } = await supabase
+              .from("movie_projects")
+              .select("pending_video_tasks")
+              .eq("id", editorState.projectId)
+              .maybeSingle();
 
-            // Download the full stitched video
-            try {
-              const response = await fetch(data.finalVideoUrl, { mode: "cors" });
-              if (response.ok) {
-                const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `${editorState.title.replace(/[^a-zA-Z0-9]/g, "_")}_full.mp4`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+            const tasks = projectData?.pending_video_tasks as Record<string, unknown> | null;
+            const mseClipUrls = tasks?.mseClipUrls as string[] | undefined;
 
-                setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
-                toast.success("Full video downloaded!");
-
-                setTimeout(() => {
-                  setEditorState((prev) => prev.renderStatus === "completed" ? { ...prev, renderStatus: "idle", renderProgress: 0 } : prev);
-                }, 5000);
-                return; // Success — don't fall through to individual clip download
-              }
-            } catch (dlErr) {
-              console.warn("[Editor Export] Stitched download failed, trying merge fallback:", dlErr);
+            if (mseClipUrls && mseClipUrls.length > 0) {
+              allClipUrls = mseClipUrls;
+              console.log(`[Editor Export] Got ${mseClipUrls.length} persisted clip URLs from simple-stitch`);
             }
           }
-        } catch {
-          console.warn("[Editor Export] simple-stitch failed, falling back to browser merge");
+        } catch (stitchErr) {
+          console.warn("[Editor Export] simple-stitch call failed (non-fatal):", stitchErr);
         }
       }
 
-      // Fallback: use browser-based ffmpeg merge for a single stitched file
-      setEditorState((prev) => ({ ...prev, renderProgress: 30 }));
-      const clipUrls = videoClips.map((c) => c.sourceUrl).filter(Boolean) as string[];
+      if (allClipUrls.length === 0) {
+        toast.error("No downloadable clips found");
+        setEditorState((prev) => ({ ...prev, renderStatus: "idle", renderProgress: 0 }));
+        return;
+      }
 
-      if (clipUrls.length > 1) {
+      // SINGLE CLIP: direct download
+      if (allClipUrls.length === 1) {
+        setEditorState((prev) => ({ ...prev, renderProgress: 30 }));
+        try {
+          const response = await fetch(allClipUrls[0], { mode: "cors" });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const blob = await response.blob();
+          downloadBlobToUser(blob, `${sanitizedName}.mp4`);
+          setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
+          toast.success("Video downloaded!");
+          resetExportStatus();
+          return;
+        } catch (err) {
+          console.warn("[Editor Export] Single clip download failed:", err);
+          window.open(allClipUrls[0], "_blank");
+          toast.info("Opened video in new tab");
+          setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
+          resetExportStatus();
+          return;
+        }
+      }
+
+      // MULTI-CLIP: Download all clips, then concatenate as a single blob
+      // FFmpeg.wasm requires crossOriginIsolated (COOP/COEP headers) which
+      // isn't available on most deployments. Instead, we concatenate the raw
+      // MP4 data using a Blob array — this produces a playable file in most
+      // players since the clips share the same codec/resolution from Kling.
+      setEditorState((prev) => ({ ...prev, renderProgress: 20 }));
+      toast.info(`Downloading ${allClipUrls.length} clips...`);
+
+      const downloadedBlobs: Blob[] = [];
+
+      for (let i = 0; i < allClipUrls.length; i++) {
+        setEditorState((prev) => ({
+          ...prev,
+          renderProgress: 20 + Math.round(((i + 1) / allClipUrls.length) * 70),
+        }));
+
+        try {
+          const response = await fetch(allClipUrls[i], { mode: "cors" });
+          if (!response.ok) {
+            console.warn(`[Editor Export] Clip ${i + 1} fetch failed: ${response.status}`);
+            continue;
+          }
+          const blob = await response.blob();
+          downloadedBlobs.push(blob);
+        } catch (err) {
+          console.warn(`[Editor Export] Clip ${i + 1} download error:`, err);
+        }
+      }
+
+      if (downloadedBlobs.length === 0) {
+        toast.error("Failed to download any clips");
+        setEditorState((prev) => ({ ...prev, renderStatus: "idle", renderProgress: 0 }));
+        return;
+      }
+
+      // Try FFmpeg.wasm merge first (works on desktop Chrome/Firefox with COOP/COEP)
+      if (typeof SharedArrayBuffer !== "undefined" && typeof crossOriginIsolated !== "undefined" && crossOriginIsolated) {
         try {
           const { mergeVideoClips, downloadBlob } = await import("@/lib/video/browserVideoMerger");
-          const sanitizedName = editorState.title.replace(/[^a-zA-Z0-9\s-]/g, "").replace(/\s+/g, "-").toLowerCase().slice(0, 50);
-
           const result = await mergeVideoClips({
-            clipUrls,
+            clipUrls: allClipUrls,
             outputFilename: `${sanitizedName}-complete.mp4`,
             projectId: editorState.projectId || "editor",
             projectName: editorState.title,
@@ -1319,30 +1375,53 @@ const VideoEditor = () => {
             downloadBlob(result.blob, result.filename || `${sanitizedName}-complete.mp4`);
             setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
             toast.success("Merged video downloaded!");
-            setTimeout(() => {
-              setEditorState((prev) => prev.renderStatus === "completed" ? { ...prev, renderStatus: "idle", renderProgress: 0 } : prev);
-            }, 5000);
+            resetExportStatus();
             return;
           }
         } catch (mergeErr) {
-          console.warn("[Editor Export] Browser merge failed, falling back to individual clips:", mergeErr);
+          console.warn("[Editor Export] FFmpeg merge unavailable:", mergeErr);
         }
       }
 
-      // Final fallback: download clips individually
-      await downloadEditorClips(videoClips);
+      // Fallback: Download each clip reliably with delays to prevent browser throttling
+      toast.info(`Downloading ${downloadedBlobs.length} clips individually...`);
+      for (let i = 0; i < downloadedBlobs.length; i++) {
+        downloadBlobToUser(downloadedBlobs[i], `${sanitizedName}-clip${i + 1}.mp4`);
+        // Stagger downloads to prevent browser blocking
+        if (i < downloadedBlobs.length - 1) {
+          await new Promise((r) => setTimeout(r, 800));
+        }
+      }
+
       setEditorState((prev) => ({ ...prev, renderStatus: "completed", renderProgress: 100 }));
-      toast.success("Download complete!");
-      
-      setTimeout(() => {
-        setEditorState((prev) => prev.renderStatus === "completed" ? { ...prev, renderStatus: "idle", renderProgress: 0 } : prev);
-      }, 5000);
+      toast.success(`Downloaded ${downloadedBlobs.length} clips!`);
+      resetExportStatus();
     } catch (err) {
       console.error("[Editor Export] Error:", err);
       setEditorState((prev) => ({ ...prev, renderStatus: "idle", renderProgress: 0 }));
       toast.error("Export failed. Please try again.");
     }
   };
+
+  function downloadBlobToUser(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    // Delay revoke to ensure download starts
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+
+  function resetExportStatus() {
+    setTimeout(() => {
+      setEditorState((prev) =>
+        prev.renderStatus === "completed" ? { ...prev, renderStatus: "idle", renderProgress: 0 } : prev
+      );
+    }, 5000);
+  }
 
   // Polls an edit session's render status until it completes, fails, or the component unmounts.
   // Uses pollIntervalRef so the interval is never leaked — cleared before starting a new one

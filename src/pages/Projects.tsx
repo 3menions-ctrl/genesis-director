@@ -533,7 +533,7 @@ function ProjectsContentInner() {
           if (debounceTimer) clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
             refreshRef.current();
-          }, 500);
+          }, 3000); // 3s debounce - projects page is NOT time-critical
         }
       )
       .subscribe();
@@ -592,10 +592,8 @@ function ProjectsContentInner() {
   // Projects to display - directly use filteredProjects (pagination is server-side now)
   const displayedProjects = filteredProjects;
   
-  // Load more handler - uses server-side pagination
-  const handleLoadMore = useCallback(() => {
-    loadMore();
-  }, [loadMore]);
+  // Load more handler - directly use loadMore (now has stable identity)
+  const handleLoadMore = loadMore;
   
   const hasMoreToLoad = hasMore;
 
@@ -617,15 +615,16 @@ function ProjectsContentInner() {
     photos: photoEdits.length,
   }), [filteredProjects.length, trainingVideos.length, photoEdits.length]);
 
-  // Infinite scroll observer ref
+  // Infinite scroll observer ref - STABILITY FIX: Use ref for loadMore to avoid observer churn
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const loadMoreFnRef = useRef(loadMore);
+  loadMoreFnRef.current = loadMore;
   
   useEffect(() => {
-    if (!hasMore || isLoadingMore) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          loadMore();
+          loadMoreFnRef.current();
         }
       },
       { rootMargin: '400px' }
@@ -633,7 +632,7 @@ function ProjectsContentInner() {
     const el = loadMoreRef.current;
     if (el) observer.observe(el);
     return () => { if (el) observer.unobserve(el); };
-  }, [hasMore, isLoadingMore, loadMore]);
+  }, []); // Mount once - loadMore reads from refs internally
 
   // Handlers
   const handleCreateProject = () => {
@@ -844,15 +843,15 @@ function ProjectsContentInner() {
     setShowBrowserStitcher(projectId);
   };
 
-  const needsStitching = projects.filter(p => {
+  const needsStitching = useMemo(() => projects.filter(p => {
     const hasClips = hasVideoContent(p);
     const isPlayable = isPlayableProject(p);
     const isProcessing = status(p) === 'stitching';
     const isStitchFailed = status(p) === 'stitching_failed';
     return (hasClips && !isPlayable && !isProcessing) || isStitchFailed;
-  });
+  }), [projects]);
   
-  const stitchingProjects = projects.filter(p => status(p) === 'stitching');
+  const stitchingProjects = useMemo(() => projects.filter(p => status(p) === 'stitching'), [projects]);
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">

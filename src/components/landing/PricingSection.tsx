@@ -209,34 +209,7 @@ export const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
     onVideoEnded();
   }, [onVideoEnded]);
 
-  // Robust end-detection: timeupdate fires reliably even when HLS 'ended' doesn't
-  useEffect(() => {
-    const video = playerRef.current?.getVideoElement?.();
-    if (!video) {
-      // Retry after player mounts
-      const retryTimer = setTimeout(() => {
-        const v = playerRef.current?.getVideoElement?.();
-        if (v) attachEndDetection(v);
-      }, 500);
-      return () => clearTimeout(retryTimer);
-    }
-    attachEndDetection(video);
-
-    function attachEndDetection(v: HTMLVideoElement) {
-      const onTimeUpdate = () => {
-        if (hasEndedRef.current) return;
-        const dur = v.duration;
-        if (dur && isFinite(dur) && dur > 0 && v.currentTime >= dur - 0.3) {
-          stopPlayback();
-        }
-      };
-      const onEnded = () => stopPlayback();
-      v.addEventListener('timeupdate', onTimeUpdate);
-      v.addEventListener('ended', onEnded);
-      // Ensure loop attribute is off
-      v.loop = false;
-    }
-  }, [stopPlayback]);
+  // Muted state is synced inline via the video ref callback and onTimeUpdate
 
   // Escape key to exit
   useEffect(() => {
@@ -261,23 +234,34 @@ export const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
 
   return (
     <>
-      {/* Video background layer - behind content */}
-      <div className="fixed inset-0 z-[2] animate-fade-in" style={{ animationDuration: '1.2s', pointerEvents: 'none' }}>
-        {/* Fullscreen HLS video */}
-        <div className="absolute inset-0 [&_video]:!object-cover [&_video]:!w-full [&_video]:!h-full [&>div]:!w-full [&>div]:!h-full">
-          <UniversalHLSPlayer
-            ref={playerRef}
-            hlsUrl={STORYTELLING_HLS_URL}
-            fallbackMp4Url={STORYTELLING_MP4_FALLBACK}
-            className="w-full h-full"
-            showControls={false}
-            autoPlay={true}
-            muted={true}
-            loop={false}
-            aspectRatio="auto"
-            onEnded={stopPlayback}
-          />
-        </div>
+      {/* Video background layer - above all content */}
+      <div className="fixed inset-0 z-[100] animate-fade-in" style={{ animationDuration: '1.2s', pointerEvents: 'none' }}>
+        {/* Fullscreen MP4 video — HLS m3u8 has corrupt segments, MP4 is reliable */}
+        <video
+          ref={(el) => {
+            if (el) {
+              // Expose via playerRef for mute/end controls
+              (playerRef as any).current = { getVideoElement: () => el };
+              el.muted = isMuted;
+              el.play().catch(() => {});
+            }
+          }}
+          src={STORYTELLING_MP4_FALLBACK}
+          className="absolute inset-0 w-full h-full object-cover"
+          autoPlay
+          muted={isMuted}
+          loop={false}
+          playsInline
+          onEnded={stopPlayback}
+          onTimeUpdate={(e) => {
+            const v = e.currentTarget;
+            if (hasEndedRef.current) return;
+            const dur = v.duration;
+            if (dur && isFinite(dur) && dur > 0 && v.currentTime >= dur - 0.3) {
+              stopPlayback();
+            }
+          }}
+        />
         
         {/* Dark gradient overlay for content readability */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/65" />

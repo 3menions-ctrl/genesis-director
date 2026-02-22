@@ -56,7 +56,7 @@ serve(async (req) => {
       .from('movie_projects')
       .select('id, title, status, pending_video_tasks, mode')
       .eq('id', projectId)
-      .single();
+      .maybeSingle();
 
     if (projectError || !project) {
       throw new Error(`Project not found: ${projectError?.message || 'Unknown'}`);

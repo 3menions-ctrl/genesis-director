@@ -69,14 +69,20 @@ serve(async (req) => {
     const pkg = CREDIT_PACKAGES[packageId];
     logStep("Package selected", { packageId, credits: pkg.credits });
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) throw new Error("User not authenticated");
-    const userId = claimsData.claims.sub;
-    const userEmail = claimsData.claims.email as string;
+    // Validate auth using shared guard (getClaims + getUser fallback)
+    const { validateAuth } = await import("../_shared/auth-guard.ts");
+    const auth = await validateAuth(req);
+    if (!auth.authenticated || !auth.userId) {
+      throw new Error("User not authenticated");
+    }
+    const userId = auth.userId;
+    // Get email from the supabase client for Stripe customer lookup
+    const authHeader = req.headers.get("Authorization")!;
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData } = await supabaseClient.auth.getUser();
+    const userEmail = userData?.user?.email;
     if (!userEmail) throw new Error("User email not available");
     logStep("User authenticated", { userId, email: userEmail });
 

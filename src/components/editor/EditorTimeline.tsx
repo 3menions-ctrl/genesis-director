@@ -32,10 +32,11 @@ const TRACK_HEIGHT = 56;
 const PIXELS_PER_SECOND_BASE = 60;
 const SNAP_THRESHOLD_PX = 8;
 
+// Organic Fluid palette — bioluminescent colors
 const trackColors: Record<string, { bg: string; bgSolid: string; border: string; text: string; glow: string; clip: string; accent: string }> = {
-  video: { bg: "bg-blue-500/[0.06]", bgSolid: "hsl(220 80% 55% / 0.10)", border: "border-blue-400/15", text: "text-blue-400", glow: "hsl(220 80% 55% / 0.15)", clip: "from-blue-500/25 to-blue-600/10", accent: "blue" },
-  audio: { bg: "bg-emerald-500/[0.06]", bgSolid: "hsl(160 60% 45% / 0.10)", border: "border-emerald-400/15", text: "text-emerald-400", glow: "hsl(160 60% 45% / 0.15)", clip: "from-emerald-500/25 to-emerald-600/10", accent: "emerald" },
-  text: { bg: "bg-amber-500/[0.06]", bgSolid: "hsl(38 92% 50% / 0.10)", border: "border-amber-400/15", text: "text-amber-400", glow: "hsl(38 92% 50% / 0.15)", clip: "from-amber-500/25 to-amber-600/10", accent: "amber" },
+  video: { bg: "bg-cyan-500/[0.06]", bgSolid: "hsl(180 70% 45% / 0.10)", border: "border-cyan-400/15", text: "text-cyan-300", glow: "hsl(180 70% 50% / 0.15)", clip: "from-cyan-500/20 to-emerald-500/10", accent: "cyan" },
+  audio: { bg: "bg-emerald-500/[0.06]", bgSolid: "hsl(160 60% 45% / 0.10)", border: "border-emerald-400/15", text: "text-emerald-300", glow: "hsl(160 60% 45% / 0.15)", clip: "from-emerald-500/20 to-green-500/10", accent: "emerald" },
+  text: { bg: "bg-purple-500/[0.06]", bgSolid: "hsl(270 60% 55% / 0.10)", border: "border-purple-400/15", text: "text-purple-300", glow: "hsl(270 60% 55% / 0.15)", clip: "from-purple-500/20 to-pink-500/10", accent: "purple" },
 };
 
 const trackIcons: Record<string, typeof Film> = { video: Film, audio: Music, text: Type };
@@ -138,28 +139,28 @@ export const EditorTimeline = ({
   }, [zoom, duration]);
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="h-full flex flex-col bg-[#040d08]">
       {/* Toolbar */}
-      <div className="h-10 flex items-center gap-1.5 px-3 border-b border-border shrink-0 bg-card/80 backdrop-blur-xl relative">
-        {/* Accent line */}
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
+      <div className="h-10 flex items-center gap-1.5 px-3 border-b border-emerald-400/[0.06] shrink-0 bg-[#060f0b]/90 backdrop-blur-xl relative">
+        {/* Aurora accent line */}
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/15 to-transparent" />
         
-        <div className="flex items-center gap-0.5 bg-secondary/50 rounded-lg p-0.5 border border-border">
-          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-md transition-all" onClick={() => onZoomChange(Math.min(zoom * 1.5, 10))}>
+        <div className="flex items-center gap-0.5 bg-emerald-400/[0.04] rounded-xl p-0.5 border border-emerald-400/[0.08]">
+          <Button variant="ghost" size="icon" className="h-6 w-6 text-emerald-300/30 hover:text-emerald-200/80 hover:bg-emerald-400/[0.08] rounded-lg transition-all" onClick={() => onZoomChange(Math.min(zoom * 1.5, 10))}>
             <ZoomIn className="h-3 w-3" />
           </Button>
-          <div className="w-12 h-1.5 bg-muted rounded-full relative mx-1">
-            <div className="h-full bg-gradient-to-r from-primary/40 to-primary/70 rounded-full transition-all" style={{ width: `${Math.min((Math.log2(zoom) + 3.3) / 6.6 * 100, 100)}%` }} />
+          <div className="w-12 h-1.5 bg-emerald-400/[0.06] rounded-full relative mx-1">
+            <div className="h-full bg-gradient-to-r from-emerald-400/30 to-cyan-400/50 rounded-full transition-all" style={{ width: `${Math.min((Math.log2(zoom) + 3.3) / 6.6 * 100, 100)}%` }} />
           </div>
-          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-md transition-all" onClick={() => onZoomChange(Math.max(zoom / 1.5, 0.1))}>
+          <Button variant="ghost" size="icon" className="h-6 w-6 text-emerald-300/30 hover:text-emerald-200/80 hover:bg-emerald-400/[0.08] rounded-lg transition-all" onClick={() => onZoomChange(Math.max(zoom / 1.5, 0.1))}>
             <ZoomOut className="h-3 w-3" />
           </Button>
         </div>
-        <span className="text-[9px] text-muted-foreground/50 ml-1 tabular-nums font-mono">{Math.round(zoom * 100)}%</span>
+        <span className="text-[9px] text-emerald-300/25 ml-1 tabular-nums font-mono">{Math.round(zoom * 100)}%</span>
 
         <div className="flex-1" />
 
-        <span className="text-[9px] text-muted-foreground/30 font-mono mr-2">
+        <span className="text-[9px] text-emerald-300/20 font-mono mr-2">
           {tracks.reduce((sum, t) => sum + t.clips.length, 0)} clips
         </span>
 
@@ -167,13 +168,13 @@ export const EditorTimeline = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon"
-                className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all mr-0.5"
+                className="h-6 w-6 text-emerald-300/30 hover:text-emerald-200/80 hover:bg-emerald-400/[0.08] rounded-xl transition-all mr-0.5"
                 onClick={() => onRippleDelete(selectedClipId)}>
                 <Scissors className="h-3 w-3" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="text-[10px] bg-popover border-border text-foreground">
-              Ripple Delete <kbd className="ml-1 text-muted-foreground">⇧Del</kbd>
+            <TooltipContent side="top" className="text-[10px] bg-[#0a1a14]/95 border-emerald-400/[0.12] text-emerald-100 rounded-xl">
+              Ripple Delete <kbd className="ml-1 text-emerald-300/40">⇧Del</kbd>
             </TooltipContent>
           </Tooltip>
         )}
@@ -181,12 +182,12 @@ export const EditorTimeline = ({
         {selectedClipId && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/50 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all" onClick={() => onDeleteClip(selectedClipId)}>
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-red-400/40 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all" onClick={() => onDeleteClip(selectedClipId)}>
                 <Trash2 className="h-3 w-3" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="text-[10px] bg-popover border-border text-foreground">
-              Delete <kbd className="ml-1 text-muted-foreground">Del</kbd>
+            <TooltipContent side="top" className="text-[10px] bg-[#0a1a14]/95 border-emerald-400/[0.12] text-emerald-100 rounded-xl">
+              Delete <kbd className="ml-1 text-emerald-300/40">Del</kbd>
             </TooltipContent>
           </Tooltip>
         )}
@@ -195,26 +196,26 @@ export const EditorTimeline = ({
       {/* Body */}
       <div className="flex-1 flex overflow-hidden">
         {/* Track labels */}
-        <div className="w-44 shrink-0 border-r border-border bg-card/80 backdrop-blur-xl">
-          <div className="h-7 border-b border-border/50" />
+        <div className="w-44 shrink-0 border-r border-emerald-400/[0.06] bg-[#060f0b]/90 backdrop-blur-xl">
+          <div className="h-7 border-b border-emerald-400/[0.04]" />
           {tracks.map((track) => {
             const Icon = trackIcons[track.type] || Film;
             const colors = trackColors[track.type] || trackColors.video;
             return (
-              <div key={track.id} className="flex items-center gap-2.5 px-3 border-b border-border/30 group hover:bg-secondary/30 transition-colors" style={{ height: TRACK_HEIGHT }}>
-                <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center bg-secondary border border-border")}>
+              <div key={track.id} className="flex items-center gap-2.5 px-3 border-b border-emerald-400/[0.04] group hover:bg-emerald-400/[0.03] transition-colors" style={{ height: TRACK_HEIGHT }}>
+                <div className={cn("w-6 h-6 rounded-xl flex items-center justify-center bg-emerald-400/[0.04] border border-emerald-400/[0.08]")}>
                   <Icon className={cn("h-3 w-3", colors.text)} />
                 </div>
-                <span className="text-[10px] font-medium text-muted-foreground truncate flex-1 tracking-wide">{track.name}</span>
+                <span className="text-[10px] font-medium text-emerald-300/30 truncate flex-1 tracking-wide">{track.name}</span>
                 <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
-                    className={cn("p-1 rounded-md transition-colors", track.muted ? "text-destructive/60 bg-destructive/10" : "text-muted-foreground/40 hover:text-foreground hover:bg-secondary")}
+                    className={cn("p-1 rounded-lg transition-colors", track.muted ? "text-red-400/50 bg-red-500/10" : "text-emerald-300/25 hover:text-emerald-200/70 hover:bg-emerald-400/[0.08]")}
                     onClick={() => onToggleTrackMute?.(track.id)}
                   >
                     {track.muted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
                   </button>
                   <button
-                    className={cn("p-1 rounded-md transition-colors", track.locked ? "text-amber-400/60 bg-amber-500/10" : "text-muted-foreground/40 hover:text-foreground hover:bg-secondary")}
+                    className={cn("p-1 rounded-lg transition-colors", track.locked ? "text-amber-400/50 bg-amber-500/10" : "text-emerald-300/25 hover:text-emerald-200/70 hover:bg-emerald-400/[0.08]")}
                     onClick={() => onToggleTrackLock?.(track.id)}
                   >
                     <Lock className="h-2.5 w-2.5" />
@@ -223,13 +224,13 @@ export const EditorTimeline = ({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button
-                          className="p-1 rounded-md transition-colors text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10"
+                          className="p-1 rounded-lg transition-colors text-emerald-300/25 hover:text-red-400 hover:bg-red-500/10"
                           onClick={() => onClearTrack(track.id)}
                         >
                           <XCircle className="h-2.5 w-2.5" />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="text-[10px] bg-popover border-border text-foreground">
+                      <TooltipContent side="top" className="text-[10px] bg-[#0a1a14]/95 border-emerald-400/[0.12] text-emerald-100 rounded-xl">
                         Clear all clips from track
                       </TooltipContent>
                     </Tooltip>
@@ -244,15 +245,15 @@ export const EditorTimeline = ({
         <div className="flex-1 overflow-x-auto overflow-y-hidden" ref={timelineRef}>
           <div style={{ width: timelineWidth, position: "relative" }}>
             {/* Ruler */}
-            <div className="h-7 border-b border-border relative bg-card/60" onClick={handleTimelineClick}>
+            <div className="h-7 border-b border-emerald-400/[0.06] relative bg-[#060f0b]/60" onClick={handleTimelineClick}>
               {markers.map((m, i) => (
                 <div key={i} className="absolute top-0 h-full flex flex-col justify-end" style={{ left: m.time * pxPerSec }}>
                   {m.major && (
-                    <span className="text-[8px] text-muted-foreground/40 px-0.5 tabular-nums font-mono">
+                    <span className="text-[8px] text-emerald-300/25 px-0.5 tabular-nums font-mono">
                       {Math.floor(m.time / 60)}:{(Math.floor(m.time) % 60).toString().padStart(2, "0")}
                     </span>
                   )}
-                  <div className={cn("w-px", m.major ? "h-2.5 bg-border" : "h-1 bg-border/30")} />
+                  <div className={cn("w-px", m.major ? "h-2.5 bg-emerald-400/15" : "h-1 bg-emerald-400/[0.06]")} />
                 </div>
               ))}
             </div>
@@ -261,9 +262,9 @@ export const EditorTimeline = ({
             {tracks.map((track) => {
               const colors = trackColors[track.type] || trackColors.video;
               return (
-                <div key={track.id} className="relative border-b border-border/30" style={{ height: TRACK_HEIGHT }} onClick={handleTimelineClick}>
-                  <div className="absolute inset-0 opacity-20" style={{
-                    backgroundImage: `repeating-linear-gradient(90deg, transparent, transparent ${pxPerSec - 1}px, hsl(var(--muted)) ${pxPerSec}px)`,
+                <div key={track.id} className="relative border-b border-emerald-400/[0.04]" style={{ height: TRACK_HEIGHT }} onClick={handleTimelineClick}>
+                  <div className="absolute inset-0 opacity-15" style={{
+                    backgroundImage: `repeating-linear-gradient(90deg, transparent, transparent ${pxPerSec - 1}px, hsl(160 30% 20% / 0.15) ${pxPerSec}px)`,
                   }} />
 
                {track.clips.map((clip, clipIndex) => {
@@ -271,7 +272,6 @@ export const EditorTimeline = ({
                      const width = (clip.end - clip.start) * pxPerSec;
                      const isSelected = clip.id === selectedClipId || selectedClipIds.includes(clip.id);
                      const hasTransition = clip.effects.some((e) => e.type === "transition");
-                     // Check for adjacent clip (transition zone)
                      const nextClip = track.clips
                        .filter(c => c.start >= clip.end - 0.1 && c.id !== clip.id)
                        .sort((a, b) => a.start - b.start)[0];
@@ -281,55 +281,52 @@ export const EditorTimeline = ({
                       <div
                         key={clip.id}
                         className={cn(
-                          "absolute top-2 rounded-lg cursor-grab select-none group/clip border transition-all duration-200",
+                          "absolute top-2 rounded-2xl cursor-grab select-none group/clip border transition-all duration-200",
                           "flex items-center overflow-hidden bg-gradient-to-r",
                           colors.clip, colors.border,
-                          isSelected && "ring-1 ring-primary/60 border-primary/40 shadow-lg",
+                          isSelected && "ring-1 ring-emerald-400/40 border-emerald-400/30 shadow-lg",
                           "hover:brightness-110"
                         )}
                         style={{
                           left, width: Math.max(width, 28), height: TRACK_HEIGHT - 16,
                           boxShadow: isSelected
-                            ? `0 0 24px ${colors.glow}, inset 0 1px 0 rgba(255,255,255,0.08)`
-                            : 'inset 0 1px 0 rgba(255,255,255,0.04)',
+                            ? `0 0 24px ${colors.glow}, inset 0 1px 0 rgba(255,255,255,0.06)`
+                            : 'inset 0 1px 0 rgba(255,255,255,0.03)',
                         }}
                         onClick={(e) => { e.stopPropagation(); onSelectClip(clip.id, e.shiftKey || e.ctrlKey || e.metaKey); }}
                         onMouseDown={(e) => handleClipMouseDown(e, clip, "move")}
                       >
                         {/* Left trim */}
-                        <div className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-white/15 rounded-l-lg transition-colors z-10" onMouseDown={(e) => handleClipMouseDown(e, clip, "trim-left")}>
-                          <div className="absolute left-0.5 top-1/2 -translate-y-1/2 w-px h-4 bg-white/20 opacity-0 group-hover/clip:opacity-100 transition-opacity" />
+                        <div className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-emerald-300/10 rounded-l-2xl transition-colors z-10" onMouseDown={(e) => handleClipMouseDown(e, clip, "trim-left")}>
+                          <div className="absolute left-0.5 top-1/2 -translate-y-1/2 w-px h-4 bg-emerald-300/15 opacity-0 group-hover/clip:opacity-100 transition-opacity" />
                         </div>
 
                         {/* Content */}
                         {track.type === "video" ? (
                           <div className="flex-1 min-w-0 h-full relative overflow-hidden">
-                            {/* Film strip pattern – solid colored segments with tick marks */}
+                            {/* Organic bioluminescent film strip */}
                             <div className="absolute inset-0 flex">
                               {Array.from({ length: Math.max(1, Math.floor(width / 32)) }, (_, i) => (
                                 <div
                                   key={i}
-                                  className="h-full flex-1 border-r border-blue-300/10 last:border-r-0"
+                                  className="h-full flex-1 border-r border-cyan-300/[0.06] last:border-r-0"
                                   style={{
                                     background: i % 2 === 0
-                                      ? 'linear-gradient(180deg, hsl(220 70% 50% / 0.18) 0%, hsl(220 70% 40% / 0.10) 100%)'
-                                      : 'linear-gradient(180deg, hsl(220 70% 50% / 0.12) 0%, hsl(220 70% 40% / 0.06) 100%)',
+                                      ? 'linear-gradient(180deg, hsl(180 50% 45% / 0.12) 0%, hsl(160 50% 35% / 0.06) 100%)'
+                                      : 'linear-gradient(180deg, hsl(180 50% 45% / 0.08) 0%, hsl(160 50% 35% / 0.03) 100%)',
                                   }}
                                 />
                               ))}
                             </div>
-                            {/* Film icon at start */}
-                            <div className="absolute left-1.5 top-1/2 -translate-y-1/2 z-10 opacity-30">
-                              <Film className="h-3 w-3 text-blue-300" />
+                            <div className="absolute left-1.5 top-1/2 -translate-y-1/2 z-10 opacity-25">
+                              <Film className="h-3 w-3 text-cyan-300" />
                             </div>
-                            {/* Gradient overlay for readability */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-transparent to-blue-500/5 pointer-events-none" />
-                            <span className={cn("absolute bottom-1 left-6 right-1 text-[8px] font-medium truncate z-10 text-blue-200 drop-shadow-md")}>
+                            <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/8 via-transparent to-emerald-400/4 pointer-events-none" />
+                            <span className={cn("absolute bottom-1 left-6 right-1 text-[8px] font-medium truncate z-10 text-cyan-200/60 drop-shadow-md")}>
                               {clip.label}
                             </span>
-                            {/* Duration badge */}
                             {width > 60 && (
-                              <span className="absolute top-1 right-1.5 text-[7px] font-mono text-blue-300/50 z-10">
+                              <span className="absolute top-1 right-1.5 text-[7px] font-mono text-cyan-300/30 z-10">
                                 {(clip.end - clip.start).toFixed(1)}s
                               </span>
                             )}
@@ -337,34 +334,34 @@ export const EditorTimeline = ({
                         ) : track.type === "audio" ? (
                           <div className="flex-1 min-w-0 h-full relative">
                             <RealAudioWaveform clipId={clip.id} width={Math.max(width, 28)} height={TRACK_HEIGHT - 16} color={colors.text} />
-                            <span className={cn("absolute bottom-1 left-2.5 text-[8px] font-medium truncate", colors.text, "opacity-60")}>
+                            <span className={cn("absolute bottom-1 left-2.5 text-[8px] font-medium truncate", colors.text, "opacity-50")}>
                               {clip.label}
                             </span>
                           </div>
                         ) : (
                           <div className="flex items-center gap-1.5 px-3 min-w-0 flex-1">
-                            <span className={cn("text-[9px] font-medium truncate", colors.text, "opacity-80")}>{clip.label}</span>
+                            <span className={cn("text-[9px] font-medium truncate", colors.text, "opacity-70")}>{clip.label}</span>
                           </div>
                         )}
 
                         {/* Transition indicator */}
                         {hasTransition && (
                           <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                            <div className="w-1.5 h-1.5 rounded-full bg-primary/70 animate-pulse" />
-                            <span className="text-[7px] text-muted-foreground font-mono">fade</span>
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/60 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
+                            <span className="text-[7px] text-emerald-300/30 font-mono">fade</span>
                           </div>
                         )}
 
                         {/* Speed badge */}
                         {clip.speed && clip.speed !== 1 && (
-                          <div className="absolute top-1 right-2 bg-black/50 rounded-md px-1.5 py-px text-[7px] font-mono text-foreground/70">
+                          <div className="absolute top-1 right-2 bg-[#040d08]/60 rounded-lg px-1.5 py-px text-[7px] font-mono text-emerald-200/50">
                             {clip.speed}x
                           </div>
                         )}
 
                         {/* Right trim */}
-                        <div className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-white/15 rounded-r-lg transition-colors z-10" onMouseDown={(e) => handleClipMouseDown(e, clip, "trim-right")}>
-                          <div className="absolute right-0.5 top-1/2 -translate-y-1/2 w-px h-4 bg-white/20 opacity-0 group-hover/clip:opacity-100 transition-opacity" />
+                        <div className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-emerald-300/10 rounded-r-2xl transition-colors z-10" onMouseDown={(e) => handleClipMouseDown(e, clip, "trim-right")}>
+                          <div className="absolute right-0.5 top-1/2 -translate-y-1/2 w-px h-4 bg-emerald-300/15 opacity-0 group-hover/clip:opacity-100 transition-opacity" />
                         </div>
                       </div>
                     );
@@ -375,17 +372,17 @@ export const EditorTimeline = ({
 
             {/* Snap line */}
             {snapLine !== null && (
-              <div className="absolute top-0 bottom-0 w-px bg-primary/80 z-30 pointer-events-none" style={{ left: snapLine * pxPerSec }}>
-                <div className="absolute inset-0 w-px bg-primary/40 blur-[3px]" />
+              <div className="absolute top-0 bottom-0 w-px bg-emerald-400/60 z-30 pointer-events-none" style={{ left: snapLine * pxPerSec }}>
+                <div className="absolute inset-0 w-px bg-emerald-400/30 blur-[3px]" />
               </div>
             )}
 
-            {/* Playhead */}
+            {/* Playhead — bioluminescent */}
             <div className="absolute top-0 bottom-0 z-20 pointer-events-none" style={{ left: currentTime * pxPerSec }}>
               <div className="relative -ml-[6px]">
-                <div className="w-[12px] h-4 bg-white rounded-b-sm" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 60%, 50% 100%, 0 60%)' }} />
+                <div className="w-[12px] h-4 bg-gradient-to-b from-emerald-300 to-cyan-400 rounded-b-sm" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 60%, 50% 100%, 0 60%)' }} />
               </div>
-              <div className="w-px h-full bg-white/90 ml-[5px]" style={{ boxShadow: '0 0 12px rgba(255,255,255,0.6)' }} />
+              <div className="w-px h-full bg-emerald-300/80 ml-[5px]" style={{ boxShadow: '0 0 16px rgba(52,211,153,0.5), 0 0 4px rgba(52,211,153,0.8)' }} />
             </div>
           </div>
         </div>

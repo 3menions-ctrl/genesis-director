@@ -6,9 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
-/**
- * Extract a clean, human-readable label from the raw AI generation prompt.
- */
 function extractClipLabel(rawPrompt: string | null | undefined, shotIndex: number, projectTitle?: string): string {
   const shotNum = shotIndex + 1;
   const base = projectTitle && projectTitle !== "Untitled" ? projectTitle : null;
@@ -62,7 +59,7 @@ const VideoThumbnail = ({ url }: { url: string }) => {
   }, [url]);
 
   return (
-    <div className="w-16 h-10 rounded-xl bg-secondary border border-border shrink-0 overflow-hidden relative group/thumb">
+    <div className="w-16 h-10 rounded-2xl bg-emerald-400/[0.04] border border-emerald-400/[0.08] shrink-0 overflow-hidden relative group/thumb">
       <video
         ref={videoRef}
         src={url}
@@ -72,11 +69,11 @@ const VideoThumbnail = ({ url }: { url: string }) => {
       />
       {!loaded && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <Film className="h-3 w-3 text-muted-foreground/30" />
+          <Film className="h-3 w-3 text-emerald-400/20" />
         </div>
       )}
-      <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover/thumb:opacity-100 transition-opacity rounded-xl">
-        <Play className="h-3.5 w-3.5 text-white" fill="white" />
+      <div className="absolute inset-0 flex items-center justify-center bg-[#040d08]/60 opacity-0 group-hover/thumb:opacity-100 transition-opacity rounded-2xl">
+        <Play className="h-3.5 w-3.5 text-emerald-300" fill="currentColor" />
       </div>
     </div>
   );
@@ -182,35 +179,34 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-card/80 backdrop-blur-xl">
+    <div className="h-full flex flex-col bg-[#060f0b]/90 backdrop-blur-xl">
       {/* Header */}
-      <div className="h-10 flex items-center px-4 border-b border-border shrink-0 relative">
-        {/* Accent line */}
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
-        <div className="w-6 h-6 rounded-lg bg-primary/10 border border-primary/15 flex items-center justify-center mr-2.5">
-          <Layers className="h-3 w-3 text-primary" />
+      <div className="h-10 flex items-center px-4 border-b border-emerald-400/[0.06] shrink-0 relative">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/15 to-transparent" />
+        <div className="w-6 h-6 rounded-xl bg-emerald-400/[0.06] border border-emerald-400/[0.1] flex items-center justify-center mr-2.5">
+          <Layers className="h-3 w-3 text-emerald-400/60" />
         </div>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">Media</span>
-        <span className="ml-auto text-[9px] text-muted-foreground/30 tabular-nums font-mono bg-secondary px-2 py-0.5 rounded-md border border-border">{clips.length}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-emerald-300/40">Media</span>
+        <span className="ml-auto text-[9px] text-emerald-300/20 tabular-nums font-mono bg-emerald-400/[0.04] px-2 py-0.5 rounded-lg border border-emerald-400/[0.08]">{clips.length}</span>
       </div>
 
       {/* Search */}
-      <div className="px-3 py-2.5 border-b border-border/50">
+      <div className="px-3 py-2.5 border-b border-emerald-400/[0.04]">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-emerald-400/25" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search clips..."
-            className="h-8 pl-8 text-[11px] bg-secondary border-border text-foreground/60 placeholder:text-muted-foreground/30 focus-visible:ring-primary/20 focus-visible:border-primary/20 rounded-xl" />
+            className="h-8 pl-8 text-[11px] bg-emerald-400/[0.03] border-emerald-400/[0.08] text-emerald-100/50 placeholder:text-emerald-300/20 focus-visible:ring-emerald-400/20 focus-visible:border-emerald-400/20 rounded-xl" />
         </div>
       </div>
 
       {/* Project filters */}
-      <div className="px-3 py-2 border-b border-border/50 flex gap-1.5 overflow-x-auto scrollbar-hide">
+      <div className="px-3 py-2 border-b border-emerald-400/[0.04] flex gap-1.5 overflow-x-auto scrollbar-hide">
         <button className={cn("shrink-0 px-3 py-1.5 rounded-xl text-[10px] font-medium transition-all",
-          !selectedProject ? "bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-secondary border border-border")}
+          !selectedProject ? "bg-gradient-to-r from-emerald-400 to-cyan-400 text-[#040d08] font-semibold shadow-lg shadow-emerald-900/20" : "text-emerald-300/30 hover:text-emerald-200/60 hover:bg-emerald-400/[0.06] border border-emerald-400/[0.08]")}
           onClick={() => setSelectedProject(null)}>All</button>
         {projects.map((p) => (
           <button key={p.id} className={cn("shrink-0 px-3 py-1.5 rounded-xl text-[10px] font-medium transition-all truncate max-w-[120px]",
-            selectedProject === p.id ? "bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-secondary border border-border")}
+            selectedProject === p.id ? "bg-gradient-to-r from-emerald-400 to-cyan-400 text-[#040d08] font-semibold shadow-lg shadow-emerald-900/20" : "text-emerald-300/30 hover:text-emerald-200/60 hover:bg-emerald-400/[0.06] border border-emerald-400/[0.08]")}
             onClick={() => setSelectedProject(p.id)}>
             {p.title} <span className="opacity-40">({p.count})</span>
           </button>
@@ -221,38 +217,38 @@ export const EditorMediaBrowser = ({ onAddClip }: EditorMediaBrowserProps) => {
       <div className="flex-1 overflow-y-auto scrollbar-hide">
         {loading ? (
           <div className="flex items-center justify-center h-full">
-            <Loader2 className="h-5 w-5 animate-spin text-primary/40" />
+            <Loader2 className="h-5 w-5 animate-spin text-emerald-400/30" />
           </div>
         ) : filteredClips.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-4 px-6">
-            <div className="w-14 h-14 rounded-2xl border border-border flex items-center justify-center bg-secondary relative">
-              <FolderOpen className="h-6 w-6 text-muted-foreground/30" />
-              <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary/15 border border-primary/20 flex items-center justify-center">
-                <Sparkles className="w-2.5 h-2.5 text-primary" />
+            <div className="w-14 h-14 rounded-2xl border border-emerald-400/[0.08] flex items-center justify-center bg-emerald-400/[0.03] relative">
+              <FolderOpen className="h-6 w-6 text-emerald-400/20" />
+              <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-emerald-400/[0.08] border border-emerald-400/[0.15] flex items-center justify-center">
+                <Sparkles className="w-2.5 h-2.5 text-emerald-400/50" />
               </div>
             </div>
             <div className="text-center">
-              <p className="text-[12px] text-muted-foreground font-medium">
+              <p className="text-[12px] text-emerald-300/30 font-medium">
                 {search ? "No clips match your search" : "No completed clips yet"}
               </p>
-              <p className="text-[10px] text-muted-foreground/40 mt-1">Create videos to see them here</p>
+              <p className="text-[10px] text-emerald-400/15 mt-1">Create videos to see them here</p>
             </div>
           </div>
         ) : (
           <div className="p-2 space-y-1">
             {filteredClips.map((clip) => (
-              <div key={clip.id} className="group flex items-center gap-3 px-2.5 py-2.5 rounded-xl hover:bg-secondary cursor-pointer transition-all duration-200 border border-transparent hover:border-border"
+              <div key={clip.id} className="group flex items-center gap-3 px-2.5 py-2.5 rounded-2xl hover:bg-emerald-400/[0.04] cursor-pointer transition-all duration-200 border border-transparent hover:border-emerald-400/[0.08]"
                 onClick={() => onAddClip(clip)}>
                 <VideoThumbnail url={clip.video_url} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] text-foreground/60 truncate leading-tight font-medium">{clip.prompt}</p>
+                  <p className="text-[11px] text-emerald-100/40 truncate leading-tight font-medium">{clip.prompt}</p>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[9px] text-muted-foreground/40 truncate">{clip.project_title}</span>
-                    <span className="text-[8px] text-muted-foreground/30 font-mono bg-secondary px-1.5 py-0.5 rounded">{formatDuration(clip.duration_seconds)}</span>
+                    <span className="text-[9px] text-emerald-300/20 truncate">{clip.project_title}</span>
+                    <span className="text-[8px] text-emerald-300/15 font-mono bg-emerald-400/[0.04] px-1.5 py-0.5 rounded-lg">{formatDuration(clip.duration_seconds)}</span>
                   </div>
                 </div>
                 <Button variant="ghost" size="icon"
-                  className="h-7 w-7 opacity-0 group-hover:opacity-100 bg-primary text-primary-foreground hover:bg-primary/90 transition-all shrink-0 rounded-lg shadow-lg shadow-primary/10 hover:scale-110">
+                  className="h-7 w-7 opacity-0 group-hover:opacity-100 bg-gradient-to-r from-emerald-400 to-cyan-400 text-[#040d08] hover:from-emerald-300 hover:to-cyan-300 transition-all shrink-0 rounded-xl shadow-lg shadow-emerald-900/20 hover:scale-110">
                   <Plus className="h-3.5 w-3.5" />
                 </Button>
               </div>

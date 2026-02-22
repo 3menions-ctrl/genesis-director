@@ -293,7 +293,7 @@ async function processBatch(
         video_generation: 'generate-single-clip',
         stitching: 'simple-stitch',
         audio_generation: 'generate-voice',
-        thumbnail: 'generate-thumbnail',
+        thumbnail: 'generate-project-thumbnail',
       };
       
       const handler = handlerMap[jobType];

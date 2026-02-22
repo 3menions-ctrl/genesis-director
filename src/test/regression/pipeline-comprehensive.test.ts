@@ -767,7 +767,7 @@ describe('Pipeline — Critical Edge Functions', () => {
     'generate-avatar-direct',
     'generate-voice',
     'generate-music',
-    'extract-last-frame',
+    'extract-video-frame',
     'generate-scene-images',
     'stripe-webhook',
     'mode-router',

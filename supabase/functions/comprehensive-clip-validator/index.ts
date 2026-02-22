@@ -224,7 +224,7 @@ serve(async (req) => {
     // Fallback: extract last frame only
     if (frameUrls.length === 0) {
       try {
-        const lastFrameResult = await callEdgeFunction('extract-last-frame', {
+        const lastFrameResult = await callEdgeFunction('extract-video-frame', {
           videoUrl,
           projectId,
           shotIndex: clipIndex,

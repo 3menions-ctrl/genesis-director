@@ -3858,7 +3858,7 @@ async function runProduction(
               await new Promise(resolve => setTimeout(resolve, backoffMs));
             }
             
-            const frameResult = await callEdgeFunction('extract-last-frame', {
+            const frameResult = await callEdgeFunction('extract-video-frame', {
               videoUrl: result.videoUrl,
               projectId: state.projectId,
               shotIndex: i,
@@ -4148,7 +4148,7 @@ async function runProduction(
                 
                 // Re-extract frame for new clip using bulletproof function
                 try {
-                  const newFrameResult = await callEdgeFunction('extract-last-frame', {
+                  const newFrameResult = await callEdgeFunction('extract-video-frame', {
                     videoUrl: result.videoUrl,
                     projectId: state.projectId,
                     shotIndex: i,
@@ -4684,7 +4684,7 @@ async function runProduction(
                   
                   // Re-extract frame for new clip
                   try {
-                    const newFrameResult = await callEdgeFunction('extract-last-frame', {
+                    const newFrameResult = await callEdgeFunction('extract-video-frame', {
                       videoUrl: result.videoUrl,
                       projectId: state.projectId,
                       shotIndex: i,
@@ -5817,10 +5817,9 @@ async function runPostProduction(
       const thumbnailPrompt = state.script?.shots?.[0]?.description || 
         `Cinematic scene from ${request.projectName || 'video project'}`;
       
-      const thumbnailResult = await callEdgeFunction('generate-thumbnail', {
-        prompt: thumbnailPrompt,
+      const thumbnailResult = await callEdgeFunction('generate-project-thumbnail', {
         projectId: state.projectId,
-        projectName: request.projectName,
+        videoUrl: state.finalVideoUrl || completedClipsList[0]?.video_url,
       }, { timeoutMs: 60000, maxRetries: 1 });
       
       if (thumbnailResult.success && thumbnailResult.thumbnailUrl) {

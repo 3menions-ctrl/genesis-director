@@ -313,9 +313,17 @@ serve(async (req: Request) => {
       console.log(`[ContinueProduction] Merged clip ${completedClipIndex + 1} result: ${context.accumulatedAnchors.length} anchors, ref: ${context.referenceImageUrl ? 'YES' : 'NO'}, masterAnchor: ${context.masterSceneAnchor ? 'YES' : 'NO'}`);
     }
     
-    // If still no context, load from DB as fallback
-    if (!context || !context.referenceImageUrl || !context.identityBible) {
-      console.log(`[ContinueProduction] Loading pipeline context from DB...`);
+    // CRITICAL FIX: ALWAYS load pendingVideoTasks from DB if not present in context.
+    // The old condition (!context.referenceImageUrl || !context.identityBible) meant
+    // that if poll-replicate-prediction passed a context WITH those fields but WITHOUT
+    // pendingVideoTasks, the entire DB fallback was skipped — losing avatar dialogue.
+    const needsDbLoad = !context 
+      || !context.referenceImageUrl 
+      || !context.identityBible
+      || !context.pendingVideoTasks;  // NEW: Always load if pendingVideoTasks missing
+    
+    if (needsDbLoad) {
+      console.log(`[ContinueProduction] Loading pipeline context from DB (reason: ${!context ? 'no context' : !context.referenceImageUrl ? 'no refImage' : !context.identityBible ? 'no idBible' : 'no pendingVideoTasks'})...`);
       const { data: projectData } = await supabase
         .from('movie_projects')
         .select('pro_features_data, generated_script, scene_images, pending_video_tasks')

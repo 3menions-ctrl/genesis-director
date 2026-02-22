@@ -8,124 +8,76 @@ import { useEditorClips, EditorClip, EditorImage } from "@/hooks/useEditorClips"
 import "@twick/studio/dist/studio.css";
 
 /**
- * Writes clips directly to the IndexedDB store that Twick's BrowserMediaManager reads from.
- * This must complete BEFORE TwickStudio mounts so the MediaProvider sees the items on init.
+ * Pre-populate Twick's media library using BrowserMediaManager.
+ * Must complete BEFORE TwickStudio mounts so the MediaProvider sees items on init.
  */
-async function prePopulateMediaStore(clips: EditorClip[], images: EditorImage[]): Promise<{ videos: number; images: number }> {
-  const DB_NAME = "mediaStore";
-  const STORE_NAME = "mediaItems";
-
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME);
-
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
-      }
-    };
-
-    request.onerror = () => reject(request.error);
-
-    request.onsuccess = () => {
-      const db = request.result;
-
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.close();
-        const version = db.version + 1;
-        const upgradeReq = indexedDB.open(DB_NAME, version);
-        upgradeReq.onupgradeneeded = () => {
-          const udb = upgradeReq.result;
-          if (!udb.objectStoreNames.contains(STORE_NAME)) {
-            udb.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
-          }
-        };
-        upgradeReq.onsuccess = () => {
-          writeMedia(upgradeReq.result, clips, images).then(resolve).catch(reject);
-        };
-        upgradeReq.onerror = () => reject(upgradeReq.error);
-        return;
-      }
-
-      writeMedia(db, clips, images).then(resolve).catch(reject);
-    };
-  });
-}
-
-async function writeMedia(
-  db: IDBDatabase,
+async function prePopulateMediaStore(
   clips: EditorClip[],
-  images: EditorImage[]
+  images: EditorImage[],
+  BrowserMediaManager: any
 ): Promise<{ videos: number; images: number }> {
-  const STORE_NAME = "mediaItems";
+  const manager = new BrowserMediaManager();
 
-  // First clear existing items so we only show this project's media
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
-    store.clear();
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  // Clear existing items to only show this project's media
+  try {
+    const existing = await manager.getItems({ page: 1, limit: 500 });
+    if (existing.length > 0) {
+      await manager.deleteItems(existing.map((item: any) => item.id));
+    }
+  } catch {
+    // Store may be empty, that's fine
+  }
 
-  const videoItems = clips.filter(c => c.videoUrl).map(clip => ({
-    name: `Shot ${clip.shotIndex + 1} – ${clip.projectTitle}`,
-    url: clip.videoUrl,
-    type: "video",
-    thumbnail: clip.thumbnailUrl || undefined,
-    duration: clip.durationSeconds || undefined,
-    size: 0,
-    width: 1920,
-    height: 1080,
-    createdAt: new Date(),
-    metadata: {
+  // Build video items — sorted by shot index for proper ordering
+  const videoItems = clips
+    .filter(c => c.videoUrl)
+    .sort((a, b) => a.shotIndex - b.shotIndex)
+    .map(clip => ({
       name: `Shot ${clip.shotIndex + 1}`,
-      source: "apex",
-      projectId: clip.projectId,
-      prompt: clip.prompt,
-    },
-  }));
+      type: "video" as const,
+      url: clip.videoUrl,
+      thumbnail: clip.thumbnailUrl || undefined,
+      duration: clip.durationSeconds || undefined,
+      width: 1920,
+      height: 1080,
+      metadata: {
+        title: `Shot ${clip.shotIndex + 1} – ${clip.projectTitle}`,
+        source: "apex",
+        projectId: clip.projectId,
+        prompt: clip.prompt,
+        shotIndex: clip.shotIndex,
+      },
+    }));
 
+  // Build image items
   const imageItems = images.map(img => ({
     name: img.label,
+    type: "image" as const,
     url: img.url,
-    type: "image",
-    size: 0,
     width: 1920,
     height: 1080,
-    createdAt: new Date(),
     metadata: {
+      title: img.label,
       source: img.source,
       shotIndex: img.shotIndex,
     },
   }));
 
-  const allItems = [...videoItems, ...imageItems];
+  let videosAdded = 0;
+  let imagesAdded = 0;
 
-  if (allItems.length === 0) {
-    db.close();
-    return { videos: 0, images: 0 };
+  if (videoItems.length > 0) {
+    const added = await manager.addItems(videoItems);
+    videosAdded = added.length;
   }
 
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
+  if (imageItems.length > 0) {
+    const added = await manager.addItems(imageItems);
+    imagesAdded = added.length;
+  }
 
-    for (const item of allItems) {
-      store.add(item);
-    }
-
-    tx.oncomplete = () => {
-      db.close();
-      resolve({ videos: videoItems.length, images: imageItems.length });
-    };
-    tx.onerror = () => {
-      db.close();
-      reject(tx.error);
-    };
-  });
+  return { videos: videosAdded, images: imagesAdded };
 }
-
 // Dynamically import Twick to avoid 504 bundling timeouts
 function useTwickModules() {
   const [modules, setModules] = useState<any>(null);
@@ -174,9 +126,9 @@ export default function VideoEditor() {
   const [mediaCounts, setMediaCounts] = useState({ videos: 0, images: 0 });
   const populatedRef = useRef(false);
 
-  // Phase 2: Once clips are fetched, write them to IndexedDB before mounting studio
+  // Phase 2: Once clips + modules are fetched, populate media library before mounting studio
   useEffect(() => {
-    if (clipsLoading || populatedRef.current) return;
+    if (clipsLoading || modulesLoading || !modules || populatedRef.current) return;
     populatedRef.current = true;
 
     if (clips.length === 0 && images.length === 0) {
@@ -184,7 +136,9 @@ export default function VideoEditor() {
       return;
     }
 
-    prePopulateMediaStore(clips, images)
+    const { BrowserMediaManager } = modules.studio;
+
+    prePopulateMediaStore(clips, images, BrowserMediaManager)
       .then((counts) => {
         setMediaCounts(counts);
         if (counts.videos > 0 || counts.images > 0) {
@@ -196,7 +150,7 @@ export default function VideoEditor() {
         console.error("[Apex] Failed to pre-populate media store:", err);
         setMediaReady(true);
       });
-  }, [clips, images, clipsLoading]);
+  }, [clips, images, clipsLoading, modulesLoading, modules]);
 
   const isLoading = modulesLoading || clipsLoading || !mediaReady;
 

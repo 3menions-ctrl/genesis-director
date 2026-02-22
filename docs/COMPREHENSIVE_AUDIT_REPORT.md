@@ -109,7 +109,7 @@ This audit covers 67 database tables, 68 edge functions, and 400+ components acr
 
 | ID | Issue | Risk | Status |
 |----|-------|------|--------|
-| S1 | FFmpeg SharedArrayBuffer not available | Low | Expected in some browsers |
+| S1 | ~~FFmpeg SharedArrayBuffer~~ (removed — export uses ZIP packaging) | None | Resolved |
 | S2 | PostMessage origin mismatches | Low | Lovable platform artifacts |
 | S3 | Manifest.json CORS error | Low | PWA manifest, non-blocking |
 

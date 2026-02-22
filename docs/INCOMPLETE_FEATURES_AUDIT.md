@@ -159,7 +159,7 @@ All "coming soon" placeholders have been resolved:
 | File | Line | Description |
 |------|------|-------------|
 | `supabase/functions/render-video/index.ts` | 57-65 | Returns mock "pending" status when `RENDER_SERVER_URL` not set |
-| `supabase/functions/render-video/index.ts` | 89-112 | Saves timeline as draft, returns "fallback: ffmpeg_wasm" message |
+| `supabase/functions/render-video/index.ts` | 89-112 | Saves timeline as draft, returns fallback message (server lacks `RENDER_SERVER_URL`) |
 
 ### TODO/FIXME Count by Area
 

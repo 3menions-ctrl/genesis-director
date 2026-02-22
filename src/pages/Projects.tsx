@@ -1553,7 +1553,7 @@ function ProjectsContentInner() {
         </DialogContent>
       </Dialog>
 
-      {/* Merge Download Dialog - combines multiple clips into single video */}
+      {/* Merge Download Dialog - downloads clips as ZIP or single MP4 */}
       <MergeDownloadDialog
         open={mergeDownloadOpen}
         onOpenChange={setMergeDownloadOpen}

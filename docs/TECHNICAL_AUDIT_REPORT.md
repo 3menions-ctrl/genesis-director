@@ -166,7 +166,7 @@ AND updated_at < NOW() - INTERVAL '5 minutes'
 ## 9. Video Stitching Performance ✅
 
 ### Manifest-Only Architecture
-- No server-side FFmpeg concatenation
+- Server-side stitching via `simple-stitch` edge function
 - Client-side playback via `ManifestVideoPlayer`
 - Transition speed: **0.00030ms** (verified via AtomicFrameSwitch)
 
@@ -253,7 +253,7 @@ useEffect(() => {
 
 ## Recommendations for Future Development
 
-1. **4K Export Pipeline**: Implement cloud FFmpeg worker for actual 4K MP4 generation
+1. **4K Export Pipeline**: Implement cloud-based worker for actual 4K MP4 generation
 2. **Zombie Cleanup Cron**: Schedule `zombie-cleanup` edge function every 5 minutes
 3. **Memory Monitoring**: Add `logMemoryUsage()` calls to development builds
 4. **RLS Testing**: Add integration tests for all policy combinations

@@ -84,7 +84,7 @@ describe('render-video Edge Function', () => {
 
     // Should return fallback info
     expect(data?.success).toBe(true);
-    // Fallback may be 'ffmpeg_wasm' or 'zip' depending on server config
+    // Fallback may be 'zip' or other value depending on server config
     expect(data?.fallback).toBeTruthy();
   });
 });

@@ -855,11 +855,31 @@ serve(async (req) => {
     // function run concurrently, only ONE can claim the clip.
     // ═══════════════════════════════════════════════════════════════════
     const claimToken = crypto.randomUUID();
-    const { data: claimed, error: claimError } = await supabase.rpc('atomic_claim_clip', {
-      p_project_id: projectId,
-      p_clip_index: shotIndex,
-      p_claim_token: claimToken,
-    });
+    let claimed: boolean | null = null;
+    let claimError: { message: string } | null = null;
+    
+    // DEFENSIVE: Try atomic claim with auto-retry on stale state
+    // The atomic_claim_clip RPC now auto-initializes predictions, but we add
+    // a belt-and-suspenders retry in case of transient failures.
+    for (let claimAttempt = 0; claimAttempt < 2; claimAttempt++) {
+      const result = await supabase.rpc('atomic_claim_clip', {
+        p_project_id: projectId,
+        p_clip_index: shotIndex,
+        p_claim_token: claimToken,
+      });
+      claimed = result.data;
+      claimError = result.error;
+      
+      if (claimError) {
+        console.warn(`[SingleClip] atomic_claim_clip attempt ${claimAttempt + 1} failed: ${claimError.message}`);
+        if (claimAttempt === 0) {
+          // Wait briefly and retry — may be a transient lock contention
+          await new Promise(r => setTimeout(r, 500));
+          continue;
+        }
+      }
+      break;
+    }
     
     if (claimError) {
       console.error(`[SingleClip] ❌ atomic_claim_clip RPC FAILED — BLOCKING to prevent duplicate prompt:`, claimError.message);

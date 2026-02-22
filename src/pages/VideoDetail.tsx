@@ -62,6 +62,7 @@ export default function VideoDetailPage() {
           .maybeSingle();
 
         if (videoError) throw videoError;
+        if (!videoData) throw new Error('Video not found');
 
         // Fetch creator profile (use public view for security)
         const { data: creatorData } = await supabase

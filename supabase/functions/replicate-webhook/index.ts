@@ -204,8 +204,9 @@ serve(async (req) => {
       
       // Log cost — use per-output-second pricing for Kling v3
       try {
-        const clipDuration = clip.duration_seconds || 6;
-        const KLING_V3_COST_PER_SEC_CENTS = 28;
+        // Kling v3 ACTUAL Replicate pricing: Pro no-audio=$0.224/sec, Pro+audio=$0.336/sec
+        const clipDuration = clip.duration_seconds || 10;
+        const KLING_V3_COST_PER_SEC_CENTS = 22.4; // $0.224/sec (pro, no audio)
         const realCostCents = Math.round(clipDuration * KLING_V3_COST_PER_SEC_CENTS);
         
         await supabase.rpc('log_api_cost', {

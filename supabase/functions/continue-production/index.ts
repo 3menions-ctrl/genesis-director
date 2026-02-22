@@ -459,7 +459,14 @@ serve(async (req: Request) => {
         
         if (shots[nextClipIndex]) {
           const shot = shots[nextClipIndex];
-          nextClipPrompt = shot.description || shot.title || '';
+          
+          // CRITICAL FIX: Include dialogue in the prompt — not just description
+          // shot.description contains cinematography directions (camera, lighting, etc.)
+          // shot.dialogue contains the actual spoken/narrative text that Kling needs
+          // Without dialogue, clips 2+ become pure boilerplate with zero content
+          const dialoguePart = shot.dialogue ? `Speaking naturally with authentic delivery: "${shot.dialogue}". ` : '';
+          const descriptionPart = shot.description || shot.title || '';
+          nextClipPrompt = `${descriptionPart} ${dialoguePart}`.trim();
           
           // CRITICAL FIX: Only inject character data if the prompt is about characters
           // Skip character injection for objects, vehicles, scenes, etc.

@@ -9,10 +9,8 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEditorClips, EditorClip, EditorImage, ProjectSummary } from "@/hooks/useEditorClips";
 import { useEditorStitch } from "@/hooks/useEditorStitch";
-import { useTimelineOnlyLayout } from "@/hooks/useTimelineOnlyLayout";
 import { ProjectBrowser } from "@/components/editor/ProjectBrowser";
 import { Logo } from "@/components/ui/Logo";
-import { NativeVideoPlayer } from "@/components/editor/NativeVideoPlayer";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -21,111 +19,26 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
-// ─── Full Apex element color palette (all 14 SDK keys) ───
-const APEX_ELEMENT_COLORS = {
-  video: "#7c3aed",
-  audio: "#06b6d4",
-  image: "#f59e0b",
-  text: "#a78bfa",
-  caption: "#8b5cf6",
-  icon: "#ec4899",
-  circle: "#14b8a6",
-  rect: "#f97316",
-  element: "#6366f1",
-  fragment: "#1e1e2e",
-  frameEffect: "#22d3ee",
-  filters: "#e879f9",
-  transition: "#818cf8",
-  animation: "#34d399",
-};
-
-const APEX_TIMELINE_TICK_CONFIGS = [
-  { durationThreshold: 30, majorInterval: 5, minorTicks: 5 },
-  { durationThreshold: 120, majorInterval: 15, minorTicks: 3 },
-  { durationThreshold: 600, majorInterval: 60, minorTicks: 6 },
-];
-
-const APEX_TIMELINE_ZOOM = {
-  min: 0.25,
-  max: 4.0,
-  step: 0.25,
-  default: 1.0,
-};
-
-/**
- * Load a single project's clips into Twick's media library on demand.
- */
-async function loadClipsIntoLibrary(
-  clips: EditorClip[],
-  images: EditorImage[],
-  BrowserMediaManager: any
-): Promise<{ videos: number; images: number }> {
-  const manager = new BrowserMediaManager();
-
-  const videoItems = clips
-    .filter(c => c.videoUrl)
-    .sort((a, b) => a.shotIndex - b.shotIndex)
-    .map(clip => ({
-      name: `Shot ${clip.shotIndex + 1} – ${clip.projectTitle}`,
-      type: "video" as const,
-      url: clip.videoUrl,
-      thumbnail: clip.thumbnailUrl || undefined,
-      duration: clip.durationSeconds || undefined,
-      width: 1920,
-      height: 1080,
-      metadata: {
-        title: `Shot ${clip.shotIndex + 1} – ${clip.projectTitle}`,
-        source: "apex",
-        projectId: clip.projectId,
-        prompt: clip.prompt,
-        shotIndex: clip.shotIndex,
-      },
-    }));
-
-  const imageItems = images.map(img => ({
-    name: img.label,
-    type: "image" as const,
-    url: img.url,
-    width: 1920,
-    height: 1080,
-    metadata: {
-      title: img.label,
-      source: img.source,
-      shotIndex: img.shotIndex,
-    },
-  }));
-
-  let videosAdded = 0;
-  let imagesAdded = 0;
-
-  if (videoItems.length > 0) {
-    const added = await manager.addItems(videoItems);
-    videosAdded = added.length;
-  }
-  if (imageItems.length > 0) {
-    const added = await manager.addItems(imageItems);
-    imagesAdded = added.length;
-  }
-
-  return { videos: videosAdded, images: imagesAdded };
-}
+import { VideoPreviewPlayer } from "@/components/editor/VideoPreviewPlayer";
+import { CustomTimeline } from "@/components/editor/CustomTimeline";
+import { MediaSidebar } from "@/components/editor/MediaSidebar";
+import {
+  useCustomTimeline,
+  toProjectJSON,
+  fromProjectJSON,
+  generateClipId,
+  generateTrackId,
+  TimelineClip,
+} from "@/hooks/useCustomTimeline";
 
 interface EditorChromeProps {
-  TwickStudio: any;
-  useBrowserRenderer: any;
-  BrowserMediaManager: any;
-  useTimelineContext: any;
-  setElementColors?: any;
+  /** Still passed for WebCodecs export — SDK render engine kept */
+  useBrowserRenderer?: any;
   navigate: any;
 }
 
 export function EditorChrome({
-  TwickStudio,
   useBrowserRenderer,
-  BrowserMediaManager,
-  useTimelineContext,
-  setElementColors,
   navigate,
 }: EditorChromeProps) {
   const { user } = useAuth();
@@ -143,24 +56,28 @@ export function EditorChrome({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [availableClips, setAvailableClips] = useState<EditorClip[]>([]);
 
   const { listProjects, loadProjectClips, loading: clipsLoading } = useEditorClips();
   const { submitStitch, isStitching, progress: stitchProgress, reset: resetStitch } = useEditorStitch();
   const [autoLoadDone, setAutoLoadDone] = useState(false);
 
-  // ─── Get timeline context for real ProjectJSON access ───
-  const { editor, present } = useTimelineContext();
+  // ─── Custom timeline state ───
+  const { state: timelineState, dispatch } = useCustomTimeline();
 
-  // ─── Apply element colors via SDK API ───
-  useEffect(() => {
-    if (setElementColors) {
-      try { setElementColors(APEX_ELEMENT_COLORS); } catch {}
-    }
-  }, [setElementColors]);
-
-  // ─── Force timeline layout fix (SDK uses hardcoded 80dvh) ───
-  // Hide SDK canvas and force timeline to fill available space
-  useTimelineOnlyLayout('.apex-timeline-only');
+  // ─── WebCodecs renderer (optional — kept for export) ───
+  const renderer = useBrowserRenderer?.({
+    width: 1920,
+    height: 1080,
+    fps: 30,
+    quality: "high" as const,
+    includeAudio: true,
+    autoDownload: true,
+    downloadFilename: `Apex_${sessionTitle.replace(/\s+/g, "_")}.mp4`,
+  });
+  const isRendering = renderer?.isRendering ?? false;
+  const renderProgress = renderer?.progress ?? 0;
+  const renderError = renderer?.error ?? null;
 
   // ─── Mobile detection ───
   useEffect(() => {
@@ -192,39 +109,27 @@ export function EditorChrome({
 
   // ─── Mark unsaved on timeline changes ───
   useEffect(() => {
-    if (present && present.tracks?.length > 0) {
+    if (timelineState.tracks.some(t => t.clips.length > 0)) {
       setHasUnsavedChanges(true);
     }
-  }, [present]);
+  }, [timelineState.tracks]);
 
-  const { render, progress, isRendering, error, reset, videoBlob } = useBrowserRenderer({
-    width: 1920,
-    height: 1080,
-    fps: 30,
-    quality: "high" as const,
-    includeAudio: true,
-    autoDownload: true,
-    downloadFilename: `Apex_${sessionTitle.replace(/\s+/g, "_")}.mp4`,
-  });
-
-  // ─── Helper: get current project JSON from timeline context ───
+  // ─── Helper: get current project JSON ───
   const getProjectJSON = useCallback(() => {
-    if (present && present.tracks?.length > 0) return present;
-    return null;
-  }, [present]);
+    return toProjectJSON(timelineState);
+  }, [timelineState]);
 
-  // ─── Track count from timeline ───
-  const trackCount = present?.tracks?.length || 0;
-  const elementCount = present?.tracks?.reduce((sum: number, t: any) => sum + (t.elements?.length || 0), 0) || 0;
+  // ─── Track/element counts ───
+  const trackCount = timelineState.tracks.length;
+  const elementCount = timelineState.tracks.reduce((sum, t) => sum + t.clips.length, 0);
 
-  // ─── StudioConfig callbacks ───
-
-  const saveProject = useCallback(async (project: any, fileName: string) => {
+  // ─── Save ───
+  const saveProject = useCallback(async (fileName?: string) => {
     if (!user) return { status: false, message: "Not signed in" };
     setSaving(true);
     try {
-      const projectData = (project && project.tracks?.length > 0) ? project : getProjectJSON();
-      if (!projectData) {
+      const projectData = getProjectJSON();
+      if (!projectData.tracks?.length || !projectData.tracks.some((t: any) => t.elements?.length > 0)) {
         toast.error("Nothing to save — add clips to the timeline first");
         return { status: false, message: "Empty timeline" };
       }
@@ -270,87 +175,78 @@ export function EditorChrome({
     }
   }, [user, sessionId, setSearchParams, getProjectJSON, sessionTitle]);
 
-  const loadProject = useCallback(async () => {
-    if (!user || !sessionId) {
-      return { tracks: [], version: 1 };
-    }
-    try {
-      const { data, error: err } = await supabase
-        .from("edit_sessions")
-        .select("timeline_data, title")
-        .eq("id", sessionId)
-        .eq("user_id", user.id)
-        .single();
-      if (err) throw err;
-      if (data.title) setSessionTitle(data.title);
-      setHasUnsavedChanges(false);
+  // ─── Load session ───
+  useEffect(() => {
+    if (!user || !sessionId) return;
+    let cancelled = false;
 
-      const projectData = data.timeline_data as any;
-      if (projectData && projectData.tracks?.length > 0 && editor) {
-        try {
-          editor.loadProject({ tracks: projectData.tracks, version: projectData.version || 1 });
-        } catch (e) {
-          console.warn("editor.loadProject fallback:", e);
+    (async () => {
+      try {
+        const { data, error: err } = await supabase
+          .from("edit_sessions")
+          .select("timeline_data, title")
+          .eq("id", sessionId)
+          .eq("user_id", user.id)
+          .single();
+        if (err || cancelled) return;
+        if (data.title) setSessionTitle(data.title);
+
+        const parsed = fromProjectJSON(data.timeline_data);
+        if (parsed.tracks) {
+          dispatch({ type: "LOAD_PROJECT", state: parsed });
         }
+        setHasUnsavedChanges(false);
+        toast.success("Session restored");
+      } catch (err) {
+        console.error("Load failed:", err);
       }
+    })();
 
-      toast.success("Session restored");
-      return projectData || { tracks: [], version: 1 };
-    } catch (err: any) {
-      console.error("Load failed:", err);
-      toast.error("Failed to load session");
-      return { tracks: [], version: 1 };
+    return () => { cancelled = true; };
+  }, [user, sessionId, dispatch]);
+
+  // ─── Export (WebCodecs) ───
+  const exportVideo = useCallback(async () => {
+    if (!renderer) {
+      toast.error("Export not available");
+      return;
     }
-  }, [user, sessionId, editor]);
-
-  const exportVideo = useCallback(async (project: any, videoSettings: any) => {
     try {
       setShowSuccess(false);
-      reset();
-      const projectData = (project && project.tracks?.length > 0) ? project : getProjectJSON();
-      if (!projectData || !projectData.tracks?.length) {
-        toast.error("Nothing to export — add clips to the timeline first");
-        return { status: false, message: "Empty timeline" };
+      renderer.reset();
+      const projectData = getProjectJSON();
+      if (!projectData.tracks?.length) {
+        toast.error("Nothing to export — add clips first");
+        return;
       }
-      await render({ input: projectData });
+      await renderer.render({ input: projectData });
       setShowSuccess(true);
       toast.success("Video exported successfully!");
-      return { status: true, message: "Exported" };
     } catch (err: any) {
       console.error("Export failed:", err);
       toast.error("Export failed. Please try again.");
-      return { status: false, message: err.message };
     }
-  }, [render, reset, getProjectJSON]);
+  }, [renderer, getProjectJSON]);
 
-  // ─── Server-side crossfade stitch ───
+  // ─── Stitch ───
   const handleStitch = useCallback(async () => {
     if (!sessionId) {
-      const project = getProjectJSON();
-      const result = await saveProject(project, sessionTitle);
+      const result = await saveProject(sessionTitle);
       if (!result.status) return;
     }
 
     const projectData = getProjectJSON();
-    if (!projectData?.tracks?.length) {
-      toast.error("No clips on timeline to stitch");
-      return;
-    }
-
     const clips: { url: string; duration: number }[] = [];
-    for (const track of projectData.tracks) {
-      for (const element of track.elements || []) {
-        if (element.type === "video" && element.props?.src) {
-          clips.push({
-            url: element.props.src,
-            duration: (element.e - element.s) || 6,
-          });
+    for (const track of projectData.tracks || []) {
+      for (const el of track.elements || []) {
+        if (el.type === "video" && el.props?.src) {
+          clips.push({ url: el.props.src, duration: (el.e - el.s) || 6 });
         }
       }
     }
 
     if (clips.length < 2) {
-      toast.error("Need at least 2 video clips on the timeline to stitch");
+      toast.error("Need at least 2 video clips to stitch");
       return;
     }
 
@@ -366,7 +262,7 @@ export function EditorChrome({
     });
   }, [sessionId, getProjectJSON, saveProject, sessionTitle, submitStitch]);
 
-  // ─── Auto-load all project clips into media library on mount ───
+  // ─── Auto-load clips from all projects ───
   useEffect(() => {
     if (!user || autoLoadDone) return;
     let cancelled = false;
@@ -381,24 +277,22 @@ export function EditorChrome({
         setProjects(projectList);
         setProjectsLoaded(true);
 
-        let totalVideos = 0;
-        let totalImages = 0;
+        const allClips: EditorClip[] = [];
         const loaded = new Set<string>();
 
         for (const project of projectList) {
           if (cancelled) break;
-          const { clips, images } = await loadProjectClips(project.id);
-          const counts = await loadClipsIntoLibrary(clips, images, BrowserMediaManager);
-          totalVideos += counts.videos;
-          totalImages += counts.images;
+          const { clips } = await loadProjectClips(project.id);
+          allClips.push(...clips);
           loaded.add(project.id);
         }
 
         if (!cancelled) {
+          setAvailableClips(allClips);
           setLoadedProjectIds(loaded);
-          setMediaCounts({ videos: totalVideos, images: totalImages });
-          if (totalVideos > 0) {
-            toast.success(`Loaded ${totalVideos} clips from ${loaded.size} project${loaded.size !== 1 ? "s" : ""}`);
+          setMediaCounts({ videos: allClips.length, images: 0 });
+          if (allClips.length > 0) {
+            toast.success(`Loaded ${allClips.length} clips from ${loaded.size} project${loaded.size !== 1 ? "s" : ""}`);
           }
         }
       } catch (err) {
@@ -409,48 +303,40 @@ export function EditorChrome({
     })();
 
     return () => { cancelled = true; };
-  }, [user, autoLoadDone, listProjects, loadProjectClips, BrowserMediaManager]);
+  }, [user, autoLoadDone, listProjects, loadProjectClips]);
 
+  // ─── Keyboard shortcuts ───
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
       if (mod && e.key === "s") {
         e.preventDefault();
-        const project = getProjectJSON();
-        saveProject(project, sessionTitle);
+        saveProject(sessionTitle);
       }
       if (mod && e.key === "e") {
         e.preventDefault();
-        if (!isRendering) {
-          const project = getProjectJSON();
-          exportVideo(project, {});
-        }
+        if (!isRendering) exportVideo();
+      }
+      if (e.key === " " && (e.target as HTMLElement)?.tagName !== "INPUT") {
+        e.preventDefault();
+        dispatch({ type: "SET_PLAYING", playing: !timelineState.isPlaying });
       }
       if (e.key === "?" && !e.ctrlKey && !e.metaKey) {
-        // Don't trigger if typing in an input
         if ((e.target as HTMLElement)?.tagName !== "INPUT" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
           setShowShortcuts(prev => !prev);
+        }
+      }
+      if (e.key === "Delete" || e.key === "Backspace") {
+        if (timelineState.selectedClipId && timelineState.selectedTrackId) {
+          if ((e.target as HTMLElement)?.tagName !== "INPUT" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
+            dispatch({ type: "REMOVE_CLIP", trackId: timelineState.selectedTrackId, clipId: timelineState.selectedClipId });
+          }
         }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [getProjectJSON, saveProject, exportVideo, sessionTitle, isRendering]);
-
-  // ─── Complete Apex studioConfig ───
-  const studioConfig = {
-    videoProps: { width: 1920, height: 1080, backgroundColor: "#000000" },
-    playerProps: { quality: 1, maxWidth: 1920, maxHeight: 1080 },
-    canvasMode: true,
-    canvasConfig: { enableShiftAxisLock: true, lockAspectRatio: true },
-    fps: 30,
-    elementColors: APEX_ELEMENT_COLORS,
-    timelineTickConfigs: APEX_TIMELINE_TICK_CONFIGS,
-    timelineZoomConfig: APEX_TIMELINE_ZOOM,
-    saveProject,
-    loadProject,
-    exportVideo,
-  };
+  }, [saveProject, exportVideo, sessionTitle, isRendering, timelineState.isPlaying, timelineState.selectedClipId, timelineState.selectedTrackId, dispatch]);
 
   // ─── Project browser ───
   const openBrowser = useCallback(async () => {
@@ -464,29 +350,60 @@ export function EditorChrome({
 
   const handleSelectProject = useCallback(async (projectId: string) => {
     if (loadedProjectIds.has(projectId)) return;
-
     try {
-      const { clips, images } = await loadProjectClips(projectId);
-      const counts = await loadClipsIntoLibrary(clips, images, BrowserMediaManager);
-
+      const { clips } = await loadProjectClips(projectId);
+      setAvailableClips(prev => [...prev, ...clips]);
       setLoadedProjectIds(prev => new Set(prev).add(projectId));
-      setMediaCounts(prev => ({
-        videos: prev.videos + counts.videos,
-        images: prev.images + counts.images,
-      }));
+      setMediaCounts(prev => ({ ...prev, videos: prev.videos + clips.length }));
 
       const project = projects.find(p => p.id === projectId);
-      toast.success(`Loaded ${counts.videos} clips from "${project?.title || "project"}"`);
+      toast.success(`Loaded ${clips.length} clips from "${project?.title || "project"}"`);
     } catch (err) {
       console.error("[Apex] Failed to load project clips:", err);
       toast.error("Failed to load clips. Please try again.");
     }
-  }, [loadedProjectIds, loadProjectClips, BrowserMediaManager, projects]);
+  }, [loadedProjectIds, loadProjectClips, projects]);
+
+  // ─── Add clip to timeline from media sidebar ───
+  const handleAddClipToTimeline = useCallback((clip: EditorClip) => {
+    // Find the first video track, or create one
+    let videoTrack = timelineState.tracks.find(t => t.type === "video");
+    if (!videoTrack) {
+      const newTrackId = generateTrackId();
+      dispatch({
+        type: "ADD_TRACK",
+        track: { id: newTrackId, type: "video", label: "Video 1", clips: [] },
+      });
+      videoTrack = { id: newTrackId, type: "video" as const, label: "Video 1", clips: [] };
+    }
+
+    // Place clip at end of track
+    const lastEnd = videoTrack.clips.length > 0
+      ? Math.max(...videoTrack.clips.map(c => c.end))
+      : 0;
+    const duration = clip.durationSeconds || 6;
+
+    const newClip: TimelineClip = {
+      id: generateClipId(),
+      type: "video",
+      src: clip.videoUrl,
+      start: lastEnd,
+      end: lastEnd + duration,
+      trimStart: 0,
+      trimEnd: duration,
+      name: `Shot ${clip.shotIndex + 1}`,
+      thumbnail: clip.thumbnailUrl || undefined,
+      sourceDuration: clip.durationSeconds || undefined,
+    };
+
+    dispatch({ type: "ADD_CLIP", trackId: videoTrack.id, clip: newClip });
+    toast.success(`Added "${newClip.name}" to timeline`);
+  }, [timelineState.tracks, dispatch]);
 
   // ─── Mobile guard ───
   if (isMobile) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-[hsl(var(--background))] gap-5 p-6">
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-background gap-5 p-6">
         <Logo size="lg" />
         <div className="text-center space-y-2">
           <div className="flex items-center gap-2 justify-center text-muted-foreground">
@@ -506,20 +423,20 @@ export function EditorChrome({
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="h-screen w-screen flex flex-col bg-[hsl(var(--background))] overflow-hidden relative">
+      <div className="h-screen w-screen flex flex-col bg-background overflow-hidden relative">
         {/* Apex accent line — top */}
         <div className="absolute top-0 left-0 right-0 h-px z-20">
           <div className="h-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
           {isRendering && (
             <motion.div
               className="absolute inset-0 h-px bg-gradient-to-r from-primary via-violet-400 to-primary"
-              style={{ width: `${Math.round(progress * 100)}%` }}
+              style={{ width: `${Math.round(renderProgress * 100)}%` }}
               transition={{ duration: 0.3 }}
             />
           )}
         </div>
 
-        {/* ═══════════════ PREMIUM TOP BAR ═══════════════ */}
+        {/* ═══════════════ TOP BAR ═══════════════ */}
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -530,7 +447,7 @@ export function EditorChrome({
             backdropFilter: 'blur(24px) saturate(1.5)',
           }}
         >
-          {/* Left section — Navigation + Import */}
+          {/* Left — Nav + Import */}
           <div className="flex items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -564,7 +481,6 @@ export function EditorChrome({
               <TooltipContent side="bottom">Import clips from your projects</TooltipContent>
             </Tooltip>
 
-            {/* Media count badge */}
             <AnimatePresence>
               {autoLoadDone && mediaCounts.videos > 0 && (
                 <motion.div
@@ -581,7 +497,7 @@ export function EditorChrome({
             </AnimatePresence>
           </div>
 
-          {/* Center — Branding + Session Title */}
+          {/* Center — Branding */}
           <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3">
             <div className="flex items-center gap-2.5">
               <Logo size="sm" />
@@ -608,7 +524,6 @@ export function EditorChrome({
 
           {/* Right — Actions */}
           <div className="flex items-center gap-1.5">
-            {/* Shortcuts toggle */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -625,16 +540,12 @@ export function EditorChrome({
 
             <div className="w-px h-5 bg-border/20 mx-0.5" />
 
-            {/* Save */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    const project = getProjectJSON();
-                    saveProject(project, sessionTitle);
-                  }}
+                  onClick={() => saveProject(sessionTitle)}
                   disabled={saving}
                   className="gap-1.5 text-muted-foreground hover:text-foreground"
                 >
@@ -645,7 +556,6 @@ export function EditorChrome({
               <TooltipContent side="bottom">Save project (⌘S)</TooltipContent>
             </Tooltip>
 
-            {/* Stitch */}
             <Tooltip>
               <TooltipTrigger asChild>
                 {isStitching ? (
@@ -674,26 +584,22 @@ export function EditorChrome({
               <TooltipContent side="bottom">Server-side stitch with crossfade</TooltipContent>
             </Tooltip>
 
-            {/* Export */}
             {isRendering ? (
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => reset()}
+                onClick={() => renderer?.reset()}
                 className="font-semibold gap-1.5 border-destructive/30 text-destructive bg-destructive/5"
               >
                 <X className="w-4 h-4" />
-                <span>Cancel {Math.round(progress * 100)}%</span>
+                <span>Cancel {Math.round(renderProgress * 100)}%</span>
               </Button>
             ) : (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     size="sm"
-                    onClick={() => {
-                      const project = getProjectJSON();
-                      exportVideo(project, {});
-                    }}
+                    onClick={exportVideo}
                     disabled={isStitching}
                     className="px-5 font-semibold gap-2 relative overflow-hidden group border-0 shadow-lg shadow-primary/20"
                     style={{
@@ -723,39 +629,49 @@ export function EditorChrome({
             >
               <motion.div
                 className="h-full bg-gradient-to-r from-primary via-violet-400 to-primary"
-                style={{ width: `${Math.round(progress * 100)}%` }}
+                style={{ width: `${Math.round(renderProgress * 100)}%` }}
                 transition={{ duration: 0.3 }}
               />
-              <div className="absolute right-0 top-0 w-8 h-full bg-gradient-to-l from-primary/40 to-transparent animate-pulse" />
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Editor workspace: SDK with canvas replaced by native player */}
-        <div className="flex-1 min-h-0 studio-container apex-timeline-only">
-          <TwickStudio studioConfig={studioConfig} />
+        {/* ═══════════════ MAIN EDITOR LAYOUT ═══════════════ */}
+        <div className="flex-1 min-h-0 flex">
+          {/* Left — Media sidebar */}
+          <MediaSidebar
+            clips={availableClips}
+            loading={!autoLoadDone}
+            onAddClip={handleAddClipToTimeline}
+          />
+
+          {/* Center — Player + Timeline */}
+          <div className="flex-1 min-w-0 flex flex-col">
+            {/* Video player — top 40% */}
+            <VideoPreviewPlayer className="h-[40%] shrink-0" />
+
+            {/* Timeline — bottom 60% (permanently raised) */}
+            <CustomTimeline className="flex-1 min-h-0" />
+          </div>
         </div>
 
-        {/* ═══════════════ PREMIUM STATUS BAR ═══════════════ */}
+        {/* ═══════════════ STATUS BAR ═══════════════ */}
         <motion.div
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
           className="h-7 flex items-center justify-between px-4 border-t border-border/15 shrink-0 z-10 select-none"
-          style={{
-            background: 'hsla(240, 25%, 5%, 0.95)',
-          }}
+          style={{ background: 'hsla(240, 25%, 5%, 0.95)' }}
         >
-          {/* Left — Timeline stats */}
           <div className="flex items-center gap-3 text-xs text-muted-foreground/40">
             <div className="flex items-center gap-1">
               <Layers className="w-3 h-3" />
-              <span>{trackCount} track{trackCount !== 1 ? 's' : ''}</span>
+              <span>{trackCount} track{trackCount !== 1 ? "s" : ""}</span>
             </div>
             <div className="w-px h-3 bg-border/15" />
             <div className="flex items-center gap-1">
               <Sparkles className="w-3 h-3" />
-              <span>{elementCount} element{elementCount !== 1 ? 's' : ''}</span>
+              <span>{elementCount} element{elementCount !== 1 ? "s" : ""}</span>
             </div>
             {mediaCounts.videos > 0 && (
               <>
@@ -768,7 +684,6 @@ export function EditorChrome({
             )}
           </div>
 
-          {/* Center — Session status */}
           <div className="flex items-center gap-2 text-xs">
             {hasUnsavedChanges ? (
               <span className="text-warning/60 flex items-center gap-1">
@@ -783,7 +698,6 @@ export function EditorChrome({
             )}
           </div>
 
-          {/* Right — Render info */}
           <div className="flex items-center gap-3 text-xs text-muted-foreground/40">
             <span>1920×1080</span>
             <div className="w-px h-3 bg-border/15" />
@@ -807,7 +721,7 @@ export function EditorChrome({
           loadedProjectIds={loadedProjectIds}
         />
 
-        {/* ═══════════════ KEYBOARD SHORTCUTS PANEL ═══════════════ */}
+        {/* Keyboard shortcuts panel */}
         <AnimatePresence>
           {showShortcuts && (
             <motion.div
@@ -838,9 +752,8 @@ export function EditorChrome({
                   {[
                     { keys: "⌘ S", label: "Save project" },
                     { keys: "⌘ E", label: "Export video" },
-                    { keys: "⌘ Z", label: "Undo" },
-                    { keys: "⌘ ⇧ Z", label: "Redo" },
                     { keys: "Space", label: "Play / Pause" },
+                    { keys: "Delete", label: "Remove selected clip" },
                     { keys: "?", label: "Toggle shortcuts" },
                   ].map((shortcut) => (
                     <div key={shortcut.keys} className="flex items-center justify-between">
@@ -858,14 +771,14 @@ export function EditorChrome({
 
         {/* Floating notifications */}
         <AnimatePresence>
-          {error && (
+          {renderError && (
             <motion.div
               initial={{ opacity: 0, y: 16, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8 }}
               className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-destructive/90 text-destructive-foreground text-xs font-medium px-5 py-2.5 rounded-full backdrop-blur-xl border border-destructive/30 shadow-lg z-20"
             >
-              Export error: {error.message}
+              Export error: {renderError.message}
             </motion.div>
           )}
         </AnimatePresence>

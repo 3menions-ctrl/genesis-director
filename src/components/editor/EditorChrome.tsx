@@ -134,6 +134,7 @@ export function EditorChrome({
 
   const { listProjects, loadProjectClips, loading: clipsLoading } = useEditorClips();
   const { submitStitch, isStitching, progress: stitchProgress, reset: resetStitch } = useEditorStitch();
+  const [autoLoadDone, setAutoLoadDone] = useState(false);
 
   // ─── Get timeline context for real ProjectJSON access ───
   const { editor, present } = useTimelineContext();
@@ -353,6 +354,50 @@ export function EditorChrome({
     });
   }, [sessionId, getProjectJSON, saveProject, sessionTitle, submitStitch]);
 
+  // ─── Auto-load all project clips into media library on mount ───
+  useEffect(() => {
+    if (!user || autoLoadDone) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const projectList = await listProjects();
+        if (cancelled || projectList.length === 0) {
+          setAutoLoadDone(true);
+          return;
+        }
+        setProjects(projectList);
+        setProjectsLoaded(true);
+
+        let totalVideos = 0;
+        let totalImages = 0;
+        const loaded = new Set<string>();
+
+        for (const project of projectList) {
+          if (cancelled) break;
+          const { clips, images } = await loadProjectClips(project.id);
+          const counts = await loadClipsIntoLibrary(clips, images, BrowserMediaManager);
+          totalVideos += counts.videos;
+          totalImages += counts.images;
+          loaded.add(project.id);
+        }
+
+        if (!cancelled) {
+          setLoadedProjectIds(loaded);
+          setMediaCounts({ videos: totalVideos, images: totalImages });
+          if (totalVideos > 0) {
+            toast.success(`Loaded ${totalVideos} clips from ${loaded.size} project${loaded.size !== 1 ? "s" : ""}`);
+          }
+        }
+      } catch (err) {
+        console.error("[Apex] Auto-load clips failed:", err);
+      } finally {
+        if (!cancelled) setAutoLoadDone(true);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [user, autoLoadDone, listProjects, loadProjectClips, BrowserMediaManager]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -474,7 +519,7 @@ export function EditorChrome({
             className="h-8 px-3 text-[11px] gap-1.5 rounded-full border-border/30 hover:border-primary/30 hover:bg-primary/5"
           >
             <FolderOpen className="w-3 h-3" />
-            <span>Import Clips</span>
+            <span>{!autoLoadDone ? "Loading…" : "Import Clips"}</span>
           </Button>
         </div>
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Loader2, Sparkles, FolderOpen, Check, Save } from "lucide-react";
+import { ArrowLeft, Download, Loader2, FolderOpen, Check, Save } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,6 +13,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import "@twick/studio/dist/studio.css";
 import "@/styles/apex-studio-overrides.css";
+
+// ─── Apex-branded element colors ───
+const APEX_ELEMENT_COLORS = {
+  video: "#7c3aed",   // primary violet
+  audio: "#06b6d4",   // cyan accent
+  image: "#f59e0b",   // amber
+  text: "#a78bfa",    // lighter violet
+  caption: "#8b5cf6", // mid violet
+  fragment: "#1e1e2e",
+};
+
+const APEX_TIMELINE_TICK_CONFIGS = [
+  { durationThreshold: 30, majorInterval: 5, minorTicks: 5 },
+  { durationThreshold: 120, majorInterval: 15, minorTicks: 3 },
+  { durationThreshold: 600, majorInterval: 60, minorTicks: 6 },
+];
+
+const APEX_TIMELINE_ZOOM = {
+  min: 0.25,
+  max: 4.0,
+  step: 0.25,
+  default: 1.0,
+};
 
 /**
  * Load a single project's clips into Twick's media library on demand.
@@ -156,7 +179,7 @@ function EditorChrome({
   navigate: any;
 }) {
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const sessionId = searchParams.get("session");
 
   const [showSuccess, setShowSuccess] = useState(false);
@@ -166,6 +189,7 @@ function EditorChrome({
   const [loadedProjectIds, setLoadedProjectIds] = useState<Set<string>>(new Set());
   const [mediaCounts, setMediaCounts] = useState({ videos: 0, images: 0 });
   const [saving, setSaving] = useState(false);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
 
   const { listProjects, loadProjectClips, loading: clipsLoading } = useEditorClips();
 
@@ -177,7 +201,7 @@ function EditorChrome({
     autoDownload: true,
   });
 
-  // === StudioConfig callbacks for Twick ===
+  // ─── StudioConfig callbacks for Twick ───
 
   const saveProject = useCallback(async (project: any, fileName: string) => {
     if (!user) return { status: false, message: "Not signed in" };
@@ -199,10 +223,16 @@ function EditorChrome({
           .eq("user_id", user.id);
         if (err) throw err;
       } else {
-        const { error: err } = await supabase
+        const { data, error: err } = await supabase
           .from("edit_sessions")
-          .insert(payload);
+          .insert(payload)
+          .select("id")
+          .single();
         if (err) throw err;
+        // Update URL with new session ID so subsequent saves update instead of insert
+        if (data?.id) {
+          setSearchParams({ session: data.id }, { replace: true });
+        }
       }
 
       toast.success("Project saved");
@@ -214,11 +244,10 @@ function EditorChrome({
     } finally {
       setSaving(false);
     }
-  }, [user, sessionId]);
+  }, [user, sessionId, setSearchParams]);
 
   const loadProject = useCallback(async () => {
     if (!user || !sessionId) {
-      toast.error("No session to load");
       return { properties: { width: 1920, height: 1080, fps: 30 }, tracks: [] };
     }
     try {
@@ -229,11 +258,11 @@ function EditorChrome({
         .eq("user_id", user.id)
         .single();
       if (err) throw err;
-      toast.success("Project loaded");
+      toast.success("Session restored");
       return data.timeline_data;
     } catch (err: any) {
       console.error("Load failed:", err);
-      toast.error("Failed to load project");
+      toast.error("Failed to load session");
       return { properties: { width: 1920, height: 1080, fps: 30 }, tracks: [] };
     }
   }, [user, sessionId]);
@@ -253,13 +282,29 @@ function EditorChrome({
     }
   }, [render, reset]);
 
+  // ─── Complete Apex studioConfig ───
+
   const studioConfig = {
+    videoProps: { width: 1920, height: 1080 },
+    elementColors: APEX_ELEMENT_COLORS,
+    timelineTickConfigs: APEX_TIMELINE_TICK_CONFIGS,
+    timelineZoomConfig: APEX_TIMELINE_ZOOM,
     saveProject,
     loadProject,
     exportVideo,
   };
 
-  // === Project browser ===
+  // ─── Auto-load session on mount ───
+
+  useEffect(() => {
+    if (sessionId && user && !sessionLoaded) {
+      setSessionLoaded(true);
+      // Twick's loadProject callback will be invoked by the studio itself
+      // when it receives the config. We just mark it as ready.
+    }
+  }, [sessionId, user, sessionLoaded]);
+
+  // ─── Project browser ───
 
   const openBrowser = useCallback(async () => {
     setBrowserOpen(true);
@@ -296,7 +341,7 @@ function EditorChrome({
       {/* Apex accent line */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent z-20" />
 
-      {/* Apex top bar — overlays Twick's header */}
+      {/* Apex top bar */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -400,7 +445,7 @@ function EditorChrome({
         )}
       </AnimatePresence>
 
-      {/* Twick Studio with Apex config */}
+      {/* Twick Studio with full Apex config */}
       <div className="flex-1 min-h-0">
         <TwickStudio studioConfig={studioConfig} />
       </div>

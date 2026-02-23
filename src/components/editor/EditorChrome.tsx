@@ -4,6 +4,7 @@ import {
   ArrowLeft, Download, Loader2, FolderOpen, Check, Save, X, Monitor, Film,
   Keyboard, Sparkles, Layers, Clock, Zap
 } from "lucide-react";
+import { mergeVideoClips, downloadBlob } from "@/lib/video/browserVideoMerger";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -208,28 +209,57 @@ export function EditorChrome({
     return () => { cancelled = true; };
   }, [user, sessionId, dispatch]);
 
-  // ─── Export (WebCodecs) ───
+  // ─── Export ───
+  const [isDownloading, setIsDownloading] = useState(false);
+
   const exportVideo = useCallback(async () => {
-    if (!renderer) {
-      toast.error("Export not available");
+    const projectData = getProjectJSON();
+    if (!projectData.tracks?.length) {
+      toast.error("Nothing to export — add clips first");
       return;
     }
-    try {
-      setShowSuccess(false);
-      renderer.reset();
-      const projectData = getProjectJSON();
-      if (!projectData.tracks?.length) {
-        toast.error("Nothing to export — add clips first");
-        return;
+
+    // Collect clip URLs from timeline
+    const clipUrls: string[] = [];
+    for (const track of projectData.tracks || []) {
+      for (const el of track.elements || []) {
+        if (el.type === "video" && el.props?.src) {
+          clipUrls.push(el.props.src);
+        }
       }
-      await renderer.render({ input: projectData });
-      setShowSuccess(true);
-      toast.success("Video exported successfully!");
-    } catch (err: any) {
-      console.error("Export failed:", err);
-      toast.error("Export failed. Please try again.");
     }
-  }, [renderer, getProjectJSON]);
+
+    if (clipUrls.length === 0) {
+      toast.error("No video clips to export");
+      return;
+    }
+
+    setIsDownloading(true);
+    toast.info(`Downloading ${clipUrls.length} clip${clipUrls.length > 1 ? "s" : ""}…`);
+
+    try {
+      const result = await mergeVideoClips({
+        clipUrls,
+        projectName: sessionTitle.replace(/\s+/g, "_"),
+        onProgress: (p) => {
+          if (p.stage === "error") toast.error(p.message || "Download failed");
+        },
+      });
+
+      if (result.success && result.blob && result.filename) {
+        downloadBlob(result.blob, result.filename);
+        setShowSuccess(true);
+        toast.success("Export complete!");
+      } else {
+        toast.error(result.error || "Export failed");
+      }
+    } catch (err) {
+      console.error("Export download failed:", err);
+      toast.error("Export failed. Please try again.");
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [getProjectJSON, sessionTitle]);
 
   // ─── Stitch ───
   const handleStitch = useCallback(async () => {
@@ -603,7 +633,7 @@ export function EditorChrome({
                   <Button
                     size="sm"
                     onClick={exportVideo}
-                    disabled={isStitching}
+                    disabled={isStitching || isDownloading}
                     className="px-5 font-semibold gap-2 relative overflow-hidden group border-0 shadow-lg shadow-primary/20"
                     style={{
                       background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(270 80% 60%))',
@@ -611,8 +641,8 @@ export function EditorChrome({
                     }}
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                    <Download className="w-4 h-4" />
-                    <span>Export MP4</span>
+                    {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                    <span>{isDownloading ? "Downloading…" : "Export MP4"}</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">Export video (⌘E)</TooltipContent>

@@ -9,9 +9,10 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEditorClips, EditorClip, EditorImage, ProjectSummary } from "@/hooks/useEditorClips";
 import { useEditorStitch } from "@/hooks/useEditorStitch";
-import { useStudioLayoutFix } from "@/hooks/useStudioLayoutFix";
+import { useTimelineOnlyLayout } from "@/hooks/useTimelineOnlyLayout";
 import { ProjectBrowser } from "@/components/editor/ProjectBrowser";
 import { Logo } from "@/components/ui/Logo";
+import { NativeVideoPlayer } from "@/components/editor/NativeVideoPlayer";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -158,7 +159,8 @@ export function EditorChrome({
   }, [setElementColors]);
 
   // ─── Force timeline layout fix (SDK uses hardcoded 80dvh) ───
-  useStudioLayoutFix('.studio-container');
+  // Hide SDK canvas and force timeline to fill available space
+  useTimelineOnlyLayout('.apex-timeline-only');
 
   // ─── Mobile detection ───
   useEffect(() => {
@@ -729,8 +731,8 @@ export function EditorChrome({
           )}
         </AnimatePresence>
 
-        {/* Twick Studio */}
-        <div className="flex-1 min-h-0 studio-container">
+        {/* Editor workspace: SDK with canvas replaced by native player */}
+        <div className="flex-1 min-h-0 studio-container apex-timeline-only">
           <TwickStudio studioConfig={studioConfig} />
         </div>
 

@@ -3880,6 +3880,7 @@ export type Database = {
           characters_lent: number
           created_at: string
           current_streak: number
+          hide_from_leaderboard: boolean
           id: string
           last_activity_date: string | null
           leaderboard_visible: boolean | null
@@ -3887,6 +3888,7 @@ export type Database = {
           longest_streak: number
           total_likes_received: number
           total_views: number
+          tracking_opted_out: boolean
           universes_joined: number
           updated_at: string
           user_id: string
@@ -3899,6 +3901,7 @@ export type Database = {
           characters_lent?: number
           created_at?: string
           current_streak?: number
+          hide_from_leaderboard?: boolean
           id?: string
           last_activity_date?: string | null
           leaderboard_visible?: boolean | null
@@ -3906,6 +3909,7 @@ export type Database = {
           longest_streak?: number
           total_likes_received?: number
           total_views?: number
+          tracking_opted_out?: boolean
           universes_joined?: number
           updated_at?: string
           user_id: string
@@ -3918,6 +3922,7 @@ export type Database = {
           characters_lent?: number
           created_at?: string
           current_streak?: number
+          hide_from_leaderboard?: boolean
           id?: string
           last_activity_date?: string | null
           leaderboard_visible?: boolean | null
@@ -3925,6 +3930,7 @@ export type Database = {
           longest_streak?: number
           total_likes_received?: number
           total_views?: number
+          tracking_opted_out?: boolean
           universes_joined?: number
           updated_at?: string
           user_id?: string

@@ -367,6 +367,14 @@
   display: none !important;
 }
 
+/* Hide SDK watermark text on canvas */
+.studio-container [class*="watermark"],
+.studio-container [class*="Watermark"],
+.studio-container canvas + div:not([class*="controls"]):not([class*="toolbar"]):not([class*="panel"]) {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 /* ═══════════════════════════════════════════════
    13. SELECTION & FOCUS RINGS
    ═══════════════════════════════════════════════ */

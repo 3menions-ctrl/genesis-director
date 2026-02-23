@@ -532,9 +532,9 @@ export function EditorChrome({
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate("/projects")}
-                  className="text-muted-foreground/50 hover:text-foreground gap-1.5 hover:bg-accent/50 h-9 px-2.5 rounded-lg"
+                  className="text-muted-foreground/50 hover:text-foreground gap-1.5 hover:bg-muted/50"
                 >
-                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <ArrowLeft className="w-4 h-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">Back to Projects</TooltipContent>
@@ -545,14 +545,14 @@ export function EditorChrome({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={openBrowser}
-                  className="h-9 px-3 text-[11px] gap-2 rounded-lg border border-border/20 hover:border-primary/30 hover:bg-primary/5 text-muted-foreground hover:text-foreground transition-all"
+                  className="gap-2 border-border/30 hover:border-primary/30 hover:bg-primary/5"
                 >
-                  <FolderOpen className="w-3.5 h-3.5" />
+                  <FolderOpen className="w-4 h-4" />
                   <span>{!autoLoadDone ? "Syncing…" : "Import"}</span>
-                  {!autoLoadDone && <Loader2 className="w-3 h-3 animate-spin text-primary/60" />}
+                  {!autoLoadDone && <Loader2 className="w-3.5 h-3.5 animate-spin text-primary/60" />}
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">Import clips from your projects</TooltipContent>
@@ -564,10 +564,10 @@ export function EditorChrome({
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/10 border border-success/20"
                 >
-                  <Check className="w-3 h-3 text-emerald-400" />
-                  <span className="text-[10px] font-medium text-emerald-400/80">
+                  <Check className="w-3.5 h-3.5 text-success" />
+                  <span className="text-xs font-medium text-success/80">
                     {mediaCounts.videos} clips
                   </span>
                 </motion.div>
@@ -577,21 +577,21 @@ export function EditorChrome({
 
           {/* Center — Branding + Session Title */}
           <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <Logo size="sm" />
               <div className="flex flex-col items-start">
-                <span className="text-[11px] font-bold tracking-tight font-display bg-gradient-to-r from-primary via-violet-400 to-primary bg-clip-text text-transparent leading-tight">
+                <span className="text-xs font-bold tracking-tight font-display bg-gradient-to-r from-primary via-violet-400 to-primary bg-clip-text text-transparent leading-tight">
                   APEX STUDIO
                 </span>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-muted-foreground/50 max-w-[180px] truncate leading-tight">
+                  <span className="text-xs text-muted-foreground/50 max-w-[180px] truncate leading-tight">
                     {sessionTitle}
                   </span>
                   {hasUnsavedChanges && (
                     <motion.span
                       animate={{ opacity: [0.4, 1, 0.4] }}
                       transition={{ duration: 2, repeat: Infinity }}
-                      className="w-1.5 h-1.5 rounded-full bg-amber-400"
+                      className="w-1.5 h-1.5 rounded-full bg-warning"
                       title="Unsaved changes"
                     />
                   )}
@@ -609,9 +609,9 @@ export function EditorChrome({
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowShortcuts(prev => !prev)}
-                  className="h-9 w-9 p-0 text-muted-foreground/40 hover:text-foreground rounded-lg"
+                  className="w-9 h-9 p-0 text-muted-foreground/40 hover:text-foreground"
                 >
-                  <Keyboard className="w-3.5 h-3.5" />
+                  <Keyboard className="w-4 h-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">Keyboard shortcuts (?)</TooltipContent>
@@ -630,9 +630,9 @@ export function EditorChrome({
                     saveProject(project, sessionTitle);
                   }}
                   disabled={saving}
-                  className="h-9 px-3 text-[11px] gap-1.5 text-muted-foreground hover:text-foreground rounded-lg"
+                  className="gap-1.5 text-muted-foreground hover:text-foreground"
                 >
-                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   <span className="hidden sm:inline">Save</span>
                 </Button>
               </TooltipTrigger>
@@ -647,9 +647,9 @@ export function EditorChrome({
                     size="sm"
                     variant="outline"
                     onClick={() => resetStitch()}
-                    className="h-9 px-3.5 text-[11px] font-semibold rounded-lg gap-1.5 border-primary/30 text-primary bg-primary/5"
+                    className="font-semibold gap-1.5 border-primary/30 text-primary bg-primary/5"
                   >
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     <span>Stitching {Math.round(stitchProgress)}%</span>
                   </Button>
                 ) : (
@@ -658,9 +658,9 @@ export function EditorChrome({
                     variant="outline"
                     onClick={handleStitch}
                     disabled={isRendering}
-                    className="h-9 px-3.5 text-[11px] gap-1.5 rounded-lg border-border/20 hover:border-primary/30 hover:bg-primary/5 text-muted-foreground hover:text-foreground"
+                    className="gap-1.5 border-border/30 hover:border-primary/30 hover:bg-primary/5 text-muted-foreground hover:text-foreground"
                   >
-                    <Film className="w-3.5 h-3.5" />
+                    <Film className="w-4 h-4" />
                     <span className="hidden sm:inline">Stitch</span>
                   </Button>
                 )}
@@ -674,9 +674,9 @@ export function EditorChrome({
                 size="sm"
                 variant="outline"
                 onClick={() => reset()}
-                className="h-9 px-4 text-[11px] font-semibold rounded-lg gap-1.5 border-destructive/30 text-destructive bg-destructive/5"
+                className="font-semibold gap-1.5 border-destructive/30 text-destructive bg-destructive/5"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
                 <span>Cancel {Math.round(progress * 100)}%</span>
               </Button>
             ) : (
@@ -689,14 +689,14 @@ export function EditorChrome({
                       exportVideo(project, {});
                     }}
                     disabled={isStitching}
-                    className="h-9 px-5 text-[11px] font-semibold rounded-lg gap-2 relative overflow-hidden group border-0 shadow-lg shadow-primary/20"
+                    className="px-5 font-semibold gap-2 relative overflow-hidden group border-0 shadow-lg shadow-primary/20"
                     style={{
                       background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(270 80% 60%))',
                       color: 'white',
                     }}
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                    <Download className="w-3.5 h-3.5" />
+                    <Download className="w-4 h-4" />
                     <span>Export MP4</span>
                   </Button>
                 </TooltipTrigger>
@@ -741,7 +741,7 @@ export function EditorChrome({
           }}
         >
           {/* Left — Timeline stats */}
-          <div className="flex items-center gap-3 text-[10px] text-muted-foreground/40">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground/40">
             <div className="flex items-center gap-1">
               <Layers className="w-3 h-3" />
               <span>{trackCount} track{trackCount !== 1 ? 's' : ''}</span>
@@ -763,14 +763,14 @@ export function EditorChrome({
           </div>
 
           {/* Center — Session status */}
-          <div className="flex items-center gap-2 text-[10px]">
+          <div className="flex items-center gap-2 text-xs">
             {hasUnsavedChanges ? (
-              <span className="text-amber-400/60 flex items-center gap-1">
+              <span className="text-warning/60 flex items-center gap-1">
                 <Clock className="w-3 h-3" />
                 Unsaved changes
               </span>
             ) : (
-              <span className="text-emerald-400/40 flex items-center gap-1">
+              <span className="text-success/40 flex items-center gap-1">
                 <Check className="w-3 h-3" />
                 Saved
               </span>
@@ -778,7 +778,7 @@ export function EditorChrome({
           </div>
 
           {/* Right — Render info */}
-          <div className="flex items-center gap-3 text-[10px] text-muted-foreground/40">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground/40">
             <span>1920×1080</span>
             <div className="w-px h-3 bg-border/15" />
             <span>30fps</span>

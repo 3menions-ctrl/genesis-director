@@ -66,12 +66,12 @@ export function ProjectBrowser({
                 {loadingProjects ? (
                   <div className="flex items-center justify-center py-12 gap-2 text-muted-foreground">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-xs">Loading projects…</span>
+                    <span className="text-sm">Loading projects…</span>
                   </div>
                 ) : projects.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
                     <Film className="w-8 h-8 opacity-40" />
-                    <p className="text-xs">No projects with completed clips</p>
+                    <p className="text-sm">No projects with completed clips</p>
                   </div>
                 ) : (
                   projects.map((project) => {
@@ -103,10 +103,10 @@ export function ProjectBrowser({
 
                         {/* Info */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-foreground truncate">
+                          <p className="text-sm font-medium text-foreground truncate">
                             {project.title}
                           </p>
-                          <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                          <p className="text-xs text-muted-foreground/60 mt-0.5">
                             {project.clipCount} clip{project.clipCount !== 1 ? "s" : ""} ready
                           </p>
                         </div>
@@ -114,13 +114,13 @@ export function ProjectBrowser({
                         {/* Status */}
                         <div className="shrink-0">
                           {isLoaded ? (
-                            <span className="text-[10px] text-primary font-medium px-2 py-0.5 rounded-full bg-primary/10">
+                            <span className="text-xs text-primary font-medium px-2 py-0.5 rounded-full bg-primary/10">
                               Loaded
                             </span>
                           ) : loadingClips ? (
-                            <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
                           ) : (
-                            <span className="text-[10px] text-muted-foreground group-hover:text-primary transition-colors">
+                            <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">
                               Import →
                             </span>
                           )}
@@ -134,7 +134,7 @@ export function ProjectBrowser({
 
             {/* Footer hint */}
             <div className="px-5 py-3 border-t border-border/20">
-              <p className="text-[10px] text-muted-foreground/50 text-center">
+              <p className="text-xs text-muted-foreground/50 text-center">
                 Select a project to load its clips into the editor's media library
               </p>
             </div>

@@ -1,14 +1,14 @@
 /**
- * Apex Studio — Twick Studio CSS overrides
- * Rebrand & retheme the embedded Twick editor to match Apex's identity.
+ * Apex Studio — Complete Twick Studio CSS overrides
+ * Full white-label rebrand to match Apex's cinematic dark identity.
  */
 
 /* ═══════════════════════════════════════════════
    1. COLOR SYSTEM OVERRIDE
-   Map Twick's neutral palette to Apex's deeper dark tones
    ═══════════════════════════════════════════════ */
 
-.studio-container {
+.studio-container,
+[class*="studio-"] {
   --color-neutral-900: #08080c;
   --color-neutral-800: #0e0e14;
   --color-neutral-700: #1a1a24;
@@ -27,30 +27,34 @@
   --color-gray-800: #161622;
   --color-gray-900: #0c0c14;
 
-  /* Swap purple to Apex's primary violet */
+  /* Apex violet accent system */
   --color-purple-400: hsl(263 70% 68%);
   --color-purple-500: hsl(263 84% 58%);
   --color-purple-600: hsl(263 84% 48%);
   --color-purple-700: hsl(263 80% 40%);
   --color-purple-muted: rgba(124, 58, 237, 0.15);
 
-  /* Elevation */
+  /* Blue accents → violet */
+  --color-blue-400: hsl(263 70% 68%);
+  --color-blue-500: hsl(263 84% 58%);
+  --color-blue-600: hsl(263 84% 48%);
+
+  /* Elevation tokens */
   --elevation-panel: 0 0 0 1px rgba(124, 58, 237, 0.06), 0 8px 32px rgba(0,0,0,0.5);
   --elevation-scrubber: 0 0 8px rgba(124, 58, 237, 0.8);
 }
 
 /* ═══════════════════════════════════════════════
-   2. HEADER REBRAND
+   2. HEADER REBRAND — hide Twick, show Apex
    ═══════════════════════════════════════════════ */
 
-/* Deeper header with Apex accent line */
 .header {
-  background: rgba(10, 10, 16, 0.92) !important;
+  background: rgba(10, 10, 16, 0.95) !important;
   border-bottom: 1px solid rgba(124, 58, 237, 0.12) !important;
   box-shadow: 0 1px 0 0 rgba(124, 58, 237, 0.08), 0 2px 12px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* Hide "Twick Studio" text and Clapperboard icon, replace with Apex branding */
+/* Replace "Twick Studio" text */
 .header .text-gradient {
   font-size: 0 !important;
   line-height: 0 !important;
@@ -71,36 +75,45 @@
   font-family: 'Sora', 'Inter', sans-serif;
 }
 
-/* Hide the Clapperboard icon next to title */
-.header .flex-container > .icon-lg.accent-purple {
+/* Hide Clapperboard icon */
+.header .flex-container > .icon-lg.accent-purple,
+.header [data-icon="clapperboard"],
+.header svg[class*="clapperboard"] {
   display: none !important;
 }
 
 /* ═══════════════════════════════════════════════
-   3. SURFACE OVERRIDES
+   3. SURFACE OVERRIDES — deep dark everywhere
    ═══════════════════════════════════════════════ */
 
-/* Studio container */
-.studio-container {
-  background: #08080c !important;
-}
-
-.studio-content {
-  background: #08080c !important;
-}
-
+.studio-container,
+.studio-content,
 .main-container {
-  background-color: #08080c !important;
+  background: #08080c !important;
 }
 
-/* Left panel */
-.studio-left-panel {
+/* Left panel — media / tools */
+.studio-left-panel,
+.left-panel,
+[class*="panel-left"],
+[class*="sidebar"] {
   background-color: rgba(10, 10, 16, 0.98) !important;
   border-right: 1px solid rgba(124, 58, 237, 0.08) !important;
 }
 
-/* Canvas area — deeper ambient */
-.canvas-wrapper {
+/* Right panel — properties */
+.studio-right-panel,
+.right-panel,
+[class*="panel-right"],
+[class*="properties-panel"] {
+  background-color: rgba(10, 10, 16, 0.98) !important;
+  border-left: 1px solid rgba(124, 58, 237, 0.08) !important;
+}
+
+/* Canvas area — subtle ambient glow */
+.canvas-wrapper,
+[class*="canvas-area"],
+[class*="player-wrapper"] {
   background: radial-gradient(
     circle at center,
     rgba(124, 58, 237, 0.02),
@@ -109,26 +122,193 @@
 }
 
 /* ═══════════════════════════════════════════════
-   4. ACCENT INTERACTIONS
+   4. TIMELINE — Apex-branded track colors
    ═══════════════════════════════════════════════ */
 
-/* Media hover glow */
-.media-item:hover {
-  box-shadow: 0 4px 6px -1px rgba(124, 58, 237, 0.2) !important;
+/* Timeline container */
+[class*="timeline-container"],
+[class*="timeline-wrapper"],
+.timeline {
+  background: #0a0a10 !important;
+  border-top: 1px solid rgba(124, 58, 237, 0.10) !important;
 }
 
-/* Progress bar */
-.progress-bar {
+/* Timeline ruler */
+[class*="timeline-ruler"],
+[class*="time-ruler"] {
+  background: rgba(14, 14, 20, 0.95) !important;
+  border-bottom: 1px solid rgba(124, 58, 237, 0.06) !important;
+}
+
+/* Playhead / scrubber */
+[class*="playhead"],
+[class*="scrubber-line"] {
+  background: hsl(263 84% 58%) !important;
+  box-shadow: 0 0 8px rgba(124, 58, 237, 0.6) !important;
+}
+
+[class*="scrubber-handle"],
+[class*="playhead-handle"] {
+  background: hsl(263 84% 68%) !important;
+  border-color: hsl(263 84% 48%) !important;
+}
+
+/* Track rows */
+[class*="track-row"],
+[class*="timeline-track"] {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
+}
+
+[class*="track-row"]:hover,
+[class*="timeline-track"]:hover {
+  background: rgba(124, 58, 237, 0.03) !important;
+}
+
+/* ═══════════════════════════════════════════════
+   5. BUTTONS & CONTROLS
+   ═══════════════════════════════════════════════ */
+
+/* Primary buttons within studio */
+.studio-container button[class*="primary"],
+.studio-container [class*="btn-primary"] {
+  background: linear-gradient(135deg, hsl(263 84% 58%), hsl(270 80% 60%)) !important;
+  border: none !important;
+  color: white !important;
+}
+
+.studio-container button[class*="primary"]:hover,
+.studio-container [class*="btn-primary"]:hover {
+  background: linear-gradient(135deg, hsl(263 84% 64%), hsl(270 80% 66%)) !important;
+}
+
+/* Ghost / secondary buttons */
+.studio-container button[class*="ghost"],
+.studio-container button[class*="secondary"] {
+  color: #b0b0c8 !important;
+}
+
+.studio-container button[class*="ghost"]:hover,
+.studio-container button[class*="secondary"]:hover {
+  background: rgba(124, 58, 237, 0.08) !important;
+  color: #e8e8f0 !important;
+}
+
+/* Tab items */
+.studio-container [class*="tab-item"],
+.studio-container [role="tab"] {
+  color: #8888a4 !important;
+  border-bottom-color: transparent !important;
+}
+
+.studio-container [class*="tab-item"][class*="active"],
+.studio-container [role="tab"][aria-selected="true"],
+.studio-container [class*="tab-item"]:hover {
+  color: hsl(263 70% 68%) !important;
+  border-bottom-color: hsl(263 84% 58%) !important;
+}
+
+/* ═══════════════════════════════════════════════
+   6. MEDIA LIBRARY
+   ═══════════════════════════════════════════════ */
+
+/* Media items hover */
+.media-item:hover,
+[class*="media-item"]:hover,
+[class*="library-item"]:hover {
+  box-shadow: 0 4px 12px -2px rgba(124, 58, 237, 0.25) !important;
+  border-color: rgba(124, 58, 237, 0.3) !important;
+}
+
+/* Media item selected */
+[class*="media-item"][class*="selected"],
+[class*="library-item"][class*="selected"] {
+  border-color: hsl(263 84% 58%) !important;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.3) !important;
+}
+
+/* Upload zone */
+[class*="upload-zone"],
+[class*="drop-zone"] {
+  border-color: rgba(124, 58, 237, 0.2) !important;
+  background: rgba(124, 58, 237, 0.03) !important;
+}
+
+[class*="upload-zone"]:hover,
+[class*="drop-zone"]:hover {
+  border-color: rgba(124, 58, 237, 0.4) !important;
+  background: rgba(124, 58, 237, 0.06) !important;
+}
+
+/* ═══════════════════════════════════════════════
+   7. INPUTS & FORM CONTROLS
+   ═══════════════════════════════════════════════ */
+
+.studio-container input,
+.studio-container select,
+.studio-container textarea {
+  background: rgba(14, 14, 20, 0.8) !important;
+  border-color: rgba(124, 58, 237, 0.12) !important;
+  color: #e8e8f0 !important;
+}
+
+.studio-container input:focus,
+.studio-container select:focus,
+.studio-container textarea:focus {
+  border-color: hsl(263 84% 58%) !important;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.15) !important;
+}
+
+/* Sliders */
+.studio-container input[type="range"]::-webkit-slider-thumb {
+  background: hsl(263 84% 58%) !important;
+}
+
+.studio-container input[type="range"]::-webkit-slider-runnable-track {
+  background: rgba(124, 58, 237, 0.2) !important;
+}
+
+/* ═══════════════════════════════════════════════
+   8. PROGRESS & LOADING
+   ═══════════════════════════════════════════════ */
+
+.progress-bar,
+[class*="progress-fill"] {
   background: linear-gradient(to right, hsl(263 84% 58%), hsl(280 70% 60%)) !important;
 }
 
-/* Aspect ratio button active */
 .aspect-ratio-btn:hover {
   color: hsl(263 70% 68%) !important;
 }
 
 /* ═══════════════════════════════════════════════
-   5. SCROLLBAR STYLING
+   9. TOOLTIPS & POPOVERS
+   ═══════════════════════════════════════════════ */
+
+.studio-container [class*="tooltip"],
+.studio-container [class*="popover"] {
+  background: rgba(14, 14, 20, 0.95) !important;
+  border: 1px solid rgba(124, 58, 237, 0.12) !important;
+  color: #e8e8f0 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* ═══════════════════════════════════════════════
+   10. CONTEXT MENUS
+   ═══════════════════════════════════════════════ */
+
+.studio-container [class*="context-menu"],
+.studio-container [role="menu"] {
+  background: rgba(14, 14, 20, 0.98) !important;
+  border: 1px solid rgba(124, 58, 237, 0.10) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6) !important;
+}
+
+.studio-container [role="menuitem"]:hover {
+  background: rgba(124, 58, 237, 0.1) !important;
+}
+
+/* ═══════════════════════════════════════════════
+   11. SCROLLBARS
    ═══════════════════════════════════════════════ */
 
 .studio-container ::-webkit-scrollbar {
@@ -150,11 +330,38 @@
 }
 
 /* ═══════════════════════════════════════════════
-   6. HIDE TWICK-SPECIFIC UI NOT NEEDED
+   12. HIDE ALL TWICK BRANDING
    ═══════════════════════════════════════════════ */
 
-/* Hide any "Powered by Twick" or external links if present */
 .studio-container a[href*="twick"],
-.studio-container [data-twick-brand] {
+.studio-container [data-twick-brand],
+[class*="powered-by"],
+[class*="twick-logo"],
+[class*="twick-brand"] {
   display: none !important;
+}
+
+/* ═══════════════════════════════════════════════
+   13. SELECTION & FOCUS RINGS
+   ═══════════════════════════════════════════════ */
+
+.studio-container *:focus-visible {
+  outline: 2px solid rgba(124, 58, 237, 0.5) !important;
+  outline-offset: 2px !important;
+}
+
+.studio-container ::selection {
+  background: rgba(124, 58, 237, 0.3);
+  color: white;
+}
+
+/* ═══════════════════════════════════════════════
+   14. TRANSITIONS — smooth Apex feel
+   ═══════════════════════════════════════════════ */
+
+.studio-container button,
+.studio-container [role="tab"],
+.studio-container [class*="media-item"],
+.studio-container input {
+  transition: all 0.15s ease !important;
 }

@@ -206,6 +206,20 @@
   box-shadow: 0 0 0 2px hsla(263 84% 58% / 0.3) !important;
 }
 
+/* Hide the "paste URL" link input in media library */
+.studio-container [class*="url-input"],
+.studio-container [class*="paste-url"],
+.studio-container [class*="add-url"],
+.studio-container [class*="media-url"],
+.studio-container [class*="link-input"],
+.studio-container input[placeholder*="URL"],
+.studio-container input[placeholder*="url"],
+.studio-container input[placeholder*="Paste"],
+.studio-container input[placeholder*="paste"],
+.studio-container input[placeholder*="http"] {
+  display: none !important;
+}
+
 [class*="upload-zone"],
 [class*="drop-zone"] {
   border-color: hsla(263 84% 58% / 0.2) !important;

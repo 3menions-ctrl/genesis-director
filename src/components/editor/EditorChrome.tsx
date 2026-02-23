@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Loader2, FolderOpen, Check, Save, X, Monitor, Film } from "lucide-react";
+import {
+  ArrowLeft, Download, Loader2, FolderOpen, Check, Save, X, Monitor, Film,
+  Keyboard, Sparkles, Layers, Clock, Zap
+} from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,6 +13,12 @@ import { ProjectBrowser } from "@/components/editor/ProjectBrowser";
 import { Logo } from "@/components/ui/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // ─── Full Apex element color palette (all 14 SDK keys) ───
 const APEX_ELEMENT_COLORS = {
@@ -131,6 +140,7 @@ export function EditorChrome({
   const [sessionTitle, setSessionTitle] = useState("Untitled Session");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   const { listProjects, loadProjectClips, loading: clipsLoading } = useEditorClips();
   const { submitStitch, isStitching, progress: stitchProgress, reset: resetStitch } = useEditorStitch();
@@ -193,10 +203,13 @@ export function EditorChrome({
 
   // ─── Helper: get current project JSON from timeline context ───
   const getProjectJSON = useCallback(() => {
-    // `present` holds the live ProjectJSON from the timeline context
     if (present && present.tracks?.length > 0) return present;
     return null;
   }, [present]);
+
+  // ─── Track count from timeline ───
+  const trackCount = present?.tracks?.length || 0;
+  const elementCount = present?.tracks?.reduce((sum: number, t: any) => sum + (t.elements?.length || 0), 0) || 0;
 
   // ─── StudioConfig callbacks ───
 
@@ -204,7 +217,6 @@ export function EditorChrome({
     if (!user) return { status: false, message: "Not signed in" };
     setSaving(true);
     try {
-      // Use provided project (from Twick) or extract from timeline context
       const projectData = (project && project.tracks?.length > 0) ? project : getProjectJSON();
       if (!projectData) {
         toast.error("Nothing to save — add clips to the timeline first");
@@ -267,7 +279,6 @@ export function EditorChrome({
       if (data.title) setSessionTitle(data.title);
       setHasUnsavedChanges(false);
 
-      // Restore timeline into the editor
       const projectData = data.timeline_data as any;
       if (projectData && projectData.tracks?.length > 0 && editor) {
         try {
@@ -290,7 +301,6 @@ export function EditorChrome({
     try {
       setShowSuccess(false);
       reset();
-      // Use provided project or extract from timeline context
       const projectData = (project && project.tracks?.length > 0) ? project : getProjectJSON();
       if (!projectData || !projectData.tracks?.length) {
         toast.error("Nothing to export — add clips to the timeline first");
@@ -310,20 +320,17 @@ export function EditorChrome({
   // ─── Server-side crossfade stitch ───
   const handleStitch = useCallback(async () => {
     if (!sessionId) {
-      // Save first to get a session ID
       const project = getProjectJSON();
       const result = await saveProject(project, sessionTitle);
       if (!result.status) return;
     }
 
-    // Extract video elements from timeline as clip URLs
     const projectData = getProjectJSON();
     if (!projectData?.tracks?.length) {
       toast.error("No clips on timeline to stitch");
       return;
     }
 
-    // Find all video elements across tracks
     const clips: { url: string; duration: number }[] = [];
     for (const track of projectData.tracks) {
       for (const element of track.elements || []) {
@@ -341,7 +348,6 @@ export function EditorChrome({
       return;
     }
 
-    // Use the current sessionId (may have just been created by saveProject)
     const currentSessionId = new URLSearchParams(window.location.search).get("session") || sessionId;
     if (!currentSessionId) {
       toast.error("Please save the project first");
@@ -414,13 +420,18 @@ export function EditorChrome({
           exportVideo(project, {});
         }
       }
+      if (e.key === "?" && !e.ctrlKey && !e.metaKey) {
+        // Don't trigger if typing in an input
+        if ((e.target as HTMLElement)?.tagName !== "INPUT" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
+          setShowShortcuts(prev => !prev);
+        }
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [getProjectJSON, saveProject, exportVideo, sessionTitle, isRendering]);
 
   // ─── Complete Apex studioConfig ───
-
   const studioConfig = {
     videoProps: { width: 1920, height: 1080, backgroundColor: "#000000" },
     playerProps: { quality: 1, maxWidth: 1920, maxHeight: 1080 },
@@ -436,7 +447,6 @@ export function EditorChrome({
   };
 
   // ─── Project browser ───
-
   const openBrowser = useCallback(async () => {
     setBrowserOpen(true);
     if (!projectsLoaded) {
@@ -489,196 +499,384 @@ export function EditorChrome({
   }
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-[hsl(var(--background))] overflow-hidden relative">
-      {/* Apex accent line */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent z-20" />
-
-      {/* Apex top bar */}
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="h-12 flex items-center justify-between px-3 border-b border-border/30 bg-card/90 backdrop-blur-2xl shrink-0 z-10"
-      >
-        {/* Left */}
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/projects")}
-            className="text-muted-foreground/60 hover:text-foreground gap-1 hover:bg-accent/50 h-8 px-2"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span className="text-[12px] hidden sm:inline">Back</span>
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={openBrowser}
-            className="h-8 px-3 text-[11px] gap-1.5 rounded-full border-border/30 hover:border-primary/30 hover:bg-primary/5"
-          >
-            <FolderOpen className="w-3 h-3" />
-            <span>{!autoLoadDone ? "Loading…" : "Import Clips"}</span>
-          </Button>
-        </div>
-
-        {/* Center — Apex branding + title */}
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2.5">
-          <Logo size="sm" />
-          <span className="text-[12px] font-semibold tracking-tight font-display bg-gradient-to-r from-primary to-violet-400 bg-clip-text text-transparent">
-            Apex Studio
-          </span>
-          <span className="text-[10px] text-muted-foreground/40 mx-1">|</span>
-          <span className="text-[11px] text-muted-foreground/60 max-w-[160px] truncate">
-            {sessionTitle}
-          </span>
-          {hasUnsavedChanges && (
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400/80" title="Unsaved changes" />
-          )}
-          {(mediaCounts.videos > 0 || mediaCounts.images > 0) && (
-            <div className="flex items-center gap-1 ml-2 text-[10px] text-emerald-400/60">
-              <Check className="w-2.5 h-2.5" />
-              {mediaCounts.videos} clips, {mediaCounts.images} images
-            </div>
-          )}
-        </div>
-
-        {/* Right */}
-        <div className="flex items-center gap-2">
-          <span className="text-[9px] text-muted-foreground/30 hidden lg:inline mr-1">
-            Ctrl+S save · Ctrl+E export
-          </span>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              const project = getProjectJSON();
-              saveProject(project, sessionTitle);
-            }}
-            disabled={saving}
-            className="h-8 px-3 text-[11px] gap-1.5 text-muted-foreground hover:text-foreground"
-          >
-            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-            <span className="hidden sm:inline">Save</span>
-          </Button>
-
-          {/* Server-side Stitch button */}
-          {isStitching ? (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => resetStitch()}
-              className="h-8 px-3 text-[11px] font-semibold rounded-full gap-1.5 border-primary/30 text-primary"
-            >
-              <Loader2 className="w-3 h-3 animate-spin" />
-              <span>Stitch {Math.round(stitchProgress)}%</span>
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleStitch}
-              disabled={isRendering}
-              className="h-8 px-3 text-[11px] gap-1.5 rounded-full border-border/30 hover:border-primary/30 hover:bg-primary/5"
-            >
-              <Film className="w-3 h-3" />
-              <span className="hidden sm:inline">Stitch</span>
-            </Button>
-          )}
-
-          {isRendering ? (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => reset()}
-              className="h-8 px-4 text-[11px] font-semibold rounded-full gap-1.5 border-destructive/30 text-destructive"
-            >
-              <X className="w-3 h-3" />
-              <span>{Math.round(progress * 100)}%</span>
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              onClick={() => {
-                const project = getProjectJSON();
-                exportVideo(project, {});
-              }}
-              disabled={isStitching}
-              className="h-8 px-4 text-[11px] font-semibold rounded-full gap-1.5 relative overflow-hidden group border-0"
-              style={{
-                background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(270 80% 60%))',
-                color: 'white',
-              }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-              <Download className="w-3 h-3" />
-              <span>Export</span>
-            </Button>
-          )}
-        </div>
-      </motion.div>
-
-      {/* Render progress bar */}
-      <AnimatePresence>
-        {isRendering && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="h-0.5 bg-muted/30 shrink-0 z-10"
-          >
-            <div
-              className="h-full bg-gradient-to-r from-primary via-violet-400 to-primary transition-all duration-300"
+    <TooltipProvider delayDuration={300}>
+      <div className="h-screen w-screen flex flex-col bg-[hsl(var(--background))] overflow-hidden relative">
+        {/* Apex accent line — top */}
+        <div className="absolute top-0 left-0 right-0 h-px z-20">
+          <div className="h-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+          {isRendering && (
+            <motion.div
+              className="absolute inset-0 h-px bg-gradient-to-r from-primary via-violet-400 to-primary"
               style={{ width: `${Math.round(progress * 100)}%` }}
+              transition={{ duration: 0.3 }}
             />
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </div>
 
-      {/* Twick Studio with full Apex config */}
-      <div className="flex-1 min-h-0">
-        <TwickStudio studioConfig={studioConfig} />
+        {/* ═══════════════ PREMIUM TOP BAR ═══════════════ */}
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="h-14 flex items-center justify-between px-4 border-b border-border/20 shrink-0 z-10 relative"
+          style={{
+            background: 'linear-gradient(180deg, hsla(240, 25%, 6%, 0.98) 0%, hsla(240, 25%, 4%, 0.95) 100%)',
+            backdropFilter: 'blur(24px) saturate(1.5)',
+          }}
+        >
+          {/* Left section — Navigation + Import */}
+          <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate("/projects")}
+                  className="text-muted-foreground/50 hover:text-foreground gap-1.5 hover:bg-accent/50 h-9 px-2.5 rounded-lg"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Back to Projects</TooltipContent>
+            </Tooltip>
+
+            <div className="w-px h-5 bg-border/20 mx-1" />
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={openBrowser}
+                  className="h-9 px-3 text-[11px] gap-2 rounded-lg border border-border/20 hover:border-primary/30 hover:bg-primary/5 text-muted-foreground hover:text-foreground transition-all"
+                >
+                  <FolderOpen className="w-3.5 h-3.5" />
+                  <span>{!autoLoadDone ? "Syncing…" : "Import"}</span>
+                  {!autoLoadDone && <Loader2 className="w-3 h-3 animate-spin text-primary/60" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Import clips from your projects</TooltipContent>
+            </Tooltip>
+
+            {/* Media count badge */}
+            <AnimatePresence>
+              {autoLoadDone && mediaCounts.videos > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20"
+                >
+                  <Check className="w-3 h-3 text-emerald-400" />
+                  <span className="text-[10px] font-medium text-emerald-400/80">
+                    {mediaCounts.videos} clips
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Center — Branding + Session Title */}
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Logo size="sm" />
+              <div className="flex flex-col items-start">
+                <span className="text-[11px] font-bold tracking-tight font-display bg-gradient-to-r from-primary via-violet-400 to-primary bg-clip-text text-transparent leading-tight">
+                  APEX STUDIO
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-muted-foreground/50 max-w-[180px] truncate leading-tight">
+                    {sessionTitle}
+                  </span>
+                  {hasUnsavedChanges && (
+                    <motion.span
+                      animate={{ opacity: [0.4, 1, 0.4] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="w-1.5 h-1.5 rounded-full bg-amber-400"
+                      title="Unsaved changes"
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right — Actions */}
+          <div className="flex items-center gap-1.5">
+            {/* Shortcuts toggle */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowShortcuts(prev => !prev)}
+                  className="h-9 w-9 p-0 text-muted-foreground/40 hover:text-foreground rounded-lg"
+                >
+                  <Keyboard className="w-3.5 h-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Keyboard shortcuts (?)</TooltipContent>
+            </Tooltip>
+
+            <div className="w-px h-5 bg-border/20 mx-0.5" />
+
+            {/* Save */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const project = getProjectJSON();
+                    saveProject(project, sessionTitle);
+                  }}
+                  disabled={saving}
+                  className="h-9 px-3 text-[11px] gap-1.5 text-muted-foreground hover:text-foreground rounded-lg"
+                >
+                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  <span className="hidden sm:inline">Save</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Save project (⌘S)</TooltipContent>
+            </Tooltip>
+
+            {/* Stitch */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {isStitching ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => resetStitch()}
+                    className="h-9 px-3.5 text-[11px] font-semibold rounded-lg gap-1.5 border-primary/30 text-primary bg-primary/5"
+                  >
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Stitching {Math.round(stitchProgress)}%</span>
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleStitch}
+                    disabled={isRendering}
+                    className="h-9 px-3.5 text-[11px] gap-1.5 rounded-lg border-border/20 hover:border-primary/30 hover:bg-primary/5 text-muted-foreground hover:text-foreground"
+                  >
+                    <Film className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Stitch</span>
+                  </Button>
+                )}
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Server-side stitch with crossfade</TooltipContent>
+            </Tooltip>
+
+            {/* Export */}
+            {isRendering ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => reset()}
+                className="h-9 px-4 text-[11px] font-semibold rounded-lg gap-1.5 border-destructive/30 text-destructive bg-destructive/5"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Cancel {Math.round(progress * 100)}%</span>
+              </Button>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      const project = getProjectJSON();
+                      exportVideo(project, {});
+                    }}
+                    disabled={isStitching}
+                    className="h-9 px-5 text-[11px] font-semibold rounded-lg gap-2 relative overflow-hidden group border-0 shadow-lg shadow-primary/20"
+                    style={{
+                      background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(270 80% 60%))',
+                      color: 'white',
+                    }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export MP4</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Export video (⌘E)</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Render progress bar */}
+        <AnimatePresence>
+          {isRendering && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="h-0.5 bg-muted/20 shrink-0 z-10 relative"
+            >
+              <motion.div
+                className="h-full bg-gradient-to-r from-primary via-violet-400 to-primary"
+                style={{ width: `${Math.round(progress * 100)}%` }}
+                transition={{ duration: 0.3 }}
+              />
+              <div className="absolute right-0 top-0 w-8 h-full bg-gradient-to-l from-primary/40 to-transparent animate-pulse" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Twick Studio */}
+        <div className="flex-1 min-h-0 studio-container">
+          <TwickStudio studioConfig={studioConfig} />
+        </div>
+
+        {/* ═══════════════ PREMIUM STATUS BAR ═══════════════ */}
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="h-7 flex items-center justify-between px-4 border-t border-border/15 shrink-0 z-10 select-none"
+          style={{
+            background: 'hsla(240, 25%, 5%, 0.95)',
+          }}
+        >
+          {/* Left — Timeline stats */}
+          <div className="flex items-center gap-3 text-[10px] text-muted-foreground/40">
+            <div className="flex items-center gap-1">
+              <Layers className="w-3 h-3" />
+              <span>{trackCount} track{trackCount !== 1 ? 's' : ''}</span>
+            </div>
+            <div className="w-px h-3 bg-border/15" />
+            <div className="flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              <span>{elementCount} element{elementCount !== 1 ? 's' : ''}</span>
+            </div>
+            {mediaCounts.videos > 0 && (
+              <>
+                <div className="w-px h-3 bg-border/15" />
+                <div className="flex items-center gap-1">
+                  <Film className="w-3 h-3" />
+                  <span>{mediaCounts.videos} in library</span>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Center — Session status */}
+          <div className="flex items-center gap-2 text-[10px]">
+            {hasUnsavedChanges ? (
+              <span className="text-amber-400/60 flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                Unsaved changes
+              </span>
+            ) : (
+              <span className="text-emerald-400/40 flex items-center gap-1">
+                <Check className="w-3 h-3" />
+                Saved
+              </span>
+            )}
+          </div>
+
+          {/* Right — Render info */}
+          <div className="flex items-center gap-3 text-[10px] text-muted-foreground/40">
+            <span>1920×1080</span>
+            <div className="w-px h-3 bg-border/15" />
+            <span>30fps</span>
+            <div className="w-px h-3 bg-border/15" />
+            <div className="flex items-center gap-1">
+              <Zap className="w-3 h-3 text-primary/40" />
+              <span>WebCodecs</span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Project Browser overlay */}
+        <ProjectBrowser
+          open={browserOpen}
+          onClose={() => setBrowserOpen(false)}
+          projects={projects}
+          loadingProjects={!projectsLoaded && clipsLoading}
+          onSelectProject={handleSelectProject}
+          loadingClips={clipsLoading}
+          loadedProjectIds={loadedProjectIds}
+        />
+
+        {/* ═══════════════ KEYBOARD SHORTCUTS PANEL ═══════════════ */}
+        <AnimatePresence>
+          {showShortcuts && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+              onClick={() => setShowShortcuts(false)}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 12 }}
+                transition={{ duration: 0.2 }}
+                className="w-full max-w-sm rounded-2xl border border-border/20 bg-card/95 backdrop-blur-2xl shadow-2xl overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border/20">
+                  <div className="flex items-center gap-2">
+                    <Keyboard className="w-4 h-4 text-primary" />
+                    <h2 className="text-sm font-semibold text-foreground font-display">Keyboard Shortcuts</h2>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setShowShortcuts(false)} className="h-7 w-7 p-0">
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+                <div className="p-5 space-y-3">
+                  {[
+                    { keys: "⌘ S", label: "Save project" },
+                    { keys: "⌘ E", label: "Export video" },
+                    { keys: "⌘ Z", label: "Undo" },
+                    { keys: "⌘ ⇧ Z", label: "Redo" },
+                    { keys: "Space", label: "Play / Pause" },
+                    { keys: "?", label: "Toggle shortcuts" },
+                  ].map((shortcut) => (
+                    <div key={shortcut.keys} className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground/70">{shortcut.label}</span>
+                      <kbd className="text-[10px] font-mono px-2 py-0.5 rounded bg-muted/30 border border-border/20 text-muted-foreground/60">
+                        {shortcut.keys}
+                      </kbd>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Floating notifications */}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: 16, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8 }}
+              className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-destructive/90 text-destructive-foreground text-xs font-medium px-5 py-2.5 rounded-full backdrop-blur-xl border border-destructive/30 shadow-lg z-20"
+            >
+              Export error: {error.message}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showSuccess && (
+            <motion.div
+              initial={{ opacity: 0, y: 16, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8 }}
+              className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-emerald-500/90 text-white text-xs font-medium px-5 py-2.5 rounded-full backdrop-blur-xl border border-emerald-400/30 shadow-lg z-20 flex items-center gap-2"
+            >
+              <Check className="w-3 h-3" /> Video downloaded
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-
-      {/* Project Browser overlay */}
-      <ProjectBrowser
-        open={browserOpen}
-        onClose={() => setBrowserOpen(false)}
-        projects={projects}
-        loadingProjects={!projectsLoaded && clipsLoading}
-        onSelectProject={handleSelectProject}
-        loadingClips={clipsLoading}
-        loadedProjectIds={loadedProjectIds}
-      />
-
-      {/* Floating notifications */}
-      <AnimatePresence>
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8 }}
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-destructive/90 text-destructive-foreground text-xs font-medium px-5 py-2.5 rounded-full backdrop-blur-xl border border-destructive/30 shadow-lg z-20"
-          >
-            Export error: {error.message}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showSuccess && (
-          <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8 }}
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-emerald-500/90 text-white text-xs font-medium px-5 py-2.5 rounded-full backdrop-blur-xl border border-emerald-400/30 shadow-lg z-20 flex items-center gap-2"
-          >
-            <span>✓</span> Video downloaded
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    </TooltipProvider>
   );
 }

@@ -23,39 +23,73 @@
 
 .studio-container,
 [class*="studio-"] {
-  --color-neutral-900: hsl(240 33% 4%);
-  --color-neutral-800: hsl(240 25% 6%);
-  --color-neutral-700: hsl(240 18% 12%);
-  --color-neutral-600: hsl(240 16% 19%);
-  --color-neutral-500: hsl(240 16% 32%);
-  --color-neutral-400: hsl(240 12% 59%);
-  --color-neutral-300: hsl(240 14% 74%);
+  /* Force app font system onto SDK */
+  font-family: 'Instrument Sans', system-ui, -apple-system, sans-serif !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
 
-  --color-gray-100: hsl(240 20% 93%);
-  --color-gray-200: hsl(240 12% 85%);
-  --color-gray-300: hsl(240 8% 72%);
-  --color-gray-400: hsl(240 10% 58%);
-  --color-gray-500: hsl(240 11% 42%);
-  --color-gray-600: hsl(240 16% 27%);
-  --color-gray-700: hsl(240 19% 18%);
-  --color-gray-800: hsl(240 25% 11%);
-  --color-gray-900: hsl(240 30% 6%);
+  --color-neutral-900: hsl(250 15% 4%);
+  --color-neutral-800: hsl(250 12% 8%);
+  --color-neutral-700: hsl(250 10% 13%);
+  --color-neutral-600: hsl(250 8% 18%);
+  --color-neutral-500: hsl(240 16% 32%);
+  --color-neutral-400: hsl(240 5% 55%);
+  --color-neutral-300: hsl(240 5% 74%);
+
+  --color-gray-100: hsl(240 5% 93%);
+  --color-gray-200: hsl(240 5% 85%);
+  --color-gray-300: hsl(240 5% 72%);
+  --color-gray-400: hsl(240 5% 58%);
+  --color-gray-500: hsl(240 5% 42%);
+  --color-gray-600: hsl(250 10% 27%);
+  --color-gray-700: hsl(250 10% 18%);
+  --color-gray-800: hsl(250 12% 11%);
+  --color-gray-900: hsl(250 15% 6%);
 
   /* Apex violet accent system */
   --color-purple-400: hsl(263 70% 68%);
-  --color-purple-500: hsl(263 84% 58%);
-  --color-purple-600: hsl(263 84% 48%);
-  --color-purple-700: hsl(263 80% 40%);
-  --color-purple-muted: hsla(263 84% 58% / 0.15);
+  --color-purple-500: hsl(263 70% 58%);
+  --color-purple-600: hsl(263 70% 48%);
+  --color-purple-700: hsl(263 70% 40%);
+  --color-purple-muted: hsla(263 70% 58% / 0.15);
 
   /* Blue accents → violet */
   --color-blue-400: hsl(263 70% 68%);
-  --color-blue-500: hsl(263 84% 58%);
-  --color-blue-600: hsl(263 84% 48%);
+  --color-blue-500: hsl(263 70% 58%);
+  --color-blue-600: hsl(263 70% 48%);
 
   /* Elevation tokens */
-  --elevation-panel: 0 0 0 1px hsla(263 84% 58% / 0.06), 0 8px 32px hsla(0 0% 0% / 0.5);
-  --elevation-scrubber: 0 0 8px hsla(263 84% 58% / 0.8);
+  --elevation-panel: 0 0 0 1px hsla(263 70% 58% / 0.06), 0 8px 32px hsla(0 0% 0% / 0.5);
+  --elevation-scrubber: 0 0 8px hsla(263 70% 58% / 0.8);
+}
+
+/* Force font consistency on ALL SDK text elements */
+.studio-container *,
+.studio-container button,
+.studio-container input,
+.studio-container select,
+.studio-container label,
+.studio-container span,
+.studio-container p,
+.studio-container div {
+  font-family: inherit !important;
+}
+
+/* SDK headings use display font */
+.studio-container h1,
+.studio-container h2,
+.studio-container h3,
+.studio-container h4 {
+  font-family: 'Sora', system-ui, sans-serif !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* SDK buttons match app button sizing */
+.studio-container button {
+  font-size: 13px !important;
+  border-radius: calc(0.75rem - 4px) !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease !important;
 }
 
 /* ═══════════════════════════════════════════════
@@ -78,7 +112,7 @@
 .studio-container,
 .studio-content,
 .main-container {
-  background: hsl(240 33% 4%) !important;
+  background: hsl(250 15% 4%) !important;
 }
 
 /* Left panel — media / tools */
@@ -351,7 +385,7 @@
    14. TRANSITIONS — smooth Apex feel
    ═══════════════════════════════════════════════ */
 
-.studio-container button,
+.studio-container button:not([class*="primary"]),
 .studio-container [role="tab"],
 .studio-container [class*="media-item"],
 .studio-container input {

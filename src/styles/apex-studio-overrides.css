@@ -115,7 +115,7 @@
   background: hsl(250 15% 4%) !important;
 }
 
-/* Let the SDK manage its own height — our flex container constrains it */
+/* Layout is managed by useStudioLayoutFix hook via direct DOM manipulation */
 
 /* Left panel — media / tools */
 .studio-left-panel,
@@ -175,30 +175,10 @@
    4. TIMELINE — Raised, prominent workspace
    ═══════════════════════════════════════════════ */
 
-/* Force the canvas area to share space with a taller timeline */
-.studio-container .main-container {
-  display: flex !important;
-  flex-direction: column !important;
-}
-
-.studio-container .canvas-wrapper {
-  flex: 1 1 0% !important;
-  max-height: 52% !important;
-  min-height: 180px !important;
-}
-
-/* Give the timeline section real estate — minimum 40% of main area */
+/* Timeline section styling (layout managed by JS hook) */
 .studio-container .twick-editor-timeline-section {
-  min-height: 260px !important;
-  flex: 1 1 auto !important;
   background: hsl(240 28% 4%) !important;
   border-top: 2px solid hsla(263 84% 58% / 0.15) !important;
-  border-radius: 0 !important;
-}
-
-.studio-container .twick-timeline-scroll-container {
-  flex: 1 !important;
-  overflow-y: auto !important;
 }
 
 /* Taller individual tracks for better visibility */

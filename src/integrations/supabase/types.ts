@@ -3179,6 +3179,7 @@ export type Database = {
           created_at: string
           id: string
           ip_address: string | null
+          ip_hash: string | null
           referrer: string | null
           region: string | null
           timezone: string | null
@@ -3195,6 +3196,7 @@ export type Database = {
           created_at?: string
           id?: string
           ip_address?: string | null
+          ip_hash?: string | null
           referrer?: string | null
           region?: string | null
           timezone?: string | null
@@ -3211,6 +3213,7 @@ export type Database = {
           created_at?: string
           id?: string
           ip_address?: string | null
+          ip_hash?: string | null
           referrer?: string | null
           region?: string | null
           timezone?: string | null
@@ -4835,7 +4838,7 @@ export type Database = {
         Args: { p_widget_id: string }
         Returns: boolean
       }
-      cleanup_old_signup_analytics: { Args: never; Returns: undefined }
+      cleanup_old_signup_analytics: { Args: never; Returns: Json }
       create_group_conversation: {
         Args: { p_member_ids: string[]; p_name: string }
         Returns: string

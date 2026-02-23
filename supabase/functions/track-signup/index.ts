@@ -77,9 +77,17 @@ serve(async (req) => {
       });
     }
 
+    // Hash IP for long-term fraud detection (raw IP auto-redacted after 90 days)
+    const encoder = new TextEncoder();
+    const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(ip + "signup-salt"));
+    const ipHash = Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join("");
+
     const { error } = await supabaseAdmin.from("signup_analytics").insert({
       user_id,
       ip_address: ip,
+      ip_hash: ipHash,
       country: geo.country || null,
       country_code: geo.countryCode || null,
       region: geo.region || null,

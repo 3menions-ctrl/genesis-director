@@ -2,8 +2,11 @@
  * useStudioLayoutFix
  * 
  * Forces the Twick SDK's internal layout to show the timeline prominently.
- * SDK structure: main > div (scrollable) > div (content) > [Canvas, div (timeline)]
- * This hook converts the scrollable wrapper to a constrained flex layout.
+ * SDK structure: main > div[scrollable] > div[content] > [Canvas, div(controls), div(timeline)]
+ * 
+ * The SDK sets canvas.width and canvas.height HTML attributes to large values 
+ * (e.g., 720x1280 for portrait), which creates intrinsic sizing that CSS can't 
+ * easily override. This hook directly modifies those attributes AND applies CSS.
  */
 
 import { useEffect, useRef } from 'react';
@@ -12,89 +15,90 @@ export function useStudioLayoutFix(containerSelector = '.studio-container') {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    let applied = false;
+    let logged = false;
 
     function applyLayoutFix(): boolean {
-      const container = document.querySelector(containerSelector);
+      const container = document.querySelector(containerSelector) as HTMLElement;
       if (!container) return false;
 
-      const main = container.querySelector('main');
+      // Force container to fill its parent without scrolling
+      container.style.setProperty('height', '100%', 'important');
+      container.style.setProperty('max-height', '100vh', 'important');
+      container.style.setProperty('overflow', 'hidden', 'important');
+
+      const main = container.querySelector('main') as HTMLElement;
       if (!main) return false;
 
-      // Force main to fill container
+      // Override SDK's 80dvh
       main.style.setProperty('height', '100%', 'important');
+      main.style.setProperty('max-height', '100%', 'important');
+      main.style.setProperty('min-height', '0', 'important');
       main.style.setProperty('overflow', 'hidden', 'important');
 
-      // Find the <canvas> element — it's the SDK's preview
-      const canvas = main.querySelector('canvas');
+      const canvas = main.querySelector('canvas') as HTMLCanvasElement;
       if (!canvas) return false;
 
-      // Walk up from canvas to find the content structure
-      // canvas is inside: main > scrollDiv > contentDiv > canvas
-      const contentDiv = canvas.parentElement;
+      const contentDiv = canvas.parentElement as HTMLElement;
       if (!contentDiv) return false;
       
-      const scrollDiv = contentDiv.parentElement;
-      if (!scrollDiv || scrollDiv === main) {
-        // canvas is directly in main's child — simpler structure
-        // main > contentDiv > [canvas, timeline]
-        contentDiv.style.setProperty('height', '100%', 'important');
-        contentDiv.style.setProperty('display', 'flex', 'important');
-        contentDiv.style.setProperty('flex-direction', 'column', 'important');
-        contentDiv.style.setProperty('overflow', 'hidden', 'important');
-      } else {
-        // main > scrollDiv > contentDiv > [canvas, timeline]
-        scrollDiv.style.setProperty('height', '100%', 'important');
-        scrollDiv.style.setProperty('max-height', '100%', 'important');
-        scrollDiv.style.setProperty('overflow', 'hidden', 'important');
-        scrollDiv.style.setProperty('display', 'flex', 'important');
-        scrollDiv.style.setProperty('flex-direction', 'column', 'important');
+      const scrollDiv = contentDiv.parentElement as HTMLElement;
+      if (!scrollDiv || scrollDiv === main) return false;
 
-        contentDiv.style.setProperty('flex', '1', 'important');
-        contentDiv.style.setProperty('height', '100%', 'important');
-        contentDiv.style.setProperty('display', 'flex', 'important');
-        contentDiv.style.setProperty('flex-direction', 'column', 'important');
-        contentDiv.style.setProperty('overflow', 'hidden', 'important');
-      }
+      // Kill scroll on the scrollDiv entirely
+      scrollDiv.removeAttribute('data-scrollable');
+      scrollDiv.style.setProperty('overflow', 'hidden', 'important');
+      scrollDiv.style.setProperty('height', '100%', 'important');
+      scrollDiv.style.setProperty('max-height', '100%', 'important');
+      scrollDiv.style.setProperty('min-height', '0', 'important');
 
-      // Constrain the canvas — use pixel-based height since canvas elements
-      // don't respect percentage max-height well due to intrinsic dimensions
-      const availableHeight = main.getBoundingClientRect().height;
-      const canvasMaxHeight = Math.floor(availableHeight * 0.55);
-      canvas.style.setProperty('flex', '0 1 auto', 'important');
-      canvas.style.setProperty('max-height', `${canvasMaxHeight}px`, 'important');
-      canvas.style.setProperty('min-height', '60px', 'important');
-      canvas.style.setProperty('width', '100%', 'important');
-      canvas.style.setProperty('object-fit', 'contain', 'important');
-
-      // Find sibling elements of canvas (timeline section)
-      const siblings = Array.from(contentDiv.children) as HTMLElement[];
-      let hasTimeline = false;
+      // contentDiv — use grid for reliable proportional layout
+      contentDiv.style.setProperty('height', '100%', 'important');
+      contentDiv.style.setProperty('max-height', '100%', 'important');
+      contentDiv.style.setProperty('min-height', '0', 'important');
+      contentDiv.style.setProperty('overflow', 'hidden', 'important');
+      contentDiv.style.setProperty('display', 'grid', 'important');
       
-      for (const sibling of siblings) {
-        if (sibling === canvas) continue;
-        
-        // This is the timeline/controls section
-        sibling.style.setProperty('flex', '1 1 auto', 'important');
-        sibling.style.setProperty('min-height', '200px', 'important');
-        sibling.style.setProperty('overflow-y', 'auto', 'important');
-        sibling.style.setProperty('overflow-x', 'hidden', 'important');
-        sibling.style.setProperty('border-top', '2px solid hsla(263, 84%, 58%, 0.25)', 'important');
-        sibling.style.setProperty('background', 'hsl(240, 20%, 6%)', 'important');
-        hasTimeline = true;
+      // Count children to build grid template
+      const children = Array.from(contentDiv.children) as HTMLElement[];
+      const canvasIndex = children.indexOf(canvas);
+      
+      // Build grid-template-rows: canvas gets 35%, everything else shares remaining
+      const otherCount = children.length - 1;
+      if (otherCount <= 0) return false;
+      
+      const rows = children.map((child) => {
+        if (child === canvas) return '35%';
+        return `minmax(40px, 1fr)`;
+      }).join(' ');
+      contentDiv.style.setProperty('grid-template-rows', rows, 'important');
+      contentDiv.style.setProperty('grid-template-columns', '1fr', 'important');
+
+      // Canvas: force it to fit within its grid cell
+      canvas.style.setProperty('width', '100%', 'important');
+      canvas.style.setProperty('height', '100%', 'important');
+      canvas.style.setProperty('max-height', '100%', 'important');
+      canvas.style.setProperty('object-fit', 'contain', 'important');
+      canvas.style.setProperty('display', 'block', 'important');
+      canvas.style.setProperty('overflow', 'hidden', 'important');
+
+      // Timeline siblings — make them scrollable
+      for (const child of children) {
+        if (child === canvas) continue;
+        child.style.setProperty('overflow-y', 'auto', 'important');
+        child.style.setProperty('overflow-x', 'hidden', 'important');
+        child.style.setProperty('min-height', '0', 'important');
       }
 
-      return hasTimeline;
+      return true;
     }
 
-    // Poll to apply and re-apply
     intervalRef.current = setInterval(() => {
       const result = applyLayoutFix();
-      if (result && !applied) {
-        applied = true;
-        console.log('[StudioLayoutFix] Timeline layout enforced — canvas 50%, timeline 50%');
+      if (result && !logged) {
+        logged = true;
+        console.log('[StudioLayoutFix] Grid layout enforced — canvas 35%, timeline 65%');
       }
-    }, 300);
+    }, 150);
 
     applyLayoutFix();
 

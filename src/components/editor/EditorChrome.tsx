@@ -22,6 +22,8 @@ import {
 import { VideoPreviewPlayer } from "@/components/editor/VideoPreviewPlayer";
 import { CustomTimeline } from "@/components/editor/CustomTimeline";
 import { MediaSidebar } from "@/components/editor/MediaSidebar";
+import { ClipPropertiesPanel } from "@/components/editor/ClipPropertiesPanel";
+import { TextClipDialog } from "@/components/editor/TextClipDialog";
 import {
   useCustomTimeline,
   toProjectJSON,
@@ -57,6 +59,7 @@ export function EditorChrome({
   const [isMobile, setIsMobile] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [availableClips, setAvailableClips] = useState<EditorClip[]>([]);
+  const [textDialogOpen, setTextDialogOpen] = useState(false);
 
   const { listProjects, loadProjectClips, loading: clipsLoading } = useEditorClips();
   const { submitStitch, isStitching, progress: stitchProgress, reset: resetStitch } = useEditorStitch();
@@ -651,8 +654,11 @@ export function EditorChrome({
             <VideoPreviewPlayer className="h-[40%] shrink-0" />
 
             {/* Timeline — bottom 60% (permanently raised) */}
-            <CustomTimeline className="flex-1 min-h-0" />
+            <CustomTimeline className="flex-1 min-h-0" onOpenTextDialog={() => setTextDialogOpen(true)} />
           </div>
+
+          {/* Right — Properties panel */}
+          <ClipPropertiesPanel />
         </div>
 
         {/* ═══════════════ STATUS BAR ═══════════════ */}
@@ -709,6 +715,9 @@ export function EditorChrome({
             </div>
           </div>
         </motion.div>
+
+        {/* Text Clip Dialog */}
+        <TextClipDialog open={textDialogOpen} onOpenChange={setTextDialogOpen} />
 
         {/* Project Browser overlay */}
         <ProjectBrowser

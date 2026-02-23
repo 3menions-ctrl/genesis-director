@@ -201,7 +201,7 @@ function ClipBlock({
 
 // ─── Main Timeline ───
 
-export const CustomTimeline = memo(function CustomTimeline({ className }: { className?: string }) {
+export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTextDialog }: { className?: string; onOpenTextDialog?: () => void }) {
   const { state, dispatch } = useCustomTimeline();
   const timelineRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -343,10 +343,10 @@ export const CustomTimeline = memo(function CustomTimeline({ className }: { clas
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => addTrack("text")}
+          onClick={() => onOpenTextDialog?.()}
           className="h-6 px-2 text-[10px] gap-1 text-muted-foreground/60 hover:text-foreground"
         >
-          <Type className="w-3 h-3" /> Text Track
+          <Type className="w-3 h-3" /> Text Overlay
         </Button>
 
         <div className="flex-1" />

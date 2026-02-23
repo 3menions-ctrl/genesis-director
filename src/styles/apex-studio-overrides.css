@@ -509,3 +509,69 @@
   border-color: hsl(263 84% 58%) !important;
   background: hsla(263 84% 58% / 0.08) !important;
 }
+
+/* ═══════════════════════════════════════════════
+   17. TIMELINE-ONLY MODE — hide SDK canvas, show timeline permanently
+   ═══════════════════════════════════════════════ */
+
+/* Hide the SDK canvas and its wrapper completely */
+.apex-timeline-only canvas {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  pointer-events: none !important;
+}
+
+/* Hide canvas wrapper and player containers */
+.apex-timeline-only [class*="canvas-area"],
+.apex-timeline-only [class*="canvas-wrapper"],
+.apex-timeline-only [class*="player-wrapper"],
+.apex-timeline-only [class*="player-container"],
+.apex-timeline-only [class*="preview-container"],
+.apex-timeline-only [class*="video-preview"] {
+  display: none !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Force SDK's main element to fill available space */
+.apex-timeline-only main {
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* SDK scroll wrapper */
+.apex-timeline-only main > div[data-scrollable],
+.apex-timeline-only main > div:first-child {
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+/* SDK content wrapper (holds canvas + controls + timeline) — make it flex column */
+.apex-timeline-only main > div > div:first-child,
+.apex-timeline-only main > div[data-scrollable] > div:first-child {
+  height: 100% !important;
+  max-height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+/* All children of the content wrapper that are NOT the canvas — expand them */
+.apex-timeline-only main > div > div:first-child > div,
+.apex-timeline-only main > div[data-scrollable] > div:first-child > div {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+
+/* Player controls bar stays compact */
+.apex-timeline-only .player-controls {
+  flex: 0 0 auto !important;
+  border-top: none !important;
+}

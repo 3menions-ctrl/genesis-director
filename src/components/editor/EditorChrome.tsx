@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEditorClips, EditorClip, EditorImage, ProjectSummary } from "@/hooks/useEditorClips";
 import { useEditorStitch } from "@/hooks/useEditorStitch";
+import { useStudioLayoutFix } from "@/hooks/useStudioLayoutFix";
 import { ProjectBrowser } from "@/components/editor/ProjectBrowser";
 import { Logo } from "@/components/ui/Logo";
 import { supabase } from "@/integrations/supabase/client";
@@ -155,6 +156,9 @@ export function EditorChrome({
       try { setElementColors(APEX_ELEMENT_COLORS); } catch {}
     }
   }, [setElementColors]);
+
+  // ─── Force timeline layout fix (SDK uses hardcoded 80dvh) ───
+  useStudioLayoutFix('.studio-container');
 
   // ─── Mobile detection ───
   useEffect(() => {

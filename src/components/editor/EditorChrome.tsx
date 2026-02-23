@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Loader2, FolderOpen, Check, Save, X, Monitor } from "lucide-react";
+import { ArrowLeft, Download, Loader2, FolderOpen, Check, Save, X, Monitor, Film } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEditorClips, EditorClip, EditorImage, ProjectSummary } from "@/hooks/useEditorClips";
+import { useEditorStitch } from "@/hooks/useEditorStitch";
 import { ProjectBrowser } from "@/components/editor/ProjectBrowser";
 import { Logo } from "@/components/ui/Logo";
 import { supabase } from "@/integrations/supabase/client";
@@ -132,6 +133,7 @@ export function EditorChrome({
   const [isMobile, setIsMobile] = useState(false);
 
   const { listProjects, loadProjectClips, loading: clipsLoading } = useEditorClips();
+  const { submitStitch, isStitching, progress: stitchProgress, reset: resetStitch } = useEditorStitch();
 
   // ─── Get timeline context for real ProjectJSON access ───
   const { editor, present } = useTimelineContext();
@@ -304,7 +306,54 @@ export function EditorChrome({
     }
   }, [render, reset, getProjectJSON]);
 
-  // ─── Keyboard shortcuts ───
+  // ─── Server-side crossfade stitch ───
+  const handleStitch = useCallback(async () => {
+    if (!sessionId) {
+      // Save first to get a session ID
+      const project = getProjectJSON();
+      const result = await saveProject(project, sessionTitle);
+      if (!result.status) return;
+    }
+
+    // Extract video elements from timeline as clip URLs
+    const projectData = getProjectJSON();
+    if (!projectData?.tracks?.length) {
+      toast.error("No clips on timeline to stitch");
+      return;
+    }
+
+    // Find all video elements across tracks
+    const clips: { url: string; duration: number }[] = [];
+    for (const track of projectData.tracks) {
+      for (const element of track.elements || []) {
+        if (element.type === "video" && element.props?.src) {
+          clips.push({
+            url: element.props.src,
+            duration: (element.e - element.s) || 6,
+          });
+        }
+      }
+    }
+
+    if (clips.length < 2) {
+      toast.error("Need at least 2 video clips on the timeline to stitch");
+      return;
+    }
+
+    // Use the current sessionId (may have just been created by saveProject)
+    const currentSessionId = new URLSearchParams(window.location.search).get("session") || sessionId;
+    if (!currentSessionId) {
+      toast.error("Please save the project first");
+      return;
+    }
+
+    await submitStitch(currentSessionId, clips, {
+      crossfadeDuration: 0.5,
+      transition: "fade",
+    });
+  }, [sessionId, getProjectJSON, saveProject, sessionTitle, submitStitch]);
+
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
@@ -470,6 +519,30 @@ export function EditorChrome({
             <span className="hidden sm:inline">Save</span>
           </Button>
 
+          {/* Server-side Stitch button */}
+          {isStitching ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => resetStitch()}
+              className="h-8 px-3 text-[11px] font-semibold rounded-full gap-1.5 border-primary/30 text-primary"
+            >
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span>Stitch {Math.round(stitchProgress)}%</span>
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleStitch}
+              disabled={isRendering}
+              className="h-8 px-3 text-[11px] gap-1.5 rounded-full border-border/30 hover:border-primary/30 hover:bg-primary/5"
+            >
+              <Film className="w-3 h-3" />
+              <span className="hidden sm:inline">Stitch</span>
+            </Button>
+          )}
+
           {isRendering ? (
             <Button
               size="sm"
@@ -487,6 +560,7 @@ export function EditorChrome({
                 const project = getProjectJSON();
                 exportVideo(project, {});
               }}
+              disabled={isStitching}
               className="h-8 px-4 text-[11px] font-semibold rounded-full gap-1.5 relative overflow-hidden group border-0"
               style={{
                 background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(270 80% 60%))',

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Loader2, FolderOpen, Check, Save, X, Monitor } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
@@ -134,7 +134,7 @@ export function EditorChrome({
   const { listProjects, loadProjectClips, loading: clipsLoading } = useEditorClips();
 
   // ─── Get timeline context for real ProjectJSON access ───
-  const timelineCtx = useTimelineContext();
+  const { editor, present } = useTimelineContext();
 
   // ─── Apply element colors via SDK API ───
   useEffect(() => {
@@ -173,10 +173,10 @@ export function EditorChrome({
 
   // ─── Mark unsaved on timeline changes ───
   useEffect(() => {
-    if (timelineCtx?.tracks?.length > 0) {
+    if (present && present.tracks?.length > 0) {
       setHasUnsavedChanges(true);
     }
-  }, [timelineCtx?.tracks]);
+  }, [present]);
 
   const { render, progress, isRendering, error, reset, videoBlob } = useBrowserRenderer({
     width: 1920,
@@ -190,21 +190,10 @@ export function EditorChrome({
 
   // ─── Helper: get current project JSON from timeline context ───
   const getProjectJSON = useCallback(() => {
-    if (!timelineCtx) return null;
-    try {
-      // TimelineContext exposes the current project state
-      const project = timelineCtx.getProject?.() ?? timelineCtx.project ?? {
-        properties: { width: 1920, height: 1080, fps: 30 },
-        tracks: timelineCtx.tracks || [],
-      };
-      return project;
-    } catch {
-      return {
-        properties: { width: 1920, height: 1080, fps: 30 },
-        tracks: timelineCtx?.tracks || [],
-      };
-    }
-  }, [timelineCtx]);
+    // `present` holds the live ProjectJSON from the timeline context
+    if (present && present.tracks?.length > 0) return present;
+    return null;
+  }, [present]);
 
   // ─── StudioConfig callbacks ───
 
@@ -212,8 +201,12 @@ export function EditorChrome({
     if (!user) return { status: false, message: "Not signed in" };
     setSaving(true);
     try {
-      // Use provided project or extract from timeline context
-      const projectData = (project && Object.keys(project).length > 0) ? project : getProjectJSON();
+      // Use provided project (from Twick) or extract from timeline context
+      const projectData = (project && project.tracks?.length > 0) ? project : getProjectJSON();
+      if (!projectData) {
+        toast.error("Nothing to save — add clips to the timeline first");
+        return { status: false, message: "Empty timeline" };
+      }
       const title = fileName || sessionTitle;
 
       const payload = {
@@ -258,7 +251,7 @@ export function EditorChrome({
 
   const loadProject = useCallback(async () => {
     if (!user || !sessionId) {
-      return { properties: { width: 1920, height: 1080, fps: 30 }, tracks: [] };
+      return { tracks: [], version: 1 };
     }
     try {
       const { data, error: err } = await supabase
@@ -270,21 +263,32 @@ export function EditorChrome({
       if (err) throw err;
       if (data.title) setSessionTitle(data.title);
       setHasUnsavedChanges(false);
+
+      // Restore timeline into the editor
+      const projectData = data.timeline_data as any;
+      if (projectData && projectData.tracks?.length > 0 && editor) {
+        try {
+          editor.loadProject({ tracks: projectData.tracks, version: projectData.version || 1 });
+        } catch (e) {
+          console.warn("editor.loadProject fallback:", e);
+        }
+      }
+
       toast.success("Session restored");
-      return data.timeline_data;
+      return projectData || { tracks: [], version: 1 };
     } catch (err: any) {
       console.error("Load failed:", err);
       toast.error("Failed to load session");
-      return { properties: { width: 1920, height: 1080, fps: 30 }, tracks: [] };
+      return { tracks: [], version: 1 };
     }
-  }, [user, sessionId]);
+  }, [user, sessionId, editor]);
 
   const exportVideo = useCallback(async (project: any, videoSettings: any) => {
     try {
       setShowSuccess(false);
       reset();
       // Use provided project or extract from timeline context
-      const projectData = (project && Object.keys(project).length > 0) ? project : getProjectJSON();
+      const projectData = (project && project.tracks?.length > 0) ? project : getProjectJSON();
       if (!projectData || !projectData.tracks?.length) {
         toast.error("Nothing to export — add clips to the timeline first");
         return { status: false, message: "Empty timeline" };

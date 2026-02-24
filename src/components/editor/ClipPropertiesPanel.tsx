@@ -127,7 +127,7 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
   if (!selectedClip) {
     return (
       <div
-        className={`w-56 shrink-0 flex flex-col border-l ${className || ""}`}
+        className={`w-52 shrink-0 flex flex-col border-l overflow-hidden ${className || ""}`}
         style={{
           background: "hsl(240, 25%, 5%)",
           borderColor: "hsla(263, 84%, 58%, 0.08)",
@@ -158,7 +158,7 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
 
   return (
     <div
-      className={`w-56 shrink-0 flex flex-col border-l ${className || ""}`}
+      className={`w-52 shrink-0 flex flex-col border-l overflow-hidden ${className || ""}`}
       style={{
         background: "hsl(240, 25%, 5%)",
         borderColor: "hsla(263, 84%, 58%, 0.08)",

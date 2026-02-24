@@ -530,23 +530,23 @@ export function EditorChrome({
             </AnimatePresence>
           </div>
 
-          {/* Center — Branding */}
-          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3">
-            <div className="flex items-center gap-2.5">
+          {/* Center — Branding (uses flex spacer, not absolute positioning) */}
+          <div className="flex-1 min-w-0 flex items-center justify-center">
+            <div className="flex items-center gap-2.5 min-w-0">
               <Logo size="sm" />
-              <div className="flex flex-col items-start">
-                <span className="text-xs font-bold tracking-tight font-display bg-gradient-to-r from-primary via-violet-400 to-primary bg-clip-text text-transparent leading-tight">
+              <div className="flex flex-col items-start min-w-0">
+                <span className="text-xs font-bold tracking-tight font-display bg-gradient-to-r from-primary via-violet-400 to-primary bg-clip-text text-transparent leading-tight whitespace-nowrap">
                   APEX STUDIO
                 </span>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-muted-foreground/50 max-w-[180px] truncate leading-tight">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-xs text-muted-foreground/50 max-w-[160px] truncate leading-tight">
                     {sessionTitle}
                   </span>
                   {hasUnsavedChanges && (
                     <motion.span
                       animate={{ opacity: [0.4, 1, 0.4] }}
                       transition={{ duration: 2, repeat: Infinity }}
-                      className="w-1.5 h-1.5 rounded-full bg-warning"
+                      className="w-1.5 h-1.5 rounded-full bg-warning shrink-0"
                       title="Unsaved changes"
                     />
                   )}
@@ -670,7 +670,7 @@ export function EditorChrome({
         </AnimatePresence>
 
         {/* ═══════════════ MAIN EDITOR LAYOUT ═══════════════ */}
-        <div className="flex-1 min-h-0 flex">
+        <div className="flex-1 min-h-0 flex overflow-hidden">
           {/* Left — Media sidebar */}
           <MediaSidebar
             clips={availableClips}
@@ -679,7 +679,7 @@ export function EditorChrome({
           />
 
           {/* Center — Player + Timeline */}
-          <div className="flex-1 min-w-0 flex flex-col">
+          <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
             {/* Video player — top 40% */}
             <VideoPreviewPlayer className="h-[40%] shrink-0" />
 
@@ -699,8 +699,8 @@ export function EditorChrome({
           className="h-7 flex items-center justify-between px-4 border-t border-border/15 shrink-0 z-10 select-none"
           style={{ background: 'hsla(240, 25%, 5%, 0.95)' }}
         >
-          <div className="flex items-center gap-3 text-xs text-muted-foreground/40">
-            <div className="flex items-center gap-1">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground/40 min-w-0 shrink-0">
+            <div className="flex items-center gap-1 whitespace-nowrap">
               <Layers className="w-3 h-3" />
               <span>{trackCount} track{trackCount !== 1 ? "s" : ""}</span>
             </div>
@@ -734,7 +734,7 @@ export function EditorChrome({
             )}
           </div>
 
-          <div className="flex items-center gap-3 text-xs text-muted-foreground/40">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground/40 min-w-0 shrink-0">
             <span>1920×1080</span>
             <div className="w-px h-3 bg-border/15" />
             <span>30fps</span>

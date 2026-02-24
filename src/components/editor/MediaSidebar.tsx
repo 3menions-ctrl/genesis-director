@@ -21,7 +21,7 @@ export const MediaSidebar = memo(function MediaSidebar({
 }: MediaSidebarProps) {
   return (
     <div
-      className="w-56 shrink-0 flex flex-col border-r"
+      className="w-52 shrink-0 flex flex-col border-r overflow-hidden"
       style={{
         background: 'hsl(240, 25%, 5%)',
         borderColor: 'hsla(263, 84%, 58%, 0.08)',

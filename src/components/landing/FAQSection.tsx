@@ -14,7 +14,7 @@ const FAQS = [
   },
   {
     question: 'What are credits and how much do they cost?',
-    answer: 'Credits power video generation. 1 credit = $0.10. Short clips (≤6 seconds) cost 10 credits ($1); longer clips (>6 seconds) cost 15 credits ($1.50). Purchase packs start at $9 for 90 credits.',
+    answer: 'Credits power video generation. You can purchase flexible credit packs from the pricing page. Credits never expire and there are no subscriptions.',
   },
   {
     question: 'Can I get a refund on credits?',

@@ -123,7 +123,7 @@ const ADDITIONAL_FEATURES = [
   { icon: <Zap className="w-4 h-4" />, title: 'Auto Assembly', desc: 'One-click seamless stitching' },
   { icon: <Film className="w-4 h-4" />, title: 'HLS Streaming', desc: 'Gapless cinema-grade playback' },
   { icon: <Clock className="w-4 h-4" />, title: 'Pipeline Engine', desc: 'Real-time generation progress' },
-  { icon: <Shield className="w-4 h-4" />, title: 'Credit System', desc: 'Pay only for what you create' },
+  { icon: <Shield className="w-4 h-4" />, title: 'Credit System', desc: 'Flexible pay-as-you-go' },
 ];
 
 // Memoized Feature Card
@@ -372,7 +372,7 @@ const FeaturesShowcase = memo(forwardRef<HTMLElement, Record<string, never>>(
               <ArrowRight className="relative w-4 h-4 text-black transition-transform group-hover:translate-x-1" />
             </Link>
             <p className="mt-5 text-sm text-white/20">
-              Affordable credits • No subscription • Pay as you go
+              Flexible credits • No subscription • Pay as you go
             </p>
           </div>
         </div>

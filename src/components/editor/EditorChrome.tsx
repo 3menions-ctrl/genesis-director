@@ -680,7 +680,7 @@ export function EditorChrome({
           </div>
 
           {/* Right — Actions */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 shrink-0 overflow-hidden">
             {/* Aspect Ratio */}
             <select
               value={timelineState.aspectRatio}
@@ -865,7 +865,7 @@ export function EditorChrome({
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
-          className="h-7 flex items-center px-4 border-t border-border/15 shrink-0 z-10 select-none overflow-hidden"
+          className="h-7 flex items-center px-4 border-t border-border/15 shrink-0 z-10 select-none overflow-hidden gap-2"
           style={{ background: 'hsla(240, 25%, 5%, 0.95)' }}
         >
           {/* Left stats */}
@@ -888,8 +888,8 @@ export function EditorChrome({
           </div>
 
           {/* Center status */}
-          <div className="flex-1 min-w-0 flex items-center justify-center">
-            <div className="text-[10px]">
+          <div className="flex-1 min-w-0 flex items-center justify-center overflow-hidden">
+            <div className="text-[10px] truncate">
               {hasUnsavedChanges ? (
                 <span className="text-warning/60 flex items-center gap-1">
                   <Clock className="w-3 h-3 shrink-0" />
@@ -993,7 +993,7 @@ export function EditorChrome({
               initial={{ opacity: 0, y: 16, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8 }}
-              className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-destructive/90 text-destructive-foreground text-xs font-medium px-5 py-2.5 rounded-full backdrop-blur-xl border border-destructive/30 shadow-lg z-20"
+              className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-destructive/90 text-destructive-foreground text-xs font-medium px-5 py-2.5 rounded-full backdrop-blur-xl border border-destructive/30 shadow-lg z-20"
             >
               Export error: {renderError.message}
             </motion.div>
@@ -1006,7 +1006,7 @@ export function EditorChrome({
               initial={{ opacity: 0, y: 16, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8 }}
-              className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-emerald-500/90 text-white text-xs font-medium px-5 py-2.5 rounded-full backdrop-blur-xl border border-emerald-400/30 shadow-lg z-20 flex items-center gap-2"
+              className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-emerald-500/90 text-white text-xs font-medium px-5 py-2.5 rounded-full backdrop-blur-xl border border-emerald-400/30 shadow-lg z-20 flex items-center gap-2"
             >
               <Check className="w-3 h-3" /> Video downloaded
             </motion.div>

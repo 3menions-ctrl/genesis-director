@@ -1,12 +1,13 @@
 /**
  * ClipPropertiesPanel — Inspector panel for editing selected clip properties.
- * Includes volume, speed, fade in/out controls.
+ * Includes volume, speed, fade in/out, opacity, text bg color, font family, color labels.
  */
 
 import { memo, useCallback } from "react";
 import {
   X, Scissors, Copy, Trash2, Type, Clock, Film, Image, Volume2,
-  AlignLeft, AlignCenter, AlignVerticalJustifyEnd, Gauge, Sunset
+  AlignLeft, AlignCenter, AlignVerticalJustifyEnd, Gauge, Sunset,
+  Eye, Palette, Tag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +37,28 @@ const SPEED_PRESETS = [
   { label: "1.25×", value: 1.25 },
   { label: "1.5×", value: 1.5 },
   { label: "2×", value: 2 },
+];
+
+const FONT_FAMILIES = [
+  { label: "Sans Serif", value: "sans-serif" },
+  { label: "Serif", value: "serif" },
+  { label: "Monospace", value: "monospace" },
+  { label: "Cursive", value: "cursive" },
+  { label: "Impact", value: "Impact, sans-serif" },
+  { label: "Georgia", value: "Georgia, serif" },
+  { label: "Arial Black", value: "'Arial Black', sans-serif" },
+  { label: "Comic Sans", value: "'Comic Sans MS', cursive" },
+];
+
+const COLOR_LABELS = [
+  { label: "None", value: "" },
+  { label: "Red", value: "#ef4444" },
+  { label: "Orange", value: "#f97316" },
+  { label: "Yellow", value: "#eab308" },
+  { label: "Green", value: "#22c55e" },
+  { label: "Blue", value: "#3b82f6" },
+  { label: "Purple", value: "#a855f7" },
+  { label: "Pink", value: "#ec4899" },
 ];
 
 export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
@@ -92,6 +115,8 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
       speed: selectedClip.speed,
       fadeIn: selectedClip.fadeIn,
       fadeOut: selectedClip.fadeOut,
+      opacity: selectedClip.opacity,
+      colorLabel: selectedClip.colorLabel,
     };
 
     dispatch({ type: "ADD_CLIP", trackId: state.selectedTrackId, clip: newClip });
@@ -154,7 +179,8 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
   const currentSpeed = selectedClip.speed ?? 1;
   const currentFadeIn = selectedClip.fadeIn ?? 0;
   const currentFadeOut = selectedClip.fadeOut ?? 0;
-  const maxFade = clipDuration / 2; // each fade can be at most half the clip
+  const currentOpacity = selectedClip.opacity ?? 1;
+  const maxFade = clipDuration / 2;
 
   return (
     <div
@@ -185,14 +211,34 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
         <div className="p-3 space-y-4">
           {/* Name */}
           <div className="space-y-1">
-            <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">
-              Name
-            </Label>
+            <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Name</Label>
             <Input
               value={selectedClip.name}
               onChange={(e) => updateClip({ name: e.target.value })}
               className="h-7 text-xs bg-muted/10 border-border/20"
             />
+          </div>
+
+          {/* Color Label */}
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider flex items-center gap-1">
+              <Tag className="w-3 h-3" /> Color Label
+            </Label>
+            <div className="flex flex-wrap gap-1">
+              {COLOR_LABELS.map((cl) => (
+                <button
+                  key={cl.value || "none"}
+                  onClick={() => updateClip({ colorLabel: cl.value || undefined })}
+                  className={`w-5 h-5 rounded-full border-2 transition-all ${
+                    (selectedClip.colorLabel || "") === cl.value
+                      ? "border-foreground scale-110"
+                      : "border-border/20 hover:border-foreground/40"
+                  }`}
+                  style={{ background: cl.value || 'hsl(240, 25%, 10%)' }}
+                  title={cl.label}
+                />
+              ))}
+            </div>
           </div>
 
           {/* Timing */}
@@ -223,9 +269,7 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
           {/* Trim info */}
           {selectedClip.type === "video" && (
             <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">
-                Trim
-              </Label>
+              <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Trim</Label>
               <div className="grid grid-cols-2 gap-1.5">
                 <div>
                   <span className="text-[9px] text-muted-foreground/40">Trim Start</span>
@@ -242,6 +286,22 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
               </div>
             </div>
           )}
+
+          {/* ─── Opacity Control ─── */}
+          <div className="space-y-1.5">
+            <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider flex items-center gap-1">
+              <Eye className="w-3 h-3" /> Opacity
+            </Label>
+            <Slider
+              value={[currentOpacity * 100]}
+              onValueChange={([v]) => updateClip({ opacity: v / 100 })}
+              min={0}
+              max={100}
+              step={1}
+              className="w-full"
+            />
+            <span className="text-[9px] text-muted-foreground/40">{Math.round(currentOpacity * 100)}%</span>
+          </div>
 
           {/* ─── Volume Control ─── */}
           {(selectedClip.type === "video" || selectedClip.type === "audio") && (
@@ -337,13 +397,39 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
               />
 
               <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">
+                Font Family
+              </Label>
+              <Select
+                value={selectedClip.textStyle?.fontFamily || "sans-serif"}
+                onValueChange={(v) =>
+                  updateClip({
+                    textStyle: {
+                      ...(selectedClip.textStyle || { fontSize: 32, color: "#ffffff", position: "bottom" as const }),
+                      fontFamily: v,
+                    },
+                  })
+                }
+              >
+                <SelectTrigger className="h-7 text-xs bg-muted/10 border-border/20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FONT_FAMILIES.map(f => (
+                    <SelectItem key={f.value} value={f.value}>
+                      <span style={{ fontFamily: f.value }}>{f.label}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">
                 Font Size
               </Label>
               <Slider
                 value={[selectedClip.textStyle?.fontSize || 32]}
                 onValueChange={([v]) =>
                   updateClip({
-                    textStyle: { ...(selectedClip.textStyle || { fontFamily: "sans-serif", color: "#ffffff", position: "bottom" }), fontSize: v },
+                    textStyle: { ...(selectedClip.textStyle || { fontFamily: "sans-serif", color: "#ffffff", position: "bottom" as const }), fontSize: v },
                   })
                 }
                 min={12}
@@ -383,22 +469,56 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
                 </SelectContent>
               </Select>
 
-              <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">
-                Color
-              </Label>
-              <input
-                type="color"
-                value={selectedClip.textStyle?.color || "#ffffff"}
-                onChange={(e) =>
-                  updateClip({
-                    textStyle: {
-                      ...(selectedClip.textStyle || { fontSize: 32, fontFamily: "sans-serif", position: "bottom" as const }),
-                      color: e.target.value,
-                    },
-                  })
-                }
-                className="w-8 h-6 rounded border border-border/20 cursor-pointer"
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">
+                    Color
+                  </Label>
+                  <input
+                    type="color"
+                    value={selectedClip.textStyle?.color || "#ffffff"}
+                    onChange={(e) =>
+                      updateClip({
+                        textStyle: {
+                          ...(selectedClip.textStyle || { fontSize: 32, fontFamily: "sans-serif", position: "bottom" as const }),
+                          color: e.target.value,
+                        },
+                      })
+                    }
+                    className="w-8 h-6 rounded border border-border/20 cursor-pointer"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider flex items-center gap-1">
+                    <Palette className="w-3 h-3" /> BG Color
+                  </Label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="color"
+                      value={selectedClip.textStyle?.backgroundColor || "#000000"}
+                      onChange={(e) =>
+                        updateClip({
+                          textStyle: {
+                            ...(selectedClip.textStyle || { fontSize: 32, fontFamily: "sans-serif", color: "#ffffff", position: "bottom" as const }),
+                            backgroundColor: e.target.value,
+                          },
+                        })
+                      }
+                      className="w-8 h-6 rounded border border-border/20 cursor-pointer"
+                    />
+                    {selectedClip.textStyle?.backgroundColor && (
+                      <button
+                        onClick={() => updateClip({
+                          textStyle: { ...selectedClip.textStyle!, backgroundColor: undefined },
+                        })}
+                        className="text-[8px] text-muted-foreground/40 hover:text-foreground"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

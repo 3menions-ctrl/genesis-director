@@ -1,22 +1,51 @@
 /**
  * CustomTimeline — Multi-track visual timeline with clip blocks,
- * playhead scrubbing, clip selection, and trim handles.
- * Polished layout: no overlapping elements, neat spacing.
+ * playhead scrubbing, clip selection, trim handles, snap-to-edge,
+ * auto-scroll, fit-to-view, track reordering, and context menu.
  */
 
 import { useRef, useCallback, useState, memo, useEffect } from "react";
 import {
   Plus, Trash2, Volume2, VolumeX, Lock, Unlock, ZoomIn, ZoomOut,
-  Eye, Type, Undo2, Redo2, Music
+  Eye, Type, Undo2, Redo2, Music, Maximize2, Magnet, ChevronUp, ChevronDown,
+  Clock, Scissors, Copy, Trash
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCustomTimeline, TimelineTrack, TimelineClip, generateTrackId, generateClipId } from "@/hooks/useCustomTimeline";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const TRACK_HEIGHT = 52;
-const HEADER_WIDTH = 110;
+const HEADER_WIDTH = 120;
 const RULER_HEIGHT = 26;
 const MIN_CLIP_WIDTH = 12;
+const SNAP_THRESHOLD = 8; // pixels
+
+// ─── Snap-to-edge utility ───
+
+function getSnapEdges(tracks: TimelineTrack[], excludeClipId?: string): number[] {
+  const edges: number[] = [0];
+  for (const track of tracks) {
+    for (const clip of track.clips) {
+      if (clip.id === excludeClipId) continue;
+      edges.push(clip.start, clip.end);
+    }
+  }
+  return [...new Set(edges)].sort((a, b) => a - b);
+}
+
+function snapToEdge(time: number, edges: number[], zoom: number, threshold: number): { snapped: number; didSnap: boolean } {
+  for (const edge of edges) {
+    if (Math.abs((time - edge) * zoom) < threshold) {
+      return { snapped: edge, didSnap: true };
+    }
+  }
+  return { snapped: time, didSnap: false };
+}
 
 // ─── Ruler ───
 
@@ -61,11 +90,15 @@ function TimelineRuler({ zoom, scrollX, duration }: { zoom: number; scrollX: num
 
 // ─── Track Header ───
 
-function TrackHeader({ track, onToggleMute, onToggleLock, onRemove }: {
+function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, onRemove, onMoveUp, onMoveDown }: {
   track: TimelineTrack;
+  index: number;
+  totalTracks: number;
   onToggleMute: () => void;
   onToggleLock: () => void;
   onRemove: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }) {
   const typeIcon = track.type === "text" ? (
     <Type className="w-3 h-3" />
@@ -77,7 +110,7 @@ function TrackHeader({ track, onToggleMute, onToggleLock, onRemove }: {
 
   return (
     <div
-      className="shrink-0 flex flex-col justify-center gap-1 px-2 border-r border-b select-none overflow-hidden"
+      className="shrink-0 flex flex-col justify-center gap-0.5 px-2 border-r border-b select-none overflow-hidden"
       style={{
         width: HEADER_WIDTH,
         height: TRACK_HEIGHT,
@@ -85,11 +118,28 @@ function TrackHeader({ track, onToggleMute, onToggleLock, onRemove }: {
         borderColor: 'hsla(263, 84%, 58%, 0.08)',
       }}
     >
-      <div className="flex items-center gap-1.5 min-w-0">
+      <div className="flex items-center gap-1 min-w-0">
         <span className="text-muted-foreground/50 shrink-0">{typeIcon}</span>
-        <span className="text-[10px] font-medium text-muted-foreground/70 truncate">
+        <span className="text-[10px] font-medium text-muted-foreground/70 truncate flex-1">
           {track.label}
         </span>
+        {/* Track reorder */}
+        <button
+          onClick={onMoveUp}
+          disabled={index === 0}
+          className="p-0 text-muted-foreground/30 hover:text-foreground disabled:opacity-20 transition-colors shrink-0"
+          title="Move up"
+        >
+          <ChevronUp className="w-2.5 h-2.5" />
+        </button>
+        <button
+          onClick={onMoveDown}
+          disabled={index === totalTracks - 1}
+          className="p-0 text-muted-foreground/30 hover:text-foreground disabled:opacity-20 transition-colors shrink-0"
+          title="Move down"
+        >
+          <ChevronDown className="w-2.5 h-2.5" />
+        </button>
       </div>
       <div className="flex items-center gap-1">
         <button
@@ -145,6 +195,7 @@ function ClipBlock({
   onTrimStart,
   onTrimEnd,
   onDragStart,
+  onContextMenu,
 }: {
   clip: TimelineClip;
   trackId: string;
@@ -155,11 +206,14 @@ function ClipBlock({
   onTrimStart: (clipId: string, trackId: string) => void;
   onTrimEnd: (clipId: string, trackId: string) => void;
   onDragStart: (e: React.MouseEvent, clipId: string, trackId: string) => void;
+  onContextMenu: (e: React.MouseEvent, clipId: string, trackId: string) => void;
 }) {
   const left = clip.start * zoom - scrollX;
   const width = Math.max(MIN_CLIP_WIDTH, (clip.end - clip.start) * zoom);
 
-  if (left + width < 0 || left > 3000) return null; // off-screen culling
+  if (left + width < 0 || left > 3000) return null;
+
+  const opacity = clip.opacity ?? 1;
 
   return (
     <div
@@ -172,10 +226,20 @@ function ClipBlock({
         width,
         background: CLIP_COLORS[clip.type] || CLIP_COLORS.video,
         border: `1px solid ${selected ? 'hsl(263, 84%, 58%)' : (CLIP_BORDER_COLORS[clip.type] || CLIP_BORDER_COLORS.video)}`,
+        opacity,
       }}
       onClick={(e) => { e.stopPropagation(); onSelect(); }}
       onMouseDown={(e) => { if (e.button === 0) onDragStart(e, clip.id, trackId); }}
+      onContextMenu={(e) => { e.preventDefault(); onContextMenu(e, clip.id, trackId); }}
     >
+      {/* Color label indicator */}
+      {clip.colorLabel && (
+        <div
+          className="absolute top-0 left-0 right-0 h-1 rounded-t"
+          style={{ background: clip.colorLabel }}
+        />
+      )}
+
       {/* Trim handle — left */}
       <div
         className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity rounded-l"
@@ -206,12 +270,82 @@ function ClipBlock({
   );
 }
 
+// ─── Context Menu ───
+
+interface ContextMenuState {
+  x: number;
+  y: number;
+  clipId: string;
+  trackId: string;
+}
+
+function ClipContextMenu({
+  menu,
+  onClose,
+  onSplit,
+  onDuplicate,
+  onDelete,
+  onRippleDelete,
+}: {
+  menu: ContextMenuState;
+  onClose: () => void;
+  onSplit: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+  onRippleDelete: () => void;
+}) {
+  useEffect(() => {
+    const close = () => onClose();
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed z-50 min-w-[160px] rounded-lg border shadow-xl py-1 overflow-hidden"
+      style={{
+        left: menu.x,
+        top: menu.y,
+        background: 'hsl(240, 25%, 8%)',
+        borderColor: 'hsla(263, 84%, 58%, 0.15)',
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button onClick={() => { onSplit(); onClose(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-foreground/70 hover:bg-primary/10 hover:text-foreground transition-colors">
+        <Scissors className="w-3 h-3" /> Split at Playhead
+      </button>
+      <button onClick={() => { onDuplicate(); onClose(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-foreground/70 hover:bg-primary/10 hover:text-foreground transition-colors">
+        <Copy className="w-3 h-3" /> Duplicate
+      </button>
+      <div className="h-px mx-2 my-0.5" style={{ background: 'hsla(263, 84%, 58%, 0.08)' }} />
+      <button onClick={() => { onDelete(); onClose(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-destructive/70 hover:bg-destructive/10 hover:text-destructive transition-colors">
+        <Trash className="w-3 h-3" /> Delete
+      </button>
+      <button onClick={() => { onRippleDelete(); onClose(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-destructive/70 hover:bg-destructive/10 hover:text-destructive transition-colors">
+        <Trash2 className="w-3 h-3" /> Ripple Delete
+      </button>
+    </div>
+  );
+}
+
+// ─── Format duration ───
+
+function formatDuration(s: number): string {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  const ms = Math.floor((s % 1) * 10);
+  return `${m}:${sec.toString().padStart(2, "0")}.${ms}`;
+}
+
 // ─── Main Timeline ───
 
 export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTextDialog }: { className?: string; onOpenTextDialog?: () => void }) {
   const { state, dispatch, undo, redo, canUndo, canRedo } = useCustomTimeline();
   const timelineRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [snapLine, setSnapLine] = useState<number | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const dragRef = useRef<{
     type: "playhead" | "clip" | "trim-start" | "trim-end";
     clipId?: string;
@@ -221,6 +355,30 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
   } | null>(null);
 
   const totalWidth = Math.max(state.duration + 10, 30) * state.zoom;
+
+  // ─── Auto-scroll to follow playhead during playback ───
+  useEffect(() => {
+    if (!state.isPlaying || !scrollContainerRef.current) return;
+    const container = scrollContainerRef.current;
+    const playheadPixel = state.playheadTime * state.zoom;
+    const viewLeft = container.scrollLeft;
+    const viewRight = viewLeft + container.clientWidth - HEADER_WIDTH;
+
+    if (playheadPixel > viewRight - 50) {
+      container.scrollLeft = playheadPixel - container.clientWidth / 2;
+    } else if (playheadPixel < viewLeft + 50) {
+      container.scrollLeft = Math.max(0, playheadPixel - 50);
+    }
+  }, [state.playheadTime, state.isPlaying, state.zoom]);
+
+  // ─── Fit to view ───
+  const fitToView = useCallback(() => {
+    if (!scrollContainerRef.current || state.duration <= 0) return;
+    const availableWidth = scrollContainerRef.current.clientWidth - HEADER_WIDTH - 40;
+    const newZoom = Math.max(10, Math.min(200, availableWidth / state.duration));
+    dispatch({ type: "SET_ZOOM", zoom: newZoom });
+    dispatch({ type: "SET_SCROLL_X", scrollX: 0 });
+  }, [state.duration, dispatch]);
 
   // ─── Playhead scrubbing ───
   const handleRulerMouseDown = useCallback((e: React.MouseEvent) => {
@@ -251,9 +409,61 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
     setIsDragging(true);
   }, [state.tracks]);
 
+  // ─── Context menu ───
+  const handleContextMenu = useCallback((e: React.MouseEvent, clipId: string, trackId: string) => {
+    dispatch({ type: "SELECT_CLIP", clipId, trackId });
+    setContextMenu({ x: e.clientX, y: e.clientY, clipId, trackId });
+  }, [dispatch]);
+
+  const handleContextSplit = useCallback(() => {
+    if (!contextMenu) return;
+    const track = state.tracks.find(t => t.id === contextMenu.trackId);
+    const clip = track?.clips.find(c => c.id === contextMenu.clipId);
+    if (!clip || state.playheadTime <= clip.start || state.playheadTime >= clip.end) return;
+
+    dispatch({ type: "TRIM_CLIP", trackId: contextMenu.trackId, clipId: clip.id, edge: "end", newTime: state.playheadTime });
+    const offsetIntoSource = state.playheadTime - clip.start;
+    dispatch({
+      type: "ADD_CLIP",
+      trackId: contextMenu.trackId,
+      clip: {
+        id: generateClipId(), type: clip.type, src: clip.src, text: clip.text,
+        start: state.playheadTime, end: clip.end,
+        trimStart: clip.trimStart + offsetIntoSource, trimEnd: clip.trimEnd,
+        name: `${clip.name} (split)`, thumbnail: clip.thumbnail,
+        sourceDuration: clip.sourceDuration, textStyle: clip.textStyle,
+        volume: clip.volume, speed: clip.speed, fadeIn: clip.fadeIn, fadeOut: clip.fadeOut,
+      },
+    });
+  }, [contextMenu, state.tracks, state.playheadTime, dispatch]);
+
+  const handleContextDuplicate = useCallback(() => {
+    if (!contextMenu) return;
+    const track = state.tracks.find(t => t.id === contextMenu.trackId);
+    const clip = track?.clips.find(c => c.id === contextMenu.clipId);
+    if (!clip) return;
+    dispatch({
+      type: "ADD_CLIP",
+      trackId: contextMenu.trackId,
+      clip: { ...clip, id: generateClipId(), start: clip.end, end: clip.end + (clip.end - clip.start), name: `${clip.name} (copy)` },
+    });
+  }, [contextMenu, state.tracks, dispatch]);
+
+  const handleContextDelete = useCallback(() => {
+    if (!contextMenu) return;
+    dispatch({ type: "REMOVE_CLIP", trackId: contextMenu.trackId, clipId: contextMenu.clipId });
+  }, [contextMenu, dispatch]);
+
+  const handleContextRippleDelete = useCallback(() => {
+    if (!contextMenu) return;
+    dispatch({ type: "RIPPLE_DELETE", trackId: contextMenu.trackId, clipId: contextMenu.clipId });
+  }, [contextMenu, dispatch]);
+
   // ─── Global mouse handlers ───
   useEffect(() => {
     if (!isDragging) return;
+
+    const snapEdges = state.snapEnabled ? getSnapEdges(state.tracks, dragRef.current?.clipId) : [];
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!dragRef.current || !timelineRef.current) return;
@@ -267,20 +477,41 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
 
       if (dragRef.current.type === "trim-start" && dragRef.current.clipId && dragRef.current.trackId) {
         const x = e.clientX - rect.left + state.scrollX - HEADER_WIDTH;
-        const time = x / state.zoom;
+        let time = x / state.zoom;
+        if (state.snapEnabled) {
+          const { snapped, didSnap } = snapToEdge(time, snapEdges, state.zoom, SNAP_THRESHOLD);
+          time = snapped;
+          setSnapLine(didSnap ? snapped : null);
+        }
         dispatch({ type: "TRIM_CLIP", trackId: dragRef.current.trackId, clipId: dragRef.current.clipId, edge: "start", newTime: time });
       }
 
       if (dragRef.current.type === "trim-end" && dragRef.current.clipId && dragRef.current.trackId) {
         const x = e.clientX - rect.left + state.scrollX - HEADER_WIDTH;
-        const time = x / state.zoom;
+        let time = x / state.zoom;
+        if (state.snapEnabled) {
+          const { snapped, didSnap } = snapToEdge(time, snapEdges, state.zoom, SNAP_THRESHOLD);
+          time = snapped;
+          setSnapLine(didSnap ? snapped : null);
+        }
         dispatch({ type: "TRIM_CLIP", trackId: dragRef.current.trackId, clipId: dragRef.current.clipId, edge: "end", newTime: time });
       }
 
       if (dragRef.current.type === "clip" && dragRef.current.clipId && dragRef.current.trackId) {
         const dx = e.clientX - (dragRef.current.startX || 0);
         const dt = dx / state.zoom;
-        const newStart = Math.max(0, (dragRef.current.startTime || 0) + dt);
+        let newStart = Math.max(0, (dragRef.current.startTime || 0) + dt);
+
+        if (state.snapEnabled) {
+          const clip = state.tracks.find(t => t.id === dragRef.current!.trackId)?.clips.find(c => c.id === dragRef.current!.clipId);
+          const clipDur = clip ? clip.end - clip.start : 0;
+          const { snapped: snappedStart, didSnap: snap1 } = snapToEdge(newStart, snapEdges, state.zoom, SNAP_THRESHOLD);
+          const { snapped: snappedEnd, didSnap: snap2 } = snapToEdge(newStart + clipDur, snapEdges, state.zoom, SNAP_THRESHOLD);
+          if (snap1) { newStart = snappedStart; setSnapLine(snappedStart); }
+          else if (snap2) { newStart = snappedEnd - clipDur; setSnapLine(snappedEnd); }
+          else { setSnapLine(null); }
+        }
+
         dispatch({
           type: "MOVE_CLIP",
           fromTrackId: dragRef.current.trackId,
@@ -294,6 +525,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
     const handleMouseUp = () => {
       dragRef.current = null;
       setIsDragging(false);
+      setSnapLine(null);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -302,7 +534,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isDragging, state.scrollX, state.zoom, dispatch]);
+  }, [isDragging, state.scrollX, state.zoom, state.snapEnabled, state.tracks, dispatch]);
 
   // ─── Scroll ───
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
@@ -324,7 +556,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
     });
   }, [dispatch, state.tracks]);
 
-  // ─── Keyboard shortcuts for undo/redo ───
+  // ─── Keyboard shortcuts for undo/redo + Home/End ───
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
@@ -333,11 +565,22 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
       } else if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
         e.preventDefault();
         redo();
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        dispatch({ type: "SET_PLAYHEAD", time: 0 });
+      } else if (e.key === "End") {
+        e.preventDefault();
+        dispatch({ type: "SET_PLAYHEAD", time: state.duration });
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "a") {
+        if ((e.target as HTMLElement)?.tagName !== "INPUT" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
+          e.preventDefault();
+          dispatch({ type: "SELECT_ALL_CLIPS" });
+        }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [undo, redo]);
+  }, [undo, redo, dispatch, state.duration]);
 
   // Playhead position
   const playheadLeft = state.playheadTime * state.zoom - state.scrollX;
@@ -358,28 +601,16 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
       >
         {/* Left: Add track buttons */}
         <div className="flex items-center gap-0.5 shrink-0">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => addTrack("video")}
-            className="h-6 px-2 text-[10px] gap-1 text-muted-foreground/60 hover:text-foreground whitespace-nowrap"
-          >
+          <Button variant="ghost" size="sm" onClick={() => addTrack("video")}
+            className="h-6 px-2 text-[10px] gap-1 text-muted-foreground/60 hover:text-foreground whitespace-nowrap">
             <Plus className="w-3 h-3" /> Video
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => addTrack("audio")}
-            className="h-6 px-2 text-[10px] gap-1 text-muted-foreground/60 hover:text-foreground whitespace-nowrap"
-          >
+          <Button variant="ghost" size="sm" onClick={() => addTrack("audio")}
+            className="h-6 px-2 text-[10px] gap-1 text-muted-foreground/60 hover:text-foreground whitespace-nowrap">
             <Music className="w-3 h-3" /> Audio
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onOpenTextDialog?.()}
-            className="h-6 px-2 text-[10px] gap-1 text-muted-foreground/60 hover:text-foreground whitespace-nowrap"
-          >
+          <Button variant="ghost" size="sm" onClick={() => onOpenTextDialog?.()}
+            className="h-6 px-2 text-[10px] gap-1 text-muted-foreground/60 hover:text-foreground whitespace-nowrap">
             <Type className="w-3 h-3" /> Text
           </Button>
         </div>
@@ -388,50 +619,76 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
 
         {/* Undo / Redo */}
         <div className="flex items-center gap-0.5 shrink-0">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={undo}
-            disabled={!canUndo}
-            className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground disabled:opacity-20"
-            title="Undo (Ctrl+Z)"
-          >
-            <Undo2 className="w-3 h-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={redo}
-            disabled={!canRedo}
-            className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground disabled:opacity-20"
-            title="Redo (Ctrl+Y)"
-          >
-            <Redo2 className="w-3 h-3" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="sm" onClick={undo} disabled={!canUndo}
+                className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground disabled:opacity-20">
+                <Undo2 className="w-3 h-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-[10px]">Undo (⌘Z)</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="sm" onClick={redo} disabled={!canRedo}
+                className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground disabled:opacity-20">
+                <Redo2 className="w-3 h-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-[10px]">Redo (⌘Y)</TooltipContent>
+          </Tooltip>
+        </div>
+
+        <div className="w-px h-4 bg-border/10 shrink-0 mx-0.5" />
+
+        {/* Snap toggle */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="sm" onClick={() => dispatch({ type: "TOGGLE_SNAP" })}
+              className={cn("h-6 w-6 p-0 transition-colors", state.snapEnabled ? "text-primary" : "text-muted-foreground/30")}>
+              <Magnet className="w-3 h-3" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-[10px]">
+            Snap to edges: {state.snapEnabled ? "ON" : "OFF"}
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Duration display */}
+        <div className="flex items-center gap-1 mx-1 shrink-0">
+          <Clock className="w-3 h-3 text-muted-foreground/30" />
+          <span className="text-[9px] text-muted-foreground/40 font-mono whitespace-nowrap">
+            {formatDuration(state.duration)}
+          </span>
         </div>
 
         {/* Spacer */}
         <div className="flex-1 min-w-0" />
 
-        {/* Right: Zoom controls */}
+        {/* Fit to view */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="sm" onClick={fitToView}
+              className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground">
+              <Maximize2 className="w-3 h-3" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-[10px]">Fit to view</TooltipContent>
+        </Tooltip>
+
+        {/* Zoom controls */}
         <div className="flex items-center gap-0.5 shrink-0">
-          <Button
-            variant="ghost"
-            size="sm"
+          <Button variant="ghost" size="sm"
             onClick={() => dispatch({ type: "SET_ZOOM", zoom: state.zoom - 10 })}
-            className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground"
-          >
+            className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground">
             <ZoomOut className="w-3 h-3" />
           </Button>
           <span className="text-[9px] text-muted-foreground/40 font-mono w-7 text-center shrink-0">
             {Math.round(state.zoom)}x
           </span>
-          <Button
-            variant="ghost"
-            size="sm"
+          <Button variant="ghost" size="sm"
             onClick={() => dispatch({ type: "SET_ZOOM", zoom: state.zoom + 10 })}
-            className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground"
-          >
+            className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground">
             <ZoomIn className="w-3 h-3" />
           </Button>
         </div>
@@ -443,16 +700,20 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
       </div>
 
       {/* ─── Tracks area ─── */}
-      <div className="flex-1 min-h-0 overflow-auto relative" onScroll={handleScroll}>
+      <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-auto relative" onScroll={handleScroll}>
         <div className="relative" style={{ minWidth: HEADER_WIDTH + totalWidth }}>
-          {state.tracks.map((track) => (
+          {state.tracks.map((track, idx) => (
             <div key={track.id} className="flex" style={{ height: TRACK_HEIGHT }}>
               {/* Header */}
               <TrackHeader
                 track={track}
+                index={idx}
+                totalTracks={state.tracks.length}
                 onToggleMute={() => dispatch({ type: "TOGGLE_TRACK_MUTE", trackId: track.id })}
                 onToggleLock={() => dispatch({ type: "TOGGLE_TRACK_LOCK", trackId: track.id })}
                 onRemove={() => dispatch({ type: "REMOVE_TRACK", trackId: track.id })}
+                onMoveUp={() => dispatch({ type: "MOVE_TRACK", trackId: track.id, direction: "up" })}
+                onMoveDown={() => dispatch({ type: "MOVE_TRACK", trackId: track.id, direction: "down" })}
               />
 
               {/* Clip area */}
@@ -477,6 +738,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
                     onTrimStart={handleTrimStart}
                     onTrimEnd={handleTrimEnd}
                     onDragStart={handleClipDragStart}
+                    onContextMenu={handleContextMenu}
                   />
                 ))}
               </div>
@@ -491,6 +753,18 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
           )}
         </div>
 
+        {/* Snap indicator line */}
+        {snapLine !== null && (
+          <div
+            className="absolute top-0 bottom-0 w-px pointer-events-none z-20"
+            style={{
+              left: HEADER_WIDTH + snapLine * state.zoom - state.scrollX,
+              background: 'hsl(45, 100%, 55%)',
+              boxShadow: '0 0 6px hsla(45, 100%, 55%, 0.5)',
+            }}
+          />
+        )}
+
         {/* Playhead line */}
         {playheadLeft >= 0 && (
           <div
@@ -501,7 +775,6 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
               boxShadow: '0 0 6px hsla(263, 84%, 58%, 0.5)',
             }}
           >
-            {/* Playhead handle */}
             <div
               className="absolute -top-0.5 -left-1.5 w-3 h-2 rounded-b"
               style={{ background: 'hsl(263, 84%, 58%)' }}
@@ -509,6 +782,18 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
           </div>
         )}
       </div>
+
+      {/* Context menu */}
+      {contextMenu && (
+        <ClipContextMenu
+          menu={contextMenu}
+          onClose={() => setContextMenu(null)}
+          onSplit={handleContextSplit}
+          onDuplicate={handleContextDuplicate}
+          onDelete={handleContextDelete}
+          onRippleDelete={handleContextRippleDelete}
+        />
+      )}
     </div>
   );
 });

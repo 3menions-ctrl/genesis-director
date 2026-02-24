@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft, Download, Loader2, FolderOpen, Check, Save, X, Monitor, Film,
-  Keyboard, Sparkles, Layers, Clock, Zap, ExternalLink
+  Keyboard, Sparkles, Layers, Clock, Zap, ExternalLink, Trash2, RectangleHorizontal,
+  Edit3
 } from "lucide-react";
 import { mergeVideoClips, downloadBlob } from "@/lib/video/browserVideoMerger";
 import { useSearchParams } from "react-router-dom";
@@ -61,6 +62,8 @@ export function EditorChrome({
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [availableClips, setAvailableClips] = useState<EditorClip[]>([]);
   const [textDialogOpen, setTextDialogOpen] = useState(false);
+  const [isRenamingSession, setIsRenamingSession] = useState(false);
+  const [renameValue, setRenameValue] = useState("");
 
   const { listProjects, loadProjectClips, loading: clipsLoading } = useEditorClips();
   const { submitStitch, isStitching, progress: stitchProgress, reset: resetStitch } = useEditorStitch();
@@ -408,10 +411,75 @@ export function EditorChrome({
           }
         }
       }
+      // Home / End
+      if (e.key === "Home") {
+        e.preventDefault();
+        dispatch({ type: "SET_PLAYHEAD", time: 0 });
+      }
+      if (e.key === "End") {
+        e.preventDefault();
+        dispatch({ type: "SET_PLAYHEAD", time: timelineState.duration });
+      }
+      // D = duplicate selected
+      if (e.key === "d" && !mod && (e.target as HTMLElement)?.tagName !== "INPUT" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
+        if (timelineState.selectedClipId && timelineState.selectedTrackId) {
+          const track = timelineState.tracks.find(t => t.id === timelineState.selectedTrackId);
+          const clip = track?.clips.find(c => c.id === timelineState.selectedClipId);
+          if (clip) {
+            dispatch({
+              type: "ADD_CLIP",
+              trackId: timelineState.selectedTrackId,
+              clip: { ...clip, id: generateClipId(), start: clip.end, end: clip.end + (clip.end - clip.start), name: `${clip.name} (copy)` },
+            });
+          }
+        }
+      }
+      // L = toggle loop
+      if (e.key === "l" && !mod && (e.target as HTMLElement)?.tagName !== "INPUT" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
+        dispatch({ type: "SET_LOOP", looping: !timelineState.isLooping });
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [saveProject, exportVideo, sessionTitle, isRendering, timelineState.isPlaying, timelineState.selectedClipId, timelineState.selectedTrackId, dispatch]);
+  }, [saveProject, exportVideo, sessionTitle, isRendering, timelineState, dispatch]);
+
+  // ─── Auto-save (every 60 seconds when there are unsaved changes) ───
+  useEffect(() => {
+    if (!user || !hasUnsavedChanges) return;
+    const timer = setInterval(() => {
+      if (hasUnsavedChanges && timelineState.tracks.some(t => t.clips.length > 0)) {
+        saveProject(sessionTitle).then(result => {
+          if (result.status) {
+            toast.info("Auto-saved", { duration: 1500 });
+          }
+        });
+      }
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [user, hasUnsavedChanges, saveProject, sessionTitle, timelineState.tracks]);
+
+  // ─── Clear timeline ───
+  const handleClearTimeline = useCallback(() => {
+    if (!timelineState.tracks.some(t => t.clips.length > 0)) return;
+    dispatch({ type: "CLEAR_TIMELINE" });
+    toast.success("Timeline cleared");
+  }, [dispatch, timelineState.tracks]);
+
+  // ─── Inline rename ───
+  const startRename = useCallback(() => {
+    setRenameValue(sessionTitle);
+    setIsRenamingSession(true);
+  }, [sessionTitle]);
+
+  const finishRename = useCallback(() => {
+    const trimmed = renameValue.trim();
+    if (trimmed && trimmed !== sessionTitle) {
+      setSessionTitle(trimmed);
+      setHasUnsavedChanges(true);
+      toast.success("Session renamed");
+    }
+    setIsRenamingSession(false);
+  }, [renameValue, sessionTitle]);
 
   // ─── Project browser ───
   const openBrowser = useCallback(async () => {
@@ -572,7 +640,7 @@ export function EditorChrome({
             </AnimatePresence>
           </div>
 
-          {/* Center — Branding (uses flex spacer, not absolute positioning) */}
+          {/* Center — Branding with inline rename */}
           <div className="flex-1 min-w-0 flex items-center justify-center">
             <div className="flex items-center gap-2.5 min-w-0">
               <Logo size="sm" />
@@ -581,9 +649,23 @@ export function EditorChrome({
                   APEX STUDIO
                 </span>
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-xs text-muted-foreground/50 max-w-[160px] truncate leading-tight">
-                    {sessionTitle}
-                  </span>
+                  {isRenamingSession ? (
+                    <input
+                      autoFocus
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onBlur={finishRename}
+                      onKeyDown={(e) => { if (e.key === "Enter") finishRename(); if (e.key === "Escape") setIsRenamingSession(false); }}
+                      className="text-xs text-foreground/70 bg-muted/20 border border-primary/30 rounded px-1.5 py-0.5 max-w-[160px] outline-none focus:border-primary"
+                    />
+                  ) : (
+                    <button onClick={startRename} className="flex items-center gap-1 group text-left">
+                      <span className="text-xs text-muted-foreground/50 max-w-[160px] truncate leading-tight group-hover:text-foreground/70 transition-colors">
+                        {sessionTitle}
+                      </span>
+                      <Edit3 className="w-2.5 h-2.5 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                    </button>
+                  )}
                   {hasUnsavedChanges && (
                     <motion.span
                       animate={{ opacity: [0.4, 1, 0.4] }}
@@ -599,6 +681,33 @@ export function EditorChrome({
 
           {/* Right — Actions */}
           <div className="flex items-center gap-1.5">
+            {/* Aspect Ratio */}
+            <select
+              value={timelineState.aspectRatio}
+              onChange={(e) => dispatch({ type: "SET_ASPECT_RATIO", ratio: e.target.value as any })}
+              className="h-7 text-[10px] bg-muted/10 border border-border/20 rounded px-1.5 text-muted-foreground/60 cursor-pointer"
+            >
+              <option value="16:9">16:9</option>
+              <option value="9:16">9:16</option>
+              <option value="1:1">1:1</option>
+              <option value="4:3">4:3</option>
+            </select>
+
+            {/* Clear Timeline */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearTimeline}
+                  className="w-9 h-9 p-0 text-muted-foreground/40 hover:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Clear timeline</TooltipContent>
+            </Tooltip>
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -856,7 +965,12 @@ export function EditorChrome({
                     { keys: "Space", label: "Play / Pause" },
                     { keys: "⌘ Z", label: "Undo" },
                     { keys: "⌘ Y", label: "Redo" },
+                    { keys: "⌘ A", label: "Select all clips" },
                     { keys: "Delete", label: "Remove selected clip" },
+                    { keys: "Home", label: "Go to start" },
+                    { keys: "End", label: "Go to end" },
+                    { keys: "D", label: "Duplicate selected clip" },
+                    { keys: "L", label: "Toggle loop" },
                     { keys: "?", label: "Toggle shortcuts" },
                   ].map((shortcut) => (
                     <div key={shortcut.keys} className="flex items-center justify-between">

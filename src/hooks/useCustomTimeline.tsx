@@ -45,6 +45,10 @@ export interface TimelineClip {
   fadeIn?: number;
   /** Fade-out duration in seconds (default 0) */
   fadeOut?: number;
+  /** Opacity 0–1 (default 1) */
+  opacity?: number;
+  /** Custom color label for organization */
+  colorLabel?: string;
 }
 
 export interface TimelineTrack {
@@ -61,6 +65,7 @@ export interface TimelineState {
   playheadTime: number;
   duration: number;
   isPlaying: boolean;
+  isLooping: boolean;
   selectedClipId: string | null;
   selectedTrackId: string | null;
   zoom: number; // pixels per second
@@ -68,6 +73,8 @@ export interface TimelineState {
   fps: number;
   width: number;
   height: number;
+  aspectRatio: "16:9" | "9:16" | "1:1" | "4:3";
+  snapEnabled: boolean;
 }
 
 // ─── Actions ───
@@ -88,7 +95,14 @@ type TimelineAction =
   | { type: "SET_SCROLL_X"; scrollX: number }
   | { type: "LOAD_PROJECT"; state: Partial<TimelineState> }
   | { type: "REORDER_CLIP"; trackId: string; clipId: string; newIndex: number }
-  | { type: "UPDATE_CLIP"; trackId: string; clipId: string; updates: Partial<TimelineClip> };
+  | { type: "UPDATE_CLIP"; trackId: string; clipId: string; updates: Partial<TimelineClip> }
+  | { type: "RIPPLE_DELETE"; trackId: string; clipId: string }
+  | { type: "CLEAR_TIMELINE" }
+  | { type: "MOVE_TRACK"; trackId: string; direction: "up" | "down" }
+  | { type: "SET_LOOP"; looping: boolean }
+  | { type: "SET_ASPECT_RATIO"; ratio: "16:9" | "9:16" | "1:1" | "4:3" }
+  | { type: "TOGGLE_SNAP" }
+  | { type: "SELECT_ALL_CLIPS" };
 
 // ─── Initial State ───
 
@@ -99,6 +113,7 @@ export const INITIAL_TIMELINE_STATE: TimelineState = {
   playheadTime: 0,
   duration: 0,
   isPlaying: false,
+  isLooping: false,
   selectedClipId: null,
   selectedTrackId: null,
   zoom: 50,
@@ -106,6 +121,8 @@ export const INITIAL_TIMELINE_STATE: TimelineState = {
   fps: 30,
   width: 1920,
   height: 1080,
+  aspectRatio: "16:9",
+  snapEnabled: true,
 };
 
 // ─── Utilities ───
@@ -133,6 +150,7 @@ export function generateTrackId(): string {
 const NON_UNDOABLE: Set<string> = new Set([
   "SET_PLAYHEAD", "SET_PLAYING", "SELECT_CLIP",
   "SET_ZOOM", "SET_SCROLL_X", "LOAD_PROJECT",
+  "SET_LOOP", "SET_ASPECT_RATIO", "TOGGLE_SNAP", "SELECT_ALL_CLIPS",
 ]);
 
 // ─── Reducer ───
@@ -258,12 +276,71 @@ function timelineReducer(state: TimelineState, action: TimelineAction): Timeline
       return { ...state, tracks, duration: recalcDuration(tracks) };
     }
 
+    case "RIPPLE_DELETE": {
+      const tracks = state.tracks.map((t) => {
+        if (t.id !== action.trackId) return t;
+        const clipToRemove = t.clips.find(c => c.id === action.clipId);
+        if (!clipToRemove) return t;
+        const gap = clipToRemove.end - clipToRemove.start;
+        const remaining = t.clips
+          .filter(c => c.id !== action.clipId)
+          .map(c => {
+            if (c.start >= clipToRemove.start) {
+              return { ...c, start: c.start - gap, end: c.end - gap };
+            }
+            return c;
+          });
+        return { ...t, clips: remaining };
+      });
+      return { ...state, tracks, duration: recalcDuration(tracks), selectedClipId: state.selectedClipId === action.clipId ? null : state.selectedClipId };
+    }
+
+    case "CLEAR_TIMELINE": {
+      const tracks = state.tracks.map(t => ({ ...t, clips: [] }));
+      return { ...state, tracks, duration: 0, playheadTime: 0, selectedClipId: null, selectedTrackId: null };
+    }
+
+    case "MOVE_TRACK": {
+      const idx = state.tracks.findIndex(t => t.id === action.trackId);
+      if (idx < 0) return state;
+      const newIdx = action.direction === "up" ? idx - 1 : idx + 1;
+      if (newIdx < 0 || newIdx >= state.tracks.length) return state;
+      const tracks = [...state.tracks];
+      [tracks[idx], tracks[newIdx]] = [tracks[newIdx], tracks[idx]];
+      return { ...state, tracks };
+    }
+
+    case "SET_LOOP":
+      return { ...state, isLooping: action.looping };
+
+    case "SET_ASPECT_RATIO": {
+      const dims: Record<string, { w: number; h: number }> = {
+        "16:9": { w: 1920, h: 1080 },
+        "9:16": { w: 1080, h: 1920 },
+        "1:1": { w: 1080, h: 1080 },
+        "4:3": { w: 1440, h: 1080 },
+      };
+      const d = dims[action.ratio] || dims["16:9"];
+      return { ...state, aspectRatio: action.ratio, width: d.w, height: d.h };
+    }
+
+    case "TOGGLE_SNAP":
+      return { ...state, snapEnabled: !state.snapEnabled };
+
+    case "SELECT_ALL_CLIPS": {
+      // Select first clip found
+      for (const t of state.tracks) {
+        if (t.clips.length > 0) {
+          return { ...state, selectedClipId: t.clips[0].id, selectedTrackId: t.id };
+        }
+      }
+      return state;
+    }
+
     default:
       return state;
   }
 }
-
-// ─── Undo/Redo History ───
 
 const MAX_HISTORY = 50;
 
@@ -377,12 +454,15 @@ export function toProjectJSON(state: TimelineState): any {
           speed: c.speed,
           fadeIn: c.fadeIn,
           fadeOut: c.fadeOut,
+          opacity: c.opacity,
+          colorLabel: c.colorLabel,
         },
       })),
     })),
     fps: state.fps,
     width: state.width,
     height: state.height,
+    aspectRatio: state.aspectRatio,
   };
 }
 
@@ -410,6 +490,8 @@ export function fromProjectJSON(json: any): Partial<TimelineState> {
         speed: el.props?.speed,
         fadeIn: el.props?.fadeIn,
         fadeOut: el.props?.fadeOut,
+        opacity: el.props?.opacity,
+        colorLabel: el.props?.colorLabel,
       })),
     })),
     fps: json.fps || 30,

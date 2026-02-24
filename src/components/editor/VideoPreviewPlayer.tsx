@@ -1,12 +1,21 @@
 /**
  * VideoPreviewPlayer — Native HTML5 video player synced to custom timeline.
- * Shows the currently active clip based on playhead position.
+ * Features: seekable progress bar, loop toggle, go-to-start/end, playback rate display.
  */
 
 import { useEffect, useRef, useCallback, useState, memo } from "react";
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize } from "lucide-react";
+import {
+  Play, Pause, SkipBack, SkipForward, Volume2, VolumeX,
+  Maximize, Repeat, ChevronsLeft, ChevronsRight
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCustomTimeline, TimelineClip } from "@/hooks/useCustomTimeline";
+import { Slider } from "@/components/ui/slider";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 function findActiveClip(
   tracks: { clips: TimelineClip[] }[],
@@ -20,7 +29,6 @@ function findActiveClip(
       }
     }
   }
-  // If nothing at current time, return first video clip
   for (let i = 0; i < tracks.length; i++) {
     for (const clip of tracks[i].clips) {
       if (clip.type === "video" && clip.src) {
@@ -40,6 +48,8 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
   const videoRef = useRef<HTMLVideoElement>(null);
   const animFrameRef = useRef<number>(0);
   const [isMuted, setIsMuted] = useState(false);
+  const [volume, setVolume] = useState(80);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const lastClipIdRef = useRef<string | null>(null);
 
   const active = findActiveClip(state.tracks, state.playheadTime);
@@ -54,7 +64,6 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
     video.src = active.clip.src;
     video.load();
 
-    // Seek to correct position within clip
     const offset = state.playheadTime - active.clip.start + active.clip.trimStart;
     video.currentTime = Math.max(0, offset);
   }, [active?.clip.id, active?.clip.src]);
@@ -78,7 +87,6 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
     if (state.isPlaying && active?.clip) {
       video.play().catch(() => {});
 
-      // Drive playhead from video time
       const tick = () => {
         if (!videoRef.current || !active?.clip) return;
         const clipTime = videoRef.current.currentTime - active.clip.trimStart + active.clip.start;
@@ -95,7 +103,6 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
   }, [state.isPlaying, active?.clip?.id]);
 
   const handleEnded = useCallback(() => {
-    // Find next clip
     const allClips = state.tracks
       .flatMap((t) => t.clips)
       .filter((c) => c.type === "video" && c.src)
@@ -105,10 +112,12 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
     if (currentIdx >= 0 && currentIdx < allClips.length - 1) {
       const next = allClips[currentIdx + 1];
       dispatch({ type: "SET_PLAYHEAD", time: next.start });
+    } else if (state.isLooping) {
+      dispatch({ type: "SET_PLAYHEAD", time: 0 });
     } else {
       dispatch({ type: "SET_PLAYING", playing: false });
     }
-  }, [state.tracks, active?.clip?.id, dispatch]);
+  }, [state.tracks, active?.clip?.id, state.isLooping, dispatch]);
 
   const togglePlay = useCallback(() => {
     dispatch({ type: "SET_PLAYING", playing: !state.isPlaying });
@@ -127,6 +136,14 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
     }
   }, [state.tracks, active?.clip?.id, dispatch]);
 
+  const goToStart = useCallback(() => {
+    dispatch({ type: "SET_PLAYHEAD", time: 0 });
+  }, [dispatch]);
+
+  const goToEnd = useCallback(() => {
+    dispatch({ type: "SET_PLAYHEAD", time: state.duration });
+  }, [state.duration, dispatch]);
+
   const toggleMute = useCallback(() => {
     const video = videoRef.current;
     if (video) {
@@ -135,9 +152,29 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
     }
   }, []);
 
+  const handleVolumeChange = useCallback(([v]: number[]) => {
+    setVolume(v);
+    if (videoRef.current) {
+      videoRef.current.volume = v / 100;
+      if (v > 0 && videoRef.current.muted) {
+        videoRef.current.muted = false;
+        setIsMuted(false);
+      }
+    }
+  }, []);
+
+  const toggleLoop = useCallback(() => {
+    dispatch({ type: "SET_LOOP", looping: !state.isLooping });
+  }, [state.isLooping, dispatch]);
+
   const toggleFullscreen = useCallback(() => {
     videoRef.current?.requestFullscreen?.().catch(() => {});
   }, []);
+
+  // Seekable progress bar
+  const handleSeek = useCallback(([v]: number[]) => {
+    dispatch({ type: "SET_PLAYHEAD", time: v });
+  }, [dispatch]);
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -146,6 +183,7 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
   };
 
   const hasClips = state.tracks.some((t) => t.clips.some((c) => c.type === "video" && c.src));
+  const progress = state.duration > 0 ? (state.playheadTime / state.duration) * 100 : 0;
 
   return (
     <div className={cn("flex flex-col bg-[hsl(240,28%,4%)] overflow-hidden", className)}>
@@ -165,35 +203,116 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
             onEnded={handleEnded}
           />
         )}
+
+        {/* Aspect ratio badge */}
+        <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/50 text-[9px] text-muted-foreground/50 font-mono">
+          {state.aspectRatio}
+        </div>
+      </div>
+
+      {/* Seekable progress bar */}
+      <div className="shrink-0 px-3 pt-1" style={{ background: 'hsl(240, 25%, 5%)' }}>
+        <Slider
+          value={[state.playheadTime]}
+          onValueChange={handleSeek}
+          min={0}
+          max={Math.max(state.duration, 0.1)}
+          step={0.1}
+          className="w-full"
+        />
       </div>
 
       {/* Transport bar */}
       <div
-        className="shrink-0 flex items-center gap-3 px-4 h-10"
+        className="shrink-0 flex items-center gap-2 px-3 h-9"
         style={{
           background: 'hsl(240, 25%, 5%)',
-          borderTop: '1px solid hsla(263, 84%, 58%, 0.1)',
+          borderTop: '1px solid hsla(263, 84%, 58%, 0.05)',
         }}
       >
-        <button onClick={() => skipClip(-1)} className="text-muted-foreground/60 hover:text-foreground transition-colors">
+        {/* Go to start */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button onClick={goToStart} className="text-muted-foreground/50 hover:text-foreground transition-colors">
+              <ChevronsLeft className="w-3.5 h-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-[10px]">Go to start (Home)</TooltipContent>
+        </Tooltip>
+
+        <button onClick={() => skipClip(-1)} className="text-muted-foreground/50 hover:text-foreground transition-colors">
           <SkipBack className="w-3.5 h-3.5" />
         </button>
+
         <button onClick={togglePlay} className="text-foreground hover:text-primary transition-colors">
           {state.isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
         </button>
-        <button onClick={() => skipClip(1)} className="text-muted-foreground/60 hover:text-foreground transition-colors">
+
+        <button onClick={() => skipClip(1)} className="text-muted-foreground/50 hover:text-foreground transition-colors">
           <SkipForward className="w-3.5 h-3.5" />
         </button>
 
-        <span className="text-xs text-muted-foreground/50 font-mono tabular-nums min-w-[90px]">
+        {/* Go to end */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button onClick={goToEnd} className="text-muted-foreground/50 hover:text-foreground transition-colors">
+              <ChevronsRight className="w-3.5 h-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-[10px]">Go to end (End)</TooltipContent>
+        </Tooltip>
+
+        {/* Timecode */}
+        <span className="text-[10px] text-muted-foreground/50 font-mono tabular-nums min-w-[80px]">
           {formatTime(state.playheadTime)} / {formatTime(state.duration)}
         </span>
 
         <div className="flex-1" />
 
-        <button onClick={toggleMute} className="text-muted-foreground/50 hover:text-foreground transition-colors">
-          {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-        </button>
+        {/* Loop toggle */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={toggleLoop}
+              className={cn(
+                "transition-colors p-0.5 rounded",
+                state.isLooping
+                  ? "text-primary bg-primary/10"
+                  : "text-muted-foreground/40 hover:text-foreground"
+              )}
+            >
+              <Repeat className="w-3.5 h-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-[10px]">
+            {state.isLooping ? "Loop: ON" : "Loop: OFF"}
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Volume with hover slider */}
+        <div
+          className="relative flex items-center"
+          onMouseEnter={() => setShowVolumeSlider(true)}
+          onMouseLeave={() => setShowVolumeSlider(false)}
+        >
+          <button onClick={toggleMute} className="text-muted-foreground/50 hover:text-foreground transition-colors">
+            {isMuted || volume === 0 ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+          </button>
+          {showVolumeSlider && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-card border border-border/20 rounded-lg p-2 shadow-xl w-8 h-24">
+              <Slider
+                orientation="vertical"
+                value={[volume]}
+                onValueChange={handleVolumeChange}
+                min={0}
+                max={100}
+                step={1}
+                className="h-full"
+              />
+            </div>
+          )}
+        </div>
+
         <button onClick={toggleFullscreen} className="text-muted-foreground/50 hover:text-foreground transition-colors">
           <Maximize className="w-3.5 h-3.5" />
         </button>

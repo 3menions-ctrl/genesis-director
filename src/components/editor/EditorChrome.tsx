@@ -756,53 +756,55 @@ export function EditorChrome({
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
-          className="h-7 flex items-center justify-between px-4 border-t border-border/15 shrink-0 z-10 select-none"
+          className="h-7 flex items-center px-4 border-t border-border/15 shrink-0 z-10 select-none overflow-hidden"
           style={{ background: 'hsla(240, 25%, 5%, 0.95)' }}
         >
-          <div className="flex items-center gap-3 text-xs text-muted-foreground/40 min-w-0 shrink-0">
-            <div className="flex items-center gap-1 whitespace-nowrap">
-              <Layers className="w-3 h-3" />
-              <span>{trackCount} track{trackCount !== 1 ? "s" : ""}</span>
-            </div>
-            <div className="w-px h-3 bg-border/15" />
-            <div className="flex items-center gap-1">
-              <Sparkles className="w-3 h-3" />
-              <span>{elementCount} element{elementCount !== 1 ? "s" : ""}</span>
-            </div>
+          {/* Left stats */}
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground/40 shrink-0 whitespace-nowrap">
+            <span className="flex items-center gap-1">
+              <Layers className="w-3 h-3 shrink-0" />
+              {trackCount} track{trackCount !== 1 ? "s" : ""}
+            </span>
+            <span className="text-border/20">·</span>
+            <span className="flex items-center gap-1">
+              <Sparkles className="w-3 h-3 shrink-0" />
+              {elementCount} clip{elementCount !== 1 ? "s" : ""}
+            </span>
             {mediaCounts.videos > 0 && (
               <>
-                <div className="w-px h-3 bg-border/15" />
-                <div className="flex items-center gap-1">
-                  <Film className="w-3 h-3" />
-                  <span>{mediaCounts.videos} in library</span>
-                </div>
+                <span className="text-border/20">·</span>
+                <span>{mediaCounts.videos} in library</span>
               </>
             )}
           </div>
 
-          <div className="flex items-center gap-2 text-xs">
-            {hasUnsavedChanges ? (
-              <span className="text-warning/60 flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                Unsaved changes
-              </span>
-            ) : (
-              <span className="text-success/40 flex items-center gap-1">
-                <Check className="w-3 h-3" />
-                Saved
-              </span>
-            )}
+          {/* Center status */}
+          <div className="flex-1 min-w-0 flex items-center justify-center">
+            <div className="text-[10px]">
+              {hasUnsavedChanges ? (
+                <span className="text-warning/60 flex items-center gap-1">
+                  <Clock className="w-3 h-3 shrink-0" />
+                  Unsaved
+                </span>
+              ) : (
+                <span className="text-success/40 flex items-center gap-1">
+                  <Check className="w-3 h-3 shrink-0" />
+                  Saved
+                </span>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 text-xs text-muted-foreground/40 min-w-0 shrink-0">
+          {/* Right info */}
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground/40 shrink-0 whitespace-nowrap">
             <span>1920×1080</span>
-            <div className="w-px h-3 bg-border/15" />
+            <span className="text-border/20">·</span>
             <span>30fps</span>
-            <div className="w-px h-3 bg-border/15" />
-            <div className="flex items-center gap-1">
-              <Zap className="w-3 h-3 text-primary/40" />
-              <span>WebCodecs</span>
-            </div>
+            <span className="text-border/20">·</span>
+            <span className="flex items-center gap-1">
+              <Zap className="w-3 h-3 text-primary/40 shrink-0" />
+              WebCodecs
+            </span>
           </div>
         </motion.div>
 
@@ -847,11 +849,13 @@ export function EditorChrome({
                     <X className="w-3.5 h-3.5" />
                   </Button>
                 </div>
-                <div className="p-5 space-y-3">
+                <div className="p-5 space-y-2.5">
                   {[
                     { keys: "⌘ S", label: "Save project" },
                     { keys: "⌘ E", label: "Export video" },
                     { keys: "Space", label: "Play / Pause" },
+                    { keys: "⌘ Z", label: "Undo" },
+                    { keys: "⌘ Y", label: "Redo" },
                     { keys: "Delete", label: "Remove selected clip" },
                     { keys: "?", label: "Toggle shortcuts" },
                   ].map((shortcut) => (

@@ -1,21 +1,22 @@
 /**
  * CustomTimeline — Multi-track visual timeline with clip blocks,
  * playhead scrubbing, clip selection, and trim handles.
+ * Polished layout: no overlapping elements, neat spacing.
  */
 
 import { useRef, useCallback, useState, memo, useEffect } from "react";
 import {
   Plus, Trash2, Volume2, VolumeX, Lock, Unlock, ZoomIn, ZoomOut,
-  Eye, EyeOff, GripVertical, Type, Undo2, Redo2
+  Eye, Type, Undo2, Redo2, Music
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCustomTimeline, TimelineTrack, TimelineClip, generateTrackId, generateClipId } from "@/hooks/useCustomTimeline";
 import { Button } from "@/components/ui/button";
 
-const TRACK_HEIGHT = 48;
-const HEADER_WIDTH = 120;
-const RULER_HEIGHT = 28;
-const MIN_CLIP_WIDTH = 8;
+const TRACK_HEIGHT = 52;
+const HEADER_WIDTH = 110;
+const RULER_HEIGHT = 26;
+const MIN_CLIP_WIDTH = 12;
 
 // ─── Ruler ───
 
@@ -32,7 +33,7 @@ function TimelineRuler({ zoom, scrollX, duration }: { zoom: number; scrollX: num
 
   return (
     <div
-      className="relative shrink-0 select-none border-b"
+      className="relative shrink-0 select-none border-b overflow-hidden"
       style={{
         height: RULER_HEIGHT,
         marginLeft: HEADER_WIDTH,
@@ -40,7 +41,7 @@ function TimelineRuler({ zoom, scrollX, duration }: { zoom: number; scrollX: num
         borderColor: 'hsla(263, 84%, 58%, 0.08)',
       }}
     >
-      <div className="relative" style={{ width: totalWidth, transform: `translateX(-${scrollX}px)` }}>
+      <div className="relative h-full" style={{ width: totalWidth, transform: `translateX(-${scrollX}px)` }}>
         {marks.map((mark) => (
           <div
             key={mark.time}
@@ -48,7 +49,7 @@ function TimelineRuler({ zoom, scrollX, duration }: { zoom: number; scrollX: num
             style={{ left: mark.time * zoom }}
           >
             <div className="w-px h-2" style={{ background: 'hsla(263, 84%, 58%, 0.2)' }} />
-            <span className="text-[9px] text-muted-foreground/40 mt-0.5 font-mono">
+            <span className="text-[8px] text-muted-foreground/40 mt-0.5 font-mono leading-none whitespace-nowrap">
               {mark.label}
             </span>
           </div>
@@ -69,14 +70,14 @@ function TrackHeader({ track, onToggleMute, onToggleLock, onRemove }: {
   const typeIcon = track.type === "text" ? (
     <Type className="w-3 h-3" />
   ) : track.type === "audio" ? (
-    <Volume2 className="w-3 h-3" />
+    <Music className="w-3 h-3" />
   ) : (
     <Eye className="w-3 h-3" />
   );
 
   return (
     <div
-      className="shrink-0 flex flex-col justify-center gap-0.5 px-2 border-r border-b select-none"
+      className="shrink-0 flex flex-col justify-center gap-1 px-2 border-r border-b select-none overflow-hidden"
       style={{
         width: HEADER_WIDTH,
         height: TRACK_HEIGHT,
@@ -84,30 +85,31 @@ function TrackHeader({ track, onToggleMute, onToggleLock, onRemove }: {
         borderColor: 'hsla(263, 84%, 58%, 0.08)',
       }}
     >
-      <div className="flex items-center gap-1.5">
-        <span className="text-muted-foreground/50">{typeIcon}</span>
-        <span className="text-[10px] font-medium text-muted-foreground/70 truncate flex-1">
+      <div className="flex items-center gap-1.5 min-w-0">
+        <span className="text-muted-foreground/50 shrink-0">{typeIcon}</span>
+        <span className="text-[10px] font-medium text-muted-foreground/70 truncate">
           {track.label}
         </span>
       </div>
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-1">
         <button
           onClick={onToggleMute}
-          className="p-0.5 rounded text-muted-foreground/40 hover:text-foreground transition-colors"
+          className="p-0.5 rounded text-muted-foreground/40 hover:text-foreground transition-colors shrink-0"
           title={track.muted ? "Unmute" : "Mute"}
         >
           {track.muted ? <VolumeX className="w-2.5 h-2.5" /> : <Volume2 className="w-2.5 h-2.5" />}
         </button>
         <button
           onClick={onToggleLock}
-          className="p-0.5 rounded text-muted-foreground/40 hover:text-foreground transition-colors"
+          className="p-0.5 rounded text-muted-foreground/40 hover:text-foreground transition-colors shrink-0"
           title={track.locked ? "Unlock" : "Lock"}
         >
           {track.locked ? <Lock className="w-2.5 h-2.5" /> : <Unlock className="w-2.5 h-2.5" />}
         </button>
+        <div className="flex-1" />
         <button
           onClick={onRemove}
-          className="p-0.5 rounded text-muted-foreground/40 hover:text-destructive transition-colors ml-auto"
+          className="p-0.5 rounded text-muted-foreground/40 hover:text-destructive transition-colors shrink-0"
           title="Remove track"
         >
           <Trash2 className="w-2.5 h-2.5" />
@@ -157,13 +159,13 @@ function ClipBlock({
   const left = clip.start * zoom - scrollX;
   const width = Math.max(MIN_CLIP_WIDTH, (clip.end - clip.start) * zoom);
 
-  if (left + width < 0 || left > 2000) return null; // off-screen culling
+  if (left + width < 0 || left > 3000) return null; // off-screen culling
 
   return (
     <div
       className={cn(
-        "absolute top-1 bottom-1 rounded-md cursor-pointer group transition-shadow",
-        selected && "ring-2 ring-primary shadow-lg"
+        "absolute top-1.5 bottom-1.5 rounded cursor-pointer group transition-shadow",
+        selected && "ring-2 ring-primary shadow-lg shadow-primary/20"
       )}
       style={{
         left: Math.max(0, left),
@@ -176,22 +178,27 @@ function ClipBlock({
     >
       {/* Trim handle — left */}
       <div
-        className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity rounded-l-md"
+        className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity rounded-l"
         style={{ background: 'hsla(263, 84%, 58%, 0.6)' }}
         onMouseDown={(e) => { e.stopPropagation(); onTrimStart(clip.id, trackId); }}
       />
 
       {/* Clip label */}
-      <div className="px-2 py-0.5 truncate text-[10px] text-foreground/80 font-medium pointer-events-none h-full flex items-center">
+      <div className="px-2 h-full flex items-center gap-1.5 overflow-hidden pointer-events-none">
         {clip.thumbnail && width > 60 && (
-          <img src={clip.thumbnail} alt="" className="w-6 h-6 rounded object-cover mr-1.5 shrink-0" />
+          <img src={clip.thumbnail} alt="" className="w-6 h-6 rounded object-cover shrink-0" />
         )}
-        <span className="truncate">{clip.name}</span>
+        <span className="text-[10px] text-foreground/80 font-medium truncate">{clip.name}</span>
+        {width > 80 && (
+          <span className="text-[8px] text-foreground/40 font-mono ml-auto shrink-0">
+            {(clip.end - clip.start).toFixed(1)}s
+          </span>
+        )}
       </div>
 
       {/* Trim handle — right */}
       <div
-        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity rounded-r-md"
+        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity rounded-r"
         style={{ background: 'hsla(263, 84%, 58%, 0.6)' }}
         onMouseDown={(e) => { e.stopPropagation(); onTrimEnd(clip.id, trackId); }}
       />
@@ -303,13 +310,15 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
   }, [dispatch]);
 
   // ─── Add track ───
-  const addTrack = useCallback((type: "video" | "text") => {
+  const addTrack = useCallback((type: "video" | "text" | "audio") => {
+    const labelMap = { video: "Video", text: "Text", audio: "Audio" };
+    const count = state.tracks.filter(t => t.type === type).length + 1;
     dispatch({
       type: "ADD_TRACK",
       track: {
         id: generateTrackId(),
-        type,
-        label: type === "text" ? `Text ${state.tracks.filter(t => t.type === "text").length + 1}` : `Video ${state.tracks.filter(t => t.type === "video").length + 1}`,
+        type: type === "audio" ? "audio" : type,
+        label: `${labelMap[type]} ${count}`,
         clips: [],
       },
     });
@@ -339,84 +348,101 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
       className={cn("flex flex-col overflow-hidden select-none", className)}
       style={{ background: 'hsl(240, 28%, 4%)' }}
     >
-      {/* Toolbar */}
+      {/* ─── Toolbar ─── */}
       <div
-        className="shrink-0 flex items-center gap-1 px-2 h-8 border-b"
+        className="shrink-0 flex items-center gap-1 px-2 h-9 border-b overflow-hidden"
         style={{
           background: 'hsl(240, 25%, 5%)',
           borderColor: 'hsla(263, 84%, 58%, 0.08)',
         }}
       >
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => addTrack("video")}
-          className="h-6 px-2 text-[10px] gap-1 text-muted-foreground/60 hover:text-foreground"
-        >
-          <Plus className="w-3 h-3" /> Video Track
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onOpenTextDialog?.()}
-          className="h-6 px-2 text-[10px] gap-1 text-muted-foreground/60 hover:text-foreground"
-        >
-          <Type className="w-3 h-3" /> Text Overlay
-        </Button>
+        {/* Left: Add track buttons */}
+        <div className="flex items-center gap-0.5 shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => addTrack("video")}
+            className="h-6 px-2 text-[10px] gap-1 text-muted-foreground/60 hover:text-foreground whitespace-nowrap"
+          >
+            <Plus className="w-3 h-3" /> Video
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => addTrack("audio")}
+            className="h-6 px-2 text-[10px] gap-1 text-muted-foreground/60 hover:text-foreground whitespace-nowrap"
+          >
+            <Music className="w-3 h-3" /> Audio
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onOpenTextDialog?.()}
+            className="h-6 px-2 text-[10px] gap-1 text-muted-foreground/60 hover:text-foreground whitespace-nowrap"
+          >
+            <Type className="w-3 h-3" /> Text
+          </Button>
+        </div>
+
+        <div className="w-px h-4 bg-border/10 shrink-0 mx-0.5" />
 
         {/* Undo / Redo */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={undo}
-          disabled={!canUndo}
-          className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground disabled:opacity-20"
-          title="Undo (Ctrl+Z)"
-        >
-          <Undo2 className="w-3 h-3" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={redo}
-          disabled={!canRedo}
-          className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground disabled:opacity-20"
-          title="Redo (Ctrl+Y)"
-        >
-          <Redo2 className="w-3 h-3" />
-        </Button>
+        <div className="flex items-center gap-0.5 shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={undo}
+            disabled={!canUndo}
+            className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground disabled:opacity-20"
+            title="Undo (Ctrl+Z)"
+          >
+            <Undo2 className="w-3 h-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={redo}
+            disabled={!canRedo}
+            className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground disabled:opacity-20"
+            title="Redo (Ctrl+Y)"
+          >
+            <Redo2 className="w-3 h-3" />
+          </Button>
+        </div>
 
-        <div className="w-px h-4 bg-border/10" />
+        {/* Spacer */}
+        <div className="flex-1 min-w-0" />
 
-        <div className="flex-1" />
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => dispatch({ type: "SET_ZOOM", zoom: state.zoom - 10 })}
-          className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground"
-        >
-          <ZoomOut className="w-3 h-3" />
-        </Button>
-        <span className="text-[9px] text-muted-foreground/40 font-mono w-8 text-center">
-          {Math.round(state.zoom)}x
-        </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => dispatch({ type: "SET_ZOOM", zoom: state.zoom + 10 })}
-          className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground"
-        >
-          <ZoomIn className="w-3 h-3" />
-        </Button>
+        {/* Right: Zoom controls */}
+        <div className="flex items-center gap-0.5 shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => dispatch({ type: "SET_ZOOM", zoom: state.zoom - 10 })}
+            className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground"
+          >
+            <ZoomOut className="w-3 h-3" />
+          </Button>
+          <span className="text-[9px] text-muted-foreground/40 font-mono w-7 text-center shrink-0">
+            {Math.round(state.zoom)}x
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => dispatch({ type: "SET_ZOOM", zoom: state.zoom + 10 })}
+            className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground"
+          >
+            <ZoomIn className="w-3 h-3" />
+          </Button>
+        </div>
       </div>
 
-      {/* Ruler */}
-      <div onMouseDown={handleRulerMouseDown}>
+      {/* ─── Ruler ─── */}
+      <div onMouseDown={handleRulerMouseDown} className="shrink-0">
         <TimelineRuler zoom={state.zoom} scrollX={state.scrollX} duration={state.duration} />
       </div>
 
-      {/* Tracks area */}
+      {/* ─── Tracks area ─── */}
       <div className="flex-1 min-h-0 overflow-auto relative" onScroll={handleScroll}>
         <div className="relative" style={{ minWidth: HEADER_WIDTH + totalWidth }}>
           {state.tracks.map((track) => (

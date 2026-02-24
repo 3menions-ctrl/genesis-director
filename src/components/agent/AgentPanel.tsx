@@ -10,6 +10,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { X, Send, Paperclip, Loader2, RefreshCw, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AgentFace } from "./AgentFace";
@@ -25,8 +26,30 @@ interface AgentPanelProps {
 }
 
 // ─── Message bubble ───────────────────────────────────────────────
-function MessageBubble({ msg }: { msg: AgentMessage }) {
+function MessageBubble({ msg, onNavigate, onSendMessage }: { msg: AgentMessage; onNavigate: (path: string) => void; onSendMessage: (content: string) => void }) {
   const isUser = msg.role === "user";
+
+  // Custom link renderer for markdown — intercepts internal links for SPA navigation
+  const markdownComponents = {
+    a: ({ href, children, ...props }: any) => {
+      const isInternal = href && (href.startsWith('/') || href.startsWith('#'));
+      if (isInternal) {
+        return (
+          <button
+            onClick={() => onNavigate(href)}
+            className="text-primary hover:text-primary/80 underline underline-offset-2 cursor-pointer font-medium"
+          >
+            {children}
+          </button>
+        );
+      }
+      return (
+        <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 underline underline-offset-2" {...props}>
+          {children}
+        </a>
+      );
+    },
+  };
 
   return (
     <div className={cn("flex gap-2 mb-4", isUser ? "justify-end" : "justify-start")}>
@@ -54,7 +77,7 @@ function MessageBubble({ msg }: { msg: AgentMessage }) {
               <p className="whitespace-pre-wrap">{msg.content}</p>
             ) : (
               <div className="prose prose-sm max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>p]:text-sm [&>p]:leading-relaxed [&_code]:bg-black/30 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono">
-                <ReactMarkdown>{msg.content}</ReactMarkdown>
+                <ReactMarkdown components={markdownComponents}>{msg.content}</ReactMarkdown>
               </div>
             )}
             {msg.streaming && (
@@ -65,7 +88,7 @@ function MessageBubble({ msg }: { msg: AgentMessage }) {
 
         {!msg.streaming && msg.richBlocks && msg.richBlocks.length > 0 && (
           <div className="w-full mt-1">
-            <RichBlocksRenderer blocks={msg.richBlocks} />
+            <RichBlocksRenderer blocks={msg.richBlocks} onNavigate={onNavigate} onSendMessage={onSendMessage} />
           </div>
         )}
       </div>
@@ -102,11 +125,22 @@ function TypingIndicator() {
 
 // ─── Main panel ───────────────────────────────────────────────────
 export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
+  const navigate = useNavigate();
   const { messages, isResponding, agentState, clearMessages, sendMessage, loadingHistory } = useAgentChat();
 
   const [input, setInput] = useState("");
   const [uploadedImage, setUploadedImage] = useState<{ url: string; name: string } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  const handleNavigate = useCallback((path: string) => {
+    onClose();
+    // Small delay so the panel closes before navigating
+    setTimeout(() => navigate(path), 150);
+  }, [navigate, onClose]);
+
+  const handleSendFromBlock = useCallback((content: string) => {
+    sendMessage(content);
+  }, [sendMessage]);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -250,7 +284,7 @@ export function AgentPanel({ isOpen, onClose }: AgentPanelProps) {
               ) : (
                 <>
                   {messages.map((msg) => (
-                    <MessageBubble key={msg.id} msg={msg} />
+                    <MessageBubble key={msg.id} msg={msg} onNavigate={handleNavigate} onSendMessage={handleSendFromBlock} />
                   ))}
                   {showTyping && <TypingIndicator />}
                 </>

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft, Download, Loader2, FolderOpen, Check, Save, X, Monitor, Film,
-  Keyboard, Sparkles, Layers, Clock, Zap
+  Keyboard, Sparkles, Layers, Clock, Zap, ExternalLink
 } from "lucide-react";
 import { mergeVideoClips, downloadBlob } from "@/lib/video/browserVideoMerger";
 import { useSearchParams } from "react-router-dom";
@@ -211,6 +211,48 @@ export function EditorChrome({
 
   // ─── Export ───
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // ─── Open in OpenReel ───
+  const handleOpenInOpenReel = useCallback(async () => {
+    const projectData = getProjectJSON();
+    const clipUrls: { url: string; name: string }[] = [];
+    let idx = 0;
+    for (const track of projectData.tracks || []) {
+      for (const el of track.elements || []) {
+        if (el.type === "video" && el.props?.src) {
+          idx++;
+          clipUrls.push({ url: el.props.src, name: `${sessionTitle.replace(/\s+/g, "_")}_clip_${idx}.mp4` });
+        }
+      }
+    }
+
+    if (clipUrls.length === 0) {
+      toast.error("No video clips to export — add clips first");
+      return;
+    }
+
+    toast.info(`Downloading ${clipUrls.length} clip${clipUrls.length > 1 ? "s" : ""} before opening OpenReel…`);
+
+    // Download each clip individually
+    for (const clip of clipUrls) {
+      try {
+        const a = document.createElement("a");
+        a.href = clip.url;
+        a.download = clip.name;
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        // Small delay between downloads to avoid browser blocking
+        await new Promise(r => setTimeout(r, 400));
+      } catch (err) {
+        console.warn("Failed to download clip:", clip.name, err);
+      }
+    }
+
+    toast.success("Clips downloaded! Import them into OpenReel to continue editing.");
+    window.open("https://openreel.video", "_blank", "noopener,noreferrer");
+  }, [getProjectJSON, sessionTitle]);
 
   const exportVideo = useCallback(async () => {
     const projectData = getProjectJSON();
@@ -615,6 +657,24 @@ export function EditorChrome({
                 )}
               </TooltipTrigger>
               <TooltipContent side="bottom">Server-side stitch with crossfade</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleOpenInOpenReel}
+                  disabled={isRendering || isStitching}
+                  className="gap-1.5 border-border/30 hover:border-primary/30 hover:bg-primary/5 text-muted-foreground hover:text-foreground"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span className="hidden sm:inline">OpenReel</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[220px] text-center">
+                Open your clips in OpenReel Video — a professional open-source browser editor with full export support
+              </TooltipContent>
             </Tooltip>
 
             {isRendering ? (

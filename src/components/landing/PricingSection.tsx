@@ -8,9 +8,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const PRICING_STATS = [
-  { value: '✦', label: 'flexible credits' },
+  { value: '$0.10', label: 'per credit' },
   { value: '∞', label: 'no expiry' },
-  { value: '✓', label: 'no subscriptions' },
+  { value: '✗', label: 'no subscriptions' },
 ] as const;
 
 const STORYTELLING_HLS_URL = 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/temp-frames/hls_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_1771087015077.m3u8';
@@ -356,9 +356,9 @@ export const PricingSection = memo(forwardRef<HTMLElement, PricingSectionExtende
             >
               <div className="flex flex-col items-center text-center">
               <div className="text-[56px] md:text-[72px] font-bold tracking-tighter text-white leading-none font-['Sora'] mb-2">
-                  Credits
+                  $0.10
                 </div>
-                <p className="text-white/25 text-sm mb-8">no expiry · no subscriptions · pay as you go</p>
+                <p className="text-white/25 text-sm mb-8">per credit · no expiry · no subscriptions</p>
                 
                 <Button
                   size="lg"

@@ -1,6 +1,7 @@
 /**
  * Custom Timeline Engine — types, state, and utilities
  * Replaces the Twick SDK timeline with a fully custom implementation.
+ * Includes undo/redo history, volume, speed, and fade controls.
  */
 
 import { createContext, useContext, useReducer, useCallback, useRef, useMemo } from "react";
@@ -36,6 +37,14 @@ export interface TimelineClip {
     backgroundColor?: string;
     position: "top" | "center" | "bottom";
   };
+  /** Volume 0–1 (default 1) */
+  volume?: number;
+  /** Playback speed multiplier 0.5–2 (default 1) */
+  speed?: number;
+  /** Fade-in duration in seconds (default 0) */
+  fadeIn?: number;
+  /** Fade-out duration in seconds (default 0) */
+  fadeOut?: number;
 }
 
 export interface TimelineTrack {
@@ -92,7 +101,7 @@ export const INITIAL_TIMELINE_STATE: TimelineState = {
   isPlaying: false,
   selectedClipId: null,
   selectedTrackId: null,
-  zoom: 50, // 50px per second
+  zoom: 50,
   scrollX: 0,
   fps: 30,
   width: 1920,
@@ -119,6 +128,12 @@ export function generateClipId(): string {
 export function generateTrackId(): string {
   return `track-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 }
+
+// ─── Actions that should NOT push to undo history ───
+const NON_UNDOABLE: Set<string> = new Set([
+  "SET_PLAYHEAD", "SET_PLAYING", "SELECT_CLIP",
+  "SET_ZOOM", "SET_SCROLL_X", "LOAD_PROJECT",
+]);
 
 // ─── Reducer ───
 
@@ -231,7 +246,6 @@ function timelineReducer(state: TimelineState, action: TimelineAction): Timeline
         if (idx < 0) return t;
         const [clip] = clips.splice(idx, 1);
         clips.splice(action.newIndex, 0, clip);
-        // Recalc positions based on new order
         let pos = 0;
         const reordered = clips.map((c) => {
           const dur = c.end - c.start;
@@ -249,19 +263,79 @@ function timelineReducer(state: TimelineState, action: TimelineAction): Timeline
   }
 }
 
+// ─── Undo/Redo History ───
+
+const MAX_HISTORY = 50;
+
+interface HistoryEntry {
+  tracks: TimelineTrack[];
+}
+
+function snapshotTracks(state: TimelineState): HistoryEntry {
+  return { tracks: JSON.parse(JSON.stringify(state.tracks)) };
+}
+
 // ─── Context ───
 
 interface TimelineContextValue {
   state: TimelineState;
   dispatch: React.Dispatch<TimelineAction>;
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 const TimelineContext = createContext<TimelineContextValue | null>(null);
 
 export function CustomTimelineProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(timelineReducer, INITIAL_TIMELINE_STATE);
+  const [state, rawDispatch] = useReducer(timelineReducer, INITIAL_TIMELINE_STATE);
 
-  const value = useMemo(() => ({ state, dispatch }), [state, dispatch]);
+  // Undo/redo stacks
+  const undoStack = useRef<HistoryEntry[]>([]);
+  const redoStack = useRef<HistoryEntry[]>([]);
+  // Force re-render when undo/redo availability changes
+  const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
+
+  // Wrap dispatch to capture history for undoable actions
+  const dispatch = useCallback((action: TimelineAction) => {
+    if (!NON_UNDOABLE.has(action.type)) {
+      // Save current state before mutation
+      undoStack.current.push(snapshotTracks(stateRef.current));
+      if (undoStack.current.length > MAX_HISTORY) undoStack.current.shift();
+      redoStack.current = []; // clear redo on new action
+      forceUpdate();
+    }
+    rawDispatch(action);
+  }, []);
+
+  // Keep a ref to current state for snapshot capture
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
+  const undo = useCallback(() => {
+    const entry = undoStack.current.pop();
+    if (!entry) return;
+    // Push current to redo
+    redoStack.current.push(snapshotTracks(stateRef.current));
+    rawDispatch({ type: "LOAD_PROJECT", state: { tracks: entry.tracks } });
+    forceUpdate();
+  }, []);
+
+  const redo = useCallback(() => {
+    const entry = redoStack.current.pop();
+    if (!entry) return;
+    undoStack.current.push(snapshotTracks(stateRef.current));
+    rawDispatch({ type: "LOAD_PROJECT", state: { tracks: entry.tracks } });
+    forceUpdate();
+  }, []);
+
+  const canUndo = undoStack.current.length > 0;
+  const canRedo = redoStack.current.length > 0;
+
+  const value = useMemo(() => ({
+    state, dispatch, undo, redo, canUndo, canRedo,
+  }), [state, dispatch, undo, redo, canUndo, canRedo]);
 
   return (
     <TimelineContext.Provider value={value}>
@@ -280,7 +354,7 @@ export function useCustomTimeline() {
 
 export function toProjectJSON(state: TimelineState): any {
   return {
-    version: 1,
+    version: 2,
     tracks: state.tracks.map((t) => ({
       id: t.id,
       type: t.type,
@@ -299,6 +373,10 @@ export function toProjectJSON(state: TimelineState): any {
           trimEnd: c.trimEnd,
           sourceDuration: c.sourceDuration,
           textStyle: c.textStyle,
+          volume: c.volume,
+          speed: c.speed,
+          fadeIn: c.fadeIn,
+          fadeOut: c.fadeOut,
         },
       })),
     })),
@@ -328,6 +406,10 @@ export function fromProjectJSON(json: any): Partial<TimelineState> {
         thumbnail: el.props?.thumbnail,
         sourceDuration: el.props?.sourceDuration,
         textStyle: el.props?.textStyle,
+        volume: el.props?.volume,
+        speed: el.props?.speed,
+        fadeIn: el.props?.fadeIn,
+        fadeOut: el.props?.fadeOut,
       })),
     })),
     fps: json.fps || 30,

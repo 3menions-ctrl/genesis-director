@@ -6,7 +6,7 @@
 import { useRef, useCallback, useState, memo, useEffect } from "react";
 import {
   Plus, Trash2, Volume2, VolumeX, Lock, Unlock, ZoomIn, ZoomOut,
-  Eye, EyeOff, GripVertical, Type
+  Eye, EyeOff, GripVertical, Type, Undo2, Redo2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCustomTimeline, TimelineTrack, TimelineClip, generateTrackId, generateClipId } from "@/hooks/useCustomTimeline";
@@ -202,7 +202,7 @@ function ClipBlock({
 // ─── Main Timeline ───
 
 export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTextDialog }: { className?: string; onOpenTextDialog?: () => void }) {
-  const { state, dispatch } = useCustomTimeline();
+  const { state, dispatch, undo, redo, canUndo, canRedo } = useCustomTimeline();
   const timelineRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{
@@ -315,6 +315,21 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
     });
   }, [dispatch, state.tracks]);
 
+  // ─── Keyboard shortcuts for undo/redo ───
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [undo, redo]);
+
   // Playhead position
   const playheadLeft = state.playheadTime * state.zoom - state.scrollX;
 
@@ -348,6 +363,30 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
         >
           <Type className="w-3 h-3" /> Text Overlay
         </Button>
+
+        {/* Undo / Redo */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={undo}
+          disabled={!canUndo}
+          className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground disabled:opacity-20"
+          title="Undo (Ctrl+Z)"
+        >
+          <Undo2 className="w-3 h-3" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={redo}
+          disabled={!canRedo}
+          className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground disabled:opacity-20"
+          title="Redo (Ctrl+Y)"
+        >
+          <Redo2 className="w-3 h-3" />
+        </Button>
+
+        <div className="w-px h-4 bg-border/10" />
 
         <div className="flex-1" />
 

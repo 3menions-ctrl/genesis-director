@@ -109,7 +109,7 @@ export const AvatarCTASection = memo(function AvatarCTASection({ onNavigate }: A
             </h2>
             <p className="text-lg text-white/40 mb-8 max-w-md">
               Join thousands of creators making videos with AI.
-              Get started with flexible credit packs.
+              Credits are just $0.10 each — no subscriptions.
             </p>
             <Button
               onClick={() => onNavigate('/auth?mode=signup')}

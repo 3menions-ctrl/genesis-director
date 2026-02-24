@@ -14,7 +14,7 @@ const FAQS = [
   },
   {
     question: 'What are credits and how much do they cost?',
-    answer: 'Credits power video generation. You can purchase flexible credit packs from the pricing page. Credits never expire and there are no subscriptions.',
+    answer: 'Credits power everything on APEX — video generation, photo editing, avatars, and more. Each credit costs just $0.10 and never expires. No subscriptions required.',
   },
   {
     question: 'Can I get a refund on credits?',

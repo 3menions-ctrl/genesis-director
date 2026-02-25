@@ -148,20 +148,40 @@ export const MediaSidebar = memo(function MediaSidebar({
                   animate={{ opacity: 1, y: 0 }}
                   className="flex flex-col items-center py-10 gap-4 text-muted-foreground/20"
                 >
-                  {/* Rich empty state */}
-                  <div
-                    className="w-16 h-16 rounded-2xl flex items-center justify-center relative"
-                    style={{
-                      background: 'linear-gradient(135deg, hsla(263, 70%, 58%, 0.08), hsla(263, 70%, 58%, 0.02))',
-                      border: '1px dashed hsla(263, 70%, 58%, 0.15)',
-                    }}
-                  >
-                    {search ? (
-                      <Search className="w-7 h-7 text-muted-foreground/20" />
-                    ) : (
-                      <Upload className="w-7 h-7 text-muted-foreground/20" />
-                    )}
-                    <Sparkles className="w-3 h-3 text-primary/30 absolute -top-1 -right-1" />
+                  {/* Animated empty state */}
+                  <div className="relative">
+                    <motion.div
+                      animate={{
+                        boxShadow: [
+                          '0 0 15px hsla(263, 70%, 58%, 0)',
+                          '0 0 30px hsla(263, 70%, 58%, 0.12)',
+                          '0 0 15px hsla(263, 70%, 58%, 0)',
+                        ]
+                      }}
+                      transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                      className="w-16 h-16 rounded-2xl flex items-center justify-center relative"
+                      style={{
+                        background: 'linear-gradient(135deg, hsla(263, 70%, 58%, 0.08), hsla(263, 70%, 58%, 0.02))',
+                        border: '1px dashed hsla(263, 70%, 58%, 0.15)',
+                      }}
+                    >
+                      {search ? (
+                        <Search className="w-7 h-7 text-muted-foreground/20" />
+                      ) : (
+                        <motion.div
+                          animate={{ y: [0, -3, 0] }}
+                          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                        >
+                          <Upload className="w-7 h-7 text-primary/25" />
+                        </motion.div>
+                      )}
+                    </motion.div>
+                    <motion.div
+                      animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.2, 1] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <Sparkles className="w-3 h-3 text-primary/30 absolute -top-1 -right-1" />
+                    </motion.div>
                   </div>
                   <div className="text-center space-y-1.5 px-4">
                     <p className="text-[12px] font-semibold text-muted-foreground/40">

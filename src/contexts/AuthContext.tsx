@@ -553,14 +553,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string) => {
-    // Redirect to auth callback page to handle email confirmation token
-    const redirectUrl = `${window.location.origin}/auth/callback`;
+    // Use OTP-based email verification (no redirect link)
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: redirectUrl
-      }
     });
     
     // Wait for session persistence if signup auto-confirms

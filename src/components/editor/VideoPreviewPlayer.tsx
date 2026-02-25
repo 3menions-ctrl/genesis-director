@@ -1,11 +1,12 @@
 /**
- * VideoPreviewPlayer — Premium cinematic preview with polished transport
+ * VideoPreviewPlayer — Premium cinematic preview with GAPLESS playback
+ * Uses dual <video> elements for zero-gap clip transitions.
  */
 
 import { useEffect, useRef, useCallback, useState, memo } from "react";
 import {
   Play, Pause, SkipBack, SkipForward, Volume2, VolumeX,
-  Maximize, Repeat, ChevronsLeft, ChevronsRight, MonitorPlay, Film, Sparkles
+  Maximize, Repeat, ChevronsLeft, ChevronsRight, MonitorPlay, Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCustomTimeline, TimelineClip } from "@/hooks/useCustomTimeline";
@@ -16,6 +17,19 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+
+/** Get all media clips sorted by start time */
+function getSortedMediaClips(tracks: { clips: TimelineClip[] }[]): { clip: TimelineClip; trackIndex: number }[] {
+  const result: { clip: TimelineClip; trackIndex: number }[] = [];
+  for (let i = 0; i < tracks.length; i++) {
+    for (const clip of tracks[i].clips) {
+      if ((clip.type === "video" || clip.type === "image") && clip.src) {
+        result.push({ clip, trackIndex: i });
+      }
+    }
+  }
+  return result.sort((a, b) => a.clip.start - b.clip.start);
+}
 
 function findActiveClip(
   tracks: { clips: TimelineClip[] }[],
@@ -31,22 +45,27 @@ function findActiveClip(
       }
     }
   }
-  // Fallback: first available video/image
-  for (let i = 0; i < tracks.length; i++) {
-    for (const clip of tracks[i].clips) {
-      if ((clip.type === "video" || clip.type === "image") && clip.src) {
-        return { clip, trackIndex: i };
-      }
-    }
+  return null;
+}
+
+/** Find the next clip after the current one */
+function findNextClip(
+  tracks: { clips: TimelineClip[] }[],
+  currentClipId: string
+): { clip: TimelineClip; trackIndex: number } | null {
+  const sorted = getSortedMediaClips(tracks);
+  const idx = sorted.findIndex((c) => c.clip.id === currentClipId);
+  if (idx >= 0 && idx < sorted.length - 1) {
+    return sorted[idx + 1];
   }
   return null;
 }
 
 /** Build CSS filter string from clip color grading properties */
 function buildCSSFilter(clip: TimelineClip): string {
-  const b = (clip.brightness ?? 0) / 100; // -1 to 1
-  const c = (clip.contrast ?? 0) / 100;   // -1 to 1
-  const s = (clip.saturation ?? 0) / 100;  // -1 to 1
+  const b = (clip.brightness ?? 0) / 100;
+  const c = (clip.contrast ?? 0) / 100;
+  const s = (clip.saturation ?? 0) / 100;
   const parts: string[] = [];
   if (b !== 0) parts.push(`brightness(${1 + b})`);
   if (c !== 0) parts.push(`contrast(${1 + c})`);
@@ -60,71 +79,117 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
   className?: string;
 }) {
   const { state, dispatch } = useCustomTimeline();
-  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Dual video elements for gapless transitions
+  const videoARef = useRef<HTMLVideoElement>(null);
+  const videoBRef = useRef<HTMLVideoElement>(null);
+  const activeSlot = useRef<"A" | "B">("A");
+  const preloadedClipId = useRef<string | null>(null);
+
   const animFrameRef = useRef<number>(0);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(80);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const lastClipIdRef = useRef<string | null>(null);
+  const [fadeOpacity, setFadeOpacity] = useState(1);
+  const [activeVideoSlot, setActiveVideoSlot] = useState<"A" | "B">("A");
 
   const active = findActiveClip(state.tracks, state.playheadTime);
-
-  // Check if the active clip's track is muted
   const isTrackMuted = active ? state.tracks[active.trackIndex]?.muted : false;
+
+  const getActiveVideo = useCallback(() => {
+    return activeSlot.current === "A" ? videoARef.current : videoBRef.current;
+  }, []);
+
+  const getPreloadVideo = useCallback(() => {
+    return activeSlot.current === "A" ? videoBRef.current : videoARef.current;
+  }, []);
+
+  // Preload next clip into the inactive video element
+  const preloadNextClip = useCallback(() => {
+    if (!active?.clip) return;
+    const next = findNextClip(state.tracks, active.clip.id);
+    if (!next || next.clip.type !== "video" || preloadedClipId.current === next.clip.id) return;
+
+    const preloadEl = getPreloadVideo();
+    if (!preloadEl) return;
+
+    preloadEl.src = next.clip.src!;
+    preloadEl.currentTime = next.clip.trimStart;
+    preloadEl.preload = "auto";
+    preloadEl.load();
+    preloadedClipId.current = next.clip.id;
+  }, [active?.clip?.id, state.tracks, getPreloadVideo]);
 
   // Load clip source when active clip changes
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !active?.clip.src) return;
+    if (!active?.clip.src) return;
     if (lastClipIdRef.current === active.clip.id) return;
 
-    lastClipIdRef.current = active.clip.id;
-    video.src = active.clip.src;
-    video.load();
+    // Check if the next clip was preloaded — if so, swap slots
+    if (preloadedClipId.current === active.clip.id) {
+      // The preload video already has this clip loaded — swap!
+      activeSlot.current = activeSlot.current === "A" ? "B" : "A";
+      setActiveVideoSlot(activeSlot.current);
+      preloadedClipId.current = null;
+    } else {
+      // Load into active slot normally
+      const video = getActiveVideo();
+      if (!video) return;
+      video.src = active.clip.src;
+      video.load();
+    }
 
-    const offset = state.playheadTime - active.clip.start + active.clip.trimStart;
-    video.currentTime = Math.max(0, offset);
-  }, [active?.clip.id, active?.clip.src]);
+    lastClipIdRef.current = active.clip.id;
+
+    const video = activeSlot.current === "A" ? videoARef.current : videoBRef.current;
+    if (video) {
+      const offset = state.playheadTime - active.clip.start + active.clip.trimStart;
+      video.currentTime = Math.max(0, offset);
+    }
+
+    // Start preloading the next clip
+    setTimeout(preloadNextClip, 100);
+  }, [active?.clip.id, active?.clip.src, preloadNextClip]);
 
   // Apply clip-level speed
   useEffect(() => {
-    const video = videoRef.current;
+    const video = getActiveVideo();
     if (!video || !active?.clip) return;
     video.playbackRate = active.clip.speed ?? 1;
-  }, [active?.clip?.id, active?.clip?.speed]);
+  }, [active?.clip?.id, active?.clip?.speed, getActiveVideo]);
 
   // Apply clip-level volume + track mute
   useEffect(() => {
-    const video = videoRef.current;
+    const video = getActiveVideo();
     if (!video || !active?.clip) return;
     const clipVolume = active.clip.volume ?? 1;
     video.volume = isTrackMuted ? 0 : clipVolume;
-  }, [active?.clip?.id, active?.clip?.volume, isTrackMuted]);
+  }, [active?.clip?.id, active?.clip?.volume, isTrackMuted, getActiveVideo]);
 
   // Seek when scrubbing (not playing)
   useEffect(() => {
-    const video = videoRef.current;
+    const video = getActiveVideo();
     if (!video || !active?.clip || state.isPlaying) return;
 
     const offset = state.playheadTime - active.clip.start + active.clip.trimStart;
     if (Math.abs(video.currentTime - offset) > 0.1) {
       video.currentTime = Math.max(0, offset);
     }
-  }, [state.playheadTime, state.isPlaying]);
+  }, [state.playheadTime, state.isPlaying, getActiveVideo]);
 
   // Play/pause + playhead sync with fade opacity
-  const [fadeOpacity, setFadeOpacity] = useState(1);
-
   useEffect(() => {
-    const video = videoRef.current;
+    const video = getActiveVideo();
     if (!video) return;
 
     if (state.isPlaying && active?.clip) {
       video.play().catch(() => {});
 
       const tick = () => {
-        if (!videoRef.current || !active?.clip) return;
-        const clipTime = videoRef.current.currentTime - active.clip.trimStart + active.clip.start;
+        const currentVideo = activeSlot.current === "A" ? videoARef.current : videoBRef.current;
+        if (!currentVideo || !active?.clip) return;
+        const clipTime = currentVideo.currentTime - active.clip.trimStart + active.clip.start;
         dispatch({ type: "SET_PLAYHEAD", time: clipTime });
 
         // Calculate fade opacity
@@ -141,6 +206,11 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
         }
         setFadeOpacity(opacity);
 
+        // Preload when within 2 seconds of clip end
+        if (clipProgress > clipDuration - 2) {
+          preloadNextClip();
+        }
+
         animFrameRef.current = requestAnimationFrame(tick);
       };
       animFrameRef.current = requestAnimationFrame(tick);
@@ -151,18 +221,16 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
     }
 
     return () => cancelAnimationFrame(animFrameRef.current);
-  }, [state.isPlaying, active?.clip?.id]);
+  }, [state.isPlaying, active?.clip?.id, getActiveVideo, preloadNextClip]);
 
   const handleEnded = useCallback(() => {
-    const allClips = state.tracks
-      .flatMap((t) => t.clips)
-      .filter((c) => c.type === "video" && c.src)
-      .sort((a, b) => a.start - b.start);
+    const sorted = getSortedMediaClips(state.tracks);
+    const currentIdx = sorted.findIndex((c) => c.clip.id === active?.clip.id);
 
-    const currentIdx = allClips.findIndex((c) => c.id === active?.clip.id);
-    if (currentIdx >= 0 && currentIdx < allClips.length - 1) {
-      const next = allClips[currentIdx + 1];
-      dispatch({ type: "SET_PLAYHEAD", time: next.start });
+    if (currentIdx >= 0 && currentIdx < sorted.length - 1) {
+      const next = sorted[currentIdx + 1];
+      // Immediately jump — the preloaded video will be swapped in via the useEffect
+      dispatch({ type: "SET_PLAYHEAD", time: next.clip.start });
     } else if (state.isLooping) {
       dispatch({ type: "SET_PLAYHEAD", time: 0 });
     } else {
@@ -175,15 +243,11 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
   }, [state.isPlaying, dispatch]);
 
   const skipClip = useCallback((dir: -1 | 1) => {
-    const allClips = state.tracks
-      .flatMap((t) => t.clips)
-      .filter((c) => c.type === "video" && c.src)
-      .sort((a, b) => a.start - b.start);
-
-    const currentIdx = allClips.findIndex((c) => c.id === active?.clip.id);
+    const sorted = getSortedMediaClips(state.tracks);
+    const currentIdx = sorted.findIndex((c) => c.clip.id === active?.clip.id);
     const nextIdx = currentIdx + dir;
-    if (nextIdx >= 0 && nextIdx < allClips.length) {
-      dispatch({ type: "SET_PLAYHEAD", time: allClips[nextIdx].start });
+    if (nextIdx >= 0 && nextIdx < sorted.length) {
+      dispatch({ type: "SET_PLAYHEAD", time: sorted[nextIdx].clip.start });
     }
   }, [state.tracks, active?.clip?.id, dispatch]);
 
@@ -196,31 +260,30 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
   }, [state.duration, dispatch]);
 
   const toggleMute = useCallback(() => {
-    const video = videoRef.current;
-    if (video) {
-      video.muted = !video.muted;
-      setIsMuted(video.muted);
-    }
+    setIsMuted(prev => !prev);
   }, []);
+
+  // Sync mute to both video elements
+  useEffect(() => {
+    if (videoARef.current) videoARef.current.muted = isMuted || isTrackMuted;
+    if (videoBRef.current) videoBRef.current.muted = isMuted || isTrackMuted;
+  }, [isMuted, isTrackMuted]);
 
   const handleVolumeChange = useCallback(([v]: number[]) => {
     setVolume(v);
-    if (videoRef.current) {
-      videoRef.current.volume = v / 100;
-      if (v > 0 && videoRef.current.muted) {
-        videoRef.current.muted = false;
-        setIsMuted(false);
-      }
-    }
-  }, []);
+    const vol = v / 100;
+    if (videoARef.current) videoARef.current.volume = vol;
+    if (videoBRef.current) videoBRef.current.volume = vol;
+    if (v > 0 && isMuted) setIsMuted(false);
+  }, [isMuted]);
 
   const toggleLoop = useCallback(() => {
     dispatch({ type: "SET_LOOP", looping: !state.isLooping });
   }, [state.isLooping, dispatch]);
 
   const toggleFullscreen = useCallback(() => {
-    videoRef.current?.requestFullscreen?.().catch(() => {});
-  }, []);
+    getActiveVideo()?.requestFullscreen?.().catch(() => {});
+  }, [getActiveVideo]);
 
   const handleSeek = useCallback(([v]: number[]) => {
     dispatch({ type: "SET_PLAYHEAD", time: v });
@@ -235,6 +298,7 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
 
   const hasClips = state.tracks.some((t) => t.clips.some((c) => (c.type === "video" || c.type === "image") && c.src));
   const cssFilter = active?.clip ? buildCSSFilter(active.clip) : "none";
+  const clipOpacity = fadeOpacity * (active?.clip?.opacity ?? 1);
 
   return (
     <div className={cn("flex flex-col overflow-hidden", className)} style={{ background: 'hsl(240 28% 3%)' }}>
@@ -271,23 +335,38 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
                 src={active.clip.src}
                 alt={active.clip.name}
                 className="max-w-full max-h-full object-contain transition-opacity duration-75"
-                style={{
-                  opacity: fadeOpacity * (active.clip.opacity ?? 1),
-                  filter: cssFilter,
-                }}
+                style={{ opacity: clipOpacity, filter: cssFilter }}
               />
             ) : (
-              <video
-                ref={videoRef}
-                className="max-w-full max-h-full object-contain transition-opacity duration-75"
-                style={{
-                  opacity: fadeOpacity * (active?.clip?.opacity ?? 1),
-                  filter: cssFilter,
-                }}
-                muted={isMuted || isTrackMuted}
-                playsInline
-                onEnded={handleEnded}
-              />
+              <>
+                {/* Dual video elements for gapless playback */}
+                <video
+                  ref={videoARef}
+                  className="max-w-full max-h-full object-contain absolute inset-0 m-auto"
+                  style={{
+                    opacity: activeVideoSlot === "A" ? clipOpacity : 0,
+                    filter: activeVideoSlot === "A" ? cssFilter : "none",
+                    pointerEvents: activeVideoSlot === "A" ? "auto" : "none",
+                    zIndex: activeVideoSlot === "A" ? 2 : 1,
+                  }}
+                  muted={isMuted || isTrackMuted}
+                  playsInline
+                  onEnded={activeVideoSlot === "A" ? handleEnded : undefined}
+                />
+                <video
+                  ref={videoBRef}
+                  className="max-w-full max-h-full object-contain absolute inset-0 m-auto"
+                  style={{
+                    opacity: activeVideoSlot === "B" ? clipOpacity : 0,
+                    filter: activeVideoSlot === "B" ? cssFilter : "none",
+                    pointerEvents: activeVideoSlot === "B" ? "auto" : "none",
+                    zIndex: activeVideoSlot === "B" ? 2 : 1,
+                  }}
+                  muted={isMuted || isTrackMuted}
+                  playsInline
+                  onEnded={activeVideoSlot === "B" ? handleEnded : undefined}
+                />
+              </>
             )}
             {/* Text overlay rendering */}
             {state.tracks.flatMap(t => t.clips).filter(c =>
@@ -297,6 +376,7 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
                 key={textClip.id}
                 className="absolute left-0 right-0 flex justify-center pointer-events-none px-4"
                 style={{
+                  zIndex: 10,
                   top: textClip.textStyle?.position === "top" ? "8%" : textClip.textStyle?.position === "center" ? "50%" : undefined,
                   bottom: (!textClip.textStyle?.position || textClip.textStyle?.position === "bottom") ? "8%" : undefined,
                   transform: textClip.textStyle?.position === "center" ? "translateY(-50%)" : undefined,
@@ -329,6 +409,7 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
             background: 'hsla(0,0%,0%,0.6)',
             color: 'hsla(0,0%,100%,0.45)',
             border: '1px solid hsla(0,0%,100%,0.08)',
+            zIndex: 20,
           }}
         >
           {state.aspectRatio}
@@ -478,14 +559,27 @@ function TransportButton({
           className={cn(
             "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-150",
             active
-              ? "text-foreground bg-foreground/10"
-              : "text-muted-foreground/50 hover:text-foreground/80 hover:bg-white/[0.06]"
+              ? "text-foreground/90"
+              : "text-muted-foreground/40 hover:text-foreground/70"
           )}
+          style={{
+            background: active ? 'hsla(0,0%,100%,0.08)' : 'transparent',
+          }}
         >
           {children}
         </button>
       </TooltipTrigger>
-      <TooltipContent side="top" className="text-[10px]">{tooltip}</TooltipContent>
+      <TooltipContent
+        side="top"
+        className="text-[10px] px-2.5 py-1 rounded-lg"
+        style={{
+          background: 'hsl(240 15% 12%)',
+          border: '1px solid hsla(0,0%,100%,0.1)',
+          color: 'hsla(0,0%,100%,0.8)',
+        }}
+      >
+        {tooltip}
+      </TooltipContent>
     </Tooltip>
   );
 }

@@ -17,7 +17,7 @@ export interface StitchClip {
 }
 
 export interface StitchConfig {
-  crossfadeDuration?: number; // seconds, default 0.5
+  crossfadeDuration?: number; // seconds, default 0 (seamless join). Set > 0 for crossfade.
   transition?: string; // "fade" | "wipeleft" | "wiperight" | "slideup" | "slidedown" etc.
 }
 
@@ -128,7 +128,7 @@ export function useEditorStitch() {
           action: "submit",
           sessionId,
           clips,
-          crossfadeDuration: config.crossfadeDuration ?? 0.5,
+          crossfadeDuration: config.crossfadeDuration ?? 0,
           transition: config.transition ?? "fade",
         },
       });

@@ -97,13 +97,26 @@ function buildFfmpegCommand(
   crossfadeDuration: number,
   transition: string
 ): string {
-  const { filterComplex, mapArgs } = buildXfadeFilterGraph(clips, crossfadeDuration, transition);
-
   // Build input args
   const inputArgs = clips.map((_, i) => `-i file${i + 1}`).join(" ");
 
-  if (!filterComplex) {
+  if (clips.length === 1) {
     // Single clip — just copy
+    return `ffmpeg ${inputArgs} -c copy output1`;
+  }
+
+  // Zero crossfade = seamless concat (no xfade filter needed, use concat filter)
+  if (crossfadeDuration <= 0) {
+    const n = clips.length;
+    const concatInputs = clips.map((_, i) => `[${i}:v][${i}:a]`).join("");
+    const concatFilter = `${concatInputs}concat=n=${n}:v=1:a=1[vout][aout]`;
+    return `ffmpeg ${inputArgs} -filter_complex "${concatFilter}" -map "[vout]" -map "[aout]" -c:v libx264 -preset fast -crf 20 -c:a aac -b:a 192k -movflags +faststart output1`;
+  }
+
+  // Crossfade > 0: use xfade filters
+  const { filterComplex, mapArgs } = buildXfadeFilterGraph(clips, crossfadeDuration, transition);
+
+  if (!filterComplex) {
     return `ffmpeg ${inputArgs} -c copy output1`;
   }
 

@@ -134,17 +134,31 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [resendingOtp, setResendingOtp] = useState(false);
 
-  const trackSignup = useCallback((userId: string) => {
-    const params = new URLSearchParams(window.location.search);
-    supabase.functions.invoke('track-signup', {
-      body: {
-        user_id: userId,
-        utm_source: params.get('utm_source'),
-        utm_medium: params.get('utm_medium'),
-        utm_campaign: params.get('utm_campaign'),
-        referrer: document.referrer || null,
-      },
-    }).catch(() => {});
+  const trackSignup = useCallback(async (userId: string) => {
+    try {
+      // Wait briefly for session to be fully established in the client
+      // This prevents auth-guard rejection when called right after OTP/login
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.warn('[Auth] trackSignup: No session available, skipping');
+        return;
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      await supabase.functions.invoke('track-signup', {
+        body: {
+          user_id: userId,
+          utm_source: params.get('utm_source'),
+          utm_medium: params.get('utm_medium'),
+          utm_campaign: params.get('utm_campaign'),
+          referrer: document.referrer || null,
+        },
+      });
+    } catch (err) {
+      console.warn('[Auth] trackSignup failed:', err);
+    }
   }, []);
 
   useEffect(() => {
@@ -560,6 +574,9 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                                   document.getElementById('otp-0')?.focus();
                                 } else {
                                   toast.success('Email verified! Welcome aboard.');
+                                  // Track signup analytics after OTP verification
+                                  const { data: sessionData } = await supabase.auth.getUser();
+                                  if (sessionData?.user) trackSignup(sessionData.user.id);
                                   setPendingEmailConfirmation(null);
                                   setOtpCode('');
                                 }

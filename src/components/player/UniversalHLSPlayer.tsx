@@ -712,15 +712,42 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
         ? 'aspect-square' 
         : '';
     
+    // Auto-hide controls
+    const [controlsVisible, setControlsVisible] = useState(true);
+    const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [isProgressHovered, setIsProgressHovered] = useState(false);
+    const [hoverProgress, setHoverProgress] = useState<number | null>(null);
+
+    const showControlsTemporarily = useCallback(() => {
+      setControlsVisible(true);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = setTimeout(() => {
+        if (isPlaying && mountedRef.current) setControlsVisible(false);
+      }, 3000);
+    }, [isPlaying]);
+
+    useEffect(() => {
+      if (!isPlaying) { setControlsVisible(true); return; }
+      showControlsTemporarily();
+      return () => { if (hideTimerRef.current) clearTimeout(hideTimerRef.current); };
+    }, [isPlaying, showControlsTemporarily]);
+
+    const handleProgressHover = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setHoverProgress(((e.clientX - rect.left) / rect.width) * 100);
+    }, []);
+
     return (
       <div 
         ref={containerRef}
         className={cn(
-          "relative bg-black overflow-hidden group",
+          "relative bg-black overflow-hidden group cursor-pointer",
           aspectRatio !== 'auto' && 'rounded-xl',
           aspectClass,
           className
         )}
+        onMouseMove={showControlsTemporarily}
+        onMouseLeave={() => { if (isPlaying) setControlsVisible(false); }}
       >
         {/* Video element */}
         <video
@@ -731,6 +758,7 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
           loop={loop}
           preload="auto"
           crossOrigin="anonymous"
+          onClick={togglePlayPause}
         />
         
         {/* Master audio track (hidden) */}
@@ -743,162 +771,197 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
           />
         )}
         
-        {/* Loading overlay */}
+        {/* Loading overlay — minimal */}
         {isLoading && !error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50 pointer-events-none">
-            <Loader2 className="w-10 h-10 text-white animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-12 h-12 rounded-full bg-white/[0.08] backdrop-blur-2xl border border-white/[0.12] flex items-center justify-center">
+              <Loader2 className="w-6 h-6 text-white/70 animate-spin" />
+            </div>
           </div>
         )}
         
         {/* Error overlay */}
         {error && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 p-4">
-            <AlertCircle className="w-10 h-10 text-destructive mb-3" />
-            <p className="text-white text-sm text-center mb-4">{error}</p>
-            <Button 
-              variant="outline" 
-              size="sm"
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <AlertCircle className="w-10 h-10 text-destructive/60 mb-3" />
+            <p className="text-white/70 text-sm text-center mb-4">{error}</p>
+            <button
               onClick={handleRetry}
-              className="gap-2"
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.08] backdrop-blur-xl border border-white/[0.12] text-white/80 text-sm hover:bg-white/[0.14] transition-all"
             >
               <RefreshCw className="w-4 h-4" />
               Retry
-            </Button>
+            </button>
           </div>
         )}
         
-        {/* Title overlay */}
+        {/* Title overlay — top left with fade */}
         {title && (
-          <div className="absolute top-4 left-4 z-40">
-            <h2 className="text-lg font-semibold text-white drop-shadow-lg">{title}</h2>
+          <div className={cn(
+            "absolute top-0 left-0 right-0 p-5 z-40 transition-opacity duration-500",
+            "bg-gradient-to-b from-black/50 to-transparent",
+            controlsVisible ? "opacity-100" : "opacity-0"
+          )}>
+            <h2 className="text-base font-medium text-white/90 drop-shadow-lg truncate">{title}</h2>
           </div>
         )}
         
-        {/* Close button */}
+        {/* Close button — glassmorphic pill */}
         {onClose && (
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors z-50"
+            className={cn(
+              "absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center z-50 transition-all duration-500",
+              "bg-white/[0.08] backdrop-blur-2xl border border-white/[0.12]",
+              "text-white/70 hover:bg-white/[0.16] hover:text-white hover:scale-105",
+              controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none"
+            )}
           >
             ×
           </button>
         )}
         
-        {/* Controls overlay */}
-        {showControls && !error && (
-          <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            {/* Progress bar */}
-            <div 
-              className="w-full h-1.5 mb-3 bg-white/20 rounded-full cursor-pointer relative"
-              onClick={handleSeek}
-            >
-              {/* Buffered indicator */}
-              <div 
-                className="absolute inset-y-0 left-0 bg-white/30 rounded-full"
-                style={{ width: `${buffered}%` }}
-              />
-              {/* Progress indicator */}
-              <div 
-                className="absolute inset-y-0 left-0 bg-white rounded-full transition-all"
-                style={{ width: `${progressPercent}%` }}
-              />
-              {/* Scrubber handle */}
-              <div 
-                className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ left: `calc(${progressPercent}% - 6px)` }}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {/* Skip Back */}
-                {showSkipButtons && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 w-8 p-0 text-white hover:bg-white/20"
-                    onClick={skipBackward}
-                  >
-                    <SkipBack className="w-4 h-4" />
-                  </Button>
-                )}
-                
-                {/* Play/Pause */}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 w-8 p-0 text-white hover:bg-white/20"
-                  onClick={togglePlayPause}
-                >
-                  {isPlaying ? (
-                    <Pause className="w-4 h-4" fill="currentColor" />
-                  ) : (
-                    <Play className="w-4 h-4 ml-0.5" fill="currentColor" />
-                  )}
-                </Button>
-                
-                {/* Skip Forward */}
-                {showSkipButtons && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 w-8 p-0 text-white hover:bg-white/20"
-                    onClick={skipForward}
-                  >
-                    <SkipForward className="w-4 h-4" />
-                  </Button>
-                )}
-                
-                {/* Volume */}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 w-8 p-0 text-white hover:bg-white/20"
-                  onClick={toggleMute}
-                >
-                  {isMuted ? (
-                    <VolumeX className="w-4 h-4" />
-                  ) : (
-                    <Volume2 className="w-4 h-4" />
-                  )}
-                </Button>
-                
-                <span className="text-xs text-white/80 font-mono tabular-nums">
-                  {formatTime(currentTime)} / {formatTime(duration)}
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                {/* Playback method indicator (dev) */}
-                {process.env.NODE_ENV === 'development' && playbackMethod && (
-                  <span className="text-[10px] text-primary/70 font-mono uppercase">
-                    HLS_{playbackMethod.toUpperCase()}
-                  </span>
-                )}
-                
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 w-8 p-0 text-white hover:bg-white/20"
-                  onClick={requestFullscreen}
-                >
-                  <Maximize2 className="w-4 h-4" />
-                </Button>
-              </div>
+        {/* Center play button — appears when paused */}
+        {!isPlaying && !isLoading && !error && (
+          <div
+            className="absolute inset-0 flex items-center justify-center z-10 cursor-pointer"
+            onClick={togglePlayPause}
+          >
+            <div className={cn(
+              "w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300",
+              "bg-white/[0.1] backdrop-blur-2xl border border-white/[0.18]",
+              "hover:bg-white/[0.18] hover:scale-110 hover:border-white/[0.28]",
+              "shadow-[0_8px_40px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.06)]"
+            )}>
+              <Play className="w-8 h-8 text-white ml-1" fill="currentColor" />
             </div>
           </div>
         )}
         
-        {/* Click to play overlay (when paused) */}
-        {!isPlaying && !isLoading && !error && (
-          <button
-            className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
-            onClick={togglePlayPause}
-          >
-            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <Play className="w-8 h-8 text-white ml-1" fill="currentColor" />
+        {/* ============ IMMERSIVE CONTROLS BAR ============ */}
+        {showControls && !error && (
+          <div className={cn(
+            "absolute bottom-0 left-0 right-0 z-40 transition-all duration-500",
+            controlsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"
+          )}>
+            {/* Gradient backdrop */}
+            <div className="bg-gradient-to-t from-black/70 via-black/30 to-transparent pt-16 pb-3 px-4">
+              
+              {/* Progress bar — immersive thin line with glow */}
+              <div 
+                className="relative w-full h-5 flex items-center mb-2 cursor-pointer group/progress"
+                onClick={handleSeek}
+                onMouseEnter={() => setIsProgressHovered(true)}
+                onMouseLeave={() => { setIsProgressHovered(false); setHoverProgress(null); }}
+                onMouseMove={handleProgressHover}
+              >
+                {/* Track */}
+                <div className={cn(
+                  "absolute left-0 right-0 rounded-full transition-all duration-300 overflow-hidden",
+                  isProgressHovered ? "h-[6px] top-[7px]" : "h-[3px] top-[8.5px]"
+                )}>
+                  {/* Background */}
+                  <div className="absolute inset-0 bg-white/[0.12]" />
+                  {/* Buffered */}
+                  <div 
+                    className="absolute inset-y-0 left-0 bg-white/[0.18] rounded-full"
+                    style={{ width: `${buffered}%` }}
+                  />
+                  {/* Progress — with glow */}
+                  <div 
+                    className="absolute inset-y-0 left-0 bg-white rounded-full transition-[width] duration-75"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+                {/* Scrubber handle — glowing dot */}
+                <div 
+                  className={cn(
+                    "absolute top-1/2 -translate-y-1/2 rounded-full transition-all duration-200 z-10",
+                    isProgressHovered 
+                      ? "w-4 h-4 opacity-100 shadow-[0_0_12px_rgba(255,255,255,0.5)]" 
+                      : "w-2.5 h-2.5 opacity-0 group-hover/progress:opacity-100"
+                  )}
+                  style={{ 
+                    left: `calc(${progressPercent}% - ${isProgressHovered ? 8 : 5}px)`,
+                    background: 'white',
+                  }}
+                />
+                {/* Hover preview marker */}
+                {hoverProgress !== null && isProgressHovered && (
+                  <div 
+                    className="absolute top-0 w-px h-5 bg-white/30 pointer-events-none"
+                    style={{ left: `${hoverProgress}%` }}
+                  />
+                )}
+              </div>
+
+              {/* Controls row */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  {/* Skip Back */}
+                  {showSkipButtons && (
+                    <button
+                      onClick={skipBackward}
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-white/[0.1] transition-all"
+                    >
+                      <SkipBack className="w-4 h-4" />
+                    </button>
+                  )}
+                  
+                  {/* Play/Pause */}
+                  <button
+                    onClick={togglePlayPause}
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-white hover:bg-white/[0.12] transition-all"
+                  >
+                    {isPlaying ? (
+                      <Pause className="w-5 h-5" fill="currentColor" />
+                    ) : (
+                      <Play className="w-5 h-5 ml-0.5" fill="currentColor" />
+                    )}
+                  </button>
+                  
+                  {/* Skip Forward */}
+                  {showSkipButtons && (
+                    <button
+                      onClick={skipForward}
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-white/[0.1] transition-all"
+                    >
+                      <SkipForward className="w-4 h-4" />
+                    </button>
+                  )}
+                  
+                  {/* Volume */}
+                  <button
+                    onClick={toggleMute}
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.1] transition-all"
+                  >
+                    {isMuted ? (
+                      <VolumeX className="w-4 h-4" />
+                    ) : (
+                      <Volume2 className="w-4 h-4" />
+                    )}
+                  </button>
+                  
+                  {/* Time display */}
+                  <span className="text-[11px] text-white/50 font-mono tabular-nums ml-1 select-none">
+                    {formatTime(currentTime)}
+                    <span className="text-white/25 mx-1">/</span>
+                    {formatTime(duration)}
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-1">
+                  {/* Fullscreen */}
+                  <button
+                    onClick={requestFullscreen}
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.1] transition-all"
+                  >
+                    <Maximize2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
-          </button>
+          </div>
         )}
       </div>
     );

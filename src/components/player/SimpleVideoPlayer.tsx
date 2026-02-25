@@ -342,9 +342,11 @@ export const SimpleVideoPlayer = memo(forwardRef<SimpleVideoPlayerHandle, Simple
       (controlsVisibility === 'hover' && isHovered)
     );
     
+    const [isProgressHovered, setIsProgressHovered] = useState(false);
+
     return (
       <div 
-        className={cn("relative group", className)}
+        className={cn("relative group cursor-pointer", className)}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -362,75 +364,113 @@ export const SimpleVideoPlayer = memo(forwardRef<SimpleVideoPlayerHandle, Simple
           preload={preload}
           poster={poster}
           crossOrigin={crossOrigin}
+          onClick={togglePlayPause}
         />
         
-        {/* Loading overlay */}
+        {/* Loading overlay — minimal glassmorphic */}
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-            <Loader2 className="w-8 h-8 text-white animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-12 h-12 rounded-full bg-white/[0.08] backdrop-blur-2xl border border-white/[0.12] flex items-center justify-center">
+              <Loader2 className="w-6 h-6 text-white/70 animate-spin" />
+            </div>
           </div>
         )}
         
-        {/* Controls overlay */}
+        {/* Controls overlay — immersive */}
         {shouldShowControls && !isLoading && (
-          <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-200">
-            {/* Progress bar */}
-            <div className="w-full h-1 mb-3 bg-white/20 rounded-full">
+          <div className="absolute bottom-0 left-0 right-0 transition-opacity duration-300">
+            <div className="bg-gradient-to-t from-black/60 via-black/25 to-transparent pt-12 pb-3 px-4">
+              {/* Progress bar — expandable */}
               <div 
-                className="h-full bg-white rounded-full transition-all"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <button
-                  className="h-8 w-8 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors"
-                  onClick={togglePlayPause}
-                >
-                  {isPlaying ? (
-                    <Pause className="w-4 h-4" fill="currentColor" />
-                  ) : (
-                    <Play className="w-4 h-4 ml-0.5" fill="currentColor" />
+                className="relative w-full h-5 flex items-center mb-2 cursor-pointer group/progress"
+                onClick={(e) => {
+                  const video = videoRef.current;
+                  if (!video || !duration) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  video.currentTime = ((e.clientX - rect.left) / rect.width) * duration;
+                }}
+                onMouseEnter={() => setIsProgressHovered(true)}
+                onMouseLeave={() => setIsProgressHovered(false)}
+              >
+                <div className={cn(
+                  "absolute left-0 right-0 rounded-full transition-all duration-300 overflow-hidden",
+                  isProgressHovered ? "h-[5px] top-[7.5px]" : "h-[2.5px] top-[8.75px]"
+                )}>
+                  <div className="absolute inset-0 bg-white/[0.12]" />
+                  <div 
+                    className="absolute inset-y-0 left-0 bg-white rounded-full transition-[width] duration-75"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+                <div 
+                  className={cn(
+                    "absolute top-1/2 -translate-y-1/2 rounded-full bg-white transition-all duration-200 z-10",
+                    isProgressHovered 
+                      ? "w-3.5 h-3.5 opacity-100 shadow-[0_0_10px_rgba(255,255,255,0.4)]" 
+                      : "w-2 h-2 opacity-0 group-hover/progress:opacity-100"
                   )}
-                </button>
-                
-                <button
-                  className="h-8 w-8 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors"
-                  onClick={toggleMute}
-                >
-                  {isMuted ? (
-                    <VolumeX className="w-4 h-4" />
-                  ) : (
-                    <Volume2 className="w-4 h-4" />
-                  )}
-                </button>
-                
-                <span className="text-xs text-white/80 font-mono">
-                  {formatTime(currentTime)} / {formatTime(duration)}
-                </span>
+                  style={{ left: `calc(${progressPercent}% - ${isProgressHovered ? 7 : 4}px)` }}
+                />
               </div>
               
-              <button
-                className="h-8 w-8 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors"
-                onClick={requestFullscreen}
-              >
-                <Maximize2 className="w-4 h-4" />
-              </button>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  <button
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-white hover:bg-white/[0.12] transition-all"
+                    onClick={togglePlayPause}
+                  >
+                    {isPlaying ? (
+                      <Pause className="w-4.5 h-4.5" fill="currentColor" />
+                    ) : (
+                      <Play className="w-4.5 h-4.5 ml-0.5" fill="currentColor" />
+                    )}
+                  </button>
+                  
+                  <button
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.1] transition-all"
+                    onClick={toggleMute}
+                  >
+                    {isMuted ? (
+                      <VolumeX className="w-4 h-4" />
+                    ) : (
+                      <Volume2 className="w-4 h-4" />
+                    )}
+                  </button>
+                  
+                  <span className="text-[11px] text-white/50 font-mono tabular-nums ml-1 select-none">
+                    {formatTime(currentTime)}
+                    <span className="text-white/25 mx-1">/</span>
+                    {formatTime(duration)}
+                  </span>
+                </div>
+                
+                <button
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.1] transition-all"
+                  onClick={requestFullscreen}
+                >
+                  <Maximize2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         )}
         
-        {/* Click to play overlay */}
+        {/* Center play — when paused */}
         {!isPlaying && !isLoading && controlsVisibility !== 'none' && (
-          <button
-            className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+          <div
+            className="absolute inset-0 flex items-center justify-center z-10 cursor-pointer"
             onClick={togglePlayPause}
           >
-            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <Play className="w-8 h-8 text-white ml-1" fill="currentColor" />
+            <div className={cn(
+              "w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300",
+              "bg-white/[0.1] backdrop-blur-2xl border border-white/[0.18]",
+              "hover:bg-white/[0.18] hover:scale-110",
+              "shadow-[0_8px_32px_rgba(0,0,0,0.4)]",
+              isHovered ? "opacity-100" : "opacity-0"
+            )}>
+              <Play className="w-7 h-7 text-white ml-1" fill="currentColor" />
             </div>
-          </button>
+          </div>
         )}
       </div>
     );

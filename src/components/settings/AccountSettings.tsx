@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, memo, forwardRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSafeNavigation } from '@/lib/navigation';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +28,7 @@ const emailSchema = z.string().email('Please enter a valid email address').max(2
 
 export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, never>>(function AccountSettings(_, ref) {
   const { user, profile, refreshProfile } = useAuth();
+  const { navigate } = useSafeNavigation();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -37,9 +39,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
   const [emailError, setEmailError] = useState('');
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   
-  const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
-  const [deactivationReason, setDeactivationReason] = useState('');
-  const [isDeactivating, setIsDeactivating] = useState(false);
+
 
   const [trackingOptedOut, setTrackingOptedOut] = useState(false);
   const [hideFromLeaderboard, setHideFromLeaderboard] = useState(false);
@@ -236,28 +236,6 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
     }
   };
 
-  const handleDeactivateAccount = async () => {
-    if (!user) return;
-    
-    setIsDeactivating(true);
-    try {
-      const { error } = await supabase.rpc('deactivate_account', {
-        p_reason: deactivationReason.trim() || null
-      });
-
-      if (error) throw error;
-
-      toast.success('Your account has been deactivated');
-      setShowDeactivateDialog(false);
-      
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.error('Error deactivating account:', error);
-      toast.error('Failed to deactivate account');
-    } finally {
-      setIsDeactivating(false);
-    }
-  };
 
   const memberSince = profile?.created_at 
     ? new Date(profile.created_at).toLocaleDateString('en-US', { 
@@ -596,7 +574,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             </p>
             <div className="mt-4">
               <Button
-                onClick={() => setShowDeactivateDialog(true)}
+                onClick={() => navigate('/settings/deactivate')}
                 variant="outline"
                 className="border-red-500/20 text-red-400/80 hover:bg-red-500/10 hover:text-red-300 hover:border-red-500/30 rounded-xl"
               >
@@ -678,73 +656,6 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
         </DialogContent>
       </Dialog>
 
-      {/* Deactivation Confirmation Dialog */}
-      <Dialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
-        <DialogContent className="sm:max-w-md top-1/2 -translate-y-1/2 max-h-[90dvh] overflow-y-auto">
-          <DialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center justify-center shrink-0">
-                <UserX className="w-5 h-5 text-destructive" />
-              </div>
-              <DialogTitle>Deactivate Your Account</DialogTitle>
-            </div>
-            <DialogDescription>
-              This will temporarily disable your account. You can reactivate it anytime by signing back in.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            <div className="p-3 rounded-xl bg-amber-500/[0.08] border border-amber-500/15">
-              <div className="flex gap-2.5">
-                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                <div className="text-xs text-amber-200/70">
-                  <p className="font-medium text-amber-300 text-sm">What happens when you deactivate:</p>
-                  <ul className="mt-1.5 space-y-0.5">
-                    <li>• Your profile will be hidden from other users</li>
-                    <li>• You won't receive any notifications</li>
-                    <li>• Your projects and credits are preserved</li>
-                    <li>• You can reactivate anytime by logging in</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-muted-foreground text-xs">Reason for leaving (optional)</Label>
-              <Textarea
-                value={deactivationReason}
-                onChange={(e) => setDeactivationReason(e.target.value)}
-                placeholder="Help us improve by sharing why you're leaving..."
-                rows={2}
-                className="bg-white/[0.03] border-white/[0.08] text-foreground placeholder:text-muted-foreground/40 resize-none rounded-xl text-sm"
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2 flex-col-reverse sm:flex-row">
-            <Button
-              onClick={() => setShowDeactivateDialog(false)}
-              variant="ghost"
-              className="text-muted-foreground hover:text-foreground rounded-xl w-full sm:w-auto"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleDeactivateAccount}
-              disabled={isDeactivating}
-              variant="destructive"
-              className="rounded-xl w-full sm:w-auto"
-            >
-              {isDeactivating ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Power className="w-4 h-4 mr-2" />
-              )}
-              Deactivate Account
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }));

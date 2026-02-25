@@ -1,5 +1,5 @@
 /**
- * Premium Chat Page — iMessage-style unified messaging
+ * Premium Chat Page — Cinematic iMessage-style unified messaging
  * Features: World Chat, Private DMs, Group Chats, User Discovery,
  * Reactions, Typing Indicators, Online Presence, Media Support
  */
@@ -8,7 +8,8 @@ import { useRef, useEffect, useState, memo, useCallback } from 'react';
 import {
   MessageCircle, Send, Loader2, Reply, Trash2, ChevronDown, X,
   Search, Plus, Users, Globe, ArrowLeft, Smile, Hash,
-  Check, CheckCheck, Image as ImageIcon, UserPlus, ChevronRight
+  Check, CheckCheck, Image as ImageIcon, UserPlus, ChevronRight,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -22,26 +23,26 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { AppHeader } from '@/components/layout/AppHeader';
 import ClipsBackground from '@/components/clips/ClipsBackground';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const MAX_LENGTH = 500;
 const QUICK_REACTIONS = ['❤️', '😂', '🔥', '👏', '😮', '💯'];
 
 // ═══════════════════════════════════════
-// MESSAGE BUBBLE
+// MESSAGE BUBBLE — Premium glassmorphic
 // ═══════════════════════════════════════
 
-// Color palette for other users' message bubbles
 const USER_BUBBLE_COLORS = [
-  'bg-violet-600/70',
-  'bg-emerald-600/70',
-  'bg-rose-600/70',
-  'bg-sky-600/70',
-  'bg-amber-600/70',
-  'bg-fuchsia-600/70',
-  'bg-teal-600/70',
-  'bg-orange-600/70',
-  'bg-indigo-600/70',
-  'bg-cyan-600/70',
+  'from-violet-600/80 to-violet-700/60',
+  'from-emerald-600/80 to-emerald-700/60',
+  'from-rose-600/80 to-rose-700/60',
+  'from-sky-600/80 to-sky-700/60',
+  'from-amber-600/80 to-amber-700/60',
+  'from-fuchsia-600/80 to-fuchsia-700/60',
+  'from-teal-600/80 to-teal-700/60',
+  'from-orange-600/80 to-orange-700/60',
+  'from-indigo-600/80 to-indigo-700/60',
+  'from-cyan-600/80 to-cyan-700/60',
 ];
 
 function getUserColor(userId: string): string {
@@ -66,22 +67,22 @@ const MessageBubble = memo(function MessageBubble({
   const [showReactions, setShowReactions] = useState(false);
   const displayName = message.profile?.display_name || 'Anonymous';
   const initials = displayName.slice(0, 2).toUpperCase();
-  const bubbleColor = isOwn ? 'bg-primary/90' : getUserColor(message.user_id);
+  const bubbleGradient = isOwn ? 'from-primary/90 to-primary/70' : getUserColor(message.user_id);
 
   return (
     <div
       className={cn(
-        "group relative flex gap-2.5 px-4 py-1.5 transition-colors duration-150",
+        "group relative flex gap-2.5 px-4 py-1.5 transition-colors duration-200",
         isOwn ? "flex-row-reverse" : "",
-        showActions && "bg-white/[0.02]"
+        showActions && "bg-white/[0.015]"
       )}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => { setShowActions(false); setShowReactions(false); }}
     >
       {!isOwn && (
-        <Avatar className="w-7 h-7 shrink-0 ring-1 ring-white/[0.06] mt-1">
+        <Avatar className="w-8 h-8 shrink-0 ring-2 ring-white/[0.06] mt-1 shadow-lg">
           <AvatarImage src={message.profile?.avatar_url || undefined} />
-          <AvatarFallback className="bg-primary/20 text-primary text-[9px] font-semibold">
+          <AvatarFallback className="bg-primary/20 text-primary text-[9px] font-bold">
             {initials}
           </AvatarFallback>
         </Avatar>
@@ -90,10 +91,10 @@ const MessageBubble = memo(function MessageBubble({
       <div className={cn("max-w-[75%] min-w-0", isOwn ? "items-end" : "items-start")}>
         {/* Reply context */}
         {message.reply_to && (
-          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1 px-3 py-1 rounded-md bg-white/[0.03] border-l-2 border-primary/30">
+          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1 px-3 py-1.5 rounded-lg bg-white/[0.03] border-l-2 border-primary/40 backdrop-blur-sm">
             <Reply className="w-2.5 h-2.5 rotate-180 shrink-0" />
             <span className="truncate">
-              <span className="font-medium text-foreground/50">
+              <span className="font-semibold text-foreground/50">
                 {message.reply_to.profile?.display_name || 'Someone'}
               </span>
               {' '}{message.reply_to.content.slice(0, 50)}
@@ -105,22 +106,23 @@ const MessageBubble = memo(function MessageBubble({
         {!isOwn && (
           <div className="flex items-center gap-2 mb-0.5 px-1">
             <span className="text-[11px] font-semibold text-foreground/60">{displayName}</span>
-            <span className="text-[9px] text-muted-foreground/50 tabular-nums">
+            <span className="text-[9px] text-muted-foreground/40 tabular-nums">
               {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
             </span>
           </div>
         )}
 
-        {/* Bubble */}
+        {/* Bubble — gradient with subtle glow */}
         <div className={cn(
-          "relative px-3.5 py-2 rounded-2xl text-[13px] leading-relaxed break-words whitespace-pre-wrap text-white",
+          "relative px-4 py-2.5 rounded-2xl text-[13px] leading-relaxed break-words whitespace-pre-wrap text-white shadow-lg",
+          `bg-gradient-to-br ${bubbleGradient}`,
           isOwn
-            ? `${bubbleColor} rounded-br-md`
-            : `${bubbleColor} rounded-bl-md`
+            ? "rounded-br-md shadow-primary/10"
+            : "rounded-bl-md"
         )}>
           {message.content}
           {isOwn && (
-            <span className="text-[9px] text-primary-foreground/40 tabular-nums ml-2 inline-block">
+            <span className="text-[9px] text-primary-foreground/35 tabular-nums ml-2 inline-block">
               {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
             </span>
           )}
@@ -128,23 +130,23 @@ const MessageBubble = memo(function MessageBubble({
 
         {/* Media */}
         {message.media_url && (
-          <div className="mt-1 rounded-xl overflow-hidden max-w-[280px]">
+          <div className="mt-1.5 rounded-xl overflow-hidden max-w-[280px] shadow-lg ring-1 ring-white/[0.06]">
             <img src={message.media_url} alt="" className="w-full object-cover rounded-xl" />
           </div>
         )}
 
         {/* Reactions */}
         {message.reactions && message.reactions.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1 px-1">
+          <div className="flex flex-wrap gap-1 mt-1.5 px-1">
             {message.reactions.map(r => (
               <button
                 key={r.emoji}
                 onClick={() => onReact(message.id, r.emoji)}
                 className={cn(
-                  "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] transition-colors",
+                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] transition-all duration-200",
                   r.reacted_by_me
-                    ? "bg-primary/20 border border-primary/30"
-                    : "bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08]"
+                    ? "bg-primary/20 border border-primary/30 shadow-sm shadow-primary/10"
+                    : "bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] hover:scale-105"
                 )}
               >
                 <span>{r.emoji}</span>
@@ -155,58 +157,74 @@ const MessageBubble = memo(function MessageBubble({
         )}
       </div>
 
-      {/* Hover actions */}
-      {showActions && (
-        <div className={cn(
-          "absolute top-0 flex items-center gap-0.5 bg-card/95 backdrop-blur-sm border border-border/50 rounded-lg px-1 py-0.5 shadow-lg z-10",
-          isOwn ? "left-4" : "right-4"
-        )}>
-          <button
-            onClick={() => setShowReactions(!showReactions)}
-            className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-colors"
+      {/* Hover actions — glassmorphic floating bar */}
+      <AnimatePresence>
+        {showActions && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.15 }}
+            className={cn(
+              "absolute top-0 flex items-center gap-0.5 bg-card/95 backdrop-blur-xl border border-white/[0.08] rounded-xl px-1.5 py-1 shadow-xl z-10",
+              isOwn ? "left-4" : "right-4"
+            )}
           >
-            <Smile className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={() => onReply(message)}
-            className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-colors"
-          >
-            <Reply className="w-3.5 h-3.5" />
-          </button>
-          {isOwn && (
             <button
-              onClick={() => onDelete(message.id)}
-              className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              onClick={() => setShowReactions(!showReactions)}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.08] transition-all"
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Smile className="w-3.5 h-3.5" />
             </button>
-          )}
-        </div>
-      )}
+            <button
+              onClick={() => onReply(message)}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.08] transition-all"
+            >
+              <Reply className="w-3.5 h-3.5" />
+            </button>
+            {isOwn && (
+              <button
+                onClick={() => onDelete(message.id)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Quick reaction picker */}
-      {showReactions && (
-        <div className={cn(
-          "absolute top-8 flex items-center gap-0.5 bg-card border border-border rounded-xl px-2 py-1.5 shadow-xl z-20",
-          isOwn ? "left-4" : "right-4"
-        )}>
-          {QUICK_REACTIONS.map(emoji => (
-            <button
-              key={emoji}
-              onClick={() => { onReact(message.id, emoji); setShowReactions(false); }}
-              className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/[0.08] hover:scale-125 transition-all text-sm"
-            >
-              {emoji}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Quick reaction picker — premium floating */}
+      <AnimatePresence>
+        {showReactions && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.15 }}
+            className={cn(
+              "absolute top-9 flex items-center gap-0.5 bg-card/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl px-2.5 py-2 shadow-2xl z-20",
+              isOwn ? "left-4" : "right-4"
+            )}
+          >
+            {QUICK_REACTIONS.map(emoji => (
+              <button
+                key={emoji}
+                onClick={() => { onReact(message.id, emoji); setShowReactions(false); }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/[0.08] hover:scale-125 transition-all duration-200 text-base"
+              >
+                {emoji}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 });
 
 // ═══════════════════════════════════════
-// CONVERSATION LIST ITEM
+// CONVERSATION LIST ITEM — Premium
 // ═══════════════════════════════════════
 
 const ConversationItem = memo(function ConversationItem({
@@ -232,17 +250,20 @@ const ConversationItem = memo(function ConversationItem({
     <button
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 text-left",
+        "w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl transition-all duration-200 text-left",
         isActive
-          ? "bg-primary/15 border border-primary/20"
+          ? "bg-primary/10 border border-primary/15 shadow-sm shadow-primary/5"
           : "hover:bg-white/[0.04] border border-transparent"
       )}
     >
       <div className="relative">
-        <Avatar className="w-10 h-10 ring-1 ring-white/[0.06]">
+        <Avatar className={cn(
+          "w-11 h-11 ring-2 transition-all",
+          isActive ? "ring-primary/30" : "ring-white/[0.06]"
+        )}>
           <AvatarImage src={avatar || undefined} />
           <AvatarFallback className={cn(
-            "text-[11px] font-semibold",
+            "text-[11px] font-bold",
             conversation.type === 'world' ? "bg-accent/20 text-accent" :
             conversation.type === 'group' ? "bg-secondary text-secondary-foreground" :
             "bg-primary/20 text-primary"
@@ -250,31 +271,36 @@ const ConversationItem = memo(function ConversationItem({
             {conversation.type === 'world' ? '🌍' : conversation.type === 'group' ? <Users className="w-4 h-4" /> : initials}
           </AvatarFallback>
         </Avatar>
+        {/* Online indicator dot */}
+        {conversation.type === 'world' && (
+          <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-background shadow-sm shadow-emerald-500/30" />
+        )}
       </div>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
           <span className={cn(
-            "text-[13px] font-medium truncate",
-            (conversation.unread_count || 0) > 0 ? "text-foreground" : "text-foreground/70"
+            "text-[13px] font-semibold truncate",
+            isActive ? "text-foreground" :
+            (conversation.unread_count || 0) > 0 ? "text-foreground" : "text-foreground/60"
           )}>
             {name}
           </span>
           {conversation.last_message_at && (
-            <span className="text-[10px] text-muted-foreground/50 tabular-nums shrink-0 ml-2">
+            <span className="text-[10px] text-muted-foreground/40 tabular-nums shrink-0 ml-2">
               {formatDistanceToNow(new Date(conversation.last_message_at), { addSuffix: false })}
             </span>
           )}
         </div>
         {conversation.last_message_preview && (
-          <p className="text-[11px] text-muted-foreground/60 truncate mt-0.5">
+          <p className="text-[11px] text-muted-foreground/50 truncate mt-0.5">
             {conversation.last_message_preview}
           </p>
         )}
       </div>
 
       {(conversation.unread_count || 0) > 0 && (
-        <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0">
+        <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0 shadow-sm shadow-primary/20">
           <span className="text-[10px] font-bold text-primary-foreground">{conversation.unread_count}</span>
         </div>
       )}
@@ -294,18 +320,23 @@ function UserSearchPanel({ onSelect, onClose }: {
   const { data: users, isLoading } = useUserSearch(query);
 
   return (
-    <div className="absolute inset-0 bg-background/98 backdrop-blur-xl z-30 flex flex-col">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50">
-        <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/[0.06] text-muted-foreground">
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      className="absolute inset-0 bg-background/98 backdrop-blur-2xl z-30 flex flex-col"
+    >
+      <div className="flex items-center gap-2 px-4 py-3.5 border-b border-white/[0.06]">
+        <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-white/[0.06] text-muted-foreground transition-colors">
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
           <Input
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search users..."
-            className="pl-9 bg-white/[0.04] border-white/[0.08] h-9 text-[13px]"
+            className="pl-9 bg-white/[0.04] border-white/[0.06] h-10 text-[13px] rounded-xl"
             autoFocus
           />
         </div>
@@ -317,18 +348,18 @@ function UserSearchPanel({ onSelect, onClose }: {
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
           </div>
         ) : !users?.length && query.length >= 2 ? (
-          <div className="text-center py-8 text-muted-foreground/50 text-sm">No users found</div>
+          <div className="text-center py-8 text-muted-foreground/40 text-sm">No users found</div>
         ) : (
           <div className="space-y-0.5">
             {(users || []).map(u => (
               <button
                 key={u.id}
                 onClick={() => onSelect(u.id)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors"
+                className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl hover:bg-white/[0.04] transition-all duration-200"
               >
-                <Avatar className="w-9 h-9 ring-1 ring-white/[0.06]">
+                <Avatar className="w-10 h-10 ring-2 ring-white/[0.06]">
                   <AvatarImage src={u.avatar_url || undefined} />
-                  <AvatarFallback className="bg-primary/20 text-primary text-[10px] font-semibold">
+                  <AvatarFallback className="bg-primary/20 text-primary text-[10px] font-bold">
                     {(u.display_name || '?').slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
@@ -337,13 +368,13 @@ function UserSearchPanel({ onSelect, onClose }: {
                     {u.display_name || 'Anonymous'}
                   </span>
                 </div>
-                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/30" />
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/20" />
               </button>
             ))}
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -375,18 +406,23 @@ function CreateGroupPanel({ onCreated, onClose }: {
   };
 
   return (
-    <div className="absolute inset-0 bg-background/98 backdrop-blur-xl z-30 flex flex-col">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50">
-        <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/[0.06] text-muted-foreground">
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      className="absolute inset-0 bg-background/98 backdrop-blur-2xl z-30 flex flex-col"
+    >
+      <div className="flex items-center gap-2 px-4 py-3.5 border-b border-white/[0.06]">
+        <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-white/[0.06] text-muted-foreground transition-colors">
           <ArrowLeft className="w-4 h-4" />
         </button>
-        <span className="text-sm font-medium text-foreground/80">New Group</span>
+        <span className="text-sm font-semibold text-foreground/80">New Group</span>
         <div className="flex-1" />
         <Button
           size="sm"
           disabled={!name.trim() || selectedUsers.length === 0 || createGroup.isPending}
           onClick={handleCreate}
-          className="h-7 text-xs px-3"
+          className="h-8 text-xs px-4 rounded-xl"
         >
           Create
         </Button>
@@ -397,7 +433,7 @@ function CreateGroupPanel({ onCreated, onClose }: {
           value={name}
           onChange={e => setName(e.target.value)}
           placeholder="Group name..."
-          className="bg-white/[0.04] border-white/[0.08] h-9 text-[13px]"
+          className="bg-white/[0.04] border-white/[0.06] h-10 text-[13px] rounded-xl"
           autoFocus
         />
 
@@ -406,7 +442,7 @@ function CreateGroupPanel({ onCreated, onClose }: {
             {selectedUsers.map(u => (
               <span
                 key={u.id}
-                className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/15 text-primary text-[11px] font-medium"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/15 text-primary text-[11px] font-semibold"
               >
                 {u.name}
                 <button onClick={() => setSelectedUsers(s => s.filter(su => su.id !== u.id))}>
@@ -418,12 +454,12 @@ function CreateGroupPanel({ onCreated, onClose }: {
         )}
 
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
           <Input
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Add members..."
-            className="pl-9 bg-white/[0.04] border-white/[0.08] h-9 text-[13px]"
+            className="pl-9 bg-white/[0.04] border-white/[0.06] h-10 text-[13px] rounded-xl"
           />
         </div>
       </div>
@@ -435,25 +471,25 @@ function CreateGroupPanel({ onCreated, onClose }: {
             <button
               key={u.id}
               onClick={() => setSelectedUsers(s => [...s, { id: u.id, name: u.display_name || 'Anonymous' }])}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/[0.04] transition-colors"
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-white/[0.04] transition-all duration-200"
             >
-              <Avatar className="w-8 h-8 ring-1 ring-white/[0.06]">
+              <Avatar className="w-9 h-9 ring-2 ring-white/[0.06]">
                 <AvatarImage src={u.avatar_url || undefined} />
-                <AvatarFallback className="bg-primary/20 text-primary text-[9px] font-semibold">
+                <AvatarFallback className="bg-primary/20 text-primary text-[9px] font-bold">
                   {(u.display_name || '?').slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <span className="text-[13px] text-foreground/70">{u.display_name || 'Anonymous'}</span>
-              <UserPlus className="ml-auto w-3.5 h-3.5 text-muted-foreground/30" />
+              <UserPlus className="ml-auto w-3.5 h-3.5 text-muted-foreground/20" />
             </button>
           ))}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
 // ═══════════════════════════════════════
-// MAIN CHAT PAGE
+// MAIN CHAT PAGE — Premium Layout
 // ═══════════════════════════════════════
 
 export default function WorldChat() {
@@ -562,26 +598,31 @@ export default function WorldChat() {
       <AppHeader />
 
       <div className="flex-1 flex relative z-10 min-h-0 overflow-hidden">
-        {/* ═══ SIDEBAR ═══ */}
+        {/* ═══ SIDEBAR — Premium glassmorphic ═══ */}
         <div className={cn(
-          "w-full sm:w-80 shrink-0 flex flex-col border-r border-border/30 bg-background/80 backdrop-blur-xl transition-all duration-300",
+          "w-full sm:w-80 shrink-0 flex flex-col border-r border-white/[0.06] bg-background/70 backdrop-blur-2xl transition-all duration-300",
           !showSidebar && "hidden sm:flex",
           showSidebar && activeConversation && "sm:flex"
         )}>
-          {/* Sidebar header */}
-          <div className="px-4 py-3 border-b border-border/30 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-foreground/80">Messages</h2>
+          {/* Sidebar header — premium */}
+          <div className="px-4 py-4 border-b border-white/[0.06] flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center">
+                <MessageCircle className="w-4 h-4 text-primary" />
+              </div>
+              <h2 className="text-sm font-bold text-foreground/90 tracking-tight">Messages</h2>
+            </div>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setShowUserSearch(true)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/[0.06] text-muted-foreground transition-colors"
+                className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-white/[0.06] text-muted-foreground/60 hover:text-foreground transition-all"
                 title="New message"
               >
                 <Plus className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setShowCreateGroup(true)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/[0.06] text-muted-foreground transition-colors"
+                className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-white/[0.06] text-muted-foreground/60 hover:text-foreground transition-all"
                 title="New group"
               >
                 <Users className="w-4 h-4" />
@@ -589,22 +630,25 @@ export default function WorldChat() {
             </div>
           </div>
 
-          {/* Conversations */}
+          {/* Conversations list */}
           <div className="flex-1 overflow-y-auto p-2 space-y-0.5 scrollbar-hide">
             {convsLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/30" />
               </div>
             ) : conversations.length === 0 ? (
-              <div className="text-center py-12 space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-border/50 flex items-center justify-center mx-auto">
-                  <MessageCircle className="w-5 h-5 text-muted-foreground/30" />
+              <div className="text-center py-16 space-y-4">
+                <div className="w-16 h-16 rounded-3xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto">
+                  <MessageCircle className="w-7 h-7 text-muted-foreground/20" />
                 </div>
-                <p className="text-sm text-muted-foreground/50">No conversations yet</p>
+                <div className="space-y-1">
+                  <p className="text-sm text-foreground/40 font-medium">No conversations yet</p>
+                  <p className="text-xs text-muted-foreground/30">Start chatting with creators</p>
+                </div>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="text-xs"
+                  className="text-xs rounded-xl"
                   onClick={() => setShowUserSearch(true)}
                 >
                   <Plus className="w-3 h-3 mr-1" /> Start a chat
@@ -626,50 +670,57 @@ export default function WorldChat() {
           </div>
 
           {/* Overlays */}
-          {showUserSearch && (
-            <UserSearchPanel
-              onSelect={handleStartDM}
-              onClose={() => setShowUserSearch(false)}
-            />
-          )}
-          {showCreateGroup && (
-            <CreateGroupPanel
-              onCreated={(id) => { setActiveConversation(id); setShowCreateGroup(false); setShowSidebar(false); }}
-              onClose={() => setShowCreateGroup(false)}
-            />
-          )}
+          <AnimatePresence>
+            {showUserSearch && (
+              <UserSearchPanel
+                onSelect={handleStartDM}
+                onClose={() => setShowUserSearch(false)}
+              />
+            )}
+            {showCreateGroup && (
+              <CreateGroupPanel
+                onCreated={(id) => { setActiveConversation(id); setShowCreateGroup(false); setShowSidebar(false); }}
+                onClose={() => setShowCreateGroup(false)}
+              />
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* ═══ CHAT AREA ═══ */}
+        {/* ═══ CHAT AREA — Premium ═══ */}
         <div className={cn(
           "flex-1 flex flex-col min-w-0",
           showSidebar && !activeConversation && "hidden sm:flex"
         )}>
           {activeConversation ? (
             <>
-              {/* Chat header */}
-              <div className="px-4 py-2.5 border-b border-border/30 flex items-center gap-3 bg-background/60 backdrop-blur-xl">
+              {/* Chat header — glassmorphic */}
+              <div className="px-5 py-3 border-b border-white/[0.06] flex items-center gap-3 bg-background/60 backdrop-blur-2xl">
                 <button
                   onClick={() => setShowSidebar(true)}
-                  className="sm:hidden w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/[0.06] text-muted-foreground"
+                  className="sm:hidden w-8 h-8 rounded-xl flex items-center justify-center hover:bg-white/[0.06] text-muted-foreground"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-foreground/80 truncate">{activeName}</h3>
+                  <h3 className="text-sm font-bold text-foreground/90 truncate">{activeName}</h3>
                   <div className="flex items-center gap-2">
                     {typingUsers.length > 0 ? (
-                      <span className="text-[10px] text-accent animate-pulse">typing…</span>
+                      <span className="text-[10px] text-primary font-medium animate-pulse">typing…</span>
                     ) : (
                       <span className="text-[10px] text-muted-foreground/40">
-                        {onlineUsers.length > 0 ? `${onlineUsers.length} online` : ''}
+                        {onlineUsers.length > 0 && (
+                          <span className="flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                            {onlineUsers.length} online
+                          </span>
+                        )}
                       </span>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Messages */}
+              {/* Messages area */}
               <div
                 ref={scrollRef}
                 onScroll={handleScroll}
@@ -677,17 +728,25 @@ export default function WorldChat() {
               >
                 {msgsLoading ? (
                   <div className="flex flex-col items-center justify-center h-64 gap-3">
-                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/30" />
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/20" />
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-64 gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-white/[0.03] border border-border/50 flex items-center justify-center">
-                      <MessageCircle className="w-6 h-6 text-muted-foreground/20" />
+                  <div className="flex flex-col items-center justify-center h-64 gap-5">
+                    <div className="relative">
+                      <div className="w-20 h-20 rounded-3xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
+                        <Sparkles className="w-8 h-8 text-primary/30" />
+                      </div>
+                      <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center">
+                        <MessageCircle className="w-3 h-3 text-primary/50" />
+                      </div>
                     </div>
-                    <p className="text-muted-foreground/40 text-sm">Start the conversation</p>
+                    <div className="text-center space-y-1">
+                      <p className="text-foreground/40 text-sm font-medium">Start the conversation</p>
+                      <p className="text-muted-foreground/25 text-xs">Say hello to the community</p>
+                    </div>
                   </div>
                 ) : (
-                  <div className="py-3 space-y-0.5">
+                  <div className="py-4 space-y-0.5">
                     {messages.map(msg => (
                       <MessageBubble
                         key={msg.id}
@@ -703,32 +762,41 @@ export default function WorldChat() {
                 )}
               </div>
 
-              {/* Scroll to bottom */}
-              {showScrollBtn && (
-                <button
-                  onClick={scrollToBottom}
-                  className="absolute bottom-24 right-6 w-9 h-9 rounded-full bg-card/90 border border-border/50 backdrop-blur-xl flex items-center justify-center text-muted-foreground hover:text-foreground shadow-lg transition-all z-20"
-                >
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-              )}
+              {/* Scroll to bottom — premium floating */}
+              <AnimatePresence>
+                {showScrollBtn && (
+                  <motion.button
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    onClick={scrollToBottom}
+                    className="absolute bottom-24 right-6 w-10 h-10 rounded-2xl bg-card/90 border border-white/[0.08] backdrop-blur-xl flex items-center justify-center text-muted-foreground hover:text-foreground shadow-xl transition-all z-20 hover:scale-105"
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </motion.button>
+                )}
+              </AnimatePresence>
 
-              {/* Input */}
+              {/* Input area — premium glassmorphic */}
               {user && (
-                <div className="px-3 py-2.5 border-t border-border/30 bg-background/80 backdrop-blur-xl">
+                <div className="px-4 py-3 border-t border-white/[0.06] bg-background/70 backdrop-blur-2xl">
                   {replyTo && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 mb-2 rounded-lg bg-white/[0.03] border border-border/50">
-                      <Reply className="w-3 h-3 text-muted-foreground shrink-0" />
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-2 px-3.5 py-2 mb-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]"
+                    >
+                      <Reply className="w-3 h-3 text-primary/50 shrink-0" />
                       <span className="text-[11px] text-muted-foreground truncate flex-1">
-                        Replying to <span className="font-medium text-foreground/50">{replyTo.profile?.display_name || 'Someone'}</span>
+                        Replying to <span className="font-semibold text-foreground/50">{replyTo.profile?.display_name || 'Someone'}</span>
                       </span>
-                      <button onClick={() => setReplyTo(null)} className="text-muted-foreground hover:text-foreground">
+                      <button onClick={() => setReplyTo(null)} className="text-muted-foreground hover:text-foreground transition-colors">
                         <X className="w-3 h-3" />
                       </button>
-                    </div>
+                    </motion.div>
                   )}
 
-                  <div className="flex gap-2 items-end">
+                  <div className="flex gap-2.5 items-end">
                     <div className="flex-1 relative">
                       <textarea
                         ref={inputRef}
@@ -738,13 +806,13 @@ export default function WorldChat() {
                         placeholder="Message…"
                         rows={1}
                         className={cn(
-                          "w-full resize-none min-h-[40px] max-h-[120px] py-2.5 px-4",
-                          "bg-secondary/50 hover:bg-secondary/70",
-                          "border border-border/50 focus:border-primary/40 focus:outline-none",
-                          "text-foreground placeholder:text-muted-foreground/40",
-                          "rounded-xl text-[13px] leading-relaxed transition-colors scrollbar-hide"
+                          "w-full resize-none min-h-[44px] max-h-[120px] py-3 px-4",
+                          "bg-white/[0.04] hover:bg-white/[0.06]",
+                          "border border-white/[0.06] focus:border-primary/30 focus:outline-none focus:ring-1 focus:ring-primary/20",
+                          "text-foreground placeholder:text-muted-foreground/30",
+                          "rounded-2xl text-[13px] leading-relaxed transition-all duration-200 scrollbar-hide"
                         )}
-                        style={{ height: 'auto', minHeight: '40px' }}
+                        style={{ height: 'auto', minHeight: '44px' }}
                         onInput={(e) => {
                           const t = e.target as HTMLTextAreaElement;
                           t.style.height = 'auto';
@@ -753,8 +821,8 @@ export default function WorldChat() {
                       />
                       {charCount > MAX_LENGTH * 0.8 && (
                         <span className={cn(
-                          "absolute bottom-1 right-3 text-[9px] tabular-nums",
-                          charCount >= MAX_LENGTH ? "text-destructive/60" : "text-muted-foreground/30"
+                          "absolute bottom-1.5 right-3 text-[9px] tabular-nums",
+                          charCount >= MAX_LENGTH ? "text-destructive/60" : "text-muted-foreground/25"
                         )}>
                           {charCount}/{MAX_LENGTH}
                         </span>
@@ -764,7 +832,7 @@ export default function WorldChat() {
                       onClick={handleSend}
                       disabled={!inputValue.trim() || sendMessage.isPending}
                       size="icon"
-                      className="h-10 w-10 rounded-xl shrink-0 bg-primary/90 hover:bg-primary text-primary-foreground disabled:opacity-20"
+                      className="h-11 w-11 rounded-2xl shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-15 shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30 hover:scale-105"
                     >
                       {sendMessage.isPending ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -777,15 +845,19 @@ export default function WorldChat() {
               )}
             </>
           ) : (
-            /* Empty state - no conversation selected (desktop) */
+            /* Empty state — premium centered */
             <div className="hidden sm:flex flex-1 items-center justify-center">
-              <div className="text-center space-y-4">
-                <div className="w-16 h-16 rounded-3xl bg-white/[0.03] border border-border/30 flex items-center justify-center mx-auto">
-                  <MessageCircle className="w-7 h-7 text-muted-foreground/20" />
+              <div className="text-center space-y-5">
+                <div className="relative mx-auto w-fit">
+                  <div className="w-20 h-20 rounded-3xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
+                    <MessageCircle className="w-8 h-8 text-muted-foreground/15" />
+                  </div>
+                  {/* Ambient glow */}
+                  <div className="absolute inset-0 w-20 h-20 rounded-3xl bg-primary/[0.04] blur-2xl" />
                 </div>
-                <div className="space-y-1">
-                  <p className="text-foreground/50 text-sm font-medium">Select a conversation</p>
-                  <p className="text-muted-foreground/30 text-xs">Or start a new one</p>
+                <div className="space-y-1.5">
+                  <p className="text-foreground/50 text-sm font-semibold">Select a conversation</p>
+                  <p className="text-muted-foreground/25 text-xs">Or start a new one from the sidebar</p>
                 </div>
               </div>
             </div>

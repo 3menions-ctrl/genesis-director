@@ -5,6 +5,10 @@ import { toast } from "sonner";
 export interface StitchClip {
   url: string;
   duration: number;
+  volume?: number;
+  speed?: number;
+  fadeIn?: number;
+  fadeOut?: number;
 }
 
 export interface StitchConfig {

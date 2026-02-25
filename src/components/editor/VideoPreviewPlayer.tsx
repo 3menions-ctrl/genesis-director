@@ -54,6 +54,9 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
 
   const active = findActiveClip(state.tracks, state.playheadTime);
 
+  // Check if the active clip's track is muted
+  const isTrackMuted = active ? state.tracks[active.trackIndex]?.muted : false;
+
   // Load clip source when active clip changes
   useEffect(() => {
     const video = videoRef.current;
@@ -68,6 +71,22 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
     video.currentTime = Math.max(0, offset);
   }, [active?.clip.id, active?.clip.src]);
 
+  // Apply clip-level speed
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !active?.clip) return;
+    video.playbackRate = active.clip.speed ?? 1;
+  }, [active?.clip?.id, active?.clip?.speed]);
+
+  // Apply clip-level volume + track mute
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !active?.clip) return;
+    const clipVolume = active.clip.volume ?? 1;
+    video.volume = isTrackMuted ? 0 : clipVolume;
+  }, [active?.clip?.id, active?.clip?.volume, isTrackMuted]);
+
+  // Seek when scrubbing (not playing)
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !active?.clip || state.isPlaying) return;
@@ -77,6 +96,9 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
       video.currentTime = Math.max(0, offset);
     }
   }, [state.playheadTime, state.isPlaying]);
+
+  // Play/pause + playhead sync with fade opacity
+  const [fadeOpacity, setFadeOpacity] = useState(1);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -89,12 +111,28 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
         if (!videoRef.current || !active?.clip) return;
         const clipTime = videoRef.current.currentTime - active.clip.trimStart + active.clip.start;
         dispatch({ type: "SET_PLAYHEAD", time: clipTime });
+
+        // Calculate fade opacity
+        const clipProgress = clipTime - active.clip.start;
+        const clipDuration = active.clip.end - active.clip.start;
+        const fadeIn = active.clip.fadeIn ?? 0;
+        const fadeOut = active.clip.fadeOut ?? 0;
+        let opacity = 1;
+        if (fadeIn > 0 && clipProgress < fadeIn) {
+          opacity = Math.min(1, clipProgress / fadeIn);
+        }
+        if (fadeOut > 0 && clipProgress > clipDuration - fadeOut) {
+          opacity = Math.min(opacity, Math.max(0, (clipDuration - clipProgress) / fadeOut));
+        }
+        setFadeOpacity(opacity);
+
         animFrameRef.current = requestAnimationFrame(tick);
       };
       animFrameRef.current = requestAnimationFrame(tick);
     } else {
       video.pause();
       cancelAnimationFrame(animFrameRef.current);
+      setFadeOpacity(1);
     }
 
     return () => cancelAnimationFrame(animFrameRef.current);
@@ -211,13 +249,46 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
             </div>
           </motion.div>
         ) : (
-          <video
-            ref={videoRef}
-            className="max-w-full max-h-full object-contain"
-            muted={isMuted}
-            playsInline
-            onEnded={handleEnded}
-          />
+          <>
+            <video
+              ref={videoRef}
+              className="max-w-full max-h-full object-contain transition-opacity duration-75"
+              style={{ opacity: fadeOpacity * (active?.clip?.opacity ?? 1) }}
+              muted={isMuted || isTrackMuted}
+              playsInline
+              onEnded={handleEnded}
+            />
+            {/* Text overlay rendering */}
+            {state.tracks.flatMap(t => t.clips).filter(c =>
+              c.type === "text" && c.text && c.start <= state.playheadTime && c.end > state.playheadTime
+            ).map(textClip => (
+              <div
+                key={textClip.id}
+                className="absolute left-0 right-0 flex justify-center pointer-events-none px-4"
+                style={{
+                  top: textClip.textStyle?.position === "top" ? "8%" : textClip.textStyle?.position === "center" ? "50%" : undefined,
+                  bottom: (!textClip.textStyle?.position || textClip.textStyle?.position === "bottom") ? "8%" : undefined,
+                  transform: textClip.textStyle?.position === "center" ? "translateY(-50%)" : undefined,
+                }}
+              >
+                <span
+                  className="px-3 py-1.5 rounded-lg"
+                  style={{
+                    fontSize: `${(textClip.textStyle?.fontSize ?? 32) * 0.5}px`,
+                    fontFamily: textClip.textStyle?.fontFamily || "sans-serif",
+                    color: textClip.textStyle?.color || "#ffffff",
+                    backgroundColor: textClip.textStyle?.backgroundColor || "rgba(0,0,0,0.5)",
+                    textShadow: "0 2px 8px rgba(0,0,0,0.7)",
+                    maxWidth: "90%",
+                    wordBreak: "break-word",
+                    textAlign: "center",
+                  }}
+                >
+                  {textClip.text}
+                </span>
+              </div>
+            ))}
+          </>
         )}
 
         {/* Aspect ratio badge */}

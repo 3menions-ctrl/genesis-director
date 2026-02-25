@@ -1078,7 +1078,7 @@ function ProjectsContentInner() {
         ) : (
           <>
             {/* Premium Hero */}
-            <ProjectsHero stats={stats} />
+            <ProjectsHero />
 
             {/* Category Tabs — Landing Gallery Style */}
             <ProjectsCategoryTabs

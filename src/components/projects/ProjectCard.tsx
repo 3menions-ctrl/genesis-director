@@ -9,12 +9,13 @@
  * - Luminous hover states with depth
  */
 
-import { memo, forwardRef, useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { memo, forwardRef, useState, useEffect, useRef, useCallback, useMemo, type MouseEvent as ReactMouseEvent } from 'react';
 import { 
   MoreVertical, Trash2, Film, Play, 
   Download, Loader2, Clock, 
   Pencil, RefreshCw, AlertCircle,
-  Pin, PinOff, Globe, Lock, MonitorPlay
+  Pin, PinOff, Globe, Lock, MonitorPlay,
+  Layers, Calendar
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -101,6 +102,8 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [scrubProgress, setScrubProgress] = useState<number | null>(null);
+  const cardContainerRef = useRef<HTMLDivElement>(null);
   
   const status = project.status as string;
   const isDirectVideo = project.video_url && !isManifestUrl(project.video_url);
@@ -227,6 +230,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     if (!isMountedRef.current) return;
     if (hoverTimerRef.current) { clearTimeout(hoverTimerRef.current); hoverTimerRef.current = null; }
     setIsHovered(false);
+    setScrubProgress(null);
     if (videoSlotGranted) {
       const video = videoRef.current;
       if (video) safePause(video);
@@ -244,6 +248,20 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
   
   const handleMouseEnter = handleInteractionStart;
   const handleMouseLeave = handleInteractionEnd;
+  
+  // Quick preview scrubbing — horizontal mouse position controls video time
+  const handleMouseMove = useCallback((e: ReactMouseEvent<HTMLDivElement>) => {
+    if (!videoSlotGranted || !videoRef.current || !cardContainerRef.current) return;
+    const rect = cardContainerRef.current.getBoundingClientRect();
+    const fraction = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    setScrubProgress(fraction);
+    const vid = videoRef.current;
+    if (vid.duration && isFinite(vid.duration) && vid.duration > 0) {
+      const targetTime = vid.duration * fraction;
+      safeSeek(vid, targetTime);
+      safePause(vid); // pause while scrubbing for frame-accurate preview
+    }
+  }, [videoSlotGranted]);
   
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (!isHovered) { e.preventDefault(); handleInteractionStart(); }
@@ -317,9 +335,19 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     else onEdit();
   }, [hasVideo, onPlay, onEdit]);
   
+  // Compute metadata for overlay
+  const clipCount = project.video_clips?.length || 0;
+  const formattedDate = new Date(project.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  
   return (
     <div
-      ref={ref}
+      ref={(node) => {
+        cardContainerRef.current = node;
+        if (ref) {
+          if (typeof ref === 'function') ref(node);
+          else (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+        }
+      }}
       className={cn(
         "group relative cursor-pointer overflow-hidden transition-all duration-700 ease-out animate-fade-in",
         "rounded-2xl",
@@ -328,6 +356,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
       style={{ animationDelay: `${Math.min(index * 0.06, 0.5)}s` }}
       onMouseEnter={!isTouchDevice ? handleMouseEnter : undefined}
       onMouseLeave={!isTouchDevice ? handleMouseLeave : undefined}
+      onMouseMove={!isTouchDevice ? handleMouseMove : undefined}
       onTouchStart={isTouchDevice ? handleTouchStart : undefined}
       onTouchEnd={isTouchDevice ? handleTouchEnd : undefined}
       onClick={handleCardClick}
@@ -340,6 +369,15 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
         background: 'linear-gradient(135deg, hsl(263 70% 58% / 0.35), hsl(195 90% 50% / 0.2), hsl(263 70% 58% / 0.15))',
       }} />
 
+      {/* Vignette bloom — radial glow from edges on hover */}
+      <div className={cn(
+        "absolute -inset-6 rounded-3xl pointer-events-none transition-opacity duration-1000 z-0",
+        isHovered ? "opacity-60" : "opacity-0"
+      )} style={{
+        background: 'radial-gradient(ellipse at center, hsl(263 70% 58% / 0.15) 0%, transparent 70%)',
+        filter: 'blur(20px)',
+      }} />
+
       {/* Card body */}
       <div className={cn(
         "relative overflow-hidden rounded-2xl transition-all duration-700",
@@ -349,20 +387,27 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
         isActive && "ring-2 ring-primary/30"
       )}>
         
-        {/* Video/Thumbnail layer */}
+        {/* Video/Thumbnail layer — Ken Burns slow zoom on hover */}
         {hasVideo && videoSrc ? (
           <>
             {isIOSSafari ? (
               videoSlotGranted ? (
                 <video ref={videoRef} src={videoSrc}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] ease-out scale-[1.06]"
+                  className={cn(
+                    "absolute inset-0 w-full h-full object-cover transition-transform duration-[2500ms] ease-out",
+                    isHovered ? "scale-[1.12]" : "scale-100"
+                  )}
                   loop muted playsInline preload="none"
                   onLoadedMetadata={handleVideoMetadataLoaded}
-                  onCanPlay={(e) => { safeSeek(e.currentTarget, 0); safePlay(e.currentTarget); }}
+                  onCanPlay={(e) => { safeSeek(e.currentTarget, 0); if (!scrubProgress) safePlay(e.currentTarget); }}
                   onError={() => setVideoError(true)} />
               ) : (
                 project.thumbnail_url ? (
-                  <img src={project.thumbnail_url} alt={project.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                  <img src={project.thumbnail_url} alt={project.name}
+                    className={cn(
+                      "absolute inset-0 w-full h-full object-cover transition-transform duration-[2500ms] ease-out",
+                      isHovered ? "scale-[1.08]" : "scale-100"
+                    )} loading="lazy" />
                 ) : (
                   <LazyVideoThumbnail src={videoSrc} posterUrl={project.thumbnail_url} alt={project.name} className="absolute inset-0 w-full h-full object-cover" />
                 )
@@ -370,21 +415,28 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
             ) : (
               <>
                 <div className={cn(
-                  "absolute inset-0 w-full h-full transition-opacity duration-700",
+                  "absolute inset-0 w-full h-full transition-all duration-700",
                   isHovered ? "opacity-0 pointer-events-none" : "opacity-100"
                 )}>
                   {project.thumbnail_url ? (
-                    <img src={project.thumbnail_url} alt={project.name} className="w-full h-full object-cover" loading="lazy" />
+                    <img src={project.thumbnail_url} alt={project.name}
+                      className={cn(
+                        "w-full h-full object-cover transition-transform duration-[2500ms] ease-out",
+                        isHovered ? "scale-[1.08]" : "scale-100"
+                      )} loading="lazy" />
                   ) : (
                     <LazyVideoThumbnail src={videoSrc} posterUrl={project.thumbnail_url} alt={project.name} className="w-full h-full object-cover" />
                   )}
                 </div>
                 {videoSlotGranted && (
                   <video ref={videoRef} src={videoSrc}
-                    className="absolute inset-0 w-full h-full object-cover transition-all duration-[1200ms] ease-out opacity-100 scale-[1.02]"
+                    className={cn(
+                      "absolute inset-0 w-full h-full object-cover transition-transform duration-[2500ms] ease-out opacity-100",
+                      isHovered ? "scale-[1.08]" : "scale-100"
+                    )}
                     loop muted playsInline preload="none"
                     onLoadedMetadata={handleVideoMetadataLoaded}
-                    onCanPlay={(e) => { safeSeek(e.currentTarget, 0); safePlay(e.currentTarget); }}
+                    onCanPlay={(e) => { safeSeek(e.currentTarget, 0); if (!scrubProgress) safePlay(e.currentTarget); }}
                     onError={() => setVideoError(true)} />
                 )}
               </>
@@ -459,15 +511,37 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
           <CardDropdown {...{ onEdit, onTogglePin, isPinned, onRename, hasVideo, onTogglePublic, project, status, onRetryStitch, isRetrying, onBrowserStitch, isBrowserStitching, onDelete }} />
         </div>
 
-        {/* Bottom metadata — editorial typography */}
+        {/* Bottom metadata — editorial typography + metadata overlays on hover */}
         <div className="absolute bottom-0 left-0 right-0 p-4 pb-3.5 z-20">
           <h3 className="font-display font-semibold text-white text-sm leading-snug line-clamp-1 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
             {project.name}
           </h3>
-          <div className="flex items-center gap-2 mt-1.5">
+          <div className={cn(
+            "flex items-center gap-2.5 mt-1.5 transition-all duration-500",
+          )}>
             <span className="text-[10px] text-white/25 font-medium tracking-wide">
               {formatTimeAgo(project.updated_at)}
             </span>
+            {/* Extended metadata on hover */}
+            <div className={cn(
+              "flex items-center gap-2 transition-all duration-500 overflow-hidden",
+              isHovered ? "opacity-100 max-w-[300px]" : "opacity-0 max-w-0"
+            )}>
+              {clipCount > 0 && (
+                <>
+                  <span className="w-px h-2.5 bg-white/[0.08]" />
+                  <span className="flex items-center gap-1 text-[10px] text-white/30 font-medium whitespace-nowrap">
+                    <Layers className="w-2.5 h-2.5" />
+                    {clipCount} clip{clipCount !== 1 ? 's' : ''}
+                  </span>
+                </>
+              )}
+              <span className="w-px h-2.5 bg-white/[0.08]" />
+              <span className="flex items-center gap-1 text-[10px] text-white/30 font-medium whitespace-nowrap">
+                <Calendar className="w-2.5 h-2.5" />
+                {formattedDate}
+              </span>
+            </div>
             {project.is_public && (
               <>
                 <span className="w-px h-2.5 bg-white/[0.08]" />
@@ -476,6 +550,16 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
             )}
           </div>
         </div>
+
+        {/* Scrub progress indicator — thin bar at bottom */}
+        {isHovered && scrubProgress !== null && hasVideo && (
+          <div className="absolute bottom-0 left-0 right-0 h-[2px] z-30 bg-white/[0.06]">
+            <div
+              className="h-full bg-primary/60 transition-[width] duration-75 ease-linear"
+              style={{ width: `${scrubProgress * 100}%` }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -19,11 +19,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-const TRACK_HEIGHT = 52;
-const HEADER_WIDTH = 120;
-const RULER_HEIGHT = 26;
-const MIN_CLIP_WIDTH = 12;
-const SNAP_THRESHOLD = 8; // pixels
+const TRACK_HEIGHT = 56;
+const HEADER_WIDTH = 130;
+const RULER_HEIGHT = 28;
+const MIN_CLIP_WIDTH = 14;
+const SNAP_THRESHOLD = 8;
 
 // ─── Snap-to-edge utility ───
 
@@ -66,8 +66,8 @@ function TimelineRuler({ zoom, scrollX, duration }: { zoom: number; scrollX: num
       style={{
         height: RULER_HEIGHT,
         marginLeft: HEADER_WIDTH,
-        background: 'hsl(240, 25%, 5%)',
-        borderColor: 'hsla(263, 84%, 58%, 0.08)',
+        background: 'linear-gradient(180deg, hsl(240 20% 6%) 0%, hsl(240 25% 5%) 100%)',
+        borderColor: 'hsla(263, 70%, 58%, 0.05)',
       }}
     >
       <div className="relative h-full" style={{ width: totalWidth, transform: `translateX(-${scrollX}px)` }}>
@@ -77,8 +77,8 @@ function TimelineRuler({ zoom, scrollX, duration }: { zoom: number; scrollX: num
             className="absolute top-0 flex flex-col items-center"
             style={{ left: mark.time * zoom }}
           >
-            <div className="w-px h-2" style={{ background: 'hsla(263, 84%, 58%, 0.2)' }} />
-            <span className="text-[8px] text-muted-foreground/40 mt-0.5 font-mono leading-none whitespace-nowrap">
+            <div className="w-px h-2.5" style={{ background: 'hsla(263, 70%, 58%, 0.15)' }} />
+            <span className="text-[8px] text-muted-foreground/35 mt-0.5 font-mono leading-none whitespace-nowrap">
               {mark.label}
             </span>
           </div>
@@ -108,35 +108,40 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
     <Eye className="w-3 h-3" />
   );
 
+  const typeColors: Record<string, string> = {
+    video: 'hsla(263, 70%, 58%, 0.15)',
+    audio: 'hsla(190, 70%, 55%, 0.15)',
+    text: 'hsla(170, 70%, 50%, 0.15)',
+  };
+
   return (
     <div
-      className="shrink-0 flex flex-col justify-center gap-0.5 px-2 border-r border-b select-none overflow-hidden"
+      className="shrink-0 flex flex-col justify-center gap-1 px-2.5 border-r border-b select-none overflow-hidden"
       style={{
         width: HEADER_WIDTH,
         height: TRACK_HEIGHT,
-        background: 'hsl(240, 25%, 6%)',
-        borderColor: 'hsla(263, 84%, 58%, 0.08)',
+        background: 'linear-gradient(90deg, hsl(240 20% 6%) 0%, hsl(240 25% 5%) 100%)',
+        borderColor: 'hsla(263, 70%, 58%, 0.05)',
       }}
     >
-      <div className="flex items-center gap-1 min-w-0">
-        <span className="text-muted-foreground/50 shrink-0">{typeIcon}</span>
-        <span className="text-[10px] font-medium text-muted-foreground/70 truncate flex-1">
+      <div className="flex items-center gap-1.5 min-w-0">
+        <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0" style={{ background: typeColors[track.type] || typeColors.video }}>
+          <span className="text-foreground/60">{typeIcon}</span>
+        </div>
+        <span className="text-[10px] font-semibold text-foreground/65 truncate flex-1">
           {track.label}
         </span>
-        {/* Track reorder */}
         <button
           onClick={onMoveUp}
           disabled={index === 0}
-          className="p-0 text-muted-foreground/30 hover:text-foreground disabled:opacity-20 transition-colors shrink-0"
-          title="Move up"
+          className="p-0 text-muted-foreground/25 hover:text-foreground disabled:opacity-15 transition-colors shrink-0"
         >
           <ChevronUp className="w-2.5 h-2.5" />
         </button>
         <button
           onClick={onMoveDown}
           disabled={index === totalTracks - 1}
-          className="p-0 text-muted-foreground/30 hover:text-foreground disabled:opacity-20 transition-colors shrink-0"
-          title="Move down"
+          className="p-0 text-muted-foreground/25 hover:text-foreground disabled:opacity-15 transition-colors shrink-0"
         >
           <ChevronDown className="w-2.5 h-2.5" />
         </button>
@@ -144,23 +149,26 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
       <div className="flex items-center gap-1">
         <button
           onClick={onToggleMute}
-          className="p-0.5 rounded text-muted-foreground/40 hover:text-foreground transition-colors shrink-0"
-          title={track.muted ? "Unmute" : "Mute"}
+          className={cn(
+            "p-1 rounded-md transition-all",
+            track.muted ? "text-amber-400/60 bg-amber-400/10" : "text-muted-foreground/30 hover:text-foreground/60 hover:bg-white/[0.03]"
+          )}
         >
           {track.muted ? <VolumeX className="w-2.5 h-2.5" /> : <Volume2 className="w-2.5 h-2.5" />}
         </button>
         <button
           onClick={onToggleLock}
-          className="p-0.5 rounded text-muted-foreground/40 hover:text-foreground transition-colors shrink-0"
-          title={track.locked ? "Unlock" : "Lock"}
+          className={cn(
+            "p-1 rounded-md transition-all",
+            track.locked ? "text-primary/60 bg-primary/10" : "text-muted-foreground/30 hover:text-foreground/60 hover:bg-white/[0.03]"
+          )}
         >
           {track.locked ? <Lock className="w-2.5 h-2.5" /> : <Unlock className="w-2.5 h-2.5" />}
         </button>
         <div className="flex-1" />
         <button
           onClick={onRemove}
-          className="p-0.5 rounded text-muted-foreground/40 hover:text-destructive transition-colors shrink-0"
-          title="Remove track"
+          className="p-1 rounded-md text-muted-foreground/25 hover:text-destructive hover:bg-destructive/5 transition-all"
         >
           <Trash2 className="w-2.5 h-2.5" />
         </button>
@@ -172,17 +180,17 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
 // ─── Clip Block ───
 
 const CLIP_COLORS: Record<string, string> = {
-  video: "hsla(263, 70%, 58%, 0.35)",
-  image: "hsla(45, 90%, 55%, 0.35)",
-  text: "hsla(170, 70%, 50%, 0.35)",
-  audio: "hsla(190, 70%, 55%, 0.35)",
+  video: "hsla(263, 65%, 55%, 0.25)",
+  image: "hsla(45, 85%, 55%, 0.25)",
+  text: "hsla(170, 65%, 50%, 0.25)",
+  audio: "hsla(190, 65%, 55%, 0.25)",
 };
 
 const CLIP_BORDER_COLORS: Record<string, string> = {
-  video: "hsla(263, 70%, 58%, 0.6)",
-  image: "hsla(45, 90%, 55%, 0.6)",
-  text: "hsla(170, 70%, 50%, 0.6)",
-  audio: "hsla(190, 70%, 55%, 0.6)",
+  video: "hsla(263, 65%, 55%, 0.45)",
+  image: "hsla(45, 85%, 55%, 0.45)",
+  text: "hsla(170, 65%, 50%, 0.45)",
+  audio: "hsla(190, 65%, 55%, 0.45)",
 };
 
 function ClipBlock({
@@ -218,52 +226,43 @@ function ClipBlock({
   return (
     <div
       className={cn(
-        "absolute top-1.5 bottom-1.5 rounded cursor-pointer group transition-shadow",
-        selected && "ring-2 ring-primary shadow-lg shadow-primary/20"
+        "absolute top-1.5 bottom-1.5 rounded-lg cursor-pointer group transition-all duration-150",
+        selected && "ring-1 ring-primary/70"
       )}
       style={{
         left: Math.max(0, left),
         width,
         background: CLIP_COLORS[clip.type] || CLIP_COLORS.video,
-        border: `1px solid ${selected ? 'hsl(263, 84%, 58%)' : (CLIP_BORDER_COLORS[clip.type] || CLIP_BORDER_COLORS.video)}`,
+        border: `1px solid ${selected ? 'hsl(var(--primary))' : (CLIP_BORDER_COLORS[clip.type] || CLIP_BORDER_COLORS.video)}`,
         opacity,
+        boxShadow: selected ? `0 0 16px hsla(263, 70%, 58%, 0.15)` : 'none',
       }}
       onClick={(e) => { e.stopPropagation(); onSelect(); }}
       onMouseDown={(e) => { if (e.button === 0) onDragStart(e, clip.id, trackId); }}
       onContextMenu={(e) => { e.preventDefault(); onContextMenu(e, clip.id, trackId); }}
     >
-      {/* Color label indicator */}
       {clip.colorLabel && (
-        <div
-          className="absolute top-0 left-0 right-0 h-1 rounded-t"
-          style={{ background: clip.colorLabel }}
-        />
+        <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-lg" style={{ background: clip.colorLabel }} />
       )}
-
-      {/* Trim handle — left */}
       <div
-        className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity rounded-l"
-        style={{ background: 'hsla(263, 84%, 58%, 0.6)' }}
+        className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity rounded-l-lg"
+        style={{ background: 'hsla(263, 70%, 58%, 0.5)' }}
         onMouseDown={(e) => { e.stopPropagation(); onTrimStart(clip.id, trackId); }}
       />
-
-      {/* Clip label */}
       <div className="px-2 h-full flex items-center gap-1.5 overflow-hidden pointer-events-none">
         {clip.thumbnail && width > 60 && (
-          <img src={clip.thumbnail} alt="" className="w-6 h-6 rounded object-cover shrink-0" />
+          <img src={clip.thumbnail} alt="" className="w-7 h-7 rounded-md object-cover shrink-0 border border-white/[0.06]" />
         )}
-        <span className="text-[10px] text-foreground/80 font-medium truncate">{clip.name}</span>
+        <span className="text-[10px] text-foreground/75 font-semibold truncate">{clip.name}</span>
         {width > 80 && (
-          <span className="text-[8px] text-foreground/40 font-mono ml-auto shrink-0">
+          <span className="text-[8px] text-foreground/35 font-mono ml-auto shrink-0 tabular-nums">
             {(clip.end - clip.start).toFixed(1)}s
           </span>
         )}
       </div>
-
-      {/* Trim handle — right */}
       <div
-        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity rounded-r"
-        style={{ background: 'hsla(263, 84%, 58%, 0.6)' }}
+        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity rounded-r-lg"
+        style={{ background: 'hsla(263, 70%, 58%, 0.5)' }}
         onMouseDown={(e) => { e.stopPropagation(); onTrimEnd(clip.id, trackId); }}
       />
     </div>
@@ -593,10 +592,10 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
     >
       {/* ─── Toolbar ─── */}
       <div
-        className="shrink-0 flex items-center gap-1 px-2 h-9 border-b overflow-hidden"
+        className="shrink-0 flex items-center gap-1.5 px-3 h-10 border-b overflow-hidden"
         style={{
-          background: 'hsl(240, 25%, 5%)',
-          borderColor: 'hsla(263, 84%, 58%, 0.08)',
+          background: 'linear-gradient(180deg, hsl(240 20% 6%) 0%, hsl(240 25% 5%) 100%)',
+          borderColor: 'hsla(263, 70%, 58%, 0.05)',
         }}
       >
         {/* Left: Add track buttons */}

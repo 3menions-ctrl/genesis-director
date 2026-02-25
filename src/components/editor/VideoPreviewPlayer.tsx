@@ -1,12 +1,12 @@
 /**
- * VideoPreviewPlayer — Native HTML5 video player synced to custom timeline.
- * Features: seekable progress bar, loop toggle, go-to-start/end, playback rate display.
+ * VideoPreviewPlayer — Premium CapCut-style video preview
+ * Refined transport controls, elegant seek bar, cinematic empty state
  */
 
 import { useEffect, useRef, useCallback, useState, memo } from "react";
 import {
   Play, Pause, SkipBack, SkipForward, Volume2, VolumeX,
-  Maximize, Repeat, ChevronsLeft, ChevronsRight
+  Maximize, Repeat, ChevronsLeft, ChevronsRight, MonitorPlay
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCustomTimeline, TimelineClip } from "@/hooks/useCustomTimeline";
@@ -171,7 +171,6 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
     videoRef.current?.requestFullscreen?.().catch(() => {});
   }, []);
 
-  // Seekable progress bar
   const handleSeek = useCallback(([v]: number[]) => {
     dispatch({ type: "SET_PLAYHEAD", time: v });
   }, [dispatch]);
@@ -179,20 +178,28 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
     const sec = Math.floor(s % 60);
-    return `${m}:${sec.toString().padStart(2, "0")}`;
+    const ms = Math.floor((s % 1) * 100);
+    return `${m}:${sec.toString().padStart(2, "0")}.${ms.toString().padStart(2, "0")}`;
   };
 
   const hasClips = state.tracks.some((t) => t.clips.some((c) => c.type === "video" && c.src));
-  const progress = state.duration > 0 ? (state.playheadTime / state.duration) * 100 : 0;
 
   return (
-    <div className={cn("flex flex-col bg-[hsl(240,28%,4%)] overflow-hidden", className)}>
+    <div className={cn("flex flex-col overflow-hidden", className)} style={{ background: 'hsl(240 28% 3%)' }}>
       {/* Video area */}
-      <div className="flex-1 min-h-0 flex items-center justify-center bg-black relative">
+      <div className="flex-1 min-h-0 flex items-center justify-center relative" style={{ background: 'hsl(0 0% 3%)' }}>
         {!hasClips ? (
-          <div className="flex flex-col items-center gap-2 text-muted-foreground/30 select-none">
-            <Play className="w-10 h-10" />
-            <p className="text-xs">Add clips to the timeline to preview</p>
+          <div className="flex flex-col items-center gap-4 text-muted-foreground/20 select-none">
+            <div
+              className="w-20 h-20 rounded-3xl flex items-center justify-center"
+              style={{ background: 'hsla(263, 70%, 58%, 0.06)', border: '1px solid hsla(263, 70%, 58%, 0.08)' }}
+            >
+              <MonitorPlay className="w-9 h-9" />
+            </div>
+            <div className="text-center space-y-1">
+              <p className="text-[13px] font-medium text-muted-foreground/30">Preview</p>
+              <p className="text-[11px] text-muted-foreground/20">Add clips to the timeline to start</p>
+            </div>
           </div>
         ) : (
           <video
@@ -205,118 +212,165 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
         )}
 
         {/* Aspect ratio badge */}
-        <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/50 text-[9px] text-muted-foreground/50 font-mono">
+        <div
+          className="absolute top-3 right-3 px-2 py-0.5 rounded-md text-[9px] font-mono font-medium backdrop-blur-md"
+          style={{ background: 'hsla(0,0%,0%,0.5)', color: 'hsla(0,0%,100%,0.4)', border: '1px solid hsla(255,255,255,0.06)' }}
+        >
           {state.aspectRatio}
         </div>
       </div>
 
-      {/* Seekable progress bar */}
-      <div className="shrink-0 px-3 pt-1" style={{ background: 'hsl(240, 25%, 5%)' }}>
-        <Slider
-          value={[state.playheadTime]}
-          onValueChange={handleSeek}
-          min={0}
-          max={Math.max(state.duration, 0.1)}
-          step={0.1}
-          className="w-full"
-        />
-      </div>
-
-      {/* Transport bar */}
+      {/* Seek bar + Transport */}
       <div
-        className="shrink-0 flex items-center gap-2 px-3 h-9"
+        className="shrink-0"
         style={{
-          background: 'hsl(240, 25%, 5%)',
-          borderTop: '1px solid hsla(263, 84%, 58%, 0.05)',
+          background: 'linear-gradient(180deg, hsl(240 20% 6%) 0%, hsl(240 25% 5%) 100%)',
+          borderTop: '1px solid hsla(263, 70%, 58%, 0.06)',
         }}
       >
-        {/* Go to start */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button onClick={goToStart} className="text-muted-foreground/50 hover:text-foreground transition-colors">
-              <ChevronsLeft className="w-3.5 h-3.5" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="top" className="text-[10px]">Go to start (Home)</TooltipContent>
-        </Tooltip>
-
-        <button onClick={() => skipClip(-1)} className="text-muted-foreground/50 hover:text-foreground transition-colors">
-          <SkipBack className="w-3.5 h-3.5" />
-        </button>
-
-        <button onClick={togglePlay} className="text-foreground hover:text-primary transition-colors">
-          {state.isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-        </button>
-
-        <button onClick={() => skipClip(1)} className="text-muted-foreground/50 hover:text-foreground transition-colors">
-          <SkipForward className="w-3.5 h-3.5" />
-        </button>
-
-        {/* Go to end */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button onClick={goToEnd} className="text-muted-foreground/50 hover:text-foreground transition-colors">
-              <ChevronsRight className="w-3.5 h-3.5" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="top" className="text-[10px]">Go to end (End)</TooltipContent>
-        </Tooltip>
-
-        {/* Timecode */}
-        <span className="text-[10px] text-muted-foreground/50 font-mono tabular-nums min-w-[80px]">
-          {formatTime(state.playheadTime)} / {formatTime(state.duration)}
-        </span>
-
-        <div className="flex-1" />
-
-        {/* Loop toggle */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={toggleLoop}
-              className={cn(
-                "transition-colors p-0.5 rounded",
-                state.isLooping
-                  ? "text-primary bg-primary/10"
-                  : "text-muted-foreground/40 hover:text-foreground"
-              )}
-            >
-              <Repeat className="w-3.5 h-3.5" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="top" className="text-[10px]">
-            {state.isLooping ? "Loop: ON" : "Loop: OFF"}
-          </TooltipContent>
-        </Tooltip>
-
-        {/* Volume with hover slider */}
-        <div
-          className="relative flex items-center"
-          onMouseEnter={() => setShowVolumeSlider(true)}
-          onMouseLeave={() => setShowVolumeSlider(false)}
-        >
-          <button onClick={toggleMute} className="text-muted-foreground/50 hover:text-foreground transition-colors">
-            {isMuted || volume === 0 ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-          </button>
-          {showVolumeSlider && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-card border border-border/20 rounded-lg p-2 shadow-xl w-8 h-24">
-              <Slider
-                orientation="vertical"
-                value={[volume]}
-                onValueChange={handleVolumeChange}
-                min={0}
-                max={100}
-                step={1}
-                className="h-full"
-              />
-            </div>
-          )}
+        {/* Seek slider */}
+        <div className="px-4 pt-2 pb-1">
+          <Slider
+            value={[state.playheadTime]}
+            onValueChange={handleSeek}
+            min={0}
+            max={Math.max(state.duration, 0.1)}
+            step={0.05}
+            className="w-full"
+          />
         </div>
 
-        <button onClick={toggleFullscreen} className="text-muted-foreground/50 hover:text-foreground transition-colors">
-          <Maximize className="w-3.5 h-3.5" />
-        </button>
+        {/* Transport controls */}
+        <div className="flex items-center gap-1 px-4 h-10">
+          {/* Left: transport buttons */}
+          <div className="flex items-center gap-0.5">
+            <TransportButton onClick={goToStart} tooltip="Start (Home)">
+              <ChevronsLeft className="w-3.5 h-3.5" />
+            </TransportButton>
+            <TransportButton onClick={() => skipClip(-1)} tooltip="Previous clip">
+              <SkipBack className="w-3.5 h-3.5" />
+            </TransportButton>
+
+            {/* Play button — hero element */}
+            <button
+              onClick={togglePlay}
+              className="w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95"
+              style={{
+                background: state.isPlaying
+                  ? 'hsla(263, 70%, 58%, 0.15)'
+                  : 'linear-gradient(135deg, hsl(var(--primary)), hsl(270 70% 55%))',
+                border: state.isPlaying
+                  ? '1px solid hsla(263, 70%, 58%, 0.25)'
+                  : '1px solid hsla(263, 70%, 58%, 0.3)',
+                color: state.isPlaying ? 'hsl(var(--primary))' : 'white',
+                boxShadow: state.isPlaying ? 'none' : '0 2px 12px hsla(263, 70%, 58%, 0.25)',
+              }}
+            >
+              {state.isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+            </button>
+
+            <TransportButton onClick={() => skipClip(1)} tooltip="Next clip">
+              <SkipForward className="w-3.5 h-3.5" />
+            </TransportButton>
+            <TransportButton onClick={goToEnd} tooltip="End (End)">
+              <ChevronsRight className="w-3.5 h-3.5" />
+            </TransportButton>
+          </div>
+
+          {/* Center: timecode */}
+          <div className="flex-1 flex items-center justify-center">
+            <div
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg"
+              style={{ background: 'hsla(0,0%,100%,0.03)', border: '1px solid hsla(0,0%,100%,0.04)' }}
+            >
+              <span className="text-[11px] font-mono font-semibold text-foreground/70 tabular-nums tracking-tight">
+                {formatTime(state.playheadTime)}
+              </span>
+              <span className="text-[9px] text-muted-foreground/25">/</span>
+              <span className="text-[10px] font-mono text-muted-foreground/40 tabular-nums">
+                {formatTime(state.duration)}
+              </span>
+            </div>
+          </div>
+
+          {/* Right: utility controls */}
+          <div className="flex items-center gap-0.5">
+            <TransportButton
+              onClick={toggleLoop}
+              tooltip={state.isLooping ? "Loop: ON" : "Loop: OFF"}
+              active={state.isLooping}
+            >
+              <Repeat className="w-3.5 h-3.5" />
+            </TransportButton>
+
+            {/* Volume */}
+            <div
+              className="relative flex items-center"
+              onMouseEnter={() => setShowVolumeSlider(true)}
+              onMouseLeave={() => setShowVolumeSlider(false)}
+            >
+              <TransportButton onClick={toggleMute} tooltip={isMuted ? "Unmute" : "Mute"}>
+                {isMuted || volume === 0 ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+              </TransportButton>
+              {showVolumeSlider && (
+                <div
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 rounded-xl p-2.5 shadow-2xl w-9 h-28"
+                  style={{
+                    background: 'hsl(240 20% 8%)',
+                    border: '1px solid hsla(263, 70%, 58%, 0.12)',
+                  }}
+                >
+                  <Slider
+                    orientation="vertical"
+                    value={[volume]}
+                    onValueChange={handleVolumeChange}
+                    min={0}
+                    max={100}
+                    step={1}
+                    className="h-full"
+                  />
+                </div>
+              )}
+            </div>
+
+            <TransportButton onClick={toggleFullscreen} tooltip="Fullscreen">
+              <Maximize className="w-3.5 h-3.5" />
+            </TransportButton>
+          </div>
+        </div>
       </div>
     </div>
   );
 });
+
+/** Reusable transport button */
+function TransportButton({
+  onClick,
+  tooltip,
+  active,
+  children,
+}: {
+  onClick: () => void;
+  tooltip: string;
+  active?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          onClick={onClick}
+          className={cn(
+            "w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-150",
+            active
+              ? "text-primary bg-primary/10"
+              : "text-muted-foreground/45 hover:text-foreground/80 hover:bg-white/[0.04]"
+          )}
+        >
+          {children}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="text-[10px]">{tooltip}</TooltipContent>
+    </Tooltip>
+  );
+}

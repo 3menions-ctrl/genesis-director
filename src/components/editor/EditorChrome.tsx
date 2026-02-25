@@ -579,50 +579,75 @@ export function EditorChrome({
           )}
         </div>
 
-        {/* ═══════════════ TOP BAR — Refined glassmorphic header ═══════════════ */}
+        {/* ═══════════════ TOP BAR — Ultra-minimal CapCut-style ═══════════════ */}
         <motion.div
-          initial={{ opacity: 0, y: -6 }}
+          initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="h-12 flex items-center justify-between px-3 shrink-0 z-10 relative"
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          className="h-11 flex items-center px-2 shrink-0 z-10 relative"
           style={{
-            background: 'linear-gradient(180deg, hsla(240, 20%, 8%, 0.95) 0%, hsla(240, 25%, 5%, 0.9) 100%)',
-            backdropFilter: 'blur(24px) saturate(1.4)',
-            borderBottom: '1px solid hsla(263, 70%, 58%, 0.06)',
+            background: 'hsl(240 20% 5%)',
+            borderBottom: '1px solid hsla(0, 0%, 100%, 0.04)',
           }}
         >
-          {/* Left — Nav + Import */}
-          <div className="flex items-center gap-1.5">
+          {/* ── Left: Navigation + Session ── */}
+          <div className="flex items-center gap-1 min-w-0 flex-1">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <button
                   onClick={() => navigate("/projects")}
-                  className="w-8 h-8 p-0 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-white/[0.04]"
+                  className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground/35 hover:text-foreground/80 hover:bg-white/[0.04] transition-all shrink-0"
                 >
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Back to Projects</TooltipContent>
+              <TooltipContent side="bottom" className="text-[10px]">Back to Projects</TooltipContent>
             </Tooltip>
 
-            <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
+            {/* Session name — editable, prominent */}
+            <div className="flex items-center gap-1.5 min-w-0 ml-1">
+              {isRenamingSession ? (
+                <input
+                  autoFocus
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  onBlur={finishRename}
+                  onKeyDown={(e) => { if (e.key === "Enter") finishRename(); if (e.key === "Escape") setIsRenamingSession(false); }}
+                  className="text-[12px] text-foreground/80 bg-white/[0.04] border border-primary/30 rounded-md px-2 py-1 max-w-[200px] outline-none focus:border-primary font-medium"
+                />
+              ) : (
+                <button onClick={startRename} className="flex items-center gap-1.5 group text-left min-w-0">
+                  <span className="text-[12px] font-semibold text-foreground/60 max-w-[200px] truncate group-hover:text-foreground/85 transition-colors">
+                    {sessionTitle}
+                  </span>
+                  <Edit3 className="w-2.5 h-2.5 text-muted-foreground/15 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                </button>
+              )}
+              {hasUnsavedChanges && (
+                <motion.span
+                  animate={{ opacity: [0.3, 0.8, 0.3] }}
+                  transition={{ duration: 2.5, repeat: Infinity }}
+                  className="w-1.5 h-1.5 rounded-full bg-amber-400/80 shrink-0"
+                  title="Unsaved changes"
+                />
+              )}
+            </div>
+          </div>
 
+          {/* ── Center: Import + Aspect Ratio ── */}
+          <div className="flex items-center gap-1">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <button
                   onClick={openBrowser}
-                  className="h-8 gap-2 px-3 rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.04] border border-transparent hover:border-white/[0.06]"
+                  className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-muted-foreground/50 hover:text-foreground/80 hover:bg-white/[0.04] transition-all"
                 >
                   <FolderOpen className="w-3.5 h-3.5" />
-                  <span className="text-[11px] font-medium">{!autoLoadDone ? "Syncing…" : "Import"}</span>
+                  <span className="text-[10px] font-medium">{!autoLoadDone ? "Syncing…" : "Import"}</span>
                   {!autoLoadDone && <Loader2 className="w-3 h-3 animate-spin text-primary/50" />}
-                </Button>
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Import clips from your projects</TooltipContent>
+              <TooltipContent side="bottom" className="text-[10px]">Import clips from your projects</TooltipContent>
             </Tooltip>
 
             <AnimatePresence>
@@ -630,197 +655,143 @@ export function EditorChrome({
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium"
-                  style={{ background: 'hsla(142, 60%, 50%, 0.08)', color: 'hsla(142, 60%, 60%, 0.8)', border: '1px solid hsla(142, 60%, 50%, 0.12)' }}
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-medium"
+                  style={{ background: 'hsla(142, 60%, 50%, 0.06)', color: 'hsla(142, 60%, 60%, 0.7)' }}
                 >
-                  <Check className="w-3 h-3" />
-                  {mediaCounts.videos} clips
+                  <Check className="w-2.5 h-2.5" />
+                  {mediaCounts.videos}
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
 
-          {/* Center — Branding with inline rename */}
-          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2.5 min-w-0">
-            <Logo size="sm" />
-            <div className="flex flex-col items-start min-w-0">
-              <span
-                className="text-[10px] font-black tracking-[0.15em] uppercase leading-tight bg-clip-text text-transparent"
-                style={{ backgroundImage: 'linear-gradient(135deg, hsl(var(--primary)), hsl(270 70% 65%))' }}
-              >
-                APEX STUDIO
-              </span>
-              <div className="flex items-center gap-1.5 min-w-0">
-                {isRenamingSession ? (
-                  <input
-                    autoFocus
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    onBlur={finishRename}
-                    onKeyDown={(e) => { if (e.key === "Enter") finishRename(); if (e.key === "Escape") setIsRenamingSession(false); }}
-                    className="text-[11px] text-foreground/70 bg-white/[0.04] border border-primary/30 rounded-md px-1.5 py-0.5 max-w-[160px] outline-none focus:border-primary"
-                  />
-                ) : (
-                  <button onClick={startRename} className="flex items-center gap-1 group text-left">
-                    <span className="text-[11px] text-muted-foreground/45 max-w-[160px] truncate leading-tight group-hover:text-foreground/60 transition-colors">
-                      {sessionTitle}
-                    </span>
-                    <Edit3 className="w-2.5 h-2.5 text-muted-foreground/20 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                  </button>
-                )}
-                {hasUnsavedChanges && (
-                  <motion.span
-                    animate={{ opacity: [0.3, 1, 0.3] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"
-                    title="Unsaved changes"
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right — Actions */}
-          <div className="flex items-center gap-1 shrink-0">
-            {/* Aspect Ratio */}
             <select
               value={timelineState.aspectRatio}
               onChange={(e) => dispatch({ type: "SET_ASPECT_RATIO", ratio: e.target.value as any })}
-              className="h-7 text-[10px] bg-white/[0.03] border border-white/[0.06] rounded-lg px-2 text-muted-foreground/50 cursor-pointer hover:border-white/[0.1] transition-colors outline-none"
+              className="h-7 text-[10px] bg-white/[0.03] border border-white/[0.05] rounded-md px-1.5 text-muted-foreground/45 cursor-pointer hover:border-white/[0.1] transition-colors outline-none"
             >
               <option value="16:9">16:9</option>
               <option value="9:16">9:16</option>
               <option value="1:1">1:1</option>
               <option value="4:3">4:3</option>
             </select>
+          </div>
 
+          {/* ── Right: Actions ── */}
+          <div className="flex items-center gap-0.5 flex-1 justify-end">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <button
                   onClick={handleClearTimeline}
-                  className="w-8 h-8 p-0 rounded-lg text-muted-foreground/30 hover:text-destructive hover:bg-destructive/5"
+                  className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground/25 hover:text-destructive/70 hover:bg-destructive/5 transition-all"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
+                  <Trash2 className="w-3 h-3" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Clear timeline</TooltipContent>
+              <TooltipContent side="bottom" className="text-[10px]">Clear timeline</TooltipContent>
             </Tooltip>
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <button
                   onClick={() => setShowShortcuts(prev => !prev)}
-                  className="w-8 h-8 p-0 rounded-lg text-muted-foreground/30 hover:text-foreground hover:bg-white/[0.04]"
+                  className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground/25 hover:text-foreground/70 hover:bg-white/[0.04] transition-all"
                 >
-                  <Keyboard className="w-3.5 h-3.5" />
-                </Button>
+                  <Keyboard className="w-3 h-3" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Keyboard shortcuts (?)</TooltipContent>
+              <TooltipContent side="bottom" className="text-[10px]">Shortcuts (?)</TooltipContent>
             </Tooltip>
 
-            <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
+            <div className="w-px h-4 bg-white/[0.05] mx-0.5" />
 
             {/* Save */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <button
                   onClick={() => saveProject(sessionTitle)}
                   disabled={saving}
-                  className="h-8 gap-1.5 px-3 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.04]"
+                  className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-muted-foreground/45 hover:text-foreground/80 hover:bg-white/[0.04] transition-all disabled:opacity-40"
                 >
-                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                  <span className="text-[11px] font-medium hidden sm:inline">Save</span>
-                </Button>
+                  {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                  <span className="text-[10px] font-medium hidden sm:inline">Save</span>
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Save project (⌘S)</TooltipContent>
+              <TooltipContent side="bottom" className="text-[10px]">Save (⌘S)</TooltipContent>
             </Tooltip>
 
             {/* Stitch */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                {isStitching ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => resetStitch()}
-                    className="h-8 font-semibold gap-1.5 rounded-lg text-[11px]"
-                    style={{ borderColor: 'hsla(263, 70%, 58%, 0.2)', background: 'hsla(263, 70%, 58%, 0.06)', color: 'hsl(var(--primary))' }}
-                  >
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Stitching {Math.round(stitchProgress)}%</span>
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="ghost"
+            {isStitching ? (
+              <button
+                onClick={() => resetStitch()}
+                className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-[10px] font-semibold"
+                style={{ background: 'hsla(263, 70%, 58%, 0.08)', color: 'hsl(var(--primary))' }}
+              >
+                <Loader2 className="w-3 h-3 animate-spin" />
+                {Math.round(stitchProgress)}%
+              </button>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
                     onClick={handleStitch}
                     disabled={isRendering}
-                    className="h-8 gap-1.5 px-3 rounded-lg text-[11px] text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.04] border border-transparent hover:border-white/[0.06]"
+                    className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-muted-foreground/45 hover:text-foreground/80 hover:bg-white/[0.04] transition-all disabled:opacity-40"
                   >
-                    <Film className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Stitch</span>
-                  </Button>
-                )}
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Server-side stitch with crossfade</TooltipContent>
-            </Tooltip>
+                    <Film className="w-3 h-3" />
+                    <span className="text-[10px] font-medium hidden sm:inline">Stitch</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-[10px]">Server-side stitch</TooltipContent>
+              </Tooltip>
+            )}
 
             {/* OpenReel */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="ghost"
+                <button
                   onClick={handleOpenInOpenReel}
                   disabled={isRendering || isStitching}
-                  className="h-8 gap-1.5 px-3 rounded-lg text-[11px] text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.04] border border-transparent hover:border-white/[0.06]"
+                  className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-muted-foreground/45 hover:text-foreground/80 hover:bg-white/[0.04] transition-all disabled:opacity-40"
                 >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">OpenReel</span>
-                </Button>
+                  <ExternalLink className="w-3 h-3" />
+                  <span className="text-[10px] font-medium hidden lg:inline">OpenReel</span>
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-[220px] text-center">
-                Open your clips in OpenReel Video — a professional open-source browser editor
+              <TooltipContent side="bottom" className="text-[10px] max-w-[200px] text-center">
+                Open in OpenReel — professional browser editor
               </TooltipContent>
             </Tooltip>
 
+            <div className="w-px h-4 bg-white/[0.05] mx-0.5" />
+
             {/* Export — hero CTA */}
             {isRendering ? (
-              <Button
-                size="sm"
-                variant="outline"
+              <button
                 onClick={() => renderer?.reset()}
-                className="h-8 font-semibold gap-1.5 rounded-lg text-[11px] border-destructive/30 text-destructive bg-destructive/5"
+                className="h-7 px-3 flex items-center gap-1.5 rounded-lg text-[10px] font-semibold text-destructive bg-destructive/8 border border-destructive/20"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-3 h-3" />
                 Cancel {Math.round(renderProgress * 100)}%
-              </Button>
+              </button>
             ) : (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
+                  <button
                     onClick={exportVideo}
                     disabled={isStitching || isDownloading}
-                    className="h-8 px-4 font-semibold gap-2 rounded-lg text-[11px] relative overflow-hidden group border-0"
+                    className="h-7 px-4 flex items-center gap-1.5 rounded-lg text-[10px] font-bold relative overflow-hidden group disabled:opacity-40"
                     style={{
                       background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(270 70% 55%))',
                       color: 'white',
-                      boxShadow: '0 2px 16px hsla(263, 70%, 58%, 0.3)',
+                      boxShadow: '0 1px 10px hsla(263, 70%, 58%, 0.25)',
                     }}
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                    {isDownloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                    {isDownloading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
                     <span>{isDownloading ? "Exporting…" : "Export"}</span>
-                  </Button>
+                  </button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom">Export video (⌘E)</TooltipContent>
+                <TooltipContent side="bottom" className="text-[10px]">Export video (⌘E)</TooltipContent>
               </Tooltip>
             )}
           </div>

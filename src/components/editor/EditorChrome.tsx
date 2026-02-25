@@ -24,7 +24,7 @@ import {
 import { VideoPreviewPlayer } from "@/components/editor/VideoPreviewPlayer";
 import { CustomTimeline } from "@/components/editor/CustomTimeline";
 import { MediaSidebar } from "@/components/editor/MediaSidebar";
-import { ClipPropertiesPanel } from "@/components/editor/ClipPropertiesPanel";
+import { RightSidebarPanel } from "@/components/editor/RightSidebarPanel";
 import { TextClipDialog } from "@/components/editor/TextClipDialog";
 import {
   useCustomTimeline,
@@ -831,8 +831,8 @@ export function EditorChrome({
             <CustomTimeline className="flex-1 min-h-0" onOpenTextDialog={() => setTextDialogOpen(true)} />
           </div>
 
-          {/* Right — Properties panel */}
-          <ClipPropertiesPanel />
+          {/* Right — Properties & Templates panel */}
+          <RightSidebarPanel />
         </div>
 
         {/* ═══════════════ STATUS BAR ═══════════════ */}

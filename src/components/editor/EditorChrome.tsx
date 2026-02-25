@@ -559,18 +559,18 @@ export function EditorChrome({
           )}
         </div>
 
-        {/* ═══════════════ TOP BAR — Premium grouped header ═══════════════ */}
+        {/* ═══════════════ TOP BAR — Clean 3-section header ═══════════════ */}
         <motion.div
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="h-12 flex items-center px-3 shrink-0 z-10 relative gap-2"
+          className="h-12 flex items-center px-3 shrink-0 z-10 relative"
           style={{
             background: 'linear-gradient(180deg, hsl(240 18% 7%) 0%, hsl(240 22% 5.5%) 100%)',
             borderBottom: '1px solid hsla(0, 0%, 100%, 0.06)',
           }}
         >
-          {/* ── Left group: Back + Session name ── */}
+          {/* ── Left: Navigation + Session ── */}
           <div className="flex items-center gap-2 min-w-0 shrink-0">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -586,7 +586,6 @@ export function EditorChrome({
 
             <div className="w-px h-5 bg-white/[0.06]" />
 
-            {/* Session name */}
             <div className="flex items-center gap-1.5 min-w-0">
               {isRenamingSession ? (
                 <input
@@ -619,10 +618,10 @@ export function EditorChrome({
             </div>
           </div>
 
-          {/* ── Center group: Import + Aspect + Sync status ── */}
-          <div className="flex-1 flex items-center justify-center gap-1">
+          {/* ── Center: Import + Aspect ── */}
+          <div className="flex-1 flex items-center justify-center">
             <div
-              className="flex items-center gap-1 px-1 py-0.5 rounded-lg"
+              className="flex items-center gap-0.5 px-1 py-0.5 rounded-lg"
               style={{ background: 'hsla(0,0%,100%,0.02)', border: '1px solid hsla(0,0%,100%,0.04)' }}
             >
               <Tooltip>
@@ -668,13 +667,10 @@ export function EditorChrome({
             </div>
           </div>
 
-          {/* ── Right group: Actions ── */}
-          <div className="flex items-center gap-0.5 shrink-0">
-            {/* Utility group */}
-            <div
-              className="flex items-center gap-0.5 px-0.5 rounded-lg mr-1"
-              style={{ background: 'hsla(0,0%,100%,0.015)' }}
-            >
+          {/* ── Right: Primary actions ── */}
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Secondary: Clear + Shortcuts */}
+            <div className="flex items-center gap-0.5 mr-1">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -686,7 +682,6 @@ export function EditorChrome({
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-[10px]">Clear timeline</TooltipContent>
               </Tooltip>
-
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -702,15 +697,18 @@ export function EditorChrome({
 
             <div className="w-px h-5 bg-white/[0.06]" />
 
-            {/* Primary actions group */}
-            <div className="flex items-center gap-0.5 ml-1">
+            {/* Primary action group */}
+            <div
+              className="flex items-center gap-0.5 ml-1 px-0.5 py-0.5 rounded-lg"
+              style={{ background: 'hsla(0,0%,100%,0.02)', border: '1px solid hsla(0,0%,100%,0.04)' }}
+            >
               {/* Save */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
                     onClick={() => saveProject(sessionTitle)}
                     disabled={saving}
-                    className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.06] transition-all disabled:opacity-40 border border-transparent hover:border-white/[0.06]"
+                    className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-muted-foreground/55 hover:text-foreground hover:bg-white/[0.06] transition-all disabled:opacity-40"
                   >
                     {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                     <span className="text-[11px] font-semibold hidden sm:inline">Save</span>
@@ -719,14 +717,16 @@ export function EditorChrome({
                 <TooltipContent side="bottom" className="text-[10px]">Save (⌘S)</TooltipContent>
               </Tooltip>
 
+              <div className="w-px h-4 bg-white/[0.06]" />
+
               {/* Stitch */}
               {isStitching ? (
                 <button
                   onClick={() => resetStitch()}
-                  className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-[11px] font-semibold"
-                  style={{ background: 'hsla(0, 0%, 100%, 0.08)', color: 'hsl(0, 0%, 80%)' }}
+                  className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-[11px] font-semibold"
+                  style={{ background: 'hsla(0, 0%, 100%, 0.06)', color: 'hsl(0, 0%, 80%)' }}
                 >
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <Loader2 className="w-3 h-3 animate-spin" />
                   {Math.round(stitchProgress)}%
                 </button>
               ) : (
@@ -735,7 +735,7 @@ export function EditorChrome({
                     <button
                       onClick={handleStitch}
                       disabled={isRendering}
-                      className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.06] transition-all disabled:opacity-40 border border-transparent hover:border-white/[0.06]"
+                      className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-muted-foreground/55 hover:text-foreground hover:bg-white/[0.06] transition-all disabled:opacity-40"
                     >
                       <Film className="w-3.5 h-3.5" />
                       <span className="text-[11px] font-semibold hidden sm:inline">Stitch</span>
@@ -745,13 +745,15 @@ export function EditorChrome({
                 </Tooltip>
               )}
 
+              <div className="w-px h-4 bg-white/[0.06]" />
+
               {/* OpenReel */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
                     onClick={handleOpenInOpenReel}
                     disabled={isRendering || isStitching}
-                    className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.06] transition-all disabled:opacity-40 border border-transparent hover:border-white/[0.06]"
+                    className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-muted-foreground/55 hover:text-foreground hover:bg-white/[0.06] transition-all disabled:opacity-40"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     <span className="text-[11px] font-semibold hidden lg:inline">OpenReel</span>
@@ -761,10 +763,10 @@ export function EditorChrome({
                   Open in OpenReel — professional browser editor
                 </TooltipContent>
               </Tooltip>
+            </div>
 
-              <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
-
-              {/* Export — hero CTA */}
+            {/* Export — hero CTA, visually separated */}
+            <div className="ml-1.5">
               {isRendering ? (
                 <button
                   onClick={() => renderer?.reset()}

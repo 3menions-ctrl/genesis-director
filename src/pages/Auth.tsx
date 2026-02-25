@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, ShieldCheck, Sparkles, Zap } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, ShieldCheck, Sparkles, Zap, KeyRound } from 'lucide-react';
 import { z } from 'zod';
 import { PasswordStrength } from '@/components/ui/password-strength';
 import { WelcomeBackDialog } from '@/components/auth/WelcomeBackDialog';
@@ -128,6 +128,9 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
   const [pendingEmailConfirmation, setPendingEmailConfirmation] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [resendingOtp, setResendingOtp] = useState(false);
 
   const trackSignup = useCallback((userId: string) => {
     const params = new URLSearchParams(window.location.search);
@@ -217,7 +220,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
             toast.error('Invalid email or password');
           } else if (error.message.includes('Email not confirmed')) {
             setPendingEmailConfirmation(trimmedEmail);
-            toast.error('Please check your email and click the confirmation link before signing in.');
+            toast.error('Your email is not verified yet. Enter the code we sent to verify.');
           } else {
             toast.error('Login failed. Please check your credentials and try again.');
           }
@@ -441,23 +444,21 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                     {/* Email Confirmation Pending */}
                     {pendingEmailConfirmation && (
                       <motion.div key="pending" initial={formEnter} animate={formAnimate} exit={formExit} className="text-center py-6">
-                        {/* Animated envelope icon */}
+                        {/* Animated key icon */}
                         <motion.div 
                           className="relative mx-auto mb-8 w-24 h-24"
                           initial={{ scale: 0.5, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
                         >
-                          <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 animate-pulse" />
-                          <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20 flex items-center justify-center">
-                            <Mail className="w-10 h-10 text-emerald-400" />
+                          <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-primary/20 to-accent/20 animate-pulse" />
+                          <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 flex items-center justify-center">
+                            <KeyRound className="w-10 h-10 text-primary" />
                           </div>
                           {/* Orbiting dot */}
                           <motion.div
-                            className="absolute w-2 h-2 rounded-full bg-emerald-400"
-                            animate={{
-                              rotate: 360,
-                            }}
+                            className="absolute w-2 h-2 rounded-full bg-primary"
+                            animate={{ rotate: 360 }}
                             transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
                             style={{ top: -4, left: '50%', transformOrigin: '0 56px' }}
                           />
@@ -469,43 +470,150 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.3 }}
                         >
-                          Check your inbox
+                          Enter verification code
                         </motion.h2>
                         <motion.div
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           transition={{ delay: 0.4 }}
                         >
-                          <p className="text-white/40 mb-1 text-sm">We sent a confirmation link to</p>
-                          <p className="text-white font-semibold text-sm mb-2">{pendingEmailConfirmation}</p>
+                          <p className="text-white/40 mb-1 text-sm">We sent a 6-digit code to</p>
+                          <p className="text-white font-semibold text-sm mb-6">{pendingEmailConfirmation}</p>
                           
-                          {/* Security badge */}
-                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/15 mb-6">
-                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-xs text-emerald-400/80">Secure verification link</span>
+                          {/* OTP Input */}
+                          <div className="flex justify-center gap-2.5 mb-6">
+                            {Array.from({ length: 6 }).map((_, i) => (
+                              <input
+                                key={i}
+                                id={`otp-${i}`}
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={1}
+                                value={otpCode[i] || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(/\D/g, '');
+                                  if (!val && e.target.value) return;
+                                  const newOtp = otpCode.split('');
+                                  newOtp[i] = val;
+                                  const joined = newOtp.join('').slice(0, 6);
+                                  setOtpCode(joined);
+                                  // Auto-focus next input
+                                  if (val && i < 5) {
+                                    document.getElementById(`otp-${i + 1}`)?.focus();
+                                  }
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Backspace' && !otpCode[i] && i > 0) {
+                                    document.getElementById(`otp-${i - 1}`)?.focus();
+                                  }
+                                }}
+                                onPaste={(e) => {
+                                  e.preventDefault();
+                                  const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+                                  setOtpCode(pasted);
+                                  const focusIdx = Math.min(pasted.length, 5);
+                                  document.getElementById(`otp-${focusIdx}`)?.focus();
+                                }}
+                                className={cn(
+                                  "w-12 h-14 text-center text-xl font-bold text-white rounded-xl",
+                                  "bg-white/[0.04] border border-white/[0.08]",
+                                  "focus:border-primary/60 focus:ring-2 focus:ring-primary/20 focus:bg-white/[0.06]",
+                                  "outline-none transition-all duration-200",
+                                  "hover:border-white/[0.15]",
+                                  otpCode[i] && "border-primary/30 bg-primary/[0.04]"
+                                )}
+                                autoFocus={i === 0}
+                              />
+                            ))}
                           </div>
                           
-                          <p className="text-white/30 text-xs mb-8 leading-relaxed max-w-[280px] mx-auto">
-                            Click the link in the email to activate your account, then come back here to sign in.
+                          {/* Security badge */}
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/15 mb-6">
+                            <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                            <span className="text-xs text-primary/80">Secure verification</span>
+                          </div>
+                          
+                          <p className="text-white/30 text-xs mb-6 leading-relaxed max-w-[280px] mx-auto">
+                            Enter the code from your email to verify your account.
                           </p>
                         </motion.div>
                         
                         <div className="space-y-3">
                           <Button
-                            onClick={() => {
-                              setPendingEmailConfirmation(null);
-                              setIsLogin(true);
-                              setPassword('');
-                              setConfirmPassword('');
+                            onClick={async () => {
+                              if (otpCode.length !== 6) {
+                                toast.error('Please enter the full 6-digit code');
+                                return;
+                              }
+                              setVerifyingOtp(true);
+                              try {
+                                const { error } = await supabase.auth.verifyOtp({
+                                  email: pendingEmailConfirmation!,
+                                  token: otpCode,
+                                  type: 'signup',
+                                });
+                                if (error) {
+                                  toast.error(error.message || 'Invalid code. Please try again.');
+                                  setOtpCode('');
+                                  document.getElementById('otp-0')?.focus();
+                                } else {
+                                  toast.success('Email verified! Welcome aboard.');
+                                  setPendingEmailConfirmation(null);
+                                  setOtpCode('');
+                                }
+                              } catch {
+                                toast.error('Verification failed. Please try again.');
+                              } finally {
+                                setVerifyingOtp(false);
+                              }
                             }}
-                            className="w-full h-13 bg-gradient-to-r from-white to-white/95 text-black hover:from-white/95 hover:to-white/90 rounded-2xl font-semibold text-sm shadow-[0_0_30px_rgba(255,255,255,0.08)] hover:shadow-[0_0_40px_rgba(255,255,255,0.12)] transition-all duration-500 hover:scale-[1.01] active:scale-[0.99]"
+                            disabled={verifyingOtp || otpCode.length !== 6}
+                            className="w-full h-13 bg-gradient-to-r from-primary to-primary/90 text-white hover:from-primary/90 hover:to-primary/80 rounded-2xl font-semibold text-sm shadow-[0_0_30px_rgba(124,58,237,0.2)] hover:shadow-[0_0_40px_rgba(124,58,237,0.35)] transition-all duration-500 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                           >
-                            I've confirmed my email
-                            <ArrowRight className="w-4 h-4 ml-2" />
+                            {verifyingOtp ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Verifying...
+                              </>
+                            ) : (
+                              <>
+                                Verify & continue
+                                <ArrowRight className="w-4 h-4 ml-2" />
+                              </>
+                            )}
                           </Button>
+                          
                           <button
                             type="button"
-                            onClick={() => { setPendingEmailConfirmation(null); setPassword(''); setConfirmPassword(''); }}
+                            disabled={resendingOtp}
+                            onClick={async () => {
+                              setResendingOtp(true);
+                              try {
+                                const { error } = await supabase.auth.resend({
+                                  type: 'signup',
+                                  email: pendingEmailConfirmation!,
+                                });
+                                if (error) {
+                                  toast.error('Could not resend code. Please wait a moment and try again.');
+                                } else {
+                                  toast.success('New code sent! Check your inbox.');
+                                  setOtpCode('');
+                                  document.getElementById('otp-0')?.focus();
+                                }
+                              } catch {
+                                toast.error('Something went wrong.');
+                              } finally {
+                                setResendingOtp(false);
+                              }
+                            }}
+                            className="text-xs text-white/40 hover:text-white/70 transition-colors disabled:opacity-50"
+                          >
+                            {resendingOtp ? 'Sending...' : "Didn't get a code? Resend"}
+                          </button>
+                          
+                          <button
+                            type="button"
+                            onClick={() => { setPendingEmailConfirmation(null); setOtpCode(''); setPassword(''); setConfirmPassword(''); }}
                             className="text-xs text-white/30 hover:text-white/60 transition-colors"
                           >
                             Use a different email

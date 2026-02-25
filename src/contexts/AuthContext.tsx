@@ -44,6 +44,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
+  signInWithApple: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   retryProfileFetch: () => Promise<void>;
@@ -592,6 +593,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: result.error ? (result.error as Error) : null };
   };
 
+  const signInWithApple = async () => {
+    const result = await lovable.auth.signInWithOAuth('apple', {
+      redirect_uri: window.location.origin,
+    });
+    return { error: result.error ? (result.error as Error) : null };
+  };
+
   const signOut = async () => {
     // Set flag BEFORE calling signOut to prevent onAuthStateChange from resurrecting session
     signedOutRef.current = true;
@@ -647,6 +655,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signIn,
       signUp,
       signInWithGoogle,
+      signInWithApple,
       signOut,
       refreshProfile,
       retryProfileFetch,
@@ -675,6 +684,7 @@ export function useAuth() {
       signIn: async () => ({ error: new Error('Auth not initialized') }),
       signUp: async () => ({ error: new Error('Auth not initialized') }),
       signInWithGoogle: async () => ({ error: new Error('Auth not initialized') }),
+      signInWithApple: async () => ({ error: new Error('Auth not initialized') }),
       signOut: async () => {},
       refreshProfile: async () => {},
       retryProfileFetch: async () => {},

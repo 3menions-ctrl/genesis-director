@@ -600,110 +600,123 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
       className={cn("flex flex-col overflow-hidden select-none", className)}
       style={{ background: 'hsl(240, 25%, 4%)' }}
     >
-      {/* ─── Toolbar ─── */}
+      {/* ─── Toolbar — 3 clear groups: Add | Edit | View ─── */}
       <div
-        className="shrink-0 flex items-center gap-1 px-3 h-11 overflow-hidden"
+        className="shrink-0 flex items-center px-3 h-10 overflow-hidden"
         style={{
           background: 'linear-gradient(180deg, hsl(240 18% 7%) 0%, hsl(240 22% 5.5%) 100%)',
           borderBottom: '1px solid hsla(0, 0%, 100%, 0.06)',
         }}
       >
-        {/* Left: Add track buttons — grouped */}
+        {/* ── Group 1: Add tracks ── */}
         <div
           className="flex items-center gap-0.5 shrink-0 px-0.5 py-0.5 rounded-lg"
           style={{ background: 'hsla(0,0%,100%,0.02)', border: '1px solid hsla(0,0%,100%,0.04)' }}
         >
-          <Button variant="ghost" size="sm" onClick={() => addTrack("video")}
-            className="h-7 px-2.5 text-[10px] gap-1.5 text-muted-foreground/60 hover:text-foreground font-semibold whitespace-nowrap rounded-md">
-            <Plus className="w-3 h-3" /> Video
-          </Button>
-          <div className="w-px h-4 bg-white/[0.05]" />
-          <Button variant="ghost" size="sm" onClick={() => addTrack("audio")}
-            className="h-7 px-2.5 text-[10px] gap-1.5 text-muted-foreground/60 hover:text-foreground font-semibold whitespace-nowrap rounded-md">
-            <Music className="w-3 h-3" /> Audio
-          </Button>
-          <div className="w-px h-4 bg-white/[0.05]" />
-          <Button variant="ghost" size="sm" onClick={() => onOpenTextDialog?.()}
-            className="h-7 px-2.5 text-[10px] gap-1.5 text-muted-foreground/60 hover:text-foreground font-semibold whitespace-nowrap rounded-md">
-            <Type className="w-3 h-3" /> Text
-          </Button>
-        </div>
-
-        <div className="w-px h-5 bg-white/[0.05] shrink-0 mx-1" />
-
-        {/* Undo / Redo — grouped */}
-        <div className="flex items-center gap-0.5 shrink-0">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" onClick={undo} disabled={!canUndo}
-                className="h-7 w-7 p-0 text-muted-foreground/40 hover:text-foreground disabled:opacity-20 rounded-lg">
-                <Undo2 className="w-3.5 h-3.5" />
+              <Button variant="ghost" size="sm" onClick={() => addTrack("video")}
+                className="h-7 px-2 text-[10px] gap-1 text-muted-foreground/60 hover:text-foreground font-semibold whitespace-nowrap rounded-md">
+                <Plus className="w-3 h-3" /> Video
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="text-[10px]">Undo (⌘Z)</TooltipContent>
+            <TooltipContent side="top" className="text-[10px]">Add video track</TooltipContent>
           </Tooltip>
+          <div className="w-px h-4 bg-white/[0.05]" />
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" onClick={redo} disabled={!canRedo}
-                className="h-7 w-7 p-0 text-muted-foreground/40 hover:text-foreground disabled:opacity-20 rounded-lg">
-                <Redo2 className="w-3.5 h-3.5" />
+              <Button variant="ghost" size="sm" onClick={() => addTrack("audio")}
+                className="h-7 px-2 text-[10px] gap-1 text-muted-foreground/60 hover:text-foreground font-semibold whitespace-nowrap rounded-md">
+                <Music className="w-3 h-3" /> Audio
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="text-[10px]">Redo (⌘Y)</TooltipContent>
+            <TooltipContent side="top" className="text-[10px]">Add audio track</TooltipContent>
+          </Tooltip>
+          <div className="w-px h-4 bg-white/[0.05]" />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="sm" onClick={() => onOpenTextDialog?.()}
+                className="h-7 px-2 text-[10px] gap-1 text-muted-foreground/60 hover:text-foreground font-semibold whitespace-nowrap rounded-md">
+                <Type className="w-3 h-3" /> Text
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-[10px]">Add text overlay</TooltipContent>
           </Tooltip>
         </div>
 
-        <div className="w-px h-5 bg-white/[0.05] shrink-0 mx-1" />
+        {/* ── Group 2: Edit tools (centered) ── */}
+        <div className="flex-1 flex items-center justify-center gap-2">
+          {/* Undo / Redo */}
+          <div
+            className="flex items-center gap-0.5 px-0.5 py-0.5 rounded-lg"
+            style={{ background: 'hsla(0,0%,100%,0.02)', border: '1px solid hsla(0,0%,100%,0.04)' }}
+          >
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" onClick={undo} disabled={!canUndo}
+                  className="h-7 w-7 p-0 text-muted-foreground/40 hover:text-foreground disabled:opacity-20 rounded-md">
+                  <Undo2 className="w-3.5 h-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-[10px]">Undo (⌘Z)</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" onClick={redo} disabled={!canRedo}
+                  className="h-7 w-7 p-0 text-muted-foreground/40 hover:text-foreground disabled:opacity-20 rounded-md">
+                  <Redo2 className="w-3.5 h-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-[10px]">Redo (⌘Y)</TooltipContent>
+            </Tooltip>
+          </div>
 
-        {/* Snap toggle */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="sm" onClick={() => dispatch({ type: "TOGGLE_SNAP" })}
-              className={cn("h-7 w-7 p-0 transition-colors rounded-lg", state.snapEnabled ? "text-primary bg-primary/10" : "text-muted-foreground/30")}>
-              <Magnet className="w-3.5 h-3.5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="top" className="text-[10px]">
-            Snap to edges: {state.snapEnabled ? "ON" : "OFF"}
-          </TooltipContent>
-        </Tooltip>
+          {/* Snap */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="sm" onClick={() => dispatch({ type: "TOGGLE_SNAP" })}
+                className={cn("h-7 w-7 p-0 transition-colors rounded-lg", state.snapEnabled ? "text-primary bg-primary/10" : "text-muted-foreground/30 hover:text-foreground/60")}>
+                <Magnet className="w-3.5 h-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-[10px]">
+              Snap: {state.snapEnabled ? "ON" : "OFF"}
+            </TooltipContent>
+          </Tooltip>
 
-        {/* Duration display */}
-        <div
-          className="flex items-center gap-1.5 mx-2 shrink-0 px-2 py-1 rounded-md"
-          style={{ background: 'hsla(0,0%,100%,0.02)' }}
-        >
-          <Clock className="w-3 h-3 text-muted-foreground/30" />
-          <span className="text-[10px] text-muted-foreground/45 font-mono font-medium whitespace-nowrap tabular-nums">
-            {formatDuration(state.duration)}
-          </span>
+          {/* Duration pill */}
+          <div
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md"
+            style={{ background: 'hsla(0,0%,100%,0.03)', border: '1px solid hsla(0,0%,100%,0.04)' }}
+          >
+            <Clock className="w-3 h-3 text-muted-foreground/30" />
+            <span className="text-[10px] text-muted-foreground/50 font-mono font-medium whitespace-nowrap tabular-nums">
+              {formatDuration(state.duration)}
+            </span>
+          </div>
         </div>
 
-        {/* Spacer */}
-        <div className="flex-1 min-w-0" />
-
-        {/* Fit to view */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="sm" onClick={fitToView}
-              className="h-7 w-7 p-0 text-muted-foreground/40 hover:text-foreground rounded-lg">
-              <Maximize2 className="w-3.5 h-3.5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="top" className="text-[10px]">Fit to view</TooltipContent>
-        </Tooltip>
-
-        {/* Zoom controls — grouped */}
+        {/* ── Group 3: View controls ── */}
         <div
-          className="flex items-center gap-0.5 shrink-0 px-0.5 rounded-lg"
+          className="flex items-center gap-0.5 shrink-0 px-0.5 py-0.5 rounded-lg"
           style={{ background: 'hsla(0,0%,100%,0.02)', border: '1px solid hsla(0,0%,100%,0.04)' }}
         >
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="sm" onClick={fitToView}
+                className="h-7 w-7 p-0 text-muted-foreground/40 hover:text-foreground rounded-md">
+                <Maximize2 className="w-3.5 h-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-[10px]">Fit to view</TooltipContent>
+          </Tooltip>
+          <div className="w-px h-4 bg-white/[0.05]" />
           <Button variant="ghost" size="sm"
             onClick={() => dispatch({ type: "SET_ZOOM", zoom: state.zoom - 10 })}
             className="h-7 w-7 p-0 text-muted-foreground/40 hover:text-foreground rounded-md">
             <ZoomOut className="w-3.5 h-3.5" />
           </Button>
-          <span className="text-[9px] text-muted-foreground/45 font-mono w-8 text-center shrink-0 font-semibold tabular-nums">
+          <span className="text-[9px] text-muted-foreground/45 font-mono w-7 text-center shrink-0 font-semibold tabular-nums">
             {Math.round(state.zoom)}x
           </span>
           <Button variant="ghost" size="sm"

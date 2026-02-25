@@ -69,10 +69,10 @@ export const CreationModeCard = memo(forwardRef<HTMLButtonElement, CreationModeC
       ref={ref}
       onClick={onClick}
       className={cn(
-        "group relative flex flex-col items-start p-6 rounded-2xl border text-left transition-all duration-500 overflow-hidden animate-fade-in",
+        "group relative flex flex-col items-start p-7 rounded-2xl border text-left transition-all duration-500 overflow-hidden animate-fade-in",
         isSelected 
-          ? cn("bg-white/[0.06] border-white/25", theme.glow)
-          : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.12]"
+          ? cn("bg-white/[0.06] border-white/20", theme.glow)
+          : "bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04] hover:border-white/[0.12] hover:shadow-[0_4px_40px_rgba(0,0,0,0.3)]"
       )}
       style={{ animationDelay: `${delay * 80}ms`, animationFillMode: 'both' }}
     >

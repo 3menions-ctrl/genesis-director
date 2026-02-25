@@ -236,45 +236,43 @@ function CreateContentInner() {
       {/* Top Menu Bar */}
       <AppHeader />
       
-      {/* Tab Navigation */}
+      {/* Tab Navigation — Premium floating pill bar */}
       <div className="relative z-20 max-w-6xl mx-auto px-6 pt-6">
-        <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-white/[0.05] border border-white/[0.08]">
-          <button
-            onClick={() => setActiveTab('create')}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
-              activeTab === 'create'
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground hover:bg-white/[0.05]"
-            )}
-          >
-            <Film className="w-4 h-4" />
-            Create Video
-          </button>
-          <button
-            onClick={() => setActiveTab('scenes')}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
-              activeTab === 'scenes'
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground hover:bg-white/[0.05]"
-            )}
-          >
-            <Sparkles className="w-4 h-4" />
-            Scenes
-          </button>
-          <button
-            onClick={() => setActiveTab('photo')}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
-              activeTab === 'photo'
-                ? "bg-cyan-600 text-white shadow-sm"
-                : "text-muted-foreground hover:text-foreground hover:bg-white/[0.05]"
-            )}
-          >
-            <Image className="w-4 h-4" />
-            Photo Editor
-          </button>
+        <div className="relative inline-flex items-center gap-1 p-1.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.3)]">
+          {/* Animated top-edge accent line */}
+          <div className="absolute -top-px inset-x-4 h-px bg-gradient-to-r from-transparent via-violet-500/40 to-transparent" />
+          
+          {[
+            { key: 'create' as const, label: 'Create Video', icon: Film, accent: 'violet' },
+            { key: 'scenes' as const, label: 'Scenes', icon: Sparkles, accent: 'violet' },
+            { key: 'photo' as const, label: 'Photo Editor', icon: Image, accent: 'cyan' },
+          ].map((tab) => {
+            const isActive = activeTab === tab.key;
+            const TabIcon = tab.icon;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  "relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
+                  isActive
+                    ? tab.accent === 'cyan'
+                      ? "bg-cyan-500/20 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.15)]"
+                      : "bg-violet-500/20 text-violet-300 shadow-[0_0_20px_rgba(139,92,246,0.15)]"
+                    : "text-white/40 hover:text-white/70 hover:bg-white/[0.04]"
+                )}
+              >
+                {isActive && (
+                  <div className={cn(
+                    "absolute inset-x-3 -bottom-px h-px bg-gradient-to-r from-transparent to-transparent",
+                    tab.accent === 'cyan' ? 'via-cyan-400/60' : 'via-violet-400/60'
+                  )} />
+                )}
+                <TabIcon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
       </div>
       

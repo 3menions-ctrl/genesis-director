@@ -488,33 +488,48 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           </motion.div>
         )}
 
-        {/* Header - Cinematic studio */}
-        <div className="text-center mb-16 animate-fade-in">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.06] mb-6">
-            <Sparkles className="w-4 h-4 text-violet-400" />
-            <span className="text-sm text-white/50 font-medium tracking-wide">AI Video Studio</span>
-          </div>
+        {/* Header - Ultra-premium cinematic hero */}
+        <div className="relative text-center mb-16 animate-fade-in">
+          {/* Ambient hero glow */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-violet-500/[0.06] rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[200px] bg-fuchsia-500/[0.04] rounded-full blur-[100px] pointer-events-none" />
           
-          <h1 className="text-4xl md:text-6xl font-display font-bold text-white mb-5 tracking-tight">
-            What will you <span className="bg-gradient-to-r from-violet-400 via-purple-300 to-fuchsia-400 bg-clip-text text-transparent">create</span>?
-          </h1>
-          <p className="text-lg text-white/35 max-w-xl mx-auto leading-relaxed">
-            Choose your creation mode and bring your vision to life
-          </p>
-          
-          {/* Credits display */}
-          <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.06] animate-fade-in" style={{ animationDelay: '200ms', animationFillMode: 'both' }}>
-            <Zap className="w-4 h-4 text-amber-400" />
-            <span className="text-sm text-white/60 tabular-nums">{userCredits.toLocaleString()} credits available</span>
+          <div className="relative">
+            <div className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] mb-8 backdrop-blur-sm">
+              <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+              <span className="text-sm text-white/50 font-medium tracking-widest uppercase">AI Video Studio</span>
+            </div>
+            
+            <h1 className="text-5xl md:text-7xl font-display font-bold text-white mb-6 tracking-tight leading-[1.1]">
+              What will you{' '}
+              <span className="relative inline-block">
+                <span className="bg-gradient-to-r from-violet-400 via-purple-300 to-fuchsia-400 bg-clip-text text-transparent">create</span>
+                <span className="absolute -bottom-2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
+              </span>
+              ?
+            </h1>
+            <p className="text-lg text-white/30 max-w-lg mx-auto leading-relaxed font-light">
+              Choose your mode. Describe your vision. Let AI bring it to life.
+            </p>
+            
+            {/* Credits pill — premium golden accent */}
+            <div className="mt-8 inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-amber-500/[0.06] border border-amber-500/[0.12] animate-fade-in backdrop-blur-sm" style={{ animationDelay: '200ms', animationFillMode: 'both' }}>
+              <Zap className="w-4 h-4 text-amber-400" />
+              <span className="text-sm text-amber-200/80 font-medium tabular-nums">{userCredits.toLocaleString()} credits</span>
+            </div>
           </div>
         </div>
 
-        {/* Mode Selection Grid - Cinematic studio cards */}
-        <div className="mb-10 animate-fade-in" style={{ animationDelay: '200ms', animationFillMode: 'both' }}>
-          <p className="text-xs text-white/30 uppercase tracking-[0.2em] font-medium mb-4 flex items-center gap-2">
-            <Film className="w-3.5 h-3.5" />
-            Choose your creation mode
-          </p>
+        {/* Mode Selection Grid - Premium studio cards */}
+        <div className="mb-12 animate-fade-in" style={{ animationDelay: '200ms', animationFillMode: 'both' }}>
+          <div className="flex items-center gap-3 mb-5">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+            <p className="text-xs text-white/30 uppercase tracking-[0.2em] font-medium flex items-center gap-2">
+              <Film className="w-3.5 h-3.5" />
+              Creation Mode
+            </p>
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {CREATION_MODES.map((mode, index) => (
               <CreationModeCard
@@ -581,16 +596,20 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           </div>
         </div>
 
-        {/* Configuration Panel - Premium glass */}
+        {/* Configuration Panel - Ultra-premium glass */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           layout
-          className="relative p-8 md:p-10 rounded-3xl bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] overflow-hidden"
+          className="relative p-8 md:p-10 rounded-3xl bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] overflow-hidden shadow-[0_8px_60px_rgba(0,0,0,0.4)]"
         >
-          {/* Subtle inner glow */}
-          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+          {/* Refined inner glow — top edge accent */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/[0.03] via-transparent to-transparent pointer-events-none rounded-3xl" />
+          <div className="absolute top-0 inset-x-8 h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent pointer-events-none" />
+          {/* Corner glow accents */}
+          <div className="absolute -top-20 -right-20 w-40 h-40 bg-violet-500/[0.04] rounded-full blur-[80px] pointer-events-none" />
+          <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-fuchsia-500/[0.03] rounded-full blur-[80px] pointer-events-none" />
           
           <AnimatePresence mode="wait">
             <motion.div
@@ -1096,22 +1115,24 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                   </div>
                 )}
                 
-                {/* Create Button */}
+                {/* Create Button — Premium gradient CTA */}
                 <Button
                   size="lg"
                   onClick={handleCreate}
                   disabled={!isReadyToCreate()}
                   className={cn(
-                    "w-full h-14 text-base font-semibold rounded-2xl transition-all duration-300 group",
+                    "relative w-full h-16 text-base font-bold rounded-2xl transition-all duration-500 group overflow-hidden",
                     hasInsufficientCredits
-                      ? "bg-amber-500 text-black hover:bg-amber-400"
-                      : "bg-white text-black hover:bg-white/90",
-                    "shadow-[0_0_40px_rgba(255,255,255,0.1)]",
-                    "hover:shadow-[0_0_60px_rgba(255,255,255,0.15)]",
-                    "disabled:opacity-40 disabled:shadow-none"
+                      ? "bg-gradient-to-r from-amber-500 to-orange-500 text-black hover:from-amber-400 hover:to-orange-400"
+                      : "bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 text-white hover:from-violet-400 hover:via-purple-400 hover:to-fuchsia-400",
+                    "shadow-[0_0_40px_rgba(139,92,246,0.2)]",
+                    "hover:shadow-[0_0_60px_rgba(139,92,246,0.3)] hover:scale-[1.01]",
+                    "disabled:opacity-30 disabled:shadow-none disabled:scale-100"
                   )}
                 >
-                  <span className="flex items-center gap-3">
+                  {/* Shimmer overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.15] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+                  <span className="relative flex items-center justify-center gap-3">
                     {hasInsufficientCredits ? (
                       <>
                         <Coins className="w-5 h-5" />
@@ -1132,25 +1153,29 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           </AnimatePresence>
         </motion.div>
 
-        {/* Inspiration prompts - Subtle */}
+        {/* Inspiration prompts - Premium floating pills */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="mt-10"
+          className="mt-12 mb-8"
         >
-          <h3 className="text-sm font-medium text-white/30 mb-4 flex items-center gap-2">
-            <Layers className="w-4 h-4" />
-            Need inspiration? Try these prompts
-          </h3>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+            <h3 className="text-xs font-medium text-white/25 uppercase tracking-[0.15em] flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5" />
+              Inspiration
+            </h3>
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+          </div>
+          <div className="flex flex-wrap justify-center gap-2">
             {getExamplePrompts(selectedMode).map((example, i) => (
               <button
                 key={i}
                 onClick={() => setPrompt(example)}
-                className="px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs text-white/50 hover:bg-white/[0.06] hover:text-white/70 hover:border-white/15 transition-all"
+                className="group px-4 py-2.5 rounded-full bg-white/[0.03] border border-white/[0.06] text-xs text-white/40 hover:bg-violet-500/[0.08] hover:text-violet-300/80 hover:border-violet-500/20 transition-all duration-300"
               >
-                {example.slice(0, 50)}...
+                <span className="line-clamp-1">{example.slice(0, 55)}...</span>
               </button>
             ))}
           </div>

@@ -1062,11 +1062,18 @@ function ProjectsContentInner() {
               <div className="absolute -top-20 left-1/4 w-[500px] h-[250px] bg-accent/[0.02] rounded-full blur-[150px]" />
             </div>
 
-            {/* ===== PURE GALLERY ===== */}
-            <div className="pt-4 sm:pt-8 animate-fade-in">
+            {/* ===== Gallery Mode Switcher ===== */}
+            <ProjectsCategoryTabs
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              counts={tabCounts}
+            />
 
-              {/* Training Videos */}
-              {trainingVideos.length > 0 && (
+            {/* ===== PURE GALLERY ===== */}
+            <div className="animate-fade-in">
+
+              {/* Training Videos — shown in videos mode */}
+              {activeTab !== 'photos' && trainingVideos.length > 0 && (
                 <section className="mb-10">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                     {trainingVideos.map((video, index) => (
@@ -1108,8 +1115,8 @@ function ProjectsContentInner() {
                 </section>
               )}
 
-              {/* Photo Edits */}
-              {photoEdits.length > 0 && (
+              {/* Photo Edits — shown in images mode */}
+              {activeTab === 'photos' && photoEdits.length > 0 && (
                 <section className="mb-10">
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                     {photoEdits.map((edit, index) => (
@@ -1176,8 +1183,8 @@ function ProjectsContentInner() {
                 </section>
               )}
 
-              {/* Films — Magazine Gallery */}
-              {filteredProjects.length > 0 && (
+              {/* Films — Magazine Gallery — shown in videos mode */}
+              {activeTab !== 'photos' && filteredProjects.length > 0 && (
                 <>
                   <MagazineGrid
                     projects={filteredProjects}

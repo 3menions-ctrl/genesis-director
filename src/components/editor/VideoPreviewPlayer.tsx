@@ -302,28 +302,78 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
 
   return (
     <div className={cn("flex flex-col overflow-hidden", className)} style={{ background: 'hsl(240 28% 3%)' }}>
-      {/* Video area */}
+      {/* Video area with glow frame */}
       <div className="flex-1 min-h-0 flex items-center justify-center relative" style={{ background: 'hsl(0 0% 3%)' }}>
+        {/* Animated glow border */}
+        {hasClips && (
+          <motion.div
+            className="absolute inset-2 rounded-xl pointer-events-none"
+            style={{
+              border: '1px solid transparent',
+              backgroundClip: 'padding-box',
+              zIndex: 25,
+            }}
+            animate={{
+              boxShadow: [
+                'inset 0 0 30px hsla(263, 70%, 58%, 0.03), 0 0 15px hsla(263, 70%, 58%, 0.02)',
+                'inset 0 0 40px hsla(263, 70%, 58%, 0.06), 0 0 25px hsla(263, 70%, 58%, 0.04)',
+                'inset 0 0 30px hsla(263, 70%, 58%, 0.03), 0 0 15px hsla(263, 70%, 58%, 0.02)',
+              ],
+            }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          />
+        )}
         {!hasClips ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="flex flex-col items-center gap-5 text-muted-foreground/20 select-none"
           >
-            <div
-              className="w-24 h-24 rounded-3xl flex items-center justify-center relative"
-              style={{
-                background: 'linear-gradient(135deg, hsla(0, 0%, 100%, 0.06), hsla(0, 0%, 100%, 0.02))',
-                border: '1px solid hsla(0, 0%, 100%, 0.08)',
-                boxShadow: '0 8px 32px hsla(0, 0%, 0%, 0.2)',
-              }}
-            >
-              <MonitorPlay className="w-10 h-10 text-muted-foreground/25" />
-              <Sparkles className="w-4 h-4 text-muted-foreground/20 absolute -top-1.5 -right-1.5" />
+            {/* Animated film reel icon */}
+            <div className="relative">
+              <motion.div
+                animate={{ 
+                  boxShadow: [
+                    '0 0 20px hsla(263, 70%, 58%, 0)',
+                    '0 0 40px hsla(263, 70%, 58%, 0.15)',
+                    '0 0 20px hsla(263, 70%, 58%, 0)',
+                  ]
+                }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                className="w-28 h-28 rounded-3xl flex items-center justify-center relative"
+                style={{
+                  background: 'linear-gradient(135deg, hsla(263, 70%, 58%, 0.08), hsla(0, 0%, 100%, 0.02))',
+                  border: '1px solid hsla(263, 70%, 58%, 0.12)',
+                }}
+              >
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                >
+                  <MonitorPlay className="w-11 h-11 text-primary/30" />
+                </motion.div>
+
+                {/* Orbiting sparkle */}
+                <motion.div
+                  animate={{ rotate: -360 }}
+                  transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+                  className="absolute inset-0"
+                >
+                  <Sparkles className="w-4 h-4 text-primary/40 absolute -top-2 left-1/2 -translate-x-1/2" />
+                </motion.div>
+              </motion.div>
+
+              {/* Pulsing ring */}
+              <motion.div
+                animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0, 0.3] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute inset-0 rounded-3xl"
+                style={{ border: '1px solid hsla(263, 70%, 58%, 0.2)' }}
+              />
             </div>
             <div className="text-center space-y-2">
-              <p className="text-[14px] font-semibold text-muted-foreground/35">Preview</p>
-              <p className="text-[11px] text-muted-foreground/20 max-w-[200px] leading-relaxed">
+              <p className="text-[14px] font-semibold text-muted-foreground/40">Preview</p>
+              <p className="text-[11px] text-muted-foreground/20 max-w-[220px] leading-relaxed">
                 Add clips to the timeline to start previewing your edit
               </p>
             </div>

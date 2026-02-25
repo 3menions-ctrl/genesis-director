@@ -230,51 +230,109 @@ function ClipBlock({
   if (left + width < 0 || left > 3000) return null;
 
   const opacity = clip.opacity ?? 1;
+  const hasThumb = !!clip.thumbnail;
+  // Calculate how many filmstrip frames to show based on clip width
+  const frameWidth = 40;
+  const frameCount = hasThumb ? Math.max(1, Math.floor(width / frameWidth)) : 0;
 
   return (
     <div
       className={cn(
-        "absolute top-2 bottom-2 rounded-lg cursor-pointer group transition-all duration-150",
-        selected && "ring-1 ring-primary/70"
+        "absolute top-1.5 bottom-1.5 rounded-lg cursor-pointer group transition-all duration-150 overflow-hidden",
+        selected && "ring-1 ring-primary/80 ring-offset-1 ring-offset-transparent"
       )}
       style={{
         left: Math.max(0, left),
         width,
-        background: CLIP_COLORS[clip.type] || CLIP_COLORS.video,
+        background: hasThumb ? 'hsla(0, 0%, 0%, 0.3)' : (CLIP_COLORS[clip.type] || CLIP_COLORS.video),
         border: `1px solid ${selected ? 'hsl(var(--primary))' : (CLIP_BORDER_COLORS[clip.type] || CLIP_BORDER_COLORS.video)}`,
         opacity,
-        boxShadow: selected ? `0 0 20px hsla(0, 0%, 100%, 0.1)` : 'none',
+        boxShadow: selected
+          ? `0 0 20px hsla(263, 70%, 58%, 0.15), inset 0 0 20px hsla(263, 70%, 58%, 0.05)`
+          : '0 2px 8px hsla(0, 0%, 0%, 0.3)',
       }}
       onClick={(e) => { e.stopPropagation(); onSelect(); }}
       onMouseDown={(e) => { if (e.button === 0) onDragStart(e, clip.id, trackId); }}
       onContextMenu={(e) => { e.preventDefault(); onContextMenu(e, clip.id, trackId); }}
     >
-      {/* Type accent bar at top */}
+      {/* Filmstrip thumbnail background */}
+      {hasThumb && frameCount > 0 && (
+        <div className="absolute inset-0 flex" style={{ opacity: 0.6 }}>
+          {Array.from({ length: frameCount }).map((_, i) => (
+            <img
+              key={i}
+              src={clip.thumbnail!}
+              alt=""
+              className="h-full object-cover shrink-0"
+              style={{
+                width: `${100 / frameCount}%`,
+                filter: 'brightness(0.7) contrast(1.1)',
+              }}
+              loading="lazy"
+              draggable={false}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Top accent bar with gradient */}
       <div
-        className="absolute top-0 left-0 right-0 h-[2px] rounded-t-lg"
-        style={{ background: clip.colorLabel || (CLIP_ACCENT_COLORS[clip.type] || CLIP_ACCENT_COLORS.video) }}
+        className="absolute top-0 left-0 right-0 h-[2px] z-10"
+        style={{
+          background: clip.colorLabel
+            ? clip.colorLabel
+            : `linear-gradient(90deg, ${CLIP_ACCENT_COLORS[clip.type] || CLIP_ACCENT_COLORS.video}, transparent)`,
+        }}
       />
-      
-      <div
-        className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity rounded-l-lg"
-        style={{ background: 'hsla(0, 0%, 100%, 0.4)' }}
-        onMouseDown={(e) => { e.stopPropagation(); onTrimStart(clip.id, trackId); }}
-      />
-      <div className="px-2.5 h-full flex items-center gap-1.5 overflow-hidden pointer-events-none">
-        {clip.thumbnail && width > 60 && (
-          <img src={clip.thumbnail} alt="" className="w-8 h-8 rounded-md object-cover shrink-0 border border-white/[0.08]" />
+
+      {/* Content overlay */}
+      <div className="relative z-10 px-2.5 h-full flex items-center gap-1.5 overflow-hidden pointer-events-none">
+        {/* Type icon for clips without thumbnails */}
+        {!hasThumb && (
+          <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ background: 'hsla(0, 0%, 100%, 0.08)' }}>
+            {clip.type === "video" ? <Film className="w-3 h-3 text-foreground/50" /> :
+             clip.type === "text" ? <Type className="w-3 h-3 text-foreground/50" /> :
+             clip.type === "audio" ? <Music className="w-3 h-3 text-foreground/50" /> :
+             <Film className="w-3 h-3 text-foreground/50" />}
+          </div>
         )}
-        <span className="text-[10px] text-foreground/80 font-semibold truncate">{clip.name}</span>
+        <span
+          className={cn(
+            "text-[10px] font-bold truncate",
+            hasThumb ? "text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]" : "text-foreground/80"
+          )}
+        >
+          {clip.name}
+        </span>
         {width > 80 && (
-          <span className="text-[8px] text-foreground/35 font-mono ml-auto shrink-0 tabular-nums">
+          <span
+            className={cn(
+              "text-[8px] font-mono ml-auto shrink-0 tabular-nums px-1.5 py-0.5 rounded-md",
+              hasThumb
+                ? "text-white/80 bg-black/50 backdrop-blur-sm drop-shadow-sm"
+                : "text-foreground/35"
+            )}
+          >
             {(clip.end - clip.start).toFixed(1)}s
           </span>
         )}
       </div>
+
+      {/* Trim handles */}
       <div
-        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity rounded-r-lg"
-        style={{ background: 'hsla(0, 0%, 100%, 0.4)' }}
+        className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity rounded-l-lg z-20"
+        style={{ background: 'hsla(0, 0%, 100%, 0.5)' }}
+        onMouseDown={(e) => { e.stopPropagation(); onTrimStart(clip.id, trackId); }}
+      />
+      <div
+        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity rounded-r-lg z-20"
+        style={{ background: 'hsla(0, 0%, 100%, 0.5)' }}
         onMouseDown={(e) => { e.stopPropagation(); onTrimEnd(clip.id, trackId); }}
+      />
+
+      {/* Hover glow */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-lg"
+        style={{ background: 'linear-gradient(180deg, hsla(263, 70%, 58%, 0.05) 0%, transparent 50%)' }}
       />
     </div>
   );

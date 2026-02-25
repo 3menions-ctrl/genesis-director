@@ -304,11 +304,18 @@ export function EditorChrome({
     }
 
     const projectData = getProjectJSON();
-    const clips: { url: string; duration: number }[] = [];
+    const clips: { url: string; duration: number; volume?: number; speed?: number; fadeIn?: number; fadeOut?: number }[] = [];
     for (const track of projectData.tracks || []) {
       for (const el of track.elements || []) {
         if (el.type === "video" && el.props?.src) {
-          clips.push({ url: el.props.src, duration: (el.e - el.s) || 6 });
+          clips.push({
+            url: el.props.src,
+            duration: (el.e - el.s) || 6,
+            volume: el.props.volume,
+            speed: el.props.speed,
+            fadeIn: el.props.fadeIn,
+            fadeOut: el.props.fadeOut,
+          });
         }
       }
     }
@@ -424,6 +431,25 @@ export function EditorChrome({
       }
       if (e.key === "l" && !mod && (e.target as HTMLElement)?.tagName !== "INPUT" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
         dispatch({ type: "SET_LOOP", looping: !timelineState.isLooping });
+      }
+      // Split at playhead with 'S' key
+      if (e.key === "s" && !mod && (e.target as HTMLElement)?.tagName !== "INPUT" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
+        if (timelineState.selectedClipId && timelineState.selectedTrackId) {
+          const track = timelineState.tracks.find(t => t.id === timelineState.selectedTrackId);
+          const clip = track?.clips.find(c => c.id === timelineState.selectedClipId);
+          if (clip && timelineState.playheadTime > clip.start && timelineState.playheadTime < clip.end) {
+            dispatch({ type: "TRIM_CLIP", trackId: timelineState.selectedTrackId, clipId: clip.id, edge: "end", newTime: timelineState.playheadTime });
+            const offsetIntoSource = timelineState.playheadTime - clip.start;
+            dispatch({
+              type: "ADD_CLIP",
+              trackId: timelineState.selectedTrackId,
+              clip: {
+                ...clip, id: generateClipId(), start: timelineState.playheadTime, end: clip.end,
+                trimStart: clip.trimStart + offsetIntoSource, name: `${clip.name} (split)`,
+              },
+            });
+          }
+        }
       }
     };
     window.addEventListener("keydown", handler);
@@ -951,6 +977,7 @@ export function EditorChrome({
                     { keys: "Home", label: "Go to start" },
                     { keys: "End", label: "Go to end" },
                     { keys: "D", label: "Duplicate selected clip" },
+                    { keys: "S", label: "Split at playhead" },
                     { keys: "L", label: "Toggle loop" },
                     { keys: "?", label: "Toggle shortcuts" },
                   ].map((shortcut) => (

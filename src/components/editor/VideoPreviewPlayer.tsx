@@ -195,13 +195,13 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
             <div
               className="w-24 h-24 rounded-3xl flex items-center justify-center relative"
               style={{
-                background: 'linear-gradient(135deg, hsla(263, 70%, 58%, 0.08), hsla(263, 70%, 58%, 0.02))',
-                border: '1px solid hsla(263, 70%, 58%, 0.1)',
-                boxShadow: '0 8px 32px hsla(263, 70%, 58%, 0.06)',
+                background: 'linear-gradient(135deg, hsla(0, 0%, 100%, 0.06), hsla(0, 0%, 100%, 0.02))',
+                border: '1px solid hsla(0, 0%, 100%, 0.08)',
+                boxShadow: '0 8px 32px hsla(0, 0%, 0%, 0.2)',
               }}
             >
-              <MonitorPlay className="w-10 h-10 text-primary/25" />
-              <Sparkles className="w-4 h-4 text-primary/20 absolute -top-1.5 -right-1.5" />
+              <MonitorPlay className="w-10 h-10 text-muted-foreground/25" />
+              <Sparkles className="w-4 h-4 text-muted-foreground/20 absolute -top-1.5 -right-1.5" />
             </div>
             <div className="text-center space-y-2">
               <p className="text-[14px] font-semibold text-muted-foreground/35">Preview</p>
@@ -238,7 +238,7 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
         className="shrink-0"
         style={{
           background: 'linear-gradient(180deg, hsl(240 18% 7%) 0%, hsl(240 22% 5%) 100%)',
-          borderTop: '1px solid hsla(263, 70%, 58%, 0.06)',
+          borderTop: '1px solid hsla(0, 0%, 100%, 0.06)',
         }}
       >
         {/* Seek slider */}
@@ -270,13 +270,13 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
               className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 mx-1"
               style={{
                 background: state.isPlaying
-                  ? 'hsla(263, 70%, 58%, 0.15)'
-                  : 'linear-gradient(135deg, hsl(var(--primary)), hsl(270 70% 55%))',
+                  ? 'hsla(0, 0%, 100%, 0.12)'
+                  : 'hsla(0, 0%, 100%, 0.9)',
                 border: state.isPlaying
-                  ? '1px solid hsla(263, 70%, 58%, 0.25)'
-                  : '1px solid hsla(263, 70%, 58%, 0.3)',
-                color: state.isPlaying ? 'hsl(var(--primary))' : 'white',
-                boxShadow: state.isPlaying ? 'none' : '0 4px 16px hsla(263, 70%, 58%, 0.3)',
+                  ? '1px solid hsla(0, 0%, 100%, 0.2)'
+                  : '1px solid hsla(0, 0%, 100%, 0.3)',
+                color: state.isPlaying ? 'hsla(0, 0%, 100%, 0.9)' : 'hsla(0, 0%, 0%, 0.9)',
+                boxShadow: state.isPlaying ? 'none' : '0 4px 16px hsla(0, 0%, 100%, 0.15)',
               }}
             >
               {state.isPlaying ? <Pause className="w-4.5 h-4.5" /> : <Play className="w-4.5 h-4.5 ml-0.5" />}
@@ -330,7 +330,7 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
                   className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 rounded-xl p-2.5 shadow-2xl w-9 h-28"
                   style={{
                     background: 'hsl(240 20% 8%)',
-                    border: '1px solid hsla(263, 70%, 58%, 0.12)',
+                    border: '1px solid hsla(0, 0%, 100%, 0.1)',
                   }}
                 >
                   <Slider
@@ -376,7 +376,7 @@ function TransportButton({
           className={cn(
             "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-150",
             active
-              ? "text-primary bg-primary/10"
+              ? "text-foreground bg-foreground/10"
               : "text-muted-foreground/50 hover:text-foreground/80 hover:bg-white/[0.06]"
           )}
         >

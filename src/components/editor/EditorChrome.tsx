@@ -566,10 +566,10 @@ export function EditorChrome({
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="h-screen w-screen flex flex-col bg-background overflow-hidden relative">
+      <div className="h-screen w-screen flex flex-col overflow-hidden relative" style={{ background: 'hsl(240 25% 4%)' }}>
         {/* Apex accent line — top */}
         <div className="absolute top-0 left-0 right-0 h-px z-20">
-          <div className="h-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+          <div className="h-full bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
           {isRendering && (
             <motion.div
               className="absolute inset-0 h-px bg-gradient-to-r from-primary via-violet-400 to-primary"
@@ -579,26 +579,27 @@ export function EditorChrome({
           )}
         </div>
 
-        {/* ═══════════════ TOP BAR ═══════════════ */}
+        {/* ═══════════════ TOP BAR — Refined glassmorphic header ═══════════════ */}
         <motion.div
-          initial={{ opacity: 0, y: -8 }}
+          initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="h-14 flex items-center justify-between px-4 border-b border-border/20 shrink-0 z-10 relative"
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="h-12 flex items-center justify-between px-3 shrink-0 z-10 relative"
           style={{
-            background: 'linear-gradient(180deg, hsla(240, 25%, 6%, 0.98) 0%, hsla(240, 25%, 4%, 0.95) 100%)',
-            backdropFilter: 'blur(24px) saturate(1.5)',
+            background: 'linear-gradient(180deg, hsla(240, 20%, 8%, 0.95) 0%, hsla(240, 25%, 5%, 0.9) 100%)',
+            backdropFilter: 'blur(24px) saturate(1.4)',
+            borderBottom: '1px solid hsla(263, 70%, 58%, 0.06)',
           }}
         >
           {/* Left — Nav + Import */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate("/projects")}
-                  className="text-muted-foreground/50 hover:text-foreground gap-1.5 hover:bg-muted/50"
+                  className="w-8 h-8 p-0 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-white/[0.04]"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </Button>
@@ -606,19 +607,19 @@ export function EditorChrome({
               <TooltipContent side="bottom">Back to Projects</TooltipContent>
             </Tooltip>
 
-            <div className="w-px h-5 bg-border/20 mx-1" />
+            <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
 
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
                   onClick={openBrowser}
-                  className="gap-2 border-border/30 hover:border-primary/30 hover:bg-primary/5"
+                  className="h-8 gap-2 px-3 rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.04] border border-transparent hover:border-white/[0.06]"
                 >
-                  <FolderOpen className="w-4 h-4" />
-                  <span>{!autoLoadDone ? "Syncing…" : "Import"}</span>
-                  {!autoLoadDone && <Loader2 className="w-3.5 h-3.5 animate-spin text-primary/60" />}
+                  <FolderOpen className="w-3.5 h-3.5" />
+                  <span className="text-[11px] font-medium">{!autoLoadDone ? "Syncing…" : "Import"}</span>
+                  {!autoLoadDone && <Loader2 className="w-3 h-3 animate-spin text-primary/50" />}
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">Import clips from your projects</TooltipContent>
@@ -627,65 +628,65 @@ export function EditorChrome({
             <AnimatePresence>
               {autoLoadDone && mediaCounts.videos > 0 && (
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
+                  initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/10 border border-success/20"
+                  className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium"
+                  style={{ background: 'hsla(142, 60%, 50%, 0.08)', color: 'hsla(142, 60%, 60%, 0.8)', border: '1px solid hsla(142, 60%, 50%, 0.12)' }}
                 >
-                  <Check className="w-3.5 h-3.5 text-success" />
-                  <span className="text-xs font-medium text-success/80">
-                    {mediaCounts.videos} clips
-                  </span>
+                  <Check className="w-3 h-3" />
+                  {mediaCounts.videos} clips
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
           {/* Center — Branding with inline rename */}
-          <div className="flex-1 min-w-0 flex items-center justify-center">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <Logo size="sm" />
-              <div className="flex flex-col items-start min-w-0">
-                <span className="text-xs font-bold tracking-tight font-display bg-gradient-to-r from-primary via-violet-400 to-primary bg-clip-text text-transparent leading-tight whitespace-nowrap">
-                  APEX STUDIO
-                </span>
-                <div className="flex items-center gap-1.5 min-w-0">
-                  {isRenamingSession ? (
-                    <input
-                      autoFocus
-                      value={renameValue}
-                      onChange={(e) => setRenameValue(e.target.value)}
-                      onBlur={finishRename}
-                      onKeyDown={(e) => { if (e.key === "Enter") finishRename(); if (e.key === "Escape") setIsRenamingSession(false); }}
-                      className="text-xs text-foreground/70 bg-muted/20 border border-primary/30 rounded px-1.5 py-0.5 max-w-[160px] outline-none focus:border-primary"
-                    />
-                  ) : (
-                    <button onClick={startRename} className="flex items-center gap-1 group text-left">
-                      <span className="text-xs text-muted-foreground/50 max-w-[160px] truncate leading-tight group-hover:text-foreground/70 transition-colors">
-                        {sessionTitle}
-                      </span>
-                      <Edit3 className="w-2.5 h-2.5 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                    </button>
-                  )}
-                  {hasUnsavedChanges && (
-                    <motion.span
-                      animate={{ opacity: [0.4, 1, 0.4] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="w-1.5 h-1.5 rounded-full bg-warning shrink-0"
-                      title="Unsaved changes"
-                    />
-                  )}
-                </div>
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2.5 min-w-0">
+            <Logo size="sm" />
+            <div className="flex flex-col items-start min-w-0">
+              <span
+                className="text-[10px] font-black tracking-[0.15em] uppercase leading-tight bg-clip-text text-transparent"
+                style={{ backgroundImage: 'linear-gradient(135deg, hsl(var(--primary)), hsl(270 70% 65%))' }}
+              >
+                APEX STUDIO
+              </span>
+              <div className="flex items-center gap-1.5 min-w-0">
+                {isRenamingSession ? (
+                  <input
+                    autoFocus
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    onBlur={finishRename}
+                    onKeyDown={(e) => { if (e.key === "Enter") finishRename(); if (e.key === "Escape") setIsRenamingSession(false); }}
+                    className="text-[11px] text-foreground/70 bg-white/[0.04] border border-primary/30 rounded-md px-1.5 py-0.5 max-w-[160px] outline-none focus:border-primary"
+                  />
+                ) : (
+                  <button onClick={startRename} className="flex items-center gap-1 group text-left">
+                    <span className="text-[11px] text-muted-foreground/45 max-w-[160px] truncate leading-tight group-hover:text-foreground/60 transition-colors">
+                      {sessionTitle}
+                    </span>
+                    <Edit3 className="w-2.5 h-2.5 text-muted-foreground/20 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                  </button>
+                )}
+                {hasUnsavedChanges && (
+                  <motion.span
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"
+                    title="Unsaved changes"
+                  />
+                )}
               </div>
             </div>
           </div>
 
           {/* Right — Actions */}
-          <div className="flex items-center gap-1 shrink-0 overflow-hidden">
+          <div className="flex items-center gap-1 shrink-0">
             {/* Aspect Ratio */}
             <select
               value={timelineState.aspectRatio}
               onChange={(e) => dispatch({ type: "SET_ASPECT_RATIO", ratio: e.target.value as any })}
-              className="h-7 text-[10px] bg-muted/10 border border-border/20 rounded px-1.5 text-muted-foreground/60 cursor-pointer"
+              className="h-7 text-[10px] bg-white/[0.03] border border-white/[0.06] rounded-lg px-2 text-muted-foreground/50 cursor-pointer hover:border-white/[0.1] transition-colors outline-none"
             >
               <option value="16:9">16:9</option>
               <option value="9:16">9:16</option>
@@ -693,16 +694,15 @@ export function EditorChrome({
               <option value="4:3">4:3</option>
             </select>
 
-            {/* Clear Timeline */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleClearTimeline}
-                  className="w-9 h-9 p-0 text-muted-foreground/40 hover:text-destructive"
+                  className="w-8 h-8 p-0 rounded-lg text-muted-foreground/30 hover:text-destructive hover:bg-destructive/5"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">Clear timeline</TooltipContent>
@@ -714,16 +714,17 @@ export function EditorChrome({
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowShortcuts(prev => !prev)}
-                  className="w-9 h-9 p-0 text-muted-foreground/40 hover:text-foreground"
+                  className="w-8 h-8 p-0 rounded-lg text-muted-foreground/30 hover:text-foreground hover:bg-white/[0.04]"
                 >
-                  <Keyboard className="w-4 h-4" />
+                  <Keyboard className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">Keyboard shortcuts (?)</TooltipContent>
             </Tooltip>
 
-            <div className="w-px h-5 bg-border/20 mx-0.5" />
+            <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
 
+            {/* Save */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -731,15 +732,16 @@ export function EditorChrome({
                   size="sm"
                   onClick={() => saveProject(sessionTitle)}
                   disabled={saving}
-                  className="gap-1.5 text-muted-foreground hover:text-foreground"
+                  className="h-8 gap-1.5 px-3 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.04]"
                 >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  <span className="hidden sm:inline">Save</span>
+                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  <span className="text-[11px] font-medium hidden sm:inline">Save</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">Save project (⌘S)</TooltipContent>
             </Tooltip>
 
+            {/* Stitch */}
             <Tooltip>
               <TooltipTrigger asChild>
                 {isStitching ? (
@@ -747,20 +749,21 @@ export function EditorChrome({
                     size="sm"
                     variant="outline"
                     onClick={() => resetStitch()}
-                    className="font-semibold gap-1.5 border-primary/30 text-primary bg-primary/5"
+                    className="h-8 font-semibold gap-1.5 rounded-lg text-[11px]"
+                    style={{ borderColor: 'hsla(263, 70%, 58%, 0.2)', background: 'hsla(263, 70%, 58%, 0.06)', color: 'hsl(var(--primary))' }}
                   >
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     <span>Stitching {Math.round(stitchProgress)}%</span>
                   </Button>
                 ) : (
                   <Button
                     size="sm"
-                    variant="outline"
+                    variant="ghost"
                     onClick={handleStitch}
                     disabled={isRendering}
-                    className="gap-1.5 border-border/30 hover:border-primary/30 hover:bg-primary/5 text-muted-foreground hover:text-foreground"
+                    className="h-8 gap-1.5 px-3 rounded-lg text-[11px] text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.04] border border-transparent hover:border-white/[0.06]"
                   >
-                    <Film className="w-4 h-4" />
+                    <Film className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Stitch</span>
                   </Button>
                 )}
@@ -768,33 +771,35 @@ export function EditorChrome({
               <TooltipContent side="bottom">Server-side stitch with crossfade</TooltipContent>
             </Tooltip>
 
+            {/* OpenReel */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   size="sm"
-                  variant="outline"
+                  variant="ghost"
                   onClick={handleOpenInOpenReel}
                   disabled={isRendering || isStitching}
-                  className="gap-1.5 border-border/30 hover:border-primary/30 hover:bg-primary/5 text-muted-foreground hover:text-foreground"
+                  className="h-8 gap-1.5 px-3 rounded-lg text-[11px] text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.04] border border-transparent hover:border-white/[0.06]"
                 >
-                  <ExternalLink className="w-4 h-4" />
+                  <ExternalLink className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">OpenReel</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-[220px] text-center">
-                Open your clips in OpenReel Video — a professional open-source browser editor with full export support
+                Open your clips in OpenReel Video — a professional open-source browser editor
               </TooltipContent>
             </Tooltip>
 
+            {/* Export — hero CTA */}
             {isRendering ? (
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => renderer?.reset()}
-                className="font-semibold gap-1.5 border-destructive/30 text-destructive bg-destructive/5"
+                className="h-8 font-semibold gap-1.5 rounded-lg text-[11px] border-destructive/30 text-destructive bg-destructive/5"
               >
-                <X className="w-4 h-4" />
-                <span>Cancel {Math.round(renderProgress * 100)}%</span>
+                <X className="w-3.5 h-3.5" />
+                Cancel {Math.round(renderProgress * 100)}%
               </Button>
             ) : (
               <Tooltip>
@@ -803,15 +808,16 @@ export function EditorChrome({
                     size="sm"
                     onClick={exportVideo}
                     disabled={isStitching || isDownloading}
-                    className="px-5 font-semibold gap-2 relative overflow-hidden group border-0 shadow-lg shadow-primary/20"
+                    className="h-8 px-4 font-semibold gap-2 rounded-lg text-[11px] relative overflow-hidden group border-0"
                     style={{
-                      background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(270 80% 60%))',
+                      background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(270 70% 55%))',
                       color: 'white',
+                      boxShadow: '0 2px 16px hsla(263, 70%, 58%, 0.3)',
                     }}
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                    {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                    <span>{isDownloading ? "Downloading…" : "Export MP4"}</span>
+                    {isDownloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                    <span>{isDownloading ? "Exporting…" : "Export"}</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">Export video (⌘E)</TooltipContent>
@@ -819,7 +825,6 @@ export function EditorChrome({
             )}
           </div>
         </motion.div>
-
         {/* Render progress bar */}
         <AnimatePresence>
           {isRendering && (
@@ -860,63 +865,60 @@ export function EditorChrome({
           <ClipPropertiesPanel />
         </div>
 
-        {/* ═══════════════ STATUS BAR ═══════════════ */}
-        <motion.div
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-          className="h-7 flex items-center px-4 border-t border-border/15 shrink-0 z-10 select-none overflow-hidden gap-2"
-          style={{ background: 'hsla(240, 25%, 5%, 0.95)' }}
+        {/* ═══════════════ STATUS BAR — Refined minimal ═══════════════ */}
+        <div
+          className="h-6 flex items-center px-4 shrink-0 z-10 select-none overflow-hidden gap-3"
+          style={{
+            background: 'hsl(240 25% 4%)',
+            borderTop: '1px solid hsla(263, 70%, 58%, 0.04)',
+          }}
         >
           {/* Left stats */}
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground/40 shrink-0 whitespace-nowrap">
+          <div className="flex items-center gap-2.5 text-[9px] text-muted-foreground/30 shrink-0 whitespace-nowrap">
             <span className="flex items-center gap-1">
-              <Layers className="w-3 h-3 shrink-0" />
+              <Layers className="w-2.5 h-2.5 shrink-0" />
               {trackCount} track{trackCount !== 1 ? "s" : ""}
             </span>
-            <span className="text-border/20">·</span>
+            <span className="w-px h-2.5 bg-white/[0.04]" />
             <span className="flex items-center gap-1">
-              <Sparkles className="w-3 h-3 shrink-0" />
+              <Sparkles className="w-2.5 h-2.5 shrink-0" />
               {elementCount} clip{elementCount !== 1 ? "s" : ""}
             </span>
             {mediaCounts.videos > 0 && (
               <>
-                <span className="text-border/20">·</span>
+                <span className="w-px h-2.5 bg-white/[0.04]" />
                 <span>{mediaCounts.videos} in library</span>
               </>
             )}
           </div>
 
-          {/* Center status */}
-          <div className="flex-1 min-w-0 flex items-center justify-center overflow-hidden">
-            <div className="text-[10px] truncate">
+          {/* Center */}
+          <div className="flex-1 min-w-0 flex items-center justify-center">
+            <div className="text-[9px]">
               {hasUnsavedChanges ? (
-                <span className="text-warning/60 flex items-center gap-1">
-                  <Clock className="w-3 h-3 shrink-0" />
-                  Unsaved
+                <span className="text-amber-400/50 flex items-center gap-1">
+                  <Clock className="w-2.5 h-2.5 shrink-0" /> Unsaved
                 </span>
               ) : (
-                <span className="text-success/40 flex items-center gap-1">
-                  <Check className="w-3 h-3 shrink-0" />
-                  Saved
+                <span className="text-emerald-400/35 flex items-center gap-1">
+                  <Check className="w-2.5 h-2.5 shrink-0" /> Saved
                 </span>
               )}
             </div>
           </div>
 
-          {/* Right info */}
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground/40 shrink-0 whitespace-nowrap">
+          {/* Right */}
+          <div className="flex items-center gap-2.5 text-[9px] text-muted-foreground/30 shrink-0 whitespace-nowrap">
             <span>1920×1080</span>
-            <span className="text-border/20">·</span>
+            <span className="w-px h-2.5 bg-white/[0.04]" />
             <span>30fps</span>
-            <span className="text-border/20">·</span>
+            <span className="w-px h-2.5 bg-white/[0.04]" />
             <span className="flex items-center gap-1">
-              <Zap className="w-3 h-3 text-primary/40 shrink-0" />
+              <Zap className="w-2.5 h-2.5 text-primary/30 shrink-0" />
               WebCodecs
             </span>
           </div>
-        </motion.div>
-
+        </div>
         {/* Text Clip Dialog */}
         <TextClipDialog open={textDialogOpen} onOpenChange={setTextDialogOpen} />
 

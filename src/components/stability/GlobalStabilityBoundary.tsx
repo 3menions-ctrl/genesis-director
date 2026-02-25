@@ -66,6 +66,21 @@ const SUPPRESSED_ERROR_PATTERNS = [
   // STABILITY FIX: PostMessage cross-origin (expected in iframes)
   'Failed to execute \'postMessage\'',
   'target origin provided',
+  
+  // AUTH STABILITY: Suppress auth-related errors during login/OAuth flow
+  // These should show toasts, not crash the entire app
+  'AuthApiError',
+  'AuthSessionMissingError',
+  'Auth session missing',
+  'Invalid Refresh Token',
+  'Refresh Token Not Found',
+  'invalid_grant',
+  'User already registered',
+  'Email not confirmed',
+  'Invalid login credentials',
+  'signInWithOAuth',
+  'OAuth',
+  'oauth',
 ];
 
 /**
@@ -222,23 +237,21 @@ class GlobalStabilityBoundaryClass extends Component<GlobalStabilityBoundaryProp
               </p>
             </div>
 
-            {/* Error Details (dev only) */}
-            {process.env.NODE_ENV === 'development' && this.state.error && (
-              <details className="text-left bg-zinc-800/50 rounded-lg p-4 text-sm border border-zinc-700">
-                <summary className="cursor-pointer text-zinc-400 hover:text-white flex items-center gap-2">
-                  🐛 Technical Details
-                </summary>
-                <div className="mt-3 space-y-2">
-                  <p className="font-mono text-red-400 break-all text-xs">
-                    {this.state.error.message}
-                  </p>
-                  {this.state.error.stack && (
-                    <pre className="text-xs text-zinc-500 overflow-auto max-h-24 bg-zinc-900 p-2 rounded">
+            {/* Show error message (truncated) to help debugging */}
+            {this.state.error && (
+              <div className="text-left bg-zinc-800/50 rounded-lg p-4 text-sm border border-zinc-700">
+                <p className="font-mono text-red-400/70 break-all text-xs">
+                  {this.state.error.message?.substring(0, 200)}
+                </p>
+                {process.env.NODE_ENV === 'development' && this.state.error.stack && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-zinc-500 text-xs">Stack trace</summary>
+                    <pre className="text-xs text-zinc-500 overflow-auto max-h-24 bg-zinc-900 p-2 rounded mt-1">
                       {this.state.error.stack}
                     </pre>
-                  )}
-                </div>
-              </details>
+                  </details>
+                )}
+              </div>
             )}
 
             {/* Recovery Actions */}

@@ -512,7 +512,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     // ──────────────────────────────────────────────────────────────────────
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    let data, error;
+    try {
+      const result = await supabase.auth.signInWithPassword({ email, password });
+      data = result.data;
+      error = result.error;
+    } catch (err) {
+      console.error('[AuthContext] signInWithPassword exception:', err);
+      return { error: err instanceof Error ? err : new Error('Login failed unexpectedly') };
+    }
 
     // Track attempt in DB (fire-and-forget, non-blocking)
     void supabase.rpc('log_login_attempt', {
@@ -606,17 +614,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
-    const result = await lovable.auth.signInWithOAuth('google', {
-      redirect_uri: window.location.origin,
-    });
-    return { error: result.error ? (result.error as Error) : null };
+    try {
+      const result = await lovable.auth.signInWithOAuth('google', {
+        redirect_uri: window.location.origin,
+      });
+      return { error: result.error ? (result.error as Error) : null };
+    } catch (err) {
+      console.error('[AuthContext] Google sign-in exception:', err);
+      return { error: err instanceof Error ? err : new Error('Google sign-in failed') };
+    }
   };
 
   const signInWithApple = async () => {
-    const result = await lovable.auth.signInWithOAuth('apple', {
-      redirect_uri: window.location.origin,
-    });
-    return { error: result.error ? (result.error as Error) : null };
+    try {
+      const result = await lovable.auth.signInWithOAuth('apple', {
+        redirect_uri: window.location.origin,
+      });
+      return { error: result.error ? (result.error as Error) : null };
+    } catch (err) {
+      console.error('[AuthContext] Apple sign-in exception:', err);
+      return { error: err instanceof Error ? err : new Error('Apple sign-in failed') };
+    }
   };
 
   const signOut = async () => {

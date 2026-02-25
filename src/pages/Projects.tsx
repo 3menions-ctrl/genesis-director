@@ -1009,16 +1009,6 @@ function ProjectsContentInner() {
       {/* Navigation */}
       <AppHeader onCreateClick={handleCreateProject} />
 
-      {/* Floating Create CTA — high-conversion, always visible */}
-      {stats.total > 0 && (
-        <button
-          onClick={handleCreateProject}
-          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 h-12 px-6 rounded-full bg-primary text-primary-foreground font-semibold text-sm shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-105 transition-all duration-200"
-        >
-          <Plus className="w-4 h-4" />
-          Create New
-        </button>
-      )}
 
       {/* Main Content */}
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 pt-16 sm:pt-20">

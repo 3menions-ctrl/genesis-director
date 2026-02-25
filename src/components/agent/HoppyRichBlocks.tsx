@@ -14,7 +14,8 @@ import {
   User, MessageCircle, MapPin, Target, CheckCircle, Circle,
   TrendingUp, Palette, Play, ChevronRight, Settings, Send,
   Award, Flame, Trophy, Globe, CreditCard, ExternalLink,
-  ArrowRight, Users, HelpCircle, Info, Clapperboard, X, Volume2, VolumeX
+  ArrowRight, Users, HelpCircle, Info, Clapperboard, X, Volume2, VolumeX,
+  AlertTriangle, Trash2, ShieldCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -68,6 +69,8 @@ function BlockRouter({ block, onNavigate, onSendMessage }: { block: RichBlock; o
     case "settings": return <SettingsBlock data={block.data} onNavigate={nav} />;
     case "multiple_choice": return <MultipleChoiceBlock data={block.data} onSendMessage={onSendMessage} />;
     case "generation_progress": return <GenerationProgressBlock data={block.data} onNavigate={nav} />;
+    case "confirm_action": return <ConfirmActionBlock data={block.data} onSendMessage={onSendMessage} />;
+    case "success_action": return <SuccessActionBlock data={block.data} onNavigate={nav} />;
     default: return null;
   }
 }
@@ -1187,9 +1190,87 @@ function SettingsBlock({ data, onNavigate }: { data: any; onNavigate?: (path: st
 }
 
 // ═══════════════════════════════════════════════
-// MULTIPLE CHOICE — Interactive selection cards
+// CONFIRM ACTION — Destructive action confirmation card
 // ═══════════════════════════════════════════════
 
+function ConfirmActionBlock({ data, onSendMessage }: { data: any; onSendMessage?: (content: string) => void }) {
+  const [confirmed, setConfirmed] = useState(false);
+
+  const handleConfirm = () => {
+    setConfirmed(true);
+    onSendMessage?.("Yes, confirm");
+  };
+
+  return (
+    <RichCard accent="hsl(0, 72%, 51%)">
+      <CardHeader icon={AlertTriangle} title="Confirm Action" accentColor="hsl(0, 72%, 51%)" />
+      <div className="px-4 py-3 space-y-3">
+        <p className="text-sm text-foreground/80">{data.message}</p>
+        {data.title && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/8 border border-destructive/15">
+            <Trash2 className="h-3.5 w-3.5 text-destructive/70" />
+            <span className="text-xs font-medium text-destructive/80">{data.title}</span>
+          </div>
+        )}
+        {!confirmed ? (
+          <div className="flex gap-2">
+            <button
+              onClick={handleConfirm}
+              className="flex-1 py-2.5 rounded-xl text-sm font-display font-semibold bg-destructive text-destructive-foreground 
+                         shadow-[0_4px_16px_hsl(0_72%_51%/0.25)] hover:shadow-[0_8px_24px_hsl(0_72%_51%/0.3)] active:scale-[0.98] transition-all"
+            >
+              Confirm Delete
+            </button>
+            <button
+              onClick={() => onSendMessage?.("No, cancel")}
+              className="flex-1 py-2.5 rounded-xl text-sm font-display font-semibold bg-muted/30 text-muted-foreground hover:bg-muted/50 transition-all"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            <CheckCircle className="h-3 w-3 text-primary/50" />
+            <span className="text-[10px] text-primary/50 font-display font-medium">Confirmed — deleting...</span>
+          </div>
+        )}
+      </div>
+    </RichCard>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// SUCCESS ACTION — Post-action success card
+// ═══════════════════════════════════════════════
+
+function SuccessActionBlock({ data, onNavigate }: { data: any; onNavigate?: (path: string) => void }) {
+  return (
+    <RichCard accent="hsl(142, 71%, 45%)">
+      <CardHeader icon={ShieldCheck} title="Action Complete" accentColor="hsl(142, 71%, 45%)" />
+      <div className="px-4 py-3 space-y-2">
+        <p className="text-sm text-foreground/80">{data.message}</p>
+        {data.stats && (
+          <div className="flex gap-3 text-[10px] text-muted-foreground/50 font-mono">
+            {data.stats.storageFilesDeleted > 0 && <span>{data.stats.storageFilesDeleted} files removed</span>}
+            {data.stats.dbRecordsDeleted > 0 && <span>{data.stats.dbRecordsDeleted} records cleared</span>}
+          </div>
+        )}
+        {data.navigate_to && onNavigate && (
+          <button
+            onClick={() => onNavigate(data.navigate_to)}
+            className="mt-1 flex items-center gap-1 text-[11px] font-display font-semibold text-primary/60 hover:text-primary transition-colors"
+          >
+            Go to Projects <ArrowRight className="h-3 w-3" />
+          </button>
+        )}
+      </div>
+    </RichCard>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// MULTIPLE CHOICE — Interactive selection cards
+// ═══════════════════════════════════════════════
 
 
 function MultipleChoiceBlock({ data, onSendMessage }: { data: any; onSendMessage?: (content: string) => void }) {

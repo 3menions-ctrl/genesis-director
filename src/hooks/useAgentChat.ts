@@ -325,11 +325,68 @@ export function useAgentChat(): UseAgentChatReturn {
       console.error("[Hoppy] Send error:", err);
 
       const errMsg = String(err?.message || "");
+      const isNetworkError = errMsg.includes("Failed to fetch") || errMsg.includes("NetworkError") || errMsg.includes("network");
       const status = errMsg.includes("429") ? 429 : errMsg.includes("402") ? 402 : 0;
+
+      // Auto-retry once for transient network errors
+      if (isNetworkError && !abortController.signal.aborted) {
+        console.log("[Hoppy] Network error — retrying once after 2s...");
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === placeholderId
+              ? { ...m, content: "Connection hiccup — retrying... 🐰", streaming: true }
+              : m
+          )
+        );
+        await new Promise((r) => setTimeout(r, 2000));
+        // Re-queue the message for one retry attempt
+        try {
+          const { data: { session: retrySession } } = await supabase.auth.getSession();
+          const retryResp = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-chat`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(retrySession?.access_token ? { Authorization: `Bearer ${retrySession.access_token}` } : {}),
+                apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              },
+              body: JSON.stringify({
+                message: content,
+                conversationId: convId,
+                currentPage: location.pathname,
+              }),
+              signal: abortController.signal,
+            }
+          );
+          if (retryResp.ok) {
+            const retryData = await retryResp.json();
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === placeholderId
+                  ? {
+                      ...m,
+                      content: retryData.content || "Recovered! How can I help? 🐰",
+                      actions: retryData.actions || [],
+                      richBlocks: retryData.richBlocks || [],
+                      creditsCharged: retryData.creditsCharged || 0,
+                      streaming: false,
+                    }
+                  : m
+              )
+            );
+            return; // Retry succeeded
+          }
+        } catch {
+          // Retry also failed — fall through to error display
+        }
+      }
 
       const errorContent =
         status === 429
           ? "Oops, I'm getting a lot of messages right now! Give me just a sec and try again 💜"
+          : isNetworkError
+          ? "I lost connection for a moment. Please check your internet and try again! 🐰"
           : "Hmm, something went a bit wonky on my end. Let me try that again! 🐰";
 
       toast.error("Hoppy had a hiccup — try again!");

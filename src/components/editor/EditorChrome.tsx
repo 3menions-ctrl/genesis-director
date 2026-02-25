@@ -304,7 +304,7 @@ export function EditorChrome({
     }
 
     const projectData = getProjectJSON();
-    const clips: { url: string; duration: number; volume?: number; speed?: number; fadeIn?: number; fadeOut?: number }[] = [];
+    const clips: { url: string; duration: number; volume?: number; speed?: number; fadeIn?: number; fadeOut?: number; brightness?: number; contrast?: number; saturation?: number; transition?: string; transitionDuration?: number }[] = [];
     for (const track of projectData.tracks || []) {
       for (const el of track.elements || []) {
         if (el.type === "video" && el.props?.src) {
@@ -315,6 +315,11 @@ export function EditorChrome({
             speed: el.props.speed,
             fadeIn: el.props.fadeIn,
             fadeOut: el.props.fadeOut,
+            brightness: el.props.brightness,
+            contrast: el.props.contrast,
+            saturation: el.props.saturation,
+            transition: el.props.transition,
+            transitionDuration: el.props.transitionDuration,
           });
         }
       }

@@ -7,7 +7,7 @@ import { memo, useCallback } from "react";
 import {
   X, Scissors, Copy, Trash2, Type, Clock, Film, Image, Volume2,
   AlignLeft, AlignCenter, AlignVerticalJustifyEnd, Gauge, Sunset,
-  Eye, Palette, Tag
+  Eye, Palette, Tag, SunMedium, Contrast, Droplets, Wand2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -497,7 +497,96 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
           </div>
         )}
 
-        {/* Actions */}
+        {/* Color Grading */}
+        {(selectedClip.type === "video" || selectedClip.type === "image") && (
+          <div className="space-y-2">
+            <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider flex items-center gap-1">
+              <SunMedium className="w-3 h-3" /> Color Grading
+            </Label>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] text-muted-foreground/40 flex items-center gap-1"><SunMedium className="w-2.5 h-2.5" /> Brightness</span>
+                <span className="text-[9px] font-mono text-muted-foreground/40">{selectedClip.brightness ?? 0}</span>
+              </div>
+              <Slider
+                value={[selectedClip.brightness ?? 0]}
+                onValueChange={([v]) => updateClip({ brightness: v })}
+                min={-100} max={100} step={1}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] text-muted-foreground/40 flex items-center gap-1"><Contrast className="w-2.5 h-2.5" /> Contrast</span>
+                <span className="text-[9px] font-mono text-muted-foreground/40">{selectedClip.contrast ?? 0}</span>
+              </div>
+              <Slider
+                value={[selectedClip.contrast ?? 0]}
+                onValueChange={([v]) => updateClip({ contrast: v })}
+                min={-100} max={100} step={1}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] text-muted-foreground/40 flex items-center gap-1"><Droplets className="w-2.5 h-2.5" /> Saturation</span>
+                <span className="text-[9px] font-mono text-muted-foreground/40">{selectedClip.saturation ?? 0}</span>
+              </div>
+              <Slider
+                value={[selectedClip.saturation ?? 0]}
+                onValueChange={([v]) => updateClip({ saturation: v })}
+                min={-100} max={100} step={1}
+                className="w-full"
+              />
+            </div>
+            <button
+              onClick={() => updateClip({ brightness: 0, contrast: 0, saturation: 0 })}
+              className="text-[9px] text-muted-foreground/40 hover:text-foreground transition-colors"
+            >
+              Reset Color
+            </button>
+          </div>
+        )}
+
+        {/* Transition */}
+        {(selectedClip.type === "video" || selectedClip.type === "image") && (
+          <div className="space-y-2">
+            <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider flex items-center gap-1">
+              <Wand2 className="w-3 h-3" /> Transition Out
+            </Label>
+            <Select
+              value={selectedClip.transition || "none"}
+              onValueChange={(v) => updateClip({ transition: v as any })}
+            >
+              <SelectTrigger className="h-7 text-xs bg-muted/10 border-border/20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="fade">Fade</SelectItem>
+                <SelectItem value="dissolve">Dissolve</SelectItem>
+                <SelectItem value="wipeleft">Wipe Left</SelectItem>
+                <SelectItem value="wiperight">Wipe Right</SelectItem>
+                <SelectItem value="slideup">Slide Up</SelectItem>
+                <SelectItem value="slidedown">Slide Down</SelectItem>
+              </SelectContent>
+            </Select>
+            {selectedClip.transition && selectedClip.transition !== "none" && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] text-muted-foreground/40">Duration</span>
+                  <span className="text-[9px] font-mono text-muted-foreground/40">{(selectedClip.transitionDuration ?? 0.5).toFixed(1)}s</span>
+                </div>
+                <Slider
+                  value={[selectedClip.transitionDuration ?? 0.5]}
+                  onValueChange={([v]) => updateClip({ transitionDuration: Math.round(v * 10) / 10 })}
+                  min={0.1} max={2} step={0.1}
+                  className="w-full"
+                />
+              </div>
+            )}
+          </div>
+        )}
         <div className="space-y-1.5 pt-2 border-t" style={{ borderColor: "hsla(0, 0%, 100%, 0.06)" }}>
           <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Actions</Label>
           <Button variant="ghost" size="sm" onClick={handleSplit}

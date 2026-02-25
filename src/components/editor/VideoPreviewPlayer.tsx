@@ -21,22 +21,37 @@ function findActiveClip(
   tracks: { clips: TimelineClip[] }[],
   time: number
 ): { clip: TimelineClip; trackIndex: number } | null {
-  for (let i = 0; i < tracks.length; i++) {
-    const track = tracks[i];
-    for (const clip of track.clips) {
-      if (clip.type === "video" && clip.start <= time && clip.end > time && clip.src) {
-        return { clip, trackIndex: i };
+  // Priority: video first, then image
+  for (const type of ["video", "image"] as const) {
+    for (let i = 0; i < tracks.length; i++) {
+      for (const clip of tracks[i].clips) {
+        if (clip.type === type && clip.start <= time && clip.end > time && clip.src) {
+          return { clip, trackIndex: i };
+        }
       }
     }
   }
+  // Fallback: first available video/image
   for (let i = 0; i < tracks.length; i++) {
     for (const clip of tracks[i].clips) {
-      if (clip.type === "video" && clip.src) {
+      if ((clip.type === "video" || clip.type === "image") && clip.src) {
         return { clip, trackIndex: i };
       }
     }
   }
   return null;
+}
+
+/** Build CSS filter string from clip color grading properties */
+function buildCSSFilter(clip: TimelineClip): string {
+  const b = (clip.brightness ?? 0) / 100; // -1 to 1
+  const c = (clip.contrast ?? 0) / 100;   // -1 to 1
+  const s = (clip.saturation ?? 0) / 100;  // -1 to 1
+  const parts: string[] = [];
+  if (b !== 0) parts.push(`brightness(${1 + b})`);
+  if (c !== 0) parts.push(`contrast(${1 + c})`);
+  if (s !== 0) parts.push(`saturate(${1 + s})`);
+  return parts.length > 0 ? parts.join(" ") : "none";
 }
 
 export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
@@ -218,7 +233,8 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
     return `${m}:${sec.toString().padStart(2, "0")}.${ms.toString().padStart(2, "0")}`;
   };
 
-  const hasClips = state.tracks.some((t) => t.clips.some((c) => c.type === "video" && c.src));
+  const hasClips = state.tracks.some((t) => t.clips.some((c) => (c.type === "video" || c.type === "image") && c.src));
+  const cssFilter = active?.clip ? buildCSSFilter(active.clip) : "none";
 
   return (
     <div className={cn("flex flex-col overflow-hidden", className)} style={{ background: 'hsl(240 28% 3%)' }}>
@@ -250,14 +266,29 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
           </motion.div>
         ) : (
           <>
-            <video
-              ref={videoRef}
-              className="max-w-full max-h-full object-contain transition-opacity duration-75"
-              style={{ opacity: fadeOpacity * (active?.clip?.opacity ?? 1) }}
-              muted={isMuted || isTrackMuted}
-              playsInline
-              onEnded={handleEnded}
-            />
+            {active?.clip.type === "image" ? (
+              <img
+                src={active.clip.src}
+                alt={active.clip.name}
+                className="max-w-full max-h-full object-contain transition-opacity duration-75"
+                style={{
+                  opacity: fadeOpacity * (active.clip.opacity ?? 1),
+                  filter: cssFilter,
+                }}
+              />
+            ) : (
+              <video
+                ref={videoRef}
+                className="max-w-full max-h-full object-contain transition-opacity duration-75"
+                style={{
+                  opacity: fadeOpacity * (active?.clip?.opacity ?? 1),
+                  filter: cssFilter,
+                }}
+                muted={isMuted || isTrackMuted}
+                playsInline
+                onEnded={handleEnded}
+              />
+            )}
             {/* Text overlay rendering */}
             {state.tracks.flatMap(t => t.clips).filter(c =>
               c.type === "text" && c.text && c.start <= state.playheadTime && c.end > state.playheadTime

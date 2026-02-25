@@ -1384,27 +1384,31 @@ function ProjectsContentInner() {
           setSelectedProject(null);
         }
       }}>
-        <DialogContent className="!left-[50%] !top-[50%] !-translate-x-1/2 !-translate-y-1/2 !transform bg-zinc-950 border-zinc-800 w-[92vw] sm:w-[95vw] max-w-5xl h-auto max-h-[85vh] sm:max-h-[90vh] p-0 overflow-hidden rounded-xl sm:rounded-2xl flex flex-col">
-          <DialogHeader className="p-3 sm:p-4 pb-2 shrink-0">
-            <DialogTitle className="flex items-center gap-2 text-white text-sm sm:text-base pr-8">
-              <MonitorPlay className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0" />
-              <span className="truncate">{selectedProject?.name || 'Video Player'}</span>
-            </DialogTitle>
-            <DialogDescription className="text-zinc-400 text-xs sm:text-sm">
+        <DialogContent className="!left-[50%] !top-[50%] !-translate-x-1/2 !-translate-y-1/2 !transform bg-black border-none w-[96vw] sm:w-[95vw] max-w-5xl h-auto max-h-[90vh] p-0 overflow-hidden rounded-xl sm:rounded-2xl flex flex-col">
+          {/* Hidden header for accessibility - title floats over video via player controls */}
+          <DialogHeader className="sr-only">
+            <DialogTitle>{selectedProject?.name || 'Video Player'}</DialogTitle>
+            <DialogDescription>
               {selectedProject?.mode === 'avatar' ? 'AI Avatar Video' : 'Play all clips seamlessly'}
             </DialogDescription>
           </DialogHeader>
           {showBrowserStitcher && (
-            <div className="p-2 sm:p-4 pt-0 flex-1 min-h-0 flex items-center justify-center w-full">
-              {/* UNIFIED: All projects use projectId source for reliable playback */}
-              {/* UniversalVideoPlayer fetches clips from video_clips table with permanent URLs */}
-              {/* For avatar projects, it also fetches masterAudioUrl from pipeline_state */}
+            <div className="relative w-full flex-1 min-h-0 flex items-center justify-center">
               <UniversalVideoPlayer
                 source={{ projectId: showBrowserStitcher }}
                 mode="inline"
                 autoPlay
-                className="w-full h-auto max-h-[calc(85vh-100px)] sm:max-h-[calc(90vh-100px)] aspect-video rounded-lg sm:rounded-xl object-contain"
+                className="w-full h-auto max-h-[90vh] aspect-video object-contain"
               />
+              {/* Floating title overlay */}
+              <div className="absolute top-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10">
+                <div className="flex items-center gap-2">
+                  <MonitorPlay className="w-4 h-4 text-primary shrink-0" />
+                  <span className="text-white text-sm sm:text-base font-medium truncate drop-shadow-lg">
+                    {selectedProject?.name || 'Video Player'}
+                  </span>
+                </div>
+              </div>
             </div>
           )}
         </DialogContent>

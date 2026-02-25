@@ -53,6 +53,7 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
   const { profile, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showBuyCreditsModal, setShowBuyCreditsModal] = useState(false);
+  const isZeroCredits = (profile?.credits_balance ?? 0) === 0;
 
   const handleCreate = useCallback(() => {
     if (onCreateClick) {
@@ -176,15 +177,33 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
               {showCredits && (
                 <button
                   onClick={() => setShowBuyCreditsModal(true)}
-                  className="group flex items-center gap-2 h-9 px-3.5 rounded-xl bg-gradient-to-r from-[hsl(42_30%_8%/0.6)] to-[hsl(42_20%_6%/0.4)] border border-[hsl(42_100%_55%/0.12)] hover:border-[hsl(42_100%_55%/0.3)] transition-all duration-300 hover:shadow-[0_0_16px_hsl(42_100%_50%/0.08)]"
+                  className={cn(
+                    "group flex items-center gap-2 h-9 px-3.5 rounded-xl transition-all duration-300",
+                    isZeroCredits
+                      ? "bg-gradient-to-r from-[hsl(0_40%_10%/0.7)] to-[hsl(0_30%_8%/0.5)] border border-[hsl(0_100%_50%/0.25)] hover:border-[hsl(0_100%_50%/0.5)] shadow-[0_0_20px_hsl(0_100%_50%/0.15)] hover:shadow-[0_0_28px_hsl(0_100%_50%/0.25)] animate-pulse"
+                      : "bg-gradient-to-r from-[hsl(42_30%_8%/0.6)] to-[hsl(42_20%_6%/0.4)] border border-[hsl(42_100%_55%/0.12)] hover:border-[hsl(42_100%_55%/0.3)] hover:shadow-[0_0_16px_hsl(42_100%_50%/0.08)]"
+                  )}
                 >
                   <div className="relative">
-                    <div className="absolute inset-0 rounded-full bg-[hsl(42_100%_55%/0.3)] blur-[6px] group-hover:blur-[8px] transition-all" />
-                    <div className="relative w-[18px] h-[18px] rounded-full bg-gradient-to-br from-[hsl(42_100%_65%)] via-[hsl(38_100%_55%)] to-[hsl(30_100%_45%)] flex items-center justify-center shadow-[0_0_8px_hsl(42_100%_55%/0.5)]">
+                    <div className={cn(
+                      "absolute inset-0 rounded-full blur-[6px] group-hover:blur-[8px] transition-all",
+                      isZeroCredits ? "bg-[hsl(0_100%_50%/0.4)]" : "bg-[hsl(42_100%_55%/0.3)]"
+                    )} />
+                    <div className={cn(
+                      "relative w-[18px] h-[18px] rounded-full flex items-center justify-center",
+                      isZeroCredits
+                        ? "bg-gradient-to-br from-[hsl(0_100%_60%)] via-[hsl(0_90%_50%)] to-[hsl(0_80%_40%)] shadow-[0_0_10px_hsl(0_100%_50%/0.6)]"
+                        : "bg-gradient-to-br from-[hsl(42_100%_65%)] via-[hsl(38_100%_55%)] to-[hsl(30_100%_45%)] shadow-[0_0_8px_hsl(42_100%_55%/0.5)]"
+                    )}>
                       <Zap className="w-2.5 h-2.5 text-white" strokeWidth={3} />
                     </div>
                   </div>
-                  <span className="text-[13px] font-bold text-[hsl(42_100%_70%/0.9)] tabular-nums group-hover:text-[hsl(42_100%_75%)] transition-colors">
+                  <span className={cn(
+                    "text-[13px] font-bold tabular-nums transition-colors",
+                    isZeroCredits
+                      ? "text-[hsl(0_100%_70%/0.95)] group-hover:text-[hsl(0_100%_75%)]"
+                      : "text-[hsl(42_100%_70%/0.9)] group-hover:text-[hsl(42_100%_75%)]"
+                  )}>
                     {profile?.credits_balance?.toLocaleString() || 0}
                   </span>
                 </button>
@@ -278,13 +297,26 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
                   </div>
 
                   {/* Credits inline */}
-                  <div className="mx-1 mb-2 rounded-xl px-3 py-2.5 flex items-center justify-between bg-gradient-to-r from-[hsl(42_30%_7%/0.8)] to-[hsl(42_20%_5%/0.4)] border border-[hsl(42_100%_55%/0.08)]">
+                  <div className={cn(
+                    "mx-1 mb-2 rounded-xl px-3 py-2.5 flex items-center justify-between",
+                    isZeroCredits
+                      ? "bg-gradient-to-r from-[hsl(0_40%_10%/0.8)] to-[hsl(0_30%_8%/0.5)] border border-[hsl(0_100%_50%/0.2)] shadow-[0_0_16px_hsl(0_100%_50%/0.1)]"
+                      : "bg-gradient-to-r from-[hsl(42_30%_7%/0.8)] to-[hsl(42_20%_5%/0.4)] border border-[hsl(42_100%_55%/0.08)]"
+                  )}>
                     <span className="text-[11px] text-white/30 font-medium">Credits</span>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-[hsl(42_100%_65%)] to-[hsl(30_100%_45%)] flex items-center justify-center shadow-[0_0_6px_hsl(42_100%_55%/0.4)]">
+                      <div className={cn(
+                        "w-3.5 h-3.5 rounded-full flex items-center justify-center",
+                        isZeroCredits
+                          ? "bg-gradient-to-br from-[hsl(0_100%_60%)] to-[hsl(0_80%_40%)] shadow-[0_0_8px_hsl(0_100%_50%/0.5)]"
+                          : "bg-gradient-to-br from-[hsl(42_100%_65%)] to-[hsl(30_100%_45%)] shadow-[0_0_6px_hsl(42_100%_55%/0.4)]"
+                      )}>
                         <Zap className="w-2 h-2 text-white" strokeWidth={3} />
                       </div>
-                      <span className="text-[13px] font-bold text-[hsl(42_100%_68%)] tabular-nums">
+                      <span className={cn(
+                        "text-[13px] font-bold tabular-nums",
+                        isZeroCredits ? "text-[hsl(0_100%_65%)]" : "text-[hsl(42_100%_68%)]"
+                      )}>
                         {profile?.credits_balance?.toLocaleString() || 0}
                       </span>
                     </div>
@@ -395,10 +427,18 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
               {showCredits && (
                 <button
                   onClick={() => { setShowBuyCreditsModal(true); setMobileMenuOpen(false); }}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[hsl(42_30%_8%/0.8)] border border-[hsl(42_100%_55%/0.12)]"
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2.5 rounded-xl",
+                    isZeroCredits
+                      ? "bg-[hsl(0_40%_10%/0.8)] border border-[hsl(0_100%_50%/0.25)] shadow-[0_0_16px_hsl(0_100%_50%/0.15)] animate-pulse"
+                      : "bg-[hsl(42_30%_8%/0.8)] border border-[hsl(42_100%_55%/0.12)]"
+                  )}
                 >
-                  <Zap className="w-3 h-3 text-[hsl(42_100%_60%)]" />
-                  <span className="text-[12px] font-bold text-[hsl(42_100%_70%)]">
+                  <Zap className={cn("w-3 h-3", isZeroCredits ? "text-[hsl(0_100%_60%)]" : "text-[hsl(42_100%_60%)]")} />
+                  <span className={cn(
+                    "text-[12px] font-bold",
+                    isZeroCredits ? "text-[hsl(0_100%_65%)]" : "text-[hsl(42_100%_70%)]"
+                  )}>
                     {profile?.credits_balance?.toLocaleString() || 0}
                   </span>
                 </button>

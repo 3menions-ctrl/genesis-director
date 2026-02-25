@@ -36,7 +36,6 @@ import {
 } from "@/hooks/useCustomTimeline";
 
 interface EditorChromeProps {
-  /** Still passed for WebCodecs export — SDK render engine kept */
   useBrowserRenderer?: any;
   navigate: any;
 }
@@ -69,10 +68,8 @@ export function EditorChrome({
   const { submitStitch, isStitching, progress: stitchProgress, reset: resetStitch } = useEditorStitch();
   const [autoLoadDone, setAutoLoadDone] = useState(false);
 
-  // ─── Custom timeline state ───
   const { state: timelineState, dispatch } = useCustomTimeline();
 
-  // ─── WebCodecs renderer (optional — kept for export) ───
   const renderer = useBrowserRenderer?.({
     width: 1920,
     height: 1080,
@@ -106,7 +103,6 @@ export function EditorChrome({
     return () => window.removeEventListener("beforeunload", handler);
   }, [hasUnsavedChanges]);
 
-  // ─── Auto-dismiss success toast ───
   useEffect(() => {
     if (showSuccess) {
       const t = setTimeout(() => setShowSuccess(false), 4000);
@@ -114,19 +110,16 @@ export function EditorChrome({
     }
   }, [showSuccess]);
 
-  // ─── Mark unsaved on timeline changes ───
   useEffect(() => {
     if (timelineState.tracks.some(t => t.clips.length > 0)) {
       setHasUnsavedChanges(true);
     }
   }, [timelineState.tracks]);
 
-  // ─── Helper: get current project JSON ───
   const getProjectJSON = useCallback(() => {
     return toProjectJSON(timelineState);
   }, [timelineState]);
 
-  // ─── Track/element counts ───
   const trackCount = timelineState.tracks.length;
   const elementCount = timelineState.tracks.reduce((sum, t) => sum + t.clips.length, 0);
 
@@ -236,7 +229,6 @@ export function EditorChrome({
 
     toast.info(`Downloading ${clipUrls.length} clip${clipUrls.length > 1 ? "s" : ""} before opening OpenReel…`);
 
-    // Download each clip individually
     for (const clip of clipUrls) {
       try {
         const a = document.createElement("a");
@@ -246,7 +238,6 @@ export function EditorChrome({
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        // Small delay between downloads to avoid browser blocking
         await new Promise(r => setTimeout(r, 400));
       } catch (err) {
         console.warn("Failed to download clip:", clip.name, err);
@@ -264,7 +255,6 @@ export function EditorChrome({
       return;
     }
 
-    // Collect clip URLs from timeline
     const clipUrls: string[] = [];
     for (const track of projectData.tracks || []) {
       for (const el of track.elements || []) {
@@ -411,7 +401,6 @@ export function EditorChrome({
           }
         }
       }
-      // Home / End
       if (e.key === "Home") {
         e.preventDefault();
         dispatch({ type: "SET_PLAYHEAD", time: 0 });
@@ -420,7 +409,6 @@ export function EditorChrome({
         e.preventDefault();
         dispatch({ type: "SET_PLAYHEAD", time: timelineState.duration });
       }
-      // D = duplicate selected
       if (e.key === "d" && !mod && (e.target as HTMLElement)?.tagName !== "INPUT" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
         if (timelineState.selectedClipId && timelineState.selectedTrackId) {
           const track = timelineState.tracks.find(t => t.id === timelineState.selectedTrackId);
@@ -434,7 +422,6 @@ export function EditorChrome({
           }
         }
       }
-      // L = toggle loop
       if (e.key === "l" && !mod && (e.target as HTMLElement)?.tagName !== "INPUT" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
         dispatch({ type: "SET_LOOP", looping: !timelineState.isLooping });
       }
@@ -443,7 +430,7 @@ export function EditorChrome({
     return () => window.removeEventListener("keydown", handler);
   }, [saveProject, exportVideo, sessionTitle, isRendering, timelineState, dispatch]);
 
-  // ─── Auto-save (every 60 seconds when there are unsaved changes) ───
+  // ─── Auto-save ───
   useEffect(() => {
     if (!user || !hasUnsavedChanges) return;
     const timer = setInterval(() => {
@@ -458,14 +445,12 @@ export function EditorChrome({
     return () => clearInterval(timer);
   }, [user, hasUnsavedChanges, saveProject, sessionTitle, timelineState.tracks]);
 
-  // ─── Clear timeline ───
   const handleClearTimeline = useCallback(() => {
     if (!timelineState.tracks.some(t => t.clips.length > 0)) return;
     dispatch({ type: "CLEAR_TIMELINE" });
     toast.success("Timeline cleared");
   }, [dispatch, timelineState.tracks]);
 
-  // ─── Inline rename ───
   const startRename = useCallback(() => {
     setRenameValue(sessionTitle);
     setIsRenamingSession(true);
@@ -481,7 +466,6 @@ export function EditorChrome({
     setIsRenamingSession(false);
   }, [renameValue, sessionTitle]);
 
-  // ─── Project browser ───
   const openBrowser = useCallback(async () => {
     setBrowserOpen(true);
     if (!projectsLoaded) {
@@ -507,9 +491,7 @@ export function EditorChrome({
     }
   }, [loadedProjectIds, loadProjectClips, projects]);
 
-  // ─── Add clip to timeline from media sidebar ───
   const handleAddClipToTimeline = useCallback((clip: EditorClip) => {
-    // Find the first video track, or create one
     let videoTrack = timelineState.tracks.find(t => t.type === "video");
     if (!videoTrack) {
       const newTrackId = generateTrackId();
@@ -520,7 +502,6 @@ export function EditorChrome({
       videoTrack = { id: newTrackId, type: "video" as const, label: "Video 1", clips: [] };
     }
 
-    // Place clip at end of track
     const lastEnd = videoTrack.clips.length > 0
       ? Math.max(...videoTrack.clips.map(c => c.end))
       : 0;
@@ -543,7 +524,6 @@ export function EditorChrome({
     toast.success(`Added "${newClip.name}" to timeline`);
   }, [timelineState.tracks, dispatch]);
 
-  // ─── Mobile guard ───
   if (isMobile) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-background gap-5 p-6">
@@ -579,33 +559,35 @@ export function EditorChrome({
           )}
         </div>
 
-        {/* ═══════════════ TOP BAR — Ultra-minimal CapCut-style ═══════════════ */}
+        {/* ═══════════════ TOP BAR — Premium grouped header ═══════════════ */}
         <motion.div
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="h-11 flex items-center px-2 shrink-0 z-10 relative"
+          className="h-12 flex items-center px-3 shrink-0 z-10 relative gap-2"
           style={{
-            background: 'hsl(240 20% 5%)',
-            borderBottom: '1px solid hsla(0, 0%, 100%, 0.04)',
+            background: 'linear-gradient(180deg, hsl(240 18% 7%) 0%, hsl(240 22% 5.5%) 100%)',
+            borderBottom: '1px solid hsla(263, 70%, 58%, 0.06)',
           }}
         >
-          {/* ── Left: Navigation + Session ── */}
-          <div className="flex items-center gap-1 min-w-0 flex-1">
+          {/* ── Left group: Back + Session name ── */}
+          <div className="flex items-center gap-2 min-w-0 shrink-0">
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   onClick={() => navigate("/projects")}
-                  className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground/35 hover:text-foreground/80 hover:bg-white/[0.04] transition-all shrink-0"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground/40 hover:text-foreground hover:bg-white/[0.06] transition-all shrink-0"
                 >
-                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <ArrowLeft className="w-4 h-4" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-[10px]">Back to Projects</TooltipContent>
             </Tooltip>
 
-            {/* Session name — editable, prominent */}
-            <div className="flex items-center gap-1.5 min-w-0 ml-1">
+            <div className="w-px h-5 bg-white/[0.06]" />
+
+            {/* Session name */}
+            <div className="flex items-center gap-1.5 min-w-0">
               {isRenamingSession ? (
                 <input
                   autoFocus
@@ -613,189 +595,209 @@ export function EditorChrome({
                   onChange={(e) => setRenameValue(e.target.value)}
                   onBlur={finishRename}
                   onKeyDown={(e) => { if (e.key === "Enter") finishRename(); if (e.key === "Escape") setIsRenamingSession(false); }}
-                  className="text-[12px] text-foreground/80 bg-white/[0.04] border border-primary/30 rounded-md px-2 py-1 max-w-[200px] outline-none focus:border-primary font-medium"
+                  className="text-[13px] text-foreground bg-white/[0.06] border border-primary/40 rounded-lg px-2.5 py-1 max-w-[200px] outline-none focus:border-primary font-semibold"
                 />
               ) : (
-                <button onClick={startRename} className="flex items-center gap-1.5 group text-left min-w-0">
-                  <span className="text-[12px] font-semibold text-foreground/60 max-w-[200px] truncate group-hover:text-foreground/85 transition-colors">
+                <button onClick={startRename} className="flex items-center gap-1.5 group text-left min-w-0 px-1">
+                  <span className="text-[13px] font-semibold text-foreground/70 max-w-[200px] truncate group-hover:text-foreground transition-colors">
                     {sessionTitle}
                   </span>
-                  <Edit3 className="w-2.5 h-2.5 text-muted-foreground/15 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                  <Edit3 className="w-3 h-3 text-muted-foreground/20 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                 </button>
               )}
               {hasUnsavedChanges && (
-                <motion.span
-                  animate={{ opacity: [0.3, 0.8, 0.3] }}
-                  transition={{ duration: 2.5, repeat: Infinity }}
-                  className="w-1.5 h-1.5 rounded-full bg-amber-400/80 shrink-0"
-                  title="Unsaved changes"
-                />
+                <motion.div
+                  animate={{ opacity: [0.4, 1, 0.4] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded-md shrink-0"
+                  style={{ background: 'hsla(45, 90%, 55%, 0.08)' }}
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400/80" />
+                  <span className="text-[9px] font-medium text-amber-400/60">Unsaved</span>
+                </motion.div>
               )}
             </div>
           </div>
 
-          {/* ── Center: Import + Aspect Ratio ── */}
-          <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={openBrowser}
-                  className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-muted-foreground/50 hover:text-foreground/80 hover:bg-white/[0.04] transition-all"
-                >
-                  <FolderOpen className="w-3.5 h-3.5" />
-                  <span className="text-[10px] font-medium">{!autoLoadDone ? "Syncing…" : "Import"}</span>
-                  {!autoLoadDone && <Loader2 className="w-3 h-3 animate-spin text-primary/50" />}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-[10px]">Import clips from your projects</TooltipContent>
-            </Tooltip>
-
-            <AnimatePresence>
-              {autoLoadDone && mediaCounts.videos > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-medium"
-                  style={{ background: 'hsla(142, 60%, 50%, 0.06)', color: 'hsla(142, 60%, 60%, 0.7)' }}
-                >
-                  <Check className="w-2.5 h-2.5" />
-                  {mediaCounts.videos}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <select
-              value={timelineState.aspectRatio}
-              onChange={(e) => dispatch({ type: "SET_ASPECT_RATIO", ratio: e.target.value as any })}
-              className="h-7 text-[10px] bg-white/[0.03] border border-white/[0.05] rounded-md px-1.5 text-muted-foreground/45 cursor-pointer hover:border-white/[0.1] transition-colors outline-none"
+          {/* ── Center group: Import + Aspect + Sync status ── */}
+          <div className="flex-1 flex items-center justify-center gap-1">
+            <div
+              className="flex items-center gap-1 px-1 py-0.5 rounded-lg"
+              style={{ background: 'hsla(0,0%,100%,0.02)', border: '1px solid hsla(0,0%,100%,0.04)' }}
             >
-              <option value="16:9">16:9</option>
-              <option value="9:16">9:16</option>
-              <option value="1:1">1:1</option>
-              <option value="4:3">4:3</option>
-            </select>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={openBrowser}
+                    className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-muted-foreground/55 hover:text-foreground hover:bg-white/[0.06] transition-all"
+                  >
+                    <FolderOpen className="w-3.5 h-3.5" />
+                    <span className="text-[11px] font-medium">{!autoLoadDone ? "Syncing…" : "Import"}</span>
+                    {!autoLoadDone && <Loader2 className="w-3 h-3 animate-spin text-primary/50" />}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-[10px]">Import clips from your projects</TooltipContent>
+              </Tooltip>
+
+              <div className="w-px h-4 bg-white/[0.06]" />
+
+              <select
+                value={timelineState.aspectRatio}
+                onChange={(e) => dispatch({ type: "SET_ASPECT_RATIO", ratio: e.target.value as any })}
+                className="h-7 text-[11px] bg-transparent border-none rounded-md px-2 text-muted-foreground/55 cursor-pointer hover:text-foreground transition-colors outline-none font-medium"
+              >
+                <option value="16:9">16:9</option>
+                <option value="9:16">9:16</option>
+                <option value="1:1">1:1</option>
+                <option value="4:3">4:3</option>
+              </select>
+
+              <AnimatePresence>
+                {autoLoadDone && mediaCounts.videos > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-semibold"
+                    style={{ background: 'hsla(142, 60%, 50%, 0.08)', color: 'hsla(142, 60%, 60%, 0.8)' }}
+                  >
+                    <Check className="w-2.5 h-2.5" />
+                    {mediaCounts.videos}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
-          {/* ── Right: Actions ── */}
-          <div className="flex items-center gap-0.5 flex-1 justify-end">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={handleClearTimeline}
-                  className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground/25 hover:text-destructive/70 hover:bg-destructive/5 transition-all"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-[10px]">Clear timeline</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setShowShortcuts(prev => !prev)}
-                  className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground/25 hover:text-foreground/70 hover:bg-white/[0.04] transition-all"
-                >
-                  <Keyboard className="w-3 h-3" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-[10px]">Shortcuts (?)</TooltipContent>
-            </Tooltip>
-
-            <div className="w-px h-4 bg-white/[0.05] mx-0.5" />
-
-            {/* Save */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => saveProject(sessionTitle)}
-                  disabled={saving}
-                  className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-muted-foreground/45 hover:text-foreground/80 hover:bg-white/[0.04] transition-all disabled:opacity-40"
-                >
-                  {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-                  <span className="text-[10px] font-medium hidden sm:inline">Save</span>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-[10px]">Save (⌘S)</TooltipContent>
-            </Tooltip>
-
-            {/* Stitch */}
-            {isStitching ? (
-              <button
-                onClick={() => resetStitch()}
-                className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-[10px] font-semibold"
-                style={{ background: 'hsla(263, 70%, 58%, 0.08)', color: 'hsl(var(--primary))' }}
-              >
-                <Loader2 className="w-3 h-3 animate-spin" />
-                {Math.round(stitchProgress)}%
-              </button>
-            ) : (
+          {/* ── Right group: Actions ── */}
+          <div className="flex items-center gap-0.5 shrink-0">
+            {/* Utility group */}
+            <div
+              className="flex items-center gap-0.5 px-0.5 rounded-lg mr-1"
+              style={{ background: 'hsla(0,0%,100%,0.015)' }}
+            >
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={handleStitch}
-                    disabled={isRendering}
-                    className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-muted-foreground/45 hover:text-foreground/80 hover:bg-white/[0.04] transition-all disabled:opacity-40"
+                    onClick={handleClearTimeline}
+                    className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground/30 hover:text-destructive/70 hover:bg-destructive/8 transition-all"
                   >
-                    <Film className="w-3 h-3" />
-                    <span className="text-[10px] font-medium hidden sm:inline">Stitch</span>
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-[10px]">Server-side stitch</TooltipContent>
+                <TooltipContent side="bottom" className="text-[10px]">Clear timeline</TooltipContent>
               </Tooltip>
-            )}
 
-            {/* OpenReel */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={handleOpenInOpenReel}
-                  disabled={isRendering || isStitching}
-                  className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-muted-foreground/45 hover:text-foreground/80 hover:bg-white/[0.04] transition-all disabled:opacity-40"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  <span className="text-[10px] font-medium hidden lg:inline">OpenReel</span>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-[10px] max-w-[200px] text-center">
-                Open in OpenReel — professional browser editor
-              </TooltipContent>
-            </Tooltip>
-
-            <div className="w-px h-4 bg-white/[0.05] mx-0.5" />
-
-            {/* Export — hero CTA */}
-            {isRendering ? (
-              <button
-                onClick={() => renderer?.reset()}
-                className="h-7 px-3 flex items-center gap-1.5 rounded-lg text-[10px] font-semibold text-destructive bg-destructive/8 border border-destructive/20"
-              >
-                <X className="w-3 h-3" />
-                Cancel {Math.round(renderProgress * 100)}%
-              </button>
-            ) : (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={exportVideo}
-                    disabled={isStitching || isDownloading}
-                    className="h-7 px-4 flex items-center gap-1.5 rounded-lg text-[10px] font-bold relative overflow-hidden group disabled:opacity-40"
-                    style={{
-                      background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(270 70% 55%))',
-                      color: 'white',
-                      boxShadow: '0 1px 10px hsla(263, 70%, 58%, 0.25)',
-                    }}
+                    onClick={() => setShowShortcuts(prev => !prev)}
+                    className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground/30 hover:text-foreground/70 hover:bg-white/[0.04] transition-all"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                    {isDownloading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-                    <span>{isDownloading ? "Exporting…" : "Export"}</span>
+                    <Keyboard className="w-3.5 h-3.5" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-[10px]">Export video (⌘E)</TooltipContent>
+                <TooltipContent side="bottom" className="text-[10px]">Shortcuts (?)</TooltipContent>
               </Tooltip>
-            )}
+            </div>
+
+            <div className="w-px h-5 bg-white/[0.06]" />
+
+            {/* Primary actions group */}
+            <div className="flex items-center gap-0.5 ml-1">
+              {/* Save */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => saveProject(sessionTitle)}
+                    disabled={saving}
+                    className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.06] transition-all disabled:opacity-40 border border-transparent hover:border-white/[0.06]"
+                  >
+                    {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    <span className="text-[11px] font-semibold hidden sm:inline">Save</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-[10px]">Save (⌘S)</TooltipContent>
+              </Tooltip>
+
+              {/* Stitch */}
+              {isStitching ? (
+                <button
+                  onClick={() => resetStitch()}
+                  className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-[11px] font-semibold"
+                  style={{ background: 'hsla(263, 70%, 58%, 0.1)', color: 'hsl(var(--primary))' }}
+                >
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  {Math.round(stitchProgress)}%
+                </button>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={handleStitch}
+                      disabled={isRendering}
+                      className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.06] transition-all disabled:opacity-40 border border-transparent hover:border-white/[0.06]"
+                    >
+                      <Film className="w-3.5 h-3.5" />
+                      <span className="text-[11px] font-semibold hidden sm:inline">Stitch</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-[10px]">Server-side stitch</TooltipContent>
+                </Tooltip>
+              )}
+
+              {/* OpenReel */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleOpenInOpenReel}
+                    disabled={isRendering || isStitching}
+                    className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.06] transition-all disabled:opacity-40 border border-transparent hover:border-white/[0.06]"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span className="text-[11px] font-semibold hidden lg:inline">OpenReel</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-[10px] max-w-[200px] text-center">
+                  Open in OpenReel — professional browser editor
+                </TooltipContent>
+              </Tooltip>
+
+              <div className="w-px h-5 bg-white/[0.06] mx-0.5" />
+
+              {/* Export — hero CTA */}
+              {isRendering ? (
+                <button
+                  onClick={() => renderer?.reset()}
+                  className="h-8 px-4 flex items-center gap-1.5 rounded-lg text-[11px] font-bold text-destructive bg-destructive/10 border border-destructive/20"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Cancel {Math.round(renderProgress * 100)}%
+                </button>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={exportVideo}
+                      disabled={isStitching || isDownloading}
+                      className="h-8 px-5 flex items-center gap-2 rounded-lg text-[11px] font-bold relative overflow-hidden group disabled:opacity-40"
+                      style={{
+                        background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(270 70% 55%))',
+                        color: 'white',
+                        boxShadow: '0 2px 16px hsla(263, 70%, 58%, 0.3), inset 0 1px 0 hsla(0,0%,100%,0.1)',
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                      {isDownloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                      <span>{isDownloading ? "Exporting…" : "Export"}</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-[10px]">Export video (⌘E)</TooltipContent>
+                </Tooltip>
+              )}
+            </div>
           </div>
         </motion.div>
+
         {/* Render progress bar */}
         <AnimatePresence>
           {isRendering && (
@@ -825,10 +827,7 @@ export function EditorChrome({
 
           {/* Center — Player + Timeline */}
           <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-            {/* Video player — top 40% */}
             <VideoPreviewPlayer className="h-[40%] shrink-0" />
-
-            {/* Timeline — bottom 60% (permanently raised) */}
             <CustomTimeline className="flex-1 min-h-0" onOpenTextDialog={() => setTextDialogOpen(true)} />
           </div>
 
@@ -836,60 +835,67 @@ export function EditorChrome({
           <ClipPropertiesPanel />
         </div>
 
-        {/* ═══════════════ STATUS BAR — Refined minimal ═══════════════ */}
+        {/* ═══════════════ STATUS BAR ═══════════════ */}
         <div
-          className="h-6 flex items-center px-4 shrink-0 z-10 select-none overflow-hidden gap-3"
+          className="h-7 flex items-center px-4 shrink-0 z-10 select-none overflow-hidden gap-4"
           style={{
-            background: 'hsl(240 25% 4%)',
-            borderTop: '1px solid hsla(263, 70%, 58%, 0.04)',
+            background: 'linear-gradient(180deg, hsl(240 22% 5.5%) 0%, hsl(240 25% 4%) 100%)',
+            borderTop: '1px solid hsla(263, 70%, 58%, 0.06)',
           }}
         >
           {/* Left stats */}
-          <div className="flex items-center gap-2.5 text-[9px] text-muted-foreground/30 shrink-0 whitespace-nowrap">
+          <div className="flex items-center gap-3 text-[9px] text-muted-foreground/35 shrink-0 whitespace-nowrap font-medium">
             <span className="flex items-center gap-1">
               <Layers className="w-2.5 h-2.5 shrink-0" />
               {trackCount} track{trackCount !== 1 ? "s" : ""}
             </span>
-            <span className="w-px h-2.5 bg-white/[0.04]" />
+            <span className="w-px h-3 bg-white/[0.05]" />
             <span className="flex items-center gap-1">
-              <Sparkles className="w-2.5 h-2.5 shrink-0" />
+              <Film className="w-2.5 h-2.5 shrink-0" />
               {elementCount} clip{elementCount !== 1 ? "s" : ""}
             </span>
             {mediaCounts.videos > 0 && (
               <>
-                <span className="w-px h-2.5 bg-white/[0.04]" />
+                <span className="w-px h-3 bg-white/[0.05]" />
                 <span>{mediaCounts.videos} in library</span>
               </>
             )}
           </div>
 
-          {/* Center */}
+          {/* Center — save indicator */}
           <div className="flex-1 min-w-0 flex items-center justify-center">
-            <div className="text-[9px]">
+            <div className="text-[9px] font-medium">
               {hasUnsavedChanges ? (
                 <span className="text-amber-400/50 flex items-center gap-1">
-                  <Clock className="w-2.5 h-2.5 shrink-0" /> Unsaved
+                  <motion.div
+                    animate={{ scale: [1, 1.3, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <Clock className="w-2.5 h-2.5 shrink-0" />
+                  </motion.div>
+                  Unsaved changes
                 </span>
               ) : (
-                <span className="text-emerald-400/35 flex items-center gap-1">
-                  <Check className="w-2.5 h-2.5 shrink-0" /> Saved
+                <span className="text-emerald-400/40 flex items-center gap-1">
+                  <Check className="w-2.5 h-2.5 shrink-0" /> All changes saved
                 </span>
               )}
             </div>
           </div>
 
-          {/* Right */}
-          <div className="flex items-center gap-2.5 text-[9px] text-muted-foreground/30 shrink-0 whitespace-nowrap">
+          {/* Right — tech info */}
+          <div className="flex items-center gap-3 text-[9px] text-muted-foreground/30 shrink-0 whitespace-nowrap font-mono">
             <span>1920×1080</span>
-            <span className="w-px h-2.5 bg-white/[0.04]" />
+            <span className="w-px h-3 bg-white/[0.05]" />
             <span>30fps</span>
-            <span className="w-px h-2.5 bg-white/[0.04]" />
+            <span className="w-px h-3 bg-white/[0.05]" />
             <span className="flex items-center gap-1">
               <Zap className="w-2.5 h-2.5 text-primary/30 shrink-0" />
               WebCodecs
             </span>
           </div>
         </div>
+
         {/* Text Clip Dialog */}
         <TextClipDialog open={textDialogOpen} onOpenChange={setTextDialogOpen} />
 

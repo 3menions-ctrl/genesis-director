@@ -1,13 +1,14 @@
 /**
- * MediaSidebar — Premium CapCut-style media browser
- * Collapsible with smooth transition, glassmorphic panels, refined thumbnails
+ * MediaSidebar — Premium collapsible media browser
+ * Rich empty state, drag target hint, glassmorphic panels
  */
 
 import { memo, useState, useMemo } from "react";
-import { Film, Loader2, Plus, Search, Clock, Layers, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Film, Loader2, Plus, Search, Clock, Layers, PanelLeftClose, PanelLeftOpen, Upload, Sparkles } from "lucide-react";
 import { EditorClip } from "@/hooks/useEditorClips";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Tooltip,
   TooltipContent,
@@ -46,22 +47,21 @@ export const MediaSidebar = memo(function MediaSidebar({
 
   return (
     <div
-      className="shrink-0 flex flex-col border-r overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+      className="shrink-0 flex flex-col overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
       style={{
-        width: collapsed ? 44 : 224,
-        background: 'linear-gradient(180deg, hsl(240 20% 7%) 0%, hsl(240 25% 5%) 100%)',
-        borderColor: 'hsla(263, 70%, 58%, 0.06)',
+        width: collapsed ? 48 : 240,
+        background: 'linear-gradient(180deg, hsl(240 18% 7%) 0%, hsl(240 22% 5%) 100%)',
+        borderRight: '1px solid hsla(263, 70%, 58%, 0.06)',
       }}
     >
-      {/* Collapsed state — icon strip */}
+      {/* Collapsed state */}
       {collapsed ? (
-        <div className="flex flex-col items-center py-2 gap-1 h-full">
-          {/* Expand button */}
+        <div className="flex flex-col items-center py-3 gap-2 h-full">
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 onClick={() => setCollapsed(false)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground/40 hover:text-foreground hover:bg-white/[0.04] transition-all"
+                className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground/40 hover:text-foreground hover:bg-white/[0.06] transition-all"
               >
                 <PanelLeftOpen className="w-4 h-4" />
               </button>
@@ -69,40 +69,47 @@ export const MediaSidebar = memo(function MediaSidebar({
             <TooltipContent side="right" className="text-[10px]">Expand media panel</TooltipContent>
           </Tooltip>
 
-          <div className="w-6 h-px my-1" style={{ background: 'hsla(263, 70%, 58%, 0.08)' }} />
+          <div className="w-7 h-px" style={{ background: 'hsla(263, 70%, 58%, 0.08)' }} />
 
-          {/* Media icon */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'hsla(263, 70%, 58%, 0.08)' }}>
-                <Layers className="w-3.5 h-3.5 text-primary/60" />
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center relative" style={{ background: 'hsla(263, 70%, 58%, 0.1)' }}>
+                <Layers className="w-4 h-4 text-primary/60" />
+                {clipCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full flex items-center justify-center text-[8px] font-bold bg-primary text-white px-0.5">
+                    {clipCount}
+                  </span>
+                )}
               </div>
             </TooltipTrigger>
             <TooltipContent side="right" className="text-[10px]">{clipCount} clips available</TooltipContent>
           </Tooltip>
 
-          {loading && <Loader2 className="w-3.5 h-3.5 animate-spin text-primary/40 mt-1" />}
-
-          {/* Clip count badge */}
-          {clipCount > 0 && (
-            <span className="text-[9px] font-mono font-bold text-muted-foreground/30 mt-1">
-              {clipCount}
-            </span>
-          )}
+          {loading && <Loader2 className="w-4 h-4 animate-spin text-primary/40 mt-1" />}
         </div>
       ) : (
         <>
           {/* Header */}
           <div
-            className="shrink-0 px-3 py-3 border-b"
-            style={{ borderColor: 'hsla(263, 70%, 58%, 0.06)' }}
+            className="shrink-0 px-3 py-3"
+            style={{ borderBottom: '1px solid hsla(263, 70%, 58%, 0.06)' }}
           >
-            <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'hsla(263, 70%, 58%, 0.12)' }}>
+                <div
+                  className="w-7 h-7 rounded-lg flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, hsla(263, 70%, 58%, 0.15), hsla(263, 70%, 58%, 0.05))' }}
+                >
                   <Layers className="w-3.5 h-3.5 text-primary" />
                 </div>
-                <span className="text-[11px] font-bold text-foreground/90 tracking-wide uppercase">Media</span>
+                <div>
+                  <span className="text-[12px] font-bold text-foreground/90 tracking-wide block leading-none">Media</span>
+                  {clips.length > 0 && (
+                    <span className="text-[9px] text-muted-foreground/35 mt-0.5 block">
+                      {clipCount} clips · {totalDuration.toFixed(0)}s
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-1">
                 {loading && <Loader2 className="w-3.5 h-3.5 animate-spin text-primary/50" />}
@@ -110,7 +117,7 @@ export const MediaSidebar = memo(function MediaSidebar({
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => setCollapsed(true)}
-                      className="w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground/30 hover:text-foreground hover:bg-white/[0.04] transition-all"
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/30 hover:text-foreground hover:bg-white/[0.06] transition-all"
                     >
                       <PanelLeftClose className="w-3.5 h-3.5" />
                     </button>
@@ -122,95 +129,116 @@ export const MediaSidebar = memo(function MediaSidebar({
 
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground/30" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/30" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search clips…"
-                className="w-full h-7 pl-7 pr-2 rounded-lg text-[11px] bg-white/[0.03] border border-white/[0.06] text-foreground/80 placeholder:text-muted-foreground/25 outline-none focus:border-primary/30 focus:bg-white/[0.05] transition-all"
+                className="w-full h-8 pl-8 pr-3 rounded-lg text-[11px] bg-white/[0.04] border border-white/[0.06] text-foreground/80 placeholder:text-muted-foreground/25 outline-none focus:border-primary/30 focus:bg-white/[0.06] transition-all"
               />
             </div>
-
-            {/* Stats bar */}
-            {clips.length > 0 && (
-              <div className="flex items-center gap-3 mt-2 text-[9px] text-muted-foreground/35">
-                <span className="flex items-center gap-1">
-                  <Film className="w-2.5 h-2.5" />
-                  {clipCount} clips
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="w-2.5 h-2.5" />
-                  {totalDuration.toFixed(0)}s total
-                </span>
-              </div>
-            )}
           </div>
 
           {/* Clips list */}
           <ScrollArea className="flex-1 min-h-0">
             <div className="p-2 space-y-1">
               {filtered.length === 0 && !loading && (
-                <div className="flex flex-col items-center py-12 gap-3 text-muted-foreground/20">
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'hsla(263, 70%, 58%, 0.06)' }}>
-                    <Film className="w-6 h-6" />
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex flex-col items-center py-10 gap-4 text-muted-foreground/20"
+                >
+                  {/* Rich empty state */}
+                  <div
+                    className="w-16 h-16 rounded-2xl flex items-center justify-center relative"
+                    style={{
+                      background: 'linear-gradient(135deg, hsla(263, 70%, 58%, 0.08), hsla(263, 70%, 58%, 0.02))',
+                      border: '1px dashed hsla(263, 70%, 58%, 0.15)',
+                    }}
+                  >
+                    {search ? (
+                      <Search className="w-7 h-7 text-muted-foreground/20" />
+                    ) : (
+                      <Upload className="w-7 h-7 text-muted-foreground/20" />
+                    )}
+                    <Sparkles className="w-3 h-3 text-primary/30 absolute -top-1 -right-1" />
                   </div>
-                  <div className="text-center space-y-1">
-                    <p className="text-[11px] font-medium text-muted-foreground/30">No clips found</p>
-                    <p className="text-[10px] text-muted-foreground/20">
-                      {search ? "Try a different search" : "Import projects to load clips"}
+                  <div className="text-center space-y-1.5 px-4">
+                    <p className="text-[12px] font-semibold text-muted-foreground/40">
+                      {search ? "No matching clips" : "No clips yet"}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground/25 leading-relaxed">
+                      {search
+                        ? "Try a different search term"
+                        : "Import projects from the toolbar to load your video clips here"
+                      }
                     </p>
                   </div>
+                </motion.div>
+              )}
+
+              {loading && filtered.length === 0 && (
+                <div className="flex flex-col items-center py-10 gap-3">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary/30" />
+                  <p className="text-[11px] text-muted-foreground/30">Loading clips…</p>
                 </div>
               )}
 
-              {filtered.map((clip) => (
-                <button
-                  key={clip.id}
-                  onClick={() => onAddClip(clip)}
-                  className={cn(
-                    "w-full flex items-start gap-2.5 p-2 rounded-xl transition-all duration-200 group text-left",
-                    "border border-transparent",
-                    "hover:bg-white/[0.04] hover:border-primary/15",
-                    "active:scale-[0.98]"
-                  )}
-                >
-                  {/* Thumbnail */}
-                  <div className="w-16 h-10 rounded-lg overflow-hidden shrink-0 relative" style={{ background: 'hsl(240 25% 8%)' }}>
-                    {clip.thumbnailUrl ? (
-                      <img
-                        src={clip.thumbnailUrl}
-                        alt=""
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Film className="w-4 h-4 text-muted-foreground/20" />
-                      </div>
+              <AnimatePresence>
+                {filtered.map((clip, i) => (
+                  <motion.button
+                    key={clip.id}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: Math.min(i * 0.02, 0.3) }}
+                    onClick={() => onAddClip(clip)}
+                    className={cn(
+                      "w-full flex items-start gap-2.5 p-2 rounded-xl transition-all duration-200 group text-left",
+                      "border border-transparent",
+                      "hover:bg-white/[0.05] hover:border-primary/15",
+                      "active:scale-[0.98]"
                     )}
-                    {/* Duration badge */}
-                    {clip.durationSeconds && (
-                      <div className="absolute bottom-0.5 right-0.5 px-1 py-px rounded text-[7px] font-mono font-bold bg-black/70 text-white/80 backdrop-blur-sm">
-                        {clip.durationSeconds.toFixed(1)}s
+                  >
+                    {/* Thumbnail */}
+                    <div className="w-[72px] h-[44px] rounded-lg overflow-hidden shrink-0 relative" style={{ background: 'hsl(240 25% 8%)' }}>
+                      {clip.thumbnailUrl ? (
+                        <img
+                          src={clip.thumbnailUrl}
+                          alt=""
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Film className="w-4 h-4 text-muted-foreground/20" />
+                        </div>
+                      )}
+                      {/* Duration badge */}
+                      {clip.durationSeconds && (
+                        <div className="absolute bottom-0.5 right-0.5 px-1 py-px rounded text-[8px] font-mono font-bold bg-black/75 text-white/80 backdrop-blur-sm">
+                          {clip.durationSeconds.toFixed(1)}s
+                        </div>
+                      )}
+                      {/* Hover overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-primary/15 backdrop-blur-[2px]">
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center bg-primary/80 shadow-lg">
+                          <Plus className="w-3.5 h-3.5 text-white" />
+                        </div>
                       </div>
-                    )}
-                    {/* Hover overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-primary/10 backdrop-blur-[1px]">
-                      <Plus className="w-4 h-4 text-primary" />
                     </div>
-                  </div>
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0 py-0.5">
-                    <p className="text-[11px] font-semibold text-foreground/75 truncate leading-tight group-hover:text-foreground/90 transition-colors">
-                      Shot {clip.shotIndex + 1}
-                    </p>
-                    <p className="text-[9px] text-muted-foreground/35 truncate mt-0.5">
-                      {clip.projectTitle}
-                    </p>
-                  </div>
-                </button>
-              ))}
+                    {/* Info */}
+                    <div className="flex-1 min-w-0 py-0.5">
+                      <p className="text-[11px] font-semibold text-foreground/75 truncate leading-tight group-hover:text-foreground/90 transition-colors">
+                        Shot {clip.shotIndex + 1}
+                      </p>
+                      <p className="text-[9px] text-muted-foreground/35 truncate mt-0.5">
+                        {clip.projectTitle}
+                      </p>
+                    </div>
+                  </motion.button>
+                ))}
+              </AnimatePresence>
             </div>
           </ScrollArea>
         </>

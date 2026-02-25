@@ -49,6 +49,16 @@ export interface TimelineClip {
   opacity?: number;
   /** Custom color label for organization */
   colorLabel?: string;
+  /** Brightness adjustment -100 to 100 (default 0) */
+  brightness?: number;
+  /** Contrast adjustment -100 to 100 (default 0) */
+  contrast?: number;
+  /** Saturation adjustment -100 to 100 (default 0) */
+  saturation?: number;
+  /** Transition type to next clip */
+  transition?: "none" | "fade" | "wipeleft" | "wiperight" | "slideup" | "slidedown" | "dissolve";
+  /** Transition duration in seconds */
+  transitionDuration?: number;
 }
 
 export interface TimelineTrack {
@@ -456,6 +466,11 @@ export function toProjectJSON(state: TimelineState): any {
           fadeOut: c.fadeOut,
           opacity: c.opacity,
           colorLabel: c.colorLabel,
+          brightness: c.brightness,
+          contrast: c.contrast,
+          saturation: c.saturation,
+          transition: c.transition,
+          transitionDuration: c.transitionDuration,
         },
       })),
     })),
@@ -486,12 +501,17 @@ export function fromProjectJSON(json: any): Partial<TimelineState> {
         thumbnail: el.props?.thumbnail,
         sourceDuration: el.props?.sourceDuration,
         textStyle: el.props?.textStyle,
-        volume: el.props?.volume,
-        speed: el.props?.speed,
-        fadeIn: el.props?.fadeIn,
-        fadeOut: el.props?.fadeOut,
-        opacity: el.props?.opacity,
-        colorLabel: el.props?.colorLabel,
+          volume: el.props?.volume,
+          speed: el.props?.speed,
+          fadeIn: el.props?.fadeIn,
+          fadeOut: el.props?.fadeOut,
+          opacity: el.props?.opacity,
+          colorLabel: el.props?.colorLabel,
+          brightness: el.props?.brightness,
+          contrast: el.props?.contrast,
+          saturation: el.props?.saturation,
+          transition: el.props?.transition,
+          transitionDuration: el.props?.transitionDuration,
       })),
     })),
     fps: json.fps || 30,

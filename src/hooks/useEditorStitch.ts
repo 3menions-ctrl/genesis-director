@@ -9,6 +9,11 @@ export interface StitchClip {
   speed?: number;
   fadeIn?: number;
   fadeOut?: number;
+  brightness?: number;
+  contrast?: number;
+  saturation?: number;
+  transition?: string;
+  transitionDuration?: number;
 }
 
 export interface StitchConfig {

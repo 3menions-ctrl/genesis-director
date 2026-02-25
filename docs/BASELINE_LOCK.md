@@ -105,3 +105,46 @@ GlobalStabilityBoundary
 ```
 
 Do NOT reorder these providers.
+
+## Projects Page Design Lock (Locked 2026-02-25)
+
+The `/projects` page follows a premium cinematic gallery aesthetic. Do NOT alter this design without explicit approval.
+
+### Layout & Structure
+- **No page title** — content-first, editorial gallery feel
+- **AppHeader** at top with compact navigation fitting all menu items
+- **ProjectsBackground** — fixed ambient aurora gradients, particle dust, film grain, vignette (pure CSS, no SVG filters)
+- **ProjectsHero** — ultra-minimal ambient glow header (no counters/stats)
+- **ProjectsCategoryTabs** — pill-style Videos/Images toggle with sliding active indicator, frosted glass, primary-color glow, spring transitions
+- **MagazineGrid** — hero spotlight (first project = full-width cinematic card) + masonry 3-col grid with staggered reveal animations
+- **PhotoGrid** — displayed when Images mode is active
+- **No floating create button** — removed for minimalism
+
+### Visual Signatures
+- Frosted glass surfaces (`bg-white/[0.03]`, `border-white/[0.06]`)
+- Staggered `gallery-reveal` keyframe animations (translateY + scale + blur)
+- Aurora drift keyframes for background gradients
+- Particle dust (20 CSS-only floating dots)
+- Film grain texture overlay
+- Cinematic vignette edge darkening
+
+### Component Hierarchy
+```
+AppHeader
+ProjectsBackground (fixed)
+ProjectsHero (ambient glow)
+SearchBar + Filters
+ProjectsCategoryTabs (Videos | Images toggle)
+  → Videos: MagazineGrid (hero + masonry)
+  → Images: PhotoGrid
+InfiniteScroll loader
+MergeDownloadDialog (modal)
+```
+
+### Key Constraints
+- No explicit page title or stats counters
+- Category tabs are a 2-mode toggle only (Videos / Images)
+- Hero card is always the first project in the list
+- Grid uses `gallery-reveal` staggered animation with blur-in
+- Background uses CSS-only animations (no framer-motion)
+- Motion components are CSS shims (framer-motion disabled for stability)

@@ -781,9 +781,9 @@ export function EditorChrome({
                       disabled={isStitching || isDownloading}
                       className="h-8 px-5 flex items-center gap-2 rounded-lg text-[11px] font-bold relative overflow-hidden group disabled:opacity-40"
                       style={{
-                        background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(270 70% 55%))',
-                        color: 'white',
-                        boxShadow: '0 2px 16px hsla(263, 70%, 58%, 0.3), inset 0 1px 0 hsla(0,0%,100%,0.1)',
+                        background: 'hsla(0, 0%, 100%, 0.9)',
+                        color: 'hsla(0, 0%, 0%, 0.9)',
+                        boxShadow: '0 2px 16px hsla(0, 0%, 100%, 0.15), inset 0 1px 0 hsla(0,0%,100%,0.2)',
                       }}
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />

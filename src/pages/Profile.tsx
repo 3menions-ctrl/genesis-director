@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, memo, forwardRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useSafeNavigation } from '@/lib/navigation';
@@ -19,7 +19,7 @@ import {
   Flame, Target, Award, ChevronRight, Plus,
   Star, Heart, Users, Medal, Settings,
   BarChart3, MessageCircle, TrendingUp, Clock,
-  Calendar, Camera, Edit2, Loader2
+  Calendar, Camera, Edit2, Loader2, ExternalLink
 } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
@@ -374,6 +374,18 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                 <Plus className="w-4 h-4 mr-1" />
                 Buy Credits
               </Button>
+              {user && (
+                <Link to={`/user/${user.id}`}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 border-white/10 text-white/60 hover:text-white hover:bg-white/[0.05]"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    View Public Profile
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </section>

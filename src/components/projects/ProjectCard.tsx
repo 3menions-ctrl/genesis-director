@@ -1,16 +1,17 @@
 /**
- * ProjectCard Component — Gallery-Inspired Premium Redesign
+ * ProjectCard Component — Gallery-Tier Premium Redesign
  * 
- * Modern sliding gallery aesthetic with:
- * - Cinematic 16:9 cards with glassmorphism overlays
- * - Hover-to-preview with smooth scale transitions
- * - Floating quick-action buttons with glow effects
- * - Refined typography and status indicators
+ * Inspired by Apple TV+, MUBI, and Criterion Collection galleries.
+ * Rich cinematic cards with:
+ * - Deep atmospheric gradient overlays
+ * - Refined glassmorphic interactions
+ * - Editorial typography with subtle metadata
+ * - Luminous hover states with depth
  */
 
 import { memo, forwardRef, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { 
-  MoreVertical, Trash2, Edit2, Film, Play, 
+  MoreVertical, Trash2, Film, Play, 
   Download, Loader2, Clock, 
   Pencil, RefreshCw, AlertCircle,
   Pin, PinOff, Globe, Lock, MonitorPlay
@@ -113,7 +114,6 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
       )
     : false;
   
-  // mse_direct projects store clips in pending_video_tasks.mseClipUrls
   const mseClipUrls = Array.isArray(pendingTasks?.mseClipUrls) ? pendingTasks.mseClipUrls as string[] : null;
   const hasMseClips = Boolean(mseClipUrls && mseClipUrls.length > 0);
   
@@ -187,7 +187,6 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     if (isDirectVideo && project.video_url && !project.video_url.includes('replicate.delivery')) {
       return project.video_url;
     }
-    // Fallback: use first mseClipUrl for thumbnail/hover preview
     if (mseClipUrls && mseClipUrls.length > 0) {
       return mseClipUrls[0];
     }
@@ -209,16 +208,13 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     }
   }, []);
 
-  // Concurrency-controlled hover: debounce 150ms, request load slot before mounting video
   const handleInteractionStart = useCallback(() => {
     if (!isMountedRef.current) return;
-    // Clear any pending unhover
     if (hoverTimerRef.current) { clearTimeout(hoverTimerRef.current); hoverTimerRef.current = null; }
     setIsHovered(true);
 
     if (!hasVideo || !videoSrc) return;
 
-    // Debounce: wait 150ms before requesting a load slot (avoids rapid hover storms)
     hoverTimerRef.current = setTimeout(async () => {
       if (!isMountedRef.current) return;
       await requestLoadSlot();
@@ -227,7 +223,6 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     }, 150);
   }, [hasVideo, videoSrc]);
 
-  // Release load slot on hover end
   const handleInteractionEnd = useCallback(() => {
     if (!isMountedRef.current) return;
     if (hoverTimerRef.current) { clearTimeout(hoverTimerRef.current); hoverTimerRef.current = null; }
@@ -240,7 +235,6 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     }
   }, [videoSlotGranted]);
 
-  // Cleanup on unmount: release slot if held
   useEffect(() => {
     return () => {
       if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
@@ -266,14 +260,14 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
       <div
         ref={ref}
         className={cn(
-          "group flex items-center gap-4 p-3 rounded-xl transition-all duration-200 cursor-pointer",
-          "bg-white/[0.02] border border-white/[0.04]",
-          "hover:bg-white/[0.05] hover:border-white/[0.08]",
+          "group flex items-center gap-4 p-3 rounded-xl transition-all duration-300 cursor-pointer",
+          "bg-white/[0.015] border border-white/[0.04]",
+          "hover:bg-white/[0.04] hover:border-white/[0.08]",
           isActive && "ring-1 ring-primary/30"
         )}
         onClick={onPlay}
       >
-        <div className="relative w-28 h-16 rounded-lg overflow-hidden bg-white/[0.03] shrink-0">
+        <div className="relative w-32 h-[72px] rounded-lg overflow-hidden bg-white/[0.02] shrink-0">
           {hasVideo && videoSrc ? (
             project.thumbnail_url ? (
               <img src={project.thumbnail_url} alt={project.name} className="w-full h-full object-cover" />
@@ -282,7 +276,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
             )
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              {isProcessing ? <Loader2 className="w-4 h-4 text-white/20 animate-spin" /> : <Film className="w-4 h-4 text-white/10" />}
+              {isProcessing ? <Loader2 className="w-4 h-4 text-white/20 animate-spin" /> : <Film className="w-4 h-4 text-white/[0.06]" />}
             </div>
           )}
           {isPinned && (
@@ -293,16 +287,8 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium text-white/90 truncate">{project.name}</h3>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs text-white/30">{formatTimeAgo(project.updated_at)}</span>
-            {(project.video_clips?.length ?? 0) > 0 && (
-              <>
-                <span className="text-white/10">·</span>
-                <span className="text-xs text-white/30">{project.video_clips?.length} clips</span>
-              </>
-            )}
-          </div>
+          <h3 className="text-sm font-medium text-foreground/90 truncate">{project.name}</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">{formatTimeAgo(project.updated_at)}</p>
         </div>
 
         <div className="shrink-0">
@@ -313,7 +299,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
 
         <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {hasVideo && (
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-white/30 hover:text-white hover:bg-white/10" onClick={(e) => { e.stopPropagation(); onPlay(); }}>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-white/10" onClick={(e) => { e.stopPropagation(); onPlay(); }}>
               <Play className="w-3.5 h-3.5" fill="currentColor" />
             </Button>
           )}
@@ -323,7 +309,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     );
   }
 
-  // ============= GRID VIEW — MAGAZINE PREMIUM =============
+  // ============= GRID VIEW — GALLERY PREMIUM =============
   const showContentOverlay = isTouchDevice || isHovered;
   
   const handleCardClick = useCallback(() => {
@@ -335,9 +321,9 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     <div
       ref={ref}
       className={cn(
-        "group relative cursor-pointer overflow-hidden transition-all duration-700 ease-out",
-        "rounded-[20px]",
-        !isTouchDevice && "hover:-translate-y-1.5 hover:shadow-[0_30px_80px_-20px_rgba(124,58,237,0.15)]"
+        "group relative cursor-pointer overflow-hidden transition-all duration-700 ease-out animate-fade-in",
+        "rounded-2xl",
+        !isTouchDevice && "hover:-translate-y-2 hover:shadow-[0_40px_100px_-30px_rgba(124,58,237,0.12)]"
       )}
       style={{ animationDelay: `${Math.min(index * 0.06, 0.5)}s` }}
       onMouseEnter={!isTouchDevice ? handleMouseEnter : undefined}
@@ -346,20 +332,20 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
       onTouchEnd={isTouchDevice ? handleTouchEnd : undefined}
       onClick={handleCardClick}
     >
-      {/* Shimmer border on hover */}
+      {/* Luminous border on hover — violet to cyan gradient edge */}
       <div className={cn(
-        "absolute -inset-[1px] rounded-[21px] transition-opacity duration-700 z-0 pointer-events-none",
+        "absolute -inset-px rounded-[17px] transition-opacity duration-700 z-0 pointer-events-none",
         isHovered ? "opacity-100" : "opacity-0"
       )} style={{
-        background: 'linear-gradient(135deg, rgba(124,58,237,0.3), rgba(6,182,212,0.2), rgba(124,58,237,0.1))',
+        background: 'linear-gradient(135deg, hsl(263 70% 58% / 0.35), hsl(195 90% 50% / 0.2), hsl(263 70% 58% / 0.15))',
       }} />
 
-      {/* Card container */}
+      {/* Card body */}
       <div className={cn(
-        "relative overflow-hidden rounded-[20px] transition-all duration-700",
-        "bg-white/[0.02] border border-white/[0.05]",
+        "relative overflow-hidden rounded-2xl transition-all duration-700",
+        "bg-surface-1/80 border border-white/[0.05]",
         "aspect-video",
-        isHovered && "border-transparent bg-white/[0.04]",
+        isHovered && "border-transparent",
         isActive && "ring-2 ring-primary/30"
       )}>
         
@@ -369,7 +355,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
             {isIOSSafari ? (
               videoSlotGranted ? (
                 <video ref={videoRef} src={videoSrc}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 ease-out scale-[1.08]"
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] ease-out scale-[1.06]"
                   loop muted playsInline preload="none"
                   onLoadedMetadata={handleVideoMetadataLoaded}
                   onCanPlay={(e) => { safeSeek(e.currentTarget, 0); safePlay(e.currentTarget); }}
@@ -395,7 +381,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
                 </div>
                 {videoSlotGranted && (
                   <video ref={videoRef} src={videoSrc}
-                    className="absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-out opacity-100 scale-[1.03]"
+                    className="absolute inset-0 w-full h-full object-cover transition-all duration-[1200ms] ease-out opacity-100 scale-[1.02]"
                     loop muted playsInline preload="none"
                     onLoadedMetadata={handleVideoMetadataLoaded}
                     onCanPlay={(e) => { safeSeek(e.currentTarget, 0); safePlay(e.currentTarget); }}
@@ -405,86 +391,87 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
             )}
           </>
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/[0.01]">
+          <div className="absolute inset-0 flex items-center justify-center bg-surface-0">
             {isProcessing ? (
               <div className="relative flex flex-col items-center gap-3">
-                <div className="w-14 h-14 rounded-full border border-white/[0.06] border-t-primary/40 animate-spin" />
-                <span className="text-[9px] uppercase tracking-[0.25em] text-white/15 font-medium">Processing</span>
+                <div className="w-12 h-12 rounded-full border border-white/[0.06] border-t-primary/40 animate-spin" />
+                <span className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground font-medium">Rendering</span>
               </div>
             ) : isFailed ? (
               <div className="flex flex-col items-center gap-2">
-                <AlertCircle className="w-8 h-8 text-red-400/30" strokeWidth={1} />
-                <span className="text-[9px] uppercase tracking-[0.25em] text-red-400/30 font-medium">Failed</span>
+                <AlertCircle className="w-7 h-7 text-destructive/30" strokeWidth={1} />
+                <span className="text-[9px] uppercase tracking-[0.3em] text-destructive/40 font-medium">Failed</span>
               </div>
             ) : (
-              <Film className="w-14 h-14 text-white/[0.03]" strokeWidth={0.5} />
+              <Film className="w-12 h-12 text-white/[0.03]" strokeWidth={0.5} />
             )}
           </div>
         )}
 
-        {/* Cinematic gradient overlay — deeper, more dramatic */}
+        {/* Cinematic gradient overlay — rich atmospheric depth */}
         <div className={cn(
-          "absolute inset-0 transition-opacity duration-700",
-          isTouchDevice ? "opacity-100" : (isHovered ? "opacity-100" : "opacity-40")
+          "absolute inset-0 transition-opacity duration-700 pointer-events-none",
+          isTouchDevice ? "opacity-100" : (isHovered ? "opacity-100" : "opacity-50")
         )} style={{
-          background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.05) 70%, transparent 100%)',
+          background: 'linear-gradient(to top, hsl(250 15% 4% / 0.95) 0%, hsl(250 15% 4% / 0.5) 35%, hsl(250 15% 4% / 0.1) 65%, transparent 100%)',
         }} />
 
-        {/* Center play — refined glass orb */}
+        {/* Top vignette for status badges */}
+        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/30 to-transparent pointer-events-none" />
+
+        {/* Center play orb — glassmorphic with luminous ring */}
         {hasVideo && (
           <div className={cn(
-            "absolute inset-0 flex items-center justify-center z-10 transition-all duration-600",
+            "absolute inset-0 flex items-center justify-center z-10 transition-all duration-500",
             isTouchDevice ? "opacity-100" : (isHovered ? "opacity-100" : "opacity-0")
           )}>
             <button
               onClick={(e) => { e.stopPropagation(); onPlay(); }}
-              className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-2xl flex items-center justify-center border border-white/20 hover:bg-white/20 hover:scale-110 transition-all duration-400 shadow-[0_12px_40px_rgba(0,0,0,0.5)]"
+              className={cn(
+                "w-14 h-14 rounded-full flex items-center justify-center transition-all duration-500",
+                "bg-white/[0.12] backdrop-blur-2xl border border-white/[0.18]",
+                "hover:bg-white/[0.20] hover:scale-110 hover:border-white/[0.28]",
+                "shadow-[0_8px_32px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.05)]"
+              )}
             >
-              <Play className="w-7 h-7 text-white ml-0.5" fill="currentColor" />
+              <Play className="w-6 h-6 text-white ml-0.5" fill="currentColor" />
             </button>
           </div>
         )}
 
-        {/* Top-left: Status badge */}
-        <div className="absolute top-3.5 left-3.5 z-20">
+        {/* Top-left: Status indicator — minimal pill */}
+        <div className="absolute top-3 left-3 z-20">
           {hasVideo && <StatusPill color="emerald" label="Ready" glass />}
-          {isProcessing && <StatusPill color="white" label="Processing" pulse glass />}
+          {isProcessing && <StatusPill color="white" label="Rendering" pulse glass />}
           {isFailed && <StatusPill color="red" label="Failed" glass />}
         </div>
 
-        {/* Top-right: Pin + More menu */}
+        {/* Top-right: Actions — appear on hover */}
         <div className={cn(
-          "absolute top-3.5 right-3.5 z-30 flex items-center gap-1.5 transition-all duration-400",
+          "absolute top-3 right-3 z-30 flex items-center gap-1.5 transition-all duration-500",
           isTouchDevice ? "opacity-100" : (isHovered ? "opacity-100" : "opacity-0")
         )}>
           {isPinned && (
-            <div className="w-7 h-7 rounded-lg bg-primary/80 flex items-center justify-center backdrop-blur-sm">
-              <Pin className="w-3 h-3 text-primary-foreground" />
+            <div className="w-6 h-6 rounded-lg bg-primary/80 flex items-center justify-center backdrop-blur-sm">
+              <Pin className="w-2.5 h-2.5 text-primary-foreground" />
             </div>
           )}
           <CardDropdown {...{ onEdit, onTogglePin, isPinned, onRename, hasVideo, onTogglePublic, project, status, onRetryStitch, isRetrying, onBrowserStitch, isBrowserStitching, onDelete }} />
         </div>
 
-        {/* Bottom info — minimal whisper text */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 z-20">
-          <h3 className="font-semibold text-white text-[13px] leading-tight line-clamp-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+        {/* Bottom metadata — editorial typography */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 pb-3.5 z-20">
+          <h3 className="font-display font-semibold text-white text-sm leading-snug line-clamp-1 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
             {project.name}
           </h3>
-          <div className="flex items-center gap-2.5 mt-1.5 text-white/30 text-[10px]">
-            <span className="flex items-center gap-1">
-              <Clock className="w-2.5 h-2.5" />
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className="text-[10px] text-white/25 font-medium tracking-wide">
               {formatTimeAgo(project.updated_at)}
             </span>
-            {(project.video_clips?.length ?? 0) > 0 && (
-              <>
-                <span className="text-white/10">·</span>
-                <span>{project.video_clips?.length} clips</span>
-              </>
-            )}
             {project.is_public && (
               <>
-                <span className="text-white/10">·</span>
-                <Globe className="w-2.5 h-2.5 text-emerald-400/50" />
+                <span className="w-px h-2.5 bg-white/[0.08]" />
+                <Globe className="w-2.5 h-2.5 text-emerald-400/40" />
               </>
             )}
           </div>
@@ -507,11 +494,11 @@ function StatusPill({ color, label, pulse, glass }: { color: string; label: stri
   return (
     <span className={cn(
       "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full",
-      glass ? "bg-black/40 backdrop-blur-sm" : "bg-white/[0.05]"
+      glass ? "bg-black/50 backdrop-blur-xl" : "bg-white/[0.05]"
     )}>
       <div className={cn("w-1 h-1 rounded-full", colors[color] || colors.white, pulse && "animate-pulse")} />
       <span className={cn(
-        "text-[10px] font-medium",
+        "text-[10px] font-medium tracking-wide",
         color === 'emerald' ? "text-emerald-300/90" : color === 'red' ? "text-red-300/80" : "text-white/60"
       )}>{label}</span>
     </span>
@@ -526,12 +513,12 @@ function CardDropdown({ onEdit, onTogglePin, isPinned, onRename, hasVideo, onTog
           variant="ghost"
           size="icon"
           onClick={(e: React.MouseEvent) => e.stopPropagation()}
-          className="h-7 w-7 rounded-lg bg-black/50 backdrop-blur-sm text-white/70 hover:text-white hover:bg-black/70 border border-white/10"
+          className="h-7 w-7 rounded-lg bg-black/50 backdrop-blur-xl text-white/60 hover:text-white hover:bg-black/70 border border-white/[0.08]"
         >
           <MoreVertical className="w-3.5 h-3.5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44 rounded-xl bg-zinc-900/95 border-white/[0.08] shadow-2xl backdrop-blur-2xl p-1">
+      <DropdownMenuContent align="end" className="w-44 rounded-xl bg-surface-1/95 border-white/[0.08] shadow-2xl backdrop-blur-2xl p-1">
         <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onTogglePin?.(); }} className="gap-2 text-sm text-white/60 focus:text-white focus:bg-white/[0.06] rounded-lg py-2 px-2.5">
           {isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
           {isPinned ? 'Unpin' : 'Pin to Top'}
@@ -546,7 +533,7 @@ function CardDropdown({ onEdit, onTogglePin, isPinned, onRename, hasVideo, onTog
           </DropdownMenuItem>
         )}
         {status === 'stitching_failed' && onRetryStitch && (
-          <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRetryStitch(); }} disabled={isRetrying} className="gap-2 text-sm text-amber-400 focus:text-amber-300 focus:bg-amber-500/10 rounded-lg py-2 px-2.5">
+          <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRetryStitch(); }} disabled={isRetrying} className="gap-2 text-sm text-warning focus:text-warning/80 focus:bg-warning/10 rounded-lg py-2 px-2.5">
             <RefreshCw className={cn("w-4 h-4", isRetrying && "animate-spin")} />Retry Stitch
           </DropdownMenuItem>
         )}
@@ -556,7 +543,7 @@ function CardDropdown({ onEdit, onTogglePin, isPinned, onRename, hasVideo, onTog
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator className="bg-white/[0.06] my-0.5" />
-        <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete(); }} className="gap-2 text-sm text-red-400 focus:text-red-300 focus:bg-red-500/10 rounded-lg py-2 px-2.5">
+        <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete(); }} className="gap-2 text-sm text-destructive focus:text-destructive/80 focus:bg-destructive/10 rounded-lg py-2 px-2.5">
           <Trash2 className="w-4 h-4" />Delete
         </DropdownMenuItem>
       </DropdownMenuContent>

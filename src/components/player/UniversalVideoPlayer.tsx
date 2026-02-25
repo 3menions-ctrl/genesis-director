@@ -659,6 +659,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
         <div 
           ref={ref}
           className={cn(
+            "relative overflow-hidden",
             mode === 'fullscreen' && "fixed inset-0 z-50",
             aspectRatio === 'video' && mode !== 'fullscreen' && 'aspect-video',
             className
@@ -671,17 +672,15 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             autoPlay={autoPlay}
             muted={isMuted}
             loop={loop}
-            className="w-full h-full"
+            className="absolute inset-0 w-full h-full"
             aspectRatio="auto"
             showControls={mode === 'inline' || mode === 'fullscreen'}
             title={title}
             onEnded={onEnded}
             onError={(err) => {
-              // HLS failed — retry up to 3 times, then show error (NO crossfade fallback)
               console.warn('[UniversalPlayer] HLS playback error:', err, `(retry ${hlsRetryCount}/3)`);
               if (hlsRetryCount < 3) {
                 setHlsRetryCount(prev => prev + 1);
-                // Force re-trigger of loadSource by incrementing retry count
                 setHlsPlaylistUrl(null);
               } else {
                 setError('Video playback failed after retries. Please refresh and try again.');

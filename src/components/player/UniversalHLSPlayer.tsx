@@ -11,7 +11,7 @@
 
 import { useState, useEffect, useRef, useCallback, forwardRef, memo, useImperativeHandle } from 'react';
 import Hls from 'hls.js';
-import { Play, Pause, Volume2, VolumeX, Maximize2, Loader2, AlertCircle, RefreshCw, SkipBack, SkipForward } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize2, Loader2, AlertCircle, RefreshCw, SkipBack, SkipForward, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { safePlay, safePause, isSafeVideoNumber } from '@/lib/video/safeVideoOperations';
@@ -742,17 +742,16 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
         ref={containerRef}
         className={cn(
           "relative bg-black overflow-hidden group cursor-pointer",
-          aspectRatio !== 'auto' && 'rounded-xl',
           aspectClass,
           className
         )}
         onMouseMove={showControlsTemporarily}
         onMouseLeave={() => { if (isPlaying) setControlsVisible(false); }}
       >
-        {/* Video element */}
+        {/* Video element — fills entire container edge-to-edge */}
         <video
           ref={videoRef}
-          className={cn("w-full h-full", aspectRatio === 'auto' ? 'object-cover' : 'object-contain')}
+          className="absolute inset-0 w-full h-full object-cover"
           playsInline
           muted={muteClipAudio || isMuted}
           loop={loop}
@@ -771,23 +770,23 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
           />
         )}
         
-        {/* Loading overlay — minimal */}
+        {/* Loading overlay — ethereal pulse */}
         {isLoading && !error && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-12 h-12 rounded-full bg-white/[0.08] backdrop-blur-2xl border border-white/[0.12] flex items-center justify-center">
-              <Loader2 className="w-6 h-6 text-white/70 animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+            <div className="w-14 h-14 rounded-full bg-white/[0.06] backdrop-blur-3xl border border-white/[0.08] flex items-center justify-center shadow-[0_0_60px_rgba(255,255,255,0.06)]">
+              <Loader2 className="w-6 h-6 text-white/60 animate-spin" />
             </div>
           </div>
         )}
         
         {/* Error overlay */}
         {error && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <AlertCircle className="w-10 h-10 text-destructive/60 mb-3" />
-            <p className="text-white/70 text-sm text-center mb-4">{error}</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md p-4 z-30">
+            <AlertCircle className="w-10 h-10 text-white/20 mb-3" />
+            <p className="text-white/50 text-sm text-center mb-4">{error}</p>
             <button
               onClick={handleRetry}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.08] backdrop-blur-xl border border-white/[0.12] text-white/80 text-sm hover:bg-white/[0.14] transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/[0.06] backdrop-blur-2xl border border-white/[0.1] text-white/70 text-sm hover:bg-white/[0.12] hover:text-white transition-all duration-300"
             >
               <RefreshCw className="w-4 h-4" />
               Retry
@@ -795,128 +794,132 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
           </div>
         )}
         
-        {/* Title overlay — top left with fade */}
+        {/* Title overlay — floating text, no background bar */}
         {title && (
           <div className={cn(
-            "absolute top-0 left-0 right-0 p-5 z-40 transition-opacity duration-500",
-            "bg-gradient-to-b from-black/50 to-transparent",
+            "absolute top-0 left-0 right-0 z-40 transition-all duration-700",
             controlsVisible ? "opacity-100" : "opacity-0"
           )}>
-            <h2 className="text-base font-medium text-white/90 drop-shadow-lg truncate">{title}</h2>
+            <div className="bg-gradient-to-b from-black/40 via-black/10 to-transparent px-6 pt-5 pb-10">
+              <h2 className="text-sm font-medium text-white/80 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] tracking-wide truncate">{title}</h2>
+            </div>
           </div>
         )}
         
-        {/* Close button — glassmorphic pill */}
+        {/* Close button — minimal floating circle */}
         {onClose && (
           <button
             onClick={onClose}
             className={cn(
               "absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center z-50 transition-all duration-500",
-              "bg-white/[0.08] backdrop-blur-2xl border border-white/[0.12]",
-              "text-white/70 hover:bg-white/[0.16] hover:text-white hover:scale-105",
+              "bg-black/20 backdrop-blur-2xl border border-white/[0.08]",
+              "text-white/50 hover:bg-white/[0.12] hover:text-white hover:scale-105 hover:border-white/[0.15]",
               controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none"
             )}
           >
-            ×
+            <X className="w-4 h-4" />
           </button>
         )}
         
-        {/* Center play button — appears when paused */}
+        {/* Center play — cinematic glass orb */}
         {!isPlaying && !isLoading && !error && (
           <div
             className="absolute inset-0 flex items-center justify-center z-10 cursor-pointer"
             onClick={togglePlayPause}
           >
             <div className={cn(
-              "w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300",
-              "bg-white/[0.1] backdrop-blur-2xl border border-white/[0.18]",
-              "hover:bg-white/[0.18] hover:scale-110 hover:border-white/[0.28]",
-              "shadow-[0_8px_40px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.06)]"
+              "w-[72px] h-[72px] rounded-full flex items-center justify-center transition-all duration-500",
+              "bg-white/[0.07] backdrop-blur-3xl",
+              "border border-white/[0.12]",
+              "hover:bg-white/[0.14] hover:scale-110 hover:border-white/[0.22]",
+              "shadow-[0_0_80px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.1)]"
             )}>
-              <Play className="w-8 h-8 text-white ml-1" fill="currentColor" />
+              <Play className="w-7 h-7 text-white/90 ml-1 drop-shadow-lg" fill="currentColor" />
             </div>
           </div>
         )}
         
-        {/* ============ IMMERSIVE CONTROLS BAR ============ */}
+        {/* ============ LEGENDARY CONTROLS BAR ============ */}
         {showControls && !error && (
           <div className={cn(
-            "absolute bottom-0 left-0 right-0 z-40 transition-all duration-500",
-            controlsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"
+            "absolute bottom-0 left-0 right-0 z-40 transition-all duration-700 ease-out",
+            controlsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3 pointer-events-none"
           )}>
-            {/* Gradient backdrop */}
-            <div className="bg-gradient-to-t from-black/70 via-black/30 to-transparent pt-16 pb-3 px-4">
+            {/* Ultra-deep gradient — cinematic fade */}
+            <div className="bg-gradient-to-t from-black/80 via-black/40 via-30% to-transparent pt-20 pb-4 px-5">
               
-              {/* Progress bar — immersive thin line with glow */}
+              {/* Progress bar — precision scrubber */}
               <div 
-                className="relative w-full h-5 flex items-center mb-2 cursor-pointer group/progress"
+                className="relative w-full h-6 flex items-center mb-2.5 cursor-pointer group/progress"
                 onClick={handleSeek}
                 onMouseEnter={() => setIsProgressHovered(true)}
                 onMouseLeave={() => { setIsProgressHovered(false); setHoverProgress(null); }}
                 onMouseMove={handleProgressHover}
               >
-                {/* Track */}
+                {/* Track container */}
                 <div className={cn(
                   "absolute left-0 right-0 rounded-full transition-all duration-300 overflow-hidden",
-                  isProgressHovered ? "h-[6px] top-[7px]" : "h-[3px] top-[8.5px]"
+                  isProgressHovered ? "h-[5px] top-[10.5px]" : "h-[2px] top-[12px]"
                 )}>
-                  {/* Background */}
-                  <div className="absolute inset-0 bg-white/[0.12]" />
+                  {/* Background track */}
+                  <div className="absolute inset-0 bg-white/[0.1]" />
                   {/* Buffered */}
                   <div 
-                    className="absolute inset-y-0 left-0 bg-white/[0.18] rounded-full"
+                    className="absolute inset-y-0 left-0 bg-white/[0.15] rounded-full transition-[width] duration-300"
                     style={{ width: `${buffered}%` }}
                   />
-                  {/* Progress — with glow */}
+                  {/* Active progress — with subtle glow */}
                   <div 
-                    className="absolute inset-y-0 left-0 bg-white rounded-full transition-[width] duration-75"
+                    className={cn(
+                      "absolute inset-y-0 left-0 rounded-full transition-[width] duration-75",
+                      isProgressHovered 
+                        ? "bg-white shadow-[0_0_8px_rgba(255,255,255,0.3)]" 
+                        : "bg-white/90"
+                    )}
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
-                {/* Scrubber handle — glowing dot */}
+                {/* Scrubber — luminous orb */}
                 <div 
                   className={cn(
-                    "absolute top-1/2 -translate-y-1/2 rounded-full transition-all duration-200 z-10",
+                    "absolute top-1/2 -translate-y-1/2 rounded-full bg-white transition-all duration-200 z-10",
                     isProgressHovered 
-                      ? "w-4 h-4 opacity-100 shadow-[0_0_12px_rgba(255,255,255,0.5)]" 
-                      : "w-2.5 h-2.5 opacity-0 group-hover/progress:opacity-100"
+                      ? "w-[14px] h-[14px] opacity-100 shadow-[0_0_16px_rgba(255,255,255,0.4),0_0_4px_rgba(255,255,255,0.8)]" 
+                      : "w-[8px] h-[8px] opacity-0 group-hover/progress:opacity-60"
                   )}
-                  style={{ 
-                    left: `calc(${progressPercent}% - ${isProgressHovered ? 8 : 5}px)`,
-                    background: 'white',
-                  }}
+                  style={{ left: `calc(${progressPercent}% - ${isProgressHovered ? 7 : 4}px)` }}
                 />
-                {/* Hover preview marker */}
+                {/* Hover seek indicator */}
                 {hoverProgress !== null && isProgressHovered && (
                   <div 
-                    className="absolute top-0 w-px h-5 bg-white/30 pointer-events-none"
+                    className="absolute top-[6px] w-px h-[14px] bg-white/25 pointer-events-none rounded-full"
                     style={{ left: `${hoverProgress}%` }}
                   />
                 )}
               </div>
 
-              {/* Controls row */}
+              {/* Controls row — floating transparent buttons */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5">
                   {/* Skip Back */}
                   {showSkipButtons && (
                     <button
                       onClick={skipBackward}
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-white/[0.1] transition-all"
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/[0.08] transition-all duration-300"
                     >
-                      <SkipBack className="w-4 h-4" />
+                      <SkipBack className="w-[18px] h-[18px]" />
                     </button>
                   )}
                   
-                  {/* Play/Pause */}
+                  {/* Play/Pause — primary action */}
                   <button
                     onClick={togglePlayPause}
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-white hover:bg-white/[0.12] transition-all"
+                    className="w-11 h-11 rounded-full flex items-center justify-center text-white hover:bg-white/[0.1] transition-all duration-300"
                   >
                     {isPlaying ? (
-                      <Pause className="w-5 h-5" fill="currentColor" />
+                      <Pause className="w-[22px] h-[22px]" fill="currentColor" />
                     ) : (
-                      <Play className="w-5 h-5 ml-0.5" fill="currentColor" />
+                      <Play className="w-[22px] h-[22px] ml-0.5" fill="currentColor" />
                     )}
                   </button>
                   
@@ -924,39 +927,39 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
                   {showSkipButtons && (
                     <button
                       onClick={skipForward}
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-white/[0.1] transition-all"
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/[0.08] transition-all duration-300"
                     >
-                      <SkipForward className="w-4 h-4" />
+                      <SkipForward className="w-[18px] h-[18px]" />
                     </button>
                   )}
                   
                   {/* Volume */}
                   <button
                     onClick={toggleMute}
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.1] transition-all"
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-white/40 hover:text-white/90 hover:bg-white/[0.08] transition-all duration-300"
                   >
                     {isMuted ? (
-                      <VolumeX className="w-4 h-4" />
+                      <VolumeX className="w-[18px] h-[18px]" />
                     ) : (
-                      <Volume2 className="w-4 h-4" />
+                      <Volume2 className="w-[18px] h-[18px]" />
                     )}
                   </button>
                   
-                  {/* Time display */}
-                  <span className="text-[11px] text-white/50 font-mono tabular-nums ml-1 select-none">
+                  {/* Time display — ultra refined */}
+                  <span className="text-[11px] text-white/40 font-mono tabular-nums ml-2 select-none tracking-wider">
                     {formatTime(currentTime)}
-                    <span className="text-white/25 mx-1">/</span>
+                    <span className="text-white/15 mx-1.5">/</span>
                     {formatTime(duration)}
                   </span>
                 </div>
                 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5">
                   {/* Fullscreen */}
                   <button
                     onClick={requestFullscreen}
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.1] transition-all"
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-white/40 hover:text-white/90 hover:bg-white/[0.08] transition-all duration-300"
                   >
-                    <Maximize2 className="w-4 h-4" />
+                    <Maximize2 className="w-[18px] h-[18px]" />
                   </button>
                 </div>
               </div>

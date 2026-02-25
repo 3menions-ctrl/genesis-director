@@ -34,6 +34,7 @@ const TOOL_CREDIT_COSTS: Record<string, number> = {
   create_project: 2,
   rename_project: 1,
   delete_project: 0,
+  confirm_delete_project: 0,
   duplicate_project: 2,
   update_profile: 1,
   follow_user: 0,
@@ -285,6 +286,20 @@ const AGENT_TOOLS = [
         type: "object",
         properties: {
           project_id: { type: "string" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "confirm_delete_project",
+      description: "Execute confirmed project deletion. Only call AFTER user explicitly confirms they want to delete.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string", description: "Project UUID to permanently delete" },
         },
         required: ["project_id"],
       },
@@ -1324,7 +1339,7 @@ const TOOL_NAMES_BY_CATEGORY = {
   projects: [
     "get_user_projects", "get_project_details", "get_project_pipeline_status",
     "check_active_pipelines", "rename_project", "delete_project",
-    "duplicate_project", "update_project_settings", "publish_to_gallery",
+    "confirm_delete_project", "duplicate_project", "update_project_settings", "publish_to_gallery",
     "unpublish_from_gallery", "get_stitch_jobs",
   ],
   // Clip-level editing
@@ -1633,7 +1648,43 @@ async function executeTool(
       const { data: d } = await supabase.from("movie_projects").select("id, title, status").eq("id", args.project_id).eq("user_id", userId).maybeSingle();
       if (!d) return { error: "Project not found" };
       if (!["draft", "failed"].includes(d.status)) return { error: `Can't delete "${d.status}" project` };
-      return { action: "confirm_delete", requires_confirmation: true, project_id: d.id, title: d.title, message: `Delete "${d.title}"? This can't be undone.` };
+      return { action: "confirm_delete", requires_confirmation: true, project_id: d.id, title: d.title, message: `Delete "${d.title}"? This is permanent and can't be undone. Say "yes" or "confirm" to proceed.` };
+    }
+
+    case "confirm_delete_project": {
+      // Verify ownership
+      const { data: dp } = await supabase.from("movie_projects").select("id, title, status, user_id").eq("id", args.project_id).maybeSingle();
+      if (!dp) return { error: "Project not found" };
+      if (dp.user_id !== userId) return { error: "Access denied" };
+      if (!["draft", "failed"].includes(dp.status)) return { error: `Can't delete "${dp.status}" project — only draft/failed projects` };
+
+      // Call the delete-project edge function with service-role auth
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      try {
+        const deleteResp = await fetch(`${supabaseUrl}/functions/v1/delete-project`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${serviceKey}`,
+          },
+          body: JSON.stringify({ projectId: args.project_id, userId }),
+        });
+        const deleteResult = await deleteResp.json();
+        if (!deleteResp.ok || !deleteResult.success) {
+          return { error: deleteResult.error || "Deletion failed" };
+        }
+        return {
+          action: "project_deleted",
+          project_id: args.project_id,
+          title: dp.title,
+          message: `"${dp.title}" has been permanently deleted.`,
+          stats: deleteResult.stats,
+          navigate_to: "/projects",
+        };
+      } catch (err) {
+        return { error: "Deletion failed: " + (err instanceof Error ? err.message : "Unknown error") };
+      }
     }
 
     case "duplicate_project": {
@@ -4086,6 +4137,11 @@ Avatar flow: show avatars → user picks → collect script → estimate cost �
 - "Best mode for [X]?" → Stories/ads: Text-to-Video. Presentations: Avatar. Animate photos: Image-to-Video
 - "How do I improve my prompts?" → critique_prompt (free, grades A-D) or enhance_prompt (1cr, AI rewrites it)
 
+**Deletion Flow (Two-Step):**
+- When user asks to delete a project → call delete_project first (validates + returns confirmation prompt)
+- When user confirms (says "yes", "confirm", "do it", etc.) → call confirm_delete_project with the same project_id to execute
+- NEVER call confirm_delete_project without the user explicitly confirming first
+
 **Page Context Rules:**
 ${currentPage?.startsWith("/create") ? "User is ON the creation page. Help them finalize settings and create — don't redirect them." : ""}
 ${currentPage?.startsWith("/projects") ? "User is on their projects page. Focus on project status, troubleshooting, next steps." : ""}
@@ -4108,7 +4164,7 @@ Answer editing questions with specific, actionable guidance. If they need clips,
 
 Data & Inventory: get_full_inventory, get_project_script_data, get_clip_details, get_user_projects, get_project_details, get_user_profile, get_credit_info, get_recent_transactions, get_achievements, get_gamification_stats, get_edit_sessions, get_characters, get_stitch_jobs, get_user_photos, get_full_inventory
 
-Creation: start_creation_flow, create_project, execute_generation, trigger_generation, regenerate_clip, update_clip_prompt, retry_failed_clip, reorder_clips, delete_clip, update_project_settings, rename_project, duplicate_project, delete_project
+Creation: start_creation_flow, create_project, execute_generation, trigger_generation, regenerate_clip, update_clip_prompt, retry_failed_clip, reorder_clips, delete_clip, update_project_settings, rename_project, duplicate_project, delete_project, confirm_delete_project
 
 Avatars & Templates: get_available_avatars, get_available_templates, recommend_avatar_for_content
 
@@ -4706,6 +4762,14 @@ serve(async (req) => {
       // Clip regeneration confirmation
       if (name === "regenerate_clip" && r.action === "confirm_regenerate_clip") {
         richBlocks.push({ type: "confirm_action", data: r });
+      }
+      // Delete project confirmation
+      if (name === "delete_project" && r.action === "confirm_delete") {
+        richBlocks.push({ type: "confirm_action", data: r });
+      }
+      // Project deleted success
+      if (name === "confirm_delete_project" && r.action === "project_deleted") {
+        richBlocks.push({ type: "success_action", data: r });
       }
       // Memory confirmation
       if (name === "remember_user_preference" && r.remembered) {

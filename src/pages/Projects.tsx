@@ -111,11 +111,12 @@ const formatTimeAgo = (dateString: string) => {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
-// ============= MAGAZINE GRID =============
+// ============= MASONRY + HERO SPOTLIGHT =============
 
 /**
- * MagazineGrid — Asymmetric editorial layout
- * First project = hero (span 2 cols), rest alternate between regular and featured rows
+ * GalleryGrid — Masonry-inspired layout with hero spotlight
+ * First project = large cinematic hero, rest flow in a dynamic masonry pattern
+ * with staggered reveal animations
  */
 function MagazineGrid({
   projects,
@@ -150,89 +151,77 @@ function MagazineGrid({
 }) {
   if (projects.length === 0) return null;
 
-  // Split: first project is hero, rest fill a grid
   const [hero, ...rest] = projects;
 
+  const cardProps = (project: Project, index: number) => ({
+    key: project.id,
+    project,
+    index,
+    viewMode: 'grid' as const,
+    preResolvedClipUrl: resolvedClipUrls.get(project.id),
+    onPlay: () => onPlay(project),
+    onEdit: () => onEdit(project),
+    onRename: () => onRename(project),
+    onDelete: () => onDelete(project.id),
+    onDownload: () => onDownload(project),
+    onRetryStitch: () => onRetryStitch(project.id),
+    onBrowserStitch: () => onBrowserStitch(project.id),
+    onTogglePin: () => onTogglePin(project.id),
+    onTogglePublic: () => onTogglePublic(project),
+    isActive: activeProjectId === project.id,
+    isRetrying: retryingProjectId === project.id,
+    isBrowserStitching: browserStitchingProjectId === project.id,
+    isPinned: false,
+  });
+
   return (
-    <div className="space-y-5">
-      {/* Hero — large featured card spanning full width */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-        <div className="lg:col-span-3">
-          <ProjectCard
-            key={hero.id}
-            project={hero}
-            index={0}
-            viewMode="grid"
-            preResolvedClipUrl={resolvedClipUrls.get(hero.id)}
-            onPlay={() => onPlay(hero)}
-            onEdit={() => onEdit(hero)}
-            onRename={() => onRename(hero)}
-            onDelete={() => onDelete(hero.id)}
-            onDownload={() => onDownload(hero)}
-            onRetryStitch={() => onRetryStitch(hero.id)}
-            onBrowserStitch={() => onBrowserStitch(hero.id)}
-            onTogglePin={() => onTogglePin(hero.id)}
-            onTogglePublic={() => onTogglePublic(hero)}
-            isActive={activeProjectId === hero.id}
-            isRetrying={retryingProjectId === hero.id}
-            isBrowserStitching={browserStitchingProjectId === hero.id}
-            isPinned={false}
-          />
-        </div>
-        {/* Side stack — 2 smaller cards */}
-        <div className="lg:col-span-2 grid grid-cols-1 gap-5">
-          {rest.slice(0, 2).map((project, i) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              index={i + 1}
-              viewMode="grid"
-              preResolvedClipUrl={resolvedClipUrls.get(project.id)}
-              onPlay={() => onPlay(project)}
-              onEdit={() => onEdit(project)}
-              onRename={() => onRename(project)}
-              onDelete={() => onDelete(project.id)}
-              onDownload={() => onDownload(project)}
-              onRetryStitch={() => onRetryStitch(project.id)}
-              onBrowserStitch={() => onBrowserStitch(project.id)}
-              onTogglePin={() => onTogglePin(project.id)}
-              onTogglePublic={() => onTogglePublic(project)}
-              isActive={activeProjectId === project.id}
-              isRetrying={retryingProjectId === project.id}
-              isBrowserStitching={browserStitchingProjectId === project.id}
-              isPinned={false}
-            />
-          ))}
-        </div>
+    <div className="space-y-6">
+      {/* Hero Spotlight — full-width cinematic card */}
+      <div
+        className="opacity-0"
+        style={{
+          animation: 'gallery-reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        }}
+      >
+        <ProjectCard {...cardProps(hero, 0)} />
       </div>
 
-      {/* Remaining projects — 3-column grid */}
-      {rest.length > 2 && (
+      {/* Masonry grid — alternating 2/3 col rows for visual rhythm */}
+      {rest.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {rest.slice(2).map((project, index) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              index={index + 3}
-              viewMode="grid"
-              preResolvedClipUrl={resolvedClipUrls.get(project.id)}
-              onPlay={() => onPlay(project)}
-              onEdit={() => onEdit(project)}
-              onRename={() => onRename(project)}
-              onDelete={() => onDelete(project.id)}
-              onDownload={() => onDownload(project)}
-              onRetryStitch={() => onRetryStitch(project.id)}
-              onBrowserStitch={() => onBrowserStitch(project.id)}
-              onTogglePin={() => onTogglePin(project.id)}
-              onTogglePublic={() => onTogglePublic(project)}
-              isActive={activeProjectId === project.id}
-              isRetrying={retryingProjectId === project.id}
-              isBrowserStitching={browserStitchingProjectId === project.id}
-              isPinned={false}
-            />
-          ))}
+          {rest.map((project, i) => {
+            const isWide = i % 5 === 0 && rest.length > 3;
+            return (
+              <div
+                key={project.id}
+                className={cn("opacity-0", isWide && "sm:col-span-2")}
+                style={{
+                  animation: 'gallery-reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                  animationDelay: `${0.15 + i * 0.08}s`,
+                }}
+              >
+                <ProjectCard {...cardProps(project, i + 1)} />
+              </div>
+            );
+          })}
         </div>
       )}
+
+      {/* Inline keyframes for staggered reveals */}
+      <style>{`
+        @keyframes gallery-reveal {
+          0% {
+            opacity: 0;
+            transform: translateY(30px) scale(0.97);
+            filter: blur(4px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            filter: blur(0px);
+          }
+        }
+      `}</style>
     </div>
   );
 }

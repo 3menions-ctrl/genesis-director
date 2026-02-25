@@ -77,7 +77,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return null;
     }
 
-    // Create a minimal fallback profile for timeout scenarios
+    // Create a minimal fallback profile for timeout/error scenarios
+    // CRITICAL: onboarding_completed must be false so OAuth users are never allowed to skip onboarding
     const createFallbackProfile = (): UserProfile => ({
       id: userId,
       email: currentSession.user.email || null,
@@ -91,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       use_case: null,
       company: null,
       country: null,
-      onboarding_completed: true, // Assume completed to prevent redirect loops on network fallback
+      onboarding_completed: false, // MUST be false — forces onboarding for new OAuth users
       created_at: new Date().toISOString(),
       preferences: null,
       notification_settings: null,
@@ -138,6 +139,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       setProfileError(null);
+      
+      // If profile not found (e.g. trigger hasn't finished for OAuth signup), retry once after delay
+      if (!result.data) {
+        console.debug('[AuthContext] Profile not found, retrying after delay (OAuth race condition)');
+        await new Promise(r => setTimeout(r, 1500));
+        const retryResult = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
+        if (retryResult.data) {
+          return retryResult.data as UserProfile;
+        }
+        // Still no profile — return fallback with onboarding_completed=false
+        console.debug('[AuthContext] Profile still not found after retry, using fallback');
+        return createFallbackProfile();
+      }
+      
       return result.data as UserProfile;
     } catch {
       // Silent catch with fallback - prevents crash cascade
@@ -273,7 +292,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             use_case: null,
             company: null,
             country: null,
-            onboarding_completed: true, // Assume completed to prevent redirect loops on network fallback
+            onboarding_completed: false, // MUST be false — forces onboarding for new OAuth users
             created_at: new Date().toISOString(),
             preferences: null,
             notification_settings: null,

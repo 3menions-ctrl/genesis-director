@@ -8,7 +8,7 @@ import { useRef, useCallback, useState, memo, useEffect } from "react";
 import {
   Plus, Trash2, Volume2, VolumeX, Lock, Unlock, ZoomIn, ZoomOut,
   Eye, Type, Undo2, Redo2, Music, Maximize2, Magnet, ChevronUp, ChevronDown,
-  Clock, Scissors, Copy, Trash
+  Clock, Scissors, Copy, Trash, Film
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCustomTimeline, TimelineTrack, TimelineClip, generateTrackId, generateClipId } from "@/hooks/useCustomTimeline";
@@ -19,9 +19,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-const TRACK_HEIGHT = 56;
-const HEADER_WIDTH = 130;
-const RULER_HEIGHT = 28;
+const TRACK_HEIGHT = 60;
+const HEADER_WIDTH = 140;
+const RULER_HEIGHT = 30;
 const MIN_CLIP_WIDTH = 14;
 const SNAP_THRESHOLD = 8;
 
@@ -62,12 +62,12 @@ function TimelineRuler({ zoom, scrollX, duration }: { zoom: number; scrollX: num
 
   return (
     <div
-      className="relative shrink-0 select-none border-b overflow-hidden"
+      className="relative shrink-0 select-none overflow-hidden"
       style={{
         height: RULER_HEIGHT,
         marginLeft: HEADER_WIDTH,
-        background: 'linear-gradient(180deg, hsl(240 20% 6%) 0%, hsl(240 25% 5%) 100%)',
-        borderColor: 'hsla(263, 70%, 58%, 0.05)',
+        background: 'linear-gradient(180deg, hsl(240 18% 7%) 0%, hsl(240 22% 5.5%) 100%)',
+        borderBottom: '1px solid hsla(263, 70%, 58%, 0.06)',
       }}
     >
       <div className="relative h-full" style={{ width: totalWidth, transform: `translateX(-${scrollX}px)` }}>
@@ -77,8 +77,8 @@ function TimelineRuler({ zoom, scrollX, duration }: { zoom: number; scrollX: num
             className="absolute top-0 flex flex-col items-center"
             style={{ left: mark.time * zoom }}
           >
-            <div className="w-px h-2.5" style={{ background: 'hsla(263, 70%, 58%, 0.15)' }} />
-            <span className="text-[8px] text-muted-foreground/35 mt-0.5 font-mono leading-none whitespace-nowrap">
+            <div className="w-px h-3" style={{ background: 'hsla(263, 70%, 58%, 0.18)' }} />
+            <span className="text-[9px] text-muted-foreground/40 mt-0.5 font-mono leading-none whitespace-nowrap">
               {mark.label}
             </span>
           </div>
@@ -116,19 +116,20 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
 
   return (
     <div
-      className="shrink-0 flex flex-col justify-center gap-1 px-2.5 border-r border-b select-none overflow-hidden"
+      className="shrink-0 flex flex-col justify-center gap-1.5 px-3 select-none overflow-hidden"
       style={{
         width: HEADER_WIDTH,
         height: TRACK_HEIGHT,
-        background: 'linear-gradient(90deg, hsl(240 20% 6%) 0%, hsl(240 25% 5%) 100%)',
-        borderColor: 'hsla(263, 70%, 58%, 0.05)',
+        background: 'linear-gradient(90deg, hsl(240 18% 7%) 0%, hsl(240 22% 5.5%) 100%)',
+        borderRight: '1px solid hsla(263, 70%, 58%, 0.05)',
+        borderBottom: '1px solid hsla(263, 70%, 58%, 0.04)',
       }}
     >
       <div className="flex items-center gap-1.5 min-w-0">
         <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0" style={{ background: typeColors[track.type] || typeColors.video }}>
           <span className="text-foreground/60">{typeIcon}</span>
         </div>
-        <span className="text-[10px] font-semibold text-foreground/65 truncate flex-1">
+        <span className="text-[10px] font-bold text-foreground/65 truncate flex-1 tracking-wide">
           {track.label}
         </span>
         <button
@@ -151,7 +152,7 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
           onClick={onToggleMute}
           className={cn(
             "p-1 rounded-md transition-all",
-            track.muted ? "text-amber-400/60 bg-amber-400/10" : "text-muted-foreground/30 hover:text-foreground/60 hover:bg-white/[0.03]"
+            track.muted ? "text-amber-400/60 bg-amber-400/10" : "text-muted-foreground/30 hover:text-foreground/60 hover:bg-white/[0.04]"
           )}
         >
           {track.muted ? <VolumeX className="w-2.5 h-2.5" /> : <Volume2 className="w-2.5 h-2.5" />}
@@ -160,7 +161,7 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
           onClick={onToggleLock}
           className={cn(
             "p-1 rounded-md transition-all",
-            track.locked ? "text-primary/60 bg-primary/10" : "text-muted-foreground/30 hover:text-foreground/60 hover:bg-white/[0.03]"
+            track.locked ? "text-primary/60 bg-primary/10" : "text-muted-foreground/30 hover:text-foreground/60 hover:bg-white/[0.04]"
           )}
         >
           {track.locked ? <Lock className="w-2.5 h-2.5" /> : <Unlock className="w-2.5 h-2.5" />}
@@ -180,17 +181,24 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
 // ─── Clip Block ───
 
 const CLIP_COLORS: Record<string, string> = {
-  video: "hsla(263, 65%, 55%, 0.25)",
-  image: "hsla(45, 85%, 55%, 0.25)",
-  text: "hsla(170, 65%, 50%, 0.25)",
-  audio: "hsla(190, 65%, 55%, 0.25)",
+  video: "hsla(263, 65%, 55%, 0.22)",
+  image: "hsla(45, 85%, 55%, 0.22)",
+  text: "hsla(170, 65%, 50%, 0.22)",
+  audio: "hsla(190, 65%, 55%, 0.22)",
 };
 
 const CLIP_BORDER_COLORS: Record<string, string> = {
-  video: "hsla(263, 65%, 55%, 0.45)",
-  image: "hsla(45, 85%, 55%, 0.45)",
-  text: "hsla(170, 65%, 50%, 0.45)",
-  audio: "hsla(190, 65%, 55%, 0.45)",
+  video: "hsla(263, 65%, 55%, 0.4)",
+  image: "hsla(45, 85%, 55%, 0.4)",
+  text: "hsla(170, 65%, 50%, 0.4)",
+  audio: "hsla(190, 65%, 55%, 0.4)",
+};
+
+const CLIP_ACCENT_COLORS: Record<string, string> = {
+  video: "hsla(263, 65%, 55%, 0.6)",
+  image: "hsla(45, 85%, 55%, 0.6)",
+  text: "hsla(170, 65%, 50%, 0.6)",
+  audio: "hsla(190, 65%, 55%, 0.6)",
 };
 
 function ClipBlock({
@@ -226,7 +234,7 @@ function ClipBlock({
   return (
     <div
       className={cn(
-        "absolute top-1.5 bottom-1.5 rounded-lg cursor-pointer group transition-all duration-150",
+        "absolute top-2 bottom-2 rounded-lg cursor-pointer group transition-all duration-150",
         selected && "ring-1 ring-primary/70"
       )}
       style={{
@@ -235,25 +243,28 @@ function ClipBlock({
         background: CLIP_COLORS[clip.type] || CLIP_COLORS.video,
         border: `1px solid ${selected ? 'hsl(var(--primary))' : (CLIP_BORDER_COLORS[clip.type] || CLIP_BORDER_COLORS.video)}`,
         opacity,
-        boxShadow: selected ? `0 0 16px hsla(263, 70%, 58%, 0.15)` : 'none',
+        boxShadow: selected ? `0 0 20px hsla(263, 70%, 58%, 0.15)` : 'none',
       }}
       onClick={(e) => { e.stopPropagation(); onSelect(); }}
       onMouseDown={(e) => { if (e.button === 0) onDragStart(e, clip.id, trackId); }}
       onContextMenu={(e) => { e.preventDefault(); onContextMenu(e, clip.id, trackId); }}
     >
-      {clip.colorLabel && (
-        <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-lg" style={{ background: clip.colorLabel }} />
-      )}
+      {/* Type accent bar at top */}
+      <div
+        className="absolute top-0 left-0 right-0 h-[2px] rounded-t-lg"
+        style={{ background: clip.colorLabel || (CLIP_ACCENT_COLORS[clip.type] || CLIP_ACCENT_COLORS.video) }}
+      />
+      
       <div
         className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity rounded-l-lg"
         style={{ background: 'hsla(263, 70%, 58%, 0.5)' }}
         onMouseDown={(e) => { e.stopPropagation(); onTrimStart(clip.id, trackId); }}
       />
-      <div className="px-2 h-full flex items-center gap-1.5 overflow-hidden pointer-events-none">
+      <div className="px-2.5 h-full flex items-center gap-1.5 overflow-hidden pointer-events-none">
         {clip.thumbnail && width > 60 && (
-          <img src={clip.thumbnail} alt="" className="w-7 h-7 rounded-md object-cover shrink-0 border border-white/[0.06]" />
+          <img src={clip.thumbnail} alt="" className="w-8 h-8 rounded-md object-cover shrink-0 border border-white/[0.08]" />
         )}
-        <span className="text-[10px] text-foreground/75 font-semibold truncate">{clip.name}</span>
+        <span className="text-[10px] text-foreground/80 font-semibold truncate">{clip.name}</span>
         {width > 80 && (
           <span className="text-[8px] text-foreground/35 font-mono ml-auto shrink-0 tabular-nums">
             {(clip.end - clip.start).toFixed(1)}s
@@ -301,27 +312,27 @@ function ClipContextMenu({
 
   return (
     <div
-      className="fixed z-50 min-w-[160px] rounded-lg border shadow-xl py-1 overflow-hidden"
+      className="fixed z-50 min-w-[170px] rounded-xl border shadow-2xl py-1.5 overflow-hidden backdrop-blur-xl"
       style={{
         left: menu.x,
         top: menu.y,
-        background: 'hsl(240, 25%, 8%)',
-        borderColor: 'hsla(263, 84%, 58%, 0.15)',
+        background: 'hsla(240, 22%, 8%, 0.95)',
+        borderColor: 'hsla(263, 84%, 58%, 0.12)',
       }}
       onClick={(e) => e.stopPropagation()}
     >
-      <button onClick={() => { onSplit(); onClose(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-foreground/70 hover:bg-primary/10 hover:text-foreground transition-colors">
-        <Scissors className="w-3 h-3" /> Split at Playhead
+      <button onClick={() => { onSplit(); onClose(); }} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[11px] text-foreground/70 hover:bg-primary/10 hover:text-foreground transition-colors">
+        <Scissors className="w-3.5 h-3.5" /> Split at Playhead
       </button>
-      <button onClick={() => { onDuplicate(); onClose(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-foreground/70 hover:bg-primary/10 hover:text-foreground transition-colors">
-        <Copy className="w-3 h-3" /> Duplicate
+      <button onClick={() => { onDuplicate(); onClose(); }} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[11px] text-foreground/70 hover:bg-primary/10 hover:text-foreground transition-colors">
+        <Copy className="w-3.5 h-3.5" /> Duplicate
       </button>
-      <div className="h-px mx-2 my-0.5" style={{ background: 'hsla(263, 84%, 58%, 0.08)' }} />
-      <button onClick={() => { onDelete(); onClose(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-destructive/70 hover:bg-destructive/10 hover:text-destructive transition-colors">
-        <Trash className="w-3 h-3" /> Delete
+      <div className="h-px mx-3 my-1" style={{ background: 'hsla(263, 84%, 58%, 0.08)' }} />
+      <button onClick={() => { onDelete(); onClose(); }} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[11px] text-destructive/70 hover:bg-destructive/10 hover:text-destructive transition-colors">
+        <Trash className="w-3.5 h-3.5" /> Delete
       </button>
-      <button onClick={() => { onRippleDelete(); onClose(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-destructive/70 hover:bg-destructive/10 hover:text-destructive transition-colors">
-        <Trash2 className="w-3 h-3" /> Ripple Delete
+      <button onClick={() => { onRippleDelete(); onClose(); }} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[11px] text-destructive/70 hover:bg-destructive/10 hover:text-destructive transition-colors">
+        <Trash2 className="w-3.5 h-3.5" /> Ripple Delete
       </button>
     </div>
   );
@@ -555,7 +566,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
     });
   }, [dispatch, state.tracks]);
 
-  // ─── Keyboard shortcuts for undo/redo + Home/End ───
+  // ─── Keyboard shortcuts ───
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
@@ -581,48 +592,52 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
     return () => window.removeEventListener("keydown", handler);
   }, [undo, redo, dispatch, state.duration]);
 
-  // Playhead position
   const playheadLeft = state.playheadTime * state.zoom - state.scrollX;
 
   return (
     <div
       ref={timelineRef}
       className={cn("flex flex-col overflow-hidden select-none", className)}
-      style={{ background: 'hsl(240, 28%, 4%)' }}
+      style={{ background: 'hsl(240, 25%, 4%)' }}
     >
       {/* ─── Toolbar ─── */}
       <div
-        className="shrink-0 flex items-center gap-1.5 px-3 h-10 border-b overflow-hidden"
+        className="shrink-0 flex items-center gap-1 px-3 h-11 overflow-hidden"
         style={{
-          background: 'linear-gradient(180deg, hsl(240 20% 6%) 0%, hsl(240 25% 5%) 100%)',
-          borderColor: 'hsla(263, 70%, 58%, 0.05)',
+          background: 'linear-gradient(180deg, hsl(240 18% 7%) 0%, hsl(240 22% 5.5%) 100%)',
+          borderBottom: '1px solid hsla(263, 70%, 58%, 0.06)',
         }}
       >
-        {/* Left: Add track buttons */}
-        <div className="flex items-center gap-0.5 shrink-0">
+        {/* Left: Add track buttons — grouped */}
+        <div
+          className="flex items-center gap-0.5 shrink-0 px-0.5 py-0.5 rounded-lg"
+          style={{ background: 'hsla(0,0%,100%,0.02)', border: '1px solid hsla(0,0%,100%,0.04)' }}
+        >
           <Button variant="ghost" size="sm" onClick={() => addTrack("video")}
-            className="h-6 px-2 text-[10px] gap-1 text-muted-foreground/60 hover:text-foreground whitespace-nowrap">
+            className="h-7 px-2.5 text-[10px] gap-1.5 text-muted-foreground/60 hover:text-foreground font-semibold whitespace-nowrap rounded-md">
             <Plus className="w-3 h-3" /> Video
           </Button>
+          <div className="w-px h-4 bg-white/[0.05]" />
           <Button variant="ghost" size="sm" onClick={() => addTrack("audio")}
-            className="h-6 px-2 text-[10px] gap-1 text-muted-foreground/60 hover:text-foreground whitespace-nowrap">
+            className="h-7 px-2.5 text-[10px] gap-1.5 text-muted-foreground/60 hover:text-foreground font-semibold whitespace-nowrap rounded-md">
             <Music className="w-3 h-3" /> Audio
           </Button>
+          <div className="w-px h-4 bg-white/[0.05]" />
           <Button variant="ghost" size="sm" onClick={() => onOpenTextDialog?.()}
-            className="h-6 px-2 text-[10px] gap-1 text-muted-foreground/60 hover:text-foreground whitespace-nowrap">
+            className="h-7 px-2.5 text-[10px] gap-1.5 text-muted-foreground/60 hover:text-foreground font-semibold whitespace-nowrap rounded-md">
             <Type className="w-3 h-3" /> Text
           </Button>
         </div>
 
-        <div className="w-px h-4 bg-border/10 shrink-0 mx-0.5" />
+        <div className="w-px h-5 bg-white/[0.05] shrink-0 mx-1" />
 
-        {/* Undo / Redo */}
+        {/* Undo / Redo — grouped */}
         <div className="flex items-center gap-0.5 shrink-0">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="sm" onClick={undo} disabled={!canUndo}
-                className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground disabled:opacity-20">
-                <Undo2 className="w-3 h-3" />
+                className="h-7 w-7 p-0 text-muted-foreground/40 hover:text-foreground disabled:opacity-20 rounded-lg">
+                <Undo2 className="w-3.5 h-3.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="top" className="text-[10px]">Undo (⌘Z)</TooltipContent>
@@ -630,22 +645,22 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="sm" onClick={redo} disabled={!canRedo}
-                className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground disabled:opacity-20">
-                <Redo2 className="w-3 h-3" />
+                className="h-7 w-7 p-0 text-muted-foreground/40 hover:text-foreground disabled:opacity-20 rounded-lg">
+                <Redo2 className="w-3.5 h-3.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="top" className="text-[10px]">Redo (⌘Y)</TooltipContent>
           </Tooltip>
         </div>
 
-        <div className="w-px h-4 bg-border/10 shrink-0 mx-0.5" />
+        <div className="w-px h-5 bg-white/[0.05] shrink-0 mx-1" />
 
         {/* Snap toggle */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="sm" onClick={() => dispatch({ type: "TOGGLE_SNAP" })}
-              className={cn("h-6 w-6 p-0 transition-colors", state.snapEnabled ? "text-primary" : "text-muted-foreground/30")}>
-              <Magnet className="w-3 h-3" />
+              className={cn("h-7 w-7 p-0 transition-colors rounded-lg", state.snapEnabled ? "text-primary bg-primary/10" : "text-muted-foreground/30")}>
+              <Magnet className="w-3.5 h-3.5" />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="top" className="text-[10px]">
@@ -654,9 +669,12 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
         </Tooltip>
 
         {/* Duration display */}
-        <div className="flex items-center gap-1 mx-1 shrink-0">
+        <div
+          className="flex items-center gap-1.5 mx-2 shrink-0 px-2 py-1 rounded-md"
+          style={{ background: 'hsla(0,0%,100%,0.02)' }}
+        >
           <Clock className="w-3 h-3 text-muted-foreground/30" />
-          <span className="text-[9px] text-muted-foreground/40 font-mono whitespace-nowrap">
+          <span className="text-[10px] text-muted-foreground/45 font-mono font-medium whitespace-nowrap tabular-nums">
             {formatDuration(state.duration)}
           </span>
         </div>
@@ -668,33 +686,36 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="sm" onClick={fitToView}
-              className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground">
-              <Maximize2 className="w-3 h-3" />
+              className="h-7 w-7 p-0 text-muted-foreground/40 hover:text-foreground rounded-lg">
+              <Maximize2 className="w-3.5 h-3.5" />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="top" className="text-[10px]">Fit to view</TooltipContent>
         </Tooltip>
 
-        {/* Zoom controls */}
-        <div className="flex items-center gap-0.5 shrink-0">
+        {/* Zoom controls — grouped */}
+        <div
+          className="flex items-center gap-0.5 shrink-0 px-0.5 rounded-lg"
+          style={{ background: 'hsla(0,0%,100%,0.02)', border: '1px solid hsla(0,0%,100%,0.04)' }}
+        >
           <Button variant="ghost" size="sm"
             onClick={() => dispatch({ type: "SET_ZOOM", zoom: state.zoom - 10 })}
-            className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground">
-            <ZoomOut className="w-3 h-3" />
+            className="h-7 w-7 p-0 text-muted-foreground/40 hover:text-foreground rounded-md">
+            <ZoomOut className="w-3.5 h-3.5" />
           </Button>
-          <span className="text-[9px] text-muted-foreground/40 font-mono w-7 text-center shrink-0">
+          <span className="text-[9px] text-muted-foreground/45 font-mono w-8 text-center shrink-0 font-semibold tabular-nums">
             {Math.round(state.zoom)}x
           </span>
           <Button variant="ghost" size="sm"
             onClick={() => dispatch({ type: "SET_ZOOM", zoom: state.zoom + 10 })}
-            className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground">
-            <ZoomIn className="w-3 h-3" />
+            className="h-7 w-7 p-0 text-muted-foreground/40 hover:text-foreground rounded-md">
+            <ZoomIn className="w-3.5 h-3.5" />
           </Button>
         </div>
       </div>
 
       {/* ─── Ruler ─── */}
-      <div onMouseDown={handleRulerMouseDown} className="shrink-0">
+      <div onMouseDown={handleRulerMouseDown} className="shrink-0 cursor-pointer">
         <TimelineRuler zoom={state.zoom} scrollX={state.scrollX} duration={state.duration} />
       </div>
 
@@ -717,11 +738,13 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
 
               {/* Clip area */}
               <div
-                className="relative flex-1 border-b"
+                className="relative flex-1"
                 style={{
                   height: TRACK_HEIGHT,
-                  borderColor: 'hsla(263, 84%, 58%, 0.05)',
-                  background: track.muted ? 'hsla(0, 0%, 100%, 0.02)' : 'transparent',
+                  borderBottom: '1px solid hsla(263, 84%, 58%, 0.04)',
+                  background: idx % 2 === 0
+                    ? 'hsla(240, 25%, 6%, 0.5)'
+                    : 'hsla(240, 25%, 5%, 0.3)',
                 }}
                 onClick={() => dispatch({ type: "SELECT_CLIP", clipId: null, trackId: track.id })}
               >
@@ -746,8 +769,20 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
 
           {/* Empty state */}
           {state.tracks.length === 0 && (
-            <div className="flex items-center justify-center h-24 text-muted-foreground/30 text-xs">
-              Add a track to get started
+            <div className="flex flex-col items-center justify-center h-32 gap-3 text-muted-foreground/20">
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                style={{
+                  background: 'hsla(263, 70%, 58%, 0.05)',
+                  border: '1px dashed hsla(263, 70%, 58%, 0.12)',
+                }}
+              >
+                <Film className="w-6 h-6 text-muted-foreground/15" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-[12px] font-semibold text-muted-foreground/30">No tracks yet</p>
+                <p className="text-[10px] text-muted-foreground/20">Click +Video, +Audio, or +Text above to add a track</p>
+              </div>
             </div>
           )}
         </div>
@@ -759,24 +794,36 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
             style={{
               left: HEADER_WIDTH + snapLine * state.zoom - state.scrollX,
               background: 'hsl(45, 100%, 55%)',
-              boxShadow: '0 0 6px hsla(45, 100%, 55%, 0.5)',
+              boxShadow: '0 0 8px hsla(45, 100%, 55%, 0.5)',
             }}
           />
         )}
 
-        {/* Playhead line */}
+        {/* Playhead line — improved grab area */}
         {playheadLeft >= 0 && (
           <div
-            className="absolute top-0 bottom-0 w-px pointer-events-none z-10"
-            style={{
-              left: HEADER_WIDTH + playheadLeft,
-              background: 'hsl(263, 84%, 58%)',
-              boxShadow: '0 0 6px hsla(263, 84%, 58%, 0.5)',
-            }}
+            className="absolute top-0 bottom-0 pointer-events-none z-10"
+            style={{ left: HEADER_WIDTH + playheadLeft }}
           >
+            {/* Visible line */}
             <div
-              className="absolute -top-0.5 -left-1.5 w-3 h-2 rounded-b"
-              style={{ background: 'hsl(263, 84%, 58%)' }}
+              className="absolute top-0 bottom-0 w-px left-1/2 -translate-x-1/2"
+              style={{
+                background: 'hsl(263, 84%, 58%)',
+                boxShadow: '0 0 8px hsla(263, 84%, 58%, 0.5)',
+              }}
+            />
+            {/* Playhead triangle */}
+            <div
+              className="absolute -top-px left-1/2 -translate-x-1/2"
+              style={{
+                width: 0,
+                height: 0,
+                borderLeft: '5px solid transparent',
+                borderRight: '5px solid transparent',
+                borderTop: '7px solid hsl(263, 84%, 58%)',
+                filter: 'drop-shadow(0 1px 3px hsla(263, 84%, 58%, 0.5))',
+              }}
             />
           </div>
         )}

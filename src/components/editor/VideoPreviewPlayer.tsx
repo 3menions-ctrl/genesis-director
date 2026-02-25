@@ -1,16 +1,16 @@
 /**
- * VideoPreviewPlayer — Premium CapCut-style video preview
- * Refined transport controls, elegant seek bar, cinematic empty state
+ * VideoPreviewPlayer — Premium cinematic preview with polished transport
  */
 
 import { useEffect, useRef, useCallback, useState, memo } from "react";
 import {
   Play, Pause, SkipBack, SkipForward, Volume2, VolumeX,
-  Maximize, Repeat, ChevronsLeft, ChevronsRight, MonitorPlay
+  Maximize, Repeat, ChevronsLeft, ChevronsRight, MonitorPlay, Film, Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCustomTimeline, TimelineClip } from "@/hooks/useCustomTimeline";
 import { Slider } from "@/components/ui/slider";
+import { motion } from "framer-motion";
 import {
   Tooltip,
   TooltipContent,
@@ -68,7 +68,6 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
     video.currentTime = Math.max(0, offset);
   }, [active?.clip.id, active?.clip.src]);
 
-  // Sync playhead → video currentTime when scrubbing (not playing)
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !active?.clip || state.isPlaying) return;
@@ -79,7 +78,6 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
     }
   }, [state.playheadTime, state.isPlaying]);
 
-  // Play/pause sync
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -189,18 +187,29 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
       {/* Video area */}
       <div className="flex-1 min-h-0 flex items-center justify-center relative" style={{ background: 'hsl(0 0% 3%)' }}>
         {!hasClips ? (
-          <div className="flex flex-col items-center gap-4 text-muted-foreground/20 select-none">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center gap-5 text-muted-foreground/20 select-none"
+          >
             <div
-              className="w-20 h-20 rounded-3xl flex items-center justify-center"
-              style={{ background: 'hsla(263, 70%, 58%, 0.06)', border: '1px solid hsla(263, 70%, 58%, 0.08)' }}
+              className="w-24 h-24 rounded-3xl flex items-center justify-center relative"
+              style={{
+                background: 'linear-gradient(135deg, hsla(263, 70%, 58%, 0.08), hsla(263, 70%, 58%, 0.02))',
+                border: '1px solid hsla(263, 70%, 58%, 0.1)',
+                boxShadow: '0 8px 32px hsla(263, 70%, 58%, 0.06)',
+              }}
             >
-              <MonitorPlay className="w-9 h-9" />
+              <MonitorPlay className="w-10 h-10 text-primary/25" />
+              <Sparkles className="w-4 h-4 text-primary/20 absolute -top-1.5 -right-1.5" />
             </div>
-            <div className="text-center space-y-1">
-              <p className="text-[13px] font-medium text-muted-foreground/30">Preview</p>
-              <p className="text-[11px] text-muted-foreground/20">Add clips to the timeline to start</p>
+            <div className="text-center space-y-2">
+              <p className="text-[14px] font-semibold text-muted-foreground/35">Preview</p>
+              <p className="text-[11px] text-muted-foreground/20 max-w-[200px] leading-relaxed">
+                Add clips to the timeline to start previewing your edit
+              </p>
             </div>
-          </div>
+          </motion.div>
         ) : (
           <video
             ref={videoRef}
@@ -213,8 +222,12 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
 
         {/* Aspect ratio badge */}
         <div
-          className="absolute top-3 right-3 px-2 py-0.5 rounded-md text-[9px] font-mono font-medium backdrop-blur-md"
-          style={{ background: 'hsla(0,0%,0%,0.5)', color: 'hsla(0,0%,100%,0.4)', border: '1px solid hsla(255,255,255,0.06)' }}
+          className="absolute top-3 right-3 px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold backdrop-blur-xl"
+          style={{
+            background: 'hsla(0,0%,0%,0.6)',
+            color: 'hsla(0,0%,100%,0.45)',
+            border: '1px solid hsla(0,0%,100%,0.08)',
+          }}
         >
           {state.aspectRatio}
         </div>
@@ -224,12 +237,12 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
       <div
         className="shrink-0"
         style={{
-          background: 'linear-gradient(180deg, hsl(240 20% 6%) 0%, hsl(240 25% 5%) 100%)',
+          background: 'linear-gradient(180deg, hsl(240 18% 7%) 0%, hsl(240 22% 5%) 100%)',
           borderTop: '1px solid hsla(263, 70%, 58%, 0.06)',
         }}
       >
         {/* Seek slider */}
-        <div className="px-4 pt-2 pb-1">
+        <div className="px-4 pt-2.5 pb-1">
           <Slider
             value={[state.playheadTime]}
             onValueChange={handleSeek}
@@ -241,20 +254,20 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
         </div>
 
         {/* Transport controls */}
-        <div className="flex items-center gap-1 px-4 h-10">
+        <div className="flex items-center gap-1.5 px-4 h-11">
           {/* Left: transport buttons */}
           <div className="flex items-center gap-0.5">
             <TransportButton onClick={goToStart} tooltip="Start (Home)">
-              <ChevronsLeft className="w-3.5 h-3.5" />
+              <ChevronsLeft className="w-4 h-4" />
             </TransportButton>
             <TransportButton onClick={() => skipClip(-1)} tooltip="Previous clip">
-              <SkipBack className="w-3.5 h-3.5" />
+              <SkipBack className="w-4 h-4" />
             </TransportButton>
 
-            {/* Play button — hero element */}
+            {/* Play button — hero */}
             <button
               onClick={togglePlay}
-              className="w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95"
+              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 mx-1"
               style={{
                 background: state.isPlaying
                   ? 'hsla(263, 70%, 58%, 0.15)'
@@ -263,31 +276,31 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
                   ? '1px solid hsla(263, 70%, 58%, 0.25)'
                   : '1px solid hsla(263, 70%, 58%, 0.3)',
                 color: state.isPlaying ? 'hsl(var(--primary))' : 'white',
-                boxShadow: state.isPlaying ? 'none' : '0 2px 12px hsla(263, 70%, 58%, 0.25)',
+                boxShadow: state.isPlaying ? 'none' : '0 4px 16px hsla(263, 70%, 58%, 0.3)',
               }}
             >
-              {state.isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+              {state.isPlaying ? <Pause className="w-4.5 h-4.5" /> : <Play className="w-4.5 h-4.5 ml-0.5" />}
             </button>
 
             <TransportButton onClick={() => skipClip(1)} tooltip="Next clip">
-              <SkipForward className="w-3.5 h-3.5" />
+              <SkipForward className="w-4 h-4" />
             </TransportButton>
             <TransportButton onClick={goToEnd} tooltip="End (End)">
-              <ChevronsRight className="w-3.5 h-3.5" />
+              <ChevronsRight className="w-4 h-4" />
             </TransportButton>
           </div>
 
           {/* Center: timecode */}
           <div className="flex-1 flex items-center justify-center">
             <div
-              className="flex items-center gap-1.5 px-3 py-1 rounded-lg"
-              style={{ background: 'hsla(0,0%,100%,0.03)', border: '1px solid hsla(0,0%,100%,0.04)' }}
+              className="flex items-center gap-2 px-4 py-1.5 rounded-lg"
+              style={{ background: 'hsla(0,0%,100%,0.04)', border: '1px solid hsla(0,0%,100%,0.06)' }}
             >
-              <span className="text-[11px] font-mono font-semibold text-foreground/70 tabular-nums tracking-tight">
+              <span className="text-[12px] font-mono font-bold text-foreground/75 tabular-nums tracking-tight">
                 {formatTime(state.playheadTime)}
               </span>
-              <span className="text-[9px] text-muted-foreground/25">/</span>
-              <span className="text-[10px] font-mono text-muted-foreground/40 tabular-nums">
+              <span className="text-[10px] text-muted-foreground/25 font-medium">/</span>
+              <span className="text-[11px] font-mono text-muted-foreground/40 tabular-nums">
                 {formatTime(state.duration)}
               </span>
             </div>
@@ -300,7 +313,7 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
               tooltip={state.isLooping ? "Loop: ON" : "Loop: OFF"}
               active={state.isLooping}
             >
-              <Repeat className="w-3.5 h-3.5" />
+              <Repeat className="w-4 h-4" />
             </TransportButton>
 
             {/* Volume */}
@@ -310,7 +323,7 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
               onMouseLeave={() => setShowVolumeSlider(false)}
             >
               <TransportButton onClick={toggleMute} tooltip={isMuted ? "Unmute" : "Mute"}>
-                {isMuted || volume === 0 ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               </TransportButton>
               {showVolumeSlider && (
                 <div
@@ -334,7 +347,7 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
             </div>
 
             <TransportButton onClick={toggleFullscreen} tooltip="Fullscreen">
-              <Maximize className="w-3.5 h-3.5" />
+              <Maximize className="w-4 h-4" />
             </TransportButton>
           </div>
         </div>
@@ -361,10 +374,10 @@ function TransportButton({
         <button
           onClick={onClick}
           className={cn(
-            "w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-150",
+            "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-150",
             active
               ? "text-primary bg-primary/10"
-              : "text-muted-foreground/45 hover:text-foreground/80 hover:bg-white/[0.04]"
+              : "text-muted-foreground/50 hover:text-foreground/80 hover:bg-white/[0.06]"
           )}
         >
           {children}

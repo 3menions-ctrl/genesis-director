@@ -67,7 +67,7 @@ function TimelineRuler({ zoom, scrollX, duration }: { zoom: number; scrollX: num
         height: RULER_HEIGHT,
         marginLeft: HEADER_WIDTH,
         background: 'linear-gradient(180deg, hsl(240 18% 7%) 0%, hsl(240 22% 5.5%) 100%)',
-        borderBottom: '1px solid hsla(263, 70%, 58%, 0.06)',
+        borderBottom: '1px solid hsla(0, 0%, 100%, 0.06)',
       }}
     >
       <div className="relative h-full" style={{ width: totalWidth, transform: `translateX(-${scrollX}px)` }}>
@@ -77,7 +77,7 @@ function TimelineRuler({ zoom, scrollX, duration }: { zoom: number; scrollX: num
             className="absolute top-0 flex flex-col items-center"
             style={{ left: mark.time * zoom }}
           >
-            <div className="w-px h-3" style={{ background: 'hsla(263, 70%, 58%, 0.18)' }} />
+            <div className="w-px h-3" style={{ background: 'hsla(0, 0%, 100%, 0.12)' }} />
             <span className="text-[9px] text-muted-foreground/40 mt-0.5 font-mono leading-none whitespace-nowrap">
               {mark.label}
             </span>
@@ -109,9 +109,9 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
   );
 
   const typeColors: Record<string, string> = {
-    video: 'hsla(263, 70%, 58%, 0.15)',
-    audio: 'hsla(190, 70%, 55%, 0.15)',
-    text: 'hsla(170, 70%, 50%, 0.15)',
+    video: 'hsla(0, 0%, 100%, 0.08)',
+    audio: 'hsla(190, 70%, 55%, 0.12)',
+    text: 'hsla(170, 70%, 50%, 0.12)',
   };
 
   return (
@@ -121,8 +121,8 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
         width: HEADER_WIDTH,
         height: TRACK_HEIGHT,
         background: 'linear-gradient(90deg, hsl(240 18% 7%) 0%, hsl(240 22% 5.5%) 100%)',
-        borderRight: '1px solid hsla(263, 70%, 58%, 0.05)',
-        borderBottom: '1px solid hsla(263, 70%, 58%, 0.04)',
+        borderRight: '1px solid hsla(0, 0%, 100%, 0.05)',
+        borderBottom: '1px solid hsla(0, 0%, 100%, 0.04)',
       }}
     >
       <div className="flex items-center gap-1.5 min-w-0">
@@ -181,21 +181,21 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
 // ─── Clip Block ───
 
 const CLIP_COLORS: Record<string, string> = {
-  video: "hsla(263, 65%, 55%, 0.22)",
+  video: "hsla(210, 50%, 55%, 0.22)",
   image: "hsla(45, 85%, 55%, 0.22)",
   text: "hsla(170, 65%, 50%, 0.22)",
   audio: "hsla(190, 65%, 55%, 0.22)",
 };
 
 const CLIP_BORDER_COLORS: Record<string, string> = {
-  video: "hsla(263, 65%, 55%, 0.4)",
+  video: "hsla(210, 50%, 55%, 0.4)",
   image: "hsla(45, 85%, 55%, 0.4)",
   text: "hsla(170, 65%, 50%, 0.4)",
   audio: "hsla(190, 65%, 55%, 0.4)",
 };
 
 const CLIP_ACCENT_COLORS: Record<string, string> = {
-  video: "hsla(263, 65%, 55%, 0.6)",
+  video: "hsla(210, 50%, 55%, 0.6)",
   image: "hsla(45, 85%, 55%, 0.6)",
   text: "hsla(170, 65%, 50%, 0.6)",
   audio: "hsla(190, 65%, 55%, 0.6)",
@@ -243,7 +243,7 @@ function ClipBlock({
         background: CLIP_COLORS[clip.type] || CLIP_COLORS.video,
         border: `1px solid ${selected ? 'hsl(var(--primary))' : (CLIP_BORDER_COLORS[clip.type] || CLIP_BORDER_COLORS.video)}`,
         opacity,
-        boxShadow: selected ? `0 0 20px hsla(263, 70%, 58%, 0.15)` : 'none',
+        boxShadow: selected ? `0 0 20px hsla(0, 0%, 100%, 0.1)` : 'none',
       }}
       onClick={(e) => { e.stopPropagation(); onSelect(); }}
       onMouseDown={(e) => { if (e.button === 0) onDragStart(e, clip.id, trackId); }}
@@ -257,7 +257,7 @@ function ClipBlock({
       
       <div
         className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity rounded-l-lg"
-        style={{ background: 'hsla(263, 70%, 58%, 0.5)' }}
+        style={{ background: 'hsla(0, 0%, 100%, 0.4)' }}
         onMouseDown={(e) => { e.stopPropagation(); onTrimStart(clip.id, trackId); }}
       />
       <div className="px-2.5 h-full flex items-center gap-1.5 overflow-hidden pointer-events-none">
@@ -273,7 +273,7 @@ function ClipBlock({
       </div>
       <div
         className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity rounded-r-lg"
-        style={{ background: 'hsla(263, 70%, 58%, 0.5)' }}
+        style={{ background: 'hsla(0, 0%, 100%, 0.4)' }}
         onMouseDown={(e) => { e.stopPropagation(); onTrimEnd(clip.id, trackId); }}
       />
     </div>
@@ -317,7 +317,7 @@ function ClipContextMenu({
         left: menu.x,
         top: menu.y,
         background: 'hsla(240, 22%, 8%, 0.95)',
-        borderColor: 'hsla(263, 84%, 58%, 0.12)',
+        borderColor: 'hsla(0, 0%, 100%, 0.1)',
       }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -327,7 +327,7 @@ function ClipContextMenu({
       <button onClick={() => { onDuplicate(); onClose(); }} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[11px] text-foreground/70 hover:bg-primary/10 hover:text-foreground transition-colors">
         <Copy className="w-3.5 h-3.5" /> Duplicate
       </button>
-      <div className="h-px mx-3 my-1" style={{ background: 'hsla(263, 84%, 58%, 0.08)' }} />
+      <div className="h-px mx-3 my-1" style={{ background: 'hsla(0, 0%, 100%, 0.06)' }} />
       <button onClick={() => { onDelete(); onClose(); }} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[11px] text-destructive/70 hover:bg-destructive/10 hover:text-destructive transition-colors">
         <Trash className="w-3.5 h-3.5" /> Delete
       </button>
@@ -605,7 +605,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
         className="shrink-0 flex items-center gap-1 px-3 h-11 overflow-hidden"
         style={{
           background: 'linear-gradient(180deg, hsl(240 18% 7%) 0%, hsl(240 22% 5.5%) 100%)',
-          borderBottom: '1px solid hsla(263, 70%, 58%, 0.06)',
+          borderBottom: '1px solid hsla(0, 0%, 100%, 0.06)',
         }}
       >
         {/* Left: Add track buttons — grouped */}
@@ -741,7 +741,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
                 className="relative flex-1"
                 style={{
                   height: TRACK_HEIGHT,
-                  borderBottom: '1px solid hsla(263, 84%, 58%, 0.04)',
+                  borderBottom: '1px solid hsla(0, 0%, 100%, 0.04)',
                   background: idx % 2 === 0
                     ? 'hsla(240, 25%, 6%, 0.5)'
                     : 'hsla(240, 25%, 5%, 0.3)',
@@ -773,8 +773,8 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
               <div
                 className="w-14 h-14 rounded-2xl flex items-center justify-center"
                 style={{
-                  background: 'hsla(263, 70%, 58%, 0.05)',
-                  border: '1px dashed hsla(263, 70%, 58%, 0.12)',
+                  background: 'hsla(0, 0%, 100%, 0.04)',
+                  border: '1px dashed hsla(0, 0%, 100%, 0.1)',
                 }}
               >
                 <Film className="w-6 h-6 text-muted-foreground/15" />
@@ -809,8 +809,8 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
             <div
               className="absolute top-0 bottom-0 w-px left-1/2 -translate-x-1/2"
               style={{
-                background: 'hsl(263, 84%, 58%)',
-                boxShadow: '0 0 8px hsla(263, 84%, 58%, 0.5)',
+                background: 'hsl(0, 0%, 90%)',
+                boxShadow: '0 0 8px hsla(0, 0%, 100%, 0.4)',
               }}
             />
             {/* Playhead triangle */}
@@ -821,8 +821,8 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
                 height: 0,
                 borderLeft: '5px solid transparent',
                 borderRight: '5px solid transparent',
-                borderTop: '7px solid hsl(263, 84%, 58%)',
-                filter: 'drop-shadow(0 1px 3px hsla(263, 84%, 58%, 0.5))',
+                borderTop: '7px solid hsl(0, 0%, 90%)',
+                filter: 'drop-shadow(0 1px 3px hsla(0, 0%, 100%, 0.4))',
               }}
             />
           </div>

@@ -567,7 +567,7 @@ export function EditorChrome({
           className="h-12 flex items-center px-3 shrink-0 z-10 relative gap-2"
           style={{
             background: 'linear-gradient(180deg, hsl(240 18% 7%) 0%, hsl(240 22% 5.5%) 100%)',
-            borderBottom: '1px solid hsla(263, 70%, 58%, 0.06)',
+            borderBottom: '1px solid hsla(0, 0%, 100%, 0.06)',
           }}
         >
           {/* ── Left group: Back + Session name ── */}
@@ -724,7 +724,7 @@ export function EditorChrome({
                 <button
                   onClick={() => resetStitch()}
                   className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-[11px] font-semibold"
-                  style={{ background: 'hsla(263, 70%, 58%, 0.1)', color: 'hsl(var(--primary))' }}
+                  style={{ background: 'hsla(0, 0%, 100%, 0.08)', color: 'hsl(0, 0%, 80%)' }}
                 >
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   {Math.round(stitchProgress)}%
@@ -840,11 +840,11 @@ export function EditorChrome({
           className="h-7 flex items-center px-4 shrink-0 z-10 select-none overflow-hidden gap-4"
           style={{
             background: 'linear-gradient(180deg, hsl(240 22% 5.5%) 0%, hsl(240 25% 4%) 100%)',
-            borderTop: '1px solid hsla(263, 70%, 58%, 0.06)',
+            borderTop: '1px solid hsla(0, 0%, 100%, 0.06)',
           }}
         >
           {/* Left stats */}
-          <div className="flex items-center gap-3 text-[9px] text-muted-foreground/35 shrink-0 whitespace-nowrap font-medium">
+          <div className="flex items-center gap-3 text-[9px] text-muted-foreground/45 shrink-0 whitespace-nowrap font-medium">
             <span className="flex items-center gap-1">
               <Layers className="w-2.5 h-2.5 shrink-0" />
               {trackCount} track{trackCount !== 1 ? "s" : ""}
@@ -884,13 +884,13 @@ export function EditorChrome({
           </div>
 
           {/* Right — tech info */}
-          <div className="flex items-center gap-3 text-[9px] text-muted-foreground/30 shrink-0 whitespace-nowrap font-mono">
-            <span>1920×1080</span>
-            <span className="w-px h-3 bg-white/[0.05]" />
-            <span>30fps</span>
-            <span className="w-px h-3 bg-white/[0.05]" />
+          <div className="flex items-center gap-3 text-[9px] text-muted-foreground/45 shrink-0 whitespace-nowrap font-mono">
+            <span>{timelineState.width}×{timelineState.height}</span>
+            <span className="w-px h-3 bg-foreground/[0.06]" />
+            <span>{timelineState.fps}fps</span>
+            <span className="w-px h-3 bg-foreground/[0.06]" />
             <span className="flex items-center gap-1">
-              <Zap className="w-2.5 h-2.5 text-primary/30 shrink-0" />
+              <Zap className="w-2.5 h-2.5 text-foreground/25 shrink-0" />
               WebCodecs
             </span>
           </div>

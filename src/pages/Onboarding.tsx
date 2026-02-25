@@ -228,15 +228,7 @@ export default function Onboarding() {
     }
   };
 
-  const handleSkip = async () => {
-    if (!user) { navigate('/auth', { replace: true }); return; }
-    setLoading(true);
-    try {
-      await supabase.from('profiles').update({ onboarding_completed: true }).eq('id', user.id);
-      await refreshProfile();
-      navigate('/create', { replace: true });
-    } catch { navigate('/create', { replace: true }); } finally { setLoading(false); }
-  };
+  // Onboarding is mandatory — no skip option
 
   if (authLoading || !isSessionVerified || !sessionChecked) {
     return (
@@ -407,13 +399,6 @@ export default function Onboarding() {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs text-white/25 font-medium">Step {step} of 3</span>
-              <button
-                onClick={handleSkip}
-                disabled={loading}
-                className="text-xs text-white/25 hover:text-white/50 transition-colors"
-              >
-                Skip →
-              </button>
             </div>
             <div className="h-1.5 rounded-full bg-white/[0.04] overflow-hidden relative">
               <motion.div

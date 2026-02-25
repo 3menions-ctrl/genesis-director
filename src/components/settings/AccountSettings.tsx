@@ -680,7 +680,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
 
       {/* Deactivation Confirmation Dialog - FIXED: proper responsive sizing */}
       <Dialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
-        <DialogContent className="bg-[#0a0a0f]/98 backdrop-blur-2xl border-red-500/15 rounded-2xl max-w-[calc(100vw-2rem)] sm:max-w-md mx-auto max-h-[85vh] overflow-y-auto">
+        <DialogContent className="bg-[#0a0a0f]/98 backdrop-blur-2xl border-red-500/15 rounded-2xl max-w-[calc(100vw-2rem)] sm:max-w-md mx-auto max-h-[85vh] overflow-y-auto top-[50%] translate-y-[-50%]">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">

@@ -1,6 +1,6 @@
-import { lazy, Suspense, useEffect, useState, useCallback } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Check, ArrowRight, Sparkles, Shield, Clock } from 'lucide-react';
+import { Check, ArrowRight, Sparkles, Shield, Clock, Zap, Crown, Building2, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
@@ -8,66 +8,191 @@ import { useSafeNavigation } from '@/lib/navigation';
 
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 
-// Pricing constants
-const CREDIT_PRICE = 0.10; // $ per credit
-// Actual credit costs: standard 50-75, avatar 60-90
-const CREDITS_PER_CLIP_MIN = 50;  // standard 10s clip
-const CREDITS_PER_CLIP_MAX = 90;  // avatar 15s clip
+interface CreditPackage {
+  name: string;
+  icon: React.ReactNode;
+  tagline: string;
+  price: number;
+  credits: number;
+  clips: string;
+  features: string[];
+  popular?: boolean;
+  accent: string; // tailwind gradient classes
+  glowColor: string;
+}
 
-// Slider snap points aligned with actual DB packages
-const CREDIT_STOPS = [90, 200, 370, 500, 1000, 1500, 2000, 2500];
-
-// Features unlocked by credit amount
-const getFeatures = (credits: number) => {
-  const base = [
-    'HD video export (1080p)',
-    'AI-powered script generation',
-    'Text-to-video creation',
-    'Image-to-video animation',
-    'Email support',
-  ];
-  if (credits >= 200) base.push('Basic character consistency');
-  if (credits >= 500) {
-    base.push('4K video export (2160p)', 'Priority processing queue', 'AI voiceover generation');
-  }
-  if (credits >= 1000) {
-    base.push('Advanced character lock', 'Style transfer (20+ presets)', 'Priority support');
-  }
-  if (credits >= 2000) {
-    base.push('API access', 'White-label exports', 'Team collaboration', 'Dedicated account manager');
-  }
-  return base;
-};
+const PACKAGES: CreditPackage[] = [
+  {
+    name: 'Mini',
+    icon: <Sparkles className="w-5 h-5" />,
+    tagline: 'Quick top-up to get started',
+    price: 9,
+    credits: 90,
+    clips: '~9',
+    features: ['HD export (1080p)', 'AI scripts', '~9 clips'],
+    accent: 'from-white/[0.08] to-white/[0.02]',
+    glowColor: 'rgba(255,255,255,0.04)',
+  },
+  {
+    name: 'Starter',
+    icon: <Zap className="w-5 h-5" />,
+    tagline: 'Perfect for trying out the platform',
+    price: 37,
+    credits: 370,
+    clips: '~37',
+    features: ['HD export (1080p)', 'AI scripts', 'Standard support'],
+    accent: 'from-white/[0.08] to-white/[0.02]',
+    glowColor: 'rgba(255,255,255,0.04)',
+  },
+  {
+    name: 'Growth',
+    icon: <Crown className="w-5 h-5" />,
+    tagline: 'For serious creators and small teams',
+    price: 99,
+    credits: 1000,
+    clips: '~100',
+    features: ['4K export (2160p)', 'Priority processing', 'Priority support'],
+    popular: true,
+    accent: 'from-violet-500/20 to-fuchsia-500/10',
+    glowColor: 'rgba(124,58,237,0.12)',
+  },
+  {
+    name: 'Agency',
+    icon: <Building2 className="w-5 h-5" />,
+    tagline: 'For studios and production teams',
+    price: 249,
+    credits: 2500,
+    clips: '~250',
+    features: ['4K HDR', 'API access', 'Dedicated support'],
+    accent: 'from-white/[0.08] to-white/[0.02]',
+    glowColor: 'rgba(255,255,255,0.04)',
+  },
+];
 
 const TRUST_POINTS = [
-  { icon: <Shield className="w-4 h-4" />, text: 'Secure payments' },
+  { icon: <Shield className="w-4 h-4" />, text: 'Secure via Stripe' },
   { icon: <Clock className="w-4 h-4" />, text: 'Credits never expire' },
-  { icon: <Sparkles className="w-4 h-4" />, text: 'No subscriptions' },
+  { icon: <Star className="w-4 h-4" />, text: 'Zero-waste guarantee' },
 ];
+
+function CreditCircle({ credits, clips, popular }: { credits: number; clips: string; popular?: boolean }) {
+  return (
+    <div className="relative mx-auto w-[130px] h-[130px]">
+      {/* Outer ring */}
+      <div className={cn(
+        "absolute inset-0 rounded-full border-2 transition-all duration-500",
+        popular ? "border-violet-500/40" : "border-white/[0.08]"
+      )} />
+      {/* Inner glow */}
+      {popular && (
+        <div className="absolute inset-2 rounded-full bg-violet-500/[0.06] animate-pulse" />
+      )}
+      {/* Content */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-2xl font-bold text-white font-['Sora'] tracking-tight">
+          {credits >= 1000 ? `${(credits / 1000).toFixed(0)}k` : credits}
+        </span>
+        <span className="text-[10px] text-white/30 uppercase tracking-wider">credits</span>
+        <div className="w-6 h-px bg-white/[0.08] my-1.5" />
+        <span className="text-[10px] text-white/25">{clips} clips</span>
+      </div>
+    </div>
+  );
+}
+
+function PricingCard({ pkg, index }: { pkg: CreditPackage; index: number }) {
+  const { navigate } = useSafeNavigation();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.1 + index * 0.08 }}
+      className="relative group"
+    >
+      {/* Popular badge */}
+      {pkg.popular && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+          <div className="px-3 py-1 rounded-full bg-violet-500 text-white text-[10px] font-semibold uppercase tracking-wider shadow-[0_0_20px_rgba(124,58,237,0.4)]">
+            Popular
+          </div>
+        </div>
+      )}
+
+      <div className={cn(
+        "relative rounded-[28px] p-6 pt-8 overflow-hidden transition-all duration-500",
+        "bg-gradient-to-b border",
+        pkg.popular
+          ? "border-violet-500/30 shadow-[0_0_40px_rgba(124,58,237,0.1)]"
+          : "border-white/[0.06] hover:border-white/[0.12]",
+        pkg.accent,
+      )}>
+        {/* Corner glow */}
+        <div
+          className="absolute -top-20 -right-20 w-40 h-40 rounded-full blur-3xl pointer-events-none transition-opacity duration-500 opacity-0 group-hover:opacity-100"
+          style={{ background: pkg.glowColor }}
+        />
+
+        {/* Icon */}
+        <div className={cn(
+          "w-10 h-10 rounded-xl flex items-center justify-center mb-4",
+          pkg.popular ? "bg-violet-500/15 text-violet-400" : "bg-white/[0.05] text-white/50"
+        )}>
+          {pkg.icon}
+        </div>
+
+        {/* Title */}
+        <h3 className="text-lg font-bold text-white font-['Sora'] mb-1">{pkg.name}</h3>
+        <p className="text-[12px] text-white/30 mb-5 leading-relaxed min-h-[32px]">{pkg.tagline}</p>
+
+        {/* Price */}
+        <div className="flex items-baseline gap-1.5 mb-6">
+          <span className="text-4xl font-bold text-white font-['Sora'] tracking-tight">${pkg.price}</span>
+          <span className="text-[12px] text-white/25">one-time</span>
+        </div>
+
+        {/* Credit circle */}
+        <div className="mb-6">
+          <CreditCircle credits={pkg.credits} clips={pkg.clips} popular={pkg.popular} />
+        </div>
+
+        {/* Features */}
+        <ul className="space-y-2.5 mb-6">
+          {pkg.features.map((f, i) => (
+            <li key={i} className="flex items-center gap-2">
+              <Check className={cn(
+                "w-3.5 h-3.5 shrink-0",
+                pkg.popular ? "text-violet-400" : "text-white/30"
+              )} />
+              <span className="text-[12px] text-white/40">{f}</span>
+            </li>
+          ))}
+        </ul>
+
+        {/* CTA */}
+        <Button
+          onClick={() => navigate('/auth?mode=signup')}
+          className={cn(
+            "w-full h-10 rounded-xl text-[13px] font-semibold transition-all duration-300 group/btn",
+            pkg.popular
+              ? "bg-violet-500 hover:bg-violet-400 text-white shadow-[0_0_20px_rgba(124,58,237,0.25)]"
+              : "bg-white/[0.06] hover:bg-white/[0.1] text-white/70 border border-white/[0.08]"
+          )}
+        >
+          Get {pkg.credits >= 1000 ? `${(pkg.credits / 1000).toFixed(0)},000` : pkg.credits}
+          <ArrowRight className="w-3.5 h-3.5 ml-1.5 transition-transform group-hover/btn:translate-x-0.5" />
+        </Button>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function Pricing() {
   const { navigate } = useSafeNavigation();
-  const [credits, setCredits] = useState(370);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
   }, []);
-
-  const price = Math.round(credits * CREDIT_PRICE);
-  const clipsMin = Math.floor(credits / CREDITS_PER_CLIP_MAX);
-  const clipsMax = Math.floor(credits / CREDITS_PER_CLIP_MIN);
-  const features = getFeatures(credits);
-
-  // Snap to nearest stop
-  const handleSliderChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = Number(e.target.value);
-    const nearest = CREDIT_STOPS.reduce((prev, curr) =>
-      Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev
-    );
-    setCredits(nearest);
-  }, []);
-
-  const sliderPercent = ((credits - CREDIT_STOPS[0]) / (CREDIT_STOPS[CREDIT_STOPS.length - 1] - CREDIT_STOPS[0])) * 100;
 
   return (
     <div className="min-h-screen bg-[#030308] overflow-hidden relative">
@@ -75,12 +200,11 @@ export default function Pricing() {
         <AbstractBackground className="fixed inset-0 z-0" />
       </Suspense>
 
-      {/* Ambient glow — subtle, Apple-like */}
       <div className="fixed inset-0 pointer-events-none z-[1]">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-white/[0.02] rounded-full blur-[200px]" />
       </div>
 
-      {/* Navigation */}
+      {/* Nav */}
       <nav className="relative z-50 px-6 py-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="text-lg font-bold text-white tracking-tight font-['Sora']">
@@ -96,133 +220,35 @@ export default function Pricing() {
       </nav>
 
       {/* Hero */}
-      <section className="relative z-10 pt-24 pb-8 px-6">
+      <section className="relative z-10 pt-20 pb-6 px-6">
         <div className="max-w-3xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-5 font-['Sora']">
-              <span className="block">Choose your</span>
-              <span className="block text-white/50">creative fuel.</span>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] mb-6">
+              <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+              <span className="text-[12px] text-white/50 font-medium">Production Credits</span>
+            </div>
+            <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-white mb-4 font-['Sora']">
+              Power your creativity
             </h1>
-            <p className="text-base text-white/30 max-w-md mx-auto">
-              No subscriptions. Credits never expire. Pay once, create forever.
+            <p className="text-sm text-white/30 max-w-md mx-auto">
+              1 credit = $0.10 · ~10 credits per clip
             </p>
           </motion.div>
         </div>
       </section>
 
-      {/* Interactive Calculator Card */}
-      <section className="relative z-10 py-16 px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.15 }}
-          className="max-w-2xl mx-auto"
-        >
-          <div className="relative rounded-3xl bg-white/[0.02] border border-white/[0.06] p-10 md:p-14 overflow-hidden">
-            {/* Subtle corner glow */}
-            <div className="absolute top-0 right-0 w-48 h-48 bg-white/[0.015] rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-
-            {/* Price display */}
-            <div className="text-center mb-10">
-              <div className="text-[72px] md:text-[96px] font-bold tracking-tighter text-white leading-none font-['Sora']">
-                ${price}
-              </div>
-              <div className="mt-2 text-sm text-white/25">
-                {credits.toLocaleString()} credits · {clipsMin}–{clipsMax} clips
-              </div>
-            </div>
-
-            {/* Slider */}
-            <div className="mb-10">
-              <div className="relative">
-                {/* Track background */}
-                <div className="h-1 rounded-full bg-white/[0.06] relative">
-                  <div
-                    className="absolute inset-y-0 left-0 rounded-full bg-white/20"
-                    style={{ width: `${sliderPercent}%` }}
-                  />
-                </div>
-                <input
-                  type="range"
-                  min={CREDIT_STOPS[0]}
-                  max={CREDIT_STOPS[CREDIT_STOPS.length - 1]}
-                  value={credits}
-                  onChange={handleSliderChange}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
-                {/* Thumb indicator */}
-                <div
-                  className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white shadow-[0_0_16px_rgba(255,255,255,0.2)] pointer-events-none transition-all duration-150"
-                  style={{ left: `calc(${sliderPercent}% - 8px)` }}
-                />
-              </div>
-
-              {/* Snap labels */}
-              <div className="flex justify-between mt-4 px-1">
-                {CREDIT_STOPS.filter((_, i) => i % 2 === 0 || CREDIT_STOPS.length <= 6).map(stop => (
-                  <button
-                    key={stop}
-                    onClick={() => setCredits(stop)}
-                    className={cn(
-                      "text-[10px] font-mono transition-all duration-150",
-                      credits === stop ? "text-white/70" : "text-white/15 hover:text-white/30"
-                    )}
-                  >
-                    {stop >= 1000 ? `${stop / 1000}k` : stop}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Per-credit cost */}
-            <div className="flex items-center justify-center gap-6 mb-10 py-4 border-t border-b border-white/[0.04]">
-              <div className="text-center">
-                <div className="text-lg font-semibold text-white font-['Sora']">$0.10</div>
-                <div className="text-[10px] text-white/20 uppercase tracking-wider mt-0.5">per credit</div>
-              </div>
-              <div className="w-px h-8 bg-white/[0.06]" />
-              <div className="text-center">
-                <div className="text-lg font-semibold text-white font-['Sora']">${(price / clipsMax).toFixed(2)}–${(price / clipsMin).toFixed(2)}</div>
-                <div className="text-[10px] text-white/20 uppercase tracking-wider mt-0.5">per clip</div>
-              </div>
-              <div className="w-px h-8 bg-white/[0.06]" />
-              <div className="text-center">
-                <div className="text-lg font-semibold text-white font-['Sora']">∞</div>
-                <div className="text-[10px] text-white/20 uppercase tracking-wider mt-0.5">no expiry</div>
-              </div>
-            </div>
-
-            {/* Features */}
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 mb-10">
-              {features.map((feature, i) => (
-                <li key={i} className="flex items-center gap-2.5 py-1">
-                  <div className="w-4 h-4 rounded-full bg-white/[0.04] flex items-center justify-center shrink-0">
-                    <Check className="w-2.5 h-2.5 text-white/40" />
-                  </div>
-                  <span className="text-[13px] text-white/40">{feature}</span>
-                </li>
-              ))}
-            </ul>
-
-            {/* CTA */}
-            <Button
-              onClick={() => navigate('/auth?mode=signup')}
-              className="w-full h-12 rounded-xl font-semibold text-sm bg-white text-black hover:bg-white/90 shadow-[0_0_40px_rgba(255,255,255,0.06)] transition-all duration-300 group"
-            >
-              Get {credits.toLocaleString()} Credits for ${price}
-              <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-0.5" />
-            </Button>
-          </div>
-        </motion.div>
+      {/* Cards */}
+      <section className="relative z-10 py-12 px-6">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {PACKAGES.map((pkg, i) => (
+            <PricingCard key={pkg.name} pkg={pkg} index={i} />
+          ))}
+        </div>
       </section>
 
       {/* Trust */}
       <section className="relative z-10 py-10 px-6">
-        <div className="flex items-center justify-center gap-8">
+        <div className="flex items-center justify-center gap-8 flex-wrap">
           {TRUST_POINTS.map((p, i) => (
             <div key={i} className="flex items-center gap-2 text-white/20">
               {p.icon}
@@ -233,7 +259,7 @@ export default function Pricing() {
       </section>
 
       {/* Final CTA */}
-      <section className="relative z-10 py-24 px-6">
+      <section className="relative z-10 py-20 px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}

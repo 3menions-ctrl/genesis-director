@@ -97,6 +97,24 @@ export default function AuthCallback() {
 
           setStatus('success');
           
+          // Track signup analytics for email-verified users
+          try {
+            const { data: { session: verifiedSession } } = await supabase.auth.getSession();
+            if (verifiedSession?.user) {
+              await supabase.functions.invoke('track-signup', {
+                body: {
+                  user_id: verifiedSession.user.id,
+                  utm_source: searchParams.get('utm_source'),
+                  utm_medium: searchParams.get('utm_medium'),
+                  utm_campaign: searchParams.get('utm_campaign'),
+                  referrer: document.referrer || null,
+                },
+              });
+            }
+          } catch {
+            console.warn('[AuthCallback] trackSignup failed');
+          }
+
           if (type === 'recovery') {
             setMessage('Email verified! Redirecting to reset password...');
             toast.success('Email verified! Set your new password.');

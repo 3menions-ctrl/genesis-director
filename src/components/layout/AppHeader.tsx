@@ -91,8 +91,8 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
           WebkitBackdropFilter: 'blur(48px) saturate(200%)',
         }}
       >
-        <div className="relative max-w-[1440px] mx-auto px-5 sm:px-6 lg:px-8">
-          <div className="h-[60px] flex items-center justify-between gap-4">
+        <div className="relative max-w-[1440px] mx-auto px-3 sm:px-4 lg:px-6">
+          <div className="h-[60px] flex items-center justify-between gap-2">
 
             {/* ── Logo ── */}
             <Link
@@ -131,7 +131,7 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
                       key={item.path}
                       to={item.path}
                       className={cn(
-                        "relative px-4 py-[7px] text-[13px] font-medium rounded-[14px] transition-all duration-300 select-none flex items-center gap-2",
+                        "relative px-3 py-[7px] text-[13px] font-medium rounded-[14px] transition-all duration-300 select-none flex items-center gap-1.5",
                         active
                           ? "text-background"
                           : "text-white/35 hover:text-white/70"
@@ -170,7 +170,7 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
             </button>
 
             {/* ── Right Actions ── */}
-            <div className="hidden md:flex items-center gap-1.5">
+            <div className="hidden md:flex items-center gap-1 shrink-0">
 
               {/* Credits pill */}
               {showCredits && (

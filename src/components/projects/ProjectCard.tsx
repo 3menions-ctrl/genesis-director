@@ -323,7 +323,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     );
   }
 
-  // ============= GRID VIEW — GALLERY-INSPIRED PREMIUM =============
+  // ============= GRID VIEW — MAGAZINE PREMIUM =============
   const showContentOverlay = isTouchDevice || isHovered;
   
   const handleCardClick = useCallback(() => {
@@ -335,23 +335,32 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     <div
       ref={ref}
       className={cn(
-        "group relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-500",
-        !isTouchDevice && "hover:-translate-y-1 hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.7)]"
+        "group relative cursor-pointer overflow-hidden transition-all duration-700 ease-out",
+        "rounded-[20px]",
+        !isTouchDevice && "hover:-translate-y-1.5 hover:shadow-[0_30px_80px_-20px_rgba(124,58,237,0.15)]"
       )}
-      style={{ animationDelay: `${Math.min(index * 0.05, 0.4)}s` }}
+      style={{ animationDelay: `${Math.min(index * 0.06, 0.5)}s` }}
       onMouseEnter={!isTouchDevice ? handleMouseEnter : undefined}
       onMouseLeave={!isTouchDevice ? handleMouseLeave : undefined}
       onTouchStart={isTouchDevice ? handleTouchStart : undefined}
       onTouchEnd={isTouchDevice ? handleTouchEnd : undefined}
       onClick={handleCardClick}
     >
-      {/* Card container with glass border effect */}
+      {/* Shimmer border on hover */}
       <div className={cn(
-        "relative overflow-hidden rounded-2xl transition-all duration-500",
-        "bg-white/[0.03] border border-white/[0.06]",
+        "absolute -inset-[1px] rounded-[21px] transition-opacity duration-700 z-0 pointer-events-none",
+        isHovered ? "opacity-100" : "opacity-0"
+      )} style={{
+        background: 'linear-gradient(135deg, rgba(124,58,237,0.3), rgba(6,182,212,0.2), rgba(124,58,237,0.1))',
+      }} />
+
+      {/* Card container */}
+      <div className={cn(
+        "relative overflow-hidden rounded-[20px] transition-all duration-700",
+        "bg-white/[0.02] border border-white/[0.05]",
         "aspect-video",
-        isHovered && "border-white/[0.2] bg-white/[0.06]",
-        isActive && "ring-2 ring-primary/40 border-primary/30"
+        isHovered && "border-transparent bg-white/[0.04]",
+        isActive && "ring-2 ring-primary/30"
       )}>
         
         {/* Video/Thumbnail layer */}
@@ -360,7 +369,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
             {isIOSSafari ? (
               videoSlotGranted ? (
                 <video ref={videoRef} src={videoSrc}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 scale-[1.08]"
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 ease-out scale-[1.08]"
                   loop muted playsInline preload="none"
                   onLoadedMetadata={handleVideoMetadataLoaded}
                   onCanPlay={(e) => { safeSeek(e.currentTarget, 0); safePlay(e.currentTarget); }}
@@ -375,7 +384,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
             ) : (
               <>
                 <div className={cn(
-                  "absolute inset-0 w-full h-full transition-opacity duration-500",
+                  "absolute inset-0 w-full h-full transition-opacity duration-700",
                   isHovered ? "opacity-0 pointer-events-none" : "opacity-100"
                 )}>
                   {project.thumbnail_url ? (
@@ -384,10 +393,9 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
                     <LazyVideoThumbnail src={videoSrc} posterUrl={project.thumbnail_url} alt={project.name} className="w-full h-full object-cover" />
                   )}
                 </div>
-                {/* Only mount video when concurrency slot is granted */}
                 {videoSlotGranted && (
                   <video ref={videoRef} src={videoSrc}
-                    className="absolute inset-0 w-full h-full object-cover transition-all duration-700 opacity-100 scale-[1.05]"
+                    className="absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-out opacity-100 scale-[1.03]"
                     loop muted playsInline preload="none"
                     onLoadedMetadata={handleVideoMetadataLoaded}
                     onCanPlay={(e) => { safeSeek(e.currentTarget, 0); safePlay(e.currentTarget); }}
@@ -397,49 +405,48 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
             )}
           </>
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/[0.02]">
+          <div className="absolute inset-0 flex items-center justify-center bg-white/[0.01]">
             {isProcessing ? (
               <div className="relative flex flex-col items-center gap-3">
-                <div className="w-12 h-12 rounded-full border-2 border-white/[0.08] border-t-primary/60 animate-spin" />
-                <span className="text-[10px] uppercase tracking-[0.2em] text-white/20 font-medium">Processing</span>
+                <div className="w-14 h-14 rounded-full border border-white/[0.06] border-t-primary/40 animate-spin" />
+                <span className="text-[9px] uppercase tracking-[0.25em] text-white/15 font-medium">Processing</span>
               </div>
             ) : isFailed ? (
               <div className="flex flex-col items-center gap-2">
-                <AlertCircle className="w-8 h-8 text-red-400/40" strokeWidth={1} />
-                <span className="text-[10px] uppercase tracking-[0.2em] text-red-400/40 font-medium">Failed</span>
+                <AlertCircle className="w-8 h-8 text-red-400/30" strokeWidth={1} />
+                <span className="text-[9px] uppercase tracking-[0.25em] text-red-400/30 font-medium">Failed</span>
               </div>
             ) : (
-              <Film className="w-12 h-12 text-white/[0.05]" strokeWidth={1} />
+              <Film className="w-14 h-14 text-white/[0.03]" strokeWidth={0.5} />
             )}
           </div>
         )}
 
-        {/* Cinematic gradient overlay */}
+        {/* Cinematic gradient overlay — deeper, more dramatic */}
         <div className={cn(
-          "absolute inset-0 transition-opacity duration-500",
-          "bg-gradient-to-t from-black/90 via-black/30 to-transparent",
-          isTouchDevice ? "opacity-100" : (isHovered ? "opacity-100" : "opacity-50")
-        )} />
+          "absolute inset-0 transition-opacity duration-700",
+          isTouchDevice ? "opacity-100" : (isHovered ? "opacity-100" : "opacity-40")
+        )} style={{
+          background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.05) 70%, transparent 100%)',
+        }} />
 
-        {/* ===== CENTER PLAY ACTION — Floating glass button ===== */}
+        {/* Center play — refined glass orb */}
         {hasVideo && (
           <div className={cn(
-            "absolute inset-0 flex items-center justify-center z-10 transition-all duration-500",
+            "absolute inset-0 flex items-center justify-center z-10 transition-all duration-600",
             isTouchDevice ? "opacity-100" : (isHovered ? "opacity-100" : "opacity-0")
           )}>
             <button
               onClick={(e) => { e.stopPropagation(); onPlay(); }}
-              className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-xl flex items-center justify-center border border-white/25 hover:bg-white/25 hover:scale-110 transition-all duration-300 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+              className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-2xl flex items-center justify-center border border-white/20 hover:bg-white/20 hover:scale-110 transition-all duration-400 shadow-[0_12px_40px_rgba(0,0,0,0.5)]"
             >
-              <Play className="w-6 h-6 text-white ml-0.5" fill="currentColor" />
+              <Play className="w-7 h-7 text-white ml-0.5" fill="currentColor" />
             </button>
           </div>
         )}
 
-        {/* Quick action buttons removed — download/edit available in editor page */}
-
         {/* Top-left: Status badge */}
-        <div className="absolute top-3 left-3 z-20">
+        <div className="absolute top-3.5 left-3.5 z-20">
           {hasVideo && <StatusPill color="emerald" label="Ready" glass />}
           {isProcessing && <StatusPill color="white" label="Processing" pulse glass />}
           {isFailed && <StatusPill color="red" label="Failed" glass />}
@@ -447,7 +454,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
 
         {/* Top-right: Pin + More menu */}
         <div className={cn(
-          "absolute top-3 right-3 z-30 flex items-center gap-1.5 transition-all duration-300",
+          "absolute top-3.5 right-3.5 z-30 flex items-center gap-1.5 transition-all duration-400",
           isTouchDevice ? "opacity-100" : (isHovered ? "opacity-100" : "opacity-0")
         )}>
           {isPinned && (
@@ -458,26 +465,26 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
           <CardDropdown {...{ onEdit, onTogglePin, isPinned, onRename, hasVideo, onTogglePublic, project, status, onRetryStitch, isRetrying, onBrowserStitch, isBrowserStitching, onDelete }} />
         </div>
 
-        {/* Bottom info bar */}
+        {/* Bottom info — minimal whisper text */}
         <div className="absolute bottom-0 left-0 right-0 p-4 z-20">
-          <h3 className="font-semibold text-white text-sm leading-tight line-clamp-1 drop-shadow-lg">
+          <h3 className="font-semibold text-white text-[13px] leading-tight line-clamp-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
             {project.name}
           </h3>
-          <div className="flex items-center gap-2.5 mt-1.5 text-white/40 text-[11px]">
+          <div className="flex items-center gap-2.5 mt-1.5 text-white/30 text-[10px]">
             <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
+              <Clock className="w-2.5 h-2.5" />
               {formatTimeAgo(project.updated_at)}
             </span>
             {(project.video_clips?.length ?? 0) > 0 && (
               <>
-                <span className="text-white/15">·</span>
+                <span className="text-white/10">·</span>
                 <span>{project.video_clips?.length} clips</span>
               </>
             )}
             {project.is_public && (
               <>
-                <span className="text-white/15">·</span>
-                <Globe className="w-3 h-3 text-emerald-400/60" />
+                <span className="text-white/10">·</span>
+                <Globe className="w-2.5 h-2.5 text-emerald-400/50" />
               </>
             )}
           </div>

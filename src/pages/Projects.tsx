@@ -111,6 +111,132 @@ const formatTimeAgo = (dateString: string) => {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
+// ============= MAGAZINE GRID =============
+
+/**
+ * MagazineGrid — Asymmetric editorial layout
+ * First project = hero (span 2 cols), rest alternate between regular and featured rows
+ */
+function MagazineGrid({
+  projects,
+  resolvedClipUrls,
+  activeProjectId,
+  retryingProjectId,
+  browserStitchingProjectId,
+  onPlay,
+  onEdit,
+  onRename,
+  onDelete,
+  onDownload,
+  onRetryStitch,
+  onBrowserStitch,
+  onTogglePin,
+  onTogglePublic,
+}: {
+  projects: Project[];
+  resolvedClipUrls: Map<string, string>;
+  activeProjectId: string | null;
+  retryingProjectId: string | null;
+  browserStitchingProjectId: string | null;
+  onPlay: (p: Project) => void;
+  onEdit: (p: Project) => void;
+  onRename: (p: Project) => void;
+  onDelete: (id: string) => void;
+  onDownload: (p: Project) => void;
+  onRetryStitch: (id: string) => void;
+  onBrowserStitch: (id: string) => void;
+  onTogglePin: (id: string) => void;
+  onTogglePublic: (p: Project) => void;
+}) {
+  if (projects.length === 0) return null;
+
+  // Split: first project is hero, rest fill a grid
+  const [hero, ...rest] = projects;
+
+  return (
+    <div className="space-y-5">
+      {/* Hero — large featured card spanning full width */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+        <div className="lg:col-span-3">
+          <ProjectCard
+            key={hero.id}
+            project={hero}
+            index={0}
+            viewMode="grid"
+            preResolvedClipUrl={resolvedClipUrls.get(hero.id)}
+            onPlay={() => onPlay(hero)}
+            onEdit={() => onEdit(hero)}
+            onRename={() => onRename(hero)}
+            onDelete={() => onDelete(hero.id)}
+            onDownload={() => onDownload(hero)}
+            onRetryStitch={() => onRetryStitch(hero.id)}
+            onBrowserStitch={() => onBrowserStitch(hero.id)}
+            onTogglePin={() => onTogglePin(hero.id)}
+            onTogglePublic={() => onTogglePublic(hero)}
+            isActive={activeProjectId === hero.id}
+            isRetrying={retryingProjectId === hero.id}
+            isBrowserStitching={browserStitchingProjectId === hero.id}
+            isPinned={false}
+          />
+        </div>
+        {/* Side stack — 2 smaller cards */}
+        <div className="lg:col-span-2 grid grid-cols-1 gap-5">
+          {rest.slice(0, 2).map((project, i) => (
+            <ProjectCard
+              key={project.id}
+              project={project}
+              index={i + 1}
+              viewMode="grid"
+              preResolvedClipUrl={resolvedClipUrls.get(project.id)}
+              onPlay={() => onPlay(project)}
+              onEdit={() => onEdit(project)}
+              onRename={() => onRename(project)}
+              onDelete={() => onDelete(project.id)}
+              onDownload={() => onDownload(project)}
+              onRetryStitch={() => onRetryStitch(project.id)}
+              onBrowserStitch={() => onBrowserStitch(project.id)}
+              onTogglePin={() => onTogglePin(project.id)}
+              onTogglePublic={() => onTogglePublic(project)}
+              isActive={activeProjectId === project.id}
+              isRetrying={retryingProjectId === project.id}
+              isBrowserStitching={browserStitchingProjectId === project.id}
+              isPinned={false}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Remaining projects — 3-column grid */}
+      {rest.length > 2 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {rest.slice(2).map((project, index) => (
+            <ProjectCard
+              key={project.id}
+              project={project}
+              index={index + 3}
+              viewMode="grid"
+              preResolvedClipUrl={resolvedClipUrls.get(project.id)}
+              onPlay={() => onPlay(project)}
+              onEdit={() => onEdit(project)}
+              onRename={() => onRename(project)}
+              onDelete={() => onDelete(project.id)}
+              onDownload={() => onDownload(project)}
+              onRetryStitch={() => onRetryStitch(project.id)}
+              onBrowserStitch={() => onBrowserStitch(project.id)}
+              onTogglePin={() => onTogglePin(project.id)}
+              onTogglePublic={() => onTogglePublic(project)}
+              isActive={activeProjectId === project.id}
+              isRetrying={retryingProjectId === project.id}
+              isBrowserStitching={browserStitchingProjectId === project.id}
+              isPinned={false}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ============= MAIN COMPONENT =============
 
 // Content component - wrapped with withSafePageRef for bulletproof ref handling
@@ -906,7 +1032,7 @@ function ProjectsContentInner() {
       )}
 
       {/* Main Content */}
-      <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 pt-16 sm:pt-20">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 pt-16 sm:pt-20">
         
         {/* Loading skeleton */}
         {(isLoadingProjects && !hasLoadedOnce) ? (
@@ -1289,11 +1415,10 @@ function ProjectsContentInner() {
                     <>
                       {/* Pinned */}
                       {pinnedProjects.size > 0 && filteredProjects.some(p => pinnedProjects.has(p.id)) && (
-                        <section className="relative mb-6">
-                          <div className="flex items-center gap-2 mb-4">
-                            <Pin className="w-3.5 h-3.5 text-white/40" />
-                            <h2 className="text-xs font-medium uppercase tracking-wider text-white/40">Pinned</h2>
-                            <span className="text-[10px] text-white/20 ml-auto">{filteredProjects.filter(p => pinnedProjects.has(p.id)).length}</span>
+                        <section className="relative mb-8">
+                          <div className="flex items-center gap-2 mb-5">
+                            <Pin className="w-3 h-3 text-primary/40" />
+                            <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-white/25">Pinned</span>
                           </div>
                           {viewMode === 'list' ? (
                             <div className="space-y-2">
@@ -1302,7 +1427,7 @@ function ProjectsContentInner() {
                               ))}
                             </div>
                           ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                               {filteredProjects.filter(p => pinnedProjects.has(p.id)).map((project, index) => (
                                 <ProjectCard key={project.id} project={project} index={index} viewMode="grid" preResolvedClipUrl={resolvedClipUrls.get(project.id)} onPlay={() => handlePlayVideo(project)} onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }} onRename={() => handleRenameProject(project)} onDelete={() => handleDeleteProject(project.id)} onDownload={() => handleDownloadAll(project)} onRetryStitch={() => handleServerStitch(project.id)} onBrowserStitch={() => handleBrowserStitch(project.id)} onTogglePin={() => togglePin(project.id)} onTogglePublic={() => handleTogglePublic(project)} isActive={activeProjectId === project.id} isRetrying={retryingProjectId === project.id} isBrowserStitching={browserStitchingProjectId === project.id} isPinned={true} />
                               ))}
@@ -1311,7 +1436,7 @@ function ProjectsContentInner() {
                         </section>
                       )}
 
-                      {/* Unpinned projects */}
+                      {/* Magazine Grid — asymmetric layout */}
                       {viewMode === 'list' ? (
                         <div className="space-y-1.5">
                           {filteredProjects.filter(p => !pinnedProjects.has(p.id)).map((project, index) => (
@@ -1319,11 +1444,22 @@ function ProjectsContentInner() {
                           ))}
                         </div>
                       ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {filteredProjects.filter(p => !pinnedProjects.has(p.id)).map((project, index) => (
-                            <ProjectCard key={project.id} project={project} index={index} viewMode="grid" preResolvedClipUrl={resolvedClipUrls.get(project.id)} onPlay={() => handlePlayVideo(project)} onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }} onRename={() => handleRenameProject(project)} onDelete={() => handleDeleteProject(project.id)} onDownload={() => handleDownloadAll(project)} onRetryStitch={() => handleServerStitch(project.id)} onBrowserStitch={() => handleBrowserStitch(project.id)} onTogglePin={() => togglePin(project.id)} onTogglePublic={() => handleTogglePublic(project)} isActive={activeProjectId === project.id} isRetrying={retryingProjectId === project.id} isBrowserStitching={browserStitchingProjectId === project.id} isPinned={false} />
-                          ))}
-                        </div>
+                        <MagazineGrid
+                          projects={filteredProjects.filter(p => !pinnedProjects.has(p.id))}
+                          resolvedClipUrls={resolvedClipUrls}
+                          activeProjectId={activeProjectId}
+                          retryingProjectId={retryingProjectId}
+                          browserStitchingProjectId={browserStitchingProjectId}
+                          onPlay={handlePlayVideo}
+                          onEdit={(project) => { setActiveProjectId(project.id); navigate('/create'); }}
+                          onRename={handleRenameProject}
+                          onDelete={(id) => handleDeleteProject(id)}
+                          onDownload={handleDownloadAll}
+                          onRetryStitch={handleServerStitch}
+                          onBrowserStitch={handleBrowserStitch}
+                          onTogglePin={togglePin}
+                          onTogglePublic={handleTogglePublic}
+                        />
                       )}
 
                       {/* Infinite scroll sentinel */}

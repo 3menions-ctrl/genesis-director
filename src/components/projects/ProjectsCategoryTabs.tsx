@@ -1,6 +1,5 @@
 /**
- * ProjectsCategoryTabs — Premium category navigation inspired by ExamplesGallery
- * Clear, glassmorphic tab bar with counts and icons
+ * ProjectsCategoryTabs — Premium glassmorphic tabs with glow
  */
 
 import { memo } from 'react';
@@ -21,7 +20,7 @@ interface ProjectsCategoryTabsProps {
 }
 
 const TAB_CONFIG: Record<ProjectTab, { label: string; icon: typeof Film }> = {
-  all: { label: 'All Projects', icon: Sparkles },
+  all: { label: 'All', icon: Sparkles },
   films: { label: 'Films', icon: Clapperboard },
   training: { label: 'Training', icon: Film },
   photos: { label: 'Photos', icon: Image },
@@ -33,15 +32,14 @@ export const ProjectsCategoryTabs = memo(function ProjectsCategoryTabs({
   counts,
 }: ProjectsCategoryTabsProps) {
   return (
-    <div className="flex items-center justify-center mb-8 animate-fade-in" style={{ animationDelay: '0.15s' }}>
-      <div className="flex items-center gap-1 md:gap-1.5 p-1 md:p-1.5 rounded-2xl bg-white/[0.06] backdrop-blur-xl border border-white/[0.08]">
+    <div className="flex items-center justify-center mb-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+      <div className="relative flex items-center gap-0.5 p-1 rounded-2xl bg-white/[0.04] backdrop-blur-2xl border border-white/[0.06]">
         {(Object.keys(TAB_CONFIG) as ProjectTab[]).map((tab) => {
           const config = TAB_CONFIG[tab];
           const Icon = config.icon;
           const isActive = activeTab === tab;
           const count = counts[tab];
 
-          // Hide tabs with 0 items (except 'all' and 'films')
           if (count === 0 && tab !== 'all' && tab !== 'films') return null;
 
           return (
@@ -49,19 +47,25 @@ export const ProjectsCategoryTabs = memo(function ProjectsCategoryTabs({
               key={tab}
               onClick={() => onTabChange(tab)}
               className={cn(
-                "flex items-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-xl transition-all duration-300",
+                "relative flex items-center gap-1.5 px-4 py-2 rounded-xl transition-all duration-400 text-xs font-medium",
                 isActive
-                  ? "bg-white text-black shadow-lg shadow-white/10"
-                  : "text-white/50 hover:text-white hover:bg-white/[0.06]"
+                  ? "text-white"
+                  : "text-white/35 hover:text-white/60"
               )}
             >
-              <Icon className="w-3.5 h-3.5 md:w-4 md:h-4" />
-              <span className="text-xs md:text-sm font-medium whitespace-nowrap">{config.label}</span>
-              <span className={cn(
-                "text-[10px] md:text-xs px-1.5 py-0.5 rounded-full font-medium min-w-[20px] text-center",
-                isActive ? "bg-black/10" : "bg-white/[0.08]"
-              )}>
-                {count}
+              {/* Active glow backdrop */}
+              {isActive && (
+                <div className="absolute inset-0 rounded-xl bg-white/[0.08] border border-white/[0.12] shadow-[0_0_20px_rgba(124,58,237,0.08)]" />
+              )}
+              <span className="relative z-10 flex items-center gap-1.5">
+                <Icon className="w-3.5 h-3.5" />
+                {config.label}
+                <span className={cn(
+                  "text-[9px] px-1.5 py-0.5 rounded-full font-semibold tabular-nums min-w-[18px] text-center",
+                  isActive ? "bg-white/10 text-white/70" : "bg-white/[0.04] text-white/25"
+                )}>
+                  {count}
+                </span>
               </span>
             </button>
           );

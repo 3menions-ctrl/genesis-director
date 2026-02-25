@@ -258,7 +258,7 @@ export function EditorChrome({
     const clipUrls: string[] = [];
     for (const track of projectData.tracks || []) {
       for (const el of track.elements || []) {
-        if (el.type === "video" && el.props?.src) {
+        if ((el.type === "video" || el.type === "image") && el.props?.src) {
           clipUrls.push(el.props.src);
         }
       }
@@ -307,7 +307,7 @@ export function EditorChrome({
     const clips: { url: string; duration: number; volume?: number; speed?: number; fadeIn?: number; fadeOut?: number; brightness?: number; contrast?: number; saturation?: number; transition?: string; transitionDuration?: number }[] = [];
     for (const track of projectData.tracks || []) {
       for (const el of track.elements || []) {
-        if (el.type === "video" && el.props?.src) {
+        if ((el.type === "video" || el.type === "image") && el.props?.src) {
           clips.push({
             url: el.props.src,
             duration: (el.e - el.s) || 6,
@@ -336,8 +336,10 @@ export function EditorChrome({
       return;
     }
 
+    // Determine crossfade: use per-clip transitions if set, otherwise seamless join (0)
+    const hasTransitions = clips.some(c => c.transition && c.transition !== "none" && (c.transitionDuration ?? 0) > 0);
     await submitStitch(currentSessionId, clips, {
-      crossfadeDuration: 0.5,
+      crossfadeDuration: hasTransitions ? 0.5 : 0,
       transition: "fade",
     });
   }, [sessionId, getProjectJSON, saveProject, sessionTitle, submitStitch]);

@@ -483,6 +483,19 @@ export function toProjectJSON(state: TimelineState): any {
 
 export function fromProjectJSON(json: any): Partial<TimelineState> {
   if (!json?.tracks) return {};
+  
+  // Derive aspect ratio from saved value or from width/height
+  const aspectRatio = json.aspectRatio || (() => {
+    const w = json.width || 1920;
+    const h = json.height || 1080;
+    const ratio = w / h;
+    if (Math.abs(ratio - 16/9) < 0.1) return "16:9";
+    if (Math.abs(ratio - 9/16) < 0.1) return "9:16";
+    if (Math.abs(ratio - 1) < 0.1) return "1:1";
+    if (Math.abs(ratio - 4/3) < 0.1) return "4:3";
+    return "16:9";
+  })();
+
   return {
     tracks: json.tracks.map((t: any) => ({
       id: t.id || generateTrackId(),
@@ -501,21 +514,22 @@ export function fromProjectJSON(json: any): Partial<TimelineState> {
         thumbnail: el.props?.thumbnail,
         sourceDuration: el.props?.sourceDuration,
         textStyle: el.props?.textStyle,
-          volume: el.props?.volume,
-          speed: el.props?.speed,
-          fadeIn: el.props?.fadeIn,
-          fadeOut: el.props?.fadeOut,
-          opacity: el.props?.opacity,
-          colorLabel: el.props?.colorLabel,
-          brightness: el.props?.brightness,
-          contrast: el.props?.contrast,
-          saturation: el.props?.saturation,
-          transition: el.props?.transition,
-          transitionDuration: el.props?.transitionDuration,
+        volume: el.props?.volume,
+        speed: el.props?.speed,
+        fadeIn: el.props?.fadeIn,
+        fadeOut: el.props?.fadeOut,
+        opacity: el.props?.opacity,
+        colorLabel: el.props?.colorLabel,
+        brightness: el.props?.brightness,
+        contrast: el.props?.contrast,
+        saturation: el.props?.saturation,
+        transition: el.props?.transition,
+        transitionDuration: el.props?.transitionDuration,
       })),
     })),
     fps: json.fps || 30,
     width: json.width || 1920,
     height: json.height || 1080,
+    aspectRatio,
   };
 }

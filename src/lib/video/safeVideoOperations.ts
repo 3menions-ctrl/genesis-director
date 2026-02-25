@@ -45,9 +45,20 @@ export async function safePlay(video: HTMLVideoElement | null): Promise<boolean>
       return false;
     }
     
-    // NotAllowedError - autoplay policy blocked
+    // NotAllowedError - autoplay policy blocked → retry muted
     if (error?.name === 'NotAllowedError') {
-      console.debug('[SafeVideo] Autoplay blocked by browser policy');
+      console.debug('[SafeVideo] Autoplay blocked, retrying muted...');
+      if (!video.muted) {
+        video.muted = true;
+        try {
+          await video.play();
+          console.debug('[SafeVideo] Muted autoplay succeeded');
+          return true;
+        } catch {
+          console.debug('[SafeVideo] Even muted autoplay blocked');
+          return false;
+        }
+      }
       return false;
     }
     

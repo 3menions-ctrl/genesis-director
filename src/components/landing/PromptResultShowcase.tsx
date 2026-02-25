@@ -94,7 +94,11 @@ export const PromptResultShowcase = memo(function PromptResultShowcase({ suspend
     videoRef.current = el;
     if (el) {
       el.currentTime = 0;
-      el.play().catch(() => {});
+      el.muted = true; // Ensure muted is set imperatively before play
+      el.play().catch(() => {
+        // Autoplay blocked even muted — wait for user interaction
+        console.debug('[PromptResultShowcase] Autoplay blocked');
+      });
     }
   }, []);
 

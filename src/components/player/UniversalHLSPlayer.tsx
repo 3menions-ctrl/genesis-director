@@ -200,9 +200,11 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
     const audioRef = useRef<HTMLAudioElement>(null);
     const hlsRef = useRef<Hls | null>(null);
     const mountedRef = useRef(true);
-    const retryCountRef = useRef(0);
+     const retryCountRef = useRef(0);
     const initializingRef = useRef(false);
     const fallbackTriedRef = useRef(false);
+    const nonFatalErrorCountRef = useRef(0);
+    const playbackWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     
     // Sequential playback fallback refs
     const sequentialClipsRef = useRef<string[]>([]);
@@ -273,6 +275,41 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
       }
     }, []);
     
+    // Helper: switch from HLS to sequential/MP4 fallback
+    const triggerFallback = useCallback((hls: Hls, video: HTMLVideoElement) => {
+      console.warn('[UniversalHLS] Switching to SEQUENTIAL/MP4 fallback');
+      hls.destroy();
+      hlsRef.current = null;
+      nonFatalErrorCountRef.current = 0;
+      
+      parseM3u8ForClipUrls(hlsUrl).then(clips => {
+        if (!mountedRef.current || clips.length === 0) {
+          // Last resort: single MP4 fallback
+          if (fallbackMp4Url && video) {
+            console.log('[UniversalHLS] Using direct MP4 fallback');
+            video.src = fallbackMp4Url;
+            video.muted = muteClipAudio || initialMuted;
+            video.load();
+            if (autoPlay) safePlay(video);
+          }
+          return;
+        }
+        sequentialClipsRef.current = clips;
+        sequentialIndexRef.current = 0;
+        sequentialElapsedRef.current = 0;
+        sequentialTotalDurationRef.current = clips.length * 10;
+        setPlaybackMethod('sequential');
+        setDuration(clips.length * 10);
+        setIsLoading(false);
+        setError(null);
+        console.log(`[UniversalHLS] Sequential mode: ${clips.length} clips`);
+        video.src = clips[0];
+        video.muted = muteClipAudio || initialMuted;
+        video.load();
+        if (autoPlay) safePlay(video);
+      });
+    }, [hlsUrl, fallbackMp4Url, autoPlay, muteClipAudio, initialMuted]);
+
     // Initialize HLS playback - only depends on hlsUrl
     useEffect(() => {
       const video = videoRef.current;
@@ -334,7 +371,20 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
             setIsLoading(false);
             onReadyRef.current?.();
             if (autoPlay) {
+              // Ensure muted state is set imperatively before play attempt
+              video.muted = muteClipAudio || initialMuted;
               safePlay(video);
+              
+              // Playback watchdog: if no timeupdate within 8s, HLS is broken → fallback
+              if (playbackWatchdogRef.current) clearTimeout(playbackWatchdogRef.current);
+              playbackWatchdogRef.current = setTimeout(() => {
+                if (!mountedRef.current) return;
+                // Check if video actually progressed
+                if (video.currentTime < 0.5 && hlsRef.current) {
+                  console.warn('[UniversalHLS] Playback watchdog: no progress after 8s, triggering fallback');
+                  triggerFallback(hlsRef.current, video);
+                }
+              }, 8000);
             }
           }
         });
@@ -364,35 +414,7 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
                   console.log('[UniversalHLS] Media error, attempting recovery...');
                   hls.recoverMediaError();
                 } else {
-                  // Recovery failed — switch to sequential clip-by-clip playback
-                  console.warn('[UniversalHLS] Media recovery failed, switching to SEQUENTIAL fallback');
-                  hls.destroy();
-                  hlsRef.current = null;
-                  // Parse m3u8 and play clips sequentially
-                  parseM3u8ForClipUrls(hlsUrl).then(clips => {
-                    if (!mountedRef.current || clips.length === 0) {
-                      // Last resort: single MP4 fallback
-                      if (fallbackMp4Url && video) {
-                        video.src = fallbackMp4Url;
-                        video.load();
-                        if (autoPlay) safePlay(video);
-                      }
-                      return;
-                    }
-                    sequentialClipsRef.current = clips;
-                    sequentialIndexRef.current = 0;
-                    sequentialElapsedRef.current = 0;
-                    // Estimate 10s per clip (from m3u8 EXTINF)
-                    sequentialTotalDurationRef.current = clips.length * 10;
-                    setPlaybackMethod('sequential');
-                    setDuration(clips.length * 10);
-                    setIsLoading(false);
-                    setError(null);
-                    console.log(`[UniversalHLS] Sequential mode: ${clips.length} clips`);
-                    video.src = clips[0];
-                    video.load();
-                    if (autoPlay) safePlay(video);
-                  });
+                  triggerFallback(hls, video);
                 }
                 break;
               default: {
@@ -404,6 +426,15 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
                   setError(errMsg);
                 }
                 break;
+              }
+            }
+          } else {
+            // Track non-fatal errors — if too many accumulate, HLS is broken
+            if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+              nonFatalErrorCountRef.current++;
+              if (nonFatalErrorCountRef.current >= 5) {
+                console.warn('[UniversalHLS] Too many non-fatal media errors, triggering fallback');
+                triggerFallback(hls, video);
               }
             }
           }
@@ -428,12 +459,16 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
       
       return () => {
         initializingRef.current = false;
+        if (playbackWatchdogRef.current) {
+          clearTimeout(playbackWatchdogRef.current);
+          playbackWatchdogRef.current = null;
+        }
         if (hlsRef.current) {
           hlsRef.current.destroy();
           hlsRef.current = null;
         }
       };
-    }, [hlsUrl, autoPlay, masterAudioUrl]);
+    }, [hlsUrl, autoPlay, masterAudioUrl, triggerFallback]);
     
     // Video event listeners
     useEffect(() => {
@@ -453,6 +488,8 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
           initializingRef.current = false;
           onReadyRef.current?.();
           if (autoPlay) {
+            // Ensure muted state is set imperatively before play attempt
+            video.muted = muteClipAudio || initialMuted;
             safePlay(video);
           }
         }

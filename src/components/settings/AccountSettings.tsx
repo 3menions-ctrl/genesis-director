@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { 
   User, Camera, Mail, Building2, Briefcase, 
-  Save, Loader2, CheckCircle2, Edit3, Crown, AlertCircle, UserX, Power
+  Save, Loader2, CheckCircle2, Edit3, Crown, AlertCircle, UserX, Power, Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -39,6 +40,11 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
   const [deactivationReason, setDeactivationReason] = useState('');
   const [isDeactivating, setIsDeactivating] = useState(false);
+
+  const [trackingOptedOut, setTrackingOptedOut] = useState(false);
+  const [hideFromLeaderboard, setHideFromLeaderboard] = useState(false);
+  const [isLoadingPrivacy, setIsLoadingPrivacy] = useState(true);
+  const [isSavingPrivacy, setIsSavingPrivacy] = useState(false);
   
   const [formData, setFormData] = useState({
     display_name: '',
@@ -59,6 +65,55 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
       });
     }
   }, [profile]);
+
+  // Load privacy preferences from user_gamification
+  useEffect(() => {
+    if (!user) return;
+    const loadPrivacy = async () => {
+      setIsLoadingPrivacy(true);
+      try {
+        const { data } = await supabase
+          .from('user_gamification')
+          .select('tracking_opted_out, hide_from_leaderboard')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (data) {
+          setTrackingOptedOut(data.tracking_opted_out ?? false);
+          setHideFromLeaderboard(data.hide_from_leaderboard ?? false);
+        }
+      } catch (e) {
+        console.error('Failed to load privacy prefs:', e);
+      } finally {
+        setIsLoadingPrivacy(false);
+      }
+    };
+    loadPrivacy();
+  }, [user]);
+
+  const handlePrivacyToggle = async (field: 'tracking_opted_out' | 'hide_from_leaderboard', value: boolean) => {
+    if (!user) return;
+    const prev = field === 'tracking_opted_out' ? trackingOptedOut : hideFromLeaderboard;
+    // Optimistic update
+    if (field === 'tracking_opted_out') setTrackingOptedOut(value);
+    else setHideFromLeaderboard(value);
+
+    setIsSavingPrivacy(true);
+    try {
+      const { error } = await supabase
+        .from('user_gamification')
+        .update({ [field]: value })
+        .eq('user_id', user.id);
+      if (error) throw error;
+      toast.success('Privacy preference updated');
+    } catch (e) {
+      // Rollback
+      if (field === 'tracking_opted_out') setTrackingOptedOut(prev);
+      else setHideFromLeaderboard(prev);
+      toast.error('Failed to update preference');
+    } finally {
+      setIsSavingPrivacy(false);
+    }
+  };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -472,6 +527,52 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
               </div>
             </div>
           ))}
+        </div>
+      </motion.div>
+
+      {/* Privacy Preferences */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.12 }}
+        className={cardClass}
+      >
+        <div className={topAccent} />
+
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/15 flex items-center justify-center">
+            <Shield className="w-4.5 h-4.5 text-violet-400/80" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-white">Privacy Preferences</h3>
+            <p className="text-xs text-white/35 mt-0.5">Control how your activity data is used</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+            <div className="pr-4">
+              <p className="text-sm font-medium text-white">Opt out of activity tracking</p>
+              <p className="text-xs text-white/35 mt-0.5">Disable tracking of your usage patterns for analytics and gamification</p>
+            </div>
+            <Switch
+              checked={trackingOptedOut}
+              onCheckedChange={(v) => handlePrivacyToggle('tracking_opted_out', v)}
+              disabled={isLoadingPrivacy || isSavingPrivacy}
+            />
+          </div>
+
+          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+            <div className="pr-4">
+              <p className="text-sm font-medium text-white">Hide from leaderboards</p>
+              <p className="text-xs text-white/35 mt-0.5">Keep your profile hidden from public leaderboard rankings</p>
+            </div>
+            <Switch
+              checked={hideFromLeaderboard}
+              onCheckedChange={(v) => handlePrivacyToggle('hide_from_leaderboard', v)}
+              disabled={isLoadingPrivacy || isSavingPrivacy}
+            />
+          </div>
         </div>
       </motion.div>
 

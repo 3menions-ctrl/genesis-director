@@ -678,28 +678,28 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
         </DialogContent>
       </Dialog>
 
-      {/* Deactivation Confirmation Dialog - FIXED: proper responsive sizing */}
+      {/* Deactivation Confirmation Dialog */}
       <Dialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
-        <DialogContent className="bg-[#0a0a0f]/98 backdrop-blur-2xl border-red-500/15 rounded-2xl max-w-[calc(100vw-2rem)] sm:max-w-md mx-auto max-h-[85vh] overflow-y-auto top-[50%] translate-y-[-50%]">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
-                <UserX className="w-5 h-5 text-red-400" />
+              <div className="w-10 h-10 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center justify-center shrink-0">
+                <UserX className="w-5 h-5 text-destructive" />
               </div>
-              <DialogTitle className="text-white text-base sm:text-lg">Deactivate Your Account</DialogTitle>
+              <DialogTitle>Deactivate Your Account</DialogTitle>
             </div>
-            <DialogDescription className="text-white/50 text-sm">
+            <DialogDescription>
               This will temporarily disable your account. You can reactivate it anytime by signing back in.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-3">
-            <div className="p-3 sm:p-4 rounded-xl bg-amber-500/[0.08] border border-amber-500/15">
+          <div className="space-y-4 py-2">
+            <div className="p-3 rounded-xl bg-amber-500/[0.08] border border-amber-500/15">
               <div className="flex gap-2.5">
-                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 shrink-0 mt-0.5" />
-                <div className="text-xs sm:text-sm text-amber-200/70">
-                  <p className="font-medium text-amber-300 text-xs sm:text-sm">What happens when you deactivate:</p>
-                  <ul className="mt-1.5 space-y-0.5 text-amber-200/60">
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div className="text-xs text-amber-200/70">
+                  <p className="font-medium text-amber-300 text-sm">What happens when you deactivate:</p>
+                  <ul className="mt-1.5 space-y-0.5">
                     <li>• Your profile will be hidden from other users</li>
                     <li>• You won't receive any notifications</li>
                     <li>• Your projects and credits are preserved</li>
@@ -710,13 +710,13 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             </div>
 
             <div className="space-y-2">
-              <Label className="text-white/50 text-xs">Reason for leaving (optional)</Label>
+              <Label className="text-muted-foreground text-xs">Reason for leaving (optional)</Label>
               <Textarea
                 value={deactivationReason}
                 onChange={(e) => setDeactivationReason(e.target.value)}
                 placeholder="Help us improve by sharing why you're leaving..."
                 rows={2}
-                className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 resize-none rounded-xl text-sm"
+                className="bg-white/[0.03] border-white/[0.08] text-foreground placeholder:text-muted-foreground/40 resize-none rounded-xl text-sm"
               />
             </div>
           </div>
@@ -725,14 +725,15 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             <Button
               onClick={() => setShowDeactivateDialog(false)}
               variant="ghost"
-              className="text-white/40 hover:text-white rounded-xl w-full sm:w-auto"
+              className="text-muted-foreground hover:text-foreground rounded-xl w-full sm:w-auto"
             >
               Cancel
             </Button>
             <Button
               onClick={handleDeactivateAccount}
               disabled={isDeactivating}
-              className="bg-red-600 hover:bg-red-500 text-white rounded-xl w-full sm:w-auto"
+              variant="destructive"
+              className="rounded-xl w-full sm:w-auto"
             >
               {isDeactivating ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

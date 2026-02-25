@@ -680,7 +680,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
 
       {/* Deactivation Confirmation Dialog */}
       <Dialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md top-1/2 -translate-y-1/2 max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center justify-center shrink-0">

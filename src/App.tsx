@@ -33,6 +33,7 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Settings = lazy(() => import("./pages/Settings"));
+const DeactivateAccount = lazy(() => import("./pages/DeactivateAccount"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 // Legacy Admin removed — replaced by Refine admin
 const RefineAdminLayout = lazy(() => import("./refine/AdminLayout").then(m => ({ default: m.RefineAdminLayout })));
@@ -252,6 +253,13 @@ const App = () => {
                   <RouteContainer fallbackMessage="Loading settings...">
                     <ProtectedRoute>
                       <Settings />
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/settings/deactivate" element={
+                  <RouteContainer fallbackMessage="Loading...">
+                    <ProtectedRoute>
+                      <DeactivateAccount />
                     </ProtectedRoute>
                   </RouteContainer>
                 } />

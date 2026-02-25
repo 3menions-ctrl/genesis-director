@@ -13,21 +13,29 @@ function useBrowserRenderModule() {
 
   useEffect(() => {
     let cancelled = false;
-    import("@twick/browser-render")
-      .then((m) => {
+
+    const loadBrowserRenderer = async () => {
+      try {
+        const moduleName = "@twick/browser-render";
+        const browserRenderModule = await import(/* @vite-ignore */ moduleName);
+
         if (!cancelled) {
-          setMod(m);
+          setMod(browserRenderModule);
           setLoading(false);
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         if (!cancelled) {
           console.warn("Browser render module not available:", err);
           // Non-fatal — editor works without WebCodecs export
           setLoading(false);
         }
-      });
-    return () => { cancelled = true; };
+      }
+    };
+
+    loadBrowserRenderer();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { mod, loading, error };

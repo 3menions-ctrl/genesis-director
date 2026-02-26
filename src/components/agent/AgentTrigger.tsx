@@ -13,11 +13,13 @@ import { useLocation } from "react-router-dom";
 
 export function AgentTrigger() {
   const [isOpen, setIsOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const location = useLocation();
 
-  // Only show for logged-in users
-  if (!user) return null;
+  // Only show for logged-in users who have completed onboarding
+  // Never show on landing page or auth/onboarding routes
+  const isPublicRoute = location.pathname === '/' || location.pathname.startsWith('/auth') || location.pathname === '/onboarding';
+  if (!user || isPublicRoute || !profile?.onboarding_completed) return null;
   return (
     <>
       {/* Floating Hoppy face button */}

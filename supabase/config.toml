@@ -251,3 +251,6 @@ verify_jwt = false
 
 [functions.poll-replicate-prediction]
 verify_jwt = false
+
+[functions.landing-demo-chat]
+verify_jwt = false

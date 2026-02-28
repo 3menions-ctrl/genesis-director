@@ -1,9 +1,11 @@
 /**
- * Landing Page Hoppy Concierge 🐰 — V2 Comprehensive
+ * Landing Page Hoppy Concierge 🐰 — V3 Engagement Engine
  * 
  * High-conversion chat widget for unauthenticated visitors.
  * - Multi-turn conversation (3 free exchanges) with full memory
- * - Auto-open after 8s of inactivity
+ * - Proactive idle nudges when user goes quiet after opening
+ * - Animated attention-grabbing FAB with speech bubble teasers
+ * - Contextual scroll-aware triggers based on visible section
  * - Typing indicator, mobile-optimized, sound feedback
  * - Glassmorphic chat panel with streaming responses
  * - Signup CTA after demo limit
@@ -25,6 +27,8 @@ interface Message {
 // ─── Constants ────────────────────────────────────────────────────
 const MAX_FREE_EXCHANGES = 3;
 const AUTO_OPEN_DELAY_MS = 8000;
+const IDLE_NUDGE_DELAY_MS = 15000; // Nudge if user goes idle 15s after last message
+const TEASER_ROTATE_MS = 5000; // Rotate teaser every 5s
 
 const GREETING: Message = {
   id: "greeting",
@@ -39,6 +43,28 @@ const PROMPT_SUGGESTIONS = [
   "An epic fantasy battle on a floating island",
   "A dreamy music video in a neon-lit city",
 ];
+
+// Teaser messages for the floating bubble
+const TEASER_MESSAGES = [
+  "What would YOUR movie look like? 🎬",
+  "Got a wild video idea? Tell me! ✨",
+  "I'll direct your dream scene 🎥",
+  "Drop an idea — I'll pitch it back 🐰",
+];
+
+// Idle nudge messages (sent proactively when user is quiet)
+const IDLE_NUDGES = [
+  "Still thinking? Here's a spark: imagine a chase scene through a rain-soaked cyberpunk alley 🌧️ What would *your* version look like?",
+  "No pressure! But if you tell me even one word — like 'space' or 'romance' — I'll spin a whole scene for you 🎬",
+  "While you're thinking... did you know Genesis can turn a single sentence into minutes of cinematic video? Try me! ✨",
+];
+
+// Scroll-contextual messages based on which section user is viewing
+const SCROLL_CONTEXT_MESSAGES: Record<string, string> = {
+  pricing: "Curious about pricing? 💎 Every plan comes with credits to create stunning cinematic videos. Want me to help you figure out which one fits?",
+  faq: "Got questions? I might be faster than scrolling 😉 Ask me anything about Genesis!",
+  features: "Cool features, right? ✨ Want me to show you what a real prompt-to-cinema workflow looks like?",
+};
 
 // ─── Sound helper ────────────────────────────────────────────────
 function playNotificationSound() {
@@ -260,6 +286,31 @@ const NotificationBadge = memo(function NotificationBadge({ count }: { count: nu
   );
 });
 
+// ─── Speech Bubble Teaser ────────────────────────────────────────
+const SpeechBubbleTeaser = memo(function SpeechBubbleTeaser({ message, visible }: { message: string; visible: boolean }) {
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ opacity: 0, x: 10, scale: 0.9 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          exit={{ opacity: 0, x: 10, scale: 0.9 }}
+          transition={{ type: "spring", stiffness: 400, damping: 25 }}
+          className="absolute bottom-full right-0 mb-3 pointer-events-none"
+        >
+          <div className="relative bg-black/80 backdrop-blur-xl border border-white/[0.12] rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[220px] shadow-[0_8px_30px_rgba(0,0,0,0.4)]">
+            <p className="text-xs text-foreground/90 leading-relaxed whitespace-nowrap overflow-hidden text-ellipsis">
+              {message}
+            </p>
+            {/* Triangle pointer */}
+            <div className="absolute -bottom-1.5 right-4 w-3 h-3 bg-black/80 border-r border-b border-white/[0.12] rotate-45" />
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+});
+
 // ─── Main Component ──────────────────────────────────────────────
 export const LandingHoppy = memo(function LandingHoppy({
   onNavigate,
@@ -275,9 +326,17 @@ export const LandingHoppy = memo(function LandingHoppy({
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
+  const [teaserIndex, setTeaserIndex] = useState(0);
+  const [showTeaser, setShowTeaser] = useState(false);
+  const [idleNudgeCount, setIdleNudgeCount] = useState(0);
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [scrollTriggersUsed, setScrollTriggersUsed] = useState<Set<string>>(new Set());
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const autoOpenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleNudgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastActivityRef = useRef(Date.now());
 
   const isGated = exchangeCount >= MAX_FREE_EXCHANGES || demoLimitReached;
 
@@ -311,32 +370,133 @@ export const LandingHoppy = memo(function LandingHoppy({
     };
   }, [hasAutoOpened, isOpen]);
 
+  // ─── Teaser rotation on FAB (when closed) ──────────────────
+  useEffect(() => {
+    if (isOpen) {
+      setShowTeaser(false);
+      return;
+    }
+
+    // Show teaser after a short delay
+    const showTimer = setTimeout(() => setShowTeaser(true), 2000);
+
+    // Rotate teaser text
+    const rotateInterval = setInterval(() => {
+      setTeaserIndex(prev => (prev + 1) % TEASER_MESSAGES.length);
+      // Brief hide/show for transition
+      setShowTeaser(false);
+      setTimeout(() => setShowTeaser(true), 300);
+    }, TEASER_ROTATE_MS);
+
+    return () => {
+      clearTimeout(showTimer);
+      clearInterval(rotateInterval);
+    };
+  }, [isOpen]);
+
+  // ─── Proactive idle nudges (when chat is open but user is quiet) ──
+  useEffect(() => {
+    if (!isOpen || isStreaming || isGated || idleNudgeCount >= IDLE_NUDGES.length) return;
+
+    // Only nudge if user has NOT sent any message yet (encourage first engagement)
+    // or if conversation has stalled
+    const startIdleTimer = () => {
+      if (idleNudgeTimerRef.current) clearTimeout(idleNudgeTimerRef.current);
+      idleNudgeTimerRef.current = setTimeout(() => {
+        const nudge = IDLE_NUDGES[idleNudgeCount];
+        if (!nudge) return;
+        setMessages(prev => [
+          ...prev,
+          { id: `nudge-${Date.now()}`, role: "assistant", content: nudge },
+        ]);
+        setIdleNudgeCount(prev => prev + 1);
+        playNotificationSound();
+      }, IDLE_NUDGE_DELAY_MS);
+    };
+
+    startIdleTimer();
+    lastActivityRef.current = Date.now();
+
+    return () => {
+      if (idleNudgeTimerRef.current) clearTimeout(idleNudgeTimerRef.current);
+    };
+  }, [isOpen, isStreaming, isGated, idleNudgeCount, messages.length]);
+
+  // ─── Scroll-aware section detection ────────────────────────
+  useEffect(() => {
+    const sectionIds = ["pricing", "faq", "features"];
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const sectionId = entry.target.id || entry.target.getAttribute("data-section");
+            if (sectionId && sectionIds.includes(sectionId)) {
+              setActiveSection(sectionId);
+            }
+          }
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    // Observe sections — look for both id and data-section attributes
+    for (const id of sectionIds) {
+      const el = document.getElementById(id) || document.querySelector(`[data-section="${id}"]`);
+      if (el) observer.observe(el);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  // ─── Inject contextual message when user scrolls to a section ──
+  useEffect(() => {
+    if (!activeSection || isOpen || isGated) return;
+    if (scrollTriggersUsed.has(activeSection)) return;
+
+    const contextMsg = SCROLL_CONTEXT_MESSAGES[activeSection];
+    if (!contextMsg) return;
+
+    // Mark section as triggered
+    setScrollTriggersUsed(prev => new Set(prev).add(activeSection));
+
+    // Show a contextual teaser on the FAB
+    setTeaserIndex(-1); // Signal custom message
+    setShowTeaser(true);
+
+    // Add unread count to draw attention
+    setUnreadCount(prev => prev + 1);
+
+    // Inject the contextual message into the chat
+    setMessages(prev => [
+      ...prev,
+      { id: `ctx-${activeSection}-${Date.now()}`, role: "assistant", content: contextMsg },
+    ]);
+
+    playNotificationSound();
+  }, [activeSection, isOpen, isGated, scrollTriggersUsed]);
+
   // Build conversation history for API
   const buildApiMessages = useCallback((newUserContent: string): Array<{ role: string; content: string }> => {
-    const history = messages
-      .filter(m => m.id !== "greeting" || m.role === "assistant")
-      .map(m => ({ role: m.role, content: m.content }));
-    
-    // Include greeting as first assistant message for context
     const apiMessages: Array<{ role: string; content: string }> = [];
     if (messages[0]?.id === "greeting") {
       apiMessages.push({ role: "assistant", content: messages[0].content });
     }
-    
-    // Add non-greeting messages
     for (const m of messages) {
       if (m.id === "greeting") continue;
+      // Skip nudge/context messages from API history to keep it clean
+      if (m.id.startsWith("nudge-") || m.id.startsWith("ctx-")) continue;
       apiMessages.push({ role: m.role, content: m.content });
     }
-    
-    // Add the new user message
     apiMessages.push({ role: "user", content: newUserContent });
-    
     return apiMessages;
   }, [messages]);
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isStreaming || isGated) return;
+
+    // Reset idle nudge timer on activity
+    lastActivityRef.current = Date.now();
+    if (idleNudgeTimerRef.current) clearTimeout(idleNudgeTimerRef.current);
 
     const trimmedText = text.trim();
     const userMsg: Message = {
@@ -374,6 +534,7 @@ export const LandingHoppy = memo(function LandingHoppy({
       onDone: () => {
         setIsStreaming(false);
         setExchangeCount(prev => prev + 1);
+        lastActivityRef.current = Date.now();
         if (!isOpen) {
           setUnreadCount(prev => prev + 1);
           playNotificationSound();
@@ -407,42 +568,64 @@ export const LandingHoppy = memo(function LandingHoppy({
   const handleOpen = useCallback(() => {
     setIsOpen(true);
     setHasAutoOpened(true);
+    setShowTeaser(false);
     if (autoOpenTimerRef.current) clearTimeout(autoOpenTimerRef.current);
   }, []);
 
+  // Determine current teaser text
+  const currentTeaser = teaserIndex === -1
+    ? (activeSection && SCROLL_CONTEXT_MESSAGES[activeSection]
+      ? SCROLL_CONTEXT_MESSAGES[activeSection].slice(0, 40) + "..."
+      : TEASER_MESSAGES[0])
+    : TEASER_MESSAGES[teaserIndex];
+
   return (
     <>
-      {/* ─── Floating Hoppy Button ─────────────────────────── */}
+      {/* ─── Floating Hoppy Button + Teaser ───────────────── */}
       <AnimatePresence>
         {!isOpen && (
-          <motion.button
+          <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleOpen}
-            className={cn(
-              "fixed bottom-6 right-6 z-50",
-              "h-16 w-16 rounded-full overflow-hidden",
-              "shadow-[0_0_30px_hsl(263_70%_58%/0.3)]",
-              "hover:shadow-[0_0_50px_hsl(263_70%_58%/0.5)]",
-              "border-2 border-primary/40",
-              "transition-shadow duration-300"
-            )}
-            aria-label="Chat with Hoppy"
+            className="fixed bottom-6 right-6 z-50"
           >
-            <video
-              src="/hoppy-blink.mp4"
-              autoPlay loop muted playsInline
-              className="w-full h-full object-cover scale-[1.3] object-top"
-            />
-            {/* Attention pulse */}
-            <span className="absolute inset-0 rounded-full animate-ping bg-primary/15 pointer-events-none" />
-            {/* Notification badge */}
-            <NotificationBadge count={unreadCount} />
-          </motion.button>
+            {/* Speech bubble teaser */}
+            <SpeechBubbleTeaser message={currentTeaser} visible={showTeaser} />
+
+            <motion.button
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleOpen}
+              className={cn(
+                "relative h-16 w-16 rounded-full overflow-hidden",
+                "shadow-[0_0_30px_hsl(var(--primary)/0.3)]",
+                "hover:shadow-[0_0_50px_hsl(var(--primary)/0.5)]",
+                "border-2 border-primary/40",
+                "transition-shadow duration-300"
+              )}
+              aria-label="Chat with Hoppy"
+            >
+              <video
+                src="/hoppy-blink.mp4"
+                autoPlay loop muted playsInline
+                className="w-full h-full object-cover scale-[1.3] object-top"
+              />
+              {/* Attention pulse ring */}
+              <span className="absolute inset-0 rounded-full animate-ping bg-primary/15 pointer-events-none" />
+              {/* Breathing glow ring */}
+              <span
+                className="absolute -inset-1 rounded-full pointer-events-none opacity-40"
+                style={{
+                  background: `radial-gradient(circle, hsl(var(--primary) / 0.3) 0%, transparent 70%)`,
+                  animation: "pulse 3s ease-in-out infinite",
+                }}
+              />
+              {/* Notification badge */}
+              <NotificationBadge count={unreadCount} />
+            </motion.button>
+          </motion.div>
         )}
       </AnimatePresence>
 
@@ -456,14 +639,13 @@ export const LandingHoppy = memo(function LandingHoppy({
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
             className={cn(
               "fixed z-50",
-              // Mobile: full width at bottom; Desktop: corner widget
               "bottom-0 right-0 sm:bottom-6 sm:right-6",
               "w-full sm:w-[400px] sm:max-w-[calc(100vw-3rem)]",
               "h-[85vh] sm:h-[560px] sm:max-h-[calc(100vh-3rem)]",
               "sm:rounded-3xl rounded-t-3xl overflow-hidden",
               "bg-black/85 backdrop-blur-3xl",
               "border border-white/[0.08]",
-              "shadow-[0_20px_80px_rgba(0,0,0,0.6),0_0_40px_hsl(263_70%_58%/0.15)]",
+              "shadow-[0_20px_80px_rgba(0,0,0,0.6),0_0_40px_hsl(var(--primary)/0.15)]",
               "flex flex-col"
             )}
           >

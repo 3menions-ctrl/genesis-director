@@ -262,7 +262,7 @@ export default function Landing() {
       </div>
 
       {/* Features Showcase — scroll reveal */}
-      <div className="scroll-reveal" style={{ animationDelay: '100ms' }}>
+      <div className="scroll-reveal" data-section="features" style={{ animationDelay: '100ms' }}>
         <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
           <Suspense fallback={<SectionLoader />}>
             <FeaturesShowcase />
@@ -271,7 +271,7 @@ export default function Landing() {
       </div>
 
       {/* Pricing CTA — scroll reveal */}
-      <div className="scroll-reveal" style={{ animationDelay: '200ms' }}>
+      <div className="scroll-reveal" data-section="pricing" style={{ animationDelay: '200ms' }}>
         <PricingSection onNavigate={handleNavigate} isImmersive={isImmersive} onEnterImmersive={handleEnterImmersive} suppressVideo={showExamples || isImmersive} />
       </div>
 

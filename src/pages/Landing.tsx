@@ -15,7 +15,7 @@ import { PricingSection, ImmersiveVideoBackground, LetsGoCTA, INACTIVITY_TIMEOUT
 import { AvatarCTASection } from '@/components/landing/AvatarCTASection';
 import { SocialProofTicker } from '@/components/landing/SocialProofTicker';
 import { PromptResultShowcase } from '@/components/landing/PromptResultShowcase';
-import { LandingHoppy } from '@/components/landing/LandingHoppy';
+
 
 // Lazy load heavy components
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
@@ -303,8 +303,6 @@ export default function Landing() {
         </Suspense>
       </ErrorBoundaryWrapper>
 
-      {/* Landing Hoppy — conversion concierge for visitors */}
-      <LandingHoppy onNavigate={handleNavigate} />
     </div>
   );
 }

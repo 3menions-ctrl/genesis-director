@@ -114,6 +114,22 @@ async function streamDemoChat({
       return;
     }
 
+    // Check for fallback JSON response (when AI gateway is unavailable)
+    const contentType = resp.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      const data = await resp.json().catch(() => null);
+      if (data?.fallback && data?.reply) {
+        // Simulate typing with the pre-written fallback
+        const words = data.reply.split(" ");
+        for (let i = 0; i < words.length; i++) {
+          onDelta((i === 0 ? "" : " ") + words[i]);
+          await new Promise(r => setTimeout(r, 20));
+        }
+        onDone();
+        return;
+      }
+    }
+
     if (!resp.body) {
       onError("No response stream");
       return;

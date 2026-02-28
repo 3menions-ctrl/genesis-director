@@ -38,7 +38,20 @@ Give a cinematic mini-breakdown like:
 **Shot 3:** [the money shot — the most cinematic moment]
 [Excited comment about the potential + question to continue]"`;
 
-const MAX_DEMO_MESSAGES = 6; // 3 user messages (each with assistant reply)
+const MAX_DEMO_MESSAGES = 6;
+
+// Fallback responses when AI gateway is unavailable
+const FALLBACK_RESPONSES = [
+  "🎬 I love that creative energy! Imagine this:\n\n**Shot 1:** A sweeping aerial that glides over a misty landscape at golden hour\n**Shot 2:** We push in close — catching the emotion in a character's eyes\n**Shot 3:** A dramatic reveal as the camera pulls back to show the full scene\n\nGenesis can turn ideas like yours into real cinematic videos. Sign up free and let's make it happen! ✨",
+  "🐰 Ooh, that's got so much potential! Here's what I'd pitch:\n\n**Shot 1:** We open on a stunning wide shot — the world of your story laid out in cinematic glory\n**Shot 2:** Cut to the action — tight, dynamic, full of energy\n**Shot 3:** The hero moment — slow motion, dramatic lighting, pure cinema\n\nWant to see this come to life? Genesis turns text prompts into real video — try it free! 🎥",
+  "✨ Now THAT's a story worth telling! Picture this:\n\n**Shot 1:** Atmospheric establishing shot — setting the mood instantly\n**Shot 2:** Character close-up with beautiful depth of field\n**Shot 3:** The climactic moment — every frame dripping with cinematic magic\n\nGenesis is built for exactly this kind of creative vision. Ready to bring yours to life? 🎬",
+];
+
+function getFallbackResponse(userMessage: string): string {
+  // Pick a response based on message hash for consistency
+  const hash = userMessage.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  return FALLBACK_RESPONSES[hash % FALLBACK_RESPONSES.length];
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -118,16 +131,22 @@ serve(async (req) => {
         );
       }
       if (response.status === 402) {
+        // Credits exhausted — return a friendly canned response instead of an error
+        const lastUserMsg = sanitizedMessages.filter(m => m.role === "user").pop()?.content || "";
+        const fallbackReply = getFallbackResponse(lastUserMsg);
         return new Response(
-          JSON.stringify({ error: "Demo is temporarily unavailable. Sign up for full access! ✨" }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ fallback: true, reply: fallbackReply }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       const text = await response.text();
       console.error("AI gateway error:", response.status, text);
+      // For any other error, also return a fallback response
+      const lastUserMsg2 = sanitizedMessages.filter(m => m.role === "user").pop()?.content || "";
+      const fallbackReply2 = getFallbackResponse(lastUserMsg2);
       return new Response(
-        JSON.stringify({ error: "Something went wrong. Try again!" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ fallback: true, reply: fallbackReply2 }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

@@ -17,7 +17,7 @@ import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
 import { AdminOnlyDiagnostics } from "@/components/diagnostics/AdminOnlyDiagnostics";
 import { NavigationGuardProvider, NavigationBridge } from "@/lib/navigation";
-import { SafeModeBanner } from "@/components/safeMode";
+
 import { crashForensics } from "@/lib/crashForensics";
 import { getSafeModeStatus } from "@/lib/safeMode";
 import { AgentTrigger } from "@/components/agent";
@@ -137,8 +137,6 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          {/* Safe Mode Banner - always visible when active */}
-          <SafeModeBanner />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             {/* Boot checkpoint markers */}
             <BootCheckpointMarker />

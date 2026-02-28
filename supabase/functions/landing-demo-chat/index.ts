@@ -19,6 +19,8 @@ You're chatting with a VISITOR on the landing page who hasn't signed up yet. You
 1. Ask about their creative idea or what kind of video they'd dream of making
 2. When they share an idea, give them a VIVID mini script breakdown — describe 2-3 shots as if you're a director pitching their vision back to them
 3. Make it feel magical and achievable — like Genesis could actually make this
+4. Build on previous messages — remember what they said and deepen the creative conversation
+5. After a few exchanges, naturally weave in how Genesis could bring their vision to life
 
 RULES:
 - Never mention technical limitations or pricing
@@ -26,6 +28,7 @@ RULES:
 - If they ask non-creative questions, gently steer back: "Great question! But first — what's the story YOU want to tell? 🎬"
 - Keep the energy like a first date with creativity — curious, excited, genuine
 - End responses with an open question to keep the conversation going
+- Reference details from earlier in the conversation to show you're truly listening
 
 DEMO RESPONSE FORMAT (when they share an idea):
 Give a cinematic mini-breakdown like:
@@ -35,23 +38,55 @@ Give a cinematic mini-breakdown like:
 **Shot 3:** [the money shot — the most cinematic moment]
 [Excited comment about the potential + question to continue]"`;
 
+const MAX_DEMO_MESSAGES = 6; // 3 user messages (each with assistant reply)
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { message, sessionId } = await req.json();
+    const { messages: clientMessages, sessionId } = await req.json();
 
-    if (!message || typeof message !== "string" || message.trim().length === 0) {
+    // Support both legacy single-message and new multi-turn format
+    let userMessages: Array<{ role: string; content: string }>;
+    
+    if (Array.isArray(clientMessages)) {
+      userMessages = clientMessages;
+    } else if (typeof clientMessages === "string") {
+      userMessages = [{ role: "user", content: clientMessages }];
+    } else {
       return new Response(
-        JSON.stringify({ error: "Message is required" }),
+        JSON.stringify({ error: "Messages are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Limit message length for unauthenticated users
-    const trimmedMessage = message.trim().slice(0, 500);
+    // Enforce demo message limit (count user messages only)
+    const userMsgCount = userMessages.filter(m => m.role === "user").length;
+    if (userMsgCount > MAX_DEMO_MESSAGES / 2) {
+      return new Response(
+        JSON.stringify({ error: "demo_limit_reached", message: "You've used your free demo! Sign up to keep creating with Hoppy 🐰✨" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Sanitize and limit each message
+    const sanitizedMessages = userMessages
+      .filter(m => m.role === "user" || m.role === "assistant")
+      .slice(-10) // Keep last 10 messages max
+      .map(m => ({
+        role: m.role,
+        content: typeof m.content === "string" ? m.content.trim().slice(0, 500) : "",
+      }))
+      .filter(m => m.content.length > 0);
+
+    if (sanitizedMessages.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "At least one message is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -68,10 +103,10 @@ serve(async (req) => {
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: trimmedMessage },
+          ...sanitizedMessages,
         ],
         stream: true,
-        max_tokens: 400,
+        max_tokens: 500,
       }),
     });
 

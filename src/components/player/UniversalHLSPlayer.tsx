@@ -188,6 +188,14 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
     const [isLoading, setIsLoading] = useState(true);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isMuted, setIsMuted] = useState(initialMuted || muteClipAudio);
+    
+    // Sync muted state when parent prop changes (e.g. immersive unmute button)
+    useEffect(() => {
+      setIsMuted(initialMuted || muteClipAudio);
+      if (videoRef.current) {
+        videoRef.current.muted = initialMuted || muteClipAudio;
+      }
+    }, [initialMuted, muteClipAudio]);
     const [error, setError] = useState<string | null>(null);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);

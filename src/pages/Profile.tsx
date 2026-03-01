@@ -98,7 +98,26 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     totalVideoDuration: 0,
   });
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState('');
+  const [savingName, setSavingName] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSaveName = useCallback(async () => {
+    if (!user || !nameValue.trim()) return;
+    setSavingName(true);
+    try {
+      const { error } = await supabase.from('profiles').update({ display_name: nameValue.trim() }).eq('id', user.id);
+      if (error) throw error;
+      toast.success('Display name updated');
+      setEditingName(false);
+      refreshProfile();
+    } catch {
+      toast.error('Failed to update display name');
+    } finally {
+      setSavingName(false);
+    }
+  }, [user, nameValue, refreshProfile]);
   
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -713,13 +732,36 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                   </Button>
                 </div>
                 <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-                  <div>
+                  <div className="flex-1 mr-3">
                     <p className="text-sm font-medium text-white">Display Name</p>
-                    <p className="text-xs text-white/40">{profile?.display_name || 'Not set'}</p>
+                    {editingName ? (
+                      <input
+                        autoFocus
+                        className="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500 transition-colors"
+                        value={nameValue}
+                        onChange={(e) => setNameValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveName();
+                          if (e.key === 'Escape') setEditingName(false);
+                        }}
+                        maxLength={50}
+                      />
+                    ) : (
+                      <p className="text-xs text-white/40">{profile?.display_name || 'Not set'}</p>
+                    )}
                   </div>
-                  <Button variant="ghost" size="sm" className="text-white/60 hover:text-white">
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
+                  {editingName ? (
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="sm" className="text-green-400 hover:text-green-300" onClick={handleSaveName} disabled={savingName}>
+                        {savingName ? <Loader2 className="w-4 h-4 animate-spin" /> : '✓'}
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-white/40 hover:text-white" onClick={() => setEditingName(false)}>✕</Button>
+                    </div>
+                  ) : (
+                    <Button variant="ghost" size="sm" className="text-white/60 hover:text-white" onClick={() => { setNameValue(profile?.display_name || ''); setEditingName(true); }}>
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
                 
                 <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">

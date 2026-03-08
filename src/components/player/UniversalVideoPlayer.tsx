@@ -94,6 +94,21 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+function isHlsPlaylistUrl(url: string): boolean {
+  const normalized = url.toLowerCase().split('?')[0];
+  return normalized.endsWith('.m3u8');
+}
+
+function isDirectPlayableUrl(url: string): boolean {
+  const normalized = url.toLowerCase().split('?')[0];
+  return (
+    normalized.endsWith('.mp4') ||
+    normalized.endsWith('.webm') ||
+    normalized.endsWith('.mov') ||
+    normalized.includes('/video-clips/')
+  );
+}
+
 // ============================================================================
 // MANIFEST PARSER
 // ============================================================================

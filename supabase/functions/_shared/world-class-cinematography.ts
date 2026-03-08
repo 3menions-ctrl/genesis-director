@@ -425,6 +425,27 @@ export const SCENE_JOURNEYS: Record<string, string[]> = {
     "exclusive members club with velvet seating and cigar lounge",
     "luxury car showroom with spotlit vehicles and marble floors",
   ],
+  action: [
+    "rain-soaked back alley with flickering neon signs and wet concrete reflecting red and blue light",
+    "crumbling industrial warehouse with broken skylights, hanging chains, and dust-filled shafts of light",
+    "rooftop at night overlooking a burning cityscape with smoke columns and distant sirens",
+    "abandoned subway station with shattered tiles, exposed wiring, and emergency lighting casting long shadows",
+    "war-torn street with overturned vehicles, rubble, and fractured asphalt under a blood-orange sky",
+  ],
+  combat: [
+    "underground fight ring with bare concrete walls, a single overhead cage light, and bloodstained floor",
+    "medieval fortress courtyard with torch-lit stone walls, scattered weapons, and smoldering siege damage",
+    "futuristic combat arena with holographic barriers, sparking floor panels, and particle weapon scorch marks",
+    "jungle clearing at dusk with broken trees, muddy trenches, and muzzle flashes illuminating fog",
+    "spacecraft corridor with emergency red lighting, hull breach warnings, and zero-gravity debris floating",
+  ],
+  thriller: [
+    "dimly lit parking garage with concrete pillars casting sharp shadows and a single flickering fluorescent",
+    "high-rise office at midnight with floor-to-ceiling windows reflecting a thunderstorm outside",
+    "abandoned hospital wing with peeling paint, overturned gurneys, and a single swinging overhead light",
+    "foggy dockyard with rusted shipping containers, chains clinking in wind, and distant foghorn",
+    "underground bunker with military monitors showing static, sandbag walls, and harsh tungsten lighting",
+  ],
 };
 
 // ============================================================================

@@ -94,6 +94,21 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+function isHlsPlaylistUrl(url: string): boolean {
+  const normalized = url.toLowerCase().split('?')[0];
+  return normalized.endsWith('.m3u8');
+}
+
+function isDirectPlayableUrl(url: string): boolean {
+  const normalized = url.toLowerCase().split('?')[0];
+  return (
+    normalized.endsWith('.mp4') ||
+    normalized.endsWith('.webm') ||
+    normalized.endsWith('.mov') ||
+    normalized.includes('/video-clips/')
+  );
+}
+
 // ============================================================================
 // MANIFEST PARSER
 // ============================================================================
@@ -190,6 +205,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [hlsPlaylistUrl, setHlsPlaylistUrl] = useState<string | null>(null);
+    const [directVideoUrl, setDirectVideoUrl] = useState<string | null>(null);
     const [isMuted, setIsMuted] = useState(initialMuted);
     const [currentTime, setCurrentTime] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -244,6 +260,8 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
       async function loadSource() {
         setError(null);
         setIsLoading(true);
+        setHlsPlaylistUrl(null);
+        setDirectVideoUrl(null);
 
         try {
           let hlsUrl: string | null = null;
@@ -268,13 +286,19 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               firstClipUrl = mseClipUrls[0];
             }
             
-            // If we already have HLS, use it
+            // If we already have HLS, use it; if it's a direct MP4 URL, use direct playback
             if (hlsUrl) {
               logPlaybackPath('HLS_UNIVERSAL', { projectId: sourceProjectId, hlsUrl });
               if (!mountedRef.current) return;
-              setHlsPlaylistUrl(hlsUrl);
-              setThumbnailUrl(firstClipUrl);
-              setExportUrl(firstClipUrl);
+
+              if (isHlsPlaylistUrl(hlsUrl)) {
+                setHlsPlaylistUrl(hlsUrl);
+              } else if (isDirectPlayableUrl(hlsUrl)) {
+                setDirectVideoUrl(hlsUrl);
+              }
+
+              setThumbnailUrl(firstClipUrl || hlsUrl);
+              setExportUrl(firstClipUrl || hlsUrl);
               setIsLoading(false);
               return;
             }
@@ -339,13 +363,12 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                 }
               } catch {}
               
-              // Last resort: if edge function still failed, use first clip as single-segment HLS fallback
-              // This shouldn't happen, but prevents a dead screen
+              // Last resort: play first clip directly so user still gets playback
               if (!mountedRef.current) return;
-              setHlsPlaylistUrl(null);
+              setDirectVideoUrl(mseClipUrls[0]);
               setThumbnailUrl(mseClipUrls[0]);
               setExportUrl(mseClipUrls[0]);
-              setError('Unable to create seamless playlist. Please try again.');
+              setError('Seamless playback unavailable, playing first clip directly.');
               setIsLoading(false);
               return;
             }
@@ -381,23 +404,21 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                   } catch (err) {
                     console.warn('[UniversalPlayer] HLS generation from manifest clips failed:', err);
                   }
-                  // Last resort: build client-side HLS from manifest clips
-                  // Use first clip as direct MP4 fallback
+                  // Last resort: play the first clip directly
                   if (!mountedRef.current) return;
-                  setHlsPlaylistUrl(manifest.clips[0].videoUrl);
+                  setDirectVideoUrl(manifest.clips[0].videoUrl);
                   setThumbnailUrl(manifest.clips[0].videoUrl);
                   setExportUrl(manifest.clips[0].videoUrl);
                   setIsLoading(false);
                   return;
                 }
-              } else if (videoUrl.endsWith('.mp4') || videoUrl.endsWith('.webm') || videoUrl.includes('/video-clips/')) {
-                // Single video — still use HLS via edge function or direct play
+              } else if (isDirectPlayableUrl(videoUrl)) {
+                // Single direct video URL (mp4/webm/mov)
                 if (!mountedRef.current) return;
-                setHlsPlaylistUrl(null);
                 setThumbnailUrl(videoUrl);
                 setExportUrl(videoUrl);
-                // For single videos, we can play directly in HLS player as mp4
-                // Generate HLS manifest for it
+
+                // Try to get a generated HLS playlist first
                 try {
                   const { data: singleResult } = await supabase.functions.invoke('generate-hls-playlist', {
                     body: { projectId: sourceProjectId }
@@ -408,9 +429,9 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                     return;
                   }
                 } catch {}
-                // If HLS generation fails for single video, play it directly
-                // UniversalHLSPlayer can handle a direct MP4 URL via native/hls.js
-                setHlsPlaylistUrl(videoUrl);
+
+                // Fallback: direct playback
+                setDirectVideoUrl(videoUrl);
                 setIsLoading(false);
                 return;
               }
@@ -433,10 +454,10 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               setIsLoading(false);
               return;
             }
-            // No HLS in manifest - try first clip URL as direct play
+            // No HLS in manifest - play first clip directly
             if (manifest?.clips?.length) {
               if (!mountedRef.current) return;
-              setHlsPlaylistUrl(manifest.clips[0].videoUrl);
+              setDirectVideoUrl(manifest.clips[0].videoUrl);
               setThumbnailUrl(manifest.clips[0].videoUrl);
               setIsLoading(false);
               return;
@@ -446,27 +467,22 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             
           } else if (sourceUrlsKey && source.urls) {
             // ================================================================
-            // DIRECT URLs - play first URL (single video HLS or direct)
-            // For multiple URLs, we'd need server-side HLS generation
+            // DIRECT URLs
             // ================================================================
             const urls = source.urls;
-            if (urls.length === 1) {
-              // Single URL - play directly
-              if (!mountedRef.current) return;
-              setHlsPlaylistUrl(urls[0]);
-              setThumbnailUrl(urls[0]);
-              setExportUrl(urls[0]);
-              setIsLoading(false);
+            const primaryUrl = urls[0];
+
+            if (!mountedRef.current || !primaryUrl) return;
+
+            if (isHlsPlaylistUrl(primaryUrl)) {
+              setHlsPlaylistUrl(primaryUrl);
             } else {
-              // Multiple URLs without a projectId - can't generate HLS server-side
-              // Use first URL and log warning
-              console.warn('[UniversalPlayer] Multiple URLs without projectId - using first URL only');
-              if (!mountedRef.current) return;
-              setHlsPlaylistUrl(urls[0]);
-              setThumbnailUrl(urls[0]);
-              setExportUrl(urls[0]);
-              setIsLoading(false);
+              setDirectVideoUrl(primaryUrl);
             }
+
+            setThumbnailUrl(primaryUrl);
+            setExportUrl(primaryUrl);
+            setIsLoading(false);
           }
         } catch (err) {
           if ((err as Error)?.name === 'AbortError') return;
@@ -651,9 +667,41 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     }
 
     // ========================================================================
+    // RENDER: Direct video playback (mp4/webm fallback)
+    // ========================================================================
+    if (directVideoUrl) {
+      return (
+        <div
+          ref={ref}
+          className={cn(
+            "relative overflow-hidden bg-black",
+            mode === 'fullscreen' && "fixed inset-0 z-50",
+            aspectRatio === 'video' && mode !== 'fullscreen' && 'aspect-video',
+            className
+          )}
+        >
+          <video
+            src={directVideoUrl}
+            className="absolute inset-0 w-full h-full object-contain"
+            autoPlay={autoPlay}
+            muted={isMuted}
+            loop={loop}
+            controls={mode === 'inline' || mode === 'fullscreen'}
+            playsInline
+            preload="auto"
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+            onEnded={onEnded}
+            onError={() => setError('Failed to load video')}
+          />
+        </div>
+      );
+    }
+
+    // ========================================================================
     // RENDER: HLS Playback (ALL inline/fullscreen modes)
     // ========================================================================
-    
     if (hlsPlaylistUrl) {
       return (
         <div 

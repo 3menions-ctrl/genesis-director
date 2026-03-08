@@ -205,6 +205,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [hlsPlaylistUrl, setHlsPlaylistUrl] = useState<string | null>(null);
+    const [directVideoUrl, setDirectVideoUrl] = useState<string | null>(null);
     const [isMuted, setIsMuted] = useState(initialMuted);
     const [currentTime, setCurrentTime] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);

@@ -155,9 +155,57 @@ serve(async (req) => {
         });
       }
 
-      // For Clip 0, use reference image as last_frame_url
+      // ═══════════════════════════════════════════════════════════════
+      // FRAME EXTRACTION: Extract last frame for ALL clips (critical for frame chaining)
+      // Without this, continue-production receives null lastFrameUrl and clips 2+ lose continuity
+      // ═══════════════════════════════════════════════════════════════
       let lastFrameUrl: string | null = null;
-      if (shotIndex === 0) {
+      
+      // Try actual frame extraction from the video via extract-video-frame
+      const FRAME_EXTRACTION_MAX_RETRIES = 3;
+      for (let attempt = 1; attempt <= FRAME_EXTRACTION_MAX_RETRIES; attempt++) {
+        try {
+          console.log(`[PollReplicate] Extracting last frame from clip ${shotIndex + 1} (attempt ${attempt}/${FRAME_EXTRACTION_MAX_RETRIES})...`);
+          const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-video-frame`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseKey}`,
+            },
+            body: JSON.stringify({
+              videoUrl: storedVideoUrl,
+              projectId,
+              shotId: `shot_${shotIndex}`,
+              position: 'last',
+            }),
+          });
+          
+          if (frameResponse.ok) {
+            const frameResult = await frameResponse.json();
+            if (frameResult.success && frameResult.frameUrl) {
+              lastFrameUrl = frameResult.frameUrl;
+              console.log(`[PollReplicate] ✅ Last frame extracted on attempt ${attempt}: ${lastFrameUrl?.substring(0, 60)}...`);
+              break;
+            } else {
+              console.warn(`[PollReplicate] Attempt ${attempt}: Frame extraction returned no URL: ${frameResult.error || 'unknown'}`);
+            }
+          } else {
+            const errorText = await frameResponse.text().catch(() => 'unknown');
+            console.warn(`[PollReplicate] Attempt ${attempt}: Frame extraction HTTP ${frameResponse.status}: ${errorText.substring(0, 100)}`);
+          }
+        } catch (frameErr) {
+          console.warn(`[PollReplicate] Attempt ${attempt}: Frame extraction exception:`, frameErr);
+        }
+        
+        // Exponential backoff before retry
+        if (attempt < FRAME_EXTRACTION_MAX_RETRIES) {
+          const backoffMs = 1500 * Math.pow(2, attempt - 1);
+          await sleep(backoffMs);
+        }
+      }
+      
+      // Fallback: For clip 0, use reference image if extraction failed
+      if (!lastFrameUrl && shotIndex === 0) {
         const { data: projectData } = await supabase
           .from('movie_projects')
           .select('pro_features_data')
@@ -170,8 +218,22 @@ serve(async (req) => {
 
         if (referenceImageUrl && isValidImageUrl(referenceImageUrl)) {
           lastFrameUrl = referenceImageUrl;
-          console.log(`[PollReplicate] ✓ Clip 0: Using reference image as last_frame`);
+          console.log(`[PollReplicate] ✓ Clip 0 fallback: Using reference image as last_frame`);
         }
+      }
+      
+      // Fallback: For any clip, try golden frame or reference from pipeline context
+      if (!lastFrameUrl) {
+        const fallbackUrl = pipelineContext?.goldenFrameData?.goldenFrameUrl 
+          || pipelineContext?.referenceImageUrl;
+        if (fallbackUrl && isValidImageUrl(fallbackUrl)) {
+          lastFrameUrl = fallbackUrl;
+          console.log(`[PollReplicate] ⚠️ Using fallback frame from pipeline context for clip ${shotIndex + 1}`);
+        }
+      }
+      
+      if (!lastFrameUrl) {
+        console.error(`[PollReplicate] ❌ Frame extraction failed for clip ${shotIndex + 1} — frame chain will be broken!`);
       }
 
       // Update clip record

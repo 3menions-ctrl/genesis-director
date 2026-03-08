@@ -126,7 +126,7 @@ function AdminVideoPlayer({ src }: { src: string }) {
   );
 }
 
-
+interface ClipRecord {
   id: string;
   shot_index: number;
   status: string;

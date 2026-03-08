@@ -4731,11 +4731,18 @@ export type Database = {
           clips_total: number
           created_at: string
           genre: string
+          hls_playlist_url: string
           id: string
           is_public: boolean
+          last_error: string
           likes_count: number
           mode: string
+          pending_video_tasks: Json
+          pipeline_stage: string
+          quality_tier: string
           status: string
+          stitch_attempts: number
+          target_duration_minutes: number
           thumbnail_url: string
           title: string
           updated_at: string

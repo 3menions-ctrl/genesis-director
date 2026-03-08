@@ -881,6 +881,34 @@ serve(async (req) => {
             pred.videoUrl = finalVideoUrl;
             pred.lipSynced = true;
             
+            // ═══════════════════════════════════════════════════════════════════
+            // FRAME EXTRACTION: Extract last frame for frame chaining continuity
+            // Without this, the next clip has no start image reference
+            // ═══════════════════════════════════════════════════════════════════
+            let extractedLastFrame: string | null = null;
+            try {
+              extractedLastFrame = await extractLastFrameFromVideo(finalVideoUrl, pred.clipIndex);
+              if (extractedLastFrame) {
+                console.log(`[Watchdog] ✅ Last frame extracted for clip ${pred.clipIndex + 1}: ${extractedLastFrame.substring(0, 60)}...`);
+              } else {
+                console.warn(`[Watchdog] ⚠️ Frame extraction returned null for clip ${pred.clipIndex + 1}`);
+              }
+            } catch (frameErr) {
+              console.warn(`[Watchdog] Frame extraction failed for clip ${pred.clipIndex + 1} (non-fatal):`, frameErr);
+            }
+            
+            // Fallback: use scene image or first clip's start image
+            if (!extractedLastFrame) {
+              const fallbackFrame = tasks.sceneImageUrl || tasks.predictions[0]?.startImageUrl;
+              if (fallbackFrame) {
+                extractedLastFrame = fallbackFrame;
+                console.log(`[Watchdog] ⚠️ Using fallback frame for clip ${pred.clipIndex + 1}: scene/reference image`);
+              }
+            }
+            
+            // Store frame URL on prediction for use by subsequent clips
+            pred.lastFrameUrl = extractedLastFrame;
+            
             completedClips.push({
               clipIndex: pred.clipIndex,
               videoUrl: finalVideoUrl,
@@ -898,6 +926,8 @@ serve(async (req) => {
                   prompt: pred.prompt || `Avatar clip ${pred.clipIndex + 1}`,
                   status: 'completed',
                   video_url: finalVideoUrl,
+                  last_frame_url: extractedLastFrame, // CRITICAL: Include extracted frame
+                  frame_extraction_status: extractedLastFrame ? 'success' : 'failed',
                   duration_seconds: tasks.clipDuration || 10,
                   completed_at: new Date().toISOString(),
                   updated_at: new Date().toISOString(),
@@ -906,7 +936,7 @@ serve(async (req) => {
               if (clipInsertError) {
                 console.warn(`[Watchdog] ⚠️ Failed to upsert video_clips row for clip ${pred.clipIndex + 1}: ${clipInsertError.message}`);
               } else {
-                console.log(`[Watchdog] ✅ video_clips row saved for clip ${pred.clipIndex + 1}`);
+                console.log(`[Watchdog] ✅ video_clips row saved for clip ${pred.clipIndex + 1} (frame: ${extractedLastFrame ? 'YES' : 'NO'})`);
               }
             } catch (insertErr) {
               console.warn(`[Watchdog] video_clips insert failed (non-fatal):`, insertErr);

@@ -243,6 +243,7 @@ serve(async (req) => {
         completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         error_message: null,
+        frame_extraction_status: lastFrameUrl ? 'success' : 'failed',
       };
       if (lastFrameUrl) {
         clipUpdate.last_frame_url = lastFrameUrl;

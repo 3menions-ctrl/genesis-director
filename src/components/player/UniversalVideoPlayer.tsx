@@ -260,6 +260,8 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
       async function loadSource() {
         setError(null);
         setIsLoading(true);
+        setHlsPlaylistUrl(null);
+        setDirectVideoUrl(null);
 
         try {
           let hlsUrl: string | null = null;

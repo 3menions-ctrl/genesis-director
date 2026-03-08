@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import Hls from 'hls.js';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -63,6 +64,66 @@ interface ProjectRecord {
   clips_completed: number;
   clips_failed: number;
   clips_pending: number;
+  hls_playlist_url: string | null;
+  pending_video_tasks: any;
+}
+
+/** Resolve the best playable video URL from a project record */
+function resolvePlayableUrl(project: ProjectRecord): string | null {
+  // Prefer HLS playlist
+  if (project.hls_playlist_url) return project.hls_playlist_url;
+  
+  // Check pending_video_tasks for HLS or manifest
+  const tasks = project.pending_video_tasks;
+  if (tasks?.hlsPlaylistUrl) return tasks.hlsPlaylistUrl;
+  
+  // Check if video_url is a direct playable file
+  if (project.video_url) {
+    const lower = project.video_url.toLowerCase();
+    if (lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.m3u8')) {
+      return project.video_url;
+    }
+    // If it's a manifest JSON, try to extract clip URLs from pending_video_tasks
+    if (lower.endsWith('.json') && tasks?.predictions) {
+      const completed = (tasks.predictions as any[])
+        .filter((p: any) => p.videoUrl && p.status === 'completed')
+        .map((p: any) => p.videoUrl as string);
+      if (completed.length > 0) return completed[0]; // Return first clip as preview
+    }
+  }
+  
+  return project.video_url; // Fallback
+}
+/** Simple HLS-capable video player for admin detail dialog */
+function AdminVideoPlayer({ src }: { src: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !src) return;
+
+    const isHls = src.toLowerCase().includes('.m3u8');
+    
+    if (isHls && Hls.isSupported()) {
+      const hls = new Hls({ maxBufferLength: 30 });
+      hls.loadSource(src);
+      hls.attachMedia(video);
+      return () => { hls.destroy(); };
+    } else if (isHls && video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = src;
+    } else {
+      video.src = src;
+    }
+  }, [src]);
+
+  return (
+    <video
+      ref={videoRef}
+      controls
+      className="w-full rounded-lg"
+      crossOrigin="anonymous"
+    />
+  );
 }
 
 interface ClipRecord {
@@ -419,8 +480,8 @@ export function AdminProjectsBrowser() {
                             <Eye className="w-4 h-4 mr-2" />
                             View Details
                           </DropdownMenuItem>
-                          {project.video_url && (
-                            <DropdownMenuItem onClick={() => window.open(project.video_url!, '_blank')}>
+                          {resolvePlayableUrl(project) && (
+                            <DropdownMenuItem onClick={() => window.open(resolvePlayableUrl(project)!, '_blank')}>
                               <Play className="w-4 h-4 mr-2" />
                               Watch Video
                             </DropdownMenuItem>
@@ -525,17 +586,17 @@ export function AdminProjectsBrowser() {
                   </Card>
                 </div>
 
-                {selectedProject?.video_url && (
-                  <Card>
-                    <CardContent className="p-4">
-                      <video
-                        src={selectedProject.video_url}
-                        controls
-                        className="w-full rounded-lg"
-                      />
-                    </CardContent>
-                  </Card>
-                )}
+                {selectedProject && (() => {
+                  const playUrl = resolvePlayableUrl(selectedProject);
+                  if (!playUrl) return null;
+                  return (
+                    <Card>
+                      <CardContent className="p-4">
+                        <AdminVideoPlayer src={playUrl} />
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {selectedProject?.last_error && (
                   <Card className="border-destructive/50 bg-destructive/5">

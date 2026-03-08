@@ -519,6 +519,9 @@ export function detectJourneyType(baseScene: string | undefined): string {
   if (lower.includes('gaming') || lower.includes('esport') || lower.includes('stream') || lower.includes('game') || lower.includes('arcade') || lower.includes('video game')) return 'gaming';
   if (lower.includes('science') || lower.includes('research') || lower.includes('lab') || lower.includes('experiment') || lower.includes('space') || lower.includes('discover')) return 'science';
   if (lower.includes('luxury') || lower.includes('premium') || lower.includes('exclusive') || lower.includes('yacht') || lower.includes('private jet') || lower.includes('vip')) return 'luxury';
+  if (lower.includes('action') || lower.includes('chase') || lower.includes('explosion') || lower.includes('gunfight') || lower.includes('heist') || lower.includes('battle') || lower.includes('war')) return 'action';
+  if (lower.includes('fight') || lower.includes('combat') || lower.includes('martial') || lower.includes('boxing') || lower.includes('sword') || lower.includes('arena') || lower.includes('warrior')) return 'combat';
+  if (lower.includes('thriller') || lower.includes('suspense') || lower.includes('spy') || lower.includes('assassin') || lower.includes('hostage') || lower.includes('escape') || lower.includes('noir')) return 'thriller';
   
   return 'professional';
 }

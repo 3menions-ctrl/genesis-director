@@ -224,6 +224,18 @@ ${userIntent.forbiddenElements.length > 0 ? `Avoid: ${userIntent.forbiddenElemen
 ✅ MICRO-MOVEMENTS: Breathing, blinking, condensation sliding, leaves trembling
 ❌ AVOID: Camera specs ("85mm f/1.2"), empty adjectives ("beautiful", "epic"), static poses
 
+━━━ ACTION & COMBAT SCENES — VISCERAL INTENSITY ━━━
+When the genre, synopsis, or user prompt involves ACTION, COMBAT, WARFARE, THRILLER, or VIOLENCE:
+✅ BRUTAL PHYSICALITY: Describe the RAW impact — fists connecting with flesh, the crunch of bone, bodies slamming into concrete, the spray of blood and debris
+✅ KINETIC CHOREOGRAPHY: Every fight move has WEIGHT and CONSEQUENCE — show staggering, recoil, gasping for breath, stumbling backward from a blow
+✅ WEAPON DETAIL: The gleam of a blade, muzzle flash illuminating a dark corridor, shell casings bouncing off tile, the hiss of a sword unsheathed
+✅ DAMAGE & STAKES: Show the COST — torn clothing, bleeding wounds, cracked walls, shattered glass, smoking debris. Violence has CONSEQUENCES.
+✅ ENVIRONMENTAL DESTRUCTION: Fights destroy the environment — tables splintering, windows shattering, sparks flying from metal impacts, vehicles crumpling
+✅ SOUND THROUGH VISUALS: The shockwave of an explosion rippling through dust, the slow-motion spray of water/blood/sparks, the vibration of a heavy impact
+✅ PACING: Alternate between EXPLOSIVE bursts of action (1-3 seconds of fury) and TENSION beats (a slow breath, locking eyes with the enemy, the click of a gun)
+✅ NO SANITIZING: If the story demands violence, show it with unflinching intensity — this is CINEMA, not a children's show. Blood, broken bones, desperate survival, lethal force.
+✅ SIGNATURE SHOTS: Include at least ONE "impossible action shot" per sequence — a bullet-time dodge, a one-take hallway fight, a slow-mo impact with debris flying
+
 FORMAT:
 [SHOT 1] 100-150 words of lush, sensory-rich visual description with continuous motion and physics.
 ${hasUserNarration ? '[NARRATION] (User\'s exact narration for this shot)' : ''}
@@ -238,6 +250,7 @@ RULES:
 - EXACTLY ${clipCount} shots, each 10 seconds
 - Every description: 100-150 words, vivid and sensory-rich
 - NO static scenes — even calm moments have breathing, light shifts, particles floating
+- ACTION SCENES: Go HARD — visceral impacts, brutal choreography, environmental destruction, unflinching violence when the story demands it
 ${mustPreserveContent ? '- PRESERVE user\'s exact narration/dialogue verbatim' : ''}
 ${userIntent.coreAction ? `- "${userIntent.coreAction.toUpperCase()}" IS NON-NEGOTIABLE` : ''}`;
 

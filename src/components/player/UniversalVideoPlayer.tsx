@@ -667,9 +667,41 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
     }
 
     // ========================================================================
+    // RENDER: Direct video playback (mp4/webm fallback)
+    // ========================================================================
+    if (directVideoUrl) {
+      return (
+        <div
+          ref={ref}
+          className={cn(
+            "relative overflow-hidden bg-black",
+            mode === 'fullscreen' && "fixed inset-0 z-50",
+            aspectRatio === 'video' && mode !== 'fullscreen' && 'aspect-video',
+            className
+          )}
+        >
+          <video
+            src={directVideoUrl}
+            className="absolute inset-0 w-full h-full object-contain"
+            autoPlay={autoPlay}
+            muted={isMuted}
+            loop={loop}
+            controls={mode === 'inline' || mode === 'fullscreen'}
+            playsInline
+            preload="auto"
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+            onEnded={onEnded}
+            onError={() => setError('Failed to load video')}
+          />
+        </div>
+      );
+    }
+
+    // ========================================================================
     // RENDER: HLS Playback (ALL inline/fullscreen modes)
     // ========================================================================
-    
     if (hlsPlaylistUrl) {
       return (
         <div 

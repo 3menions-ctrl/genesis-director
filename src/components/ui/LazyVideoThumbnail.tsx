@@ -121,7 +121,7 @@ export const LazyVideoThumbnail = memo(function LazyVideoThumbnail({
       video.preload = 'metadata';
       video.muted = true;
       video.playsInline = true;
-      // No crossOrigin to avoid CORS issues
+      video.crossOrigin = 'anonymous'; // Required for canvas frame extraction from Supabase storage
 
       const cleanup = () => {
         video.removeAttribute('src');

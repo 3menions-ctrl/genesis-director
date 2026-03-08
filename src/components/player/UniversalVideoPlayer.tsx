@@ -363,13 +363,12 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                 }
               } catch {}
               
-              // Last resort: if edge function still failed, use first clip as single-segment HLS fallback
-              // This shouldn't happen, but prevents a dead screen
+              // Last resort: play first clip directly so user still gets playback
               if (!mountedRef.current) return;
-              setHlsPlaylistUrl(null);
+              setDirectVideoUrl(mseClipUrls[0]);
               setThumbnailUrl(mseClipUrls[0]);
               setExportUrl(mseClipUrls[0]);
-              setError('Unable to create seamless playlist. Please try again.');
+              setError('Seamless playback unavailable, playing first clip directly.');
               setIsLoading(false);
               return;
             }

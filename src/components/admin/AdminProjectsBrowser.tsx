@@ -63,6 +63,35 @@ interface ProjectRecord {
   clips_completed: number;
   clips_failed: number;
   clips_pending: number;
+  hls_playlist_url: string | null;
+  pending_video_tasks: any;
+}
+
+/** Resolve the best playable video URL from a project record */
+function resolvePlayableUrl(project: ProjectRecord): string | null {
+  // Prefer HLS playlist
+  if (project.hls_playlist_url) return project.hls_playlist_url;
+  
+  // Check pending_video_tasks for HLS or manifest
+  const tasks = project.pending_video_tasks;
+  if (tasks?.hlsPlaylistUrl) return tasks.hlsPlaylistUrl;
+  
+  // Check if video_url is a direct playable file
+  if (project.video_url) {
+    const lower = project.video_url.toLowerCase();
+    if (lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.m3u8')) {
+      return project.video_url;
+    }
+    // If it's a manifest JSON, try to extract clip URLs from pending_video_tasks
+    if (lower.endsWith('.json') && tasks?.predictions) {
+      const completed = (tasks.predictions as any[])
+        .filter((p: any) => p.videoUrl && p.status === 'completed')
+        .map((p: any) => p.videoUrl as string);
+      if (completed.length > 0) return completed[0]; // Return first clip as preview
+    }
+  }
+  
+  return project.video_url; // Fallback
 }
 
 interface ClipRecord {

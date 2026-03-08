@@ -454,10 +454,10 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               setIsLoading(false);
               return;
             }
-            // No HLS in manifest - try first clip URL as direct play
+            // No HLS in manifest - play first clip directly
             if (manifest?.clips?.length) {
               if (!mountedRef.current) return;
-              setHlsPlaylistUrl(manifest.clips[0].videoUrl);
+              setDirectVideoUrl(manifest.clips[0].videoUrl);
               setThumbnailUrl(manifest.clips[0].videoUrl);
               setIsLoading(false);
               return;
@@ -467,27 +467,22 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             
           } else if (sourceUrlsKey && source.urls) {
             // ================================================================
-            // DIRECT URLs - play first URL (single video HLS or direct)
-            // For multiple URLs, we'd need server-side HLS generation
+            // DIRECT URLs
             // ================================================================
             const urls = source.urls;
-            if (urls.length === 1) {
-              // Single URL - play directly
-              if (!mountedRef.current) return;
-              setHlsPlaylistUrl(urls[0]);
-              setThumbnailUrl(urls[0]);
-              setExportUrl(urls[0]);
-              setIsLoading(false);
+            const primaryUrl = urls[0];
+
+            if (!mountedRef.current || !primaryUrl) return;
+
+            if (isHlsPlaylistUrl(primaryUrl)) {
+              setHlsPlaylistUrl(primaryUrl);
             } else {
-              // Multiple URLs without a projectId - can't generate HLS server-side
-              // Use first URL and log warning
-              console.warn('[UniversalPlayer] Multiple URLs without projectId - using first URL only');
-              if (!mountedRef.current) return;
-              setHlsPlaylistUrl(urls[0]);
-              setThumbnailUrl(urls[0]);
-              setExportUrl(urls[0]);
-              setIsLoading(false);
+              setDirectVideoUrl(primaryUrl);
             }
+
+            setThumbnailUrl(primaryUrl);
+            setExportUrl(primaryUrl);
+            setIsLoading(false);
           }
         } catch (err) {
           if ((err as Error)?.name === 'AbortError') return;

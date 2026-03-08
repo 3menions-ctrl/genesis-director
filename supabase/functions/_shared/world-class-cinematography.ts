@@ -425,6 +425,27 @@ export const SCENE_JOURNEYS: Record<string, string[]> = {
     "exclusive members club with velvet seating and cigar lounge",
     "luxury car showroom with spotlit vehicles and marble floors",
   ],
+  action: [
+    "rain-soaked back alley with flickering neon signs and wet concrete reflecting red and blue light",
+    "crumbling industrial warehouse with broken skylights, hanging chains, and dust-filled shafts of light",
+    "rooftop at night overlooking a burning cityscape with smoke columns and distant sirens",
+    "abandoned subway station with shattered tiles, exposed wiring, and emergency lighting casting long shadows",
+    "war-torn street with overturned vehicles, rubble, and fractured asphalt under a blood-orange sky",
+  ],
+  combat: [
+    "underground fight ring with bare concrete walls, a single overhead cage light, and bloodstained floor",
+    "medieval fortress courtyard with torch-lit stone walls, scattered weapons, and smoldering siege damage",
+    "futuristic combat arena with holographic barriers, sparking floor panels, and particle weapon scorch marks",
+    "jungle clearing at dusk with broken trees, muddy trenches, and muzzle flashes illuminating fog",
+    "spacecraft corridor with emergency red lighting, hull breach warnings, and zero-gravity debris floating",
+  ],
+  thriller: [
+    "dimly lit parking garage with concrete pillars casting sharp shadows and a single flickering fluorescent",
+    "high-rise office at midnight with floor-to-ceiling windows reflecting a thunderstorm outside",
+    "abandoned hospital wing with peeling paint, overturned gurneys, and a single swinging overhead light",
+    "foggy dockyard with rusted shipping containers, chains clinking in wind, and distant foghorn",
+    "underground bunker with military monitors showing static, sandbag walls, and harsh tungsten lighting",
+  ],
 };
 
 // ============================================================================
@@ -498,6 +519,9 @@ export function detectJourneyType(baseScene: string | undefined): string {
   if (lower.includes('gaming') || lower.includes('esport') || lower.includes('stream') || lower.includes('game') || lower.includes('arcade') || lower.includes('video game')) return 'gaming';
   if (lower.includes('science') || lower.includes('research') || lower.includes('lab') || lower.includes('experiment') || lower.includes('space') || lower.includes('discover')) return 'science';
   if (lower.includes('luxury') || lower.includes('premium') || lower.includes('exclusive') || lower.includes('yacht') || lower.includes('private jet') || lower.includes('vip')) return 'luxury';
+  if (lower.includes('action') || lower.includes('chase') || lower.includes('explosion') || lower.includes('gunfight') || lower.includes('heist') || lower.includes('battle') || lower.includes('war')) return 'action';
+  if (lower.includes('fight') || lower.includes('combat') || lower.includes('martial') || lower.includes('boxing') || lower.includes('sword') || lower.includes('arena') || lower.includes('warrior')) return 'combat';
+  if (lower.includes('thriller') || lower.includes('suspense') || lower.includes('spy') || lower.includes('assassin') || lower.includes('hostage') || lower.includes('escape') || lower.includes('noir')) return 'thriller';
   
   return 'professional';
 }

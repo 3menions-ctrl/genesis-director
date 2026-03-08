@@ -364,6 +364,13 @@ const MOTION_PATTERNS: { pattern: RegExp; type: MotionAnalysis['motionType']; in
   { pattern: /\b(fighting|attacking|punching|kicking|sparring|wrestling|dodging)\b/i, type: 'moving', intensity: 'high' },
   { pattern: /\b(swimming|surfing|skating|skiing)\b/i, type: 'moving', intensity: 'high' },
   { pattern: /\b(throwing|hurling|tossing|launching)\b/i, type: 'moving', intensity: 'high' },
+  // Combat & violence — high intensity
+  { pattern: /\b(slashing|stabbing|slicing|hacking|cleaving|impaling)\b/i, type: 'moving', intensity: 'high' },
+  { pattern: /\b(shooting|firing|blasting|detonating|exploding)\b/i, type: 'moving', intensity: 'high' },
+  { pattern: /\b(smashing|slamming|crushing|pounding|battering|demolishing)\b/i, type: 'moving', intensity: 'high' },
+  { pattern: /\b(blocking|parrying|deflecting|countering|evading)\b/i, type: 'moving', intensity: 'high' },
+  { pattern: /\b(strangling|choking|grappling|pinning|tackling)\b/i, type: 'moving', intensity: 'high' },
+  { pattern: /\b(crashing|colliding|plummeting|falling|plunging)\b/i, type: 'moving', intensity: 'high' },
   
   // Medium-intensity motion (walking, exploring, transitional)
   { pattern: /\b(walking|strolling|wandering|roaming|hiking|trekking)\b/i, type: 'walking', intensity: 'medium' },
@@ -435,8 +442,14 @@ function detectMotionFromPrompt(prompt: string): MotionAnalysis {
   if (hasMotion) {
     switch (primaryIntensity) {
       case 'high':
-        motionEnforcementPrompt = `[MOTION REQUIRED - HIGH INTENSITY: Character must be actively ${primaryType} with visible body movement, leg motion, arm swing. Continuous fluid motion throughout the clip. Dynamic movement is MANDATORY.]`;
-        motionNegatives = ['static pose', 'frozen', 'still', 'motionless', 'stationary', 'standing still', 'not moving', 'paused', 'stopped', 'idle'];
+        // Detect combat-specific actions for more visceral enforcement
+        const combatActions = detectedActions.filter(a => /fight|attack|punch|kick|slash|stab|shoot|smash|slam|block|parr|strangle|grappl|crash|collid/i.test(a));
+        if (combatActions.length > 0) {
+          motionEnforcementPrompt = `[COMBAT ACTION - MAXIMUM INTENSITY: Visceral, brutal, unflinching violence. Character is actively ${combatActions.join(', ')} with FULL PHYSICAL IMPACT — show the force of every blow, the spray of debris/blood, bodies recoiling from impacts, environmental destruction. Continuous kinetic energy throughout. Every frame must convey raw physical consequence. No pulled punches, no sanitized action.]`;
+        } else {
+          motionEnforcementPrompt = `[MOTION REQUIRED - HIGH INTENSITY: Character must be actively ${primaryType} with visible body movement, leg motion, arm swing. Continuous fluid motion throughout the clip. Dynamic movement is MANDATORY.]`;
+        }
+        motionNegatives = ['static pose', 'frozen', 'still', 'motionless', 'stationary', 'standing still', 'not moving', 'paused', 'stopped', 'idle', 'gentle', 'calm', 'peaceful'];
         break;
       case 'medium':
         motionEnforcementPrompt = `[MOTION REQUIRED - CONTINUOUS MOVEMENT: Character must be visibly ${primaryType} with natural body motion throughout the clip. The character is NOT frozen or standing still.]`;

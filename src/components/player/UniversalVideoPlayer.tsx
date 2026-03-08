@@ -286,13 +286,19 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               firstClipUrl = mseClipUrls[0];
             }
             
-            // If we already have HLS, use it
+            // If we already have HLS, use it; if it's a direct MP4 URL, use direct playback
             if (hlsUrl) {
               logPlaybackPath('HLS_UNIVERSAL', { projectId: sourceProjectId, hlsUrl });
               if (!mountedRef.current) return;
-              setHlsPlaylistUrl(hlsUrl);
-              setThumbnailUrl(firstClipUrl);
-              setExportUrl(firstClipUrl);
+
+              if (isHlsPlaylistUrl(hlsUrl)) {
+                setHlsPlaylistUrl(hlsUrl);
+              } else if (isDirectPlayableUrl(hlsUrl)) {
+                setDirectVideoUrl(hlsUrl);
+              }
+
+              setThumbnailUrl(firstClipUrl || hlsUrl);
+              setExportUrl(firstClipUrl || hlsUrl);
               setIsLoading(false);
               return;
             }

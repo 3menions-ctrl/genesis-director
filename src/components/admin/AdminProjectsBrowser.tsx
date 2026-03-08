@@ -555,17 +555,17 @@ export function AdminProjectsBrowser() {
                   </Card>
                 </div>
 
-                {selectedProject?.video_url && (
-                  <Card>
-                    <CardContent className="p-4">
-                      <video
-                        src={selectedProject.video_url}
-                        controls
-                        className="w-full rounded-lg"
-                      />
-                    </CardContent>
-                  </Card>
-                )}
+                {selectedProject && (() => {
+                  const playUrl = resolvePlayableUrl(selectedProject);
+                  if (!playUrl) return null;
+                  return (
+                    <Card>
+                      <CardContent className="p-4">
+                        <AdminVideoPlayer src={playUrl} />
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {selectedProject?.last_error && (
                   <Card className="border-destructive/50 bg-destructive/5">

@@ -404,23 +404,21 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                   } catch (err) {
                     console.warn('[UniversalPlayer] HLS generation from manifest clips failed:', err);
                   }
-                  // Last resort: build client-side HLS from manifest clips
-                  // Use first clip as direct MP4 fallback
+                  // Last resort: play the first clip directly
                   if (!mountedRef.current) return;
-                  setHlsPlaylistUrl(manifest.clips[0].videoUrl);
+                  setDirectVideoUrl(manifest.clips[0].videoUrl);
                   setThumbnailUrl(manifest.clips[0].videoUrl);
                   setExportUrl(manifest.clips[0].videoUrl);
                   setIsLoading(false);
                   return;
                 }
-              } else if (videoUrl.endsWith('.mp4') || videoUrl.endsWith('.webm') || videoUrl.includes('/video-clips/')) {
-                // Single video — still use HLS via edge function or direct play
+              } else if (isDirectPlayableUrl(videoUrl)) {
+                // Single direct video URL (mp4/webm/mov)
                 if (!mountedRef.current) return;
-                setHlsPlaylistUrl(null);
                 setThumbnailUrl(videoUrl);
                 setExportUrl(videoUrl);
-                // For single videos, we can play directly in HLS player as mp4
-                // Generate HLS manifest for it
+
+                // Try to get a generated HLS playlist first
                 try {
                   const { data: singleResult } = await supabase.functions.invoke('generate-hls-playlist', {
                     body: { projectId: sourceProjectId }
@@ -431,9 +429,9 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
                     return;
                   }
                 } catch {}
-                // If HLS generation fails for single video, play it directly
-                // UniversalHLSPlayer can handle a direct MP4 URL via native/hls.js
-                setHlsPlaylistUrl(videoUrl);
+
+                // Fallback: direct playback
+                setDirectVideoUrl(videoUrl);
                 setIsLoading(false);
                 return;
               }

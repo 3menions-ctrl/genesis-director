@@ -480,8 +480,8 @@ export function AdminProjectsBrowser() {
                             <Eye className="w-4 h-4 mr-2" />
                             View Details
                           </DropdownMenuItem>
-                          {project.video_url && (
-                            <DropdownMenuItem onClick={() => window.open(project.video_url!, '_blank')}>
+                          {resolvePlayableUrl(project) && (
+                            <DropdownMenuItem onClick={() => window.open(resolvePlayableUrl(project)!, '_blank')}>
                               <Play className="w-4 h-4 mr-2" />
                               Watch Video
                             </DropdownMenuItem>

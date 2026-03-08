@@ -94,8 +94,39 @@ function resolvePlayableUrl(project: ProjectRecord): string | null {
   
   return project.video_url; // Fallback
 }
+/** Simple HLS-capable video player for admin detail dialog */
+function AdminVideoPlayer({ src }: { src: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-interface ClipRecord {
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !src) return;
+
+    const isHls = src.toLowerCase().includes('.m3u8');
+    
+    if (isHls && Hls.isSupported()) {
+      const hls = new Hls({ maxBufferLength: 30 });
+      hls.loadSource(src);
+      hls.attachMedia(video);
+      return () => { hls.destroy(); };
+    } else if (isHls && video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = src;
+    } else {
+      video.src = src;
+    }
+  }, [src]);
+
+  return (
+    <video
+      ref={videoRef}
+      controls
+      className="w-full rounded-lg"
+      crossOrigin="anonymous"
+    />
+  );
+}
+
+
   id: string;
   shot_index: number;
   status: string;

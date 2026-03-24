@@ -704,7 +704,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
     <div
       ref={timelineRef}
       className={cn("flex flex-col overflow-hidden select-none", className)}
-      style={{ background: 'hsl(220, 13%, 4%)' }}
+      style={{ background: 'hsl(220, 14%, 4%)' }}
     >
       {/* ─── Toolbar — compact single row ─── */}
       <div

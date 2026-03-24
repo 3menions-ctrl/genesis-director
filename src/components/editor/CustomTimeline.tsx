@@ -710,7 +710,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
       <div
         className="shrink-0 flex items-center px-2 h-9 overflow-hidden gap-1"
         style={{
-          background: 'linear-gradient(180deg, hsl(220, 13%, 7%) 0%, hsl(220, 13%, 5.5%) 100%)',
+          background: 'linear-gradient(180deg, hsl(220, 14%, 7%) 0%, hsl(220, 14%, 5.5%) 100%)',
           borderBottom: '1px solid hsla(0, 0%, 100%, 0.06)',
         }}
       >

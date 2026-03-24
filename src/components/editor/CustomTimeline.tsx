@@ -92,12 +92,13 @@ function TimelineRuler({ zoom, scrollX, duration }: { zoom: number; scrollX: num
 
 // ─── Track Header ───
 
-function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, onRemove, onMoveUp, onMoveDown }: {
+function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, onToggleSolo, onRemove, onMoveUp, onMoveDown }: {
   track: TimelineTrack;
   index: number;
   totalTracks: number;
   onToggleMute: () => void;
   onToggleLock: () => void;
+  onToggleSolo: () => void;
   onRemove: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
@@ -116,9 +117,15 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
     text: 'hsla(170, 70%, 50%, 0.12)',
   };
 
+  const accentStrip: Record<string, string> = {
+    video: 'hsl(215, 100%, 50%)',
+    audio: 'hsl(280, 65%, 55%)',
+    text: 'hsl(160, 65%, 50%)',
+  };
+
   return (
     <div
-      className="shrink-0 flex flex-col justify-center gap-1.5 px-3 select-none overflow-hidden"
+      className="shrink-0 flex overflow-hidden select-none"
       style={{
         width: HEADER_WIDTH,
         height: TRACK_HEIGHT,
@@ -127,54 +134,72 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
         borderBottom: '1px solid hsla(0, 0%, 100%, 0.04)',
       }}
     >
-      <div className="flex items-center gap-1.5 min-w-0">
-        <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0" style={{ background: typeColors[track.type] || typeColors.video }}>
-          <span className="text-foreground/60">{typeIcon}</span>
+      {/* Color accent strip */}
+      <div className="w-[3px] shrink-0" style={{ background: accentStrip[track.type] || accentStrip.video, opacity: 0.6 }} />
+      
+      <div className="flex-1 flex flex-col justify-center gap-1.5 px-2.5">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0" style={{ background: typeColors[track.type] || typeColors.video }}>
+            <span className="text-foreground/60">{typeIcon}</span>
+          </div>
+          <span className="text-[10px] font-bold text-foreground/65 truncate flex-1 tracking-wide">
+            {track.label}
+          </span>
+          <button
+            onClick={onMoveUp}
+            disabled={index === 0}
+            className="p-0 text-muted-foreground/25 hover:text-foreground disabled:opacity-15 transition-colors shrink-0"
+          >
+            <ChevronUp className="w-2.5 h-2.5" />
+          </button>
+          <button
+            onClick={onMoveDown}
+            disabled={index === totalTracks - 1}
+            className="p-0 text-muted-foreground/25 hover:text-foreground disabled:opacity-15 transition-colors shrink-0"
+          >
+            <ChevronDown className="w-2.5 h-2.5" />
+          </button>
         </div>
-        <span className="text-[10px] font-bold text-foreground/65 truncate flex-1 tracking-wide">
-          {track.label}
-        </span>
-        <button
-          onClick={onMoveUp}
-          disabled={index === 0}
-          className="p-0 text-muted-foreground/25 hover:text-foreground disabled:opacity-15 transition-colors shrink-0"
-        >
-          <ChevronUp className="w-2.5 h-2.5" />
-        </button>
-        <button
-          onClick={onMoveDown}
-          disabled={index === totalTracks - 1}
-          className="p-0 text-muted-foreground/25 hover:text-foreground disabled:opacity-15 transition-colors shrink-0"
-        >
-          <ChevronDown className="w-2.5 h-2.5" />
-        </button>
-      </div>
-      <div className="flex items-center gap-1">
-        <button
-          onClick={onToggleMute}
-          className={cn(
-            "p-1 rounded-md transition-all",
-            track.muted ? "text-amber-400/60 bg-amber-400/10" : "text-muted-foreground/30 hover:text-foreground/60 hover:bg-white/[0.04]"
-          )}
-        >
-          {track.muted ? <VolumeX className="w-2.5 h-2.5" /> : <Volume2 className="w-2.5 h-2.5" />}
-        </button>
-        <button
-          onClick={onToggleLock}
-          className={cn(
-            "p-1 rounded-md transition-all",
-            track.locked ? "text-primary/60 bg-primary/10" : "text-muted-foreground/30 hover:text-foreground/60 hover:bg-white/[0.04]"
-          )}
-        >
-          {track.locked ? <Lock className="w-2.5 h-2.5" /> : <Unlock className="w-2.5 h-2.5" />}
-        </button>
-        <div className="flex-1" />
-        <button
-          onClick={onRemove}
-          className="p-1 rounded-md text-muted-foreground/25 hover:text-destructive hover:bg-destructive/5 transition-all"
-        >
-          <Trash2 className="w-2.5 h-2.5" />
-        </button>
+        <div className="flex items-center gap-0.5">
+          {/* Solo */}
+          <button
+            onClick={onToggleSolo}
+            className={cn(
+              "p-1 rounded-md transition-all text-[8px] font-bold w-5 h-5 flex items-center justify-center",
+              (track as any).solo ? "text-amber-300 bg-amber-400/15" : "text-muted-foreground/25 hover:text-amber-300/60 hover:bg-white/[0.04]"
+            )}
+            title="Solo"
+          >
+            S
+          </button>
+          {/* Mute */}
+          <button
+            onClick={onToggleMute}
+            className={cn(
+              "p-1 rounded-md transition-all",
+              track.muted ? "text-amber-400/60 bg-amber-400/10" : "text-muted-foreground/30 hover:text-foreground/60 hover:bg-white/[0.04]"
+            )}
+          >
+            {track.muted ? <VolumeX className="w-2.5 h-2.5" /> : <Volume2 className="w-2.5 h-2.5" />}
+          </button>
+          {/* Lock */}
+          <button
+            onClick={onToggleLock}
+            className={cn(
+              "p-1 rounded-md transition-all",
+              track.locked ? "text-primary/60 bg-primary/10" : "text-muted-foreground/30 hover:text-foreground/60 hover:bg-white/[0.04]"
+            )}
+          >
+            {track.locked ? <Lock className="w-2.5 h-2.5" /> : <Unlock className="w-2.5 h-2.5" />}
+          </button>
+          <div className="flex-1" />
+          <button
+            onClick={onRemove}
+            className="p-1 rounded-md text-muted-foreground/25 hover:text-destructive hover:bg-destructive/5 transition-all"
+          >
+            <Trash2 className="w-2.5 h-2.5" />
+          </button>
+        </div>
       </div>
     </div>
   );

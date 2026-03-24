@@ -32,7 +32,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Editor', path: '/editor', icon: Scissors },
   { label: 'Pipeline', path: '/production', icon: GitBranch },
   { label: 'Creators', path: '/creators', icon: Users },
-  { label: 'Chat', path: '/chat', icon: MessageCircle },
+  
 ];
 
 interface AppHeaderProps {

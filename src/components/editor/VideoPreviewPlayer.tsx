@@ -346,9 +346,9 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({ className }
 
         {/* Scopes panel */}
         <VideoScopes visible={showScopes} />
-        </div>
       </div>
-      <div className="shrink-0" style={{ background: 'linear-gradient(180deg, hsl(220, 14%, 7%) 0%, hsl(220, 14%, 5%) 100%)', borderTop: '1px solid hsla(0, 0%, 100%, 0.06)' }}>
+
+      {/* Seek bar + Transport */}
         <div className="px-4 pt-2.5 pb-1">
           <Slider value={[state.playheadTime]} onValueChange={handleSeek} min={0} max={Math.max(state.duration, 0.1)} step={0.05} className="w-full" />
         </div>

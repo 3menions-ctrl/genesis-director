@@ -1,12 +1,13 @@
 /**
  * VideoPreviewPlayer — Premium cinematic preview with GAPLESS playback
- * Apple-clean aesthetic with blue accent system
+ * Apple-clean aesthetic with blue accent system, scopes, SMPTE timecode
  */
 
 import { useEffect, useRef, useCallback, useState, memo } from "react";
 import {
   Play, Pause, SkipBack, SkipForward, Volume2, VolumeX,
-  Maximize, Repeat, ChevronsLeft, ChevronsRight, MonitorPlay, Sparkles
+  Maximize, Repeat, ChevronsLeft, ChevronsRight, MonitorPlay, Sparkles,
+  Activity, BarChart3
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCustomTimeline, TimelineClip } from "@/hooks/useCustomTimeline";
@@ -18,6 +19,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { AudioLevelMeter } from "@/components/editor/AudioLevelMeter";
+import { VideoScopes } from "@/components/editor/VideoScopes";
 
 function getSortedMediaClips(tracks: { clips: TimelineClip[] }[]): { clip: TimelineClip; trackIndex: number }[] {
   const result: { clip: TimelineClip; trackIndex: number }[] = [];
@@ -76,6 +78,7 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({ className }
   const lastClipIdRef = useRef<string | null>(null);
   const [fadeOpacity, setFadeOpacity] = useState(1);
   const [activeVideoSlot, setActiveVideoSlot] = useState<"A" | "B">("A");
+  const [showScopes, setShowScopes] = useState(false);
 
   const active = findActiveClip(state.tracks, state.playheadTime);
   const isTrackMuted = active ? state.tracks[active.trackIndex]?.muted : false;
@@ -209,10 +212,11 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({ className }
   const handleSeek = useCallback(([v]: number[]) => dispatch({ type: "SET_PLAYHEAD", time: v }), [dispatch]);
 
   const formatTime = (s: number) => {
-    const m = Math.floor(s / 60);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
     const sec = Math.floor(s % 60);
-    const ms = Math.floor((s % 1) * 100);
-    return `${m}:${sec.toString().padStart(2, "0")}.${ms.toString().padStart(2, "0")}`;
+    const frames = Math.floor((s % 1) * state.fps);
+    return `${h > 0 ? h + ':' : ''}${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}:${frames.toString().padStart(2, "0")}`;
   };
 
   const hasClips = state.tracks.some((t) => t.clips.some((c) => (c.type === "video" || c.type === "image") && c.src));
@@ -222,7 +226,8 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({ className }
   return (
     <div className={cn("flex flex-col overflow-hidden", className)} style={{ background: 'hsl(220, 14%, 3%)' }}>
       {/* Video area with audio meters */}
-      <div className="flex-1 min-h-0 flex overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0 flex overflow-hidden">
         {/* Audio Level Meters — Left */}
         <div
           className="shrink-0 flex flex-col items-center justify-center"
@@ -315,11 +320,33 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({ className }
           </>
         )}
 
-        {/* Aspect ratio badge */}
-        <div className="absolute top-3 right-3 px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold backdrop-blur-xl" style={{ background: 'hsla(0,0%,0%,0.6)', color: 'hsla(0,0%,100%,0.45)', border: '1px solid hsla(0,0%,100%,0.08)', zIndex: 20 }}>
-          {state.aspectRatio}
+        {/* Aspect ratio + Scopes badges */}
+        <div className="absolute top-3 right-3 flex items-center gap-1.5" style={{ zIndex: 20 }}>
+          <button
+            onClick={() => setShowScopes(prev => !prev)}
+            className={cn(
+              "px-2 py-1 rounded-lg text-[10px] font-mono font-semibold backdrop-blur-xl transition-all",
+              showScopes
+                ? "text-[hsl(120,70%,55%)]"
+                : "text-[hsla(0,0%,100%,0.45)]"
+            )}
+            style={{
+              background: showScopes ? 'hsla(120,70%,50%,0.12)' : 'hsla(0,0%,0%,0.6)',
+              border: showScopes ? '1px solid hsla(120,70%,50%,0.25)' : '1px solid hsla(0,0%,100%,0.08)',
+            }}
+          >
+            <Activity className="w-3 h-3 inline mr-1" />
+            Scopes
+          </button>
+          <div className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold backdrop-blur-xl" style={{ background: 'hsla(0,0%,0%,0.6)', color: 'hsla(0,0%,100%,0.45)', border: '1px solid hsla(0,0%,100%,0.08)' }}>
+            {state.aspectRatio}
+          </div>
         </div>
         </div>
+        </div>
+
+        {/* Scopes panel */}
+        <VideoScopes visible={showScopes} />
       </div>
 
       {/* Seek bar + Transport */}

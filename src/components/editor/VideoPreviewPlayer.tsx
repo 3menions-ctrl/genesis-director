@@ -343,6 +343,7 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({ className }
           </div>
         </div>
         </div>
+        </div>
 
         {/* Scopes panel */}
         <VideoScopes visible={showScopes} />

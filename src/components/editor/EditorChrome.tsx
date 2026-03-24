@@ -1128,3 +1128,50 @@ export function EditorChrome({
     </TooltipProvider>
   );
 }
+
+/** Compact credits badge for editor header */
+function EditorCreditsBadge({ userId }: { userId: string }) {
+  const [balance, setBalance] = useState<number | null>(null);
+  
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("credits_balance")
+        .eq("id", userId)
+        .single();
+      if (!cancelled && data) setBalance(data.credits_balance);
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  if (balance === null) return null;
+  
+  const isLow = balance < 100;
+  
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div
+          className="flex items-center gap-1 px-2 py-1 rounded-md mr-1 cursor-default"
+          style={{
+            background: isLow ? 'hsla(0, 70%, 50%, 0.08)' : 'hsla(215, 70%, 55%, 0.08)',
+            border: `1px solid ${isLow ? 'hsla(0, 70%, 50%, 0.15)' : 'hsla(215, 70%, 55%, 0.12)'}`,
+          }}
+        >
+          <Zap className="w-3 h-3" style={{ color: isLow ? 'hsl(0, 70%, 60%)' : 'hsl(215, 70%, 60%)' }} />
+          <span
+            className="text-[10px] font-bold"
+            style={{ color: isLow ? 'hsl(0, 70%, 65%)' : 'hsl(215, 70%, 65%)' }}
+          >
+            {balance.toLocaleString()}
+          </span>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="text-[10px]">
+        {balance.toLocaleString()} credits remaining
+      </TooltipContent>
+    </Tooltip>
+  );
+}

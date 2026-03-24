@@ -12,7 +12,8 @@ interface ProductionFinalVideoProps {
   projectId?: string;
 }
 
-export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFinalVideoProps>(function ProductionFinalVideo({ videoUrl }, ref) {
+export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFinalVideoProps>(function ProductionFinalVideo({ videoUrl, projectId }, ref) {
+  const navigate = useNavigate();
   const isManifest = videoUrl.endsWith('.json');
   const [downloading, setDownloading] = useState(false);
 

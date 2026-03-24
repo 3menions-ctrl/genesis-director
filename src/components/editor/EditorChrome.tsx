@@ -365,7 +365,7 @@ export function EditorChrome({
             if (timelineState.tracks.every(t => t.clips.length === 0)) {
               const trackId = timelineState.tracks[0]?.id || generateTrackId();
               if (!timelineState.tracks[0]) {
-                dispatch({ type: "ADD_TRACK", track: { id: trackId, type: "video", clips: [], muted: false, locked: false } });
+                dispatch({ type: "ADD_TRACK", track: { id: trackId, label: "V1", type: "video", clips: [], muted: false, locked: false } });
               }
               let offset = 0;
               for (const clip of clips) {

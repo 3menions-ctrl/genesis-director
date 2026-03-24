@@ -112,7 +112,11 @@ type TimelineAction =
   | { type: "SET_LOOP"; looping: boolean }
   | { type: "SET_ASPECT_RATIO"; ratio: "16:9" | "9:16" | "1:1" | "4:3" }
   | { type: "TOGGLE_SNAP" }
-  | { type: "SELECT_ALL_CLIPS" };
+  | { type: "SELECT_ALL_CLIPS" }
+  | { type: "ADD_MARKER"; marker: TimelineMarker }
+  | { type: "REMOVE_MARKER"; markerId: string }
+  | { type: "MAGNETIC_INSERT"; trackId: string; clip: TimelineClip; insertAt: number }
+  | { type: "SET_ACTIVE_TOOL"; tool: EditorTool };
 
 // ─── Initial State ───
 

@@ -178,6 +178,7 @@ const NON_UNDOABLE: Set<string> = new Set([
   "SET_PLAYHEAD", "SET_PLAYING", "SELECT_CLIP",
   "SET_ZOOM", "SET_SCROLL_X", "LOAD_PROJECT",
   "SET_LOOP", "SET_ASPECT_RATIO", "TOGGLE_SNAP", "SELECT_ALL_CLIPS",
+  "SET_ACTIVE_TOOL",
 ]);
 
 // ─── Reducer ───

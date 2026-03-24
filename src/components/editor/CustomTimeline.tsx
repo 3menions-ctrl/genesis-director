@@ -1037,6 +1037,9 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
         <TimelineRuler zoom={state.zoom} scrollX={state.scrollX} duration={state.duration} />
       </div>
 
+      {/* ─── Minimap Overview ─── */}
+      <TimelineMinimap containerWidth={containerWidth} headerWidth={HEADER_WIDTH} />
+
       {/* ─── Tracks area ─── */}
       <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-auto relative" onScroll={handleScroll} style={{ contain: 'strict', cursor: state.activeTool === 'razor' ? 'crosshair' : state.activeTool === 'ripple' ? 'col-resize' : undefined }}>
         <div className="relative" style={{ minWidth: HEADER_WIDTH + totalWidth, minHeight: state.tracks.length * TRACK_HEIGHT || 96 }}>

@@ -226,7 +226,8 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({ className }
   return (
     <div className={cn("flex flex-col overflow-hidden", className)} style={{ background: 'hsl(220, 14%, 3%)' }}>
       {/* Video area with audio meters */}
-      <div className="flex-1 min-h-0 flex overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0 flex overflow-hidden">
         {/* Audio Level Meters — Left */}
         <div
           className="shrink-0 flex flex-col items-center justify-center"

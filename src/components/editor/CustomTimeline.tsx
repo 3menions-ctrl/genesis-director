@@ -660,13 +660,41 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
     >
       {/* ─── Toolbar — compact single row ─── */}
       <div
-        className="shrink-0 flex items-center px-2 h-8 overflow-hidden gap-1.5"
+        className="shrink-0 flex items-center px-2 h-9 overflow-hidden gap-1"
         style={{
           background: 'linear-gradient(180deg, hsl(220, 13%, 7%) 0%, hsl(220, 13%, 5.5%) 100%)',
           borderBottom: '1px solid hsla(0, 0%, 100%, 0.06)',
         }}
       >
-        {/* Add tracks — icon-only on narrow, label on wide */}
+        {/* Tool selector — Select / Razor / Ripple */}
+        <div className="flex items-center bg-white/[0.03] rounded-md p-0.5 shrink-0 border border-white/[0.04]">
+          {([
+            { tool: "select" as EditorTool, icon: <MousePointer2 className="w-3 h-3" />, tip: "Select (V)" },
+            { tool: "razor" as EditorTool, icon: <Slice className="w-3 h-3" />, tip: "Razor (C)" },
+            { tool: "ripple" as EditorTool, icon: <ArrowDownToLine className="w-3 h-3" />, tip: "Ripple (B)" },
+          ]).map((t) => (
+            <Tooltip key={t.tool}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => dispatch({ type: "SET_ACTIVE_TOOL", tool: t.tool })}
+                  className={cn(
+                    "h-6 w-6 flex items-center justify-center rounded-md transition-all",
+                    state.activeTool === t.tool
+                      ? "bg-[hsl(215,100%,50%)] text-white shadow-sm shadow-[hsla(215,100%,50%,0.3)]"
+                      : "text-muted-foreground/40 hover:text-foreground hover:bg-white/[0.06]"
+                  )}
+                >
+                  {t.icon}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[9px]">{t.tip}</TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
+
+        <div className="w-px h-4 bg-white/[0.05] shrink-0" />
+
+        {/* Add tracks */}
         <div className="flex items-center shrink-0">
           <button onClick={() => addTrack("video")}
             className="h-6 px-1.5 flex items-center gap-1 text-[9px] text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.05] rounded transition-colors font-medium">
@@ -686,24 +714,59 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
 
         {/* Undo/Redo */}
         <div className="flex items-center shrink-0">
-          <button onClick={undo} disabled={!canUndo}
-            className="h-6 w-6 flex items-center justify-center text-muted-foreground/35 hover:text-foreground disabled:opacity-15 rounded transition-colors">
-            <Undo2 className="w-3 h-3" />
-          </button>
-          <button onClick={redo} disabled={!canRedo}
-            className="h-6 w-6 flex items-center justify-center text-muted-foreground/35 hover:text-foreground disabled:opacity-15 rounded transition-colors">
-            <Redo2 className="w-3 h-3" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button onClick={undo} disabled={!canUndo}
+                className="h-6 w-6 flex items-center justify-center text-muted-foreground/35 hover:text-foreground disabled:opacity-15 rounded transition-colors">
+                <Undo2 className="w-3 h-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-[9px]">Undo (⌘Z)</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button onClick={redo} disabled={!canRedo}
+                className="h-6 w-6 flex items-center justify-center text-muted-foreground/35 hover:text-foreground disabled:opacity-15 rounded transition-colors">
+                <Redo2 className="w-3 h-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-[9px]">Redo (⌘Y)</TooltipContent>
+          </Tooltip>
         </div>
 
         <div className="w-px h-4 bg-white/[0.05] shrink-0" />
 
-        {/* Snap */}
-        <button onClick={() => dispatch({ type: "TOGGLE_SNAP" })}
-          className={cn("h-6 w-6 flex items-center justify-center rounded transition-colors shrink-0",
-            state.snapEnabled ? "text-primary/70 bg-primary/8" : "text-muted-foreground/25 hover:text-foreground/50")}>
-          <Magnet className="w-3 h-3" />
-        </button>
+        {/* Snap + Marker */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button onClick={() => dispatch({ type: "TOGGLE_SNAP" })}
+              className={cn("h-6 w-6 flex items-center justify-center rounded transition-colors shrink-0",
+                state.snapEnabled ? "text-[hsl(215,100%,60%)] bg-[hsla(215,100%,50%,0.12)]" : "text-muted-foreground/25 hover:text-foreground/50")}>
+              <Magnet className="w-3 h-3" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-[9px]">Snap {state.snapEnabled ? "On" : "Off"}</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => {
+                const marker: TimelineMarker = {
+                  id: `marker-${Date.now()}`,
+                  time: state.playheadTime,
+                  label: `M${state.markers.length + 1}`,
+                  color: ["#ef4444", "#3b82f6", "#22c55e", "#eab308", "#a855f7"][state.markers.length % 5],
+                };
+                dispatch({ type: "ADD_MARKER", marker });
+              }}
+              className="h-6 w-6 flex items-center justify-center text-muted-foreground/30 hover:text-amber-400 hover:bg-amber-400/8 rounded transition-colors shrink-0"
+            >
+              <Flag className="w-3 h-3" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-[9px]">Add Marker (M)</TooltipContent>
+        </Tooltip>
 
         {/* Duration */}
         <div className="flex items-center gap-1 px-1.5 shrink-0">
@@ -711,19 +774,49 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
           <span className="text-[9px] text-muted-foreground/40 font-mono tabular-nums">{formatDuration(state.duration)}</span>
         </div>
 
+        {state.markers.length > 0 && (
+          <div className="flex items-center gap-0.5 px-1 shrink-0">
+            {state.markers.slice(0, 5).map((m) => (
+              <button
+                key={m.id}
+                onClick={() => dispatch({ type: "SET_PLAYHEAD", time: m.time })}
+                onContextMenu={(e) => { e.preventDefault(); dispatch({ type: "REMOVE_MARKER", markerId: m.id }); }}
+                className="w-4 h-4 rounded-sm flex items-center justify-center text-[7px] font-bold transition-all hover:scale-110"
+                style={{ background: m.color + '33', color: m.color }}
+                title={`${m.label} — ${formatDuration(m.time)} (right-click to remove)`}
+              >
+                {m.label.slice(0, 2)}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="flex-1" />
 
         {/* Fit + Zoom */}
         <div className="flex items-center shrink-0">
-          <button onClick={fitToView}
-            className="h-6 w-6 flex items-center justify-center text-muted-foreground/35 hover:text-foreground rounded transition-colors">
-            <Maximize2 className="w-3 h-3" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button onClick={fitToView}
+                className="h-6 w-6 flex items-center justify-center text-muted-foreground/35 hover:text-foreground rounded transition-colors">
+                <Maximize2 className="w-3 h-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-[9px]">Fit to View</TooltipContent>
+          </Tooltip>
           <button onClick={() => dispatch({ type: "SET_ZOOM", zoom: state.zoom - 10 })}
             className="h-6 w-6 flex items-center justify-center text-muted-foreground/35 hover:text-foreground rounded transition-colors">
             <ZoomOut className="w-3 h-3" />
           </button>
-          <span className="text-[8px] text-muted-foreground/35 font-mono w-6 text-center tabular-nums">{Math.round(state.zoom)}x</span>
+          <div className="w-12 h-1 rounded-full bg-white/[0.06] mx-1 relative shrink-0">
+            <div
+              className="absolute top-0 left-0 h-full rounded-full"
+              style={{
+                width: `${((state.zoom - 10) / 190) * 100}%`,
+                background: 'linear-gradient(90deg, hsl(215, 100%, 50%), hsl(265, 80%, 60%))',
+              }}
+            />
+          </div>
           <button onClick={() => dispatch({ type: "SET_ZOOM", zoom: state.zoom + 10 })}
             className="h-6 w-6 flex items-center justify-center text-muted-foreground/35 hover:text-foreground rounded transition-colors">
             <ZoomIn className="w-3 h-3" />

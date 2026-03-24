@@ -589,7 +589,7 @@ function StatusPill({ color, label, pulse, glass }: { color: string; label: stri
   );
 }
 
-function CardDropdown({ onEdit, onTogglePin, isPinned, onRename, hasVideo, onTogglePublic, project, status, onRetryStitch, isRetrying, onBrowserStitch, isBrowserStitching, onDelete }: any) {
+function CardDropdown({ onEdit, onOpenInEditor, onTogglePin, isPinned, onRename, hasVideo, onTogglePublic, project, status, onRetryStitch, isRetrying, onBrowserStitch, isBrowserStitching, onDelete }: any) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -603,6 +603,11 @@ function CardDropdown({ onEdit, onTogglePin, isPinned, onRename, hasVideo, onTog
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44 rounded-xl bg-surface-1/95 border-white/[0.08] shadow-2xl backdrop-blur-2xl p-1">
+        {hasVideo && onOpenInEditor && (
+          <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onOpenInEditor(); }} className="gap-2 text-sm text-blue-400 focus:text-blue-300 focus:bg-blue-500/10 rounded-lg py-2 px-2.5">
+            <Pencil className="w-4 h-4" />Open in Editor
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onTogglePin?.(); }} className="gap-2 text-sm text-white/60 focus:text-white focus:bg-white/[0.06] rounded-lg py-2 px-2.5">
           {isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
           {isPinned ? 'Unpin' : 'Pin to Top'}

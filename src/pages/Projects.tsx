@@ -1193,7 +1193,15 @@ function ProjectsContentInner() {
                     retryingProjectId={retryingProjectId}
                     browserStitchingProjectId={browserStitchingProjectId}
                     onPlay={handlePlayVideo}
-                    onEdit={(project) => { setActiveProjectId(project.id); navigate('/create'); }}
+                    onEdit={(project) => { 
+                      // If project has completed clips, open in editor; otherwise go to creation
+                      if (project.video_url || project.status === 'completed') {
+                        navigate(`/editor?project=${project.id}`);
+                      } else {
+                        setActiveProjectId(project.id); 
+                        navigate('/create'); 
+                      }
+                    }}
                     onRename={handleRenameProject}
                     onDelete={(id) => handleDeleteProject(id)}
                     onDownload={handleDownloadAll}

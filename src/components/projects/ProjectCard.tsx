@@ -57,6 +57,7 @@ export interface ProjectCardProps {
   index: number;
   onPlay: () => void;
   onEdit: () => void;
+  onOpenInEditor?: () => void;
   onRename: () => void;
   onDelete: () => void;
   onDownload: () => void;

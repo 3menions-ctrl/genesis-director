@@ -874,7 +874,7 @@ export function EditorChrome({
         <div
           className="h-7 flex items-center px-4 shrink-0 z-10 select-none overflow-hidden gap-4"
           style={{
-            background: 'linear-gradient(180deg, hsl(220, 13%, 5.5%) 0%, hsl(220, 13%, 4%) 100%)',
+            background: 'linear-gradient(180deg, hsl(220, 14%, 5.5%) 0%, hsl(220, 14%, 4%) 100%)',
             borderTop: '1px solid hsla(0, 0%, 100%, 0.06)',
           }}
         >

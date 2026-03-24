@@ -20,7 +20,7 @@ import { NavigationGuardProvider, NavigationBridge } from "@/lib/navigation";
 
 import { crashForensics } from "@/lib/crashForensics";
 import { getSafeModeStatus } from "@/lib/safeMode";
-import { AgentTrigger } from "@/components/agent";
+
 import { CommandPalette } from "@/components/agent/CommandPalette";
 
 // Lazy load all pages for code splitting
@@ -442,8 +442,6 @@ const App = () => {
                 <WelcomeOfferModal />
                 {/* Welcome Video Modal - shows once for new users */}
                 <WelcomeVideoModal />
-                {/* APEX Agent - AI Creative Director */}
-                <AgentTrigger />
                 {/* Command Palette (Cmd+K) */}
                 <CommandPalette />
               </StudioProvider>

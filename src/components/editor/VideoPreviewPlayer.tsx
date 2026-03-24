@@ -212,10 +212,11 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({ className }
   const handleSeek = useCallback(([v]: number[]) => dispatch({ type: "SET_PLAYHEAD", time: v }), [dispatch]);
 
   const formatTime = (s: number) => {
-    const m = Math.floor(s / 60);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
     const sec = Math.floor(s % 60);
-    const ms = Math.floor((s % 1) * 100);
-    return `${m}:${sec.toString().padStart(2, "0")}.${ms.toString().padStart(2, "0")}`;
+    const frames = Math.floor((s % 1) * state.fps);
+    return `${h > 0 ? h + ':' : ''}${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}:${frames.toString().padStart(2, "0")}`;
   };
 
   const hasClips = state.tracks.some((t) => t.clips.some((c) => (c.type === "video" || c.type === "image") && c.src));

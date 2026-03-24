@@ -789,8 +789,12 @@ export function EditorChrome({
             </div>
           </div>
 
-          {/* ── Right: Primary actions ── */}
+          {/* ── Right: Credits + Primary actions ── */}
           <div className="flex items-center gap-1 shrink-0">
+            {/* Credits badge */}
+            {user && (
+              <EditorCreditsBadge userId={user.id} />
+            )}
             {/* Secondary: Clear + Shortcuts */}
             <div className="flex items-center gap-0.5 mr-1">
               <Tooltip>

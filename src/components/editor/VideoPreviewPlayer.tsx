@@ -17,6 +17,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { AudioLevelMeter } from "@/components/editor/AudioLevelMeter";
 
 function getSortedMediaClips(tracks: { clips: TimelineClip[] }[]): { clip: TimelineClip; trackIndex: number }[] {
   const result: { clip: TimelineClip; trackIndex: number }[] = [];
@@ -220,8 +221,21 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({ className }
 
   return (
     <div className={cn("flex flex-col overflow-hidden", className)} style={{ background: 'hsl(220, 14%, 3%)' }}>
-      {/* Video area */}
-      <div className="flex-1 min-h-0 flex items-center justify-center relative" style={{ background: 'hsl(0, 0%, 2.5%)' }}>
+      {/* Video area with audio meters */}
+      <div className="flex-1 min-h-0 flex overflow-hidden">
+        {/* Audio Level Meters — Left */}
+        <div
+          className="shrink-0 flex flex-col items-center justify-center"
+          style={{
+            background: 'hsl(220, 14%, 4%)',
+            borderRight: '1px solid hsla(0, 0%, 100%, 0.04)',
+          }}
+        >
+          <AudioLevelMeter />
+        </div>
+
+        {/* Main preview area */}
+        <div className="flex-1 min-w-0 flex items-center justify-center relative" style={{ background: 'hsl(0, 0%, 2.5%)' }}>
         {/* Subtle glow border when clips present */}
         {hasClips && (
           <motion.div
@@ -304,6 +318,7 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({ className }
         {/* Aspect ratio badge */}
         <div className="absolute top-3 right-3 px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold backdrop-blur-xl" style={{ background: 'hsla(0,0%,0%,0.6)', color: 'hsla(0,0%,100%,0.45)', border: '1px solid hsla(0,0%,100%,0.08)', zIndex: 20 }}>
           {state.aspectRatio}
+        </div>
         </div>
       </div>
 

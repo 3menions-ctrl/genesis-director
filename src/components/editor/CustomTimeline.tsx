@@ -909,6 +909,23 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
           />
         )}
 
+        {/* Marker lines */}
+        {state.markers.map((marker) => {
+          const markerLeft = HEADER_WIDTH + marker.time * state.zoom - state.scrollX;
+          if (markerLeft < HEADER_WIDTH - 10 || markerLeft > 3000) return null;
+          return (
+            <div key={marker.id} className="absolute top-0 bottom-0 pointer-events-none z-15" style={{ left: markerLeft }}>
+              <div className="absolute top-0 bottom-0 w-px" style={{ background: marker.color, opacity: 0.5 }} />
+              <div
+                className="absolute -top-0.5 -translate-x-1/2 px-1 py-px rounded-b text-[7px] font-bold"
+                style={{ background: marker.color, color: '#fff' }}
+              >
+                {marker.label}
+              </div>
+            </div>
+          );
+        })}
+
         {/* Playhead line — improved grab area */}
         {playheadLeft >= 0 && (
           <div

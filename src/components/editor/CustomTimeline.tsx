@@ -1161,6 +1161,14 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
           onDuplicate={handleContextDuplicate}
           onDelete={handleContextDelete}
           onRippleDelete={handleContextRippleDelete}
+          onColorLabel={(color) => {
+            dispatch({
+              type: "UPDATE_CLIP",
+              trackId: contextMenu.trackId,
+              clipId: contextMenu.clipId,
+              updates: { colorLabel: color || undefined },
+            });
+          }}
         />
       )}
     </div>

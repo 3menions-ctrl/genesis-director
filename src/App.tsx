@@ -442,8 +442,6 @@ const App = () => {
                 <WelcomeOfferModal />
                 {/* Welcome Video Modal - shows once for new users */}
                 <WelcomeVideoModal />
-                {/* APEX Agent - AI Creative Director */}
-                <AgentTrigger />
                 {/* Command Palette (Cmd+K) */}
                 <CommandPalette />
               </StudioProvider>

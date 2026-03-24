@@ -815,10 +815,10 @@ export function EditorChrome({
                       onClick={exportVideo}
                       disabled={isStitching || isDownloading}
                       className="h-8 px-5 flex items-center gap-2 rounded-lg text-[11px] font-bold relative overflow-hidden group disabled:opacity-40"
-                      style={{
-                        background: 'hsla(0, 0%, 100%, 0.9)',
-                        color: 'hsla(0, 0%, 0%, 0.9)',
-                        boxShadow: '0 2px 16px hsla(0, 0%, 100%, 0.15), inset 0 1px 0 hsla(0,0%,100%,0.2)',
+                       style={{
+                        background: 'hsl(215, 100%, 50%)',
+                        color: 'hsl(0, 0%, 100%)',
+                        boxShadow: '0 2px 16px hsla(215, 100%, 50%, 0.3), inset 0 1px 0 hsla(0,0%,100%,0.15)',
                       }}
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />

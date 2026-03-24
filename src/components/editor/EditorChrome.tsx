@@ -986,6 +986,10 @@ export function EditorChrome({
                     { keys: "D", label: "Duplicate selected clip" },
                     { keys: "S", label: "Split at playhead" },
                     { keys: "L", label: "Toggle loop" },
+                    { keys: "V", label: "Select tool" },
+                    { keys: "C", label: "Razor tool" },
+                    { keys: "B", label: "Ripple tool" },
+                    { keys: "M", label: "Add marker at playhead" },
                     { keys: "?", label: "Toggle shortcuts" },
                   ].map((shortcut) => (
                     <div key={shortcut.keys} className="flex items-center justify-between">

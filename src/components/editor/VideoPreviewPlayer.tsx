@@ -17,6 +17,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { AudioLevelMeter } from "@/components/editor/AudioLevelMeter";
 
 function getSortedMediaClips(tracks: { clips: TimelineClip[] }[]): { clip: TimelineClip; trackIndex: number }[] {
   const result: { clip: TimelineClip; trackIndex: number }[] = [];

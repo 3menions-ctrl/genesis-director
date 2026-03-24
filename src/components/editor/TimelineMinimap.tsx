@@ -48,8 +48,9 @@ export const TimelineMinimap = memo(function TimelineMinimap({
     dispatch({ type: "SET_PLAYHEAD", time: Math.max(0, clickTime) });
   }, [availableWidth, totalDuration, visibleDuration, state.zoom, dispatch]);
 
+  if (availableWidth <= 0) return null;
+
   return (
-    <div
       className="shrink-0 relative cursor-pointer"
       style={{
         height: MINIMAP_HEIGHT,

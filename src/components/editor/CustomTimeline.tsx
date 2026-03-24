@@ -558,6 +558,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
   const { state, dispatch, undo, redo, canUndo, canRedo } = useCustomTimeline();
   const timelineRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(800);
   const [isDragging, setIsDragging] = useState(false);
   const [snapLine, setSnapLine] = useState<number | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);

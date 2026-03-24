@@ -17,16 +17,18 @@ function useBrowserRenderModule() {
     const loadBrowserRenderer = async () => {
       try {
         const moduleName = "@twick/browser-render";
-        const browserRenderModule = await import(/* @vite-ignore */ moduleName);
+        const result = await Promise.race([
+          import(/* @vite-ignore */ moduleName),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 3000)),
+        ]);
 
         if (!cancelled) {
-          setMod(browserRenderModule);
+          setMod(result);
           setLoading(false);
         }
       } catch (err) {
         if (!cancelled) {
           console.warn("Browser render module not available:", err);
-          // Non-fatal — editor works without WebCodecs export
           setLoading(false);
         }
       }

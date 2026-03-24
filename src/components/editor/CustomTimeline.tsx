@@ -332,7 +332,7 @@ function ClipBlock({
 
       {/* Hover glow */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-lg"
-        style={{ background: 'linear-gradient(180deg, hsla(263, 70%, 58%, 0.05) 0%, transparent 50%)' }}
+        style={{ background: 'linear-gradient(180deg, hsla(215, 100%, 50%, 0.06) 0%, transparent 50%)' }}
       />
     </div>
   );

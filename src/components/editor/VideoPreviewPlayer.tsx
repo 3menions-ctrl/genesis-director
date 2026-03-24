@@ -78,6 +78,7 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({ className }
   const lastClipIdRef = useRef<string | null>(null);
   const [fadeOpacity, setFadeOpacity] = useState(1);
   const [activeVideoSlot, setActiveVideoSlot] = useState<"A" | "B">("A");
+  const [showScopes, setShowScopes] = useState(false);
 
   const active = findActiveClip(state.tracks, state.playheadTime);
   const isTrackMuted = active ? state.tracks[active.trackIndex]?.muted : false;

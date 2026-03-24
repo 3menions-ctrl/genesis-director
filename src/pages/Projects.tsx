@@ -126,6 +126,7 @@ function MagazineGrid({
   browserStitchingProjectId,
   onPlay,
   onEdit,
+  onOpenInEditor,
   onRename,
   onDelete,
   onDownload,
@@ -141,6 +142,7 @@ function MagazineGrid({
   browserStitchingProjectId: string | null;
   onPlay: (p: Project) => void;
   onEdit: (p: Project) => void;
+  onOpenInEditor: (p: Project) => void;
   onRename: (p: Project) => void;
   onDelete: (id: string) => void;
   onDownload: (p: Project) => void;

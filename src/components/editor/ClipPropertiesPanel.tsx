@@ -163,11 +163,11 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
     }
     return (
       <div
-        className={`w-52 shrink-0 flex flex-col border-l overflow-hidden ${className || ""}`}
-        style={{
-          background: "hsl(240, 25%, 5%)",
-          borderColor: "hsla(0, 0%, 100%, 0.06)",
-        }}
+      className={`w-52 shrink-0 flex flex-col border-l overflow-hidden ${className || ""}`}
+      style={{
+        background: "hsl(220, 14%, 5%)",
+        borderColor: "hsla(0, 0%, 100%, 0.06)",
+      }}
       >
         <div
           className="shrink-0 flex items-center gap-2 px-3 h-9 border-b"

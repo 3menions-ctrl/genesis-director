@@ -245,10 +245,10 @@ function ClipBlock({
         left: Math.max(0, left),
         width,
         background: hasThumb ? 'hsla(0, 0%, 0%, 0.3)' : (CLIP_COLORS[clip.type] || CLIP_COLORS.video),
-        border: `1px solid ${selected ? 'hsl(var(--primary))' : (CLIP_BORDER_COLORS[clip.type] || CLIP_BORDER_COLORS.video)}`,
+        border: `1px solid ${selected ? 'hsl(215, 100%, 50%)' : (CLIP_BORDER_COLORS[clip.type] || CLIP_BORDER_COLORS.video)}`,
         opacity,
         boxShadow: selected
-          ? `0 0 20px hsla(263, 70%, 58%, 0.15), inset 0 0 20px hsla(263, 70%, 58%, 0.05)`
+          ? `0 0 20px hsla(215, 100%, 50%, 0.2), inset 0 0 20px hsla(215, 100%, 50%, 0.05)`
           : '0 2px 8px hsla(0, 0%, 0%, 0.3)',
       }}
       onClick={(e) => { e.stopPropagation(); onSelect(); }}

@@ -109,7 +109,7 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
   );
 
   const typeColors: Record<string, string> = {
-    video: 'hsla(0, 0%, 100%, 0.08)',
+    video: 'hsla(215, 100%, 50%, 0.1)',
     audio: 'hsla(190, 70%, 55%, 0.12)',
     text: 'hsla(170, 70%, 50%, 0.12)',
   };

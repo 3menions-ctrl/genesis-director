@@ -1,13 +1,13 @@
 /**
  * AISceneBuilder — Generate, extend, and remix clips with AI
- * Inline AI-powered scene creation directly from the editor
+ * Wired to Lovable AI via edge function for prompt enhancement
  */
 
 import { memo, useState, useCallback } from "react";
 import {
   Sparkles, Wand2, RefreshCw, Plus, Film, Loader2,
   ArrowRight, Expand, Scissors, Layers, Zap, Clock,
-  Image, MessageSquare
+  Image, MessageSquare, CheckCircle2
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCustomTimeline, generateClipId, TimelineClip } from "@/hooks/useCustomTimeline";
@@ -86,8 +86,23 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedAction, setSelectedAction] = useState<string>("generate-scene");
   const [generationProgress, setGenerationProgress] = useState(0);
+  const [lastResult, setLastResult] = useState<any>(null);
 
   const hasSelection = !!state.selectedClipId && !!state.selectedTrackId;
+
+  // Get selected clip context for extend/remix
+  const getSelectedClipContext = useCallback(() => {
+    if (!state.selectedClipId || !state.selectedTrackId) return null;
+    const track = state.tracks.find(t => t.id === state.selectedTrackId);
+    const clip = track?.clips.find(c => c.id === state.selectedClipId);
+    if (!clip) return null;
+    return {
+      name: clip.name,
+      type: clip.type,
+      duration: clip.end - clip.start,
+      text: clip.text,
+    };
+  }, [state.selectedClipId, state.selectedTrackId, state.tracks]);
 
   const handleGenerate = useCallback(async (customPrompt?: string) => {
     const finalPrompt = customPrompt || prompt;
@@ -98,24 +113,34 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
 
     setIsGenerating(true);
     setGenerationProgress(0);
+    setLastResult(null);
 
-    // Simulate progress for now — in production this calls the AI generation edge function
     const progressInterval = setInterval(() => {
       setGenerationProgress(prev => {
-        if (prev >= 90) return prev;
-        return prev + Math.random() * 15;
+        if (prev >= 85) return prev;
+        return prev + Math.random() * 12;
       });
-    }, 500);
+    }, 400);
 
     try {
-      // For now, create a placeholder clip to demonstrate the workflow
-      // In production, this would call the video generation API
-      toast.info("AI Scene Builder: Generating scene...");
+      // Call AI edge function for prompt enhancement
+      const clipContext = getSelectedClipContext();
+      const { data: aiResult, error: aiError } = await supabase.functions.invoke("editor-ai-scene", {
+        body: {
+          prompt: finalPrompt,
+          action: selectedAction,
+          clipContext,
+        },
+      });
 
-      // Simulate generation delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      if (aiError) {
+        throw new Error(aiError.message || "AI enhancement failed");
+      }
 
-      // Add placeholder clip to timeline
+      setGenerationProgress(90);
+      setLastResult(aiResult);
+
+      // Add enhanced clip to timeline
       let videoTrack = state.tracks.find(t => t.type === "video");
       if (!videoTrack) {
         const trackId = `track-${Date.now()}`;
@@ -130,7 +155,11 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
         ? Math.max(...videoTrack.clips.map(c => c.end))
         : 0;
 
-      const duration = 6;
+      const duration = aiResult?.suggestedDuration || 6;
+      const enhancedName = aiResult?.mood
+        ? `AI: ${aiResult.mood} — ${finalPrompt.slice(0, 20)}…`
+        : `AI: ${finalPrompt.slice(0, 30)}…`;
+
       const newClip: TimelineClip = {
         id: generateClipId(),
         type: "video",
@@ -138,22 +167,41 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
         end: lastEnd + duration,
         trimStart: 0,
         trimEnd: duration,
-        name: `AI: ${finalPrompt.slice(0, 30)}...`,
+        name: enhancedName,
+        text: aiResult?.enhancedPrompt || finalPrompt,
       };
 
       dispatch({ type: "ADD_CLIP", trackId: videoTrack.id, clip: newClip });
       setGenerationProgress(100);
-      toast.success("Scene added to timeline — generate video from your projects page");
+
+      toast.success(
+        <div className="flex items-start gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-xs">Scene added to timeline</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              {aiResult?.mood && `Mood: ${aiResult.mood}`}
+              {aiResult?.cameraWork && ` · Camera: ${aiResult.cameraWork}`}
+            </p>
+          </div>
+        </div>
+      );
       setPrompt("");
-    } catch (error) {
+    } catch (error: any) {
       console.error("AI generation error:", error);
-      toast.error("Generation failed. Please try again.");
+      if (error?.message?.includes("Rate limit")) {
+        toast.error("Rate limit reached — please wait a moment and try again.");
+      } else if (error?.message?.includes("credits")) {
+        toast.error("AI credits exhausted. Please add credits to continue.");
+      } else {
+        toast.error("Generation failed. Please try again.");
+      }
     } finally {
       clearInterval(progressInterval);
       setIsGenerating(false);
-      setGenerationProgress(0);
+      setTimeout(() => setGenerationProgress(0), 1000);
     }
-  }, [prompt, state.tracks, dispatch]);
+  }, [prompt, state.tracks, dispatch, selectedAction, getSelectedClipContext]);
 
   return (
     <div className="flex flex-col h-full">
@@ -169,7 +217,7 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
             </div>
             <div>
               <span className="text-[11px] font-bold text-[hsl(0,0%,85%)] block leading-none">AI Scene Builder</span>
-              <span className="text-[9px] text-[hsl(0,0%,45%)]">Generate & remix with AI</span>
+              <span className="text-[9px] text-[hsl(0,0%,45%)]">Powered by Lovable AI</span>
             </div>
           </div>
 
@@ -233,7 +281,7 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
               {isGenerating ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  Generating... {Math.round(generationProgress)}%
+                  Enhancing with AI… {Math.round(generationProgress)}%
                 </>
               ) : (
                 <>
@@ -245,7 +293,7 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
 
             {/* Generation progress */}
             <AnimatePresence>
-              {isGenerating && (
+              {(isGenerating || generationProgress > 0) && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
@@ -264,6 +312,49 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
               )}
             </AnimatePresence>
           </div>
+
+          {/* AI Result Preview */}
+          <AnimatePresence>
+            {lastResult && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="rounded-xl border p-3 space-y-2"
+                style={{
+                  borderColor: "hsla(142, 60%, 50%, 0.15)",
+                  background: "hsla(142, 60%, 50%, 0.04)",
+                }}
+              >
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400/70" />
+                  <span className="text-[10px] font-bold text-emerald-400/80">AI Enhanced</span>
+                </div>
+                {lastResult.enhancedPrompt && (
+                  <p className="text-[9px] text-[hsl(0,0%,60%)] leading-relaxed line-clamp-4">
+                    {lastResult.enhancedPrompt}
+                  </p>
+                )}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {lastResult.mood && (
+                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-[hsla(0,0%,100%,0.06)] text-[hsl(0,0%,50%)]">
+                      {lastResult.mood}
+                    </span>
+                  )}
+                  {lastResult.cameraWork && (
+                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-[hsla(0,0%,100%,0.06)] text-[hsl(0,0%,50%)]">
+                      📷 {lastResult.cameraWork}
+                    </span>
+                  )}
+                  {lastResult.suggestedDuration && (
+                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-[hsla(0,0%,100%,0.06)] text-[hsl(0,0%,50%)]">
+                      ⏱ {lastResult.suggestedDuration}s
+                    </span>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Quick scene templates */}
           <div className="space-y-2">

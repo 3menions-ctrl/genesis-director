@@ -275,6 +275,84 @@ function ClipBlock({
         </div>
       )}
 
+      {/* Audio waveform visualization */}
+      {clip.type === "audio" && (
+        <div className="absolute inset-0 flex items-end px-0.5 pt-3 pb-1 pointer-events-none" style={{ opacity: 0.5 }}>
+          {Array.from({ length: Math.max(8, Math.floor(width / 4)) }).map((_, i) => {
+            // Deterministic pseudo-random waveform based on clip id + index
+            const seed = (clip.id.charCodeAt(i % clip.id.length) + i * 7) % 100;
+            const h = 15 + (seed / 100) * 70; // 15–85% height
+            return (
+              <div
+                key={i}
+                className="flex-1 mx-px rounded-t-sm"
+                style={{
+                  height: `${h}%`,
+                  background: `hsla(280, 65%, 55%, ${0.4 + (seed / 200)})`,
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* Fade indicators */}
+      {(clip.fadeIn ?? 0) > 0 && (
+        <div
+          className="absolute top-0 bottom-0 left-0 pointer-events-none z-10"
+          style={{
+            width: `${Math.min(50, ((clip.fadeIn ?? 0) / (clip.end - clip.start)) * 100)}%`,
+            background: 'linear-gradient(90deg, hsla(0,0%,0%,0.5) 0%, transparent 100%)',
+          }}
+        />
+      )}
+      {(clip.fadeOut ?? 0) > 0 && (
+        <div
+          className="absolute top-0 bottom-0 right-0 pointer-events-none z-10"
+          style={{
+            width: `${Math.min(50, ((clip.fadeOut ?? 0) / (clip.end - clip.start)) * 100)}%`,
+            background: 'linear-gradient(270deg, hsla(0,0%,0%,0.5) 0%, transparent 100%)',
+          }}
+        />
+      )}
+
+      {/* Transition badge */}
+      {clip.transition && clip.transition !== "none" && (
+        <div
+          className="absolute top-1 right-1 z-20 px-1 py-0.5 rounded text-[7px] font-bold uppercase pointer-events-none"
+          style={{
+            background: 'hsla(215, 100%, 50%, 0.2)',
+            color: 'hsla(215, 100%, 70%, 0.9)',
+            border: '1px solid hsla(215, 100%, 50%, 0.3)',
+          }}
+        >
+          {clip.transition} {clip.transitionDuration ? `${clip.transitionDuration}s` : ''}
+        </div>
+      )}
+
+      {/* Speed indicator */}
+      {clip.speed && clip.speed !== 1 && (
+        <div
+          className="absolute bottom-1 left-1 z-20 px-1 py-0.5 rounded text-[7px] font-bold pointer-events-none"
+          style={{
+            background: clip.speed < 1 ? 'hsla(190, 80%, 50%, 0.15)' : 'hsla(35, 90%, 55%, 0.15)',
+            color: clip.speed < 1 ? 'hsla(190, 80%, 65%, 0.9)' : 'hsla(35, 90%, 65%, 0.9)',
+          }}
+        >
+          {clip.speed}×
+        </div>
+      )}
+
+      {/* Volume indicator */}
+      {clip.volume !== undefined && clip.volume < 1 && (
+        <div
+          className="absolute bottom-1 right-1 z-20 pointer-events-none"
+          style={{ opacity: 0.6 }}
+        >
+          <Volume2 className="w-2.5 h-2.5 text-foreground/40" />
+        </div>
+      )}
+
       {/* Top accent bar with gradient */}
       <div
         className="absolute top-0 left-0 right-0 h-[2px] z-10"

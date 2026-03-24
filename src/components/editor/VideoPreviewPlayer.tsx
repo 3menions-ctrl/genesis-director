@@ -470,7 +470,7 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
       <div
         className="shrink-0"
         style={{
-          background: 'linear-gradient(180deg, hsl(240 18% 7%) 0%, hsl(240 22% 5%) 100%)',
+          background: 'linear-gradient(180deg, hsl(220, 13%, 7%) 0%, hsl(220, 13%, 5%) 100%)',
           borderTop: '1px solid hsla(0, 0%, 100%, 0.06)',
         }}
       >

@@ -148,6 +148,8 @@ export const INITIAL_TIMELINE_STATE: TimelineState = {
   height: 1080,
   aspectRatio: "16:9",
   snapEnabled: true,
+  markers: [],
+  activeTool: "select",
 };
 
 // ─── Utilities ───

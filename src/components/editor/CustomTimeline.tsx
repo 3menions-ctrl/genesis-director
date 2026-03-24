@@ -8,10 +8,10 @@ import { useRef, useCallback, useState, memo, useEffect } from "react";
 import {
   Plus, Trash2, Volume2, VolumeX, Lock, Unlock, ZoomIn, ZoomOut,
   Eye, Type, Undo2, Redo2, Music, Maximize2, Magnet, ChevronUp, ChevronDown,
-  Clock, Scissors, Copy, Trash, Film
+  Clock, Scissors, Copy, Trash, Film, MousePointer2, Slice, Flag, ArrowDownToLine
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCustomTimeline, TimelineTrack, TimelineClip, generateTrackId, generateClipId } from "@/hooks/useCustomTimeline";
+import { useCustomTimeline, TimelineTrack, TimelineClip, TimelineMarker, EditorTool, generateTrackId, generateClipId } from "@/hooks/useCustomTimeline";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,

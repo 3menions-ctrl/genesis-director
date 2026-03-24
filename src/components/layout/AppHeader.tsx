@@ -30,7 +30,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'Library', path: '/projects', icon: Film },
   { label: 'Editor', path: '/editor', icon: Scissors },
-  { label: 'Pipeline', path: '/production', icon: GitBranch },
+  
   { label: 'Creators', path: '/creators', icon: Users },
   
 ];

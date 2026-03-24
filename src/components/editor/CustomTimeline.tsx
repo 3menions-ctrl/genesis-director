@@ -490,12 +490,13 @@ function ClipContextMenu({
 
   return (
     <div
-      className="fixed z-50 min-w-[180px] rounded-xl border shadow-2xl py-1.5 overflow-hidden backdrop-blur-xl"
+      className="fixed z-50 min-w-[200px] rounded-xl border shadow-2xl py-1.5 overflow-hidden backdrop-blur-2xl"
       style={{
         left: menu.x,
         top: menu.y,
-        background: 'hsla(240, 22%, 8%, 0.95)',
-        borderColor: 'hsla(0, 0%, 100%, 0.1)',
+        background: 'hsla(220, 14%, 8%, 0.95)',
+        borderColor: 'hsla(0, 0%, 100%, 0.08)',
+        boxShadow: '0 8px 32px hsla(0, 0%, 0%, 0.5), 0 0 0 1px hsla(0, 0%, 100%, 0.04)',
       }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -1021,7 +1022,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
               className="absolute top-0 left-0 h-full rounded-full"
               style={{
                 width: `${((state.zoom - 10) / 190) * 100}%`,
-                background: 'linear-gradient(90deg, hsl(215, 100%, 50%), hsl(265, 80%, 60%))',
+                background: 'linear-gradient(90deg, hsl(215, 100%, 50%), hsl(215, 100%, 65%))',
               }}
             />
           </div>

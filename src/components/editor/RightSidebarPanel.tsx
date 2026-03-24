@@ -1,19 +1,20 @@
 /**
- * RightSidebarPanel — Pro 4-tab Inspector panel
- * Templates, Inspector, Cinematic FX, AI Scene Builder
- * Apple-clean aesthetic with blue accent system
+ * RightSidebarPanel — Pro 6-tab Inspector panel
+ * Templates, Inspector, FX, AI Scene, Avatars, Voice
  */
 
 import { memo, useState, useEffect } from "react";
-import { Layers, Scissors, Sparkles, Wand2 } from "lucide-react";
+import { Layers, Scissors, Sparkles, Wand2, Users, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ClipPropertiesPanel } from "@/components/editor/ClipPropertiesPanel";
 import { TemplatesPanel } from "@/components/editor/TemplatesPanel";
 import { CinematicFXPanel } from "@/components/editor/CinematicFXPanel";
 import { AISceneBuilder } from "@/components/editor/AISceneBuilder";
+import { EditorAvatarPanel } from "@/components/editor/EditorAvatarPanel";
+import { EditorVoicePanel } from "@/components/editor/EditorVoicePanel";
 import { useCustomTimeline } from "@/hooks/useCustomTimeline";
 
-type Tab = "templates" | "properties" | "fx" | "ai";
+type Tab = "templates" | "properties" | "fx" | "ai" | "avatars" | "voice";
 
 export const RightSidebarPanel = memo(function RightSidebarPanel() {
   const { state } = useCustomTimeline();
@@ -36,16 +37,18 @@ export const RightSidebarPanel = memo(function RightSidebarPanel() {
     >
       {/* Top-level tab bar */}
       <div
-        className="shrink-0 flex items-center px-1.5 py-1.5 gap-0.5 border-b"
+        className="shrink-0 flex items-center px-1 py-1.5 gap-0.5 border-b overflow-x-auto"
         style={{
           borderColor: "hsla(0, 0%, 100%, 0.06)",
           background: "hsla(0, 0%, 100%, 0.02)",
         }}
       >
-        <TopTabButton active={activeTab === "templates"} onClick={() => setActiveTab("templates")} icon={<Layers className="w-3 h-3" />} label="Templates" />
-        <TopTabButton active={activeTab === "properties"} onClick={() => setActiveTab("properties")} icon={<Scissors className="w-3 h-3" />} label="Inspector" badge={hasSelection} />
+        <TopTabButton active={activeTab === "templates"} onClick={() => setActiveTab("templates")} icon={<Layers className="w-3 h-3" />} label="Tmpl" />
+        <TopTabButton active={activeTab === "properties"} onClick={() => setActiveTab("properties")} icon={<Scissors className="w-3 h-3" />} label="Insp" badge={hasSelection} />
         <TopTabButton active={activeTab === "fx"} onClick={() => setActiveTab("fx")} icon={<Sparkles className="w-3 h-3" />} label="FX" />
         <TopTabButton active={activeTab === "ai"} onClick={() => setActiveTab("ai")} icon={<Wand2 className="w-3 h-3" />} label="AI" glow />
+        <TopTabButton active={activeTab === "avatars"} onClick={() => setActiveTab("avatars")} icon={<Users className="w-3 h-3" />} label="Char" />
+        <TopTabButton active={activeTab === "voice"} onClick={() => setActiveTab("voice")} icon={<Mic className="w-3 h-3" />} label="Voice" />
       </div>
 
       {/* Content */}
@@ -54,6 +57,8 @@ export const RightSidebarPanel = memo(function RightSidebarPanel() {
         {activeTab === "properties" && <ClipPropertiesPanel embedded />}
         {activeTab === "fx" && <CinematicFXPanel />}
         {activeTab === "ai" && <AISceneBuilder />}
+        {activeTab === "avatars" && <EditorAvatarPanel />}
+        {activeTab === "voice" && <EditorVoicePanel />}
       </div>
     </div>
   );
@@ -64,7 +69,7 @@ function TopTabButton({ active, onClick, icon, label, badge, glow }: { active: b
     <button
       onClick={onClick}
       className={cn(
-        "flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-semibold transition-all relative",
+        "flex-1 flex items-center justify-center gap-0.5 py-1.5 rounded-lg text-[9px] font-semibold transition-all relative min-w-0",
         active
           ? "bg-[hsla(215,100%,50%,0.12)] text-[hsl(0,0%,90%)]"
           : "text-[hsl(0,0%,40%)] hover:text-[hsl(0,0%,65%)] hover:bg-[hsla(0,0%,100%,0.04)]"

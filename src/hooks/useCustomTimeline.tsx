@@ -70,6 +70,15 @@ export interface TimelineTrack {
   locked?: boolean;
 }
 
+export type EditorTool = "select" | "razor" | "slip" | "ripple";
+
+export interface TimelineMarker {
+  id: string;
+  time: number;
+  label: string;
+  color: string;
+}
+
 export interface TimelineState {
   tracks: TimelineTrack[];
   playheadTime: number;
@@ -85,6 +94,8 @@ export interface TimelineState {
   height: number;
   aspectRatio: "16:9" | "9:16" | "1:1" | "4:3";
   snapEnabled: boolean;
+  markers: TimelineMarker[];
+  activeTool: EditorTool;
 }
 
 // ─── Actions ───
@@ -112,7 +123,11 @@ type TimelineAction =
   | { type: "SET_LOOP"; looping: boolean }
   | { type: "SET_ASPECT_RATIO"; ratio: "16:9" | "9:16" | "1:1" | "4:3" }
   | { type: "TOGGLE_SNAP" }
-  | { type: "SELECT_ALL_CLIPS" };
+  | { type: "SELECT_ALL_CLIPS" }
+  | { type: "ADD_MARKER"; marker: TimelineMarker }
+  | { type: "REMOVE_MARKER"; markerId: string }
+  | { type: "MAGNETIC_INSERT"; trackId: string; clip: TimelineClip; insertAt: number }
+  | { type: "SET_ACTIVE_TOOL"; tool: EditorTool };
 
 // ─── Initial State ───
 
@@ -133,6 +148,8 @@ export const INITIAL_TIMELINE_STATE: TimelineState = {
   height: 1080,
   aspectRatio: "16:9",
   snapEnabled: true,
+  markers: [],
+  activeTool: "select",
 };
 
 // ─── Utilities ───
@@ -161,6 +178,7 @@ const NON_UNDOABLE: Set<string> = new Set([
   "SET_PLAYHEAD", "SET_PLAYING", "SELECT_CLIP",
   "SET_ZOOM", "SET_SCROLL_X", "LOAD_PROJECT",
   "SET_LOOP", "SET_ASPECT_RATIO", "TOGGLE_SNAP", "SELECT_ALL_CLIPS",
+  "SET_ACTIVE_TOOL",
 ]);
 
 // ─── Reducer ───
@@ -345,6 +363,33 @@ function timelineReducer(state: TimelineState, action: TimelineAction): Timeline
         }
       }
       return state;
+    }
+
+    case "ADD_MARKER":
+      return { ...state, markers: [...state.markers, action.marker] };
+
+    case "REMOVE_MARKER":
+      return { ...state, markers: state.markers.filter(m => m.id !== action.markerId) };
+
+    case "SET_ACTIVE_TOOL":
+      return { ...state, activeTool: action.tool };
+
+    case "MAGNETIC_INSERT": {
+      // Insert clip at position and push all subsequent clips forward (ripple)
+      const tracks = state.tracks.map((t) => {
+        if (t.id !== action.trackId) return t;
+        const clipDur = action.clip.end - action.clip.start;
+        const insertTime = action.insertAt;
+        const shifted = t.clips.map(c => {
+          if (c.start >= insertTime) {
+            return { ...c, start: c.start + clipDur, end: c.end + clipDur };
+          }
+          return c;
+        });
+        const insertedClip = { ...action.clip, start: insertTime, end: insertTime + clipDur };
+        return { ...t, clips: [...shifted, insertedClip].sort((a, b) => a.start - b.start) };
+      });
+      return { ...state, tracks, duration: recalcDuration(tracks) };
     }
 
     default:

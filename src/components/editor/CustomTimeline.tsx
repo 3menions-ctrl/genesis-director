@@ -8,10 +8,10 @@ import { useRef, useCallback, useState, memo, useEffect } from "react";
 import {
   Plus, Trash2, Volume2, VolumeX, Lock, Unlock, ZoomIn, ZoomOut,
   Eye, Type, Undo2, Redo2, Music, Maximize2, Magnet, ChevronUp, ChevronDown,
-  Clock, Scissors, Copy, Trash, Film
+  Clock, Scissors, Copy, Trash, Film, MousePointer2, Slice, Flag, ArrowDownToLine
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCustomTimeline, TimelineTrack, TimelineClip, generateTrackId, generateClipId } from "@/hooks/useCustomTimeline";
+import { useCustomTimeline, TimelineTrack, TimelineClip, TimelineMarker, EditorTool, generateTrackId, generateClipId } from "@/hooks/useCustomTimeline";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -469,13 +469,46 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
     setIsDragging(true);
   }, []);
 
+  // ─── Razor tool click ───
+  const handleRazorClick = useCallback((e: React.MouseEvent, clipId: string, trackId: string) => {
+    if (state.activeTool !== "razor") return;
+    const track = state.tracks.find(t => t.id === trackId);
+    const clip = track?.clips.find(c => c.id === clipId);
+    if (!clip || !timelineRef.current) return;
+
+    const rect = timelineRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left + state.scrollX - HEADER_WIDTH;
+    const splitTime = x / state.zoom;
+
+    if (splitTime <= clip.start + 0.1 || splitTime >= clip.end - 0.1) return;
+
+    dispatch({ type: "TRIM_CLIP", trackId, clipId: clip.id, edge: "end", newTime: splitTime });
+    const offsetIntoSource = splitTime - clip.start;
+    dispatch({
+      type: "ADD_CLIP",
+      trackId,
+      clip: {
+        id: generateClipId(), type: clip.type, src: clip.src, text: clip.text,
+        start: splitTime, end: clip.end,
+        trimStart: clip.trimStart + offsetIntoSource, trimEnd: clip.trimEnd,
+        name: `${clip.name} (cut)`, thumbnail: clip.thumbnail,
+        sourceDuration: clip.sourceDuration, textStyle: clip.textStyle,
+        volume: clip.volume, speed: clip.speed, fadeIn: clip.fadeIn, fadeOut: clip.fadeOut,
+      },
+    });
+  }, [state.activeTool, state.tracks, state.scrollX, state.zoom, dispatch]);
+
   // ─── Clip dragging ───
   const handleClipDragStart = useCallback((e: React.MouseEvent, clipId: string, trackId: string) => {
+    if (state.activeTool === "razor") {
+      handleRazorClick(e, clipId, trackId);
+      return;
+    }
     const clip = state.tracks.find(t => t.id === trackId)?.clips.find(c => c.id === clipId);
     if (!clip) return;
     dragRef.current = { type: "clip", clipId, trackId, startX: e.clientX, startTime: clip.start };
     setIsDragging(true);
-  }, [state.tracks]);
+  }, [state.tracks, state.activeTool, handleRazorClick]);
 
   // ─── Context menu ───
   const handleContextMenu = useCallback((e: React.MouseEvent, clipId: string, trackId: string) => {
@@ -627,6 +660,9 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
   // ─── Keyboard shortcuts ───
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
         undo();
@@ -640,15 +676,27 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
         e.preventDefault();
         dispatch({ type: "SET_PLAYHEAD", time: state.duration });
       } else if ((e.ctrlKey || e.metaKey) && e.key === "a") {
-        if ((e.target as HTMLElement)?.tagName !== "INPUT" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
-          e.preventDefault();
-          dispatch({ type: "SELECT_ALL_CLIPS" });
-        }
+        e.preventDefault();
+        dispatch({ type: "SELECT_ALL_CLIPS" });
+      } else if (e.key === "v" && !e.ctrlKey && !e.metaKey) {
+        dispatch({ type: "SET_ACTIVE_TOOL", tool: "select" });
+      } else if (e.key === "c" && !e.ctrlKey && !e.metaKey) {
+        dispatch({ type: "SET_ACTIVE_TOOL", tool: "razor" });
+      } else if (e.key === "b" && !e.ctrlKey && !e.metaKey) {
+        dispatch({ type: "SET_ACTIVE_TOOL", tool: "ripple" });
+      } else if (e.key === "m" && !e.ctrlKey && !e.metaKey) {
+        const marker: TimelineMarker = {
+          id: `marker-${Date.now()}`,
+          time: state.playheadTime,
+          label: `M${state.markers.length + 1}`,
+          color: ["#ef4444", "#3b82f6", "#22c55e", "#eab308", "#a855f7"][state.markers.length % 5],
+        };
+        dispatch({ type: "ADD_MARKER", marker });
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [undo, redo, dispatch, state.duration]);
+  }, [undo, redo, dispatch, state.duration, state.playheadTime, state.markers.length]);
 
   const playheadLeft = state.playheadTime * state.zoom - state.scrollX;
 
@@ -660,13 +708,41 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
     >
       {/* ─── Toolbar — compact single row ─── */}
       <div
-        className="shrink-0 flex items-center px-2 h-8 overflow-hidden gap-1.5"
+        className="shrink-0 flex items-center px-2 h-9 overflow-hidden gap-1"
         style={{
           background: 'linear-gradient(180deg, hsl(220, 13%, 7%) 0%, hsl(220, 13%, 5.5%) 100%)',
           borderBottom: '1px solid hsla(0, 0%, 100%, 0.06)',
         }}
       >
-        {/* Add tracks — icon-only on narrow, label on wide */}
+        {/* Tool selector — Select / Razor / Ripple */}
+        <div className="flex items-center bg-white/[0.03] rounded-md p-0.5 shrink-0 border border-white/[0.04]">
+          {([
+            { tool: "select" as EditorTool, icon: <MousePointer2 className="w-3 h-3" />, tip: "Select (V)" },
+            { tool: "razor" as EditorTool, icon: <Slice className="w-3 h-3" />, tip: "Razor (C)" },
+            { tool: "ripple" as EditorTool, icon: <ArrowDownToLine className="w-3 h-3" />, tip: "Ripple (B)" },
+          ]).map((t) => (
+            <Tooltip key={t.tool}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => dispatch({ type: "SET_ACTIVE_TOOL", tool: t.tool })}
+                  className={cn(
+                    "h-6 w-6 flex items-center justify-center rounded-md transition-all",
+                    state.activeTool === t.tool
+                      ? "bg-[hsl(215,100%,50%)] text-white shadow-sm shadow-[hsla(215,100%,50%,0.3)]"
+                      : "text-muted-foreground/40 hover:text-foreground hover:bg-white/[0.06]"
+                  )}
+                >
+                  {t.icon}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[9px]">{t.tip}</TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
+
+        <div className="w-px h-4 bg-white/[0.05] shrink-0" />
+
+        {/* Add tracks */}
         <div className="flex items-center shrink-0">
           <button onClick={() => addTrack("video")}
             className="h-6 px-1.5 flex items-center gap-1 text-[9px] text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.05] rounded transition-colors font-medium">
@@ -686,24 +762,59 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
 
         {/* Undo/Redo */}
         <div className="flex items-center shrink-0">
-          <button onClick={undo} disabled={!canUndo}
-            className="h-6 w-6 flex items-center justify-center text-muted-foreground/35 hover:text-foreground disabled:opacity-15 rounded transition-colors">
-            <Undo2 className="w-3 h-3" />
-          </button>
-          <button onClick={redo} disabled={!canRedo}
-            className="h-6 w-6 flex items-center justify-center text-muted-foreground/35 hover:text-foreground disabled:opacity-15 rounded transition-colors">
-            <Redo2 className="w-3 h-3" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button onClick={undo} disabled={!canUndo}
+                className="h-6 w-6 flex items-center justify-center text-muted-foreground/35 hover:text-foreground disabled:opacity-15 rounded transition-colors">
+                <Undo2 className="w-3 h-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-[9px]">Undo (⌘Z)</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button onClick={redo} disabled={!canRedo}
+                className="h-6 w-6 flex items-center justify-center text-muted-foreground/35 hover:text-foreground disabled:opacity-15 rounded transition-colors">
+                <Redo2 className="w-3 h-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-[9px]">Redo (⌘Y)</TooltipContent>
+          </Tooltip>
         </div>
 
         <div className="w-px h-4 bg-white/[0.05] shrink-0" />
 
-        {/* Snap */}
-        <button onClick={() => dispatch({ type: "TOGGLE_SNAP" })}
-          className={cn("h-6 w-6 flex items-center justify-center rounded transition-colors shrink-0",
-            state.snapEnabled ? "text-primary/70 bg-primary/8" : "text-muted-foreground/25 hover:text-foreground/50")}>
-          <Magnet className="w-3 h-3" />
-        </button>
+        {/* Snap + Marker */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button onClick={() => dispatch({ type: "TOGGLE_SNAP" })}
+              className={cn("h-6 w-6 flex items-center justify-center rounded transition-colors shrink-0",
+                state.snapEnabled ? "text-[hsl(215,100%,60%)] bg-[hsla(215,100%,50%,0.12)]" : "text-muted-foreground/25 hover:text-foreground/50")}>
+              <Magnet className="w-3 h-3" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-[9px]">Snap {state.snapEnabled ? "On" : "Off"}</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => {
+                const marker: TimelineMarker = {
+                  id: `marker-${Date.now()}`,
+                  time: state.playheadTime,
+                  label: `M${state.markers.length + 1}`,
+                  color: ["#ef4444", "#3b82f6", "#22c55e", "#eab308", "#a855f7"][state.markers.length % 5],
+                };
+                dispatch({ type: "ADD_MARKER", marker });
+              }}
+              className="h-6 w-6 flex items-center justify-center text-muted-foreground/30 hover:text-amber-400 hover:bg-amber-400/8 rounded transition-colors shrink-0"
+            >
+              <Flag className="w-3 h-3" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-[9px]">Add Marker (M)</TooltipContent>
+        </Tooltip>
 
         {/* Duration */}
         <div className="flex items-center gap-1 px-1.5 shrink-0">
@@ -711,19 +822,49 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
           <span className="text-[9px] text-muted-foreground/40 font-mono tabular-nums">{formatDuration(state.duration)}</span>
         </div>
 
+        {state.markers.length > 0 && (
+          <div className="flex items-center gap-0.5 px-1 shrink-0">
+            {state.markers.slice(0, 5).map((m) => (
+              <button
+                key={m.id}
+                onClick={() => dispatch({ type: "SET_PLAYHEAD", time: m.time })}
+                onContextMenu={(e) => { e.preventDefault(); dispatch({ type: "REMOVE_MARKER", markerId: m.id }); }}
+                className="w-4 h-4 rounded-sm flex items-center justify-center text-[7px] font-bold transition-all hover:scale-110"
+                style={{ background: m.color + '33', color: m.color }}
+                title={`${m.label} — ${formatDuration(m.time)} (right-click to remove)`}
+              >
+                {m.label.slice(0, 2)}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="flex-1" />
 
         {/* Fit + Zoom */}
         <div className="flex items-center shrink-0">
-          <button onClick={fitToView}
-            className="h-6 w-6 flex items-center justify-center text-muted-foreground/35 hover:text-foreground rounded transition-colors">
-            <Maximize2 className="w-3 h-3" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button onClick={fitToView}
+                className="h-6 w-6 flex items-center justify-center text-muted-foreground/35 hover:text-foreground rounded transition-colors">
+                <Maximize2 className="w-3 h-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-[9px]">Fit to View</TooltipContent>
+          </Tooltip>
           <button onClick={() => dispatch({ type: "SET_ZOOM", zoom: state.zoom - 10 })}
             className="h-6 w-6 flex items-center justify-center text-muted-foreground/35 hover:text-foreground rounded transition-colors">
             <ZoomOut className="w-3 h-3" />
           </button>
-          <span className="text-[8px] text-muted-foreground/35 font-mono w-6 text-center tabular-nums">{Math.round(state.zoom)}x</span>
+          <div className="w-12 h-1 rounded-full bg-white/[0.06] mx-1 relative shrink-0">
+            <div
+              className="absolute top-0 left-0 h-full rounded-full"
+              style={{
+                width: `${((state.zoom - 10) / 190) * 100}%`,
+                background: 'linear-gradient(90deg, hsl(215, 100%, 50%), hsl(265, 80%, 60%))',
+              }}
+            />
+          </div>
           <button onClick={() => dispatch({ type: "SET_ZOOM", zoom: state.zoom + 10 })}
             className="h-6 w-6 flex items-center justify-center text-muted-foreground/35 hover:text-foreground rounded transition-colors">
             <ZoomIn className="w-3 h-3" />
@@ -737,7 +878,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
       </div>
 
       {/* ─── Tracks area ─── */}
-      <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-auto relative" onScroll={handleScroll} style={{ contain: 'strict' }}>
+      <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-auto relative" onScroll={handleScroll} style={{ contain: 'strict', cursor: state.activeTool === 'razor' ? 'crosshair' : state.activeTool === 'ripple' ? 'col-resize' : undefined }}>
         <div className="relative" style={{ minWidth: HEADER_WIDTH + totalWidth, minHeight: state.tracks.length * TRACK_HEIGHT || 96 }}>
           {state.tracks.map((track, idx) => (
             <div key={track.id} className="flex" style={{ height: TRACK_HEIGHT }}>
@@ -815,6 +956,23 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
             }}
           />
         )}
+
+        {/* Marker lines */}
+        {state.markers.map((marker) => {
+          const markerLeft = HEADER_WIDTH + marker.time * state.zoom - state.scrollX;
+          if (markerLeft < HEADER_WIDTH - 10 || markerLeft > 3000) return null;
+          return (
+            <div key={marker.id} className="absolute top-0 bottom-0 pointer-events-none z-15" style={{ left: markerLeft }}>
+              <div className="absolute top-0 bottom-0 w-px" style={{ background: marker.color, opacity: 0.5 }} />
+              <div
+                className="absolute -top-0.5 -translate-x-1/2 px-1 py-px rounded-b text-[7px] font-bold"
+                style={{ background: marker.color, color: '#fff' }}
+              >
+                {marker.label}
+              </div>
+            </div>
+          );
+        })}
 
         {/* Playhead line — improved grab area */}
         {playheadLeft >= 0 && (

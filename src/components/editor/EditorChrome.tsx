@@ -580,9 +580,9 @@ export function EditorChrome({
   return (
     <TooltipProvider delayDuration={300}>
       <div className="h-screen w-screen flex flex-col overflow-hidden relative" style={{ background: 'hsl(240 25% 4%)' }}>
-        {/* Apex accent line — top */}
+        {/* Apple-clean accent line — top */}
         <div className="absolute top-0 left-0 right-0 h-px z-20">
-          <div className="h-full bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+          <div className="h-full bg-gradient-to-r from-transparent via-[hsla(215,100%,50%,0.35)] to-transparent" />
           {isRendering && (
             <motion.div
               className="absolute inset-0 h-px bg-gradient-to-r from-primary via-violet-400 to-primary"

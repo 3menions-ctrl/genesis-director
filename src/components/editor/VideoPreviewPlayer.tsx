@@ -319,9 +319,27 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({ className }
           </>
         )}
 
-        {/* Aspect ratio badge */}
-        <div className="absolute top-3 right-3 px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold backdrop-blur-xl" style={{ background: 'hsla(0,0%,0%,0.6)', color: 'hsla(0,0%,100%,0.45)', border: '1px solid hsla(0,0%,100%,0.08)', zIndex: 20 }}>
-          {state.aspectRatio}
+        {/* Aspect ratio + Scopes badges */}
+        <div className="absolute top-3 right-3 flex items-center gap-1.5" style={{ zIndex: 20 }}>
+          <button
+            onClick={() => setShowScopes(prev => !prev)}
+            className={cn(
+              "px-2 py-1 rounded-lg text-[10px] font-mono font-semibold backdrop-blur-xl transition-all",
+              showScopes
+                ? "text-[hsl(120,70%,55%)]"
+                : "text-[hsla(0,0%,100%,0.45)]"
+            )}
+            style={{
+              background: showScopes ? 'hsla(120,70%,50%,0.12)' : 'hsla(0,0%,0%,0.6)',
+              border: showScopes ? '1px solid hsla(120,70%,50%,0.25)' : '1px solid hsla(0,0%,100%,0.08)',
+            }}
+          >
+            <Activity className="w-3 h-3 inline mr-1" />
+            Scopes
+          </button>
+          <div className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold backdrop-blur-xl" style={{ background: 'hsla(0,0%,0%,0.6)', color: 'hsla(0,0%,100%,0.45)', border: '1px solid hsla(0,0%,100%,0.08)' }}>
+            {state.aspectRatio}
+          </div>
         </div>
         </div>
       </div>

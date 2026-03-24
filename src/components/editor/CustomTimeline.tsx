@@ -181,24 +181,24 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
 // ─── Clip Block ───
 
 const CLIP_COLORS: Record<string, string> = {
-  video: "hsla(210, 50%, 55%, 0.22)",
-  image: "hsla(45, 85%, 55%, 0.22)",
-  text: "hsla(170, 65%, 50%, 0.22)",
-  audio: "hsla(190, 65%, 55%, 0.22)",
+  video: "hsla(215, 100%, 50%, 0.18)",
+  image: "hsla(45, 85%, 55%, 0.18)",
+  text: "hsla(160, 65%, 50%, 0.18)",
+  audio: "hsla(280, 65%, 55%, 0.18)",
 };
 
 const CLIP_BORDER_COLORS: Record<string, string> = {
-  video: "hsla(210, 50%, 55%, 0.4)",
-  image: "hsla(45, 85%, 55%, 0.4)",
-  text: "hsla(170, 65%, 50%, 0.4)",
-  audio: "hsla(190, 65%, 55%, 0.4)",
+  video: "hsla(215, 100%, 50%, 0.35)",
+  image: "hsla(45, 85%, 55%, 0.35)",
+  text: "hsla(160, 65%, 50%, 0.35)",
+  audio: "hsla(280, 65%, 55%, 0.35)",
 };
 
 const CLIP_ACCENT_COLORS: Record<string, string> = {
-  video: "hsla(210, 50%, 55%, 0.6)",
+  video: "hsla(215, 100%, 50%, 0.7)",
   image: "hsla(45, 85%, 55%, 0.6)",
-  text: "hsla(170, 65%, 50%, 0.6)",
-  audio: "hsla(190, 65%, 55%, 0.6)",
+  text: "hsla(160, 65%, 50%, 0.6)",
+  audio: "hsla(280, 65%, 55%, 0.6)",
 };
 
 function ClipBlock({

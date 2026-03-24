@@ -579,10 +579,10 @@ export function EditorChrome({
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="h-screen w-screen flex flex-col overflow-hidden relative" style={{ background: 'hsl(240 25% 4%)' }}>
-        {/* Apex accent line — top */}
+      <div className="h-screen w-screen flex flex-col overflow-hidden relative" style={{ background: 'hsl(220, 13%, 4%)' }}>
+        {/* Apple-clean accent line — top */}
         <div className="absolute top-0 left-0 right-0 h-px z-20">
-          <div className="h-full bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+          <div className="h-full bg-gradient-to-r from-transparent via-[hsla(215,100%,50%,0.35)] to-transparent" />
           {isRendering && (
             <motion.div
               className="absolute inset-0 h-px bg-gradient-to-r from-primary via-violet-400 to-primary"
@@ -597,9 +597,9 @@ export function EditorChrome({
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="h-12 flex items-center px-3 shrink-0 z-10 relative"
+          className="h-11 flex items-center px-3 shrink-0 z-10 relative"
           style={{
-            background: 'linear-gradient(180deg, hsl(240 18% 7%) 0%, hsl(240 22% 5.5%) 100%)',
+            background: 'linear-gradient(180deg, hsl(220, 13%, 7%) 0%, hsl(220, 13%, 5.5%) 100%)',
             borderBottom: '1px solid hsla(0, 0%, 100%, 0.06)',
           }}
         >
@@ -815,10 +815,10 @@ export function EditorChrome({
                       onClick={exportVideo}
                       disabled={isStitching || isDownloading}
                       className="h-8 px-5 flex items-center gap-2 rounded-lg text-[11px] font-bold relative overflow-hidden group disabled:opacity-40"
-                      style={{
-                        background: 'hsla(0, 0%, 100%, 0.9)',
-                        color: 'hsla(0, 0%, 0%, 0.9)',
-                        boxShadow: '0 2px 16px hsla(0, 0%, 100%, 0.15), inset 0 1px 0 hsla(0,0%,100%,0.2)',
+                       style={{
+                        background: 'hsl(215, 100%, 50%)',
+                        color: 'hsl(0, 0%, 100%)',
+                        boxShadow: '0 2px 16px hsla(215, 100%, 50%, 0.3), inset 0 1px 0 hsla(0,0%,100%,0.15)',
                       }}
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
@@ -862,7 +862,7 @@ export function EditorChrome({
 
           {/* Center — Player + Timeline */}
           <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-            <VideoPreviewPlayer className="h-[40%] shrink-0" />
+            <VideoPreviewPlayer className="h-[42%] shrink-0" />
             <CustomTimeline className="flex-1 min-h-0" onOpenTextDialog={() => setTextDialogOpen(true)} />
           </div>
 
@@ -874,7 +874,7 @@ export function EditorChrome({
         <div
           className="h-7 flex items-center px-4 shrink-0 z-10 select-none overflow-hidden gap-4"
           style={{
-            background: 'linear-gradient(180deg, hsl(240 22% 5.5%) 0%, hsl(240 25% 4%) 100%)',
+            background: 'linear-gradient(180deg, hsl(220, 13%, 5.5%) 0%, hsl(220, 13%, 4%) 100%)',
             borderTop: '1px solid hsla(0, 0%, 100%, 0.06)',
           }}
         >

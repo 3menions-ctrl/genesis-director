@@ -301,7 +301,7 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
   const clipOpacity = fadeOpacity * (active?.clip?.opacity ?? 1);
 
   return (
-    <div className={cn("flex flex-col overflow-hidden", className)} style={{ background: 'hsl(240 28% 3%)' }}>
+    <div className={cn("flex flex-col overflow-hidden", className)} style={{ background: 'hsl(220, 13%, 3%)' }}>
       {/* Video area with glow frame */}
       <div className="flex-1 min-h-0 flex items-center justify-center relative" style={{ background: 'hsl(0 0% 3%)' }}>
         {/* Animated glow border */}
@@ -470,7 +470,7 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({
       <div
         className="shrink-0"
         style={{
-          background: 'linear-gradient(180deg, hsl(240 18% 7%) 0%, hsl(240 22% 5%) 100%)',
+          background: 'linear-gradient(180deg, hsl(220, 13%, 7%) 0%, hsl(220, 13%, 5%) 100%)',
           borderTop: '1px solid hsla(0, 0%, 100%, 0.06)',
         }}
       >

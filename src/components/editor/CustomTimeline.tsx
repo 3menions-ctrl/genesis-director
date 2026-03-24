@@ -656,13 +656,13 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
     <div
       ref={timelineRef}
       className={cn("flex flex-col overflow-hidden select-none", className)}
-      style={{ background: 'hsl(240, 25%, 4%)' }}
+      style={{ background: 'hsl(220, 13%, 4%)' }}
     >
       {/* ─── Toolbar — compact single row ─── */}
       <div
         className="shrink-0 flex items-center px-2 h-8 overflow-hidden gap-1.5"
         style={{
-          background: 'linear-gradient(180deg, hsl(240 18% 7%) 0%, hsl(240 22% 5.5%) 100%)',
+          background: 'linear-gradient(180deg, hsl(220, 13%, 7%) 0%, hsl(220, 13%, 5.5%) 100%)',
           borderBottom: '1px solid hsla(0, 0%, 100%, 0.06)',
         }}
       >

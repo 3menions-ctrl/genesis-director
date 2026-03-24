@@ -344,37 +344,91 @@ export function EditorChrome({
     });
   }, [sessionId, getProjectJSON, saveProject, sessionTitle, submitStitch]);
 
-  // ─── Auto-load clips from all projects ───
+  // ─── Auto-load clips from all projects (or a specific project via ?project=) ───
+  const projectParam = searchParams.get("project");
+  
   useEffect(() => {
     if (!user || autoLoadDone) return;
     let cancelled = false;
 
     (async () => {
       try {
-        const projectList = await listProjects();
-        if (cancelled || projectList.length === 0) {
-          setAutoLoadDone(true);
-          return;
-        }
-        setProjects(projectList);
-        setProjectsLoaded(true);
+        // If a specific project is requested via URL param, load it first
+        if (projectParam) {
+          const { clips } = await loadProjectClips(projectParam);
+          if (!cancelled && clips.length > 0) {
+            setAvailableClips(clips);
+            setLoadedProjectIds(new Set([projectParam]));
+            setMediaCounts({ videos: clips.length, images: 0 });
+            
+            // Auto-add clips to timeline if empty
+            if (timelineState.tracks.every(t => t.clips.length === 0)) {
+              const trackId = timelineState.tracks[0]?.id || generateTrackId();
+              if (!timelineState.tracks[0]) {
+                dispatch({ type: "ADD_TRACK", track: { id: trackId, label: "V1", type: "video", clips: [], muted: false, locked: false } });
+              }
+              let offset = 0;
+              for (const clip of clips) {
+                const dur = clip.durationSeconds || 6;
+                dispatch({
+                  type: "ADD_CLIP",
+                  trackId: timelineState.tracks[0]?.id || trackId,
+                  clip: {
+                    id: generateClipId(),
+                    type: "video",
+                    name: `Shot ${clip.shotIndex + 1}`,
+                    start: offset,
+                    end: offset + dur,
+                    trimStart: 0,
+                    trimEnd: dur,
+                    src: clip.videoUrl,
+                    thumbnail: clip.thumbnailUrl || undefined,
+                    volume: 1,
+                    speed: 1,
+                    opacity: 1,
+                  },
+                });
+                offset += dur;
+              }
+              setSessionTitle(clips[0]?.projectTitle || "Untitled Session");
+              toast.success(`Loaded ${clips.length} clips from project into timeline`);
+            } else {
+              toast.success(`Loaded ${clips.length} clips from project`);
+            }
+          }
+          // Also load the full project list for the browser
+          const projectList = await listProjects();
+          if (!cancelled) {
+            setProjects(projectList);
+            setProjectsLoaded(true);
+          }
+        } else {
+          // Default: load all projects
+          const projectList = await listProjects();
+          if (cancelled || projectList.length === 0) {
+            setAutoLoadDone(true);
+            return;
+          }
+          setProjects(projectList);
+          setProjectsLoaded(true);
 
-        const allClips: EditorClip[] = [];
-        const loaded = new Set<string>();
+          const allClips: EditorClip[] = [];
+          const loaded = new Set<string>();
 
-        for (const project of projectList) {
-          if (cancelled) break;
-          const { clips } = await loadProjectClips(project.id);
-          allClips.push(...clips);
-          loaded.add(project.id);
-        }
+          for (const project of projectList) {
+            if (cancelled) break;
+            const { clips } = await loadProjectClips(project.id);
+            allClips.push(...clips);
+            loaded.add(project.id);
+          }
 
-        if (!cancelled) {
-          setAvailableClips(allClips);
-          setLoadedProjectIds(loaded);
-          setMediaCounts({ videos: allClips.length, images: 0 });
-          if (allClips.length > 0) {
-            toast.success(`Loaded ${allClips.length} clips from ${loaded.size} project${loaded.size !== 1 ? "s" : ""}`);
+          if (!cancelled) {
+            setAvailableClips(allClips);
+            setLoadedProjectIds(loaded);
+            setMediaCounts({ videos: allClips.length, images: 0 });
+            if (allClips.length > 0) {
+              toast.success(`Loaded ${allClips.length} clips from ${loaded.size} project${loaded.size !== 1 ? "s" : ""}`);
+            }
           }
         }
       } catch (err) {
@@ -385,7 +439,7 @@ export function EditorChrome({
     })();
 
     return () => { cancelled = true; };
-  }, [user, autoLoadDone, listProjects, loadProjectClips]);
+  }, [user, autoLoadDone, listProjects, loadProjectClips, projectParam]);
 
   // ─── Keyboard shortcuts ───
   useEffect(() => {
@@ -735,8 +789,12 @@ export function EditorChrome({
             </div>
           </div>
 
-          {/* ── Right: Primary actions ── */}
+          {/* ── Right: Credits + Primary actions ── */}
           <div className="flex items-center gap-1 shrink-0">
+            {/* Credits badge */}
+            {user && (
+              <EditorCreditsBadge userId={user.id} />
+            )}
             {/* Secondary: Clear + Shortcuts */}
             <div className="flex items-center gap-0.5 mr-1">
               <Tooltip>
@@ -1068,5 +1126,52 @@ export function EditorChrome({
         </AnimatePresence>
       </div>
     </TooltipProvider>
+  );
+}
+
+/** Compact credits badge for editor header */
+function EditorCreditsBadge({ userId }: { userId: string }) {
+  const [balance, setBalance] = useState<number | null>(null);
+  
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("credits_balance")
+        .eq("id", userId)
+        .single();
+      if (!cancelled && data) setBalance(data.credits_balance);
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  if (balance === null) return null;
+  
+  const isLow = balance < 100;
+  
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div
+          className="flex items-center gap-1 px-2 py-1 rounded-md mr-1 cursor-default"
+          style={{
+            background: isLow ? 'hsla(0, 70%, 50%, 0.08)' : 'hsla(215, 70%, 55%, 0.08)',
+            border: `1px solid ${isLow ? 'hsla(0, 70%, 50%, 0.15)' : 'hsla(215, 70%, 55%, 0.12)'}`,
+          }}
+        >
+          <Zap className="w-3 h-3" style={{ color: isLow ? 'hsl(0, 70%, 60%)' : 'hsl(215, 70%, 60%)' }} />
+          <span
+            className="text-[10px] font-bold"
+            style={{ color: isLow ? 'hsl(0, 70%, 65%)' : 'hsl(215, 70%, 65%)' }}
+          >
+            {balance.toLocaleString()}
+          </span>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="text-[10px]">
+        {balance.toLocaleString()} credits remaining
+      </TooltipContent>
+    </Tooltip>
   );
 }

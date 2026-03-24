@@ -126,6 +126,7 @@ function MagazineGrid({
   browserStitchingProjectId,
   onPlay,
   onEdit,
+  onOpenInEditor,
   onRename,
   onDelete,
   onDownload,
@@ -141,6 +142,7 @@ function MagazineGrid({
   browserStitchingProjectId: string | null;
   onPlay: (p: Project) => void;
   onEdit: (p: Project) => void;
+  onOpenInEditor: (p: Project) => void;
   onRename: (p: Project) => void;
   onDelete: (id: string) => void;
   onDownload: (p: Project) => void;
@@ -161,6 +163,7 @@ function MagazineGrid({
     preResolvedClipUrl: resolvedClipUrls.get(project.id),
     onPlay: () => onPlay(project),
     onEdit: () => onEdit(project),
+    onOpenInEditor: () => onOpenInEditor(project),
     onRename: () => onRename(project),
     onDelete: () => onDelete(project.id),
     onDownload: () => onDownload(project),
@@ -1193,7 +1196,16 @@ function ProjectsContentInner() {
                     retryingProjectId={retryingProjectId}
                     browserStitchingProjectId={browserStitchingProjectId}
                     onPlay={handlePlayVideo}
-                    onEdit={(project) => { setActiveProjectId(project.id); navigate('/create'); }}
+                    onEdit={(project) => { 
+                      // If project has completed clips, open in editor; otherwise go to creation
+                      if (project.video_url || project.status === 'completed') {
+                        navigate(`/editor?project=${project.id}`);
+                      } else {
+                        setActiveProjectId(project.id); 
+                        navigate('/create'); 
+                      }
+                    }}
+                    onOpenInEditor={(project) => navigate(`/editor?project=${project.id}`)}
                     onRename={handleRenameProject}
                     onDelete={(id) => handleDeleteProject(id)}
                     onDownload={handleDownloadAll}

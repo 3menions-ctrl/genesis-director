@@ -1,6 +1,6 @@
 /**
  * RightSidebarPanel — Pro 4-tab Inspector panel
- * Templates, Properties, Cinematic FX, AI Scene Builder
+ * Templates, Inspector, Cinematic FX, AI Scene Builder
  * Apple-clean aesthetic with blue accent system
  */
 
@@ -20,7 +20,6 @@ export const RightSidebarPanel = memo(function RightSidebarPanel() {
   const hasSelection = !!state.selectedClipId;
   const [activeTab, setActiveTab] = useState<Tab>("templates");
 
-  // Auto-switch to properties when a clip is selected
   useEffect(() => {
     if (hasSelection && activeTab === "templates") {
       setActiveTab("properties");
@@ -31,11 +30,11 @@ export const RightSidebarPanel = memo(function RightSidebarPanel() {
     <div
       className="w-72 shrink-0 flex flex-col border-l overflow-hidden"
       style={{
-        background: "hsl(220, 13%, 5%)",
+        background: "hsl(220, 14%, 5%)",
         borderColor: "hsla(0, 0%, 100%, 0.06)",
       }}
     >
-      {/* Top-level tab bar — Apple-clean pill style */}
+      {/* Top-level tab bar */}
       <div
         className="shrink-0 flex items-center px-1.5 py-1.5 gap-0.5 border-b"
         style={{
@@ -43,32 +42,10 @@ export const RightSidebarPanel = memo(function RightSidebarPanel() {
           background: "hsla(0, 0%, 100%, 0.02)",
         }}
       >
-        <TopTabButton
-          active={activeTab === "templates"}
-          onClick={() => setActiveTab("templates")}
-          icon={<Layers className="w-3 h-3" />}
-          label="Templates"
-        />
-        <TopTabButton
-          active={activeTab === "properties"}
-          onClick={() => setActiveTab("properties")}
-          icon={<Scissors className="w-3 h-3" />}
-          label="Inspector"
-          badge={hasSelection}
-        />
-        <TopTabButton
-          active={activeTab === "fx"}
-          onClick={() => setActiveTab("fx")}
-          icon={<Sparkles className="w-3 h-3" />}
-          label="FX"
-        />
-        <TopTabButton
-          active={activeTab === "ai"}
-          onClick={() => setActiveTab("ai")}
-          icon={<Wand2 className="w-3 h-3" />}
-          label="AI"
-          glow
-        />
+        <TopTabButton active={activeTab === "templates"} onClick={() => setActiveTab("templates")} icon={<Layers className="w-3 h-3" />} label="Templates" />
+        <TopTabButton active={activeTab === "properties"} onClick={() => setActiveTab("properties")} icon={<Scissors className="w-3 h-3" />} label="Inspector" badge={hasSelection} />
+        <TopTabButton active={activeTab === "fx"} onClick={() => setActiveTab("fx")} icon={<Sparkles className="w-3 h-3" />} label="FX" />
+        <TopTabButton active={activeTab === "ai"} onClick={() => setActiveTab("ai")} icon={<Wand2 className="w-3 h-3" />} label="AI" glow />
       </div>
 
       {/* Content */}
@@ -82,21 +59,7 @@ export const RightSidebarPanel = memo(function RightSidebarPanel() {
   );
 });
 
-function TopTabButton({
-  active,
-  onClick,
-  icon,
-  label,
-  badge,
-  glow,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-  badge?: boolean;
-  glow?: boolean;
-}) {
+function TopTabButton({ active, onClick, icon, label, badge, glow }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; badge?: boolean; glow?: boolean }) {
   return (
     <button
       onClick={onClick}
@@ -109,16 +72,9 @@ function TopTabButton({
     >
       {icon}
       <span className="hidden xl:inline">{label}</span>
-      {badge && (
-        <span className="w-1.5 h-1.5 rounded-full bg-[hsl(142,72%,50%)] animate-pulse" />
-      )}
+      {badge && <span className="w-1.5 h-1.5 rounded-full bg-[hsl(142,72%,50%)] animate-pulse" />}
       {glow && active && (
-        <span
-          className="absolute inset-0 rounded-lg pointer-events-none"
-          style={{
-            boxShadow: "inset 0 0 12px hsla(265, 80%, 60%, 0.1)",
-          }}
-        />
+        <span className="absolute inset-0 rounded-lg pointer-events-none" style={{ boxShadow: "inset 0 0 12px hsla(215, 100%, 50%, 0.1)" }} />
       )}
     </button>
   );

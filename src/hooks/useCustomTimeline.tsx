@@ -59,6 +59,63 @@ export interface TimelineClip {
   transition?: "none" | "fade" | "wipeleft" | "wiperight" | "slideup" | "slidedown" | "dissolve";
   /** Transition duration in seconds */
   transitionDuration?: number;
+  /** Blend mode for compositing */
+  blendMode?: "normal" | "multiply" | "screen" | "overlay" | "softlight" | "hardlight" | "difference" | "add";
+  /** Transform: position X (% of canvas, 0 = center) */
+  posX?: number;
+  /** Transform: position Y (% of canvas, 0 = center) */
+  posY?: number;
+  /** Transform: scale (1 = 100%) */
+  scale?: number;
+  /** Transform: rotation in degrees */
+  rotation?: number;
+  /** Anchor point X */
+  anchorX?: number;
+  /** Anchor point Y */
+  anchorY?: number;
+  /** Z-index for layer ordering */
+  zIndex?: number;
+  /** Keyframes for animation */
+  keyframes?: ClipKeyframe[];
+  /** Color grading: shadows hue shift */
+  shadowsHue?: number;
+  /** Color grading: highlights hue shift */
+  highlightsHue?: number;
+  /** Color grading: midtones hue shift */
+  midtonesHue?: number;
+  /** Color grading: temperature -100 to 100 */
+  temperature?: number;
+  /** Color grading: tint -100 to 100 */
+  tint?: number;
+  /** Color grading: gamma 0.1–3 */
+  gamma?: number;
+  /** Color grading: lift -1 to 1 */
+  lift?: number;
+  /** Color grading: gain 0 to 3 */
+  gain?: number;
+  /** Audio: pan -1 (L) to 1 (R) */
+  pan?: number;
+  /** Audio: EQ bass boost/cut -20 to 20 dB */
+  eqBass?: number;
+  /** Audio: EQ mid boost/cut -20 to 20 dB */
+  eqMid?: number;
+  /** Audio: EQ treble boost/cut -20 to 20 dB */
+  eqTreble?: number;
+  /** Audio: compressor active */
+  compressor?: boolean;
+  /** Whether this is a compound/nested clip */
+  isCompound?: boolean;
+  /** Sub-clips for compound clips */
+  compoundClips?: TimelineClip[];
+}
+
+export interface ClipKeyframe {
+  id: string;
+  time: number; // relative to clip start
+  property: "posX" | "posY" | "scale" | "rotation" | "opacity" | "volume";
+  value: number;
+  easing: "linear" | "ease-in" | "ease-out" | "ease-in-out" | "bezier";
+  bezierHandles?: [number, number, number, number];
 }
 
 export interface TimelineTrack {
@@ -498,24 +555,19 @@ export function toProjectJSON(state: TimelineState): any {
         e: c.end,
         name: c.name,
         props: {
-          src: c.src,
-          text: c.text,
-          thumbnail: c.thumbnail,
-          trimStart: c.trimStart,
-          trimEnd: c.trimEnd,
-          sourceDuration: c.sourceDuration,
-          textStyle: c.textStyle,
-          volume: c.volume,
-          speed: c.speed,
-          fadeIn: c.fadeIn,
-          fadeOut: c.fadeOut,
-          opacity: c.opacity,
-          colorLabel: c.colorLabel,
-          brightness: c.brightness,
-          contrast: c.contrast,
-          saturation: c.saturation,
-          transition: c.transition,
-          transitionDuration: c.transitionDuration,
+          src: c.src, text: c.text, thumbnail: c.thumbnail,
+          trimStart: c.trimStart, trimEnd: c.trimEnd, sourceDuration: c.sourceDuration,
+          textStyle: c.textStyle, volume: c.volume, speed: c.speed,
+          fadeIn: c.fadeIn, fadeOut: c.fadeOut, opacity: c.opacity,
+          colorLabel: c.colorLabel, brightness: c.brightness, contrast: c.contrast,
+          saturation: c.saturation, transition: c.transition, transitionDuration: c.transitionDuration,
+          blendMode: c.blendMode, posX: c.posX, posY: c.posY, scale: c.scale,
+          rotation: c.rotation, anchorX: c.anchorX, anchorY: c.anchorY, zIndex: c.zIndex,
+          keyframes: c.keyframes, shadowsHue: c.shadowsHue, highlightsHue: c.highlightsHue,
+          midtonesHue: c.midtonesHue, temperature: c.temperature, tint: c.tint,
+          gamma: c.gamma, lift: c.lift, gain: c.gain,
+          pan: c.pan, eqBass: c.eqBass, eqMid: c.eqMid, eqTreble: c.eqTreble,
+          compressor: c.compressor, isCompound: c.isCompound, compoundClips: c.compoundClips,
         },
       })),
     })),
@@ -565,11 +617,19 @@ export function fromProjectJSON(json: any): Partial<TimelineState> {
         fadeOut: el.props?.fadeOut,
         opacity: el.props?.opacity,
         colorLabel: el.props?.colorLabel,
-        brightness: el.props?.brightness,
-        contrast: el.props?.contrast,
-        saturation: el.props?.saturation,
-        transition: el.props?.transition,
+        brightness: el.props?.brightness, contrast: el.props?.contrast,
+        saturation: el.props?.saturation, transition: el.props?.transition,
         transitionDuration: el.props?.transitionDuration,
+        blendMode: el.props?.blendMode, posX: el.props?.posX, posY: el.props?.posY,
+        scale: el.props?.scale, rotation: el.props?.rotation,
+        anchorX: el.props?.anchorX, anchorY: el.props?.anchorY, zIndex: el.props?.zIndex,
+        keyframes: el.props?.keyframes, shadowsHue: el.props?.shadowsHue,
+        highlightsHue: el.props?.highlightsHue, midtonesHue: el.props?.midtonesHue,
+        temperature: el.props?.temperature, tint: el.props?.tint,
+        gamma: el.props?.gamma, lift: el.props?.lift, gain: el.props?.gain,
+        pan: el.props?.pan, eqBass: el.props?.eqBass, eqMid: el.props?.eqMid,
+        eqTreble: el.props?.eqTreble, compressor: el.props?.compressor,
+        isCompound: el.props?.isCompound, compoundClips: el.props?.compoundClips,
       })),
     })),
     fps: json.fps || 30,

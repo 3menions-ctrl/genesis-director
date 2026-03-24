@@ -599,7 +599,7 @@ export function EditorChrome({
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
           className="h-11 flex items-center px-3 shrink-0 z-10 relative"
           style={{
-            background: 'linear-gradient(180deg, hsl(220, 13%, 7%) 0%, hsl(220, 13%, 5.5%) 100%)',
+            background: 'linear-gradient(180deg, hsl(220, 14%, 7%) 0%, hsl(220, 14%, 5.5%) 100%)',
             borderBottom: '1px solid hsla(0, 0%, 100%, 0.06)',
           }}
         >

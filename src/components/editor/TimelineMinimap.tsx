@@ -26,14 +26,13 @@ export const TimelineMinimap = memo(function TimelineMinimap({
 
   const totalDuration = Math.max(state.duration + 5, 10);
   const availableWidth = containerWidth - headerWidth;
-  if (availableWidth <= 0) return null;
 
   // What portion of the timeline is visible
-  const visibleDuration = availableWidth / state.zoom;
+  const visibleDuration = availableWidth > 0 ? availableWidth / state.zoom : 0;
   const viewStart = state.scrollX / state.zoom;
   const viewEnd = viewStart + visibleDuration;
 
-  const timeToX = (t: number) => (t / totalDuration) * availableWidth;
+  const timeToX = useCallback((t: number) => availableWidth > 0 ? (t / totalDuration) * availableWidth : 0, [availableWidth, totalDuration]);
 
   const viewportLeft = timeToX(viewStart);
   const viewportWidth = Math.max(8, timeToX(viewEnd) - viewportLeft);

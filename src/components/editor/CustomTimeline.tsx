@@ -1,14 +1,15 @@
 /**
  * CustomTimeline — Multi-track visual timeline with clip blocks,
  * playhead scrubbing, clip selection, trim handles, snap-to-edge,
- * auto-scroll, fit-to-view, track reordering, and context menu.
+ * auto-scroll, fit-to-view, track reordering, minimap, and context menu.
  */
 
 import { useRef, useCallback, useState, memo, useEffect } from "react";
 import {
   Plus, Trash2, Volume2, VolumeX, Lock, Unlock, ZoomIn, ZoomOut,
   Eye, Type, Undo2, Redo2, Music, Maximize2, Magnet, ChevronUp, ChevronDown,
-  Clock, Scissors, Copy, Trash, Film, MousePointer2, Slice, Flag, ArrowDownToLine
+  Clock, Scissors, Copy, Trash, Film, MousePointer2, Slice, Flag, ArrowDownToLine,
+  Headphones, Palette
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCustomTimeline, TimelineTrack, TimelineClip, TimelineMarker, EditorTool, generateTrackId, generateClipId } from "@/hooks/useCustomTimeline";
@@ -18,6 +19,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { TimelineMinimap } from "@/components/editor/TimelineMinimap";
 
 const TRACK_HEIGHT = 60;
 const HEADER_WIDTH = 140;

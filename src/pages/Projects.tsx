@@ -163,6 +163,7 @@ function MagazineGrid({
     preResolvedClipUrl: resolvedClipUrls.get(project.id),
     onPlay: () => onPlay(project),
     onEdit: () => onEdit(project),
+    onOpenInEditor: () => onOpenInEditor(project),
     onRename: () => onRename(project),
     onDelete: () => onDelete(project.id),
     onDownload: () => onDownload(project),

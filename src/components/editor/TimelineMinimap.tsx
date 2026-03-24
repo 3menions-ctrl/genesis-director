@@ -27,30 +27,35 @@ export const TimelineMinimap = memo(function TimelineMinimap({
   const totalDuration = Math.max(state.duration + 5, 10);
   const availableWidth = containerWidth - headerWidth;
 
-  // What portion of the timeline is visible
   const visibleDuration = availableWidth > 0 ? availableWidth / state.zoom : 0;
   const viewStart = state.scrollX / state.zoom;
   const viewEnd = viewStart + visibleDuration;
 
-  const timeToX = useCallback((t: number) => availableWidth > 0 ? (t / totalDuration) * availableWidth : 0, [availableWidth, totalDuration]);
+  const timeToX = useCallback(
+    (t: number) => (availableWidth > 0 ? (t / totalDuration) * availableWidth : 0),
+    [availableWidth, totalDuration]
+  );
+
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (!barRef.current) return;
+      const rect = barRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const clickTime = (x / availableWidth) * totalDuration;
+      const newScrollX = Math.max(0, (clickTime - visibleDuration / 2) * state.zoom);
+      dispatch({ type: "SET_SCROLL_X", scrollX: newScrollX });
+      dispatch({ type: "SET_PLAYHEAD", time: Math.max(0, clickTime) });
+    },
+    [availableWidth, totalDuration, visibleDuration, state.zoom, dispatch]
+  );
+
+  if (availableWidth <= 0) return null;
 
   const viewportLeft = timeToX(viewStart);
   const viewportWidth = Math.max(8, timeToX(viewEnd) - viewportLeft);
 
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    if (!barRef.current) return;
-    const rect = barRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const clickTime = (x / availableWidth) * totalDuration;
-    // Center the viewport on click position
-    const newScrollX = Math.max(0, (clickTime - visibleDuration / 2) * state.zoom);
-    dispatch({ type: "SET_SCROLL_X", scrollX: newScrollX });
-    dispatch({ type: "SET_PLAYHEAD", time: Math.max(0, clickTime) });
-  }, [availableWidth, totalDuration, visibleDuration, state.zoom, dispatch]);
-
-  if (availableWidth <= 0) return null;
-
   return (
+    <div
       className="shrink-0 relative cursor-pointer"
       style={{
         height: MINIMAP_HEIGHT,
@@ -61,7 +66,6 @@ export const TimelineMinimap = memo(function TimelineMinimap({
       ref={barRef}
       onClick={handleClick}
     >
-      {/* Clip blocks */}
       {state.tracks.map((track, trackIdx) =>
         track.clips.map((clip) => {
           const left = timeToX(clip.start);
@@ -87,7 +91,6 @@ export const TimelineMinimap = memo(function TimelineMinimap({
         })
       )}
 
-      {/* Viewport indicator */}
       <div
         className="absolute top-0 bottom-0 rounded-sm pointer-events-none"
         style={{
@@ -99,7 +102,6 @@ export const TimelineMinimap = memo(function TimelineMinimap({
         }}
       />
 
-      {/* Playhead on minimap */}
       <div
         className="absolute top-0 bottom-0 w-px pointer-events-none"
         style={{
@@ -109,7 +111,6 @@ export const TimelineMinimap = memo(function TimelineMinimap({
         }}
       />
 
-      {/* Markers */}
       {state.markers.map((marker) => (
         <div
           key={marker.id}

@@ -901,8 +901,8 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
                   height: TRACK_HEIGHT,
                   borderBottom: '1px solid hsla(0, 0%, 100%, 0.04)',
                   background: idx % 2 === 0
-                    ? 'hsla(240, 25%, 6%, 0.5)'
-                    : 'hsla(240, 25%, 5%, 0.3)',
+                    ? 'hsla(220, 14%, 6%, 0.5)'
+                    : 'hsla(220, 14%, 5%, 0.3)',
                 }}
                 onClick={() => dispatch({ type: "SELECT_CLIP", clipId: null, trackId: track.id })}
               >

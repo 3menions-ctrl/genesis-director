@@ -66,7 +66,7 @@ function TimelineRuler({ zoom, scrollX, duration }: { zoom: number; scrollX: num
       style={{
         height: RULER_HEIGHT,
         marginLeft: HEADER_WIDTH,
-        background: 'linear-gradient(180deg, hsl(240 18% 7%) 0%, hsl(240 22% 5.5%) 100%)',
+        background: 'linear-gradient(180deg, hsl(220, 14%, 7%) 0%, hsl(220, 14%, 5.5%) 100%)',
         borderBottom: '1px solid hsla(0, 0%, 100%, 0.06)',
       }}
     >

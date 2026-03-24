@@ -1546,7 +1546,7 @@ const transitionsData = useMemo(() =>
               {finalVideoUrl && !['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && (
                 <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
                   <Suspense fallback={<SectionLoader />}>
-                    <ProductionFinalVideo videoUrl={finalVideoUrl} />
+                    <ProductionFinalVideo videoUrl={finalVideoUrl} projectId={projectId || undefined} />
                   </Suspense>
                 </ErrorBoundaryWrapper>
               )}

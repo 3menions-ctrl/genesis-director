@@ -452,6 +452,17 @@ interface ContextMenuState {
   trackId: string;
 }
 
+const CLIP_LABEL_COLORS = [
+  { name: "None", color: "" },
+  { name: "Red", color: "hsl(0, 80%, 50%)" },
+  { name: "Orange", color: "hsl(30, 90%, 50%)" },
+  { name: "Yellow", color: "hsl(50, 90%, 50%)" },
+  { name: "Green", color: "hsl(142, 65%, 45%)" },
+  { name: "Blue", color: "hsl(215, 100%, 50%)" },
+  { name: "Purple", color: "hsl(280, 65%, 55%)" },
+  { name: "Pink", color: "hsl(340, 80%, 55%)" },
+];
+
 function ClipContextMenu({
   menu,
   onClose,
@@ -459,6 +470,7 @@ function ClipContextMenu({
   onDuplicate,
   onDelete,
   onRippleDelete,
+  onColorLabel,
 }: {
   menu: ContextMenuState;
   onClose: () => void;
@@ -466,7 +478,10 @@ function ClipContextMenu({
   onDuplicate: () => void;
   onDelete: () => void;
   onRippleDelete: () => void;
+  onColorLabel: (color: string) => void;
 }) {
+  const [showColors, setShowColors] = useState(false);
+
   useEffect(() => {
     const close = () => onClose();
     window.addEventListener("click", close);
@@ -475,7 +490,7 @@ function ClipContextMenu({
 
   return (
     <div
-      className="fixed z-50 min-w-[170px] rounded-xl border shadow-2xl py-1.5 overflow-hidden backdrop-blur-xl"
+      className="fixed z-50 min-w-[180px] rounded-xl border shadow-2xl py-1.5 overflow-hidden backdrop-blur-xl"
       style={{
         left: menu.x,
         top: menu.y,
@@ -490,6 +505,33 @@ function ClipContextMenu({
       <button onClick={() => { onDuplicate(); onClose(); }} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[11px] text-foreground/70 hover:bg-primary/10 hover:text-foreground transition-colors">
         <Copy className="w-3.5 h-3.5" /> Duplicate
       </button>
+
+      <div className="h-px mx-3 my-1" style={{ background: 'hsla(0, 0%, 100%, 0.06)' }} />
+
+      {/* Color Label */}
+      <button
+        onClick={(e) => { e.stopPropagation(); setShowColors(!showColors); }}
+        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[11px] text-foreground/70 hover:bg-primary/10 hover:text-foreground transition-colors"
+      >
+        <Palette className="w-3.5 h-3.5" /> Color Label
+      </button>
+      {showColors && (
+        <div className="flex items-center gap-1 px-3.5 py-1.5">
+          {CLIP_LABEL_COLORS.map((c) => (
+            <button
+              key={c.name}
+              onClick={() => { onColorLabel(c.color); onClose(); }}
+              className="w-4 h-4 rounded-full border transition-all hover:scale-125"
+              style={{
+                background: c.color || 'hsla(0, 0%, 100%, 0.1)',
+                borderColor: c.color ? `${c.color}` : 'hsla(0, 0%, 100%, 0.2)',
+              }}
+              title={c.name}
+            />
+          ))}
+        </div>
+      )}
+
       <div className="h-px mx-3 my-1" style={{ background: 'hsla(0, 0%, 100%, 0.06)' }} />
       <button onClick={() => { onDelete(); onClose(); }} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[11px] text-destructive/70 hover:bg-destructive/10 hover:text-destructive transition-colors">
         <Trash className="w-3.5 h-3.5" /> Delete

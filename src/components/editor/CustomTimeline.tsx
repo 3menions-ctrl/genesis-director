@@ -469,13 +469,46 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
     setIsDragging(true);
   }, []);
 
+  // ─── Razor tool click ───
+  const handleRazorClick = useCallback((e: React.MouseEvent, clipId: string, trackId: string) => {
+    if (state.activeTool !== "razor") return;
+    const track = state.tracks.find(t => t.id === trackId);
+    const clip = track?.clips.find(c => c.id === clipId);
+    if (!clip || !timelineRef.current) return;
+
+    const rect = timelineRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left + state.scrollX - HEADER_WIDTH;
+    const splitTime = x / state.zoom;
+
+    if (splitTime <= clip.start + 0.1 || splitTime >= clip.end - 0.1) return;
+
+    dispatch({ type: "TRIM_CLIP", trackId, clipId: clip.id, edge: "end", newTime: splitTime });
+    const offsetIntoSource = splitTime - clip.start;
+    dispatch({
+      type: "ADD_CLIP",
+      trackId,
+      clip: {
+        id: generateClipId(), type: clip.type, src: clip.src, text: clip.text,
+        start: splitTime, end: clip.end,
+        trimStart: clip.trimStart + offsetIntoSource, trimEnd: clip.trimEnd,
+        name: `${clip.name} (cut)`, thumbnail: clip.thumbnail,
+        sourceDuration: clip.sourceDuration, textStyle: clip.textStyle,
+        volume: clip.volume, speed: clip.speed, fadeIn: clip.fadeIn, fadeOut: clip.fadeOut,
+      },
+    });
+  }, [state.activeTool, state.tracks, state.scrollX, state.zoom, dispatch]);
+
   // ─── Clip dragging ───
   const handleClipDragStart = useCallback((e: React.MouseEvent, clipId: string, trackId: string) => {
+    if (state.activeTool === "razor") {
+      handleRazorClick(e, clipId, trackId);
+      return;
+    }
     const clip = state.tracks.find(t => t.id === trackId)?.clips.find(c => c.id === clipId);
     if (!clip) return;
     dragRef.current = { type: "clip", clipId, trackId, startX: e.clientX, startTime: clip.start };
     setIsDragging(true);
-  }, [state.tracks]);
+  }, [state.tracks, state.activeTool, handleRazorClick]);
 
   // ─── Context menu ───
   const handleContextMenu = useCallback((e: React.MouseEvent, clipId: string, trackId: string) => {

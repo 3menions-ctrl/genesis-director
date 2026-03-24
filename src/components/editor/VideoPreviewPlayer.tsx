@@ -1,12 +1,13 @@
 /**
  * VideoPreviewPlayer — Premium cinematic preview with GAPLESS playback
- * Apple-clean aesthetic with blue accent system
+ * Apple-clean aesthetic with blue accent system, scopes, SMPTE timecode
  */
 
 import { useEffect, useRef, useCallback, useState, memo } from "react";
 import {
   Play, Pause, SkipBack, SkipForward, Volume2, VolumeX,
-  Maximize, Repeat, ChevronsLeft, ChevronsRight, MonitorPlay, Sparkles
+  Maximize, Repeat, ChevronsLeft, ChevronsRight, MonitorPlay, Sparkles,
+  Activity, BarChart3
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCustomTimeline, TimelineClip } from "@/hooks/useCustomTimeline";
@@ -18,6 +19,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { AudioLevelMeter } from "@/components/editor/AudioLevelMeter";
+import { VideoScopes } from "@/components/editor/VideoScopes";
 
 function getSortedMediaClips(tracks: { clips: TimelineClip[] }[]): { clip: TimelineClip; trackIndex: number }[] {
   const result: { clip: TimelineClip; trackIndex: number }[] = [];

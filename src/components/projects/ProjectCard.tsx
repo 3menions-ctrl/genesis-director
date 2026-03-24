@@ -323,7 +323,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
               <Play className="w-3.5 h-3.5" fill="currentColor" />
             </Button>
           )}
-          <CardDropdown {...{ onEdit, onTogglePin, isPinned, onRename, hasVideo, onTogglePublic, project, status, onRetryStitch, isRetrying, onBrowserStitch, isBrowserStitching, onDelete }} />
+          <CardDropdown {...{ onEdit, onOpenInEditor, onTogglePin, isPinned, onRename, hasVideo, onTogglePublic, project, status, onRetryStitch, isRetrying, onBrowserStitch, isBrowserStitching, onDelete }} />
         </div>
       </div>
     );

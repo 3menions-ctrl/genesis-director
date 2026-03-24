@@ -68,7 +68,7 @@ export function EditorChrome({
   const { submitStitch, isStitching, progress: stitchProgress, reset: resetStitch } = useEditorStitch();
   const [autoLoadDone, setAutoLoadDone] = useState(false);
 
-  const { state: timelineState, dispatch } = useCustomTimeline();
+  const { state: timelineState, dispatch, undo, redo } = useCustomTimeline();
 
   const renderer = useBrowserRenderer?.({
     width: 1920,
@@ -391,6 +391,9 @@ export function EditorChrome({
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
+      const tag = (e.target as HTMLElement)?.tagName;
+      const isInput = tag === "INPUT" || tag === "TEXTAREA";
+
       if (mod && e.key === "s") {
         e.preventDefault();
         saveProject(sessionTitle);
@@ -399,20 +402,28 @@ export function EditorChrome({
         e.preventDefault();
         if (!isRendering) exportVideo();
       }
-      if (e.key === " " && (e.target as HTMLElement)?.tagName !== "INPUT") {
+      if (mod && e.key === "z") {
+        e.preventDefault();
+        undo();
+      }
+      if (mod && (e.key === "y" || (e.shiftKey && e.key === "z"))) {
+        e.preventDefault();
+        redo();
+      }
+      if (mod && e.key === "a") {
+        e.preventDefault();
+        dispatch({ type: "SELECT_ALL_CLIPS" });
+      }
+      if (e.key === " " && !isInput) {
         e.preventDefault();
         dispatch({ type: "SET_PLAYING", playing: !timelineState.isPlaying });
       }
-      if (e.key === "?" && !e.ctrlKey && !e.metaKey) {
-        if ((e.target as HTMLElement)?.tagName !== "INPUT" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
-          setShowShortcuts(prev => !prev);
-        }
+      if (e.key === "?" && !e.ctrlKey && !e.metaKey && !isInput) {
+        setShowShortcuts(prev => !prev);
       }
-      if (e.key === "Delete" || e.key === "Backspace") {
+      if ((e.key === "Delete" || e.key === "Backspace") && !isInput) {
         if (timelineState.selectedClipId && timelineState.selectedTrackId) {
-          if ((e.target as HTMLElement)?.tagName !== "INPUT" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
-            dispatch({ type: "REMOVE_CLIP", trackId: timelineState.selectedTrackId, clipId: timelineState.selectedClipId });
-          }
+          dispatch({ type: "REMOVE_CLIP", trackId: timelineState.selectedTrackId, clipId: timelineState.selectedClipId });
         }
       }
       if (e.key === "Home") {
@@ -423,7 +434,8 @@ export function EditorChrome({
         e.preventDefault();
         dispatch({ type: "SET_PLAYHEAD", time: timelineState.duration });
       }
-      if (e.key === "d" && !mod && (e.target as HTMLElement)?.tagName !== "INPUT" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
+      // Duplicate
+      if (e.key === "d" && !mod && !isInput) {
         if (timelineState.selectedClipId && timelineState.selectedTrackId) {
           const track = timelineState.tracks.find(t => t.id === timelineState.selectedTrackId);
           const clip = track?.clips.find(c => c.id === timelineState.selectedClipId);
@@ -436,11 +448,12 @@ export function EditorChrome({
           }
         }
       }
-      if (e.key === "l" && !mod && (e.target as HTMLElement)?.tagName !== "INPUT" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
+      // Loop toggle
+      if (e.key === "l" && !mod && !isInput) {
         dispatch({ type: "SET_LOOP", looping: !timelineState.isLooping });
       }
-      // Split at playhead with 'S' key
-      if (e.key === "s" && !mod && (e.target as HTMLElement)?.tagName !== "INPUT" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
+      // Split at playhead
+      if (e.key === "s" && !mod && !isInput) {
         if (timelineState.selectedClipId && timelineState.selectedTrackId) {
           const track = timelineState.tracks.find(t => t.id === timelineState.selectedTrackId);
           const clip = track?.clips.find(c => c.id === timelineState.selectedClipId);
@@ -458,10 +471,32 @@ export function EditorChrome({
           }
         }
       }
+      // Tool switching
+      if (e.key === "v" && !mod && !isInput) {
+        dispatch({ type: "SET_ACTIVE_TOOL", tool: "select" });
+      }
+      if (e.key === "c" && !mod && !isInput) {
+        dispatch({ type: "SET_ACTIVE_TOOL", tool: "razor" });
+      }
+      if (e.key === "b" && !mod && !isInput) {
+        dispatch({ type: "SET_ACTIVE_TOOL", tool: "ripple" });
+      }
+      // Add marker at playhead
+      if (e.key === "m" && !mod && !isInput) {
+        dispatch({
+          type: "ADD_MARKER",
+          marker: {
+            id: `marker-${Date.now()}`,
+            time: timelineState.playheadTime,
+            label: `Marker`,
+            color: "#f59e0b",
+          },
+        });
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [saveProject, exportVideo, sessionTitle, isRendering, timelineState, dispatch]);
+  }, [saveProject, exportVideo, sessionTitle, isRendering, timelineState, dispatch, undo, redo]);
 
   // ─── Auto-save ───
   useEffect(() => {

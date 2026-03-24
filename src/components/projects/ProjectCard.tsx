@@ -81,6 +81,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
   index,
   onPlay,
   onEdit,
+  onOpenInEditor,
   onRename,
   onDelete,
   onDownload,

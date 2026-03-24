@@ -357,14 +357,7 @@ const App = () => {
                 } />
                 <Route path="/social" element={<Navigate to="/creators" replace />} />
                 
-                {/* World Chat */}
-                <Route path="/chat" element={
-                  <RouteContainer fallbackMessage="Loading chat...">
-                    <ProtectedRoute>
-                      <WorldChat />
-                    </ProtectedRoute>
-                  </RouteContainer>
-                } />
+                {/* Chat route removed */}
                 
                 {/* Video Detail Page */}
                 <Route path="/video/:videoId" element={

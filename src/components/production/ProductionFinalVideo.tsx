@@ -129,6 +129,17 @@ export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFi
           </div>
           
           <div className="relative flex gap-2.5">
+            {projectId && (
+              <Button 
+                size="sm"
+                variant="ghost"
+                className="h-10 px-4 text-xs gap-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-xl font-semibold"
+                onClick={() => navigate(`/editor?project=${projectId}`)}
+              >
+                <Film className="w-3.5 h-3.5" />
+                Edit in Studio
+              </Button>
+            )}
             <Button 
               size="sm"
               variant="ghost"

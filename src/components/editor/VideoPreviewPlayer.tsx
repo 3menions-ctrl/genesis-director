@@ -319,6 +319,7 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({ className }
         <div className="absolute top-3 right-3 px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold backdrop-blur-xl" style={{ background: 'hsla(0,0%,0%,0.6)', color: 'hsla(0,0%,100%,0.45)', border: '1px solid hsla(0,0%,100%,0.08)', zIndex: 20 }}>
           {state.aspectRatio}
         </div>
+        </div>
       </div>
 
       {/* Seek bar + Transport */}

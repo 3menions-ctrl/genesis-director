@@ -20,7 +20,7 @@ import { NavigationGuardProvider, NavigationBridge } from "@/lib/navigation";
 
 import { crashForensics } from "@/lib/crashForensics";
 import { getSafeModeStatus } from "@/lib/safeMode";
-import { AgentTrigger } from "@/components/agent";
+
 import { CommandPalette } from "@/components/agent/CommandPalette";
 
 // Lazy load all pages for code splitting

@@ -627,6 +627,9 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
   // ─── Keyboard shortcuts ───
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
         undo();
@@ -640,15 +643,27 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
         e.preventDefault();
         dispatch({ type: "SET_PLAYHEAD", time: state.duration });
       } else if ((e.ctrlKey || e.metaKey) && e.key === "a") {
-        if ((e.target as HTMLElement)?.tagName !== "INPUT" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
-          e.preventDefault();
-          dispatch({ type: "SELECT_ALL_CLIPS" });
-        }
+        e.preventDefault();
+        dispatch({ type: "SELECT_ALL_CLIPS" });
+      } else if (e.key === "v" && !e.ctrlKey && !e.metaKey) {
+        dispatch({ type: "SET_ACTIVE_TOOL", tool: "select" });
+      } else if (e.key === "c" && !e.ctrlKey && !e.metaKey) {
+        dispatch({ type: "SET_ACTIVE_TOOL", tool: "razor" });
+      } else if (e.key === "b" && !e.ctrlKey && !e.metaKey) {
+        dispatch({ type: "SET_ACTIVE_TOOL", tool: "ripple" });
+      } else if (e.key === "m" && !e.ctrlKey && !e.metaKey) {
+        const marker: TimelineMarker = {
+          id: `marker-${Date.now()}`,
+          time: state.playheadTime,
+          label: `M${state.markers.length + 1}`,
+          color: ["#ef4444", "#3b82f6", "#22c55e", "#eab308", "#a855f7"][state.markers.length % 5],
+        };
+        dispatch({ type: "ADD_MARKER", marker });
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [undo, redo, dispatch, state.duration]);
+  }, [undo, redo, dispatch, state.duration, state.playheadTime, state.markers.length]);
 
   const playheadLeft = state.playheadTime * state.zoom - state.scrollX;
 

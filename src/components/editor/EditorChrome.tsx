@@ -878,7 +878,7 @@ export function EditorChrome({
               className="h-0.5 bg-muted/20 shrink-0 z-10 relative"
             >
               <motion.div
-                className="h-full bg-gradient-to-r from-primary via-violet-400 to-primary"
+                className="h-full bg-gradient-to-r from-[hsl(215,100%,50%)] via-[hsl(215,100%,65%)] to-[hsl(215,100%,50%)]"
                 style={{ width: `${Math.round(renderProgress * 100)}%` }}
                 transition={{ duration: 0.3 }}
               />

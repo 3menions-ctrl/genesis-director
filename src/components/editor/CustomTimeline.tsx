@@ -572,6 +572,18 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
 
   const totalWidth = Math.max(state.duration + 10, 30) * state.zoom;
 
+  // ─── Measure container width for minimap ───
+  useEffect(() => {
+    if (!timelineRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(timelineRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   // ─── Auto-scroll to follow playhead during playback ───
   useEffect(() => {
     if (!state.isPlaying || !scrollContainerRef.current) return;

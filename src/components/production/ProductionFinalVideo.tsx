@@ -1,13 +1,15 @@
 import { memo, forwardRef, useCallback, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Download, Sparkles, ExternalLink, Loader2 } from 'lucide-react';
+import { CheckCircle2, Download, Sparkles, ExternalLink, Loader2, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UniversalVideoPlayer } from '@/components/player';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 interface ProductionFinalVideoProps {
   videoUrl: string;
+  projectId?: string;
 }
 
 export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFinalVideoProps>(function ProductionFinalVideo({ videoUrl }, ref) {

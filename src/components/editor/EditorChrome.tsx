@@ -344,37 +344,89 @@ export function EditorChrome({
     });
   }, [sessionId, getProjectJSON, saveProject, sessionTitle, submitStitch]);
 
-  // ─── Auto-load clips from all projects ───
+  // ─── Auto-load clips from all projects (or a specific project via ?project=) ───
+  const projectParam = searchParams.get("project");
+  
   useEffect(() => {
     if (!user || autoLoadDone) return;
     let cancelled = false;
 
     (async () => {
       try {
-        const projectList = await listProjects();
-        if (cancelled || projectList.length === 0) {
-          setAutoLoadDone(true);
-          return;
-        }
-        setProjects(projectList);
-        setProjectsLoaded(true);
+        // If a specific project is requested via URL param, load it first
+        if (projectParam) {
+          const { clips } = await loadProjectClips(projectParam);
+          if (!cancelled && clips.length > 0) {
+            setAvailableClips(clips);
+            setLoadedProjectIds(new Set([projectParam]));
+            setMediaCounts({ videos: clips.length, images: 0 });
+            
+            // Auto-add clips to timeline if empty
+            if (timelineState.tracks.every(t => t.clips.length === 0)) {
+              const trackId = timelineState.tracks[0]?.id || generateTrackId();
+              if (!timelineState.tracks[0]) {
+                dispatch({ type: "ADD_TRACK", track: { id: trackId, name: "V1", type: "video", clips: [], muted: false, locked: false } });
+              }
+              let offset = 0;
+              for (const clip of clips) {
+                const dur = clip.durationSeconds || 6;
+                dispatch({
+                  type: "ADD_CLIP",
+                  trackId: timelineState.tracks[0]?.id || trackId,
+                  clip: {
+                    id: generateClipId(),
+                    type: "video",
+                    name: `Shot ${clip.shotIndex + 1}`,
+                    start: offset,
+                    end: offset + dur,
+                    src: clip.videoUrl,
+                    thumbnail: clip.thumbnailUrl || undefined,
+                    volume: 1,
+                    speed: 1,
+                    opacity: 1,
+                  },
+                });
+                offset += dur;
+              }
+              setSessionTitle(clips[0]?.projectTitle || "Untitled Session");
+              toast.success(`Loaded ${clips.length} clips from project into timeline`);
+            } else {
+              toast.success(`Loaded ${clips.length} clips from project`);
+            }
+          }
+          // Also load the full project list for the browser
+          const projectList = await listProjects();
+          if (!cancelled) {
+            setProjects(projectList);
+            setProjectsLoaded(true);
+          }
+        } else {
+          // Default: load all projects
+          const projectList = await listProjects();
+          if (cancelled || projectList.length === 0) {
+            setAutoLoadDone(true);
+            return;
+          }
+          setProjects(projectList);
+          setProjectsLoaded(true);
 
-        const allClips: EditorClip[] = [];
-        const loaded = new Set<string>();
+          const allClips: EditorClip[] = [];
+          const loaded = new Set<string>();
 
-        for (const project of projectList) {
-          if (cancelled) break;
-          const { clips } = await loadProjectClips(project.id);
-          allClips.push(...clips);
-          loaded.add(project.id);
-        }
+          for (const project of projectList) {
+            if (cancelled) break;
+            const { clips } = await loadProjectClips(project.id);
+            allClips.push(...clips);
+            loaded.add(project.id);
+          }
 
-        if (!cancelled) {
-          setAvailableClips(allClips);
-          setLoadedProjectIds(loaded);
-          setMediaCounts({ videos: allClips.length, images: 0 });
-          if (allClips.length > 0) {
-            toast.success(`Loaded ${allClips.length} clips from ${loaded.size} project${loaded.size !== 1 ? "s" : ""}`);
+          if (!cancelled) {
+            setAvailableClips(allClips);
+            setLoadedProjectIds(loaded);
+            setMediaCounts({ videos: allClips.length, images: 0 });
+            if (allClips.length > 0) {
+              toast.success(`Loaded ${allClips.length} clips from ${loaded.size} project${loaded.size !== 1 ? "s" : ""}`);
+            }
           }
         }
       } catch (err) {
@@ -385,7 +437,7 @@ export function EditorChrome({
     })();
 
     return () => { cancelled = true; };
-  }, [user, autoLoadDone, listProjects, loadProjectClips]);
+  }, [user, autoLoadDone, listProjects, loadProjectClips, projectParam]);
 
   // ─── Keyboard shortcuts ───
   useEffect(() => {

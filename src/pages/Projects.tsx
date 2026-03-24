@@ -1205,6 +1205,7 @@ function ProjectsContentInner() {
                         navigate('/create'); 
                       }
                     }}
+                    onOpenInEditor={(project) => navigate(`/editor?project=${project.id}`)}
                     onRename={handleRenameProject}
                     onDelete={(id) => handleDeleteProject(id)}
                     onDownload={handleDownloadAll}

@@ -862,7 +862,7 @@ export function EditorChrome({
 
           {/* Center — Player + Timeline */}
           <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-            <VideoPreviewPlayer className="h-[40%] shrink-0" />
+            <VideoPreviewPlayer className="h-[42%] shrink-0" />
             <CustomTimeline className="flex-1 min-h-0" onOpenTextDialog={() => setTextDialogOpen(true)} />
           </div>
 

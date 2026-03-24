@@ -68,7 +68,7 @@ export function EditorChrome({
   const { submitStitch, isStitching, progress: stitchProgress, reset: resetStitch } = useEditorStitch();
   const [autoLoadDone, setAutoLoadDone] = useState(false);
 
-  const { state: timelineState, dispatch } = useCustomTimeline();
+  const { state: timelineState, dispatch, undo, redo } = useCustomTimeline();
 
   const renderer = useBrowserRenderer?.({
     width: 1920,

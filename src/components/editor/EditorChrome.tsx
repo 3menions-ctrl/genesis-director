@@ -579,8 +579,8 @@ export function EditorChrome({
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="h-screen w-screen flex flex-col overflow-hidden relative" style={{ background: 'hsl(220, 13%, 4%)' }}>
-        {/* Apple-clean accent line — top */}
+      <div className="h-screen w-screen flex flex-col overflow-hidden relative" style={{ background: 'hsl(220, 14%, 4%)' }}>
+        {/* Blue accent line — top */}
         <div className="absolute top-0 left-0 right-0 h-px z-20">
           <div className="h-full bg-gradient-to-r from-transparent via-[hsla(215,100%,50%,0.35)] to-transparent" />
           {isRendering && (

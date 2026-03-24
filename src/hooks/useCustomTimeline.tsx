@@ -365,6 +365,33 @@ function timelineReducer(state: TimelineState, action: TimelineAction): Timeline
       return state;
     }
 
+    case "ADD_MARKER":
+      return { ...state, markers: [...state.markers, action.marker] };
+
+    case "REMOVE_MARKER":
+      return { ...state, markers: state.markers.filter(m => m.id !== action.markerId) };
+
+    case "SET_ACTIVE_TOOL":
+      return { ...state, activeTool: action.tool };
+
+    case "MAGNETIC_INSERT": {
+      // Insert clip at position and push all subsequent clips forward (ripple)
+      const tracks = state.tracks.map((t) => {
+        if (t.id !== action.trackId) return t;
+        const clipDur = action.clip.end - action.clip.start;
+        const insertTime = action.insertAt;
+        const shifted = t.clips.map(c => {
+          if (c.start >= insertTime) {
+            return { ...c, start: c.start + clipDur, end: c.end + clipDur };
+          }
+          return c;
+        });
+        const insertedClip = { ...action.clip, start: insertTime, end: insertTime + clipDur };
+        return { ...t, clips: [...shifted, insertedClip].sort((a, b) => a.start - b.start) };
+      });
+      return { ...state, tracks, duration: recalcDuration(tracks) };
+    }
+
     default:
       return state;
   }

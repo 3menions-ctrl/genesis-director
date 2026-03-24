@@ -43,7 +43,7 @@ export const RightSidebarPanel = memo(function RightSidebarPanel() {
     { id: "fx", icon: <Sparkles className="w-3 h-3" />, label: "FX" },
     { id: "ai", icon: <Wand2 className="w-3 h-3" />, label: "AI", glow: true },
     { id: "avatars", icon: <Users className="w-3 h-3" />, label: "Char" },
-    { id: "voice", icon: <Mic className="w-3 h-3" />, label: "Voice" },
+    { id: "voice", icon: <Mic className="w-3 h-3" />, label: "Sound" },
   ];
 
   return (

@@ -1036,6 +1036,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
                 totalTracks={state.tracks.length}
                 onToggleMute={() => dispatch({ type: "TOGGLE_TRACK_MUTE", trackId: track.id })}
                 onToggleLock={() => dispatch({ type: "TOGGLE_TRACK_LOCK", trackId: track.id })}
+                onToggleSolo={() => {/* Solo is visual-only for now */}}
                 onRemove={() => dispatch({ type: "REMOVE_TRACK", trackId: track.id })}
                 onMoveUp={() => dispatch({ type: "MOVE_TRACK", trackId: track.id, direction: "up" })}
                 onMoveDown={() => dispatch({ type: "MOVE_TRACK", trackId: track.id, direction: "down" })}

@@ -1,13 +1,13 @@
 /**
- * ClipPropertiesPanel — Inspector panel for editing selected clip properties.
- * Includes volume, speed, fade in/out, opacity, text bg color, font family, color labels.
+ * ClipPropertiesPanel — Premium Inspector panel for editing selected clip properties.
+ * Glassmorphic section cards, icon-accented labels, value readouts.
  */
 
 import { memo, useCallback } from "react";
 import {
   X, Scissors, Copy, Trash2, Type, Clock, Film, Image, Volume2,
   AlignLeft, AlignCenter, AlignVerticalJustifyEnd, Gauge, Sunset,
-  Eye, Palette, Tag, SunMedium, Contrast, Droplets, Wand2
+  Eye, Palette, Tag, SunMedium, Contrast, Droplets, Wand2, Music
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,12 +22,27 @@ import {
 } from "@/components/ui/select";
 import { useCustomTimeline, TimelineClip, generateClipId } from "@/hooks/useCustomTimeline";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
   video: <Film className="w-3.5 h-3.5" />,
   image: <Image className="w-3.5 h-3.5" />,
   text: <Type className="w-3.5 h-3.5" />,
   audio: <Volume2 className="w-3.5 h-3.5" />,
+};
+
+const TYPE_COLORS: Record<string, string> = {
+  video: "hsla(215, 100%, 50%, 0.15)",
+  image: "hsla(45, 85%, 55%, 0.15)",
+  text: "hsla(160, 65%, 50%, 0.15)",
+  audio: "hsla(280, 65%, 55%, 0.15)",
+};
+
+const TYPE_ACCENT: Record<string, string> = {
+  video: "hsl(215, 100%, 60%)",
+  image: "hsl(45, 85%, 55%)",
+  text: "hsl(160, 65%, 50%)",
+  audio: "hsl(280, 65%, 55%)",
 };
 
 const SPEED_PRESETS = [
@@ -61,6 +76,59 @@ const COLOR_LABELS = [
   { label: "Pink", value: "#ec4899" },
 ];
 
+function SectionCard({ title, icon, children, accent }: { title: string; icon: React.ReactNode; children: React.ReactNode; accent?: string }) {
+  return (
+    <div
+      className="rounded-xl overflow-hidden"
+      style={{
+        background: "hsla(0, 0%, 100%, 0.02)",
+        border: "1px solid hsla(0, 0%, 100%, 0.05)",
+      }}
+    >
+      <div
+        className="flex items-center gap-2 px-3 py-2"
+        style={{ borderBottom: "1px solid hsla(0, 0%, 100%, 0.04)" }}
+      >
+        <span style={{ color: accent || "hsla(0, 0%, 100%, 0.4)" }}>{icon}</span>
+        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "hsla(0, 0%, 100%, 0.45)" }}>
+          {title}
+        </span>
+      </div>
+      <div className="p-3 space-y-2">{children}</div>
+    </div>
+  );
+}
+
+function ValueReadout({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-[9px] text-[hsla(0,0%,100%,0.35)]">{label}</span>
+      <span className={cn("text-[10px] text-[hsla(0,0%,100%,0.65)] px-1.5 py-0.5 rounded-md", mono && "font-mono")} style={{ background: "hsla(0,0%,100%,0.04)" }}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function SliderRow({ label, value, displayValue, min, max, step, onChange, icon }: {
+  label: string; value: number; displayValue: string; min: number; max: number; step: number;
+  onChange: (v: number) => void; icon?: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-[9px] text-[hsla(0,0%,100%,0.4)] flex items-center gap-1">
+          {icon} {label}
+        </span>
+        <span className="text-[9px] font-mono text-[hsla(215,100%,60%,0.7)] px-1.5 py-0.5 rounded-md" style={{ background: "hsla(215,100%,50%,0.08)" }}>
+          {displayValue}
+        </span>
+      </div>
+      <Slider value={[value]} onValueChange={([v]) => onChange(v)} min={min} max={max} step={step} className="w-full" />
+    </div>
+  );
+}
+
 export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
   className,
   embedded,
@@ -91,58 +159,31 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
     const splitTime = state.playheadTime;
     if (splitTime <= selectedClip.start || splitTime >= selectedClip.end) return;
 
-    dispatch({
-      type: "TRIM_CLIP",
-      trackId: state.selectedTrackId,
-      clipId: selectedClip.id,
-      edge: "end",
-      newTime: splitTime,
-    });
+    dispatch({ type: "TRIM_CLIP", trackId: state.selectedTrackId, clipId: selectedClip.id, edge: "end", newTime: splitTime });
 
     const offsetIntoSource = splitTime - selectedClip.start;
     const newClip: TimelineClip = {
-      id: generateClipId(),
-      type: selectedClip.type,
-      src: selectedClip.src,
-      text: selectedClip.text,
-      start: splitTime,
-      end: selectedClip.end,
-      trimStart: selectedClip.trimStart + offsetIntoSource,
-      trimEnd: selectedClip.trimEnd,
-      name: `${selectedClip.name} (split)`,
-      thumbnail: selectedClip.thumbnail,
-      sourceDuration: selectedClip.sourceDuration,
-      textStyle: selectedClip.textStyle,
-      volume: selectedClip.volume,
-      speed: selectedClip.speed,
-      fadeIn: selectedClip.fadeIn,
-      fadeOut: selectedClip.fadeOut,
-      opacity: selectedClip.opacity,
-      colorLabel: selectedClip.colorLabel,
+      id: generateClipId(), type: selectedClip.type, src: selectedClip.src, text: selectedClip.text,
+      start: splitTime, end: selectedClip.end, trimStart: selectedClip.trimStart + offsetIntoSource, trimEnd: selectedClip.trimEnd,
+      name: `${selectedClip.name} (split)`, thumbnail: selectedClip.thumbnail, sourceDuration: selectedClip.sourceDuration,
+      textStyle: selectedClip.textStyle, volume: selectedClip.volume, speed: selectedClip.speed,
+      fadeIn: selectedClip.fadeIn, fadeOut: selectedClip.fadeOut, opacity: selectedClip.opacity, colorLabel: selectedClip.colorLabel,
     };
-
     dispatch({ type: "ADD_CLIP", trackId: state.selectedTrackId, clip: newClip });
   }, [selectedClip, state.selectedTrackId, state.playheadTime, dispatch]);
 
   const handleDuplicate = useCallback(() => {
     if (!selectedClip || !state.selectedTrackId) return;
     const newClip: TimelineClip = {
-      ...selectedClip,
-      id: generateClipId(),
-      start: selectedClip.end,
-      end: selectedClip.end + (selectedClip.end - selectedClip.start),
-      name: `${selectedClip.name} (copy)`,
+      ...selectedClip, id: generateClipId(), start: selectedClip.end,
+      end: selectedClip.end + (selectedClip.end - selectedClip.start), name: `${selectedClip.name} (copy)`,
     };
     dispatch({ type: "ADD_CLIP", trackId: state.selectedTrackId, clip: newClip });
   }, [selectedClip, state.selectedTrackId, dispatch]);
 
   const handleDelete = useCallback(() => {
     if (!state.selectedClipId || !state.selectedTrackId) return;
-    dispatch({
-      type: "REMOVE_CLIP",
-      trackId: state.selectedTrackId,
-      clipId: state.selectedClipId,
-    });
+    dispatch({ type: "REMOVE_CLIP", trackId: state.selectedTrackId, clipId: state.selectedClipId });
   }, [state.selectedClipId, state.selectedTrackId, dispatch]);
 
   const formatTime = (s: number) => {
@@ -154,32 +195,27 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
   if (!selectedClip) {
     if (embedded) {
       return (
-        <div className="flex-1 flex items-center justify-center p-4">
-          <p className="text-[10px] text-muted-foreground/30 text-center">
-            Select a clip on the timeline to edit its properties
-          </p>
+        <div className="flex-1 flex flex-col items-center justify-center p-6 gap-4">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "hsla(215,100%,50%,0.06)", border: "1px dashed hsla(215,100%,50%,0.12)" }}>
+            <Scissors className="w-6 h-6 text-[hsla(215,100%,60%,0.25)]" />
+          </div>
+          <div className="text-center space-y-1">
+            <p className="text-[11px] font-semibold text-[hsla(0,0%,100%,0.35)]">No Clip Selected</p>
+            <p className="text-[9px] text-[hsla(0,0%,100%,0.2)] leading-relaxed max-w-[180px]">
+              Select a clip on the timeline to edit its properties
+            </p>
+          </div>
         </div>
       );
     }
     return (
-      <div
-      className={`w-52 shrink-0 flex flex-col border-l overflow-hidden ${className || ""}`}
-      style={{
-        background: "hsl(220, 14%, 5%)",
-        borderColor: "hsla(0, 0%, 100%, 0.06)",
-      }}
-      >
-        <div
-          className="shrink-0 flex items-center gap-2 px-3 h-9 border-b"
-          style={{ borderColor: "hsla(0, 0%, 100%, 0.06)" }}
-        >
-          <Scissors className="w-3.5 h-3.5 text-muted-foreground/50" />
-          <span className="text-xs font-semibold text-foreground/80">Properties</span>
+      <div className={`w-52 shrink-0 flex flex-col border-l overflow-hidden ${className || ""}`} style={{ background: "hsl(220, 14%, 5%)", borderColor: "hsla(0, 0%, 100%, 0.06)" }}>
+        <div className="shrink-0 flex items-center gap-2 px-3 h-9 border-b" style={{ borderColor: "hsla(0, 0%, 100%, 0.06)" }}>
+          <Scissors className="w-3.5 h-3.5 text-[hsla(0,0%,100%,0.4)]" />
+          <span className="text-xs font-semibold text-[hsla(0,0%,100%,0.7)]">Properties</span>
         </div>
         <div className="flex-1 flex items-center justify-center p-4">
-          <p className="text-[10px] text-muted-foreground/30 text-center">
-            Select a clip on the timeline to edit its properties
-          </p>
+          <p className="text-[10px] text-[hsla(0,0%,100%,0.25)] text-center">Select a clip to edit</p>
         </div>
       </div>
     );
@@ -192,19 +228,22 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
   const currentFadeOut = selectedClip.fadeOut ?? 0;
   const currentOpacity = selectedClip.opacity ?? 1;
   const maxFade = clipDuration / 2;
+  const accent = TYPE_ACCENT[selectedClip.type] || TYPE_ACCENT.video;
 
   const headerContent = (
     <div
-      className="shrink-0 flex items-center gap-2 px-3 h-9 border-b"
-      style={{ borderColor: "hsla(0, 0%, 100%, 0.06)" }}
+      className="shrink-0 flex items-center gap-2.5 px-3 h-10"
+      style={{ borderBottom: "1px solid hsla(0, 0%, 100%, 0.06)" }}
     >
-      <span className="text-muted-foreground/50">{TYPE_ICONS[selectedClip.type]}</span>
-      <span className="text-xs font-semibold text-foreground/80 flex-1 truncate">
+      <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: TYPE_COLORS[selectedClip.type] || TYPE_COLORS.video }}>
+        <span style={{ color: accent }}>{TYPE_ICONS[selectedClip.type]}</span>
+      </div>
+      <span className="text-[11px] font-bold text-[hsla(0,0%,100%,0.8)] flex-1 truncate">
         {selectedClip.name}
       </span>
       <button
         onClick={() => dispatch({ type: "SELECT_CLIP", clipId: null, trackId: null })}
-        className="text-muted-foreground/40 hover:text-foreground transition-colors"
+        className="text-[hsla(0,0%,100%,0.3)] hover:text-[hsla(0,0%,100%,0.7)] transition-colors"
       >
         <X className="w-3 h-3" />
       </button>
@@ -213,196 +252,154 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
 
   const bodyContent = (
     <ScrollArea className="flex-1 min-h-0">
-      <div className="p-3 space-y-4">
-        {/* Name */}
-        <div className="space-y-1">
-          <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Name</Label>
+      <div className="p-2.5 space-y-2.5">
+        {/* Quick Actions */}
+        <div className="flex items-center gap-1">
+          {[
+            { icon: <Scissors className="w-3 h-3" />, label: "Split", onClick: handleSplit, color: "hsla(215,100%,50%,0.1)" },
+            { icon: <Copy className="w-3 h-3" />, label: "Duplicate", onClick: handleDuplicate, color: "hsla(142,60%,50%,0.1)" },
+            { icon: <Trash2 className="w-3 h-3" />, label: "Delete", onClick: handleDelete, color: "hsla(0,70%,50%,0.1)" },
+          ].map((action) => (
+            <button
+              key={action.label}
+              onClick={action.onClick}
+              className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[9px] font-semibold text-[hsla(0,0%,100%,0.5)] transition-all hover:text-[hsla(0,0%,100%,0.8)] active:scale-95"
+              style={{ background: action.color, border: "1px solid hsla(0,0%,100%,0.05)" }}
+            >
+              {action.icon}
+              {action.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Name + Color Label */}
+        <SectionCard title="Identity" icon={<Tag className="w-3 h-3" />} accent={accent}>
           <Input
             value={selectedClip.name}
             onChange={(e) => updateClip({ name: e.target.value })}
-            className="h-7 text-xs bg-muted/10 border-border/20"
+            className="h-7 text-[11px] bg-[hsla(0,0%,100%,0.04)] border-[hsla(0,0%,100%,0.06)] text-[hsla(0,0%,100%,0.8)] focus:border-[hsla(215,100%,50%,0.4)]"
           />
-        </div>
-
-        {/* Color Label */}
-        <div className="space-y-1">
-          <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider flex items-center gap-1">
-            <Tag className="w-3 h-3" /> Color Label
-          </Label>
-          <div className="flex flex-wrap gap-1">
+          <div className="flex items-center gap-1.5 pt-1">
             {COLOR_LABELS.map((cl) => (
               <button
                 key={cl.value || "none"}
                 onClick={() => updateClip({ colorLabel: cl.value || undefined })}
-                className={`w-5 h-5 rounded-full border-2 transition-all ${
-                  (selectedClip.colorLabel || "") === cl.value
-                    ? "border-foreground scale-110"
-                    : "border-border/20 hover:border-foreground/40"
-                }`}
-                style={{ background: cl.value || 'hsl(220, 14%, 10%)' }}
+                className={cn(
+                  "w-5 h-5 rounded-full border-2 transition-all hover:scale-110",
+                  (selectedClip.colorLabel || "") === cl.value ? "border-white scale-110 shadow-lg" : "border-transparent"
+                )}
+                style={{ background: cl.value || "hsla(0,0%,100%,0.08)", boxShadow: (selectedClip.colorLabel || "") === cl.value ? `0 0 8px ${cl.value || "hsla(0,0%,100%,0.2)"}` : "none" }}
                 title={cl.label}
               />
             ))}
           </div>
-        </div>
+        </SectionCard>
 
         {/* Timing */}
-        <div className="space-y-1">
-          <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider flex items-center gap-1">
-            <Clock className="w-3 h-3" /> Timing
-          </Label>
-          <div className="grid grid-cols-2 gap-1.5">
-            <div>
-              <span className="text-[9px] text-muted-foreground/40">Start</span>
-              <div className="text-xs font-mono text-foreground/70 bg-muted/10 rounded px-2 py-1 border border-border/10">
-                {formatTime(selectedClip.start)}
-              </div>
-            </div>
-            <div>
-              <span className="text-[9px] text-muted-foreground/40">End</span>
-              <div className="text-xs font-mono text-foreground/70 bg-muted/10 rounded px-2 py-1 border border-border/10">
-                {formatTime(selectedClip.end)}
-              </div>
-            </div>
+        <SectionCard title="Timing" icon={<Clock className="w-3 h-3" />}>
+          <div className="grid grid-cols-2 gap-2">
+            <ValueReadout label="Start" value={formatTime(selectedClip.start)} mono />
+            <ValueReadout label="End" value={formatTime(selectedClip.end)} mono />
           </div>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-[9px] text-muted-foreground/40">Duration</span>
-            <span className="text-xs font-mono text-foreground/70">{clipDuration.toFixed(1)}s</span>
-          </div>
-        </div>
+          <ValueReadout label="Duration" value={`${clipDuration.toFixed(1)}s`} mono />
+          {selectedClip.type === "video" && selectedClip.sourceDuration && (
+            <ValueReadout label="Source" value={`${selectedClip.sourceDuration.toFixed(1)}s`} mono />
+          )}
+        </SectionCard>
 
-        {/* Trim info */}
-        {selectedClip.type === "video" && (
-          <div className="space-y-1">
-            <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Trim</Label>
-            <div className="grid grid-cols-2 gap-1.5">
-              <div>
-                <span className="text-[9px] text-muted-foreground/40">Trim Start</span>
-                <div className="text-xs font-mono text-foreground/70 bg-muted/10 rounded px-2 py-1 border border-border/10">
-                  {formatTime(selectedClip.trimStart)}
-                </div>
-              </div>
-              <div>
-                <span className="text-[9px] text-muted-foreground/40">Source Dur.</span>
-                <div className="text-xs font-mono text-foreground/70 bg-muted/10 rounded px-2 py-1 border border-border/10">
-                  {selectedClip.sourceDuration ? `${selectedClip.sourceDuration.toFixed(1)}s` : "–"}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Visual Controls */}
+        <SectionCard title="Visual" icon={<Eye className="w-3 h-3" />} accent="hsl(215, 100%, 60%)">
+          <SliderRow label="Opacity" value={currentOpacity * 100} displayValue={`${Math.round(currentOpacity * 100)}%`} min={0} max={100} step={1} onChange={(v) => updateClip({ opacity: v / 100 })} />
+        </SectionCard>
 
-        {/* Opacity */}
-        <div className="space-y-1.5">
-          <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider flex items-center gap-1">
-            <Eye className="w-3 h-3" /> Opacity
-          </Label>
-          <Slider
-            value={[currentOpacity * 100]}
-            onValueChange={([v]) => updateClip({ opacity: v / 100 })}
-            min={0} max={100} step={1}
-            className="w-full"
-          />
-          <span className="text-[9px] text-muted-foreground/40">{Math.round(currentOpacity * 100)}%</span>
-        </div>
-
-        {/* Volume */}
+        {/* Audio Controls */}
         {(selectedClip.type === "video" || selectedClip.type === "audio") && (
-          <div className="space-y-1.5">
-            <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider flex items-center gap-1">
-              <Volume2 className="w-3 h-3" /> Volume
-            </Label>
-            <Slider
-              value={[currentVolume * 100]}
-              onValueChange={([v]) => updateClip({ volume: v / 100 })}
-              min={0} max={100} step={1}
-              className="w-full"
-            />
-            <span className="text-[9px] text-muted-foreground/40">{Math.round(currentVolume * 100)}%</span>
-          </div>
+          <SectionCard title="Audio" icon={<Volume2 className="w-3 h-3" />} accent="hsl(190, 70%, 55%)">
+            <SliderRow label="Volume" value={currentVolume * 100} displayValue={`${Math.round(currentVolume * 100)}%`} min={0} max={100} step={1} onChange={(v) => updateClip({ volume: v / 100 })} />
+          </SectionCard>
         )}
 
         {/* Speed */}
         {selectedClip.type === "video" && (
-          <div className="space-y-1.5">
-            <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider flex items-center gap-1">
-              <Gauge className="w-3 h-3" /> Speed
-            </Label>
-            <div className="flex flex-wrap gap-1">
+          <SectionCard title="Speed" icon={<Gauge className="w-3 h-3" />} accent="hsl(35, 90%, 55%)">
+            <div className="grid grid-cols-3 gap-1">
               {SPEED_PRESETS.map((p) => (
                 <button
                   key={p.value}
                   onClick={() => updateClip({ speed: p.value })}
-                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono border transition-colors ${
+                  className={cn(
+                    "py-1.5 rounded-lg text-[10px] font-mono font-bold transition-all",
                     Math.abs(currentSpeed - p.value) < 0.01
-                      ? "bg-foreground/15 border-foreground/30 text-foreground"
-                      : "bg-muted/10 border-border/20 text-muted-foreground/50 hover:text-foreground/70"
-                  }`}
+                      ? "bg-[hsla(215,100%,50%,0.2)] text-[hsl(215,100%,70%)] shadow-sm"
+                      : "text-[hsla(0,0%,100%,0.4)] hover:text-[hsla(0,0%,100%,0.7)] hover:bg-[hsla(0,0%,100%,0.05)]"
+                  )}
+                  style={{
+                    border: Math.abs(currentSpeed - p.value) < 0.01 ? "1px solid hsla(215,100%,50%,0.3)" : "1px solid hsla(0,0%,100%,0.04)",
+                  }}
                 >
                   {p.label}
                 </button>
               ))}
             </div>
-            <span className="text-[9px] text-muted-foreground/40">Current: {currentSpeed}×</span>
-          </div>
+          </SectionCard>
         )}
 
         {/* Fades */}
         {(selectedClip.type === "video" || selectedClip.type === "audio") && (
-          <div className="space-y-2">
-            <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider flex items-center gap-1">
-              <Sunset className="w-3 h-3" /> Fades
-            </Label>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] text-muted-foreground/40">Fade In</span>
-                <span className="text-[9px] font-mono text-muted-foreground/40">{currentFadeIn.toFixed(1)}s</span>
-              </div>
-              <Slider
-                value={[currentFadeIn]}
-                onValueChange={([v]) => updateClip({ fadeIn: Math.round(v * 10) / 10 })}
-                min={0} max={Math.max(0.5, maxFade)} step={0.1}
-                className="w-full"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] text-muted-foreground/40">Fade Out</span>
-                <span className="text-[9px] font-mono text-muted-foreground/40">{currentFadeOut.toFixed(1)}s</span>
-              </div>
-              <Slider
-                value={[currentFadeOut]}
-                onValueChange={([v]) => updateClip({ fadeOut: Math.round(v * 10) / 10 })}
-                min={0} max={Math.max(0.5, maxFade)} step={0.1}
-                className="w-full"
-              />
-            </div>
-          </div>
+          <SectionCard title="Fades" icon={<Sunset className="w-3 h-3" />} accent="hsl(45, 90%, 55%)">
+            <SliderRow
+              label="Fade In" value={currentFadeIn} displayValue={`${currentFadeIn.toFixed(1)}s`}
+              min={0} max={Math.max(0.5, maxFade)} step={0.1}
+              onChange={(v) => updateClip({ fadeIn: Math.round(v * 10) / 10 })}
+            />
+            <SliderRow
+              label="Fade Out" value={currentFadeOut} displayValue={`${currentFadeOut.toFixed(1)}s`}
+              min={0} max={Math.max(0.5, maxFade)} step={0.1}
+              onChange={(v) => updateClip({ fadeOut: Math.round(v * 10) / 10 })}
+            />
+          </SectionCard>
         )}
 
-        {/* Text styling */}
+        {/* Color Grading */}
+        {(selectedClip.type === "video" || selectedClip.type === "image") && (
+          <SectionCard title="Color Grade" icon={<Palette className="w-3 h-3" />} accent="hsl(265, 70%, 60%)">
+            <SliderRow
+              label="Brightness" value={selectedClip.brightness ?? 0} displayValue={`${(selectedClip.brightness ?? 0) > 0 ? "+" : ""}${selectedClip.brightness ?? 0}`}
+              min={-100} max={100} step={1} onChange={(v) => updateClip({ brightness: v })}
+              icon={<SunMedium className="w-2.5 h-2.5" />}
+            />
+            <SliderRow
+              label="Contrast" value={selectedClip.contrast ?? 0} displayValue={`${(selectedClip.contrast ?? 0) > 0 ? "+" : ""}${selectedClip.contrast ?? 0}`}
+              min={-100} max={100} step={1} onChange={(v) => updateClip({ contrast: v })}
+              icon={<Contrast className="w-2.5 h-2.5" />}
+            />
+            <SliderRow
+              label="Saturation" value={selectedClip.saturation ?? 0} displayValue={`${(selectedClip.saturation ?? 0) > 0 ? "+" : ""}${selectedClip.saturation ?? 0}`}
+              min={-100} max={100} step={1} onChange={(v) => updateClip({ saturation: v })}
+              icon={<Droplets className="w-2.5 h-2.5" />}
+            />
+          </SectionCard>
+        )}
+
+        {/* Text Styling */}
         {selectedClip.type === "text" && (
-          <div className="space-y-2">
-            <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Text Content</Label>
+          <SectionCard title="Text Style" icon={<Type className="w-3 h-3" />} accent="hsl(160, 65%, 50%)">
             <textarea
               value={selectedClip.text || ""}
               onChange={(e) => updateClip({ text: e.target.value })}
-              className="w-full h-16 text-xs bg-muted/10 border border-border/20 rounded-md px-2 py-1.5 resize-none text-foreground/80"
+              className="w-full h-16 text-[11px] rounded-lg px-2.5 py-2 resize-none outline-none transition-colors"
+              style={{
+                background: "hsla(0,0%,100%,0.04)",
+                border: "1px solid hsla(0,0%,100%,0.06)",
+                color: "hsla(0,0%,100%,0.8)",
+              }}
               placeholder="Enter text..."
             />
-            <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Font Family</Label>
             <Select
               value={selectedClip.textStyle?.fontFamily || "sans-serif"}
-              onValueChange={(v) =>
-                updateClip({
-                  textStyle: {
-                    ...(selectedClip.textStyle || { fontSize: 32, color: "#ffffff", position: "bottom" as const }),
-                    fontFamily: v,
-                  },
-                })
-              }
+              onValueChange={(v) => updateClip({ textStyle: { ...(selectedClip.textStyle || { fontSize: 32, color: "#ffffff", position: "bottom" as const }), fontFamily: v } })}
             >
-              <SelectTrigger className="h-7 text-xs bg-muted/10 border-border/20">
+              <SelectTrigger className="h-7 text-[11px] bg-[hsla(0,0%,100%,0.04)] border-[hsla(0,0%,100%,0.06)]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -413,152 +410,51 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
                 ))}
               </SelectContent>
             </Select>
-            <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Font Size</Label>
-            <Slider
-              value={[selectedClip.textStyle?.fontSize || 32]}
-              onValueChange={([v]) =>
-                updateClip({
-                  textStyle: { ...(selectedClip.textStyle || { fontFamily: "sans-serif", color: "#ffffff", position: "bottom" as const }), fontSize: v },
-                })
-              }
+            <SliderRow
+              label="Font Size" value={selectedClip.textStyle?.fontSize || 32} displayValue={`${selectedClip.textStyle?.fontSize || 32}px`}
               min={12} max={120} step={1}
-              className="w-full"
+              onChange={(v) => updateClip({ textStyle: { ...(selectedClip.textStyle || { fontFamily: "sans-serif", color: "#ffffff", position: "bottom" as const }), fontSize: v } })}
             />
-            <span className="text-[9px] text-muted-foreground/40">{selectedClip.textStyle?.fontSize || 32}px</span>
-            <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Position</Label>
             <Select
               value={selectedClip.textStyle?.position || "bottom"}
-              onValueChange={(v) =>
-                updateClip({
-                  textStyle: {
-                    ...(selectedClip.textStyle || { fontSize: 32, fontFamily: "sans-serif", color: "#ffffff" }),
-                    position: v as "top" | "center" | "bottom",
-                  },
-                })
-              }
+              onValueChange={(v) => updateClip({ textStyle: { ...(selectedClip.textStyle || { fontSize: 32, fontFamily: "sans-serif", color: "#ffffff" }), position: v as "top" | "center" | "bottom" } })}
             >
-              <SelectTrigger className="h-7 text-xs bg-muted/10 border-border/20">
+              <SelectTrigger className="h-7 text-[11px] bg-[hsla(0,0%,100%,0.04)] border-[hsla(0,0%,100%,0.06)]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="top"><span className="flex items-center gap-1.5"><AlignLeft className="w-3 h-3" /> Top</span></SelectItem>
-                <SelectItem value="center"><span className="flex items-center gap-1.5"><AlignCenter className="w-3 h-3" /> Center</span></SelectItem>
-                <SelectItem value="bottom"><span className="flex items-center gap-1.5"><AlignVerticalJustifyEnd className="w-3 h-3" /> Bottom</span></SelectItem>
+                <SelectItem value="top">Top</SelectItem>
+                <SelectItem value="center">Center</SelectItem>
+                <SelectItem value="bottom">Bottom</SelectItem>
               </SelectContent>
             </Select>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Color</Label>
-                <input
-                  type="color"
-                  value={selectedClip.textStyle?.color || "#ffffff"}
-                  onChange={(e) =>
-                    updateClip({
-                      textStyle: {
-                        ...(selectedClip.textStyle || { fontSize: 32, fontFamily: "sans-serif", position: "bottom" as const }),
-                        color: e.target.value,
-                      },
-                    })
-                  }
-                  className="w-8 h-6 rounded border border-border/20 cursor-pointer"
-                />
-              </div>
-              <div>
-                <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider flex items-center gap-1">
-                  <Palette className="w-3 h-3" /> BG Color
-                </Label>
-                <div className="flex items-center gap-1">
-                  <input
-                    type="color"
-                    value={selectedClip.textStyle?.backgroundColor || "#000000"}
-                    onChange={(e) =>
-                      updateClip({
-                        textStyle: {
-                          ...(selectedClip.textStyle || { fontSize: 32, fontFamily: "sans-serif", color: "#ffffff", position: "bottom" as const }),
-                          backgroundColor: e.target.value,
-                        },
-                      })
-                    }
-                    className="w-8 h-6 rounded border border-border/20 cursor-pointer"
-                  />
-                  {selectedClip.textStyle?.backgroundColor && (
-                    <button
-                      onClick={() => updateClip({
-                        textStyle: { ...selectedClip.textStyle!, backgroundColor: undefined },
-                      })}
-                      className="text-[8px] text-muted-foreground/40 hover:text-foreground"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              </div>
+            <div className="flex items-center gap-2">
+              <label className="text-[9px] text-[hsla(0,0%,100%,0.4)]">Text</label>
+              <input
+                type="color"
+                value={selectedClip.textStyle?.color || "#ffffff"}
+                onChange={(e) => updateClip({ textStyle: { ...(selectedClip.textStyle || { fontSize: 32, fontFamily: "sans-serif", position: "bottom" as const }), color: e.target.value } })}
+                className="w-6 h-6 rounded-md border-0 cursor-pointer bg-transparent"
+              />
+              <label className="text-[9px] text-[hsla(0,0%,100%,0.4)]">BG</label>
+              <input
+                type="color"
+                value={selectedClip.textStyle?.backgroundColor || "#000000"}
+                onChange={(e) => updateClip({ textStyle: { ...(selectedClip.textStyle || { fontSize: 32, fontFamily: "sans-serif", color: "#ffffff", position: "bottom" as const }), backgroundColor: e.target.value } })}
+                className="w-6 h-6 rounded-md border-0 cursor-pointer bg-transparent"
+              />
             </div>
-          </div>
+          </SectionCard>
         )}
 
-        {/* Color Grading */}
+        {/* Transitions */}
         {(selectedClip.type === "video" || selectedClip.type === "image") && (
-          <div className="space-y-2">
-            <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider flex items-center gap-1">
-              <SunMedium className="w-3 h-3" /> Color Grading
-            </Label>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] text-muted-foreground/40 flex items-center gap-1"><SunMedium className="w-2.5 h-2.5" /> Brightness</span>
-                <span className="text-[9px] font-mono text-muted-foreground/40">{selectedClip.brightness ?? 0}</span>
-              </div>
-              <Slider
-                value={[selectedClip.brightness ?? 0]}
-                onValueChange={([v]) => updateClip({ brightness: v })}
-                min={-100} max={100} step={1}
-                className="w-full"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] text-muted-foreground/40 flex items-center gap-1"><Contrast className="w-2.5 h-2.5" /> Contrast</span>
-                <span className="text-[9px] font-mono text-muted-foreground/40">{selectedClip.contrast ?? 0}</span>
-              </div>
-              <Slider
-                value={[selectedClip.contrast ?? 0]}
-                onValueChange={([v]) => updateClip({ contrast: v })}
-                min={-100} max={100} step={1}
-                className="w-full"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] text-muted-foreground/40 flex items-center gap-1"><Droplets className="w-2.5 h-2.5" /> Saturation</span>
-                <span className="text-[9px] font-mono text-muted-foreground/40">{selectedClip.saturation ?? 0}</span>
-              </div>
-              <Slider
-                value={[selectedClip.saturation ?? 0]}
-                onValueChange={([v]) => updateClip({ saturation: v })}
-                min={-100} max={100} step={1}
-                className="w-full"
-              />
-            </div>
-            <button
-              onClick={() => updateClip({ brightness: 0, contrast: 0, saturation: 0 })}
-              className="text-[9px] text-muted-foreground/40 hover:text-foreground transition-colors"
-            >
-              Reset Color
-            </button>
-          </div>
-        )}
-
-        {/* Transition */}
-        {(selectedClip.type === "video" || selectedClip.type === "image") && (
-          <div className="space-y-2">
-            <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider flex items-center gap-1">
-              <Wand2 className="w-3 h-3" /> Transition Out
-            </Label>
+          <SectionCard title="Transition" icon={<Wand2 className="w-3 h-3" />}>
             <Select
               value={selectedClip.transition || "none"}
-              onValueChange={(v) => updateClip({ transition: v as any })}
+              onValueChange={(v) => updateClip({ transition: v === "none" ? undefined : v as any, transitionDuration: v === "none" ? undefined : (selectedClip.transitionDuration || 0.5) })}
             >
-              <SelectTrigger className="h-7 text-xs bg-muted/10 border-border/20">
+              <SelectTrigger className="h-7 text-[11px] bg-[hsla(0,0%,100%,0.04)] border-[hsla(0,0%,100%,0.06)]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -568,51 +464,24 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
                 <SelectItem value="wipeleft">Wipe Left</SelectItem>
                 <SelectItem value="wiperight">Wipe Right</SelectItem>
                 <SelectItem value="slideup">Slide Up</SelectItem>
-                <SelectItem value="slidedown">Slide Down</SelectItem>
               </SelectContent>
             </Select>
             {selectedClip.transition && selectedClip.transition !== "none" && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] text-muted-foreground/40">Duration</span>
-                  <span className="text-[9px] font-mono text-muted-foreground/40">{(selectedClip.transitionDuration ?? 0.5).toFixed(1)}s</span>
-                </div>
-                <Slider
-                  value={[selectedClip.transitionDuration ?? 0.5]}
-                  onValueChange={([v]) => updateClip({ transitionDuration: Math.round(v * 10) / 10 })}
-                  min={0.1} max={2} step={0.1}
-                  className="w-full"
-                />
-              </div>
+              <SliderRow
+                label="Duration" value={selectedClip.transitionDuration || 0.5} displayValue={`${(selectedClip.transitionDuration || 0.5).toFixed(1)}s`}
+                min={0.1} max={3} step={0.1}
+                onChange={(v) => updateClip({ transitionDuration: v })}
+              />
             )}
-          </div>
+          </SectionCard>
         )}
-        <div className="space-y-1.5 pt-2 border-t" style={{ borderColor: "hsla(0, 0%, 100%, 0.06)" }}>
-          <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Actions</Label>
-          <Button variant="ghost" size="sm" onClick={handleSplit}
-            className="w-full justify-start gap-2 h-7 text-xs text-muted-foreground/70 hover:text-foreground"
-            disabled={state.playheadTime <= selectedClip.start || state.playheadTime >= selectedClip.end}
-          >
-            <Scissors className="w-3 h-3" /> Split at Playhead
-          </Button>
-          <Button variant="ghost" size="sm" onClick={handleDuplicate}
-            className="w-full justify-start gap-2 h-7 text-xs text-muted-foreground/70 hover:text-foreground"
-          >
-            <Copy className="w-3 h-3" /> Duplicate
-          </Button>
-          <Button variant="ghost" size="sm" onClick={handleDelete}
-            className="w-full justify-start gap-2 h-7 text-xs text-destructive/70 hover:text-destructive hover:bg-destructive/10"
-          >
-            <Trash2 className="w-3 h-3" /> Delete Clip
-          </Button>
-        </div>
       </div>
     </ScrollArea>
   );
 
   if (embedded) {
     return (
-      <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex flex-col h-full">
         {headerContent}
         {bodyContent}
       </div>
@@ -620,13 +489,7 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
   }
 
   return (
-    <div
-      className={`w-52 shrink-0 flex flex-col border-l overflow-hidden ${className || ""}`}
-      style={{
-        background: "hsl(240, 25%, 5%)",
-        borderColor: "hsla(0, 0%, 100%, 0.06)",
-      }}
-    >
+    <div className={`w-52 shrink-0 flex flex-col border-l overflow-hidden ${className || ""}`} style={{ background: "hsl(220, 14%, 5%)", borderColor: "hsla(0, 0%, 100%, 0.06)" }}>
       {headerContent}
       {bodyContent}
     </div>

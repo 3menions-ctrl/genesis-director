@@ -1022,7 +1022,7 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
               className="absolute top-0 left-0 h-full rounded-full"
               style={{
                 width: `${((state.zoom - 10) / 190) * 100}%`,
-                background: 'linear-gradient(90deg, hsl(215, 100%, 50%), hsl(265, 80%, 60%))',
+                background: 'linear-gradient(90deg, hsl(215, 100%, 50%), hsl(215, 100%, 65%))',
               }}
             />
           </div>

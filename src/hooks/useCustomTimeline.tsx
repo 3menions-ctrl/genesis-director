@@ -70,6 +70,15 @@ export interface TimelineTrack {
   locked?: boolean;
 }
 
+export type EditorTool = "select" | "razor" | "slip" | "ripple";
+
+export interface TimelineMarker {
+  id: string;
+  time: number;
+  label: string;
+  color: string;
+}
+
 export interface TimelineState {
   tracks: TimelineTrack[];
   playheadTime: number;
@@ -85,6 +94,8 @@ export interface TimelineState {
   height: number;
   aspectRatio: "16:9" | "9:16" | "1:1" | "4:3";
   snapEnabled: boolean;
+  markers: TimelineMarker[];
+  activeTool: EditorTool;
 }
 
 // ─── Actions ───

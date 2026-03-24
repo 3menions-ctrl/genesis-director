@@ -579,8 +579,8 @@ export function EditorChrome({
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="h-screen w-screen flex flex-col overflow-hidden relative" style={{ background: 'hsl(220, 13%, 4%)' }}>
-        {/* Apple-clean accent line — top */}
+      <div className="h-screen w-screen flex flex-col overflow-hidden relative" style={{ background: 'hsl(220, 14%, 4%)' }}>
+        {/* Blue accent line — top */}
         <div className="absolute top-0 left-0 right-0 h-px z-20">
           <div className="h-full bg-gradient-to-r from-transparent via-[hsla(215,100%,50%,0.35)] to-transparent" />
           {isRendering && (
@@ -599,7 +599,7 @@ export function EditorChrome({
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
           className="h-11 flex items-center px-3 shrink-0 z-10 relative"
           style={{
-            background: 'linear-gradient(180deg, hsl(220, 13%, 7%) 0%, hsl(220, 13%, 5.5%) 100%)',
+            background: 'linear-gradient(180deg, hsl(220, 14%, 7%) 0%, hsl(220, 14%, 5.5%) 100%)',
             borderBottom: '1px solid hsla(0, 0%, 100%, 0.06)',
           }}
         >
@@ -874,7 +874,7 @@ export function EditorChrome({
         <div
           className="h-7 flex items-center px-4 shrink-0 z-10 select-none overflow-hidden gap-4"
           style={{
-            background: 'linear-gradient(180deg, hsl(220, 13%, 5.5%) 0%, hsl(220, 13%, 4%) 100%)',
+            background: 'linear-gradient(180deg, hsl(220, 14%, 5.5%) 0%, hsl(220, 14%, 4%) 100%)',
             borderTop: '1px solid hsla(0, 0%, 100%, 0.06)',
           }}
         >

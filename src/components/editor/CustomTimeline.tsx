@@ -66,7 +66,7 @@ function TimelineRuler({ zoom, scrollX, duration }: { zoom: number; scrollX: num
       style={{
         height: RULER_HEIGHT,
         marginLeft: HEADER_WIDTH,
-        background: 'linear-gradient(180deg, hsl(240 18% 7%) 0%, hsl(240 22% 5.5%) 100%)',
+        background: 'linear-gradient(180deg, hsl(220, 14%, 7%) 0%, hsl(220, 14%, 5.5%) 100%)',
         borderBottom: '1px solid hsla(0, 0%, 100%, 0.06)',
       }}
     >
@@ -109,7 +109,7 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
   );
 
   const typeColors: Record<string, string> = {
-    video: 'hsla(0, 0%, 100%, 0.08)',
+    video: 'hsla(215, 100%, 50%, 0.1)',
     audio: 'hsla(190, 70%, 55%, 0.12)',
     text: 'hsla(170, 70%, 50%, 0.12)',
   };
@@ -120,7 +120,7 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
       style={{
         width: HEADER_WIDTH,
         height: TRACK_HEIGHT,
-        background: 'linear-gradient(90deg, hsl(240 18% 7%) 0%, hsl(240 22% 5.5%) 100%)',
+        background: 'linear-gradient(90deg, hsl(220, 14%, 7%) 0%, hsl(220, 14%, 5.5%) 100%)',
         borderRight: '1px solid hsla(0, 0%, 100%, 0.05)',
         borderBottom: '1px solid hsla(0, 0%, 100%, 0.04)',
       }}
@@ -181,24 +181,24 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
 // ─── Clip Block ───
 
 const CLIP_COLORS: Record<string, string> = {
-  video: "hsla(210, 50%, 55%, 0.22)",
-  image: "hsla(45, 85%, 55%, 0.22)",
-  text: "hsla(170, 65%, 50%, 0.22)",
-  audio: "hsla(190, 65%, 55%, 0.22)",
+  video: "hsla(215, 100%, 50%, 0.18)",
+  image: "hsla(45, 85%, 55%, 0.18)",
+  text: "hsla(160, 65%, 50%, 0.18)",
+  audio: "hsla(280, 65%, 55%, 0.18)",
 };
 
 const CLIP_BORDER_COLORS: Record<string, string> = {
-  video: "hsla(210, 50%, 55%, 0.4)",
-  image: "hsla(45, 85%, 55%, 0.4)",
-  text: "hsla(170, 65%, 50%, 0.4)",
-  audio: "hsla(190, 65%, 55%, 0.4)",
+  video: "hsla(215, 100%, 50%, 0.35)",
+  image: "hsla(45, 85%, 55%, 0.35)",
+  text: "hsla(160, 65%, 50%, 0.35)",
+  audio: "hsla(280, 65%, 55%, 0.35)",
 };
 
 const CLIP_ACCENT_COLORS: Record<string, string> = {
-  video: "hsla(210, 50%, 55%, 0.6)",
+  video: "hsla(215, 100%, 50%, 0.7)",
   image: "hsla(45, 85%, 55%, 0.6)",
-  text: "hsla(170, 65%, 50%, 0.6)",
-  audio: "hsla(190, 65%, 55%, 0.6)",
+  text: "hsla(160, 65%, 50%, 0.6)",
+  audio: "hsla(280, 65%, 55%, 0.6)",
 };
 
 function ClipBlock({
@@ -245,10 +245,10 @@ function ClipBlock({
         left: Math.max(0, left),
         width,
         background: hasThumb ? 'hsla(0, 0%, 0%, 0.3)' : (CLIP_COLORS[clip.type] || CLIP_COLORS.video),
-        border: `1px solid ${selected ? 'hsl(var(--primary))' : (CLIP_BORDER_COLORS[clip.type] || CLIP_BORDER_COLORS.video)}`,
+        border: `1px solid ${selected ? 'hsl(215, 100%, 50%)' : (CLIP_BORDER_COLORS[clip.type] || CLIP_BORDER_COLORS.video)}`,
         opacity,
         boxShadow: selected
-          ? `0 0 20px hsla(263, 70%, 58%, 0.15), inset 0 0 20px hsla(263, 70%, 58%, 0.05)`
+          ? `0 0 20px hsla(215, 100%, 50%, 0.2), inset 0 0 20px hsla(215, 100%, 50%, 0.05)`
           : '0 2px 8px hsla(0, 0%, 0%, 0.3)',
       }}
       onClick={(e) => { e.stopPropagation(); onSelect(); }}
@@ -332,7 +332,7 @@ function ClipBlock({
 
       {/* Hover glow */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-lg"
-        style={{ background: 'linear-gradient(180deg, hsla(263, 70%, 58%, 0.05) 0%, transparent 50%)' }}
+        style={{ background: 'linear-gradient(180deg, hsla(215, 100%, 50%, 0.06) 0%, transparent 50%)' }}
       />
     </div>
   );
@@ -704,13 +704,13 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
     <div
       ref={timelineRef}
       className={cn("flex flex-col overflow-hidden select-none", className)}
-      style={{ background: 'hsl(220, 13%, 4%)' }}
+      style={{ background: 'hsl(220, 14%, 4%)' }}
     >
       {/* ─── Toolbar — compact single row ─── */}
       <div
         className="shrink-0 flex items-center px-2 h-9 overflow-hidden gap-1"
         style={{
-          background: 'linear-gradient(180deg, hsl(220, 13%, 7%) 0%, hsl(220, 13%, 5.5%) 100%)',
+          background: 'linear-gradient(180deg, hsl(220, 14%, 7%) 0%, hsl(220, 14%, 5.5%) 100%)',
           borderBottom: '1px solid hsla(0, 0%, 100%, 0.06)',
         }}
       >
@@ -901,8 +901,8 @@ export const CustomTimeline = memo(function CustomTimeline({ className, onOpenTe
                   height: TRACK_HEIGHT,
                   borderBottom: '1px solid hsla(0, 0%, 100%, 0.04)',
                   background: idx % 2 === 0
-                    ? 'hsla(240, 25%, 6%, 0.5)'
-                    : 'hsla(240, 25%, 5%, 0.3)',
+                    ? 'hsla(220, 14%, 6%, 0.5)'
+                    : 'hsla(220, 14%, 5%, 0.3)',
                 }}
                 onClick={() => dispatch({ type: "SELECT_CLIP", clipId: null, trackId: track.id })}
               >

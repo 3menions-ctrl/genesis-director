@@ -120,7 +120,7 @@ function TrackHeader({ track, index, totalTracks, onToggleMute, onToggleLock, on
       style={{
         width: HEADER_WIDTH,
         height: TRACK_HEIGHT,
-        background: 'linear-gradient(90deg, hsl(240 18% 7%) 0%, hsl(240 22% 5.5%) 100%)',
+        background: 'linear-gradient(90deg, hsl(220, 14%, 7%) 0%, hsl(220, 14%, 5.5%) 100%)',
         borderRight: '1px solid hsla(0, 0%, 100%, 0.05)',
         borderBottom: '1px solid hsla(0, 0%, 100%, 0.04)',
       }}

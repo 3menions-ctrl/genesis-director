@@ -620,7 +620,7 @@ export function EditorChrome({
           <div className="h-full bg-gradient-to-r from-transparent via-[hsla(215,100%,50%,0.35)] to-transparent" />
           {isRendering && (
             <motion.div
-              className="absolute inset-0 h-px bg-gradient-to-r from-primary via-violet-400 to-primary"
+              className="absolute inset-0 h-px bg-gradient-to-r from-[hsl(215,100%,50%)] via-[hsl(215,100%,65%)] to-[hsl(215,100%,50%)]"
               style={{ width: `${Math.round(renderProgress * 100)}%` }}
               transition={{ duration: 0.3 }}
             />

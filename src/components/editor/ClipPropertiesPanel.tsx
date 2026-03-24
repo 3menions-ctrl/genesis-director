@@ -239,7 +239,7 @@ export const ClipPropertiesPanel = memo(function ClipPropertiesPanel({
                     ? "border-foreground scale-110"
                     : "border-border/20 hover:border-foreground/40"
                 }`}
-                style={{ background: cl.value || 'hsl(240, 25%, 10%)' }}
+                style={{ background: cl.value || 'hsl(220, 14%, 10%)' }}
                 title={cl.label}
               />
             ))}

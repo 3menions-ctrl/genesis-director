@@ -3098,6 +3098,91 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_codes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_codes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_redemptions: {
+        Row: {
+          created_at: string
+          id: string
+          referral_code_id: string
+          referred_credited: boolean
+          referred_user_id: string
+          referrer_credited: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referral_code_id: string
+          referred_credited?: boolean
+          referred_user_id: string
+          referrer_credited?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referral_code_id?: string
+          referred_credited?: boolean
+          referred_user_id?: string
+          referrer_credited?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_redemptions_referral_code_id_fkey"
+            columns: ["referral_code_id"]
+            isOneToOne: false
+            referencedRelation: "referral_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_redemptions_referred_user_id_fkey"
+            columns: ["referred_user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_redemptions_referred_user_id_fkey"
+            columns: ["referred_user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       script_templates: {
         Row: {
           created_at: string
@@ -4986,6 +5071,7 @@ export type Database = {
         Returns: boolean
       }
       reactivate_account: { Args: never; Returns: boolean }
+      redeem_referral_code: { Args: { p_code: string }; Returns: Json }
       refund_production_credits:
         | {
             Args: { p_project_id: string; p_reason: string; p_shot_id: string }

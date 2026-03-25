@@ -490,6 +490,12 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           </motion.div>
         )}
 
+        {/* First Purchase Offer */}
+        <FirstPurchaseOffer />
+        
+        {/* Low Credit Warning */}
+        <LowCreditBanner creditsRemaining={userCredits} className="mb-4" />
+
         {/* Header - Ultra-premium cinematic hero */}
         <div className="relative text-center mb-16 animate-fade-in">
           {/* Ambient hero glow */}

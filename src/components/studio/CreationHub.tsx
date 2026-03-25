@@ -45,6 +45,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
+import { LowCreditBanner } from '@/components/credits/LowCreditBanner';
+import { FirstPurchaseOffer } from '@/components/credits/FirstPurchaseOffer';
 
 // Extended mode data with visuals - core creation modes only
 const CREATION_MODES = [

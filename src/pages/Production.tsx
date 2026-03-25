@@ -9,6 +9,7 @@ import { useSafeNavigation, useRouteCleanup, useNavigationAbort } from '@/lib/na
 import { 
   Film, Loader2, X, FileText, Users, Shield, Wand2, Sparkles
 } from 'lucide-react';
+import { PostGenerationUpsell } from '@/components/credits/PostGenerationUpsell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -1668,6 +1669,14 @@ const transitionsData = useMemo(() =>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Post-generation upsell */}
+      <PostGenerationUpsell
+        creditsRemaining={profile?.credits_balance ?? 0}
+        projectTitle={projectTitle}
+        visible={isComplete}
+        onDismiss={() => {}}
+      />
     </div>
   );
 }

@@ -45,6 +45,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
+import { LowCreditBanner } from '@/components/credits/LowCreditBanner';
+import { FirstPurchaseOffer } from '@/components/credits/FirstPurchaseOffer';
 
 // Extended mode data with visuals - core creation modes only
 const CREATION_MODES = [
@@ -487,6 +489,12 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
             <CheckCircle2 className="w-5 h-5 text-violet-400" />
           </motion.div>
         )}
+
+        {/* First Purchase Offer */}
+        <FirstPurchaseOffer />
+        
+        {/* Low Credit Warning */}
+        <LowCreditBanner creditsRemaining={userCredits} className="mb-4" />
 
         {/* Header - Ultra-premium cinematic hero */}
         <div className="relative text-center mb-16 animate-fade-in">

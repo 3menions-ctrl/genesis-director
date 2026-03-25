@@ -119,7 +119,7 @@ function ProductionContentInner() {
   
   // FIX: useAuth now returns safe fallback if context is missing
   // No try-catch needed - that violated React's hook rules
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   
   // Proactive clip recovery - checks for stuck clips on page load
   const { isRecovering: isRecoveringClips } = useClipRecovery(projectId || null, user?.id || null);

@@ -813,7 +813,11 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
               </div>
             </div>
           </div>
-        )}
+         )}
+
+          {/* Referral Program */}
+          <ReferralProgram className="mt-6" />
+        </div>
       </main>
 
       {/* Buy Credits Modal */}

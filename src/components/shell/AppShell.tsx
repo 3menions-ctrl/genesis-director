@@ -86,7 +86,7 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div data-app-shell className="relative flex min-h-screen w-full bg-transparent text-foreground overflow-x-hidden">
+      <div data-app-shell className="relative flex min-h-screen w-full bg-transparent text-foreground">
         {/* Cinematic backdrop — identical to global loading screen */}
         <CinemaBackdrop />
 
@@ -416,7 +416,7 @@ export function AppShell({ children }: AppShellProps) {
         </aside>
 
         {/* ── Main column ── */}
-        <div className="flex flex-1 min-w-0 flex-col min-h-screen">
+        <div className="flex flex-1 min-w-0 flex-col min-h-screen overflow-x-hidden">
           {/* Top bar */}
           <header
             className="sticky top-0 z-30 h-[56px] flex items-center gap-2 px-3 sm:px-5"

@@ -175,20 +175,35 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
       style={{ animationDelay: '0.4s' }}
     >
       <div className="max-w-4xl mx-auto">
-        <div className="rounded-2xl md:rounded-3xl border-0 backdrop-blur-2xl shadow-2xl shadow-black/60 overflow-hidden">
+        <div
+          className="rounded-2xl md:rounded-3xl overflow-hidden"
+          style={{
+            background: 'linear-gradient(180deg, hsla(220,14%,5%,0.78) 0%, hsla(220,14%,3%,0.88) 100%)',
+            backdropFilter: 'blur(48px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(48px) saturate(180%)',
+            boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.06), 0 30px 80px -20px hsla(0,0%,0%,0.7), 0 0 0 1px hsla(0,0%,100%,0.04)',
+          }}
+        >
           
           {/* Header with Avatar Badge — tappable on mobile to expand/collapse */}
           <div
-            className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-white/[0.06] bg-gradient-to-r from-[hsla(215,100%,55%,0.05)] to-transparent md:cursor-default cursor-pointer"
+            className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 bg-gradient-to-r from-[hsla(215,100%,55%,0.06)] via-transparent to-transparent md:cursor-default cursor-pointer"
+            style={{ boxShadow: 'inset 0 -1px 0 hsla(0,0%,100%,0.05)' }}
             onClick={() => setIsExpanded(prev => !prev)}
           >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[hsl(215,100%,55%)] to-[hsl(215,100%,50%)] flex items-center justify-center shadow-lg shadow-[hsl(215,100%,55%)]/20">
+              <div
+                className="w-9 h-9 rounded-2xl flex items-center justify-center"
+                style={{
+                  background: 'linear-gradient(135deg, hsl(215,100%,62%) 0%, hsl(215,100%,48%) 100%)',
+                  boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.25), 0 4px 16px hsla(215,100%,55%,0.35)',
+                }}
+              >
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white">Create Avatar Video</h3>
-                <p className="text-xs text-white/40">
+                <h3 className="text-sm font-medium text-white tracking-tight">Create Avatar Video</h3>
+                <p className="text-[11px] text-white/40 font-light tracking-wide">
                   {isExpanded ? 'Write what your avatar will say' : 'Tap to configure & create'}
                 </p>
               </div>
@@ -208,9 +223,9 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
             {/* Script Input - Primary Focus */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Mic className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-                <Label className="text-sm font-medium text-white">Script</Label>
-                <span className="text-xs text-white/40">— What your avatar will say</span>
+                <Mic className="w-3.5 h-3.5 text-[hsl(215,100%,72%)]" />
+                <Label className="text-[10px] font-light text-white/70 uppercase tracking-[0.22em]">Script</Label>
+                <span className="text-[10px] text-white/35 font-light tracking-wide">— What your avatar will say</span>
               </div>
               <Textarea
                 placeholder={selectedAvatar 
@@ -219,7 +234,8 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 }
                 value={prompt}
                 onChange={(e) => onPromptChange(e.target.value)}
-                className="min-h-[100px] md:min-h-[120px] bg-[hsla(0,0%,100%,0.03)] border-white/[0.05] text-white placeholder:text-white/40 resize-none text-sm leading-relaxed focus:border-[hsl(215,100%,55%)]/50 focus:ring-[hsl(215,100%,55%)]/20 rounded-xl"
+                className="min-h-[100px] md:min-h-[120px] bg-[hsla(0,0%,100%,0.025)] border-0 text-white placeholder:text-white/35 resize-none text-sm leading-relaxed focus-visible:ring-2 focus-visible:ring-[hsl(215,100%,55%)]/40 rounded-2xl font-light"
+                style={{ boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.05), inset 0 1px 0 hsla(0,0%,100%,0.03)' }}
                 disabled={!selectedAvatar}
               />
             </div>
@@ -228,14 +244,15 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <MapPin className="w-3.5 h-3.5 text-[hsl(215,100%,72%)]" />
-                <Label className="text-xs font-medium text-white/55">Environment</Label>
-                <span className="text-xs text-white/30">— Optional background setting</span>
+                <Label className="text-[10px] font-light text-white/55 uppercase tracking-[0.22em]">Environment</Label>
+                <span className="text-[10px] text-white/30 font-light tracking-wide">— Optional background</span>
               </div>
               <Textarea
                 placeholder="e.g., a cozy coffee shop, a futuristic space station, a sunny beach..."
                 value={sceneDescription}
                 onChange={(e) => onSceneDescriptionChange(e.target.value)}
-                className="min-h-[60px] bg-[hsla(0,0%,100%,0.02)] border-white/[0.04] text-white placeholder:text-white/30 text-sm resize-none leading-relaxed focus:border-[hsl(215,100%,55%)]/50 focus:ring-[hsl(215,100%,55%)]/20 rounded-xl"
+                className="min-h-[60px] bg-[hsla(0,0%,100%,0.018)] border-0 text-white placeholder:text-white/30 text-sm resize-none leading-relaxed focus-visible:ring-2 focus-visible:ring-[hsl(215,100%,55%)]/40 rounded-2xl font-light"
+                style={{ boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.04)' }}
                 disabled={!selectedAvatar}
               />
             </div>
@@ -243,8 +260,11 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
             {/* Settings Row - Clean Horizontal Layout */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
               {/* Aspect Ratio Selector */}
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[hsla(0,0%,100%,0.03)] border border-white/[0.05]">
-                <span className="text-xs text-white/55 font-medium mr-1">Format</span>
+              <div
+                className="flex items-center gap-2 px-3 py-2 rounded-full"
+                style={{ background: 'hsla(0,0%,100%,0.025)', boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.05)' }}
+              >
+                <span className="text-[10px] text-white/55 font-light uppercase tracking-[0.18em] mr-1">Format</span>
                 <div className="flex gap-1">
                   {ASPECT_RATIOS.map((ratio) => (
                     <TooltipProvider key={ratio.id}>
@@ -253,13 +273,17 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                           <button
                             onClick={() => onAspectRatioChange(ratio.id)}
                             className={cn(
-                              "p-1.5 rounded-lg transition-all",
+                              "p-1.5 rounded-full transition-all",
                               aspectRatio === ratio.id
-                                ? "bg-[hsl(215,100%,55%)] text-white shadow-lg shadow-[hsl(215,100%,55%)]/30"
-                                : "bg-[hsla(0,0%,100%,0.03)] text-white/55 hover:bg-[hsla(0,0%,100%,0.05)] hover:text-white/75"
+                                ? "text-white"
+                                : "text-white/45 hover:text-white/75"
                             )}
+                            style={aspectRatio === ratio.id ? {
+                              background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(215,100%,48%))',
+                              boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.25), 0 0 12px hsla(215,100%,55%,0.4)',
+                            } : undefined}
                           >
-                            <ratio.icon className="w-4 h-4" />
+                            <ratio.icon className="w-3.5 h-3.5" />
                           </button>
                         </TooltipTrigger>
                         <TooltipContent side="top" className="text-xs">
@@ -272,15 +296,21 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
               </div>
 
               {/* Duration Badge */}
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[hsla(0,0%,100%,0.03)] border border-white/[0.05]">
-                <span className="text-xs text-white/55 font-medium">Duration</span>
-                <span className="text-sm text-white font-semibold">10s</span>
+              <div
+                className="flex items-center gap-2 px-3.5 py-2 rounded-full"
+                style={{ background: 'hsla(0,0%,100%,0.025)', boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.05)' }}
+              >
+                <span className="text-[10px] text-white/55 font-light uppercase tracking-[0.18em]">Duration</span>
+                <span className="text-xs text-white font-medium tracking-tight">10s</span>
               </div>
 
               {/* Clips Selector */}
-              <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-[hsla(0,0%,100%,0.03)] border border-white/[0.05]">
-                <span className="text-xs text-white/55 font-medium">Clips</span>
-                <span className="text-sm text-white font-semibold w-4 text-center">{clipCount}</span>
+              <div
+                className="flex items-center gap-3 px-3.5 py-2 rounded-full"
+                style={{ background: 'hsla(0,0%,100%,0.025)', boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.05)' }}
+              >
+                <span className="text-[10px] text-white/55 font-light uppercase tracking-[0.18em]">Clips</span>
+                <span className="text-xs text-white font-medium w-4 text-center tracking-tight">{clipCount}</span>
                 <Slider
                   value={[clipCount]}
                   onValueChange={([v]) => onClipCountChange(v)}
@@ -298,15 +328,19 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-xl border transition-all cursor-pointer",
-                      cinematicMode.enabled 
-                        ? "bg-[hsl(215,100%,55%)]/10 border-[hsl(215,100%,55%)]/30" 
-                        : "bg-[hsla(0,0%,100%,0.03)] border-white/[0.05] hover:border-white/[0.08]"
+                      "flex items-center gap-2 px-3.5 py-2 rounded-full transition-all cursor-pointer"
                     )}
+                    style={cinematicMode.enabled ? {
+                      background: 'hsla(215,100%,55%,0.12)',
+                      boxShadow: 'inset 0 0 0 1px hsla(215,100%,55%,0.35), 0 0 16px hsla(215,100%,55%,0.15)',
+                    } : {
+                      background: 'hsla(0,0%,100%,0.025)',
+                      boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.05)',
+                    }}
                     onClick={() => handleCinematicToggle(!cinematicMode.enabled)}
                     >
-                      <Video className={cn("w-4 h-4", cinematicMode.enabled ? "text-[hsl(215,100%,72%)]" : "text-white/40")} />
-                      <span className="text-xs text-white/75 font-medium">Cinematic</span>
+                      <Video className={cn("w-3.5 h-3.5", cinematicMode.enabled ? "text-[hsl(215,100%,80%)]" : "text-white/40")} />
+                      <span className="text-[10px] text-white/75 font-light uppercase tracking-[0.18em]">Cinematic</span>
                       <Switch checked={cinematicMode.enabled} onCheckedChange={handleCinematicToggle} className="scale-75" />
                     </div>
                   </TooltipTrigger>
@@ -322,15 +356,19 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-xl border transition-all cursor-pointer",
-                      enableDualAvatar 
-                        ? "bg-sky-500/10 border-sky-500/30" 
-                        : "bg-[hsla(0,0%,100%,0.03)] border-white/[0.05] hover:border-white/[0.08]"
+                      "flex items-center gap-2 px-3.5 py-2 rounded-full transition-all cursor-pointer"
                     )}
+                    style={enableDualAvatar ? {
+                      background: 'hsla(215,100%,55%,0.12)',
+                      boxShadow: 'inset 0 0 0 1px hsla(215,100%,55%,0.35), 0 0 16px hsla(215,100%,55%,0.15)',
+                    } : {
+                      background: 'hsla(0,0%,100%,0.025)',
+                      boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.05)',
+                    }}
                     onClick={() => onEnableDualAvatarChange(!enableDualAvatar)}
                     >
-                      <Sparkles className={cn("w-4 h-4", enableDualAvatar ? "text-sky-400" : "text-white/40")} />
-                      <span className="text-xs text-white/75 font-medium">2 Avatars</span>
+                      <Sparkles className={cn("w-3.5 h-3.5", enableDualAvatar ? "text-[hsl(215,100%,80%)]" : "text-white/40")} />
+                      <span className="text-[10px] text-white/75 font-light uppercase tracking-[0.18em]">2 Avatars</span>
                       <Switch checked={enableDualAvatar} onCheckedChange={onEnableDualAvatarChange} className="scale-75" />
                     </div>
                   </TooltipTrigger>
@@ -344,10 +382,16 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
 
             {/* Cinematic Options - Expanded when enabled */}
             {cinematicMode.enabled && (
-              <div className="flex flex-wrap items-center gap-4 px-4 py-3 rounded-xl bg-[hsl(215,100%,55%)]/5 border border-[hsl(215,100%,55%)]/20 animate-fade-in">
+              <div
+                className="flex flex-wrap items-center gap-4 px-4 py-3 rounded-2xl animate-fade-in"
+                style={{
+                  background: 'hsla(215,100%,55%,0.04)',
+                  boxShadow: 'inset 0 0 0 1px hsla(215,100%,55%,0.18)',
+                }}
+              >
                 <div className="flex items-center gap-2">
                   <Camera className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-                  <span className="text-xs text-[hsl(215,100%,80%)] font-medium">Movement</span>
+                  <span className="text-[10px] text-[hsl(215,100%,80%)] font-light uppercase tracking-[0.18em]">Movement</span>
                   <Select value={cinematicMode.movementType} onValueChange={(v) => handleMovementChange(v as MovementType)}>
                     <SelectTrigger className="h-8 w-28 text-xs bg-[hsla(0,0%,100%,0.04)] border-[hsl(215,100%,55%)]/20">
                       <SelectValue />
@@ -366,7 +410,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[hsl(215,100%,80%)] font-medium">Camera</span>
+                  <span className="text-[10px] text-[hsl(215,100%,80%)] font-light uppercase tracking-[0.18em]">Camera</span>
                   <Select value={cinematicMode.cameraAngle} onValueChange={(v) => handleCameraChange(v as CameraAngle)}>
                     <SelectTrigger className="h-8 w-28 text-xs bg-[hsla(0,0%,100%,0.04)] border-[hsl(215,100%,55%)]/20">
                       <SelectValue />
@@ -384,7 +428,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                   </Select>
                 </div>
                 
-                <span className="text-xs text-[hsl(215,100%,72%)]/60 italic ml-auto hidden md:inline">
+                <span className="text-[10px] text-[hsl(215,100%,72%)]/60 italic ml-auto hidden md:inline font-light tracking-wide">
                   🎬 AI varies angles per clip
                 </span>
               </div>
@@ -393,26 +437,27 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
 
           {/* Footer - Create Button & Cost */}
           <div className={cn(
-            "flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-t border-white/[0.06] bg-gradient-to-r from-transparent to-[hsla(215,100%,55%,0.05)]",
+            "flex items-center justify-between px-4 py-3 md:px-6 md:py-4 bg-gradient-to-r from-transparent to-[hsla(215,100%,55%,0.06)]",
             !isExpanded && "md:flex hidden"
           )}>
+            <style>{``}</style>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-white/40">Duration:</span>
-                <span className="text-white font-medium">{estimatedDuration}s</span>
+                <span className="text-white/40 font-light tracking-wide text-xs uppercase">Duration</span>
+                <span className="text-white font-medium tracking-tight">{estimatedDuration}s</span>
               </div>
-              <div className="w-px h-4 bg-[hsla(0,0%,100%,0.05)]" />
+              <div className="w-px h-4 bg-[hsla(0,0%,100%,0.08)]" />
               <div className={cn(
                 "flex items-center gap-1.5 text-sm font-medium",
-                hasInsufficientCredits ? "text-red-400" : "text-amber-400"
+                hasInsufficientCredits ? "text-red-400" : "text-[hsl(215,100%,80%)]"
               )}>
-                <Zap className="w-4 h-4" />
+                <Zap className="w-4 h-4" style={{ filter: 'drop-shadow(0 0 6px hsla(215,100%,55%,0.5))' }} />
                 <span>{estimatedCredits} credits</span>
               </div>
               <div className="hidden md:flex items-center gap-2 text-sm">
                 <span className="text-white/30">•</span>
-                <span className="text-white/40">Balance:</span>
-                <span className="text-white/75">{userCredits}</span>
+                <span className="text-white/40 font-light text-xs uppercase tracking-wide">Balance</span>
+                <span className="text-white/75 tracking-tight">{userCredits}</span>
               </div>
             </div>
             <Button
@@ -420,11 +465,15 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
               disabled={!isReadyToCreate || isCreating}
               size="lg"
               className={cn(
-                "h-11 px-8 text-sm font-semibold transition-all rounded-xl gap-2",
+                "h-11 px-8 text-sm font-medium tracking-wide transition-all rounded-full gap-2",
                 isReadyToCreate
-                  ? "bg-gradient-to-r from-[hsl(215,100%,50%)] via-[hsl(215,100%,55%)] to-[hsl(215,100%,50%)] hover:from-[hsl(215,100%,55%)] hover:via-[hsl(215,100%,72%)] hover:to-[hsl(215,100%,55%)] text-white shadow-lg shadow-[hsl(215,100%,55%)]/30 hover:shadow-[hsl(215,100%,55%)]/40"
+                  ? "text-white hover:scale-[1.02] active:scale-[0.98]"
                   : "bg-[hsla(0,0%,100%,0.04)] text-white/40 cursor-not-allowed"
               )}
+              style={isReadyToCreate ? {
+                background: 'linear-gradient(135deg, hsl(215,100%,55%) 0%, hsl(215,100%,48%) 100%)',
+                boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.25), 0 8px 32px -8px hsla(215,100%,55%,0.55), 0 0 0 1px hsla(215,100%,62%,0.4)',
+              } : undefined}
             >
               {isCreating ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /><span>Creating...</span></>
@@ -436,10 +485,13 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
 
           {/* Compact footer — mobile only, shown when panel is collapsed */}
           {!isExpanded && (
-            <div className="md:hidden flex items-center justify-between px-4 py-2.5 border-t border-white/[0.06]">
+            <div
+              className="md:hidden flex items-center justify-between px-4 py-2.5"
+              style={{ boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.05)' }}
+            >
               <div className={cn(
                 "flex items-center gap-1.5 text-xs font-medium",
-                hasInsufficientCredits ? "text-red-400" : "text-amber-400"
+                hasInsufficientCredits ? "text-red-400" : "text-[hsl(215,100%,80%)]"
               )}>
                 <Zap className="w-3.5 h-3.5" />
                 <span>{estimatedCredits} credits · {userCredits} balance</span>
@@ -449,11 +501,16 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 disabled={isCreating}
                 size="sm"
                 className={cn(
-                  "h-8 px-4 text-xs font-semibold rounded-lg gap-1.5",
-                  isReadyToCreate
-                    ? "bg-gradient-to-r from-[hsl(215,100%,50%)] to-[hsl(215,100%,55%)] text-white shadow-lg shadow-[hsl(215,100%,55%)]/30"
-                    : "bg-[hsl(215,100%,55%)]/20 text-[hsl(215,100%,80%)] border border-[hsl(215,100%,55%)]/30"
+                  "h-9 px-4 text-xs font-medium rounded-full gap-1.5 tracking-wide",
+                  isReadyToCreate ? "text-white" : "text-[hsl(215,100%,80%)]"
                 )}
+                style={isReadyToCreate ? {
+                  background: 'linear-gradient(135deg, hsl(215,100%,55%) 0%, hsl(215,100%,48%) 100%)',
+                  boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.25), 0 4px 16px -4px hsla(215,100%,55%,0.5)',
+                } : {
+                  background: 'hsla(215,100%,55%,0.15)',
+                  boxShadow: 'inset 0 0 0 1px hsla(215,100%,55%,0.3)',
+                }}
               >
                 {isCreating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
                 <span>{isReadyToCreate ? 'Create' : 'Set up'}</span>

@@ -14,7 +14,7 @@ import {
   Image, Sparkles, Clapperboard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { LazyVideoThumbnail } from '@/components/ui/LazyVideoThumbnail';
+import { LazyVideoThumbnail, prewarmThumbnails } from '@/components/ui/LazyVideoThumbnail';
 import { safePlay, safePause, safeSeek } from '@/lib/video/safeVideoOperations';
 import { Input } from '@/components/ui/input';
 import {

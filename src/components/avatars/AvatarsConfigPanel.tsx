@@ -223,9 +223,9 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
             {/* Script Input - Primary Focus */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Mic className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-                <Label className="text-sm font-medium text-white">Script</Label>
-                <span className="text-xs text-white/40">— What your avatar will say</span>
+                <Mic className="w-3.5 h-3.5 text-[hsl(215,100%,72%)]" />
+                <Label className="text-[10px] font-light text-white/70 uppercase tracking-[0.22em]">Script</Label>
+                <span className="text-[10px] text-white/35 font-light tracking-wide">— What your avatar will say</span>
               </div>
               <Textarea
                 placeholder={selectedAvatar 
@@ -234,7 +234,8 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 }
                 value={prompt}
                 onChange={(e) => onPromptChange(e.target.value)}
-                className="min-h-[100px] md:min-h-[120px] bg-[hsla(0,0%,100%,0.03)] border-white/[0.05] text-white placeholder:text-white/40 resize-none text-sm leading-relaxed focus:border-[hsl(215,100%,55%)]/50 focus:ring-[hsl(215,100%,55%)]/20 rounded-xl"
+                className="min-h-[100px] md:min-h-[120px] bg-[hsla(0,0%,100%,0.025)] border-0 text-white placeholder:text-white/35 resize-none text-sm leading-relaxed focus-visible:ring-2 focus-visible:ring-[hsl(215,100%,55%)]/40 rounded-2xl font-light"
+                style={{ boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.05), inset 0 1px 0 hsla(0,0%,100%,0.03)' }}
                 disabled={!selectedAvatar}
               />
             </div>
@@ -243,14 +244,15 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <MapPin className="w-3.5 h-3.5 text-[hsl(215,100%,72%)]" />
-                <Label className="text-xs font-medium text-white/55">Environment</Label>
-                <span className="text-xs text-white/30">— Optional background setting</span>
+                <Label className="text-[10px] font-light text-white/55 uppercase tracking-[0.22em]">Environment</Label>
+                <span className="text-[10px] text-white/30 font-light tracking-wide">— Optional background</span>
               </div>
               <Textarea
                 placeholder="e.g., a cozy coffee shop, a futuristic space station, a sunny beach..."
                 value={sceneDescription}
                 onChange={(e) => onSceneDescriptionChange(e.target.value)}
-                className="min-h-[60px] bg-[hsla(0,0%,100%,0.02)] border-white/[0.04] text-white placeholder:text-white/30 text-sm resize-none leading-relaxed focus:border-[hsl(215,100%,55%)]/50 focus:ring-[hsl(215,100%,55%)]/20 rounded-xl"
+                className="min-h-[60px] bg-[hsla(0,0%,100%,0.018)] border-0 text-white placeholder:text-white/30 text-sm resize-none leading-relaxed focus-visible:ring-2 focus-visible:ring-[hsl(215,100%,55%)]/40 rounded-2xl font-light"
+                style={{ boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.04)' }}
                 disabled={!selectedAvatar}
               />
             </div>
@@ -258,8 +260,11 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
             {/* Settings Row - Clean Horizontal Layout */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
               {/* Aspect Ratio Selector */}
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[hsla(0,0%,100%,0.03)] border border-white/[0.05]">
-                <span className="text-xs text-white/55 font-medium mr-1">Format</span>
+              <div
+                className="flex items-center gap-2 px-3 py-2 rounded-full"
+                style={{ background: 'hsla(0,0%,100%,0.025)', boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.05)' }}
+              >
+                <span className="text-[10px] text-white/55 font-light uppercase tracking-[0.18em] mr-1">Format</span>
                 <div className="flex gap-1">
                   {ASPECT_RATIOS.map((ratio) => (
                     <TooltipProvider key={ratio.id}>
@@ -268,13 +273,17 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                           <button
                             onClick={() => onAspectRatioChange(ratio.id)}
                             className={cn(
-                              "p-1.5 rounded-lg transition-all",
+                              "p-1.5 rounded-full transition-all",
                               aspectRatio === ratio.id
-                                ? "bg-[hsl(215,100%,55%)] text-white shadow-lg shadow-[hsl(215,100%,55%)]/30"
-                                : "bg-[hsla(0,0%,100%,0.03)] text-white/55 hover:bg-[hsla(0,0%,100%,0.05)] hover:text-white/75"
+                                ? "text-white"
+                                : "text-white/45 hover:text-white/75"
                             )}
+                            style={aspectRatio === ratio.id ? {
+                              background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(215,100%,48%))',
+                              boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.25), 0 0 12px hsla(215,100%,55%,0.4)',
+                            } : undefined}
                           >
-                            <ratio.icon className="w-4 h-4" />
+                            <ratio.icon className="w-3.5 h-3.5" />
                           </button>
                         </TooltipTrigger>
                         <TooltipContent side="top" className="text-xs">
@@ -287,15 +296,21 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
               </div>
 
               {/* Duration Badge */}
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[hsla(0,0%,100%,0.03)] border border-white/[0.05]">
-                <span className="text-xs text-white/55 font-medium">Duration</span>
-                <span className="text-sm text-white font-semibold">10s</span>
+              <div
+                className="flex items-center gap-2 px-3.5 py-2 rounded-full"
+                style={{ background: 'hsla(0,0%,100%,0.025)', boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.05)' }}
+              >
+                <span className="text-[10px] text-white/55 font-light uppercase tracking-[0.18em]">Duration</span>
+                <span className="text-xs text-white font-medium tracking-tight">10s</span>
               </div>
 
               {/* Clips Selector */}
-              <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-[hsla(0,0%,100%,0.03)] border border-white/[0.05]">
-                <span className="text-xs text-white/55 font-medium">Clips</span>
-                <span className="text-sm text-white font-semibold w-4 text-center">{clipCount}</span>
+              <div
+                className="flex items-center gap-3 px-3.5 py-2 rounded-full"
+                style={{ background: 'hsla(0,0%,100%,0.025)', boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.05)' }}
+              >
+                <span className="text-[10px] text-white/55 font-light uppercase tracking-[0.18em]">Clips</span>
+                <span className="text-xs text-white font-medium w-4 text-center tracking-tight">{clipCount}</span>
                 <Slider
                   value={[clipCount]}
                   onValueChange={([v]) => onClipCountChange(v)}
@@ -313,15 +328,19 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-xl border transition-all cursor-pointer",
-                      cinematicMode.enabled 
-                        ? "bg-[hsl(215,100%,55%)]/10 border-[hsl(215,100%,55%)]/30" 
-                        : "bg-[hsla(0,0%,100%,0.03)] border-white/[0.05] hover:border-white/[0.08]"
+                      "flex items-center gap-2 px-3.5 py-2 rounded-full transition-all cursor-pointer"
                     )}
+                    style={cinematicMode.enabled ? {
+                      background: 'hsla(215,100%,55%,0.12)',
+                      boxShadow: 'inset 0 0 0 1px hsla(215,100%,55%,0.35), 0 0 16px hsla(215,100%,55%,0.15)',
+                    } : {
+                      background: 'hsla(0,0%,100%,0.025)',
+                      boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.05)',
+                    }}
                     onClick={() => handleCinematicToggle(!cinematicMode.enabled)}
                     >
-                      <Video className={cn("w-4 h-4", cinematicMode.enabled ? "text-[hsl(215,100%,72%)]" : "text-white/40")} />
-                      <span className="text-xs text-white/75 font-medium">Cinematic</span>
+                      <Video className={cn("w-3.5 h-3.5", cinematicMode.enabled ? "text-[hsl(215,100%,80%)]" : "text-white/40")} />
+                      <span className="text-[10px] text-white/75 font-light uppercase tracking-[0.18em]">Cinematic</span>
                       <Switch checked={cinematicMode.enabled} onCheckedChange={handleCinematicToggle} className="scale-75" />
                     </div>
                   </TooltipTrigger>
@@ -337,15 +356,19 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-xl border transition-all cursor-pointer",
-                      enableDualAvatar 
-                        ? "bg-sky-500/10 border-sky-500/30" 
-                        : "bg-[hsla(0,0%,100%,0.03)] border-white/[0.05] hover:border-white/[0.08]"
+                      "flex items-center gap-2 px-3.5 py-2 rounded-full transition-all cursor-pointer"
                     )}
+                    style={enableDualAvatar ? {
+                      background: 'hsla(215,100%,55%,0.12)',
+                      boxShadow: 'inset 0 0 0 1px hsla(215,100%,55%,0.35), 0 0 16px hsla(215,100%,55%,0.15)',
+                    } : {
+                      background: 'hsla(0,0%,100%,0.025)',
+                      boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.05)',
+                    }}
                     onClick={() => onEnableDualAvatarChange(!enableDualAvatar)}
                     >
-                      <Sparkles className={cn("w-4 h-4", enableDualAvatar ? "text-sky-400" : "text-white/40")} />
-                      <span className="text-xs text-white/75 font-medium">2 Avatars</span>
+                      <Sparkles className={cn("w-3.5 h-3.5", enableDualAvatar ? "text-[hsl(215,100%,80%)]" : "text-white/40")} />
+                      <span className="text-[10px] text-white/75 font-light uppercase tracking-[0.18em]">2 Avatars</span>
                       <Switch checked={enableDualAvatar} onCheckedChange={onEnableDualAvatarChange} className="scale-75" />
                     </div>
                   </TooltipTrigger>
@@ -359,10 +382,16 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
 
             {/* Cinematic Options - Expanded when enabled */}
             {cinematicMode.enabled && (
-              <div className="flex flex-wrap items-center gap-4 px-4 py-3 rounded-xl bg-[hsl(215,100%,55%)]/5 border border-[hsl(215,100%,55%)]/20 animate-fade-in">
+              <div
+                className="flex flex-wrap items-center gap-4 px-4 py-3 rounded-2xl animate-fade-in"
+                style={{
+                  background: 'hsla(215,100%,55%,0.04)',
+                  boxShadow: 'inset 0 0 0 1px hsla(215,100%,55%,0.18)',
+                }}
+              >
                 <div className="flex items-center gap-2">
                   <Camera className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-                  <span className="text-xs text-[hsl(215,100%,80%)] font-medium">Movement</span>
+                  <span className="text-[10px] text-[hsl(215,100%,80%)] font-light uppercase tracking-[0.18em]">Movement</span>
                   <Select value={cinematicMode.movementType} onValueChange={(v) => handleMovementChange(v as MovementType)}>
                     <SelectTrigger className="h-8 w-28 text-xs bg-[hsla(0,0%,100%,0.04)] border-[hsl(215,100%,55%)]/20">
                       <SelectValue />
@@ -381,7 +410,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[hsl(215,100%,80%)] font-medium">Camera</span>
+                  <span className="text-[10px] text-[hsl(215,100%,80%)] font-light uppercase tracking-[0.18em]">Camera</span>
                   <Select value={cinematicMode.cameraAngle} onValueChange={(v) => handleCameraChange(v as CameraAngle)}>
                     <SelectTrigger className="h-8 w-28 text-xs bg-[hsla(0,0%,100%,0.04)] border-[hsl(215,100%,55%)]/20">
                       <SelectValue />
@@ -399,7 +428,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                   </Select>
                 </div>
                 
-                <span className="text-xs text-[hsl(215,100%,72%)]/60 italic ml-auto hidden md:inline">
+                <span className="text-[10px] text-[hsl(215,100%,72%)]/60 italic ml-auto hidden md:inline font-light tracking-wide">
                   🎬 AI varies angles per clip
                 </span>
               </div>

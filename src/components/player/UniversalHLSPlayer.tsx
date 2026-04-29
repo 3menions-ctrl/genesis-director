@@ -47,6 +47,8 @@ export interface UniversalHLSPlayerProps {
   className?: string;
   /** Aspect ratio mode */
   aspectRatio?: 'video' | 'square' | 'auto';
+  /** How the video fills its container. 'cover' crops to fill; 'contain' fits entire frame (letterbox). */
+  objectFit?: 'cover' | 'contain';
   /** Show controls */
   showControls?: boolean;
   /** Show skip buttons */

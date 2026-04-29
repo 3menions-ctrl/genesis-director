@@ -207,7 +207,7 @@ export function EditorLoadingScreen() {
             <motion.span
               animate={{ opacity: [0.3, 1, 0.3] }}
               transition={{ duration: 1.4, repeat: Infinity }}
-              className="w-1 h-1 rounded-full bg-emerald-400/70"
+              className="w-1 h-1 rounded-full bg-[hsl(215,100%,72%)]/80"
             />
             Engine
           </span>

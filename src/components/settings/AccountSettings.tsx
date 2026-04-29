@@ -250,7 +250,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
       case 'pro':
         return { label: 'Pro', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' };
       case 'enterprise':
-        return { label: 'Enterprise', color: 'text-[hsl(215,100%,72%)]', bg: 'bg-purple-500/10', border: 'border-purple-500/20' };
+        return { label: 'Enterprise', color: 'text-[hsl(215,100%,72%)]', bg: 'bg-[hsl(215,100%,60%)]/12', border: 'border-[hsl(215,100%,60%)]/22' };
       default:
         return { label: 'Free', color: 'text-white/60', bg: 'bg-white/5', border: 'border-white/10' };
     }
@@ -324,7 +324,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
         
         <div className="flex items-center gap-6">
           <div className="relative group">
-            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[hsl(215,100%,60%)]/22 to-purple-500/10 border border-[hsl(215,100%,60%)]/22 flex items-center justify-center overflow-hidden ring-2 ring-[hsl(215,100%,60%)]/12 ring-offset-2 ring-offset-[#06060a]">
+            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[hsl(215,100%,60%)]/22 to-[hsl(195,100%,55%)]/18 border border-[hsl(215,100%,60%)]/22 flex items-center justify-center overflow-hidden ring-2 ring-[hsl(215,100%,60%)]/12 ring-offset-2 ring-offset-[#06060a]">
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
               ) : (

@@ -330,7 +330,7 @@ export function AppShell({ children }: AppShellProps) {
 
             {isAdmin && (
               <>
-                <div className={cn('mt-6 mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30', collapsed && 'lg:hidden')}>
+                <div className={cn('mt-6 mb-2 px-3 text-[9.5px] font-light uppercase tracking-[0.28em] text-white/25', collapsed && 'lg:hidden')}>
                   Admin
                 </div>
                 <ul className="space-y-1">
@@ -341,15 +341,15 @@ export function AppShell({ children }: AppShellProps) {
                         <NavLink
                           to="/admin"
                           className={cn(
-                            'group relative flex items-center gap-3 rounded-xl px-3 h-[38px] text-[13px] font-medium transition-all duration-200 border border-transparent',
+                            'group relative flex items-center gap-3 rounded-2xl px-3 h-[40px] text-[13px] font-light tracking-[-0.005em] transition-all duration-300',
                             active
-                              ? 'text-[hsl(var(--warning))] bg-[hsl(var(--warning)/0.08)] border-[hsl(var(--warning)/0.18)] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.04)]'
+                              ? 'text-[hsl(var(--warning))] bg-[hsl(var(--warning)/0.08)] shadow-[inset_0_1px_0_hsla(0,0%,100%,0.06),0_12px_28px_-16px_hsl(var(--warning)/0.5)]'
                               : 'text-white/55 hover:text-white hover:bg-white/[0.035]',
                             collapsed && 'lg:justify-center lg:px-0',
                           )}
                         >
-                          <Shield className={cn('w-[18px] h-[18px] shrink-0 transition-transform duration-200', active ? 'text-[hsl(var(--warning))] drop-shadow-[0_0_6px_hsl(var(--warning)/0.5)]' : 'text-white/45 group-hover:text-white/80 group-hover:scale-[1.06]')} />
-                          {!collapsed && <span>Admin Panel</span>}
+                          <Shield strokeWidth={1.5} className={cn('w-[18px] h-[18px] shrink-0 transition-all duration-300', active ? 'text-[hsl(var(--warning))] drop-shadow-[0_0_8px_hsl(var(--warning)/0.6)]' : 'text-white/45 group-hover:text-white/80 group-hover:scale-[1.1] group-hover:translate-x-[1px]')} />
+                          {!collapsed && <span className="transition-transform duration-300 group-hover:translate-x-[2px]">Admin Panel</span>}
                         </NavLink>
                       );
                       return collapsed ? (
@@ -366,30 +366,30 @@ export function AppShell({ children }: AppShellProps) {
           </nav>
 
           {/* Sidebar footer: credits + collapse */}
-          <div className={cn('px-3 pb-3 space-y-1.5 border-t border-white/[0.04] pt-3 bg-gradient-to-t from-black/30 to-transparent')}>
+          <div className={cn('px-3 pb-3 pt-3 space-y-1.5 bg-gradient-to-t from-black/40 to-transparent')}>
             <button
               onClick={() => setShowBuyCredits(true)}
               className={cn(
-                'w-full group flex items-center gap-2.5 h-10 rounded-xl px-3 transition-all duration-300',
+                'w-full group relative overflow-hidden flex items-center gap-2.5 h-11 rounded-full px-3.5 transition-all duration-500 hover:scale-[1.015] active:scale-[0.985]',
                 isZeroCredits
-                  ? 'bg-gradient-to-r from-[hsl(0_40%_10%/0.7)] to-[hsl(0_30%_8%/0.5)] border border-[hsl(0_100%_50%/0.25)] hover:border-[hsl(0_100%_50%/0.5)]'
-                  : 'bg-gradient-to-r from-[hsl(42_30%_8%/0.6)] to-[hsl(42_20%_6%/0.4)] border border-[hsl(42_100%_55%/0.12)] hover:border-[hsl(42_100%_55%/0.3)]',
+                  ? 'bg-gradient-to-r from-[hsl(0_40%_10%/0.6)] to-[hsl(0_30%_8%/0.35)] shadow-[0_8px_24px_-12px_hsl(0_100%_50%/0.5),inset_0_1px_0_hsla(0,0%,100%,0.06)]'
+                  : 'bg-gradient-to-r from-[hsl(42_30%_10%/0.55)] to-[hsl(42_20%_6%/0.3)] shadow-[0_8px_24px_-12px_hsl(42_100%_55%/0.45),inset_0_1px_0_hsla(0,0%,100%,0.06)]',
                 collapsed && 'lg:justify-center lg:px-0',
               )}
             >
               <div className="relative shrink-0">
-                <div className={cn('absolute inset-0 rounded-full blur-[6px]', isZeroCredits ? 'bg-[hsl(0_100%_50%/0.4)]' : 'bg-[hsl(42_100%_55%/0.3)]')} />
-                <div className={cn('relative w-[18px] h-[18px] rounded-full flex items-center justify-center',
+                <div className={cn('absolute inset-0 rounded-full blur-[8px] opacity-80 group-hover:opacity-100 transition-opacity duration-500', isZeroCredits ? 'bg-[hsl(0_100%_50%/0.45)]' : 'bg-[hsl(42_100%_55%/0.4)]')} />
+                <div className={cn('relative w-[20px] h-[20px] rounded-full flex items-center justify-center transition-transform duration-500 group-hover:scale-110',
                   isZeroCredits
                     ? 'bg-gradient-to-br from-[hsl(0_100%_60%)] via-[hsl(0_90%_50%)] to-[hsl(0_80%_40%)]'
                     : 'bg-gradient-to-br from-[hsl(42_100%_65%)] via-[hsl(38_100%_55%)] to-[hsl(30_100%_45%)]')}>
-                  <Zap className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                  <Zap className="w-2.5 h-2.5 text-white" strokeWidth={2.5} />
                 </div>
               </div>
               {!collapsed && (
                 <div className="flex-1 flex items-center justify-between min-w-0">
-                  <span className="text-[10px] uppercase tracking-[0.16em] text-white/45 font-semibold">Credits</span>
-                  <span className={cn('text-[13px] font-bold tabular-nums', isZeroCredits ? 'text-[hsl(0_100%_70%)]' : 'text-[hsl(42_100%_70%)]')}>
+                  <span className="text-[9.5px] uppercase tracking-[0.24em] text-white/40 font-light">Credits</span>
+                  <span className={cn('text-[14px] font-light tabular-nums tracking-[-0.01em]', isZeroCredits ? 'text-[hsl(0_100%_72%)]' : 'text-[hsl(42_100%_72%)]')}>
                     {credits}
                   </span>
                 </div>
@@ -399,14 +399,14 @@ export function AppShell({ children }: AppShellProps) {
             <button
               onClick={() => setCollapsed((c) => !c)}
               className={cn(
-                'hidden lg:flex w-full items-center gap-2 h-8 rounded-lg px-3 text-[10px] uppercase tracking-[0.16em] font-semibold text-white/35 hover:text-white/70 hover:bg-white/[0.04] transition-colors',
+                'hidden lg:flex w-full items-center gap-2 h-8 rounded-full px-3 text-[9.5px] uppercase tracking-[0.24em] font-light text-white/30 hover:text-white/65 hover:bg-white/[0.03] transition-all duration-300',
                 collapsed && 'lg:justify-center lg:px-0',
               )}
               aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
-              {collapsed ? <PanelLeft className="w-4 h-4" /> : (
+              {collapsed ? <PanelLeft className="w-3.5 h-3.5" strokeWidth={1.5} /> : (
                 <>
-                  <PanelLeftClose className="w-4 h-4" />
+                  <PanelLeftClose className="w-3.5 h-3.5" strokeWidth={1.5} />
                   <span>Collapse</span>
                 </>
               )}

@@ -232,6 +232,40 @@ export const PromptResultShowcase = memo(function PromptResultShowcase({ suspend
               Result
             </span>
           </div>
+
+          {/* Sound toggle (always visible once video plays) */}
+          {isInView && !suspended && (
+            <button
+              type="button"
+              onClick={handleToggleSound}
+              className="absolute bottom-4 left-4 z-20 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-white/15 text-[11px] font-medium text-white/85 hover:bg-black/70 transition-colors"
+              aria-label={soundOn ? 'Mute sound' : 'Enable sound'}
+            >
+              {soundOn ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+              <span className="tracking-wider uppercase">{soundOn ? 'Sound' : 'Muted'}</span>
+            </button>
+          )}
+
+          {/* 10s immersive sound prompt */}
+          <AnimatePresence>
+            {showSoundPrompt && !soundOn && (
+              <motion.button
+                type="button"
+                onClick={handleEnableSound}
+                initial={{ opacity: 0, y: 12, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 group inline-flex items-center gap-3 px-5 py-3 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-white shadow-[0_8px_40px_rgba(10,132,255,0.35)] hover:bg-white/15 transition-all"
+              >
+                <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-primary/90 shadow-[0_0_24px_hsl(var(--primary)/0.6)]">
+                  <Volume2 className="w-4 h-4 text-white" />
+                  <span className="absolute inset-0 rounded-full animate-ping bg-primary/40" />
+                </span>
+                <span className="text-sm font-medium tracking-wide">Tap for immersive sound</span>
+              </motion.button>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* === BEFORE: Prompt (clipped by slider) === */}

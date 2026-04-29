@@ -1067,20 +1067,94 @@ function ProjectsContentInner() {
         ) : (
           <>
             {/* ===== Editorial header + gallery mode tabs ===== */}
-            <PageHeader
-              eyebrow="Library"
-              title="Cinematic Wall"
-              subtitle="Every video in your library stays visible in one resilient editorial grid."
-              actions={
-                <button
-                  onClick={handleCreateProject}
-                  className="h-10 px-5 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm transition-colors inline-flex items-center gap-2 shadow-[0_8px_30px_-12px_hsl(var(--primary)/0.6)]"
-                >
-                  <Plus className="w-4 h-4" />
-                  New project
-                </button>
-              }
-              toolbar={
+            <header className="relative mb-10 sm:mb-14 animate-fade-in">
+              {/* Ambient hero glow */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -top-16 -left-10 right-0 h-[280px] -z-10 opacity-70"
+                style={{
+                  background:
+                    'radial-gradient(620px 240px at 12% 40%, hsl(var(--primary) / 0.16), transparent 60%),' +
+                    'radial-gradient(520px 220px at 70% 10%, hsl(var(--accent) / 0.10), transparent 65%)',
+                  filter: 'blur(8px)',
+                }}
+              />
+
+              <div className="flex items-end justify-between gap-6 flex-wrap">
+                <div className="min-w-0">
+                  {/* Status pill */}
+                  <div className="inline-flex items-center gap-2 h-7 pl-2 pr-3 rounded-full border border-white/[0.07] bg-white/[0.03] backdrop-blur-md mb-5">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-[hsl(var(--success))] opacity-70 animate-ping" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[hsl(var(--success))]" />
+                    </span>
+                    <span className="text-[10px] uppercase tracking-[0.22em] text-white/55 font-medium">
+                      Library · Live
+                    </span>
+                  </div>
+
+                  {/* Display title with gradient accent */}
+                  <h1 className="font-display font-semibold tracking-[-0.03em] text-[40px] sm:text-[56px] leading-[1.02] text-white">
+                    Your{' '}
+                    <span
+                      className="bg-clip-text text-transparent"
+                      style={{
+                        backgroundImage:
+                          'linear-gradient(110deg, hsl(var(--foreground)) 0%, hsl(var(--primary)) 55%, hsl(var(--foreground)) 100%)',
+                      }}
+                    >
+                      cinematic
+                    </span>{' '}
+                    library.
+                  </h1>
+                  <p className="text-[14px] sm:text-[15px] text-white/45 mt-3 max-w-xl leading-relaxed">
+                    Every project, always visible. A single resilient editorial wall — your entire creative archive.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={handleCreateProject}
+                    className="group relative h-11 px-6 rounded-full font-medium text-[13px] inline-flex items-center gap-2 overflow-hidden transition-all duration-300 text-primary-foreground border border-[hsl(var(--primary)/0.5)] bg-gradient-to-b from-[hsl(var(--primary))] to-[hsl(var(--primary)/0.85)] hover:from-[hsl(var(--primary)/0.95)] hover:to-[hsl(var(--primary)/0.8)] shadow-[0_12px_40px_-12px_hsl(var(--primary)/0.7),inset_0_1px_0_hsl(0_0%_100%/0.2)]"
+                  >
+                    <span
+                      aria-hidden
+                      className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
+                      style={{
+                        background:
+                          'linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.18), transparent)',
+                      }}
+                    />
+                    <Plus className="w-4 h-4 relative" />
+                    <span className="relative">New project</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Stat strip */}
+              <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-px rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.015] backdrop-blur-sm">
+                {[
+                  { label: 'Total', value: stats.total, accent: 'text-white' },
+                  { label: 'Completed', value: stats.completed, accent: 'text-[hsl(var(--success))]' },
+                  { label: 'Processing', value: stats.processing, accent: 'text-[hsl(var(--primary))]' },
+                  { label: 'Clips rendered', value: stats.totalClips, accent: 'text-white/85' },
+                ].map((s) => (
+                  <div
+                    key={s.label}
+                    className="relative px-5 py-4 bg-[hsl(220_14%_3%/0.6)]"
+                  >
+                    <div className="text-[9px] uppercase tracking-[0.22em] text-white/35 font-medium">
+                      {s.label}
+                    </div>
+                    <div className={cn('mt-1.5 font-display font-semibold text-[26px] tabular-nums tracking-tight', s.accent)}>
+                      {s.value.toLocaleString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Mode tabs */}
+              <div className="mt-7">
                 <SegmentedControl<ProjectTab>
                   value={activeTab === 'photos' ? 'photos' : 'all'}
                   onChange={(v) => setActiveTab(v)}
@@ -1089,8 +1163,8 @@ function ProjectsContentInner() {
                     { key: 'photos', label: 'Images', icon: Image, count: tabCounts.photos },
                   ]}
                 />
-              }
-            />
+              </div>
+            </header>
 
             {/* ===== PURE GALLERY ===== */}
             <div className="animate-fade-in">

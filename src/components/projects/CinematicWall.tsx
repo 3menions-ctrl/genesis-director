@@ -197,18 +197,24 @@ export const CinematicWall = memo(function CinematicWall({
     <div className="space-y-8">
       {(allItems.length > 0 || trainingVideos.length > 0) && (
         <section>
-          <div className="flex items-end justify-between mb-5">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.22em] text-primary/70 font-medium mb-1">
-                Cinematic wall
-              </p>
-              <h2 className="text-2xl sm:text-3xl font-display font-semibold tracking-tight text-foreground">
-                Every video, always visible
+          <div className="flex items-end justify-between mb-6 gap-4">
+            <div className="min-w-0">
+              <div className="inline-flex items-center gap-2 mb-2">
+                <span className="h-px w-6 bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
+                <p className="text-[10px] uppercase tracking-[0.24em] text-primary/75 font-medium">
+                  Cinematic Wall
+                </p>
+              </div>
+              <h2 className="text-2xl sm:text-[28px] font-display font-semibold tracking-[-0.02em] text-foreground leading-tight">
+                Every frame in one view
               </h2>
             </div>
-            <span className="text-xs text-muted-foreground hidden sm:inline">
-              {allItems.length + trainingVideos.length} items
-            </span>
+            <div className="hidden sm:flex items-center gap-2 shrink-0 h-8 px-3 rounded-full border border-white/[0.06] bg-white/[0.025] backdrop-blur-md">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary/70 shadow-[0_0_8px_hsl(var(--primary)/0.7)]" />
+              <span className="text-[11px] tabular-nums text-white/55 font-medium tracking-wide">
+                {allItems.length + trainingVideos.length} items
+              </span>
+            </div>
           </div>
 
           <div

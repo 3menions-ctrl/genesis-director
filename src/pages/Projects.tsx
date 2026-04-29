@@ -430,7 +430,6 @@ function ProjectsContentInner() {
           .from('video_clips')
           .select('project_id, video_url, shot_index')
           .in('project_id', projectIds)
-          .eq('status', 'completed')
           .not('video_url', 'is', null)
           .order('shot_index', { ascending: true });
         
@@ -465,7 +464,7 @@ function ProjectsContentInner() {
     };
     
     resolveClipUrls();
-  }, [user, hasLoadedOnce, projectIdsKey]); // Stable string key, not array reference
+  }, [user, hasLoadedOnce, contentReady, projectIdsKey]); // Stable string key, not array reference
   
   // Auto-generate missing thumbnails - runs ONCE after clip resolution completes
   const thumbnailsGeneratedRef = useRef(false);
@@ -487,7 +486,7 @@ function ProjectsContentInner() {
     } catch (err) {
       console.debug('[Projects] Thumbnail generation skipped:', err);
     }
-  }, [user, hasLoadedOnce, projects.length, resolvedClipUrls.size, generateMissingThumbnails]);
+  }, [user, hasLoadedOnce, contentReady, projects.length, resolvedClipUrls.size, generateMissingThumbnails]);
 
   // Pre-warm thumbnails for all visible videos so they stay always-visible
   // (training videos + project preview clips). Background, throttled, idempotent.
@@ -726,9 +725,9 @@ function ProjectsContentInner() {
   // Filtered and sorted projects - now handled server-side by usePaginatedProjects
   // Only client-side: pinned projects first
   const filteredProjects = useMemo(() => {
-    // SHOW ALL PROJECTS - don't filter by hasVideoContent
-    // This ensures draft projects are visible in the library
-    const result = projects;
+    // Library is a video library: show real playable/rendered video projects,
+    // not failed placeholder records with no media attached.
+    const result = projects.filter(hasVideoContent);
     
     // Put pinned projects first (only client-side operation needed)
     const pinned = result.filter(p => pinnedProjects.has(p.id));

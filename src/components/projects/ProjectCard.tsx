@@ -122,15 +122,6 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
   const mseClipUrls = Array.isArray(pendingTasks?.mseClipUrls) ? pendingTasks.mseClipUrls as string[] : null;
   const hasMseClips = Boolean(mseClipUrls && mseClipUrls.length > 0);
   
-  const hasVideo = Boolean(
-    project.video_clips?.length || 
-    isDirectVideo || 
-    isManifest || 
-    hasAvatarVideo ||
-    (pendingTasks?.hlsPlaylistUrl) ||
-    hasMseClips
-  );
-  
   const [isIOSSafari, setIsIOSSafari] = useState(false);
   useEffect(() => {
     const isTouchDev = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -160,7 +151,6 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
           .from('video_clips')
           .select('video_url')
           .eq('project_id', project.id)
-          .eq('status', 'completed')
           .not('video_url', 'is', null)
           .order('shot_index', { ascending: true })
           .limit(1);
@@ -199,6 +189,17 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
   }, [project.video_url, project.video_clips, isDirectVideo, preResolvedClipUrl, selfResolvedClipUrl, mseClipUrls]);
 
   const visualSrc = project.thumbnail_url || project.source_image_url || videoSrc || null;
+  const hasVideo = Boolean(
+    videoSrc ||
+    preResolvedClipUrl ||
+    selfResolvedClipUrl ||
+    project.video_clips?.length ||
+    isDirectVideo ||
+    isManifest ||
+    hasAvatarVideo ||
+    pendingTasks?.hlsPlaylistUrl ||
+    hasMseClips
+  );
 
   const handleVideoMetadataLoaded = useCallback(() => {
     if (!isMountedRef.current) return;
@@ -394,7 +395,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
       )}>
         
         {/* Video/Thumbnail layer — Ken Burns slow zoom on hover */}
-        {hasVideo && videoSrc ? (
+        {videoSrc ? (
           <>
             {isIOSSafari ? (
               videoSlotGranted ? (

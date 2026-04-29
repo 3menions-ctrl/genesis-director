@@ -98,7 +98,7 @@ export function usePaginatedProjects(
   statusFilter: 'all' | 'completed' | 'processing' | 'failed' = 'all',
   searchQuery: string = ''
 ): PaginatedProjectsResult {
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -118,9 +118,6 @@ export function usePaginatedProjects(
   const userIdRef = useRef(user?.id);
   userIdRef.current = user?.id;
   
-  const isAdminRef = useRef(isAdmin);
-  isAdminRef.current = isAdmin;
-  
   // Cleanup on unmount
   useEffect(() => {
     isMountedRef.current = true;
@@ -138,9 +135,7 @@ export function usePaginatedProjects(
       .from('movie_projects')
       .select('id, user_id, title, status, mode, genre, video_url, video_clips, voice_audio_url, thumbnail_url, created_at, updated_at, likes_count, is_public, aspect_ratio, pipeline_state, source_image_url, avatar_voice_id, pending_video_tasks', { count: 'exact' });
     
-    if (!isAdminRef.current) {
-      query = query.eq('user_id', userIdRef.current);
-    }
+    query = query.eq('user_id', userIdRef.current);
     
     query = query
       .neq('status', 'draft')

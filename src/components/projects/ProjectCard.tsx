@@ -352,8 +352,8 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
       }}
       className={cn(
         "group relative cursor-pointer overflow-hidden transition-all duration-700 ease-out animate-fade-in",
-        "rounded-2xl spatial-sheen-on-hover",
-        !isTouchDevice && "hover:-translate-y-2 hover:shadow-[0_40px_100px_-30px_hsl(210_100%_50%/0.25)]"
+        "rounded-2xl",
+        !isTouchDevice && "hover:-translate-y-2 hover:shadow-[0_40px_100px_-30px_rgba(124,58,237,0.12)]"
       )}
       style={{ animationDelay: `${Math.min(index * 0.06, 0.5)}s` }}
       onMouseEnter={!isTouchDevice ? handleMouseEnter : undefined}
@@ -368,7 +368,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
         "absolute -inset-px rounded-[17px] transition-opacity duration-700 z-0 pointer-events-none",
         isHovered ? "opacity-100" : "opacity-0"
       )} style={{
-        background: 'linear-gradient(135deg, hsl(210 100% 60% / 0.35), hsl(210 100% 75% / 0.2), hsl(210 100% 50% / 0.15))',
+        background: 'linear-gradient(135deg, hsl(263 70% 58% / 0.35), hsl(195 90% 50% / 0.2), hsl(263 70% 58% / 0.15))',
       }} />
 
       {/* Vignette bloom — radial glow from edges on hover */}
@@ -376,7 +376,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
         "absolute -inset-6 rounded-3xl pointer-events-none transition-opacity duration-1000 z-0",
         isHovered ? "opacity-60" : "opacity-0"
       )} style={{
-        background: 'radial-gradient(ellipse at center, hsl(210 100% 55% / 0.18) 0%, transparent 70%)',
+        background: 'radial-gradient(ellipse at center, hsl(263 70% 58% / 0.15) 0%, transparent 70%)',
         filter: 'blur(20px)',
       }} />
 

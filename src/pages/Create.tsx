@@ -2,8 +2,6 @@ import { useState, useCallback, useEffect, memo } from 'react';
 import { toast } from 'sonner';
 import { Film, Sparkles, Image } from 'lucide-react';
 import ClipsBackground from '@/components/clips/ClipsBackground';
-import { OrbField } from '@/components/spatial/OrbField';
-import { LuminousOrb } from '@/components/spatial/LuminousOrb';
 import { CreationHub } from '@/components/studio/CreationHub';
 import { ScenesHub } from '@/components/scenes/ScenesHub';
 import { PhotoEditorHub } from '@/components/photo-editor/PhotoEditorHub';
@@ -25,18 +23,11 @@ import { saveDraft, loadDraft, clearDraft } from '@/lib/sessionPersistence';
 // Loading overlay component for creation in progress - uses unified brand animation
 const LoadingOverlay = memo(function LoadingOverlay({ status }: { status: string }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center"
-         style={{ background: 'hsl(220 18% 4% / 0.85)', backdropFilter: 'blur(24px) saturate(160%)' }}>
-      <div className="relative spatial-glass-thick rounded-3xl px-12 py-10 flex flex-col items-center gap-6 max-w-md mx-4">
-        <LuminousOrb size={88} />
-        <div className="text-center">
-          <p className="text-white/95 text-base font-medium font-[Sora] tracking-tight">
-            {status || 'Starting creation…'}
-          </p>
-          <p className="text-white/40 text-[11px] mt-2 tracking-[0.18em] uppercase">
-            This may take a moment
-          </p>
-        </div>
+    <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 flex items-center justify-center">
+      <div className="text-center space-y-6">
+        <BrandLoadingSpinner size="lg" />
+        <p className="text-foreground text-lg font-medium">{status || 'Starting creation...'}</p>
+        <p className="text-muted-foreground text-sm">This may take a moment</p>
       </div>
     </div>
   );
@@ -232,8 +223,6 @@ function CreateContentInner() {
   return (
     <div className="relative min-h-screen flex flex-col">
       <ClipsBackground />
-      {/* Spatial OS ambient backdrop */}
-      <OrbField intensity="normal" className="z-0" />
       
       {/* Gatekeeper loading screen */}
       {gatekeeper.isLoading && (
@@ -249,12 +238,14 @@ function CreateContentInner() {
       
       {/* Tab Navigation — Premium floating pill bar */}
       <div className="relative z-20 max-w-6xl mx-auto px-6 pt-6">
-        <div className="relative inline-flex items-center gap-1 p-1.5 rounded-2xl spatial-glass-thin"
-             style={{ transition: 'transform 0.4s cubic-bezier(0.32,0.72,0,1)' }}>
+        <div className="relative inline-flex items-center gap-1 p-1.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.3)]">
+          {/* Animated top-edge accent line */}
+          <div className="absolute -top-px inset-x-4 h-px bg-gradient-to-r from-transparent via-violet-500/40 to-transparent" />
+          
           {[
-            { key: 'create' as const, label: 'Create Video', icon: Film },
-            { key: 'scenes' as const, label: 'Scenes', icon: Sparkles },
-            { key: 'photo' as const, label: 'Photo Editor', icon: Image },
+            { key: 'create' as const, label: 'Create Video', icon: Film, accent: 'violet' },
+            { key: 'scenes' as const, label: 'Scenes', icon: Sparkles, accent: 'violet' },
+            { key: 'photo' as const, label: 'Photo Editor', icon: Image, accent: 'cyan' },
           ].map((tab) => {
             const isActive = activeTab === tab.key;
             const TabIcon = tab.icon;
@@ -263,26 +254,22 @@ function CreateContentInner() {
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={cn(
-                  'relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300',
+                  "relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
                   isActive
-                    ? 'text-white'
-                    : 'text-white/40 hover:text-white/70 hover:bg-white/[0.04]',
+                    ? tab.accent === 'cyan'
+                      ? "bg-cyan-500/20 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.15)]"
+                      : "bg-violet-500/20 text-violet-300 shadow-[0_0_20px_rgba(139,92,246,0.15)]"
+                    : "text-white/40 hover:text-white/70 hover:bg-white/[0.04]"
                 )}
               >
                 {isActive && (
-                  <span
-                    className="absolute inset-0 rounded-xl animate-fade-in-scale"
-                    style={{
-                      background:
-                        'linear-gradient(135deg, hsl(210 100% 60% / 0.22) 0%, hsl(210 100% 50% / 0.10) 100%)',
-                      border: '1px solid hsl(210 100% 65% / 0.28)',
-                      boxShadow:
-                        '0 0 0 1px hsl(0 0% 100% / 0.05) inset, 0 6px 20px hsl(210 100% 50% / 0.22), 0 0 28px hsl(210 100% 60% / 0.14)',
-                    }}
-                  />
+                  <div className={cn(
+                    "absolute inset-x-3 -bottom-px h-px bg-gradient-to-r from-transparent to-transparent",
+                    tab.accent === 'cyan' ? 'via-cyan-400/60' : 'via-violet-400/60'
+                  )} />
                 )}
-                <TabIcon className="relative z-10 w-4 h-4" />
-                <span className="relative z-10">{tab.label}</span>
+                <TabIcon className="w-4 h-4" />
+                {tab.label}
               </button>
             );
           })}

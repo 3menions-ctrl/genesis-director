@@ -241,7 +241,6 @@ export const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
           fallbackMp4Url={STORYTELLING_MP4_FALLBACK}
           className="absolute inset-0 w-full h-full"
           aspectRatio="auto"
-          objectFit="contain"
           autoPlay
           muted={isMuted}
           loop={false}

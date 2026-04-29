@@ -23,7 +23,6 @@ import {
 } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
-import { ReferralProgram } from '@/components/credits/ReferralProgram';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { useGamification } from '@/hooks/useGamification';
@@ -813,11 +812,8 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
               </div>
             </div>
           </div>
-          )}
-
-          {/* Referral Program */}
-          <ReferralProgram className="mt-6" />
-        </main>
+        )}
+      </main>
 
       {/* Buy Credits Modal */}
       <BuyCreditsModal 

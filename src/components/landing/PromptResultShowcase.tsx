@@ -1,7 +1,7 @@
 import { memo, useState, useEffect, useRef, useCallback } from 'react';
 import { useMediaCleanup } from '@/lib/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Type, Film, GripVertical, ImageIcon, Volume2, VolumeX } from 'lucide-react';
+import { Sparkles, Type, Film, GripVertical, ImageIcon } from 'lucide-react';
 const silentVigilSource = '/images/silent-vigil-source.png';
 
 // Curated prompt → video pairs using real gallery content
@@ -45,13 +45,10 @@ export const PromptResultShowcase = memo(function PromptResultShowcase({ suspend
   const [isDragging, setIsDragging] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
   const [isInView, setIsInView] = useState(false);
-  const [soundOn, setSoundOn] = useState(false);
-  const [showSoundPrompt, setShowSoundPrompt] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const timerRef = useRef<NodeJS.Timeout>();
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const soundTimerRef = useRef<NodeJS.Timeout>();
 
   const pair = SHOWCASE_PAIRS[currentIdx];
 
@@ -84,66 +81,10 @@ export const PromptResultShowcase = memo(function PromptResultShowcase({ suspend
     if (!video) return;
     if (suspended || !isInView) {
       video.pause();
-      video.muted = true;
-      setSoundOn(false);
-      setShowSoundPrompt(false);
-      if (soundTimerRef.current) clearTimeout(soundTimerRef.current);
     } else {
       video.play().catch(() => {});
-      // After 10s of immersive viewing, surface the sound prompt
-      if (soundTimerRef.current) clearTimeout(soundTimerRef.current);
-      soundTimerRef.current = setTimeout(() => {
-        const v = videoRef.current;
-        if (!v) return;
-        // Try silent auto-unmute first (works if user has interacted with page)
-        v.muted = false;
-        v.volume = 0.85;
-        v.play()
-          .then(() => setSoundOn(true))
-          .catch(() => {
-            v.muted = true;
-            setShowSoundPrompt(true);
-          });
-      }, 10000);
     }
-    return () => {
-      if (soundTimerRef.current) clearTimeout(soundTimerRef.current);
-    };
   }, [suspended, isInView]);
-
-  // Reset sound state on clip change
-  useEffect(() => {
-    setSoundOn(false);
-    setShowSoundPrompt(false);
-    const v = videoRef.current;
-    if (v) v.muted = true;
-  }, [currentIdx]);
-
-  const handleEnableSound = useCallback(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    v.muted = false;
-    v.volume = 0.85;
-    v.play().catch(() => {});
-    setSoundOn(true);
-    setShowSoundPrompt(false);
-  }, []);
-
-  const handleToggleSound = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    const v = videoRef.current;
-    if (!v) return;
-    if (soundOn) {
-      v.muted = true;
-      setSoundOn(false);
-    } else {
-      v.muted = false;
-      v.volume = 0.85;
-      v.play().catch(() => {});
-      setSoundOn(true);
-      setShowSoundPrompt(false);
-    }
-  }, [soundOn]);
 
   // Register video with NavigationCoordinator for pre-navigation cleanup
   useMediaCleanup(videoRef);
@@ -232,40 +173,6 @@ export const PromptResultShowcase = memo(function PromptResultShowcase({ suspend
               Result
             </span>
           </div>
-
-          {/* Sound toggle (always visible once video plays) */}
-          {isInView && !suspended && (
-            <button
-              type="button"
-              onClick={handleToggleSound}
-              className="absolute bottom-4 left-4 z-20 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-white/15 text-[11px] font-medium text-white/85 hover:bg-black/70 transition-colors"
-              aria-label={soundOn ? 'Mute sound' : 'Enable sound'}
-            >
-              {soundOn ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-              <span className="tracking-wider uppercase">{soundOn ? 'Sound' : 'Muted'}</span>
-            </button>
-          )}
-
-          {/* 10s immersive sound prompt */}
-          <AnimatePresence>
-            {showSoundPrompt && !soundOn && (
-              <motion.button
-                type="button"
-                onClick={handleEnableSound}
-                initial={{ opacity: 0, y: 12, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 group inline-flex items-center gap-3 px-5 py-3 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-white shadow-[0_8px_40px_rgba(10,132,255,0.35)] hover:bg-white/15 transition-all"
-              >
-                <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-primary/90 shadow-[0_0_24px_hsl(var(--primary)/0.6)]">
-                  <Volume2 className="w-4 h-4 text-white" />
-                  <span className="absolute inset-0 rounded-full animate-ping bg-primary/40" />
-                </span>
-                <span className="text-sm font-medium tracking-wide">Tap for immersive sound</span>
-              </motion.button>
-            )}
-          </AnimatePresence>
         </div>
 
         {/* === BEFORE: Prompt (clipped by slider) === */}

@@ -159,9 +159,6 @@ verify_jwt = false
 [functions.stripe-webhook]
 verify_jwt = false
 
-[functions.payments-webhook]
-verify_jwt = false
-
 [functions.validate-color-histogram]
 verify_jwt = false
 

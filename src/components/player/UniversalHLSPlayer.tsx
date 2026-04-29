@@ -47,8 +47,6 @@ export interface UniversalHLSPlayerProps {
   className?: string;
   /** Aspect ratio mode */
   aspectRatio?: 'video' | 'square' | 'auto';
-  /** How the video fills its container. 'cover' crops to fill; 'contain' fits entire frame (letterbox). */
-  objectFit?: 'cover' | 'contain';
   /** Show controls */
   showControls?: boolean;
   /** Show skip buttons */
@@ -175,7 +173,6 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
     loop = false,
     className,
     aspectRatio = 'video',
-    objectFit = 'cover',
     showControls = true,
     showSkipButtons = false,
     onEnded,
@@ -799,10 +796,7 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
         {/* Video element — fills entire container edge-to-edge */}
         <video
           ref={videoRef}
-          className={cn(
-            "absolute inset-0 w-full h-full",
-            objectFit === 'contain' ? 'object-contain' : 'object-cover'
-          )}
+          className="absolute inset-0 w-full h-full object-cover"
           playsInline
           muted={muteClipAudio || isMuted}
           loop={loop}

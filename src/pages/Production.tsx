@@ -9,7 +9,6 @@ import { useSafeNavigation, useRouteCleanup, useNavigationAbort } from '@/lib/na
 import { 
   Film, Loader2, X, FileText, Users, Shield, Wand2, Sparkles
 } from 'lucide-react';
-import { PostGenerationUpsell } from '@/components/credits/PostGenerationUpsell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -119,7 +118,7 @@ function ProductionContentInner() {
   
   // FIX: useAuth now returns safe fallback if context is missing
   // No try-catch needed - that violated React's hook rules
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   
   // Proactive clip recovery - checks for stuck clips on page load
   const { isRecovering: isRecoveringClips } = useClipRecovery(projectId || null, user?.id || null);
@@ -1669,14 +1668,6 @@ const transitionsData = useMemo(() =>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Post-generation upsell */}
-      <PostGenerationUpsell
-        creditsRemaining={profile?.credits_balance ?? 0}
-        projectTitle={projectTitle}
-        visible={isComplete}
-        onDismiss={() => {}}
-      />
     </div>
   );
 }

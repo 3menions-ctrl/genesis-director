@@ -11,14 +11,14 @@ const corsHeaders = {
  * editor-generate-clip — Lightweight video generation for the editor
  * 
  * Actions:
- *   "submit"  → Kick off a Seedance 2.0 prediction, returns predictionId
+ *   "submit"  → Kick off a Kling V3 prediction, returns predictionId
  *   "status"  → Poll prediction status, returns videoUrl when done
  * 
- * This is a simplified wrapper around Replicate's bytedance/seedance-2.0 model
+ * This is a simplified wrapper around Replicate's Kling V3 model
  * specifically for editor-originated generations (no full pipeline overhead).
  */
 
-const SEEDANCE_MODEL_URL = "https://api.replicate.com/v1/models/bytedance/seedance-2.0/predictions";
+const KLING_MODEL_URL = "https://api.replicate.com/v1/models/kwaivgi/kling-v3-video/predictions";
 const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
 
 const QUALITY_SUFFIX = ", cinematic lighting, ultra high definition, highly detailed, professional cinematography, masterful composition, clean sharp image";
@@ -36,7 +36,7 @@ serve(async (req) => {
       return unauthorizedResponse(corsHeaders, auth.error);
     }
 
-    const REPLICATE_API_TOKEN = Deno.env.get("REPLICATE_API_TOKEN") || Deno.env.get("REPLICATE_API_KEY");
+    const REPLICATE_API_TOKEN = Deno.env.get("REPLICATE_API_TOKEN");
     if (!REPLICATE_API_TOKEN) {
       return new Response(JSON.stringify({ error: "REPLICATE_API_TOKEN not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -48,16 +48,7 @@ serve(async (req) => {
 
     // ─── SUBMIT ───
     if (action === "submit") {
-      const {
-        prompt,
-        duration = 5,
-        startImageUrl,
-        lastFrameImageUrl,
-        aspectRatio = "16:9",
-        resolution = "1080p",
-        generateAudio = true,
-        seed,
-      } = body;
+      const { prompt, duration = 10, startImageUrl, aspectRatio = "16:9" } = body;
 
       if (!prompt) {
         return new Response(JSON.stringify({ error: "prompt is required" }), {
@@ -77,12 +68,7 @@ serve(async (req) => {
         .eq("id", auth.userId)
         .single();
 
-      // Seedance 2.0 pricing: 1080p ~ $0.15/s, 720p ~ $0.08/s, 480p ~ $0.04/s
-      // Convert to credits ($0.10/credit). Round up.
-      const dur = Math.max(1, Math.min(15, Number(duration) || 5));
-      const perSecondCredits =
-        resolution === "1080p" ? 1.5 : resolution === "480p" ? 0.4 : 0.8;
-      const creditsRequired = Math.ceil(dur * perSecondCredits);
+      const creditsRequired = duration > 10 ? 75 : 50;
       if (!profile || profile.credits_balance < creditsRequired) {
         return new Response(JSON.stringify({ 
           error: "Insufficient credits", 
@@ -100,34 +86,27 @@ serve(async (req) => {
         p_description: `Editor clip generation (${duration}s)`,
       });
 
-      // Build Seedance 2.0 input
-      const seedanceInput: Record<string, any> = {
+      // Build Kling input
+      const klingInput: Record<string, any> = {
         prompt: prompt + QUALITY_SUFFIX,
-        duration: dur,
+        duration: String(duration),
         aspect_ratio: aspectRatio,
-        resolution,
-        generate_audio: generateAudio,
+        mode: "pro",
       };
 
       if (startImageUrl) {
-        seedanceInput.image = startImageUrl;
-      }
-      if (lastFrameImageUrl && startImageUrl) {
-        seedanceInput.last_frame_image = lastFrameImageUrl;
-      }
-      if (typeof seed === "number") {
-        seedanceInput.seed = seed;
+        klingInput.start_image = startImageUrl;
       }
 
       // Submit to Replicate
-      const replicateRes = await fetch(SEEDANCE_MODEL_URL, {
+      const replicateRes = await fetch(KLING_MODEL_URL, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
           "Content-Type": "application/json",
           Prefer: "wait=5",
         },
-        body: JSON.stringify({ input: seedanceInput }),
+        body: JSON.stringify({ input: klingInput }),
       });
 
       if (!replicateRes.ok) {
@@ -148,13 +127,13 @@ serve(async (req) => {
       // Log cost
       await supabase.from("api_cost_logs").insert({
         user_id: auth.userId,
-        service: "seedance-2.0",
+        service: "kling-v3",
         operation: "editor-generate-clip",
         credits_charged: creditsRequired,
-        real_cost_cents: Math.round(dur * (resolution === "1080p" ? 15 : resolution === "480p" ? 4 : 8)),
-        duration_seconds: dur,
+        real_cost_cents: duration > 10 ? 15 : 10,
+        duration_seconds: duration,
         status: "pending",
-        metadata: { predictionId: prediction.id, model: "bytedance/seedance-2.0", resolution },
+        metadata: { predictionId: prediction.id },
       });
 
       return new Response(JSON.stringify({

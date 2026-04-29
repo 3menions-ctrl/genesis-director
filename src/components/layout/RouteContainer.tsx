@@ -20,7 +20,7 @@ interface RouteContainerProps {
 export const RouteContainer = memo(forwardRef<HTMLDivElement, RouteContainerProps>(
   function RouteContainer({ children, fallbackMessage = 'Loading...', routeName }, ref) {
     return (
-      <div ref={ref} className="spatial-route-in">
+      <div ref={ref} className="animate-route-enter">
         <StabilityBoundary 
           name={routeName || 'Page'} 
           autoRetry={false}

@@ -277,11 +277,12 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
     setShowWelcomeDialog(false);
     setHasRedirected(true);
     if (profile && !profile.onboarding_completed) {
-      navigate('/onboarding', { replace: true });
+      const target = nextParam ? `/onboarding?next=${encodeURIComponent(nextParam)}` : '/onboarding';
+      navigate(target, { replace: true });
     } else {
-      navigate(choice === 'create' ? '/create' : '/creators', { replace: true });
+      navigate(nextParam || (choice === 'create' ? '/create' : '/creators'), { replace: true });
     }
-  }, [profile, navigate]);
+  }, [profile, navigate, nextParam]);
 
   const formEnter = { opacity: 0, y: 20 };
   const formAnimate = { opacity: 1, y: 0, transition: { duration: 0.5 } };

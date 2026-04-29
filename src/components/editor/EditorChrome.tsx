@@ -668,13 +668,29 @@ export function EditorChrome({
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="h-screen w-screen flex flex-col overflow-hidden relative" style={{ background: 'hsl(220, 14%, 4%)' }}>
-        {/* Blue accent line — top */}
+      <div
+        className="h-screen w-screen flex flex-col overflow-hidden relative"
+        style={{
+          background:
+            'radial-gradient(1200px 600px at 50% -10%, hsla(215, 90%, 22%, 0.18), transparent 60%), radial-gradient(800px 500px at 100% 110%, hsla(215, 80%, 18%, 0.10), transparent 55%), hsl(220, 14%, 3.2%)',
+        }}
+      >
+        {/* Subtle film-grain veil for premium texture */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-0 opacity-[0.025] mix-blend-overlay"
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
+          }}
+        />
+        {/* Luminous accent line — top */}
         <div className="absolute top-0 left-0 right-0 h-px z-20">
-          <div className="h-full bg-gradient-to-r from-transparent via-[hsla(215,100%,50%,0.35)] to-transparent" />
+          <div className="h-full bg-gradient-to-r from-transparent via-[hsla(215,100%,55%,0.55)] to-transparent" />
+          <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-[hsla(215,100%,55%,0.18)] to-transparent blur-sm" />
           {isRendering && (
             <motion.div
-              className="absolute inset-0 h-px bg-gradient-to-r from-[hsl(215,100%,50%)] via-[hsl(215,100%,65%)] to-[hsl(215,100%,50%)]"
+              className="absolute inset-0 h-px bg-gradient-to-r from-[hsl(215,100%,55%)] via-[hsl(195,100%,75%)] to-[hsl(215,100%,55%)] shadow-[0_0_12px_hsla(215,100%,55%,0.6)]"
               style={{ width: `${Math.round(renderProgress * 100)}%` }}
               transition={{ duration: 0.3 }}
             />
@@ -686,19 +702,22 @@ export function EditorChrome({
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="h-11 flex items-center px-3 shrink-0 z-10 relative"
+          className="h-12 flex items-center px-4 shrink-0 z-10 relative backdrop-blur-xl"
           style={{
-            background: 'linear-gradient(180deg, hsl(220, 14%, 7%) 0%, hsl(220, 14%, 5.5%) 100%)',
-            borderBottom: '1px solid hsla(0, 0%, 100%, 0.06)',
+            background:
+              'linear-gradient(180deg, hsla(220, 14%, 9%, 0.92) 0%, hsla(220, 14%, 5%, 0.88) 100%)',
+            borderBottom: '1px solid hsla(0, 0%, 100%, 0.05)',
+            boxShadow:
+              'inset 0 1px 0 hsla(0,0%,100%,0.04), 0 1px 0 hsla(0,0%,0%,0.4), 0 8px 24px -12px hsla(215, 100%, 30%, 0.25)',
           }}
         >
           {/* ── Left: Navigation + Session ── */}
-          <div className="flex items-center gap-2 min-w-0 shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0 shrink-0">
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   onClick={() => navigate("/projects")}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground/40 hover:text-foreground hover:bg-white/[0.06] transition-all shrink-0"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-white/[0.06] transition-all shrink-0 ring-1 ring-inset ring-white/[0.04] hover:ring-white/[0.08]"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
@@ -706,7 +725,40 @@ export function EditorChrome({
               <TooltipContent side="bottom" className="text-[10px]">Back to Projects</TooltipContent>
             </Tooltip>
 
-            <div className="w-px h-5 bg-white/[0.06]" />
+            {/* Apex Studio Pro wordmark */}
+            <div className="flex items-center gap-2 pl-1 pr-2 select-none">
+              <div
+                className="relative w-5 h-5 rounded-[6px] flex items-center justify-center shrink-0"
+                style={{
+                  background: 'linear-gradient(135deg, hsl(215,100%,55%) 0%, hsl(200,100%,45%) 100%)',
+                  boxShadow:
+                    '0 0 0 1px hsla(215,100%,70%,0.35) inset, 0 4px 14px -4px hsla(215,100%,50%,0.55)',
+                }}
+              >
+                <Sparkles className="w-3 h-3 text-white drop-shadow-[0_0_4px_hsla(0,0%,100%,0.6)]" />
+              </div>
+              <div className="flex items-baseline gap-1.5 leading-none">
+                <span className="font-display text-[12px] font-semibold tracking-[0.14em] uppercase text-foreground/85">
+                  Apex
+                </span>
+                <span className="font-display text-[10px] font-medium tracking-[0.32em] uppercase text-muted-foreground/40">
+                  Studio
+                </span>
+                <span
+                  className="text-[8px] font-bold tracking-[0.18em] uppercase px-1.5 py-[2px] rounded-[4px]"
+                  style={{
+                    background:
+                      'linear-gradient(180deg, hsla(215,100%,55%,0.18), hsla(215,100%,45%,0.08))',
+                    color: 'hsl(200, 100%, 80%)',
+                    border: '1px solid hsla(215,100%,55%,0.25)',
+                  }}
+                >
+                  Pro
+                </span>
+              </div>
+            </div>
+
+            <div className="w-px h-5 bg-gradient-to-b from-transparent via-white/[0.10] to-transparent" />
 
             <div className="flex items-center gap-1.5 min-w-0">
               {isRenamingSession ? (
@@ -716,14 +768,14 @@ export function EditorChrome({
                   onChange={(e) => setRenameValue(e.target.value)}
                   onBlur={finishRename}
                   onKeyDown={(e) => { if (e.key === "Enter") finishRename(); if (e.key === "Escape") setIsRenamingSession(false); }}
-                  className="text-[13px] text-foreground bg-white/[0.06] border border-primary/40 rounded-lg px-2.5 py-1 max-w-[200px] outline-none focus:border-primary font-semibold"
+                  className="text-[12.5px] text-foreground bg-white/[0.06] border border-primary/40 rounded-lg px-2.5 py-1 max-w-[200px] outline-none focus:border-primary font-medium tracking-tight"
                 />
               ) : (
                 <button onClick={startRename} className="flex items-center gap-1.5 group text-left min-w-0 px-1">
-                  <span className="text-[13px] font-semibold text-foreground/70 max-w-[200px] truncate group-hover:text-foreground transition-colors">
+                  <span className="text-[12.5px] font-medium tracking-tight text-foreground/75 max-w-[220px] truncate group-hover:text-foreground transition-colors">
                     {sessionTitle}
                   </span>
-                  <Edit3 className="w-3 h-3 text-muted-foreground/20 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                  <Edit3 className="w-3 h-3 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                 </button>
               )}
               {hasUnsavedChanges && (
@@ -892,7 +944,18 @@ export function EditorChrome({
             </div>
 
             {/* Export — hero CTA, visually separated */}
-            <div className="ml-1.5">
+            <div className="ml-2 relative">
+              {/* Luminous halo */}
+              {!isRendering && (
+                <div
+                  aria-hidden
+                  className="absolute inset-0 rounded-lg blur-md opacity-60 pointer-events-none"
+                  style={{
+                    background:
+                      'radial-gradient(60% 100% at 50% 50%, hsla(215,100%,55%,0.55), transparent 70%)',
+                  }}
+                />
+              )}
               {isRendering ? (
                 <button
                   onClick={() => renderer?.reset()}
@@ -907,14 +970,16 @@ export function EditorChrome({
                     <button
                       onClick={exportVideo}
                       disabled={isStitching || isDownloading}
-                      className="h-8 px-5 flex items-center gap-2 rounded-lg text-[11px] font-bold relative overflow-hidden group disabled:opacity-40"
+                      className="relative h-8 px-5 flex items-center gap-2 rounded-lg text-[11px] font-bold tracking-[0.08em] uppercase overflow-hidden group disabled:opacity-40"
                        style={{
-                        background: 'hsl(215, 100%, 50%)',
+                        background:
+                          'linear-gradient(180deg, hsl(210, 100%, 60%) 0%, hsl(215, 100%, 48%) 50%, hsl(218, 100%, 42%) 100%)',
                         color: 'hsl(0, 0%, 100%)',
-                        boxShadow: '0 2px 16px hsla(215, 100%, 50%, 0.3), inset 0 1px 0 hsla(0,0%,100%,0.15)',
+                        boxShadow:
+                          '0 1px 0 hsla(0,0%,100%,0.18) inset, 0 -1px 0 hsla(0,0%,0%,0.25) inset, 0 6px 22px -6px hsla(215, 100%, 50%, 0.65), 0 0 0 1px hsla(215,100%,75%,0.18)',
                       }}
                     >
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-[900ms] ease-out" />
                       {isDownloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                       <span>{isDownloading ? "Exporting…" : "Export"}</span>
                     </button>
@@ -965,10 +1030,12 @@ export function EditorChrome({
 
         {/* ═══════════════ STATUS BAR ═══════════════ */}
         <div
-          className="h-7 flex items-center px-4 shrink-0 z-10 select-none overflow-hidden gap-4"
+          className="h-7 flex items-center px-4 shrink-0 z-10 select-none overflow-hidden gap-4 backdrop-blur-md"
           style={{
-            background: 'linear-gradient(180deg, hsl(220, 14%, 5.5%) 0%, hsl(220, 14%, 4%) 100%)',
-            borderTop: '1px solid hsla(0, 0%, 100%, 0.06)',
+            background:
+              'linear-gradient(180deg, hsla(220, 14%, 6%, 0.92) 0%, hsla(220, 14%, 3%, 0.95) 100%)',
+            borderTop: '1px solid hsla(0, 0%, 100%, 0.05)',
+            boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.03)',
           }}
         >
           {/* Left stats */}
@@ -1013,13 +1080,17 @@ export function EditorChrome({
 
           {/* Right — tech info */}
           <div className="flex items-center gap-3 text-[9px] text-muted-foreground/45 shrink-0 whitespace-nowrap font-mono">
-            <span>{timelineState.width}×{timelineState.height}</span>
+            <span className="tabular-nums">{timelineState.width}×{timelineState.height}</span>
             <span className="w-px h-3 bg-foreground/[0.06]" />
-            <span>{timelineState.fps}fps</span>
+            <span className="tabular-nums">{timelineState.fps}fps</span>
             <span className="w-px h-3 bg-foreground/[0.06]" />
             <span className="flex items-center gap-1">
-              <Zap className="w-2.5 h-2.5 text-foreground/25 shrink-0" />
+              <Zap className="w-2.5 h-2.5 text-[hsl(215,100%,65%)]/60 shrink-0" />
               WebCodecs
+            </span>
+            <span className="w-px h-3 bg-foreground/[0.06]" />
+            <span className="text-[9px] tracking-[0.22em] uppercase text-muted-foreground/30">
+              Apex Pro
             </span>
           </div>
         </div>
@@ -1154,16 +1225,27 @@ function EditorCreditsBadge({ userId }: { userId: string }) {
     <Tooltip>
       <TooltipTrigger asChild>
         <div
-          className="flex items-center gap-1 px-2 py-1 rounded-md mr-1 cursor-default"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full mr-1 cursor-default backdrop-blur-md transition-all hover:scale-[1.02]"
           style={{
-            background: isLow ? 'hsla(0, 70%, 50%, 0.08)' : 'hsla(215, 70%, 55%, 0.08)',
-            border: `1px solid ${isLow ? 'hsla(0, 70%, 50%, 0.15)' : 'hsla(215, 70%, 55%, 0.12)'}`,
+            background: isLow
+              ? 'linear-gradient(180deg, hsla(0, 70%, 55%, 0.14), hsla(0, 70%, 40%, 0.06))'
+              : 'linear-gradient(180deg, hsla(215, 90%, 60%, 0.14), hsla(215, 90%, 40%, 0.05))',
+            border: `1px solid ${isLow ? 'hsla(0, 70%, 55%, 0.22)' : 'hsla(215, 90%, 60%, 0.22)'}`,
+            boxShadow: isLow
+              ? '0 0 14px -4px hsla(0, 70%, 55%, 0.35), inset 0 1px 0 hsla(0,0%,100%,0.06)'
+              : '0 0 14px -4px hsla(215, 100%, 55%, 0.45), inset 0 1px 0 hsla(0,0%,100%,0.08)',
           }}
         >
-          <Zap className="w-3 h-3" style={{ color: isLow ? 'hsl(0, 70%, 60%)' : 'hsl(215, 70%, 60%)' }} />
+          <Zap
+            className="w-3 h-3"
+            style={{
+              color: isLow ? 'hsl(0, 80%, 70%)' : 'hsl(200, 100%, 75%)',
+              filter: `drop-shadow(0 0 4px ${isLow ? 'hsla(0,80%,60%,0.6)' : 'hsla(215,100%,60%,0.7)'})`,
+            }}
+          />
           <span
-            className="text-[10px] font-bold"
-            style={{ color: isLow ? 'hsl(0, 70%, 65%)' : 'hsl(215, 70%, 65%)' }}
+            className="text-[10px] font-semibold tabular-nums tracking-wide"
+            style={{ color: isLow ? 'hsl(0, 85%, 78%)' : 'hsl(200, 100%, 82%)' }}
           >
             {balance.toLocaleString()}
           </span>

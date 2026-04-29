@@ -12,18 +12,12 @@ const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundPro
       <div
         ref={ref}
         className={cn("absolute inset-0 overflow-hidden bg-background pointer-events-none", className)}
-        style={{
-          backgroundImage: `url(${landingAbstractBg})`,
-          backgroundSize: 'contain',
-          backgroundPosition: 'center top',
-          backgroundRepeat: 'no-repeat',
-        }}
       >
-        {/* Exact background image — full frame visible, never cropped or zoomed. */}
+        {/* Full image fits inside the viewport — never cropped or zoomed. Page content scrolls over it. */}
         <img
           src={landingAbstractBg}
           alt="Dubai skyline above clouds"
-          className="absolute inset-0 h-full w-full object-contain object-top select-none opacity-100"
+          className="absolute inset-0 h-full w-full object-contain object-center select-none"
           draggable={false}
         />
 

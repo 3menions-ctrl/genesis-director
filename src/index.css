@@ -2124,20 +2124,20 @@ img, a, button {
 @layer components {
   /* Editorial typography */
   .text-eyebrow {
-    @apply font-sora text-[11px] font-medium uppercase text-white/40;
+    @apply font-display text-[11px] font-medium uppercase text-white/40;
     letter-spacing: 0.22em;
   }
   .text-display {
-    @apply font-sora font-semibold text-white;
+    @apply font-display font-semibold text-white;
     font-size: clamp(2rem, 4vw + 0.5rem, 2.875rem);
     line-height: 1.05;
     letter-spacing: -0.025em;
   }
   .text-section-title {
-    @apply font-sora text-xl font-semibold text-white tracking-tight;
+    @apply font-display text-xl font-semibold text-white tracking-tight;
   }
   .text-body-muted {
-    @apply font-instrument text-[15px] text-white/55 leading-relaxed;
+    @apply font-sans text-[15px] text-white/55 leading-relaxed;
   }
 
   /* Unified surface card */

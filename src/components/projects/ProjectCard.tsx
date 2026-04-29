@@ -289,11 +289,12 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
       >
         <div className="relative w-32 h-[72px] rounded-lg overflow-hidden bg-white/[0.02] shrink-0">
           {hasVideo && videoSrc ? (
-            project.thumbnail_url ? (
-              <img src={project.thumbnail_url} alt={project.name} className="w-full h-full object-cover" />
-            ) : (
-              <LazyVideoThumbnail src={videoSrc} posterUrl={project.thumbnail_url} alt={project.name} className="w-full h-full object-cover" />
-            )
+            <ThumbWithFallback
+              thumbnailUrl={project.thumbnail_url}
+              videoSrc={videoSrc}
+              alt={project.name}
+              className="w-full h-full object-cover"
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               {isProcessing ? <Loader2 className="w-4 h-4 text-white/20 animate-spin" /> : <Film className="w-4 h-4 text-white/[0.06]" />}
@@ -404,15 +405,15 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
                   onCanPlay={(e) => { safeSeek(e.currentTarget, 0); if (!scrubProgress) safePlay(e.currentTarget); }}
                   onError={() => setVideoError(true)} />
               ) : (
-                project.thumbnail_url ? (
-                  <img src={project.thumbnail_url} alt={project.name}
-                    className={cn(
-                      "absolute inset-0 w-full h-full object-cover transition-transform duration-[2500ms] ease-out",
-                      isHovered ? "scale-[1.08]" : "scale-100"
-                    )} loading="lazy" />
-                ) : (
-                  <LazyVideoThumbnail src={videoSrc} posterUrl={project.thumbnail_url} alt={project.name} className="absolute inset-0 w-full h-full object-cover" />
-                )
+                <ThumbWithFallback
+                  thumbnailUrl={project.thumbnail_url}
+                  videoSrc={videoSrc}
+                  alt={project.name}
+                  className={cn(
+                    "absolute inset-0 w-full h-full object-cover transition-transform duration-[2500ms] ease-out",
+                    isHovered ? "scale-[1.08]" : "scale-100"
+                  )}
+                />
               )
             ) : (
               <>
@@ -420,15 +421,15 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
                   "absolute inset-0 w-full h-full transition-all duration-700",
                   isHovered ? "opacity-0 pointer-events-none" : "opacity-100"
                 )}>
-                  {project.thumbnail_url ? (
-                    <img src={project.thumbnail_url} alt={project.name}
-                      className={cn(
-                        "w-full h-full object-cover transition-transform duration-[2500ms] ease-out",
-                        isHovered ? "scale-[1.08]" : "scale-100"
-                      )} loading="lazy" />
-                  ) : (
-                    <LazyVideoThumbnail src={videoSrc} posterUrl={project.thumbnail_url} alt={project.name} className="w-full h-full object-cover" />
-                  )}
+                  <ThumbWithFallback
+                    thumbnailUrl={project.thumbnail_url}
+                    videoSrc={videoSrc}
+                    alt={project.name}
+                    className={cn(
+                      "w-full h-full object-cover transition-transform duration-[2500ms] ease-out",
+                      isHovered ? "scale-[1.08]" : "scale-100"
+                    )}
+                  />
                 </div>
                 {videoSlotGranted && (
                   <video ref={videoRef} src={videoSrc}
@@ -571,25 +572,64 @@ ProjectCard.displayName = 'ProjectCard';
 
 // ============= SUB-COMPONENTS =============
 
-function StatusPill({ color, label, pulse, glass }: { color: string; label: string; pulse?: boolean; glass?: boolean }) {
-  const colors: Record<string, string> = {
-    emerald: 'bg-emerald-400',
-    white: 'bg-white/40',
-    red: 'bg-red-400',
-  };
+/** Renders project.thumbnail_url as <img>, but on load error/404 falls back
+ *  to the cached LazyVideoThumbnail (frame extraction + persistent cache).
+ *  This prevents broken/expired thumbnails from showing as a "Failed" tile. */
+function ThumbWithFallback({
+  thumbnailUrl,
+  videoSrc,
+  alt,
+  className,
+}: {
+  thumbnailUrl: string | null | undefined;
+  videoSrc: string;
+  alt: string;
+  className?: string;
+}) {
+  const [imgFailed, setImgFailed] = useState(false);
+  if (thumbnailUrl && !imgFailed) {
+    return (
+      <img
+        src={thumbnailUrl}
+        alt={alt}
+        loading="lazy"
+        className={className}
+        onError={() => setImgFailed(true)}
+      />
+    );
+  }
   return (
-    <span className={cn(
-      "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full",
-      glass ? "bg-black/50 backdrop-blur-xl" : "bg-white/[0.05]"
-    )}>
-      <div className={cn("w-1 h-1 rounded-full", colors[color] || colors.white, pulse && "animate-pulse")} />
-      <span className={cn(
-        "text-[10px] font-medium tracking-wide",
-        color === 'emerald' ? "text-emerald-300/90" : color === 'red' ? "text-red-300/80" : "text-white/60"
-      )}>{label}</span>
-    </span>
+    <LazyVideoThumbnail
+      src={videoSrc}
+      posterUrl={thumbnailUrl ?? null}
+      alt={alt}
+      className={className}
+    />
   );
 }
+
+const StatusPill = forwardRef<HTMLSpanElement, { color: string; label: string; pulse?: boolean; glass?: boolean }>(
+  function StatusPill({ color, label, pulse, glass }, ref) {
+    const colors: Record<string, string> = {
+      emerald: 'bg-emerald-400',
+      white: 'bg-white/40',
+      red: 'bg-red-400',
+    };
+    return (
+      <span ref={ref} className={cn(
+        "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full",
+        glass ? "bg-black/50 backdrop-blur-xl" : "bg-white/[0.05]"
+      )}>
+        <div className={cn("w-1 h-1 rounded-full", colors[color] || colors.white, pulse && "animate-pulse")} />
+        <span className={cn(
+          "text-[10px] font-medium tracking-wide",
+          color === 'emerald' ? "text-emerald-300/90" : color === 'red' ? "text-red-300/80" : "text-white/60"
+        )}>{label}</span>
+      </span>
+    );
+  }
+);
+StatusPill.displayName = 'StatusPill';
 
 function CardDropdown({ onEdit, onOpenInEditor, onTogglePin, isPinned, onRename, hasVideo, onTogglePublic, project, status, onRetryStitch, isRetrying, onBrowserStitch, isBrowserStitching, onDelete }: any) {
   return (

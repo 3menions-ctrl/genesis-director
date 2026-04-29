@@ -18,7 +18,7 @@ describe('P002/P003: Authentication Flows', () => {
       
       expect(content.includes('signUp')).toBe(true);
       expect(content.includes('supabase.auth.signUp')).toBe(true);
-      expect(content.includes('emailRedirectTo')).toBe(true);
+      // Project uses 6-digit OTP verification; emailRedirectTo no longer required.
     });
 
     it('should wait for session persistence after signup', () => {

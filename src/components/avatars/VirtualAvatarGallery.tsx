@@ -88,20 +88,21 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
         onMouseEnter={onHoverStart}
         onMouseLeave={onHoverEnd}
         className={cn(
-          "relative flex-shrink-0 cursor-pointer transition-all duration-300",
-          "rounded-2xl md:rounded-3xl overflow-hidden",
-          isHovered && !isSelected && "scale-[1.015]",
-          imageLoaded ? "opacity-100 scale-100" : "opacity-30 scale-[0.98]",
+          "relative flex-shrink-0 cursor-pointer transition-all duration-500 ease-out",
+          "rounded-[28px] md:rounded-[32px] overflow-hidden",
+          isHovered && !isSelected && "scale-[1.02] -translate-y-1",
+          isSelected && "scale-[1.025] -translate-y-1.5",
+          imageLoaded ? "opacity-100" : "opacity-30 scale-[0.98]",
           "animate-fade-in"
         )}
         style={{
           width: cardWidth,
           scrollSnapAlign: 'center',
           boxShadow: isSelected
-            ? 'inset 0 1px 0 hsla(215,100%,80%,0.18), inset 0 0 0 1.5px hsla(215,100%,55%,0.55), 0 0 0 4px hsla(215,100%,55%,0.12), 0 24px 60px -20px hsla(215,100%,55%,0.45), 0 0 80px hsla(215,100%,55%,0.18)'
+            ? 'inset 0 1px 0 hsla(215,100%,85%,0.25), inset 0 0 0 1.5px hsla(215,100%,62%,0.65), 0 0 0 5px hsla(215,100%,55%,0.10), 0 32px 72px -20px hsla(215,100%,55%,0.55), 0 0 120px hsla(215,100%,55%,0.25)'
             : isHovered
-              ? 'inset 0 1px 0 hsla(0,0%,100%,0.05), inset 0 0 0 1px hsla(0,0%,100%,0.06), 0 20px 50px -18px hsla(0,0%,0%,0.65)'
-              : 'inset 0 1px 0 hsla(0,0%,100%,0.03), inset 0 0 0 1px hsla(0,0%,100%,0.035)',
+              ? 'inset 0 1px 0 hsla(0,0%,100%,0.08), inset 0 0 0 1px hsla(0,0%,100%,0.08), 0 28px 60px -18px hsla(0,0%,0%,0.75), 0 0 60px hsla(215,100%,55%,0.05)'
+              : 'inset 0 1px 0 hsla(0,0%,100%,0.04), inset 0 0 0 1px hsla(0,0%,100%,0.04), 0 12px 32px -12px hsla(0,0%,0%,0.5)',
         }}
       >
         {/* Card Background */}
@@ -109,16 +110,16 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
           className="absolute inset-0 transition-all duration-500"
           style={{
             background: isSelected
-              ? 'linear-gradient(180deg, hsla(215,100%,55%,0.10) 0%, hsla(220,14%,2%,0.55) 100%)'
-              : 'linear-gradient(180deg, hsla(0,0%,100%,0.018) 0%, hsla(220,14%,2%,0.55) 100%)',
-            backdropFilter: 'blur(24px) saturate(160%)',
+              ? 'linear-gradient(180deg, hsla(215,100%,55%,0.14) 0%, hsla(220,14%,2%,0.6) 100%)'
+              : 'linear-gradient(180deg, hsla(0,0%,100%,0.022) 0%, hsla(220,14%,2%,0.6) 100%)',
+            backdropFilter: 'blur(28px) saturate(180%)',
           }}
         />
         
         {/* Avatar Image Container */}
         {/* Fixed aspect ratio container - ensures all cards have identical height */}
         {/* Background uses subtle gradient to fill any empty space around contained images */}
-        <div className="relative aspect-[2/3] overflow-hidden" style={{ minHeight: 0, background: 'linear-gradient(180deg, hsl(220,14%,5%) 0%, hsl(220,14%,2%) 100%)' }}>
+        <div className="relative aspect-[3/4] overflow-hidden" style={{ minHeight: 0, background: 'linear-gradient(180deg, hsl(220,14%,5%) 0%, hsl(220,14%,2%) 100%)' }}>
           {/* Shimmer skeleton - visible until image loads */}
           {!imageLoaded && (
             <div className="absolute inset-0">
@@ -131,8 +132,8 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
           {imageSrc && !imageError && (
             <div
               className={cn(
-                "absolute inset-0 flex items-center justify-center transition-all duration-400",
-                isHovered && "scale-105",
+                "absolute inset-0 flex items-center justify-center transition-all duration-700 ease-out",
+                (isHovered || isSelected) && "scale-[1.06]",
                 imageLoaded ? "opacity-100" : "opacity-0"
               )}
             >
@@ -159,21 +160,47 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
             </div>
           )}
           
+          {/* Top vignette — subtle radial darkening for depth */}
+          <div
+            className="absolute inset-0 pointer-events-none opacity-60"
+            style={{
+              background: 'radial-gradient(ellipse at 50% 0%, hsla(220,14%,2%,0.35) 0%, transparent 55%)',
+            }}
+          />
+
           {/* Gradient overlay — luminous bottom for text */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: 'linear-gradient(180deg, transparent 30%, hsla(220,14%,1%,0.4) 65%, hsla(220,14%,1%,0.92) 100%)',
+              background: 'linear-gradient(180deg, transparent 25%, hsla(220,14%,1%,0.55) 70%, hsla(220,14%,1%,0.96) 100%)',
+            }}
+          />
+
+          {/* Selected: cinematic blue inner glow ring */}
+          {isSelected && (
+            <div
+              className="absolute inset-0 pointer-events-none animate-fade-in"
+              style={{
+                background: 'radial-gradient(ellipse at 50% 100%, hsla(215,100%,55%,0.22) 0%, transparent 60%)',
+              }}
+            />
+          )}
+
+          {/* Reflective sheen at the top — premium glass signature */}
+          <div
+            className="absolute top-0 left-0 right-0 h-[35%] pointer-events-none opacity-30"
+            style={{
+              background: 'linear-gradient(180deg, hsla(0,0%,100%,0.06) 0%, transparent 100%)',
             }}
           />
           
           {/* Selection indicator */}
           {isSelected && (
             <div
-              className="absolute top-3 md:top-4 right-3 md:right-4 w-8 h-8 rounded-full flex items-center justify-center animate-scale-in"
+              className="absolute top-3 md:top-4 right-3 md:right-4 w-9 h-9 rounded-full flex items-center justify-center animate-scale-in"
               style={{
                 background: 'linear-gradient(135deg, hsla(215,100%,62%,0.98) 0%, hsla(215,100%,52%,0.98) 100%)',
-                boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.3), 0 0 24px hsla(215,100%,55%,0.55), 0 0 48px hsla(215,100%,55%,0.25)',
+                boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.35), 0 0 28px hsla(215,100%,55%,0.65), 0 0 56px hsla(215,100%,55%,0.3), 0 4px 16px hsla(0,0%,0%,0.4)',
               }}
             >
               <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
@@ -183,11 +210,11 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
           {/* Premium badge */}
           {avatar.is_premium && (
             <div
-              className="absolute top-3 md:top-4 left-3 md:left-4 flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-light tracking-[0.2em] uppercase"
+              className="absolute top-3 md:top-4 left-3 md:left-4 flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-medium tracking-[0.2em] uppercase"
               style={{
-                background: 'linear-gradient(135deg, hsla(45,100%,68%,0.95) 0%, hsla(38,100%,55%,0.95) 100%)',
-                color: 'hsl(220, 14%, 4%)',
-                boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.35), 0 4px 16px hsla(45,100%,55%,0.35)',
+                background: 'linear-gradient(135deg, hsla(45,100%,72%,0.96) 0%, hsla(38,100%,58%,0.96) 100%)',
+                color: 'hsl(220, 14%, 3%)',
+                boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.4), 0 6px 20px hsla(45,100%,55%,0.4), 0 0 0 1px hsla(45,100%,75%,0.3)',
               }}
             >
               <Crown className="w-2.5 h-2.5" strokeWidth={2} />
@@ -198,12 +225,12 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
           {/* Avatar type badge */}
           {avatar.avatar_type && (
             <div
-              className="absolute bottom-16 md:bottom-20 left-3 md:left-4 px-2.5 py-1 rounded-full text-[9px] font-light tracking-[0.18em] uppercase"
+              className="absolute bottom-20 md:bottom-24 left-3 md:left-4 px-2.5 py-1 rounded-full text-[9px] font-light tracking-[0.2em] uppercase"
               style={{
-                background: 'hsla(0,0%,100%,0.04)',
-                backdropFilter: 'blur(20px) saturate(160%)',
-                color: 'hsla(0,0%,100%,0.75)',
-                boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.05), inset 0 0 0 1px hsla(0,0%,100%,0.06)',
+                background: 'hsla(0,0%,100%,0.05)',
+                backdropFilter: 'blur(28px) saturate(180%)',
+                color: 'hsla(0,0%,100%,0.8)',
+                boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.08), inset 0 0 0 1px hsla(0,0%,100%,0.08)',
               }}
             >
               {avatar.avatar_type === 'realistic' ? 'Photoreal' : 'Animated'}
@@ -217,15 +244,15 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
                 e.stopPropagation();
                 onVoicePreview();
               }}
-              className="absolute bottom-20 md:bottom-24 right-3 md:right-4 w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-105 animate-fade-in"
+              className="absolute bottom-24 md:bottom-28 right-3 md:right-4 w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 animate-fade-in"
               style={{
                 background: isVoiceReady
-                  ? 'linear-gradient(135deg, hsla(215,100%,62%,0.95) 0%, hsla(215,100%,52%,0.95) 100%)'
-                  : 'hsla(0,0%,100%,0.06)',
-                backdropFilter: 'blur(24px) saturate(160%)',
+                  ? 'linear-gradient(135deg, hsla(215,100%,65%,0.98) 0%, hsla(215,100%,52%,0.98) 100%)'
+                  : 'hsla(0,0%,100%,0.08)',
+                backdropFilter: 'blur(28px) saturate(180%)',
                 boxShadow: isVoiceReady
-                  ? 'inset 0 1px 0 hsla(0,0%,100%,0.25), 0 0 24px hsla(215,100%,55%,0.5), 0 8px 24px -6px hsla(0,0%,0%,0.5)'
-                  : 'inset 0 1px 0 hsla(0,0%,100%,0.06), inset 0 0 0 1px hsla(0,0%,100%,0.08), 0 8px 24px -6px hsla(0,0%,0%,0.5)',
+                  ? 'inset 0 1px 0 hsla(0,0%,100%,0.3), 0 0 28px hsla(215,100%,55%,0.6), 0 8px 24px -6px hsla(0,0%,0%,0.5)'
+                  : 'inset 0 1px 0 hsla(0,0%,100%,0.08), inset 0 0 0 1px hsla(0,0%,100%,0.1), 0 8px 24px -6px hsla(0,0%,0%,0.55)',
                 color: 'hsl(0,0%,100%)',
               }}
               title={isVoiceReady ? "Voice ready - instant playback" : "Preview voice"}
@@ -233,7 +260,7 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
               {isPreviewingVoice ? (
                 <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.8} />
               ) : (
-                <Volume2 className="w-4 h-4" strokeWidth={1.8} />
+                <Volume2 className="w-[18px] h-[18px]" strokeWidth={1.6} />
               )}
             </button>
           )}
@@ -241,32 +268,38 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
         
         {/* Info Panel */}
         <div
-          className="relative p-4 md:p-5 space-y-2"
+          className="relative px-4 py-4 md:px-5 md:py-5 space-y-2"
           style={{
-            background: 'linear-gradient(180deg, hsla(220,14%,3%,0.85) 0%, hsla(220,14%,2%,0.95) 100%)',
-            backdropFilter: 'blur(24px) saturate(160%)',
+            background: 'linear-gradient(180deg, hsla(220,14%,3%,0.92) 0%, hsla(220,14%,2%,0.98) 100%)',
+            backdropFilter: 'blur(32px) saturate(180%)',
+            boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.04)',
           }}
         >
-          <div className="flex items-center justify-between">
-            <h4 className="font-light text-white/95 text-sm md:text-base truncate pr-2 tracking-wide font-display">{avatar.name}</h4>
+          <div className="flex items-center justify-between gap-2">
+            <h4
+              className="font-light text-white/95 text-base md:text-[17px] truncate pr-2 tracking-tight font-display"
+              style={{ letterSpacing: '-0.01em' }}
+            >
+              {avatar.name}
+            </h4>
             {avatar.style && (
-              <span className="text-[9px] font-light tracking-[0.18em] uppercase text-white/35 capitalize shrink-0">{avatar.style}</span>
+              <span className="text-[9px] font-light tracking-[0.22em] uppercase text-white/40 capitalize shrink-0">{avatar.style}</span>
             )}
           </div>
-          <p className="text-[11px] md:text-xs text-white/45 line-clamp-2 leading-relaxed font-light">
+          <p className="text-[11px] md:text-[12px] text-white/50 line-clamp-2 leading-relaxed font-light tracking-wide">
             {avatar.description || avatar.personality || 'Professional AI presenter'}
           </p>
           
           {/* Tags */}
           {avatar.tags && avatar.tags.length > 0 && (
-            <div className="hidden sm:flex flex-wrap gap-1 pt-1.5">
+            <div className="hidden sm:flex flex-wrap gap-1.5 pt-2">
               {avatar.tags.slice(0, 3).map((tag) => (
                 <span
                   key={`${avatar.id}-${tag}`}
-                  className="text-[9px] font-light tracking-[0.14em] uppercase px-2 py-0.5 rounded-full text-white/40"
+                  className="text-[9px] font-light tracking-[0.16em] uppercase px-2 py-0.5 rounded-full text-white/45"
                   style={{
-                    background: 'hsla(0,0%,100%,0.025)',
-                    boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.04)',
+                    background: 'hsla(0,0%,100%,0.03)',
+                    boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.05)',
                   }}
                 >
                   {tag}
@@ -279,11 +312,11 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
         {/* Hover shine effect — luminous blue sweep */}
         <div 
           className={cn(
-            "absolute inset-0 pointer-events-none transition-opacity duration-300",
+            "absolute inset-0 pointer-events-none transition-opacity duration-500",
             isHovered ? "opacity-100" : "opacity-0"
           )}
           style={{
-            background: 'linear-gradient(135deg, hsla(215,100%,70%,0.06) 0%, transparent 45%, transparent 100%)'
+            background: 'linear-gradient(135deg, hsla(215,100%,75%,0.08) 0%, transparent 50%, transparent 100%)'
           }}
         />
       </div>

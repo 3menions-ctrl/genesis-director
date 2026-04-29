@@ -140,6 +140,55 @@
     --surface-1: 250 12% 8%;
     --surface-2: 250 10% 13%;
     --surface-3: 250 8% 18%;
+
+    /* ══════════════════════════════════════════════════════
+       SPATIAL OS TOKENS — Vision-Pro-grade depth & glass
+       Use these for new surfaces. Apple-clean blue (#0A84FF).
+       ══════════════════════════════════════════════════════ */
+    --spatial-blue: 210 100% 52%;          /* #0A84FF */
+    --spatial-blue-soft: 210 100% 65%;
+    --spatial-blue-deep: 210 100% 42%;
+
+    /* Frost levels — backdrop-filter blur */
+    --frost-thin: blur(12px) saturate(140%);
+    --frost-regular: blur(24px) saturate(160%);
+    --frost-thick: blur(48px) saturate(180%);
+
+    /* Depth elevation — layered shadows + inner highlight */
+    --depth-1:
+      0 1px 0 hsl(0 0% 100% / 0.04) inset,
+      0 1px 2px hsl(220 50% 2% / 0.4),
+      0 4px 12px hsl(220 50% 2% / 0.3);
+    --depth-2:
+      0 1px 0 hsl(0 0% 100% / 0.05) inset,
+      0 0 0 1px hsl(0 0% 100% / 0.04),
+      0 8px 24px hsl(220 50% 2% / 0.5),
+      0 2px 6px hsl(220 50% 2% / 0.4);
+    --depth-3:
+      0 1px 0 hsl(0 0% 100% / 0.06) inset,
+      0 0 0 1px hsl(0 0% 100% / 0.05),
+      0 24px 48px hsl(220 50% 2% / 0.6),
+      0 8px 16px hsl(220 50% 2% / 0.4);
+    --depth-4:
+      0 1px 0 hsl(0 0% 100% / 0.08) inset,
+      0 0 0 1px hsl(0 0% 100% / 0.06),
+      0 48px 96px hsl(220 50% 2% / 0.7),
+      0 16px 32px hsl(220 50% 2% / 0.5),
+      0 0 80px hsl(var(--spatial-blue) / 0.08);
+
+    /* Specular highlight — subtle top-light gradient */
+    --specular-sheen:
+      linear-gradient(
+        180deg,
+        hsl(0 0% 100% / 0.06) 0%,
+        hsl(0 0% 100% / 0.02) 18%,
+        hsl(0 0% 100% / 0) 50%,
+        hsl(0 0% 100% / 0) 100%
+      );
+
+    /* Apple's signature easing */
+    --ease-spatial: cubic-bezier(0.32, 0.72, 0, 1);
+    --ease-spatial-fast: cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   /* Dark class mirrors root (app is always dark) */
@@ -440,6 +489,124 @@
 .delay-6 { animation-delay: 450ms; }
 .delay-7 { animation-delay: 525ms; }
 .delay-8 { animation-delay: 600ms; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SPATIAL OS — Glass primitives & motion
+   ═══════════════════════════════════════════════════════════════════ */
+
+@keyframes spatial-route-in {
+  from { opacity: 0; transform: scale(0.985); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes spatial-orb-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(40px, -30px) scale(1.05); }
+  66% { transform: translate(-30px, 25px) scale(0.97); }
+}
+@keyframes spatial-orb-pulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+@keyframes spatial-sheen {
+  0% { transform: translateX(-120%) skewX(-12deg); }
+  100% { transform: translateX(220%) skewX(-12deg); }
+}
+
+.spatial-route-in {
+  animation: spatial-route-in 0.36s var(--ease-spatial) forwards;
+}
+.spatial-orb-drift { animation: spatial-orb-drift 18s ease-in-out infinite; }
+
+/* Glass panel — frosted, depth-2, specular sheen on top */
+.spatial-glass {
+  position: relative;
+  background: hsl(220 18% 8% / 0.55);
+  backdrop-filter: var(--frost-regular);
+  -webkit-backdrop-filter: var(--frost-regular);
+  border-radius: 1.25rem;
+  box-shadow: var(--depth-2);
+  overflow: hidden;
+}
+.spatial-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--specular-sheen);
+  pointer-events: none;
+  border-radius: inherit;
+}
+.spatial-glass-thin {
+  background: hsl(220 18% 10% / 0.4);
+  backdrop-filter: var(--frost-thin);
+  -webkit-backdrop-filter: var(--frost-thin);
+  box-shadow: var(--depth-1);
+}
+.spatial-glass-thick {
+  background: hsl(220 18% 6% / 0.7);
+  backdrop-filter: var(--frost-thick);
+  -webkit-backdrop-filter: var(--frost-thick);
+  box-shadow: var(--depth-3);
+}
+
+/* Luminous orb — used in loaders and as ambient backdrop */
+.spatial-orb {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    hsl(var(--spatial-blue-soft) / 0.5) 0%,
+    hsl(var(--spatial-blue) / 0.3) 35%,
+    transparent 70%
+  );
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+/* Specular sheen sweep — used on hover for cards */
+.spatial-sheen-on-hover {
+  position: relative;
+  overflow: hidden;
+}
+.spatial-sheen-on-hover::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(0 0% 100% / 0.08),
+    transparent
+  );
+  transform: translateX(-120%) skewX(-12deg);
+  pointer-events: none;
+}
+.spatial-sheen-on-hover:hover::after {
+  animation: spatial-sheen 1.1s var(--ease-spatial) forwards;
+}
+
+/* Magnetic lift — subtle parallax tilt-friendly card */
+.spatial-lift {
+  transition:
+    transform 0.5s var(--ease-spatial),
+    box-shadow 0.5s var(--ease-spatial);
+  will-change: transform;
+}
+.spatial-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--depth-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spatial-orb-drift,
+  .spatial-sheen-on-hover::after,
+  .spatial-route-in {
+    animation: none !important;
+  }
+  .spatial-lift { transition: none; }
+}
 
 @layer base {
   * {

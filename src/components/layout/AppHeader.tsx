@@ -1,4 +1,4 @@
-import { useState, memo, forwardRef, useCallback } from 'react';
+import { useState, memo, forwardRef, useCallback, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { 
   Plus, Coins, User, Settings, HelpCircle, 
@@ -55,6 +55,15 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
   const [showBuyCreditsModal, setShowBuyCreditsModal] = useState(false);
   const isZeroCredits = (profile?.credits_balance ?? 0) === 0;
 
+  // Scroll-aware: detach into a floating pill after scrolling past hero zone.
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   const handleCreate = useCallback(() => {
     if (onCreateClick) {
       onCreateClick();
@@ -71,7 +80,15 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
   };
 
   return (
-    <nav ref={ref} className={cn("sticky top-0 z-50", className)}>
+    <nav
+      ref={ref}
+      className={cn(
+        'sticky top-0 z-50 transition-all duration-500',
+        scrolled && 'pt-3 px-3 sm:px-4',
+        className,
+      )}
+      style={{ transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)' }}
+    >
       {/* ── Animated gradient accent line ── */}
       <div className="absolute inset-x-0 top-0 h-[1px] overflow-hidden">
         <div 
@@ -85,11 +102,19 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
 
       {/* ── Main surface ── */}
       <div
-        className="relative"
+        className={cn(
+          'relative transition-all duration-500',
+          scrolled
+            ? 'mx-auto max-w-[1280px] rounded-2xl border border-white/[0.08] shadow-[0_24px_48px_hsl(220_50%_2%/0.5),0_0_0_1px_hsl(0_0%_100%/0.04)_inset]'
+            : '',
+        )}
         style={{
-          background: 'linear-gradient(180deg, rgba(10, 10, 18, 0.92) 0%, rgba(8, 8, 14, 0.88) 100%)',
-          backdropFilter: 'blur(48px) saturate(200%)',
-          WebkitBackdropFilter: 'blur(48px) saturate(200%)',
+          background: scrolled
+            ? 'hsl(220 18% 6% / 0.7)'
+            : 'linear-gradient(180deg, rgba(10, 10, 18, 0.92) 0%, rgba(8, 8, 14, 0.88) 100%)',
+          backdropFilter: scrolled ? 'blur(40px) saturate(180%)' : 'blur(48px) saturate(200%)',
+          WebkitBackdropFilter: scrolled ? 'blur(40px) saturate(180%)' : 'blur(48px) saturate(200%)',
+          transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)',
         }}
       >
         <div className="relative max-w-[1440px] mx-auto px-3 sm:px-4 lg:px-6">
@@ -134,7 +159,7 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
                       className={cn(
                         "relative px-3 py-[7px] text-[13px] font-medium rounded-[14px] transition-all duration-300 select-none flex items-center gap-1.5",
                         active
-                          ? "text-background"
+                          ? "text-white"
                           : "text-white/35 hover:text-white/70"
                       )}
                     >
@@ -142,16 +167,17 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
                         <span 
                           className="absolute inset-0 rounded-[14px] animate-fade-in-scale"
                           style={{
-                            background: 'linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--foreground) / 0.85) 100%)',
-                            boxShadow: '0 2px 12px rgba(255,255,255,0.1), 0 0 20px rgba(255,255,255,0.05)',
+                            background: 'linear-gradient(135deg, hsl(210 100% 60% / 0.18) 0%, hsl(210 100% 50% / 0.10) 100%)',
+                            border: '1px solid hsl(210 100% 65% / 0.25)',
+                            boxShadow: '0 0 0 1px hsl(0 0% 100% / 0.04) inset, 0 4px 16px hsl(210 100% 50% / 0.18), 0 0 24px hsl(210 100% 60% / 0.12)',
                           }}
                         />
                       )}
                       <Icon className={cn(
                         "relative z-10 w-3.5 h-3.5 transition-all duration-300",
-                        active ? "opacity-70" : "opacity-40 group-hover:opacity-60"
+                        active ? "opacity-90 text-white" : "opacity-40 group-hover:opacity-60"
                       )} />
-                      <span className="relative z-10">{item.label}</span>
+                      <span className={cn("relative z-10", active && "text-white")}>{item.label}</span>
                     </NavigationLink>
                   );
                 })}

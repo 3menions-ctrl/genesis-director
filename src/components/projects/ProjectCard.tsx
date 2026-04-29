@@ -13,7 +13,7 @@ import { memo, forwardRef, useState, useEffect, useRef, useCallback, useMemo, ty
 import { 
   MoreVertical, Trash2, Film, Play, 
   Download, Loader2, Clock, 
-  Pencil, RefreshCw, AlertCircle,
+  Pencil, RefreshCw,
   Pin, PinOff, Globe, Lock, MonitorPlay,
   Layers, Calendar
 } from 'lucide-react';
@@ -198,6 +198,8 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
     return null;
   }, [project.video_url, project.video_clips, isDirectVideo, preResolvedClipUrl, selfResolvedClipUrl, mseClipUrls]);
 
+  const visualSrc = project.thumbnail_url || project.source_image_url || videoSrc || null;
+
   const handleVideoMetadataLoaded = useCallback(() => {
     if (!isMountedRef.current) return;
     const video = videoRef.current;
@@ -273,6 +275,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
 
   const isProcessing = ['generating', 'rendering', 'stitching', 'pending', 'awaiting_approval'].includes(status);
   const isFailed = status === 'stitching_failed' || status === 'failed';
+  const visualStatus = hasVideo ? 'ready' : isProcessing ? 'rendering' : isFailed ? 'archived' : 'draft';
 
   // ============= LIST VIEW =============
   if (viewMode === 'list') {
@@ -313,9 +316,9 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
         </div>
 
         <div className="shrink-0">
-          {hasVideo && <StatusPill color="emerald" label="Ready" />}
-          {isProcessing && <StatusPill color="white" label="Processing" pulse />}
-          {isFailed && <StatusPill color="red" label="Failed" />}
+          {visualStatus === 'ready' && <StatusPill color="emerald" label="Ready" />}
+          {visualStatus === 'rendering' && <StatusPill color="white" label="Rendering" pulse />}
+          {visualStatus === 'archived' && <StatusPill color="white" label="Archived" />}
         </div>
 
         <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -445,22 +448,29 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
               </>
             )}
           </>
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-surface-0">
-            {isProcessing ? (
-              <div className="relative flex flex-col items-center gap-3">
-                <div className="w-12 h-12 rounded-full border border-white/[0.06] border-t-primary/40 animate-spin" />
-                <span className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground font-medium">Rendering</span>
-              </div>
-            ) : isFailed ? (
-              <div className="flex flex-col items-center gap-2">
-                <AlertCircle className="w-7 h-7 text-destructive/30" strokeWidth={1} />
-                <span className="text-[9px] uppercase tracking-[0.3em] text-destructive/40 font-medium">Failed</span>
-              </div>
+        ) : visualSrc ? (
+          <div className="absolute inset-0">
+            {project.thumbnail_url || project.source_image_url ? (
+              <img
+                src={visualSrc}
+                alt={project.name}
+                loading="lazy"
+                decoding="async"
+                className={cn(
+                  "w-full h-full object-cover transition-transform duration-[2500ms] ease-out",
+                  isHovered ? "scale-[1.08]" : "scale-100"
+                )}
+              />
             ) : (
-              <Film className="w-12 h-12 text-white/[0.03]" strokeWidth={0.5} />
+              <LazyVideoThumbnail
+                src={visualSrc}
+                alt={project.name}
+                className="absolute inset-0 w-full h-full"
+              />
             )}
           </div>
+        ) : (
+          <CinematicTitlePlate title={project.name} index={index} isRendering={isProcessing} />
         )}
 
         {/* Cinematic gradient overlay — rich atmospheric depth */}
@@ -496,9 +506,9 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
 
         {/* Top-left: Status indicator — minimal pill */}
         <div className="absolute top-3 left-3 z-20">
-          {hasVideo && <StatusPill color="emerald" label="Ready" glass />}
-          {isProcessing && <StatusPill color="white" label="Rendering" pulse glass />}
-          {isFailed && <StatusPill color="red" label="Failed" glass />}
+          {visualStatus === 'ready' && <StatusPill color="emerald" label="Ready" glass />}
+          {visualStatus === 'rendering' && <StatusPill color="white" label="Rendering" pulse glass />}
+          {visualStatus === 'archived' && <StatusPill color="white" label="Archived" glass />}
         </div>
 
         {/* Top-right: Actions — appear on hover */}
@@ -571,6 +581,33 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
 ProjectCard.displayName = 'ProjectCard';
 
 // ============= SUB-COMPONENTS =============
+
+function CinematicTitlePlate({ title, index, isRendering }: { title: string; index: number; isRendering?: boolean }) {
+  const palettes = [
+    ['hsl(217 91% 10%)', 'hsl(220 14% 3%)', 'hsl(190 70% 18%)'],
+    ['hsl(220 14% 5%)', 'hsl(211 100% 13%)', 'hsl(160 55% 12%)'],
+    ['hsl(220 14% 4%)', 'hsl(38 85% 10%)', 'hsl(217 91% 12%)'],
+  ];
+  const palette = palettes[index % palettes.length];
+
+  return (
+    <div
+      className="absolute inset-0 flex items-center justify-center p-8"
+      style={{
+        background: `linear-gradient(135deg, ${palette[0]} 0%, ${palette[1]} 54%, ${palette[2]} 100%)`,
+      }}
+    >
+      <div className="absolute inset-0 opacity-40" style={{ backgroundImage: 'radial-gradient(circle at 20% 15%, hsl(var(--primary) / 0.22), transparent 34%)' }} />
+      <div className="relative text-center max-w-[78%]">
+        {isRendering && <div className="mx-auto mb-5 h-9 w-9 rounded-full border border-foreground/10 border-t-primary/50 animate-spin" />}
+        <div className="mx-auto mb-4 h-px w-16 bg-primary/50" />
+        <p className="font-display text-lg sm:text-xl font-semibold leading-tight text-foreground line-clamp-2">
+          {title}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 /** Renders project.thumbnail_url as <img>, but on load error/404 falls back
  *  to the cached LazyVideoThumbnail (frame extraction + persistent cache).

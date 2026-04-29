@@ -212,7 +212,7 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
     const getClipsEstimate = (credits: number) => `~${Math.floor(credits / 10)} clips`;
 
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={(o) => { if (!o) setCheckoutSecret(null); onOpenChange(o); }}>
         <DialogContent 
           className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 !transform w-[94vw] max-w-6xl max-h-[90vh] p-0 bg-[hsl(220_14%_2%)] border-white/[0.06] overflow-hidden flex flex-col rounded-3xl shadow-[0_40px_120px_-20px_hsl(0_0%_0%/0.9)]"
           hideCloseButton
@@ -225,7 +225,7 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
           
           {/* Close button */}
           <button
-            onClick={() => onOpenChange(false)}
+            onClick={() => { setCheckoutSecret(null); onOpenChange(false); }}
             className="absolute right-5 top-5 z-50 w-9 h-9 rounded-full bg-white/[0.04] hover:bg-white/[0.08] flex items-center justify-center transition-colors border border-white/[0.06] backdrop-blur-md"
             aria-label="Close"
           >

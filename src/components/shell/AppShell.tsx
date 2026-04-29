@@ -246,19 +246,17 @@ export function AppShell({ children }: AppShellProps) {
                   <NavLink
                     to={item.to}
                     className={cn(
-                      'group relative flex items-center gap-3 rounded-xl px-3 h-[38px] text-[13px] font-medium tracking-[-0.005em] transition-all duration-200',
-                      'border border-transparent',
+                      'group relative flex items-center gap-3 rounded-2xl px-3 h-[40px] text-[13px] font-light tracking-[-0.005em] transition-all duration-300',
                       active
                         ? 'text-white shadow-[inset_0_1px_0_hsl(0_0%_100%/0.06)]'
-                        : 'text-white/60 hover:text-white',
+                        : 'text-white/55 hover:text-white',
                       collapsed && 'lg:justify-center lg:px-0 lg:gap-0',
                     )}
                     style={
                       active
                         ? {
-                            background: `linear-gradient(90deg, ${tint(0.18)} 0%, ${tint(0.06)} 55%, transparent 100%)`,
-                            borderColor: tint(0.22),
-                            boxShadow: `inset 0 1px 0 hsl(0 0% 100% / 0.06), 0 8px 24px -16px ${tint(0.55)}`,
+                            background: `linear-gradient(90deg, ${tint(0.16)} 0%, ${tint(0.05)} 55%, transparent 100%)`,
+                            boxShadow: `inset 0 1px 0 hsla(0,0%,100%,0.07), 0 12px 28px -16px ${tint(0.5)}`,
                           }
                         : undefined
                     }
@@ -267,42 +265,47 @@ export function AppShell({ children }: AppShellProps) {
                     {!active && (
                       <span
                         aria-hidden
-                        className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                        className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                         style={{
-                          background: `linear-gradient(90deg, ${tint(0.10)} 0%, ${tint(0.03)} 60%, transparent 100%)`,
+                          background: `linear-gradient(90deg, ${tint(0.09)} 0%, ${tint(0.025)} 60%, transparent 100%)`,
                         }}
                       />
                     )}
                     {active && (
                       <span
                         aria-hidden
-                        className="absolute -left-3 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full"
+                        className="absolute -left-3 top-1/2 -translate-y-1/2 h-7 w-[2px] rounded-r-full"
                         style={{
-                          background: `linear-gradient(180deg, hsl(${hue}, 95%, 65%) 0%, hsl(${hue}, 90%, 50%) 100%)`,
-                          boxShadow: `0 0 12px ${tint(0.75)}`,
+                          background: `linear-gradient(180deg, hsl(${hue}, 100%, 72%) 0%, hsl(${hue}, 95%, 55%) 100%)`,
+                          boxShadow: `0 0 16px ${tint(0.85)}, 0 0 32px ${tint(0.4)}`,
                         }}
                       />
                     )}
                     <Icon
                       className={cn(
-                        'relative w-[18px] h-[18px] shrink-0 transition-all duration-200',
-                        active ? '' : 'group-hover:scale-[1.08]',
+                        'relative w-[18px] h-[18px] shrink-0 transition-all duration-300',
+                        active ? '' : 'group-hover:scale-[1.1] group-hover:translate-x-[1px]',
                       )}
+                      strokeWidth={1.5}
                       style={{
-                        color: active ? `hsl(${hue}, 95%, 68%)` : tint(0.55),
+                        color: active ? `hsl(${hue}, 100%, 72%)` : tint(0.5),
                         filter: active
-                          ? `drop-shadow(0 0 6px ${tint(0.65)})`
+                          ? `drop-shadow(0 0 8px ${tint(0.7)})`
                           : undefined,
                       }}
                     />
-                    {!collapsed && <span className="relative truncate">{item.label}</span>}
+                    {!collapsed && (
+                      <span className="relative truncate transition-transform duration-300 group-hover:translate-x-[2px]">
+                        {item.label}
+                      </span>
+                    )}
                     {active && !collapsed && (
                       <span
                         aria-hidden
                         className="relative ml-auto h-1.5 w-1.5 rounded-full"
                         style={{
-                          background: `hsl(${hue}, 95%, 65%)`,
-                          boxShadow: `0 0 8px ${tint(0.85)}`,
+                          background: `hsl(${hue}, 100%, 72%)`,
+                          boxShadow: `0 0 10px ${tint(0.9)}, 0 0 20px ${tint(0.4)}`,
                         }}
                       />
                     )}

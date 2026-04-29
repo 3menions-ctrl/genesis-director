@@ -1041,40 +1041,59 @@ export function EditorChrome({
           <div className="flex-1 min-w-0 flex flex-col overflow-hidden relative">
             {/* Player stage with cinematic letterbox feel */}
             <div
-              className="h-[42%] shrink-0 relative px-3 pt-3 pb-2"
+              className="h-[42%] shrink-0 relative px-4 pt-4 pb-2.5"
               style={{
                 background:
-                  'radial-gradient(60% 90% at 50% 0%, hsla(215, 80%, 18%, 0.18), transparent 70%), hsla(220, 14%, 2%, 0.6)',
+                  'radial-gradient(70% 100% at 50% 0%, hsla(215, 85%, 20%, 0.22), transparent 72%), radial-gradient(40% 60% at 50% 100%, hsla(215, 70%, 14%, 0.10), transparent 70%), hsla(220, 16%, 1.6%, 0.7)',
               }}
             >
+              {/* Soft top key-light streak — gives the stage a "spotlight" feel */}
               <div
-                className="w-full h-full rounded-xl overflow-hidden relative"
+                aria-hidden
+                className="pointer-events-none absolute inset-x-10 top-0 h-px"
+                style={{
+                  background:
+                    'linear-gradient(90deg, transparent, hsla(215,100%,70%,0.35), transparent)',
+                  filter: 'blur(0.5px)',
+                }}
+              />
+              <div
+                className="w-full h-full rounded-2xl overflow-hidden relative"
                 style={{
                   background: 'hsl(0, 0%, 0%)',
                   boxShadow:
-                    '0 0 0 1px hsla(0,0%,100%,0.06) inset, 0 0 0 1px hsla(0,0%,0%,0.6), 0 24px 60px -20px hsla(0,0%,0%,0.85), 0 0 80px -10px hsla(215,100%,40%,0.18)',
+                    '0 0 0 1px hsla(0,0%,100%,0.08) inset, 0 0 0 1px hsla(0,0%,0%,0.7), 0 1px 0 hsla(0,0%,100%,0.04) inset, 0 30px 80px -24px hsla(0,0%,0%,0.95), 0 0 100px -8px hsla(215,100%,42%,0.24), 0 0 0 6px hsla(220,14%,2%,0.6)',
                 }}
               >
                 <VideoPreviewPlayer className="absolute inset-0" />
                 {/* corner crosshairs */}
                 <div className="pointer-events-none absolute inset-0">
                   {[
-                    'top-2 left-2 border-t border-l',
-                    'top-2 right-2 border-t border-r',
-                    'bottom-2 left-2 border-b border-l',
-                    'bottom-2 right-2 border-b border-r',
+                    'top-3 left-3 border-t border-l',
+                    'top-3 right-3 border-t border-r',
+                    'bottom-3 left-3 border-b border-l',
+                    'bottom-3 right-3 border-b border-r',
                   ].map((cls) => (
                     <span
                       key={cls}
-                      className={`absolute w-3 h-3 ${cls}`}
-                      style={{ borderColor: 'hsla(215,100%,75%,0.18)' }}
+                      className={`absolute w-3.5 h-3.5 ${cls}`}
+                      style={{ borderColor: 'hsla(215,100%,80%,0.22)' }}
                     />
                   ))}
                 </div>
+                {/* Subtle vignette inside the stage for cinematic depth */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0"
+                  style={{
+                    background:
+                      'radial-gradient(120% 90% at 50% 50%, transparent 60%, hsla(0,0%,0%,0.4) 100%)',
+                  }}
+                />
               </div>
             </div>
             {/* hairline divider */}
-            <div className="h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,55%,0.2)] to-transparent shrink-0" />
+            <div className="h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,55%,0.28)] to-transparent shrink-0" />
             <CustomTimeline className="flex-1 min-h-0" onOpenTextDialog={() => setTextDialogOpen(true)} />
           </div>
 

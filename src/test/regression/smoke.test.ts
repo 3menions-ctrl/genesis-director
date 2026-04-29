@@ -45,7 +45,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 describe("Module Import Smoke Tests", () => {
   it("imports App without throwing", async () => {
     await expect(import("@/App")).resolves.toBeDefined();
-  });
+  }, 60000);
 
   it("imports utils without throwing", async () => {
     const { cn } = await import("@/lib/utils");

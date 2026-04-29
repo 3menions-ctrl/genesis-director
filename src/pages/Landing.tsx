@@ -239,18 +239,6 @@ export default function Landing() {
       </ErrorBoundaryWrapper>
 
       {/* Navigation */}
-      {/* Seedance 2.0 announcement banner */}
-      <div className="relative z-20 w-full bg-gradient-to-r from-[#0A84FF]/20 via-[#0A84FF]/10 to-transparent border-b border-white/10 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 py-2 flex items-center justify-center gap-2 text-center">
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#0A84FF] text-white text-[10px] font-semibold tracking-wider uppercase">
-            New
-          </span>
-          <span className="text-sm text-white/80 font-medium">
-            Now powered by <span className="text-white font-semibold">Seedance 2.0</span>
-          </span>
-        </div>
-      </div>
-
       <LandingNav 
         onScrollToSection={scrollToSection} 
         onNavigate={handleNavigate} 
@@ -267,6 +255,35 @@ export default function Landing() {
 
       {/* Social Proof Ticker — suspend when overlay active */}
       <SocialProofTicker suspended={showExamples || isImmersive} />
+
+      {/* Seedance 2.0 — Now Powered By section */}
+      <section className="relative z-10 py-24 px-6 scroll-reveal">
+        <div className="max-w-5xl mx-auto">
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#0A84FF]/15 via-[#0A84FF]/5 to-transparent backdrop-blur-xl p-12 md:p-20">
+            {/* Glow accents */}
+            <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-[#0A84FF]/20 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-[#0A84FF]/10 blur-3xl pointer-events-none" />
+
+            <div className="relative flex flex-col items-center text-center gap-6">
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0A84FF]/15 border border-[#0A84FF]/30 text-[#0A84FF] text-[11px] font-semibold tracking-[0.18em] uppercase">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#0A84FF] animate-pulse" />
+                New Engine
+              </span>
+
+              <h2 className="font-sora text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight leading-[1.05]">
+                Now powered by{' '}
+                <span className="bg-gradient-to-r from-white via-[#0A84FF] to-white bg-clip-text text-transparent">
+                  Seedance 2.0
+                </span>
+              </h2>
+
+              <p className="max-w-2xl text-base md:text-lg text-white/60 font-light leading-relaxed">
+                The next-generation cinematic engine — sharper motion, richer audio, and unmatched continuity across every frame.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* How it Works — scroll reveal */}
       <div className="scroll-reveal">

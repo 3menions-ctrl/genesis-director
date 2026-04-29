@@ -244,6 +244,7 @@ const DiagnosticTicker = memo(function DiagnosticTicker() {
 const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProfileContent(_, ref) {
   const { navigate } = useSafeNavigation();
   const { user, profile, loading, refreshProfile } = useAuth();
+  const heroTiltRef = useMagneticTilt(4);
 
   const gatekeeper = useGatekeeperLoading({
     ...GATEKEEPER_PRESETS.profile,
@@ -388,6 +389,13 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   const xpTotal = gamificationStats?.xp_total || 0;
   const streak = gamificationStats?.current_streak || 0;
 
+  // Animated values — eased counters for premium feel
+  const animatedCredits = useAnimatedNumber(profile?.credits_balance || 0);
+  const animatedXp = useAnimatedNumber(xpTotal);
+  const animatedFollowers = useAnimatedNumber(followersCount || 0);
+  const animatedFollowing = useAnimatedNumber(followingCount || 0);
+  const animatedStreak = useAnimatedNumber(streak);
+
   const unlockedAchievements = ACHIEVEMENTS.filter(a => {
     switch (a.type) {
       case 'videos': return metrics.totalVideosGenerated >= a.threshold;
@@ -429,9 +437,32 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         </div>
 
         {/* ─── HERO ─── */}
-        <section className="relative px-6 sm:px-10 py-10 rounded-[28px] overflow-hidden animate-fade-in">
+        <section
+          ref={heroTiltRef}
+          className="relative px-6 sm:px-10 py-10 rounded-[28px] overflow-hidden animate-fade-in transition-transform duration-300 will-change-transform"
+          style={{ transformStyle: 'preserve-3d' }}
+        >
           {/* Hero halo */}
           <div className="absolute inset-0 rounded-[28px] bg-[hsla(220,14%,4%,0.55)] backdrop-blur-2xl border border-[hsla(215,100%,60%,0.12)]" />
+          {/* Cursor spotlight */}
+          <div
+            className="absolute inset-0 rounded-[28px] pointer-events-none opacity-80"
+            style={{
+              background: 'radial-gradient(600px circle at var(--mx,50%) var(--my,50%), hsla(215,100%,60%,0.18), transparent 45%)',
+            }}
+          />
+          {/* Prismatic top frame */}
+          <div className="absolute inset-x-0 top-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, hsla(215,100%,75%,0.7), hsla(215,100%,60%,0.3), hsla(215,100%,75%,0.7), transparent)' }} />
+          <div className="absolute inset-x-0 bottom-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, hsla(215,100%,60%,0.45), transparent)' }} />
+          {/* Corner ticks */}
+          {[
+            'top-3 left-3 border-l border-t',
+            'top-3 right-3 border-r border-t',
+            'bottom-3 left-3 border-l border-b',
+            'bottom-3 right-3 border-r border-b',
+          ].map((p, i) => (
+            <div key={i} className={`absolute ${p} w-4 h-4 border-[hsla(215,100%,68%,0.5)] rounded-[3px]`} />
+          ))}
           <div
             className="absolute -top-32 -right-32 w-[28rem] h-[28rem] rounded-full pointer-events-none"
             style={{ background: 'radial-gradient(circle, hsla(215,100%,60%,0.28), transparent 65%)', filter: 'blur(60px)' }}
@@ -440,9 +471,6 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
             className="absolute -bottom-40 -left-32 w-[24rem] h-[24rem] rounded-full pointer-events-none"
             style={{ background: 'radial-gradient(circle, hsla(210,100%,55%,0.20), transparent 65%)', filter: 'blur(70px)' }}
           />
-          {/* Top hairline */}
-          <div className="absolute top-0 left-10 right-10 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,60%,0.5)] to-transparent" />
-
           <div className="relative flex flex-col lg:flex-row items-start lg:items-center gap-8">
             {/* Avatar — luminous halo */}
             <div className="relative group shrink-0">

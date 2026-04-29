@@ -23,6 +23,107 @@ const QUALITY_SUFFIX = ", shot on ARRI Alexa 65, anamorphic lens, shallow depth 
 
 const EDITOR_LIBRARY_TITLE = "Editor Library";
 
+// ─── Continuity Chain ─────────────────────────────────────────────────────────
+// We carry two things between consecutive Seedance clips:
+//   1. The LAST FRAME of the previous clip (image → first frame of next clip)
+//   2. A compact "identity DNA" string distilled from the previous prompt
+// This eliminates character drift and stitches scenes seamlessly.
+
+const CONTINUITY_LOCK_PREFIX =
+  "CONTINUITY LOCK — exact same character, same wardrobe, same hair, same skin tone, same lighting style, same color grade, same lens, same environment as the reference frame. ";
+
+// Replicate model that pulls a single frame from any video URL.
+// Returns a PNG image URL we can hand straight back to Seedance as `image`.
+const FRAME_EXTRACTOR_MODEL_URL =
+  "https://api.replicate.com/v1/models/lucataco/ffmpeg-extract-frame/predictions";
+
+/**
+ * Extract the final frame of a generated clip via Replicate, then persist it
+ * to our own storage so the URL is stable. Returns a public URL (or null).
+ */
+async function extractLastFrame(
+  supabase: any,
+  userId: string,
+  predictionId: string,
+  videoUrl: string,
+  videoDurationSec: number,
+  replicateToken: string,
+): Promise<string | null> {
+  try {
+    // Sample at duration - 0.05s to land on the very last visible frame.
+    const ts = Math.max(0, videoDurationSec - 0.05);
+    const submitRes = await fetch(FRAME_EXTRACTOR_MODEL_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${replicateToken}`,
+        "Content-Type": "application/json",
+        Prefer: "wait=30",
+      },
+      body: JSON.stringify({
+        input: { video: videoUrl, timestamp: ts },
+      }),
+    });
+    if (!submitRes.ok) {
+      console.warn("[continuity] frame-extractor submit failed:", submitRes.status);
+      return null;
+    }
+    let pred = await submitRes.json();
+
+    // Poll up to ~25s if not ready.
+    let attempts = 0;
+    while (pred.status !== "succeeded" && pred.status !== "failed" && attempts < 8) {
+      await new Promise((r) => setTimeout(r, 3000));
+      const r = await fetch(`${REPLICATE_PREDICTIONS_URL}/${pred.id}`, {
+        headers: { Authorization: `Bearer ${replicateToken}` },
+      });
+      if (!r.ok) break;
+      pred = await r.json();
+      attempts++;
+    }
+
+    if (pred.status !== "succeeded") {
+      console.warn("[continuity] frame extractor did not succeed:", pred.status);
+      return null;
+    }
+    const frameUrl: string | undefined = Array.isArray(pred.output) ? pred.output[0] : pred.output;
+    if (!frameUrl) return null;
+
+    // Persist frame to our bucket
+    const imgRes = await fetch(frameUrl);
+    if (!imgRes.ok) return frameUrl;
+    const buf = new Uint8Array(await imgRes.arrayBuffer());
+    const path = `${userId}/editor/${predictionId}.last.png`;
+    const { error: upErr } = await supabase.storage
+      .from("video-clips")
+      .upload(path, buf, {
+        contentType: "image/png",
+        upsert: true,
+        cacheControl: "31536000",
+      });
+    if (upErr) {
+      console.warn("[continuity] last-frame upload error:", upErr.message);
+      return frameUrl; // still usable directly
+    }
+    const { data } = supabase.storage.from("video-clips").getPublicUrl(path);
+    return data?.publicUrl ?? frameUrl;
+  } catch (e) {
+    console.warn("[continuity] extractLastFrame failed:", e);
+    return null;
+  }
+}
+
+/**
+ * Distill a compact "identity DNA" from a prompt — the visual nouns/adjectives
+ * worth carrying into the next clip so the subject stays consistent.
+ * Pure regex/heuristics so we don't burn tokens on a tiny task.
+ */
+function distillIdentityDNA(prompt: string): string {
+  if (!prompt) return "";
+  // Strip the heavy quality suffix if present
+  const clean = prompt.split(", shot on ARRI")[0].slice(0, 320);
+  return `Subject reference: ${clean}.`;
+}
+
 /**
  * Get or create the per-user "Editor Library" pseudo-project that holds all
  * standalone Seedance clips generated from the editor. This makes the clips
@@ -126,7 +227,15 @@ serve(async (req) => {
 
     // ─── SUBMIT ───
     if (action === "submit") {
-      const { prompt, duration = 10, startImageUrl, aspectRatio = "16:9" } = body;
+      const {
+        prompt,
+        duration = 10,
+        startImageUrl,
+        aspectRatio = "16:9",
+        // Continuity-chain inputs (optional)
+        continuityFrameUrl,    // last frame of previous clip
+        continuityDNA,         // distilled identity descriptor of previous clip
+      } = body;
 
       if (!prompt) {
         return new Response(JSON.stringify({ error: "prompt is required" }), {
@@ -168,8 +277,21 @@ serve(async (req) => {
       // duration MUST be integer 5 or 10 for Seedance-1-Pro
       const durNum = parseInt(String(duration), 10) || 5;
       const finalDuration: number = durNum >= 10 ? 10 : 5;
+
+      // Resolve the start image with continuity priority:
+      //   continuityFrameUrl  >  startImageUrl
+      const resolvedStartImage = continuityFrameUrl || startImageUrl;
+
+      // Build prompt with continuity lock when chaining from a previous clip.
+      let finalPrompt = prompt;
+      if (continuityFrameUrl) {
+        const dna = continuityDNA ? ` ${continuityDNA}` : "";
+        finalPrompt = `${CONTINUITY_LOCK_PREFIX}${dna} Next beat: ${prompt}`;
+      }
+      finalPrompt = finalPrompt + QUALITY_SUFFIX;
+
       const seedanceInput: Record<string, any> = {
-        prompt: prompt + QUALITY_SUFFIX,
+        prompt: finalPrompt,
         duration: finalDuration,
         aspect_ratio: aspectRatio,
         resolution: "1080p",       // Seedance-1-Pro max native resolution
@@ -178,12 +300,12 @@ serve(async (req) => {
       };
       console.log("[editor-generate-clip] Seedance input:", JSON.stringify(seedanceInput));
 
-      if (startImageUrl) {
-        seedanceInput.image = startImageUrl;
+      if (resolvedStartImage) {
+        seedanceInput.image = resolvedStartImage;
       }
 
       // Submit to Replicate (Seedance-1-Pro)
-      const replicateRes = await fetch(startImageUrl ? SEEDANCE_I2V_URL : SEEDANCE_T2V_URL, {
+      const replicateRes = await fetch(resolvedStartImage ? SEEDANCE_I2V_URL : SEEDANCE_T2V_URL, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
@@ -220,10 +342,16 @@ serve(async (req) => {
         metadata: { predictionId: prediction.id },
       });
 
+      // Stash the prompt's identity DNA so /status can return it for chaining
+      // without forcing the client to remember it.
+      const dnaForChain = distillIdentityDNA(prompt);
+
       return new Response(JSON.stringify({
         success: true,
         predictionId: prediction.id,
         creditsCharged: creditsRequired,
+        continuityDNA: dnaForChain,
+        chainedFromImage: !!resolvedStartImage,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -261,10 +389,22 @@ serve(async (req) => {
 
         let finalUrl: string = sourceUrl;
         let savedClipId: string | null = null;
+        let continuityFrameUrl: string | null = null;
+        const dur = parseInt(String(clipDuration ?? 5), 10) || 5;
 
         try {
           const persisted = await persistVideoToStorage(supabase, auth.userId, predictionId, sourceUrl);
           if (persisted) finalUrl = persisted;
+
+          // Best-effort continuity frame extraction (never blocks success path)
+          continuityFrameUrl = await extractLastFrame(
+            supabase,
+            auth.userId,
+            predictionId,
+            finalUrl,
+            dur,
+            REPLICATE_API_TOKEN,
+          );
 
           const libraryProjectId = await getOrCreateLibraryProject(supabase, auth.userId);
           if (libraryProjectId) {
@@ -275,7 +415,6 @@ serve(async (req) => {
               .eq("project_id", libraryProjectId);
             const nextIndex = (count ?? 0);
 
-            const dur = parseInt(String(clipDuration ?? 5), 10) || 5;
             const { data: inserted, error: insErr } = await supabase
               .from("video_clips")
               .insert({
@@ -305,6 +444,8 @@ serve(async (req) => {
           videoUrl: finalUrl,
           clipId: savedClipId,
           savedToLibrary: !!savedClipId,
+          continuityFrameUrl,
+          continuityDNA: distillIdentityDNA(clipPrompt || ""),
           metrics: prediction.metrics,
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },

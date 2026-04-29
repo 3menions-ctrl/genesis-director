@@ -84,6 +84,14 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
   const [duration, setDuration] = useState(10);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const predictionIdRef = useRef<string | null>(null);
+  // ─── Continuity Chain memory ─────────────────────────────────────────────
+  // Holds the last completed clip's last-frame URL + identity DNA so the next
+  // "Continue Story" generation reuses them automatically.
+  const continuityRef = useRef<{ frameUrl: string | null; dna: string | null }>({
+    frameUrl: null,
+    dna: null,
+  });
+  const [continuityActive, setContinuityActive] = useState(false);
 
   const hasSelection = !!state.selectedClipId && !!state.selectedTrackId;
 
@@ -158,6 +166,12 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
           pollRef.current = null;
           
           addClipToTimeline(data.videoUrl, clipName, clipDuration);
+          // Capture continuity payload from server for the next generation
+          continuityRef.current = {
+            frameUrl: data.continuityFrameUrl ?? null,
+            dna: data.continuityDNA ?? null,
+          };
+          setContinuityActive(!!data.continuityFrameUrl);
           setGenState("completed");
           setProgress(100);
           toast.success(
@@ -224,6 +238,11 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
         ? clipContext?.thumbnail || clipContext?.src
         : undefined;
 
+      // Auto-engage continuity chain when the user clicks "Continue Story"
+      // and we have a frame from the previously generated clip in memory.
+      const useContinuityChain =
+        selectedAction === "extend-clip" && !!continuityRef.current.frameUrl;
+
       const { data: genResult, error: genError } = await supabase.functions.invoke("editor-generate-clip", {
         body: {
           action: "submit",
@@ -231,6 +250,8 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
           duration: suggestedDuration,
           startImageUrl,
           aspectRatio: state.aspectRatio === "9:16" ? "9:16" : state.aspectRatio === "1:1" ? "1:1" : "16:9",
+          continuityFrameUrl: useContinuityChain ? continuityRef.current.frameUrl : undefined,
+          continuityDNA: useContinuityChain ? continuityRef.current.dna : undefined,
         },
       });
 
@@ -305,6 +326,28 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
               );
             })}
           </div>
+
+          {/* Continuity chain indicator */}
+          {continuityActive && (
+            <div className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl border border-[hsla(160,70%,45%,0.25)] bg-[hsla(160,70%,45%,0.06)]">
+              <div className="flex items-center gap-2 min-w-0">
+                <CheckCircle2 className="w-3 h-3 text-[hsl(160,70%,55%)] shrink-0" strokeWidth={2} />
+                <span className="text-[9px] font-bold text-[hsl(160,70%,75%)] uppercase tracking-wider truncate">
+                  Continuity chain active · last frame locked
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  continuityRef.current = { frameUrl: null, dna: null };
+                  setContinuityActive(false);
+                  toast.info("Continuity chain reset");
+                }}
+                className="text-[9px] font-bold text-[hsl(0,0%,55%)] hover:text-[hsl(0,0%,85%)] transition-colors shrink-0"
+              >
+                Reset
+              </button>
+            </div>
+          )}
 
           {/* Duration selector */}
           <div className="flex items-center gap-2">

@@ -524,6 +524,9 @@ export default function Pricing() {
           ← Back to home
         </Link>
       </div>
+
+      {/* In-page checkout for authed users */}
+      <BuyCreditsModal open={showBuyModal} onOpenChange={setShowBuyModal} />
     </div>
   );
 }

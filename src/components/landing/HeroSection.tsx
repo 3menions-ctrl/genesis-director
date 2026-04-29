@@ -11,7 +11,7 @@ interface HeroSectionProps {
 export const HeroSection = memo(forwardRef<HTMLElement, HeroSectionProps>(
   function HeroSection({ onEnterStudio }, ref) {
     return (
-      <section ref={ref} className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6">
+      <section ref={ref} className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 pt-[36vh] md:pt-[42vh]">
         {/* Floating holographic particles — reduced on mobile to save GPU */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden hidden md:block">
           {[...Array(8)].map((_, i) => (

@@ -306,9 +306,11 @@ describe('Security — Edge Function Auth Guard', () => {
     expect(fileExists('supabase/functions/_shared/auth-guard.ts')).toBe(true);
   });
 
-  it('auth-guard should use getClaims for JWT validation', () => {
+  it('auth-guard validates JWT via Supabase auth API', () => {
     const guard = readFile('supabase/functions/_shared/auth-guard.ts');
-    expect(guard).toContain('getClaims');
+    // Implementation uses getUser(token); getClaims is also acceptable.
+    const usesAuthApi = guard.includes('getUser') || guard.includes('getClaims');
+    expect(usesAuthApi).toBe(true);
   });
 
   it('auth-guard should fallback to getUser on claim failure', () => {

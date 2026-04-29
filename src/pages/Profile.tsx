@@ -129,6 +129,10 @@ const ProfileAtmosphere = memo(function ProfileAtmosphere() {
         @keyframes profileTick { 0%,100% { opacity: 0.35; } 50% { opacity: 1; } }
         @keyframes profileFloat { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-12px); } }
         @keyframes profileShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        @keyframes profileScan { 0% { transform: translateY(-100%); } 100% { transform: translateY(100vh); } }
+        @keyframes profileTwinkle { 0%,100% { opacity: 0.15; } 50% { opacity: 0.9; } }
+        @keyframes profileGlowPulse { 0%,100% { box-shadow: 0 0 0 0 hsla(215,100%,60%,0.45); } 50% { box-shadow: 0 0 30px 6px hsla(215,100%,60%,0.0); } }
+        @keyframes profileRise { 0% { opacity: 0; transform: translateY(24px); } 100% { opacity: 1; transform: translateY(0); } }
       `}</style>
       {/* Deep base */}
       <div className="fixed inset-0 -z-50 bg-[hsl(220,14%,2%)]" aria-hidden />
@@ -160,6 +164,38 @@ const ProfileAtmosphere = memo(function ProfileAtmosphere() {
           width: 560, height: 560, bottom: '-15%', left: '-10%',
           background: 'radial-gradient(circle, hsla(210,100%,55%,0.14), transparent 65%)',
           filter: 'blur(70px)', animation: 'profileFloat 18s ease-in-out infinite reverse',
+        }}
+        aria-hidden
+      />
+      {/* Ambient star/dust field */}
+      <div className="fixed inset-0 -z-30 pointer-events-none overflow-hidden" aria-hidden>
+        {Array.from({ length: 28 }).map((_, i) => {
+          const top = (i * 137.5) % 100;
+          const left = (i * 73.3) % 100;
+          const size = 1 + ((i * 7) % 3);
+          const delay = (i * 0.31) % 6;
+          return (
+            <span
+              key={i}
+              className="absolute rounded-full bg-[hsl(215,100%,75%)]"
+              style={{
+                top: `${top}%`, left: `${left}%`,
+                width: size, height: size,
+                boxShadow: '0 0 8px hsla(215,100%,68%,0.6)',
+                animation: `profileTwinkle ${5 + (i % 4)}s ease-in-out infinite`,
+                animationDelay: `${delay}s`,
+                opacity: 0.35,
+              }}
+            />
+          );
+        })}
+      </div>
+      {/* Slow scan line */}
+      <div
+        className="fixed inset-x-0 -z-20 pointer-events-none h-[40vh]"
+        style={{
+          background: 'linear-gradient(180deg, transparent 0%, hsla(215,100%,68%,0.06) 50%, transparent 100%)',
+          animation: 'profileScan 18s linear infinite',
         }}
         aria-hidden
       />

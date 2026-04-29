@@ -1238,7 +1238,7 @@ function ProjectsContentInner() {
             </div>
           </>
         )}
-      </main>
+      </PageShell>
 
       {/* Video Player Modal - UniversalVideoPlayer for seamless transitions */}
       {videoModalOpen && selectedProject && !isLoadingClips && (

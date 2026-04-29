@@ -34,15 +34,17 @@ const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundPro
     }, []);
 
     return (
-      <div ref={ref} className={cn("absolute inset-0", className)}>
-        {/* Base image layer — static on mobile, parallax on desktop */}
+      <div ref={ref} className={cn("absolute inset-0 bg-background", className)}>
+        {/* Base image layer — fits entire image without cropping. 
+            Letterbox fill matches background color so it blends seamlessly. */}
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 bg-no-repeat bg-center"
           style={{ 
             backgroundImage: `url(${landingAbstractBg})`,
+            backgroundSize: 'contain',
             ...(isTouchDevice ? {} : {
               transition: 'transform 2000ms ease-out',
-              transform: `scale(1.05) translate(${(mousePos.x - 50) * -0.02}%, ${(mousePos.y - 50) * -0.02}%)`,
+              transform: `translate(${(mousePos.x - 50) * -0.015}%, ${(mousePos.y - 50) * -0.015}%)`,
             }),
           }}
         />

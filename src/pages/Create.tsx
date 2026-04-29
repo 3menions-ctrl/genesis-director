@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect, memo } from 'react';
 import { toast } from 'sonner';
 import { Film, Sparkles, Image } from 'lucide-react';
-import ClipsBackground from '@/components/clips/ClipsBackground';
 import { CreationHub } from '@/components/studio/CreationHub';
 import { ScenesHub } from '@/components/scenes/ScenesHub';
 import { PhotoEditorHub } from '@/components/photo-editor/PhotoEditorHub';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { PageShell, PageHeader, SegmentedControl } from '@/components/shell';
 import { useAuth } from '@/contexts/AuthContext';
 import { VideoGenerationMode, VideoStylePreset } from '@/types/video-modes';
 import { supabase } from '@/integrations/supabase/client';

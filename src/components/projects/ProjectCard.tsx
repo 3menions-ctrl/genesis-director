@@ -592,8 +592,7 @@ const StatusPill = forwardRef<HTMLSpanElement, { color: string; label: string; p
     );
   }
 );
-  );
-}
+StatusPill.displayName = 'StatusPill';
 
 function CardDropdown({ onEdit, onOpenInEditor, onTogglePin, isPinned, onRename, hasVideo, onTogglePublic, project, status, onRetryStitch, isRetrying, onBrowserStitch, isBrowserStitching, onDelete }: any) {
   return (

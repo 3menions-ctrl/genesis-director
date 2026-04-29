@@ -82,7 +82,7 @@ export const AvatarPreviewModal = forwardRef<HTMLDivElement, AvatarPreviewModalP
             <div className="absolute bottom-0 left-0 right-0 px-5 pb-4">
               <div className="flex items-center gap-2 mb-1">
                 <h2 className="text-2xl font-bold text-white">{avatar.name}</h2>
-                <Sparkles className="w-4 h-4 text-violet-400" />
+                <Sparkles className="w-4 h-4 text-[hsl(215,100%,72%)]" />
               </div>
               {avatar.description && (
                 <p className="text-sm text-white/60 line-clamp-1">{avatar.description}</p>
@@ -122,15 +122,15 @@ export const AvatarPreviewModal = forwardRef<HTMLDivElement, AvatarPreviewModalP
             <div className={cn(
               "flex items-center justify-between px-4 py-3 rounded-xl border",
               isVoiceReady
-                ? "bg-emerald-500/[0.08] border-emerald-500/20"
-                : "bg-violet-500/[0.08] border-violet-500/20"
+                ? "bg-[hsl(215,100%,55%)]/[0.08] border-[hsl(215,100%,55%)]/20"
+                : "bg-[hsl(215,100%,55%)]/[0.08] border-[hsl(215,100%,55%)]/20"
             )}>
               <div className="flex items-center gap-3">
                 <div className={cn(
                   "w-8 h-8 rounded-full flex items-center justify-center",
-                  isVoiceReady ? "bg-emerald-500/20" : "bg-violet-500/20"
+                  isVoiceReady ? "bg-[hsl(215,100%,55%)]/20" : "bg-[hsl(215,100%,55%)]/20"
                 )}>
-                  <Mic className={cn("w-4 h-4", isVoiceReady ? "text-emerald-400" : "text-violet-400")} />
+                  <Mic className={cn("w-4 h-4", isVoiceReady ? "text-[hsl(215,100%,72%)]" : "text-[hsl(215,100%,72%)]")} />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-white/80">{avatar.voice_name || 'Premium Voice'}</p>
@@ -143,8 +143,8 @@ export const AvatarPreviewModal = forwardRef<HTMLDivElement, AvatarPreviewModalP
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
                   isVoiceReady
-                    ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30"
-                    : "bg-violet-500/20 text-violet-300 hover:bg-violet-500/30"
+                    ? "bg-[hsl(215,100%,55%)]/20 text-[hsl(215,100%,80%)] hover:bg-[hsl(215,100%,55%)]/30"
+                    : "bg-[hsl(215,100%,55%)]/20 text-[hsl(215,100%,80%)] hover:bg-[hsl(215,100%,55%)]/30"
                 )}
               >
                 {isPreviewingVoice
@@ -177,7 +177,7 @@ export const AvatarPreviewModal = forwardRef<HTMLDivElement, AvatarPreviewModalP
                 onSelect(avatar);
                 onOpenChange(false);
               }}
-              className="w-full h-12 text-base font-semibold rounded-xl bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white shadow-lg shadow-violet-500/25 gap-2"
+              className="w-full h-12 text-base font-semibold rounded-xl bg-gradient-to-r from-[hsl(215,100%,50%)] to-[hsl(215,100%,55%)] hover:from-[hsl(215,100%,55%)] hover:to-[hsl(215,100%,72%)] text-white shadow-lg shadow-[hsl(215,100%,55%)]/25 gap-2"
             >
               <CheckCircle2 className="w-5 h-5" />
               Select {avatar.name}

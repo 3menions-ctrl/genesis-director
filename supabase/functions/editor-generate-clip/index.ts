@@ -227,7 +227,15 @@ serve(async (req) => {
 
     // ─── SUBMIT ───
     if (action === "submit") {
-      const { prompt, duration = 10, startImageUrl, aspectRatio = "16:9" } = body;
+      const {
+        prompt,
+        duration = 10,
+        startImageUrl,
+        aspectRatio = "16:9",
+        // Continuity-chain inputs (optional)
+        continuityFrameUrl,    // last frame of previous clip
+        continuityDNA,         // distilled identity descriptor of previous clip
+      } = body;
 
       if (!prompt) {
         return new Response(JSON.stringify({ error: "prompt is required" }), {
@@ -269,8 +277,21 @@ serve(async (req) => {
       // duration MUST be integer 5 or 10 for Seedance-1-Pro
       const durNum = parseInt(String(duration), 10) || 5;
       const finalDuration: number = durNum >= 10 ? 10 : 5;
+
+      // Resolve the start image with continuity priority:
+      //   continuityFrameUrl  >  startImageUrl
+      const resolvedStartImage = continuityFrameUrl || startImageUrl;
+
+      // Build prompt with continuity lock when chaining from a previous clip.
+      let finalPrompt = prompt;
+      if (continuityFrameUrl) {
+        const dna = continuityDNA ? ` ${continuityDNA}` : "";
+        finalPrompt = `${CONTINUITY_LOCK_PREFIX}${dna} Next beat: ${prompt}`;
+      }
+      finalPrompt = finalPrompt + QUALITY_SUFFIX;
+
       const seedanceInput: Record<string, any> = {
-        prompt: prompt + QUALITY_SUFFIX,
+        prompt: finalPrompt,
         duration: finalDuration,
         aspect_ratio: aspectRatio,
         resolution: "1080p",       // Seedance-1-Pro max native resolution
@@ -279,12 +300,12 @@ serve(async (req) => {
       };
       console.log("[editor-generate-clip] Seedance input:", JSON.stringify(seedanceInput));
 
-      if (startImageUrl) {
-        seedanceInput.image = startImageUrl;
+      if (resolvedStartImage) {
+        seedanceInput.image = resolvedStartImage;
       }
 
       // Submit to Replicate (Seedance-1-Pro)
-      const replicateRes = await fetch(startImageUrl ? SEEDANCE_I2V_URL : SEEDANCE_T2V_URL, {
+      const replicateRes = await fetch(resolvedStartImage ? SEEDANCE_I2V_URL : SEEDANCE_T2V_URL, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
@@ -321,10 +342,16 @@ serve(async (req) => {
         metadata: { predictionId: prediction.id },
       });
 
+      // Stash the prompt's identity DNA so /status can return it for chaining
+      // without forcing the client to remember it.
+      const dnaForChain = distillIdentityDNA(prompt);
+
       return new Response(JSON.stringify({
         success: true,
         predictionId: prediction.id,
         creditsCharged: creditsRequired,
+        continuityDNA: dnaForChain,
+        chainedFromImage: !!resolvedStartImage,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

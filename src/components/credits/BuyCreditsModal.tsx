@@ -8,7 +8,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import {
   Coins, Sparkles, Check, Crown, Loader2, Zap, Building2, Shield,
@@ -242,7 +241,7 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
             />
           </div>
 
-          <ScrollArea className="flex-1 min-h-0 relative z-10">
+          <div className="flex-1 min-h-0 relative z-10 overflow-y-auto overscroll-contain">
             <div className="p-6 md:p-10 font-body">
               {/* Editorial header */}
               <div className="text-center mb-10 max-w-2xl mx-auto">
@@ -517,7 +516,7 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
                 </>
               )}
             </div>
-          </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
     );

@@ -120,27 +120,24 @@ export function AppShell({ children }: AppShellProps) {
           )}
           style={{
             background:
-              'linear-gradient(180deg, hsla(220, 14%, 5%, 0.85) 0%, hsla(220, 14%, 3%, 0.92) 100%)',
-            backdropFilter: 'blur(48px) saturate(200%)',
-            WebkitBackdropFilter: 'blur(48px) saturate(200%)',
-            borderRight: '1px solid hsla(0, 0%, 100%, 0.05)',
-            boxShadow: 'inset -1px 0 0 hsla(0, 0%, 100%, 0.02)',
+              'linear-gradient(180deg, hsla(220, 18%, 5%, 0.55) 0%, hsla(220, 14%, 3%, 0.75) 100%)',
+            backdropFilter: 'blur(64px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(64px) saturate(180%)',
           }}
         >
           {/* Inset floating panel (only on lg+) */}
           <div
             className={cn(
               'relative flex flex-1 flex-col min-h-0',
-              'lg:rounded-2xl lg:overflow-hidden',
+              'lg:rounded-[28px] lg:overflow-hidden',
             )}
             style={{
               background:
-                'linear-gradient(180deg, hsla(220, 14%, 6%, 0.85) 0%, hsla(220, 14%, 4%, 0.92) 100%)',
-              backdropFilter: 'blur(48px) saturate(200%)',
-              WebkitBackdropFilter: 'blur(48px) saturate(200%)',
-              border: '1px solid hsla(0, 0%, 100%, 0.06)',
+                'linear-gradient(180deg, hsla(220, 18%, 7%, 0.62) 0%, hsla(220, 14%, 4%, 0.78) 100%)',
+              backdropFilter: 'blur(56px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(56px) saturate(180%)',
               boxShadow:
-                '0 24px 48px -24px rgba(0,0,0,0.6), 0 0 0 1px hsla(0,0%,100%,0.02), inset 0 1px 0 hsla(0,0%,100%,0.04)',
+                '0 32px 80px -32px rgba(0,0,0,0.75), inset 0 1px 0 hsla(0,0%,100%,0.05)',
             }}
           >
           {/* Soft inner highlight at the top edge for depth */}

@@ -142,13 +142,13 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
     return newClip;
   }, [state.tracks, dispatch]);
 
-  const pollPrediction = useCallback((predictionId: string, clipName: string) => {
+  const pollPrediction = useCallback((predictionId: string, clipName: string, clipPrompt: string, clipDuration: number) => {
     setGenState("polling");
     
     pollRef.current = setInterval(async () => {
       try {
         const { data, error } = await supabase.functions.invoke("editor-generate-clip", {
-          body: { action: "status", predictionId },
+          body: { action: "status", predictionId, prompt: clipPrompt, duration: clipDuration },
         });
 
         if (error) return;
@@ -157,10 +157,14 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
           if (pollRef.current) clearInterval(pollRef.current);
           pollRef.current = null;
           
-          addClipToTimeline(data.videoUrl, clipName, duration);
+          addClipToTimeline(data.videoUrl, clipName, clipDuration);
           setGenState("completed");
           setProgress(100);
-          toast.success("Video clip generated and added to timeline!");
+          toast.success(
+            data.savedToLibrary
+              ? "Clip added to timeline & saved to your Library"
+              : "Video clip generated and added to timeline!"
+          );
           setTimeout(() => {
             setGenState("idle");
             setProgress(0);
@@ -177,7 +181,7 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
         console.error("[AISceneBuilder] Poll error:", e);
       }
     }, 5000);
-  }, [addClipToTimeline, duration, progress]);
+  }, [addClipToTimeline, progress]);
 
   const handleGenerate = useCallback(async (customPrompt?: string) => {
     const finalPrompt = customPrompt || prompt;
@@ -238,7 +242,7 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
       toast.info(`Generating ${suggestedDuration}s clip… (${genResult.creditsCharged} credits charged)`);
 
       // Step 3: Poll for completion
-      pollPrediction(genResult.predictionId, clipName);
+      pollPrediction(genResult.predictionId, clipName, enhancedPrompt, suggestedDuration);
       setPrompt("");
 
     } catch (error: any) {

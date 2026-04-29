@@ -85,10 +85,11 @@ serve(async (req) => {
         p_description: `Editor clip generation (${duration}s)`,
       });
 
-      // Build Seedance input
+      // Build Seedance input (duration must be integer 5 or 10)
+      const durNum = parseInt(String(duration), 10);
       const seedanceInput: Record<string, any> = {
         prompt: prompt + QUALITY_SUFFIX,
-        duration: Number(duration) === 10 ? 10 : 5,
+        duration: durNum >= 10 ? 10 : 5,
         aspect_ratio: aspectRatio,
         resolution: "1080p",
         fps: 24,

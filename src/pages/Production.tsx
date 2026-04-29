@@ -19,8 +19,8 @@ import type { ProFeaturesState, PipelineState, DegradationFlag } from '@/types/p
 import { getErrorMessage } from '@/types/error-handling';
 
 // CRITICAL: Import background directly - prevents flash on page load
-import PipelineBackground from '@/components/production/PipelineBackground';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { PageShell, PageHeader } from '@/components/shell';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
 import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
 import { SimpleVideoPlayer } from '@/components/player';

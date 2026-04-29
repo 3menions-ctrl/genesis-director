@@ -209,6 +209,7 @@ async function createSeedancePrediction(
   startImageUrl?: string | null,
   aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
   durationSeconds: number = DEFAULT_CLIP_DURATION,
+  endImageUrl?: string | null,
 ): Promise<{ predictionId: string }> {
   const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
   if (!REPLICATE_API_KEY) {
@@ -230,14 +231,22 @@ async function createSeedancePrediction(
 
   if (startImageUrl && startImageUrl.startsWith("http")) {
     input.image = startImageUrl;
+    // Seedance 2.0 unique capability: target end-frame interpolation.
+    // Only valid when a start `image` is also provided.
+    if (endImageUrl && endImageUrl.startsWith("http") && endImageUrl !== startImageUrl) {
+      input.last_frame_image = endImageUrl;
+    }
   }
 
-  const mode = startImageUrl ? "I2V" : "T2V";
+  const mode = startImageUrl
+    ? (input.last_frame_image ? "I2V+EndFrame" : "I2V")
+    : "T2V";
   console.log(`[SingleClip][Seedance2] Creating ${mode} prediction:`, {
     model: `${SEEDANCE_MODEL_OWNER}/${SEEDANCE_MODEL_NAME}`,
     duration,
     aspectRatio,
     hasStartImage: !!input.image,
+    hasEndImage: !!input.last_frame_image,
     promptLength: prompt.length,
   });
 
@@ -688,12 +697,23 @@ serve(async (req) => {
       extractedCharacters,
       referenceImageUrl,
       sceneImageUrl,
-      videoEngine = "kling", // All modes now Kling V3
+      endImageUrl, // Optional target end-frame (Seedance 2.0 only)
+      videoEngine: rawVideoEngine = "kling",
       isAvatarMode: isAvatarModeFlag = false, // Explicit flag — do NOT derive from videoEngine
     } = body;
 
     if (!projectId || !prompt) {
       throw new Error("projectId and prompt are required");
+    }
+
+    // ═══ SEEDANCE SAFETY GUARD ═══
+    // Seedance 2.0 has NO native lip-sync / dialogue audio. If a request reaches
+    // here in avatar mode but is routed to Seedance, force-fallback to Kling V3
+    // so dialogue is preserved. This prevents silent avatar clips.
+    let videoEngine = rawVideoEngine;
+    if (videoEngine === 'seedance' && isAvatarModeFlag) {
+      console.warn(`[SingleClip] ⚠️ Avatar mode + Seedance detected — forcing Kling V3 (Seedance has no lip-sync)`);
+      videoEngine = 'kling';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -1025,6 +1045,7 @@ serve(async (req) => {
         validatedStartImage,
         aspectRatio as '16:9' | '9:16' | '1:1',
         durationSeconds,
+        endImageUrl, // Optional Seedance-only end-frame target
       );
       predictionId = seedanceResult.predictionId;
     } else {

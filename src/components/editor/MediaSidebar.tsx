@@ -51,11 +51,11 @@ export const MediaSidebar = memo(function MediaSidebar({
       style={{
         width: collapsed ? 52 : 256,
         background:
-          'linear-gradient(180deg, hsla(220, 14%, 6%, 0.95) 0%, hsla(220, 14%, 4%, 0.95) 100%)',
-        borderRight: '1px solid hsla(0, 0%, 100%, 0.05)',
+          'linear-gradient(180deg, hsla(220, 14%, 5%, 0.55) 0%, hsla(220, 14%, 3%, 0.55) 100%)',
+        backdropFilter: 'blur(48px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(48px) saturate(180%)',
         boxShadow:
-          'inset -1px 0 0 hsla(0,0%,100%,0.02), 8px 0 30px -16px hsla(0,0%,0%,0.6)',
-        backdropFilter: 'blur(12px)',
+          'inset -1px 0 0 hsla(0,0%,100%,0.025), 24px 0 64px -28px hsla(0,0%,0%,0.55), inset 0 1px 0 hsla(0,0%,100%,0.04)',
       }}
     >
       {/* Collapsed state */}
@@ -65,22 +65,34 @@ export const MediaSidebar = memo(function MediaSidebar({
             <TooltipTrigger asChild>
               <button
                 onClick={() => setCollapsed(false)}
-                className="w-9 h-9 rounded-lg flex items-center justify-center text-[hsla(0,0%,100%,0.4)] hover:text-white hover:bg-[hsla(0,0%,100%,0.06)] transition-all"
+                className="w-9 h-9 rounded-full flex items-center justify-center text-[hsla(0,0%,100%,0.4)] hover:text-white hover:bg-[hsla(0,0%,100%,0.05)] transition-all duration-300"
               >
-                <PanelLeftOpen className="w-4 h-4" />
+                <PanelLeftOpen className="w-4 h-4" strokeWidth={1.5} />
               </button>
             </TooltipTrigger>
             <TooltipContent side="right" className="text-[10px]">Expand media panel</TooltipContent>
           </Tooltip>
 
-          <div className="w-7 h-px bg-[hsla(0,0%,100%,0.06)]" />
+          <div className="w-6 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,60%,0.18)] to-transparent" />
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center relative bg-[hsla(215,100%,50%,0.1)]">
-                <Layers className="w-4 h-4 text-[hsla(215,100%,60%,0.7)]" />
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center relative"
+                style={{
+                  background: 'hsla(215,100%,60%,0.10)',
+                  boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.06), 0 0 16px -4px hsla(215,100%,55%,0.35)',
+                }}
+              >
+                <Layers className="w-4 h-4 text-[hsla(215,100%,75%,0.85)]" strokeWidth={1.5} />
                 {clipCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full flex items-center justify-center text-[8px] font-bold bg-[hsl(215,100%,50%)] text-white px-0.5">
+                  <span
+                    className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full flex items-center justify-center text-[8px] font-light tabular-nums text-white px-0.5"
+                    style={{
+                      background: 'linear-gradient(180deg, hsl(215,100%,60%), hsl(215,100%,48%))',
+                      boxShadow: '0 0 8px hsla(215,100%,55%,0.6), inset 0 1px 0 hsla(0,0%,100%,0.18)',
+                    }}
+                  >
                     {clipCount}
                   </span>
                 )}
@@ -95,34 +107,32 @@ export const MediaSidebar = memo(function MediaSidebar({
         <>
           {/* Header */}
           <div
-            className="shrink-0 px-3.5 py-3.5 relative"
+            className="shrink-0 px-4 py-4 relative"
             style={{
-              borderBottom: '1px solid hsla(0, 0%, 100%, 0.05)',
               background:
-                'linear-gradient(180deg, hsla(215,100%,40%,0.04), transparent)',
+                'linear-gradient(180deg, hsla(215,100%,50%,0.045), transparent 80%)',
             }}
           >
-            {/* hairline accent */}
-            <div className="absolute bottom-0 inset-x-3 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,55%,0.25)] to-transparent" />
+            {/* hairline accent — softer */}
+            <div className="absolute bottom-0 inset-x-4 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,60%,0.16)] to-transparent" />
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center"
+                  className="w-8 h-8 rounded-full flex items-center justify-center"
                   style={{
-                    background:
-                      'linear-gradient(135deg, hsl(215,100%,55%) 0%, hsl(200,100%,42%) 100%)',
+                    background: 'hsla(215,100%,60%,0.12)',
                     boxShadow:
-                      '0 0 0 1px hsla(215,100%,75%,0.3) inset, 0 1px 0 hsla(0,0%,100%,0.2) inset, 0 6px 18px -6px hsla(215,100%,50%,0.55)',
+                      'inset 0 1px 0 hsla(0,0%,100%,0.08), 0 0 18px -4px hsla(215,100%,55%,0.45)',
                   }}
                 >
-                  <Layers className="w-3.5 h-3.5 text-white" />
+                  <Layers className="w-3.5 h-3.5" strokeWidth={1.5} style={{ color: 'hsla(215,100%,80%,0.95)' }} />
                 </div>
                 <div className="leading-tight">
-                  <span className="text-[10.5px] font-semibold text-foreground/85 tracking-[0.18em] uppercase block leading-none font-display">
+                  <span className="text-[10.5px] font-light text-foreground/80 tracking-[0.22em] uppercase block leading-none font-display">
                     Library
                   </span>
                   {clips.length > 0 && (
-                    <span className="text-[9px] text-muted-foreground/50 mt-1 block tabular-nums tracking-wide">
+                    <span className="text-[9px] font-light text-muted-foreground/45 mt-1.5 block tabular-nums tracking-wide">
                       {clipCount} clips · {totalDuration.toFixed(0)}s
                     </span>
                   )}
@@ -134,9 +144,9 @@ export const MediaSidebar = memo(function MediaSidebar({
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => setCollapsed(true)}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/40 hover:text-foreground hover:bg-white/[0.06] transition-all ring-1 ring-inset ring-white/[0.04]"
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground/40 hover:text-foreground hover:bg-white/[0.05] transition-all duration-300"
                     >
-                      <PanelLeftClose className="w-3.5 h-3.5" />
+                      <PanelLeftClose className="w-3.5 h-3.5" strokeWidth={1.5} />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right" className="text-[10px]">Collapse panel</TooltipContent>
@@ -146,12 +156,25 @@ export const MediaSidebar = memo(function MediaSidebar({
 
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[hsla(0,0%,100%,0.3)]" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[hsla(0,0%,100%,0.3)]" strokeWidth={1.5} />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search clips…"
-                className="w-full h-8 pl-8 pr-3 rounded-lg text-[11px] tracking-tight bg-white/[0.03] border border-white/[0.06] text-foreground/85 placeholder:text-muted-foreground/30 outline-none focus:border-[hsla(215,100%,55%,0.45)] focus:bg-white/[0.05] focus:ring-2 focus:ring-[hsla(215,100%,55%,0.12)] transition-all"
+                className="w-full h-9 pl-9 pr-3 rounded-full text-[11px] font-light tracking-tight text-foreground/90 placeholder:text-muted-foreground/30 outline-none transition-all duration-300"
+                style={{
+                  background: 'hsla(0,0%,100%,0.025)',
+                  backdropFilter: 'blur(24px) saturate(160%)',
+                  boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.04)',
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.background = 'hsla(215,100%,60%,0.05)';
+                  e.currentTarget.style.boxShadow = 'inset 0 1px 0 hsla(0,0%,100%,0.06), 0 0 0 1px hsla(215,100%,60%,0.30), 0 0 18px -4px hsla(215,100%,60%,0.35)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.background = 'hsla(0,0%,100%,0.025)';
+                  e.currentTarget.style.boxShadow = 'inset 0 1px 0 hsla(0,0%,100%,0.04)';
+                }}
               />
             </div>
           </div>
@@ -229,59 +252,60 @@ export const MediaSidebar = memo(function MediaSidebar({
                     transition={{ delay: Math.min(i * 0.02, 0.3) }}
                     onClick={() => onAddClip(clip)}
                     className={cn(
-                      "w-full flex items-start gap-2.5 p-2 rounded-xl transition-all duration-200 group text-left relative",
-                      "border border-white/[0.03]",
-                      "hover:bg-white/[0.04] hover:border-[hsla(215,100%,55%,0.22)] hover:shadow-[0_8px_24px_-12px_hsla(215,100%,55%,0.4)]",
+                      "w-full flex items-start gap-2.5 p-2 rounded-2xl transition-all duration-300 group text-left relative",
+                      "hover:bg-white/[0.035] hover:shadow-[0_12px_32px_-16px_hsla(215,100%,55%,0.5),inset_0_0_0_1px_hsla(215,100%,60%,0.18)]",
                       "active:scale-[0.985]"
                     )}
                   >
                     {/* Thumbnail */}
                     <div
-                      className="w-[78px] h-[46px] rounded-md overflow-hidden shrink-0 relative bg-[hsl(220,14%,8%)] ring-1 ring-white/[0.06]"
-                      style={{ boxShadow: 'inset 0 0 0 1px hsla(0,0%,0%,0.4), 0 2px 8px -2px hsla(0,0%,0%,0.5)' }}
+                      className="w-[78px] h-[46px] rounded-lg overflow-hidden shrink-0 relative bg-[hsl(220,14%,6%)]"
+                      style={{ boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.04), 0 4px 14px -4px hsla(0,0%,0%,0.6)' }}
                     >
                       {clip.thumbnailUrl ? (
                         <img
                           src={clip.thumbnailUrl}
                           alt=""
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.08]"
                           loading="lazy"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <Film className="w-4 h-4 text-[hsla(0,0%,100%,0.2)]" />
+                          <Film className="w-4 h-4 text-[hsla(0,0%,100%,0.2)]" strokeWidth={1.5} />
                         </div>
                       )}
                       {/* gradient sheen */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-white/[0.04] pointer-events-none" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-white/[0.05] pointer-events-none" />
                       {/* Duration badge */}
                       {clip.durationSeconds && (
-                        <div className="absolute bottom-0.5 right-0.5 px-1 py-px rounded text-[8px] font-mono font-semibold tabular-nums bg-black/70 text-white/90 backdrop-blur-md ring-1 ring-white/10">
+                        <div className="absolute bottom-0.5 right-0.5 px-1.5 py-px rounded-full text-[8px] font-mono font-light tabular-nums text-white/85 backdrop-blur-md"
+                          style={{ background: 'hsla(0,0%,0%,0.55)', boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.08)' }}>
                           {clip.durationSeconds.toFixed(1)}s
                         </div>
                       )}
                       {/* Hover overlay */}
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-[hsla(215,100%,50%,0.18)] backdrop-blur-[3px]">
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-[3px]"
+                        style={{ background: 'hsla(215,100%,55%,0.18)' }}>
                         <div
                           className="w-7 h-7 rounded-full flex items-center justify-center text-white"
                           style={{
                             background:
                               'linear-gradient(180deg, hsl(215,100%,60%), hsl(215,100%,42%))',
                             boxShadow:
-                              '0 0 0 1px hsla(215,100%,75%,0.4) inset, 0 4px 14px -2px hsla(215,100%,55%,0.7)',
+                              'inset 0 1px 0 hsla(0,0%,100%,0.22), 0 6px 18px -2px hsla(215,100%,55%,0.7)',
                           }}
                         >
-                          <Plus className="w-3.5 h-3.5 text-white" />
+                          <Plus className="w-3.5 h-3.5 text-white" strokeWidth={1.8} />
                         </div>
                       </div>
                     </div>
 
                     {/* Info */}
                     <div className="flex-1 min-w-0 py-0.5">
-                      <p className="text-[11px] font-medium tracking-tight text-foreground/80 truncate leading-tight group-hover:text-foreground transition-colors">
+                      <p className="text-[11.5px] font-light tracking-tight text-foreground/85 truncate leading-tight group-hover:text-foreground transition-colors">
                         Shot {clip.shotIndex + 1}
                       </p>
-                      <p className="text-[9px] text-muted-foreground/45 truncate mt-1 tracking-wide uppercase">
+                      <p className="text-[9px] font-light text-muted-foreground/40 truncate mt-1 tracking-[0.14em] uppercase">
                         {clip.projectTitle}
                       </p>
                     </div>

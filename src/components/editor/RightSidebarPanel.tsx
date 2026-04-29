@@ -40,53 +40,55 @@ export const RightSidebarPanel = memo(function RightSidebarPanel() {
 
   return (
     <div
-      className="w-72 shrink-0 flex flex-col border-l overflow-hidden relative"
+      className="w-72 shrink-0 flex flex-col overflow-hidden relative"
       style={{
         background:
-          'linear-gradient(180deg, hsla(220, 14%, 6%, 0.95) 0%, hsla(220, 14%, 4%, 0.95) 100%)',
-        borderColor: 'hsla(0, 0%, 100%, 0.05)',
+          'linear-gradient(180deg, hsla(220, 14%, 5%, 0.55) 0%, hsla(220, 14%, 3%, 0.55) 100%)',
+        backdropFilter: 'blur(48px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(48px) saturate(180%)',
         boxShadow:
-          'inset 1px 0 0 hsla(0,0%,100%,0.02), -8px 0 30px -16px hsla(0,0%,0%,0.6)',
-        backdropFilter: 'blur(12px)',
+          'inset 1px 0 0 hsla(0,0%,100%,0.025), -24px 0 64px -28px hsla(0,0%,0%,0.55), inset 0 1px 0 hsla(0,0%,100%,0.04)',
       }}
     >
       {/* Panel section header */}
       <div
-        className="shrink-0 px-3.5 py-3 relative"
+        className="shrink-0 px-4 py-4 relative"
         style={{
-          borderBottom: '1px solid hsla(0,0%,100%,0.05)',
-          background: 'linear-gradient(180deg, hsla(215,100%,40%,0.04), transparent)',
+          background: 'linear-gradient(180deg, hsla(215,100%,50%,0.045), transparent 80%)',
         }}
       >
-        <div className="absolute bottom-0 inset-x-3 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,55%,0.25)] to-transparent" />
+        <div className="absolute bottom-0 inset-x-4 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,60%,0.16)] to-transparent" />
         <div className="flex items-center gap-2">
           <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
             style={{
-              background: 'linear-gradient(135deg, hsl(215,100%,55%) 0%, hsl(200,100%,42%) 100%)',
+              background: 'hsla(215,100%,60%,0.12)',
               boxShadow:
-                '0 0 0 1px hsla(215,100%,75%,0.3) inset, 0 1px 0 hsla(0,0%,100%,0.2) inset, 0 6px 18px -6px hsla(215,100%,50%,0.55)',
+                'inset 0 1px 0 hsla(0,0%,100%,0.08), 0 0 18px -4px hsla(215,100%,55%,0.45)',
             }}
           >
-            <SlidersHorizontal className="w-3.5 h-3.5 text-white" />
+            <SlidersHorizontal className="w-3.5 h-3.5" strokeWidth={1.5} style={{ color: 'hsla(215,100%,80%,0.95)' }} />
           </div>
           <div className="leading-tight min-w-0">
-            <span className="font-display text-[10.5px] font-semibold uppercase tracking-[0.18em] text-foreground/85 block truncate">
+            <span className="font-display text-[10.5px] font-light uppercase tracking-[0.22em] text-foreground/80 block truncate">
               {meta.label}
             </span>
-            <span className="text-[9px] text-muted-foreground/50 mt-1 block tracking-wide truncate">
+            <span className="text-[9px] font-light text-muted-foreground/45 mt-1.5 block tracking-wide truncate">
               {meta.sub}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Top-level tab bar */}
+      {/* Top-level tab bar — glass pill rail */}
       <div
-        className="shrink-0 flex items-center px-1.5 py-2 gap-0.5 border-b overflow-x-auto"
+        className="shrink-0 flex items-center mx-3 my-2.5 px-1 py-1 gap-0.5 rounded-full overflow-x-auto"
         style={{
-          borderColor: 'hsla(0, 0%, 100%, 0.05)',
-          background: 'hsla(0, 0%, 100%, 0.015)',
+          background: 'hsla(0,0%,100%,0.025)',
+          backdropFilter: 'blur(36px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(36px) saturate(180%)',
+          boxShadow:
+            'inset 0 1px 0 hsla(0,0%,100%,0.05), 0 8px 32px -16px hsla(0,0%,0%,0.5)',
         }}
       >
         <TopTabButton active={activeTab === "templates"} onClick={() => setActiveTab("templates")} icon={<Layers className="w-3 h-3" />} label="Tmpl" />
@@ -115,18 +117,18 @@ function TopTabButton({ active, onClick, icon, label, badge, glow }: { active: b
     <button
       onClick={onClick}
       className={cn(
-        "flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-[9px] font-semibold uppercase tracking-[0.1em] transition-all relative min-w-0",
+        "flex-1 flex items-center justify-center gap-1 py-1.5 rounded-full text-[9px] font-light uppercase tracking-[0.14em] transition-all duration-300 relative min-w-0",
         active
-          ? "text-foreground"
-          : "text-muted-foreground/45 hover:text-foreground/75 hover:bg-white/[0.04]"
+          ? "text-white"
+          : "text-muted-foreground/45 hover:text-foreground/80 hover:bg-white/[0.04]"
       )}
       style={
         active
           ? {
               background:
-                'linear-gradient(180deg, hsla(215,100%,55%,0.18), hsla(215,100%,40%,0.06))',
+                'linear-gradient(180deg, hsla(215,100%,60%,0.28), hsla(215,100%,45%,0.10))',
               boxShadow:
-                '0 0 0 1px hsla(215,100%,55%,0.28) inset, 0 1px 0 hsla(0,0%,100%,0.06) inset, 0 4px 14px -4px hsla(215,100%,55%,0.4)',
+                'inset 0 1px 0 hsla(0,0%,100%,0.10), 0 6px 20px -6px hsla(215,100%,60%,0.55), 0 0 24px -8px hsla(215,100%,60%,0.45)',
             }
           : undefined
       }
@@ -141,8 +143,8 @@ function TopTabButton({ active, onClick, icon, label, badge, glow }: { active: b
       )}
       {glow && active && (
         <span
-          className="absolute -inset-px rounded-md pointer-events-none"
-          style={{ boxShadow: '0 0 18px hsla(215,100%,55%,0.35)' }}
+          className="absolute -inset-px rounded-full pointer-events-none"
+          style={{ boxShadow: '0 0 24px hsla(215,100%,60%,0.45)' }}
         />
       )}
     </button>

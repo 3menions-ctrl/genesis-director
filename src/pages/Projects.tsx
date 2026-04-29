@@ -1004,50 +1004,47 @@ function ProjectsContentInner() {
         />
       ) : (
         <>
-      {/* Premium Animated Background - only mounts AFTER loading completes */}
-      <ProjectsBackground />
-
       {/* Navigation */}
       <AppHeader onCreateClick={handleCreateProject} />
 
 
-      {/* Main Content */}
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 pt-16 sm:pt-20">
+      {/* Main Content — editorial PageShell */}
+      <PageShell width="wide">
         
         {/* Loading skeleton */}
         {(isLoadingProjects && !hasLoadedOnce) ? (
-          <div className="pt-8">
+          <div>
             {/* Skeleton hero */}
-            <div className="mb-8">
-              <div className="h-3 w-16 rounded bg-white/[0.04] mb-2" />
-              <div className="h-10 w-48 rounded bg-white/[0.06] mb-6" />
-              <div className="h-px bg-white/[0.04]" />
+            <div className="mb-12 animate-pulse">
+              <div className="h-3 w-20 rounded bg-white/[0.04] mb-3" />
+              <div className="h-10 w-64 rounded bg-white/[0.06] mb-6" />
+              <div className="hairline" />
             </div>
             {/* Skeleton grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="aspect-video rounded-xl bg-white/[0.03] border border-white/[0.04] animate-pulse" />
+                <div key={i} className="aspect-[16/10] rounded-2xl bg-white/[0.03] border border-white/[0.04] animate-pulse" />
               ))}
             </div>
           </div>
         ) : stats.total === 0 && stitchingProjects.length === 0 ? (
           /* Minimal Empty State */
-          <div className="flex flex-col items-center justify-center py-24 sm:py-32 px-4 animate-fade-in">
-            <div className="w-16 h-16 rounded-full border border-white/[0.08] flex items-center justify-center mb-8">
-              <Film className="w-7 h-7 text-white/15" strokeWidth={1} />
+          <div className="flex flex-col items-center justify-center py-28 sm:py-36 px-4 animate-fade-in">
+            <div className="w-20 h-20 rounded-full border border-white/[0.08] bg-white/[0.02] flex items-center justify-center mb-8">
+              <Film className="w-8 h-8 text-white/20" strokeWidth={1.25} />
             </div>
             
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 text-center tracking-tight">
+            <h2 className="font-sora text-3xl sm:text-4xl font-semibold text-white mb-3 text-center tracking-tight">
               No projects yet
             </h2>
             
-            <p className="text-white/30 text-sm sm:text-base mb-8 text-center max-w-sm">
-              Create your first AI-generated film and it will appear here.
+            <p className="text-body-muted mb-10 text-center max-w-sm">
+              Create your first AI-generated film. It will appear right here.
             </p>
             
             <button 
               onClick={handleCreateProject}
-              className="group h-11 px-8 rounded-lg bg-white text-black hover:bg-white/90 font-medium text-sm transition-all"
+              className="group h-11 px-7 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm transition-all shadow-[0_8px_30px_-12px_hsl(var(--primary)/0.6)]"
             >
               <span className="flex items-center gap-2">
                 <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 duration-300" />
@@ -1057,17 +1054,30 @@ function ProjectsContentInner() {
           </div>
         ) : (
           <>
-            {/* Ambient atmospheric glow */}
-            <div className="pointer-events-none">
-              <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[400px] bg-primary/[0.03] rounded-full blur-[200px]" />
-              <div className="absolute -top-20 left-1/4 w-[500px] h-[250px] bg-accent/[0.02] rounded-full blur-[150px]" />
-            </div>
-
-            {/* ===== Gallery Mode Switcher ===== */}
-            <ProjectsCategoryTabs
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              counts={tabCounts}
+            {/* ===== Editorial header + gallery mode tabs ===== */}
+            <PageHeader
+              eyebrow="Library"
+              title="Your projects"
+              subtitle="A quiet, curated home for every film, scene and edit you've made."
+              actions={
+                <button
+                  onClick={handleCreateProject}
+                  className="h-10 px-5 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm transition-colors inline-flex items-center gap-2 shadow-[0_8px_30px_-12px_hsl(var(--primary)/0.6)]"
+                >
+                  <Plus className="w-4 h-4" />
+                  New project
+                </button>
+              }
+              toolbar={
+                <SegmentedControl<ProjectTab>
+                  value={activeTab === 'photos' ? 'photos' : 'all'}
+                  onChange={(v) => setActiveTab(v)}
+                  items={[
+                    { key: 'all',    label: 'Videos', icon: Film,  count: tabCounts.films + tabCounts.training },
+                    { key: 'photos', label: 'Images', icon: Image, count: tabCounts.photos },
+                  ]}
+                />
+              }
             />
 
             {/* ===== PURE GALLERY ===== */}

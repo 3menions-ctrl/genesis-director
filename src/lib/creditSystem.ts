@@ -30,6 +30,11 @@ export const CREDIT_SYSTEM = {
   AVATAR_BASE_CREDITS_PER_CLIP: 60,      // 10s clip = $6.00
   AVATAR_EXTENDED_CREDITS_PER_CLIP: 90,   // 15s clip = $9.00
 
+  // ── Seedance 2.0 (ByteDance) — Premium tier (+25%) ──────────────────
+  // 10s clip = 65 credits ($6.50), 15s clip = 95 credits ($9.50)
+  SEEDANCE_BASE_CREDITS_PER_CLIP: 65,
+  SEEDANCE_EXTENDED_CREDITS_PER_CLIP: 95,
+
   // ── Legacy Veo aliases (backward compat — both route to Kling V3) ────
   VEO_BASE_CREDITS_PER_CLIP: 50,
   VEO_EXTENDED_CREDITS_PER_CLIP: 75,
@@ -91,8 +96,13 @@ export function isExtendedPricing(_clipIndex: number, clipDuration: number): boo
  * Calculate credits for a single clip based on duration and engine.
  * 'kling' = Avatar mode (native audio), 'veo' = Standard T2V/I2V
  */
-export function calculateCreditsPerClip(clipDuration: number, clipIndex: number = 0, videoEngine: 'kling' | 'veo' = 'kling'): number {
+export type VideoEngine = 'kling' | 'veo' | 'seedance';
+
+export function calculateCreditsPerClip(clipDuration: number, clipIndex: number = 0, videoEngine: VideoEngine = 'kling'): number {
   const extended = isExtendedPricing(clipIndex, clipDuration);
+  if (videoEngine === 'seedance') {
+    return extended ? CREDIT_SYSTEM.SEEDANCE_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.SEEDANCE_BASE_CREDITS_PER_CLIP;
+  }
   if (videoEngine === 'kling') {
     return extended ? CREDIT_SYSTEM.AVATAR_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.AVATAR_BASE_CREDITS_PER_CLIP;
   }
@@ -102,7 +112,7 @@ export function calculateCreditsPerClip(clipDuration: number, clipIndex: number 
 /**
  * Calculate credits required for a given number of clips at specified duration and engine
  */
-export function calculateCreditsRequired(clipCount: number, clipDuration: number = 10, videoEngine: 'kling' | 'veo' = 'kling'): number {
+export function calculateCreditsRequired(clipCount: number, clipDuration: number = 10, videoEngine: VideoEngine = 'kling'): number {
   let total = 0;
   for (let i = 0; i < clipCount; i++) {
     total += calculateCreditsPerClip(clipDuration, i, videoEngine);
@@ -149,7 +159,7 @@ export function formatDuration(totalSeconds: number): string {
 /**
  * Get breakdown of credits for display
  */
-export function getCreditBreakdown(clipCount: number, clipDuration: number, videoEngine: 'kling' | 'veo' = 'kling'): {
+export function getCreditBreakdown(clipCount: number, clipDuration: number, videoEngine: VideoEngine = 'kling'): {
   baseClipCount: number;
   extendedClipCount: number;
   baseCredits: number;
@@ -161,8 +171,13 @@ export function getCreditBreakdown(clipCount: number, clipDuration: number, vide
   isVeo: boolean;
 } {
   const isAvatar = videoEngine === 'kling';
-  const baseRate = isAvatar ? CREDIT_SYSTEM.AVATAR_BASE_CREDITS_PER_CLIP : CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP;
-  const extRate = isAvatar ? CREDIT_SYSTEM.AVATAR_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.EXTENDED_CREDITS_PER_CLIP;
+  const isSeedance = videoEngine === 'seedance';
+  const baseRate = isSeedance
+    ? CREDIT_SYSTEM.SEEDANCE_BASE_CREDITS_PER_CLIP
+    : isAvatar ? CREDIT_SYSTEM.AVATAR_BASE_CREDITS_PER_CLIP : CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP;
+  const extRate = isSeedance
+    ? CREDIT_SYSTEM.SEEDANCE_EXTENDED_CREDITS_PER_CLIP
+    : isAvatar ? CREDIT_SYSTEM.AVATAR_EXTENDED_CREDITS_PER_CLIP : CREDIT_SYSTEM.EXTENDED_CREDITS_PER_CLIP;
 
   let baseClipCount = 0;
   let extendedClipCount = 0;

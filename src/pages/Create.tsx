@@ -310,6 +310,7 @@ function CreateContentInner() {
 
   return (
     <div className="relative min-h-screen flex flex-col">
+      <StudioAurora />
       {/* Gatekeeper loading screen */}
       {gatekeeper.isLoading && (
         <CinemaLoader
@@ -324,37 +325,84 @@ function CreateContentInner() {
       
       {/* Editorial Studio shell */}
       <PageShell width="wide" pad={false}>
-        <PageHeader
-          eyebrow="Studio"
-          title="Create"
-          subtitle="Compose a film, plan a scene or refine a still — every workflow lives here."
-          toolbar={
-            <SegmentedControl<'create' | 'scenes' | 'photo'>
-              value={activeTab}
-              onChange={setActiveTab}
-              items={[
-                { key: 'create', label: 'Create Video', icon: Film },
-                { key: 'scenes', label: 'Scenes',       icon: Sparkles },
-                { key: 'photo',  label: 'Photo Editor', icon: Image },
-              ]}
-            />
-          }
-        />
+        {/* Cinematic hero header */}
+        <motion.header
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="mb-10 sm:mb-14"
+        >
+          <div className="flex items-center gap-2 mb-5">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-60" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+            </span>
+            <span className="text-[11px] uppercase tracking-[0.28em] text-white/50 font-medium">
+              Apex Studio · Live
+            </span>
+          </div>
+
+          <div className="flex items-end justify-between gap-8 flex-wrap">
+            <div className="min-w-0 max-w-3xl">
+              <h1 className="font-display text-[clamp(2.75rem,7vw,5.5rem)] leading-[0.95] tracking-[-0.035em] font-medium">
+                <span className="text-white/95">Create</span>{' '}
+                <span
+                  className="bg-clip-text text-transparent"
+                  style={{
+                    backgroundImage:
+                      'linear-gradient(120deg, hsl(212 100% 70%) 0%, hsl(190 100% 70%) 45%, hsl(212 100% 85%) 100%)',
+                  }}
+                >
+                  cinema.
+                </span>
+              </h1>
+              <p className="text-base sm:text-lg text-white/55 mt-5 leading-relaxed font-light max-w-xl">
+                Compose a film, sculpt a scene, or refine a single still — every premium workflow lives in one studio.
+              </p>
+            </div>
+
+            <div className="hidden md:flex items-center gap-3 text-[11px] uppercase tracking-[0.22em] text-white/40">
+              <Wand2 className="w-3.5 h-3.5 text-primary/80" />
+              <span>Director Mode</span>
+            </div>
+          </div>
+
+          {/* hairline */}
+          <div className="mt-10 h-px bg-gradient-to-r from-transparent via-white/[0.09] to-transparent" />
+
+          {/* Premium tabs */}
+          <div className="mt-6 flex items-center justify-between gap-4 flex-wrap">
+            <StudioTabs value={activeTab} onChange={setActiveTab} />
+            <div className="text-[11px] uppercase tracking-[0.22em] text-white/35">
+              {STUDIO_TABS.find((t) => t.key === activeTab)?.sub}
+            </div>
+          </div>
+        </motion.header>
 
         <div
           className="relative z-10"
           style={{ opacity: gatekeeper.isLoading ? 0 : 1, transition: 'opacity 0.3s ease-out' }}
         >
-          {activeTab === 'create' ? (
-            <CreationHub
-              onStartCreation={handleStartCreation}
-              onReady={handleHubReady}
-            />
-          ) : activeTab === 'photo' ? (
-            <PhotoEditorHub />
-          ) : (
-            <ScenesHub />
-          )}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 16, filter: 'blur(6px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
+              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {activeTab === 'create' ? (
+                <CreationHub
+                  onStartCreation={handleStartCreation}
+                  onReady={handleHubReady}
+                />
+              ) : activeTab === 'photo' ? (
+                <PhotoEditorHub />
+              ) : (
+                <ScenesHub />
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </PageShell>
       

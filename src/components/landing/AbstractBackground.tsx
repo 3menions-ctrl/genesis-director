@@ -17,7 +17,7 @@ const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundPro
         <img
           src={landingAbstractBg}
           alt="Dubai skyline above clouds"
-          className="absolute inset-0 h-full w-full object-contain object-center select-none"
+          className="absolute inset-0 h-full w-full object-cover object-center select-none"
           draggable={false}
         />
 

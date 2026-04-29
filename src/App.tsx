@@ -17,6 +17,7 @@ import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
 import { AdminOnlyDiagnostics } from "@/components/diagnostics/AdminOnlyDiagnostics";
 import { NavigationGuardProvider, NavigationBridge } from "@/lib/navigation";
+import { AppShell } from "@/components/shell/AppShell";
 
 import { crashForensics } from "@/lib/crashForensics";
 import { getSafeModeStatus } from "@/lib/safeMode";
@@ -188,38 +189,38 @@ const App = () => {
                 } />
                 <Route path="/contact" element={
                   <RouteContainer>
-                    <Contact />
+                    <AppShell><Contact /></AppShell>
                   </RouteContainer>
                 } />
                 <Route path="/discover" element={<Navigate to="/creators" replace />} />
                 <Route path="/help" element={
                   <RouteContainer>
-                    <HelpCenter />
+                    <AppShell><HelpCenter /></AppShell>
                   </RouteContainer>
                 } />
                 <Route path="/blog" element={
                   <RouteContainer>
-                    <Blog />
+                    <AppShell><Blog /></AppShell>
                   </RouteContainer>
                 } />
                 <Route path="/press" element={
                   <RouteContainer>
-                    <Press />
+                    <AppShell><Press /></AppShell>
                   </RouteContainer>
                 } />
                 <Route path="/gallery" element={
                   <RouteContainer fallbackMessage="Loading gallery...">
-                    <Gallery />
+                    <AppShell><Gallery /></AppShell>
                   </RouteContainer>
                 } />
                 <Route path="/pricing" element={
                   <RouteContainer>
-                    <Pricing />
+                    <AppShell><Pricing /></AppShell>
                   </RouteContainer>
                 } />
                 <Route path="/how-it-works" element={
                   <RouteContainer>
-                    <HowItWorks />
+                    <AppShell><HowItWorks /></AppShell>
                   </RouteContainer>
                 } />
                 
@@ -236,28 +237,28 @@ const App = () => {
                 <Route path="/projects" element={
                   <RouteContainer fallbackMessage="Loading projects...">
                     <ProtectedRoute>
-                      <Projects />
+                      <AppShell><Projects /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
                 <Route path="/profile" element={
                   <RouteContainer fallbackMessage="Loading profile...">
                     <ProtectedRoute>
-                      <Profile />
+                      <AppShell><Profile /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
                 <Route path="/settings" element={
                   <RouteContainer fallbackMessage="Loading settings...">
                     <ProtectedRoute>
-                      <Settings />
+                      <AppShell><Settings /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
                 <Route path="/settings/deactivate" element={
                   <RouteContainer fallbackMessage="Loading...">
                     <ProtectedRoute>
-                      <DeactivateAccount />
+                      <AppShell><DeactivateAccount /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
@@ -266,7 +267,7 @@ const App = () => {
                 <Route path="/create" element={
                   <RouteContainer fallbackMessage="Preparing studio...">
                     <ProtectedRoute>
-                      <Create />
+                      <AppShell><Create /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
@@ -275,7 +276,7 @@ const App = () => {
                 <Route path="/avatars" element={
                   <RouteContainer fallbackMessage="Loading avatars...">
                     <ProtectedRoute>
-                      <Avatars />
+                      <AppShell><Avatars /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
@@ -287,7 +288,7 @@ const App = () => {
                 <Route path="/script-review" element={
                   <RouteContainer fallbackMessage="Loading script review...">
                     <ProtectedRoute>
-                      <ScriptReview />
+                      <AppShell><ScriptReview /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
@@ -296,14 +297,14 @@ const App = () => {
                 <Route path="/production" element={
                   <RouteContainer fallbackMessage="Loading production...">
                     <ProtectedRoute>
-                      <Production />
+                      <AppShell><Production /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
                 <Route path="/production/:projectId" element={
                   <RouteContainer fallbackMessage="Loading production...">
                     <ProtectedRoute>
-                      <Production />
+                      <AppShell><Production /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
@@ -321,7 +322,7 @@ const App = () => {
                 <Route path="/templates" element={
                   <RouteContainer fallbackMessage="Loading templates...">
                     <ProtectedRoute>
-                      <Templates />
+                      <AppShell><Templates /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
@@ -330,7 +331,7 @@ const App = () => {
                 <Route path="/training-video" element={
                   <RouteContainer fallbackMessage="Loading training mode...">
                     <ProtectedRoute>
-                      <TrainingVideo />
+                      <AppShell><TrainingVideo /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
@@ -339,7 +340,7 @@ const App = () => {
                 <Route path="/environments" element={
                   <RouteContainer fallbackMessage="Loading environments...">
                     <ProtectedRoute>
-                      <Environments />
+                      <AppShell><Environments /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
@@ -347,12 +348,12 @@ const App = () => {
                 {/* Social Hub - Creators & Profiles */}
                 <Route path="/creators" element={
                   <RouteContainer fallbackMessage="Loading creators...">
-                    <Creators />
+                    <AppShell><Creators /></AppShell>
                   </RouteContainer>
                 } />
                 <Route path="/user/:userId" element={
                   <RouteContainer fallbackMessage="Loading profile...">
-                    <UserProfile />
+                    <AppShell><UserProfile /></AppShell>
                   </RouteContainer>
                 } />
                 <Route path="/social" element={<Navigate to="/creators" replace />} />
@@ -362,7 +363,7 @@ const App = () => {
                 {/* Video Detail Page */}
                 <Route path="/video/:videoId" element={
                   <RouteContainer fallbackMessage="Loading video...">
-                    <VideoDetail />
+                    <AppShell><VideoDetail /></AppShell>
                   </RouteContainer>
                 } />
                 

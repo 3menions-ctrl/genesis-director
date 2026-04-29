@@ -27,7 +27,9 @@ export function PageShell({ children, width = 'wide', className, pad = true }: P
     <main
       className={cn(
         'relative z-10 mx-auto w-full px-6 sm:px-8 lg:px-10',
-        'pt-24 sm:pt-28',
+        // The global AppShell already provides a sticky 56px topbar, so we only
+        // add a small breathing-room top padding here.
+        'pt-6 sm:pt-8',
         pad && 'pb-24',
         widthMap[width],
         className

@@ -350,7 +350,15 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
 
         {/* ─── Mode rail with sliding spotlight ─────────────────────────── */}
         <div className="mb-7 flex items-center justify-between gap-4 flex-wrap">
-          <div className="relative inline-flex items-center gap-1 p-1 rounded-2xl bg-white/[0.025] border border-white/[0.06] backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_8px_30px_-12px_rgba(0,0,0,0.6)]">
+          <div
+            className="relative inline-flex items-center gap-1 p-1 rounded-full"
+            style={{
+              background: 'hsla(0,0%,100%,0.025)',
+              backdropFilter: 'blur(48px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(48px) saturate(180%)',
+              boxShadow: '0 8px 30px -12px rgba(0,0,0,0.6), inset 0 1px 0 hsla(0,0%,100%,0.04)',
+            }}
+          >
             {CREATION_MODES.map((m, idx) => {
               const Icon = m.icon;
               const active = selectedModeIndex === idx;
@@ -362,7 +370,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                     else { setSelectedMode(m.id); setSelectedModeIndex(idx); }
                   }}
                   className={cn(
-                    'relative z-10 flex items-center gap-2 px-3.5 sm:px-4 h-10 rounded-xl text-sm font-medium transition-colors duration-300',
+                    'relative z-10 flex items-center gap-2 px-4 sm:px-4 h-10 rounded-full text-[13px] font-light tracking-[-0.005em] transition-colors duration-500',
                     active ? 'text-white' : 'text-white/45 hover:text-white/80'
                   )}
                 >
@@ -370,26 +378,27 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                     <motion.span
                       layoutId="creation-mode-pill"
                       transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                      className="absolute inset-0 -z-10 rounded-xl"
+                      className="absolute inset-0 -z-10 rounded-full"
                       style={{
-                        background: `linear-gradient(180deg, hsl(${ENGINE_INFO[m.engine].hue} / 0.22) 0%, hsl(${ENGINE_INFO[m.engine].hue} / 0.10) 100%)`,
-                        border: `1px solid hsl(${ENGINE_INFO[m.engine].hue} / 0.35)`,
-                        boxShadow: `0 8px 30px -8px hsl(${ENGINE_INFO[m.engine].hue} / 0.45), inset 0 1px 0 hsl(${ENGINE_INFO[m.engine].hue} / 0.25)`,
+                        background: 'linear-gradient(180deg, hsla(215,100%,60%,0.22) 0%, hsla(215,100%,55%,0.10) 100%)',
+                        boxShadow: '0 0 24px hsla(215,100%,60%,0.35), 0 0 48px hsla(215,100%,60%,0.18), inset 0 1px 0 hsla(0,0%,100%,0.10)',
                       }}
                     />
                   )}
                   <Icon
-                    className="w-4 h-4 transition-colors"
-                    style={active ? { color: `hsl(${ENGINE_INFO[m.engine].hue})` } : undefined}
+                    className={cn(
+                      'w-4 h-4 transition-all duration-500',
+                      active ? 'text-[hsl(215,100%,75%)] drop-shadow-[0_0_8px_hsla(215,100%,60%,0.6)]' : 'opacity-60'
+                    )}
+                    strokeWidth={1.5}
                   />
-                  <span className="tracking-tight">{m.name}</span>
+                  <span>{m.name}</span>
                   {m.badge && (
                     <span
-                      className="ml-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-[0.12em] leading-none"
+                      className="ml-0.5 px-2 py-0.5 rounded-full text-[9px] font-light tracking-[0.14em] leading-none"
                       style={{
-                        background: `hsl(${ENGINE_INFO[m.engine].hue} / 0.18)`,
-                        color: `hsl(${ENGINE_INFO[m.engine].hue})`,
-                        border: `1px solid hsl(${ENGINE_INFO[m.engine].hue} / 0.35)`,
+                        background: 'hsla(215,100%,60%,0.15)',
+                        color: 'hsl(215,100%,78%)',
                       }}
                     >
                       {m.badge}
@@ -401,14 +410,28 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           </div>
 
           {/* Credit orb */}
-          <div className="relative inline-flex items-center gap-2.5 pl-2 pr-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl">
-            <span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-amber-300/30 to-amber-600/20 border border-amber-300/30">
-              <Coins className="w-3.5 h-3.5 text-amber-200" />
-              <span className="absolute inset-0 rounded-full ring-1 ring-amber-200/20 animate-pulse" />
+          <div
+            className="relative inline-flex items-center gap-2.5 pl-2 pr-4 py-1.5 rounded-full"
+            style={{
+              background: 'hsla(0,0%,100%,0.03)',
+              backdropFilter: 'blur(40px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+              boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.04)',
+            }}
+          >
+            <span
+              className="relative flex h-7 w-7 items-center justify-center rounded-full"
+              style={{
+                background: 'linear-gradient(180deg, hsla(215,100%,68%,0.30) 0%, hsla(215,100%,55%,0.12) 100%)',
+                boxShadow: '0 0 16px hsla(215,100%,60%,0.45), inset 0 1px 0 hsla(0,0%,100%,0.10)',
+              }}
+            >
+              <Coins className="w-3.5 h-3.5 text-[hsl(215,100%,82%)]" strokeWidth={1.5} />
+              <span className="absolute inset-0 rounded-full animate-pulse" style={{ boxShadow: '0 0 0 1px hsla(215,100%,60%,0.25)' }} />
             </span>
             <div className="leading-tight">
-              <div className="text-[9px] uppercase tracking-[0.22em] text-white/35">Credits</div>
-              <div className="text-sm font-semibold text-white tabular-nums">{userCredits.toLocaleString()}</div>
+              <div className="text-[9px] uppercase tracking-[0.24em] text-white/35 font-light">Credits</div>
+              <div className="text-sm font-light text-white tabular-nums tracking-[-0.01em]">{userCredits.toLocaleString()}</div>
             </div>
           </div>
         </div>
@@ -422,27 +445,31 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           className="mb-6 flex items-center gap-3 flex-wrap"
         >
           <div
-            className="inline-flex items-center gap-2.5 pl-2 pr-3.5 py-1.5 rounded-full backdrop-blur-xl"
+            className="inline-flex items-center gap-2.5 pl-2 pr-3.5 py-1.5 rounded-full"
             style={{
-              background: `linear-gradient(180deg, hsl(${engineInfo.hue} / 0.10), hsl(${engineInfo.hue} / 0.04))`,
-              border: `1px solid hsl(${engineInfo.hue} / 0.28)`,
-              boxShadow: `0 6px 26px -10px hsl(${engineInfo.hue} / 0.5), inset 0 1px 0 hsl(${engineInfo.hue} / 0.18)`,
+              background: 'linear-gradient(180deg, hsla(215,100%,60%,0.10), hsla(215,100%,55%,0.03))',
+              backdropFilter: 'blur(40px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+              boxShadow: '0 0 24px -6px hsla(215,100%,60%,0.35), inset 0 1px 0 hsla(0,0%,100%,0.08)',
             }}
           >
             <span
               className="relative flex h-6 w-6 items-center justify-center rounded-full"
-              style={{ background: `hsl(${engineInfo.hue} / 0.2)`, border: `1px solid hsl(${engineInfo.hue} / 0.4)` }}
+              style={{
+                background: 'hsla(215,100%,60%,0.20)',
+                boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.10)',
+              }}
             >
-              <Cpu className="w-3 h-3" style={{ color: `hsl(${engineInfo.hue})` }} />
+              <Cpu className="w-3 h-3 text-[hsl(215,100%,80%)]" strokeWidth={1.5} />
               <span className="absolute inset-0 rounded-full animate-ping opacity-40"
-                    style={{ boxShadow: `0 0 0 2px hsl(${engineInfo.hue} / 0.35)` }} />
+                    style={{ boxShadow: '0 0 0 2px hsla(215,100%,60%,0.35)' }} />
             </span>
             <div className="leading-tight">
-              <div className="text-[9px] uppercase tracking-[0.22em] text-white/50">Engine</div>
-              <div className="text-[13px] font-semibold text-white tracking-tight">{engineInfo.label}</div>
+              <div className="text-[9px] uppercase tracking-[0.24em] text-white/50 font-light">Engine</div>
+              <div className="text-[13px] font-light text-white tracking-[-0.01em]">{engineInfo.label}</div>
             </div>
           </div>
-          <div className="text-[11px] text-white/45 font-light tracking-wide">
+          <div className="text-[11px] text-white/45 font-light tracking-[0.005em]">
             {engineInfo.tagline} <span className="text-white/25 mx-1.5">·</span>
             <span className="font-mono text-white/35">{engineInfo.model}</span>
           </div>
@@ -454,17 +481,23 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="group/stage relative rounded-[32px] overflow-hidden border border-white/[0.08] bg-[linear-gradient(180deg,hsla(0,0%,100%,0.045)_0%,hsla(0,0%,100%,0.012)_50%,hsla(0,0%,100%,0.02)_100%)] backdrop-blur-2xl shadow-[0_50px_120px_-30px_rgba(0,0,0,0.75),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(255,255,255,0.02)]"
+          className="group/stage relative rounded-[32px] overflow-hidden"
+          style={{
+            background: 'linear-gradient(180deg, hsla(0,0%,100%,0.04) 0%, hsla(0,0%,100%,0.01) 50%, hsla(0,0%,100%,0.02) 100%)',
+            backdropFilter: 'blur(56px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(56px) saturate(180%)',
+            boxShadow: '0 50px 120px -30px rgba(0,0,0,0.75), inset 0 1px 0 hsla(0,0%,100%,0.05), inset 0 -1px 0 hsla(0,0%,100%,0.02)',
+          }}
         >
           {/* Top-edge aurora rim */}
-          <div className="pointer-events-none absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-24 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent blur-[1px]" />
+          <div className="pointer-events-none absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,60%,0.6)] to-transparent" />
+          <div className="pointer-events-none absolute inset-x-24 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent blur-[1px]" />
 
           {/* Corner ambient lights */}
           <div className="pointer-events-none absolute -top-40 -left-32 h-80 w-80 rounded-full opacity-40 blur-3xl"
-               style={{ background: 'radial-gradient(circle, hsl(212 100% 55% / 0.45), transparent 65%)' }} />
+               style={{ background: 'radial-gradient(circle, hsla(215,100%,55%,0.45), transparent 65%)' }} />
           <div className="pointer-events-none absolute -bottom-40 -right-32 h-80 w-80 rounded-full opacity-25 blur-3xl"
-               style={{ background: 'radial-gradient(circle, hsl(190 100% 60% / 0.35), transparent 65%)' }} />
+               style={{ background: 'radial-gradient(circle, hsla(215,100%,70%,0.30), transparent 65%)' }} />
 
           {/* Film grain */}
           <div

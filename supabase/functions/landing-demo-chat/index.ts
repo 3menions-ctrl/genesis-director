@@ -40,6 +40,35 @@ Give a cinematic mini-breakdown like:
 
 const MAX_DEMO_MESSAGES = 6;
 
+// 🔒 Per-IP token-bucket rate limiter (in-memory, per-instance)
+// Prevents anonymous abuse of paid AI gateway calls on a public endpoint.
+const RATE_LIMIT_PER_HOUR = 30;        // max requests per IP per hour
+const RATE_LIMIT_BURST    = 6;         // max requests in any 60s window
+const ipBuckets = new Map<string, { hourStart: number; hourCount: number; minuteStart: number; minuteCount: number }>();
+
+function checkRateLimit(ip: string): { ok: boolean; reason?: string } {
+  const now = Date.now();
+  const bucket = ipBuckets.get(ip) ?? { hourStart: now, hourCount: 0, minuteStart: now, minuteCount: 0 };
+
+  if (now - bucket.hourStart > 3600_000) { bucket.hourStart = now; bucket.hourCount = 0; }
+  if (now - bucket.minuteStart > 60_000) { bucket.minuteStart = now; bucket.minuteCount = 0; }
+
+  bucket.hourCount += 1;
+  bucket.minuteCount += 1;
+  ipBuckets.set(ip, bucket);
+
+  // Light memory cap: drop old entries
+  if (ipBuckets.size > 5000) {
+    for (const [k, v] of ipBuckets) {
+      if (now - v.hourStart > 3600_000) ipBuckets.delete(k);
+    }
+  }
+
+  if (bucket.minuteCount > RATE_LIMIT_BURST) return { ok: false, reason: "burst" };
+  if (bucket.hourCount > RATE_LIMIT_PER_HOUR) return { ok: false, reason: "hour" };
+  return { ok: true };
+}
+
 // Fallback responses when AI gateway is unavailable
 const FALLBACK_RESPONSES = [
   "🎬 I love that creative energy! Imagine this:\n\n**Shot 1:** A sweeping aerial that glides over a misty landscape at golden hour\n**Shot 2:** We push in close — catching the emotion in a character's eyes\n**Shot 3:** A dramatic reveal as the camera pulls back to show the full scene\n\nGenesis can turn ideas like yours into real cinematic videos. Sign up free and let's make it happen! ✨",
@@ -59,6 +88,22 @@ serve(async (req) => {
   }
 
   try {
+    // 🔒 Public endpoint — guard with per-IP rate limiting
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("cf-connecting-ip") ||
+      "unknown";
+    const rl = checkRateLimit(ip);
+    if (!rl.ok) {
+      return new Response(
+        JSON.stringify({
+          error: "rate_limited",
+          message: "We're seeing a lot of activity from your network — sign up to keep chatting with Hoppy 🐰✨",
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { messages: clientMessages, sessionId } = await req.json();
 
     // Support both legacy single-message and new multi-turn format

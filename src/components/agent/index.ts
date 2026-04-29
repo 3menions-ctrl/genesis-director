@@ -1,3 +1,2 @@
-export { AgentFace } from "./AgentFace";
-export { AgentPanel } from "./AgentPanel";
-export { AgentTrigger } from "./AgentTrigger";
+// Agent UI removed (Hoppy retired). CommandPalette is the only remaining export.
+export { CommandPalette } from "./CommandPalette";

@@ -279,7 +279,7 @@ export const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
       <div className="fixed top-20 right-6 z-[9999] flex items-center gap-2 animate-fade-in" style={{ pointerEvents: 'auto', animationDelay: '0.6s' }}>
         {/* Unmute/Mute button */}
         <button
-          onClick={(e) => { e.stopPropagation(); setIsMuted(m => !m); }}
+          onClick={(e) => { e.stopPropagation(); toggleMute(); }}
           className="group flex items-center gap-2 px-3 py-2.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 hover:bg-white/15 hover:border-white/30 transition-all duration-300 cursor-pointer"
           aria-label={isMuted ? 'Unmute' : 'Mute'}
         >

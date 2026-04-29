@@ -1018,15 +1018,26 @@ serve(async (req) => {
     }
 
     let predictionId: string;
-    const klingResult = await createKlingV3Prediction(
-      enhancedPrompt,
-      fullNegativePrompt,
-      validatedStartImage,
-      aspectRatio as '16:9' | '9:16' | '1:1',
-      durationSeconds,
-      enableNativeAudio,
-    );
-    predictionId = klingResult.predictionId;
+    if (videoEngine === 'seedance') {
+      console.log(`[SingleClip] ══ ROUTING TO SEEDANCE 2.0 (bytedance/seedance-2.0) ══`);
+      const seedanceResult = await createSeedancePrediction(
+        enhancedPrompt,
+        validatedStartImage,
+        aspectRatio as '16:9' | '9:16' | '1:1',
+        durationSeconds,
+      );
+      predictionId = seedanceResult.predictionId;
+    } else {
+      const klingResult = await createKlingV3Prediction(
+        enhancedPrompt,
+        fullNegativePrompt,
+        validatedStartImage,
+        aspectRatio as '16:9' | '9:16' | '1:1',
+        durationSeconds,
+        enableNativeAudio,
+      );
+      predictionId = klingResult.predictionId;
+    }
     
     // ═══════════════════════════════════════════════════════════════════
     // IMMEDIATE PREDICTION REGISTRATION in pending_video_tasks

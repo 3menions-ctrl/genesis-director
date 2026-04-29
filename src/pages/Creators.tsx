@@ -417,7 +417,7 @@ export default function Creators() {
                         <Sparkles className="w-3 h-3" />
                         Featured
                       </div>
-                      <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 line-clamp-2">{featuredVideos[0].title}</h3>
+                      <h3 className="font-display text-xl sm:text-2xl font-medium tracking-tight text-white mb-2 line-clamp-2">{featuredVideos[0].title}</h3>
                       <CreatorRow
                         creatorName={featuredVideos[0].creator?.display_name}
                         creatorAvatar={featuredVideos[0].creator?.avatar_url}
@@ -450,7 +450,7 @@ export default function Creators() {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-5">
-                        <h3 className="text-sm font-semibold text-white truncate mb-1">{video.title}</h3>
+                        <h3 className="font-display text-sm font-medium tracking-tight text-white truncate mb-1">{video.title}</h3>
                         <CreatorRow
                           creatorName={video.creator?.display_name}
                           creatorAvatar={video.creator?.avatar_url}
@@ -476,8 +476,12 @@ export default function Creators() {
             {/* Section header */}
             {!searchQuery && !isLoading && gridVideos.length > 0 && (
               <div className="flex items-center justify-between mb-8">
-                <h2 className="text-lg font-semibold text-white/80">All Videos</h2>
-                <span className="text-xs text-white/25">{gridVideos.length} videos</span>
+                <div className="flex items-center gap-3">
+                  <span className="w-1 h-5 rounded-full bg-[hsl(var(--primary))] shadow-[0_0_12px_hsla(215,100%,60%,0.6)]" />
+                  <h2 className="font-display text-base font-medium text-white tracking-tight">All Films</h2>
+                  <span className="text-[10px] uppercase tracking-[0.28em] text-white/30 font-medium">Library</span>
+                </div>
+                <span className="text-[10px] uppercase tracking-[0.28em] text-white/30 tabular-nums">{gridVideos.length} films</span>
               </div>
             )}
 
@@ -516,7 +520,7 @@ export default function Creators() {
                       <PlayOverlay />
                     </div>
                     <div className="p-4 space-y-2">
-                      <h3 className="font-semibold text-sm text-white truncate group-hover:text-[hsl(215,100%,80%)] transition-colors">{video.title}</h3>
+                      <h3 className="font-display font-medium tracking-tight text-sm text-white truncate group-hover:text-[hsl(215,100%,80%)] transition-colors">{video.title}</h3>
                       <CreatorRow
                         creatorName={video.creator?.display_name}
                         creatorAvatar={video.creator?.avatar_url}
@@ -545,34 +549,70 @@ export default function Creators() {
         {/* ═══ CTA SECTION ═══ */}
         <section className="px-4 sm:px-6 lg:px-8 pb-24">
           <div className="max-w-3xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="relative rounded-3xl overflow-hidden p-12 sm:p-16 text-center"
+            <div
+              className="relative rounded-[32px] overflow-hidden p-12 sm:p-16 text-center backdrop-blur-2xl"
+              style={{
+                background:
+                  'linear-gradient(180deg, hsla(0,0%,100%,0.025) 0%, hsla(0,0%,100%,0.005) 100%)',
+                border: '1px solid hsla(0,0%,100%,0.07)',
+                boxShadow:
+                  '0 30px 80px -30px rgba(0,0,0,0.8), inset 0 1px 0 hsla(0,0%,100%,0.05)',
+              }}
             >
-              {/* CTA background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[hsl(215,100%,55%)]/22 via-[hsl(195,100%,55%)]/10 to-transparent border border-[hsl(215,100%,60%)]/22 rounded-3xl" />
-              <div className="absolute inset-0 bg-[#030303]/40" />
+              {/* corner aurora */}
+              <div
+                aria-hidden
+                className="absolute -top-32 -right-24 w-72 h-72 rounded-full blur-3xl pointer-events-none opacity-70"
+                style={{ background: 'radial-gradient(closest-side, hsl(var(--primary) / 0.32), transparent 70%)' }}
+              />
+              <div
+                aria-hidden
+                className="absolute -bottom-24 -left-20 w-64 h-64 rounded-full blur-3xl pointer-events-none opacity-40"
+                style={{ background: 'radial-gradient(closest-side, hsla(195,100%,55%,0.22), transparent 70%)' }}
+              />
+              {/* top hairline */}
+              <div
+                aria-hidden
+                className="absolute inset-x-0 top-0 h-px"
+                style={{ background: 'linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.18), transparent)' }}
+              />
 
               <div className="relative">
-                <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-                  Ready to create your own?
+                <div className="inline-flex items-center gap-2 h-7 pl-2 pr-3 rounded-full border border-white/[0.07] bg-white/[0.025] backdrop-blur-md mb-6">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inset-0 rounded-full bg-[hsl(var(--primary))] animate-ping opacity-60" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[hsl(var(--primary))]" />
+                  </span>
+                  <span className="text-[10px] uppercase tracking-[0.28em] text-white/55 font-medium">
+                    Your turn
+                  </span>
+                </div>
+                <h2 className="font-display text-3xl sm:text-5xl font-medium tracking-[-0.03em] text-white mb-5 leading-[0.98]">
+                  Direct your first{' '}
+                  <span
+                    className="bg-clip-text text-transparent"
+                    style={{
+                      backgroundImage:
+                        'linear-gradient(120deg, hsl(212 100% 72%) 0%, hsl(190 100% 72%) 50%, hsl(212 100% 86%) 100%)',
+                    }}
+                  >
+                    cinema.
+                  </span>
                 </h2>
-                <p className="text-white/40 text-base mb-8 max-w-md mx-auto">
-                  Turn any idea into a cinematic AI video in minutes. No experience needed.
+                <p className="text-white/45 text-[14px] mb-8 max-w-md mx-auto leading-relaxed font-light">
+                  Turn any idea into a cinematic AI film in minutes. No experience needed.
                 </p>
                 <Button
                   onClick={() => navigate(user ? '/projects' : '/auth?mode=signup')}
                   size="lg"
-                  className="h-13 px-8 text-sm font-semibold rounded-full bg-white text-black hover:bg-white/90 shadow-[0_0_40px_hsla(215,100%,60%,0.32)] hover:shadow-[0_0_60px_hsla(215,100%,60%,0.42)] transition-all duration-300"
+                  className="h-12 px-8 text-[13px] font-semibold rounded-full bg-white text-black hover:bg-white/90 shadow-[0_12px_40px_-12px_hsla(0,0%,100%,0.35),0_0_60px_hsla(215,100%,60%,0.32),inset_0_1px_0_hsla(0,0%,100%,0.6)] hover:shadow-[0_16px_50px_-12px_hsla(0,0%,100%,0.4),0_0_80px_hsla(215,100%,60%,0.42),inset_0_1px_0_hsla(0,0%,100%,0.6)] transition-all duration-300"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
                   {user ? 'Start Creating' : 'Get Started Free'}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>
-            </motion.div>
+            </div>
           </div>
         </section>
       </main>

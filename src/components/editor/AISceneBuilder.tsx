@@ -1,5 +1,5 @@
 /**
- * AISceneBuilder — Generate real video clips via Kling V3, extend, and remix
+ * AISceneBuilder — Generate real video clips via Seedance, extend, and remix
  * Connects to editor-ai-scene for prompt enhancement + editor-generate-clip for actual generation
  */
 
@@ -212,7 +212,7 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
         ? `AI: ${aiResult.mood} — ${finalPrompt.slice(0, 20)}…`
         : `AI: ${finalPrompt.slice(0, 30)}…`;
 
-      // Step 2: Submit to Kling V3 via editor-generate-clip
+      // Step 2: Submit to Seedance via editor-generate-clip
       setGenState("generating");
       setProgress(30);
 
@@ -270,7 +270,7 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
             </div>
             <div>
               <span className="text-[11px] font-bold text-[hsl(0,0%,85%)] block leading-none">AI Scene Generator</span>
-              <span className="text-[9px] text-[hsl(0,0%,45%)]">Kling V3 · Real video generation</span>
+              <span className="text-[9px] text-[hsl(0,0%,45%)]">Seedance · Real video generation</span>
             </div>
           </div>
 
@@ -358,7 +358,7 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   {genState === "enhancing" && "Enhancing prompt…"}
-                  {genState === "generating" && "Submitting to Kling V3…"}
+                  {genState === "generating" && "Submitting to Seedance…"}
                   {genState === "polling" && `Generating video… ${Math.round(progress)}%`}
                 </>
               ) : genState === "failed" ? (

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, memo, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import {
   Wand2, Image as ImageIcon, User, Film, Coins, Sparkles, Upload,
   ChevronRight, RectangleHorizontal, Square, RectangleVertical,

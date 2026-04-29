@@ -235,7 +235,7 @@ export default function Landing() {
       {/* Abstract Background */}
       <ErrorBoundaryWrapper fallback={<BackgroundFallback />}>
         <Suspense fallback={<BackgroundFallback />}>
-          <AbstractBackground className="fixed inset-0 z-0" />
+          <AbstractBackground className="fixed inset-0 z-[1]" />
         </Suspense>
       </ErrorBoundaryWrapper>
 

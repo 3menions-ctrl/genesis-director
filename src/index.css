@@ -59,10 +59,10 @@
     --popover: 220 12% 8%;
     --popover-foreground: 240 5% 90%;
 
-    /* Primary — #0A84FF Apple-blue CTAs */
-    --primary: 211 100% 52%;         /* #0A84FF */
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 211 100% 65%;
+    /* Primary — White CTAs (app-wide button color) */
+    --primary: 0 0% 100%;            /* pure white */
+    --primary-foreground: 220 14% 4%;/* near-black text on white */
+    --primary-glow: 0 0% 100%;
 
     /* Secondary — Muted neutral */
     --secondary: 220 14% 12%;
@@ -100,7 +100,7 @@
     /* Borders & inputs */
     --border: 220 10% 14%;
     --input: 220 10% 12%;
-    --ring: 211 100% 52%;
+    --ring: 0 0% 100%;
 
     --radius: 0.75rem;
 

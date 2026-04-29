@@ -414,6 +414,19 @@ export function AppShell({ children }: AppShellProps) {
               <Menu className="w-4 h-4" />
             </button>
 
+            {/* Desktop: show menu button when sidebar is hidden */}
+            {hidden && (
+              <button
+                onClick={() => setHidden(false)}
+                className="hidden lg:flex items-center gap-2 h-9 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.16] hover:bg-white/[0.07] text-white/70 hover:text-white transition-all"
+                aria-label="Show sidebar"
+                title="Show sidebar"
+              >
+                <PanelLeft className="w-4 h-4" />
+                <span className="text-[12px] font-medium">Menu</span>
+              </button>
+            )}
+
             {/* Spacer */}
             <div className="flex-1" />
 

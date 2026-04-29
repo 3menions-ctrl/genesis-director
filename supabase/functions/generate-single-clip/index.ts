@@ -1045,6 +1045,7 @@ serve(async (req) => {
         validatedStartImage,
         aspectRatio as '16:9' | '9:16' | '1:1',
         durationSeconds,
+        endImageUrl, // Optional Seedance-only end-frame target
       );
       predictionId = seedanceResult.predictionId;
     } else {

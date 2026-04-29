@@ -570,7 +570,6 @@ describe('Component Architecture Audit', () => {
       'src/components/social/VideoCommentsSection.tsx',
       'src/components/social/DirectMessagePanel.tsx',
       'src/components/social/MessagesInbox.tsx',
-      'src/components/social/WorldChatButton.tsx',
     ];
 
     for (const f of files) {

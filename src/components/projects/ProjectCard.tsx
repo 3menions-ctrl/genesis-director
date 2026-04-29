@@ -572,6 +572,42 @@ ProjectCard.displayName = 'ProjectCard';
 
 // ============= SUB-COMPONENTS =============
 
+/** Renders project.thumbnail_url as <img>, but on load error/404 falls back
+ *  to the cached LazyVideoThumbnail (frame extraction + persistent cache).
+ *  This prevents broken/expired thumbnails from showing as a "Failed" tile. */
+function ThumbWithFallback({
+  thumbnailUrl,
+  videoSrc,
+  alt,
+  className,
+}: {
+  thumbnailUrl: string | null | undefined;
+  videoSrc: string;
+  alt: string;
+  className?: string;
+}) {
+  const [imgFailed, setImgFailed] = useState(false);
+  if (thumbnailUrl && !imgFailed) {
+    return (
+      <img
+        src={thumbnailUrl}
+        alt={alt}
+        loading="lazy"
+        className={className}
+        onError={() => setImgFailed(true)}
+      />
+    );
+  }
+  return (
+    <LazyVideoThumbnail
+      src={videoSrc}
+      posterUrl={thumbnailUrl ?? null}
+      alt={alt}
+      className={className}
+    />
+  );
+}
+
 const StatusPill = forwardRef<HTMLSpanElement, { color: string; label: string; pulse?: boolean; glass?: boolean }>(
   function StatusPill({ color, label, pulse, glass }, ref) {
     const colors: Record<string, string> = {

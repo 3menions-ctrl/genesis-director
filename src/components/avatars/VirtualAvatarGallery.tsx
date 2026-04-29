@@ -372,8 +372,8 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
   const [centeringPadding, setCenteringPadding] = useState(0);
   
   // Responsive dimensions
-  const CARD_WIDTH = isMobile ? 200 : 280;
-  const CARD_GAP = isMobile ? 16 : 24;
+  const CARD_WIDTH = isMobile ? 210 : 300;
+  const CARD_GAP = isMobile ? 14 : 22;
   const ITEM_WIDTH = CARD_WIDTH + CARD_GAP;
   const MIN_EDGE_PADDING = isMobile ? 16 : 48; // Minimum padding at edges
   
@@ -570,43 +570,43 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
     <div className="relative group/gallery w-full">
       {/* Gradient fade edges — Pro-Dark */}
       <div 
-        className="absolute left-0 top-0 bottom-0 w-8 md:w-24 z-10 pointer-events-none" 
-        style={{ background: 'linear-gradient(to right, hsl(220,14%,2%) 0%, transparent 100%)' }}
+        className="absolute left-0 top-0 bottom-0 w-12 md:w-32 z-10 pointer-events-none" 
+        style={{ background: 'linear-gradient(to right, hsl(220,14%,2%) 0%, hsla(220,14%,2%,0.6) 50%, transparent 100%)' }}
       />
       <div 
-        className="absolute right-0 top-0 bottom-0 w-8 md:w-24 z-10 pointer-events-none" 
-        style={{ background: 'linear-gradient(to left, hsl(220,14%,2%) 0%, transparent 100%)' }}
+        className="absolute right-0 top-0 bottom-0 w-12 md:w-32 z-10 pointer-events-none" 
+        style={{ background: 'linear-gradient(to left, hsl(220,14%,2%) 0%, hsla(220,14%,2%,0.6) 50%, transparent 100%)' }}
       />
       
       {/* Navigation Arrows */}
       {!isMobile && canScrollLeft && (
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover/gallery:opacity-100 transition-opacity duration-300">
+        <div className="absolute left-6 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover/gallery:opacity-100 transition-all duration-500">
           <button
             onClick={() => scroll('left')}
-            className="w-11 h-11 rounded-full flex items-center justify-center text-white/75 hover:text-white transition-all duration-300 hover:scale-105"
+            className="w-12 h-12 rounded-full flex items-center justify-center text-white/85 hover:text-white transition-all duration-300 hover:scale-110 active:scale-95"
             style={{
-              background: 'linear-gradient(180deg, hsla(220,14%,6%,0.85) 0%, hsla(220,14%,3%,0.92) 100%)',
-              backdropFilter: 'blur(32px) saturate(180%)',
-              boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.06), inset 0 0 0 1px hsla(0,0%,100%,0.05), 0 12px 32px -8px hsla(0,0%,0%,0.65)',
+              background: 'linear-gradient(180deg, hsla(220,14%,8%,0.85) 0%, hsla(220,14%,3%,0.95) 100%)',
+              backdropFilter: 'blur(36px) saturate(200%)',
+              boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.08), inset 0 0 0 1px hsla(0,0%,100%,0.06), 0 16px 40px -8px hsla(0,0%,0%,0.7), 0 0 32px hsla(215,100%,55%,0.08)',
             }}
           >
-            <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
+            <ChevronLeft className="w-5 h-5" strokeWidth={1.4} />
           </button>
         </div>
       )}
       
       {!isMobile && canScrollRight && (
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover/gallery:opacity-100 transition-opacity duration-300">
+        <div className="absolute right-6 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover/gallery:opacity-100 transition-all duration-500">
           <button
             onClick={() => scroll('right')}
-            className="w-11 h-11 rounded-full flex items-center justify-center text-white/75 hover:text-white transition-all duration-300 hover:scale-105"
+            className="w-12 h-12 rounded-full flex items-center justify-center text-white/85 hover:text-white transition-all duration-300 hover:scale-110 active:scale-95"
             style={{
-              background: 'linear-gradient(180deg, hsla(220,14%,6%,0.85) 0%, hsla(220,14%,3%,0.92) 100%)',
-              backdropFilter: 'blur(32px) saturate(180%)',
-              boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.06), inset 0 0 0 1px hsla(0,0%,100%,0.05), 0 12px 32px -8px hsla(0,0%,0%,0.65)',
+              background: 'linear-gradient(180deg, hsla(220,14%,8%,0.85) 0%, hsla(220,14%,3%,0.95) 100%)',
+              backdropFilter: 'blur(36px) saturate(200%)',
+              boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.08), inset 0 0 0 1px hsla(0,0%,100%,0.06), 0 16px 40px -8px hsla(0,0%,0%,0.7), 0 0 32px hsla(215,100%,55%,0.08)',
             }}
           >
-            <ChevronRight className="w-5 h-5" strokeWidth={1.5} />
+            <ChevronRight className="w-5 h-5" strokeWidth={1.4} />
           </button>
         </div>
       )}

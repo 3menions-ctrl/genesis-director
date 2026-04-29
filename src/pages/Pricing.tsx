@@ -315,7 +315,7 @@ function PricingCard({ pkg, index }: { pkg: CreditPackage; index: number }) {
           className={cn(
             'w-full h-11 rounded-2xl text-[13px] font-semibold transition-all duration-300 group/btn relative overflow-hidden',
             pkg.popular
-              ? 'text-primary-foreground border border-[hsl(var(--primary)/0.5)] bg-gradient-to-b from-[hsl(var(--primary))] to-[hsl(var(--primary)/0.85)] hover:from-[hsl(var(--primary)/0.95)] hover:to-[hsl(var(--primary)/0.8)] shadow-[0_12px_40px_-12px_hsl(var(--primary)/0.7),inset_0_1px_0_hsl(0_0%_100%/0.2)]'
+              ? 'text-black border border-white/20 bg-white hover:bg-white/90 shadow-[0_12px_40px_-12px_hsla(0,0%,100%,0.35),inset_0_1px_0_hsla(0,0%,100%,0.6)]'
               : 'bg-white/[0.05] hover:bg-white/[0.09] text-white/85 border border-white/[0.08] hover:border-white/[0.16]',
           )}
         >
@@ -457,7 +457,7 @@ export default function Pricing() {
           </p>
           <Button
             onClick={() => navigate('/auth?mode=signup')}
-            className="h-12 px-8 text-[13px] font-semibold rounded-full text-primary-foreground border border-[hsl(var(--primary)/0.5)] bg-gradient-to-b from-[hsl(var(--primary))] to-[hsl(var(--primary)/0.85)] hover:from-[hsl(var(--primary)/0.95)] hover:to-[hsl(var(--primary)/0.8)] shadow-[0_12px_40px_-12px_hsl(var(--primary)/0.7),inset_0_1px_0_hsl(0_0%_100%/0.2)]"
+            className="h-12 px-8 text-[13px] font-semibold rounded-full text-black border border-white/20 bg-white hover:bg-white/90 shadow-[0_12px_40px_-12px_hsla(0,0%,100%,0.35),inset_0_1px_0_hsla(0,0%,100%,0.6)]"
           >
             <Sparkles className="w-4 h-4 mr-2" />
             Get Started Free

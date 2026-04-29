@@ -601,13 +601,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                               }
                             }}
                             disabled={verifyingOtp || otpCode.length !== 6}
-                            className="w-full h-12 rounded-2xl font-semibold text-[13px] tracking-tight text-white transition-all duration-300 hover:scale-[1.005] active:scale-[0.995] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                            style={{
-                              background:
-                                'linear-gradient(180deg, hsl(212, 100%, 60%) 0%, hsl(212, 100%, 48%) 50%, hsl(212, 100%, 42%) 100%)',
-                              boxShadow:
-                                '0 1px 0 hsla(0,0%,100%,0.18) inset, 0 8px 28px -8px hsla(212, 100%, 50%, 0.55)',
-                            }}
+                            className="w-full h-12 rounded-2xl font-semibold text-[13px] tracking-tight text-black bg-white hover:bg-white/90 transition-all duration-300 hover:scale-[1.005] active:scale-[0.995] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-[0_1px_0_hsla(0,0%,100%,0.6)_inset,0_10px_30px_-10px_hsla(0,0%,100%,0.35)]"
                           >
                             {verifyingOtp ? (
                               <>
@@ -947,15 +941,9 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                             type="submit"
                             disabled={loading}
                             className={cn(
-                              'w-full h-12 rounded-xl font-semibold text-[13px] tracking-tight text-white relative overflow-hidden',
+                              'w-full h-12 rounded-xl font-semibold text-[13px] tracking-tight text-black bg-white hover:bg-white/90 relative overflow-hidden shadow-[0_1px_0_hsla(0,0%,100%,0.6)_inset,0_10px_30px_-10px_hsla(0,0%,100%,0.35)]',
                               'transition-all duration-300 hover:scale-[1.005] active:scale-[0.995] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100',
                             )}
-                            style={{
-                              background:
-                                'linear-gradient(180deg, hsl(212, 100%, 60%) 0%, hsl(212, 100%, 48%) 50%, hsl(212, 100%, 42%) 100%)',
-                              boxShadow:
-                                '0 1px 0 hsla(0,0%,100%,0.2) inset, 0 0 0 1px hsla(212, 100%, 50%, 0.2), 0 10px 30px -8px hsla(212, 100%, 50%, 0.55)',
-                            }}
                           >
                             {loading ? (
                               <>

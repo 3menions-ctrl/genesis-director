@@ -61,9 +61,10 @@ export const GalleryHeroSection = memo(function GalleryHeroSection({
         style={{ animationDelay: '0.8s', animationFillMode: 'backwards' }}
       >
         {/* Glow effect */}
-        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-violet-500/30 to-fuchsia-500/30 blur-xl opacity-60 group-hover:opacity-100 transition-opacity scale-110" />
-        
-        <div className="relative px-6 py-3 rounded-full bg-gradient-to-r from-violet-600/80 to-fuchsia-600/80 hover:from-violet-500 hover:to-fuchsia-500 backdrop-blur-xl border border-white/20 text-white text-sm font-medium transition-all shadow-lg shadow-violet-500/25 group-hover:shadow-violet-500/40 group-hover:scale-105">
+        <div className="absolute inset-0 rounded-full blur-xl opacity-60 group-hover:opacity-100 transition-opacity scale-110"
+             style={{ background: 'radial-gradient(closest-side, hsl(var(--primary) / 0.45), transparent 70%)' }} />
+
+        <div className="relative px-6 py-3 rounded-full text-primary-foreground text-sm font-medium transition-all group-hover:scale-105 border border-[hsl(var(--primary)/0.5)] bg-gradient-to-b from-[hsl(var(--primary))] to-[hsl(var(--primary)/0.85)] hover:from-[hsl(var(--primary)/0.95)] hover:to-[hsl(var(--primary)/0.8)] shadow-[0_12px_40px_-12px_hsl(var(--primary)/0.7),inset_0_1px_0_hsl(0_0%_100%/0.2)]">
           View Avatar Collection
         </div>
       </button>

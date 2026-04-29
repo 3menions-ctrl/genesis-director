@@ -155,29 +155,36 @@ const ActiveProjectBannerInner = memo(forwardRef<HTMLDivElement, ActiveProjectBa
         initial={{ opacity: 0, y: -20, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: -20, scale: 0.95 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         className={cn(
-          "relative overflow-hidden rounded-2xl",
-          "bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-violet-500/10",
-          "border border-cyan-500/20",
-          "backdrop-blur-xl",
+          "relative overflow-hidden rounded-3xl",
           className
         )}
+        style={{
+          background: 'linear-gradient(135deg, hsla(215,100%,60%,0.10) 0%, hsla(200,100%,55%,0.06) 100%)',
+          backdropFilter: 'blur(56px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(56px) saturate(180%)',
+          boxShadow: '0 24px 64px -24px hsla(215,100%,40%,0.45), inset 0 1px 0 hsla(0,0%,100%,0.06)',
+        }}
       >
-        {/* Animated background pulse */}
-        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 via-transparent to-violet-500/5 animate-pulse" />
+        {/* Soft luminous bloom */}
+        <div
+          className="absolute -top-1/2 left-1/4 h-[200%] w-[60%] rounded-full opacity-30 blur-3xl pointer-events-none"
+          style={{ background: 'radial-gradient(circle, hsla(215,100%,60%,0.45) 0%, transparent 70%)' }}
+        />
         
         {/* Progress shimmer effect */}
         <motion.div 
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent"
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent pointer-events-none"
           animate={{ x: ['-100%', '100%'] }}
-          transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}
+          transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
         />
 
         <div className="relative p-5 flex items-center gap-5">
           {/* Thumbnail or Icon */}
           <div className="relative shrink-0">
             {activeProject.thumbnail_url ? (
-              <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/10">
+              <div className="w-16 h-16 rounded-2xl overflow-hidden" style={{ boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.08), 0 8px 24px -8px rgba(0,0,0,0.5)' }}>
                 <img 
                   src={activeProject.thumbnail_url} 
                   alt={activeProject.title}
@@ -185,36 +192,49 @@ const ActiveProjectBannerInner = memo(forwardRef<HTMLDivElement, ActiveProjectBa
                 />
               </div>
             ) : (
-              <div className="w-16 h-16 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center">
-                <Film className="w-7 h-7 text-cyan-400" />
+              <div
+                className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                style={{
+                  background: 'hsla(0,0%,100%,0.04)',
+                  backdropFilter: 'blur(24px)',
+                  boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.06)',
+                }}
+              >
+                <Film className="w-7 h-7" strokeWidth={1.5} style={{ color: 'hsla(215,100%,75%,0.95)' }} />
               </div>
             )}
             
             {/* Active indicator */}
-            <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-cyan-500 border-2 border-zinc-900 flex items-center justify-center">
-              <Loader2 className="w-2.5 h-2.5 text-white animate-spin" />
+            <div
+              className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
+              style={{
+                background: 'hsla(215,100%,60%,1)',
+                boxShadow: '0 0 0 2px hsl(220,14%,2%), 0 0 12px hsla(215,100%,60%,0.7)',
+              }}
+            >
+              <Loader2 className="w-2.5 h-2.5 text-white animate-spin" strokeWidth={2} />
             </div>
           </div>
 
           {/* Project info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-medium text-cyan-400 uppercase tracking-wider">
+              <span className="text-[10px] font-light uppercase tracking-[0.18em]" style={{ color: 'hsla(215,100%,75%,0.95)' }}>
                 Active Project
               </span>
-              <span className="text-white/30">•</span>
-              <span className="text-xs text-white/40 flex items-center gap-1">
-                <Clock className="w-3 h-3" />
+              <span className="text-white/20">•</span>
+              <span className="text-[10px] font-light text-white/40 flex items-center gap-1">
+                <Clock className="w-3 h-3" strokeWidth={1.5} />
                 {getTimeAgo(activeProject.created_at)}
               </span>
             </div>
             
-            <h3 className="text-lg font-semibold text-white truncate mb-1">
+            <h3 className="text-lg font-light tracking-tight text-white/95 truncate mb-1">
               {activeProject.title}
             </h3>
             
-            <p className="text-sm text-white/50 flex items-center gap-2">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+            <p className="text-sm font-light text-white/50 flex items-center gap-2">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.5} style={{ color: 'hsla(215,100%,75%,0.95)' }} />
               {getStatusLabel(activeProject.status, activeProject.pipeline_stage || '')}
             </p>
           </div>
@@ -223,19 +243,24 @@ const ActiveProjectBannerInner = memo(forwardRef<HTMLDivElement, ActiveProjectBa
           <div className="flex items-center gap-3 shrink-0">
             <Button
               onClick={handleResume}
-              className="bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-5 py-2.5 rounded-xl gap-2 shadow-lg shadow-cyan-500/20"
+              className="font-light tracking-wide px-5 py-2.5 rounded-full gap-2 border-0 transition-all duration-300 hover:scale-[1.03]"
+              style={{
+                background: 'linear-gradient(180deg, hsla(215,100%,60%,0.98) 0%, hsla(215,100%,55%,0.98) 100%)',
+                color: 'white',
+                boxShadow: '0 12px 32px -8px hsla(215,100%,60%,0.55), inset 0 1px 0 hsla(0,0%,100%,0.2)',
+              }}
             >
-              <Play className="w-4 h-4 fill-current" />
+              <Play className="w-4 h-4 fill-current" strokeWidth={1.5} />
               Resume
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
             </Button>
             
             <button
               onClick={() => setIsDismissed(true)}
-              className="p-2 rounded-lg hover:bg-white/10 transition-colors text-white/40 hover:text-white/60"
+              className="p-2 rounded-full hover:bg-white/[0.06] transition-all duration-300 text-white/40 hover:text-white/70"
               title="Dismiss"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4" strokeWidth={1.5} />
             </button>
           </div>
         </div>

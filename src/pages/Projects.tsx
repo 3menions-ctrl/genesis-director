@@ -725,9 +725,9 @@ function ProjectsContentInner() {
   // Filtered and sorted projects - now handled server-side by usePaginatedProjects
   // Only client-side: pinned projects first
   const filteredProjects = useMemo(() => {
-    // SHOW ALL PROJECTS - don't filter by hasVideoContent
-    // This ensures draft projects are visible in the library
-    const result = projects;
+    // Library is a video library: show real playable/rendered video projects,
+    // not failed placeholder records with no media attached.
+    const result = projects.filter(hasVideoContent);
     
     // Put pinned projects first (only client-side operation needed)
     const pinned = result.filter(p => pinnedProjects.has(p.id));

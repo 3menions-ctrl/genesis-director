@@ -21,3 +21,6 @@ export { ProjectsHero } from './ProjectsHero';
 export { MergeDownloadDialog } from './MergeDownloadDialog';
 export { ProjectsCategoryTabs } from './ProjectsCategoryTabs';
 export type { ProjectTab } from './ProjectsCategoryTabs';
+
+export { CinematicWall } from './CinematicWall';
+export type { TrainingVideoTile } from './CinematicWall';

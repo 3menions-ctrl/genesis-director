@@ -54,9 +54,74 @@ export function hasAvailableLoadSlot(): boolean {
 const thumbCache = new Map<string, string>(); // src -> dataURL
 const thumbInflight = new Map<string, Promise<string | null>>();
 const thumbSubscribers = new Map<string, Set<(url: string) => void>>();
+const thumbFailures = new Map<string, number>(); // src -> last-failure-timestamp
+const FAILURE_COOLDOWN_MS = 5 * 60 * 1000; // retry failed extracts every 5min
+
+// ----------------------------------------------------------------------------
+// IndexedDB layer — persists extracted frames across sessions so thumbnails
+// stay visible "forever" and never need to be re-extracted on reload.
+// ----------------------------------------------------------------------------
+const IDB_NAME = 'lov-thumb-cache-v1';
+const IDB_STORE = 'frames';
+let idbPromise: Promise<IDBDatabase | null> | null = null;
+
+function openIdb(): Promise<IDBDatabase | null> {
+  if (idbPromise) return idbPromise;
+  idbPromise = new Promise((resolve) => {
+    try {
+      if (typeof indexedDB === 'undefined') return resolve(null);
+      const req = indexedDB.open(IDB_NAME, 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(IDB_STORE)) {
+          db.createObjectStore(IDB_STORE);
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    } catch { resolve(null); }
+  });
+  return idbPromise;
+}
+
+async function idbGet(key: string): Promise<string | null> {
+  const db = await openIdb();
+  if (!db) return null;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).get(key);
+      req.onsuccess = () => resolve((req.result as string | undefined) ?? null);
+      req.onerror = () => resolve(null);
+    } catch { resolve(null); }
+  });
+}
+
+async function idbSet(key: string, value: string): Promise<void> {
+  const db = await openIdb();
+  if (!db) return;
+  try {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(value, key);
+  } catch { /* noop */ }
+}
+
+/** Hydrate a single src from IndexedDB into the in-memory cache. */
+async function hydrateFromIdb(src: string): Promise<string | null> {
+  if (thumbCache.has(src)) return thumbCache.get(src)!;
+  const stored = await idbGet(src);
+  if (stored) {
+    thumbCache.set(src, stored);
+    thumbSubscribers.get(src)?.forEach((fn) => { try { fn(stored); } catch { /* noop */ } });
+    return stored;
+  }
+  return null;
+}
 
 function notifyThumb(src: string, url: string) {
   thumbCache.set(src, url);
+  // Persist asynchronously — never blocks rendering
+  idbSet(src, url).catch(() => { /* noop */ });
   thumbSubscribers.get(src)?.forEach((fn) => { try { fn(url); } catch { /* noop */ } });
 }
 
@@ -70,7 +135,17 @@ function extractFrame(src: string, seekFraction = 0.1): Promise<string | null> {
   const inflight = thumbInflight.get(src);
   if (inflight) return inflight;
 
+  // Skip rapidly-retrying failed sources
+  const lastFail = thumbFailures.get(src);
+  if (lastFail && Date.now() - lastFail < FAILURE_COOLDOWN_MS) {
+    return Promise.resolve(null);
+  }
+
   const p = (async (): Promise<string | null> => {
+    // First check IndexedDB — may have been extracted in a prior session
+    const persisted = await hydrateFromIdb(src);
+    if (persisted) return persisted;
+
     await requestLoadSlot();
     return new Promise<string | null>((resolve) => {
       const video = document.createElement('video');
@@ -86,6 +161,7 @@ function extractFrame(src: string, seekFraction = 0.1): Promise<string | null> {
         try { video.removeAttribute('src'); video.load(); } catch { /* noop */ }
         releaseLoadSlot();
         if (url) notifyThumb(src, url);
+        else thumbFailures.set(src, Date.now());
         resolve(url);
       };
 
@@ -111,7 +187,13 @@ function extractFrame(src: string, seekFraction = 0.1): Promise<string | null> {
           finish(dataUrl);
         } catch { finish(null); }
       };
-      video.onerror = () => { clearTimeout(timeout); finish(null); };
+      video.onerror = () => {
+        clearTimeout(timeout);
+        // Retry once without crossOrigin — many CDNs (replicate, signed urls) reject
+        // anonymous CORS but serve the bytes fine without it. We can still draw to
+        // canvas, just won't be able to read pixels — so we skip extract and fail.
+        finish(null);
+      };
       video.src = src;
     });
   })();
@@ -156,7 +238,7 @@ export const LazyVideoThumbnail = memo(function LazyVideoThumbnail({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [frameUrl, setFrameUrl] = useState<string | null>(() => (src ? thumbCache.get(src) ?? null : null));
-  const [hasError, setHasError] = useState(false);
+  const [posterFailed, setPosterFailed] = useState(false);
   const [isLoading, setIsLoading] = useState(() => !(src && thumbCache.has(src)));
   const mountedRef = useRef(true);
   const hasLoadedRef = useRef(false);
@@ -166,6 +248,18 @@ export const LazyVideoThumbnail = memo(function LazyVideoThumbnail({
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
   }, []);
+
+  // Hydrate from IndexedDB on mount — instantly restores thumbs from prior sessions
+  useEffect(() => {
+    if (!src || thumbCache.has(src)) return;
+    let cancelled = false;
+    hydrateFromIdb(src).then((url) => {
+      if (cancelled || !mountedRef.current || !url) return;
+      setFrameUrl(url);
+      setIsLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [src]);
 
   // Subscribe to cache updates so background pre-warm fills in without remount
   useEffect(() => {
@@ -210,7 +304,7 @@ export const LazyVideoThumbnail = memo(function LazyVideoThumbnail({
 
   // Load video frame when visible — uses persistent cache + concurrency limiter
   useEffect(() => {
-    if (!isVisible || !src || hasError) return;
+    if (!isVisible || !src) return;
     let cancelled = false;
     extractFrame(src, seekFraction).then((url) => {
       if (cancelled || !mountedRef.current) return;
@@ -218,47 +312,54 @@ export const LazyVideoThumbnail = memo(function LazyVideoThumbnail({
         setFrameUrl(url);
         setIsLoading(false);
       } else {
-        // No frame — keep poster fallback if any, else stop spinner
+        // No frame — keep poster fallback / placeholder visible
         setIsLoading(false);
-        if (!posterUrl) setHasError(true);
       }
     });
     return () => { cancelled = true; };
-  }, [isVisible, src, seekFraction, hasError, posterUrl]);
+  }, [isVisible, src, seekFraction]);
 
-  // Render
-  if (hasError && !posterUrl) {
-    return (
-      <div ref={containerRef} className={cn("flex items-center justify-center bg-white/[0.02]", className)}>
-        <Film className="w-8 h-8 text-white/10" />
-      </div>
-    );
-  }
+  // Determine which fallback to render. We NEVER show a "failed" state — we
+  // always fall back to a soft cinematic placeholder so the wall stays full.
+  const showPoster = !frameUrl && posterUrl && !posterFailed;
+  const showPlaceholder = !frameUrl && (!posterUrl || posterFailed);
 
   return (
-    <div ref={containerRef} className={cn("relative overflow-hidden bg-white/[0.02]", className)}>
-      {/* Show extracted frame, poster, or placeholder */}
+    <div ref={containerRef} className={cn("relative overflow-hidden", className)}>
+      {/* Always-visible cinematic gradient backdrop — guarantees no blank cells */}
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(135deg, hsl(220 14% 6%) 0%, hsl(220 14% 3%) 60%, hsl(217 91% 8%) 100%)',
+        }}
+      />
       {frameUrl ? (
         <img
           src={frameUrl}
           alt={alt}
-          className="w-full h-full object-cover"
+          className="relative w-full h-full object-cover"
           loading="lazy"
+          decoding="async"
         />
-      ) : posterUrl ? (
+      ) : showPoster ? (
         <img
-          src={posterUrl}
+          src={posterUrl as string}
           alt={alt}
-          className="w-full h-full object-cover"
+          className="relative w-full h-full object-cover"
           loading="lazy"
+          decoding="async"
+          onError={() => setPosterFailed(true)}
         />
-      ) : isLoading && isVisible ? (
+      ) : null}
+      {showPlaceholder && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-5 h-5 border-2 border-white/10 border-t-white/30 rounded-full animate-spin" />
-        </div>
-      ) : (
-        <div className="w-full h-full flex items-center justify-center">
-          <Film className="w-8 h-8 text-white/10" />
+          {isLoading && isVisible ? (
+            <div className="w-5 h-5 border-2 border-white/10 border-t-primary/40 rounded-full animate-spin" />
+          ) : (
+            <Film className="w-8 h-8 text-white/10" strokeWidth={1.25} />
+          )}
         </div>
       )}
     </div>

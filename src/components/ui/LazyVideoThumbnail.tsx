@@ -48,6 +48,91 @@ export function hasAvailableLoadSlot(): boolean {
 }
 
 // ============================================================================
+// PERSISTENT THUMBNAIL CACHE — keeps frames visible across remounts/scroll
+// ============================================================================
+
+const thumbCache = new Map<string, string>(); // src -> dataURL
+const thumbInflight = new Map<string, Promise<string | null>>();
+const thumbSubscribers = new Map<string, Set<(url: string) => void>>();
+
+function notifyThumb(src: string, url: string) {
+  thumbCache.set(src, url);
+  thumbSubscribers.get(src)?.forEach((fn) => { try { fn(url); } catch { /* noop */ } });
+}
+
+export function getCachedThumb(src: string): string | undefined {
+  return thumbCache.get(src);
+}
+
+function extractFrame(src: string, seekFraction = 0.1): Promise<string | null> {
+  const cached = thumbCache.get(src);
+  if (cached) return Promise.resolve(cached);
+  const inflight = thumbInflight.get(src);
+  if (inflight) return inflight;
+
+  const p = (async (): Promise<string | null> => {
+    await requestLoadSlot();
+    return new Promise<string | null>((resolve) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.muted = true;
+      video.playsInline = true;
+      video.crossOrigin = 'anonymous';
+
+      let done = false;
+      const finish = (url: string | null) => {
+        if (done) return;
+        done = true;
+        try { video.removeAttribute('src'); video.load(); } catch { /* noop */ }
+        releaseLoadSlot();
+        if (url) notifyThumb(src, url);
+        resolve(url);
+      };
+
+      const timeout = setTimeout(() => finish(null), 6000);
+
+      video.onloadedmetadata = () => {
+        const d = video.duration;
+        if (!d || !isFinite(d) || d <= 0) { clearTimeout(timeout); finish(null); return; }
+        try { video.currentTime = Math.min(d * seekFraction, 2); }
+        catch { clearTimeout(timeout); finish(null); }
+      };
+      video.onseeked = () => {
+        clearTimeout(timeout);
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.min(video.videoWidth || 640, 640);
+          canvas.height = Math.min(video.videoHeight || 360, 360);
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return finish(null);
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+          canvas.width = 1; canvas.height = 1;
+          finish(dataUrl);
+        } catch { finish(null); }
+      };
+      video.onerror = () => { clearTimeout(timeout); finish(null); };
+      video.src = src;
+    });
+  })();
+
+  thumbInflight.set(src, p);
+  p.finally(() => thumbInflight.delete(src));
+  return p;
+}
+
+/** Background pre-warm a list of sources so thumbnails stay always-visible.
+ *  Skips already-cached or already-inflight srcs. Throttled by load slot limiter. */
+export function prewarmThumbnails(srcs: Array<string | null | undefined>, seekFraction = 0.1): void {
+  const unique = Array.from(new Set(srcs.filter((s): s is string => !!s)));
+  unique.forEach((src) => {
+    if (thumbCache.has(src) || thumbInflight.has(src)) return;
+    // Fire and forget
+    extractFrame(src, seekFraction).catch(() => { /* swallow */ });
+  });
+}
+
+// ============================================================================
 // COMPONENT
 // ============================================================================
 
@@ -69,12 +154,10 @@ export const LazyVideoThumbnail = memo(function LazyVideoThumbnail({
   seekFraction = 0.1,
 }: LazyVideoThumbnailProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [frameUrl, setFrameUrl] = useState<string | null>(null);
+  const [frameUrl, setFrameUrl] = useState<string | null>(() => (src ? thumbCache.get(src) ?? null : null));
   const [hasError, setHasError] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => !(src && thumbCache.has(src)));
   const mountedRef = useRef(true);
   const hasLoadedRef = useRef(false);
 
@@ -84,8 +167,29 @@ export const LazyVideoThumbnail = memo(function LazyVideoThumbnail({
     return () => { mountedRef.current = false; };
   }, []);
 
+  // Subscribe to cache updates so background pre-warm fills in without remount
+  useEffect(() => {
+    if (!src) return;
+    const cached = thumbCache.get(src);
+    if (cached) {
+      setFrameUrl(cached);
+      setIsLoading(false);
+      return;
+    }
+    let subs = thumbSubscribers.get(src);
+    if (!subs) { subs = new Set(); thumbSubscribers.set(src, subs); }
+    const cb = (url: string) => {
+      if (!mountedRef.current) return;
+      setFrameUrl(url);
+      setIsLoading(false);
+    };
+    subs.add(cb);
+    return () => { subs?.delete(cb); };
+  }, [src]);
+
   // Intersection Observer - only activate when in viewport
   useEffect(() => {
+    if (src && thumbCache.has(src)) return; // already cached, skip observing
     const el = containerRef.current;
     if (!el) return;
 
@@ -102,105 +206,25 @@ export const LazyVideoThumbnail = memo(function LazyVideoThumbnail({
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [src]);
 
-  // Load video frame when visible — with concurrency limiting
+  // Load video frame when visible — uses persistent cache + concurrency limiter
   useEffect(() => {
     if (!isVisible || !src || hasError) return;
-
     let cancelled = false;
-
-    async function loadFrame() {
-      await requestLoadSlot();
-      if (cancelled || !mountedRef.current) {
-        releaseLoadSlot();
-        return;
+    extractFrame(src, seekFraction).then((url) => {
+      if (cancelled || !mountedRef.current) return;
+      if (url) {
+        setFrameUrl(url);
+        setIsLoading(false);
+      } else {
+        // No frame — keep poster fallback if any, else stop spinner
+        setIsLoading(false);
+        if (!posterUrl) setHasError(true);
       }
-
-      const video = document.createElement('video');
-      video.preload = 'metadata';
-      video.muted = true;
-      video.playsInline = true;
-      video.crossOrigin = 'anonymous'; // Required for canvas frame extraction from Supabase storage
-
-      const cleanup = () => {
-        video.removeAttribute('src');
-        video.load();
-        releaseLoadSlot();
-      };
-
-      const timeout = setTimeout(() => {
-        // Timeout after 4s - show poster or placeholder
-        if (mountedRef.current && !frameUrl) {
-          setIsLoading(false);
-        }
-        cleanup();
-      }, 4000);
-
-      video.onloadedmetadata = () => {
-        if (cancelled) { clearTimeout(timeout); cleanup(); return; }
-        const duration = video.duration;
-        if (!duration || !isFinite(duration) || duration <= 0) {
-          clearTimeout(timeout);
-          if (mountedRef.current) setIsLoading(false);
-          cleanup();
-          return;
-        }
-        try {
-          video.currentTime = Math.min(duration * seekFraction, 2);
-        } catch {
-          clearTimeout(timeout);
-          if (mountedRef.current) setIsLoading(false);
-          cleanup();
-        }
-      };
-
-      video.onseeked = () => {
-        clearTimeout(timeout);
-        if (cancelled || !mountedRef.current) { cleanup(); return; }
-
-        // Extract frame to canvas → dataURL to free the video element
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = Math.min(video.videoWidth, 640); // Cap resolution
-          canvas.height = Math.min(video.videoHeight, 360);
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-            if (mountedRef.current) {
-              setFrameUrl(dataUrl);
-              setIsLoading(false);
-            }
-          } else {
-            if (mountedRef.current) setIsLoading(false);
-          }
-          canvas.width = 1;
-          canvas.height = 1;
-        } catch {
-          if (mountedRef.current) setIsLoading(false);
-        }
-        cleanup();
-      };
-
-      video.onerror = () => {
-        clearTimeout(timeout);
-        if (mountedRef.current) {
-          setHasError(true);
-          setIsLoading(false);
-        }
-        cleanup();
-      };
-
-      video.src = src;
-    }
-
-    loadFrame();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isVisible, src, seekFraction, hasError, frameUrl]);
+    });
+    return () => { cancelled = true; };
+  }, [isVisible, src, seekFraction, hasError, posterUrl]);
 
   // Render
   if (hasError && !posterUrl) {

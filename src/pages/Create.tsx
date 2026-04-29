@@ -34,6 +34,20 @@ const StudioAurora = memo(function StudioAurora() {
     <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
       {/* deep base */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(220_14%_6%)_0%,hsl(220_14%_2%)_60%)]" />
+      {/* conic aurora sweep — loader signature */}
+      <style>{`
+        @keyframes createAurora { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+        @keyframes createTick { 0%,100%{opacity:.35} 50%{opacity:1} }
+      `}</style>
+      <div
+        className="absolute -inset-[20%] opacity-[0.18]"
+        style={{
+          background:
+            'conic-gradient(from 0deg at 50% 50%, transparent 0deg, hsla(215,100%,60%,0.32) 60deg, transparent 130deg, hsla(210,100%,55%,0.2) 220deg, transparent 300deg, hsla(215,100%,60%,0.26) 360deg)',
+          filter: 'blur(80px)',
+          animation: 'createAurora 60s linear infinite',
+        }}
+      />
       {/* primary aurora */}
       <div
         className="absolute -top-1/3 left-1/2 h-[60vmax] w-[60vmax] -translate-x-1/2 rounded-full opacity-[0.35] blur-3xl animate-[pulse_12s_ease-in-out_infinite]"
@@ -44,6 +58,8 @@ const StudioAurora = memo(function StudioAurora() {
         className="absolute -bottom-1/3 -right-1/4 h-[55vmax] w-[55vmax] rounded-full opacity-25 blur-3xl"
         style={{ background: 'radial-gradient(circle, hsl(190 100% 55% / 0.35) 0%, transparent 65%)' }}
       />
+      {/* edge vignette */}
+      <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 55%, hsl(220 14% 1%) 100%)' }} />
       {/* film grain */}
       <div
         className="absolute inset-0 opacity-[0.035] mix-blend-overlay"
@@ -369,9 +385,20 @@ function CreateContentInner() {
               </p>
             </div>
 
-            <div className="hidden md:flex items-center gap-3 text-[11px] uppercase tracking-[0.22em] text-white/40">
-              <Wand2 className="w-3.5 h-3.5 text-primary/80" />
-              <span>Director Mode</span>
+            <div className="hidden md:flex items-center gap-4 text-[10px] uppercase tracking-[0.32em] text-white/40 font-medium">
+              <span className="inline-flex items-center gap-2 mr-1">
+                <Wand2 className="w-3.5 h-3.5 text-primary/80" />
+                Director Mode
+              </span>
+              {['Engine', 'Render', 'Stream'].map((t, i) => (
+                <span key={t} className="inline-flex items-center gap-1.5">
+                  <span
+                    className="w-1 h-1 rounded-full bg-[hsl(var(--primary))]"
+                    style={{ animation: `createTick 2.4s ease-in-out ${i * 0.4}s infinite` }}
+                  />
+                  {t}
+                </span>
+              ))}
             </div>
           </div>
 

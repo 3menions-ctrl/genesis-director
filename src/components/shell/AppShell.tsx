@@ -72,7 +72,7 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="relative min-h-screen w-full bg-background text-foreground overflow-x-hidden">
+      <div className="relative flex min-h-screen w-full bg-background text-foreground overflow-x-hidden">
         {/* Ambient cinematic background */}
         <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
           <div
@@ -102,27 +102,41 @@ export function AppShell({ children }: AppShellProps) {
           />
         )}
 
-        {/* ── Sidebar (icon rail) ── */}
+        {/* ── Sidebar (icon rail) ──
+            On lg+ screens the sidebar lives inside the flex row as a real
+            sibling of the main column (no overlap, sharing horizontal space).
+            On smaller screens it slides in as an overlay drawer. */}
         <aside
           className={cn(
-            'fixed inset-y-0 left-0 z-50 flex flex-col',
-            'transition-[width,transform] duration-300 ease-out',
-            // Mobile: slide in/out
-            'w-[260px] -translate-x-full lg:translate-x-0',
+            // Mobile: overlay drawer
+            'fixed inset-y-0 left-0 z-50 flex flex-col w-[260px]',
+            '-translate-x-full transition-transform duration-300 ease-out',
             mobileOpen && 'translate-x-0',
-            // Desktop width
+            // Desktop: in-flow flex sibling, sharing layout space
+            'lg:static lg:translate-x-0 lg:shrink-0 lg:h-screen lg:sticky lg:top-0',
+            'lg:transition-[width] lg:duration-300 lg:ease-out',
             railWidth,
           )}
           style={{
             background:
-              'linear-gradient(180deg, hsla(220, 14%, 4%, 0.92) 0%, hsla(220, 14%, 3%, 0.94) 100%)',
-            backdropFilter: 'blur(40px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-            borderRight: '1px solid hsla(0, 0%, 100%, 0.06)',
+              'linear-gradient(180deg, hsla(220, 14%, 5%, 0.85) 0%, hsla(220, 14%, 3%, 0.92) 100%)',
+            backdropFilter: 'blur(48px) saturate(200%)',
+            WebkitBackdropFilter: 'blur(48px) saturate(200%)',
+            borderRight: '1px solid hsla(0, 0%, 100%, 0.05)',
+            boxShadow: 'inset -1px 0 0 hsla(0, 0%, 100%, 0.02)',
           }}
         >
+          {/* Soft inner highlight at the top edge for depth */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-px"
+            style={{
+              background:
+                'linear-gradient(90deg, transparent 0%, hsla(0,0%,100%,0.06) 50%, transparent 100%)',
+            }}
+          />
           {/* Brand */}
-          <div className={cn('flex h-[56px] shrink-0 items-center gap-3 px-3', collapsed && 'lg:justify-center lg:px-0')}>
+          <div className={cn('flex h-[60px] shrink-0 items-center gap-3 px-4', collapsed && 'lg:justify-center lg:px-0')}>
             <Link to="/projects" className="group flex items-center gap-2.5 min-w-0">
               <div className="relative shrink-0">
                 <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-[hsl(var(--primary)/0.35)] to-[hsl(var(--accent)/0.15)] opacity-0 group-hover:opacity-100 blur-md transition-opacity duration-500" />
@@ -151,32 +165,39 @@ export function AppShell({ children }: AppShellProps) {
           </div>
 
           {/* Create CTA */}
-          <div className={cn('px-3 pt-2 pb-3', collapsed && 'lg:px-2')}>
+          <div className={cn('px-3 pt-1 pb-4', collapsed && 'lg:px-2')}>
             <button
               onClick={() => navigateTo('/create')}
               className={cn(
-                'group relative w-full overflow-hidden rounded-xl flex items-center justify-center gap-2 h-10 text-[12.5px] font-semibold transition-all duration-300',
-                'border border-white/[0.08] hover:border-white/[0.14]',
-                'bg-gradient-to-br from-white/[0.04] to-white/[0.01] hover:from-white/[0.07] hover:to-white/[0.02]',
-                'shadow-[0_2px_24px_-8px_hsl(var(--primary)/0.4)] hover:shadow-[0_2px_32px_-8px_hsl(var(--primary)/0.55)]',
+                'group relative w-full overflow-hidden rounded-xl flex items-center justify-center gap-2 h-10 text-[12.5px] font-semibold tracking-[-0.01em] transition-all duration-300',
+                'border border-[hsl(var(--primary)/0.25)] hover:border-[hsl(var(--primary)/0.45)]',
+                'bg-gradient-to-b from-[hsl(var(--primary)/0.16)] to-[hsl(var(--primary)/0.06)] hover:from-[hsl(var(--primary)/0.22)] hover:to-[hsl(var(--primary)/0.08)]',
+                'shadow-[0_8px_24px_-12px_hsl(var(--primary)/0.6),inset_0_1px_0_hsl(0_0%_100%/0.06)] hover:shadow-[0_12px_32px_-12px_hsl(var(--primary)/0.75),inset_0_1px_0_hsl(0_0%_100%/0.08)]',
               )}
               style={{ color: 'hsl(var(--foreground))' }}
             >
               <span
                 aria-hidden
-                className="absolute inset-0 opacity-60 group-hover:opacity-100 transition-opacity"
+                className="absolute -top-1/2 left-0 right-0 h-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                 style={{
                   background:
-                    'radial-gradient(120px 60px at 30% 0%, hsl(var(--primary) / 0.25), transparent 70%)',
+                    'radial-gradient(140px 60px at 50% 100%, hsl(var(--primary) / 0.35), transparent 70%)',
                 }}
               />
-              <Sparkles className="relative w-4 h-4 text-[hsl(var(--primary))]" />
+              <Sparkles className="relative w-4 h-4 text-[hsl(var(--primary))] drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]" />
               {!collapsed && <span className="relative">New Project</span>}
             </button>
           </div>
 
+          {/* Section label */}
+          {!collapsed && (
+            <div className="px-5 mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
+              Workspace
+            </div>
+          )}
+
           {/* Nav */}
-          <nav className="flex-1 overflow-y-auto px-2 pt-1 pb-3 scrollbar-hide">
+          <nav className="flex-1 overflow-y-auto px-3 pb-3 scrollbar-hide">
             <ul className="space-y-1">
               {PRIMARY_NAV.map((item) => {
                 const active = isItemActive(item);
@@ -185,22 +206,35 @@ export function AppShell({ children }: AppShellProps) {
                   <NavLink
                     to={item.to}
                     className={cn(
-                      'group relative flex items-center gap-3 rounded-xl px-3 h-10 text-[13px] font-medium transition-all duration-200',
+                      'group relative flex items-center gap-3 rounded-xl px-3 h-[38px] text-[13px] font-medium tracking-[-0.005em] transition-all duration-200',
                       'border border-transparent',
                       active
-                        ? 'text-white bg-white/[0.06] border-white/[0.08] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.04)]'
-                        : 'text-white/55 hover:text-white hover:bg-white/[0.04]',
+                        ? 'text-white bg-gradient-to-r from-white/[0.08] to-white/[0.03] border-white/[0.07] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.05)]'
+                        : 'text-white/55 hover:text-white hover:bg-white/[0.035]',
                       collapsed && 'lg:justify-center lg:px-0 lg:gap-0',
                     )}
                   >
                     {active && (
                       <span
                         aria-hidden
-                        className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-r-full bg-[hsl(var(--primary))] shadow-[0_0_8px_hsl(var(--primary)/0.6)]"
+                        className="absolute -left-3 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-gradient-to-b from-[hsl(var(--primary))] to-[hsl(var(--primary)/0.6)] shadow-[0_0_12px_hsl(var(--primary)/0.7)]"
                       />
                     )}
-                    <Icon className={cn('w-[18px] h-[18px] shrink-0 transition-colors', active ? 'text-[hsl(var(--primary))]' : 'text-white/45 group-hover:text-white/80')} />
+                    <Icon
+                      className={cn(
+                        'w-[18px] h-[18px] shrink-0 transition-all duration-200',
+                        active
+                          ? 'text-[hsl(var(--primary))] drop-shadow-[0_0_6px_hsl(var(--primary)/0.5)]'
+                          : 'text-white/45 group-hover:text-white/85 group-hover:scale-[1.06]',
+                      )}
+                    />
                     {!collapsed && <span className="truncate">{item.label}</span>}
+                    {active && !collapsed && (
+                      <span
+                        aria-hidden
+                        className="ml-auto h-1.5 w-1.5 rounded-full bg-[hsl(var(--primary))] shadow-[0_0_8px_hsl(var(--primary)/0.8)]"
+                      />
+                    )}
                   </NavLink>
                 );
                 return (
@@ -208,7 +242,7 @@ export function AppShell({ children }: AppShellProps) {
                     {collapsed ? (
                       <Tooltip>
                         <TooltipTrigger asChild>{link}</TooltipTrigger>
-                        <TooltipContent side="right" className="bg-card/95 border-white/10">
+                        <TooltipContent side="right" sideOffset={8} className="bg-card/95 border-white/10 text-[12px] font-medium">
                           {item.label}
                         </TooltipContent>
                       </Tooltip>
@@ -222,7 +256,7 @@ export function AppShell({ children }: AppShellProps) {
 
             {isAdmin && (
               <>
-                <div className={cn('mt-5 mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/25', collapsed && 'lg:hidden')}>
+                <div className={cn('mt-6 mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30', collapsed && 'lg:hidden')}>
                   Admin
                 </div>
                 <ul className="space-y-1">
@@ -233,21 +267,21 @@ export function AppShell({ children }: AppShellProps) {
                         <NavLink
                           to="/admin"
                           className={cn(
-                            'group relative flex items-center gap-3 rounded-xl px-3 h-10 text-[13px] font-medium transition-all duration-200 border border-transparent',
+                            'group relative flex items-center gap-3 rounded-xl px-3 h-[38px] text-[13px] font-medium transition-all duration-200 border border-transparent',
                             active
-                              ? 'text-[hsl(var(--warning))] bg-[hsl(var(--warning)/0.06)] border-[hsl(var(--warning)/0.14)]'
-                              : 'text-white/55 hover:text-white hover:bg-white/[0.04]',
+                              ? 'text-[hsl(var(--warning))] bg-[hsl(var(--warning)/0.08)] border-[hsl(var(--warning)/0.18)] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.04)]'
+                              : 'text-white/55 hover:text-white hover:bg-white/[0.035]',
                             collapsed && 'lg:justify-center lg:px-0',
                           )}
                         >
-                          <Shield className={cn('w-[18px] h-[18px] shrink-0', active ? 'text-[hsl(var(--warning))]' : 'text-white/45 group-hover:text-white/80')} />
+                          <Shield className={cn('w-[18px] h-[18px] shrink-0 transition-transform duration-200', active ? 'text-[hsl(var(--warning))] drop-shadow-[0_0_6px_hsl(var(--warning)/0.5)]' : 'text-white/45 group-hover:text-white/80 group-hover:scale-[1.06]')} />
                           {!collapsed && <span>Admin Panel</span>}
                         </NavLink>
                       );
                       return collapsed ? (
                         <Tooltip>
                           <TooltipTrigger asChild>{link}</TooltipTrigger>
-                          <TooltipContent side="right">Admin Panel</TooltipContent>
+                          <TooltipContent side="right" sideOffset={8}>Admin Panel</TooltipContent>
                         </Tooltip>
                       ) : link;
                     })()}
@@ -258,11 +292,11 @@ export function AppShell({ children }: AppShellProps) {
           </nav>
 
           {/* Sidebar footer: credits + collapse */}
-          <div className={cn('px-3 pb-3 space-y-2 border-t border-white/[0.05] pt-3')}>
+          <div className={cn('px-3 pb-3 space-y-1.5 border-t border-white/[0.04] pt-3 bg-gradient-to-t from-black/30 to-transparent')}>
             <button
               onClick={() => setShowBuyCredits(true)}
               className={cn(
-                'w-full group flex items-center gap-2 h-10 rounded-xl px-3 transition-all duration-300',
+                'w-full group flex items-center gap-2.5 h-10 rounded-xl px-3 transition-all duration-300',
                 isZeroCredits
                   ? 'bg-gradient-to-r from-[hsl(0_40%_10%/0.7)] to-[hsl(0_30%_8%/0.5)] border border-[hsl(0_100%_50%/0.25)] hover:border-[hsl(0_100%_50%/0.5)]'
                   : 'bg-gradient-to-r from-[hsl(42_30%_8%/0.6)] to-[hsl(42_20%_6%/0.4)] border border-[hsl(42_100%_55%/0.12)] hover:border-[hsl(42_100%_55%/0.3)]',
@@ -280,7 +314,7 @@ export function AppShell({ children }: AppShellProps) {
               </div>
               {!collapsed && (
                 <div className="flex-1 flex items-center justify-between min-w-0">
-                  <span className="text-[11px] uppercase tracking-wider text-white/40 font-medium">Credits</span>
+                  <span className="text-[10px] uppercase tracking-[0.16em] text-white/45 font-semibold">Credits</span>
                   <span className={cn('text-[13px] font-bold tabular-nums', isZeroCredits ? 'text-[hsl(0_100%_70%)]' : 'text-[hsl(42_100%_70%)]')}>
                     {credits}
                   </span>
@@ -291,7 +325,7 @@ export function AppShell({ children }: AppShellProps) {
             <button
               onClick={() => setCollapsed((c) => !c)}
               className={cn(
-                'hidden lg:flex w-full items-center gap-2 h-9 rounded-lg px-3 text-[11px] uppercase tracking-wider text-white/35 hover:text-white/70 hover:bg-white/[0.04] transition-colors',
+                'hidden lg:flex w-full items-center gap-2 h-8 rounded-lg px-3 text-[10px] uppercase tracking-[0.16em] font-semibold text-white/35 hover:text-white/70 hover:bg-white/[0.04] transition-colors',
                 collapsed && 'lg:justify-center lg:px-0',
               )}
               aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -307,7 +341,7 @@ export function AppShell({ children }: AppShellProps) {
         </aside>
 
         {/* ── Main column ── */}
-        <div className={cn('flex flex-col min-h-screen transition-[padding] duration-300', collapsed ? 'lg:pl-[68px]' : 'lg:pl-[232px]')}>
+        <div className="flex flex-1 min-w-0 flex-col min-h-screen">
           {/* Top bar */}
           <header
             className="sticky top-0 z-30 h-[56px] flex items-center gap-2 px-3 sm:px-5"

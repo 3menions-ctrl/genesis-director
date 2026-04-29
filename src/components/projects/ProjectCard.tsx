@@ -571,23 +571,27 @@ ProjectCard.displayName = 'ProjectCard';
 
 // ============= SUB-COMPONENTS =============
 
-function StatusPill({ color, label, pulse, glass }: { color: string; label: string; pulse?: boolean; glass?: boolean }) {
-  const colors: Record<string, string> = {
-    emerald: 'bg-emerald-400',
-    white: 'bg-white/40',
-    red: 'bg-red-400',
-  };
-  return (
-    <span className={cn(
-      "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full",
-      glass ? "bg-black/50 backdrop-blur-xl" : "bg-white/[0.05]"
-    )}>
-      <div className={cn("w-1 h-1 rounded-full", colors[color] || colors.white, pulse && "animate-pulse")} />
-      <span className={cn(
-        "text-[10px] font-medium tracking-wide",
-        color === 'emerald' ? "text-emerald-300/90" : color === 'red' ? "text-red-300/80" : "text-white/60"
-      )}>{label}</span>
-    </span>
+const StatusPill = forwardRef<HTMLSpanElement, { color: string; label: string; pulse?: boolean; glass?: boolean }>(
+  function StatusPill({ color, label, pulse, glass }, ref) {
+    const colors: Record<string, string> = {
+      emerald: 'bg-emerald-400',
+      white: 'bg-white/40',
+      red: 'bg-red-400',
+    };
+    return (
+      <span ref={ref} className={cn(
+        "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full",
+        glass ? "bg-black/50 backdrop-blur-xl" : "bg-white/[0.05]"
+      )}>
+        <div className={cn("w-1 h-1 rounded-full", colors[color] || colors.white, pulse && "animate-pulse")} />
+        <span className={cn(
+          "text-[10px] font-medium tracking-wide",
+          color === 'emerald' ? "text-emerald-300/90" : color === 'red' ? "text-red-300/80" : "text-white/60"
+        )}>{label}</span>
+      </span>
+    );
+  }
+);
   );
 }
 

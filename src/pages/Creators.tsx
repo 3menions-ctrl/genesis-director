@@ -260,98 +260,130 @@ export default function Creators() {
 
   return (
     <>
-    <div className="min-h-screen bg-[#030303] text-white">
-      {/* Subtle gradient background */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[#030303]" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] bg-violet-600/[0.07] rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-0 w-[800px] h-[400px] bg-fuchsia-600/[0.04] rounded-full blur-[100px]" />
+    <div className="min-h-screen bg-[hsl(220_14%_2%)] text-white font-body relative overflow-hidden">
+      {/* Cinematic atmosphere — loader signature */}
+      <style>{`
+        @keyframes creatorsAurora { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+        @keyframes creatorsTick { 0%,100%{opacity:.35} 50%{opacity:1} }
+      `}</style>
+      <div aria-hidden className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(220_14%_5%)_0%,hsl(220_14%_2%)_60%)]" />
+        <div
+          className="absolute -inset-[20%] opacity-[0.16]"
+          style={{
+            background:
+              'conic-gradient(from 0deg at 50% 50%, transparent 0deg, hsla(215,100%,60%,0.32) 60deg, transparent 130deg, hsla(210,100%,55%,0.2) 220deg, transparent 300deg, hsla(215,100%,60%,0.26) 360deg)',
+            filter: 'blur(80px)',
+            animation: 'creatorsAurora 60s linear infinite',
+          }}
+        />
+        <div
+          className="absolute top-[-180px] left-1/2 -translate-x-1/2 w-[1200px] h-[560px] rounded-full blur-[180px] opacity-60"
+          style={{ background: 'radial-gradient(closest-side, hsl(var(--primary) / 0.18), transparent 70%)' }}
+        />
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 55%, hsl(220 14% 1%) 100%)' }} />
+        {/* film grain */}
+        <div
+          className="absolute inset-0 opacity-[0.035] mix-blend-overlay"
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>\")",
+          }}
+        />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </div>
 
       <AppHeader />
 
       <main className="relative z-10">
         {/* ═══ HERO SECTION ═══ */}
-        <section className="pt-28 pb-16 px-4 sm:px-6 lg:px-8">
+        <section className="pt-28 pb-14 px-4 sm:px-6 lg:px-8">
           <div className="max-w-5xl mx-auto text-center">
-            {/* Badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-violet-500/20 bg-violet-500/[0.08] mb-8"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-violet-400" />
-              <span className="text-xs font-semibold uppercase tracking-[0.15em] text-violet-300">
-                Community Gallery
+            {/* Status pill */}
+            <div className="inline-flex items-center gap-2 h-7 pl-2 pr-3 rounded-full border border-white/[0.07] bg-white/[0.025] backdrop-blur-md mb-8">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inset-0 rounded-full bg-[hsl(var(--primary))] animate-ping opacity-60" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[hsl(var(--primary))]" />
               </span>
-            </motion.div>
+              <span className="text-[10px] uppercase tracking-[0.28em] text-white/55 font-medium">
+                Apex Studio · Creators
+              </span>
+            </div>
 
             {/* Title */}
-            <motion.h1
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-              className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.05] mb-5"
-            >
-              <span className="text-white">Explore </span>
-              <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400 bg-clip-text text-transparent">
-                AI Films
+            <h1 className="font-display font-medium tracking-[-0.035em] text-[clamp(2.75rem,7vw,5.75rem)] leading-[0.95] mb-6">
+              <span className="text-white/95">Cinema by </span>
+              <span
+                className="bg-clip-text text-transparent"
+                style={{
+                  backgroundImage:
+                    'linear-gradient(120deg, hsl(212 100% 72%) 0%, hsl(190 100% 72%) 45%, hsl(212 100% 86%) 100%)',
+                }}
+              >
+                creators.
               </span>
-            </motion.h1>
+            </h1>
 
-            {/* Subtitle */}
-            <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-white/35 text-lg sm:text-xl max-w-xl mx-auto mb-10 leading-relaxed"
-            >
-              Watch stunning videos created by our community — then make your own.
-            </motion.p>
+            <p className="text-white/50 text-base sm:text-lg max-w-xl mx-auto mb-10 leading-relaxed font-light">
+              A living gallery of AI films from the Apex community. Watch, follow, and be inspired — then write the next frame.
+            </p>
 
-            {/* Search */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="max-w-xl mx-auto mb-6"
-            >
+            {/* Search — luminous glass */}
+            <div className="max-w-xl mx-auto mb-7">
               <div className="relative group">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/25 group-focus-within:text-violet-400 transition-colors" />
+                {/* glow ring */}
+                <div
+                  aria-hidden
+                  className="absolute -inset-px rounded-2xl pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity duration-500"
+                  style={{
+                    background: 'linear-gradient(120deg, hsla(215,100%,60%,0.45), hsla(195,100%,60%,0.30), hsla(215,100%,60%,0.45))',
+                    WebkitMask: 'linear-gradient(#000,#000) content-box, linear-gradient(#000,#000)',
+                    WebkitMaskComposite: 'xor',
+                    maskComposite: 'exclude',
+                    padding: '1px',
+                  }}
+                />
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-[hsl(215,100%,75%)] transition-colors" strokeWidth={1.6} />
                 <Input
                   ref={searchRef}
                   type="text"
-                  placeholder="Search videos..."
+                  placeholder="Search films, themes, creators…"
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-14 pr-12 h-14 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 rounded-2xl focus:border-violet-500/40 focus:bg-white/[0.06] transition-all text-base"
+                  className="pl-13 pr-12 h-14 bg-white/[0.025] border-white/[0.07] text-white placeholder:text-white/30 rounded-2xl focus:border-[hsl(215,100%,60%)]/45 focus:bg-white/[0.04] backdrop-blur-2xl transition-all text-[14px] font-light tracking-tight"
+                  style={{ paddingLeft: '3.25rem' }}
                 />
                 {searchQuery && (
                   <button
                     onClick={() => { setSearchQuery(''); setDebouncedQuery(''); }}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/20 transition-all"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/[0.06] flex items-center justify-center text-white/50 hover:text-white hover:bg-white/[0.12] transition-all"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
-            </motion.div>
+            </div>
 
-            {/* Stats pill */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="inline-flex items-center gap-3 text-xs text-white/30"
-            >
-              <span className="flex items-center gap-1.5">
-                <Video className="w-3.5 h-3.5" />
-                {totalVideos} videos
+            {/* Diagnostic ticker — signature */}
+            <div className="inline-flex items-center gap-5 text-[10px] uppercase tracking-[0.32em] text-white/40 font-medium">
+              <span className="inline-flex items-center gap-1.5 tabular-nums text-white/55">
+                <Video className="w-3 h-3 text-[hsl(var(--primary))]" />
+                {totalVideos} films
               </span>
-              <span className="w-1 h-1 rounded-full bg-white/15" />
-              <span>Updated live</span>
-            </motion.div>
+              <span className="w-px h-3 bg-white/10" />
+              {['Live', 'Ranked', 'Curated'].map((t, i) => (
+                <span key={t} className="inline-flex items-center gap-1.5">
+                  <span
+                    className="w-1 h-1 rounded-full bg-[hsl(var(--primary))]"
+                    style={{ animation: `creatorsTick 2.4s ease-in-out ${i * 0.4}s infinite` }}
+                  />
+                  {t}
+                </span>
+              ))}
+            </div>
+
+            {/* hairline */}
+            <div className="mt-12 h-px max-w-3xl mx-auto bg-gradient-to-r from-transparent via-white/[0.09] to-transparent" />
           </div>
         </section>
 
@@ -381,11 +413,11 @@ export default function Creators() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-500/20 border border-violet-500/30 text-violet-300 text-[10px] font-semibold uppercase tracking-wider mb-3">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[hsl(215,100%,60%)]/22 border border-[hsl(215,100%,60%)]/30 text-[hsl(215,100%,80%)] text-[10px] font-semibold uppercase tracking-wider mb-3">
                         <Sparkles className="w-3 h-3" />
                         Featured
                       </div>
-                      <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 line-clamp-2">{featuredVideos[0].title}</h3>
+                      <h3 className="font-display text-xl sm:text-2xl font-medium tracking-tight text-white mb-2 line-clamp-2">{featuredVideos[0].title}</h3>
                       <CreatorRow
                         creatorName={featuredVideos[0].creator?.display_name}
                         creatorAvatar={featuredVideos[0].creator?.avatar_url}
@@ -418,7 +450,7 @@ export default function Creators() {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-5">
-                        <h3 className="text-sm font-semibold text-white truncate mb-1">{video.title}</h3>
+                        <h3 className="font-display text-sm font-medium tracking-tight text-white truncate mb-1">{video.title}</h3>
                         <CreatorRow
                           creatorName={video.creator?.display_name}
                           creatorAvatar={video.creator?.avatar_url}
@@ -444,8 +476,12 @@ export default function Creators() {
             {/* Section header */}
             {!searchQuery && !isLoading && gridVideos.length > 0 && (
               <div className="flex items-center justify-between mb-8">
-                <h2 className="text-lg font-semibold text-white/80">All Videos</h2>
-                <span className="text-xs text-white/25">{gridVideos.length} videos</span>
+                <div className="flex items-center gap-3">
+                  <span className="w-1 h-5 rounded-full bg-[hsl(var(--primary))] shadow-[0_0_12px_hsla(215,100%,60%,0.6)]" />
+                  <h2 className="font-display text-base font-medium text-white tracking-tight">All Films</h2>
+                  <span className="text-[10px] uppercase tracking-[0.28em] text-white/30 font-medium">Library</span>
+                </div>
+                <span className="text-[10px] uppercase tracking-[0.28em] text-white/30 tabular-nums">{gridVideos.length} films</span>
               </div>
             )}
 
@@ -469,7 +505,7 @@ export default function Creators() {
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: Math.min(index * 0.03, 0.4) }}
-                    className="group rounded-2xl overflow-hidden cursor-pointer bg-white/[0.02] border border-white/[0.06] hover:border-primary/30 hover:bg-white/[0.04] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_12px_40px_-10px_hsl(263_70%_58%/0.15)] holo-shine"
+                    className="group rounded-2xl overflow-hidden cursor-pointer bg-white/[0.02] border border-white/[0.06] hover:border-primary/30 hover:bg-white/[0.04] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_12px_40px_-10px_hsla(215,100%,60%,0.22)] holo-shine"
                     onClick={() => setSelectedVideo({ id: video.id, title: video.title, user_id: video.user_id, creator: video.creator })}
                     onMouseEnter={() => setHoveredId(video.id)}
                     onMouseLeave={() => setHoveredId(null)}
@@ -484,7 +520,7 @@ export default function Creators() {
                       <PlayOverlay />
                     </div>
                     <div className="p-4 space-y-2">
-                      <h3 className="font-semibold text-sm text-white truncate group-hover:text-violet-300 transition-colors">{video.title}</h3>
+                      <h3 className="font-display font-medium tracking-tight text-sm text-white truncate group-hover:text-[hsl(215,100%,80%)] transition-colors">{video.title}</h3>
                       <CreatorRow
                         creatorName={video.creator?.display_name}
                         creatorAvatar={video.creator?.avatar_url}
@@ -513,34 +549,70 @@ export default function Creators() {
         {/* ═══ CTA SECTION ═══ */}
         <section className="px-4 sm:px-6 lg:px-8 pb-24">
           <div className="max-w-3xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="relative rounded-3xl overflow-hidden p-12 sm:p-16 text-center"
+            <div
+              className="relative rounded-[32px] overflow-hidden p-12 sm:p-16 text-center backdrop-blur-2xl"
+              style={{
+                background:
+                  'linear-gradient(180deg, hsla(0,0%,100%,0.025) 0%, hsla(0,0%,100%,0.005) 100%)',
+                border: '1px solid hsla(0,0%,100%,0.07)',
+                boxShadow:
+                  '0 30px 80px -30px rgba(0,0,0,0.8), inset 0 1px 0 hsla(0,0%,100%,0.05)',
+              }}
             >
-              {/* CTA background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 via-fuchsia-600/10 to-transparent border border-violet-500/20 rounded-3xl" />
-              <div className="absolute inset-0 bg-[#030303]/40" />
+              {/* corner aurora */}
+              <div
+                aria-hidden
+                className="absolute -top-32 -right-24 w-72 h-72 rounded-full blur-3xl pointer-events-none opacity-70"
+                style={{ background: 'radial-gradient(closest-side, hsl(var(--primary) / 0.32), transparent 70%)' }}
+              />
+              <div
+                aria-hidden
+                className="absolute -bottom-24 -left-20 w-64 h-64 rounded-full blur-3xl pointer-events-none opacity-40"
+                style={{ background: 'radial-gradient(closest-side, hsla(195,100%,55%,0.22), transparent 70%)' }}
+              />
+              {/* top hairline */}
+              <div
+                aria-hidden
+                className="absolute inset-x-0 top-0 h-px"
+                style={{ background: 'linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.18), transparent)' }}
+              />
 
               <div className="relative">
-                <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-                  Ready to create your own?
+                <div className="inline-flex items-center gap-2 h-7 pl-2 pr-3 rounded-full border border-white/[0.07] bg-white/[0.025] backdrop-blur-md mb-6">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inset-0 rounded-full bg-[hsl(var(--primary))] animate-ping opacity-60" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[hsl(var(--primary))]" />
+                  </span>
+                  <span className="text-[10px] uppercase tracking-[0.28em] text-white/55 font-medium">
+                    Your turn
+                  </span>
+                </div>
+                <h2 className="font-display text-3xl sm:text-5xl font-medium tracking-[-0.03em] text-white mb-5 leading-[0.98]">
+                  Direct your first{' '}
+                  <span
+                    className="bg-clip-text text-transparent"
+                    style={{
+                      backgroundImage:
+                        'linear-gradient(120deg, hsl(212 100% 72%) 0%, hsl(190 100% 72%) 50%, hsl(212 100% 86%) 100%)',
+                    }}
+                  >
+                    cinema.
+                  </span>
                 </h2>
-                <p className="text-white/40 text-base mb-8 max-w-md mx-auto">
-                  Turn any idea into a cinematic AI video in minutes. No experience needed.
+                <p className="text-white/45 text-[14px] mb-8 max-w-md mx-auto leading-relaxed font-light">
+                  Turn any idea into a cinematic AI film in minutes. No experience needed.
                 </p>
                 <Button
                   onClick={() => navigate(user ? '/projects' : '/auth?mode=signup')}
                   size="lg"
-                  className="h-13 px-8 text-sm font-semibold rounded-full bg-white text-black hover:bg-white/90 shadow-[0_0_40px_rgba(139,92,246,0.3)] hover:shadow-[0_0_60px_rgba(139,92,246,0.4)] transition-all duration-300"
+                  className="h-12 px-8 text-[13px] font-semibold rounded-full bg-white text-black hover:bg-white/90 shadow-[0_12px_40px_-12px_hsla(0,0%,100%,0.35),0_0_60px_hsla(215,100%,60%,0.32),inset_0_1px_0_hsla(0,0%,100%,0.6)] hover:shadow-[0_16px_50px_-12px_hsla(0,0%,100%,0.4),0_0_80px_hsla(215,100%,60%,0.42),inset_0_1px_0_hsla(0,0%,100%,0.6)] transition-all duration-300"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
                   {user ? 'Start Creating' : 'Get Started Free'}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>
-            </motion.div>
+            </div>
           </div>
         </section>
       </main>
@@ -661,8 +733,8 @@ function CreatorRow({
         {creatorAvatar ? (
           <img src={creatorAvatar} alt="" className="w-5 h-5 rounded-full object-cover ring-1 ring-white/10 flex-shrink-0" />
         ) : (
-          <div className="w-5 h-5 rounded-full bg-violet-500/20 flex items-center justify-center flex-shrink-0">
-            <span className="text-[9px] font-bold text-violet-300">
+          <div className="w-5 h-5 rounded-full bg-[hsl(215,100%,60%)]/22 flex items-center justify-center flex-shrink-0">
+            <span className="text-[9px] font-bold text-[hsl(215,100%,80%)]">
               {(creatorName || '?')[0]?.toUpperCase()}
             </span>
           </div>
@@ -676,7 +748,7 @@ function CreatorRow({
             "flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all flex-shrink-0",
             isFollowing
               ? "bg-white/[0.06] text-white/40 border border-white/[0.08]"
-              : "bg-violet-500/20 text-violet-300 border border-violet-500/30 hover:bg-violet-500/30"
+              : "bg-[hsl(215,100%,60%)]/22 text-[hsl(215,100%,80%)] border border-[hsl(215,100%,60%)]/30 hover:bg-[hsl(215,100%,60%)]/30"
           )}
         >
           {isFollowing ? <UserCheck className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
@@ -742,8 +814,8 @@ function VideoPlayerModal({
                 {video.creator?.avatar_url ? (
                   <img src={video.creator.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover ring-1 ring-white/10" />
                 ) : (
-                  <div className="w-6 h-6 rounded-full bg-violet-500/20 flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-violet-300">
+                  <div className="w-6 h-6 rounded-full bg-[hsl(215,100%,60%)]/22 flex items-center justify-center">
+                    <span className="text-[10px] font-bold text-[hsl(215,100%,80%)]">
                       {(video.creator?.display_name || '?')[0]?.toUpperCase()}
                     </span>
                   </div>
@@ -757,7 +829,7 @@ function VideoPlayerModal({
                     "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all",
                     isFollowing
                       ? "bg-white/[0.06] text-white/40 border border-white/[0.08]"
-                      : "bg-violet-500/20 text-violet-300 border border-violet-500/30 hover:bg-violet-500/30"
+                      : "bg-[hsl(215,100%,60%)]/22 text-[hsl(215,100%,80%)] border border-[hsl(215,100%,60%)]/30 hover:bg-[hsl(215,100%,60%)]/30"
                   )}
                 >
                   {isFollowing ? <UserCheck className="w-3.5 h-3.5" /> : <UserPlus className="w-3.5 h-3.5" />}
@@ -784,7 +856,7 @@ function VideoPlayerModal({
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all",
                 showComments
-                  ? "bg-violet-500/20 text-violet-300 border border-violet-500/30"
+                  ? "bg-[hsl(215,100%,60%)]/22 text-[hsl(215,100%,80%)] border border-[hsl(215,100%,60%)]/30"
                   : "bg-white/[0.06] text-white/50 border border-white/[0.08] hover:bg-white/[0.1] hover:text-white"
               )}
             >

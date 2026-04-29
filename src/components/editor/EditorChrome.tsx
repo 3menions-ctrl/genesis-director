@@ -672,16 +672,35 @@ export function EditorChrome({
         className="h-screen w-screen flex flex-col overflow-hidden relative"
         style={{
           background:
-            'radial-gradient(1200px 600px at 50% -10%, hsla(215, 90%, 22%, 0.18), transparent 60%), radial-gradient(800px 500px at 100% 110%, hsla(215, 80%, 18%, 0.10), transparent 55%), hsl(220, 14%, 3.2%)',
+            'radial-gradient(1400px 700px at 50% -15%, hsla(215, 95%, 26%, 0.22), transparent 62%), radial-gradient(900px 560px at 100% 110%, hsla(210, 85%, 20%, 0.14), transparent 58%), radial-gradient(700px 500px at 0% 100%, hsla(220, 70%, 14%, 0.16), transparent 60%), linear-gradient(180deg, hsl(220, 16%, 3.4%) 0%, hsl(220, 14%, 2.4%) 100%)',
         }}
       >
+        {/* Aurora light wash — soft chromatic depth */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-0 opacity-[0.55]"
+          style={{
+            background:
+              'radial-gradient(60% 40% at 12% 8%, hsla(210, 100%, 50%, 0.06), transparent 70%), radial-gradient(50% 35% at 88% 92%, hsla(220, 100%, 55%, 0.05), transparent 70%)',
+            mixBlendMode: 'screen',
+          }}
+        />
         {/* Subtle film-grain veil for premium texture */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 z-0 opacity-[0.025] mix-blend-overlay"
+          className="pointer-events-none absolute inset-0 z-0 opacity-[0.035] mix-blend-overlay"
           style={{
             backgroundImage:
               "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
+          }}
+        />
+        {/* Edge vignette — frames the chrome like a high-end display */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-0"
+          style={{
+            background:
+              'radial-gradient(120% 90% at 50% 50%, transparent 55%, hsla(220, 30%, 0%, 0.55) 100%)',
           }}
         />
         {/* Luminous accent line — top */}
@@ -702,13 +721,13 @@ export function EditorChrome({
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="h-12 flex items-center px-4 shrink-0 z-10 relative backdrop-blur-xl"
+          className="h-12 flex items-center px-4 shrink-0 z-10 relative backdrop-blur-2xl"
           style={{
             background:
-              'linear-gradient(180deg, hsla(220, 14%, 9%, 0.92) 0%, hsla(220, 14%, 5%, 0.88) 100%)',
-            borderBottom: '1px solid hsla(0, 0%, 100%, 0.05)',
+              'linear-gradient(180deg, hsla(220, 16%, 10%, 0.86) 0%, hsla(220, 14%, 4%, 0.82) 100%)',
+            borderBottom: '1px solid hsla(0, 0%, 100%, 0.06)',
             boxShadow:
-              'inset 0 1px 0 hsla(0,0%,100%,0.04), 0 1px 0 hsla(0,0%,0%,0.4), 0 8px 24px -12px hsla(215, 100%, 30%, 0.25)',
+              'inset 0 1px 0 hsla(0,0%,100%,0.06), inset 0 -1px 0 hsla(0,0%,0%,0.5), 0 12px 32px -14px hsla(215, 100%, 30%, 0.32), 0 1px 0 hsla(0,0%,0%,0.5)',
           }}
         >
           {/* ── Left: Navigation + Session ── */}
@@ -1022,40 +1041,59 @@ export function EditorChrome({
           <div className="flex-1 min-w-0 flex flex-col overflow-hidden relative">
             {/* Player stage with cinematic letterbox feel */}
             <div
-              className="h-[42%] shrink-0 relative px-3 pt-3 pb-2"
+              className="h-[42%] shrink-0 relative px-4 pt-4 pb-2.5"
               style={{
                 background:
-                  'radial-gradient(60% 90% at 50% 0%, hsla(215, 80%, 18%, 0.18), transparent 70%), hsla(220, 14%, 2%, 0.6)',
+                  'radial-gradient(70% 100% at 50% 0%, hsla(215, 85%, 20%, 0.22), transparent 72%), radial-gradient(40% 60% at 50% 100%, hsla(215, 70%, 14%, 0.10), transparent 70%), hsla(220, 16%, 1.6%, 0.7)',
               }}
             >
+              {/* Soft top key-light streak — gives the stage a "spotlight" feel */}
               <div
-                className="w-full h-full rounded-xl overflow-hidden relative"
+                aria-hidden
+                className="pointer-events-none absolute inset-x-10 top-0 h-px"
+                style={{
+                  background:
+                    'linear-gradient(90deg, transparent, hsla(215,100%,70%,0.35), transparent)',
+                  filter: 'blur(0.5px)',
+                }}
+              />
+              <div
+                className="w-full h-full rounded-2xl overflow-hidden relative"
                 style={{
                   background: 'hsl(0, 0%, 0%)',
                   boxShadow:
-                    '0 0 0 1px hsla(0,0%,100%,0.06) inset, 0 0 0 1px hsla(0,0%,0%,0.6), 0 24px 60px -20px hsla(0,0%,0%,0.85), 0 0 80px -10px hsla(215,100%,40%,0.18)',
+                    '0 0 0 1px hsla(0,0%,100%,0.08) inset, 0 0 0 1px hsla(0,0%,0%,0.7), 0 1px 0 hsla(0,0%,100%,0.04) inset, 0 30px 80px -24px hsla(0,0%,0%,0.95), 0 0 100px -8px hsla(215,100%,42%,0.24), 0 0 0 6px hsla(220,14%,2%,0.6)',
                 }}
               >
                 <VideoPreviewPlayer className="absolute inset-0" />
                 {/* corner crosshairs */}
                 <div className="pointer-events-none absolute inset-0">
                   {[
-                    'top-2 left-2 border-t border-l',
-                    'top-2 right-2 border-t border-r',
-                    'bottom-2 left-2 border-b border-l',
-                    'bottom-2 right-2 border-b border-r',
+                    'top-3 left-3 border-t border-l',
+                    'top-3 right-3 border-t border-r',
+                    'bottom-3 left-3 border-b border-l',
+                    'bottom-3 right-3 border-b border-r',
                   ].map((cls) => (
                     <span
                       key={cls}
-                      className={`absolute w-3 h-3 ${cls}`}
-                      style={{ borderColor: 'hsla(215,100%,75%,0.18)' }}
+                      className={`absolute w-3.5 h-3.5 ${cls}`}
+                      style={{ borderColor: 'hsla(215,100%,80%,0.22)' }}
                     />
                   ))}
                 </div>
+                {/* Subtle vignette inside the stage for cinematic depth */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0"
+                  style={{
+                    background:
+                      'radial-gradient(120% 90% at 50% 50%, transparent 60%, hsla(0,0%,0%,0.4) 100%)',
+                  }}
+                />
               </div>
             </div>
             {/* hairline divider */}
-            <div className="h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,55%,0.2)] to-transparent shrink-0" />
+            <div className="h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,55%,0.28)] to-transparent shrink-0" />
             <CustomTimeline className="flex-1 min-h-0" onOpenTextDialog={() => setTextDialogOpen(true)} />
           </div>
 
@@ -1065,14 +1103,24 @@ export function EditorChrome({
 
         {/* ═══════════════ STATUS BAR ═══════════════ */}
         <div
-          className="h-7 flex items-center px-4 shrink-0 z-10 select-none overflow-hidden gap-4 backdrop-blur-md"
+          className="h-7 flex items-center px-4 shrink-0 z-10 select-none overflow-hidden gap-4 backdrop-blur-xl relative"
           style={{
             background:
-              'linear-gradient(180deg, hsla(220, 14%, 6%, 0.92) 0%, hsla(220, 14%, 3%, 0.95) 100%)',
-            borderTop: '1px solid hsla(0, 0%, 100%, 0.05)',
-            boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.03)',
+              'linear-gradient(180deg, hsla(220, 16%, 7%, 0.9) 0%, hsla(220, 14%, 2%, 0.95) 100%)',
+            borderTop: '1px solid hsla(0, 0%, 100%, 0.06)',
+            boxShadow:
+              'inset 0 1px 0 hsla(0,0%,100%,0.05), 0 -8px 24px -12px hsla(215, 100%, 30%, 0.18)',
           }}
         >
+          {/* Hairline luminous divider above status bar */}
+          <div
+            aria-hidden
+            className="absolute top-0 inset-x-0 h-px"
+            style={{
+              background:
+                'linear-gradient(90deg, transparent, hsla(215,100%,60%,0.22), transparent)',
+            }}
+          />
           {/* Left stats */}
           <div className="flex items-center gap-3 text-[9px] text-muted-foreground/45 shrink-0 whitespace-nowrap font-medium">
             <span className="flex items-center gap-1">

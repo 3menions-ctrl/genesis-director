@@ -85,16 +85,18 @@ serve(async (req) => {
         p_description: `Editor clip generation (${duration}s)`,
       });
 
-      // Build Seedance input (duration must be integer 5 or 10)
-      const durNum = parseInt(String(duration), 10);
+      // Build Seedance input (duration MUST be integer 5 or 10) — v2
+      const durNum = parseInt(String(duration), 10) || 5;
+      const finalDuration: number = durNum >= 10 ? 10 : 5;
       const seedanceInput: Record<string, any> = {
         prompt: prompt + QUALITY_SUFFIX,
-        duration: durNum >= 10 ? 10 : 5,
+        duration: finalDuration,
         aspect_ratio: aspectRatio,
         resolution: "1080p",
         fps: 24,
         camera_fixed: false,
       };
+      console.log("[editor-generate-clip] Seedance input:", JSON.stringify(seedanceInput));
 
       if (startImageUrl) {
         seedanceInput.image = startImageUrl;

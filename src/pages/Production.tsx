@@ -1386,9 +1386,6 @@ const transitionsData = useMemo(() =>
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Premium Pipeline Background */}
-      <PipelineBackground />
-      
       {/* App Header */}
       <AppHeader />
 
@@ -1398,8 +1395,28 @@ const transitionsData = useMemo(() =>
         <div className="flex-1 flex flex-col overflow-hidden">
 
           {/* Content Grid */}
-          <div className="flex-1 overflow-auto p-4 lg:p-6">
-            <div className="max-w-5xl mx-auto space-y-5">
+          <div className="flex-1 overflow-auto">
+            <PageShell width="default" pad={false} className="space-y-6">
+              <PageHeader
+                eyebrow="Production"
+                title={projectTitle || 'Untitled project'}
+                subtitle={
+                  pipelineStage
+                    ? `Stage: ${pipelineStage.replace(/_/g, ' ')}`
+                    : projectStatus
+                      ? `Status: ${projectStatus.replace(/_/g, ' ')}`
+                      : 'Preparing your scene…'
+                }
+                actions={
+                  <button
+                    onClick={() => navigate('/projects')}
+                    className="h-9 px-4 rounded-full border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] text-sm text-white/70 hover:text-white transition-colors"
+                  >
+                    Back to library
+                  </button>
+                }
+              />
+              <div className="space-y-5 pb-24">
               
               {/* Script Review Panel - Only shown when awaiting approval */}
               {scriptShots && scriptShots.length > 0 && pipelineStage === 'awaiting_approval' && (

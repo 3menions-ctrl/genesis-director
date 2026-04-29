@@ -289,11 +289,12 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
       >
         <div className="relative w-32 h-[72px] rounded-lg overflow-hidden bg-white/[0.02] shrink-0">
           {hasVideo && videoSrc ? (
-            project.thumbnail_url ? (
-              <img src={project.thumbnail_url} alt={project.name} className="w-full h-full object-cover" />
-            ) : (
-              <LazyVideoThumbnail src={videoSrc} posterUrl={project.thumbnail_url} alt={project.name} className="w-full h-full object-cover" />
-            )
+            <ThumbWithFallback
+              thumbnailUrl={project.thumbnail_url}
+              videoSrc={videoSrc}
+              alt={project.name}
+              className="w-full h-full object-cover"
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               {isProcessing ? <Loader2 className="w-4 h-4 text-white/20 animate-spin" /> : <Film className="w-4 h-4 text-white/[0.06]" />}

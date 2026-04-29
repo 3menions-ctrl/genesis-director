@@ -250,7 +250,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
       case 'pro':
         return { label: 'Pro', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' };
       case 'enterprise':
-        return { label: 'Enterprise', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' };
+        return { label: 'Enterprise', color: 'text-[hsl(215,100%,72%)]', bg: 'bg-[hsl(215,100%,60%)]/12', border: 'border-[hsl(215,100%,60%)]/22' };
       default:
         return { label: 'Free', color: 'text-white/60', bg: 'bg-white/5', border: 'border-white/10' };
     }
@@ -259,7 +259,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
   const tierInfo = getTierInfo((profile as any)?.account_tier);
 
   const cardClass = "relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.015] backdrop-blur-sm p-6";
-  const topAccent = "absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent";
+  const topAccent = "absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[hsl(215,100%,60%)]/22 to-transparent";
 
   return (
     <div ref={ref} className="space-y-6">
@@ -301,7 +301,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             <Button
               onClick={handleSave}
               disabled={isSaving}
-              className="bg-violet-600 hover:bg-violet-500 text-white rounded-xl shadow-lg shadow-violet-500/20"
+              className="bg-[hsl(215,100%,55%)] hover:bg-[hsl(215,100%,62%)] text-white rounded-xl shadow-lg shadow-[hsl(215,100%,60%)]/22"
             >
               {isSaving ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -324,11 +324,11 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
         
         <div className="flex items-center gap-6">
           <div className="relative group">
-            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-500/10 border border-violet-500/20 flex items-center justify-center overflow-hidden ring-2 ring-violet-500/10 ring-offset-2 ring-offset-[#06060a]">
+            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[hsl(215,100%,60%)]/22 to-[hsl(195,100%,55%)]/18 border border-[hsl(215,100%,60%)]/22 flex items-center justify-center overflow-hidden ring-2 ring-[hsl(215,100%,60%)]/12 ring-offset-2 ring-offset-[#06060a]">
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
               ) : (
-                <User className="w-10 h-10 text-violet-300/40" />
+                <User className="w-10 h-10 text-[hsl(215,100%,80%)]/40" />
               )}
             </div>
             <button
@@ -382,7 +382,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
                 value={formData.display_name}
                 onChange={(e) => handleInputChange('display_name', e.target.value)}
                 placeholder="How should we call you?"
-                className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl focus:border-violet-500/40 focus:ring-violet-500/20"
+                className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl focus:border-[hsl(215,100%,60%)]/40 focus:ring-[hsl(215,100%,60%)]/22"
               />
             ) : (
               <p className="text-white py-2 text-sm">{profile?.display_name || '—'}</p>
@@ -396,7 +396,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
                 value={formData.full_name}
                 onChange={(e) => handleInputChange('full_name', e.target.value)}
                 placeholder="Your full name"
-                className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl focus:border-violet-500/40 focus:ring-violet-500/20"
+                className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl focus:border-[hsl(215,100%,60%)]/40 focus:ring-[hsl(215,100%,60%)]/22"
               />
             ) : (
               <p className="text-white py-2 text-sm">{profile?.full_name || '—'}</p>
@@ -434,7 +434,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
                 value={formData.company}
                 onChange={(e) => handleInputChange('company', e.target.value)}
                 placeholder="Your company name"
-                className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl focus:border-violet-500/40 focus:ring-violet-500/20"
+                className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl focus:border-[hsl(215,100%,60%)]/40 focus:ring-[hsl(215,100%,60%)]/22"
               />
             ) : (
               <p className="text-white py-2 text-sm">{profile?.company || '—'}</p>
@@ -451,7 +451,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
                 value={formData.role}
                 onChange={(e) => handleInputChange('role', e.target.value)}
                 placeholder="Your role or title"
-                className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl focus:border-violet-500/40 focus:ring-violet-500/20"
+                className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 rounded-xl focus:border-[hsl(215,100%,60%)]/40 focus:ring-[hsl(215,100%,60%)]/22"
               />
             ) : (
               <p className="text-white py-2 text-sm">{profile?.role || '—'}</p>
@@ -466,7 +466,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
                 onChange={(e) => handleInputChange('use_case', e.target.value)}
                 placeholder="Tell us about your use case..."
                 rows={3}
-                className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 resize-none rounded-xl focus:border-violet-500/40 focus:ring-violet-500/20"
+                className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 resize-none rounded-xl focus:border-[hsl(215,100%,60%)]/40 focus:ring-[hsl(215,100%,60%)]/22"
               />
             ) : (
               <p className="text-white py-2 text-sm">{profile?.use_case || '—'}</p>
@@ -518,8 +518,8 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
         <div className={topAccent} />
 
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/15 flex items-center justify-center">
-            <Shield className="w-4.5 h-4.5 text-violet-400/80" />
+          <div className="w-9 h-9 rounded-xl bg-[hsl(215,100%,60%)]/12 border border-[hsl(215,100%,60%)]/15 flex items-center justify-center">
+            <Shield className="w-4.5 h-4.5 text-[hsl(215,100%,72%)]/80" />
           </div>
           <div>
             <h3 className="font-semibold text-white">Privacy Preferences</h3>
@@ -591,8 +591,8 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
         <DialogContent className="bg-[#0a0a0f]/98 backdrop-blur-2xl border-white/[0.08] rounded-2xl max-w-md mx-auto max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-                <Mail className="w-5 h-5 text-violet-400" />
+              <div className="w-10 h-10 rounded-xl bg-[hsl(215,100%,60%)]/12 border border-[hsl(215,100%,60%)]/22 flex items-center justify-center">
+                <Mail className="w-5 h-5 text-[hsl(215,100%,72%)]" />
               </div>
               <DialogTitle className="text-white">Change Email Address</DialogTitle>
             </div>
@@ -643,7 +643,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             <Button
               onClick={handleEmailChange}
               disabled={!newEmail || isChangingEmail}
-              className="bg-violet-600 hover:bg-violet-500 text-white rounded-xl"
+              className="bg-[hsl(215,100%,55%)] hover:bg-[hsl(215,100%,62%)] text-white rounded-xl"
             >
               {isChangingEmail ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

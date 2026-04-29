@@ -348,6 +348,24 @@ export default function Pricing() {
         <AbstractBackground className="fixed inset-0 z-0" />
       </Suspense>
 
+      {/* Cinematic conic aurora — matches loader signature */}
+      <style>{`
+        @keyframes pricingAurora { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+        @keyframes pricingTick { 0%,100%{opacity:.35} 50%{opacity:1} }
+      `}</style>
+      <div aria-hidden className="fixed inset-0 pointer-events-none z-[1]">
+        <div
+          className="absolute -inset-[20%] opacity-[0.16]"
+          style={{
+            background:
+              'conic-gradient(from 0deg at 50% 50%, transparent 0deg, hsla(215,100%,60%,0.32) 60deg, transparent 130deg, hsla(210,100%,55%,0.2) 220deg, transparent 300deg, hsla(215,100%,60%,0.26) 360deg)',
+            filter: 'blur(80px)',
+            animation: 'pricingAurora 60s linear infinite',
+          }}
+        />
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 55%, hsl(220 14% 1%) 100%)' }} />
+      </div>
+
       {/* Ambient hero glow stack */}
       <div className="fixed inset-0 pointer-events-none z-[1]">
         <div
@@ -414,6 +432,19 @@ export default function Pricing() {
             <p className="text-[15px] text-white/45 mt-5 max-w-lg mx-auto leading-relaxed">
               Pay only for what you create. <span className="text-white/70 tabular-nums">1 credit = $0.10</span> · roughly 10 credits per finished clip. Buy more, save more — no subscriptions, no expirations.
             </p>
+
+            {/* Diagnostic ticker — signature */}
+            <div className="mt-8 inline-flex items-center gap-5 text-[10px] uppercase tracking-[0.32em] text-white/40 font-medium">
+              {['Engine', 'Render', 'Stream'].map((t, i) => (
+                <span key={t} className="inline-flex items-center gap-1.5">
+                  <span
+                    className="w-1 h-1 rounded-full bg-[hsl(var(--primary))]"
+                    style={{ animation: `pricingTick 2.4s ease-in-out ${i * 0.4}s infinite` }}
+                  />
+                  {t}
+                </span>
+              ))}
+            </div>
           </motion.div>
         </div>
       </section>

@@ -239,6 +239,18 @@ export default function Landing() {
       </ErrorBoundaryWrapper>
 
       {/* Navigation */}
+      {/* Seedance 2.0 announcement banner */}
+      <div className="relative z-20 w-full bg-gradient-to-r from-[#0A84FF]/20 via-[#0A84FF]/10 to-transparent border-b border-white/10 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-6 py-2 flex items-center justify-center gap-2 text-center">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#0A84FF] text-white text-[10px] font-semibold tracking-wider uppercase">
+            New
+          </span>
+          <span className="text-sm text-white/80 font-medium">
+            Now powered by <span className="text-white font-semibold">Seedance 2.0</span>
+          </span>
+        </div>
+      </div>
+
       <LandingNav 
         onScrollToSection={scrollToSection} 
         onNavigate={handleNavigate} 

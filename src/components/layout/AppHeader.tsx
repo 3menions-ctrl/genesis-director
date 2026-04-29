@@ -167,16 +167,17 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
                         <span 
                           className="absolute inset-0 rounded-[14px] animate-fade-in-scale"
                           style={{
-                            background: 'linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--foreground) / 0.85) 100%)',
-                            boxShadow: '0 2px 12px rgba(255,255,255,0.1), 0 0 20px rgba(255,255,255,0.05)',
+                            background: 'linear-gradient(135deg, hsl(210 100% 60% / 0.18) 0%, hsl(210 100% 50% / 0.10) 100%)',
+                            border: '1px solid hsl(210 100% 65% / 0.25)',
+                            boxShadow: '0 0 0 1px hsl(0 0% 100% / 0.04) inset, 0 4px 16px hsl(210 100% 50% / 0.18), 0 0 24px hsl(210 100% 60% / 0.12)',
                           }}
                         />
                       )}
                       <Icon className={cn(
                         "relative z-10 w-3.5 h-3.5 transition-all duration-300",
-                        active ? "opacity-70" : "opacity-40 group-hover:opacity-60"
+                        active ? "opacity-90 text-white" : "opacity-40 group-hover:opacity-60"
                       )} />
-                      <span className="relative z-10">{item.label}</span>
+                      <span className={cn("relative z-10", active && "text-white")}>{item.label}</span>
                     </NavigationLink>
                   );
                 })}

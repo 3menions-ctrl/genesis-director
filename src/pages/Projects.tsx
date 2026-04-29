@@ -430,7 +430,6 @@ function ProjectsContentInner() {
           .from('video_clips')
           .select('project_id, video_url, shot_index')
           .in('project_id', projectIds)
-          .eq('status', 'completed')
           .not('video_url', 'is', null)
           .order('shot_index', { ascending: true });
         

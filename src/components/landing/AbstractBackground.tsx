@@ -15,6 +15,7 @@ const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundPro
           src={landingAbstractBg}
           alt="Dubai skyline above clouds"
           className="absolute inset-0 h-full w-full object-contain object-center select-none pointer-events-none"
+          style={{ filter: 'brightness(1.35) saturate(1.12)' }}
           draggable={false}
         />
 
@@ -22,7 +23,7 @@ const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundPro
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: 'radial-gradient(ellipse at center, transparent 62%, rgba(0,0,0,0.22) 100%)',
+            background: 'radial-gradient(ellipse at center, transparent 72%, rgba(0,0,0,0.12) 100%)',
           }}
         />
       </div>

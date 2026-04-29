@@ -2165,3 +2165,10 @@ img, a, button {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* Make page wrappers transparent inside the authenticated AppShell so the
+   global CinemaBackdrop shows through. Pages outside AppShell (landing,
+   auth, onboarding, marketing) are unaffected. */
+[data-app-shell] .bg-background {
+  background-color: transparent !important;
+}

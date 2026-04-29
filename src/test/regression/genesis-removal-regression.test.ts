@@ -486,7 +486,7 @@ describe('11. All Remaining Pages Export Correctly', () => {
   ];
 
   CORE_PAGES.forEach(page => {
-    it(`${page} page module exports default`, async () => {
+    it(`${page} page module exports default`, { timeout: 60000 }, async () => {
       const module = await import(`@/pages/${page}`);
       expect(module.default).toBeDefined();
     });

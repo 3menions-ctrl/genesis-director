@@ -202,6 +202,17 @@ export function AppShell({ children }: AppShellProps) {
             >
               <X className="w-4 h-4" />
             </button>
+            <button
+              className={cn(
+                'ml-auto hidden lg:flex w-8 h-8 rounded-lg items-center justify-center hover:bg-white/[0.06] text-white/50 hover:text-white transition-colors',
+                collapsed && 'lg:hidden',
+              )}
+              onClick={() => setHidden(true)}
+              aria-label="Hide sidebar"
+              title="Hide sidebar"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
           {/* Create CTA */}

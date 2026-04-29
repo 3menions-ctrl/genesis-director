@@ -1,6 +1,6 @@
 import { forwardRef, memo, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-import landingAbstractBg from '@/assets/landing-bg-dubai.jpg';
+import landingAbstractBg from '@/assets/landing-bg-dubai-full.jpeg';
 
 interface AbstractBackgroundProps {
   className?: string;
@@ -35,33 +35,26 @@ const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundPro
 
     return (
       <div ref={ref} className={cn("absolute inset-0 bg-background", className)}>
-        {/* Blurred fill behind: prevents black bars when 'contain' letterboxes
-            on narrow/tall viewports while keeping the full skyline visible. */}
+        {/* Ambient fill only: fills empty space while the real image stays fully visible. */}
         <div
           className="absolute inset-0 bg-no-repeat bg-center"
           style={{
             backgroundImage: `url(${landingAbstractBg})`,
             backgroundSize: 'cover',
-            filter: 'blur(60px) saturate(1.2) brightness(0.5)',
+            filter: 'blur(72px) saturate(1.1) brightness(0.38)',
             transform: 'scale(1.15)',
-            opacity: 0.85,
+            opacity: 0.65,
           }}
           aria-hidden
         />
 
-        {/* Base image layer — full image visible, never cropped.
-            Uses 'contain' so the entire skyline is shown on every aspect ratio. */}
+        {/* Exact background image — full frame visible, never cropped or zoomed. */}
         <div 
-          className="absolute inset-0 bg-no-repeat"
+          className="absolute inset-0 bg-no-repeat bg-center"
           style={{ 
             backgroundImage: `url(${landingAbstractBg})`,
             backgroundSize: 'contain',
-            backgroundPosition: 'center center',
-            filter: 'brightness(1.15) saturate(1.1)',
-            ...(isTouchDevice ? {} : {
-              transition: 'transform 2000ms ease-out',
-              transform: `translate(${(mousePos.x - 50) * -0.015}%, ${(mousePos.y - 50) * -0.015}%)`,
-            }),
+            filter: 'brightness(1.08) saturate(1.05)',
           }}
         />
         
@@ -106,14 +99,11 @@ const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundPro
           </div>
         )}
 
-        {/* Very light darken so foreground text stays readable without hiding the image */}
-        <div className="absolute inset-0 bg-black/10 pointer-events-none" />
-
         {/* Soft vignette — gentle edge falloff only */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: 'radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.35) 100%)',
+            background: 'radial-gradient(ellipse at center, transparent 62%, rgba(0,0,0,0.22) 100%)',
           }}
         />
         

@@ -18,6 +18,7 @@ import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 import { NotificationBell } from '@/components/social/NotificationBell';
 import { useNavigationWithLoading } from '@/components/navigation';
 import logoImage from '@/assets/apex-studio-logo.png';
+import { CinemaBackdrop } from '@/components/ui/CinemaBackdrop';
 
 interface NavItem {
   label: string;
@@ -83,25 +84,8 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <TooltipProvider delayDuration={150}>
       <div className="relative flex min-h-screen w-full bg-background text-foreground overflow-x-hidden">
-        {/* Ambient cinematic background */}
-        <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
-          <div
-            className="absolute inset-0 opacity-60"
-            style={{
-              background:
-                'radial-gradient(900px 600px at 8% -10%, hsl(var(--primary) / 0.10), transparent 60%),' +
-                'radial-gradient(700px 500px at 110% 10%, hsl(var(--accent) / 0.08), transparent 60%),' +
-                'radial-gradient(800px 600px at 50% 110%, hsl(var(--primary) / 0.05), transparent 70%)',
-            }}
-          />
-          <div
-            className="absolute inset-0 opacity-[0.04] mix-blend-overlay"
-            style={{
-              backgroundImage:
-                'url("data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22240%22 height=%22240%22><filter id=%22n%22><feTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%222%22 stitchTiles=%22stitch%22/></filter><rect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22 opacity=%220.6%22/></svg>")',
-            }}
-          />
-        </div>
+        {/* Cinematic backdrop — identical to global loading screen */}
+        <CinemaBackdrop />
 
         {/* Mobile backdrop */}
         {mobileOpen && (

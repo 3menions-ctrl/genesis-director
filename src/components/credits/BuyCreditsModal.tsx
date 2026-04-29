@@ -541,6 +541,8 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
                   </motion.div>
                 </>
               )}
+              </>
+              )}
             </div>
           </div>
         </DialogContent>

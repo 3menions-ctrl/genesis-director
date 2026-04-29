@@ -46,13 +46,13 @@ export const AvatarsCategoryTabs = memo(forwardRef<HTMLDivElement, AvatarsCatego
                 "flex items-center gap-2 text-sm font-medium",
                 "border backdrop-blur-sm",
                 isActive
-                  ? "bg-violet-500/20 text-white border-violet-500/50 shadow-[0_0_20px_rgba(139,92,246,0.2)]"
+                  ? "bg-[hsla(215,100%,55%,0.12)] text-white border-[hsla(215,100%,55%,0.4)] shadow-[0_0_20px_hsla(215,100%,55%,0.18)]"
                   : "bg-white/[0.02] text-white/50 border-white/[0.06] hover:bg-white/[0.05] hover:text-white/80 hover:border-white/[0.12]"
               )}
             >
               <span>{type.name}</span>
               {isActive && (
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-violet-400 animate-scale-in" />
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[hsl(215,100%,72%)] animate-scale-in" />
               )}
             </button>
           );
@@ -90,7 +90,7 @@ export const AvatarsCategoryTabs = memo(forwardRef<HTMLDivElement, AvatarsCatego
                   "flex items-center gap-1.5 text-xs md:text-sm font-medium whitespace-nowrap",
                   "border",
                   isActive
-                    ? "bg-violet-500/15 text-white border-violet-500/40 shadow-sm"
+                    ? "bg-[hsla(215,100%,55%,0.1)] text-white border-[hsla(215,100%,55%,0.32)] shadow-sm"
                     : "bg-white/[0.02] text-white/45 border-white/[0.06] hover:bg-white/[0.05] hover:text-white/75 hover:border-white/[0.1]"
                 )}
               >
@@ -99,7 +99,7 @@ export const AvatarsCategoryTabs = memo(forwardRef<HTMLDivElement, AvatarsCatego
                 {count > 0 && cat.id !== 'all' && (
                   <span className={cn(
                     "text-[10px] px-1.5 py-0.5 rounded-full min-w-[18px] text-center",
-                    isActive ? "bg-violet-500/30 text-violet-200" : "bg-white/[0.06] text-white/30"
+                    isActive ? "bg-[hsla(215,100%,55%,0.22)] text-[hsl(215,100%,82%)]" : "bg-white/[0.06] text-white/30"
                   )}>
                     {count}
                   </span>

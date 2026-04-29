@@ -90,29 +90,35 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
         className={cn(
           "relative flex-shrink-0 cursor-pointer transition-all duration-300",
           "rounded-2xl md:rounded-3xl overflow-hidden",
-          isSelected && "ring-2 ring-violet-500 ring-offset-2 ring-offset-black",
-          isHovered && !isSelected && "scale-[1.02]",
+          isHovered && !isSelected && "scale-[1.015]",
           imageLoaded ? "opacity-100 scale-100" : "opacity-30 scale-[0.98]",
           "animate-fade-in"
         )}
         style={{
           width: cardWidth,
           scrollSnapAlign: 'center',
+          boxShadow: isSelected
+            ? 'inset 0 1px 0 hsla(215,100%,80%,0.18), inset 0 0 0 1.5px hsla(215,100%,55%,0.55), 0 0 0 4px hsla(215,100%,55%,0.12), 0 24px 60px -20px hsla(215,100%,55%,0.45), 0 0 80px hsla(215,100%,55%,0.18)'
+            : isHovered
+              ? 'inset 0 1px 0 hsla(0,0%,100%,0.05), inset 0 0 0 1px hsla(0,0%,100%,0.06), 0 20px 50px -18px hsla(0,0%,0%,0.65)'
+              : 'inset 0 1px 0 hsla(0,0%,100%,0.03), inset 0 0 0 1px hsla(0,0%,100%,0.035)',
         }}
       >
         {/* Card Background */}
-        <div className={cn(
-          "absolute inset-0 transition-all duration-300",
-          isSelected 
-            ? "bg-gradient-to-b from-violet-500/20 to-violet-900/30" 
-            : "bg-gradient-to-b from-white/[0.03] to-black/50",
-          "backdrop-blur-sm"
-        )} />
+        <div
+          className="absolute inset-0 transition-all duration-500"
+          style={{
+            background: isSelected
+              ? 'linear-gradient(180deg, hsla(215,100%,55%,0.10) 0%, hsla(220,14%,2%,0.55) 100%)'
+              : 'linear-gradient(180deg, hsla(0,0%,100%,0.018) 0%, hsla(220,14%,2%,0.55) 100%)',
+            backdropFilter: 'blur(24px) saturate(160%)',
+          }}
+        />
         
         {/* Avatar Image Container */}
         {/* Fixed aspect ratio container - ensures all cards have identical height */}
         {/* Background uses subtle gradient to fill any empty space around contained images */}
-        <div className="relative aspect-[2/3] overflow-hidden bg-gradient-to-b from-zinc-900/80 via-zinc-900 to-black" style={{ minHeight: 0 }}>
+        <div className="relative aspect-[2/3] overflow-hidden" style={{ minHeight: 0, background: 'linear-gradient(180deg, hsl(220,14%,5%) 0%, hsl(220,14%,2%) 100%)' }}>
           {/* Shimmer skeleton - visible until image loads */}
           {!imageLoaded && (
             <div className="absolute inset-0">
@@ -145,41 +151,62 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
           
           {/* Fallback for failed images */}
           {imageError && (
-            <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
+            <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'hsl(220,14%,4%)' }}>
               <div className="text-center">
-                <User className="w-12 h-12 text-zinc-600 mx-auto mb-2" />
-                <span className="text-xs text-zinc-500">{avatar.name}</span>
+                <User className="w-10 h-10 text-white/15 mx-auto mb-2" strokeWidth={1.5} />
+                <span className="text-[10px] font-light tracking-[0.16em] uppercase text-white/30">{avatar.name}</span>
               </div>
             </div>
           )}
           
-          {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent opacity-80" />
+          {/* Gradient overlay — luminous bottom for text */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'linear-gradient(180deg, transparent 30%, hsla(220,14%,1%,0.4) 65%, hsla(220,14%,1%,0.92) 100%)',
+            }}
+          />
           
           {/* Selection indicator */}
           {isSelected && (
-            <div className="absolute top-3 md:top-4 right-3 md:right-4 w-7 h-7 md:w-8 md:h-8 rounded-full bg-violet-500 flex items-center justify-center shadow-lg shadow-violet-500/50 animate-scale-in">
-              <Check className="w-4 h-4 md:w-5 md:h-5 text-white" />
+            <div
+              className="absolute top-3 md:top-4 right-3 md:right-4 w-8 h-8 rounded-full flex items-center justify-center animate-scale-in"
+              style={{
+                background: 'linear-gradient(135deg, hsla(215,100%,62%,0.98) 0%, hsla(215,100%,52%,0.98) 100%)',
+                boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.3), 0 0 24px hsla(215,100%,55%,0.55), 0 0 48px hsla(215,100%,55%,0.25)',
+              }}
+            >
+              <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
             </div>
           )}
           
           {/* Premium badge */}
           {avatar.is_premium && (
-            <Badge className="absolute top-3 md:top-4 left-3 md:left-4 bg-gradient-to-r from-amber-500 to-amber-400 text-black text-[10px] md:text-xs px-2 py-0.5 md:py-1 shadow-lg">
-              <Crown className="w-2.5 h-2.5 md:w-3 md:h-3 mr-1" />
-              PRO
-            </Badge>
+            <div
+              className="absolute top-3 md:top-4 left-3 md:left-4 flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-light tracking-[0.2em] uppercase"
+              style={{
+                background: 'linear-gradient(135deg, hsla(45,100%,68%,0.95) 0%, hsla(38,100%,55%,0.95) 100%)',
+                color: 'hsl(220, 14%, 4%)',
+                boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.35), 0 4px 16px hsla(45,100%,55%,0.35)',
+              }}
+            >
+              <Crown className="w-2.5 h-2.5" strokeWidth={2} />
+              <span>Pro</span>
+            </div>
           )}
           
           {/* Avatar type badge */}
           {avatar.avatar_type && (
-            <div className={cn(
-              "absolute bottom-16 md:bottom-20 left-3 md:left-4 px-2 py-1 rounded-full text-[10px] md:text-xs font-medium",
-              avatar.avatar_type === 'realistic' 
-                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                : "bg-violet-500/20 text-violet-300 border border-violet-500/30"
-            )}>
-              {avatar.avatar_type === 'realistic' ? 'Realistic' : 'Animated'}
+            <div
+              className="absolute bottom-16 md:bottom-20 left-3 md:left-4 px-2.5 py-1 rounded-full text-[9px] font-light tracking-[0.18em] uppercase"
+              style={{
+                background: 'hsla(0,0%,100%,0.04)',
+                backdropFilter: 'blur(20px) saturate(160%)',
+                color: 'hsla(0,0%,100%,0.75)',
+                boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.05), inset 0 0 0 1px hsla(0,0%,100%,0.06)',
+              }}
+            >
+              {avatar.avatar_type === 'realistic' ? 'Photoreal' : 'Animated'}
             </div>
           )}
           
@@ -190,42 +217,57 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
                 e.stopPropagation();
                 onVoicePreview();
               }}
-              className={cn(
-                "absolute bottom-20 md:bottom-24 right-3 md:right-4 w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all shadow-lg animate-fade-in",
-                isVoiceReady 
-                  ? "bg-emerald-500/90 hover:bg-emerald-400 shadow-emerald-500/30" 
-                  : "bg-violet-500/90 hover:bg-violet-400 shadow-violet-500/30"
-              )}
+              className="absolute bottom-20 md:bottom-24 right-3 md:right-4 w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-105 animate-fade-in"
+              style={{
+                background: isVoiceReady
+                  ? 'linear-gradient(135deg, hsla(215,100%,62%,0.95) 0%, hsla(215,100%,52%,0.95) 100%)'
+                  : 'hsla(0,0%,100%,0.06)',
+                backdropFilter: 'blur(24px) saturate(160%)',
+                boxShadow: isVoiceReady
+                  ? 'inset 0 1px 0 hsla(0,0%,100%,0.25), 0 0 24px hsla(215,100%,55%,0.5), 0 8px 24px -6px hsla(0,0%,0%,0.5)'
+                  : 'inset 0 1px 0 hsla(0,0%,100%,0.06), inset 0 0 0 1px hsla(0,0%,100%,0.08), 0 8px 24px -6px hsla(0,0%,0%,0.5)',
+                color: 'hsl(0,0%,100%)',
+              }}
               title={isVoiceReady ? "Voice ready - instant playback" : "Preview voice"}
             >
               {isPreviewingVoice ? (
-                <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-white animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.8} />
               ) : (
-                <Volume2 className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                <Volume2 className="w-4 h-4" strokeWidth={1.8} />
               )}
             </button>
           )}
         </div>
         
         {/* Info Panel */}
-        <div className="relative p-3 md:p-5 space-y-1.5 md:space-y-2">
+        <div
+          className="relative p-4 md:p-5 space-y-2"
+          style={{
+            background: 'linear-gradient(180deg, hsla(220,14%,3%,0.85) 0%, hsla(220,14%,2%,0.95) 100%)',
+            backdropFilter: 'blur(24px) saturate(160%)',
+          }}
+        >
           <div className="flex items-center justify-between">
-            <h4 className="font-semibold text-white text-sm md:text-lg truncate pr-2">{avatar.name}</h4>
+            <h4 className="font-light text-white/95 text-sm md:text-base truncate pr-2 tracking-wide font-display">{avatar.name}</h4>
             {avatar.style && (
-              <span className="text-[10px] md:text-xs text-white/40 capitalize shrink-0">{avatar.style}</span>
+              <span className="text-[9px] font-light tracking-[0.18em] uppercase text-white/35 capitalize shrink-0">{avatar.style}</span>
             )}
           </div>
-          <p className="text-xs md:text-sm text-white/50 line-clamp-2">
+          <p className="text-[11px] md:text-xs text-white/45 line-clamp-2 leading-relaxed font-light">
             {avatar.description || avatar.personality || 'Professional AI presenter'}
           </p>
           
           {/* Tags */}
           {avatar.tags && avatar.tags.length > 0 && (
-            <div className="hidden sm:flex flex-wrap gap-1 pt-1 md:pt-2">
+            <div className="hidden sm:flex flex-wrap gap-1 pt-1.5">
               {avatar.tags.slice(0, 3).map((tag) => (
                 <span
                   key={`${avatar.id}-${tag}`}
-                  className="text-[9px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded-full bg-white/[0.05] text-white/40 border border-white/[0.08]"
+                  className="text-[9px] font-light tracking-[0.14em] uppercase px-2 py-0.5 rounded-full text-white/40"
+                  style={{
+                    background: 'hsla(0,0%,100%,0.025)',
+                    boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.04)',
+                  }}
                 >
                   {tag}
                 </span>
@@ -234,14 +276,14 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
           )}
         </div>
         
-        {/* Hover shine effect - CSS instead of motion */}
+        {/* Hover shine effect — luminous blue sweep */}
         <div 
           className={cn(
             "absolute inset-0 pointer-events-none transition-opacity duration-300",
             isHovered ? "opacity-100" : "opacity-0"
           )}
           style={{
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%, transparent 100%)'
+            background: 'linear-gradient(135deg, hsla(215,100%,70%,0.06) 0%, transparent 45%, transparent 100%)'
           }}
         />
       </div>
@@ -455,13 +497,17 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
         {Array.from({ length: isMobile ? 2 : 4 }).map((_, i) => (
           <div 
             key={`skeleton-${i}`}
-            className="flex-shrink-0 rounded-2xl md:rounded-3xl overflow-hidden bg-zinc-900/50 border border-white/5"
-            style={{ width: CARD_WIDTH }}
+            className="flex-shrink-0 rounded-2xl md:rounded-3xl overflow-hidden"
+            style={{
+              width: CARD_WIDTH,
+              background: 'hsla(220,14%,4%,0.5)',
+              boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.03), inset 0 0 0 1px hsla(0,0%,100%,0.035)',
+            }}
           >
             <ShimmerSkeleton aspectRatio="portrait" />
-            <div className="p-3 md:p-5 space-y-2">
-              <div className="h-5 bg-zinc-800/50 rounded animate-pulse w-3/4" />
-              <div className="h-4 bg-zinc-800/30 rounded animate-pulse w-full" />
+            <div className="p-4 md:p-5 space-y-2">
+              <div className="h-4 rounded-full animate-pulse w-3/4" style={{ background: 'hsla(0,0%,100%,0.04)' }} />
+              <div className="h-3 rounded-full animate-pulse w-full" style={{ background: 'hsla(0,0%,100%,0.025)' }} />
             </div>
           </div>
         ))}
@@ -471,52 +517,64 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
 
   if (safeAvatars.length === 0) {
     return (
-      <div className="text-center py-16 px-4">
-        <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/[0.03] flex items-center justify-center mx-auto mb-4 border border-white/[0.06]">
-          <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-white/20" />
+      <div className="text-center py-20 px-4">
+        <div
+          className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5"
+          style={{
+            background: 'hsla(0,0%,100%,0.025)',
+            boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.05), inset 0 0 0 1px hsla(0,0%,100%,0.05)',
+          }}
+        >
+          <Sparkles className="w-6 h-6 text-[hsl(215,100%,72%)]/45" strokeWidth={1.5} />
         </div>
-        <p className="text-white/50 mb-2 text-sm md:text-base">No avatars found</p>
-        <p className="text-xs md:text-sm text-white/30">Try adjusting your filters</p>
+        <p className="text-white/55 mb-2 text-sm font-light tracking-wide">No avatars found</p>
+        <p className="text-[10px] font-light tracking-[0.18em] uppercase text-white/30">Try adjusting your filters</p>
       </div>
     );
   }
 
   return (
     <div className="relative group/gallery w-full">
-      {/* Gradient fade edges - uses #030303 to match AvatarsBackground */}
+      {/* Gradient fade edges — Pro-Dark */}
       <div 
         className="absolute left-0 top-0 bottom-0 w-8 md:w-24 z-10 pointer-events-none" 
-        style={{ background: 'linear-gradient(to right, #030303, transparent)' }}
+        style={{ background: 'linear-gradient(to right, hsl(220,14%,2%) 0%, transparent 100%)' }}
       />
       <div 
         className="absolute right-0 top-0 bottom-0 w-8 md:w-24 z-10 pointer-events-none" 
-        style={{ background: 'linear-gradient(to left, #030303, transparent)' }}
+        style={{ background: 'linear-gradient(to left, hsl(220,14%,2%) 0%, transparent 100%)' }}
       />
       
       {/* Navigation Arrows */}
       {!isMobile && canScrollLeft && (
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover/gallery:opacity-100 transition-opacity">
-          <Button
-            variant="outline"
-            size="icon"
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover/gallery:opacity-100 transition-opacity duration-300">
+          <button
             onClick={() => scroll('left')}
-            className="w-12 h-12 rounded-full bg-background/80 border-border text-foreground hover:bg-background hover:border-border/80 backdrop-blur-sm shadow-xl"
+            className="w-11 h-11 rounded-full flex items-center justify-center text-white/75 hover:text-white transition-all duration-300 hover:scale-105"
+            style={{
+              background: 'linear-gradient(180deg, hsla(220,14%,6%,0.85) 0%, hsla(220,14%,3%,0.92) 100%)',
+              backdropFilter: 'blur(32px) saturate(180%)',
+              boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.06), inset 0 0 0 1px hsla(0,0%,100%,0.05), 0 12px 32px -8px hsla(0,0%,0%,0.65)',
+            }}
           >
-            <ChevronLeft className="w-6 h-6" />
-          </Button>
+            <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
+          </button>
         </div>
       )}
       
       {!isMobile && canScrollRight && (
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover/gallery:opacity-100 transition-opacity">
-          <Button
-            variant="outline"
-            size="icon"
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover/gallery:opacity-100 transition-opacity duration-300">
+          <button
             onClick={() => scroll('right')}
-            className="w-12 h-12 rounded-full bg-background/80 border-border text-foreground hover:bg-background hover:border-border/80 backdrop-blur-sm shadow-xl"
+            className="w-11 h-11 rounded-full flex items-center justify-center text-white/75 hover:text-white transition-all duration-300 hover:scale-105"
+            style={{
+              background: 'linear-gradient(180deg, hsla(220,14%,6%,0.85) 0%, hsla(220,14%,3%,0.92) 100%)',
+              backdropFilter: 'blur(32px) saturate(180%)',
+              boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.06), inset 0 0 0 1px hsla(0,0%,100%,0.05), 0 12px 32px -8px hsla(0,0%,0%,0.65)',
+            }}
           >
-            <ChevronRight className="w-6 h-6" />
-          </Button>
+            <ChevronRight className="w-5 h-5" strokeWidth={1.5} />
+          </button>
         </div>
       )}
       
@@ -566,15 +624,26 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
       {/* Loading progress indicator - shows while avatars are still loading */}
       {!isFullyLoaded && (
         <div className="flex items-center justify-center gap-3 mt-4 animate-fade-in">
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.08]">
-            <Loader2 className="w-4 h-4 text-violet-400 animate-spin" />
-            <span className="text-xs text-white/50">
+          <div
+            className="flex items-center gap-3 px-4 py-2 rounded-full"
+            style={{
+              background: 'hsla(0,0%,100%,0.025)',
+              backdropFilter: 'blur(24px) saturate(160%)',
+              boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.04), inset 0 0 0 1px hsla(0,0%,100%,0.05)',
+            }}
+          >
+            <Loader2 className="w-3.5 h-3.5 text-[hsl(215,100%,72%)] animate-spin" strokeWidth={1.5} />
+            <span className="text-[10px] font-light tracking-[0.16em] uppercase text-white/55">
               Loading avatars... {visibleAvatars.length}/{totalCount}
             </span>
-            <div className="w-16 h-1 bg-white/10 rounded-full overflow-hidden">
+            <div className="w-16 h-1 rounded-full overflow-hidden" style={{ background: 'hsla(0,0%,100%,0.06)' }}>
               <div 
-                className="h-full bg-violet-500 rounded-full transition-all duration-300"
-                style={{ width: `${loadProgress}%` }}
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  width: `${loadProgress}%`,
+                  background: 'linear-gradient(90deg, hsla(215,100%,55%,0.85) 0%, hsla(215,100%,72%,0.95) 100%)',
+                  boxShadow: '0 0 12px hsla(215,100%,55%,0.5)',
+                }}
               />
             </div>
           </div>
@@ -583,11 +652,12 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
       
       {/* Mobile scroll indicators */}
       {isMobile && safeAvatars.length > 2 && (
-        <div className="flex justify-center gap-1.5 mt-4">
+        <div className="flex justify-center gap-1.5 mt-5">
           {Array.from({ length: Math.min(5, Math.ceil(safeAvatars.length / 2)) }).map((_, i) => (
             <div
               key={`indicator-${i}`}
-              className="w-6 h-1 rounded-full bg-white/10"
+              className="w-5 h-0.5 rounded-full"
+              style={{ background: 'hsla(0,0%,100%,0.08)' }}
             />
           ))}
         </div>

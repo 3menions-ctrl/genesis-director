@@ -41,6 +41,7 @@ interface AppShellProps {
 }
 
 const SIDEBAR_KEY = 'apex.sidebar.collapsed';
+const SIDEBAR_HIDDEN_KEY = 'apex.sidebar.hidden';
 
 export function AppShell({ children }: AppShellProps) {
   const { profile, isAdmin } = useAuth();
@@ -50,12 +51,19 @@ export function AppShell({ children }: AppShellProps) {
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem(SIDEBAR_KEY) === '1'; } catch { return false; }
   });
+  const [hidden, setHidden] = useState<boolean>(() => {
+    try { return localStorage.getItem(SIDEBAR_HIDDEN_KEY) === '1'; } catch { return false; }
+  });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
 
   useEffect(() => {
     try { localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0'); } catch {}
   }, [collapsed]);
+
+  useEffect(() => {
+    try { localStorage.setItem(SIDEBAR_HIDDEN_KEY, hidden ? '1' : '0'); } catch {}
+  }, [hidden]);
 
   // Close mobile drawer on route change
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
@@ -121,6 +129,7 @@ export function AppShell({ children }: AppShellProps) {
             'lg:transition-[width] lg:duration-300 lg:ease-out',
             'lg:bg-transparent lg:!border-r-0 lg:!shadow-none lg:!backdrop-blur-0',
             railWidth,
+            hidden && 'lg:hidden',
           )}
           style={{
             background:

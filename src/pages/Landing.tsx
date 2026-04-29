@@ -15,6 +15,7 @@ import { PricingSection, ImmersiveVideoBackground, LetsGoCTA, INACTIVITY_TIMEOUT
 import { AvatarCTASection } from '@/components/landing/AvatarCTASection';
 import { SocialProofTicker } from '@/components/landing/SocialProofTicker';
 import { PromptResultShowcase } from '@/components/landing/PromptResultShowcase';
+import { SeedanceBanner } from '@/components/landing/SeedanceBanner';
 
 
 // Lazy load heavy components
@@ -259,6 +260,11 @@ export default function Landing() {
       {/* How it Works — scroll reveal */}
       <div className="scroll-reveal">
         <HowItWorksSection />
+      </div>
+
+      {/* Seedance 2.0 Banner */}
+      <div className="scroll-reveal">
+        <SeedanceBanner />
       </div>
 
       {/* Features Showcase — scroll reveal */}

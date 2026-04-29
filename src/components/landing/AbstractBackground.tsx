@@ -1,4 +1,4 @@
-import { forwardRef, memo, useEffect, useState } from 'react';
+import { forwardRef, memo } from 'react';
 import { cn } from '@/lib/utils';
 import landingAbstractBg from '@/assets/landing-bg-dubai-full.jpeg';
 
@@ -6,98 +6,17 @@ interface AbstractBackgroundProps {
   className?: string;
 }
 
-// Detect touch device (no mouse) to skip mousemove tracking entirely
-const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
-
 const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundProps>(
   function AbstractBackground({ className }, ref) {
-    const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
-
-    // Subtle parallax on mouse move — DISABLED on touch devices (no mouse, saves GPU)
-    useEffect(() => {
-      if (isTouchDevice) return; // Skip entirely on mobile — no mouse events anyway
-      let rafId: number;
-      const handleMove = (e: MouseEvent) => {
-        cancelAnimationFrame(rafId);
-        rafId = requestAnimationFrame(() => {
-          setMousePos({
-            x: (e.clientX / window.innerWidth) * 100,
-            y: (e.clientY / window.innerHeight) * 100,
-          });
-        });
-      };
-      window.addEventListener('mousemove', handleMove, { passive: true });
-      return () => {
-        window.removeEventListener('mousemove', handleMove);
-        cancelAnimationFrame(rafId);
-      };
-    }, []);
-
     return (
       <div ref={ref} className={cn("absolute inset-0 bg-background", className)}>
-        {/* Ambient fill only: fills empty space while the real image stays fully visible. */}
-        <div
-          className="absolute inset-0 bg-no-repeat bg-center"
-          style={{
-            backgroundImage: `url(${landingAbstractBg})`,
-            backgroundSize: 'cover',
-            filter: 'blur(72px) saturate(1.1) brightness(0.38)',
-            transform: 'scale(1.15)',
-            opacity: 0.65,
-          }}
-          aria-hidden
-        />
-
         {/* Exact background image — full frame visible, never cropped or zoomed. */}
-        <div 
-          className="absolute inset-0 bg-no-repeat bg-center"
-          style={{ 
-            backgroundImage: `url(${landingAbstractBg})`,
-            backgroundSize: 'contain',
-            filter: 'brightness(1.08) saturate(1.05)',
-          }}
+        <img
+          src={landingAbstractBg}
+          alt="Dubai skyline above clouds"
+          className="absolute inset-0 h-full w-full object-contain object-center select-none pointer-events-none"
+          draggable={false}
         />
-        
-        {/* Animated gradient mesh overlay — SIMPLIFIED on mobile (no dynamic mouse tracking) */}
-        <div 
-          className="absolute inset-0 opacity-30 pointer-events-none mix-blend-overlay"
-          style={{
-            background: isTouchDevice
-              ? `radial-gradient(ellipse at 50% 50%, hsl(263 70% 58% / 0.15) 0%, transparent 50%)`
-              : `
-                radial-gradient(ellipse at ${mousePos.x}% ${mousePos.y}%, hsl(263 70% 58% / 0.15) 0%, transparent 50%),
-                radial-gradient(ellipse at ${100 - mousePos.x}% ${100 - mousePos.y}%, hsl(195 90% 50% / 0.1) 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 50%, hsl(160 84% 45% / 0.05) 0%, transparent 60%)
-              `,
-          }}
-        />
-
-        {/* Holographic grid overlay — HIDDEN on mobile to save GPU compositing */}
-        {!isTouchDevice && (
-          <div 
-            className="absolute inset-0 animate-holo-grid-pulse pointer-events-none"
-            style={{
-              backgroundImage: `
-                linear-gradient(hsl(263 70% 58% / 0.08) 1px, transparent 1px),
-                linear-gradient(90deg, hsl(263 70% 58% / 0.08) 1px, transparent 1px)
-              `,
-              backgroundSize: '80px 80px',
-            }}
-          />
-        )}
-        
-        {/* Scan line sweep — HIDDEN on mobile */}
-        {!isTouchDevice && (
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div 
-              className="absolute left-0 right-0 h-[2px] animate-scan-line"
-              style={{
-                background: 'linear-gradient(90deg, transparent, hsl(195 90% 50% / 0.3), hsl(263 70% 58% / 0.2), transparent)',
-                boxShadow: '0 0 20px hsl(195 90% 50% / 0.15)',
-              }}
-            />
-          </div>
-        )}
 
         {/* Soft vignette — gentle edge falloff only */}
         <div

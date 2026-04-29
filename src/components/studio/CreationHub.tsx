@@ -105,7 +105,7 @@ interface CreationHubProps {
     enableMusic: boolean;
     genre?: string;
     mood?: string;
-    videoEngine?: 'kling' | 'veo';
+    videoEngine?: 'kling' | 'veo' | 'seedance';
     isBreakout?: boolean;
     breakoutStartImageUrl?: string;
     breakoutPlatform?: string;
@@ -750,6 +750,8 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           <span>{estimatedCredits} credits</span>
           <span className="opacity-40">·</span>
           <span>{aspectRatio}</span>
+          <span className="opacity-40">·</span>
+          <span style={{ color: `hsl(${engineInfo.hue} / 0.85)` }}>{engineInfo.label}</span>
         </div>
 
         {/* ─── Quiet links — Templates & Training ─────────────────────── */}

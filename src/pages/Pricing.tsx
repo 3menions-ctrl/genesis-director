@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Check, ArrowRight, Sparkles, Shield, Clock, Zap, Crown, Building2,
@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { useSafeNavigation } from '@/lib/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 
@@ -160,7 +162,15 @@ function CreditDial({ credits, clips, popular }: { credits: number; clips: strin
   );
 }
 
-function PricingCard({ pkg, index }: { pkg: CreditPackage; index: number }) {
+function PricingCard({
+  pkg,
+  index,
+  onPurchase,
+}: {
+  pkg: CreditPackage;
+  index: number;
+  onPurchase: (pkg: CreditPackage) => void;
+}) {
   const { navigate } = useSafeNavigation();
 
   return (
@@ -311,7 +321,7 @@ function PricingCard({ pkg, index }: { pkg: CreditPackage; index: number }) {
 
         {/* CTA */}
         <Button
-          onClick={() => navigate(`/auth?mode=signup&next=${encodeURIComponent('/profile?buy=' + (pkg.name?.toLowerCase?.() || ''))}`)}
+          onClick={() => onPurchase(pkg)}
           className={cn(
             'w-full h-11 rounded-2xl text-[13px] font-semibold transition-all duration-300 group/btn relative overflow-hidden',
             pkg.popular

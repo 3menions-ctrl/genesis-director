@@ -1,101 +1,118 @@
 import { motion } from "framer-motion";
-import { Logo } from "@/components/ui/Logo";
-import { Film, Layers, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 export function EditorLoadingScreen() {
   return (
     <div
-      className="h-screen w-screen flex flex-col items-center justify-center gap-8 relative overflow-hidden"
-      style={{ background: "hsl(220, 14%, 4%)" }}
+      className="h-screen w-screen flex flex-col items-center justify-center gap-10 relative overflow-hidden"
+      style={{
+        background:
+          'radial-gradient(900px 600px at 50% 35%, hsla(215, 90%, 22%, 0.22), transparent 65%), radial-gradient(700px 500px at 50% 100%, hsla(215, 80%, 14%, 0.10), transparent 60%), hsl(220, 14%, 2.5%)',
+      }}
     >
-      {/* Ambient glow — blue accent only */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full blur-[140px]" style={{ background: "hsla(215, 100%, 50%, 0.04)" }} />
-        <div className="absolute top-1/3 right-1/3 w-[250px] h-[250px] rounded-full blur-[100px]" style={{ background: "hsla(215, 100%, 60%, 0.03)" }} />
-      </div>
-
-      {/* Subtle grid */}
+      {/* Film-grain veil */}
       <div
-        className="absolute inset-0 opacity-[0.012] pointer-events-none"
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.035] mix-blend-overlay"
         style={{
-          backgroundImage: `linear-gradient(hsla(215, 100%, 50%, 0.4) 1px, transparent 1px), linear-gradient(90deg, hsla(215, 100%, 50%, 0.4) 1px, transparent 1px)`,
-          backgroundSize: "60px 60px",
+          backgroundImage:
+            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
         }}
       />
 
+      {/* Faint precision grid */}
+      <div
+        className="absolute inset-0 opacity-[0.018] pointer-events-none"
+        style={{
+          backgroundImage:
+            'linear-gradient(hsla(215, 100%, 60%, 0.5) 1px, transparent 1px), linear-gradient(90deg, hsla(215, 100%, 60%, 0.5) 1px, transparent 1px)',
+          backgroundSize: '64px 64px',
+          maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 75%)',
+        }}
+      />
+
+      {/* Top hairline */}
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,55%,0.5)] to-transparent" />
+
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 flex flex-col items-center gap-8"
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-10 flex flex-col items-center gap-9"
       >
-        {/* Icon cluster */}
+        {/* Wordmark mark */}
         <div className="relative">
           <motion.div
             animate={{
               boxShadow: [
-                "0 0 30px hsla(215, 100%, 50%, 0)",
-                "0 0 60px hsla(215, 100%, 50%, 0.08)",
-                "0 0 30px hsla(215, 100%, 50%, 0)",
+                '0 0 30px hsla(215, 100%, 55%, 0.15)',
+                '0 0 80px hsla(215, 100%, 55%, 0.35)',
+                '0 0 30px hsla(215, 100%, 55%, 0.15)',
               ],
             }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            className="w-20 h-20 rounded-2xl flex items-center justify-center"
+            transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+            className="w-16 h-16 rounded-2xl flex items-center justify-center relative"
             style={{
-              background: "linear-gradient(135deg, hsla(215, 100%, 50%, 0.1), hsla(215, 100%, 50%, 0.03))",
-              border: "1px solid hsla(215, 100%, 50%, 0.12)",
+              background:
+                'linear-gradient(135deg, hsl(215,100%,55%) 0%, hsl(200,100%,42%) 100%)',
+              boxShadow:
+                '0 0 0 1px hsla(215,100%,75%,0.35) inset, 0 1px 0 hsla(0,0%,100%,0.25) inset, 0 20px 60px -10px hsla(215,100%,50%,0.55)',
             }}
           >
-            <Film className="w-9 h-9 text-[hsla(215,100%,60%,0.5)]" />
-          </motion.div>
-
-          {/* Orbiting elements */}
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-0"
-          >
-            <Sparkles className="w-3 h-3 text-[hsla(215,100%,60%,0.4)] absolute -top-1 left-1/2 -translate-x-1/2" />
-          </motion.div>
-          <motion.div
-            animate={{ rotate: -360 }}
-            transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-0"
-          >
-            <Layers className="w-2.5 h-2.5 text-[hsla(215,100%,60%,0.3)] absolute -right-2 top-1/2 -translate-y-1/2" />
+            <Sparkles className="w-7 h-7 text-white drop-shadow-[0_0_10px_hsla(0,0%,100%,0.7)]" />
           </motion.div>
         </div>
 
-        {/* Text */}
-        <div className="flex flex-col items-center gap-2">
-          <p className="text-[14px] font-semibold text-[hsla(0,0%,100%,0.6)] tracking-wide">
-            LOADING STUDIO
-          </p>
-          <p className="text-[11px] text-[hsla(0,0%,100%,0.25)]">
-            Initializing editor modules & WebCodecs engine…
+        {/* Wordmark */}
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex items-baseline gap-2.5">
+            <span className="font-display text-[22px] font-semibold tracking-[0.32em] uppercase text-foreground/90">
+              Apex
+            </span>
+            <span className="font-display text-[14px] font-light tracking-[0.5em] uppercase text-muted-foreground/40">
+              Studio
+            </span>
+            <span
+              className="text-[9px] font-bold tracking-[0.28em] uppercase px-1.5 py-[3px] rounded-[4px] translate-y-[-3px]"
+              style={{
+                background:
+                  'linear-gradient(180deg, hsla(215,100%,55%,0.22), hsla(215,100%,40%,0.08))',
+                color: 'hsl(200, 100%, 82%)',
+                border: '1px solid hsla(215,100%,55%,0.3)',
+              }}
+            >
+              Pro
+            </span>
+          </div>
+          <p className="text-[10px] tracking-[0.45em] uppercase text-muted-foreground/35 font-medium">
+            Calibrating timeline · WebCodecs engine
           </p>
         </div>
 
-        {/* Loading bar — blue gradient */}
-        <div className="w-48 h-[3px] rounded-full overflow-hidden relative" style={{ background: "hsla(0,0%,100%,0.06)" }}>
+        {/* Refined progress bar */}
+        <div
+          className="w-64 h-[2px] rounded-full overflow-hidden relative"
+          style={{ background: 'hsla(0,0%,100%,0.05)' }}
+        >
           <motion.div
-            className="h-full rounded-full"
-            style={{ background: "linear-gradient(90deg, hsl(215, 100%, 50%), hsl(215, 100%, 65%))" }}
-            animate={{ x: ["-100%", "0%", "100%"] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-            initial={{ width: "40%" }}
+            className="absolute inset-y-0 w-1/3 rounded-full"
+            style={{
+              background:
+                'linear-gradient(90deg, transparent, hsl(215, 100%, 60%) 40%, hsl(195, 100%, 75%) 60%, transparent)',
+              boxShadow: '0 0 16px hsla(215,100%,55%,0.6)',
+            }}
+            animate={{ x: ['-110%', '320%'] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
           />
         </div>
-
-        {/* Progress percentage */}
-        <motion.p
-          animate={{ opacity: [0.3, 0.6, 0.3] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="text-[10px] font-mono text-[hsla(215,100%,60%,0.4)]"
-        >
-          39%
-        </motion.p>
       </motion.div>
+
+      {/* Bottom signature */}
+      <div className="absolute bottom-6 inset-x-0 flex items-center justify-center">
+        <span className="text-[8.5px] tracking-[0.5em] uppercase text-muted-foreground/25 font-medium">
+          Cinema · Engineered
+        </span>
+      </div>
     </div>
   );
 }

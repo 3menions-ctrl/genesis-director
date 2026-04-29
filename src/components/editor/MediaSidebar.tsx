@@ -49,9 +49,13 @@ export const MediaSidebar = memo(function MediaSidebar({
     <div
       className="shrink-0 flex flex-col overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
       style={{
-        width: collapsed ? 48 : 240,
-        background: 'hsl(220, 14%, 6%)',
-        borderRight: '1px solid hsla(0, 0%, 100%, 0.06)',
+        width: collapsed ? 52 : 256,
+        background:
+          'linear-gradient(180deg, hsla(220, 14%, 6%, 0.95) 0%, hsla(220, 14%, 4%, 0.95) 100%)',
+        borderRight: '1px solid hsla(0, 0%, 100%, 0.05)',
+        boxShadow:
+          'inset -1px 0 0 hsla(0,0%,100%,0.02), 8px 0 30px -16px hsla(0,0%,0%,0.6)',
+        backdropFilter: 'blur(12px)',
       }}
     >
       {/* Collapsed state */}
@@ -91,21 +95,34 @@ export const MediaSidebar = memo(function MediaSidebar({
         <>
           {/* Header */}
           <div
-            className="shrink-0 px-3 py-3"
-            style={{ borderBottom: '1px solid hsla(0, 0%, 100%, 0.06)' }}
+            className="shrink-0 px-3.5 py-3.5 relative"
+            style={{
+              borderBottom: '1px solid hsla(0, 0%, 100%, 0.05)',
+              background:
+                'linear-gradient(180deg, hsla(215,100%,40%,0.04), transparent)',
+            }}
           >
+            {/* hairline accent */}
+            <div className="absolute bottom-0 inset-x-3 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,55%,0.25)] to-transparent" />
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <div
                   className="w-7 h-7 rounded-lg flex items-center justify-center"
-                  style={{ background: 'linear-gradient(135deg, hsla(215, 100%, 50%, 0.15), hsla(215, 100%, 50%, 0.05))' }}
+                  style={{
+                    background:
+                      'linear-gradient(135deg, hsl(215,100%,55%) 0%, hsl(200,100%,42%) 100%)',
+                    boxShadow:
+                      '0 0 0 1px hsla(215,100%,75%,0.3) inset, 0 1px 0 hsla(0,0%,100%,0.2) inset, 0 6px 18px -6px hsla(215,100%,50%,0.55)',
+                  }}
                 >
-                  <Layers className="w-3.5 h-3.5 text-[hsl(215,100%,60%)]" />
+                  <Layers className="w-3.5 h-3.5 text-white" />
                 </div>
-                <div>
-                  <span className="text-[12px] font-bold text-[hsla(0,0%,100%,0.9)] tracking-wide block leading-none">Media</span>
+                <div className="leading-tight">
+                  <span className="text-[10.5px] font-semibold text-foreground/85 tracking-[0.18em] uppercase block leading-none font-display">
+                    Library
+                  </span>
                   {clips.length > 0 && (
-                    <span className="text-[9px] text-[hsla(0,0%,100%,0.35)] mt-0.5 block">
+                    <span className="text-[9px] text-muted-foreground/50 mt-1 block tabular-nums tracking-wide">
                       {clipCount} clips · {totalDuration.toFixed(0)}s
                     </span>
                   )}
@@ -117,7 +134,7 @@ export const MediaSidebar = memo(function MediaSidebar({
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => setCollapsed(true)}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-[hsla(0,0%,100%,0.3)] hover:text-white hover:bg-[hsla(0,0%,100%,0.06)] transition-all"
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/40 hover:text-foreground hover:bg-white/[0.06] transition-all ring-1 ring-inset ring-white/[0.04]"
                     >
                       <PanelLeftClose className="w-3.5 h-3.5" />
                     </button>
@@ -134,7 +151,7 @@ export const MediaSidebar = memo(function MediaSidebar({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search clips…"
-                className="w-full h-8 pl-8 pr-3 rounded-lg text-[11px] bg-[hsla(0,0%,100%,0.04)] border border-[hsla(0,0%,100%,0.06)] text-[hsla(0,0%,100%,0.8)] placeholder:text-[hsla(0,0%,100%,0.25)] outline-none focus:border-[hsla(215,100%,50%,0.4)] focus:bg-[hsla(0,0%,100%,0.06)] transition-all"
+                className="w-full h-8 pl-8 pr-3 rounded-lg text-[11px] tracking-tight bg-white/[0.03] border border-white/[0.06] text-foreground/85 placeholder:text-muted-foreground/30 outline-none focus:border-[hsla(215,100%,55%,0.45)] focus:bg-white/[0.05] focus:ring-2 focus:ring-[hsla(215,100%,55%,0.12)] transition-all"
               />
             </div>
           </div>
@@ -212,14 +229,17 @@ export const MediaSidebar = memo(function MediaSidebar({
                     transition={{ delay: Math.min(i * 0.02, 0.3) }}
                     onClick={() => onAddClip(clip)}
                     className={cn(
-                      "w-full flex items-start gap-2.5 p-2 rounded-xl transition-all duration-200 group text-left",
-                      "border border-transparent",
-                      "hover:bg-[hsla(0,0%,100%,0.05)] hover:border-[hsla(215,100%,50%,0.15)]",
-                      "active:scale-[0.98]"
+                      "w-full flex items-start gap-2.5 p-2 rounded-xl transition-all duration-200 group text-left relative",
+                      "border border-white/[0.03]",
+                      "hover:bg-white/[0.04] hover:border-[hsla(215,100%,55%,0.22)] hover:shadow-[0_8px_24px_-12px_hsla(215,100%,55%,0.4)]",
+                      "active:scale-[0.985]"
                     )}
                   >
                     {/* Thumbnail */}
-                    <div className="w-[72px] h-[44px] rounded-lg overflow-hidden shrink-0 relative bg-[hsl(220,14%,8%)]">
+                    <div
+                      className="w-[78px] h-[46px] rounded-md overflow-hidden shrink-0 relative bg-[hsl(220,14%,8%)] ring-1 ring-white/[0.06]"
+                      style={{ boxShadow: 'inset 0 0 0 1px hsla(0,0%,0%,0.4), 0 2px 8px -2px hsla(0,0%,0%,0.5)' }}
+                    >
                       {clip.thumbnailUrl ? (
                         <img
                           src={clip.thumbnailUrl}
@@ -232,15 +252,25 @@ export const MediaSidebar = memo(function MediaSidebar({
                           <Film className="w-4 h-4 text-[hsla(0,0%,100%,0.2)]" />
                         </div>
                       )}
+                      {/* gradient sheen */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-white/[0.04] pointer-events-none" />
                       {/* Duration badge */}
                       {clip.durationSeconds && (
-                        <div className="absolute bottom-0.5 right-0.5 px-1 py-px rounded text-[8px] font-mono font-bold bg-[hsla(0,0%,0%,0.75)] text-[hsla(0,0%,100%,0.8)] backdrop-blur-sm">
+                        <div className="absolute bottom-0.5 right-0.5 px-1 py-px rounded text-[8px] font-mono font-semibold tabular-nums bg-black/70 text-white/90 backdrop-blur-md ring-1 ring-white/10">
                           {clip.durationSeconds.toFixed(1)}s
                         </div>
                       )}
                       {/* Hover overlay */}
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-[hsla(215,100%,50%,0.15)] backdrop-blur-[2px]">
-                        <div className="w-7 h-7 rounded-full flex items-center justify-center bg-[hsla(215,100%,50%,0.8)] shadow-lg">
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-[hsla(215,100%,50%,0.18)] backdrop-blur-[3px]">
+                        <div
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-white"
+                          style={{
+                            background:
+                              'linear-gradient(180deg, hsl(215,100%,60%), hsl(215,100%,42%))',
+                            boxShadow:
+                              '0 0 0 1px hsla(215,100%,75%,0.4) inset, 0 4px 14px -2px hsla(215,100%,55%,0.7)',
+                          }}
+                        >
                           <Plus className="w-3.5 h-3.5 text-white" />
                         </div>
                       </div>
@@ -248,10 +278,10 @@ export const MediaSidebar = memo(function MediaSidebar({
 
                     {/* Info */}
                     <div className="flex-1 min-w-0 py-0.5">
-                      <p className="text-[11px] font-semibold text-[hsla(0,0%,100%,0.75)] truncate leading-tight group-hover:text-[hsla(0,0%,100%,0.9)] transition-colors">
+                      <p className="text-[11px] font-medium tracking-tight text-foreground/80 truncate leading-tight group-hover:text-foreground transition-colors">
                         Shot {clip.shotIndex + 1}
                       </p>
-                      <p className="text-[9px] text-[hsla(0,0%,100%,0.35)] truncate mt-0.5">
+                      <p className="text-[9px] text-muted-foreground/45 truncate mt-1 tracking-wide uppercase">
                         {clip.projectTitle}
                       </p>
                     </div>

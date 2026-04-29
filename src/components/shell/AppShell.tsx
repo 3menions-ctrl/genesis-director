@@ -164,38 +164,38 @@ export function AppShell({ children }: AppShellProps) {
             <Link to="/projects" className="group flex items-center gap-2.5 min-w-0">
               <div className="relative shrink-0">
                 <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-[hsl(var(--primary)/0.35)] to-[hsl(var(--accent)/0.15)] opacity-0 group-hover:opacity-100 blur-md transition-opacity duration-500" />
-                <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/[0.1] flex items-center justify-center overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.3)]">
+                <div className="relative w-9 h-9 rounded-2xl bg-gradient-to-br from-white/[0.07] to-white/[0.015] flex items-center justify-center overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.4),inset_0_1px_0_hsla(0,0%,100%,0.06)]">
                   <img src={logoImage} alt="Apex Studio" className="w-[22px] h-[22px] object-contain opacity-90 group-hover:scale-105 transition-transform duration-300" />
                 </div>
               </div>
               {!collapsed && (
                 <div className="flex flex-col min-w-0 lg:flex">
-                  <span className="text-[14px] font-bold text-white/90 tracking-[-0.02em] leading-none font-display truncate">
+                  <span className="text-[14px] font-medium text-white/95 tracking-[-0.025em] leading-none font-display truncate">
                     Apex<span className="text-[hsl(var(--primary))]">·</span>Studio
                   </span>
-                  <span className="text-[9px] font-medium uppercase tracking-[0.18em] text-white/25 mt-[3px]">
+                  <span className="text-[9px] font-light uppercase tracking-[0.22em] text-white/30 mt-[4px]">
                     Creative Suite
                   </span>
                 </div>
               )}
             </Link>
             <button
-              className="ml-auto lg:hidden w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/[0.06] text-white/50"
+              className="ml-auto lg:hidden w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/[0.06] text-white/45 hover:text-white/80 transition-colors duration-200"
               onClick={() => setMobileOpen(false)}
               aria-label="Close sidebar"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" strokeWidth={1.5} />
             </button>
             <button
               className={cn(
-                'ml-auto hidden lg:flex w-8 h-8 rounded-lg items-center justify-center hover:bg-white/[0.06] text-white/50 hover:text-white transition-colors',
+                'ml-auto hidden lg:flex w-8 h-8 rounded-full items-center justify-center hover:bg-white/[0.06] text-white/40 hover:text-white/85 transition-colors duration-200',
                 collapsed && 'lg:hidden',
               )}
               onClick={() => setHidden(true)}
               aria-label="Hide sidebar"
               title="Hide sidebar"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" strokeWidth={1.5} />
             </button>
           </div>
 
@@ -204,29 +204,32 @@ export function AppShell({ children }: AppShellProps) {
             <button
               onClick={() => navigateTo('/create')}
               className={cn(
-                'group relative w-full overflow-hidden rounded-xl flex items-center justify-center gap-2 h-10 text-[12.5px] font-semibold tracking-[-0.01em] transition-all duration-300',
-                'border border-[hsl(var(--primary)/0.25)] hover:border-[hsl(var(--primary)/0.45)]',
-                'bg-gradient-to-b from-[hsl(var(--primary)/0.16)] to-[hsl(var(--primary)/0.06)] hover:from-[hsl(var(--primary)/0.22)] hover:to-[hsl(var(--primary)/0.08)]',
-                'shadow-[0_8px_24px_-12px_hsl(var(--primary)/0.6),inset_0_1px_0_hsl(0_0%_100%/0.06)] hover:shadow-[0_12px_32px_-12px_hsl(var(--primary)/0.75),inset_0_1px_0_hsl(0_0%_100%/0.08)]',
+                'group relative w-full overflow-hidden rounded-full flex items-center justify-center gap-2 h-10 text-[12.5px] font-medium tracking-[-0.01em] transition-all duration-500',
+                'bg-gradient-to-b from-white/[0.10] to-white/[0.04] hover:from-white/[0.14] hover:to-white/[0.06]',
+                'shadow-[0_10px_32px_-12px_hsl(215_100%_55%/0.45),inset_0_1px_0_hsla(0,0%,100%,0.10)] hover:shadow-[0_16px_44px_-12px_hsl(215_100%_55%/0.65),inset_0_1px_0_hsla(0,0%,100%,0.14)]',
+                'hover:scale-[1.015] active:scale-[0.985]',
               )}
               style={{ color: 'hsl(var(--foreground))' }}
             >
               <span
                 aria-hidden
-                className="absolute -top-1/2 left-0 right-0 h-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
                 style={{
                   background:
-                    'radial-gradient(140px 60px at 50% 100%, hsl(var(--primary) / 0.35), transparent 70%)',
+                    'radial-gradient(180px 80px at 50% 120%, hsl(215, 100%, 60%, 0.5), transparent 70%)',
                 }}
               />
-              <Sparkles className="relative w-4 h-4 text-[hsl(var(--primary))] drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]" />
-              {!collapsed && <span className="relative">New Project</span>}
+              <Sparkles
+                className="relative w-3.5 h-3.5 text-[hsl(215,100%,72%)] drop-shadow-[0_0_10px_hsl(215,100%,55%,0.7)] transition-transform duration-500 group-hover:rotate-12"
+                strokeWidth={1.75}
+              />
+              {!collapsed && <span className="relative font-light tracking-[0.01em]">New Project</span>}
             </button>
           </div>
 
           {/* Section label */}
           {!collapsed && (
-            <div className="px-5 mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
+            <div className="px-5 mb-2 text-[9.5px] font-light uppercase tracking-[0.28em] text-white/25">
               Workspace
             </div>
           )}

@@ -488,6 +488,18 @@ function ProjectsContentInner() {
     }
   }, [user, hasLoadedOnce, projects.length, resolvedClipUrls.size, generateMissingThumbnails]);
 
+  // Pre-warm thumbnails for all visible videos so they stay always-visible
+  // (training videos + project preview clips). Background, throttled, idempotent.
+  useEffect(() => {
+    if (!contentReady) return;
+    const projectUrls = projects
+      .map((p) => p.video_url)
+      .filter((u): u is string => !!u && !u.includes('replicate.delivery') && !isManifestUrl(u));
+    const resolved = Array.from(resolvedClipUrls.values());
+    const trainingUrls = trainingVideos.map((v) => v.video_url);
+    prewarmThumbnails([...projectUrls, ...resolved, ...trainingUrls]);
+  }, [contentReady, projects, resolvedClipUrls, trainingVideos]);
+
 
   // Fetch training videos
   useEffect(() => {

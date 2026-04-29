@@ -3629,6 +3629,13 @@ async function runProduction(
           referenceImageUrl, // Still passed for character identity reference
           // CRITICAL FIX: Pass scene image for fallback when frame extraction fails
           sceneImageUrl: sceneImageLookup[i] || sceneImageLookup[0],
+          // SEEDANCE 2.0 FRAME CHAINING: target end-frame interpolation.
+          // Use the next clip's planned scene image as the end-frame target
+          // so this clip naturally morphs toward where the next clip begins.
+          // Ignored by Kling (only Seedance reads `endImageUrl`).
+          endImageUrl: videoEngine === 'seedance'
+            ? (sceneImageLookup[i + 1] || (i === clips.length - 1 ? goldenFrameData?.frameUrl : undefined))
+            : undefined,
           isRetry,
           retryAttempt: attempt,
           // Pass scene context for continuous action flow

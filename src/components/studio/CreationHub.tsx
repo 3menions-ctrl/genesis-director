@@ -316,33 +316,55 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           </motion.div>
         )}
 
-        {/* ─── Mode chips ───────────────────────────────────────────────── */}
-        <div className="mb-6 flex items-center gap-2">
-          {CREATION_MODES.map((m) => {
-            const Icon = m.icon;
-            const active = selectedMode === m.id;
-            return (
-              <button
-                key={m.id}
-                onClick={() => {
-                  if (m.id === 'avatar') navigate('/avatars');
-                  else setSelectedMode(m.id);
-                }}
-                className={cn(
-                  'group relative flex items-center gap-2 px-4 h-10 rounded-full text-sm font-medium transition-all duration-300',
-                  active
-                    ? 'bg-white/[0.06] text-white border border-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
-                    : 'text-white/45 hover:text-white/80 border border-transparent'
-                )}
-              >
-                <Icon className={cn('w-4 h-4', active ? 'text-primary' : 'opacity-70')} />
-                {m.name}
-              </button>
-            );
-          })}
-          <div className="ml-auto hidden sm:flex items-center gap-1.5 text-[11px] text-white/35 tracking-wider uppercase">
-            <Coins className="w-3.5 h-3.5 text-amber-400/80" />
-            <span className="tabular-nums">{userCredits.toLocaleString()}</span>
+        {/* ─── Mode rail with sliding spotlight ─────────────────────────── */}
+        <div className="mb-7 flex items-center justify-between gap-4 flex-wrap">
+          <div className="relative inline-flex items-center gap-1 p-1 rounded-2xl bg-white/[0.025] border border-white/[0.06] backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_8px_30px_-12px_rgba(0,0,0,0.6)]">
+            {CREATION_MODES.map((m) => {
+              const Icon = m.icon;
+              const active = selectedMode === m.id;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => {
+                    if (m.id === 'avatar') navigate('/avatars');
+                    else setSelectedMode(m.id);
+                  }}
+                  className={cn(
+                    'relative z-10 flex items-center gap-2 px-4 sm:px-5 h-10 rounded-xl text-sm font-medium transition-colors duration-300',
+                    active ? 'text-white' : 'text-white/45 hover:text-white/80'
+                  )}
+                >
+                  {active && (
+                    <motion.span
+                      layoutId="creation-mode-pill"
+                      transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                      className="absolute inset-0 -z-10 rounded-xl"
+                      style={{
+                        background:
+                          'linear-gradient(180deg, hsl(212 100% 56% / 0.22) 0%, hsl(212 100% 50% / 0.10) 100%)',
+                        border: '1px solid hsl(212 100% 60% / 0.35)',
+                        boxShadow:
+                          '0 8px 30px -8px hsl(212 100% 50% / 0.45), inset 0 1px 0 hsl(212 100% 75% / 0.25)',
+                      }}
+                    />
+                  )}
+                  <Icon className={cn('w-4 h-4 transition-colors', active ? 'text-primary' : 'opacity-70')} />
+                  <span className="tracking-tight">{m.name}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Credit orb */}
+          <div className="relative inline-flex items-center gap-2.5 pl-2 pr-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl">
+            <span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-amber-300/30 to-amber-600/20 border border-amber-300/30">
+              <Coins className="w-3.5 h-3.5 text-amber-200" />
+              <span className="absolute inset-0 rounded-full ring-1 ring-amber-200/20 animate-pulse" />
+            </span>
+            <div className="leading-tight">
+              <div className="text-[9px] uppercase tracking-[0.22em] text-white/35">Credits</div>
+              <div className="text-sm font-semibold text-white tabular-nums">{userCredits.toLocaleString()}</div>
+            </div>
           </div>
         </div>
 

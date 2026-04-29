@@ -184,6 +184,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   useEffect(() => {
     const paymentStatus = searchParams.get('payment');
     const creditsAdded = searchParams.get('credits');
+    const buy = searchParams.get('buy');
     
     if (paymentStatus === 'success') {
       toast.success(`Payment successful! ${creditsAdded ? `${creditsAdded} credits` : 'Credits'} added.`);
@@ -193,6 +194,10 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
       setSearchParams({});
     } else if (paymentStatus === 'canceled') {
       toast.info('Payment was canceled');
+      setSearchParams({});
+    } else if (buy) {
+      // Resume buy flow after signup → onboarding redirect.
+      setShowBuyModal(true);
       setSearchParams({});
     }
   }, [searchParams]);

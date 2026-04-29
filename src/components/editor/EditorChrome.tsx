@@ -1169,8 +1169,8 @@ export function EditorChrome({
                   Unsaved changes
                 </span>
               ) : (
-                <span className="text-emerald-400/40 flex items-center gap-1">
-                  <Check className="w-2.5 h-2.5 shrink-0" /> All changes saved
+                <span className="text-[hsl(215,100%,72%)]/55 flex items-center gap-1">
+                  <Check className="w-2.5 h-2.5 shrink-0" strokeWidth={1.5} /> All changes saved
                 </span>
               )}
             </div>
@@ -1287,9 +1287,15 @@ export function EditorChrome({
               initial={{ opacity: 0, y: 16, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8 }}
-              className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-emerald-500/90 text-white text-xs font-medium px-5 py-2.5 rounded-full backdrop-blur-xl border border-emerald-400/30 shadow-lg z-20 flex items-center gap-2"
+              className="absolute bottom-12 left-1/2 -translate-x-1/2 text-white text-[10px] font-light tracking-[0.18em] uppercase px-5 py-2.5 rounded-full z-20 flex items-center gap-2"
+              style={{
+                background: 'linear-gradient(135deg, hsla(215,100%,62%,0.95) 0%, hsla(215,100%,52%,0.95) 100%)',
+                backdropFilter: 'blur(24px) saturate(180%)',
+                boxShadow:
+                  'inset 0 1px 0 hsla(0,0%,100%,0.25), 0 0 24px hsla(215,100%,55%,0.45), 0 12px 32px -8px hsla(0,0%,0%,0.5)',
+              }}
             >
-              <Check className="w-3 h-3" /> Video downloaded
+              <Check className="w-3 h-3" strokeWidth={1.8} /> Video downloaded
             </motion.div>
           )}
         </AnimatePresence>

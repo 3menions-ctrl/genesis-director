@@ -350,25 +350,51 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({ className }
       </div>
 
       {/* Seek bar + Transport */}
-      <div className="shrink-0" style={{ background: 'linear-gradient(180deg, hsl(220, 14%, 7%) 0%, hsl(220, 14%, 5%) 100%)', borderTop: '1px solid hsla(0, 0%, 100%, 0.06)' }}>
-        <div className="px-4 pt-2.5 pb-1">
+      <div
+        className="shrink-0"
+        style={{
+          background: 'linear-gradient(180deg, hsla(220, 14%, 6%, 0.85) 0%, hsla(220, 14%, 3%, 0.92) 100%)',
+          backdropFilter: 'blur(48px) saturate(180%)',
+          boxShadow: 'inset 0 1px 0 hsla(0, 0%, 100%, 0.04)',
+        }}
+      >
+        <div className="px-5 pt-3 pb-1.5">
           <Slider value={[state.playheadTime]} onValueChange={handleSeek} min={0} max={Math.max(state.duration, 0.1)} step={0.05} className="w-full" />
         </div>
-        <div className="flex items-center gap-1.5 px-4 h-11">
+        <div className="flex items-center gap-1.5 px-5 h-12">
           <div className="flex items-center gap-0.5">
             <TransportButton onClick={goToStart} tooltip="Start (Home)"><ChevronsLeft className="w-4 h-4" /></TransportButton>
             <TransportButton onClick={() => skipClip(-1)} tooltip="Previous clip"><SkipBack className="w-4 h-4" /></TransportButton>
-            <button onClick={togglePlay} className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 mx-1" style={{ background: state.isPlaying ? 'hsla(0, 0%, 100%, 0.12)' : 'hsl(215, 100%, 50%)', border: state.isPlaying ? '1px solid hsla(0, 0%, 100%, 0.2)' : '1px solid hsla(215, 100%, 60%, 0.5)', color: state.isPlaying ? 'hsla(0, 0%, 100%, 0.9)' : 'hsl(0, 0%, 100%)', boxShadow: state.isPlaying ? 'none' : '0 4px 16px hsla(215, 100%, 50%, 0.3)' }}>
-              {state.isPlaying ? <Pause className="w-4.5 h-4.5" /> : <Play className="w-4.5 h-4.5 ml-0.5" />}
+            <button
+              onClick={togglePlay}
+              className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-[1.06] active:scale-[0.96] mx-1.5"
+              style={{
+                background: state.isPlaying
+                  ? 'hsla(0, 0%, 100%, 0.06)'
+                  : 'linear-gradient(135deg, hsla(215, 100%, 62%, 0.95) 0%, hsla(215, 100%, 52%, 0.95) 100%)',
+                color: state.isPlaying ? 'hsla(0, 0%, 100%, 0.9)' : 'hsl(0, 0%, 100%)',
+                boxShadow: state.isPlaying
+                  ? 'inset 0 1px 0 hsla(0,0%,100%,0.06), inset 0 0 0 1px hsla(0,0%,100%,0.08)'
+                  : 'inset 0 1px 0 hsla(0,0%,100%,0.25), 0 0 24px hsla(215, 100%, 55%, 0.45), 0 0 48px hsla(215, 100%, 55%, 0.2)',
+              }}
+            >
+              {state.isPlaying ? <Pause className="w-4 h-4" strokeWidth={1.8} /> : <Play className="w-4 h-4 ml-0.5" strokeWidth={1.8} fill="currentColor" />}
             </button>
             <TransportButton onClick={() => skipClip(1)} tooltip="Next clip"><SkipForward className="w-4 h-4" /></TransportButton>
             <TransportButton onClick={goToEnd} tooltip="End (End)"><ChevronsRight className="w-4 h-4" /></TransportButton>
           </div>
           <div className="flex-1 flex items-center justify-center">
-            <div className="flex items-center gap-2 px-4 py-1.5 rounded-lg" style={{ background: 'hsla(0,0%,100%,0.04)', border: '1px solid hsla(0,0%,100%,0.06)' }}>
-              <span className="text-[12px] font-mono font-bold text-[hsla(0,0%,100%,0.75)] tabular-nums tracking-tight">{formatTime(state.playheadTime)}</span>
-              <span className="text-[10px] text-[hsla(0,0%,100%,0.25)] font-medium">/</span>
-              <span className="text-[11px] font-mono text-[hsla(0,0%,100%,0.4)] tabular-nums">{formatTime(state.duration)}</span>
+            <div
+              className="flex items-center gap-2.5 px-4 py-1.5 rounded-full"
+              style={{
+                background: 'hsla(0,0%,100%,0.025)',
+                backdropFilter: 'blur(24px) saturate(160%)',
+                boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.04), inset 0 0 0 1px hsla(0,0%,100%,0.04)',
+              }}
+            >
+              <span className="text-[11px] font-mono font-light text-[hsla(0,0%,100%,0.85)] tabular-nums tracking-[0.06em]">{formatTime(state.playheadTime)}</span>
+              <span className="text-[10px] text-[hsla(0,0%,100%,0.18)]">/</span>
+              <span className="text-[10px] font-mono font-light text-[hsla(0,0%,100%,0.35)] tabular-nums tracking-[0.06em]">{formatTime(state.duration)}</span>
             </div>
           </div>
           <div className="flex items-center gap-0.5">
@@ -378,7 +404,14 @@ export const VideoPreviewPlayer = memo(function VideoPreviewPlayer({ className }
                 {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               </TransportButton>
               {showVolumeSlider && (
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 rounded-xl p-2.5 shadow-2xl w-9 h-28" style={{ background: 'hsl(220, 14%, 8%)', border: '1px solid hsla(0, 0%, 100%, 0.1)' }}>
+                <div
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 rounded-2xl p-2.5 w-10 h-32"
+                  style={{
+                    background: 'linear-gradient(180deg, hsla(220,14%,8%,0.88) 0%, hsla(220,14%,5%,0.92) 100%)',
+                    backdropFilter: 'blur(32px) saturate(180%)',
+                    boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.05), 0 16px 40px -12px hsla(0,0%,0%,0.7)',
+                  }}
+                >
                   <Slider orientation="vertical" value={[volume]} onValueChange={handleVolumeChange} min={0} max={100} step={1} className="h-full" />
                 </div>
               )}
@@ -395,11 +428,30 @@ function TransportButton({ onClick, tooltip, active, children }: { onClick: () =
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button onClick={onClick} className={cn("w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-150", active ? "text-[hsla(0,0%,100%,0.9)]" : "text-[hsla(0,0%,100%,0.4)] hover:text-[hsla(0,0%,100%,0.7)]")} style={{ background: active ? 'hsla(0,0%,100%,0.08)' : 'transparent' }}>
+        <button
+          onClick={onClick}
+          className={cn(
+            "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-105",
+            active ? "text-[hsl(215,100%,75%)]" : "text-[hsla(0,0%,100%,0.4)] hover:text-[hsla(0,0%,100%,0.85)]"
+          )}
+          style={{
+            background: active ? 'hsla(215,100%,55%,0.1)' : 'transparent',
+            boxShadow: active ? 'inset 0 0 0 1px hsla(215,100%,55%,0.18)' : 'none',
+          }}
+        >
           {children}
         </button>
       </TooltipTrigger>
-      <TooltipContent side="top" className="text-[10px] px-2.5 py-1 rounded-lg" style={{ background: 'hsl(220, 14%, 12%)', border: '1px solid hsla(0,0%,100%,0.1)', color: 'hsla(0,0%,100%,0.8)' }}>
+      <TooltipContent
+        side="top"
+        className="text-[9px] font-light tracking-[0.16em] uppercase px-2.5 py-1 rounded-full"
+        style={{
+          background: 'linear-gradient(180deg, hsla(220,14%,10%,0.92) 0%, hsla(220,14%,6%,0.94) 100%)',
+          backdropFilter: 'blur(24px) saturate(160%)',
+          boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.05), 0 8px 24px -8px hsla(0,0%,0%,0.6)',
+          color: 'hsla(0,0%,100%,0.75)',
+        }}
+      >
         {tooltip}
       </TooltipContent>
     </Tooltip>

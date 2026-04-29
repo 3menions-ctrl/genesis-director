@@ -15,7 +15,7 @@ const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundPro
         style={{
           backgroundImage: `url(${landingAbstractBg})`,
           backgroundSize: 'contain',
-          backgroundPosition: 'center center',
+          backgroundPosition: 'center top',
           backgroundRepeat: 'no-repeat',
         }}
       >
@@ -23,7 +23,7 @@ const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundPro
         <img
           src={landingAbstractBg}
           alt="Dubai skyline above clouds"
-          className="absolute inset-0 h-full w-full object-contain object-center select-none opacity-95"
+          className="absolute inset-0 h-full w-full object-contain object-top select-none opacity-100"
           draggable={false}
         />
 

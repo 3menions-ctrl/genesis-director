@@ -2116,3 +2116,46 @@ img, a, button {
   background-size: 200% 200%;
   animation: holo-border 3s linear infinite;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   APEX RENOVATION — Typography & Surface utilities
+   ═══════════════════════════════════════════════════════════════════ */
+
+@layer components {
+  /* Editorial typography */
+  .text-eyebrow {
+    @apply font-sora text-[11px] font-medium uppercase text-white/40;
+    letter-spacing: 0.22em;
+  }
+  .text-display {
+    @apply font-sora font-semibold text-white;
+    font-size: clamp(2rem, 4vw + 0.5rem, 2.875rem);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+  }
+  .text-section-title {
+    @apply font-sora text-xl font-semibold text-white tracking-tight;
+  }
+  .text-body-muted {
+    @apply font-instrument text-[15px] text-white/55 leading-relaxed;
+  }
+
+  /* Unified surface card */
+  .surface-card {
+    @apply relative rounded-2xl border bg-white/[0.025] backdrop-blur-xl;
+    border-color: hsl(0 0% 100% / 0.06);
+    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.04) inset, 0 20px 40px -24px hsl(220 30% 0% / 0.6);
+  }
+  .surface-card-hover {
+    @apply transition-all duration-300;
+  }
+  .surface-card-hover:hover {
+    border-color: hsl(0 0% 100% / 0.12);
+    transform: translateY(-2px);
+  }
+
+  /* Hairline divider */
+  .hairline {
+    @apply h-px w-full bg-white/[0.06];
+  }
+}

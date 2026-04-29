@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Check, ArrowRight, Sparkles, Shield, Clock, Zap, Crown, Building2,

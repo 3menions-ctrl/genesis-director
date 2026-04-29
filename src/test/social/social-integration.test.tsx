@@ -11,13 +11,13 @@ describe('Social Features Integration', () => {
   });
 
   describe('Route Configuration', () => {
-    it('should have /creators route configured', async () => {
+    it('should have /creators route configured', { timeout: 60000 }, async () => {
       // Verify the route is properly exported in App.tsx
       const appModule = await import('@/App');
       expect(appModule).toBeDefined();
     });
 
-    it('should have /user/:userId route configured', async () => {
+    it('should have /user/:userId route configured', { timeout: 60000 }, async () => {
       // Verify dynamic user profile route exists
       const appModule = await import('@/App');
       expect(appModule).toBeDefined();

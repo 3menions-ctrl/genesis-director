@@ -209,6 +209,7 @@ async function createSeedancePrediction(
   startImageUrl?: string | null,
   aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
   durationSeconds: number = DEFAULT_CLIP_DURATION,
+  endImageUrl?: string | null,
 ): Promise<{ predictionId: string }> {
   const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
   if (!REPLICATE_API_KEY) {
@@ -230,14 +231,22 @@ async function createSeedancePrediction(
 
   if (startImageUrl && startImageUrl.startsWith("http")) {
     input.image = startImageUrl;
+    // Seedance 2.0 unique capability: target end-frame interpolation.
+    // Only valid when a start `image` is also provided.
+    if (endImageUrl && endImageUrl.startsWith("http") && endImageUrl !== startImageUrl) {
+      input.last_frame_image = endImageUrl;
+    }
   }
 
-  const mode = startImageUrl ? "I2V" : "T2V";
+  const mode = startImageUrl
+    ? (input.last_frame_image ? "I2V+EndFrame" : "I2V")
+    : "T2V";
   console.log(`[SingleClip][Seedance2] Creating ${mode} prediction:`, {
     model: `${SEEDANCE_MODEL_OWNER}/${SEEDANCE_MODEL_NAME}`,
     duration,
     aspectRatio,
     hasStartImage: !!input.image,
+    hasEndImage: !!input.last_frame_image,
     promptLength: prompt.length,
   });
 

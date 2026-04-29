@@ -422,31 +422,30 @@ export function AppShell({ children }: AppShellProps) {
             className="sticky top-0 z-30 h-[56px] flex items-center gap-2 px-3 sm:px-5"
             style={{
               background:
-                'linear-gradient(180deg, hsla(220, 14%, 3%, 0.78) 0%, hsla(220, 14%, 3%, 0.55) 100%)',
-              backdropFilter: 'blur(28px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-              borderBottom: '1px solid hsla(0, 0%, 100%, 0.05)',
+                'linear-gradient(180deg, hsla(220, 14%, 3%, 0.55) 0%, hsla(220, 14%, 3%, 0.15) 100%)',
+              backdropFilter: 'blur(40px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(40px) saturate(180%)',
             }}
           >
             {/* Mobile menu */}
             <button
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden w-9 h-9 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors"
+              className="lg:hidden w-9 h-9 rounded-full flex items-center justify-center text-white/55 hover:text-white hover:bg-white/[0.06] transition-all duration-300"
               aria-label="Open menu"
             >
-              <Menu className="w-4 h-4" />
+              <Menu className="w-4 h-4" strokeWidth={1.5} />
             </button>
 
             {/* Desktop: show menu button when sidebar is hidden */}
             {hidden && (
               <button
                 onClick={() => setHidden(false)}
-                className="hidden lg:flex items-center gap-2 h-9 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.16] hover:bg-white/[0.07] text-white/70 hover:text-white transition-all"
+                className="hidden lg:flex items-center gap-2 h-9 px-3.5 rounded-full bg-white/[0.04] hover:bg-white/[0.07] text-white/65 hover:text-white transition-all duration-300 shadow-[inset_0_1px_0_hsla(0,0%,100%,0.05)]"
                 aria-label="Show sidebar"
                 title="Show sidebar"
               >
-                <PanelLeft className="w-4 h-4" />
-                <span className="text-[12px] font-medium">Menu</span>
+                <PanelLeft className="w-3.5 h-3.5" strokeWidth={1.5} />
+                <span className="text-[12px] font-light tracking-[0.01em]">Menu</span>
               </button>
             )}
 
@@ -459,38 +458,38 @@ export function AppShell({ children }: AppShellProps) {
             {/* User menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="group flex items-center gap-2 h-9 pl-1.5 pr-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.14] hover:bg-white/[0.05] transition-all duration-300">
+                <button className="group flex items-center gap-2 h-10 pl-1.5 pr-3 rounded-full bg-white/[0.03] hover:bg-white/[0.06] transition-all duration-500 shadow-[inset_0_1px_0_hsla(0,0%,100%,0.05)] hover:shadow-[inset_0_1px_0_hsla(0,0%,100%,0.08),0_8px_24px_-12px_rgba(0,0,0,0.5)] hover:scale-[1.02]">
                   <div className="relative">
                     <div className="absolute -inset-[2px] rounded-full bg-gradient-to-br from-[hsl(var(--primary)/0.4)] to-[hsl(var(--accent)/0.2)] opacity-0 group-hover:opacity-100 blur-[2px] transition-opacity duration-500" />
-                    <div className="relative w-7 h-7 rounded-full flex items-center justify-center overflow-hidden bg-gradient-to-br from-white/[0.1] to-white/[0.04] border border-white/[0.08]">
+                    <div className="relative w-7 h-7 rounded-full flex items-center justify-center overflow-hidden bg-gradient-to-br from-white/[0.10] to-white/[0.03] shadow-[inset_0_1px_0_hsla(0,0%,100%,0.08)]">
                       {profile?.avatar_url ? (
                         <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <UserIcon className="w-3.5 h-3.5 text-white/45" />
+                        <UserIcon className="w-3.5 h-3.5 text-white/45" strokeWidth={1.5} />
                       )}
                     </div>
-                    <div className="absolute -bottom-[1px] -right-[1px] w-[10px] h-[10px] rounded-full bg-[hsl(var(--success))] border-2 border-[hsl(220_14%_3%)]" />
+                    <div className="absolute -bottom-[1px] -right-[1px] w-[9px] h-[9px] rounded-full bg-[hsl(var(--success))] shadow-[0_0_0_2px_hsl(220_14%_3%),0_0_8px_hsl(var(--success)/0.6)]" />
                   </div>
                   <div className="hidden md:flex flex-col items-start">
-                    <span className="text-[12px] font-semibold text-white/75 leading-none truncate max-w-[100px]">
+                    <span className="text-[12px] font-light tracking-[-0.005em] text-white/85 leading-none truncate max-w-[100px]">
                       {profile?.display_name || profile?.full_name || 'Creator'}
                     </span>
-                    <span className="text-[9px] text-white/30 leading-none mt-[2px] uppercase tracking-wider">
+                    <span className="text-[9px] font-light text-white/30 leading-none mt-[3px] uppercase tracking-[0.22em]">
                       {isAdmin ? 'Admin' : 'Pro'}
                     </span>
                   </div>
-                  <ChevronDown className="w-3 h-3 text-white/25 group-hover:text-white/50 transition-colors" />
+                  <ChevronDown className="w-3 h-3 text-white/25 group-hover:text-white/55 transition-all duration-300 group-hover:translate-y-[1px]" strokeWidth={1.5} />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
                 sideOffset={10}
-                className="w-56 rounded-2xl p-2"
+                className="w-60 rounded-3xl p-2"
                 style={{
                   background: 'linear-gradient(180deg, hsla(220,14%,5%,0.97) 0%, hsla(220,14%,4%,0.98) 100%)',
-                  backdropFilter: 'blur(40px)',
-                  border: '1px solid hsla(0,0%,100%,0.07)',
-                  boxShadow: '0 24px 64px rgba(0,0,0,0.7)',
+                  backdropFilter: 'blur(56px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(56px) saturate(180%)',
+                  boxShadow: '0 32px 80px rgba(0,0,0,0.8), inset 0 1px 0 hsla(0,0%,100%,0.06)',
                 }}
               >
                 <div className="px-3 py-3 mb-1 rounded-xl bg-gradient-to-r from-white/[0.03] to-transparent">

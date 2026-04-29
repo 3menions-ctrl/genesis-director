@@ -30,13 +30,14 @@ interface NavItem {
 }
 
 const PRIMARY_NAV: NavItem[] = [
-  { label: 'Library',   to: '/projects',       icon: Film,          hue: 211, match: (p) => p === '/projects' || p.startsWith('/projects') },
-  { label: 'Create',    to: '/create',         icon: Sparkles,      hue: 168 }, // teal/mint
-  { label: 'Editor',    to: '/editor',         icon: Scissors,      hue: 195 }, // cyan
-  { label: 'Avatars',   to: '/avatars',        icon: UserIcon,      hue: 32  }, // amber
-  { label: 'Templates', to: '/templates',      icon: Layers,        hue: 280 }, // soft magenta (tasteful, not purple bg)
-  { label: 'Training',  to: '/training-video', icon: GraduationCap, hue: 145 }, // green
-  { label: 'Creators',  to: '/creators',       icon: Users,         hue: 340 }, // rose
+  // Unified loading-screen palette: deep cinematic blue (hsl 215, 100%, 60%)
+  { label: 'Library',   to: '/projects',       icon: Film,          hue: 215, match: (p) => p === '/projects' || p.startsWith('/projects') },
+  { label: 'Create',    to: '/create',         icon: Sparkles,      hue: 215 },
+  { label: 'Editor',    to: '/editor',         icon: Scissors,      hue: 215 },
+  { label: 'Avatars',   to: '/avatars',        icon: UserIcon,      hue: 215 },
+  { label: 'Templates', to: '/templates',      icon: Layers,        hue: 215 },
+  { label: 'Training',  to: '/training-video', icon: GraduationCap, hue: 215 },
+  { label: 'Creators',  to: '/creators',       icon: Users,         hue: 215 },
 ];
 
 interface AppShellProps {

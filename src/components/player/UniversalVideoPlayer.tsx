@@ -271,6 +271,17 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             // ================================================================
             // PROJECT-BASED: Fetch HLS playlist or generate one
             // ================================================================
+            const { data: dbClips } = await supabase
+              .from('video_clips')
+              .select('video_url, shot_index')
+              .eq('project_id', sourceProjectId)
+              .not('video_url', 'is', null)
+              .order('shot_index', { ascending: true });
+
+            const clipUrls = (dbClips || [])
+              .map((clip) => clip.video_url)
+              .filter((url): url is string => Boolean(url));
+
             const { data: project } = await supabase
               .from('movie_projects')
               .select('pending_video_tasks, video_url')
@@ -282,7 +293,9 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             
             // Get first clip URL for thumbnail mode
             const mseClipUrls = tasks?.mseClipUrls as string[] | undefined;
-            if (mseClipUrls && mseClipUrls.length > 0) {
+            if (clipUrls.length > 0) {
+              firstClipUrl = clipUrls[0];
+            } else if (mseClipUrls && mseClipUrls.length > 0) {
               firstClipUrl = mseClipUrls[0];
             }
             
@@ -304,7 +317,7 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
             }
             
             // Check if project has video content to generate HLS from
-            const hasVideoContent = tasks?.predictions || tasks?.mseClipUrls || project?.video_url;
+            const hasVideoContent = clipUrls.length > 0 || tasks?.predictions || tasks?.mseClipUrls || project?.video_url;
             const hasIncompletePredictions = tasks?.predictions && Array.isArray(tasks.predictions) && 
               (tasks.predictions as Array<{ status?: string }>).some(p => p.status !== 'completed' && p.status !== 'failed');
             const isStillGenerating = tasks?.stage === 'async_video_generation' || hasIncompletePredictions;

@@ -497,13 +497,17 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
         {Array.from({ length: isMobile ? 2 : 4 }).map((_, i) => (
           <div 
             key={`skeleton-${i}`}
-            className="flex-shrink-0 rounded-2xl md:rounded-3xl overflow-hidden bg-zinc-900/50 border border-white/5"
-            style={{ width: CARD_WIDTH }}
+            className="flex-shrink-0 rounded-2xl md:rounded-3xl overflow-hidden"
+            style={{
+              width: CARD_WIDTH,
+              background: 'hsla(220,14%,4%,0.5)',
+              boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.03), inset 0 0 0 1px hsla(0,0%,100%,0.035)',
+            }}
           >
             <ShimmerSkeleton aspectRatio="portrait" />
-            <div className="p-3 md:p-5 space-y-2">
-              <div className="h-5 bg-zinc-800/50 rounded animate-pulse w-3/4" />
-              <div className="h-4 bg-zinc-800/30 rounded animate-pulse w-full" />
+            <div className="p-4 md:p-5 space-y-2">
+              <div className="h-4 rounded-full animate-pulse w-3/4" style={{ background: 'hsla(0,0%,100%,0.04)' }} />
+              <div className="h-3 rounded-full animate-pulse w-full" style={{ background: 'hsla(0,0%,100%,0.025)' }} />
             </div>
           </div>
         ))}
@@ -513,52 +517,64 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
 
   if (safeAvatars.length === 0) {
     return (
-      <div className="text-center py-16 px-4">
-        <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/[0.03] flex items-center justify-center mx-auto mb-4 border border-white/[0.06]">
-          <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-white/20" />
+      <div className="text-center py-20 px-4">
+        <div
+          className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5"
+          style={{
+            background: 'hsla(0,0%,100%,0.025)',
+            boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.05), inset 0 0 0 1px hsla(0,0%,100%,0.05)',
+          }}
+        >
+          <Sparkles className="w-6 h-6 text-[hsl(215,100%,72%)]/45" strokeWidth={1.5} />
         </div>
-        <p className="text-white/50 mb-2 text-sm md:text-base">No avatars found</p>
-        <p className="text-xs md:text-sm text-white/30">Try adjusting your filters</p>
+        <p className="text-white/55 mb-2 text-sm font-light tracking-wide">No avatars found</p>
+        <p className="text-[10px] font-light tracking-[0.18em] uppercase text-white/30">Try adjusting your filters</p>
       </div>
     );
   }
 
   return (
     <div className="relative group/gallery w-full">
-      {/* Gradient fade edges - uses #030303 to match AvatarsBackground */}
+      {/* Gradient fade edges — Pro-Dark */}
       <div 
         className="absolute left-0 top-0 bottom-0 w-8 md:w-24 z-10 pointer-events-none" 
-        style={{ background: 'linear-gradient(to right, #030303, transparent)' }}
+        style={{ background: 'linear-gradient(to right, hsl(220,14%,2%) 0%, transparent 100%)' }}
       />
       <div 
         className="absolute right-0 top-0 bottom-0 w-8 md:w-24 z-10 pointer-events-none" 
-        style={{ background: 'linear-gradient(to left, #030303, transparent)' }}
+        style={{ background: 'linear-gradient(to left, hsl(220,14%,2%) 0%, transparent 100%)' }}
       />
       
       {/* Navigation Arrows */}
       {!isMobile && canScrollLeft && (
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover/gallery:opacity-100 transition-opacity">
-          <Button
-            variant="outline"
-            size="icon"
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover/gallery:opacity-100 transition-opacity duration-300">
+          <button
             onClick={() => scroll('left')}
-            className="w-12 h-12 rounded-full bg-background/80 border-border text-foreground hover:bg-background hover:border-border/80 backdrop-blur-sm shadow-xl"
+            className="w-11 h-11 rounded-full flex items-center justify-center text-white/75 hover:text-white transition-all duration-300 hover:scale-105"
+            style={{
+              background: 'linear-gradient(180deg, hsla(220,14%,6%,0.85) 0%, hsla(220,14%,3%,0.92) 100%)',
+              backdropFilter: 'blur(32px) saturate(180%)',
+              boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.06), inset 0 0 0 1px hsla(0,0%,100%,0.05), 0 12px 32px -8px hsla(0,0%,0%,0.65)',
+            }}
           >
-            <ChevronLeft className="w-6 h-6" />
-          </Button>
+            <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
+          </button>
         </div>
       )}
       
       {!isMobile && canScrollRight && (
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover/gallery:opacity-100 transition-opacity">
-          <Button
-            variant="outline"
-            size="icon"
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover/gallery:opacity-100 transition-opacity duration-300">
+          <button
             onClick={() => scroll('right')}
-            className="w-12 h-12 rounded-full bg-background/80 border-border text-foreground hover:bg-background hover:border-border/80 backdrop-blur-sm shadow-xl"
+            className="w-11 h-11 rounded-full flex items-center justify-center text-white/75 hover:text-white transition-all duration-300 hover:scale-105"
+            style={{
+              background: 'linear-gradient(180deg, hsla(220,14%,6%,0.85) 0%, hsla(220,14%,3%,0.92) 100%)',
+              backdropFilter: 'blur(32px) saturate(180%)',
+              boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.06), inset 0 0 0 1px hsla(0,0%,100%,0.05), 0 12px 32px -8px hsla(0,0%,0%,0.65)',
+            }}
           >
-            <ChevronRight className="w-6 h-6" />
-          </Button>
+            <ChevronRight className="w-5 h-5" strokeWidth={1.5} />
+          </button>
         </div>
       )}
       
@@ -608,15 +624,26 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
       {/* Loading progress indicator - shows while avatars are still loading */}
       {!isFullyLoaded && (
         <div className="flex items-center justify-center gap-3 mt-4 animate-fade-in">
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.08]">
-            <Loader2 className="w-4 h-4 text-violet-400 animate-spin" />
-            <span className="text-xs text-white/50">
+          <div
+            className="flex items-center gap-3 px-4 py-2 rounded-full"
+            style={{
+              background: 'hsla(0,0%,100%,0.025)',
+              backdropFilter: 'blur(24px) saturate(160%)',
+              boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.04), inset 0 0 0 1px hsla(0,0%,100%,0.05)',
+            }}
+          >
+            <Loader2 className="w-3.5 h-3.5 text-[hsl(215,100%,72%)] animate-spin" strokeWidth={1.5} />
+            <span className="text-[10px] font-light tracking-[0.16em] uppercase text-white/55">
               Loading avatars... {visibleAvatars.length}/{totalCount}
             </span>
-            <div className="w-16 h-1 bg-white/10 rounded-full overflow-hidden">
+            <div className="w-16 h-1 rounded-full overflow-hidden" style={{ background: 'hsla(0,0%,100%,0.06)' }}>
               <div 
-                className="h-full bg-violet-500 rounded-full transition-all duration-300"
-                style={{ width: `${loadProgress}%` }}
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  width: `${loadProgress}%`,
+                  background: 'linear-gradient(90deg, hsla(215,100%,55%,0.85) 0%, hsla(215,100%,72%,0.95) 100%)',
+                  boxShadow: '0 0 12px hsla(215,100%,55%,0.5)',
+                }}
               />
             </div>
           </div>
@@ -625,11 +652,12 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
       
       {/* Mobile scroll indicators */}
       {isMobile && safeAvatars.length > 2 && (
-        <div className="flex justify-center gap-1.5 mt-4">
+        <div className="flex justify-center gap-1.5 mt-5">
           {Array.from({ length: Math.min(5, Math.ceil(safeAvatars.length / 2)) }).map((_, i) => (
             <div
               key={`indicator-${i}`}
-              className="w-6 h-1 rounded-full bg-white/10"
+              className="w-5 h-0.5 rounded-full"
+              style={{ background: 'hsla(0,0%,100%,0.08)' }}
             />
           ))}
         </div>

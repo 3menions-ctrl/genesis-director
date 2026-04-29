@@ -1,11 +1,12 @@
 import { useState, useCallback, useEffect, memo } from 'react';
 import { toast } from 'sonner';
-import { Film, Sparkles, Image } from 'lucide-react';
+import { Film, Sparkles, Image as ImageIcon, Wand2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CreationHub } from '@/components/studio/CreationHub';
 import { ScenesHub } from '@/components/scenes/ScenesHub';
 import { PhotoEditorHub } from '@/components/photo-editor/PhotoEditorHub';
 import { AppHeader } from '@/components/layout/AppHeader';
-import { PageShell, PageHeader, SegmentedControl } from '@/components/shell';
+import { PageShell } from '@/components/shell';
 import { useAuth } from '@/contexts/AuthContext';
 import { VideoGenerationMode, VideoStylePreset } from '@/types/video-modes';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,6 +20,93 @@ import { withSafePageRef } from '@/lib/withSafeRef';
 import { useGatekeeperLoading, GATEKEEPER_PRESETS, getGatekeeperMessage } from '@/hooks/useGatekeeperLoading';
 import { cn } from '@/lib/utils';
 import { saveDraft, loadDraft, clearDraft } from '@/lib/sessionPersistence';
+
+// Premium tab definition for the Create studio
+const STUDIO_TABS = [
+  { key: 'create' as const, label: 'Create Video', sub: 'Cinematic generation', icon: Film },
+  { key: 'scenes' as const, label: 'Scenes',       sub: 'Build your world',     icon: Sparkles },
+  { key: 'photo'  as const, label: 'Photo Editor', sub: 'Refine every frame',   icon: ImageIcon },
+];
+
+// Ambient aurora background — fixed behind page, GPU-light
+const StudioAurora = memo(function StudioAurora() {
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+      {/* deep base */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(220_14%_6%)_0%,hsl(220_14%_2%)_60%)]" />
+      {/* primary aurora */}
+      <div
+        className="absolute -top-1/3 left-1/2 h-[60vmax] w-[60vmax] -translate-x-1/2 rounded-full opacity-[0.35] blur-3xl animate-[pulse_12s_ease-in-out_infinite]"
+        style={{ background: 'radial-gradient(circle, hsl(212 100% 50% / 0.55) 0%, transparent 60%)' }}
+      />
+      {/* cool counter-glow */}
+      <div
+        className="absolute -bottom-1/3 -right-1/4 h-[55vmax] w-[55vmax] rounded-full opacity-25 blur-3xl"
+        style={{ background: 'radial-gradient(circle, hsl(190 100% 55% / 0.35) 0%, transparent 65%)' }}
+      />
+      {/* film grain */}
+      <div
+        className="absolute inset-0 opacity-[0.035] mix-blend-overlay"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+        }}
+      />
+      {/* top hairline highlight */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+    </div>
+  );
+});
+
+// Premium glass segmented tabs with sliding indicator
+function StudioTabs({
+  value,
+  onChange,
+}: {
+  value: 'create' | 'scenes' | 'photo';
+  onChange: (v: 'create' | 'scenes' | 'photo') => void;
+}) {
+  return (
+    <div
+      role="tablist"
+      className="relative inline-flex items-center gap-1 rounded-2xl p-1.5 border border-white/[0.07] bg-white/[0.02] backdrop-blur-2xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.04)]"
+    >
+      {STUDIO_TABS.map((tab) => {
+        const Icon = tab.icon;
+        const active = value === tab.key;
+        return (
+          <button
+            key={tab.key}
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(tab.key)}
+            className={cn(
+              'relative z-10 flex items-center gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-sm font-medium transition-colors duration-300',
+              active ? 'text-white' : 'text-white/50 hover:text-white/80'
+            )}
+          >
+            {active && (
+              <motion.span
+                layoutId="studio-tab-active"
+                transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                className="absolute inset-0 -z-10 rounded-xl"
+                style={{
+                  background:
+                    'linear-gradient(180deg, hsl(212 100% 56% / 0.22) 0%, hsl(212 100% 50% / 0.12) 100%)',
+                  border: '1px solid hsl(212 100% 60% / 0.35)',
+                  boxShadow:
+                    '0 8px 30px -8px hsl(212 100% 50% / 0.45), inset 0 1px 0 hsl(212 100% 70% / 0.25)',
+                }}
+              />
+            )}
+            <Icon className={cn('w-4 h-4 transition-colors', active ? 'text-primary' : 'opacity-70')} />
+            <span className="tracking-tight">{tab.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 // Loading overlay component for creation in progress - uses unified brand animation
 const LoadingOverlay = memo(function LoadingOverlay({ status }: { status: string }) {

@@ -1056,6 +1056,16 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
             </div>
           </div>
         )}
+
+        {/* ─── Signature footer plate ─── */}
+        <div className="relative pt-4 pb-2 flex flex-col items-center gap-2 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <div className="h-px w-32" style={{ background: 'linear-gradient(90deg, transparent, hsla(215,100%,68%,0.6), transparent)' }} />
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] text-white/35 font-mono">
+            <span className="w-1 h-1 rounded-full bg-[hsl(215,100%,68%)]" style={{ animation: 'profileTick 2.4s ease-in-out infinite' }} />
+            APEX STUDIO · CREATOR MEMBRANE · ENC-{(user?.id || '').slice(0, 4).toUpperCase()}
+            <span className="w-1 h-1 rounded-full bg-[hsl(215,100%,68%)]" style={{ animation: 'profileTick 2.4s ease-in-out infinite', animationDelay: '0.6s' }} />
+          </div>
+        </div>
       </main>
 
       <BuyCreditsModal open={showBuyModal} onOpenChange={setShowBuyModal} />

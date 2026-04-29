@@ -68,7 +68,9 @@ export function AppShell({ children }: AppShellProps) {
     return location.pathname === item.to || location.pathname.startsWith(item.to + '/');
   };
 
-  const railWidth = collapsed ? 'lg:w-[68px]' : 'lg:w-[232px]';
+  // Total rail width INCLUDING the surrounding gutter (so the inset panel
+  // visually floats and content has breathing room).
+  const railWidth = collapsed ? 'lg:w-[80px]' : 'lg:w-[244px]';
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -103,18 +105,21 @@ export function AppShell({ children }: AppShellProps) {
         )}
 
         {/* ── Sidebar (icon rail) ──
-            On lg+ screens the sidebar lives inside the flex row as a real
-            sibling of the main column (no overlap, sharing horizontal space).
-            On smaller screens it slides in as an overlay drawer. */}
+            On lg+ screens the sidebar is an in-flow flex sibling of the main
+            column with a small surrounding gutter so the rail visually floats
+            and never visually presses against page content. On smaller screens
+            it slides in as an overlay drawer. */}
         <aside
           className={cn(
             // Mobile: overlay drawer
             'fixed inset-y-0 left-0 z-50 flex flex-col w-[260px]',
             '-translate-x-full transition-transform duration-300 ease-out',
             mobileOpen && 'translate-x-0',
-            // Desktop: in-flow flex sibling, sharing layout space
-            'lg:static lg:translate-x-0 lg:shrink-0 lg:h-screen lg:sticky lg:top-0',
+            // Desktop: in-flow flex sibling with surrounding gutter
+            'lg:static lg:translate-x-0 lg:shrink-0 lg:sticky lg:top-0',
+            'lg:h-screen lg:p-3',
             'lg:transition-[width] lg:duration-300 lg:ease-out',
+            'lg:bg-transparent lg:!border-r-0 lg:!shadow-none lg:!backdrop-blur-0',
             railWidth,
           )}
           style={{
@@ -126,17 +131,43 @@ export function AppShell({ children }: AppShellProps) {
             boxShadow: 'inset -1px 0 0 hsla(0, 0%, 100%, 0.02)',
           }}
         >
+          {/* Inset floating panel (only on lg+) */}
+          <div
+            className={cn(
+              'relative flex flex-1 flex-col min-h-0',
+              'lg:rounded-2xl lg:overflow-hidden',
+            )}
+            style={{
+              background:
+                'linear-gradient(180deg, hsla(220, 14%, 6%, 0.85) 0%, hsla(220, 14%, 4%, 0.92) 100%)',
+              backdropFilter: 'blur(48px) saturate(200%)',
+              WebkitBackdropFilter: 'blur(48px) saturate(200%)',
+              border: '1px solid hsla(0, 0%, 100%, 0.06)',
+              boxShadow:
+                '0 24px 48px -24px rgba(0,0,0,0.6), 0 0 0 1px hsla(0,0%,100%,0.02), inset 0 1px 0 hsla(0,0%,100%,0.04)',
+            }}
+          >
           {/* Soft inner highlight at the top edge for depth */}
           <div
             aria-hidden
             className="pointer-events-none absolute inset-x-0 top-0 h-px"
             style={{
               background:
-                'linear-gradient(90deg, transparent 0%, hsla(0,0%,100%,0.06) 50%, transparent 100%)',
+                'linear-gradient(90deg, transparent 0%, hsla(0,0%,100%,0.08) 50%, transparent 100%)',
+            }}
+          />
+          {/* Subtle accent halo */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full opacity-50"
+            style={{
+              background:
+                'radial-gradient(closest-side, hsl(var(--primary) / 0.18), transparent 70%)',
+              filter: 'blur(24px)',
             }}
           />
           {/* Brand */}
-          <div className={cn('flex h-[60px] shrink-0 items-center gap-3 px-4', collapsed && 'lg:justify-center lg:px-0')}>
+          <div className={cn('relative flex h-[60px] shrink-0 items-center gap-3 px-4', collapsed && 'lg:justify-center lg:px-0')}>
             <Link to="/projects" className="group flex items-center gap-2.5 min-w-0">
               <div className="relative shrink-0">
                 <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-[hsl(var(--primary)/0.35)] to-[hsl(var(--accent)/0.15)] opacity-0 group-hover:opacity-100 blur-md transition-opacity duration-500" />

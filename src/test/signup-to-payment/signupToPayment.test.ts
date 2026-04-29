@@ -148,8 +148,9 @@ describe('PAYMENT: create-credit-checkout edge function', () => {
     expect(src).toContain('Authorization');
   });
 
-  it('uses STRIPE_SECRET_KEY from environment', () => {
-    expect(src).toContain('STRIPE_SECRET_KEY');
+  it('initialises a Stripe client', () => {
+    // Now uses shared createStripeClient helper which reads STRIPE_SECRET_KEY internally
+    expect(src).toMatch(/createStripeClient|STRIPE_SECRET_KEY/);
   });
 
   it('creates a Stripe checkout session', () => {
@@ -162,13 +163,13 @@ describe('PAYMENT: create-credit-checkout edge function', () => {
     expect(src).toMatch(/package_id:/);
   });
 
-  it('sets success and cancel URLs', () => {
-    expect(src).toContain('success_url');
-    expect(src).toContain('cancel_url');
+  it('sets a return URL for the checkout session', () => {
+    // Embedded checkout uses return_url; redirect mode uses success_url/cancel_url
+    expect(src).toMatch(/return_url|success_url/);
   });
 
-  it('returns checkout URL in response', () => {
-    expect(src).toMatch(/session\.url/);
+  it('returns a checkout handle in response', () => {
+    expect(src).toMatch(/session\.url|session\.client_secret/);
   });
 
   it('has all four package IDs defined', () => {
@@ -209,8 +210,8 @@ describe('PAYMENT: BuyCreditsModal completeness', () => {
     expect(src).toMatch(/packageId\s*:/);
   });
 
-  it('redirects to Stripe checkout URL', () => {
-    expect(src).toMatch(/window\.location\.href\s*=\s*data\.url/);
+  it('hands off to Stripe checkout (URL redirect or embedded clientSecret)', () => {
+    expect(src).toMatch(/data\.url|clientSecret/);
   });
 });
 
@@ -342,7 +343,7 @@ describe('SECURITY: Payment flow hardening', () => {
   it('checkout does not expose STRIPE_SECRET_KEY in responses', () => {
     const src = readFile('supabase/functions/create-credit-checkout/index.ts');
     const usages = src.match(/STRIPE_SECRET_KEY/g) ?? [];
-    // Allow env read + Stripe init; should never be returned/logged elsewhere
+    // Helper-based init means 0; direct init means ≤2. Either is safe.
     expect(usages.length).toBeLessThanOrEqual(3);
   });
 });

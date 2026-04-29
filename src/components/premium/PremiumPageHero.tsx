@@ -1,0 +1,196 @@
+import { memo, ReactNode } from 'react';
+import { cn } from '@/lib/utils';
+import { LucideIcon } from 'lucide-react';
+
+/**
+ * PremiumPageHero — shared editorial hero matching the Projects page gold standard.
+ * Pro-Dark, blue accent, Sora display, ambient glow, status pill, gradient title,
+ * optional CTA slot and stats strip. Page-level accent hue is configurable.
+ */
+
+export interface HeroStat {
+  label: string;
+  value: string | number;
+  /** Tailwind class for the value color, e.g. text-white, text-[hsl(var(--primary))] */
+  accent?: string;
+  icon?: LucideIcon;
+}
+
+export interface PremiumPageHeroProps {
+  /** Eyebrow pill text, e.g. "Studio · Live" */
+  eyebrow: string;
+  /** Title parts: prefix, gradient highlight word, suffix */
+  titlePrefix?: string;
+  titleHighlight: string;
+  titleSuffix?: string;
+  /** Sub-headline */
+  description?: string;
+  /** Optional small status dot color (HSL var name e.g. "var(--success)") */
+  statusColor?: string;
+  /** Right side CTA(s) */
+  actions?: ReactNode;
+  /** Optional stat strip; 2-5 items */
+  stats?: HeroStat[];
+  /** Optional accent hue for the gradient highlight word (HSL var token, defaults to primary) */
+  highlightHue?: string;
+  /** Below-stats slot (e.g. tabs / filters) */
+  children?: ReactNode;
+  className?: string;
+}
+
+export const PremiumPageHero = memo(function PremiumPageHero({
+  eyebrow,
+  titlePrefix,
+  titleHighlight,
+  titleSuffix,
+  description,
+  statusColor = 'var(--success)',
+  actions,
+  stats,
+  highlightHue,
+  children,
+  className,
+}: PremiumPageHeroProps) {
+  const hue = highlightHue || 'var(--primary)';
+
+  return (
+    <header className={cn('relative mb-10 sm:mb-14 animate-fade-in', className)}>
+      {/* Ambient hero glow */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-16 -left-10 right-0 h-[280px] -z-10 opacity-70"
+        style={{
+          background:
+            `radial-gradient(620px 240px at 12% 40%, hsl(${hue} / 0.16), transparent 60%),` +
+            'radial-gradient(520px 220px at 70% 10%, hsl(var(--accent) / 0.10), transparent 65%)',
+          filter: 'blur(8px)',
+        }}
+      />
+
+      <div className="flex items-end justify-between gap-6 flex-wrap">
+        <div className="min-w-0">
+          {/* Status pill */}
+          <div className="inline-flex items-center gap-2 h-7 pl-2 pr-3 rounded-full border border-white/[0.07] bg-white/[0.03] backdrop-blur-md mb-5">
+            <span className="relative flex h-1.5 w-1.5">
+              <span
+                className="absolute inline-flex h-full w-full rounded-full opacity-70 animate-ping"
+                style={{ backgroundColor: `hsl(${statusColor})` }}
+              />
+              <span
+                className="relative inline-flex h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: `hsl(${statusColor})` }}
+              />
+            </span>
+            <span className="text-[10px] uppercase tracking-[0.22em] text-white/55 font-medium">
+              {eyebrow}
+            </span>
+          </div>
+
+          {/* Display title with gradient accent */}
+          <h1 className="font-display font-semibold tracking-[-0.03em] text-[40px] sm:text-[56px] leading-[1.02] text-white">
+            {titlePrefix && <>{titlePrefix} </>}
+            <span
+              className="bg-clip-text text-transparent"
+              style={{
+                backgroundImage: `linear-gradient(110deg, hsl(var(--foreground)) 0%, hsl(${hue}) 55%, hsl(var(--foreground)) 100%)`,
+              }}
+            >
+              {titleHighlight}
+            </span>
+            {titleSuffix && <> {titleSuffix}</>}
+          </h1>
+
+          {description && (
+            <p className="text-[14px] sm:text-[15px] text-white/45 mt-3 max-w-xl leading-relaxed">
+              {description}
+            </p>
+          )}
+        </div>
+
+        {actions && (
+          <div className="flex items-center gap-2 shrink-0">{actions}</div>
+        )}
+      </div>
+
+      {/* Stat strip */}
+      {stats && stats.length > 0 && (
+        <div
+          className={cn(
+            'mt-8 grid gap-px rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.015] backdrop-blur-sm',
+            stats.length === 2 && 'grid-cols-2',
+            stats.length === 3 && 'grid-cols-2 sm:grid-cols-3',
+            stats.length === 4 && 'grid-cols-2 sm:grid-cols-4',
+            stats.length >= 5 && 'grid-cols-2 sm:grid-cols-5',
+          )}
+        >
+          {stats.map((s) => {
+            const Icon = s.icon;
+            return (
+              <div key={s.label} className="relative px-5 py-4 bg-[hsl(220_14%_3%/0.6)]">
+                <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.22em] text-white/35 font-medium">
+                  {Icon && <Icon className="w-3 h-3" />}
+                  {s.label}
+                </div>
+                <div
+                  className={cn(
+                    'mt-1.5 font-display font-semibold text-[22px] sm:text-[26px] tabular-nums tracking-tight',
+                    s.accent || 'text-white',
+                  )}
+                >
+                  {typeof s.value === 'number' ? s.value.toLocaleString() : s.value}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {children && <div className="mt-7">{children}</div>}
+    </header>
+  );
+});
+
+/**
+ * PremiumHeroButton — a primary CTA matching the Projects "New project" button.
+ */
+export const PremiumHeroButton = memo(function PremiumHeroButton({
+  onClick,
+  icon: Icon,
+  children,
+  variant = 'primary',
+}: {
+  onClick?: () => void;
+  icon?: LucideIcon;
+  children: ReactNode;
+  variant?: 'primary' | 'ghost';
+}) {
+  if (variant === 'ghost') {
+    return (
+      <button
+        onClick={onClick}
+        className="group relative h-11 px-5 rounded-full font-medium text-[13px] inline-flex items-center gap-2 border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-md text-white/80 hover:text-white transition-all"
+      >
+        {Icon && <Icon className="w-4 h-4" />}
+        {children}
+      </button>
+    );
+  }
+  return (
+    <button
+      onClick={onClick}
+      className="group relative h-11 px-6 rounded-full font-medium text-[13px] inline-flex items-center gap-2 overflow-hidden transition-all duration-300 text-primary-foreground border border-[hsl(var(--primary)/0.5)] bg-gradient-to-b from-[hsl(var(--primary))] to-[hsl(var(--primary)/0.85)] hover:from-[hsl(var(--primary)/0.95)] hover:to-[hsl(var(--primary)/0.8)] shadow-[0_12px_40px_-12px_hsl(var(--primary)/0.7),inset_0_1px_0_hsl(0_0%_100%/0.2)]"
+    >
+      <span
+        aria-hidden
+        className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
+        style={{
+          background: 'linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.18), transparent)',
+        }}
+      />
+      {Icon && <Icon className="w-4 h-4 relative" />}
+      <span className="relative">{children}</span>
+    </button>
+  );
+});
+
+export default PremiumPageHero;

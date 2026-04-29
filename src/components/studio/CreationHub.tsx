@@ -520,9 +520,17 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
             >
               {/* Avatar selection (breakout template) */}
               {isBreakoutTemplate && (
-                <div className="mb-5 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
-                  <div className="flex items-center gap-2 mb-3 text-xs text-white/55 uppercase tracking-wider">
-                    <User className="w-3.5 h-3.5" /> Select avatar
+                <div
+                  className="mb-5 p-5 rounded-3xl"
+                  style={{
+                    background: 'hsla(0,0%,100%,0.022)',
+                    backdropFilter: 'blur(40px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+                    boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.04)',
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-3 text-[10px] text-white/55 uppercase tracking-[0.22em] font-light">
+                    <User className="w-3.5 h-3.5" strokeWidth={1.5} /> Select avatar
                   </div>
                   <TemplateAvatarSelector
                     selectedAvatar={selectedAvatar}
@@ -539,7 +547,13 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                   <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoSelect} className="hidden" />
 
                   {(uploadedImage || uploadedVideo) ? (
-                    <div className="relative rounded-2xl overflow-hidden border border-white/[0.08] bg-black/30">
+                    <div
+                      className="relative rounded-3xl overflow-hidden"
+                      style={{
+                        background: 'hsla(0,0%,0%,0.3)',
+                        boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.05)',
+                      }}
+                    >
                       {uploadedImage && (
                         <img src={uploadedImage} alt="Uploaded" className="w-full h-44 object-cover" />
                       )}
@@ -548,11 +562,11 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                       )}
                       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3 flex items-center justify-between">
                         <div className="flex items-center gap-2 min-w-0">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                          <span className="text-xs text-white/85 truncate">{uploadedFileName}</span>
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" strokeWidth={1.5} />
+                          <span className="text-xs text-white/85 truncate font-light tracking-[-0.005em]">{uploadedFileName}</span>
                         </div>
-                        <button onClick={clearUpload} className="text-white/60 hover:text-white p-1 rounded-md hover:bg-white/10">
-                          <X className="w-4 h-4" />
+                        <button onClick={clearUpload} className="text-white/60 hover:text-white p-1.5 rounded-full hover:bg-white/[0.08] transition-all duration-300">
+                          <X className="w-4 h-4" strokeWidth={1.5} />
                         </button>
                       </div>
                     </div>
@@ -561,22 +575,34 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                       onClick={() => modeConfig?.requiresVideo ? videoInputRef.current?.click() : imageInputRef.current?.click()}
                       onDrop={(e) => handleDrop(e, modeConfig?.requiresVideo ? 'video' : 'image')}
                       onDragOver={handleDragOver}
-                      className="cursor-pointer rounded-2xl border border-dashed border-white/10 hover:border-white/20 hover:bg-white/[0.02] transition-all duration-300 p-6 flex items-center gap-4"
+                      className="group/upload cursor-pointer rounded-3xl hover:bg-white/[0.025] transition-all duration-500 p-6 flex items-center gap-4"
+                      style={{
+                        background: 'hsla(0,0%,100%,0.012)',
+                        backdropFilter: 'blur(32px) saturate(180%)',
+                        WebkitBackdropFilter: 'blur(32px) saturate(180%)',
+                        boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.04)',
+                      }}
                     >
-                      <div className="w-11 h-11 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
+                      <div
+                        className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover/upload:scale-105"
+                        style={{
+                          background: 'linear-gradient(180deg, hsla(215,100%,60%,0.12) 0%, hsla(215,100%,55%,0.04) 100%)',
+                          boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.06)',
+                        }}
+                      >
                         {(imageUpload.isUploading || videoUpload.isUploading) ? (
-                          <Loader2 className="w-5 h-5 text-white/70 animate-spin" />
+                          <Loader2 className="w-5 h-5 text-[hsl(215,100%,75%)] animate-spin" strokeWidth={1.5} />
                         ) : (
-                          <Upload className="w-5 h-5 text-white/55" />
+                          <Upload className="w-5 h-5 text-[hsl(215,100%,75%)]" strokeWidth={1.5} />
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm text-white/80 font-medium">
+                        <p className="text-[14px] text-white/85 font-light tracking-[-0.005em]">
                           {(imageUpload.isUploading || videoUpload.isUploading)
                             ? `Uploading… ${imageUpload.progress || videoUpload.progress}%`
                             : `Drop ${modeConfig?.requiresVideo ? 'a video' : 'an image'} or click to upload`}
                         </p>
-                        <p className="text-xs text-white/35 mt-0.5">
+                        <p className="text-[11px] text-white/40 mt-1 font-light tracking-[0.005em]">
                           {modeConfig?.requiresVideo ? 'MP4, MOV up to 100MB' : 'PNG, JPG up to 10MB'}
                         </p>
                       </div>
@@ -588,7 +614,13 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
               {/* Prompt */}
               <div className="relative">
                 {/* Soft prompt frame */}
-                <div className="relative rounded-2xl bg-gradient-to-b from-white/[0.025] to-transparent border border-white/[0.05] p-5 sm:p-6 transition-colors duration-500 focus-within:border-primary/30 focus-within:bg-primary/[0.025]">
+                <div
+                  className="relative rounded-3xl p-6 sm:p-7 transition-all duration-700 focus-within:bg-white/[0.04]"
+                  style={{
+                    background: 'linear-gradient(180deg, hsla(0,0%,100%,0.025) 0%, hsla(0,0%,100%,0.005) 100%)',
+                    boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.04), inset 0 1px 0 hsla(0,0%,100%,0.05)',
+                  }}
+                >
                   <Textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
@@ -600,14 +632,14 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                       : 'A lone astronaut watching twin suns set over a glass desert…'
                   }
                   rows={5}
-                  className="w-full resize-none border-0 bg-transparent text-white placeholder:text-white/25 text-lg sm:text-xl leading-[1.45] focus-visible:ring-0 focus-visible:ring-offset-0 px-0 py-0 font-light tracking-[-0.01em]"
+                  className="w-full resize-none border-0 bg-transparent text-white placeholder:text-white/22 text-lg sm:text-xl leading-[1.45] focus-visible:ring-0 focus-visible:ring-offset-0 px-0 py-0 font-light tracking-[-0.015em]"
                 />
                   {/* Character counter */}
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="text-[10px] uppercase tracking-[0.22em] text-white/25">
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className="text-[10px] uppercase tracking-[0.24em] text-white/30 font-light">
                       Prompt
                     </span>
-                    <span className="text-[10px] tabular-nums text-white/30">
+                    <span className="text-[10px] tabular-nums text-white/30 font-light">
                       {prompt.length} / 1000
                     </span>
                   </div>
@@ -648,28 +680,32 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                     <button
                       onClick={() => setEnableNarration(v => !v)}
                       className={cn(
-                        'h-9 w-9 inline-flex items-center justify-center rounded-full border transition-all',
+                        'h-10 w-10 inline-flex items-center justify-center rounded-full border-0 transition-all duration-500 hover:scale-105',
                         enableNarration
-                          ? 'bg-primary/15 border-primary/40 text-primary'
-                          : 'bg-white/[0.03] border-white/10 text-white/40 hover:text-white/70'
+                          ? 'text-[hsl(215,100%,80%)]'
+                          : 'bg-white/[0.03] text-white/40 hover:text-white/80 hover:bg-white/[0.06]'
                       )}
+                      style={enableNarration ? {
+                        background: 'linear-gradient(180deg, hsla(215,100%,60%,0.20) 0%, hsla(215,100%,55%,0.08) 100%)',
+                        boxShadow: '0 0 16px hsla(215,100%,60%,0.30), inset 0 1px 0 hsla(0,0%,100%,0.08)',
+                      } : undefined}
                       title={enableNarration ? 'Narration on' : 'Narration off'}
                     >
-                      <Mic className="w-4 h-4" />
+                      <Mic className="w-4 h-4" strokeWidth={1.5} />
                     </button>
                     {supportsAdvancedOptions && (
                       <button
                         onClick={() => setShowAdvanced(v => !v)}
                         className={cn(
-                          'h-9 inline-flex items-center gap-1.5 px-3 rounded-full border text-xs font-medium transition-all',
+                          'h-10 inline-flex items-center gap-1.5 px-4 rounded-full border-0 text-[12px] font-light tracking-[-0.005em] transition-all duration-500 hover:scale-[1.02]',
                           showAdvanced
-                            ? 'bg-white/[0.06] border-white/15 text-white'
-                            : 'bg-white/[0.03] border-white/10 text-white/45 hover:text-white/80'
+                            ? 'bg-white/[0.07] text-white shadow-[inset_0_1px_0_hsla(0,0%,100%,0.06)]'
+                            : 'bg-white/[0.03] text-white/55 hover:text-white/90 hover:bg-white/[0.06]'
                         )}
                         title="Advanced"
                       >
-                        <Settings2 className="w-3.5 h-3.5" />
-                        <ChevronDown className={cn('w-3 h-3 transition-transform', showAdvanced && 'rotate-180')} />
+                        <Settings2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+                        <ChevronDown className={cn('w-3 h-3 transition-transform duration-500', showAdvanced && 'rotate-180')} strokeWidth={1.5} />
                       </button>
                     )}
                   </div>
@@ -678,46 +714,58 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                   <div className="relative">
                     {/* Halo glow */}
                     {!hasInsufficientCredits && isReadyToCreate() && (
-                      <span className="pointer-events-none absolute -inset-1 rounded-full bg-primary/40 blur-xl opacity-60 animate-pulse" />
+                      <span
+                        className="pointer-events-none absolute -inset-2 rounded-full opacity-70 animate-pulse"
+                        style={{
+                          background: 'radial-gradient(ellipse at center, hsla(215,100%,60%,0.55) 0%, transparent 70%)',
+                          filter: 'blur(20px)',
+                        }}
+                      />
                     )}
                     <Button
                       onClick={handleCreate}
                       disabled={!isReadyToCreate()}
                       className={cn(
-                        'group/cta relative h-12 px-6 rounded-full text-sm font-semibold transition-all overflow-hidden',
+                        'group/cta relative h-12 px-6 rounded-full text-[13px] font-light tracking-[-0.005em] transition-all duration-500 overflow-hidden border-0',
                         hasInsufficientCredits
-                          ? 'bg-gradient-to-b from-amber-300 to-amber-500 text-black'
-                          : 'bg-gradient-to-b from-primary/95 to-primary text-primary-foreground',
-                        'shadow-[0_10px_40px_-10px_hsl(212_100%_50%/0.7),inset_0_1px_0_hsl(212_100%_85%/0.45),inset_0_-1px_0_hsl(212_100%_25%/0.4)]',
-                        'hover:brightness-110 hover:scale-[1.02] active:scale-[0.98]',
+                          ? 'text-black'
+                          : 'text-white',
+                        'hover:brightness-110 hover:scale-[1.03] active:scale-[0.98]',
                         'disabled:opacity-30 disabled:shadow-none disabled:scale-100'
                       )}
+                      style={hasInsufficientCredits ? {
+                        background: 'linear-gradient(180deg, hsl(40,95%,68%) 0%, hsl(35,90%,55%) 100%)',
+                        boxShadow: '0 16px 40px -12px hsla(40,90%,55%,0.55), inset 0 1px 0 hsla(0,0%,100%,0.4)',
+                      } : {
+                        background: 'linear-gradient(180deg, hsl(215,100%,62%) 0%, hsl(215,100%,48%) 100%)',
+                        boxShadow: '0 16px 48px -12px hsla(215,100%,55%,0.7), 0 0 24px hsla(215,100%,60%,0.25), inset 0 1px 0 hsla(215,100%,85%,0.45), inset 0 -1px 0 hsla(215,100%,25%,0.4)',
+                      }}
                     >
                       <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover/cta:translate-x-full transition-transform duration-[1100ms] ease-in-out" />
                       <span className="relative flex items-center gap-2.5">
                         {hasInsufficientCredits ? (
                           <>
-                            <Coins className="w-4 h-4" /> Get credits <ArrowRight className="w-4 h-4" />
+                            <Coins className="w-4 h-4" strokeWidth={1.5} /> Get credits <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
                           </>
                         ) : (
                           <>
-                            <Sparkles className="w-4 h-4" />
-                            <span className="tracking-tight">Create</span>
-                            <span className="h-3.5 w-px bg-white/30" />
+                            <Sparkles className="w-4 h-4" strokeWidth={1.5} />
+                            <span>Create</span>
+                            <span className="h-3.5 w-px bg-white/25" />
                             <span
-                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold tracking-[0.08em]"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-light tracking-[0.10em]"
                               style={{
-                                background: `hsl(${engineInfo.hue} / 0.25)`,
+                                background: 'hsla(0,0%,100%,0.18)',
                                 color: '#fff',
-                                border: `1px solid hsl(${engineInfo.hue} / 0.45)`,
+                                boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.20)',
                               }}
                             >
-                              <Cpu className="w-2.5 h-2.5" />
+                              <Cpu className="w-2.5 h-2.5" strokeWidth={1.5} />
                               {engineInfo.label}
                             </span>
-                            <span className="h-3.5 w-px bg-white/30" />
-                            <span className="opacity-90 tabular-nums text-[13px]">{estimatedCredits}</span>
-                            <ArrowRight className="w-4 h-4 transition-transform group-hover/cta:translate-x-0.5" />
+                            <span className="h-3.5 w-px bg-white/25" />
+                            <span className="opacity-90 tabular-nums text-[13px] font-light">{estimatedCredits}</span>
+                            <ArrowRight className="w-4 h-4 transition-transform duration-500 group-hover/cta:translate-x-0.5" strokeWidth={1.5} />
                           </>
                         )}
                       </span>
@@ -738,7 +786,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                       <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <FieldShell label="Genre">
                           <Select value={genre} onValueChange={setGenre}>
-                            <SelectTrigger className="bg-transparent border-white/10 text-white h-10">
+                            <SelectTrigger className="bg-white/[0.03] border-0 text-white h-11 rounded-full px-4 font-light text-[13px] hover:bg-white/[0.05] focus:ring-1 focus:ring-[hsla(215,100%,60%,0.35)] transition-all duration-400">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -750,7 +798,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                         </FieldShell>
                         <FieldShell label="Mood">
                           <Select value={mood} onValueChange={setMood}>
-                            <SelectTrigger className="bg-transparent border-white/10 text-white h-10">
+                            <SelectTrigger className="bg-white/[0.03] border-0 text-white h-11 rounded-full px-4 font-light text-[13px] hover:bg-white/[0.05] focus:ring-1 focus:ring-[hsla(215,100%,60%,0.35)] transition-all duration-400">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -766,9 +814,9 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                 </AnimatePresence>
 
                 {hasInsufficientCredits && (
-                  <p className="mt-3 text-xs text-amber-300/80">
+                  <p className="mt-3 text-[12px] text-amber-300/85 font-light tracking-[-0.005em]">
                     Need {estimatedCredits - userCredits} more credits ·{' '}
-                    <button onClick={() => setShowBuyCredits(true)} className="underline">Top up</button>
+                    <button onClick={() => setShowBuyCredits(true)} className="underline underline-offset-2 hover:text-amber-200 transition-colors">Top up</button>
                   </p>
                 )}
               </div>
@@ -777,26 +825,26 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
         </motion.div>
 
         {/* ─── Tiny meta strip (estimated runtime) ─────────────────────── */}
-        <div className="mt-5 flex items-center justify-center gap-4 text-[11px] text-white/35 uppercase tracking-[0.18em]">
+        <div className="mt-6 flex items-center justify-center gap-4 text-[10px] text-white/40 uppercase tracking-[0.22em] font-light">
           <span>≈ {estMin > 0 ? `${estMin}m ${estSec}s` : `${estSec}s`} runtime</span>
           <span className="opacity-40">·</span>
           <span>{estimatedCredits} credits</span>
           <span className="opacity-40">·</span>
           <span>{aspectRatio}</span>
           <span className="opacity-40">·</span>
-          <span style={{ color: `hsl(${engineInfo.hue} / 0.85)` }}>{engineInfo.label}</span>
+          <span className="text-[hsl(215,100%,75%)]">{engineInfo.label}</span>
         </div>
 
         {/* ─── Quiet links — Templates & Training ─────────────────────── */}
-        <div className="mt-10 flex items-center justify-center gap-6 text-sm text-white/45">
-          <a href="/templates" className="group inline-flex items-center gap-1.5 hover:text-white transition-colors">
-            <Layers className="w-3.5 h-3.5 opacity-70" /> Templates
-            <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="mt-12 flex items-center justify-center gap-6 text-[13px] text-white/45 font-light tracking-[-0.005em]">
+          <a href="/templates" className="group inline-flex items-center gap-1.5 hover:text-white transition-colors duration-400">
+            <Layers className="w-3.5 h-3.5 opacity-70" strokeWidth={1.5} /> Templates
+            <ChevronRight className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-400" strokeWidth={1.5} />
           </a>
-          <span className="w-px h-3 bg-white/10" />
-          <a href="/training-video" className="group inline-flex items-center gap-1.5 hover:text-white transition-colors">
-            <Film className="w-3.5 h-3.5 opacity-70" /> Training
-            <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <span className="w-px h-3 bg-white/[0.08]" />
+          <a href="/training-video" className="group inline-flex items-center gap-1.5 hover:text-white transition-colors duration-400">
+            <Film className="w-3.5 h-3.5 opacity-70" strokeWidth={1.5} /> Training
+            <ChevronRight className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-400" strokeWidth={1.5} />
           </a>
         </div>
       </div>
@@ -814,9 +862,12 @@ function ControlPill({
     <button
       onClick={onClick}
       title={title}
-      className="group/pill h-10 inline-flex items-center gap-2 px-3.5 rounded-full bg-gradient-to-b from-white/[0.05] to-white/[0.015] hover:from-white/[0.08] hover:to-white/[0.03] border border-white/10 hover:border-white/20 text-white/75 hover:text-white text-xs font-medium tabular-nums transition-all duration-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_2px_8px_-2px_rgba(0,0,0,0.4)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_14px_-2px_rgba(0,0,0,0.5)] hover:-translate-y-px"
+      className="group/pill h-10 inline-flex items-center gap-2 px-4 rounded-full border-0 bg-white/[0.035] hover:bg-white/[0.07] text-white/75 hover:text-white text-[12px] font-light tabular-nums tracking-[-0.005em] transition-all duration-500 hover:-translate-y-px hover:scale-[1.03]"
+      style={{
+        boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.04)',
+      }}
     >
-      <Icon className="w-3.5 h-3.5 opacity-70 group-hover/pill:opacity-100 group-hover/pill:text-primary transition-colors" />
+      <Icon className="w-3.5 h-3.5 opacity-70 group-hover/pill:opacity-100 group-hover/pill:text-[hsl(215,100%,75%)] transition-all duration-500" strokeWidth={1.5} />
       <span>{label}</span>
     </button>
   );
@@ -825,7 +876,7 @@ function ControlPill({
 function FieldShell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[10px] uppercase tracking-[0.18em] text-white/40">{label}</Label>
+      <Label className="text-[10px] uppercase tracking-[0.22em] text-white/40 font-light">{label}</Label>
       {children}
     </div>
   );

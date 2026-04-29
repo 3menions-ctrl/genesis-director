@@ -14,6 +14,7 @@ import {
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { PremiumPageHero, type HeroStat } from '@/components/premium/PremiumPageHero';
 
 // Import generated environment images - 20 unique stunning environments
 import goldenHourMagicImg from '@/assets/environments/golden-hour-magic.jpg';
@@ -451,33 +452,33 @@ export default function Environments() {
       <AppHeader />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Compact Header */}
-        <motion.div 
-          className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Environments
-            </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {filteredEnvironments.length} visual atmospheres for your production
-            </p>
-          </div>
-          
-          {/* Search */}
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search environments..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 bg-card border-border rounded-lg text-sm"
-            />
-          </div>
-        </motion.div>
+        {/* Premium editorial header */}
+        <div className="pt-16 sm:pt-20">
+          <PremiumPageHero
+            eyebrow="Atmospheres · Live"
+            titlePrefix="Cinematic"
+            titleHighlight="environments"
+            titleSuffix="."
+            description="Hand-crafted visual worlds with lighting, palette, and mood baked in. One click to set the stage."
+            stats={[
+              { label: 'Worlds', value: ENVIRONMENT_PRESETS.length, accent: 'text-white' },
+              { label: 'Trending', value: ENVIRONMENT_PRESETS.filter(e => (e as any).is_trending).length, accent: 'text-[hsl(var(--primary))]' },
+              { label: 'Categories', value: CATEGORIES.length - 1, accent: 'text-white/85' },
+              { label: 'Showing', value: filteredEnvironments.length, accent: 'text-white/85' },
+            ] as HeroStat[]}
+            actions={
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <Input
+                  placeholder="Search environments..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 h-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/30 rounded-full text-sm backdrop-blur-md"
+                />
+              </div>
+            }
+          />
+        </div>
 
         {/* Category Pills */}
         <motion.div 
@@ -493,7 +494,7 @@ export default function Environments() {
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 whitespace-nowrap",
                 activeCategory === cat.id
-                  ? "bg-foreground text-background"
+                  ? "bg-[hsl(var(--primary))] text-primary-foreground shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.6)]"
                   : "bg-card text-muted-foreground hover:bg-secondary hover:text-foreground border border-border"
               )}
             >

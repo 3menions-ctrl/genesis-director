@@ -687,10 +687,10 @@ function ControlPill({
     <button
       onClick={onClick}
       title={title}
-      className="h-9 inline-flex items-center gap-1.5 px-3 rounded-full bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 text-white/70 hover:text-white text-xs font-medium tabular-nums transition-all"
+      className="group/pill h-10 inline-flex items-center gap-2 px-3.5 rounded-full bg-gradient-to-b from-white/[0.05] to-white/[0.015] hover:from-white/[0.08] hover:to-white/[0.03] border border-white/10 hover:border-white/20 text-white/75 hover:text-white text-xs font-medium tabular-nums transition-all duration-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_2px_8px_-2px_rgba(0,0,0,0.4)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_14px_-2px_rgba(0,0,0,0.5)] hover:-translate-y-px"
     >
-      <Icon className="w-3.5 h-3.5 opacity-80" />
-      {label}
+      <Icon className="w-3.5 h-3.5 opacity-70 group-hover/pill:opacity-100 group-hover/pill:text-primary transition-colors" />
+      <span>{label}</span>
     </button>
   );
 }

@@ -83,7 +83,7 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="relative flex min-h-screen w-full bg-background text-foreground overflow-x-hidden">
+      <div className="relative flex min-h-screen w-full bg-transparent text-foreground overflow-x-hidden">
         {/* Cinematic backdrop — identical to global loading screen */}
         <CinemaBackdrop />
 

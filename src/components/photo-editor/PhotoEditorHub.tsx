@@ -258,36 +258,104 @@ export function PhotoEditorHub() {
   // Empty state - no photos uploaded
   if (photos.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-        <div className="text-center mb-8 sm:mb-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/20 mb-4 sm:mb-6">
-            <Image className="w-4 h-4 text-cyan-400" />
-            <span className="text-sm text-cyan-300 font-medium">Photo Editor</span>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-display font-bold text-white mb-2 sm:mb-3">
-            Professional Photo Editing
-          </h2>
-          <p className="text-white/40 text-sm sm:text-base max-w-lg mx-auto px-4">
-            Upload your photos and transform them with AI-powered editing, templates, or manual adjustments
-          </p>
-        </div>
+      <div className="relative max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
+        {/* Ambient halos */}
+        <div className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 h-72 w-72 rounded-full opacity-50 blur-3xl"
+             style={{ background: 'radial-gradient(circle, hsl(212 100% 55% / 0.45), transparent 65%)' }} />
+        <div className="pointer-events-none absolute -bottom-32 right-0 h-64 w-64 rounded-full opacity-30 blur-3xl"
+             style={{ background: 'radial-gradient(circle, hsl(190 100% 60% / 0.35), transparent 65%)' }} />
 
-        <div
+        {/* Eyebrow */}
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-center gap-2 mb-6"
+        >
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-60" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+          </span>
+          <span className="text-[11px] uppercase tracking-[0.28em] text-white/45 font-medium">
+            Photo Studio · Live
+          </span>
+        </motion.div>
+
+        {/* Hero title */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="text-center mb-10 sm:mb-12"
+        >
+          <h2 className="font-display text-[clamp(2.25rem,5vw,3.75rem)] leading-[1.02] tracking-[-0.035em] font-medium text-white/95">
+            Refine every{' '}
+            <span
+              className="bg-clip-text text-transparent"
+              style={{ backgroundImage: 'linear-gradient(120deg, hsl(212 100% 70%), hsl(190 100% 70%) 50%, hsl(212 100% 85%))' }}
+            >
+              frame.
+            </span>
+          </h2>
+          <p className="text-white/50 text-base sm:text-lg max-w-xl mx-auto mt-5 font-light leading-relaxed">
+            Drop a photo to retouch, restyle, or composite it into your next scene — premium AI tooling, one canvas.
+          </p>
+        </motion.div>
+
+        {/* Premium drop zone */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
           onDrop={handleDrop}
           onDragOver={e => e.preventDefault()}
           onClick={() => fileInputRef.current?.click()}
-          className="border-2 border-dashed border-white/10 hover:border-cyan-500/30 rounded-2xl p-8 sm:p-16 text-center cursor-pointer transition-all group hover:bg-cyan-500/[0.03]"
+          className="group relative rounded-[28px] overflow-hidden cursor-pointer border border-white/[0.08] bg-[linear-gradient(180deg,hsla(0,0%,100%,0.04)_0%,hsla(0,0%,100%,0.012)_55%,hsla(0,0%,100%,0.02)_100%)] backdrop-blur-2xl shadow-[0_50px_120px_-30px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.06)] transition-all hover:border-primary/30"
         >
-          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-cyan-500/10 flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:bg-cyan-500/20 transition-colors">
-            <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-cyan-400" />
+          {/* Top aurora rim */}
+          <div className="pointer-events-none absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
+          {/* Sweep on hover */}
+          <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+            <div className="absolute -inset-x-1/2 -top-1/2 h-[200%] w-[200%] rotate-12 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent animate-pulse" />
           </div>
-          <p className="text-white font-medium text-base sm:text-lg mb-2">
-            Drop photos here or click to upload
-          </p>
-          <p className="text-white/30 text-xs sm:text-sm">
-            Supports JPG, PNG, WebP • Up to 15MB per photo • Multiple files supported
-          </p>
-        </div>
+
+          <div className="relative p-12 sm:p-16 flex flex-col items-center text-center">
+            <div
+              className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110"
+              style={{
+                background: 'linear-gradient(180deg, hsl(212 100% 56% / 0.22), hsl(212 100% 50% / 0.08))',
+                border: '1px solid hsl(212 100% 60% / 0.35)',
+                boxShadow: '0 12px 40px -8px hsl(212 100% 50% / 0.45), inset 0 1px 0 hsl(212 100% 75% / 0.25)',
+              }}
+            >
+              <Upload className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+              <span className="absolute inset-0 rounded-2xl ring-1 ring-primary/30 animate-pulse" />
+            </div>
+            <p className="text-white font-medium text-lg sm:text-xl mb-2 tracking-tight">
+              Drop a photo to begin
+            </p>
+            <p className="text-white/40 text-sm font-light">
+              JPG · PNG · WebP up to 15MB · multiple files supported
+            </p>
+
+            {/* Capability rail */}
+            <div className="mt-8 flex items-center gap-2 flex-wrap justify-center">
+              {[
+                { icon: Layers,        label: 'Templates' },
+                { icon: MessageSquare, label: 'AI Chat' },
+                { icon: Sparkles,      label: 'Bulk' },
+                { icon: Video,         label: 'Use in Video' },
+              ].map(({ icon: Ic, label }) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] text-white/65 backdrop-blur"
+                >
+                  <Ic className="w-3 h-3 opacity-70" />
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </motion.div>
 
         <input
           ref={fileInputRef}

@@ -1654,7 +1654,6 @@ const transitionsData = useMemo(() =>
             </PageShell>
             </div>
           </div>
-        </div>
       </div>
 
       {/* Clip Preview Modal */}

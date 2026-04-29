@@ -44,15 +44,9 @@ const AdminUsersPage = lazy(() => import("./refine/pages/AdminUsersPage"));
 const AdminProjectsPage = lazy(() => import("./refine/pages/AdminProjectsPage"));
 const AdminCreditsPage = lazy(() => import("./refine/pages/AdminCreditsPage"));
 const AdminMessagesPage = lazy(() => import("./refine/pages/AdminMessagesPage"));
-const AdminFinancialsPage = lazy(() => import("./refine/pages/AdminFinancialsPage"));
-const AdminCostsPage = lazy(() => import("./refine/pages/AdminCostsPage"));
-const AdminPipelinePage = lazy(() => import("./refine/pages/AdminPipelinePage"));
-const AdminFailedPage = lazy(() => import("./refine/pages/AdminFailedPage"));
-const AdminAuditPage = lazy(() => import("./refine/pages/AdminAuditPage"));
-const AdminPackagesPage = lazy(() => import("./refine/pages/AdminPackagesPage"));
+const AdminFinancePage = lazy(() => import("./refine/pages/AdminFinancePage"));
+const AdminProductionPage = lazy(() => import("./refine/pages/AdminProductionPage"));
 const AdminModerationPage = lazy(() => import("./refine/pages/AdminModerationPage"));
-const AdminGalleryPage = lazy(() => import("./refine/pages/AdminGalleryPage"));
-const AdminAvatarsPage = lazy(() => import("./refine/pages/AdminAvatarsPage"));
 const AdminConfigPage = lazy(() => import("./refine/pages/AdminConfigPage"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
@@ -81,7 +75,6 @@ const VideoEditorPage = lazy(() => import("./pages/VideoEditor"));
 
 const WidgetLanding = lazy(() => import("./pages/WidgetLanding"));
 const WidgetEmbed = lazy(() => import("./pages/WidgetEmbed"));
-const AppInventory = lazy(() => import("./pages/AppInventory"));
 
 // Route change tracker component
 function RouteChangeTracker() {
@@ -407,17 +400,20 @@ const App = () => {
                   <Route path="projects" element={<AdminProjectsPage />} />
                   <Route path="credits" element={<AdminCreditsPage />} />
                   <Route path="messages" element={<AdminMessagesPage />} />
-                  <Route path="financials" element={<AdminFinancialsPage />} />
-                  <Route path="costs" element={<AdminCostsPage />} />
-                  <Route path="pipeline" element={<AdminPipelinePage />} />
-                  <Route path="failed" element={<AdminFailedPage />} />
-                  <Route path="audit" element={<AdminAuditPage />} />
-                  <Route path="packages" element={<AdminPackagesPage />} />
+                  <Route path="finance" element={<AdminFinancePage />} />
+                  <Route path="production" element={<AdminProductionPage />} />
                   <Route path="moderation" element={<AdminModerationPage />} />
-                  <Route path="gallery" element={<AdminGalleryPage />} />
-                  <Route path="avatars" element={<AdminAvatarsPage />} />
                   <Route path="config" element={<AdminConfigPage />} />
-                  <Route path="inventory" element={<AppInventory />} />
+                  {/* Legacy admin redirects */}
+                  <Route path="financials" element={<Navigate to="/admin/finance" replace />} />
+                  <Route path="costs" element={<Navigate to="/admin/finance" replace />} />
+                  <Route path="packages" element={<Navigate to="/admin/finance" replace />} />
+                  <Route path="pipeline" element={<Navigate to="/admin/production" replace />} />
+                  <Route path="failed" element={<Navigate to="/admin/production" replace />} />
+                  <Route path="audit" element={<Navigate to="/admin" replace />} />
+                  <Route path="gallery" element={<Navigate to="/admin" replace />} />
+                  <Route path="avatars" element={<Navigate to="/admin" replace />} />
+                  <Route path="inventory" element={<Navigate to="/admin" replace />} />
                 </Route>
                 
                 

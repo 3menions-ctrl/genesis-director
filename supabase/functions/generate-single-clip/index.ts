@@ -195,6 +195,85 @@ async function createKlingV3Prediction(
 // Keep alias for backward compatibility with imports from network-resilience
 const createReplicatePrediction = createKlingV3Prediction;
 
+/**
+ * Create a Seedance 2.0 prediction via Replicate.
+ *
+ * Model: bytedance/seedance-2.0
+ *   - Text-to-Video and Image-to-Video (start frame)
+ *   - Duration: 2–12 seconds (default 5)
+ *   - Resolution: 1080p (default)
+ *   - No native audio (TTS / music overlay added in post)
+ */
+async function createSeedancePrediction(
+  prompt: string,
+  startImageUrl?: string | null,
+  aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
+  durationSeconds: number = DEFAULT_CLIP_DURATION,
+): Promise<{ predictionId: string }> {
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  if (!REPLICATE_API_KEY) {
+    throw new Error("REPLICATE_API_KEY is not configured");
+  }
+
+  // Seedance 2.0: clamp duration to 2–12 seconds
+  const duration = Math.max(2, Math.min(12, durationSeconds));
+
+  const input: Record<string, any> = {
+    prompt: prompt.slice(0, 2500),
+    duration,
+    resolution: "1080p",
+    aspect_ratio: aspectRatio,
+    fps: 24,
+    camera_fixed: false,
+    seed: Math.floor(Math.random() * 2147483647),
+  };
+
+  if (startImageUrl && startImageUrl.startsWith("http")) {
+    input.image = startImageUrl;
+  }
+
+  const mode = startImageUrl ? "I2V" : "T2V";
+  console.log(`[SingleClip][Seedance2] Creating ${mode} prediction:`, {
+    model: `${SEEDANCE_MODEL_OWNER}/${SEEDANCE_MODEL_NAME}`,
+    duration,
+    aspectRatio,
+    hasStartImage: !!input.image,
+    promptLength: prompt.length,
+  });
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const webhookUrl = supabaseUrl ? `${supabaseUrl}/functions/v1/replicate-webhook` : null;
+  const requestBody: Record<string, any> = { input };
+  if (webhookUrl) {
+    requestBody.webhook = webhookUrl;
+    requestBody.webhook_events_filter = ["completed"];
+  }
+
+  const response = await fetch(SEEDANCE_MODEL_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[SingleClip][Seedance2] Replicate API error:", response.status, errorText);
+    throw new Error(`Seedance 2.0 API error: ${response.status} - ${errorText}`);
+  }
+
+  const prediction: ReplicatePrediction = await response.json();
+  if (!prediction.id) {
+    throw new Error("No prediction ID in Seedance 2.0 response");
+  }
+
+  console.log(`[SingleClip][Seedance2] ✅ ${mode} prediction created: ${prediction.id}`);
+  return { predictionId: prediction.id };
+}
+
+
 // REMOVED: Runway Gen-4 Turbo and Gen-4.5 functions
 // All video generation now unified on Kling V3 (kwaivgi/kling-v3-video)
 

@@ -347,6 +347,19 @@ function PricingCard({
 
 export default function Pricing() {
   const { navigate } = useSafeNavigation();
+  const { user } = useAuth();
+  const [showBuyModal, setShowBuyModal] = useState(false);
+
+  const handlePurchase = (pkg: CreditPackage) => {
+    const slug = (pkg.name || '').toLowerCase();
+    if (user) {
+      // Authed: open the in-page checkout modal directly.
+      setShowBuyModal(true);
+    } else {
+      // Guest: send to signup, then auto-open the buy modal on /profile.
+      navigate(`/auth?mode=signup&next=${encodeURIComponent('/profile?buy=' + slug)}`);
+    }
+  };
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
@@ -463,7 +476,7 @@ export default function Pricing() {
       <section className="relative z-10 pt-14 pb-10 px-6">
         <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
           {PACKAGES.map((pkg, i) => (
-            <PricingCard key={pkg.name} pkg={pkg} index={i} />
+            <PricingCard key={pkg.name} pkg={pkg} index={i} onPurchase={handlePurchase} />
           ))}
         </div>
       </section>

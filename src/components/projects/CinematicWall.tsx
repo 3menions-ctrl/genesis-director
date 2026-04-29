@@ -191,44 +191,23 @@ export const CinematicWall = memo(function CinematicWall({
     isPinned: false,
   });
 
-  const [hero, ...rest] = projects;
+  const allItems = projects;
 
   return (
-    <div className="space-y-12">
-      {/* HERO — full-width spotlight */}
-      {hero && (
-        <section
-          className="opacity-0"
-          style={{ animation: 'cw-reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
-        >
-          <div className="flex items-end justify-between mb-4">
+    <div className="space-y-8">
+      {(allItems.length > 0 || trainingVideos.length > 0) && (
+        <section>
+          <div className="flex items-end justify-between mb-5">
             <div>
               <p className="text-[10px] uppercase tracking-[0.22em] text-primary/70 font-medium mb-1">
-                Spotlight
+                Cinematic wall
               </p>
               <h2 className="text-2xl sm:text-3xl font-display font-semibold tracking-tight text-foreground">
-                Latest from your studio
-              </h2>
-            </div>
-          </div>
-          <ProjectCard {...cardProps(hero, 0)} />
-        </section>
-      )}
-
-      {/* WALL — uniform editorial grid */}
-      {(rest.length > 0 || trainingVideos.length > 0) && (
-        <section>
-          <div className="flex items-end justify-between mb-4">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.22em] text-foreground/40 font-medium mb-1">
-                Library
-              </p>
-              <h2 className="text-xl sm:text-2xl font-display font-semibold tracking-tight text-foreground">
-                Every cut, scene & training take
+                Every video, always visible
               </h2>
             </div>
             <span className="text-xs text-muted-foreground hidden sm:inline">
-              {rest.length + trainingVideos.length} items
+              {allItems.length + trainingVideos.length} items
             </span>
           </div>
 
@@ -238,8 +217,8 @@ export const CinematicWall = memo(function CinematicWall({
               'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4'
             )}
           >
-            {rest.map((project, i) => {
-              const isWide = i % 7 === 3 && rest.length > 5;
+            {allItems.map((project, i) => {
+              const isWide = i % 7 === 0 && allItems.length > 5;
               return (
                 <div
                   key={project.id}
@@ -250,7 +229,7 @@ export const CinematicWall = memo(function CinematicWall({
                     animationDelay: `${Math.min(0.05 + i * 0.04, 0.6)}s`,
                   }}
                 >
-                  <ProjectCard {...cardProps(project, i + 1)} />
+                  <ProjectCard {...cardProps(project, i)} />
                 </div>
               );
             })}
@@ -261,7 +240,7 @@ export const CinematicWall = memo(function CinematicWall({
                 className="opacity-0"
                 style={{
                   animation: 'cw-reveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                  animationDelay: `${Math.min(0.1 + (rest.length + i) * 0.04, 0.7)}s`,
+                  animationDelay: `${Math.min(0.1 + (allItems.length + i) * 0.04, 0.7)}s`,
                 }}
               >
                 <TrainingTile

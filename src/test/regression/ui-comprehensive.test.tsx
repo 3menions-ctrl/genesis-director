@@ -387,7 +387,8 @@ describe('ProjectFilters', () => {
 
   it('highlights active view mode', () => {
     const { container } = render(<ProjectFilters {...defaults} viewMode="grid" />);
-    const activeBtn = container.querySelector('.bg-white\\/10');
+    // Active view button uses translucent surface (current: bg-white/[0.08]).
+    const activeBtn = container.querySelector('[class*="bg-white"]');
     expect(activeBtn).toBeTruthy();
   });
 

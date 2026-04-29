@@ -1068,6 +1068,13 @@ serve(async (req: Request) => {
       // SCENE REFERENCES
       referenceImageUrl: context?.referenceImageUrl,
       sceneImageUrl: context?.sceneImageLookup?.[nextClipIndex] || context?.sceneImageLookup?.[0],
+      // SEEDANCE 2.0 FRAME CHAINING: target end-frame interpolation.
+      // The next clip's planned scene image becomes THIS clip's end-frame target.
+      // Ignored by Kling. Falls back to golden frame for the final clip.
+      endImageUrl: videoEngine === 'seedance'
+        ? (context?.sceneImageLookup?.[nextClipIndex + 1]
+           || context?.goldenFrameData?.frameUrl)
+        : undefined,
       accumulatedAnchors: context?.accumulatedAnchors || [],
       // QUALITY SETTINGS
       colorGrading: context?.colorGrading || 'cinematic',

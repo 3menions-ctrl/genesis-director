@@ -140,8 +140,8 @@ export const EditorAvatarPanel = memo(function EditorAvatarPanel() {
         <div className="p-3 space-y-3">
           {/* Header */}
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "hsla(280, 70%, 55%, 0.15)" }}>
-              <Users className="w-3.5 h-3.5 text-[hsl(280,70%,65%)]" />
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "hsla(215, 100%, 60%, 0.15)" }}>
+              <Users className="w-3.5 h-3.5 text-[hsl(215,100%,75%)]" />
             </div>
             <div>
               <span className="text-[11px] font-bold text-[hsl(0,0%,85%)] block leading-none">Avatar Characters</span>
@@ -224,9 +224,9 @@ export const EditorAvatarPanel = memo(function EditorAvatarPanel() {
                 className={cn(
                   "w-full h-8 rounded-xl text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all",
                   isGenerating
-                    ? "bg-[hsla(280,70%,55%,0.15)] text-[hsl(280,70%,65%)] cursor-wait"
+                    ? "bg-[hsla(215,100%,60%,0.15)] text-[hsl(215,100%,75%)] cursor-wait"
                     : prompt.trim()
-                    ? "bg-[hsl(280,70%,55%)] text-white hover:bg-[hsl(280,70%,60%)]"
+                    ? "bg-[hsl(215,100%,60%)] text-white hover:bg-[hsl(215,100%,65%)]"
                     : "bg-[hsla(0,0%,100%,0.06)] text-[hsl(0,0%,40%)] cursor-not-allowed"
                 )}
               >

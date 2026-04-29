@@ -209,26 +209,35 @@ export const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
     onVideoEnded();
   }, [onVideoEnded]);
 
-  // Sync muted state to underlying video element
-  useEffect(() => {
+  // CRITICAL: Toggle mute SYNCHRONOUSLY within the click handler.
+  // Browser autoplay policies require unmuting + play() to happen inside
+  // the user-gesture callstack — a deferred useEffect does not count.
+  const toggleMute = useCallback(() => {
     const video = playerRef.current?.getVideoElement?.();
-    if (video) {
-      video.muted = isMuted;
-      if (!isMuted) {
-        // Ensure audible playback after user gesture
-        video.volume = 1;
+    if (!video) {
+      setIsMuted((m) => !m);
+      return;
+    }
+    const next = !video.muted;
+    video.muted = next;
+    if (!next) {
+      // Unmuting → ensure audible playback within the gesture
+      video.volume = 1;
+      try {
         const p = video.play();
         if (p && typeof p.catch === 'function') {
           p.catch((err) => {
-            console.warn('[ImmersiveVideo] Unmute play failed:', err);
-            // Fallback: re-mute so video keeps playing visually
+            console.warn('[ImmersiveVideo] Unmute play blocked:', err);
             video.muted = true;
             setIsMuted(true);
           });
         }
+      } catch (err) {
+        console.warn('[ImmersiveVideo] play() threw:', err);
       }
     }
-  }, [isMuted]);
+    setIsMuted(next);
+  }, []);
 
   // Escape key to exit
   useEffect(() => {

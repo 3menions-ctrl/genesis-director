@@ -1019,8 +1019,43 @@ export function EditorChrome({
           />
 
           {/* Center — Player + Timeline */}
-          <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-            <VideoPreviewPlayer className="h-[42%] shrink-0" />
+          <div className="flex-1 min-w-0 flex flex-col overflow-hidden relative">
+            {/* Player stage with cinematic letterbox feel */}
+            <div
+              className="h-[42%] shrink-0 relative px-3 pt-3 pb-2"
+              style={{
+                background:
+                  'radial-gradient(60% 90% at 50% 0%, hsla(215, 80%, 18%, 0.18), transparent 70%), hsla(220, 14%, 2%, 0.6)',
+              }}
+            >
+              <div
+                className="w-full h-full rounded-xl overflow-hidden relative"
+                style={{
+                  background: 'hsl(0, 0%, 0%)',
+                  boxShadow:
+                    '0 0 0 1px hsla(0,0%,100%,0.06) inset, 0 0 0 1px hsla(0,0%,0%,0.6), 0 24px 60px -20px hsla(0,0%,0%,0.85), 0 0 80px -10px hsla(215,100%,40%,0.18)',
+                }}
+              >
+                <VideoPreviewPlayer className="absolute inset-0" />
+                {/* corner crosshairs */}
+                <div className="pointer-events-none absolute inset-0">
+                  {[
+                    'top-2 left-2 border-t border-l',
+                    'top-2 right-2 border-t border-r',
+                    'bottom-2 left-2 border-b border-l',
+                    'bottom-2 right-2 border-b border-r',
+                  ].map((cls) => (
+                    <span
+                      key={cls}
+                      className={`absolute w-3 h-3 ${cls}`}
+                      style={{ borderColor: 'hsla(215,100%,75%,0.18)' }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+            {/* hairline divider */}
+            <div className="h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,55%,0.2)] to-transparent shrink-0" />
             <CustomTimeline className="flex-1 min-h-0" onOpenTextDialog={() => setTextDialogOpen(true)} />
           </div>
 

@@ -6,9 +6,9 @@
 import { useState, useEffect, useRef, useLayoutEffect, memo } from "react";
 import { Outlet, Link, useLocation, Navigate } from "react-router-dom";
 import {
-  LayoutDashboard, FileText, Users, FolderKanban, DollarSign, History,
-  MessageSquare, Shield, ChevronLeft, Settings, Coins, Loader2, Calculator,
-  Activity, AlertTriangle, Film, Sparkles,
+  LayoutDashboard, Users, FolderKanban, DollarSign,
+  MessageSquare, Shield, ChevronLeft, Settings, Coins, Loader2,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -31,22 +31,13 @@ const NAV_SECTIONS: NavSection[] = [
     { key: "credits", label: "Transactions", icon: Coins, path: "/admin/credits" },
     { key: "messages", label: "Support", icon: MessageSquare, path: "/admin/messages" },
   ]},
-  { label: "Finance", code: "FIN", items: [
-    { key: "financials", label: "Financials", icon: DollarSign, path: "/admin/financials" },
-    { key: "costs", label: "Cost Analysis", icon: Calculator, path: "/admin/costs" },
-  ]},
-  { label: "Production", code: "PRD", items: [
-    { key: "pipeline", label: "Pipeline", icon: Activity, path: "/admin/pipeline" },
-    { key: "failed", label: "Failed Clips", icon: AlertTriangle, path: "/admin/failed" },
+  { label: "Operations", code: "OPS", items: [
+    { key: "finance", label: "Finance", icon: DollarSign, path: "/admin/finance" },
+    { key: "production", label: "Production", icon: Activity, path: "/admin/production" },
   ]},
   { label: "System", code: "SYS", items: [
-    { key: "audit", label: "Audit Log", icon: History, path: "/admin/audit" },
-    { key: "packages", label: "Packages", icon: Coins, path: "/admin/packages" },
     { key: "moderation", label: "Moderation", icon: Shield, path: "/admin/moderation" },
-    { key: "gallery", label: "Gallery", icon: Film, path: "/admin/gallery" },
-    { key: "avatars", label: "Avatars", icon: Sparkles, path: "/admin/avatars" },
     { key: "config", label: "Config", icon: Settings, path: "/admin/config" },
-    { key: "inventory", label: "Inventory", icon: FileText, path: "/admin/inventory" },
   ]},
 ];
 

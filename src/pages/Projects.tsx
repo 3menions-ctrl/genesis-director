@@ -1034,7 +1034,7 @@ function ProjectsContentInner() {
               <Film className="w-8 h-8 text-white/20" strokeWidth={1.25} />
             </div>
             
-            <h2 className="font-sora text-3xl sm:text-4xl font-semibold text-white mb-3 text-center tracking-tight">
+            <h2 className="font-display text-3xl sm:text-4xl font-semibold text-white mb-3 text-center tracking-tight">
               No projects yet
             </h2>
             

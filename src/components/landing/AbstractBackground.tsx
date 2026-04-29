@@ -20,6 +20,7 @@ const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundPro
           src={landingAbstractBg}
           alt="Dubai skyline above clouds"
           className="absolute inset-0 h-full w-full object-contain object-bottom select-none"
+          style={{ outline: '4px solid red', outlineOffset: '-4px' }}
           draggable={false}
         />
       </div>

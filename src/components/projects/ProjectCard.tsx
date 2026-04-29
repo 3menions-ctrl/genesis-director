@@ -405,15 +405,15 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
                   onCanPlay={(e) => { safeSeek(e.currentTarget, 0); if (!scrubProgress) safePlay(e.currentTarget); }}
                   onError={() => setVideoError(true)} />
               ) : (
-                project.thumbnail_url ? (
-                  <img src={project.thumbnail_url} alt={project.name}
-                    className={cn(
-                      "absolute inset-0 w-full h-full object-cover transition-transform duration-[2500ms] ease-out",
-                      isHovered ? "scale-[1.08]" : "scale-100"
-                    )} loading="lazy" />
-                ) : (
-                  <LazyVideoThumbnail src={videoSrc} posterUrl={project.thumbnail_url} alt={project.name} className="absolute inset-0 w-full h-full object-cover" />
-                )
+                <ThumbWithFallback
+                  thumbnailUrl={project.thumbnail_url}
+                  videoSrc={videoSrc}
+                  alt={project.name}
+                  className={cn(
+                    "absolute inset-0 w-full h-full object-cover transition-transform duration-[2500ms] ease-out",
+                    isHovered ? "scale-[1.08]" : "scale-100"
+                  )}
+                />
               )
             ) : (
               <>
@@ -421,15 +421,15 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
                   "absolute inset-0 w-full h-full transition-all duration-700",
                   isHovered ? "opacity-0 pointer-events-none" : "opacity-100"
                 )}>
-                  {project.thumbnail_url ? (
-                    <img src={project.thumbnail_url} alt={project.name}
-                      className={cn(
-                        "w-full h-full object-cover transition-transform duration-[2500ms] ease-out",
-                        isHovered ? "scale-[1.08]" : "scale-100"
-                      )} loading="lazy" />
-                  ) : (
-                    <LazyVideoThumbnail src={videoSrc} posterUrl={project.thumbnail_url} alt={project.name} className="w-full h-full object-cover" />
-                  )}
+                  <ThumbWithFallback
+                    thumbnailUrl={project.thumbnail_url}
+                    videoSrc={videoSrc}
+                    alt={project.name}
+                    className={cn(
+                      "w-full h-full object-cover transition-transform duration-[2500ms] ease-out",
+                      isHovered ? "scale-[1.08]" : "scale-100"
+                    )}
+                  />
                 </div>
                 {videoSlotGranted && (
                   <video ref={videoRef} src={videoSrc}

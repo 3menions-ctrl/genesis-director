@@ -369,6 +369,7 @@ export function AppShell({ children }: AppShellProps) {
               )}
             </button>
           </div>
+          </div>
         </aside>
 
         {/* ── Main column ── */}

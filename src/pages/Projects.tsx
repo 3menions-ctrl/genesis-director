@@ -49,12 +49,10 @@ import { usePaginatedProjects } from '@/hooks/usePaginatedProjects';
 // Extracted components
 import { 
   ProjectCard, 
-  ProjectsBackground, 
-  ProjectsHero,
   MergeDownloadDialog,
-  ProjectsCategoryTabs,
 } from '@/components/projects';
 import type { ProjectTab } from '@/components/projects';
+import { PageShell, PageHeader, SegmentedControl } from '@/components/shell';
 
 // STABILITY: motion/AnimatePresence disabled - replaced with CSS-only shims
 const MotionDiv = forwardRef<HTMLDivElement, any>(({ children, className, style, onClick, onMouseEnter, onMouseLeave, ...rest }, ref) => (

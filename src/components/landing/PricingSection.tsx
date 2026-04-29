@@ -214,6 +214,19 @@ export const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
     const video = playerRef.current?.getVideoElement?.();
     if (video) {
       video.muted = isMuted;
+      if (!isMuted) {
+        // Ensure audible playback after user gesture
+        video.volume = 1;
+        const p = video.play();
+        if (p && typeof p.catch === 'function') {
+          p.catch((err) => {
+            console.warn('[ImmersiveVideo] Unmute play failed:', err);
+            // Fallback: re-mute so video keeps playing visually
+            video.muted = true;
+            setIsMuted(true);
+          });
+        }
+      }
     }
   }, [isMuted]);
 

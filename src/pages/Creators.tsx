@@ -264,8 +264,8 @@ export default function Creators() {
       {/* Subtle gradient background */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-[#030303]" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] bg-violet-600/[0.07] rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-0 w-[800px] h-[400px] bg-fuchsia-600/[0.04] rounded-full blur-[100px]" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] bg-[hsl(215,100%,55%)]/[0.10] rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-0 w-[800px] h-[400px] bg-[hsl(195,100%,55%)]/[0.05] rounded-full blur-[100px]" />
       </div>
 
       <AppHeader />
@@ -279,10 +279,10 @@ export default function Creators() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-violet-500/20 bg-violet-500/[0.08] mb-8"
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[hsl(215,100%,60%)]/22 bg-[hsl(215,100%,60%)]/[0.10] mb-8"
             >
-              <Sparkles className="w-3.5 h-3.5 text-violet-400" />
-              <span className="text-xs font-semibold uppercase tracking-[0.15em] text-violet-300">
+              <Sparkles className="w-3.5 h-3.5 text-[hsl(215,100%,72%)]" />
+              <span className="text-xs font-semibold uppercase tracking-[0.15em] text-[hsl(215,100%,80%)]">
                 Community Gallery
               </span>
             </motion.div>
@@ -295,7 +295,7 @@ export default function Creators() {
               className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.05] mb-5"
             >
               <span className="text-white">Explore </span>
-              <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[hsl(212,100%,72%)] via-[hsl(195,100%,72%)] to-[hsl(212,100%,86%)] bg-clip-text text-transparent">
                 AI Films
               </span>
             </motion.h1>
@@ -318,14 +318,14 @@ export default function Creators() {
               className="max-w-xl mx-auto mb-6"
             >
               <div className="relative group">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/25 group-focus-within:text-violet-400 transition-colors" />
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/25 group-focus-within:text-[hsl(215,100%,72%)] transition-colors" />
                 <Input
                   ref={searchRef}
                   type="text"
                   placeholder="Search videos..."
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-14 pr-12 h-14 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 rounded-2xl focus:border-violet-500/40 focus:bg-white/[0.06] transition-all text-base"
+                  className="pl-14 pr-12 h-14 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 rounded-2xl focus:border-[hsl(215,100%,60%)]/45 focus:bg-white/[0.06] transition-all text-base"
                 />
                 {searchQuery && (
                   <button
@@ -381,7 +381,7 @@ export default function Creators() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-500/20 border border-violet-500/30 text-violet-300 text-[10px] font-semibold uppercase tracking-wider mb-3">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[hsl(215,100%,60%)]/22 border border-[hsl(215,100%,60%)]/30 text-[hsl(215,100%,80%)] text-[10px] font-semibold uppercase tracking-wider mb-3">
                         <Sparkles className="w-3 h-3" />
                         Featured
                       </div>
@@ -469,7 +469,7 @@ export default function Creators() {
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: Math.min(index * 0.03, 0.4) }}
-                    className="group rounded-2xl overflow-hidden cursor-pointer bg-white/[0.02] border border-white/[0.06] hover:border-primary/30 hover:bg-white/[0.04] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_12px_40px_-10px_hsl(263_70%_58%/0.15)] holo-shine"
+                    className="group rounded-2xl overflow-hidden cursor-pointer bg-white/[0.02] border border-white/[0.06] hover:border-primary/30 hover:bg-white/[0.04] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_12px_40px_-10px_hsla(215,100%,60%,0.22)] holo-shine"
                     onClick={() => setSelectedVideo({ id: video.id, title: video.title, user_id: video.user_id, creator: video.creator })}
                     onMouseEnter={() => setHoveredId(video.id)}
                     onMouseLeave={() => setHoveredId(null)}
@@ -484,7 +484,7 @@ export default function Creators() {
                       <PlayOverlay />
                     </div>
                     <div className="p-4 space-y-2">
-                      <h3 className="font-semibold text-sm text-white truncate group-hover:text-violet-300 transition-colors">{video.title}</h3>
+                      <h3 className="font-semibold text-sm text-white truncate group-hover:text-[hsl(215,100%,80%)] transition-colors">{video.title}</h3>
                       <CreatorRow
                         creatorName={video.creator?.display_name}
                         creatorAvatar={video.creator?.avatar_url}
@@ -520,7 +520,7 @@ export default function Creators() {
               className="relative rounded-3xl overflow-hidden p-12 sm:p-16 text-center"
             >
               {/* CTA background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 via-fuchsia-600/10 to-transparent border border-violet-500/20 rounded-3xl" />
+              <div className="absolute inset-0 bg-gradient-to-br from-[hsl(215,100%,55%)]/22 via-[hsl(195,100%,55%)]/10 to-transparent border border-[hsl(215,100%,60%)]/22 rounded-3xl" />
               <div className="absolute inset-0 bg-[#030303]/40" />
 
               <div className="relative">
@@ -533,7 +533,7 @@ export default function Creators() {
                 <Button
                   onClick={() => navigate(user ? '/projects' : '/auth?mode=signup')}
                   size="lg"
-                  className="h-13 px-8 text-sm font-semibold rounded-full bg-white text-black hover:bg-white/90 shadow-[0_0_40px_rgba(139,92,246,0.3)] hover:shadow-[0_0_60px_rgba(139,92,246,0.4)] transition-all duration-300"
+                  className="h-13 px-8 text-sm font-semibold rounded-full bg-white text-black hover:bg-white/90 shadow-[0_0_40px_hsla(215,100%,60%,0.32)] hover:shadow-[0_0_60px_hsla(215,100%,60%,0.42)] transition-all duration-300"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
                   {user ? 'Start Creating' : 'Get Started Free'}
@@ -661,8 +661,8 @@ function CreatorRow({
         {creatorAvatar ? (
           <img src={creatorAvatar} alt="" className="w-5 h-5 rounded-full object-cover ring-1 ring-white/10 flex-shrink-0" />
         ) : (
-          <div className="w-5 h-5 rounded-full bg-violet-500/20 flex items-center justify-center flex-shrink-0">
-            <span className="text-[9px] font-bold text-violet-300">
+          <div className="w-5 h-5 rounded-full bg-[hsl(215,100%,60%)]/22 flex items-center justify-center flex-shrink-0">
+            <span className="text-[9px] font-bold text-[hsl(215,100%,80%)]">
               {(creatorName || '?')[0]?.toUpperCase()}
             </span>
           </div>
@@ -676,7 +676,7 @@ function CreatorRow({
             "flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all flex-shrink-0",
             isFollowing
               ? "bg-white/[0.06] text-white/40 border border-white/[0.08]"
-              : "bg-violet-500/20 text-violet-300 border border-violet-500/30 hover:bg-violet-500/30"
+              : "bg-[hsl(215,100%,60%)]/22 text-[hsl(215,100%,80%)] border border-[hsl(215,100%,60%)]/30 hover:bg-[hsl(215,100%,60%)]/30"
           )}
         >
           {isFollowing ? <UserCheck className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
@@ -742,8 +742,8 @@ function VideoPlayerModal({
                 {video.creator?.avatar_url ? (
                   <img src={video.creator.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover ring-1 ring-white/10" />
                 ) : (
-                  <div className="w-6 h-6 rounded-full bg-violet-500/20 flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-violet-300">
+                  <div className="w-6 h-6 rounded-full bg-[hsl(215,100%,60%)]/22 flex items-center justify-center">
+                    <span className="text-[10px] font-bold text-[hsl(215,100%,80%)]">
                       {(video.creator?.display_name || '?')[0]?.toUpperCase()}
                     </span>
                   </div>
@@ -757,7 +757,7 @@ function VideoPlayerModal({
                     "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all",
                     isFollowing
                       ? "bg-white/[0.06] text-white/40 border border-white/[0.08]"
-                      : "bg-violet-500/20 text-violet-300 border border-violet-500/30 hover:bg-violet-500/30"
+                      : "bg-[hsl(215,100%,60%)]/22 text-[hsl(215,100%,80%)] border border-[hsl(215,100%,60%)]/30 hover:bg-[hsl(215,100%,60%)]/30"
                   )}
                 >
                   {isFollowing ? <UserCheck className="w-3.5 h-3.5" /> : <UserPlus className="w-3.5 h-3.5" />}
@@ -784,7 +784,7 @@ function VideoPlayerModal({
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all",
                 showComments
-                  ? "bg-violet-500/20 text-violet-300 border border-violet-500/30"
+                  ? "bg-[hsl(215,100%,60%)]/22 text-[hsl(215,100%,80%)] border border-[hsl(215,100%,60%)]/30"
                   : "bg-white/[0.06] text-white/50 border border-white/[0.08] hover:bg-white/[0.1] hover:text-white"
               )}
             >

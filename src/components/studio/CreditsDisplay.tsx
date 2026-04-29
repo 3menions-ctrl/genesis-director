@@ -31,26 +31,40 @@ export const CreditsDisplay = memo(forwardRef<HTMLDivElement, CreditsDisplayProp
   // Not logged in - show sign in prompt
   if (!user) {
     return (
-      <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+      <div
+        className="p-5 rounded-2xl"
+        style={{
+          background: 'hsla(0,0%,100%,0.025)',
+          backdropFilter: 'blur(48px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(48px) saturate(180%)',
+          boxShadow: '0 16px 48px -24px rgba(0,0,0,0.6), inset 0 1px 0 hsla(0,0%,100%,0.04)',
+        }}
+      >
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-            <Coins className="w-4 h-4 text-white/70" />
+          <div className="w-9 h-9 rounded-full flex items-center justify-center"
+            style={{ background: 'hsla(215,100%,60%,0.12)', boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.06)' }}>
+            <Coins className="w-4 h-4" strokeWidth={1.5} style={{ color: 'hsla(215,100%,70%,0.9)' }} />
           </div>
           <div>
-            <p className="text-xs font-medium text-white">Production Credits</p>
-            <p className="text-[10px] text-white/40">Sign in to track</p>
+            <p className="text-xs font-light tracking-tight text-white/90">Production Credits</p>
+            <p className="text-[10px] font-light text-white/40">Sign in to track</p>
           </div>
         </div>
 
-        <p className="text-xs text-white/50 mb-4">
+        <p className="text-xs font-light text-white/50 mb-4 leading-relaxed">
           Sign in to track your credits and start creating videos.
         </p>
 
         <Button
           onClick={() => navigate('/auth')}
-          className="w-full gap-1.5 h-9 text-xs bg-white hover:bg-white/90 text-black border-0"
+          className="w-full gap-1.5 h-9 text-xs font-light rounded-full border-0 transition-all duration-300"
+          style={{
+            background: 'linear-gradient(180deg, hsla(215,100%,60%,0.95) 0%, hsla(215,100%,55%,0.95) 100%)',
+            color: 'white',
+            boxShadow: '0 8px 24px -8px hsla(215,100%,60%,0.5), inset 0 1px 0 hsla(0,0%,100%,0.18)',
+          }}
         >
-          <LogIn className="w-3.5 h-3.5" />
+          <LogIn className="w-3.5 h-3.5" strokeWidth={1.5} />
           Sign In
         </Button>
       </div>
@@ -58,28 +72,39 @@ export const CreditsDisplay = memo(forwardRef<HTMLDivElement, CreditsDisplayProp
   }
 
   return (
-    <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+    <div
+      className="p-5 rounded-2xl"
+      style={{
+        background: 'hsla(0,0%,100%,0.025)',
+        backdropFilter: 'blur(48px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(48px) saturate(180%)',
+        boxShadow: '0 16px 48px -24px rgba(0,0,0,0.6), inset 0 1px 0 hsla(0,0%,100%,0.04)',
+      }}
+    >
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <div className={cn(
-          "w-8 h-8 rounded-lg flex items-center justify-center",
-          isLow ? "bg-white/20" : "bg-white/10"
-        )}>
-          <Coins className="w-4 h-4 text-white/70" />
+        <div
+          className="w-9 h-9 rounded-full flex items-center justify-center"
+          style={{
+            background: isLow ? 'hsla(28,100%,60%,0.14)' : 'hsla(215,100%,60%,0.12)',
+            boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.06)',
+          }}
+        >
+          <Coins className="w-4 h-4" strokeWidth={1.5} style={{ color: isLow ? 'hsla(28,100%,75%,0.95)' : 'hsla(215,100%,75%,0.95)' }} />
         </div>
         <div>
-          <p className="text-xs font-medium text-white">Production Credits</p>
-          <p className="text-[10px] text-white/40">Iron-Clad Billing</p>
+          <p className="text-xs font-light tracking-tight text-white/90">Production Credits</p>
+          <p className="text-[10px] font-light tracking-wide text-white/40 uppercase">Iron-Clad</p>
         </div>
       </div>
 
       {/* Credits count */}
       <div className="mb-4">
         <div className="flex items-baseline gap-1.5">
-          <span className="text-2xl font-display font-bold text-white">
+          <span className="text-3xl font-display font-light tracking-tight text-white">
             {credits.remaining.toLocaleString()}
           </span>
-          <span className="text-xs text-white/40">
+          <span className="text-[11px] font-light text-white/40">
             credits
           </span>
         </div>
@@ -87,48 +112,52 @@ export const CreditsDisplay = memo(forwardRef<HTMLDivElement, CreditsDisplayProp
 
       {/* Progress bar */}
       <div className="space-y-2 mb-4">
-        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-          <div 
-            className={cn(
-              "h-full rounded-full transition-all bg-white"
-            )}
-            style={{ width: `${Math.max(0, 100 - usagePercentage)}%` }}
+        <div className="h-1 rounded-full overflow-hidden" style={{ background: 'hsla(0,0%,100%,0.06)' }}>
+          <div
+            className="h-full rounded-full transition-all duration-700"
+            style={{
+              width: `${Math.max(0, 100 - usagePercentage)}%`,
+              background: 'linear-gradient(90deg, hsla(215,100%,65%,0.95), hsla(200,100%,70%,0.95))',
+              boxShadow: '0 0 12px hsla(215,100%,60%,0.45)',
+            }}
           />
         </div>
       </div>
 
       {/* Selected shots preview */}
       {selectedShotCount && selectedShotCount > 0 && (
-        <div className={cn(
-          "p-3 rounded-lg mb-4 border",
-          canAfford 
-            ? "bg-white/5 border-white/20" 
-            : "bg-white/5 border-white/10"
-        )}>
+        <div
+          className="p-3 rounded-xl mb-4"
+          style={{
+            background: canAfford ? 'hsla(215,100%,60%,0.06)' : 'hsla(0,0%,100%,0.03)',
+            backdropFilter: 'blur(24px) saturate(160%)',
+            boxShadow: canAfford
+              ? 'inset 0 1px 0 hsla(0,0%,100%,0.05), 0 0 0 1px hsla(215,100%,60%,0.18)'
+              : 'inset 0 1px 0 hsla(0,0%,100%,0.04)',
+          }}
+        >
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1.5">
-              <Film className="w-3.5 h-3.5 text-white/60" />
-              <span className="text-[10px] uppercase tracking-wider text-white/40">
+              <Film className="w-3.5 h-3.5 text-white/60" strokeWidth={1.5} />
+              <span className="text-[10px] font-light uppercase tracking-[0.12em] text-white/40">
                 {selectedShotCount} Shot{selectedShotCount > 1 ? 's' : ''} Selected
               </span>
             </div>
             {canAfford ? (
-              <Check className="w-3.5 h-3.5 text-white" />
+              <Check className="w-3.5 h-3.5" strokeWidth={1.5} style={{ color: 'hsla(215,100%,75%,0.95)' }} />
             ) : (
-              <AlertTriangle className="w-3.5 h-3.5 text-white/50" />
+              <AlertTriangle className="w-3.5 h-3.5 text-white/50" strokeWidth={1.5} />
             )}
           </div>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-white/60">Cost</span>
-            <span className="text-xs font-semibold text-white">{requiredCredits.toLocaleString()} credits</span>
+            <span className="text-xs font-light text-white/60">Cost</span>
+            <span className="text-xs font-light tracking-tight text-white">{requiredCredits.toLocaleString()} credits</span>
           </div>
           <div className="flex items-baseline gap-1">
-            <span className={cn(
-              "text-lg font-bold text-white"
-            )}>
+            <span className="text-lg font-light tracking-tight text-white">
               {canAfford ? creditsAfter.toLocaleString() : `Need ${(requiredCredits - credits.remaining).toLocaleString()} more`}
             </span>
-            {canAfford && <span className="text-xs text-white/40">credits left</span>}
+            {canAfford && <span className="text-[11px] font-light text-white/40">credits left</span>}
           </div>
         </div>
       )}
@@ -137,9 +166,14 @@ export const CreditsDisplay = memo(forwardRef<HTMLDivElement, CreditsDisplayProp
       {/* Buy button */}
       <Button
         onClick={() => setShowBuyModal(true)}
-        className="w-full gap-1.5 h-9 text-xs bg-white hover:bg-white/90 text-black border-0"
+        className="w-full gap-1.5 h-10 text-xs font-light tracking-wide rounded-full border-0 transition-all duration-300 hover:scale-[1.02]"
+        style={{
+          background: 'linear-gradient(180deg, hsla(215,100%,60%,0.95) 0%, hsla(215,100%,55%,0.95) 100%)',
+          color: 'white',
+          boxShadow: '0 8px 24px -8px hsla(215,100%,60%,0.55), inset 0 1px 0 hsla(0,0%,100%,0.18)',
+        }}
       >
-        <Sparkles className="w-3.5 h-3.5" />
+        <Sparkles className="w-3.5 h-3.5" strokeWidth={1.5} />
         {!canAfford && requiredCredits > 0 ? 'Get More Credits' : 'Get More'}
       </Button>
 

@@ -237,28 +237,28 @@ const App = () => {
                 <Route path="/projects" element={
                   <RouteContainer fallbackMessage="Loading projects...">
                     <ProtectedRoute>
-                      <Projects />
+                      <AppShell><Projects /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
                 <Route path="/profile" element={
                   <RouteContainer fallbackMessage="Loading profile...">
                     <ProtectedRoute>
-                      <Profile />
+                      <AppShell><Profile /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
                 <Route path="/settings" element={
                   <RouteContainer fallbackMessage="Loading settings...">
                     <ProtectedRoute>
-                      <Settings />
+                      <AppShell><Settings /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
                 <Route path="/settings/deactivate" element={
                   <RouteContainer fallbackMessage="Loading...">
                     <ProtectedRoute>
-                      <DeactivateAccount />
+                      <AppShell><DeactivateAccount /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
@@ -267,7 +267,7 @@ const App = () => {
                 <Route path="/create" element={
                   <RouteContainer fallbackMessage="Preparing studio...">
                     <ProtectedRoute>
-                      <Create />
+                      <AppShell><Create /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
@@ -276,7 +276,7 @@ const App = () => {
                 <Route path="/avatars" element={
                   <RouteContainer fallbackMessage="Loading avatars...">
                     <ProtectedRoute>
-                      <Avatars />
+                      <AppShell><Avatars /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />

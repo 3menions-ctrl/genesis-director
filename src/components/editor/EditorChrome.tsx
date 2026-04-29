@@ -1225,16 +1225,27 @@ function EditorCreditsBadge({ userId }: { userId: string }) {
     <Tooltip>
       <TooltipTrigger asChild>
         <div
-          className="flex items-center gap-1 px-2 py-1 rounded-md mr-1 cursor-default"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full mr-1 cursor-default backdrop-blur-md transition-all hover:scale-[1.02]"
           style={{
-            background: isLow ? 'hsla(0, 70%, 50%, 0.08)' : 'hsla(215, 70%, 55%, 0.08)',
-            border: `1px solid ${isLow ? 'hsla(0, 70%, 50%, 0.15)' : 'hsla(215, 70%, 55%, 0.12)'}`,
+            background: isLow
+              ? 'linear-gradient(180deg, hsla(0, 70%, 55%, 0.14), hsla(0, 70%, 40%, 0.06))'
+              : 'linear-gradient(180deg, hsla(215, 90%, 60%, 0.14), hsla(215, 90%, 40%, 0.05))',
+            border: `1px solid ${isLow ? 'hsla(0, 70%, 55%, 0.22)' : 'hsla(215, 90%, 60%, 0.22)'}`,
+            boxShadow: isLow
+              ? '0 0 14px -4px hsla(0, 70%, 55%, 0.35), inset 0 1px 0 hsla(0,0%,100%,0.06)'
+              : '0 0 14px -4px hsla(215, 100%, 55%, 0.45), inset 0 1px 0 hsla(0,0%,100%,0.08)',
           }}
         >
-          <Zap className="w-3 h-3" style={{ color: isLow ? 'hsl(0, 70%, 60%)' : 'hsl(215, 70%, 60%)' }} />
+          <Zap
+            className="w-3 h-3"
+            style={{
+              color: isLow ? 'hsl(0, 80%, 70%)' : 'hsl(200, 100%, 75%)',
+              filter: `drop-shadow(0 0 4px ${isLow ? 'hsla(0,80%,60%,0.6)' : 'hsla(215,100%,60%,0.7)'})`,
+            }}
+          />
           <span
-            className="text-[10px] font-bold"
-            style={{ color: isLow ? 'hsl(0, 70%, 65%)' : 'hsl(215, 70%, 65%)' }}
+            className="text-[10px] font-semibold tabular-nums tracking-wide"
+            style={{ color: isLow ? 'hsl(0, 85%, 78%)' : 'hsl(200, 100%, 82%)' }}
           >
             {balance.toLocaleString()}
           </span>

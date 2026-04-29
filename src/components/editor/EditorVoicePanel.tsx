@@ -133,8 +133,8 @@ export const EditorVoicePanel = memo(function EditorVoicePanel() {
         <div className="p-3 space-y-3">
           {/* Header */}
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "hsla(30, 80%, 55%, 0.15)" }}>
-              <Mic className="w-3.5 h-3.5 text-[hsl(30,80%,65%)]" />
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "hsla(200, 100%, 60%, 0.15)" }}>
+              <Mic className="w-3.5 h-3.5 text-[hsl(200,100%,75%)]" />
             </div>
             <div>
               <span className="text-[11px] font-bold text-[hsl(0,0%,85%)] block leading-none">Voice Generator</span>
@@ -153,8 +153,8 @@ export const EditorVoicePanel = memo(function EditorVoicePanel() {
                   className={cn(
                     "text-left p-2 rounded-lg border transition-all",
                     selectedVoice.id === voice.id
-                      ? "border-[hsla(30,80%,55%,0.4)] bg-[hsla(30,80%,55%,0.08)]"
-                      : "border-[hsla(0,0%,100%,0.05)] hover:border-[hsla(30,80%,55%,0.2)]"
+                      ? "border-[hsla(200,100%,60%,0.4)] bg-[hsla(200,100%,60%,0.08)]"
+                      : "border-[hsla(0,0%,100%,0.05)] hover:border-[hsla(200,100%,60%,0.2)]"
                   )}
                 >
                   <span className="text-[9px] font-bold text-[hsl(0,0%,80%)] block">{voice.name}</span>
@@ -172,7 +172,7 @@ export const EditorVoicePanel = memo(function EditorVoicePanel() {
               onChange={(e) => setText(e.target.value)}
               disabled={isGenerating}
               placeholder="Enter the voiceover text…"
-              className="w-full h-24 text-[10px] bg-[hsla(0,0%,100%,0.04)] border border-[hsla(0,0%,100%,0.08)] rounded-xl px-3 py-2.5 resize-none text-[hsl(0,0%,85%)] placeholder:text-[hsl(0,0%,35%)] outline-none focus:border-[hsla(30,80%,55%,0.4)] disabled:opacity-40"
+              className="w-full h-24 text-[10px] bg-[hsla(0,0%,100%,0.04)] border border-[hsla(0,0%,100%,0.08)] rounded-xl px-3 py-2.5 resize-none text-[hsl(0,0%,85%)] placeholder:text-[hsl(0,0%,35%)] outline-none focus:border-[hsla(200,100%,60%,0.4)] disabled:opacity-40"
             />
             <div className="flex items-center gap-1 text-[8px] text-[hsl(0,0%,40%)]">
               <Volume2 className="w-3 h-3" />
@@ -196,9 +196,9 @@ export const EditorVoicePanel = memo(function EditorVoicePanel() {
               className={cn(
                 "flex-1 h-8 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all",
                 isGenerating
-                  ? "bg-[hsla(30,80%,55%,0.15)] text-[hsl(30,80%,65%)] cursor-wait"
+                  ? "bg-[hsla(200,100%,60%,0.15)] text-[hsl(200,100%,75%)] cursor-wait"
                   : text.trim()
-                  ? "bg-[hsl(30,80%,55%)] text-white hover:bg-[hsl(30,80%,60%)]"
+                  ? "bg-[hsl(200,100%,60%)] text-white hover:bg-[hsl(200,100%,65%)]"
                   : "bg-[hsla(0,0%,100%,0.06)] text-[hsl(0,0%,40%)] cursor-not-allowed"
               )}
             >

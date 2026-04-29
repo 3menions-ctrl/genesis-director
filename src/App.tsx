@@ -17,6 +17,7 @@ import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
 import { AdminOnlyDiagnostics } from "@/components/diagnostics/AdminOnlyDiagnostics";
 import { NavigationGuardProvider, NavigationBridge } from "@/lib/navigation";
+import { AppShell } from "@/components/shell/AppShell";
 
 import { crashForensics } from "@/lib/crashForensics";
 import { getSafeModeStatus } from "@/lib/safeMode";

@@ -814,17 +814,22 @@ export function EditorChrome({
           {/* ── Center: Import + Aspect ── */}
           <div className="flex-1 flex items-center justify-center">
             <div
-              className="flex items-center gap-0.5 px-1 py-0.5 rounded-lg"
-              style={{ background: 'hsla(0,0%,100%,0.02)', border: '1px solid hsla(0,0%,100%,0.04)' }}
+              className="flex items-center gap-0.5 px-1 py-0.5 rounded-full"
+              style={{
+                background: 'hsla(0,0%,100%,0.025)',
+                backdropFilter: 'blur(36px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(36px) saturate(180%)',
+                boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.05), 0 6px 24px -12px hsla(0,0%,0%,0.5)',
+              }}
             >
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
                     onClick={openBrowser}
-                    className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-muted-foreground/55 hover:text-foreground hover:bg-white/[0.06] transition-all"
+                    className="h-7 flex items-center gap-1.5 px-3 rounded-full text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.05] transition-all duration-300"
                   >
-                    <FolderOpen className="w-3.5 h-3.5" />
-                    <span className="text-[11px] font-medium">{!autoLoadDone ? "Syncing…" : "Import"}</span>
+                    <FolderOpen className="w-3.5 h-3.5" strokeWidth={1.5} />
+                    <span className="text-[11px] font-light tracking-tight">{!autoLoadDone ? "Syncing…" : "Import"}</span>
                     {!autoLoadDone && <Loader2 className="w-3 h-3 animate-spin text-primary/50" />}
                   </button>
                 </TooltipTrigger>
@@ -836,7 +841,7 @@ export function EditorChrome({
               <select
                 value={timelineState.aspectRatio}
                 onChange={(e) => dispatch({ type: "SET_ASPECT_RATIO", ratio: e.target.value as any })}
-                className="h-7 text-[11px] bg-transparent border-none rounded-md px-2 text-muted-foreground/55 cursor-pointer hover:text-foreground transition-colors outline-none font-medium"
+                className="h-7 text-[11px] bg-transparent border-none rounded-full px-2.5 text-muted-foreground/60 cursor-pointer hover:text-foreground transition-colors outline-none font-light tracking-tight"
               >
                 <option value="16:9">16:9</option>
                 <option value="9:16">9:16</option>
@@ -849,8 +854,12 @@ export function EditorChrome({
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-semibold"
-                    style={{ background: 'hsla(142, 60%, 50%, 0.08)', color: 'hsla(142, 60%, 60%, 0.8)' }}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-light tabular-nums"
+                    style={{
+                      background: 'hsla(142, 70%, 50%, 0.10)',
+                      color: 'hsla(142, 70%, 70%, 0.9)',
+                      boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.05)',
+                    }}
                   >
                     <Check className="w-2.5 h-2.5" />
                     {mediaCounts.videos}
@@ -896,8 +905,13 @@ export function EditorChrome({
 
             {/* Primary action group */}
             <div
-              className="flex items-center gap-0.5 ml-1 px-0.5 py-0.5 rounded-lg"
-              style={{ background: 'hsla(0,0%,100%,0.02)', border: '1px solid hsla(0,0%,100%,0.04)' }}
+              className="flex items-center gap-0.5 ml-1 px-1 py-0.5 rounded-full"
+              style={{
+                background: 'hsla(0,0%,100%,0.025)',
+                backdropFilter: 'blur(36px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(36px) saturate(180%)',
+                boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.05), 0 6px 24px -12px hsla(0,0%,0%,0.5)',
+              }}
             >
               {/* Save */}
               <Tooltip>
@@ -905,10 +919,10 @@ export function EditorChrome({
                   <button
                     onClick={() => saveProject(sessionTitle)}
                     disabled={saving}
-                    className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-muted-foreground/55 hover:text-foreground hover:bg-white/[0.06] transition-all disabled:opacity-40"
+                    className="h-7 flex items-center gap-1.5 px-3 rounded-full text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.05] transition-all duration-300 disabled:opacity-40"
                   >
-                    {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                    <span className="text-[11px] font-semibold hidden sm:inline">Save</span>
+                    {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" strokeWidth={1.5} />}
+                    <span className="text-[11px] font-light tracking-tight hidden sm:inline">Save</span>
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-[10px]">Save (⌘S)</TooltipContent>
@@ -920,8 +934,8 @@ export function EditorChrome({
               {isStitching ? (
                 <button
                   onClick={() => resetStitch()}
-                  className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-[11px] font-semibold"
-                  style={{ background: 'hsla(0, 0%, 100%, 0.06)', color: 'hsl(0, 0%, 80%)' }}
+                  className="h-7 flex items-center gap-1.5 px-3 rounded-full text-[11px] font-light tabular-nums"
+                  style={{ background: 'hsla(215,100%,60%,0.12)', color: 'hsla(215,100%,80%,0.95)' }}
                 >
                   <Loader2 className="w-3 h-3 animate-spin" />
                   {Math.round(stitchProgress)}%
@@ -932,10 +946,10 @@ export function EditorChrome({
                     <button
                       onClick={handleStitch}
                       disabled={isRendering}
-                      className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-muted-foreground/55 hover:text-foreground hover:bg-white/[0.06] transition-all disabled:opacity-40"
+                      className="h-7 flex items-center gap-1.5 px-3 rounded-full text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.05] transition-all duration-300 disabled:opacity-40"
                     >
-                      <Film className="w-3.5 h-3.5" />
-                      <span className="text-[11px] font-semibold hidden sm:inline">Stitch</span>
+                      <Film className="w-3.5 h-3.5" strokeWidth={1.5} />
+                      <span className="text-[11px] font-light tracking-tight hidden sm:inline">Stitch</span>
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="text-[10px]">Server-side stitch</TooltipContent>
@@ -950,10 +964,10 @@ export function EditorChrome({
                   <button
                     onClick={handleOpenInOpenReel}
                     disabled={isRendering || isStitching}
-                    className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-muted-foreground/55 hover:text-foreground hover:bg-white/[0.06] transition-all disabled:opacity-40"
+                    className="h-7 flex items-center gap-1.5 px-3 rounded-full text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.05] transition-all duration-300 disabled:opacity-40"
                   >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span className="text-[11px] font-semibold hidden lg:inline">OpenReel</span>
+                    <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.5} />
+                    <span className="text-[11px] font-light tracking-tight hidden lg:inline">OpenReel</span>
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-[10px] max-w-[200px] text-center">
@@ -968,17 +982,18 @@ export function EditorChrome({
               {!isRendering && (
                 <div
                   aria-hidden
-                  className="absolute inset-0 rounded-lg blur-md opacity-60 pointer-events-none"
+                  className="absolute inset-0 rounded-full blur-md opacity-70 pointer-events-none"
                   style={{
                     background:
-                      'radial-gradient(60% 100% at 50% 50%, hsla(215,100%,55%,0.55), transparent 70%)',
+                      'radial-gradient(60% 100% at 50% 50%, hsla(215,100%,60%,0.65), transparent 70%)',
                   }}
                 />
               )}
               {isRendering ? (
                 <button
                   onClick={() => renderer?.reset()}
-                  className="h-8 px-4 flex items-center gap-1.5 rounded-lg text-[11px] font-bold text-destructive bg-destructive/10 border border-destructive/20"
+                  className="h-8 px-4 flex items-center gap-1.5 rounded-full text-[11px] font-light tracking-wide text-destructive"
+                  style={{ background: 'hsla(0,80%,55%,0.10)', boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.05), 0 0 0 1px hsla(0,80%,55%,0.22)' }}
                 >
                   <X className="w-3.5 h-3.5" />
                   Cancel {Math.round(renderProgress * 100)}%
@@ -989,17 +1004,17 @@ export function EditorChrome({
                     <button
                       onClick={exportVideo}
                       disabled={isStitching || isDownloading}
-                      className="relative h-8 px-5 flex items-center gap-2 rounded-lg text-[11px] font-bold tracking-[0.08em] uppercase overflow-hidden group disabled:opacity-40"
+                      className="relative h-8 px-5 flex items-center gap-2 rounded-full text-[11px] font-light tracking-[0.18em] uppercase overflow-hidden group disabled:opacity-40 transition-all duration-300 hover:scale-[1.03]"
                        style={{
                         background:
-                          'linear-gradient(180deg, hsl(210, 100%, 60%) 0%, hsl(215, 100%, 48%) 50%, hsl(218, 100%, 42%) 100%)',
+                          'linear-gradient(180deg, hsl(210, 100%, 62%) 0%, hsl(215, 100%, 50%) 50%, hsl(218, 100%, 44%) 100%)',
                         color: 'hsl(0, 0%, 100%)',
                         boxShadow:
-                          '0 1px 0 hsla(0,0%,100%,0.18) inset, 0 -1px 0 hsla(0,0%,0%,0.25) inset, 0 6px 22px -6px hsla(215, 100%, 50%, 0.65), 0 0 0 1px hsla(215,100%,75%,0.18)',
+                          'inset 0 1px 0 hsla(0,0%,100%,0.22), inset 0 -1px 0 hsla(0,0%,0%,0.25), 0 10px 28px -6px hsla(215, 100%, 55%, 0.7), 0 0 28px -6px hsla(215,100%,60%,0.55)',
                       }}
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-[900ms] ease-out" />
-                      {isDownloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                      {isDownloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" strokeWidth={1.8} />}
                       <span>{isDownloading ? "Exporting…" : "Export"}</span>
                     </button>
                   </TooltipTrigger>

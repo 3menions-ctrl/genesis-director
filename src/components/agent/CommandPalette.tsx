@@ -9,7 +9,7 @@ import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { 
   Search, Video, CreditCard, User, Settings, 
-  MessageCircle, Compass, Plus, Sparkles, Command, 
+  Compass, Plus, Command, 
   ArrowRight, Film, Palette
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -43,8 +43,6 @@ export const CommandPalette = memo(function CommandPalette() {
     { id: 'credits', label: 'Credits & Billing', description: 'Check balance & buy credits', icon: <CreditCard className="w-4 h-4" />, action: () => navigate('/pricing'), category: 'Account', keywords: ['credits', 'balance', 'buy', 'pricing', 'billing'] },
     { id: 'settings', label: 'Settings', description: 'Account preferences', icon: <Settings className="w-4 h-4" />, action: () => navigate('/settings'), category: 'Account', keywords: ['settings', 'preferences', 'account'] },
     { id: 'profile', label: 'My Profile', description: 'View your creator profile', icon: <User className="w-4 h-4" />, action: () => navigate('/profile'), category: 'Account', keywords: ['profile', 'me'] },
-    { id: 'chat', label: 'World Chat', description: 'Chat with the community', icon: <MessageCircle className="w-4 h-4" />, action: () => navigate('/world-chat'), category: 'Social', keywords: ['chat', 'talk', 'community', 'world'] },
-    { id: 'hoppy', label: 'Ask Hoppy', description: 'Open AI assistant', icon: <Sparkles className="w-4 h-4" />, action: () => { /* Trigger Hoppy - handled by parent */ }, category: 'AI', keywords: ['hoppy', 'ai', 'help', 'assistant'] },
   ];
 
   const filtered = query.trim()

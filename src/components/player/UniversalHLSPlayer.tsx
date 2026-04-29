@@ -175,6 +175,7 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
     loop = false,
     className,
     aspectRatio = 'video',
+    objectFit = 'cover',
     showControls = true,
     showSkipButtons = false,
     onEnded,

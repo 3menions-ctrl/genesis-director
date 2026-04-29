@@ -41,6 +41,13 @@ const KLING_MODEL_OWNER = "kwaivgi";
 const KLING_MODEL_NAME = "kling-v3-video";
 const REPLICATE_MODEL_URL = `https://api.replicate.com/v1/models/${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}/predictions`;
 const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
+
+// ─── Seedance 2.0 (ByteDance) — premium alt-engine ─────────────────────────
+// Model: bytedance/seedance-2.0 — hyperreal motion, 2-12s clips, 1080p
+const SEEDANCE_MODEL_OWNER = "bytedance";
+const SEEDANCE_MODEL_NAME = "seedance-2.0";
+const SEEDANCE_MODEL_URL = `https://api.replicate.com/v1/models/${SEEDANCE_MODEL_OWNER}/${SEEDANCE_MODEL_NAME}/predictions`;
+
 // Kling V3: native audio with dialogue lip-sync — enable for avatar mode
 // When enabled, include dialogue in prompt inside quotes for lip-sync
 const KLING_ENABLE_AUDIO_AVATAR = true;   // Avatar: native lip-sync audio

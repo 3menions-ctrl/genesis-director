@@ -209,7 +209,7 @@ function CreateContentInner() {
     avatarTemplateId?: string;
     avatarName?: string;
     // Engine selection: 'veo' key = Runway (Gen-4.5 T2V / Gen-4 Turbo I2V), 'kling' = avatar
-    videoEngine?: 'kling' | 'veo';
+    videoEngine?: 'kling' | 'veo' | 'seedance';
   }) => {
     if (!user) {
       toast.error('Please sign in to create videos');

@@ -80,7 +80,7 @@ interface ContinueProductionRequest {
   totalClips: number;
   // Context passed from hollywood-pipeline
   pipelineContext?: {
-    videoEngine?: 'kling' | 'veo'; // CRITICAL: must survive all callback hops
+    videoEngine?: 'kling' | 'veo' | 'seedance'; // CRITICAL: must survive all callback hops
     isAvatarMode?: boolean; // EXPLICIT flag — NOT derived from videoEngine
     identityBible?: any;
     faceLock?: any; // FACE LOCK — highest priority identity system, must survive callback chain

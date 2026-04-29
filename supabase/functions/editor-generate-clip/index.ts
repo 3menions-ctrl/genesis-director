@@ -21,6 +21,85 @@ const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
 
 const QUALITY_SUFFIX = ", cinematic lighting, ultra high definition, highly detailed, professional cinematography, masterful composition, clean sharp image";
 
+const EDITOR_LIBRARY_TITLE = "Editor Library";
+
+/**
+ * Get or create the per-user "Editor Library" pseudo-project that holds all
+ * standalone Seedance clips generated from the editor. This makes the clips
+ * appear automatically in the existing MediaSidebar / useEditorClips flow.
+ */
+async function getOrCreateLibraryProject(supabase: any, userId: string): Promise<string | null> {
+  // Try to find an existing library project
+  const { data: existing } = await supabase
+    .from("movie_projects")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("title", EDITOR_LIBRARY_TITLE)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing?.id) return existing.id;
+
+  // Create one. Includes all NOT NULL columns with safe defaults.
+  const { data: created, error } = await supabase
+    .from("movie_projects")
+    .insert({
+      user_id: userId,
+      title: EDITOR_LIBRARY_TITLE,
+      genre: "library",
+      story_structure: "freeform",
+      target_duration_minutes: 1,
+      status: "complete",
+      include_narration: false,
+      is_public: false,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("[editor-generate-clip] Could not create library project:", error.message);
+    return null;
+  }
+  return created?.id ?? null;
+}
+
+/**
+ * Download the Replicate CDN file and re-upload to our own storage bucket so
+ * the URL persists (Replicate URLs expire ~24h).
+ */
+async function persistVideoToStorage(
+  supabase: any,
+  userId: string,
+  predictionId: string,
+  sourceUrl: string,
+): Promise<string | null> {
+  try {
+    const res = await fetch(sourceUrl);
+    if (!res.ok) {
+      console.error("[editor-generate-clip] Failed to fetch source video:", res.status);
+      return null;
+    }
+    const buf = new Uint8Array(await res.arrayBuffer());
+    const path = `${userId}/editor/${predictionId}.mp4`;
+    const { error: upErr } = await supabase.storage
+      .from("video-clips")
+      .upload(path, buf, {
+        contentType: "video/mp4",
+        upsert: true,
+        cacheControl: "31536000",
+      });
+    if (upErr) {
+      console.error("[editor-generate-clip] Upload error:", upErr.message);
+      return null;
+    }
+    const { data } = supabase.storage.from("video-clips").getPublicUrl(path);
+    return data?.publicUrl ?? null;
+  } catch (e) {
+    console.error("[editor-generate-clip] persistVideoToStorage failed:", e);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -151,7 +230,7 @@ serve(async (req) => {
 
     // ─── STATUS ───
     if (action === "status") {
-      const { predictionId } = body;
+      const { predictionId, prompt: clipPrompt, duration: clipDuration } = body;
       if (!predictionId) {
         return new Response(JSON.stringify({ error: "predictionId required" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -171,10 +250,60 @@ serve(async (req) => {
       const prediction = await pollRes.json();
 
       if (prediction.status === "succeeded") {
-        const videoUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+        const sourceUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+
+        // Persist to our storage so URL survives + add to user's Library
+        const supabase = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+
+        let finalUrl: string = sourceUrl;
+        let savedClipId: string | null = null;
+
+        try {
+          const persisted = await persistVideoToStorage(supabase, auth.userId, predictionId, sourceUrl);
+          if (persisted) finalUrl = persisted;
+
+          const libraryProjectId = await getOrCreateLibraryProject(supabase, auth.userId);
+          if (libraryProjectId) {
+            // Pick a unique shot_index (count existing clips in library project)
+            const { count } = await supabase
+              .from("video_clips")
+              .select("id", { count: "exact", head: true })
+              .eq("project_id", libraryProjectId);
+            const nextIndex = (count ?? 0);
+
+            const dur = parseInt(String(clipDuration ?? 5), 10) || 5;
+            const { data: inserted, error: insErr } = await supabase
+              .from("video_clips")
+              .insert({
+                project_id: libraryProjectId,
+                user_id: auth.userId,
+                shot_index: nextIndex,
+                prompt: clipPrompt || `Editor clip ${predictionId.slice(0, 8)}`,
+                status: "completed",
+                video_url: finalUrl,
+                duration_seconds: dur,
+                completed_at: new Date().toISOString(),
+              })
+              .select("id")
+              .single();
+            if (insErr) {
+              console.error("[editor-generate-clip] DB insert error:", insErr.message);
+            } else {
+              savedClipId = inserted?.id ?? null;
+            }
+          }
+        } catch (persistErr) {
+          console.error("[editor-generate-clip] Persistence error:", persistErr);
+        }
+
         return new Response(JSON.stringify({
           status: "completed",
-          videoUrl,
+          videoUrl: finalUrl,
+          clipId: savedClipId,
+          savedToLibrary: !!savedClipId,
           metrics: prediction.metrics,
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },

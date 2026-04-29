@@ -19,7 +19,7 @@ const SEEDANCE_T2V_URL = "https://api.replicate.com/v1/models/bytedance/seedance
 const SEEDANCE_I2V_URL = "https://api.replicate.com/v1/models/bytedance/seedance-1-pro/predictions";
 const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
 
-const QUALITY_SUFFIX = ", cinematic lighting, ultra high definition, highly detailed, professional cinematography, masterful composition, clean sharp image";
+const QUALITY_SUFFIX = ", shot on ARRI Alexa 65, anamorphic lens, shallow depth of field, cinematic color grading, volumetric lighting, ultra-detailed textures, 8K master, photorealistic, film grain, HDR, masterful composition, razor-sharp focus, professional cinematography, award-winning";
 
 const EDITOR_LIBRARY_TITLE = "Editor Library";
 
@@ -164,15 +164,16 @@ serve(async (req) => {
         p_description: `Editor clip generation (${duration}s)`,
       });
 
-      // Build Seedance input (duration MUST be integer 5 or 10) — v2
+      // Build Seedance input — MAX QUALITY profile
+      // duration MUST be integer 5 or 10 for Seedance-1-Pro
       const durNum = parseInt(String(duration), 10) || 5;
       const finalDuration: number = durNum >= 10 ? 10 : 5;
       const seedanceInput: Record<string, any> = {
         prompt: prompt + QUALITY_SUFFIX,
         duration: finalDuration,
         aspect_ratio: aspectRatio,
-        resolution: "1080p",
-        fps: 24,
+        resolution: "1080p",       // Seedance-1-Pro max native resolution
+        fps: 24,                    // cinematic frame rate
         camera_fixed: false,
       };
       console.log("[editor-generate-clip] Seedance input:", JSON.stringify(seedanceInput));

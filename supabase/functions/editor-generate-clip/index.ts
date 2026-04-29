@@ -8,17 +8,15 @@ const corsHeaders = {
 };
 
 /**
- * editor-generate-clip — Lightweight video generation for the editor
+ * editor-generate-clip — Lightweight video generation for the editor (Seedance)
  * 
  * Actions:
- *   "submit"  → Kick off a Kling V3 prediction, returns predictionId
+ *   "submit"  → Kick off a Seedance-1-Pro prediction, returns predictionId
  *   "status"  → Poll prediction status, returns videoUrl when done
- * 
- * This is a simplified wrapper around Replicate's Kling V3 model
- * specifically for editor-originated generations (no full pipeline overhead).
  */
 
-const KLING_MODEL_URL = "https://api.replicate.com/v1/models/kwaivgi/kling-v3-video/predictions";
+const SEEDANCE_T2V_URL = "https://api.replicate.com/v1/models/bytedance/seedance-1-pro/predictions";
+const SEEDANCE_I2V_URL = "https://api.replicate.com/v1/models/bytedance/seedance-1-pro/predictions";
 const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
 
 const QUALITY_SUFFIX = ", cinematic lighting, ultra high definition, highly detailed, professional cinematography, masterful composition, clean sharp image";
@@ -87,27 +85,29 @@ serve(async (req) => {
         p_description: `Editor clip generation (${duration}s)`,
       });
 
-      // Build Kling input
-      const klingInput: Record<string, any> = {
+      // Build Seedance input
+      const seedanceInput: Record<string, any> = {
         prompt: prompt + QUALITY_SUFFIX,
-        duration: String(duration),
+        duration: Number(duration) === 10 ? 10 : 5,
         aspect_ratio: aspectRatio,
-        mode: "pro",
+        resolution: "1080p",
+        fps: 24,
+        camera_fixed: false,
       };
 
       if (startImageUrl) {
-        klingInput.start_image = startImageUrl;
+        seedanceInput.image = startImageUrl;
       }
 
-      // Submit to Replicate
-      const replicateRes = await fetch(KLING_MODEL_URL, {
+      // Submit to Replicate (Seedance-1-Pro)
+      const replicateRes = await fetch(startImageUrl ? SEEDANCE_I2V_URL : SEEDANCE_T2V_URL, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
           "Content-Type": "application/json",
           Prefer: "wait=5",
         },
-        body: JSON.stringify({ input: klingInput }),
+        body: JSON.stringify({ input: seedanceInput }),
       });
 
       if (!replicateRes.ok) {
@@ -128,7 +128,7 @@ serve(async (req) => {
       // Log cost
       await supabase.from("api_cost_logs").insert({
         user_id: auth.userId,
-        service: "kling-v3",
+        service: "seedance-1-pro",
         operation: "editor-generate-clip",
         credits_charged: creditsRequired,
         real_cost_cents: duration > 10 ? 15 : 10,

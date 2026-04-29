@@ -327,6 +327,28 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
             })}
           </div>
 
+          {/* Continuity chain indicator */}
+          {continuityActive && (
+            <div className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl border border-[hsla(160,70%,45%,0.25)] bg-[hsla(160,70%,45%,0.06)]">
+              <div className="flex items-center gap-2 min-w-0">
+                <CheckCircle2 className="w-3 h-3 text-[hsl(160,70%,55%)] shrink-0" strokeWidth={2} />
+                <span className="text-[9px] font-bold text-[hsl(160,70%,75%)] uppercase tracking-wider truncate">
+                  Continuity chain active · last frame locked
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  continuityRef.current = { frameUrl: null, dna: null };
+                  setContinuityActive(false);
+                  toast.info("Continuity chain reset");
+                }}
+                className="text-[9px] font-bold text-[hsl(0,0%,55%)] hover:text-[hsl(0,0%,85%)] transition-colors shrink-0"
+              >
+                Reset
+              </button>
+            </div>
+          )}
+
           {/* Duration selector */}
           <div className="flex items-center gap-2">
             <span className="text-[9px] font-bold text-[hsl(0,0%,50%)] uppercase tracking-wider">Duration</span>

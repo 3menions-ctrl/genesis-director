@@ -103,6 +103,37 @@ const ACHIEVEMENTS = [
   { id: 'power_user', name: 'Power User', desc: 'Used 1000+ credits', icon: Flame, threshold: 1000, type: 'credits' },
 ];
 
+// Premium animated stat tile with cursor spotlight + counter
+const StatTile = memo(function StatTile({
+  index, value, label, Icon,
+}: { index: number; value: number; label: string; Icon: any }) {
+  const animated = useAnimatedNumber(value);
+  const tiltRef = useMagneticTilt(6);
+  return (
+    <div
+      ref={tiltRef}
+      className={cn(
+        "relative p-5 overflow-hidden transition-transform duration-300 will-change-transform",
+        glassCard, glassCardHover,
+      )}
+      style={{ animation: `profileRise 0.6s ease-out both`, animationDelay: `${index * 80}ms` }}
+    >
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,60%,0.55)] to-transparent" />
+      <div
+        className="absolute inset-0 pointer-events-none opacity-90"
+        style={{
+          background: 'radial-gradient(280px circle at var(--mx,50%) var(--my,50%), hsla(215,100%,60%,0.16), transparent 55%)',
+        }}
+      />
+      <div className="relative w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.3)]">
+        <Icon className="w-4 h-4 text-[hsl(215,100%,72%)]" />
+      </div>
+      <p className="relative text-3xl font-bold text-white font-[Sora] tabular-nums">{animated.toLocaleString()}</p>
+      <p className="relative text-[10px] uppercase tracking-[0.3em] text-white/45 font-mono mt-1">{label}</p>
+    </div>
+  );
+});
+
 type TabType = 'overview' | 'analytics' | 'settings';
 
 interface Transaction {

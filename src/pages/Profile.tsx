@@ -855,14 +855,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                 { label: 'Videos Generated', value: metrics.totalVideosGenerated, icon: Zap },
                 { label: 'Credits Used', value: profile?.total_credits_used || 0, icon: Coins },
               ].map((stat, i) => (
-                <div key={i} className={cn("relative p-5 overflow-hidden", glassCard)}>
-                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[hsla(215,100%,60%,0.5)] to-transparent" />
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-[hsla(215,100%,60%,0.12)] border border-[hsla(215,100%,60%,0.28)]">
-                    <stat.icon className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-                  </div>
-                  <p className="text-3xl font-bold text-white font-[Sora]">{stat.value}</p>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-white/45 font-mono mt-1">{stat.label}</p>
-                </div>
+                <StatTile key={i} index={i} value={stat.value} label={stat.label} Icon={stat.icon} />
               ))}
             </div>
 

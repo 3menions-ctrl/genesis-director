@@ -50,6 +50,7 @@ import { usePaginatedProjects } from '@/hooks/usePaginatedProjects';
 import { 
   ProjectCard, 
   MergeDownloadDialog,
+  CinematicWall,
 } from '@/components/projects';
 import type { ProjectTab } from '@/components/projects';
 import { PageShell, PageHeader, SegmentedControl } from '@/components/shell';
@@ -1095,53 +1096,6 @@ function ProjectsContentInner() {
             {/* ===== PURE GALLERY ===== */}
             <div className="animate-fade-in">
 
-              {/* Training Videos — shown in videos mode */}
-              {activeTab !== 'photos' && trainingVideos.length > 0 && (
-                <section className="mb-10">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
-                    {trainingVideos.map((video, index) => (
-                      <div
-                        key={video.id}
-                        className="group relative cursor-pointer animate-fade-in"
-                        style={{ animationDelay: `${index * 0.05}s` }}
-                        onClick={() => {
-                          setSelectedTrainingVideo(video);
-                          setTrainingVideoModalOpen(true);
-                        }}
-                      >
-                        <div className={cn(
-                          "relative aspect-video rounded-2xl overflow-hidden",
-                          "bg-white/[0.02] border border-white/[0.04]",
-                          "hover:border-primary/30 hover:-translate-y-2 hover:shadow-[0_30px_80px_-20px_hsl(var(--primary)/0.18)] transition-all duration-700"
-                        )}>
-                          <LazyVideoThumbnail
-                            src={video.video_url}
-                            posterUrl={video.thumbnail_url}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500">
-                            <div className="w-14 h-14 rounded-full bg-white/[0.12] backdrop-blur-2xl flex items-center justify-center border border-white/[0.18] shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:scale-110 transition-transform">
-                              <Play className="w-6 h-6 text-white ml-0.5" fill="currentColor" />
-                            </div>
-                          </div>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleDeleteTrainingVideo(video.id); }}
-                            className="absolute top-3 right-3 w-8 h-8 rounded-xl bg-black/40 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/60 border border-white/10"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 text-white" />
-                          </button>
-                          <div className="absolute bottom-0 left-0 right-0 p-4">
-                            <h3 className="text-sm font-medium text-white truncate">{video.title}</h3>
-                            <p className="text-[10px] text-white/30 mt-0.5">{formatTimeAgo(video.created_at)}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-
               {/* Photo Edits — shown in images mode */}
               {activeTab === 'photos' && photoEdits.length > 0 && (
                 <section className="mb-10">
@@ -1210,11 +1164,12 @@ function ProjectsContentInner() {
                 </section>
               )}
 
-              {/* Films — Magazine Gallery — shown in videos mode */}
-              {activeTab !== 'photos' && filteredProjects.length > 0 && (
+              {/* Films + Training — Cinematic Wall — shown in videos mode */}
+              {activeTab !== 'photos' && (filteredProjects.length > 0 || trainingVideos.length > 0) && (
                 <>
-                  <MagazineGrid
+                  <CinematicWall
                     projects={filteredProjects}
+                    trainingVideos={trainingVideos}
                     resolvedClipUrls={resolvedClipUrls}
                     activeProjectId={activeProjectId}
                     retryingProjectId={retryingProjectId}
@@ -1237,6 +1192,11 @@ function ProjectsContentInner() {
                     onBrowserStitch={handleBrowserStitch}
                     onTogglePin={togglePin}
                     onTogglePublic={handleTogglePublic}
+                    onPlayTraining={(video) => {
+                      setSelectedTrainingVideo(video);
+                      setTrainingVideoModalOpen(true);
+                    }}
+                    onDeleteTraining={handleDeleteTrainingVideo}
                   />
 
                   {/* Infinite scroll sentinel */}

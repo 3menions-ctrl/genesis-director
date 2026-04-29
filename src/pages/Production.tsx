@@ -1650,6 +1650,8 @@ const transitionsData = useMemo(() =>
                 </Card>
               )}
 
+              </div>
+            </PageShell>
             </div>
           </div>
         </div>

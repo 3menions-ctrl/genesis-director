@@ -389,10 +389,22 @@ serve(async (req) => {
 
         let finalUrl: string = sourceUrl;
         let savedClipId: string | null = null;
+        let continuityFrameUrl: string | null = null;
+        const dur = parseInt(String(clipDuration ?? 5), 10) || 5;
 
         try {
           const persisted = await persistVideoToStorage(supabase, auth.userId, predictionId, sourceUrl);
           if (persisted) finalUrl = persisted;
+
+          // Best-effort continuity frame extraction (never blocks success path)
+          continuityFrameUrl = await extractLastFrame(
+            supabase,
+            auth.userId,
+            predictionId,
+            finalUrl,
+            dur,
+            REPLICATE_API_TOKEN,
+          );
 
           const libraryProjectId = await getOrCreateLibraryProject(supabase, auth.userId);
           if (libraryProjectId) {
@@ -403,7 +415,6 @@ serve(async (req) => {
               .eq("project_id", libraryProjectId);
             const nextIndex = (count ?? 0);
 
-            const dur = parseInt(String(clipDuration ?? 5), 10) || 5;
             const { data: inserted, error: insErr } = await supabase
               .from("video_clips")
               .insert({
@@ -433,6 +444,8 @@ serve(async (req) => {
           videoUrl: finalUrl,
           clipId: savedClipId,
           savedToLibrary: !!savedClipId,
+          continuityFrameUrl,
+          continuityDNA: distillIdentityDNA(clipPrompt || ""),
           metrics: prediction.metrics,
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },

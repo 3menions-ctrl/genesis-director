@@ -1,159 +1,93 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Credit packages with Stripe price IDs
-// Pricing: $1 = 10 credits
+// Lovable Stripe price IDs (lookup keys), credits per package
 const CREDIT_PACKAGES: Record<string, { priceId: string; credits: number }> = {
-  mini: {
-    priceId: "price_1T0ASxCh3vnsCadWpStMewh5", // $9 for 90 credits
-    credits: 90,
-  },
-  starter: {
-    priceId: "price_1SxftaCh3vnsCadWTBmr53l1", // $37 for 370 credits
-    credits: 370,
-  },
-  growth: {
-    priceId: "price_1SxfupCh3vnsCadWKOkv3IQP", // $99 for 1000 credits
-    credits: 1000,
-  },
-  agency: {
-    priceId: "price_1SxfvpCh3vnsCadWXYrcFWHe", // $249 for 2500 credits
-    credits: 2500,
-  },
+  mini:    { priceId: "credits_mini",    credits: 90 },
+  starter: { priceId: "credits_starter", credits: 370 },
+  growth:  { priceId: "credits_growth",  credits: 1000 },
+  agency:  { priceId: "credits_agency",  credits: 2500 },
 };
 
-const logStep = (step: string, details?: unknown) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[CREATE-CREDIT-CHECKOUT] ${step}${detailsStr}`);
-};
+const log = (s: string, d?: unknown) =>
+  console.log(`[CREATE-CREDIT-CHECKOUT] ${s}${d ? ' - ' + JSON.stringify(d) : ''}`);
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    logStep("Function started");
+    const body = await req.json().catch(() => ({}));
+    const packageId = String(body?.packageId ?? '').toLowerCase().trim();
+    const rawEnv = body?.environment;
+    const env: StripeEnv = rawEnv === 'live' ? 'live' : 'sandbox';
+    const returnUrl = typeof body?.returnUrl === 'string' ? body.returnUrl : null;
 
-    // Parse and validate input
-    let body: unknown;
-    try {
-      body = await req.json();
-    } catch {
-      throw new Error("Invalid JSON body");
+    if (!packageId || !CREDIT_PACKAGES[packageId]) {
+      return new Response(JSON.stringify({ error: "Invalid package ID" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
-
-    const parsedBody = typeof body === 'object' && body !== null ? body as Record<string, unknown> : {};
-    const packageId = 'packageId' in parsedBody
-      ? String(parsedBody.packageId).toLowerCase().trim()
-      : null;
-    const isWelcomeOffer = parsedBody.welcomeOffer === true;
-    
-    if (!packageId || packageId.length > 50 || !CREDIT_PACKAGES[packageId]) {
-      logStep("Invalid package ID rejected", { received: packageId });
-      throw new Error("Invalid package ID");
-    }
-
     const pkg = CREDIT_PACKAGES[packageId];
-    logStep("Package selected", { packageId, credits: pkg.credits });
 
-    // ─── Auth validation ──────────────────────────────────────────
+    // Auth
     const authHeader = req.headers.get("Authorization");
-    logStep("Auth header check", { hasAuth: !!authHeader, prefix: authHeader?.substring(0, 20) });
-    
     if (!authHeader?.startsWith("Bearer ")) {
-      throw new Error("Missing or invalid authorization header");
+      return new Response(JSON.stringify({ error: "Missing authorization" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
-    
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
     const token = authHeader.replace("Bearer ", "");
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    
-    // Validate token and get user in one call
-    const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser(token);
-    
-    if (authError) {
-      logStep("Auth failed", { error: authError.message, code: authError.status });
-      throw new Error(`Authentication failed: ${authError.message}`);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user?.id || !user?.email) {
+      return new Response(JSON.stringify({ error: "Authentication failed" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
-    
-    if (!authUser?.id || !authUser?.email) {
-      logStep("Auth missing user data", { hasId: !!authUser?.id, hasEmail: !!authUser?.email });
-      throw new Error("User not authenticated or email not available");
-    }
-    
-    const userId = authUser.id;
-    const userEmail = authUser.email;
-    logStep("User authenticated", { userId, email: userEmail });
+    log("User authed", { userId: user.id, packageId, env });
 
-    // ─── Stripe checkout ──────────────────────────────────────────
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) {
-      throw new Error("Stripe configuration missing");
-    }
-    
-    const stripe = new Stripe(stripeKey, {
-      apiVersion: "2025-08-27.basil",
-    });
-
-    // Check if Stripe customer exists
-    const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
-    let customerId: string | undefined;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-      logStep("Found existing customer", { customerId });
-    }
+    // Stripe via Lovable gateway
+    const stripe = createStripeClient(env);
+    const prices = await stripe.prices.list({ lookup_keys: [pkg.priceId], limit: 1 });
+    if (!prices.data.length) throw new Error(`Price not found for lookup_key: ${pkg.priceId}`);
+    const stripePrice = prices.data[0];
 
     const origin = req.headers.get("origin") || "https://genesis-director.lovable.app";
-    
-    // Apply welcome 30% off coupon for first-time signups
-    const WELCOME_COUPON_ID = '0ZMvRAjk';
-    const discounts = isWelcomeOffer ? [{ coupon: WELCOME_COUPON_ID }] : undefined;
-    if (isWelcomeOffer) {
-      logStep("Applying welcome coupon", { couponId: WELCOME_COUPON_ID });
-    }
+    const finalReturnUrl = returnUrl || `${origin}/profile?payment=success&credits=${pkg.credits}&session_id={CHECKOUT_SESSION_ID}`;
 
     const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      customer_email: customerId ? undefined : userEmail,
-      line_items: [{ price: pkg.priceId, quantity: 1 }],
+      line_items: [{ price: stripePrice.id, quantity: 1 }],
       mode: "payment",
-      discounts,
-      success_url: `${origin}/profile?payment=success&credits=${pkg.credits}`,
-      cancel_url: `${origin}/profile?payment=canceled`,
+      ui_mode: "embedded_page",
+      return_url: finalReturnUrl,
+      customer_email: user.email,
       metadata: {
-        user_id: userId,
-        credits: pkg.credits.toString(),
+        userId: user.id,
+        user_id: user.id,
+        credits: String(pkg.credits),
         package_id: packageId,
-        welcome_offer: isWelcomeOffer ? 'true' : 'false',
       },
-      customer_creation: customerId ? undefined : 'always',
-      automatic_tax: { enabled: false },
-      billing_address_collection: 'auto',
     });
 
-    logStep("Checkout session created", { sessionId: session.id, url: session.url });
+    log("Session created", { sessionId: session.id });
 
-    return new Response(JSON.stringify({ url: session.url }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
+    return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    log("ERROR", { msg });
+    return new Response(JSON.stringify({ error: msg }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

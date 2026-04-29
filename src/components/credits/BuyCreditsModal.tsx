@@ -17,6 +17,8 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useIsMounted } from '@/lib/safeAsync';
 import { SafeComponent } from '@/components/ui/error-boundary';
+import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
+import { getStripe, getStripeEnvironment } from '@/lib/stripe';
 
 interface CreditPackage {
   id: string;
@@ -117,6 +119,7 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
     const [packages, setPackages] = useState<CreditPackage[]>([]);
     const [loading, setLoading] = useState(true);
     const [purchasing, setPurchasing] = useState<string | null>(null);
+    const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
     const isMountedRef = useIsMounted();
 
     const fetchPackages = useCallback(async () => {
@@ -175,26 +178,30 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
       
       try {
         const { data, error } = await supabase.functions.invoke('create-credit-checkout', {
-          body: { packageId: checkoutId },
+          body: {
+            packageId: checkoutId,
+            environment: getStripeEnvironment(),
+            returnUrl: `${window.location.origin}/profile?payment=success&credits=${pkg.credits}&session_id={CHECKOUT_SESSION_ID}`,
+          },
         });
 
         if (!isMountedRef.current) return;
 
         if (error) throw error;
 
-        if (data?.url) {
-          onOpenChange(false);
-          setTimeout(() => {
-            window.location.href = data.url;
-          }, 100);
+        if (data?.clientSecret) {
+          setCheckoutSecret(data.clientSecret);
         } else {
-          throw new Error('No checkout URL received');
+          throw new Error('No checkout session received');
         }
       } catch (error) {
         if (!isMountedRef.current) return;
         console.error('Checkout error:', error);
         toast.error('Failed to start checkout. Please try again.');
+      } finally {
+        if (isMountedRef.current) {
         setPurchasing(null);
+        }
       }
     }, [user, isMountedRef, onOpenChange]);
 
@@ -205,7 +212,7 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
     const getClipsEstimate = (credits: number) => `~${Math.floor(credits / 10)} clips`;
 
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={(o) => { if (!o) setCheckoutSecret(null); onOpenChange(o); }}>
         <DialogContent 
           className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 !transform w-[94vw] max-w-6xl max-h-[90vh] p-0 bg-[hsl(220_14%_2%)] border-white/[0.06] overflow-hidden flex flex-col rounded-3xl shadow-[0_40px_120px_-20px_hsl(0_0%_0%/0.9)]"
           hideCloseButton
@@ -218,7 +225,7 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
           
           {/* Close button */}
           <button
-            onClick={() => onOpenChange(false)}
+            onClick={() => { setCheckoutSecret(null); onOpenChange(false); }}
             className="absolute right-5 top-5 z-50 w-9 h-9 rounded-full bg-white/[0.04] hover:bg-white/[0.08] flex items-center justify-center transition-colors border border-white/[0.06] backdrop-blur-md"
             aria-label="Close"
           >
@@ -243,6 +250,25 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
 
           <div className="flex-1 min-h-0 relative z-10 overflow-y-auto overscroll-contain">
             <div className="p-6 md:p-10 font-body">
+              {checkoutSecret ? (
+                <div className="max-w-3xl mx-auto">
+                  <button
+                    onClick={() => setCheckoutSecret(null)}
+                    className="mb-4 text-[12px] text-white/55 hover:text-white inline-flex items-center gap-1.5"
+                  >
+                    ← Back to packages
+                  </button>
+                  <div className="rounded-2xl overflow-hidden bg-white">
+                    <EmbeddedCheckoutProvider
+                      stripe={getStripe()}
+                      options={{ fetchClientSecret: async () => checkoutSecret }}
+                    >
+                      <EmbeddedCheckout />
+                    </EmbeddedCheckoutProvider>
+                  </div>
+                </div>
+              ) : (
+              <>
               {/* Editorial header */}
               <div className="text-center mb-10 max-w-2xl mx-auto">
                 <motion.div
@@ -514,6 +540,8 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
                     </div>
                   </motion.div>
                 </>
+              )}
+              </>
               )}
             </div>
           </div>

@@ -1114,7 +1114,11 @@ function ProjectsContentInner() {
                           "bg-white/[0.02] border border-white/[0.04]",
                           "hover:border-primary/20 hover:-translate-y-2 hover:shadow-[0_30px_80px_-20px_rgba(124,58,237,0.15)] transition-all duration-700"
                         )}>
-                          <LazyVideoThumbnail src={video.video_url} className="w-full h-full object-cover" />
+                          <LazyVideoThumbnail
+                            src={video.video_url}
+                            posterUrl={video.thumbnail_url}
+                            className="w-full h-full object-cover"
+                          />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500">
                             <div className="w-14 h-14 rounded-full bg-white/[0.12] backdrop-blur-2xl flex items-center justify-center border border-white/[0.18] shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:scale-110 transition-transform">

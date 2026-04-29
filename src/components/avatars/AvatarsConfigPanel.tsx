@@ -175,11 +175,11 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
       style={{ animationDelay: '0.4s' }}
     >
       <div className="max-w-4xl mx-auto">
-        <div className="rounded-2xl md:rounded-3xl bg-zinc-900/95 border border-white/[0.08] backdrop-blur-2xl shadow-2xl shadow-black/60 overflow-hidden">
+        <div className="rounded-2xl md:rounded-3xl border-0 backdrop-blur-2xl shadow-2xl shadow-black/60 overflow-hidden">
           
           {/* Header with Avatar Badge — tappable on mobile to expand/collapse */}
           <div
-            className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-white/[0.06] bg-gradient-to-r from-[hsl(215,100%,55%)]/5 to-transparent md:cursor-default cursor-pointer"
+            className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-white/[0.06] bg-gradient-to-r from-[hsla(215,100%,55%,0.05)] to-transparent md:cursor-default cursor-pointer"
             onClick={() => setIsExpanded(prev => !prev)}
           >
             <div className="flex items-center gap-3">
@@ -393,7 +393,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
 
           {/* Footer - Create Button & Cost */}
           <div className={cn(
-            "flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-t border-white/[0.06] bg-gradient-to-r from-transparent to-[hsl(215,100%,55%)]/5",
+            "flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-t border-white/[0.06] bg-gradient-to-r from-transparent to-[hsla(215,100%,55%,0.05)]",
             !isExpanded && "md:flex hidden"
           )}>
             <div className="flex items-center gap-4">

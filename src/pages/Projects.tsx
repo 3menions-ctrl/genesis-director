@@ -1112,7 +1112,7 @@ function ProjectsContentInner() {
                         <div className={cn(
                           "relative aspect-video rounded-2xl overflow-hidden",
                           "bg-white/[0.02] border border-white/[0.04]",
-                          "hover:border-primary/20 hover:-translate-y-2 hover:shadow-[0_30px_80px_-20px_rgba(124,58,237,0.15)] transition-all duration-700"
+                          "hover:border-primary/30 hover:-translate-y-2 hover:shadow-[0_30px_80px_-20px_hsl(var(--primary)/0.18)] transition-all duration-700"
                         )}>
                           <LazyVideoThumbnail
                             src={video.video_url}

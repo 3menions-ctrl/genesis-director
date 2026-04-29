@@ -559,17 +559,17 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
               <div className="flex flex-wrap items-center gap-5 text-sm">
                 <div className="flex items-center gap-1.5">
                   <Users className="w-4 h-4 text-[hsl(215,100%,68%)]" />
-                  <span className="text-white font-semibold">{followersCount}</span>
+                  <span className="text-white font-semibold tabular-nums">{animatedFollowers}</span>
                   <span className="text-white/45 text-xs uppercase tracking-wider">Followers</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Heart className="w-4 h-4 text-[hsl(215,100%,68%)]" />
-                  <span className="text-white font-semibold">{followingCount}</span>
+                  <span className="text-white font-semibold tabular-nums">{animatedFollowing}</span>
                   <span className="text-white/45 text-xs uppercase tracking-wider">Following</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Flame className="w-4 h-4 text-[hsl(215,100%,72%)]" />
-                  <span className="text-white font-semibold">{streak}</span>
+                  <span className="text-white font-semibold tabular-nums">{animatedStreak}</span>
                   <span className="text-white/45 text-xs uppercase tracking-wider">Day streak</span>
                 </div>
               </div>
@@ -582,7 +582,7 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
                   style={{ background: 'radial-gradient(circle at 0% 0%, hsla(215,100%,60%,0.18), transparent 60%)' }}
                 />
                 <Coins className="relative w-5 h-5 text-[hsl(215,100%,72%)]" />
-                <span className="relative text-2xl font-bold text-white font-[Sora]">{profile?.credits_balance || 0}</span>
+                <span className="relative text-2xl font-bold text-white font-[Sora] tabular-nums">{animatedCredits.toLocaleString()}</span>
                 <span className="relative text-[10px] uppercase tracking-[0.3em] text-white/45">credits</span>
               </div>
               <Button

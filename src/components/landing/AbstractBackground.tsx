@@ -105,14 +105,14 @@ const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundPro
           </div>
         )}
 
-        {/* Subtle darken so foreground text stays readable without hiding the image */}
-        <div className="absolute inset-0 bg-black/25" />
-        
-        {/* Vignette */}
-        <div 
+        {/* Very light darken so foreground text stays readable without hiding the image */}
+        <div className="absolute inset-0 bg-black/10 pointer-events-none" />
+
+        {/* Soft vignette — gentle edge falloff only */}
+        <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.5) 100%)',
+            background: 'radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.35) 100%)',
           }}
         />
         

@@ -1,6 +1,6 @@
 import { forwardRef, memo, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-import landingAbstractBg from '@/assets/bg-idea-6-epic-landscape.jpg';
+import landingAbstractBg from '@/assets/landing-bg-dubai.jpg';
 
 interface AbstractBackgroundProps {
   className?: string;

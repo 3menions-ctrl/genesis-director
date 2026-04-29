@@ -672,16 +672,35 @@ export function EditorChrome({
         className="h-screen w-screen flex flex-col overflow-hidden relative"
         style={{
           background:
-            'radial-gradient(1200px 600px at 50% -10%, hsla(215, 90%, 22%, 0.18), transparent 60%), radial-gradient(800px 500px at 100% 110%, hsla(215, 80%, 18%, 0.10), transparent 55%), hsl(220, 14%, 3.2%)',
+            'radial-gradient(1400px 700px at 50% -15%, hsla(215, 95%, 26%, 0.22), transparent 62%), radial-gradient(900px 560px at 100% 110%, hsla(210, 85%, 20%, 0.14), transparent 58%), radial-gradient(700px 500px at 0% 100%, hsla(220, 70%, 14%, 0.16), transparent 60%), linear-gradient(180deg, hsl(220, 16%, 3.4%) 0%, hsl(220, 14%, 2.4%) 100%)',
         }}
       >
+        {/* Aurora light wash — soft chromatic depth */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-0 opacity-[0.55]"
+          style={{
+            background:
+              'radial-gradient(60% 40% at 12% 8%, hsla(210, 100%, 50%, 0.06), transparent 70%), radial-gradient(50% 35% at 88% 92%, hsla(220, 100%, 55%, 0.05), transparent 70%)',
+            mixBlendMode: 'screen',
+          }}
+        />
         {/* Subtle film-grain veil for premium texture */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 z-0 opacity-[0.025] mix-blend-overlay"
+          className="pointer-events-none absolute inset-0 z-0 opacity-[0.035] mix-blend-overlay"
           style={{
             backgroundImage:
               "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
+          }}
+        />
+        {/* Edge vignette — frames the chrome like a high-end display */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-0"
+          style={{
+            background:
+              'radial-gradient(120% 90% at 50% 50%, transparent 55%, hsla(220, 30%, 0%, 0.55) 100%)',
           }}
         />
         {/* Luminous accent line — top */}
@@ -702,13 +721,13 @@ export function EditorChrome({
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="h-12 flex items-center px-4 shrink-0 z-10 relative backdrop-blur-xl"
+          className="h-12 flex items-center px-4 shrink-0 z-10 relative backdrop-blur-2xl"
           style={{
             background:
-              'linear-gradient(180deg, hsla(220, 14%, 9%, 0.92) 0%, hsla(220, 14%, 5%, 0.88) 100%)',
-            borderBottom: '1px solid hsla(0, 0%, 100%, 0.05)',
+              'linear-gradient(180deg, hsla(220, 16%, 10%, 0.86) 0%, hsla(220, 14%, 4%, 0.82) 100%)',
+            borderBottom: '1px solid hsla(0, 0%, 100%, 0.06)',
             boxShadow:
-              'inset 0 1px 0 hsla(0,0%,100%,0.04), 0 1px 0 hsla(0,0%,0%,0.4), 0 8px 24px -12px hsla(215, 100%, 30%, 0.25)',
+              'inset 0 1px 0 hsla(0,0%,100%,0.06), inset 0 -1px 0 hsla(0,0%,0%,0.5), 0 12px 32px -14px hsla(215, 100%, 30%, 0.32), 0 1px 0 hsla(0,0%,0%,0.5)',
           }}
         >
           {/* ── Left: Navigation + Session ── */}

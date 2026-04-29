@@ -801,9 +801,9 @@ describe('11. User-Friendly Error System', () => {
   it('recovery suggestions contain no technical jargon', () => {
     const { getRecoverySuggestion } = __mod_stabilityMonitor;
     
-    const categories = ['NETWORK', 'AUTH', 'TIMEOUT', 'ASYNC_RACE', 'RENDER', 'STATE_CORRUPTION', 'UNKNOWN'];
+    const categories = ['NETWORK', 'AUTH', 'TIMEOUT', 'ASYNC_RACE', 'RENDER', 'STATE_CORRUPTION', 'UNKNOWN'] as const;
     categories.forEach(cat => {
-      const suggestion = getRecoverySuggestion(cat);
+      const suggestion = getRecoverySuggestion(cat as any);
       expect(suggestion.length).toBeGreaterThan(10);
       expect(suggestion).not.toMatch(/stack|trace|TypeError|null is not|undefined/i);
     });

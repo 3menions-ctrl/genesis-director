@@ -649,13 +649,24 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
   }, [navigate]);
 
   return (
-    <div ref={ref} className="min-h-screen bg-[#030303] text-white overflow-x-hidden">
-      <TemplatesBackground />
+    <div ref={ref} className="min-h-screen text-white overflow-x-hidden relative">
+      <CinematicAtmosphere ns="tmpl" stars={26} />
       <AppHeader />
       
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Diagnostic ticker */}
+        <div className="flex justify-center pt-12">
+          <DiagnosticTicker
+            ns="tmpl"
+            items={[
+              { code: 'LIB', label: 'Library' },
+              { code: 'CUR', label: 'Curated' },
+              { code: 'LIVE', label: 'Stream' },
+            ]}
+          />
+        </div>
         {/* Premium editorial header */}
-        <div className="pt-16 sm:pt-20">
+        <div className="pt-6 sm:pt-8">
           <PremiumPageHero
             eyebrow="Library · Curated"
             titlePrefix="Premium"
@@ -683,17 +694,20 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
         </div>
 
         {/* Category Pills - Scrollable */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide justify-center">
           {CATEGORIES.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all",
+                "flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-medium whitespace-nowrap transition-all uppercase tracking-[0.18em]",
                 activeCategory === cat.id
-                  ? "bg-[hsl(var(--primary))] text-primary-foreground shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.6)]"
-                  : "bg-white/[0.05] text-white/60 hover:bg-white/[0.1] hover:text-white border border-white/[0.1]"
+                  ? "text-white shadow-[0_10px_30px_-10px_hsla(215,100%,60%,0.7)] border border-[hsla(215,100%,75%,0.3)]"
+                  : "bg-[hsla(220,14%,4%,0.6)] text-white/55 hover:text-white hover:bg-[hsla(215,100%,60%,0.08)] border border-[hsla(215,100%,60%,0.12)] hover:border-[hsla(215,100%,60%,0.32)] backdrop-blur-xl"
               )}
+              style={activeCategory === cat.id ? {
+                background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(210,100%,50%))',
+              } : undefined}
             >
               <cat.icon className="w-3.5 h-3.5" />
               {cat.label}

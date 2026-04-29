@@ -260,98 +260,130 @@ export default function Creators() {
 
   return (
     <>
-    <div className="min-h-screen bg-[#030303] text-white">
-      {/* Subtle gradient background */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[#030303]" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] bg-[hsl(215,100%,55%)]/[0.10] rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-0 w-[800px] h-[400px] bg-[hsl(195,100%,55%)]/[0.05] rounded-full blur-[100px]" />
+    <div className="min-h-screen bg-[hsl(220_14%_2%)] text-white font-body relative overflow-hidden">
+      {/* Cinematic atmosphere — loader signature */}
+      <style>{`
+        @keyframes creatorsAurora { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+        @keyframes creatorsTick { 0%,100%{opacity:.35} 50%{opacity:1} }
+      `}</style>
+      <div aria-hidden className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(220_14%_5%)_0%,hsl(220_14%_2%)_60%)]" />
+        <div
+          className="absolute -inset-[20%] opacity-[0.16]"
+          style={{
+            background:
+              'conic-gradient(from 0deg at 50% 50%, transparent 0deg, hsla(215,100%,60%,0.32) 60deg, transparent 130deg, hsla(210,100%,55%,0.2) 220deg, transparent 300deg, hsla(215,100%,60%,0.26) 360deg)',
+            filter: 'blur(80px)',
+            animation: 'creatorsAurora 60s linear infinite',
+          }}
+        />
+        <div
+          className="absolute top-[-180px] left-1/2 -translate-x-1/2 w-[1200px] h-[560px] rounded-full blur-[180px] opacity-60"
+          style={{ background: 'radial-gradient(closest-side, hsl(var(--primary) / 0.18), transparent 70%)' }}
+        />
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 55%, hsl(220 14% 1%) 100%)' }} />
+        {/* film grain */}
+        <div
+          className="absolute inset-0 opacity-[0.035] mix-blend-overlay"
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>\")",
+          }}
+        />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </div>
 
       <AppHeader />
 
       <main className="relative z-10">
         {/* ═══ HERO SECTION ═══ */}
-        <section className="pt-28 pb-16 px-4 sm:px-6 lg:px-8">
+        <section className="pt-28 pb-14 px-4 sm:px-6 lg:px-8">
           <div className="max-w-5xl mx-auto text-center">
-            {/* Badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[hsl(215,100%,60%)]/22 bg-[hsl(215,100%,60%)]/[0.10] mb-8"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-[hsl(215,100%,72%)]" />
-              <span className="text-xs font-semibold uppercase tracking-[0.15em] text-[hsl(215,100%,80%)]">
-                Community Gallery
+            {/* Status pill */}
+            <div className="inline-flex items-center gap-2 h-7 pl-2 pr-3 rounded-full border border-white/[0.07] bg-white/[0.025] backdrop-blur-md mb-8">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inset-0 rounded-full bg-[hsl(var(--primary))] animate-ping opacity-60" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[hsl(var(--primary))]" />
               </span>
-            </motion.div>
+              <span className="text-[10px] uppercase tracking-[0.28em] text-white/55 font-medium">
+                Apex Studio · Creators
+              </span>
+            </div>
 
             {/* Title */}
-            <motion.h1
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-              className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.05] mb-5"
-            >
-              <span className="text-white">Explore </span>
-              <span className="bg-gradient-to-r from-[hsl(212,100%,72%)] via-[hsl(195,100%,72%)] to-[hsl(212,100%,86%)] bg-clip-text text-transparent">
-                AI Films
+            <h1 className="font-display font-medium tracking-[-0.035em] text-[clamp(2.75rem,7vw,5.75rem)] leading-[0.95] mb-6">
+              <span className="text-white/95">Cinema by </span>
+              <span
+                className="bg-clip-text text-transparent"
+                style={{
+                  backgroundImage:
+                    'linear-gradient(120deg, hsl(212 100% 72%) 0%, hsl(190 100% 72%) 45%, hsl(212 100% 86%) 100%)',
+                }}
+              >
+                creators.
               </span>
-            </motion.h1>
+            </h1>
 
-            {/* Subtitle */}
-            <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-white/35 text-lg sm:text-xl max-w-xl mx-auto mb-10 leading-relaxed"
-            >
-              Watch stunning videos created by our community — then make your own.
-            </motion.p>
+            <p className="text-white/50 text-base sm:text-lg max-w-xl mx-auto mb-10 leading-relaxed font-light">
+              A living gallery of AI films from the Apex community. Watch, follow, and be inspired — then write the next frame.
+            </p>
 
-            {/* Search */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="max-w-xl mx-auto mb-6"
-            >
+            {/* Search — luminous glass */}
+            <div className="max-w-xl mx-auto mb-7">
               <div className="relative group">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/25 group-focus-within:text-[hsl(215,100%,72%)] transition-colors" />
+                {/* glow ring */}
+                <div
+                  aria-hidden
+                  className="absolute -inset-px rounded-2xl pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity duration-500"
+                  style={{
+                    background: 'linear-gradient(120deg, hsla(215,100%,60%,0.45), hsla(195,100%,60%,0.30), hsla(215,100%,60%,0.45))',
+                    WebkitMask: 'linear-gradient(#000,#000) content-box, linear-gradient(#000,#000)',
+                    WebkitMaskComposite: 'xor',
+                    maskComposite: 'exclude',
+                    padding: '1px',
+                  }}
+                />
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-[hsl(215,100%,75%)] transition-colors" strokeWidth={1.6} />
                 <Input
                   ref={searchRef}
                   type="text"
-                  placeholder="Search videos..."
+                  placeholder="Search films, themes, creators…"
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-14 pr-12 h-14 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/25 rounded-2xl focus:border-[hsl(215,100%,60%)]/45 focus:bg-white/[0.06] transition-all text-base"
+                  className="pl-13 pr-12 h-14 bg-white/[0.025] border-white/[0.07] text-white placeholder:text-white/30 rounded-2xl focus:border-[hsl(215,100%,60%)]/45 focus:bg-white/[0.04] backdrop-blur-2xl transition-all text-[14px] font-light tracking-tight"
+                  style={{ paddingLeft: '3.25rem' }}
                 />
                 {searchQuery && (
                   <button
                     onClick={() => { setSearchQuery(''); setDebouncedQuery(''); }}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/20 transition-all"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/[0.06] flex items-center justify-center text-white/50 hover:text-white hover:bg-white/[0.12] transition-all"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
-            </motion.div>
+            </div>
 
-            {/* Stats pill */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="inline-flex items-center gap-3 text-xs text-white/30"
-            >
-              <span className="flex items-center gap-1.5">
-                <Video className="w-3.5 h-3.5" />
-                {totalVideos} videos
+            {/* Diagnostic ticker — signature */}
+            <div className="inline-flex items-center gap-5 text-[10px] uppercase tracking-[0.32em] text-white/40 font-medium">
+              <span className="inline-flex items-center gap-1.5 tabular-nums text-white/55">
+                <Video className="w-3 h-3 text-[hsl(var(--primary))]" />
+                {totalVideos} films
               </span>
-              <span className="w-1 h-1 rounded-full bg-white/15" />
-              <span>Updated live</span>
-            </motion.div>
+              <span className="w-px h-3 bg-white/10" />
+              {['Live', 'Ranked', 'Curated'].map((t, i) => (
+                <span key={t} className="inline-flex items-center gap-1.5">
+                  <span
+                    className="w-1 h-1 rounded-full bg-[hsl(var(--primary))]"
+                    style={{ animation: `creatorsTick 2.4s ease-in-out ${i * 0.4}s infinite` }}
+                  />
+                  {t}
+                </span>
+              ))}
+            </div>
+
+            {/* hairline */}
+            <div className="mt-12 h-px max-w-3xl mx-auto bg-gradient-to-r from-transparent via-white/[0.09] to-transparent" />
           </div>
         </section>
 

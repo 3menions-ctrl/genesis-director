@@ -121,10 +121,9 @@ describe('UserProfile Page', () => {
 
   it('renders the public videos section', async () => {
     const UserProfile = (await import('@/pages/UserProfile')).default;
-    
     const { getByText } = render(<UserProfile />, { wrapper });
-
-    expect(getByText('Public Videos')).toBeInTheDocument();
+    // Section heading was renamed to "Showcase"
+    expect(getByText('Showcase')).toBeInTheDocument();
   });
 
   it('displays video titles in the grid', async () => {

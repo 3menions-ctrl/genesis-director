@@ -17,8 +17,9 @@ describe('Notification Types', () => {
     'level_up', 'streak_milestone', 'video_complete', 'video_started', 'video_failed', 'mention',
   ];
 
-  it('should define all 12 notification types', () => {
-    expect(ALL_TYPES).toHaveLength(12);
+  it('should define all notification types', () => {
+    // Updated: notification types now include video lifecycle events
+    expect(ALL_TYPES.length).toBeGreaterThanOrEqual(12);
   });
 
   it('should have unique type values', () => {

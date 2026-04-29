@@ -126,47 +126,39 @@ describe('Creators Page', () => {
 
   it('renders the page header', async () => {
     const Creators = (await import('@/pages/Creators')).default;
-    
     const { getByText } = render(<Creators />, { wrapper });
-
-    // Page was redesigned: header now says "Explore AI Films"
-    expect(getByText('Explore')).toBeInTheDocument();
-    expect(getByText('AI Films')).toBeInTheDocument();
+    // Redesigned header: "Cinema by creators."
+    expect(getByText(/Cinema by/)).toBeInTheDocument();
+    expect(getByText(/creators\./)).toBeInTheDocument();
   });
 
   it('displays the search input', async () => {
     const Creators = (await import('@/pages/Creators')).default;
-    
-    const { getByPlaceholderText } = render(<Creators />, { wrapper });
-
-    // Search placeholder was updated to "Search videos..."
-    expect(getByPlaceholderText('Search videos...')).toBeInTheDocument();
+    const { container } = render(<Creators />, { wrapper });
+    // Search placeholder uses smart ellipsis "Search films, themes, creators…"
+    const search = container.querySelector('input[type="text"]');
+    expect(search).toBeInTheDocument();
+    expect(search?.getAttribute('placeholder')).toMatch(/search/i);
   });
 
-  it('shows community gallery badge', async () => {
+  it('shows the creators status pill', async () => {
     const Creators = (await import('@/pages/Creators')).default;
-    
     const { getByText } = render(<Creators />, { wrapper });
-
-    expect(getByText('Community Gallery')).toBeInTheDocument();
+    expect(getByText(/Apex Studio.*Creators/)).toBeInTheDocument();
   });
 
   it('renders the subtitle text', async () => {
     const Creators = (await import('@/pages/Creators')).default;
-    
     const { getByText } = render(<Creators />, { wrapper });
-
-    expect(getByText(/Watch stunning videos/)).toBeInTheDocument();
+    expect(getByText(/living gallery of AI films/i)).toBeInTheDocument();
   });
 
   it('includes the search functionality', async () => {
     const Creators = (await import('@/pages/Creators')).default;
-    
-    const { getByPlaceholderText } = render(<Creators />, { wrapper });
-
-    const searchInput = getByPlaceholderText('Search videos...');
-    // Just verify the input is interactive
-    expect(searchInput).toBeEnabled();
+    const { container } = render(<Creators />, { wrapper });
+    const searchInput = container.querySelector('input[type="text"]') as HTMLInputElement | null;
+    expect(searchInput).toBeInTheDocument();
+    expect(searchInput!).toBeEnabled();
   });
 
   it('includes AppHeader component', async () => {

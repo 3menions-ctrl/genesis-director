@@ -160,7 +160,6 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
           .from('video_clips')
           .select('video_url')
           .eq('project_id', project.id)
-          .eq('status', 'completed')
           .not('video_url', 'is', null)
           .order('shot_index', { ascending: true })
           .limit(1);

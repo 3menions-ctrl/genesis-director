@@ -464,7 +464,7 @@ function ProjectsContentInner() {
     };
     
     resolveClipUrls();
-  }, [user, hasLoadedOnce, projectIdsKey]); // Stable string key, not array reference
+  }, [user, hasLoadedOnce, contentReady, projectIdsKey]); // Stable string key, not array reference
   
   // Auto-generate missing thumbnails - runs ONCE after clip resolution completes
   const thumbnailsGeneratedRef = useRef(false);
@@ -486,7 +486,7 @@ function ProjectsContentInner() {
     } catch (err) {
       console.debug('[Projects] Thumbnail generation skipped:', err);
     }
-  }, [user, hasLoadedOnce, projects.length, resolvedClipUrls.size, generateMissingThumbnails]);
+  }, [user, hasLoadedOnce, contentReady, projects.length, resolvedClipUrls.size, generateMissingThumbnails]);
 
   // Pre-warm thumbnails for all visible videos so they stay always-visible
   // (training videos + project preview clips). Background, throttled, idempotent.

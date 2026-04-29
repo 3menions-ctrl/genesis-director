@@ -129,7 +129,7 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
         
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[hsl(215,100%,60%)]/22 to-[hsl(195,100%,55%)]/18 flex items-center justify-center">
               <Mail className="w-6 h-6 text-blue-400" />
             </div>
             <div>
@@ -286,7 +286,7 @@ export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<strin
 
         <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
           <div className="flex items-center gap-3">
-            <TrendingUp className="w-5 h-5 text-purple-400" />
+            <TrendingUp className="w-5 h-5 text-[hsl(215,100%,72%)]" />
             <div>
               <p className="font-medium text-white">Weekly Digest</p>
               <p className="text-sm text-white/50">Summary of your weekly activity</p>

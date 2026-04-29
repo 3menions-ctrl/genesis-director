@@ -260,15 +260,15 @@ export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
             value: usageStats?.thisMonth || 0, 
             icon: Calendar,
             change: monthlyChange,
-            color: 'from-blue-500/20 to-cyan-500/20',
+            color: 'from-[hsl(215,100%,60%)]/22 to-[hsl(195,100%,55%)]/18',
             iconColor: 'text-blue-400'
           },
           { 
             label: 'Last Month', 
             value: usageStats?.lastMonth || 0, 
             icon: History,
-            color: 'from-purple-500/20 to-pink-500/20',
-            iconColor: 'text-purple-400'
+            color: 'from-[hsl(215,100%,60%)]/22 to-[hsl(195,100%,55%)]/18',
+            iconColor: 'text-[hsl(215,100%,72%)]'
           },
           { 
             label: 'This Week', 

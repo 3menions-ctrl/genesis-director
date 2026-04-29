@@ -163,7 +163,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
     : 'Unknown';
 
   const cardClass = "relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.015] backdrop-blur-sm p-6";
-  const topAccent = "absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent";
+  const topAccent = "absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[hsl(215,100%,60%)]/22 to-transparent";
   const iconBoxClass = "w-10 h-10 rounded-xl flex items-center justify-center";
 
   return (
@@ -184,8 +184,8 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
         
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <div className={cn(iconBoxClass, "bg-violet-500/10 border border-violet-500/15")}>
-              <Key className="w-5 h-5 text-violet-400" />
+            <div className={cn(iconBoxClass, "bg-[hsl(215,100%,60%)]/12 border border-[hsl(215,100%,60%)]/15")}>
+              <Key className="w-5 h-5 text-[hsl(215,100%,72%)]" />
             </div>
             <div>
               <h3 className="font-semibold text-white">Password</h3>
@@ -217,7 +217,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
                   value={passwordForm.newPassword}
                   onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
                   placeholder="Enter new password"
-                  className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 pr-10 rounded-xl focus:border-violet-500/40"
+                  className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 pr-10 rounded-xl focus:border-[hsl(215,100%,60%)]/40"
                 />
                 <button
                   type="button"
@@ -238,7 +238,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
                   value={passwordForm.confirmPassword}
                   onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
                   placeholder="Confirm new password"
-                  className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 pr-10 rounded-xl focus:border-violet-500/40"
+                  className="bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/20 pr-10 rounded-xl focus:border-[hsl(215,100%,60%)]/40"
                 />
                 <button
                   type="button"
@@ -267,7 +267,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
               <Button
                 onClick={handlePasswordChange}
                 disabled={isSavingPassword || !passwordForm.newPassword || !passwordForm.confirmPassword || passwordForm.newPassword !== passwordForm.confirmPassword}
-                className="bg-violet-600 hover:bg-violet-500 text-white rounded-xl shadow-lg shadow-violet-500/20"
+                className="bg-[hsl(215,100%,55%)] hover:bg-[hsl(215,100%,62%)] text-white rounded-xl shadow-lg shadow-[hsl(215,100%,60%)]/22"
               >
                 {isSavingPassword ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />

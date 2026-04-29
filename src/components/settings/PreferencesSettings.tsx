@@ -199,7 +199,7 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
                       <Zap className={cn(
                         "w-4 h-4",
                         tier.value === 'cinematic' ? 'text-amber-400' :
-                        tier.value === 'pro' ? 'text-purple-400' : 'text-white/40'
+                        tier.value === 'pro' ? 'text-[hsl(215,100%,72%)]' : 'text-white/40'
                       )} />
                       <div>
                         <span className="font-medium">{tier.label}</span>

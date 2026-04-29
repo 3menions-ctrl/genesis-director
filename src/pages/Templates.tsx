@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import TemplatesBackground from '@/components/templates/TemplatesBackground';
+import { CinematicAtmosphere, DiagnosticTicker } from '@/components/premium/CinematicAtmosphere';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { PremiumPageHero, type HeroStat } from '@/components/premium/PremiumPageHero';
 
@@ -455,9 +455,9 @@ const TemplateCard = memo(function TemplateCard({
       {/* Compact Card */}
       <div className={cn(
         "relative aspect-[3/4] rounded-xl overflow-hidden",
-        "bg-zinc-900 transition-all duration-300",
-        "ring-1 ring-white/10 hover:ring-white/20",
-        isHovered && "shadow-xl shadow-black/50"
+        "bg-[hsl(220,14%,4%)] transition-all duration-500",
+        "ring-1 ring-[hsla(215,100%,60%,0.10)] hover:ring-[hsla(215,100%,60%,0.45)]",
+        isHovered && "shadow-[0_30px_80px_-20px_hsla(215,100%,60%,0.55)] -translate-y-0.5"
       )}>
         {/* Image */}
         {template.thumbnail_url && (
@@ -476,27 +476,37 @@ const TemplateCard = memo(function TemplateCard({
         <div className={cn(
           "absolute inset-0 transition-all duration-300",
           isHovered 
-            ? "bg-gradient-to-t from-black/90 via-black/50 to-black/20" 
+            ? "bg-gradient-to-t from-[hsl(220,14%,2%)] via-[hsla(220,14%,2%,0.55)] to-[hsla(215,100%,60%,0.10)]"
             : "bg-gradient-to-t from-black/70 via-black/20 to-transparent"
         )} />
+        {/* Cursor halo on hover */}
+        {isHovered && (
+          <div
+            className="absolute -inset-px rounded-xl pointer-events-none"
+            style={{
+              background: 'radial-gradient(circle at 50% 0%, hsla(215,100%,60%,0.35), transparent 60%)',
+              mixBlendMode: 'screen',
+            }}
+          />
+        )}
 
         {/* Top Badges */}
         <div className="absolute top-2 left-2 right-2 flex items-center justify-between z-10">
           <div className="flex gap-1.5">
             {template.is_breakout && (
-              <Badge className="bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white border-0 text-[10px] px-1.5 py-0.5 font-semibold shadow-lg">
+              <Badge className="bg-[hsl(215,100%,60%)] text-white border border-[hsla(215,100%,75%,0.4)] text-[10px] px-1.5 py-0.5 font-semibold shadow-[0_8px_20px_-8px_hsla(215,100%,60%,0.8)] uppercase tracking-wider">
                 <Zap className="w-2.5 h-2.5 mr-0.5" />
                 Premium
               </Badge>
             )}
             {template.is_trending && !template.is_breakout && (
-              <Badge className="bg-orange-500 text-white border-0 text-[10px] px-1.5 py-0.5 font-semibold">
+              <Badge className="bg-[hsla(215,100%,60%,0.18)] text-[hsl(215,100%,82%)] border border-[hsla(215,100%,60%,0.4)] text-[10px] px-1.5 py-0.5 font-semibold backdrop-blur uppercase tracking-wider">
                 <Flame className="w-2.5 h-2.5 mr-0.5" />
                 Hot
               </Badge>
             )}
             {template.is_featured && !template.is_trending && !template.is_breakout && (
-              <Badge className="bg-amber-500 text-black border-0 text-[10px] px-1.5 py-0.5 font-semibold">
+              <Badge className="bg-[hsla(220,14%,4%,0.7)] text-[hsl(215,100%,82%)] border border-[hsla(215,100%,60%,0.35)] text-[10px] px-1.5 py-0.5 font-semibold backdrop-blur uppercase tracking-wider">
                 <Star className="w-2.5 h-2.5 mr-0.5" />
                 Featured
               </Badge>

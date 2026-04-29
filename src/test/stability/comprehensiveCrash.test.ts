@@ -29,6 +29,42 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+// ESM/Vitest doesn't expose CommonJS `require()`. The legacy require('@/...')
+// pattern below is shimmed by importing every module up-front and routing
+// require() calls through a synchronous module map.
+import * as __mod_stabilityMonitor from '@/lib/stabilityMonitor';
+import * as __mod_safeMode from '@/lib/safeMode';
+import * as __mod_chunkLoadRecovery from '@/lib/chunkLoadRecovery';
+import * as __mod_safeVideoOperations from '@/lib/video/safeVideoOperations';
+import * as __mod_memoryManager from '@/lib/memoryManager';
+import * as __mod_networkResilience from '@/lib/networkResilience';
+import * as __mod_errorHandler from '@/lib/errorHandler';
+import * as __mod_userFriendlyErrors from '@/lib/userFriendlyErrors';
+import * as __mod_crashForensics from '@/lib/crashForensics';
+import * as __mod_sessionPersistence from '@/lib/sessionPersistence';
+import * as __mod_browserCompat from '@/lib/browserCompat';
+
+const __MODULE_MAP: Record<string, unknown> = {
+  '@/lib/stabilityMonitor': __mod_stabilityMonitor,
+  '@/lib/safeMode': __mod_safeMode,
+  '@/lib/chunkLoadRecovery': __mod_chunkLoadRecovery,
+  '@/lib/video/safeVideoOperations': __mod_safeVideoOperations,
+  '@/lib/memoryManager': __mod_memoryManager,
+  '@/lib/networkResilience': __mod_networkResilience,
+  '@/lib/errorHandler': __mod_errorHandler,
+  '@/lib/userFriendlyErrors': __mod_userFriendlyErrors,
+  '@/lib/crashForensics': __mod_crashForensics,
+  '@/lib/sessionPersistence': __mod_sessionPersistence,
+  '@/lib/browserCompat': __mod_browserCompat,
+};
+
+// Polyfill `require()` for the @/ alias paths used throughout this file.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(globalThis as any).require = (id: string) => {
+  if (id in __MODULE_MAP) return __MODULE_MAP[id];
+  throw new Error(`[test require shim] Unknown module: ${id}`);
+};
+
 // ============================================================================
 // 1. GLOBAL ERROR SUPPRESSION — TRUE POSITIVE + TRUE NEGATIVE
 // ============================================================================

@@ -405,7 +405,7 @@ function calculatePipelineParams(
   // avatarMode (videoEngine='kling') = native audio lip-sync → higher cost
   // Default engine is 'kling' (Kling V3 / 3.1) for ALL modes including I2V.
   // Avatar mode is determined by the isAvatarMode flag, not by the engine key.
-  const videoEngine: 'kling' | 'veo' = (request as any).videoEngine || 'kling';
+  const videoEngine: 'kling' | 'veo' | 'seedance' = (request as any).videoEngine || 'kling';
   const isAvatarMode = !!(request as any).isAvatarMode;
   const totalCredits = calculateTotalCredits(clipCount, clipDuration, isAvatarMode);
   

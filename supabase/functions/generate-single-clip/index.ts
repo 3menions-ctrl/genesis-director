@@ -697,12 +697,23 @@ serve(async (req) => {
       extractedCharacters,
       referenceImageUrl,
       sceneImageUrl,
-      videoEngine = "kling", // All modes now Kling V3
+      endImageUrl, // Optional target end-frame (Seedance 2.0 only)
+      videoEngine: rawVideoEngine = "kling",
       isAvatarMode: isAvatarModeFlag = false, // Explicit flag — do NOT derive from videoEngine
     } = body;
 
     if (!projectId || !prompt) {
       throw new Error("projectId and prompt are required");
+    }
+
+    // ═══ SEEDANCE SAFETY GUARD ═══
+    // Seedance 2.0 has NO native lip-sync / dialogue audio. If a request reaches
+    // here in avatar mode but is routed to Seedance, force-fallback to Kling V3
+    // so dialogue is preserved. This prevents silent avatar clips.
+    let videoEngine = rawVideoEngine;
+    if (videoEngine === 'seedance' && isAvatarModeFlag) {
+      console.warn(`[SingleClip] ⚠️ Avatar mode + Seedance detected — forcing Kling V3 (Seedance has no lip-sync)`);
+      videoEngine = 'kling';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

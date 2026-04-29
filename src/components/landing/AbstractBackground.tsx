@@ -35,13 +35,14 @@ const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundPro
 
     return (
       <div ref={ref} className={cn("absolute inset-0 bg-background", className)}>
-        {/* Base image layer — fits entire image without cropping. 
-            Letterbox fill matches background color so it blends seamlessly. */}
+        {/* Base image layer — covers the viewport, anchored to keep skyline visible.
+            Uses 'cover' so the image always fills the screen on every aspect ratio. */}
         <div 
-          className="absolute inset-0 bg-no-repeat bg-center"
+          className="absolute inset-0 bg-no-repeat"
           style={{ 
             backgroundImage: `url(${landingAbstractBg})`,
-            backgroundSize: 'contain',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center 35%',
             ...(isTouchDevice ? {} : {
               transition: 'transform 2000ms ease-out',
               transform: `translate(${(mousePos.x - 50) * -0.015}%, ${(mousePos.y - 50) * -0.015}%)`,
@@ -90,8 +91,8 @@ const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundPro
           </div>
         )}
 
-        {/* Darker overlay */}
-        <div className="absolute inset-0 bg-black/50" />
+        {/* Subtle darken so foreground text stays readable without hiding the image */}
+        <div className="absolute inset-0 bg-black/25" />
         
         {/* Vignette */}
         <div 

@@ -1,31 +1,19 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Credit packages with Stripe price IDs
-// Pricing: $1 = 10 credits
-const CREDIT_PACKAGES: Record<string, { priceId: string; credits: number }> = {
-  mini: {
-    priceId: "price_1T0ASxCh3vnsCadWpStMewh5", // $9 for 90 credits
-    credits: 90,
-  },
-  starter: {
-    priceId: "price_1SxftaCh3vnsCadWTBmr53l1", // $37 for 370 credits
-    credits: 370,
-  },
-  growth: {
-    priceId: "price_1SxfupCh3vnsCadWKOkv3IQP", // $99 for 1000 credits
-    credits: 1000,
-  },
-  agency: {
-    priceId: "price_1SxfvpCh3vnsCadWXYrcFWHe", // $249 for 2500 credits
-    credits: 2500,
-  },
+// Credit packages — uses Lovable Stripe lookup_keys (resolved server-side).
+// Pricing: $1 = 10 credits.
+const CREDIT_PACKAGES: Record<string, { lookupKey: string; credits: number }> = {
+  mini:    { lookupKey: "credits_mini_v1",    credits: 90 },
+  starter: { lookupKey: "credits_starter_v1", credits: 370 },
+  growth:  { lookupKey: "credits_growth_v1",  credits: 1000 },
+  agency:  { lookupKey: "credits_agency_v1",  credits: 2500 },
 };
 
 const logStep = (step: string, details?: unknown) => {
@@ -57,6 +45,8 @@ serve(async (req) => {
       ? String(parsedBody.packageId).toLowerCase().trim()
       : null;
     const isWelcomeOffer = parsedBody.welcomeOffer === true;
+    const envInput = typeof parsedBody.environment === "string" ? parsedBody.environment : "sandbox";
+    const stripeEnv: StripeEnv = envInput === "live" ? "live" : "sandbox";
     
     if (!packageId || packageId.length > 50 || !CREDIT_PACKAGES[packageId]) {
       logStep("Invalid package ID rejected", { received: packageId });
@@ -96,39 +86,23 @@ serve(async (req) => {
     const userEmail = authUser.email;
     logStep("User authenticated", { userId, email: userEmail });
 
-    // ─── Stripe checkout ──────────────────────────────────────────
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) {
-      throw new Error("Stripe configuration missing");
-    }
-    
-    const stripe = new Stripe(stripeKey, {
-      apiVersion: "2025-08-27.basil",
-    });
+    // ─── Stripe checkout (Lovable Stripe via gateway) ─────────────
+    const stripe = createStripeClient(stripeEnv);
+    logStep("Stripe client ready", { env: stripeEnv });
 
-    // Check if Stripe customer exists
-    const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
-    let customerId: string | undefined;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-      logStep("Found existing customer", { customerId });
+    // Resolve human-readable lookup_key → real Stripe price ID
+    const prices = await stripe.prices.list({ lookup_keys: [pkg.lookupKey], limit: 1 });
+    if (!prices.data.length) {
+      throw new Error(`Price not found for lookup_key ${pkg.lookupKey}`);
     }
+    const stripePrice = prices.data[0];
 
     const origin = req.headers.get("origin") || "https://genesis-director.lovable.app";
-    
-    // Apply welcome 30% off coupon for first-time signups
-    const WELCOME_COUPON_ID = '0ZMvRAjk';
-    const discounts = isWelcomeOffer ? [{ coupon: WELCOME_COUPON_ID }] : undefined;
-    if (isWelcomeOffer) {
-      logStep("Applying welcome coupon", { couponId: WELCOME_COUPON_ID });
-    }
 
     const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      customer_email: customerId ? undefined : userEmail,
-      line_items: [{ price: pkg.priceId, quantity: 1 }],
+      customer_email: userEmail,
+      line_items: [{ price: stripePrice.id, quantity: 1 }],
       mode: "payment",
-      discounts,
       success_url: `${origin}/profile?payment=success&credits=${pkg.credits}`,
       cancel_url: `${origin}/profile?payment=canceled`,
       metadata: {
@@ -137,9 +111,8 @@ serve(async (req) => {
         package_id: packageId,
         welcome_offer: isWelcomeOffer ? 'true' : 'false',
       },
-      customer_creation: customerId ? undefined : 'always',
-      automatic_tax: { enabled: false },
       billing_address_collection: 'auto',
+      allow_promotion_codes: true,
     });
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });

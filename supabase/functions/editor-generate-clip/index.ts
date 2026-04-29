@@ -36,9 +36,10 @@ serve(async (req) => {
       return unauthorizedResponse(corsHeaders, auth.error);
     }
 
-    const REPLICATE_API_TOKEN = Deno.env.get("REPLICATE_API_TOKEN");
+    const REPLICATE_API_TOKEN = Deno.env.get("REPLICATE_API_KEY") || Deno.env.get("REPLICATE_API_TOKEN");
     if (!REPLICATE_API_TOKEN) {
-      return new Response(JSON.stringify({ error: "REPLICATE_API_TOKEN not configured" }), {
+      console.error("[editor-generate-clip] REPLICATE_API_KEY not configured");
+      return new Response(JSON.stringify({ error: "REPLICATE_API_KEY not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

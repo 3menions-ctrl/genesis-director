@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import TemplatesBackground from '@/components/templates/TemplatesBackground';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { PremiumPageHero, type HeroStat } from '@/components/premium/PremiumPageHero';
 
 // Import AI-generated template thumbnails
 import viralHookImg from '@/assets/templates/viral-hook.jpg';
@@ -643,25 +644,32 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
       <AppHeader />
       
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Compact Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Templates</h1>
-            <p className="text-sm text-white/50">
-              {sortedTemplates.length} professional templates
-            </p>
-          </div>
-          
-          {/* Search */}
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-            <Input
-              placeholder="Search templates..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 bg-white/[0.05] border-white/[0.1] text-white placeholder:text-white/30 rounded-lg text-sm"
-            />
-          </div>
+        {/* Premium editorial header */}
+        <div className="pt-16 sm:pt-20">
+          <PremiumPageHero
+            eyebrow="Library · Curated"
+            titlePrefix="Premium"
+            titleHighlight="templates"
+            titleSuffix="."
+            description="Production-ready scene blueprints. Pick a template, swap your story, ship in minutes."
+            stats={[
+              { label: 'Templates', value: sortedTemplates.length, accent: 'text-white' },
+              { label: 'Categories', value: CATEGORIES.length - 1, accent: 'text-[hsl(var(--primary))]' },
+              { label: 'Featured', value: sortedTemplates.filter((t: any) => t.is_featured).length, accent: 'text-white/85' },
+              { label: 'Trending', value: sortedTemplates.filter((t: any) => (t.use_count || 0) > 100).length, accent: 'text-white/85' },
+            ] as HeroStat[]}
+            actions={
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <Input
+                  placeholder="Search templates..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 h-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/30 rounded-full text-sm backdrop-blur-md"
+                />
+              </div>
+            }
+          />
         </div>
 
         {/* Category Pills - Scrollable */}
@@ -673,7 +681,7 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all",
                 activeCategory === cat.id
-                  ? "bg-violet-500 text-white"
+                  ? "bg-[hsl(var(--primary))] text-primary-foreground shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.6)]"
                   : "bg-white/[0.05] text-white/60 hover:bg-white/[0.1] hover:text-white border border-white/[0.1]"
               )}
             >

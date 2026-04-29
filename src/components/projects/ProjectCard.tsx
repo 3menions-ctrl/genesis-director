@@ -285,9 +285,9 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
         ref={ref}
         className={cn(
           "group flex items-center gap-4 p-3 rounded-xl transition-all duration-300 cursor-pointer",
-          "bg-white/[0.015] border border-white/[0.04]",
-          "hover:bg-white/[0.04] hover:border-white/[0.08]",
-          isActive && "ring-1 ring-primary/30"
+          "bg-white/[0.015]",
+          "hover:bg-white/[0.04] hover:scale-[1.005]",
+          isActive && "ring-1 ring-[hsla(215,100%,60%,0.35)]"
         )}
         onClick={onPlay}
       >
@@ -312,8 +312,8 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium text-foreground/90 truncate">{project.name}</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">{formatTimeAgo(project.updated_at)}</p>
+          <h3 className="text-sm font-light tracking-[-0.005em] text-white/90 truncate">{project.name}</h3>
+          <p className="text-xs text-white/35 font-light mt-0.5">{formatTimeAgo(project.updated_at)}</p>
         </div>
 
         <div className="shrink-0">
@@ -358,7 +358,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
       className={cn(
         "group relative cursor-pointer overflow-hidden transition-all duration-700 ease-out animate-fade-in",
         "rounded-2xl",
-        !isTouchDevice && "hover:-translate-y-2 hover:shadow-[0_40px_100px_-30px_rgba(124,58,237,0.12)]"
+        !isTouchDevice && "hover:-translate-y-2 hover:shadow-[0_50px_120px_-30px_hsla(215,100%,50%,0.25)]"
       )}
       style={{ animationDelay: `${Math.min(index * 0.06, 0.5)}s` }}
       onMouseEnter={!isTouchDevice ? handleMouseEnter : undefined}
@@ -368,30 +368,29 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
       onTouchEnd={isTouchDevice ? handleTouchEnd : undefined}
       onClick={handleCardClick}
     >
-      {/* Luminous border on hover — violet to cyan gradient edge */}
+      {/* Luminous edge on hover — cinematic blue glow */}
       <div className={cn(
         "absolute -inset-px rounded-[17px] transition-opacity duration-700 z-0 pointer-events-none",
         isHovered ? "opacity-100" : "opacity-0"
       )} style={{
-        background: 'linear-gradient(135deg, hsl(263 70% 58% / 0.35), hsl(195 90% 50% / 0.2), hsl(263 70% 58% / 0.15))',
+        background: 'linear-gradient(135deg, hsla(215,100%,60%,0.45), hsla(215,100%,70%,0.18), hsla(215,100%,60%,0.10))',
       }} />
 
       {/* Vignette bloom — radial glow from edges on hover */}
       <div className={cn(
         "absolute -inset-6 rounded-3xl pointer-events-none transition-opacity duration-1000 z-0",
-        isHovered ? "opacity-60" : "opacity-0"
+        isHovered ? "opacity-70" : "opacity-0"
       )} style={{
-        background: 'radial-gradient(ellipse at center, hsl(263 70% 58% / 0.15) 0%, transparent 70%)',
-        filter: 'blur(20px)',
+        background: 'radial-gradient(ellipse at center, hsla(215,100%,60%,0.20) 0%, transparent 70%)',
+        filter: 'blur(28px)',
       }} />
 
       {/* Card body */}
       <div className={cn(
         "relative overflow-hidden rounded-2xl transition-all duration-700",
-        "bg-surface-1/80 border border-white/[0.05]",
+        "bg-white/[0.018]",
         "aspect-video",
-        isHovered && "border-transparent",
-        isActive && "ring-2 ring-primary/30"
+        isActive && "ring-1 ring-[hsla(215,100%,60%,0.45)]"
       )}>
         
         {/* Video/Thumbnail layer — Ken Burns slow zoom on hover */}
@@ -518,8 +517,8 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
           isTouchDevice ? "opacity-100" : (isHovered ? "opacity-100" : "opacity-0")
         )}>
           {isPinned && (
-            <div className="w-6 h-6 rounded-lg bg-primary/80 flex items-center justify-center backdrop-blur-sm">
-              <Pin className="w-2.5 h-2.5 text-primary-foreground" />
+            <div className="w-6 h-6 rounded-full bg-[hsla(215,100%,60%,0.85)] flex items-center justify-center backdrop-blur-sm shadow-[0_0_16px_hsla(215,100%,60%,0.5)]">
+              <Pin className="w-2.5 h-2.5 text-white" strokeWidth={1.8} />
             </div>
           )}
           <CardDropdown {...{ onEdit, onOpenInEditor, onTogglePin, isPinned, onRename, hasVideo, onTogglePublic, project, status, onRetryStitch, isRetrying, onBrowserStitch, isBrowserStitching, onDelete }} />
@@ -527,13 +526,13 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
 
         {/* Bottom metadata — editorial typography + metadata overlays on hover */}
         <div className="absolute bottom-0 left-0 right-0 p-4 pb-3.5 z-20">
-          <h3 className="font-display font-semibold text-white text-sm leading-snug line-clamp-1 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
+          <h3 className="font-display font-light tracking-[-0.01em] text-white text-[15px] leading-snug line-clamp-1 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
             {project.name}
           </h3>
           <div className={cn(
             "flex items-center gap-2.5 mt-1.5 transition-all duration-500",
           )}>
-            <span className="text-[10px] text-white/25 font-medium tracking-wide">
+            <span className="text-[10px] text-white/35 font-light tracking-[0.02em]">
               {formatTimeAgo(project.updated_at)}
             </span>
             {/* Extended metadata on hover */}
@@ -544,15 +543,15 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
               {clipCount > 0 && (
                 <>
                   <span className="w-px h-2.5 bg-white/[0.08]" />
-                  <span className="flex items-center gap-1 text-[10px] text-white/30 font-medium whitespace-nowrap">
-                    <Layers className="w-2.5 h-2.5" />
+                  <span className="flex items-center gap-1 text-[10px] text-white/40 font-light whitespace-nowrap">
+                    <Layers className="w-2.5 h-2.5" strokeWidth={1.5} />
                     {clipCount} clip{clipCount !== 1 ? 's' : ''}
                   </span>
                 </>
               )}
               <span className="w-px h-2.5 bg-white/[0.08]" />
-              <span className="flex items-center gap-1 text-[10px] text-white/30 font-medium whitespace-nowrap">
-                <Calendar className="w-2.5 h-2.5" />
+              <span className="flex items-center gap-1 text-[10px] text-white/40 font-light whitespace-nowrap">
+                <Calendar className="w-2.5 h-2.5" strokeWidth={1.5} />
                 {formattedDate}
               </span>
             </div>
@@ -569,7 +568,7 @@ export const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps>(fun
         {isHovered && scrubProgress !== null && hasVideo && (
           <div className="absolute bottom-0 left-0 right-0 h-[2px] z-30 bg-white/[0.06]">
             <div
-              className="h-full bg-primary/60 transition-[width] duration-75 ease-linear"
+              className="h-full bg-[hsla(215,100%,65%,0.85)] shadow-[0_0_12px_hsla(215,100%,60%,0.6)] transition-[width] duration-75 ease-linear"
               style={{ width: `${scrubProgress * 100}%` }}
             />
           </div>
@@ -677,43 +676,52 @@ function CardDropdown({ onEdit, onOpenInEditor, onTogglePin, isPinned, onRename,
           variant="ghost"
           size="icon"
           onClick={(e: React.MouseEvent) => e.stopPropagation()}
-          className="h-7 w-7 rounded-lg bg-black/50 backdrop-blur-xl text-white/60 hover:text-white hover:bg-black/70 border border-white/[0.08]"
+          className="h-7 w-7 rounded-full bg-black/40 backdrop-blur-2xl text-white/60 hover:text-white hover:bg-black/60 hover:scale-110 transition-all duration-300 border-0"
         >
           <MoreVertical className="w-3.5 h-3.5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44 rounded-xl bg-surface-1/95 border-white/[0.08] shadow-2xl backdrop-blur-2xl p-1">
+      <DropdownMenuContent
+        align="end"
+        className="w-48 rounded-2xl border-0 shadow-2xl p-1"
+        style={{
+          background: 'hsla(220,14%,4%,0.85)',
+          backdropFilter: 'blur(48px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(48px) saturate(180%)',
+          boxShadow: '0 24px 64px -16px rgba(0,0,0,0.8), inset 0 1px 0 hsla(0,0%,100%,0.05)',
+        }}
+      >
         {hasVideo && onOpenInEditor && (
-          <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onOpenInEditor(); }} className="gap-2 text-sm text-blue-400 focus:text-blue-300 focus:bg-blue-500/10 rounded-lg py-2 px-2.5">
-            <Pencil className="w-4 h-4" />Open in Editor
+          <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onOpenInEditor(); }} className="gap-2 text-sm font-light text-[hsl(215,100%,75%)] focus:text-[hsl(215,100%,85%)] focus:bg-[hsla(215,100%,60%,0.1)] rounded-xl py-2 px-2.5">
+            <Pencil className="w-4 h-4" strokeWidth={1.5} />Open in Editor
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onTogglePin?.(); }} className="gap-2 text-sm text-white/60 focus:text-white focus:bg-white/[0.06] rounded-lg py-2 px-2.5">
-          {isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
+        <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onTogglePin?.(); }} className="gap-2 text-sm font-light text-white/70 focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-2.5">
+          {isPinned ? <PinOff className="w-4 h-4" strokeWidth={1.5} /> : <Pin className="w-4 h-4" strokeWidth={1.5} />}
           {isPinned ? 'Unpin' : 'Pin to Top'}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRename(); }} className="gap-2 text-sm text-white/60 focus:text-white focus:bg-white/[0.06] rounded-lg py-2 px-2.5">
-          <Pencil className="w-4 h-4" />Rename
+        <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRename(); }} className="gap-2 text-sm font-light text-white/70 focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-2.5">
+          <Pencil className="w-4 h-4" strokeWidth={1.5} />Rename
         </DropdownMenuItem>
         {hasVideo && (
-          <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onTogglePublic?.(); }} className={cn("gap-2 text-sm rounded-lg py-2 px-2.5", project.is_public ? "text-emerald-400 focus:text-emerald-300 focus:bg-emerald-500/10" : "text-white/60 focus:text-white focus:bg-white/[0.06]")}>
-            {project.is_public ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+          <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onTogglePublic?.(); }} className={cn("gap-2 text-sm font-light rounded-xl py-2 px-2.5", project.is_public ? "text-emerald-400 focus:text-emerald-300 focus:bg-emerald-500/10" : "text-white/70 focus:text-white focus:bg-white/[0.06]")}>
+            {project.is_public ? <Globe className="w-4 h-4" strokeWidth={1.5} /> : <Lock className="w-4 h-4" strokeWidth={1.5} />}
             {project.is_public ? 'Public' : 'Share to Feed'}
           </DropdownMenuItem>
         )}
         {status === 'stitching_failed' && onRetryStitch && (
-          <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRetryStitch(); }} disabled={isRetrying} className="gap-2 text-sm text-warning focus:text-warning/80 focus:bg-warning/10 rounded-lg py-2 px-2.5">
-            <RefreshCw className={cn("w-4 h-4", isRetrying && "animate-spin")} />Retry Stitch
+          <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRetryStitch(); }} disabled={isRetrying} className="gap-2 text-sm font-light text-warning focus:text-warning/80 focus:bg-warning/10 rounded-xl py-2 px-2.5">
+            <RefreshCw className={cn("w-4 h-4", isRetrying && "animate-spin")} strokeWidth={1.5} />Retry Stitch
           </DropdownMenuItem>
         )}
         {onBrowserStitch && (
-          <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onBrowserStitch(); }} disabled={isBrowserStitching} className="gap-2 text-sm text-primary focus:text-primary/80 focus:bg-primary/10 rounded-lg py-2 px-2.5">
-            <MonitorPlay className={cn("w-4 h-4", isBrowserStitching && "animate-pulse")} />Browser Stitch
+          <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onBrowserStitch(); }} disabled={isBrowserStitching} className="gap-2 text-sm font-light text-[hsl(215,100%,75%)] focus:text-[hsl(215,100%,85%)] focus:bg-[hsla(215,100%,60%,0.1)] rounded-xl py-2 px-2.5">
+            <MonitorPlay className={cn("w-4 h-4", isBrowserStitching && "animate-pulse")} strokeWidth={1.5} />Browser Stitch
           </DropdownMenuItem>
         )}
-        <DropdownMenuSeparator className="bg-white/[0.06] my-0.5" />
-        <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete(); }} className="gap-2 text-sm text-destructive focus:text-destructive/80 focus:bg-destructive/10 rounded-lg py-2 px-2.5">
-          <Trash2 className="w-4 h-4" />Delete
+        <DropdownMenuSeparator className="bg-white/[0.05] my-0.5" />
+        <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete(); }} className="gap-2 text-sm font-light text-destructive focus:text-destructive/80 focus:bg-destructive/10 rounded-xl py-2 px-2.5">
+          <Trash2 className="w-4 h-4" strokeWidth={1.5} />Delete
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

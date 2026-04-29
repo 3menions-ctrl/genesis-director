@@ -9,13 +9,21 @@ interface AbstractBackgroundProps {
 const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundProps>(
   function AbstractBackground({ className }, ref) {
     return (
-      <div ref={ref} className={cn("absolute inset-0 bg-background", className)}>
+      <div
+        ref={ref}
+        className={cn("absolute inset-0 overflow-hidden bg-background pointer-events-none", className)}
+        style={{
+          backgroundImage: `url(${landingAbstractBg})`,
+          backgroundSize: 'contain',
+          backgroundPosition: 'center center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      >
         {/* Exact background image — full frame visible, never cropped or zoomed. */}
         <img
           src={landingAbstractBg}
           alt="Dubai skyline above clouds"
-          className="absolute inset-0 h-full w-full object-contain object-center select-none pointer-events-none"
-          style={{ filter: 'brightness(1.35) saturate(1.12)' }}
+          className="absolute inset-0 h-full w-full object-contain object-center select-none opacity-95"
           draggable={false}
         />
 

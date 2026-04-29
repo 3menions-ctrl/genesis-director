@@ -23,6 +23,7 @@ import TrainingBackground from '@/components/training/TrainingBackground';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { handleError } from '@/lib/errorHandler';
 import { SimpleVideoPlayer } from '@/components/player';
+import { PremiumPageHero, type HeroStat } from '@/components/premium/PremiumPageHero';
 
 // Import environment presets - Diverse variety for training videos
 import corporateBoardroomImg from '@/assets/environments/corporate-boardroom.jpg';
@@ -706,32 +707,22 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
       <AppHeader />
       
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Compact Header */}
-        <motion.div 
-          className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-              <Film className="w-5 h-5 text-emerald-400" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-white">Training Video Studio</h1>
-              <p className="text-xs text-white/50">Create AI presenter videos with lip-sync</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs border-white/20 text-white/70">
-              <Coins className="w-3 h-3 mr-1" />
-              {ESTIMATED_CREDITS} credits
-            </Badge>
-            <Badge variant="outline" className="text-xs border-white/20 text-white/70">
-              <Zap className="w-3 h-3 mr-1" />
-              ~2 min
-            </Badge>
-          </div>
-        </motion.div>
+        {/* Premium editorial header */}
+        <div className="pt-16 sm:pt-20">
+          <PremiumPageHero
+            eyebrow="Studio · Lip-Sync Engine"
+            titlePrefix="Training"
+            titleHighlight="video"
+            titleSuffix="studio."
+            description="Pick a presenter, write a script, ship a polished training clip with synced voice and lip movement."
+            stats={[
+              { label: 'Voices', value: VOICE_OPTIONS.length, icon: Mic, accent: 'text-white' },
+              { label: 'Backgrounds', value: BACKGROUND_PRESETS.length, icon: Image, accent: 'text-[hsl(var(--primary))]' },
+              { label: 'Cost / Clip', value: `${ESTIMATED_CREDITS} cr`, icon: Coins, accent: 'text-white/85' },
+              { label: 'Render Time', value: '~2 min', icon: Zap, accent: 'text-white/85' },
+            ] as HeroStat[]}
+          />
+        </div>
 
         {/* Main Grid - More condensed */}
         <div className="grid lg:grid-cols-5 gap-4">

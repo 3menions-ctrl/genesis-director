@@ -77,7 +77,6 @@ const Creators = lazy(() => import("./pages/Creators"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
 const VideoDetail = lazy(() => import("./pages/VideoDetail"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
-const WorldChat = lazy(() => import("./pages/WorldChat"));
 const VideoEditorPage = lazy(() => import("./pages/VideoEditor"));
 
 const WidgetLanding = lazy(() => import("./pages/WidgetLanding"));

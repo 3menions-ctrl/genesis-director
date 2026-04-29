@@ -46,33 +46,34 @@
 @layer base {
   :root {
     /* ══════════════════════════════════════════════════════
-       STUDIO DARK — Violet-accented dark-first system
+       APEX PRO-DARK — Blue-accented (#0A84FF) dark-first system
        ══════════════════════════════════════════════════════ */
 
     /* Base surfaces — 3-tier elevation */
-    --background: 250 15% 4%;        /* #0a0a0f - deepest base */
+    --background: 220 14% 2%;        /* deepest Pro-Dark base */
     --foreground: 240 5% 90%;        /* near-white text */
 
     /* Surface 1: Cards, panels */
-    --card: 250 12% 8%;              /* subtle lift */
+    --card: 220 12% 6%;              /* subtle lift */
     --card-foreground: 240 5% 90%;
-    --popover: 250 12% 10%;
+    --popover: 220 12% 8%;
     --popover-foreground: 240 5% 90%;
 
-    /* Primary — Violet CTAs */
-    --primary: 263 70% 58%;          /* #7c3aed */
+    /* Primary — #0A84FF Apple-blue CTAs */
+    --primary: 211 100% 52%;         /* #0A84FF */
     --primary-foreground: 0 0% 100%;
+    --primary-glow: 211 100% 65%;
 
-    /* Secondary — Muted violet */
-    --secondary: 250 20% 16%;
+    /* Secondary — Muted neutral */
+    --secondary: 220 14% 12%;
     --secondary-foreground: 240 5% 85%;
 
     /* Muted surfaces */
-    --muted: 250 12% 12%;
+    --muted: 220 12% 9%;
     --muted-foreground: 240 5% 55%;
 
-    /* Accent — Cyan for highlights */
-    --accent: 195 90% 50%;
+    /* Accent — Cool blue highlight (sibling of primary) */
+    --accent: 211 100% 60%;
     --accent-foreground: 0 0% 100%;
 
     /* Semantic colors */
@@ -90,40 +91,40 @@
     --destructive-muted: 0 40% 15%;
 
     /* Chart colors */
-    --chart-1: 263 70% 58%;
-    --chart-2: 195 90% 50%;
+    --chart-1: 211 100% 52%;
+    --chart-2: 195 90% 55%;
     --chart-3: 160 84% 45%;
     --chart-4: 42 100% 55%;
     --chart-5: 330 70% 55%;
 
     /* Borders & inputs */
-    --border: 250 10% 16%;
-    --input: 250 10% 14%;
-    --ring: 263 70% 58%;
+    --border: 220 10% 14%;
+    --input: 220 10% 12%;
+    --ring: 211 100% 52%;
 
     --radius: 0.75rem;
 
-    /* Shadows — deep black with violet tint */
-    --shadow-xs: 0 1px 2px hsl(250 30% 5% / 0.4);
-    --shadow-sm: 0 2px 4px hsl(250 30% 5% / 0.5), 0 1px 2px hsl(250 30% 5% / 0.4);
-    --shadow-md: 0 4px 8px hsl(250 30% 5% / 0.5), 0 2px 4px hsl(250 30% 5% / 0.4);
-    --shadow-lg: 0 8px 24px hsl(250 30% 5% / 0.6), 0 4px 8px hsl(250 30% 5% / 0.4);
-    --shadow-xl: 0 16px 48px hsl(250 30% 5% / 0.7), 0 8px 16px hsl(250 30% 5% / 0.5);
-    --shadow-2xl: 0 24px 64px hsl(250 30% 5% / 0.8);
-    --shadow-glass: 0 8px 32px hsl(250 30% 5% / 0.5), inset 0 1px 0 hsl(0 0% 100% / 0.04);
-    --shadow-glow: 0 0 40px hsl(263 70% 58% / 0.3);
-    --shadow-glow-accent: 0 0 40px hsl(195 90% 50% / 0.25);
-    --shadow-glow-secondary: 0 0 40px hsl(330 70% 55% / 0.2);
+    /* Shadows — deep black, neutral */
+    --shadow-xs: 0 1px 2px hsl(220 30% 2% / 0.5);
+    --shadow-sm: 0 2px 4px hsl(220 30% 2% / 0.55), 0 1px 2px hsl(220 30% 2% / 0.45);
+    --shadow-md: 0 4px 10px hsl(220 30% 2% / 0.55), 0 2px 4px hsl(220 30% 2% / 0.45);
+    --shadow-lg: 0 12px 30px hsl(220 30% 2% / 0.6), 0 4px 10px hsl(220 30% 2% / 0.45);
+    --shadow-xl: 0 20px 60px hsl(220 30% 2% / 0.7), 0 8px 20px hsl(220 30% 2% / 0.55);
+    --shadow-2xl: 0 30px 80px hsl(220 30% 2% / 0.8);
+    --shadow-glass: 0 8px 32px hsl(220 30% 2% / 0.55), inset 0 1px 0 hsl(0 0% 100% / 0.04);
+    --shadow-glow: 0 0 40px hsl(211 100% 52% / 0.28);
+    --shadow-glow-accent: 0 0 40px hsl(211 100% 60% / 0.22);
+    --shadow-glow-secondary: 0 0 40px hsl(211 100% 65% / 0.18);
 
     /* Sidebar */
-    --sidebar-background: 250 15% 5%;
+    --sidebar-background: 220 14% 3%;
     --sidebar-foreground: 240 5% 85%;
-    --sidebar-primary: 263 70% 58%;
+    --sidebar-primary: 211 100% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 250 15% 12%;
+    --sidebar-accent: 220 14% 10%;
     --sidebar-accent-foreground: 240 5% 90%;
-    --sidebar-border: 250 10% 16%;
-    --sidebar-ring: 263 70% 58%;
+    --sidebar-border: 220 10% 14%;
+    --sidebar-ring: 211 100% 52%;
 
     /* Glass overlay tokens */
     --glass-bg: 0 0% 100% / 0.03;
@@ -136,10 +137,10 @@
     --glass-text-subtle: 240 5% 40%;
 
     /* Surface elevation tokens */
-    --surface-0: 250 15% 4%;
-    --surface-1: 250 12% 8%;
-    --surface-2: 250 10% 13%;
-    --surface-3: 250 8% 18%;
+    --surface-0: 220 14% 2%;
+    --surface-1: 220 12% 5%;
+    --surface-2: 220 12% 9%;
+    --surface-3: 220 10% 14%;
   }
 
   /* Dark class mirrors root (app is always dark) */
@@ -2114,4 +2115,47 @@ img, a, button {
   );
   background-size: 200% 200%;
   animation: holo-border 3s linear infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   APEX RENOVATION — Typography & Surface utilities
+   ═══════════════════════════════════════════════════════════════════ */
+
+@layer components {
+  /* Editorial typography */
+  .text-eyebrow {
+    @apply font-sora text-[11px] font-medium uppercase text-white/40;
+    letter-spacing: 0.22em;
+  }
+  .text-display {
+    @apply font-sora font-semibold text-white;
+    font-size: clamp(2rem, 4vw + 0.5rem, 2.875rem);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+  }
+  .text-section-title {
+    @apply font-sora text-xl font-semibold text-white tracking-tight;
+  }
+  .text-body-muted {
+    @apply font-instrument text-[15px] text-white/55 leading-relaxed;
+  }
+
+  /* Unified surface card */
+  .surface-card {
+    @apply relative rounded-2xl border bg-white/[0.025] backdrop-blur-xl;
+    border-color: hsl(0 0% 100% / 0.06);
+    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.04) inset, 0 20px 40px -24px hsl(220 30% 0% / 0.6);
+  }
+  .surface-card-hover {
+    @apply transition-all duration-300;
+  }
+  .surface-card-hover:hover {
+    border-color: hsl(0 0% 100% / 0.12);
+    transform: translateY(-2px);
+  }
+
+  /* Hairline divider */
+  .hairline {
+    @apply h-px w-full bg-white/[0.06];
+  }
 }

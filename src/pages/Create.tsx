@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect, memo } from 'react';
 import { toast } from 'sonner';
 import { Film, Sparkles, Image } from 'lucide-react';
-import ClipsBackground from '@/components/clips/ClipsBackground';
 import { CreationHub } from '@/components/studio/CreationHub';
 import { ScenesHub } from '@/components/scenes/ScenesHub';
 import { PhotoEditorHub } from '@/components/photo-editor/PhotoEditorHub';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { PageShell, PageHeader, SegmentedControl } from '@/components/shell';
 import { useAuth } from '@/contexts/AuthContext';
 import { VideoGenerationMode, VideoStylePreset } from '@/types/video-modes';
 import { supabase } from '@/integrations/supabase/client';
@@ -222,8 +222,6 @@ function CreateContentInner() {
 
   return (
     <div className="relative min-h-screen flex flex-col">
-      <ClipsBackground />
-      
       {/* Gatekeeper loading screen */}
       {gatekeeper.isLoading && (
         <CinemaLoader
@@ -236,62 +234,41 @@ function CreateContentInner() {
       {/* Top Menu Bar */}
       <AppHeader />
       
-      {/* Tab Navigation — Premium floating pill bar */}
-      <div className="relative z-20 max-w-6xl mx-auto px-6 pt-6">
-        <div className="relative inline-flex items-center gap-1 p-1.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.3)]">
-          {/* Animated top-edge accent line */}
-          <div className="absolute -top-px inset-x-4 h-px bg-gradient-to-r from-transparent via-violet-500/40 to-transparent" />
-          
-          {[
-            { key: 'create' as const, label: 'Create Video', icon: Film, accent: 'violet' },
-            { key: 'scenes' as const, label: 'Scenes', icon: Sparkles, accent: 'violet' },
-            { key: 'photo' as const, label: 'Photo Editor', icon: Image, accent: 'cyan' },
-          ].map((tab) => {
-            const isActive = activeTab === tab.key;
-            const TabIcon = tab.icon;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={cn(
-                  "relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
-                  isActive
-                    ? tab.accent === 'cyan'
-                      ? "bg-cyan-500/20 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.15)]"
-                      : "bg-violet-500/20 text-violet-300 shadow-[0_0_20px_rgba(139,92,246,0.15)]"
-                    : "text-white/40 hover:text-white/70 hover:bg-white/[0.04]"
-                )}
-              >
-                {isActive && (
-                  <div className={cn(
-                    "absolute inset-x-3 -bottom-px h-px bg-gradient-to-r from-transparent to-transparent",
-                    tab.accent === 'cyan' ? 'via-cyan-400/60' : 'via-violet-400/60'
-                  )} />
-                )}
-                <TabIcon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            );
-          })}
+      {/* Editorial Studio shell */}
+      <PageShell width="wide" pad={false}>
+        <PageHeader
+          eyebrow="Studio"
+          title="Create"
+          subtitle="Compose a film, plan a scene or refine a still — every workflow lives here."
+          toolbar={
+            <SegmentedControl<'create' | 'scenes' | 'photo'>
+              value={activeTab}
+              onChange={setActiveTab}
+              items={[
+                { key: 'create', label: 'Create Video', icon: Film },
+                { key: 'scenes', label: 'Scenes',       icon: Sparkles },
+                { key: 'photo',  label: 'Photo Editor', icon: Image },
+              ]}
+            />
+          }
+        />
+
+        <div
+          className="relative z-10"
+          style={{ opacity: gatekeeper.isLoading ? 0 : 1, transition: 'opacity 0.3s ease-out' }}
+        >
+          {activeTab === 'create' ? (
+            <CreationHub
+              onStartCreation={handleStartCreation}
+              onReady={handleHubReady}
+            />
+          ) : activeTab === 'photo' ? (
+            <PhotoEditorHub />
+          ) : (
+            <ScenesHub />
+          )}
         </div>
-      </div>
-      
-      {/* Main Content - only render when ready or forced */}
-      <div 
-        className="relative z-10 flex-1"
-        style={{ opacity: gatekeeper.isLoading ? 0 : 1, transition: 'opacity 0.3s ease-out' }}
-      >
-        {activeTab === 'create' ? (
-          <CreationHub 
-            onStartCreation={handleStartCreation}
-            onReady={handleHubReady}
-          />
-        ) : activeTab === 'photo' ? (
-          <PhotoEditorHub />
-        ) : (
-          <ScenesHub />
-        )}
-      </div>
+      </PageShell>
       
       {/* Loading overlay with status updates */}
       {isCreating && <LoadingOverlay status={creationStatus} />}

@@ -25,16 +25,18 @@ interface NavItem {
   to: string;
   icon: typeof Film;
   match?: (pathname: string) => boolean;
+  /** HSL hue (0-360) used for icon tint + active accent gradient. */
+  hue: number;
 }
 
 const PRIMARY_NAV: NavItem[] = [
-  { label: 'Library', to: '/projects', icon: Film, match: (p) => p === '/projects' || p.startsWith('/projects') },
-  { label: 'Create', to: '/create', icon: Sparkles },
-  { label: 'Editor', to: '/editor', icon: Scissors },
-  { label: 'Avatars', to: '/avatars', icon: UserIcon },
-  { label: 'Templates', to: '/templates', icon: Layers },
-  { label: 'Training', to: '/training-video', icon: GraduationCap },
-  { label: 'Creators', to: '/creators', icon: Users },
+  { label: 'Library',   to: '/projects',       icon: Film,          hue: 211, match: (p) => p === '/projects' || p.startsWith('/projects') },
+  { label: 'Create',    to: '/create',         icon: Sparkles,      hue: 168 }, // teal/mint
+  { label: 'Editor',    to: '/editor',         icon: Scissors,      hue: 195 }, // cyan
+  { label: 'Avatars',   to: '/avatars',        icon: UserIcon,      hue: 32  }, // amber
+  { label: 'Templates', to: '/templates',      icon: Layers,        hue: 280 }, // soft magenta (tasteful, not purple bg)
+  { label: 'Training',  to: '/training-video', icon: GraduationCap, hue: 145 }, // green
+  { label: 'Creators',  to: '/creators',       icon: Users,         hue: 340 }, // rose
 ];
 
 interface AppShellProps {
@@ -237,6 +239,8 @@ export function AppShell({ children }: AppShellProps) {
               {PRIMARY_NAV.map((item) => {
                 const active = isItemActive(item);
                 const Icon = item.icon;
+                const hue = item.hue;
+                const tint = (a: number) => `hsla(${hue}, 90%, 62%, ${a})`;
                 const link = (
                   <NavLink
                     to={item.to}
@@ -244,30 +248,61 @@ export function AppShell({ children }: AppShellProps) {
                       'group relative flex items-center gap-3 rounded-xl px-3 h-[38px] text-[13px] font-medium tracking-[-0.005em] transition-all duration-200',
                       'border border-transparent',
                       active
-                        ? 'text-white bg-gradient-to-r from-white/[0.08] to-white/[0.03] border-white/[0.07] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.05)]'
-                        : 'text-white/55 hover:text-white hover:bg-white/[0.035]',
+                        ? 'text-white shadow-[inset_0_1px_0_hsl(0_0%_100%/0.06)]'
+                        : 'text-white/60 hover:text-white',
                       collapsed && 'lg:justify-center lg:px-0 lg:gap-0',
                     )}
+                    style={
+                      active
+                        ? {
+                            background: `linear-gradient(90deg, ${tint(0.18)} 0%, ${tint(0.06)} 55%, transparent 100%)`,
+                            borderColor: tint(0.22),
+                            boxShadow: `inset 0 1px 0 hsl(0 0% 100% / 0.06), 0 8px 24px -16px ${tint(0.55)}`,
+                          }
+                        : undefined
+                    }
                   >
+                    {/* Hover wash — colored, faint */}
+                    {!active && (
+                      <span
+                        aria-hidden
+                        className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                        style={{
+                          background: `linear-gradient(90deg, ${tint(0.10)} 0%, ${tint(0.03)} 60%, transparent 100%)`,
+                        }}
+                      />
+                    )}
                     {active && (
                       <span
                         aria-hidden
-                        className="absolute -left-3 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-gradient-to-b from-[hsl(var(--primary))] to-[hsl(var(--primary)/0.6)] shadow-[0_0_12px_hsl(var(--primary)/0.7)]"
+                        className="absolute -left-3 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full"
+                        style={{
+                          background: `linear-gradient(180deg, hsl(${hue}, 95%, 65%) 0%, hsl(${hue}, 90%, 50%) 100%)`,
+                          boxShadow: `0 0 12px ${tint(0.75)}`,
+                        }}
                       />
                     )}
                     <Icon
                       className={cn(
-                        'w-[18px] h-[18px] shrink-0 transition-all duration-200',
-                        active
-                          ? 'text-[hsl(var(--primary))] drop-shadow-[0_0_6px_hsl(var(--primary)/0.5)]'
-                          : 'text-white/45 group-hover:text-white/85 group-hover:scale-[1.06]',
+                        'relative w-[18px] h-[18px] shrink-0 transition-all duration-200',
+                        active ? '' : 'group-hover:scale-[1.08]',
                       )}
+                      style={{
+                        color: active ? `hsl(${hue}, 95%, 68%)` : tint(0.55),
+                        filter: active
+                          ? `drop-shadow(0 0 6px ${tint(0.65)})`
+                          : undefined,
+                      }}
                     />
-                    {!collapsed && <span className="truncate">{item.label}</span>}
+                    {!collapsed && <span className="relative truncate">{item.label}</span>}
                     {active && !collapsed && (
                       <span
                         aria-hidden
-                        className="ml-auto h-1.5 w-1.5 rounded-full bg-[hsl(var(--primary))] shadow-[0_0_8px_hsl(var(--primary)/0.8)]"
+                        className="relative ml-auto h-1.5 w-1.5 rounded-full"
+                        style={{
+                          background: `hsl(${hue}, 95%, 65%)`,
+                          boxShadow: `0 0 8px ${tint(0.85)}`,
+                        }}
                       />
                     )}
                   </NavLink>

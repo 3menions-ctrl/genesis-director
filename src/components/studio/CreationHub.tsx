@@ -671,6 +671,18 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                             <Sparkles className="w-4 h-4" />
                             <span className="tracking-tight">Create</span>
                             <span className="h-3.5 w-px bg-white/30" />
+                            <span
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold tracking-[0.08em]"
+                              style={{
+                                background: `hsl(${engineInfo.hue} / 0.25)`,
+                                color: '#fff',
+                                border: `1px solid hsl(${engineInfo.hue} / 0.45)`,
+                              }}
+                            >
+                              <Cpu className="w-2.5 h-2.5" />
+                              {engineInfo.label}
+                            </span>
+                            <span className="h-3.5 w-px bg-white/30" />
                             <span className="opacity-90 tabular-nums text-[13px]">{estimatedCredits}</span>
                             <ArrowRight className="w-4 h-4 transition-transform group-hover/cta:translate-x-0.5" />
                           </>

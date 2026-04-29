@@ -189,38 +189,38 @@ const App = () => {
                 } />
                 <Route path="/contact" element={
                   <RouteContainer>
-                    <Contact />
+                    <AppShell><Contact /></AppShell>
                   </RouteContainer>
                 } />
                 <Route path="/discover" element={<Navigate to="/creators" replace />} />
                 <Route path="/help" element={
                   <RouteContainer>
-                    <HelpCenter />
+                    <AppShell><HelpCenter /></AppShell>
                   </RouteContainer>
                 } />
                 <Route path="/blog" element={
                   <RouteContainer>
-                    <Blog />
+                    <AppShell><Blog /></AppShell>
                   </RouteContainer>
                 } />
                 <Route path="/press" element={
                   <RouteContainer>
-                    <Press />
+                    <AppShell><Press /></AppShell>
                   </RouteContainer>
                 } />
                 <Route path="/gallery" element={
                   <RouteContainer fallbackMessage="Loading gallery...">
-                    <Gallery />
+                    <AppShell><Gallery /></AppShell>
                   </RouteContainer>
                 } />
                 <Route path="/pricing" element={
                   <RouteContainer>
-                    <Pricing />
+                    <AppShell><Pricing /></AppShell>
                   </RouteContainer>
                 } />
                 <Route path="/how-it-works" element={
                   <RouteContainer>
-                    <HowItWorks />
+                    <AppShell><HowItWorks /></AppShell>
                   </RouteContainer>
                 } />
                 

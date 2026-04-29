@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { validateAuth } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +13,15 @@ serve(async (req) => {
   }
 
   try {
+    // 🔒 Auth required (credit-consuming AI call)
+    const auth = await validateAuth(req);
+    if (!auth.authenticated) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { prompt, action, clipContext } = await req.json();
 
     if (!prompt || typeof prompt !== "string") {

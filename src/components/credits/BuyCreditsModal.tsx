@@ -17,6 +17,8 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useIsMounted } from '@/lib/safeAsync';
 import { SafeComponent } from '@/components/ui/error-boundary';
+import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
+import { getStripe, getStripeEnvironment } from '@/lib/stripe';
 
 interface CreditPackage {
   id: string;
@@ -117,6 +119,7 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
     const [packages, setPackages] = useState<CreditPackage[]>([]);
     const [loading, setLoading] = useState(true);
     const [purchasing, setPurchasing] = useState<string | null>(null);
+    const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
     const isMountedRef = useIsMounted();
 
     const fetchPackages = useCallback(async () => {
@@ -175,26 +178,30 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
       
       try {
         const { data, error } = await supabase.functions.invoke('create-credit-checkout', {
-          body: { packageId: checkoutId },
+          body: {
+            packageId: checkoutId,
+            environment: getStripeEnvironment(),
+            returnUrl: `${window.location.origin}/profile?payment=success&credits=${pkg.credits}&session_id={CHECKOUT_SESSION_ID}`,
+          },
         });
 
         if (!isMountedRef.current) return;
 
         if (error) throw error;
 
-        if (data?.url) {
-          onOpenChange(false);
-          setTimeout(() => {
-            window.location.href = data.url;
-          }, 100);
+        if (data?.clientSecret) {
+          setCheckoutSecret(data.clientSecret);
         } else {
-          throw new Error('No checkout URL received');
+          throw new Error('No checkout session received');
         }
       } catch (error) {
         if (!isMountedRef.current) return;
         console.error('Checkout error:', error);
         toast.error('Failed to start checkout. Please try again.');
+      } finally {
+        if (isMountedRef.current) {
         setPurchasing(null);
+        }
       }
     }, [user, isMountedRef, onOpenChange]);
 

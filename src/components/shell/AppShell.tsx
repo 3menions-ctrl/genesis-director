@@ -41,6 +41,7 @@ interface AppShellProps {
 }
 
 const SIDEBAR_KEY = 'apex.sidebar.collapsed';
+const SIDEBAR_HIDDEN_KEY = 'apex.sidebar.hidden';
 
 export function AppShell({ children }: AppShellProps) {
   const { profile, isAdmin } = useAuth();
@@ -50,12 +51,19 @@ export function AppShell({ children }: AppShellProps) {
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem(SIDEBAR_KEY) === '1'; } catch { return false; }
   });
+  const [hidden, setHidden] = useState<boolean>(() => {
+    try { return localStorage.getItem(SIDEBAR_HIDDEN_KEY) === '1'; } catch { return false; }
+  });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
 
   useEffect(() => {
     try { localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0'); } catch {}
   }, [collapsed]);
+
+  useEffect(() => {
+    try { localStorage.setItem(SIDEBAR_HIDDEN_KEY, hidden ? '1' : '0'); } catch {}
+  }, [hidden]);
 
   // Close mobile drawer on route change
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
@@ -121,6 +129,7 @@ export function AppShell({ children }: AppShellProps) {
             'lg:transition-[width] lg:duration-300 lg:ease-out',
             'lg:bg-transparent lg:!border-r-0 lg:!shadow-none lg:!backdrop-blur-0',
             railWidth,
+            hidden && 'lg:hidden',
           )}
           style={{
             background:
@@ -190,6 +199,17 @@ export function AppShell({ children }: AppShellProps) {
               className="ml-auto lg:hidden w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/[0.06] text-white/50"
               onClick={() => setMobileOpen(false)}
               aria-label="Close sidebar"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <button
+              className={cn(
+                'ml-auto hidden lg:flex w-8 h-8 rounded-lg items-center justify-center hover:bg-white/[0.06] text-white/50 hover:text-white transition-colors',
+                collapsed && 'lg:hidden',
+              )}
+              onClick={() => setHidden(true)}
+              aria-label="Hide sidebar"
+              title="Hide sidebar"
             >
               <X className="w-4 h-4" />
             </button>
@@ -393,6 +413,19 @@ export function AppShell({ children }: AppShellProps) {
             >
               <Menu className="w-4 h-4" />
             </button>
+
+            {/* Desktop: show menu button when sidebar is hidden */}
+            {hidden && (
+              <button
+                onClick={() => setHidden(false)}
+                className="hidden lg:flex items-center gap-2 h-9 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.16] hover:bg-white/[0.07] text-white/70 hover:text-white transition-all"
+                aria-label="Show sidebar"
+                title="Show sidebar"
+              >
+                <PanelLeft className="w-4 h-4" />
+                <span className="text-[12px] font-medium">Menu</span>
+              </button>
+            )}
 
             {/* Spacer */}
             <div className="flex-1" />

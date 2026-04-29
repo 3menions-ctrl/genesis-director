@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Check, ArrowRight, Sparkles, Shield, Clock, Zap, Crown, Building2,
@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { useSafeNavigation } from '@/lib/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 
@@ -160,7 +162,15 @@ function CreditDial({ credits, clips, popular }: { credits: number; clips: strin
   );
 }
 
-function PricingCard({ pkg, index }: { pkg: CreditPackage; index: number }) {
+function PricingCard({
+  pkg,
+  index,
+  onPurchase,
+}: {
+  pkg: CreditPackage;
+  index: number;
+  onPurchase: (pkg: CreditPackage) => void;
+}) {
   const { navigate } = useSafeNavigation();
 
   return (
@@ -311,7 +321,7 @@ function PricingCard({ pkg, index }: { pkg: CreditPackage; index: number }) {
 
         {/* CTA */}
         <Button
-          onClick={() => navigate(`/auth?mode=signup&next=${encodeURIComponent('/profile?buy=' + (pkg.name?.toLowerCase?.() || ''))}`)}
+          onClick={() => onPurchase(pkg)}
           className={cn(
             'w-full h-11 rounded-2xl text-[13px] font-semibold transition-all duration-300 group/btn relative overflow-hidden',
             pkg.popular
@@ -337,6 +347,19 @@ function PricingCard({ pkg, index }: { pkg: CreditPackage; index: number }) {
 
 export default function Pricing() {
   const { navigate } = useSafeNavigation();
+  const { user } = useAuth();
+  const [showBuyModal, setShowBuyModal] = useState(false);
+
+  const handlePurchase = (pkg: CreditPackage) => {
+    const slug = (pkg.name || '').toLowerCase();
+    if (user) {
+      // Authed: open the in-page checkout modal directly.
+      setShowBuyModal(true);
+    } else {
+      // Guest: send to signup, then auto-open the buy modal on /profile.
+      navigate(`/auth?mode=signup&next=${encodeURIComponent('/profile?buy=' + slug)}`);
+    }
+  };
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
@@ -453,7 +476,7 @@ export default function Pricing() {
       <section className="relative z-10 pt-14 pb-10 px-6">
         <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
           {PACKAGES.map((pkg, i) => (
-            <PricingCard key={pkg.name} pkg={pkg} index={i} />
+            <PricingCard key={pkg.name} pkg={pkg} index={i} onPurchase={handlePurchase} />
           ))}
         </div>
       </section>
@@ -501,6 +524,9 @@ export default function Pricing() {
           ← Back to home
         </Link>
       </div>
+
+      {/* In-page checkout for authed users */}
+      <BuyCreditsModal open={showBuyModal} onOpenChange={setShowBuyModal} />
     </div>
   );
 }

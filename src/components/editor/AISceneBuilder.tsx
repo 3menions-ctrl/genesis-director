@@ -406,15 +406,15 @@ export const AISceneBuilder = memo(function AISceneBuilder() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                className="rounded-xl border p-3 space-y-2"
+                className="rounded-2xl p-3 space-y-2"
                 style={{
-                  borderColor: "hsla(142, 60%, 50%, 0.15)",
-                  background: "hsla(142, 60%, 50%, 0.04)",
+                  background: "linear-gradient(135deg, hsla(215,100%,55%,0.06) 0%, hsla(215,100%,55%,0.015) 100%)",
+                  boxShadow: "inset 0 1px 0 hsla(215,100%,80%,0.08), inset 0 0 0 1px hsla(215,100%,55%,0.14)",
                 }}
               >
                 <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400/70" />
-                  <span className="text-[10px] font-bold text-emerald-400/80">
+                  <CheckCircle2 className="w-3 h-3 text-[hsl(215,100%,72%)]" strokeWidth={1.5} />
+                  <span className="text-[9px] font-light tracking-[0.18em] uppercase text-[hsl(215,100%,75%)]">
                     {genState === "completed" ? "Clip Added to Timeline" : "Prompt Enhanced"}
                   </span>
                 </div>

@@ -739,8 +739,8 @@ describe('Component Contracts', () => {
   it('AccountSettings has email change and deactivation', () => {
     const content = readFile('src/components/settings/AccountSettings.tsx');
     expect(content).toContain('handleEmailChange');
-    expect(content).toContain('handleDeactivateAccount');
-    expect(content).toContain('deactivate_account');
+    // Deactivation flow now lives at /settings/deactivate (see project memory).
+    expect(content).toContain('/settings/deactivate');
   });
 
   it('SignOutDialog uses controlled state pattern', () => {

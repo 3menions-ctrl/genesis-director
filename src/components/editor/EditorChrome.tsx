@@ -944,7 +944,18 @@ export function EditorChrome({
             </div>
 
             {/* Export — hero CTA, visually separated */}
-            <div className="ml-1.5">
+            <div className="ml-2 relative">
+              {/* Luminous halo */}
+              {!isRendering && (
+                <div
+                  aria-hidden
+                  className="absolute inset-0 rounded-lg blur-md opacity-60 pointer-events-none"
+                  style={{
+                    background:
+                      'radial-gradient(60% 100% at 50% 50%, hsla(215,100%,55%,0.55), transparent 70%)',
+                  }}
+                />
+              )}
               {isRendering ? (
                 <button
                   onClick={() => renderer?.reset()}
@@ -959,14 +970,16 @@ export function EditorChrome({
                     <button
                       onClick={exportVideo}
                       disabled={isStitching || isDownloading}
-                      className="h-8 px-5 flex items-center gap-2 rounded-lg text-[11px] font-bold relative overflow-hidden group disabled:opacity-40"
+                      className="relative h-8 px-5 flex items-center gap-2 rounded-lg text-[11px] font-bold tracking-[0.08em] uppercase overflow-hidden group disabled:opacity-40"
                        style={{
-                        background: 'hsl(215, 100%, 50%)',
+                        background:
+                          'linear-gradient(180deg, hsl(210, 100%, 60%) 0%, hsl(215, 100%, 48%) 50%, hsl(218, 100%, 42%) 100%)',
                         color: 'hsl(0, 0%, 100%)',
-                        boxShadow: '0 2px 16px hsla(215, 100%, 50%, 0.3), inset 0 1px 0 hsla(0,0%,100%,0.15)',
+                        boxShadow:
+                          '0 1px 0 hsla(0,0%,100%,0.18) inset, 0 -1px 0 hsla(0,0%,0%,0.25) inset, 0 6px 22px -6px hsla(215, 100%, 50%, 0.65), 0 0 0 1px hsla(215,100%,75%,0.18)',
                       }}
                     >
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-[900ms] ease-out" />
                       {isDownloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                       <span>{isDownloading ? "Exporting…" : "Export"}</span>
                     </button>

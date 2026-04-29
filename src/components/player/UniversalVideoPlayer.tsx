@@ -356,6 +356,20 @@ export const UniversalVideoPlayer = memo(forwardRef<HTMLDivElement, UniversalVid
               return;
             }
             
+            if (clipUrls.length > 0) {
+              if (!mountedRef.current) return;
+              const primaryClip = clipUrls[0];
+              if (isHlsPlaylistUrl(primaryClip)) {
+                setHlsPlaylistUrl(primaryClip);
+              } else {
+                setDirectVideoUrl(primaryClip);
+              }
+              setThumbnailUrl(primaryClip);
+              setExportUrl(primaryClip);
+              setIsLoading(false);
+              return;
+            }
+            
             // If we still have no HLS, try mseClipUrls to build a client-side HLS reference
             // or try the video_url directly
             if (mseClipUrls && mseClipUrls.length > 0) {

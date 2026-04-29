@@ -51,7 +51,7 @@ export const AvatarPreviewModal = forwardRef<HTMLDivElement, AvatarPreviewModalP
           )}
         >
           {/* Hero image with gradient overlay */}
-          <div className="relative w-full aspect-[4/3] sm:aspect-[16/9] flex-shrink-0 bg-zinc-900">
+          <div className="relative w-full aspect-[4/3] sm:aspect-[16/9] flex-shrink-0 bg-[hsl(220,14%,5%)]">
             {imageUrl && (
               <img
                 src={imageUrl}

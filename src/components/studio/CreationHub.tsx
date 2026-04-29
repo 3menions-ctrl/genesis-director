@@ -316,33 +316,55 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           </motion.div>
         )}
 
-        {/* ─── Mode chips ───────────────────────────────────────────────── */}
-        <div className="mb-6 flex items-center gap-2">
-          {CREATION_MODES.map((m) => {
-            const Icon = m.icon;
-            const active = selectedMode === m.id;
-            return (
-              <button
-                key={m.id}
-                onClick={() => {
-                  if (m.id === 'avatar') navigate('/avatars');
-                  else setSelectedMode(m.id);
-                }}
-                className={cn(
-                  'group relative flex items-center gap-2 px-4 h-10 rounded-full text-sm font-medium transition-all duration-300',
-                  active
-                    ? 'bg-white/[0.06] text-white border border-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
-                    : 'text-white/45 hover:text-white/80 border border-transparent'
-                )}
-              >
-                <Icon className={cn('w-4 h-4', active ? 'text-primary' : 'opacity-70')} />
-                {m.name}
-              </button>
-            );
-          })}
-          <div className="ml-auto hidden sm:flex items-center gap-1.5 text-[11px] text-white/35 tracking-wider uppercase">
-            <Coins className="w-3.5 h-3.5 text-amber-400/80" />
-            <span className="tabular-nums">{userCredits.toLocaleString()}</span>
+        {/* ─── Mode rail with sliding spotlight ─────────────────────────── */}
+        <div className="mb-7 flex items-center justify-between gap-4 flex-wrap">
+          <div className="relative inline-flex items-center gap-1 p-1 rounded-2xl bg-white/[0.025] border border-white/[0.06] backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_8px_30px_-12px_rgba(0,0,0,0.6)]">
+            {CREATION_MODES.map((m) => {
+              const Icon = m.icon;
+              const active = selectedMode === m.id;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => {
+                    if (m.id === 'avatar') navigate('/avatars');
+                    else setSelectedMode(m.id);
+                  }}
+                  className={cn(
+                    'relative z-10 flex items-center gap-2 px-4 sm:px-5 h-10 rounded-xl text-sm font-medium transition-colors duration-300',
+                    active ? 'text-white' : 'text-white/45 hover:text-white/80'
+                  )}
+                >
+                  {active && (
+                    <motion.span
+                      layoutId="creation-mode-pill"
+                      transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                      className="absolute inset-0 -z-10 rounded-xl"
+                      style={{
+                        background:
+                          'linear-gradient(180deg, hsl(212 100% 56% / 0.22) 0%, hsl(212 100% 50% / 0.10) 100%)',
+                        border: '1px solid hsl(212 100% 60% / 0.35)',
+                        boxShadow:
+                          '0 8px 30px -8px hsl(212 100% 50% / 0.45), inset 0 1px 0 hsl(212 100% 75% / 0.25)',
+                      }}
+                    />
+                  )}
+                  <Icon className={cn('w-4 h-4 transition-colors', active ? 'text-primary' : 'opacity-70')} />
+                  <span className="tracking-tight">{m.name}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Credit orb */}
+          <div className="relative inline-flex items-center gap-2.5 pl-2 pr-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl">
+            <span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-amber-300/30 to-amber-600/20 border border-amber-300/30">
+              <Coins className="w-3.5 h-3.5 text-amber-200" />
+              <span className="absolute inset-0 rounded-full ring-1 ring-amber-200/20 animate-pulse" />
+            </span>
+            <div className="leading-tight">
+              <div className="text-[9px] uppercase tracking-[0.22em] text-white/35">Credits</div>
+              <div className="text-sm font-semibold text-white tabular-nums">{userCredits.toLocaleString()}</div>
+            </div>
           </div>
         </div>
 
@@ -352,12 +374,27 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="relative rounded-[28px] overflow-hidden border border-white/[0.07] bg-gradient-to-b from-white/[0.035] to-white/[0.015] backdrop-blur-2xl shadow-[0_30px_80px_-30px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.04)]"
+          className="group/stage relative rounded-[32px] overflow-hidden border border-white/[0.08] bg-[linear-gradient(180deg,hsla(0,0%,100%,0.045)_0%,hsla(0,0%,100%,0.012)_50%,hsla(0,0%,100%,0.02)_100%)] backdrop-blur-2xl shadow-[0_50px_120px_-30px_rgba(0,0,0,0.75),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(255,255,255,0.02)]"
         >
-          {/* Aurora rim */}
-          <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-          <div className="pointer-events-none absolute -top-32 -left-20 h-64 w-64 rounded-full opacity-30 blur-3xl"
-               style={{ background: 'radial-gradient(circle, hsl(212 100% 55% / 0.4), transparent 60%)' }} />
+          {/* Top-edge aurora rim */}
+          <div className="pointer-events-none absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-24 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent blur-[1px]" />
+
+          {/* Corner ambient lights */}
+          <div className="pointer-events-none absolute -top-40 -left-32 h-80 w-80 rounded-full opacity-40 blur-3xl"
+               style={{ background: 'radial-gradient(circle, hsl(212 100% 55% / 0.45), transparent 65%)' }} />
+          <div className="pointer-events-none absolute -bottom-40 -right-32 h-80 w-80 rounded-full opacity-25 blur-3xl"
+               style={{ background: 'radial-gradient(circle, hsl(190 100% 60% / 0.35), transparent 65%)' }} />
+
+          {/* Film grain */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-[0.035] mix-blend-overlay"
+            style={{
+              backgroundImage:
+                "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+            }}
+          />
 
           <AnimatePresence mode="wait">
             <motion.div
@@ -437,7 +474,9 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
 
               {/* Prompt */}
               <div className="relative">
-                <Textarea
+                {/* Soft prompt frame */}
+                <div className="relative rounded-2xl bg-gradient-to-b from-white/[0.025] to-transparent border border-white/[0.05] p-5 sm:p-6 transition-colors duration-500 focus-within:border-primary/30 focus-within:bg-primary/[0.025]">
+                  <Textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder={
@@ -445,14 +484,24 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                       ? 'Describe how the image should move…'
                       : selectedMode === 'avatar'
                       ? 'What should the presenter say?'
-                      : 'Describe a scene, a moment, an entire world…'
+                      : 'A lone astronaut watching twin suns set over a glass desert…'
                   }
-                  rows={4}
-                  className="w-full resize-none border-0 bg-transparent text-white placeholder:text-white/30 text-base sm:text-lg leading-relaxed focus-visible:ring-0 focus-visible:ring-offset-0 px-0 py-1 font-light tracking-tight"
+                  rows={5}
+                  className="w-full resize-none border-0 bg-transparent text-white placeholder:text-white/25 text-lg sm:text-xl leading-[1.45] focus-visible:ring-0 focus-visible:ring-offset-0 px-0 py-0 font-light tracking-[-0.01em]"
                 />
+                  {/* Character counter */}
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-[10px] uppercase tracking-[0.22em] text-white/25">
+                      Prompt
+                    </span>
+                    <span className="text-[10px] tabular-nums text-white/30">
+                      {prompt.length} / 1000
+                    </span>
+                  </div>
+                </div>
 
                 {/* Inline footer rail (controls + advanced trigger + CTA) */}
-                <div className="mt-4 pt-4 border-t border-white/[0.06] flex items-center justify-between gap-3 flex-wrap">
+                <div className="mt-5 flex items-center justify-between gap-3 flex-wrap">
                   {/* Compact icon controls */}
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {/* Aspect popover-less inline cycle */}
@@ -512,33 +561,43 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                     )}
                   </div>
 
-                  {/* CTA */}
-                  <Button
-                    onClick={handleCreate}
-                    disabled={!isReadyToCreate()}
-                    className={cn(
-                      'group relative h-11 px-5 rounded-full text-sm font-semibold transition-all overflow-hidden',
-                      hasInsufficientCredits
-                        ? 'bg-amber-500 text-black hover:bg-amber-400'
-                        : 'bg-primary text-primary-foreground hover:brightness-110',
-                      'shadow-[0_8px_30px_-8px_hsl(212_100%_50%/0.6)] disabled:opacity-30 disabled:shadow-none'
+                  {/* Premium CTA with halo */}
+                  <div className="relative">
+                    {/* Halo glow */}
+                    {!hasInsufficientCredits && isReadyToCreate() && (
+                      <span className="pointer-events-none absolute -inset-1 rounded-full bg-primary/40 blur-xl opacity-60 animate-pulse" />
                     )}
-                  >
-                    <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                    <span className="relative flex items-center gap-2">
-                      {hasInsufficientCredits ? (
-                        <>
-                          <Coins className="w-4 h-4" /> Get credits <ArrowRight className="w-4 h-4" />
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-4 h-4" />
-                          Create
-                          <span className="opacity-70 tabular-nums">· {estimatedCredits}</span>
-                        </>
+                    <Button
+                      onClick={handleCreate}
+                      disabled={!isReadyToCreate()}
+                      className={cn(
+                        'group/cta relative h-12 px-6 rounded-full text-sm font-semibold transition-all overflow-hidden',
+                        hasInsufficientCredits
+                          ? 'bg-gradient-to-b from-amber-300 to-amber-500 text-black'
+                          : 'bg-gradient-to-b from-primary/95 to-primary text-primary-foreground',
+                        'shadow-[0_10px_40px_-10px_hsl(212_100%_50%/0.7),inset_0_1px_0_hsl(212_100%_85%/0.45),inset_0_-1px_0_hsl(212_100%_25%/0.4)]',
+                        'hover:brightness-110 hover:scale-[1.02] active:scale-[0.98]',
+                        'disabled:opacity-30 disabled:shadow-none disabled:scale-100'
                       )}
-                    </span>
-                  </Button>
+                    >
+                      <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover/cta:translate-x-full transition-transform duration-[1100ms] ease-in-out" />
+                      <span className="relative flex items-center gap-2.5">
+                        {hasInsufficientCredits ? (
+                          <>
+                            <Coins className="w-4 h-4" /> Get credits <ArrowRight className="w-4 h-4" />
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4" />
+                            <span className="tracking-tight">Create</span>
+                            <span className="h-3.5 w-px bg-white/30" />
+                            <span className="opacity-90 tabular-nums text-[13px]">{estimatedCredits}</span>
+                            <ArrowRight className="w-4 h-4 transition-transform group-hover/cta:translate-x-0.5" />
+                          </>
+                        )}
+                      </span>
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Advanced options drawer */}
@@ -628,10 +687,10 @@ function ControlPill({
     <button
       onClick={onClick}
       title={title}
-      className="h-9 inline-flex items-center gap-1.5 px-3 rounded-full bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 text-white/70 hover:text-white text-xs font-medium tabular-nums transition-all"
+      className="group/pill h-10 inline-flex items-center gap-2 px-3.5 rounded-full bg-gradient-to-b from-white/[0.05] to-white/[0.015] hover:from-white/[0.08] hover:to-white/[0.03] border border-white/10 hover:border-white/20 text-white/75 hover:text-white text-xs font-medium tabular-nums transition-all duration-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_2px_8px_-2px_rgba(0,0,0,0.4)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_14px_-2px_rgba(0,0,0,0.5)] hover:-translate-y-px"
     >
-      <Icon className="w-3.5 h-3.5 opacity-80" />
-      {label}
+      <Icon className="w-3.5 h-3.5 opacity-70 group-hover/pill:opacity-100 group-hover/pill:text-primary transition-colors" />
+      <span>{label}</span>
     </button>
   );
 }

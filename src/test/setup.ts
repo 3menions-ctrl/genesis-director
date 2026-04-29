@@ -36,3 +36,10 @@ class IntersectionObserverMock {
   disconnect() {}
 }
 window.IntersectionObserver = IntersectionObserverMock as any;
+
+// Polyfill CSS.supports for jsdom (used by browserCompat module)
+if (typeof (globalThis as any).CSS === 'undefined') {
+  (globalThis as any).CSS = { supports: () => false };
+} else if (typeof (globalThis as any).CSS.supports !== 'function') {
+  (globalThis as any).CSS.supports = () => false;
+}

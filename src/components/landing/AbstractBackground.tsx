@@ -35,14 +35,28 @@ const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundPro
 
     return (
       <div ref={ref} className={cn("absolute inset-0 bg-background", className)}>
-        {/* Base image layer — covers the viewport, anchored to keep skyline visible.
-            Uses 'cover' so the image always fills the screen on every aspect ratio. */}
+        {/* Blurred fill behind: prevents black bars when 'contain' letterboxes
+            on narrow/tall viewports while keeping the full skyline visible. */}
+        <div
+          className="absolute inset-0 bg-no-repeat bg-center"
+          style={{
+            backgroundImage: `url(${landingAbstractBg})`,
+            backgroundSize: 'cover',
+            filter: 'blur(40px) saturate(1.1)',
+            transform: 'scale(1.1)',
+            opacity: 0.6,
+          }}
+          aria-hidden
+        />
+
+        {/* Base image layer — full image visible, never cropped.
+            Uses 'contain' so the entire skyline is shown on every aspect ratio. */}
         <div 
           className="absolute inset-0 bg-no-repeat"
           style={{ 
             backgroundImage: `url(${landingAbstractBg})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center 35%',
+            backgroundSize: 'contain',
+            backgroundPosition: 'center center',
             ...(isTouchDevice ? {} : {
               transition: 'transform 2000ms ease-out',
               transform: `translate(${(mousePos.x - 50) * -0.015}%, ${(mousePos.y - 50) * -0.015}%)`,

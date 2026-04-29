@@ -582,6 +582,33 @@ ProjectCard.displayName = 'ProjectCard';
 
 // ============= SUB-COMPONENTS =============
 
+function CinematicTitlePlate({ title, index, isRendering }: { title: string; index: number; isRendering?: boolean }) {
+  const palettes = [
+    ['hsl(217 91% 10%)', 'hsl(220 14% 3%)', 'hsl(190 70% 18%)'],
+    ['hsl(220 14% 5%)', 'hsl(211 100% 13%)', 'hsl(160 55% 12%)'],
+    ['hsl(220 14% 4%)', 'hsl(38 85% 10%)', 'hsl(217 91% 12%)'],
+  ];
+  const palette = palettes[index % palettes.length];
+
+  return (
+    <div
+      className="absolute inset-0 flex items-center justify-center p-8"
+      style={{
+        background: `linear-gradient(135deg, ${palette[0]} 0%, ${palette[1]} 54%, ${palette[2]} 100%)`,
+      }}
+    >
+      <div className="absolute inset-0 opacity-40" style={{ backgroundImage: 'radial-gradient(circle at 20% 15%, hsl(var(--primary) / 0.22), transparent 34%)' }} />
+      <div className="relative text-center max-w-[78%]">
+        {isRendering && <div className="mx-auto mb-5 h-9 w-9 rounded-full border border-foreground/10 border-t-primary/50 animate-spin" />}
+        <div className="mx-auto mb-4 h-px w-16 bg-primary/50" />
+        <p className="font-display text-lg sm:text-xl font-semibold leading-tight text-foreground line-clamp-2">
+          {title}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /** Renders project.thumbnail_url as <img>, but on load error/404 falls back
  *  to the cached LazyVideoThumbnail (frame extraction + persistent cache).
  *  This prevents broken/expired thumbnails from showing as a "Failed" tile. */

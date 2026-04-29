@@ -270,7 +270,7 @@ export default function Landing() {
                 New Engine
               </span>
 
-              <h2 className="font-sora text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight leading-[1.05]">
+              <h2 className="font-display text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight leading-[1.05]">
                 Now powered by{' '}
                 <span className="bg-gradient-to-r from-white via-[#0A84FF] to-white bg-clip-text text-transparent">
                   Seedance 2.0

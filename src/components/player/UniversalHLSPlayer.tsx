@@ -799,7 +799,10 @@ export const UniversalHLSPlayer = memo(forwardRef<UniversalHLSPlayerHandle, Univ
         {/* Video element — fills entire container edge-to-edge */}
         <video
           ref={videoRef}
-          className="absolute inset-0 w-full h-full object-cover"
+          className={cn(
+            "absolute inset-0 w-full h-full",
+            objectFit === 'contain' ? 'object-contain' : 'object-cover'
+          )}
           playsInline
           muted={muteClipAudio || isMuted}
           loop={loop}

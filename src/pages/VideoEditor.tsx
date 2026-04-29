@@ -4,6 +4,7 @@ import { EditorLoadingScreen } from "@/components/editor/EditorLoadingScreen";
 import { EditorErrorScreen } from "@/components/editor/EditorErrorScreen";
 import { CustomTimelineProvider } from "@/hooks/useCustomTimeline";
 import { EditorChrome } from "@/components/editor/EditorChrome";
+import { CinemaBackdrop } from "@/components/ui/CinemaBackdrop";
 
 // Dynamic import — keep browser-render for WebCodecs export
 function useBrowserRenderModule() {
@@ -51,6 +52,7 @@ export default function VideoEditor() {
 
   return (
     <CustomTimelineProvider>
+      <CinemaBackdrop />
       <EditorChrome
         useBrowserRenderer={browserRender?.useBrowserRenderer}
         navigate={navigate}

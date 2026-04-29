@@ -12,27 +12,16 @@ const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundPro
       <div
         ref={ref}
         className={cn("absolute inset-0 overflow-hidden bg-background pointer-events-none", className)}
-        style={{
-          backgroundImage: `url(${landingAbstractBg})`,
-          backgroundSize: 'contain',
-          backgroundPosition: 'center top',
-          backgroundRepeat: 'no-repeat',
-        }}
       >
-        {/* Exact background image — full frame visible, never cropped or zoomed. */}
+        {/* Full Dubai skyline image — fits the viewport (no zoom, no crop) and anchored to bottom so
+            the bright skyline + clouds remain prominent. The dark night sky in the upper half of the
+            image blends seamlessly with the page's dark background, eliminating visible letterboxing. */}
         <img
           src={landingAbstractBg}
           alt="Dubai skyline above clouds"
-          className="absolute inset-0 h-full w-full object-contain object-top select-none opacity-100"
+          className="absolute inset-0 h-full w-full object-contain object-bottom select-none"
+          style={{ outline: '4px solid red', outlineOffset: '-4px' }}
           draggable={false}
-        />
-
-        {/* Soft vignette — gentle edge falloff only */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'radial-gradient(ellipse at center, transparent 72%, rgba(0,0,0,0.12) 100%)',
-          }}
         />
       </div>
     );

@@ -1021,8 +1021,8 @@ function ProjectsContentInner() {
       <AppHeader onCreateClick={handleCreateProject} />
 
 
-      {/* Main Content — editorial PageShell */}
-      <PageShell width="wide">
+      {/* Main Content — full-bleed cinematic wall */}
+      <PageShell width="full" className="max-w-[1800px]">
         
         {/* Loading skeleton */}
         {(isLoadingProjects && !hasLoadedOnce) ? (
@@ -1070,8 +1070,8 @@ function ProjectsContentInner() {
             {/* ===== Editorial header + gallery mode tabs ===== */}
             <PageHeader
               eyebrow="Library"
-              title="Your projects"
-              subtitle="A quiet, curated home for every film, scene and edit you've made."
+              title="Cinematic Wall"
+              subtitle="Every video in your library stays visible in one resilient editorial grid."
               actions={
                 <button
                   onClick={handleCreateProject}

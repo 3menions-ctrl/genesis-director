@@ -1,9 +1,21 @@
-import { useEffect, useState, useCallback, useRef, memo } from 'react';
+/**
+ * SpecializedModeProgress
+ *
+ * Aesthetic: APEX Studios brand system — mirrors CinemaLoader and
+ * CinematicPipelineProgress. Deep blue-undertone base with conic aurora,
+ * concentric halo around percentage, luminous hairlines and cinematic blue
+ * progress bar. Used for Avatar, Motion Transfer, and Style Transfer modes.
+ *
+ * Behaviour preserved: polling, completion, multi-clip gallery, retry/cancel.
+ * All expected clips are visible during creation (placeholders included).
+ */
+
+import { useEffect, useState, useCallback, useRef, memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Palette, Dices, CheckCircle2, XCircle,
-  Play, RefreshCw, Download, Sparkles,
-  Film, Clock, Zap, Eye, PlayCircle
+  Play, RefreshCw, Download, Sparkles, AlertCircle,
+  Film, Clock, Loader2, Eye, PlayCircle,
 } from 'lucide-react';
 import { PausedFrameVideo } from '@/components/ui/PausedFrameVideo';
 import { Button } from '@/components/ui/button';
@@ -48,7 +60,7 @@ interface SpecializedModeProgressProps {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODE CONFIG  — unified palette per mode
+// MODE CONFIG  — unified cinematic blue palette across all modes
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MODE_CONFIG = {
@@ -56,32 +68,42 @@ const MODE_CONFIG = {
     name: 'AI Avatar',
     icon: User,
     description: 'Speaking avatar with native audio',
-    hue: 270,        // violet
     stages: ['Initializing', 'Building Scene', 'Generating Video', 'Rendering Audio', 'Finalizing'],
-    activityTexts: ['Initializing avatar engine...', 'Composing scene...', 'Generating avatar video...', 'Rendering native audio...', 'Applying final touches...'],
+    activityTexts: [
+      'Initializing avatar engine…',
+      'Composing scene…',
+      'Generating avatar video…',
+      'Rendering native audio…',
+      'Applying final touches…',
+    ],
   },
   'motion-transfer': {
     name: 'Motion Transfer',
     icon: Dices,
     description: 'Transferring motion to target',
-    hue: 160,        // emerald
     stages: ['Analyzing Motion', 'Extracting Pose', 'Applying Transfer', 'Rendering Output', 'Finalizing'],
-    activityTexts: ['Initializing motion engine...', 'Analyzing source motion...', 'Extracting body landmarks...', 'Applying motion to target...', 'Rendering transformed video...'],
+    activityTexts: [
+      'Initializing motion engine…',
+      'Analyzing source motion…',
+      'Extracting body landmarks…',
+      'Applying motion to target…',
+      'Rendering transformed video…',
+    ],
   },
   'video-to-video': {
     name: 'Style Transfer',
     icon: Palette,
     description: 'Applying artistic transformation',
-    hue: 35,         // amber
     stages: ['Analyzing Style', 'Processing Frames', 'Applying Transformation', 'Rendering Video', 'Finalizing'],
-    activityTexts: ['Initializing style engine...', 'Analyzing visual aesthetics...', 'Processing frame sequences...', 'Applying artistic transformation...', 'Encoding final video...'],
+    activityTexts: [
+      'Initializing style engine…',
+      'Analyzing visual aesthetics…',
+      'Processing frame sequences…',
+      'Applying artistic transformation…',
+      'Encoding final video…',
+    ],
   },
 } as const;
-
-// helper: hsl string
-function hsl(h: number, s: number, l: number, a = 1) {
-  return `hsla(${h}, ${s}%, ${l}%, ${a})`;
-}
 
 function formatTime(seconds: number) {
   const m = Math.floor(seconds / 60);
@@ -90,213 +112,257 @@ function formatTime(seconds: number) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// STAGE NODE (matches CinematicPipelineProgress aesthetic)
+// WAVEFORM — luminous cinematic blue (matches CinematicPipelineProgress)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const StageNode = memo(function StageNode({
-  label, index, currentIndex, isComplete: done, hue,
-}: { label: string; index: number; currentIndex: number; isComplete: boolean; hue: number }) {
-  const isActive = index === currentIndex && !done;
-  const isComp = index < currentIndex || done;
-  const isPend = index > currentIndex && !done;
+const WaveformCanvas = memo(function WaveformCanvas({
+  isActive,
+  progress,
+}: {
+  isActive: boolean;
+  progress: number;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rafRef = useRef<number>(0);
+  const tRef = useRef(0);
 
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const setup = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+      return { W: rect.width, H: rect.height };
+    };
+
+    let { W, H } = setup();
+    const BARS = 48;
+    const BAR_W = 3;
+    const GAP = 2.2;
+    const totalW = BARS * (BAR_W + GAP);
+
+    const draw = () => {
+      tRef.current += 0.014;
+      const t = tRef.current;
+      ctx.clearRect(0, 0, W, H);
+      const startX = (W - totalW) / 2;
+      const cy = H * 0.55;
+      const filled = progress / 100;
+
+      for (let i = 0; i < BARS; i++) {
+        const norm = i / BARS;
+        const lit = norm <= filled;
+        const base = 4 + Math.sin(i * 0.31) * 3;
+        const w1 = Math.sin(t * 1.9 + i * 0.18) * (10 + Math.sin(t * 0.3) * 5);
+        const w2 = Math.sin(t * 1.1 + i * 0.29 + 1.2) * 6;
+        const bh = Math.max(2, Math.abs(base + w1 + w2));
+        const x = startX + i * (BAR_W + GAP);
+
+        if (lit) {
+          ctx.save();
+          ctx.filter = 'blur(5px)';
+          ctx.globalAlpha = 0.32;
+          ctx.fillStyle = 'hsla(215,100%,60%,0.85)';
+          ctx.beginPath();
+          (ctx as any).roundRect(x - 1.5, cy - bh - 3, BAR_W + 3, bh * 2 + 6, 2);
+          ctx.fill();
+          ctx.restore();
+
+          const grad = ctx.createLinearGradient(x, cy - bh, x, cy + bh);
+          grad.addColorStop(0, 'hsla(215,100%,75%,0.65)');
+          grad.addColorStop(0.5, 'hsla(215,100%,85%,0.98)');
+          grad.addColorStop(1, 'hsla(215,100%,65%,0.65)');
+          ctx.fillStyle = grad;
+        } else {
+          ctx.fillStyle = 'hsla(215,30%,60%,0.07)';
+        }
+
+        ctx.beginPath();
+        (ctx as any).roundRect(x, cy - bh, BAR_W, bh, 1.5);
+        ctx.fill();
+      }
+
+      if (isActive) rafRef.current = requestAnimationFrame(draw);
+    };
+
+    rafRef.current = requestAnimationFrame(draw);
+    const ro = new ResizeObserver(() => { const r = setup(); W = r.W; H = r.H; });
+    ro.observe(canvas);
+    return () => { cancelAnimationFrame(rafRef.current); ro.disconnect(); };
+  }, [isActive, progress]);
+
+  return <canvas ref={canvasRef} className="w-full h-full block" style={{ width: '100%', height: '100%' }} />;
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STAGE PILLS — premium uppercase pill row
+// ─────────────────────────────────────────────────────────────────────────────
+
+const StagePills = memo(function StagePills({
+  stages, currentIndex, isComplete, isFailed,
+}: { stages: readonly string[]; currentIndex: number; isComplete: boolean; isFailed: boolean }) {
   return (
-    <div className="flex flex-col items-center gap-2 min-w-0 flex-1">
-      <div className="relative">
-        {isActive && (
-          <>
-            <motion.div
-              className="absolute -inset-4 rounded-xl blur-xl"
-              style={{ background: hsl(hue, 80, 60, 0.2) }}
-              animate={{ opacity: [0.5, 1, 0.5], scale: [0.9, 1.08, 0.9] }}
-              transition={{ duration: 3, repeat: Infinity }}
-            />
-            <motion.div
-              className="absolute -inset-2 rounded-xl border"
-              style={{ borderColor: hsl(hue, 80, 65, 0.4) }}
-              animate={{ opacity: [0.3, 0.8, 0.3] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-          </>
-        )}
-        {isComp && (
+    <div className="flex flex-wrap items-center justify-center gap-2">
+      {stages.map((label, i) => {
+        const done = isComplete || i < currentIndex;
+        const active = !isComplete && !isFailed && i === currentIndex;
+        const error = isFailed && i === currentIndex;
+        return (
           <motion.div
-            className="absolute -inset-1.5 rounded-xl"
-            style={{ background: 'hsl(160 80% 50% / 0.1)' }}
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-          />
-        )}
-
-        <motion.div
-          className="relative w-12 h-12 rounded-xl flex items-center justify-center border overflow-hidden"
-          style={{
-            background: isPend
-              ? 'hsl(0 0% 100% / 0.02)'
-              : isComp
-                ? 'hsl(160 80% 50% / 0.1)'
-                : `linear-gradient(135deg, ${hsl(hue, 80, 55, 0.22)}, ${hsl(hue + 30, 70, 45, 0.12)})`,
-            borderColor: isPend ? 'hsl(0 0% 100% / 0.06)' : isComp ? 'hsl(160 80% 50% / 0.3)' : hsl(hue, 80, 65, 0.3),
-            boxShadow: isActive ? `0 0 20px ${hsl(hue, 80, 60, 0.25)}` : undefined,
-          }}
-          animate={isActive ? { scale: [1, 1.04, 1] } : {}}
-          transition={{ duration: 2.5, repeat: Infinity }}
-        >
-          {/* Glass top */}
-          <div className="absolute top-0 inset-x-0 h-1/3 bg-gradient-to-b from-white/[0.06] to-transparent rounded-t-xl pointer-events-none" />
-
-          {isActive ? (
-            <motion.span
-              className="text-sm font-black relative z-10"
-              style={{ color: hsl(hue, 80, 75, 1) }}
-              animate={{ opacity: [0.6, 1, 0.6] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            >
-              {index + 1}
-            </motion.span>
-          ) : isComp ? (
-            <motion.div
-              initial={{ scale: 0, rotate: -20 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: 'spring', stiffness: 350, damping: 18 }}
-              className="relative z-10 text-emerald-400"
-            >
-              <CheckCircle2 className="w-5 h-5" />
-            </motion.div>
-          ) : (
-            <span className="text-xs font-bold relative z-10" style={{ color: 'hsl(0 0% 100% / 0.15)' }}>
-              {index + 1}
-            </span>
-          )}
-
-          {/* Active sweep bar */}
-          {isActive && (
-            <div className="absolute bottom-0 left-1.5 right-1.5 h-0.5 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full"
-                style={{ background: `linear-gradient(90deg, transparent, ${hsl(hue, 80, 70, 1)}, transparent)` }}
-                animate={{ x: ['-100%', '200%'] }}
-                transition={{ duration: 2, repeat: Infinity }}
+            key={label}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: i * 0.04, duration: 0.25, ease: 'easeOut' }}
+            className="flex items-center gap-1.5 px-3 py-1.5"
+            style={{
+              fontSize: 9,
+              fontWeight: 400,
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              borderRadius: 999,
+              fontFamily: 'Sora, system-ui, sans-serif',
+              background: active
+                ? 'hsla(215,100%,55%,0.10)'
+                : done
+                ? 'hsla(0,0%,100%,0.025)'
+                : error
+                ? 'hsla(0,75%,55%,0.08)'
+                : 'hsla(0,0%,100%,0.02)',
+              boxShadow: active
+                ? 'inset 0 0 0 1px hsla(215,100%,55%,0.4), inset 0 1px 0 hsla(215,100%,80%,0.12), 0 0 18px hsla(215,100%,55%,0.18)'
+                : done
+                ? 'inset 0 0 0 1px hsla(0,0%,100%,0.06)'
+                : error
+                ? 'inset 0 0 0 1px hsla(0,75%,55%,0.3)'
+                : 'inset 0 0 0 1px hsla(0,0%,100%,0.04)',
+              color: active
+                ? 'hsla(215,100%,85%,0.95)'
+                : done
+                ? 'rgba(255,255,255,0.4)'
+                : error
+                ? 'hsl(0 75% 70%)'
+                : 'rgba(255,255,255,0.18)',
+            }}
+          >
+            {done && <CheckCircle2 className="w-2.5 h-2.5 shrink-0" />}
+            {error && <XCircle className="w-2.5 h-2.5 shrink-0" />}
+            {active && (
+              <motion.span
+                className="w-1.5 h-1.5 rounded-full shrink-0"
+                style={{ background: 'hsl(215,100%,75%)', boxShadow: '0 0 8px hsla(215,100%,60%,0.85)' }}
+                animate={{ opacity: [1, 0.2, 1] }}
+                transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
               />
-            </div>
-          )}
-        </motion.div>
-      </div>
-
-      <span className={cn(
-        "text-[9px] font-bold uppercase tracking-widest text-center truncate w-full transition-colors",
-        isPend ? "text-white/15" : isComp ? "text-emerald-400/70" : "text-white",
-      )}>
-        {label}
-      </span>
+            )}
+            <span>{label}</span>
+          </motion.div>
+        );
+      })}
     </div>
   );
 });
 
-// Connector between stage nodes
-function StageConnector({ lit, hue, flowing }: { lit: boolean; hue: number; flowing: boolean }) {
-  return (
-    <div className="flex items-center flex-1 relative" style={{ marginTop: '-20px' }}>
-      <div className="w-full h-px" style={{ background: 'hsl(0 0% 100% / 0.05)' }} />
-      {lit && (
-        <motion.div
-          className="absolute inset-0 h-px"
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          style={{ transformOrigin: 'left', background: `linear-gradient(90deg, ${hsl(hue, 80, 65, 0.5)}, ${hsl(hue, 80, 65, 0.15)})` }}
-        />
-      )}
-      {flowing && (
-        <motion.div
-          className="absolute top-0 -translate-y-1/2 w-1.5 h-1.5 rounded-full"
-          style={{
-            background: hsl(hue, 90, 75, 1),
-            boxShadow: `0 0 6px ${hsl(hue, 90, 70, 0.8)}`,
-          }}
-          animate={{ x: ['0%', '100%'] }}
-          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-        />
-      )}
-    </div>
-  );
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
-// CLIP CARD (matches ProductionDashboard clip cards)
+// CLIP TILE — premium glass tile (mirrors CinematicPipelineProgress.ClipGrid)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ClipCard({ clip, hue, onPlay }: { clip: ClipInfo; hue: number; onPlay?: (url: string) => void }) {
+function ClipTile({
+  clip, onPlay,
+}: { clip: ClipInfo; onPlay?: (url: string) => void }) {
+  const isComp = clip.status === 'completed' && !!clip.videoUrl;
+  const isBusy = clip.status === 'generating';
+  const isFail = clip.status === 'failed';
+
   return (
     <motion.div
-      whileHover={clip.status === 'completed' ? { scale: 1.07, y: -2 } : {}}
-      className={cn(
-        "relative w-13 h-13 rounded-xl flex items-center justify-center text-sm font-bold border overflow-hidden cursor-default transition-all",
-        clip.status === 'completed' && 'cursor-pointer',
-      )}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: clip.index * 0.03, duration: 0.28 }}
+      className="overflow-hidden"
       style={{
-        width: 52, height: 52,
-        background: clip.status === 'completed'
-          ? 'hsl(160 80% 50% / 0.08)'
-          : clip.status === 'generating'
-            ? hsl(hue, 80, 55, 0.08)
-            : clip.status === 'failed'
-              ? 'hsl(350 80% 60% / 0.08)'
-              : 'hsl(0 0% 100% / 0.02)',
-        borderColor: clip.status === 'completed'
-          ? 'hsl(160 80% 50% / 0.25)'
-          : clip.status === 'generating'
-            ? hsl(hue, 80, 65, 0.25)
-            : clip.status === 'failed'
-              ? 'hsl(350 80% 60% / 0.25)'
-              : 'hsl(0 0% 100% / 0.05)',
-        color: clip.status === 'completed'
-          ? 'hsl(160 80% 60%)'
-          : clip.status === 'generating'
-            ? hsl(hue, 80, 70, 1)
-            : clip.status === 'failed'
-              ? 'hsl(350 80% 65%)'
-              : 'hsl(0 0% 100% / 0.12)',
-      }}
-      onClick={() => {
-        if (clip.status === 'completed' && clip.videoUrl) {
-          if (onPlay) onPlay(clip.videoUrl);
-          else window.open(clip.videoUrl, '_blank');
-        }
+        borderRadius: 8,
+        background: 'rgba(255,255,255,0.03)',
+        border: `1px solid ${
+          isComp ? 'rgba(255,255,255,0.15)'
+          : isBusy ? 'hsla(215,100%,60%,0.28)'
+          : isFail ? 'hsl(0 75% 55% / 0.2)'
+          : 'rgba(255,255,255,0.05)'
+        }`,
+        boxShadow: isBusy ? '0 0 18px hsla(215,100%,55%,0.12)' : undefined,
       }}
     >
-      {/* Glow ring for generating */}
-      {clip.status === 'generating' && (
-        <motion.div
-          className="absolute -inset-1 rounded-xl border"
-          style={{ borderColor: hsl(hue, 80, 65, 0.3) }}
-          animate={{ opacity: [0.3, 0.8, 0.3] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        />
-      )}
+      <div
+        style={{
+          height: 1,
+          background: isComp
+            ? 'rgba(255,255,255,0.6)'
+            : isBusy
+            ? 'hsla(215,100%,75%,0.7)'
+            : isFail
+            ? 'hsl(0 75% 55%)'
+            : 'rgba(255,255,255,0.06)',
+        }}
+      />
 
-      <span className="relative z-10">{clip.index + 1}</span>
-
-      {/* Bottom status bar */}
-      <div className="absolute bottom-0 left-1.5 right-1.5 h-0.5 rounded-full overflow-hidden">
-        {clip.status === 'completed' && <div className="h-full bg-gradient-to-r from-emerald-400 to-teal-400" />}
-        {clip.status === 'generating' && (
-          <motion.div
-            className="h-full"
-            style={{ background: `linear-gradient(90deg, ${hsl(hue, 80, 65, 1)}, ${hsl(hue + 20, 80, 70, 1)})` }}
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 1.2, repeat: Infinity }}
-          />
-        )}
-        {clip.status === 'failed' && <div className="h-full bg-gradient-to-r from-rose-400 to-pink-400" />}
-      </div>
-
-      {/* Play overlay for completed */}
-      {clip.status === 'completed' && (
-        <div className="absolute inset-0 flex items-center justify-center rounded-xl opacity-0 hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-sm">
-          <Play className="w-3.5 h-3.5 text-white" />
+      <div className="p-2.5 flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <span style={{
+            fontSize: 10, fontWeight: 500, letterSpacing: '0.05em',
+            color: isComp ? 'rgba(255,255,255,0.75)'
+              : isBusy ? 'hsla(215,100%,85%,0.75)'
+              : isFail ? 'hsl(0 75% 65%)'
+              : 'rgba(255,255,255,0.25)',
+            fontFamily: 'Sora, system-ui, sans-serif',
+          }}>
+            Clip {clip.index + 1}
+          </span>
+          {isComp && <CheckCircle2 style={{ width: 12, height: 12, color: 'rgba(255,255,255,0.5)' }} />}
+          {isFail && <AlertCircle style={{ width: 12, height: 12, color: 'hsl(0 75% 55%)' }} />}
+          {isBusy && <Loader2 style={{ width: 12, height: 12, color: 'hsla(215,100%,75%,0.85)' }} className="animate-spin" />}
+          {!isComp && !isBusy && !isFail && (
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
+          )}
         </div>
-      )}
+
+        {isComp && clip.videoUrl && (
+          <button
+            onClick={() => onPlay?.(clip.videoUrl)}
+            className="flex items-center justify-center gap-1 py-1.5 transition-all hover:brightness-125"
+            style={{
+              fontSize: 9, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase',
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.18)',
+              color: 'rgba(255,255,255,0.7)',
+              borderRadius: 4,
+              fontFamily: 'Sora, system-ui, sans-serif',
+            }}
+          >
+            <Play style={{ width: 9, height: 9 }} className="fill-current" />
+            Play
+          </button>
+        )}
+
+        {isBusy && (
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+            <motion.div
+              className="h-full"
+              style={{ background: 'linear-gradient(90deg, transparent, hsla(215,100%,75%,0.95), transparent)' }}
+              animate={{ x: ['-100%', '200%'] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </div>
+        )}
+
+        {!isComp && !isBusy && !isFail && (
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.04)' }} />
+        )}
+      </div>
     </motion.div>
   );
 }
@@ -306,7 +372,8 @@ function ClipCard({ clip, hue, onPlay }: { clip: ClipInfo; hue: number; onPlay?:
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function SpecializedModeProgress({
-  projectId, mode, pipelineState, videoUrl, allClips = [], masterAudioUrl, onComplete, onRetry, onCancel, onPlayClip,
+  projectId, mode, pipelineState, videoUrl, allClips = [], masterAudioUrl,
+  onComplete, onRetry, onCancel, onPlayClip,
 }: SpecializedModeProgressProps) {
   const { navigateTo } = useNavigationWithLoading();
   const [localState, setLocalState] = useState<PipelineState>(pipelineState);
@@ -321,7 +388,6 @@ export function SpecializedModeProgress({
 
   const config = MODE_CONFIG[mode];
   const Icon = config.icon;
-  const hue = config.hue;
 
   // Sync props
   useEffect(() => {
@@ -396,456 +462,628 @@ export function SpecializedModeProgress({
   };
 
   // Derived state
-  const completedClips = localClips.filter(c => c.status === 'completed');
-  const hasMultipleClips = completedClips.length > 1;
-  // totalExpected: use known clip count (from pipelineState.totalClips), or fall back to total clips in array
-  // NEVER default to 1 for avatar mode — that would mark complete after just one clip
+  const completedClipsArr = localClips.filter(c => c.status === 'completed');
+  const completedCount = completedClipsArr.length;
+  const hasMultipleClips = completedCount > 1;
   const totalExpected = localState.totalClips || (mode === 'avatar' && localClips.length > 0 ? localClips.length : 1);
   const isPlayableVideoUrl = localVideoUrl && !localVideoUrl.endsWith('.json') && !localVideoUrl.includes('manifest');
-  const allClipsDone = completedClips.length >= totalExpected && totalExpected > 1;
-  const isComplete = localState.stage === 'completed' || (isPlayableVideoUrl && mode !== 'avatar') || (mode === 'avatar' && allClipsDone);
+  const allClipsDone = completedCount >= totalExpected && totalExpected > 1;
+  const isComplete = localState.stage === 'completed'
+    || (isPlayableVideoUrl && mode !== 'avatar')
+    || (mode === 'avatar' && allClipsDone);
   const isFailed = localState.stage === 'failed';
   const isProcessing = !isComplete && !isFailed;
-  const progress = localState.progress || 0;
+  const progress = Math.max(0, Math.min(100, localState.progress || 0));
+  const pct = Math.round(progress);
 
   const currentStageIndex = isComplete
     ? config.stages.length - 1
-    : isFailed ? -1
+    : isFailed ? Math.max(0, Math.min(config.stages.length - 1, Math.floor((progress / 100) * config.stages.length)))
     : Math.min(Math.floor((progress / 100) * config.stages.length), config.stages.length - 1);
+
+  const statusText = isComplete
+    ? 'Your video is ready'
+    : isFailed
+    ? (localState.error ?? 'Something went wrong')
+    : config.activityTexts[Math.min(currentStageIndex, config.activityTexts.length - 1)];
+
+  // Build a rendered clip list that always shows ALL expected clips (placeholders included)
+  const renderedClips = useMemo<ClipInfo[]>(() => {
+    const total = Math.max(totalExpected, localClips.length);
+    if (total <= 1) return localClips;
+    const map = new Map<number, ClipInfo>();
+    for (const c of localClips) map.set(c.index, c);
+    const list: ClipInfo[] = [];
+    for (let i = 0; i < total; i++) {
+      list.push(map.get(i) ?? { index: i, videoUrl: '', status: 'pending' });
+    }
+    return list;
+  }, [localClips, totalExpected]);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="relative rounded-3xl overflow-hidden border border-white/[0.06] shadow-2xl shadow-black/50"
-      style={{ background: 'hsl(0 0% 4% / 0.85)', backdropFilter: 'blur(40px)' }}
+      className="relative flex flex-col gap-7 w-full overflow-hidden"
+      style={{
+        backgroundColor: 'hsl(220, 14%, 2%)',
+        borderRadius: 24,
+        boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.05), inset 0 0 0 1px hsla(0,0%,100%,0.04), 0 40px 100px -20px rgba(0,0,0,0.9)',
+        padding: '40px 32px 32px',
+      }}
     >
-      {/* Gradient border accent */}
-      <div className="absolute inset-0 rounded-3xl pointer-events-none overflow-hidden">
+      {/* Layer 1 — deep base wash */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          borderRadius: 24,
+          background:
+            'radial-gradient(1200px 700px at 50% 30%, hsla(215, 95%, 26%, 0.22), transparent 62%),' +
+            'radial-gradient(900px 540px at 100% 110%, hsla(210, 80%, 18%, 0.14), transparent 58%),' +
+            'radial-gradient(700px 480px at 0% 100%, hsla(220, 70%, 12%, 0.16), transparent 60%),' +
+            'linear-gradient(180deg, hsl(220, 16%, 3.4%) 0%, hsl(220, 14%, 2%) 100%)',
+        }}
+      />
+
+      {/* Layer 2 — slow conic aurora sweep */}
+      {!isFailed && (
         <div
-          className="absolute -inset-[1px] rounded-3xl opacity-40"
+          className="absolute -inset-[20%] pointer-events-none opacity-[0.18]"
           style={{
-            background: isComplete
-              ? 'linear-gradient(135deg, hsl(160 80% 50% / 0.5), transparent 45%, hsl(185 90% 50% / 0.2), transparent 70%)'
-              : isFailed
-                ? 'linear-gradient(135deg, hsl(350 80% 60% / 0.4), transparent 50%)'
-                : `linear-gradient(135deg, ${hsl(hue, 80, 60, 0.35)}, transparent 40%, ${hsl(hue + 30, 70, 55, 0.15)}, transparent 70%)`,
+            background:
+              'conic-gradient(from 0deg at 50% 50%, transparent 0deg, hsla(215,100%,60%,0.32) 60deg, transparent 130deg, hsla(210,100%,55%,0.2) 220deg, transparent 300deg, hsla(215,100%,60%,0.26) 360deg)',
+            filter: 'blur(80px)',
+            animation: 'specAurora 50s linear infinite',
           }}
         />
-        <div className="absolute top-0 inset-x-12 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent" />
-      </div>
-
-      {/* Ambient glow */}
-      {isProcessing && (
-        <motion.div
-          className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2/3 w-[700px] h-80 rounded-full pointer-events-none"
-          style={{ background: hsl(hue, 80, 60, 0.07), filter: 'blur(80px)' }}
-          animate={{ opacity: [0.5, 0.9, 0.5] }}
-          transition={{ duration: 4, repeat: Infinity }}
-        />
-      )}
-      {isComplete && (
-        <div className="absolute top-0 right-0 w-[500px] h-80 translate-x-1/4 -translate-y-1/3 pointer-events-none rounded-full"
-          style={{ background: 'hsl(160 80% 50% / 0.07)', filter: 'blur(80px)' }} />
       )}
 
-      {/* Floating particles during processing */}
-      {isProcessing && (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {[0, 1, 2, 3, 4].map(i => (
-            <div
-              key={i}
-              className="absolute w-0.5 h-0.5 rounded-full"
-              style={{
-                left: `${15 + i * 15}%`,
-                background: hsl(hue, 80, 75, 0.4),
-                animation: `float-up-particle ${5 + i * 0.8}s ease-in-out infinite`,
-                animationDelay: `${i * 0.6}s`,
-              }}
-            />
-          ))}
-        </div>
-      )}
+      {/* Layer 3 — vignette */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          borderRadius: 24,
+          background: 'radial-gradient(ellipse at center, transparent 50%, hsla(220,30%,1%,0.7) 100%)',
+        }}
+      />
 
-      <div className="relative p-6 md:p-8">
-        {/* ── Header ── */}
-        <div className="flex items-start gap-5 mb-8">
-          {/* Icon */}
-          <motion.div
-            className="relative rounded-2xl flex items-center justify-center border overflow-hidden flex-shrink-0"
+      {/* Layer 4 — film grain */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.045] mix-blend-overlay"
+        style={{
+          borderRadius: 24,
+          backgroundImage:
+            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.9'/></svg>\")",
+        }}
+      />
+
+      {/* Top + bottom luminous hairlines */}
+      <div
+        className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+        style={{
+          background: isFailed
+            ? 'linear-gradient(90deg, transparent 10%, hsl(0 75% 55% / 0.55) 50%, transparent 90%)'
+            : isComplete
+            ? 'linear-gradient(90deg, transparent 10%, hsla(160, 84%, 55%, 0.55) 50%, transparent 90%)'
+            : 'linear-gradient(90deg, transparent 0%, hsla(215,100%,60%,0.55) 50%, transparent 100%)',
+        }}
+      />
+      <div
+        className="absolute bottom-0 left-0 right-0 h-px pointer-events-none"
+        style={{
+          background: isFailed
+            ? 'linear-gradient(90deg, transparent 10%, hsl(0 75% 55% / 0.35) 50%, transparent 90%)'
+            : 'linear-gradient(90deg, transparent 0%, hsla(215,100%,60%,0.38) 50%, transparent 100%)',
+        }}
+      />
+
+      {/* ── Header strip ── */}
+      <div className="relative z-10 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div
+            className="relative flex items-center justify-center"
             style={{
-              width: 60, height: 60,
-              background: isComplete
-                ? 'linear-gradient(135deg, hsl(160 80% 50% / 0.2), hsl(185 90% 50% / 0.1))'
-                : isFailed
-                  ? 'hsl(350 80% 60% / 0.15)'
-                  : `linear-gradient(135deg, ${hsl(hue, 80, 55, 0.2)}, ${hsl(hue + 20, 70, 45, 0.1)})`,
-              borderColor: isComplete ? 'hsl(160 80% 50% / 0.3)' : isFailed ? 'hsl(350 80% 60% / 0.3)' : hsl(hue, 80, 65, 0.25),
-              boxShadow: isProcessing ? `0 0 30px ${hsl(hue, 80, 60, 0.3)}` : undefined,
+              width: 38, height: 38, borderRadius: 12,
+              background: 'linear-gradient(135deg, hsla(215,100%,55%,0.18), hsla(215,100%,42%,0.08))',
+              boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.1), inset 0 0 0 1px hsla(215,100%,55%,0.28), 0 0 20px hsla(215,100%,55%,0.18)',
             }}
-            animate={isProcessing ? {
-              boxShadow: [
-                `0 0 15px ${hsl(hue, 80, 60, 0.2)}`,
-                `0 0 35px ${hsl(hue, 80, 60, 0.4)}`,
-                `0 0 15px ${hsl(hue, 80, 60, 0.2)}`,
-              ]
-            } : {}}
-            transition={{ duration: 2.5, repeat: Infinity }}
           >
             {isComplete ? (
-              <motion.div animate={{ rotate: [0, 8, -8, 0] }} transition={{ duration: 4, repeat: Infinity }}>
-                <Sparkles className="w-7 h-7 text-emerald-400" />
-              </motion.div>
+              <Sparkles className="w-4 h-4" style={{ color: 'hsl(160 84% 70%)' }} />
             ) : isFailed ? (
-              <XCircle className="w-7 h-7 text-rose-400" />
+              <XCircle className="w-4 h-4" style={{ color: 'hsl(0 75% 70%)' }} />
             ) : (
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-                style={{ color: hsl(hue, 80, 72, 1) }}
-              >
-                <Icon className="w-7 h-7" />
-              </motion.div>
-            )}
-            {/* Spinning ring overlay when processing */}
-            {isProcessing && (
-              <motion.div
-                className="absolute inset-0 rounded-2xl border-2 border-transparent"
-                style={{ borderTopColor: hsl(hue, 80, 65, 0.7) }}
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-              />
-            )}
-            <div className="absolute top-0 inset-x-0 h-1/3 bg-gradient-to-b from-white/[0.06] to-transparent rounded-t-2xl" />
-          </motion.div>
-
-          <div className="flex-1 min-w-0">
-            <h2 className="text-xl font-bold text-white tracking-tight">{config.name}</h2>
-            <p className="text-sm mt-0.5" style={{ color: 'hsl(0 0% 100% / 0.4)' }}>{config.description}</p>
-
-            {localState.totalClips && localState.totalClips > 1 && (
-              <div className="flex items-center gap-1.5 mt-2">
-                <Film className="w-3.5 h-3.5" style={{ color: hsl(hue, 60, 60, 0.7) }} />
-                <span className="text-xs" style={{ color: hsl(hue, 60, 70, 0.7) }}>
-                  Clip {localState.currentClip || 1} of {localState.totalClips}
-                </span>
-              </div>
+              <Icon className="w-4 h-4" style={{ color: 'hsl(215,100%,80%)' }} />
             )}
           </div>
-
-          {/* Status badge + timer */}
-          <div className="flex flex-col items-end gap-2 flex-shrink-0">
-            {isComplete && (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 300 }}
-                className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border"
-                style={{ background: 'hsl(160 80% 50% / 0.1)', borderColor: 'hsl(160 80% 50% / 0.3)' }}
-              >
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-xs font-bold text-emerald-400">Complete</span>
-              </motion.div>
-            )}
-            {isFailed && (
-              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/25">
-                <XCircle className="w-3.5 h-3.5 text-rose-400" />
-                <span className="text-xs font-bold text-rose-400">Failed</span>
-              </div>
-            )}
-            {isProcessing && (
-              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.06]">
-                <div className="relative w-2 h-2">
-                  <div className="absolute inset-0 rounded-full bg-emerald-400" />
-                  <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping" />
-                </div>
-                <span className="text-[9px] font-black text-emerald-400/80 uppercase tracking-[0.25em]">Live</span>
-              </div>
-            )}
-
-            {/* Timer */}
-            {(isProcessing || elapsedTime > 0) && (
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-3 h-3 text-white/25" />
-                <span className="text-sm font-mono font-bold tabular-nums" style={{ color: 'hsl(0 0% 100% / 0.6)' }}>
-                  {formatTime(elapsedTime)}
-                </span>
-              </div>
-            )}
+          <div className="flex flex-col">
+            <span
+              className="font-light"
+              style={{
+                fontSize: 13, letterSpacing: '0.32em', textTransform: 'uppercase',
+                color: 'rgba(255,255,255,0.85)', fontFamily: 'Sora, system-ui, sans-serif',
+              }}
+            >
+              {config.name}
+            </span>
+            <span style={{
+              fontSize: 10, color: 'rgba(255,255,255,0.35)',
+              letterSpacing: '0.18em', textTransform: 'uppercase',
+              fontFamily: 'Sora, system-ui, sans-serif',
+            }}>
+              {config.description}
+            </span>
           </div>
         </div>
 
-        {/* ── Progress bar ── */}
-        <div className="relative h-1.5 rounded-full overflow-hidden mb-8" style={{ background: 'hsl(0 0% 100% / 0.04)' }}>
-          <div
-            className="absolute -inset-y-2 left-0 rounded-full blur-md opacity-50 transition-all duration-700"
-            style={{
-              width: `${Math.min(progress, 100)}%`,
-              background: isComplete ? 'hsl(160 80% 50%)' : isFailed ? 'hsl(350 80% 60%)' : hsl(hue, 80, 60, 1),
-            }}
-          />
-          <motion.div
-            className="relative h-full rounded-full"
-            style={{
-              background: isComplete
-                ? 'linear-gradient(90deg, hsl(160 80% 50%), hsl(185 90% 55%))'
-                : isFailed
-                  ? 'linear-gradient(90deg, hsl(350 80% 60%), hsl(340 75% 55%))'
-                  : `linear-gradient(90deg, ${hsl(hue, 80, 65, 1)}, ${hsl(hue + 20, 75, 55, 1)})`,
-            }}
-            initial={{ width: 0 }}
-            animate={{ width: `${Math.min(progress, 100)}%` }}
-            transition={{ duration: 0.7, ease: 'easeOut' }}
-          />
+        <div className="flex items-center gap-3">
           {isProcessing && (
+            <div className="flex items-center gap-1.5">
+              <motion.div
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ background: 'hsl(215,100%,72%)', boxShadow: '0 0 8px hsla(215,100%,60%,0.85)' }}
+                animate={{ opacity: [1, 0.25, 1] }}
+                transition={{ duration: 1.8, repeat: Infinity }}
+              />
+              <span style={{
+                fontSize: 9, color: 'hsla(215,100%,80%,0.7)',
+                letterSpacing: '0.28em', textTransform: 'uppercase',
+                fontFamily: 'Sora, system-ui, sans-serif',
+              }}>Live</span>
+            </div>
+          )}
+          <div className="flex items-center gap-1.5" style={{ color: 'hsla(215,30%,75%,0.45)' }}>
+            <Clock style={{ width: 11, height: 11 }} />
+            <span style={{ fontSize: 10, fontFamily: 'monospace', letterSpacing: '0.18em' }}>
+              {formatTime(elapsedTime)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── PERCENTAGE / HALO ── */}
+      <div className="relative z-10 flex flex-col items-center gap-5 select-none">
+        <div className="relative flex items-center justify-center" style={{ width: 'clamp(220px, 30vw, 300px)', height: 'clamp(220px, 30vw, 300px)' }}>
+          {/* Pulsing inner aura */}
+          {!isFailed && (
             <div
-              className="absolute inset-y-0 left-0 pointer-events-none"
+              className="absolute inset-[15%] rounded-full"
               style={{
-                width: `${Math.min(progress, 100)}%`,
-                background: 'linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.25), transparent)',
-                animation: 'shimmer-sweep 2.5s ease-in-out infinite',
+                background: isComplete
+                  ? 'radial-gradient(circle at 50% 50%, hsla(160,84%,55%,0.3) 0%, hsla(160,84%,40%,0.1) 35%, transparent 70%)'
+                  : 'radial-gradient(circle at 50% 50%, hsla(215,100%,55%,0.35) 0%, hsla(215,100%,42%,0.12) 35%, transparent 70%)',
+                animation: 'specAura 3.6s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                filter: 'blur(10px)',
               }}
             />
           )}
-        </div>
 
-        {/* ── Stage nodes ── */}
-        <div className="hidden sm:flex items-center mb-8">
-          {config.stages.map((label, idx) => (
-            <div key={label} className={cn("flex items-center", idx < config.stages.length - 1 ? "flex-1" : "")}>
-              <StageNode
-                label={label}
-                index={idx}
-                currentIndex={currentStageIndex}
-                isComplete={isComplete}
-                hue={hue}
-              />
-              {idx < config.stages.length - 1 && (
-                <StageConnector
-                  lit={idx < currentStageIndex || isComplete}
-                  hue={hue}
-                  flowing={idx === currentStageIndex - 1 && isProcessing}
-                />
-              )}
-            </div>
-          ))}
-        </div>
+          {/* Outer rotating ring with orbital pip */}
+          <svg viewBox="0 0 200 200" className="absolute inset-0 w-full h-full" style={{ animation: 'specSpin 18s linear infinite' }}>
+            <defs>
+              <linearGradient id="specRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
+                <stop offset="50%" stopColor={isFailed ? 'hsla(0,75%,65%,0.6)' : 'hsla(215,100%,68%,0.65)'} />
+                <stop offset="100%" stopColor="rgba(255,255,255,0.05)" />
+              </linearGradient>
+            </defs>
+            <circle cx="100" cy="100" r="98" fill="none" stroke="url(#specRingGrad)" strokeWidth="0.6" />
+            <circle cx="100" cy="2" r="2.4" fill={isFailed ? 'hsl(0,75%,68%)' : 'hsl(215,100%,72%)'}>
+              <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite" />
+            </circle>
+          </svg>
 
-        {/* ── Activity label ── */}
-        {isProcessing && (
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={actTextIdx}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              className="flex items-center gap-2.5 mb-6 px-4 py-2.5 rounded-xl"
-              style={{ background: 'hsl(0 0% 100% / 0.02)', border: `1px solid ${hsl(hue, 60, 60, 0.12)}` }}
-            >
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-              >
-                <Zap className="w-3.5 h-3.5" style={{ color: hsl(hue, 80, 70, 0.8) }} />
-              </motion.div>
-              <span className="text-xs font-mono" style={{ color: hsl(hue, 60, 75, 0.7) }}>
-                {config.activityTexts[actTextIdx]}
-              </span>
-              {/* Progress percent */}
-              <span className="ml-auto text-xs font-black tabular-nums" style={{ color: hsl(hue, 80, 70, 1) }}>
-                {Math.round(progress)}%
-              </span>
-            </motion.div>
-          </AnimatePresence>
-        )}
+          {/* Counter-rotating dashed arc */}
+          <svg viewBox="0 0 200 200" className="absolute inset-3 w-[calc(100%-1.5rem)] h-[calc(100%-1.5rem)]" style={{ animation: 'specSpinReverse 26s linear infinite' }}>
+            <circle cx="100" cy="100" r="92" fill="none" stroke="rgba(255,255,255,0.16)" strokeWidth="0.4" strokeDasharray="2 7" />
+          </svg>
 
-        {/* ── Clip status grid (avatar multi-clip during generation) ── */}
-        {mode === 'avatar' && localClips.length > 0 && (
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Film className="w-3.5 h-3.5 text-white/20" />
-              <span className="text-[10px] font-bold text-white/25 uppercase tracking-[0.15em]">
-                Render Status
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2.5">
-              {localClips.map(clip => (
-                <ClipCard key={clip.index} clip={clip} hue={hue} onPlay={onPlayClip} />
-              ))}
-            </div>
+          {/* Progress arc */}
+          <svg viewBox="0 0 200 200" className="absolute inset-0 w-full h-full -rotate-90">
+            <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+            <circle
+              cx="100" cy="100" r="80"
+              fill="none"
+              stroke={isFailed ? 'hsla(0,75%,60%,0.85)' : isComplete ? 'hsla(160,84%,55%,0.9)' : 'hsla(215,100%,68%,0.9)'}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeDasharray={`${pct * 5.0265} ${502.65 - pct * 5.0265}`}
+              style={{
+                transition: 'stroke-dasharray 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+                filter: isFailed
+                  ? 'drop-shadow(0 0 8px hsla(0,75%,55%,0.55))'
+                  : isComplete
+                  ? 'drop-shadow(0 0 8px hsla(160,84%,48%,0.55))'
+                  : 'drop-shadow(0 0 10px hsla(215,100%,60%,0.65))',
+              }}
+            />
+          </svg>
+
+          {/* Centered percentage */}
+          <div
+            className="relative z-10 font-light tabular-nums leading-none"
+            style={{
+              fontSize: 'clamp(64px, 9vw, 96px)',
+              letterSpacing: '-0.06em',
+              fontFamily: 'Sora, system-ui, sans-serif',
+              color: isFailed ? 'hsl(0 75% 75%)' : 'rgba(255,255,255,0.96)',
+              textShadow: isFailed
+                ? '0 0 50px hsla(0,75%,45%,0.4)'
+                : isComplete
+                ? '0 0 50px hsla(160,84%,55%,0.25)'
+                : '0 0 60px hsla(215,100%,55%,0.35)',
+            }}
+          >
+            {pct}
+            <span style={{ fontSize: '0.32em', fontWeight: 200, opacity: 0.4, marginLeft: '0.05em' }}>%</span>
           </div>
-        )}
+        </div>
 
-        {/* ── Multi-clip gallery (avatar complete) ── */}
-        {hasMultipleClips && isComplete && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
+        {/* Live status text */}
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={statusText + actTextIdx}
+            initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
+            exit={{ opacity: 0, y: -5 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            style={{
+              fontSize: 11,
+              fontWeight: 300,
+              fontFamily: 'Sora, system-ui, sans-serif',
+              color: isFailed ? 'hsl(0 75% 65%)' : isComplete ? 'hsla(160,84%,70%,0.85)' : 'hsla(215,100%,80%,0.7)',
+              letterSpacing: '0.28em',
+              textTransform: 'uppercase',
+              textAlign: 'center',
+              maxWidth: 480,
+              textShadow: isFailed ? 'none' : '0 0 16px hsla(215,100%,55%,0.25)',
+            }}
           >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Film className="w-4 h-4 text-white/40" />
-                All Clips ({completedClips.length})
-              </h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={async () => {
-                  const clipUrls = completedClips.map(c => c.videoUrl);
-                  if (clipUrls.length <= 1) {
-                    // Single clip — direct download
-                    const a = document.createElement('a');
-                    a.href = clipUrls[0];
-                    a.download = `${mode}-clip-1.mp4`;
-                    a.click();
-                    return;
-                  }
-                  // Multiple clips — download individually
-                  toast.info('Downloading clips individually...');
-                  for (const clip of completedClips) {
-                    const a = document.createElement('a');
-                    a.href = clip.videoUrl;
-                    a.download = `${mode}-clip-${clip.index + 1}.mp4`;
-                    a.click();
-                    await new Promise(r => setTimeout(r, 500));
-                  }
+            {statusText}
+          </motion.p>
+        </AnimatePresence>
+
+        {/* Wordmark divider */}
+        <div className="flex items-center gap-3 mt-1">
+          <div className="h-px w-10" style={{ background: 'linear-gradient(90deg, transparent, hsla(215,100%,65%,0.5))' }} />
+          <p className="text-white/65 text-[10px] font-medium tracking-[0.4em] uppercase" style={{ fontFamily: 'Sora, system-ui, sans-serif' }}>
+            {mode === 'avatar' ? 'Avatar · Live' : mode === 'motion-transfer' ? 'Motion · Live' : 'Style · Live'}
+          </p>
+          <div className="h-px w-10" style={{ background: 'linear-gradient(90deg, hsla(215,100%,65%,0.5), transparent)' }} />
+        </div>
+      </div>
+
+      {/* ── WAVEFORM ── */}
+      <div
+        className="relative z-10 overflow-hidden"
+        style={{
+          height: 96,
+          borderRadius: 14,
+          background: 'hsla(215,40%,8%,0.35)',
+          boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.04), inset 0 0 0 1px hsla(215,100%,55%,0.08)',
+        }}
+      >
+        <WaveformCanvas isActive={isProcessing} progress={progress} />
+      </div>
+
+      {/* ── STAGE PILLS ── */}
+      <div className="relative z-10">
+        <StagePills stages={config.stages} currentIndex={currentStageIndex} isComplete={isComplete} isFailed={isFailed} />
+      </div>
+
+      {/* ── PROGRESS BAR ── */}
+      <div className="relative z-10 flex flex-col gap-3">
+        <div className="relative w-full overflow-hidden rounded-full" style={{ height: 2, background: 'rgba(255,255,255,0.04)' }}>
+          <motion.div
+            className="absolute inset-y-0 left-0 rounded-full"
+            style={{
+              background: isFailed
+                ? 'linear-gradient(90deg, hsla(0,75%,50%,0.7) 0%, hsla(0,75%,68%,0.95) 100%)'
+                : isComplete
+                ? 'linear-gradient(90deg, hsla(160,84%,48%,0.7) 0%, hsla(160,84%,68%,0.95) 100%)'
+                : 'linear-gradient(90deg, hsla(215,100%,55%,0.7) 0%, hsla(215,100%,75%,0.95) 60%, rgba(255,255,255,0.95) 100%)',
+              boxShadow: isFailed
+                ? '0 0 12px hsla(0,75%,55%,0.6)'
+                : isComplete
+                ? '0 0 12px hsla(160,84%,55%,0.6)'
+                : '0 0 14px hsla(215,100%,60%,0.65), 0 0 2px rgba(255,255,255,0.7)',
+            }}
+            animate={{ width: `${Math.max(1, pct)}%` }}
+            transition={{ duration: 0.9, ease: [0.4, 0, 0.2, 1] }}
+          >
+            {!isFailed && pct > 2 && pct < 100 && (
+              <div
+                className="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full"
+                style={{
+                  background: 'rgba(255,255,255,0.95)',
+                  boxShadow: isComplete
+                    ? '0 0 10px hsla(160,84%,65%,0.9), 0 0 18px hsla(160,84%,50%,0.6)'
+                    : '0 0 10px hsla(215,100%,70%,0.9), 0 0 18px hsla(215,100%,55%,0.6)',
                 }}
-                className="text-white/50 hover:text-white gap-1.5 text-xs"
-              >
-                <Download className="w-3.5 h-3.5" />
-                Download All
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {completedClips.map((clip, idx) => (
-                <motion.div
-                  key={clip.index}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: idx * 0.08 }}
-                  className="rounded-2xl overflow-hidden ring-1 ring-white/[0.08] cursor-pointer group/clip"
-                  style={{ background: 'hsl(0 0% 0% / 0.5)' }}
-                  onClick={() => onPlayClip?.(clip.videoUrl)}
-                >
-                  <div className="relative">
-                    <PausedFrameVideo src={clip.videoUrl} controls={false} className="w-full aspect-video" />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover/clip:opacity-100 transition-opacity">
-                      <PlayCircle className="w-10 h-10 text-white/90" />
-                    </div>
-                  </div>
-                  <div className="p-3 flex items-center justify-between border-t border-white/[0.05]">
-                    <span className="text-xs font-medium text-white/60">Clip {clip.index + 1}</span>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); const a = document.createElement('a'); a.href = clip.videoUrl; a.download = `${mode}-clip-${clip.index + 1}.mp4`; a.click(); }}
-                      className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/80 transition-colors"
-                    >
-                      <Download className="w-3 h-3" />
-                      Download
-                    </button>
-                  </div>
-                </motion.div>
+              />
+            )}
+          </motion.div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span style={{
+            fontSize: 9, fontWeight: 400, letterSpacing: '0.22em',
+            color: 'hsla(215,30%,75%,0.45)', textTransform: 'uppercase',
+            fontFamily: 'Sora, system-ui, sans-serif',
+          }}>
+            {totalExpected > 1 ? `${completedCount} / ${totalExpected} clips` : 'Render'}
+          </span>
+
+          {/* Diagnostic ticker */}
+          {!isComplete && !isFailed && (
+            <div className="flex items-center gap-5">
+              {['Engine', 'Render', 'Stream'].map((label, i) => (
+                <div key={label} className="flex items-center gap-1.5">
+                  <div
+                    className="w-1 h-1 rounded-full"
+                    style={{
+                      background: 'hsla(215,100%,65%,0.85)',
+                      boxShadow: '0 0 6px hsla(215,100%,65%,0.7)',
+                      animation: `specTick 1.4s cubic-bezier(0.4, 0, 0.6, 1) ${i * 0.25}s infinite`,
+                    }}
+                  />
+                  <span className="text-[9px] text-white/35 font-mono tracking-[0.22em] uppercase">{label}</span>
+                </div>
               ))}
             </div>
-          </motion.div>
-        )}
-
-        {/* ── Single video preview ── */}
-        {!hasMultipleClips && isPlayableVideoUrl && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="rounded-2xl overflow-hidden ring-1 ring-white/[0.08] mb-6"
-            style={{ background: 'hsl(0 0% 0% / 0.5)' }}
-          >
-            <PausedFrameVideo src={localVideoUrl} controls className="w-full aspect-video" />
-          </motion.div>
-        )}
-
-        {/* ── Action buttons ── */}
-        <div className="flex flex-wrap items-center gap-3">
-          {isComplete && (
-            <>
-              {hasMultipleClips ? (
-                <Button
-                  onClick={() => setShowFullPlayer(true)}
-                  className="flex-1 min-w-[140px] h-10 text-sm font-bold text-white"
-                  style={{ background: `linear-gradient(135deg, ${hsl(hue, 80, 55, 1)}, ${hsl(hue + 25, 75, 48, 1)})`, boxShadow: `0 4px 20px ${hsl(hue, 80, 60, 0.3)}` }}
-                >
-                  <PlayCircle className="w-4 h-4 mr-2" />
-                  Play All Clips
-                </Button>
-              ) : isPlayableVideoUrl ? (
-                <Button
-                  onClick={() => window.open(localVideoUrl, '_blank')}
-                  className="flex-1 min-w-[140px] h-10 text-sm font-bold text-white"
-                  style={{ background: `linear-gradient(135deg, ${hsl(hue, 80, 55, 1)}, ${hsl(hue + 25, 75, 48, 1)})`, boxShadow: `0 4px 20px ${hsl(hue, 80, 60, 0.3)}` }}
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  Play Video
-                </Button>
-              ) : null}
-
-              <Button
-                variant="ghost"
-                onClick={() => navigateTo('/projects')}
-                className="h-10 px-4 text-white/60 hover:text-white hover:bg-white/[0.06] text-sm"
-              >
-                <Eye className="w-4 h-4 mr-2" />
-                View in Library
-              </Button>
-            </>
-          )}
-
-          {isFailed && onRetry && (
-            <Button
-              onClick={onRetry}
-              className="h-10 px-6 text-sm text-white bg-white/[0.08] hover:bg-white/[0.12] border border-white/10"
-            >
-              <RefreshCw className="w-3.5 h-3.5 mr-2" />
-              Retry
-            </Button>
-          )}
-
-          {isProcessing && onCancel && (
-            <button
-              onClick={handleCancel}
-              disabled={isCancelling}
-              className="h-10 px-5 rounded-xl text-sm font-medium text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 transition-all border border-rose-500/25 hover:border-rose-500/40 disabled:opacity-40 flex items-center gap-2"
-            >
-              {isCancelling ? (
-                <>
-                  <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                  </svg>
-                  Cancelling...
-                </>
-              ) : (
-                <>
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                  </svg>
-                  Cancel Production
-                </>
-              )}
-            </button>
           )}
         </div>
       </div>
 
+      {/* ── CLIP BAR SPARKS (always visible when multi-clip) ── */}
+      {totalExpected > 1 && !isComplete && (
+        <div className="relative z-10 flex items-end justify-center gap-1.5">
+          {Array.from({ length: Math.min(totalExpected, 16) }).map((_, i) => {
+            const filled = i < completedCount;
+            return (
+              <motion.div
+                key={i}
+                className="rounded-sm flex-shrink-0"
+                style={{
+                  width: 3,
+                  background: filled
+                    ? 'linear-gradient(180deg, hsla(215,100%,80%,0.95), hsla(215,100%,55%,0.85))'
+                    : 'rgba(255,255,255,0.06)',
+                  boxShadow: filled ? '0 0 8px hsla(215,100%,55%,0.5)' : 'none',
+                }}
+                animate={{ height: filled ? 18 : 4 }}
+                transition={{ duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── CLIP TILES — ALL clips visible during creation ── */}
+      {renderedClips.length > 1 && (
+        <div className="relative z-10 w-full flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.06)' }} />
+            <span style={{
+              fontSize: 9, fontWeight: 400, letterSpacing: '0.22em',
+              color: 'rgba(255,255,255,0.22)', textTransform: 'uppercase',
+              fontFamily: 'Sora, system-ui, sans-serif',
+            }}>
+              {completedCount} / {renderedClips.length} clips ready
+            </span>
+            <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.06)' }} />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+            {renderedClips.map((clip) => (
+              <ClipTile key={clip.index} clip={clip} onPlay={onPlayClip} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── COMPLETED MULTI-CLIP GALLERY ── */}
+      {hasMultipleClips && isComplete && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative z-10"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Film className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+              <span style={{
+                fontSize: 10, letterSpacing: '0.28em', textTransform: 'uppercase',
+                color: 'rgba(255,255,255,0.55)', fontFamily: 'Sora, system-ui, sans-serif',
+              }}>
+                All Clips · {completedClipsArr.length}
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={async () => {
+                const clipUrls = completedClipsArr.map(c => c.videoUrl);
+                if (clipUrls.length <= 1) {
+                  const a = document.createElement('a');
+                  a.href = clipUrls[0]; a.download = `${mode}-clip-1.mp4`; a.click();
+                  return;
+                }
+                toast.info('Downloading clips individually…');
+                for (const clip of completedClipsArr) {
+                  const a = document.createElement('a');
+                  a.href = clip.videoUrl;
+                  a.download = `${mode}-clip-${clip.index + 1}.mp4`;
+                  a.click();
+                  await new Promise(r => setTimeout(r, 500));
+                }
+              }}
+              className="text-white/50 hover:text-white gap-1.5 text-[10px] uppercase tracking-[0.2em]"
+              style={{ fontFamily: 'Sora, system-ui, sans-serif' }}
+            >
+              <Download className="w-3 h-3" />
+              Download All
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {completedClipsArr.map((clip, idx) => (
+              <motion.div
+                key={clip.index}
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: idx * 0.06 }}
+                className="rounded-2xl overflow-hidden cursor-pointer group/clip"
+                style={{
+                  background: 'hsla(220,16%,4%,0.65)',
+                  boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.05), inset 0 0 0 1px hsla(215,100%,55%,0.10), 0 14px 40px -16px rgba(0,0,0,0.7)',
+                }}
+                onClick={() => onPlayClip?.(clip.videoUrl)}
+              >
+                <div className="relative">
+                  <PausedFrameVideo src={clip.videoUrl} controls={false} className="w-full aspect-video" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover/clip:opacity-100 transition-opacity">
+                    <PlayCircle className="w-10 h-10 text-white/90" />
+                  </div>
+                </div>
+                <div className="p-3 flex items-center justify-between" style={{ borderTop: '1px solid hsla(0,0%,100%,0.05)' }}>
+                  <span style={{
+                    fontSize: 10, color: 'rgba(255,255,255,0.6)',
+                    letterSpacing: '0.2em', textTransform: 'uppercase',
+                    fontFamily: 'Sora, system-ui, sans-serif',
+                  }}>Clip {clip.index + 1}</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); const a = document.createElement('a'); a.href = clip.videoUrl; a.download = `${mode}-clip-${clip.index + 1}.mp4`; a.click(); }}
+                    className="flex items-center gap-1.5 text-[10px] text-white/40 hover:text-white/80 transition-colors uppercase tracking-[0.2em]"
+                    style={{ fontFamily: 'Sora, system-ui, sans-serif' }}
+                  >
+                    <Download className="w-3 h-3" />
+                    Download
+                  </button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── SINGLE VIDEO PREVIEW ── */}
+      {!hasMultipleClips && isPlayableVideoUrl && isComplete && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="relative z-10 rounded-2xl overflow-hidden"
+          style={{
+            background: 'hsla(220,16%,4%,0.65)',
+            boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.05), inset 0 0 0 1px hsla(215,100%,55%,0.12), 0 14px 40px -16px rgba(0,0,0,0.7)',
+          }}
+        >
+          <PausedFrameVideo src={localVideoUrl as string} controls className="w-full aspect-video" />
+        </motion.div>
+      )}
+
+      {/* ── ACTION BUTTONS ── */}
+      <div className="relative z-10 flex flex-wrap items-center justify-center gap-3">
+        {isComplete && hasMultipleClips && (
+          <button
+            onClick={() => setShowFullPlayer(true)}
+            className="transition-all hover:brightness-110"
+            style={{
+              fontSize: 10, fontWeight: 400, padding: '11px 32px', borderRadius: 999,
+              letterSpacing: '0.28em', textTransform: 'uppercase',
+              fontFamily: 'Sora, system-ui, sans-serif',
+              background: 'linear-gradient(135deg, hsla(215,100%,55%,0.22), hsla(215,100%,45%,0.14))',
+              boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.12), inset 0 0 0 1px hsla(215,100%,55%,0.42), 0 0 26px hsla(215,100%,55%,0.22)',
+              color: 'hsla(215,100%,92%,0.96)',
+            }}
+          >
+            ▶ Play All Clips
+          </button>
+        )}
+        {isComplete && !hasMultipleClips && isPlayableVideoUrl && (
+          <button
+            onClick={() => window.open(localVideoUrl as string, '_blank')}
+            className="transition-all hover:brightness-110"
+            style={{
+              fontSize: 10, fontWeight: 400, padding: '11px 32px', borderRadius: 999,
+              letterSpacing: '0.28em', textTransform: 'uppercase',
+              fontFamily: 'Sora, system-ui, sans-serif',
+              background: 'linear-gradient(135deg, hsla(215,100%,55%,0.22), hsla(215,100%,45%,0.14))',
+              boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.12), inset 0 0 0 1px hsla(215,100%,55%,0.42), 0 0 26px hsla(215,100%,55%,0.22)',
+              color: 'hsla(215,100%,92%,0.96)',
+            }}
+          >
+            ▶ Play Video
+          </button>
+        )}
+        {isComplete && (
+          <button
+            onClick={() => navigateTo('/projects')}
+            className="transition-all hover:brightness-125"
+            style={{
+              fontSize: 10, fontWeight: 400, padding: '11px 24px', borderRadius: 999,
+              letterSpacing: '0.28em', textTransform: 'uppercase',
+              fontFamily: 'Sora, system-ui, sans-serif',
+              background: 'transparent',
+              boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.12)',
+              color: 'rgba(255,255,255,0.65)',
+            }}
+          >
+            <Eye className="inline w-3 h-3 mr-2 -mt-0.5" />
+            Library
+          </button>
+        )}
+
+        {isFailed && onRetry && (
+          <button
+            onClick={onRetry}
+            className="transition-all hover:brightness-110"
+            style={{
+              fontSize: 10, fontWeight: 400, padding: '11px 28px', borderRadius: 999,
+              letterSpacing: '0.28em', textTransform: 'uppercase',
+              fontFamily: 'Sora, system-ui, sans-serif',
+              background: 'linear-gradient(135deg, hsla(215,100%,55%,0.18), hsla(215,100%,45%,0.12))',
+              boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.12), inset 0 0 0 1px hsla(215,100%,55%,0.4), 0 0 24px hsla(215,100%,55%,0.2)',
+              color: 'hsla(215,100%,90%,0.95)',
+            }}
+          >
+            <RefreshCw className="inline w-3 h-3 mr-2 -mt-0.5" />
+            Try Again
+          </button>
+        )}
+
+        {isProcessing && onCancel && (
+          <button
+            onClick={handleCancel}
+            disabled={isCancelling}
+            className="transition-all disabled:opacity-40 hover:brightness-125"
+            style={{
+              fontSize: 9, fontWeight: 400, padding: '9px 22px', borderRadius: 999,
+              letterSpacing: '0.28em', textTransform: 'uppercase',
+              fontFamily: 'Sora, system-ui, sans-serif',
+              color: 'hsl(0 75% 70%)',
+              background: 'hsla(0,75%,55%,0.06)',
+              boxShadow: 'inset 0 0 0 1px hsla(0,75%,55%,0.25)',
+            }}
+          >
+            {isCancelling ? 'Cancelling…' : 'Cancel Production'}
+          </button>
+        )}
+      </div>
+
+      {/* Keyframes */}
       <style>{`
-        @keyframes float-up-particle {
-          0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; }
-          50% { transform: translateY(-100px) scale(1.8); opacity: 0; }
+        @keyframes specSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes specSpinReverse { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+        @keyframes specAurora { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes specAura {
+          0%, 100% { opacity: 0.6; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.08); }
         }
-        @keyframes shimmer-sweep {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(200%); }
+        @keyframes specTick {
+          0%, 100% { opacity: 0.35; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.5); }
         }
       `}</style>
     </motion.div>
   );
 }
-

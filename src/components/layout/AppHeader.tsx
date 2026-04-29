@@ -159,7 +159,7 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
                       className={cn(
                         "relative px-3 py-[7px] text-[13px] font-medium rounded-[14px] transition-all duration-300 select-none flex items-center gap-1.5",
                         active
-                          ? "text-background"
+                          ? "text-white"
                           : "text-white/35 hover:text-white/70"
                       )}
                     >

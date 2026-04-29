@@ -351,18 +351,18 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
         {/* ─── Mode rail with sliding spotlight ─────────────────────────── */}
         <div className="mb-7 flex items-center justify-between gap-4 flex-wrap">
           <div className="relative inline-flex items-center gap-1 p-1 rounded-2xl bg-white/[0.025] border border-white/[0.06] backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_8px_30px_-12px_rgba(0,0,0,0.6)]">
-            {CREATION_MODES.map((m) => {
+            {CREATION_MODES.map((m, idx) => {
               const Icon = m.icon;
-              const active = selectedMode === m.id;
+              const active = selectedModeIndex === idx;
               return (
                 <button
-                  key={m.id}
+                  key={`${m.id}-${m.engine}-${idx}`}
                   onClick={() => {
                     if (m.id === 'avatar') navigate('/avatars');
-                    else setSelectedMode(m.id);
+                    else { setSelectedMode(m.id); setSelectedModeIndex(idx); }
                   }}
                   className={cn(
-                    'relative z-10 flex items-center gap-2 px-4 sm:px-5 h-10 rounded-xl text-sm font-medium transition-colors duration-300',
+                    'relative z-10 flex items-center gap-2 px-3.5 sm:px-4 h-10 rounded-xl text-sm font-medium transition-colors duration-300',
                     active ? 'text-white' : 'text-white/45 hover:text-white/80'
                   )}
                 >
@@ -372,16 +372,29 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                       transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                       className="absolute inset-0 -z-10 rounded-xl"
                       style={{
-                        background:
-                          'linear-gradient(180deg, hsl(212 100% 56% / 0.22) 0%, hsl(212 100% 50% / 0.10) 100%)',
-                        border: '1px solid hsl(212 100% 60% / 0.35)',
-                        boxShadow:
-                          '0 8px 30px -8px hsl(212 100% 50% / 0.45), inset 0 1px 0 hsl(212 100% 75% / 0.25)',
+                        background: `linear-gradient(180deg, hsl(${ENGINE_INFO[m.engine].hue} / 0.22) 0%, hsl(${ENGINE_INFO[m.engine].hue} / 0.10) 100%)`,
+                        border: `1px solid hsl(${ENGINE_INFO[m.engine].hue} / 0.35)`,
+                        boxShadow: `0 8px 30px -8px hsl(${ENGINE_INFO[m.engine].hue} / 0.45), inset 0 1px 0 hsl(${ENGINE_INFO[m.engine].hue} / 0.25)`,
                       }}
                     />
                   )}
-                  <Icon className={cn('w-4 h-4 transition-colors', active ? 'text-primary' : 'opacity-70')} />
+                  <Icon
+                    className="w-4 h-4 transition-colors"
+                    style={active ? { color: `hsl(${ENGINE_INFO[m.engine].hue})` } : undefined}
+                  />
                   <span className="tracking-tight">{m.name}</span>
+                  {m.badge && (
+                    <span
+                      className="ml-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-[0.12em] leading-none"
+                      style={{
+                        background: `hsl(${ENGINE_INFO[m.engine].hue} / 0.18)`,
+                        color: `hsl(${ENGINE_INFO[m.engine].hue})`,
+                        border: `1px solid hsl(${ENGINE_INFO[m.engine].hue} / 0.35)`,
+                      }}
+                    >
+                      {m.badge}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -399,6 +412,41 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
             </div>
           </div>
         </div>
+
+        {/* ─── Engine identity strip — always visible, premium reveal ──── */}
+        <motion.div
+          key={videoEngine}
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className="mb-6 flex items-center gap-3 flex-wrap"
+        >
+          <div
+            className="inline-flex items-center gap-2.5 pl-2 pr-3.5 py-1.5 rounded-full backdrop-blur-xl"
+            style={{
+              background: `linear-gradient(180deg, hsl(${engineInfo.hue} / 0.10), hsl(${engineInfo.hue} / 0.04))`,
+              border: `1px solid hsl(${engineInfo.hue} / 0.28)`,
+              boxShadow: `0 6px 26px -10px hsl(${engineInfo.hue} / 0.5), inset 0 1px 0 hsl(${engineInfo.hue} / 0.18)`,
+            }}
+          >
+            <span
+              className="relative flex h-6 w-6 items-center justify-center rounded-full"
+              style={{ background: `hsl(${engineInfo.hue} / 0.2)`, border: `1px solid hsl(${engineInfo.hue} / 0.4)` }}
+            >
+              <Cpu className="w-3 h-3" style={{ color: `hsl(${engineInfo.hue})` }} />
+              <span className="absolute inset-0 rounded-full animate-ping opacity-40"
+                    style={{ boxShadow: `0 0 0 2px hsl(${engineInfo.hue} / 0.35)` }} />
+            </span>
+            <div className="leading-tight">
+              <div className="text-[9px] uppercase tracking-[0.22em] text-white/50">Engine</div>
+              <div className="text-[13px] font-semibold text-white tracking-tight">{engineInfo.label}</div>
+            </div>
+          </div>
+          <div className="text-[11px] text-white/45 font-light tracking-wide">
+            {engineInfo.tagline} <span className="text-white/25 mx-1.5">·</span>
+            <span className="font-mono text-white/35">{engineInfo.model}</span>
+          </div>
+        </motion.div>
 
         {/* ─── Stage: prompt + (optional upload) ───────────────────────── */}
         <motion.div

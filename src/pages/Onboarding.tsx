@@ -219,7 +219,8 @@ export default function Onboarding() {
       if (error) throw error;
       await refreshProfile();
       toast.success('Welcome to Apex Studio!');
-      navigate('/create', { replace: true });
+      const next = new URLSearchParams(window.location.search).get('next');
+      navigate(next || '/create', { replace: true });
     } catch (err) {
       console.error('Error saving onboarding:', err);
       toast.error('Failed to save your information');

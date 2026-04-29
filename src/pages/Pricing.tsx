@@ -311,7 +311,7 @@ function PricingCard({ pkg, index }: { pkg: CreditPackage; index: number }) {
 
         {/* CTA */}
         <Button
-          onClick={() => navigate('/auth?mode=signup')}
+          onClick={() => navigate(`/auth?mode=signup&next=${encodeURIComponent('/profile?buy=' + (pkg.name?.toLowerCase?.() || ''))}`)}
           className={cn(
             'w-full h-11 rounded-2xl text-[13px] font-semibold transition-all duration-300 group/btn relative overflow-hidden',
             pkg.popular

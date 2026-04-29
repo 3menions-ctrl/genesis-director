@@ -116,6 +116,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
   const [searchParams] = useState(() => new URLSearchParams(window.location.search));
   const fromCreate = searchParams.get('from') === 'create';
   const modeParam = searchParams.get('mode');
+  const nextParam = searchParams.get('next');
   
   const [isLogin, setIsLogin] = useState(modeParam !== 'signup');
   const [email, setEmail] = useState('');
@@ -186,9 +187,11 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
       setHasRedirected(true);
       trackSignup(user.id);
       if (!profile.onboarding_completed) {
-        navigate('/onboarding', { replace: true });
+        // Preserve `next` through onboarding so post-onboarding can resume the buy flow.
+        const target = nextParam ? `/onboarding?next=${encodeURIComponent(nextParam)}` : '/onboarding';
+        navigate(target, { replace: true });
       } else {
-        navigate('/create', { replace: true });
+        navigate(nextParam || '/create', { replace: true });
       }
     }
   }, [user, profile, authLoading, hasRedirected, navigate, showWelcomeDialog]);
@@ -274,11 +277,12 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
     setShowWelcomeDialog(false);
     setHasRedirected(true);
     if (profile && !profile.onboarding_completed) {
-      navigate('/onboarding', { replace: true });
+      const target = nextParam ? `/onboarding?next=${encodeURIComponent(nextParam)}` : '/onboarding';
+      navigate(target, { replace: true });
     } else {
-      navigate(choice === 'create' ? '/create' : '/creators', { replace: true });
+      navigate(nextParam || (choice === 'create' ? '/create' : '/creators'), { replace: true });
     }
-  }, [profile, navigate]);
+  }, [profile, navigate, nextParam]);
 
   const formEnter = { opacity: 0, y: 20 };
   const formAnimate = { opacity: 1, y: 0, transition: { duration: 0.5 } };

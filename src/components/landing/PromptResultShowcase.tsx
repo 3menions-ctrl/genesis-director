@@ -1,7 +1,7 @@
 import { memo, useState, useEffect, useRef, useCallback } from 'react';
 import { useMediaCleanup } from '@/lib/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Type, Film, GripVertical, ImageIcon } from 'lucide-react';
+import { Sparkles, Type, Film, GripVertical, ImageIcon, Volume2, VolumeX } from 'lucide-react';
 const silentVigilSource = '/images/silent-vigil-source.png';
 
 // Curated prompt → video pairs using real gallery content
@@ -45,10 +45,13 @@ export const PromptResultShowcase = memo(function PromptResultShowcase({ suspend
   const [isDragging, setIsDragging] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
   const [isInView, setIsInView] = useState(false);
+  const [soundOn, setSoundOn] = useState(false);
+  const [showSoundPrompt, setShowSoundPrompt] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const timerRef = useRef<NodeJS.Timeout>();
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const soundTimerRef = useRef<NodeJS.Timeout>();
 
   const pair = SHOWCASE_PAIRS[currentIdx];
 
@@ -81,10 +84,66 @@ export const PromptResultShowcase = memo(function PromptResultShowcase({ suspend
     if (!video) return;
     if (suspended || !isInView) {
       video.pause();
+      video.muted = true;
+      setSoundOn(false);
+      setShowSoundPrompt(false);
+      if (soundTimerRef.current) clearTimeout(soundTimerRef.current);
     } else {
       video.play().catch(() => {});
+      // After 10s of immersive viewing, surface the sound prompt
+      if (soundTimerRef.current) clearTimeout(soundTimerRef.current);
+      soundTimerRef.current = setTimeout(() => {
+        const v = videoRef.current;
+        if (!v) return;
+        // Try silent auto-unmute first (works if user has interacted with page)
+        v.muted = false;
+        v.volume = 0.85;
+        v.play()
+          .then(() => setSoundOn(true))
+          .catch(() => {
+            v.muted = true;
+            setShowSoundPrompt(true);
+          });
+      }, 10000);
     }
+    return () => {
+      if (soundTimerRef.current) clearTimeout(soundTimerRef.current);
+    };
   }, [suspended, isInView]);
+
+  // Reset sound state on clip change
+  useEffect(() => {
+    setSoundOn(false);
+    setShowSoundPrompt(false);
+    const v = videoRef.current;
+    if (v) v.muted = true;
+  }, [currentIdx]);
+
+  const handleEnableSound = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = false;
+    v.volume = 0.85;
+    v.play().catch(() => {});
+    setSoundOn(true);
+    setShowSoundPrompt(false);
+  }, []);
+
+  const handleToggleSound = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const v = videoRef.current;
+    if (!v) return;
+    if (soundOn) {
+      v.muted = true;
+      setSoundOn(false);
+    } else {
+      v.muted = false;
+      v.volume = 0.85;
+      v.play().catch(() => {});
+      setSoundOn(true);
+      setShowSoundPrompt(false);
+    }
+  }, [soundOn]);
 
   // Register video with NavigationCoordinator for pre-navigation cleanup
   useMediaCleanup(videoRef);

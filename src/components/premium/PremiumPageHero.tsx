@@ -55,22 +55,40 @@ export const PremiumPageHero = memo(function PremiumPageHero({
 
   return (
     <header className={cn('relative mb-10 sm:mb-14 animate-fade-in', className)}>
-      {/* Ambient hero glow */}
+      {/* Luminous top hairline */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-16 -left-10 right-0 h-[280px] -z-10 opacity-70"
+        className="pointer-events-none absolute -top-px left-0 right-0 h-px -z-10"
+        style={{
+          background: `linear-gradient(90deg, transparent 0%, hsl(${hue} / 0.55) 18%, hsl(${hue} / 0.9) 50%, hsl(${hue} / 0.55) 82%, transparent 100%)`,
+          boxShadow: `0 0 24px hsl(${hue} / 0.45)`,
+        }}
+      />
+      {/* Conic aurora behind title */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-20 -left-10 right-0 h-[320px] -z-10 opacity-80"
         style={{
           background:
-            `radial-gradient(620px 240px at 12% 40%, hsl(${hue} / 0.16), transparent 60%),` +
-            'radial-gradient(520px 220px at 70% 10%, hsl(var(--accent) / 0.10), transparent 65%)',
-          filter: 'blur(8px)',
+            `conic-gradient(from 200deg at 18% 50%, transparent 0deg, hsl(${hue} / 0.18) 60deg, transparent 140deg, hsl(var(--accent) / 0.10) 230deg, transparent 320deg),` +
+            `radial-gradient(620px 240px at 12% 40%, hsl(${hue} / 0.18), transparent 60%),` +
+            'radial-gradient(520px 220px at 78% 10%, hsl(var(--accent) / 0.10), transparent 65%)',
+          filter: 'blur(12px)',
+        }}
+      />
+      {/* Film grain wash */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 opacity-[0.035] mix-blend-overlay"
+        style={{
+          backgroundImage: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.06 0 0 0 0 0.07 0 0 0 0 0.08 0 0 0 0.65 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
         }}
       />
 
       <div className="flex items-end justify-between gap-6 flex-wrap">
         <div className="min-w-0">
-          {/* Status pill */}
-          <div className="inline-flex items-center gap-2 h-7 pl-2 pr-3 rounded-full border border-white/[0.07] bg-white/[0.03] backdrop-blur-md mb-5">
+          {/* Status pill + diagnostic */}
+          <div className="inline-flex items-center gap-2 h-7 pl-2 pr-3 rounded-full border border-white/[0.07] bg-white/[0.03] backdrop-blur-md mb-5 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.04)]">
             <span className="relative flex h-1.5 w-1.5">
               <span
                 className="absolute inline-flex h-full w-full rounded-full opacity-70 animate-ping"
@@ -81,8 +99,12 @@ export const PremiumPageHero = memo(function PremiumPageHero({
                 style={{ backgroundColor: `hsl(${statusColor})` }}
               />
             </span>
-            <span className="text-[10px] uppercase tracking-[0.22em] text-white/55 font-medium">
+            <span className="text-[10px] uppercase tracking-[0.32em] text-white/55 font-medium font-mono">
               {eyebrow}
+            </span>
+            <span aria-hidden className="h-3 w-px bg-white/10" />
+            <span className="text-[10px] uppercase tracking-[0.32em] text-white/30 font-mono tabular-nums">
+              {String(((titleHighlight || '').length * 37) % 9999).padStart(4, '0')}
             </span>
           </div>
 
@@ -115,8 +137,16 @@ export const PremiumPageHero = memo(function PremiumPageHero({
       {/* Stat strip */}
       {stats && stats.length > 0 && (
         <div
+          className="relative"
+        >
+          {/* corner ticks */}
+          <span aria-hidden className="absolute -top-1 -left-1 w-3 h-3 border-t border-l border-white/15" />
+          <span aria-hidden className="absolute -top-1 -right-1 w-3 h-3 border-t border-r border-white/15" />
+          <span aria-hidden className="absolute -bottom-1 -left-1 w-3 h-3 border-b border-l border-white/15" />
+          <span aria-hidden className="absolute -bottom-1 -right-1 w-3 h-3 border-b border-r border-white/15" />
+          <div
           className={cn(
-            'mt-8 grid gap-px rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.015] backdrop-blur-sm',
+            'mt-8 grid gap-px rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.015] backdrop-blur-sm shadow-[0_30px_80px_-40px_hsl(220_14%_0%/0.9)]',
             stats.length === 2 && 'grid-cols-2',
             stats.length === 3 && 'grid-cols-2 sm:grid-cols-3',
             stats.length === 4 && 'grid-cols-2 sm:grid-cols-4',
@@ -126,14 +156,20 @@ export const PremiumPageHero = memo(function PremiumPageHero({
           {stats.map((s) => {
             const Icon = s.icon;
             return (
-              <div key={s.label} className="relative px-5 py-4 bg-[hsl(220_14%_3%/0.6)]">
-                <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.22em] text-white/35 font-medium">
+              <div key={s.label} className="group relative px-5 py-4 bg-[hsl(220_14%_3%/0.6)] transition-colors hover:bg-[hsl(220_14%_4%/0.7)]">
+                {/* hover halo */}
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                  style={{ background: `radial-gradient(180px 80px at 50% 100%, hsl(${hue} / 0.18), transparent 70%)` }}
+                />
+                <div className="relative flex items-center gap-1.5 text-[9px] uppercase tracking-[0.28em] text-white/35 font-medium font-mono">
                   {Icon && <Icon className="w-3 h-3" />}
                   {s.label}
                 </div>
                 <div
                   className={cn(
-                    'mt-1.5 font-display font-semibold text-[22px] sm:text-[26px] tabular-nums tracking-tight',
+                    'relative mt-1.5 font-display font-semibold text-[22px] sm:text-[26px] tabular-nums tracking-tight',
                     s.accent || 'text-white',
                   )}
                 >
@@ -142,6 +178,7 @@ export const PremiumPageHero = memo(function PremiumPageHero({
               </div>
             );
           })}
+          </div>
         </div>
       )}
 

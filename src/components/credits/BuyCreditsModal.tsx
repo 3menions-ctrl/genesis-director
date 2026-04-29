@@ -250,6 +250,25 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
 
           <div className="flex-1 min-h-0 relative z-10 overflow-y-auto overscroll-contain">
             <div className="p-6 md:p-10 font-body">
+              {checkoutSecret ? (
+                <div className="max-w-3xl mx-auto">
+                  <button
+                    onClick={() => setCheckoutSecret(null)}
+                    className="mb-4 text-[12px] text-white/55 hover:text-white inline-flex items-center gap-1.5"
+                  >
+                    ← Back to packages
+                  </button>
+                  <div className="rounded-2xl overflow-hidden bg-white">
+                    <EmbeddedCheckoutProvider
+                      stripe={getStripe()}
+                      options={{ fetchClientSecret: async () => checkoutSecret }}
+                    >
+                      <EmbeddedCheckout />
+                    </EmbeddedCheckoutProvider>
+                  </div>
+                </div>
+              ) : (
+              <>
               {/* Editorial header */}
               <div className="text-center mb-10 max-w-2xl mx-auto">
                 <motion.div

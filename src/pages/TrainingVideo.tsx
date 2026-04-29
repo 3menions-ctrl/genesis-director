@@ -19,7 +19,7 @@ import {
   ChevronRight, CircleDot, Pause, Film
 } from 'lucide-react';
 import { CreditsDisplay } from '@/components/studio/CreditsDisplay';
-import TrainingBackground from '@/components/training/TrainingBackground';
+import { CinematicAtmosphere, DiagnosticTicker } from '@/components/premium/CinematicAtmosphere';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { handleError } from '@/lib/errorHandler';
 import { SimpleVideoPlayer } from '@/components/player';
@@ -702,13 +702,24 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
   };
 
   return (
-    <div ref={ref} className="min-h-screen bg-[#030303] text-white overflow-x-hidden">
-      <TrainingBackground />
+    <div ref={ref} className="min-h-screen text-white overflow-x-hidden relative">
+      <CinematicAtmosphere ns="train" stars={22} />
       <AppHeader />
       
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Diagnostic ticker */}
+        <div className="flex justify-center pt-12">
+          <DiagnosticTicker
+            ns="train"
+            items={[
+              { code: 'TRN', label: 'Studio' },
+              { code: 'LIP', label: 'Sync Engine' },
+              { code: 'LIVE', label: 'Render' },
+            ]}
+          />
+        </div>
         {/* Premium editorial header */}
-        <div className="pt-16 sm:pt-20">
+        <div className="pt-6 sm:pt-8">
           <PremiumPageHero
             eyebrow="Studio · Lip-Sync Engine"
             titlePrefix="Training"

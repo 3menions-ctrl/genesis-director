@@ -2159,3 +2159,9 @@ img, a, button {
     @apply h-px w-full bg-white/[0.06];
   }
 }
+
+/* CinemaBackdrop — global keyframe so the aurora animates everywhere */
+@keyframes loaderAurora {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

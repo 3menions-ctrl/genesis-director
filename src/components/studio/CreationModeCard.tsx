@@ -2,42 +2,14 @@ import { memo, forwardRef } from 'react';
 import { LucideIcon, Check, Sparkles, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Cinematic color themes per mode
-const MODE_THEMES: Record<string, {
-  gradient: string;
-  glow: string;
-  iconBg: string;
-  iconBgSelected: string;
-  accentLine: string;
-  badge: string;
-}> = {
-  'text-to-video': {
-    gradient: 'from-violet-500/20 via-purple-500/10 to-fuchsia-500/5',
-    glow: 'shadow-[0_0_60px_rgba(139,92,246,0.15)]',
-    iconBg: 'bg-violet-500/15 text-violet-300 group-hover:bg-violet-500/25 group-hover:text-violet-200',
-    iconBgSelected: 'bg-violet-500 text-white shadow-[0_0_20px_rgba(139,92,246,0.4)]',
-    accentLine: 'from-transparent via-violet-500/50 to-transparent',
-    badge: 'bg-violet-500/20 text-violet-300 border-violet-500/30',
-  },
-  'image-to-video': {
-    gradient: 'from-cyan-500/20 via-blue-500/10 to-teal-500/5',
-    glow: 'shadow-[0_0_60px_rgba(6,182,212,0.15)]',
-    iconBg: 'bg-cyan-500/15 text-cyan-300 group-hover:bg-cyan-500/25 group-hover:text-cyan-200',
-    iconBgSelected: 'bg-cyan-500 text-white shadow-[0_0_20px_rgba(6,182,212,0.4)]',
-    accentLine: 'from-transparent via-cyan-500/50 to-transparent',
-    badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
-  },
-  'avatar': {
-    gradient: 'from-amber-500/20 via-orange-500/10 to-rose-500/5',
-    glow: 'shadow-[0_0_60px_rgba(245,158,11,0.15)]',
-    iconBg: 'bg-amber-500/15 text-amber-300 group-hover:bg-amber-500/25 group-hover:text-amber-200',
-    iconBgSelected: 'bg-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.4)]',
-    accentLine: 'from-transparent via-amber-500/50 to-transparent',
-    badge: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-  },
+// Unified Pro-Dark theme — cinematic blue (Apple-Clean / Tesla-borderless)
+// All modes share the same accent for a cohesive premium feel; subtle bias on the gradient differentiates them.
+const MODE_GRADIENTS: Record<string, string> = {
+  'text-to-video':  'radial-gradient(120% 100% at 0% 0%, hsla(215,100%,60%,0.18) 0%, hsla(215,100%,60%,0.04) 45%, transparent 75%)',
+  'image-to-video': 'radial-gradient(120% 100% at 100% 0%, hsla(215,100%,60%,0.18) 0%, hsla(215,100%,60%,0.04) 45%, transparent 75%)',
+  'avatar':         'radial-gradient(120% 100% at 50% 100%, hsla(215,100%,60%,0.18) 0%, hsla(215,100%,60%,0.04) 50%, transparent 75%)',
 };
-
-const DEFAULT_THEME = MODE_THEMES['text-to-video'];
+const DEFAULT_GRADIENT = MODE_GRADIENTS['text-to-video'];
 
 interface CreationModeCardProps {
   id: string;
@@ -62,89 +34,106 @@ export const CreationModeCard = memo(forwardRef<HTMLButtonElement, CreationModeC
   onClick,
   delay = 0,
 }, ref) {
-  const theme = MODE_THEMES[id] || DEFAULT_THEME;
+  const gradient = MODE_GRADIENTS[id] || DEFAULT_GRADIENT;
 
   return (
     <button
       ref={ref}
       onClick={onClick}
       className={cn(
-        "group relative flex flex-col items-start p-7 rounded-2xl border text-left transition-all duration-500 overflow-hidden animate-fade-in",
-        isSelected 
-          ? cn("bg-white/[0.06] border-white/20", theme.glow)
-          : "bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04] hover:border-white/[0.12] hover:shadow-[0_4px_40px_rgba(0,0,0,0.3)]"
+        "group relative flex flex-col items-start p-7 rounded-3xl text-left transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden animate-fade-in border-0",
+        "hover:-translate-y-1",
+        isSelected
+          ? "bg-white/[0.05] shadow-[0_0_0_1px_hsla(215,100%,60%,0.35),0_30px_80px_-30px_hsla(215,100%,50%,0.35)]"
+          : "bg-white/[0.022] hover:bg-white/[0.04] hover:shadow-[0_30px_80px_-30px_rgba(0,0,0,0.6)]"
       )}
-      style={{ animationDelay: `${delay * 80}ms`, animationFillMode: 'both' }}
+      style={{
+        animationDelay: `${delay * 80}ms`,
+        animationFillMode: 'both',
+        backdropFilter: 'blur(40px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+      }}
     >
-      {/* Ambient gradient background */}
-      <div className={cn(
-        "absolute inset-0 bg-gradient-to-br opacity-0 transition-opacity duration-500 pointer-events-none",
-        theme.gradient,
-        isSelected ? "opacity-100" : "group-hover:opacity-60"
-      )} />
+      {/* Ambient cinematic wash — unified blue */}
+      <div
+        className={cn(
+          "absolute inset-0 transition-opacity duration-700 pointer-events-none",
+          isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-70"
+        )}
+        style={{ background: gradient }}
+      />
 
-      {/* Top accent line */}
-      <div className={cn(
-        "absolute top-0 inset-x-0 h-px bg-gradient-to-r transition-opacity duration-500",
-        theme.accentLine,
-        isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-60"
-      )} />
+      {/* Selected luminous edge */}
+      {isSelected && (
+        <div
+          className="absolute -inset-px rounded-[25px] pointer-events-none"
+          style={{
+            background: 'linear-gradient(135deg, hsla(215,100%,60%,0.55), hsla(215,100%,70%,0.15), hsla(215,100%,60%,0.05))',
+            mask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
+            WebkitMask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
+            maskComposite: 'exclude',
+            WebkitMaskComposite: 'xor',
+            padding: '1px',
+          }}
+        />
+      )}
 
       {/* Selection indicator */}
       {isSelected && (
-        <div className="absolute top-3.5 right-3.5 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-lg animate-scale-in">
-          <Check className="w-3.5 h-3.5 text-black" />
+        <div
+          className="absolute top-4 right-4 w-6 h-6 rounded-full flex items-center justify-center animate-scale-in"
+          style={{
+            background: 'linear-gradient(180deg, hsl(215,100%,68%) 0%, hsl(215,100%,55%) 100%)',
+            boxShadow: '0 0 20px hsla(215,100%,60%,0.55), inset 0 1px 0 hsla(0,0%,100%,0.25)',
+          }}
+        >
+          <Check className="w-3.5 h-3.5 text-white" strokeWidth={2.2} />
         </div>
       )}
 
       {/* Badge */}
       {(isPopular || isNew) && !isSelected && (
-        <div className={cn(
-          "absolute top-3.5 left-3.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1 border",
-          theme.badge
-        )}>
-          {isNew ? <Sparkles className="w-2.5 h-2.5" /> : <TrendingUp className="w-2.5 h-2.5" />}
+        <div className="absolute top-4 left-4 px-2.5 py-0.5 rounded-full text-[10px] font-light uppercase tracking-[0.18em] flex items-center gap-1 bg-white/[0.05] text-white/60">
+          {isNew ? <Sparkles className="w-2.5 h-2.5" strokeWidth={1.5} /> : <TrendingUp className="w-2.5 h-2.5" strokeWidth={1.5} />}
           {isNew ? 'New' : 'Popular'}
         </div>
       )}
 
-      {/* Icon container with cinematic glow */}
+      {/* Icon — minimal glass orb */}
       <div className="relative mb-5 mt-2">
-        <div className={cn(
-          "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500",
-          isSelected ? theme.iconBgSelected : theme.iconBg
-        )}>
-          <Icon className="w-7 h-7" />
+        <div
+          className={cn(
+            "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-700",
+            isSelected
+              ? "text-white"
+              : "text-white/55 group-hover:text-white/85 group-hover:scale-105"
+          )}
+          style={{
+            background: isSelected
+              ? 'linear-gradient(180deg, hsla(215,100%,60%,0.25) 0%, hsla(215,100%,55%,0.10) 100%)'
+              : 'hsla(0,0%,100%,0.035)',
+            boxShadow: isSelected
+              ? '0 0 32px hsla(215,100%,60%,0.45), inset 0 1px 0 hsla(0,0%,100%,0.10)'
+              : 'inset 0 1px 0 hsla(0,0%,100%,0.04)',
+          }}
+        >
+          <Icon className="w-6 h-6" strokeWidth={1.5} />
         </div>
-        {/* Ambient glow behind icon when selected */}
-        {isSelected && (
-          <div className={cn(
-            "absolute inset-0 rounded-2xl blur-xl opacity-40 -z-10 scale-150",
-            theme.iconBgSelected
-          )} />
-        )}
       </div>
 
       {/* Text */}
       <h3 className={cn(
-        "relative text-base font-semibold mb-1.5 transition-colors duration-300",
+        "relative text-[16px] font-light tracking-[-0.012em] mb-2 transition-colors duration-500",
         isSelected ? "text-white" : "text-white/85 group-hover:text-white"
       )}>
         {name}
       </h3>
       <p className={cn(
-        "relative text-sm leading-relaxed line-clamp-2 transition-colors duration-300",
-        isSelected ? "text-white/50" : "text-white/35 group-hover:text-white/45"
+        "relative text-[13px] leading-relaxed line-clamp-2 font-light tracking-[-0.005em] transition-colors duration-500",
+        isSelected ? "text-white/55" : "text-white/40 group-hover:text-white/55"
       )}>
         {description}
       </p>
-
-      {/* Bottom shimmer on hover */}
-      <div className={cn(
-        "absolute bottom-0 inset-x-0 h-px bg-gradient-to-r transition-opacity duration-500",
-        theme.accentLine,
-        isSelected ? "opacity-60" : "opacity-0 group-hover:opacity-40"
-      )} />
     </button>
   );
 }));

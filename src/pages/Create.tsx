@@ -69,7 +69,13 @@ function StudioTabs({
   return (
     <div
       role="tablist"
-      className="relative inline-flex items-center gap-1 rounded-2xl p-1.5 border border-white/[0.07] bg-white/[0.02] backdrop-blur-2xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.04)]"
+      className="relative inline-flex items-center gap-1 rounded-full p-1"
+      style={{
+        background: 'hsla(0,0%,100%,0.025)',
+        backdropFilter: 'blur(48px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(48px) saturate(180%)',
+        boxShadow: '0 8px 40px -12px rgba(0,0,0,0.6), inset 0 1px 0 hsla(0,0%,100%,0.04)',
+      }}
     >
       {STUDIO_TABS.map((tab) => {
         const Icon = tab.icon;
@@ -81,26 +87,28 @@ function StudioTabs({
             aria-selected={active}
             onClick={() => onChange(tab.key)}
             className={cn(
-              'relative z-10 flex items-center gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-sm font-medium transition-colors duration-300',
-              active ? 'text-white' : 'text-white/50 hover:text-white/80'
+              'relative z-10 flex items-center gap-2.5 px-4 sm:px-5 py-2.5 rounded-full text-[13px] font-light tracking-[-0.005em] transition-colors duration-500',
+              active ? 'text-white' : 'text-white/45 hover:text-white/80'
             )}
           >
             {active && (
               <motion.span
                 layoutId="studio-tab-active"
                 transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                className="absolute inset-0 -z-10 rounded-xl"
+                className="absolute inset-0 -z-10 rounded-full"
                 style={{
                   background:
-                    'linear-gradient(180deg, hsl(212 100% 56% / 0.22) 0%, hsl(212 100% 50% / 0.12) 100%)',
-                  border: '1px solid hsl(212 100% 60% / 0.35)',
+                    'linear-gradient(180deg, hsla(215,100%,60%,0.22) 0%, hsla(215,100%,55%,0.10) 100%)',
                   boxShadow:
-                    '0 8px 30px -8px hsl(212 100% 50% / 0.45), inset 0 1px 0 hsl(212 100% 70% / 0.25)',
+                    '0 0 24px hsla(215,100%,60%,0.35), 0 0 48px hsla(215,100%,60%,0.18), inset 0 1px 0 hsla(0,0%,100%,0.10)',
                 }}
               />
             )}
-            <Icon className={cn('w-4 h-4 transition-colors', active ? 'text-primary' : 'opacity-70')} />
-            <span className="tracking-tight">{tab.label}</span>
+            <Icon
+              className={cn('w-4 h-4 transition-all duration-500', active ? 'text-[hsl(215,100%,75%)] drop-shadow-[0_0_8px_hsla(215,100%,60%,0.6)]' : 'opacity-60')}
+              strokeWidth={1.5}
+            />
+            <span>{tab.label}</span>
           </button>
         );
       })}

@@ -4,7 +4,7 @@ import {
   Wand2, Image as ImageIcon, User, Film, Coins, Sparkles, Upload,
   ChevronRight, RectangleHorizontal, Square, RectangleVertical,
   Clock, Hash, Mic, ChevronDown, X, CheckCircle2, Loader2,
-  ArrowRight, Layers, Settings2,
+  ArrowRight, Layers, Settings2, Zap, Cpu,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -32,11 +32,35 @@ import {
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 
 // ─── Mode catalog ─────────────────────────────────────────────────────────────
-const CREATION_MODES = [
-  { id: 'text-to-video' as VideoGenerationMode, name: 'Cinematic',     icon: Wand2,     hint: 'Generate from text' },
-  { id: 'image-to-video' as VideoGenerationMode, name: 'Animate',      icon: ImageIcon, hint: 'Bring an image to life' },
-  { id: 'avatar' as VideoGenerationMode,         name: 'Avatar',       icon: User,      hint: 'Talking presenter' },
+// `engine` defines which video model the pipeline routes to.
+//   kling    → Kling V3 (kwaivgi/kling-v3-video) — cinematic, lip-sync, default
+//   seedance → Seedance 2.0 (bytedance/seedance-2.0) — premium hyperreal motion
+type CreationModeDef = {
+  id: VideoGenerationMode;
+  name: string;
+  icon: any;
+  hint: string;
+  engine: 'kling' | 'seedance';
+  badge?: string;
+};
+const CREATION_MODES: CreationModeDef[] = [
+  { id: 'text-to-video',  name: 'Cinematic', icon: Wand2,     hint: 'Generate from text',     engine: 'kling' },
+  { id: 'image-to-video', name: 'Animate',   icon: ImageIcon, hint: 'Bring an image to life', engine: 'kling' },
+  { id: 'avatar',         name: 'Avatar',    icon: User,      hint: 'Talking presenter',      engine: 'kling' },
+  { id: 'text-to-video',  name: 'Seedance',  icon: Zap,       hint: 'Premium hyperreal motion', engine: 'seedance', badge: 'NEW' },
 ];
+
+// Each engine has a public-facing identity card (shown in the engine badge
+// and confirmation pill on the CTA so the user always knows what is running).
+const ENGINE_INFO: Record<'kling' | 'seedance', {
+  label: string;
+  model: string;
+  tagline: string;
+  hue: string;
+}> = {
+  kling:    { label: 'Kling V3',     model: 'kwaivgi/kling-v3-video',   tagline: 'Cinematic · Native lip-sync', hue: '212 100% 60%' },
+  seedance: { label: 'Seedance 2.0', model: 'bytedance/seedance-2.0',   tagline: 'Premium hyperreal motion',    hue: '280 95% 65%' },
+};
 
 const ASPECT_RATIOS = [
   { id: '16:9', icon: RectangleHorizontal, label: 'Wide' },
@@ -99,6 +123,9 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const { profile } = useAuth();
 
   const [selectedMode, setSelectedMode] = useState<VideoGenerationMode>('text-to-video');
+  // The active mode CARD index — multiple cards can map to the same VideoGenerationMode
+  // (Cinematic and Seedance both point to text-to-video) but route to a different engine.
+  const [selectedModeIndex, setSelectedModeIndex] = useState<number>(0);
   const [prompt, setPrompt] = useState('');
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
@@ -195,13 +222,18 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const modeConfig = VIDEO_MODES.find((m) => m.id === selectedMode);
   const supportsAdvancedOptions = selectedMode === 'text-to-video' || selectedMode === 'b-roll';
   const effectiveDuration = clipDuration;
-  const videoEngine: 'kling' | 'veo' = selectedMode === 'avatar' ? 'kling' : 'veo';
+  const activeMode = CREATION_MODES[selectedModeIndex] ?? CREATION_MODES[0];
+  // Engine derives from the selected mode card.
+  // 'kling' here = the credit/system token for the Kling V3 family used everywhere
+  // (note: legacy 'veo' is a backward-compat alias that also routes to Kling V3).
+  const videoEngine: 'kling' | 'seedance' = activeMode.engine;
+  const engineInfo = ENGINE_INFO[videoEngine];
 
   const estimatedDuration = clipCount * effectiveDuration;
   const estMin = Math.floor(estimatedDuration / 60);
   const estSec = estimatedDuration % 60;
   const estimatedCredits = useMemo(
-    () => calculateCreditsRequired(clipCount, effectiveDuration, videoEngine),
+    () => calculateCreditsRequired(clipCount, effectiveDuration, videoEngine as any),
     [clipCount, effectiveDuration, videoEngine]
   );
 
@@ -266,7 +298,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       enableMusic,
       genre: supportsAdvancedOptions || isBreakoutTemplate ? genre : undefined,
       mood: supportsAdvancedOptions || isBreakoutTemplate ? mood : undefined,
-      videoEngine,
+      videoEngine: videoEngine as any,
     };
 
     if (isBreakoutTemplate && appliedSettings?.startImageUrl && selectedAvatar) {

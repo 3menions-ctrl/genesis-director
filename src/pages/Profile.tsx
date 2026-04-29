@@ -38,6 +38,62 @@ import { MessagesInbox } from '@/components/social/MessagesInbox';
 const glassCard = "relative backdrop-blur-2xl bg-[hsla(220,14%,4%,0.55)] border border-[hsla(215,100%,60%,0.10)] rounded-2xl shadow-[0_30px_120px_-40px_hsla(215,100%,60%,0.35)]";
 const glassCardHover = "hover:border-[hsla(215,100%,60%,0.22)] hover:shadow-[0_40px_140px_-40px_hsla(215,100%,60%,0.55)] transition-all duration-500";
 
+// Animated counter — eases to target value
+function useAnimatedNumber(target: number, duration = 1400) {
+  const [value, setValue] = useState(0);
+  const startRef = useRef<number | null>(null);
+  const fromRef = useRef(0);
+  useEffect(() => {
+    fromRef.current = value;
+    startRef.current = null;
+    let raf = 0;
+    const step = (t: number) => {
+      if (startRef.current === null) startRef.current = t;
+      const p = Math.min(1, (t - startRef.current) / duration);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setValue(Math.round(fromRef.current + (target - fromRef.current) * eased));
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target]);
+  return value;
+}
+
+// Magnetic 3D tilt — premium pointer-tracked transform
+function useMagneticTilt(strength = 8) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let raf = 0;
+    const onMove = (e: MouseEvent) => {
+      const rect = el.getBoundingClientRect();
+      const px = (e.clientX - rect.left) / rect.width - 0.5;
+      const py = (e.clientY - rect.top) / rect.height - 0.5;
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        el.style.transform = `perspective(1200px) rotateX(${(-py * strength).toFixed(2)}deg) rotateY(${(px * strength).toFixed(2)}deg)`;
+        el.style.setProperty('--mx', `${(px * 100 + 50).toFixed(1)}%`);
+        el.style.setProperty('--my', `${(py * 100 + 50).toFixed(1)}%`);
+      });
+    };
+    const onLeave = () => {
+      cancelAnimationFrame(raf);
+      el.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg)';
+    };
+    el.addEventListener('mousemove', onMove);
+    el.addEventListener('mouseleave', onLeave);
+    return () => {
+      el.removeEventListener('mousemove', onMove);
+      el.removeEventListener('mouseleave', onLeave);
+      cancelAnimationFrame(raf);
+    };
+  }, [strength]);
+  return ref;
+}
+
 // Achievement definitions
 const ACHIEVEMENTS = [
   { id: 'first_video', name: 'First Light', desc: 'Generated your first video', icon: Sparkles, threshold: 1, type: 'videos' },

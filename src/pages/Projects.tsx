@@ -1193,7 +1193,10 @@ function ProjectsContentInner() {
                     onTogglePin={togglePin}
                     onTogglePublic={handleTogglePublic}
                     onPlayTraining={(video) => {
-                      setSelectedTrainingVideo(video);
+                      // Narrowing: CinematicWall passes a tile subset; find the
+                      // full TrainingVideo by id so the modal has all fields.
+                      const full = trainingVideos.find((v) => v.id === video.id);
+                      if (full) setSelectedTrainingVideo(full);
                       setTrainingVideoModalOpen(true);
                     }}
                     onDeleteTraining={handleDeleteTrainingVideo}

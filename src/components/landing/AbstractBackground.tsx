@@ -42,9 +42,9 @@ const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundPro
           style={{
             backgroundImage: `url(${landingAbstractBg})`,
             backgroundSize: 'cover',
-            filter: 'blur(40px) saturate(1.1)',
-            transform: 'scale(1.1)',
-            opacity: 0.6,
+            filter: 'blur(60px) saturate(1.2) brightness(0.5)',
+            transform: 'scale(1.15)',
+            opacity: 0.85,
           }}
           aria-hidden
         />
@@ -57,6 +57,7 @@ const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundPro
             backgroundImage: `url(${landingAbstractBg})`,
             backgroundSize: 'contain',
             backgroundPosition: 'center center',
+            filter: 'brightness(1.15) saturate(1.1)',
             ...(isTouchDevice ? {} : {
               transition: 'transform 2000ms ease-out',
               transform: `translate(${(mousePos.x - 50) * -0.015}%, ${(mousePos.y - 50) * -0.015}%)`,

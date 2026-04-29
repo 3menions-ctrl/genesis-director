@@ -67,17 +67,24 @@ export const ProjectsCategoryTabs = memo(function ProjectsCategoryTabs({
 
   return (
     <div className="flex items-center justify-center mb-6 sm:mb-8 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-      <div className="relative flex items-center p-1 rounded-2xl bg-white/[0.03] border border-white/[0.06] shadow-[0_2px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <div
+        className="relative flex items-center p-1 rounded-full"
+        style={{
+          background: 'hsla(0,0%,100%,0.025)',
+          backdropFilter: 'blur(40px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+          boxShadow: '0 8px 32px -12px rgba(0,0,0,0.5), inset 0 1px 0 hsla(0,0%,100%,0.04)',
+        }}
+      >
         {/* Sliding active pill */}
         <div
           ref={pillRef}
-          className="absolute top-1 h-[calc(100%-8px)] rounded-xl transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] z-0"
+          className="absolute top-1 h-[calc(100%-8px)] rounded-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] z-0"
           style={{
             left: pillStyle.left,
             width: pillStyle.width,
-            background: 'linear-gradient(135deg, hsl(var(--primary) / 0.15) 0%, hsl(var(--primary) / 0.08) 100%)',
-            boxShadow: '0 0 20px hsl(var(--primary) / 0.1), inset 0 1px 0 rgba(255,255,255,0.06)',
-            border: '1px solid hsl(var(--primary) / 0.2)',
+            background: 'linear-gradient(135deg, hsla(215,100%,60%,0.18) 0%, hsla(215,100%,60%,0.06) 100%)',
+            boxShadow: '0 0 24px hsla(215,100%,60%,0.18), 0 0 48px hsla(215,100%,60%,0.08), inset 0 1px 0 hsla(0,0%,100%,0.08)',
           }}
         />
 
@@ -92,23 +99,23 @@ export const ProjectsCategoryTabs = memo(function ProjectsCategoryTabs({
               ref={(el) => { if (el) buttonsRef.current.set(mode.key, el); }}
               onClick={() => handleModeChange(mode.key)}
               className={cn(
-                "relative z-10 flex items-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl transition-all duration-400 select-none",
+                "relative z-10 flex items-center gap-2 px-5 sm:px-6 py-2.5 rounded-full transition-all duration-500 select-none",
                 isActive
                   ? "text-white"
-                  : "text-white/30 hover:text-white/55"
+                  : "text-white/35 hover:text-white/65"
               )}
             >
               <Icon className={cn(
-                "w-4 h-4 transition-all duration-400",
-                isActive ? "text-primary" : "opacity-40"
+                "w-4 h-4 transition-all duration-500",
+                isActive ? "text-[hsl(215,100%,70%)] drop-shadow-[0_0_8px_hsla(215,100%,60%,0.6)]" : "opacity-50"
               )} />
-              <span className="text-[13px] font-semibold tracking-wide">{mode.label}</span>
+              <span className="text-[13px] font-light tracking-[0.01em]">{mode.label}</span>
               {count > 0 && (
                 <span className={cn(
-                  "text-[10px] font-medium tabular-nums px-1.5 py-0.5 rounded-md transition-all duration-400",
+                  "text-[10px] font-light tabular-nums px-2 py-0.5 rounded-full transition-all duration-500",
                   isActive 
-                    ? "bg-primary/20 text-primary" 
-                    : "bg-white/[0.04] text-white/20"
+                    ? "bg-[hsla(215,100%,60%,0.18)] text-[hsl(215,100%,75%)]"
+                    : "bg-white/[0.04] text-white/30"
                 )}>
                   {count}
                 </span>

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, ShieldCheck, Sparkles, Zap, KeyRound } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, ShieldCheck, Zap, KeyRound, Star } from 'lucide-react';
 import { z } from 'zod';
 import { PasswordStrength } from '@/components/ui/password-strength';
 import { WelcomeBackDialog } from '@/components/auth/WelcomeBackDialog';
@@ -21,29 +21,27 @@ import authHeroImage from '@/assets/auth-hero-mittens.png';
 function FloatingParticles() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {Array.from({ length: 24 }).map((_, i) => (
+      {Array.from({ length: 18 }).map((_, i) => (
         <motion.div
           key={i}
           className="absolute rounded-full"
           style={{
-            width: Math.random() * 3 + 1,
-            height: Math.random() * 3 + 1,
+            width: Math.random() * 2 + 0.6,
+            height: Math.random() * 2 + 0.6,
             left: `${Math.random() * 100}%`,
             top: `${Math.random() * 100}%`,
-            background: i % 3 === 0 
-              ? 'hsl(263, 70%, 58%)' 
-              : i % 3 === 1 
-                ? 'hsl(195, 90%, 50%)' 
-                : 'rgba(255,255,255,0.4)',
+            background: i % 2 === 0
+              ? 'hsl(212, 100%, 55%)'
+              : 'rgba(255,255,255,0.35)',
           }}
           animate={{
             y: [0, -30 - Math.random() * 40, 0],
             x: [0, Math.random() * 20 - 10, 0],
-            opacity: [0, 0.7, 0],
-            scale: [0.5, 1.2, 0.5],
+            opacity: [0, 0.5, 0],
+            scale: [0.4, 1, 0.4],
           }}
           transition={{
-            duration: 4 + Math.random() * 6,
+            duration: 6 + Math.random() * 6,
             repeat: Infinity,
             delay: Math.random() * 5,
             ease: 'easeInOut',
@@ -297,30 +295,40 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
       />
       
       <div ref={mergedRef} className="min-h-screen flex relative overflow-hidden">
-        {/* Deep cinematic background */}
-        <div className="fixed inset-0 bg-[hsl(250,15%,3%)]" />
-        <div 
-          className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-20"
-          style={{ backgroundImage: `url(${landingAbstractBg})` }}
-        />
-        
-        {/* Animated orbs */}
-        <AnimatedOrb className="w-[700px] h-[700px] bg-primary/20 top-[-200px] left-[10%]" />
-        <AnimatedOrb className="w-[500px] h-[500px] bg-accent/15 bottom-[-100px] right-[15%]" delay={3} />
-        <AnimatedOrb className="w-[400px] h-[400px] bg-primary/10 top-[40%] right-[-100px]" delay={5} />
-        
-        {/* Grid overlay */}
-        <div 
-          className="fixed inset-0 pointer-events-none opacity-[0.03]"
+        {/* Pro-Dark cinematic background */}
+        <div className="fixed inset-0 bg-[hsl(220,14%,2%)]" />
+        <div
+          className="fixed inset-0 pointer-events-none"
           style={{
-            backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
+            background:
+              'radial-gradient(900px 600px at 12% -10%, hsla(212, 100%, 50%, 0.10), transparent 60%), radial-gradient(700px 500px at 100% 110%, hsla(212, 100%, 45%, 0.06), transparent 55%)',
           }}
         />
-        
+        <div
+          className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-[0.07] mix-blend-screen"
+          style={{ backgroundImage: `url(${landingAbstractBg})` }}
+        />
+        {/* Hairline grid */}
+        <div
+          className="fixed inset-0 pointer-events-none opacity-[0.025]"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)',
+            backgroundSize: '72px 72px',
+          }}
+        />
+        {/* Film grain */}
+        <div
+          className="fixed inset-0 pointer-events-none opacity-[0.05] mix-blend-overlay"
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>\")",
+          }}
+        />
         {/* Vignette */}
-        <div className="fixed inset-0 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.7) 100%)' }}
+        <div
+          className="fixed inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.75) 100%)' }}
         />
 
         {/* Left Side - Hero Image */}
@@ -334,11 +342,13 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-[hsl(250,15%,3%)]" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[hsl(250,15%,3%)]/80 via-transparent to-[hsl(250,15%,3%)]/60" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[hsl(220,14%,2%)]/30 to-[hsl(220,14%,2%)]" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[hsl(220,14%,2%)]/90 via-transparent to-[hsl(220,14%,2%)]/70" />
             {/* Cinematic letterbox lines */}
-            <div className="absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-black/50 to-transparent" />
-            <div className="absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t from-black/50 to-transparent" />
+            <div className="absolute top-0 inset-x-0 h-20 bg-gradient-to-b from-black/70 to-transparent" />
+            <div className="absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-black/70 to-transparent" />
+            {/* Right edge hairline */}
+            <div className="absolute top-0 right-0 h-full w-px bg-gradient-to-b from-transparent via-white/[0.06] to-transparent" />
           </div>
           
           <FloatingParticles />
@@ -350,7 +360,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.6 }}
             >
-              <Logo size="xl" showText textClassName="text-2xl font-display font-bold drop-shadow-lg" />
+              <Logo size="xl" showText textClassName="text-2xl font-display font-semibold tracking-[-0.01em] drop-shadow-lg" />
             </motion.div>
             
             <div className="space-y-8">
@@ -359,43 +369,45 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               >
-                <h2 className="text-5xl xl:text-7xl font-display font-bold text-white leading-[1.05] tracking-tight">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-md mb-6">
+                  <span className="w-1 h-1 rounded-full bg-[hsl(212,100%,55%)] shadow-[0_0_8px_hsl(212,100%,55%)]" />
+                  <span className="text-[10px] font-medium tracking-[0.18em] uppercase text-white/60">Apex Studio Pro</span>
+                </div>
+                <h2 className="text-5xl xl:text-7xl font-display font-semibold text-white leading-[0.98] tracking-[-0.035em]">
                   Create.<br />
-                  <span className="bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] animate-[shimmer-bg_4s_ease-in-out_infinite] bg-clip-text text-transparent">
-                    Direct.
-                  </span><br />
-                  <span className="text-white/30">Produce.</span>
+                  <span className="text-[hsl(212,100%,62%)]">Direct.</span><br />
+                  <span className="text-white/25">Produce.</span>
                 </h2>
               </motion.div>
               
-              <motion.p 
-                className="text-lg text-white/40 max-w-md leading-relaxed"
+              <motion.p
+                className="text-base text-white/45 max-w-md leading-relaxed font-light"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8, duration: 0.6 }}
               >
-                AI-powered cinema at the speed of thought. One prompt, minutes of cinematic video.
+                AI-powered cinema at the speed of thought. One prompt — minutes of cinematic video.
               </motion.p>
               
               {/* Premium social proof */}
-              <motion.div 
-                className="inline-flex items-center gap-4 px-5 py-3 rounded-2xl bg-white/[0.04] border border-white/[0.06] backdrop-blur-xl"
+              <motion.div
+                className="inline-flex items-center gap-4 pl-3 pr-5 py-2.5 rounded-full bg-white/[0.035] border border-white/[0.07] backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1, duration: 0.6 }}
               >
                 <div className="flex -space-x-2.5">
                   {[
-                    'from-violet-500 to-purple-600',
-                    'from-cyan-400 to-blue-500',
-                    'from-emerald-400 to-teal-500',
-                    'from-amber-400 to-orange-500',
+                    'from-[hsl(212,100%,60%)] to-[hsl(212,100%,42%)]',
+                    'from-white/80 to-white/40',
+                    'from-[hsl(212,100%,70%)] to-[hsl(212,100%,45%)]',
+                    'from-white/60 to-white/20',
                   ].map((gradient, i) => (
-                    <motion.div 
-                      key={i} 
+                    <motion.div
+                      key={i}
                       className={cn(
-                        "w-8 h-8 rounded-full bg-gradient-to-br border-2 border-[hsl(250,15%,3%)]",
-                        gradient
+                        'w-7 h-7 rounded-full bg-gradient-to-br border-2 border-[hsl(220,14%,2%)]',
+                        gradient,
                       )}
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
@@ -404,10 +416,10 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                   ))}
                 </div>
                 <div>
-                  <span className="text-sm text-white/70 font-medium">1,000+ creators</span>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    {[1,2,3,4,5].map(i => (
-                      <Sparkles key={i} className="w-2.5 h-2.5 text-amber-400/80" />
+                  <span className="text-[13px] text-white/80 font-medium tracking-tight tabular-nums">1,000+ filmmakers</span>
+                  <div className="flex items-center gap-0.5 mt-0.5">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Star key={i} className="w-2.5 h-2.5 text-white/70 fill-white/70" />
                     ))}
                   </div>
                 </div>
@@ -436,30 +448,28 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
               >
                 <Logo size="xl" />
               </motion.div>
-              <h1 className="text-xl font-display font-bold text-white/90">Apex Studio</h1>
+              <h1 className="text-xl font-display font-semibold tracking-[-0.01em] text-white/90">Apex Studio</h1>
             </div>
 
-            {/* Glass container with animated border */}
-            <div className="relative rounded-[28px] overflow-hidden group">
-              {/* Animated gradient border */}
-              <div className="absolute inset-0 rounded-[28px] p-[1px] overflow-hidden">
-                <div 
-                  className="absolute inset-[-100%] animate-[spin_8s_linear_infinite]"
-                  style={{
-                    background: 'conic-gradient(from 0deg, transparent, hsl(263, 70%, 58%), transparent, hsl(195, 90%, 50%), transparent)',
-                  }}
-                />
-              </div>
-              
-              {/* Inner container */}
-              <div className="relative rounded-[27px] m-[1px] bg-[hsl(250,15%,5%)]/95 backdrop-blur-2xl overflow-hidden">
-                {/* Top highlight */}
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                
-                {/* Inner glow */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[300px] h-[200px] bg-primary/5 blur-[80px] rounded-full" />
-                
-                <div className="relative p-8 sm:p-10">
+            {/* Glass card — Apple-clean, hairline ring, deep shadow */}
+            <div
+              className="relative rounded-[24px] overflow-hidden"
+              style={{
+                background:
+                  'linear-gradient(180deg, hsla(220, 14%, 6%, 0.92) 0%, hsla(220, 14%, 3.5%, 0.96) 100%)',
+                boxShadow:
+                  '0 1px 0 hsla(0,0%,100%,0.05) inset, 0 0 0 1px hsla(0,0%,100%,0.06), 0 30px 80px -20px rgba(0,0,0,0.7), 0 0 60px -20px hsla(212,100%,50%,0.12)',
+                backdropFilter: 'blur(24px)',
+              }}
+            >
+              {/* Top hairline highlight */}
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+              {/* Subtle blue rim glow at top */}
+              <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[320px] h-[180px] rounded-full"
+                style={{ background: 'radial-gradient(closest-side, hsla(212,100%,55%,0.18), transparent 70%)' }}
+              />
+
+              <div className="relative p-8 sm:p-10">
                   <AnimatePresence mode="wait">
                     {/* Email Confirmation Pending */}
                     {pendingEmailConfirmation && (
@@ -484,8 +494,8 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                           />
                         </motion.div>
                         
-                        <motion.h2 
-                          className="text-3xl font-display font-bold text-white mb-3 tracking-tight"
+                        <motion.h2
+                          className="text-[28px] font-display font-semibold text-white mb-3 tracking-[-0.025em]"
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.3 }}
@@ -497,8 +507,8 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                           animate={{ opacity: 1 }}
                           transition={{ delay: 0.4 }}
                         >
-                          <p className="text-white/40 mb-1 text-sm">We sent a 6-digit code to</p>
-                          <p className="text-white font-semibold text-sm mb-6">{pendingEmailConfirmation}</p>
+                          <p className="text-white/45 mb-1 text-[13px]">We sent a 6-digit code to</p>
+                          <p className="text-white font-medium text-[13px] mb-6 tracking-tight">{pendingEmailConfirmation}</p>
                           
                           {/* OTP Input */}
                           <div className="flex justify-center gap-2.5 mb-6">
@@ -535,12 +545,12 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                                   document.getElementById(`otp-${focusIdx}`)?.focus();
                                 }}
                                 className={cn(
-                                  "w-12 h-14 text-center text-xl font-bold text-white rounded-xl",
-                                  "bg-white/[0.04] border border-white/[0.08]",
-                                  "focus:border-primary/60 focus:ring-2 focus:ring-primary/20 focus:bg-white/[0.06]",
-                                  "outline-none transition-all duration-200",
-                                  "hover:border-white/[0.15]",
-                                  otpCode[i] && "border-primary/30 bg-primary/[0.04]"
+                                  'w-12 h-14 text-center text-xl font-semibold text-white rounded-xl tabular-nums',
+                                  'bg-white/[0.035] border border-white/[0.08]',
+                                  'focus:border-[hsl(212,100%,55%)]/60 focus:ring-2 focus:ring-[hsl(212,100%,55%)]/20 focus:bg-white/[0.06]',
+                                  'outline-none transition-all duration-200',
+                                  'hover:border-white/[0.15]',
+                                  otpCode[i] && 'border-[hsl(212,100%,55%)]/40 bg-[hsl(212,100%,55%)]/[0.05] shadow-[0_0_18px_-6px_hsla(212,100%,55%,0.5)]',
                                 )}
                                 autoFocus={i === 0}
                               />
@@ -548,12 +558,12 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                           </div>
                           
                           {/* Security badge */}
-                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/15 mb-6">
-                            <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-                            <span className="text-xs text-primary/80">Secure verification</span>
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] mb-6 backdrop-blur-md">
+                            <ShieldCheck className="w-3.5 h-3.5 text-[hsl(212,100%,62%)]" />
+                            <span className="text-[11px] tracking-wide text-white/65">End-to-end secure</span>
                           </div>
                           
-                          <p className="text-white/30 text-xs mb-6 leading-relaxed max-w-[280px] mx-auto">
+                          <p className="text-white/35 text-[12px] mb-6 leading-relaxed max-w-[280px] mx-auto">
                             Enter the code from your email to verify your account.
                           </p>
                         </motion.div>
@@ -591,7 +601,13 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                               }
                             }}
                             disabled={verifyingOtp || otpCode.length !== 6}
-                            className="w-full h-13 bg-gradient-to-r from-primary to-primary/90 text-white hover:from-primary/90 hover:to-primary/80 rounded-2xl font-semibold text-sm shadow-[0_0_30px_rgba(124,58,237,0.2)] hover:shadow-[0_0_40px_rgba(124,58,237,0.35)] transition-all duration-500 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                            className="w-full h-12 rounded-2xl font-semibold text-[13px] tracking-tight text-white transition-all duration-300 hover:scale-[1.005] active:scale-[0.995] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                            style={{
+                              background:
+                                'linear-gradient(180deg, hsl(212, 100%, 60%) 0%, hsl(212, 100%, 48%) 50%, hsl(212, 100%, 42%) 100%)',
+                              boxShadow:
+                                '0 1px 0 hsla(0,0%,100%,0.18) inset, 0 8px 28px -8px hsla(212, 100%, 50%, 0.55)',
+                            }}
                           >
                             {verifyingOtp ? (
                               <>
@@ -649,44 +665,44 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                     {!pendingEmailConfirmation && (
                       <motion.div key={isLogin ? 'login' : 'signup'} initial={formEnter} animate={formAnimate} exit={formExit}>
                         {/* Header */}
-                        <div className="mb-8">
-                          <motion.div 
-                            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-gradient-to-r from-primary/15 to-accent/10 border border-primary/20 mb-5"
+                        <div className="mb-7">
+                          <motion.div
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-md mb-5"
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: 0.1, type: 'spring' }}
                           >
-                            <motion.div 
-                              className="w-1.5 h-1.5 rounded-full bg-primary"
+                            <motion.div
+                              className="w-1.5 h-1.5 rounded-full bg-[hsl(212,100%,55%)] shadow-[0_0_8px_hsl(212,100%,55%)]"
                               animate={{ scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }}
                               transition={{ duration: 2, repeat: Infinity }}
                             />
-                            <span className="text-xs font-medium bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                            <span className="text-[10px] font-medium tracking-[0.16em] uppercase text-white/65">
                               {isLogin ? 'Welcome back' : 'Get started free'}
                             </span>
                           </motion.div>
-                          <h2 className="text-3xl sm:text-4xl font-display font-bold text-white mb-2 tracking-tight">
+                          <h2 className="text-[32px] sm:text-[36px] font-display font-semibold text-white mb-2 tracking-[-0.03em] leading-[1.05]">
                             {isLogin ? 'Sign in' : 'Create account'}
                           </h2>
-                          <p className="text-white/35 text-sm">
+                          <p className="text-white/40 text-[13px]">
                             {isLogin ? 'Continue to your creative studio' : 'Start your filmmaking journey today'}
                           </p>
                         </div>
 
                         {/* Pending Creation Banner */}
                         {hasPendingCreation && !isLogin && (
-                          <motion.div 
-                            className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-primary/[0.06] to-accent/[0.04] border border-primary/15"
+                          <motion.div
+                            className="mb-6 p-3.5 rounded-2xl bg-[hsl(212,100%,55%)]/[0.05] border border-[hsl(212,100%,55%)]/15"
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                           >
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/30 to-accent/20 flex items-center justify-center shrink-0">
-                                <Zap className="w-5 h-5 text-primary" />
+                              <div className="w-10 h-10 rounded-xl bg-[hsl(212,100%,55%)]/15 border border-[hsl(212,100%,55%)]/20 flex items-center justify-center shrink-0">
+                                <Zap className="w-4.5 h-4.5 text-[hsl(212,100%,65%)]" />
                               </div>
                               <div>
-                                <p className="text-sm font-medium text-white">Your video is ready to create!</p>
-                                <p className="text-xs text-white/35">Sign up to bring your vision to life</p>
+                                <p className="text-[13px] font-medium text-white tracking-tight">Your video is ready to create</p>
+                                <p className="text-[11px] text-white/40">Sign up to bring your vision to life</p>
                               </div>
                             </div>
                           </motion.div>
@@ -711,11 +727,11 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                             }
                           }}
                           className={cn(
-                            "w-full h-13 rounded-2xl font-semibold text-sm mb-6",
-                            "bg-white/[0.04] border-white/[0.08] text-white",
-                            "hover:bg-white/[0.08] hover:border-white/[0.15]",
-                            "transition-all duration-300",
-                            "flex items-center justify-center gap-3"
+                            'w-full h-12 rounded-xl font-medium text-[13px] tracking-tight mb-2.5',
+                            'bg-white/[0.035] border-white/[0.08] text-white',
+                            'hover:bg-white/[0.06] hover:border-white/[0.14]',
+                            'transition-all duration-300',
+                            'flex items-center justify-center gap-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
                           )}
                         >
                           {googleLoading ? (
@@ -750,11 +766,11 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                             }
                           }}
                           className={cn(
-                            "w-full h-13 rounded-2xl font-semibold text-sm mb-6",
-                            "bg-white/[0.04] border-white/[0.08] text-white",
-                            "hover:bg-white/[0.08] hover:border-white/[0.15]",
-                            "transition-all duration-300",
-                            "flex items-center justify-center gap-3"
+                            'w-full h-12 rounded-xl font-medium text-[13px] tracking-tight mb-6',
+                            'bg-white/[0.035] border-white/[0.08] text-white',
+                            'hover:bg-white/[0.06] hover:border-white/[0.14]',
+                            'transition-all duration-300',
+                            'flex items-center justify-center gap-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
                           )}
                         >
                           {appleLoading ? (
@@ -769,19 +785,19 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
 
                         {/* Divider */}
                         <div className="flex items-center gap-4 mb-6">
-                          <div className="flex-1 h-px bg-white/[0.06]" />
-                          <span className="text-xs text-white/25 uppercase tracking-wider">or</span>
-                          <div className="flex-1 h-px bg-white/[0.06]" />
+                          <div className="flex-1 h-px bg-gradient-to-r from-transparent to-white/[0.08]" />
+                          <span className="text-[10px] text-white/30 uppercase tracking-[0.2em] font-medium">or</span>
+                          <div className="flex-1 h-px bg-gradient-to-l from-transparent to-white/[0.08]" />
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-5">
                           {/* Email */}
                           <div className="space-y-2">
-                            <Label htmlFor="email" className="text-white/60 text-xs font-medium uppercase tracking-wider">
+                            <Label htmlFor="email" className="text-white/55 text-[10px] font-medium uppercase tracking-[0.16em]">
                               Email
                             </Label>
                             <div className="relative group">
-                              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25 group-focus-within:text-primary transition-colors duration-300" />
+                              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-[hsl(212,100%,62%)] transition-colors duration-300" />
                               <Input
                                 id="email"
                                 type="email"
@@ -792,11 +808,11 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                                   if (errors.email) setErrors(prev => ({ ...prev, email: undefined }));
                                 }}
                                 className={cn(
-                                  "h-13 pl-11 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20",
-                                  "focus:border-primary/50 focus:ring-2 focus:ring-primary/15 focus:bg-white/[0.05]",
-                                  "rounded-xl transition-all duration-300",
-                                  "hover:border-white/[0.12] hover:bg-white/[0.04]",
-                                  errors.email && "border-destructive/50 focus:ring-destructive/15"
+                                  'h-12 pl-11 bg-white/[0.025] border-white/[0.07] text-white placeholder:text-white/25 text-[14px]',
+                                  'focus:border-[hsl(212,100%,55%)]/55 focus:ring-2 focus:ring-[hsl(212,100%,55%)]/15 focus:bg-white/[0.04]',
+                                  'rounded-xl transition-all duration-300',
+                                  'hover:border-white/[0.12] hover:bg-white/[0.035]',
+                                  errors.email && 'border-destructive/50 focus:ring-destructive/15',
                                 )}
                                 maxLength={255}
                               />
@@ -811,17 +827,17 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                           {/* Password */}
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <Label htmlFor="password" className="text-white/60 text-xs font-medium uppercase tracking-wider">
+                              <Label htmlFor="password" className="text-white/55 text-[10px] font-medium uppercase tracking-[0.16em]">
                                 Password
                               </Label>
                               {isLogin && (
-                                <Link to="/forgot-password" className="text-xs text-primary/60 hover:text-primary transition-colors">
-                                  Forgot?
+                                <Link to="/forgot-password" className="text-[11px] text-white/45 hover:text-[hsl(212,100%,65%)] transition-colors">
+                                  Forgot password?
                                 </Link>
                               )}
                             </div>
                             <div className="relative group">
-                              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25 group-focus-within:text-primary transition-colors duration-300" />
+                              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-[hsl(212,100%,62%)] transition-colors duration-300" />
                               <Input
                                 id="password"
                                 type={showPassword ? 'text' : 'password'}
@@ -832,18 +848,18 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                                   if (errors.password) setErrors(prev => ({ ...prev, password: undefined }));
                                 }}
                                 className={cn(
-                                  "h-13 pl-11 pr-11 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20",
-                                  "focus:border-primary/50 focus:ring-2 focus:ring-primary/15 focus:bg-white/[0.05]",
-                                  "rounded-xl transition-all duration-300",
-                                  "hover:border-white/[0.12] hover:bg-white/[0.04]",
-                                  errors.password && "border-destructive/50"
+                                  'h-12 pl-11 pr-11 bg-white/[0.025] border-white/[0.07] text-white placeholder:text-white/25 text-[14px]',
+                                  'focus:border-[hsl(212,100%,55%)]/55 focus:ring-2 focus:ring-[hsl(212,100%,55%)]/15 focus:bg-white/[0.04]',
+                                  'rounded-xl transition-all duration-300',
+                                  'hover:border-white/[0.12] hover:bg-white/[0.035]',
+                                  errors.password && 'border-destructive/50',
                                 )}
                                 maxLength={72}
                               />
                               <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/60 transition-colors"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors"
                               >
                                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                               </button>
@@ -873,11 +889,11 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                               animate={{ opacity: 1, height: 'auto' }}
                               className="space-y-2 overflow-hidden"
                             >
-                              <Label htmlFor="confirmPassword" className="text-white/60 text-xs font-medium uppercase tracking-wider">
+                              <Label htmlFor="confirmPassword" className="text-white/55 text-[10px] font-medium uppercase tracking-[0.16em]">
                                 Confirm Password
                               </Label>
                               <div className="relative group">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25 group-focus-within:text-primary transition-colors duration-300" />
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-[hsl(212,100%,62%)] transition-colors duration-300" />
                                 <Input
                                   id="confirmPassword"
                                   type={showConfirmPassword ? 'text' : 'password'}
@@ -888,18 +904,18 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                                     if (errors.confirmPassword) setErrors(prev => ({ ...prev, confirmPassword: undefined }));
                                   }}
                                   className={cn(
-                                    "h-13 pl-11 pr-11 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20",
-                                    "focus:border-primary/50 focus:ring-2 focus:ring-primary/15 focus:bg-white/[0.05]",
-                                    "rounded-xl transition-all duration-300",
-                                    "hover:border-white/[0.12] hover:bg-white/[0.04]",
-                                    errors.confirmPassword && "border-destructive/50"
+                                    'h-12 pl-11 pr-11 bg-white/[0.025] border-white/[0.07] text-white placeholder:text-white/25 text-[14px]',
+                                    'focus:border-[hsl(212,100%,55%)]/55 focus:ring-2 focus:ring-[hsl(212,100%,55%)]/15 focus:bg-white/[0.04]',
+                                    'rounded-xl transition-all duration-300',
+                                    'hover:border-white/[0.12] hover:bg-white/[0.035]',
+                                    errors.confirmPassword && 'border-destructive/50',
                                   )}
                                   maxLength={72}
                                 />
                                 <button
                                   type="button"
                                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/60 transition-colors"
+                                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors"
                                 >
                                   {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                 </button>
@@ -912,8 +928,8 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                                     transition={{ type: 'spring' }}
                                   >
                                     <div className={cn(
-                                      "w-2 h-2 rounded-full transition-colors",
-                                      password === confirmPassword ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" : "bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.5)]"
+                                      'w-1.5 h-1.5 rounded-full transition-colors',
+                                      password === confirmPassword ? 'bg-[hsl(142,70%,55%)] shadow-[0_0_10px_hsla(142,70%,55%,0.7)]' : 'bg-destructive shadow-[0_0_10px_rgba(239,68,68,0.6)]',
                                     )} />
                                   </motion.div>
                                 )}
@@ -926,17 +942,20 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                             </motion.div>
                           )}
 
-                          {/* Submit */}
-                          <Button 
-                            type="submit" 
+                          {/* Submit — luminous blue CTA */}
+                          <Button
+                            type="submit"
                             disabled={loading}
                             className={cn(
-                              "w-full h-13 rounded-2xl font-semibold text-sm transition-all duration-500",
-                              "hover:scale-[1.01] active:scale-[0.99]",
-                              isLogin
-                                ? "bg-gradient-to-r from-white to-white/95 text-black hover:from-white/95 hover:to-white/90 shadow-[0_0_30px_rgba(255,255,255,0.08)] hover:shadow-[0_0_40px_rgba(255,255,255,0.15)]"
-                                : "bg-gradient-to-r from-primary to-primary/90 text-white hover:from-primary/90 hover:to-primary/80 shadow-[0_0_30px_rgba(124,58,237,0.2)] hover:shadow-[0_0_40px_rgba(124,58,237,0.35)]"
+                              'w-full h-12 rounded-xl font-semibold text-[13px] tracking-tight text-white relative overflow-hidden',
+                              'transition-all duration-300 hover:scale-[1.005] active:scale-[0.995] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100',
                             )}
+                            style={{
+                              background:
+                                'linear-gradient(180deg, hsl(212, 100%, 60%) 0%, hsl(212, 100%, 48%) 50%, hsl(212, 100%, 42%) 100%)',
+                              boxShadow:
+                                '0 1px 0 hsla(0,0%,100%,0.2) inset, 0 0 0 1px hsla(212, 100%, 50%, 0.2), 0 10px 30px -8px hsla(212, 100%, 50%, 0.55)',
+                            }}
                           >
                             {loading ? (
                               <>
@@ -953,7 +972,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                         </form>
 
                         {/* Toggle Mode */}
-                        <p className="text-center text-sm text-white/35 mt-8">
+                        <p className="text-center text-[13px] text-white/40 mt-7">
                           {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
                           <button
                             type="button"
@@ -963,7 +982,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                               setPassword('');
                               setConfirmPassword('');
                             }}
-                            className="text-white font-semibold hover:text-primary transition-colors duration-300"
+                            className="text-white font-medium hover:text-[hsl(212,100%,65%)] transition-colors duration-300 underline-offset-4 hover:underline"
                           >
                             {isLogin ? 'Sign up' : 'Sign in'}
                           </button>
@@ -972,38 +991,38 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                         {/* Terms */}
                         {!isLogin && (
                           <motion.p 
-                            className="text-center text-xs text-white/25 mt-4 leading-relaxed"
+                            className="text-center text-[11px] text-white/30 mt-4 leading-relaxed"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.3 }}
                           >
                             By creating an account, you agree to our{' '}
-                            <Link to="/terms" className="text-white/40 hover:text-white/70 underline underline-offset-2 transition-colors">Terms</Link>
+                            <Link to="/terms" className="text-white/55 hover:text-white underline underline-offset-2 transition-colors">Terms</Link>
                             {' '}and{' '}
-                            <Link to="/privacy" className="text-white/40 hover:text-white/70 underline underline-offset-2 transition-colors">Privacy Policy</Link>
+                            <Link to="/privacy" className="text-white/55 hover:text-white underline underline-offset-2 transition-colors">Privacy</Link>
                           </motion.p>
                         )}
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
-              </div>
             </div>
             
             {/* Bottom trust badges */}
-            <motion.div 
-              className="flex items-center justify-center gap-6 mt-6"
+            <motion.div
+              className="flex items-center justify-center gap-5 mt-5"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8 }}
             >
               {[
-                { icon: ShieldCheck, text: 'Secure' },
+                { icon: ShieldCheck, text: 'End-to-end secure' },
                 { icon: Zap, text: 'Instant setup' },
+                { icon: Star, text: 'Cinema-grade output' },
               ].map(({ icon: Icon, text }) => (
                 <div key={text} className="flex items-center gap-1.5">
-                  <Icon className="w-3 h-3 text-white/20" />
-                  <span className="text-[11px] text-white/20">{text}</span>
+                  <Icon className="w-3 h-3 text-white/25" />
+                  <span className="text-[10px] tracking-wide text-white/30">{text}</span>
                 </div>
               ))}
             </motion.div>

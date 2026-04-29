@@ -18,6 +18,7 @@ import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/na
 import { AdminOnlyDiagnostics } from "@/components/diagnostics/AdminOnlyDiagnostics";
 import { NavigationGuardProvider, NavigationBridge } from "@/lib/navigation";
 import { AppShell } from "@/components/shell/AppShell";
+import { AdaptiveShell } from "@/components/shell/AdaptiveShell";
 
 import { crashForensics } from "@/lib/crashForensics";
 import { getSafeModeStatus } from "@/lib/safeMode";
@@ -189,38 +190,38 @@ const App = () => {
                 } />
                 <Route path="/contact" element={
                   <RouteContainer>
-                    <AppShell><Contact /></AppShell>
+                    <AdaptiveShell><Contact /></AdaptiveShell>
                   </RouteContainer>
                 } />
                 <Route path="/discover" element={<Navigate to="/creators" replace />} />
                 <Route path="/help" element={
                   <RouteContainer>
-                    <AppShell><HelpCenter /></AppShell>
+                    <AdaptiveShell><HelpCenter /></AdaptiveShell>
                   </RouteContainer>
                 } />
                 <Route path="/blog" element={
                   <RouteContainer>
-                    <AppShell><Blog /></AppShell>
+                    <AdaptiveShell><Blog /></AdaptiveShell>
                   </RouteContainer>
                 } />
                 <Route path="/press" element={
                   <RouteContainer>
-                    <AppShell><Press /></AppShell>
+                    <AdaptiveShell><Press /></AdaptiveShell>
                   </RouteContainer>
                 } />
                 <Route path="/gallery" element={
                   <RouteContainer fallbackMessage="Loading gallery...">
-                    <AppShell><Gallery /></AppShell>
+                    <AdaptiveShell><Gallery /></AdaptiveShell>
                   </RouteContainer>
                 } />
                 <Route path="/pricing" element={
                   <RouteContainer>
-                    <AppShell><Pricing /></AppShell>
+                    <AdaptiveShell><Pricing /></AdaptiveShell>
                   </RouteContainer>
                 } />
                 <Route path="/how-it-works" element={
                   <RouteContainer>
-                    <AppShell><HowItWorks /></AppShell>
+                    <AdaptiveShell><HowItWorks /></AdaptiveShell>
                   </RouteContainer>
                 } />
                 

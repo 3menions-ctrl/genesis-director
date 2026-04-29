@@ -1103,14 +1103,24 @@ export function EditorChrome({
 
         {/* ═══════════════ STATUS BAR ═══════════════ */}
         <div
-          className="h-7 flex items-center px-4 shrink-0 z-10 select-none overflow-hidden gap-4 backdrop-blur-md"
+          className="h-7 flex items-center px-4 shrink-0 z-10 select-none overflow-hidden gap-4 backdrop-blur-xl relative"
           style={{
             background:
-              'linear-gradient(180deg, hsla(220, 14%, 6%, 0.92) 0%, hsla(220, 14%, 3%, 0.95) 100%)',
-            borderTop: '1px solid hsla(0, 0%, 100%, 0.05)',
-            boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.03)',
+              'linear-gradient(180deg, hsla(220, 16%, 7%, 0.9) 0%, hsla(220, 14%, 2%, 0.95) 100%)',
+            borderTop: '1px solid hsla(0, 0%, 100%, 0.06)',
+            boxShadow:
+              'inset 0 1px 0 hsla(0,0%,100%,0.05), 0 -8px 24px -12px hsla(215, 100%, 30%, 0.18)',
           }}
         >
+          {/* Hairline luminous divider above status bar */}
+          <div
+            aria-hidden
+            className="absolute top-0 inset-x-0 h-px"
+            style={{
+              background:
+                'linear-gradient(90deg, transparent, hsla(215,100%,60%,0.22), transparent)',
+            }}
+          />
           {/* Left stats */}
           <div className="flex items-center gap-3 text-[9px] text-muted-foreground/45 shrink-0 whitespace-nowrap font-medium">
             <span className="flex items-center gap-1">

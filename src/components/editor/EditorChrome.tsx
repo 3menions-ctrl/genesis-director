@@ -1030,10 +1030,12 @@ export function EditorChrome({
 
         {/* ═══════════════ STATUS BAR ═══════════════ */}
         <div
-          className="h-7 flex items-center px-4 shrink-0 z-10 select-none overflow-hidden gap-4"
+          className="h-7 flex items-center px-4 shrink-0 z-10 select-none overflow-hidden gap-4 backdrop-blur-md"
           style={{
-            background: 'linear-gradient(180deg, hsl(220, 14%, 5.5%) 0%, hsl(220, 14%, 4%) 100%)',
-            borderTop: '1px solid hsla(0, 0%, 100%, 0.06)',
+            background:
+              'linear-gradient(180deg, hsla(220, 14%, 6%, 0.92) 0%, hsla(220, 14%, 3%, 0.95) 100%)',
+            borderTop: '1px solid hsla(0, 0%, 100%, 0.05)',
+            boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.03)',
           }}
         >
           {/* Left stats */}
@@ -1078,13 +1080,17 @@ export function EditorChrome({
 
           {/* Right — tech info */}
           <div className="flex items-center gap-3 text-[9px] text-muted-foreground/45 shrink-0 whitespace-nowrap font-mono">
-            <span>{timelineState.width}×{timelineState.height}</span>
+            <span className="tabular-nums">{timelineState.width}×{timelineState.height}</span>
             <span className="w-px h-3 bg-foreground/[0.06]" />
-            <span>{timelineState.fps}fps</span>
+            <span className="tabular-nums">{timelineState.fps}fps</span>
             <span className="w-px h-3 bg-foreground/[0.06]" />
             <span className="flex items-center gap-1">
-              <Zap className="w-2.5 h-2.5 text-foreground/25 shrink-0" />
+              <Zap className="w-2.5 h-2.5 text-[hsl(215,100%,65%)]/60 shrink-0" />
               WebCodecs
+            </span>
+            <span className="w-px h-3 bg-foreground/[0.06]" />
+            <span className="text-[9px] tracking-[0.22em] uppercase text-muted-foreground/30">
+              Apex Pro
             </span>
           </div>
         </div>

@@ -209,26 +209,35 @@ export const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
     onVideoEnded();
   }, [onVideoEnded]);
 
-  // Sync muted state to underlying video element
-  useEffect(() => {
+  // CRITICAL: Toggle mute SYNCHRONOUSLY within the click handler.
+  // Browser autoplay policies require unmuting + play() to happen inside
+  // the user-gesture callstack — a deferred useEffect does not count.
+  const toggleMute = useCallback(() => {
     const video = playerRef.current?.getVideoElement?.();
-    if (video) {
-      video.muted = isMuted;
-      if (!isMuted) {
-        // Ensure audible playback after user gesture
-        video.volume = 1;
+    if (!video) {
+      setIsMuted((m) => !m);
+      return;
+    }
+    const next = !video.muted;
+    video.muted = next;
+    if (!next) {
+      // Unmuting → ensure audible playback within the gesture
+      video.volume = 1;
+      try {
         const p = video.play();
         if (p && typeof p.catch === 'function') {
           p.catch((err) => {
-            console.warn('[ImmersiveVideo] Unmute play failed:', err);
-            // Fallback: re-mute so video keeps playing visually
+            console.warn('[ImmersiveVideo] Unmute play blocked:', err);
             video.muted = true;
             setIsMuted(true);
           });
         }
+      } catch (err) {
+        console.warn('[ImmersiveVideo] play() threw:', err);
       }
     }
-  }, [isMuted]);
+    setIsMuted(next);
+  }, []);
 
   // Escape key to exit
   useEffect(() => {
@@ -270,7 +279,7 @@ export const ImmersiveVideoBackground = memo(function ImmersiveVideoBackground({
       <div className="fixed top-20 right-6 z-[9999] flex items-center gap-2 animate-fade-in" style={{ pointerEvents: 'auto', animationDelay: '0.6s' }}>
         {/* Unmute/Mute button */}
         <button
-          onClick={(e) => { e.stopPropagation(); setIsMuted(m => !m); }}
+          onClick={(e) => { e.stopPropagation(); toggleMute(); }}
           className="group flex items-center gap-2 px-3 py-2.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 hover:bg-white/15 hover:border-white/30 transition-all duration-300 cursor-pointer"
           aria-label={isMuted ? 'Unmute' : 'Mute'}
         >

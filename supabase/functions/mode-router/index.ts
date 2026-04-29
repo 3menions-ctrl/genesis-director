@@ -215,7 +215,7 @@ interface ModeRouterRequest {
 
   // Video engine selection — all modes now unified on Kling V3
   // 'kling' = avatar mode with native audio; anything else = standard T2V/I2V
-  videoEngine?: 'kling' | 'veo';
+  videoEngine?: 'kling' | 'veo' | 'seedance';
 }
 
 serve(async (req) => {
@@ -1072,7 +1072,7 @@ async function handleCinematicMode(params: {
   mode: string;
   genre?: string;
   mood?: string;
-  videoEngine?: 'kling' | 'veo';
+  videoEngine?: 'kling' | 'veo' | 'seedance';
   // Breakout template parameters
   isBreakout?: boolean;
   breakoutStartImageUrl?: string;

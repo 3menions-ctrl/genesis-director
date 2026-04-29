@@ -38,7 +38,7 @@ interface PipelineRequest {
   qualityTier?: 'standard' | 'professional';
   skipCreditDeduction?: boolean;
   /** All modes unified on Kling V3; 'kling' = avatar with native audio */
-  videoEngine?: 'kling' | 'veo';
+  videoEngine?: 'kling' | 'veo' | 'seedance';
   // Resume support
   resumeFrom?: 'qualitygate' | 'assets' | 'production' | 'postproduction';
   approvedScript?: { shots: any[] };

@@ -29,6 +29,13 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+// jsdom doesn't implement CSS.supports — used by browserCompat module imports.
+if (typeof (globalThis as any).CSS === 'undefined') {
+  (globalThis as any).CSS = { supports: () => false };
+} else if (typeof (globalThis as any).CSS.supports !== 'function') {
+  (globalThis as any).CSS.supports = () => false;
+}
+
 // ESM/Vitest doesn't expose CommonJS `require()`. The legacy require('@/...')
 // pattern below is shimmed by importing every module up-front and routing
 // require() calls through a synchronous module map.

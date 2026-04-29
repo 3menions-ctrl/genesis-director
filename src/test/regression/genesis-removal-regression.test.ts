@@ -285,7 +285,6 @@ describe('5. Social Module Integrity', () => {
     const content = readFile('src/components/social/index.ts');
     expect(content).toContain('NotificationBell');
     expect(content).toContain('UserStatsBar');
-    expect(content).toContain('WorldChatButton');
     expect(content).toContain('VideoReactionsBar');
     expect(content).toContain('VideoCommentsSection');
     expect(content).toContain('DirectMessagePanel');
@@ -296,7 +295,6 @@ describe('5. Social Module Integrity', () => {
     const expectedFiles = [
       'src/components/social/NotificationBell.tsx',
       'src/components/social/UserStatsBar.tsx',
-      'src/components/social/WorldChatButton.tsx',
       'src/components/social/VideoReactionsBar.tsx',
       'src/components/social/VideoCommentsSection.tsx',
       'src/components/social/DirectMessagePanel.tsx',
@@ -318,7 +316,8 @@ describe('6. Navigation Config Integrity', () => {
   });
 
   it('routeConfig still has all other heavy routes', () => {
-    const expected = ['/create', '/production', '/avatars', '/projects', '/discover', '/clips', '/templates', '/environments'];
+    // /chat, /clips, /discover are removed/redirected per project memory.
+    const expected = ['/create', '/production', '/avatars', '/projects', '/templates', '/environments'];
     expected.forEach(route => {
       expect(routeConfig).toContain(`'${route}'`);
     });
@@ -482,7 +481,7 @@ describe('10. Database Query Safety', () => {
 describe('11. All Remaining Pages Export Correctly', () => {
   const CORE_PAGES = [
     'Landing', 'Projects', 'Auth', 'Profile', 'Settings',
-    'Create', 'Production', 'Clips', 'Discover', 'Templates',
+    'Create', 'Production', 'Templates',
     'Avatars', 'Creators', 'Gallery', 'Pricing', 'VideoEditor',
   ];
 

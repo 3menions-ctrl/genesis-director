@@ -462,7 +462,11 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
       <div className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="animate-fade-in">
           <SafeComponent name="AvatarsHero" fallback={<div className="pt-24 pb-8" />}>
-            <AvatarsHero />
+            <AvatarsHero
+              totalCount={safeTemplates.length}
+              realisticCount={safeTemplates.filter(t => (t as any)?.avatar_type !== 'animated').length}
+              animatedCount={safeTemplates.filter(t => (t as any)?.avatar_type === 'animated').length}
+            />
           </SafeComponent>
           
           <SafeComponent name="AvatarsFilters" fallback={<div className="mb-6 h-12" />}>

@@ -3,7 +3,7 @@ import { NavLink, useLocation, Link } from 'react-router-dom';
 import {
   Film, Sparkles, Users, Scissors, Layers, GraduationCap,
   User as UserIcon, Settings as SettingsIcon, HelpCircle, Shield, LogOut,
-  Zap, ChevronDown, Menu, X, Bell, PanelLeftClose, PanelLeft,
+  Zap, ChevronDown, Menu, X, PanelLeftClose, PanelLeft,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -45,7 +45,6 @@ interface AppShellProps {
 }
 
 const SIDEBAR_KEY = 'apex.sidebar.collapsed';
-const SIDEBAR_HIDDEN_KEY = 'apex.sidebar.hidden';
 
 export function AppShell({ children }: AppShellProps) {
   const { profile, isAdmin } = useAuth();
@@ -55,8 +54,6 @@ export function AppShell({ children }: AppShellProps) {
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem(SIDEBAR_KEY) === '1'; } catch { return false; }
   });
-  // Sidebar is permanently anchored on desktop — no full-hide. Only collapses to icon rail.
-  const hidden = false;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
 

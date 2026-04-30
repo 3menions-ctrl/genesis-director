@@ -269,12 +269,9 @@ function PricingCard({
         </div>
 
         {/* Title */}
-        <h3 className="font-display font-semibold text-white text-[22px] tracking-tight leading-none mb-2">
+        <h3 className="font-display font-semibold text-white text-[22px] tracking-tight leading-none mb-6">
           {pkg.name}
         </h3>
-        <p className="text-[12.5px] text-white/40 leading-relaxed min-h-[34px] mb-6 max-w-[24ch]">
-          {pkg.tagline}
-        </p>
 
         {/* Price */}
         <div className="flex items-baseline gap-2 mb-7">
@@ -298,26 +295,7 @@ function PricingCard({
         </div>
 
         {/* Hairline divider */}
-        <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent mb-5" />
-
-        {/* Features */}
-        <ul className="space-y-2.5 mb-7">
-          {pkg.features.map((f, i) => (
-            <li key={i} className="flex items-start gap-2.5">
-              <span
-                className={cn(
-                  'mt-0.5 w-4 h-4 rounded-full flex items-center justify-center shrink-0 border',
-                  pkg.popular
-                    ? 'bg-[hsl(var(--primary)/0.18)] border-[hsl(var(--primary)/0.35)] text-[hsl(var(--primary))]'
-                    : 'bg-white/[0.04] border-white/[0.06] text-white/60',
-                )}
-              >
-                <Check className="w-2.5 h-2.5" strokeWidth={3} />
-              </span>
-              <span className="text-[12.5px] text-white/65 leading-relaxed">{f}</span>
-            </li>
-          ))}
-        </ul>
+        <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent mb-7" />
 
         {/* CTA */}
         <Button

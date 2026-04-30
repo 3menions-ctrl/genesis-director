@@ -41,6 +41,36 @@
   display: none;
 }
 
+/* Utility: Premium thin scrollbar — barely there, fluid feel */
+.premium-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: hsla(0, 0%, 100%, 0.08) transparent;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+.premium-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.premium-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.premium-scroll::-webkit-scrollbar-thumb {
+  background: hsla(0, 0%, 100%, 0.06);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+  transition: background 200ms ease;
+}
+.premium-scroll:hover::-webkit-scrollbar-thumb {
+  background: hsla(0, 0%, 100%, 0.14);
+  background-clip: padding-box;
+}
+.premium-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsla(0, 0%, 100%, 0.22);
+  background-clip: padding-box;
+}
+
 /* Font imports moved to index.html for better loading performance */
 
 @layer base {

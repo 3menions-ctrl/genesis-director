@@ -3,7 +3,7 @@ import { NavLink, useLocation, Link } from 'react-router-dom';
 import {
   Film, Sparkles, Users, Scissors, Layers, GraduationCap,
   User as UserIcon, Settings as SettingsIcon, HelpCircle, Shield, LogOut,
-  Zap, ChevronDown, Menu, X, Bell, PanelLeftClose, PanelLeft,
+  Zap, ChevronDown, Menu, X, PanelLeftClose, PanelLeft,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -45,7 +45,6 @@ interface AppShellProps {
 }
 
 const SIDEBAR_KEY = 'apex.sidebar.collapsed';
-const SIDEBAR_HIDDEN_KEY = 'apex.sidebar.hidden';
 
 export function AppShell({ children }: AppShellProps) {
   const { profile, isAdmin } = useAuth();
@@ -55,19 +54,12 @@ export function AppShell({ children }: AppShellProps) {
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem(SIDEBAR_KEY) === '1'; } catch { return false; }
   });
-  const [hidden, setHidden] = useState<boolean>(() => {
-    try { return localStorage.getItem(SIDEBAR_HIDDEN_KEY) === '1'; } catch { return false; }
-  });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
 
   useEffect(() => {
     try { localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0'); } catch {}
   }, [collapsed]);
-
-  useEffect(() => {
-    try { localStorage.setItem(SIDEBAR_HIDDEN_KEY, hidden ? '1' : '0'); } catch {}
-  }, [hidden]);
 
   // Close mobile drawer on route change
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
@@ -80,9 +72,8 @@ export function AppShell({ children }: AppShellProps) {
     return location.pathname === item.to || location.pathname.startsWith(item.to + '/');
   };
 
-  // Total rail width INCLUDING the surrounding gutter (so the inset panel
-  // visually floats and content has breathing room).
-  const railWidth = collapsed ? 'lg:w-[80px]' : 'lg:w-[244px]';
+  // Stationary anchored rail — no surrounding gutter. Solid, edge-to-edge.
+  const railWidth = collapsed ? 'lg:w-[72px]' : 'lg:w-[236px]';
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -110,35 +101,25 @@ export function AppShell({ children }: AppShellProps) {
             'fixed inset-y-0 left-0 z-50 flex flex-col w-[260px]',
             '-translate-x-full transition-transform duration-300 ease-out',
             mobileOpen && 'translate-x-0',
-            // Desktop: in-flow flex sibling with surrounding gutter
+            // Desktop: anchored, edge-to-edge, fixed-height rail with solid border
             'lg:static lg:translate-x-0 lg:shrink-0 lg:sticky lg:top-0',
-            'lg:h-screen lg:p-3',
+            'lg:h-screen lg:p-0',
             'lg:transition-[width] lg:duration-300 lg:ease-out',
-            'lg:bg-transparent lg:!border-r-0 lg:!shadow-none lg:!backdrop-blur-0',
+            'lg:border-r lg:border-white/[0.06]',
             railWidth,
-            hidden && 'lg:hidden',
           )}
           style={{
             background:
-              'linear-gradient(180deg, hsla(220, 18%, 5%, 0.55) 0%, hsla(220, 14%, 3%, 0.75) 100%)',
-            backdropFilter: 'blur(64px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(64px) saturate(180%)',
+              'linear-gradient(180deg, hsla(220, 18%, 4%, 0.92) 0%, hsla(220, 16%, 3%, 0.96) 100%)',
+            backdropFilter: 'blur(40px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(40px) saturate(160%)',
           }}
         >
           {/* Inset floating panel (only on lg+) */}
           <div
             className={cn(
               'relative flex flex-1 flex-col min-h-0',
-              'lg:rounded-[28px] lg:overflow-hidden',
             )}
-            style={{
-              background:
-                'linear-gradient(180deg, hsla(220, 18%, 7%, 0.62) 0%, hsla(220, 14%, 4%, 0.78) 100%)',
-              backdropFilter: 'blur(56px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(56px) saturate(180%)',
-              boxShadow:
-                '0 32px 80px -32px rgba(0,0,0,0.75), inset 0 1px 0 hsla(0,0%,100%,0.05)',
-            }}
           >
           {/* Soft inner highlight at the top edge for depth */}
           <div
@@ -183,17 +164,6 @@ export function AppShell({ children }: AppShellProps) {
               className="ml-auto lg:hidden w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/[0.06] text-white/45 hover:text-white/80 transition-colors duration-200"
               onClick={() => setMobileOpen(false)}
               aria-label="Close sidebar"
-            >
-              <X className="w-3.5 h-3.5" strokeWidth={1.5} />
-            </button>
-            <button
-              className={cn(
-                'ml-auto hidden lg:flex w-8 h-8 rounded-full items-center justify-center hover:bg-white/[0.06] text-white/40 hover:text-white/85 transition-colors duration-200',
-                collapsed && 'lg:hidden',
-              )}
-              onClick={() => setHidden(true)}
-              aria-label="Hide sidebar"
-              title="Hide sidebar"
             >
               <X className="w-3.5 h-3.5" strokeWidth={1.5} />
             </button>
@@ -416,10 +386,10 @@ export function AppShell({ children }: AppShellProps) {
         </aside>
 
         {/* ── Main column ── */}
-        <div className="flex flex-1 min-w-0 flex-col min-h-screen overflow-x-hidden">
+        <div className="flex flex-1 min-w-0 flex-col min-h-screen lg:h-screen lg:overflow-hidden overflow-x-hidden">
           {/* Top bar */}
           <header
-            className="sticky top-0 z-30 h-[56px] flex items-center gap-2 px-3 sm:px-5"
+            className="sticky top-0 z-30 h-[56px] shrink-0 flex items-center gap-2 px-3 sm:px-5 border-b border-white/[0.04]"
             style={{
               background:
                 'linear-gradient(180deg, hsla(220, 14%, 3%, 0.55) 0%, hsla(220, 14%, 3%, 0.15) 100%)',
@@ -435,19 +405,6 @@ export function AppShell({ children }: AppShellProps) {
             >
               <Menu className="w-4 h-4" strokeWidth={1.5} />
             </button>
-
-            {/* Desktop: show menu button when sidebar is hidden */}
-            {hidden && (
-              <button
-                onClick={() => setHidden(false)}
-                className="hidden lg:flex items-center gap-2 h-9 px-3.5 rounded-full bg-white/[0.04] hover:bg-white/[0.07] text-white/65 hover:text-white transition-all duration-300 shadow-[inset_0_1px_0_hsla(0,0%,100%,0.05)]"
-                aria-label="Show sidebar"
-                title="Show sidebar"
-              >
-                <PanelLeft className="w-3.5 h-3.5" strokeWidth={1.5} />
-                <span className="text-[12px] font-light tracking-[0.01em]">Menu</span>
-              </button>
-            )}
 
             {/* Spacer */}
             <div className="flex-1" />
@@ -539,7 +496,10 @@ export function AppShell({ children }: AppShellProps) {
           </header>
 
           {/* Page content with expressive transition */}
-          <main key={location.pathname} className="flex-1 animate-fade-in">
+          <main
+            key={location.pathname}
+            className="flex-1 animate-fade-in lg:overflow-y-auto lg:overflow-x-hidden premium-scroll"
+          >
             {children}
           </main>
         </div>

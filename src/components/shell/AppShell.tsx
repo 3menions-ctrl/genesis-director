@@ -170,17 +170,6 @@ export function AppShell({ children }: AppShellProps) {
             >
               <X className="w-3.5 h-3.5" strokeWidth={1.5} />
             </button>
-            <button
-              className={cn(
-                'ml-auto hidden lg:flex w-8 h-8 rounded-full items-center justify-center hover:bg-white/[0.06] text-white/40 hover:text-white/85 transition-colors duration-200',
-                collapsed && 'lg:hidden',
-              )}
-              onClick={() => setHidden(true)}
-              aria-label="Hide sidebar"
-              title="Hide sidebar"
-            >
-              <X className="w-3.5 h-3.5" strokeWidth={1.5} />
-            </button>
           </div>
 
           {/* Create CTA */}
@@ -419,19 +408,6 @@ export function AppShell({ children }: AppShellProps) {
             >
               <Menu className="w-4 h-4" strokeWidth={1.5} />
             </button>
-
-            {/* Desktop: show menu button when sidebar is hidden */}
-            {hidden && (
-              <button
-                onClick={() => setHidden(false)}
-                className="hidden lg:flex items-center gap-2 h-9 px-3.5 rounded-full bg-white/[0.04] hover:bg-white/[0.07] text-white/65 hover:text-white transition-all duration-300 shadow-[inset_0_1px_0_hsla(0,0%,100%,0.05)]"
-                aria-label="Show sidebar"
-                title="Show sidebar"
-              >
-                <PanelLeft className="w-3.5 h-3.5" strokeWidth={1.5} />
-                <span className="text-[12px] font-light tracking-[0.01em]">Menu</span>
-              </button>
-            )}
 
             {/* Spacer */}
             <div className="flex-1" />

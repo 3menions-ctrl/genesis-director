@@ -55,19 +55,14 @@ export function AppShell({ children }: AppShellProps) {
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem(SIDEBAR_KEY) === '1'; } catch { return false; }
   });
-  const [hidden, setHidden] = useState<boolean>(() => {
-    try { return localStorage.getItem(SIDEBAR_HIDDEN_KEY) === '1'; } catch { return false; }
-  });
+  // Sidebar is permanently anchored on desktop — no full-hide. Only collapses to icon rail.
+  const hidden = false;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
 
   useEffect(() => {
     try { localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0'); } catch {}
   }, [collapsed]);
-
-  useEffect(() => {
-    try { localStorage.setItem(SIDEBAR_HIDDEN_KEY, hidden ? '1' : '0'); } catch {}
-  }, [hidden]);
 
   // Close mobile drawer on route change
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
@@ -80,9 +75,8 @@ export function AppShell({ children }: AppShellProps) {
     return location.pathname === item.to || location.pathname.startsWith(item.to + '/');
   };
 
-  // Total rail width INCLUDING the surrounding gutter (so the inset panel
-  // visually floats and content has breathing room).
-  const railWidth = collapsed ? 'lg:w-[80px]' : 'lg:w-[244px]';
+  // Stationary anchored rail — no surrounding gutter. Solid, edge-to-edge.
+  const railWidth = collapsed ? 'lg:w-[72px]' : 'lg:w-[236px]';
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -110,35 +104,25 @@ export function AppShell({ children }: AppShellProps) {
             'fixed inset-y-0 left-0 z-50 flex flex-col w-[260px]',
             '-translate-x-full transition-transform duration-300 ease-out',
             mobileOpen && 'translate-x-0',
-            // Desktop: in-flow flex sibling with surrounding gutter
+            // Desktop: anchored, edge-to-edge, fixed-height rail with solid border
             'lg:static lg:translate-x-0 lg:shrink-0 lg:sticky lg:top-0',
-            'lg:h-screen lg:p-3',
+            'lg:h-screen lg:p-0',
             'lg:transition-[width] lg:duration-300 lg:ease-out',
-            'lg:bg-transparent lg:!border-r-0 lg:!shadow-none lg:!backdrop-blur-0',
+            'lg:border-r lg:border-white/[0.06]',
             railWidth,
-            hidden && 'lg:hidden',
           )}
           style={{
             background:
-              'linear-gradient(180deg, hsla(220, 18%, 5%, 0.55) 0%, hsla(220, 14%, 3%, 0.75) 100%)',
-            backdropFilter: 'blur(64px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(64px) saturate(180%)',
+              'linear-gradient(180deg, hsla(220, 18%, 4%, 0.92) 0%, hsla(220, 16%, 3%, 0.96) 100%)',
+            backdropFilter: 'blur(40px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(40px) saturate(160%)',
           }}
         >
           {/* Inset floating panel (only on lg+) */}
           <div
             className={cn(
               'relative flex flex-1 flex-col min-h-0',
-              'lg:rounded-[28px] lg:overflow-hidden',
             )}
-            style={{
-              background:
-                'linear-gradient(180deg, hsla(220, 18%, 7%, 0.62) 0%, hsla(220, 14%, 4%, 0.78) 100%)',
-              backdropFilter: 'blur(56px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(56px) saturate(180%)',
-              boxShadow:
-                '0 32px 80px -32px rgba(0,0,0,0.75), inset 0 1px 0 hsla(0,0%,100%,0.05)',
-            }}
           >
           {/* Soft inner highlight at the top edge for depth */}
           <div

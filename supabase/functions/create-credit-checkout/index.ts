@@ -24,16 +24,15 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const packageId = String(body?.packageId ?? '').toLowerCase().trim();
     const rawEnv = body?.environment;
-    let env: StripeEnv = rawEnv === 'live' ? 'live' : 'sandbox';
+    let env: StripeEnv = 'live';
     const returnUrl = typeof body?.returnUrl === 'string' ? body.returnUrl : null;
 
-    // Force LIVE when the request originates from a production host. This
-    // guarantees real payments on apex-studio.ai / genesis-director.lovable.app
-    // even if a stale client somehow sent environment=sandbox.
+    // Only local development may explicitly request sandbox. Every hosted
+    // deployment must create live sessions so production cannot fall back to test mode.
     const originHeader = req.headers.get('origin') || req.headers.get('referer') || '';
-    const LIVE_HOSTS = ['apex-studio.ai', 'www.apex-studio.ai', 'genesis-director.lovable.app'];
-    if (LIVE_HOSTS.some(h => originHeader.includes(h))) {
-      env = 'live';
+    const isLocalOrigin = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?(\/|$)/.test(originHeader);
+    if (isLocalOrigin && rawEnv === 'sandbox') {
+      env = 'sandbox';
     }
 
     if (!packageId || !CREDIT_PACKAGES[packageId]) {

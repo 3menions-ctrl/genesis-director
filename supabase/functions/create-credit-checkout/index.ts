@@ -24,8 +24,17 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const packageId = String(body?.packageId ?? '').toLowerCase().trim();
     const rawEnv = body?.environment;
-    const env: StripeEnv = rawEnv === 'live' ? 'live' : 'sandbox';
+    let env: StripeEnv = rawEnv === 'live' ? 'live' : 'sandbox';
     const returnUrl = typeof body?.returnUrl === 'string' ? body.returnUrl : null;
+
+    // Force LIVE when the request originates from a production host. This
+    // guarantees real payments on apex-studio.ai / genesis-director.lovable.app
+    // even if a stale client somehow sent environment=sandbox.
+    const originHeader = req.headers.get('origin') || req.headers.get('referer') || '';
+    const LIVE_HOSTS = ['apex-studio.ai', 'www.apex-studio.ai', 'genesis-director.lovable.app'];
+    if (LIVE_HOSTS.some(h => originHeader.includes(h))) {
+      env = 'live';
+    }
 
     if (!packageId || !CREDIT_PACKAGES[packageId]) {
       return new Response(JSON.stringify({ error: "Invalid package ID" }), {

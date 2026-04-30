@@ -386,10 +386,10 @@ export function AppShell({ children }: AppShellProps) {
         </aside>
 
         {/* ── Main column ── */}
-        <div className="flex flex-1 min-w-0 flex-col min-h-screen overflow-x-hidden">
+        <div className="flex flex-1 min-w-0 flex-col min-h-screen lg:h-screen lg:overflow-hidden overflow-x-hidden">
           {/* Top bar */}
           <header
-            className="sticky top-0 z-30 h-[56px] flex items-center gap-2 px-3 sm:px-5"
+            className="sticky top-0 z-30 h-[56px] shrink-0 flex items-center gap-2 px-3 sm:px-5 border-b border-white/[0.04]"
             style={{
               background:
                 'linear-gradient(180deg, hsla(220, 14%, 3%, 0.55) 0%, hsla(220, 14%, 3%, 0.15) 100%)',
@@ -496,7 +496,10 @@ export function AppShell({ children }: AppShellProps) {
           </header>
 
           {/* Page content with expressive transition */}
-          <main key={location.pathname} className="flex-1 animate-fade-in">
+          <main
+            key={location.pathname}
+            className="flex-1 animate-fade-in lg:overflow-y-auto lg:overflow-x-hidden premium-scroll"
+          >
             {children}
           </main>
         </div>

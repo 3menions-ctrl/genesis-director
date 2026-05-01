@@ -303,20 +303,30 @@ const TIER_CLIP_LIMITS: Record<string, { maxClips: number; maxDuration: number; 
 const MINIMUM_QUALITY_THRESHOLD = 0;
 const MIN_CLIPS_PER_PROJECT = 1;
 
-// ✅ Kling V3 Credit Pricing (ALL modes — T2V, I2V, Avatar use Kling V3)
+// ✅ Engine-aware Credit Pricing
 // MUST MATCH src/lib/creditSystem.ts (SINGLE SOURCE OF TRUTH)
 // isAvatarMode is an EXPLICIT boolean flag (request.isAvatarMode), NOT derived from videoEngine
-// Standard (T2V/I2V): 50cr ≤10s  | 75cr >10s
-// Avatar (native audio): 60cr ≤10s | 90cr >10s
+// Kling V3 Standard (T2V/I2V): 50cr ≤10s  | 75cr >10s
+// Kling V3 Avatar (native audio): 60cr ≤10s | 90cr >10s
+// Seedance 2.0 1080p (premium): 65cr ≤10s | 95cr >10s (real cost $4.50/$5.40)
 const CREDIT_PRICING = {
   BASE_CREDITS_PER_CLIP: 50,           // T2V / I2V ≤10s
   EXTENDED_CREDITS_PER_CLIP: 75,        // T2V / I2V >10s
   AVATAR_BASE_CREDITS_PER_CLIP: 60,     // Avatar + native audio ≤10s
   AVATAR_EXTENDED_CREDITS_PER_CLIP: 90, // Avatar + native audio >10s
+  SEEDANCE_BASE_CREDITS_PER_CLIP: 65,   // Seedance 2.0 1080p ≤10s
+  SEEDANCE_EXTENDED_CREDITS_PER_CLIP: 95, // Seedance 2.0 1080p >10s
   BASE_DURATION_THRESHOLD: 10,
 } as const;
 
-function getCreditsForClip(clipIndex: number, clipDuration: number, isAvatarMode: boolean = false): number {
+function getCreditsForClip(clipIndex: number, clipDuration: number, isAvatarMode: boolean = false, videoEngine: 'kling' | 'veo' | 'seedance' = 'kling'): number {
+  const extended = clipDuration > CREDIT_PRICING.BASE_DURATION_THRESHOLD;
+  // Seedance overrides avatar (avatar is force-rerouted to Kling in generate-single-clip)
+  if (videoEngine === 'seedance') {
+    return extended
+      ? CREDIT_PRICING.SEEDANCE_EXTENDED_CREDITS_PER_CLIP
+      : CREDIT_PRICING.SEEDANCE_BASE_CREDITS_PER_CLIP;
+  }
   // Avatar mode (generate_audio=true, pose-chained) carries higher cost
   if (isAvatarMode) {
     return clipDuration > CREDIT_PRICING.BASE_DURATION_THRESHOLD
@@ -328,10 +338,10 @@ function getCreditsForClip(clipIndex: number, clipDuration: number, isAvatarMode
     : CREDIT_PRICING.BASE_CREDITS_PER_CLIP;
 }
 
-function calculateTotalCredits(clipCount: number, clipDuration: number, isAvatarMode: boolean = false): number {
+function calculateTotalCredits(clipCount: number, clipDuration: number, isAvatarMode: boolean = false, videoEngine: 'kling' | 'veo' | 'seedance' = 'kling'): number {
   let total = 0;
   for (let i = 0; i < clipCount; i++) {
-    total += getCreditsForClip(i, clipDuration, isAvatarMode);
+    total += getCreditsForClip(i, clipDuration, isAvatarMode, videoEngine);
   }
   return total;
 }
@@ -407,9 +417,9 @@ function calculatePipelineParams(
   // Avatar mode is determined by the isAvatarMode flag, not by the engine key.
   const videoEngine: 'kling' | 'veo' | 'seedance' = (request as any).videoEngine || 'kling';
   const isAvatarMode = !!(request as any).isAvatarMode;
-  const totalCredits = calculateTotalCredits(clipCount, clipDuration, isAvatarMode);
-  
-  console.log(`[Hollywood] Pipeline params: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s total (max: ${maxDuration}s, engine: KlingV3, avatarMode: ${isAvatarMode}, credits: ${totalCredits})`);
+  const totalCredits = calculateTotalCredits(clipCount, clipDuration, isAvatarMode, videoEngine);
+
+  console.log(`[Hollywood] Pipeline params: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s total (max: ${maxDuration}s, engine: ${videoEngine}, avatarMode: ${isAvatarMode}, credits: ${totalCredits})`);
   
   return { clipCount, clipDuration, totalCredits };
 }

@@ -262,6 +262,7 @@ serve(async (req) => {
 
     console.log(`[ModeRouter] Routing ${mode} request for user ${userId}`);
     console.log(`[ModeRouter] Config: ${clipCount} clips × ${clipDuration}s, aspect ${aspectRatio}`);
+    console.log(`[ModeRouter] 🎬 ENGINE SELECTION: videoEngine=${videoEngine ?? '(unset → kling default)'}`);
     if (isBreakout) {
       console.log(`[ModeRouter] BREAKOUT MODE: Platform=${breakoutPlatform}, StartImage=${breakoutStartImageUrl ? 'provided' : 'none'}`);
     }

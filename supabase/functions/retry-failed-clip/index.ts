@@ -265,6 +265,12 @@ serve(async (req) => {
     
     console.log(`[RetryClip] Calling generate-single-clip for clip ${request.clipIndex}...`);
     
+    // 🎬 ENGINE PRESERVATION: load persisted engine so retries don't downgrade
+    // Seedance → Kling. project.video_engine was set by mode-router at creation.
+    const persistedEngine = (project as any).video_engine || 'kling';
+    const isAvatarMode = project.mode === 'avatar';
+    console.log(`[RetryClip] 🎬 Engine for retry: ${persistedEngine} (mode=${project.mode}, avatarMode=${isAvatarMode})`);
+    
     // 8. Call generate-single-clip with enhanced parameters
     const clipResult = await callEdgeFunction('generate-single-clip', {
       userId: request.userId,
@@ -281,6 +287,8 @@ serve(async (req) => {
       qualityTier: project.quality_tier || 'standard',
       aspectRatio: project.aspect_ratio || '16:9',
       isRetry: true,
+      videoEngine: persistedEngine,
+      isAvatarMode,
     });
     
     if (!clipResult.success) {

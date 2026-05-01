@@ -320,7 +320,8 @@ serve(async (req: Request) => {
     const needsDbLoad = !context 
       || !context.referenceImageUrl 
       || !context.identityBible
-      || !context.pendingVideoTasks;  // NEW: Always load if pendingVideoTasks missing
+      || !context.pendingVideoTasks  // Always load if pendingVideoTasks missing
+      || !context.videoEngine;       // 🎬 Always load if engine unknown — bulletproof Seedance preservation
     
     if (needsDbLoad) {
       console.log(`[ContinueProduction] Loading pipeline context from DB (reason: ${!context ? 'no context' : !context.referenceImageUrl ? 'no refImage' : !context.identityBible ? 'no idBible' : 'no pendingVideoTasks'})...`);

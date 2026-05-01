@@ -420,6 +420,7 @@ function calculatePipelineParams(
   const totalCredits = calculateTotalCredits(clipCount, clipDuration, isAvatarMode, videoEngine);
 
   console.log(`[Hollywood] Pipeline params: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s total (max: ${maxDuration}s, engine: ${videoEngine}, avatarMode: ${isAvatarMode}, credits: ${totalCredits})`);
+  console.log(`[Hollywood] 🎬 ENGINE LOCK: ${videoEngine} (received from caller: ${(request as any).videoEngine ?? 'UNSET → defaulted to kling'})`);
   
   return { clipCount, clipDuration, totalCredits };
 }

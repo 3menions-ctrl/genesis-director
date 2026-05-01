@@ -255,7 +255,10 @@ serve(async (req) => {
         .eq("id", auth.userId)
         .single();
 
-      const creditsRequired = duration > 10 ? 75 : 50;
+      // Engine-aware pricing — editor uses Seedance (1080p ~$0.45/sec real cost).
+      // Charge Seedance tier (65/95cr), NOT Kling rates, otherwise we lose money.
+      // Real cost: 5s≈$2.25, 10s≈$4.50.  Credits: 65 (=$6.50) or 95 (=$9.50).
+      const creditsRequired = duration > 10 ? 95 : 65;
       if (!profile || profile.credits_balance < creditsRequired) {
         return new Response(JSON.stringify({ 
           error: "Insufficient credits", 
@@ -318,11 +321,34 @@ serve(async (req) => {
       if (!replicateRes.ok) {
         const errText = await replicateRes.text();
         console.error("[editor-generate-clip] Replicate error:", errText);
-        // Refund on failure
-        await supabase.rpc("increment_credits", {
-          user_id_param: auth.userId,
-          amount_param: creditsRequired,
+        // Refund on failure — use deduct_credits with NEGATIVE amount for proper ledger entry.
+        // The legacy `increment_credits` RPC does not exist and silently failed before this fix
+        // (users were not refunded). This restores the balance and creates an audit row.
+        const { error: refundErr } = await supabase.rpc("deduct_credits", {
+          p_user_id: auth.userId,
+          p_amount: -creditsRequired,
+          p_description: `Editor clip refund: Replicate error`,
         });
+        if (refundErr) {
+          console.error("[editor-generate-clip] Refund RPC failed:", refundErr);
+          // Fallback: direct balance + ledger entry (service-role only)
+          const { data: cp } = await supabase
+            .from("profiles")
+            .select("credits_balance")
+            .eq("id", auth.userId)
+            .maybeSingle();
+          if (cp) {
+            await supabase.from("profiles")
+              .update({ credits_balance: cp.credits_balance + creditsRequired })
+              .eq("id", auth.userId);
+            await supabase.from("credit_transactions").insert({
+              user_id: auth.userId,
+              amount: creditsRequired,
+              transaction_type: "refund",
+              description: "Editor clip refund: Replicate error (fallback)",
+            });
+          }
+        }
         return new Response(JSON.stringify({ error: "Failed to start generation" }), {
           status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -336,7 +362,8 @@ serve(async (req) => {
         service: "seedance-1-pro",
         operation: "editor-generate-clip",
         credits_charged: creditsRequired,
-        real_cost_cents: duration > 10 ? 15 : 10,
+        // Real cost: Seedance-1-Pro 1080p ≈ $0.45/sec → 5s≈225¢, 10s≈450¢
+        real_cost_cents: duration > 10 ? 540 : 450,
         duration_seconds: duration,
         status: "pending",
         metadata: { predictionId: prediction.id },

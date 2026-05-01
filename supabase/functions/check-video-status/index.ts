@@ -242,13 +242,15 @@ serve(async (req) => {
                     // Get totalClips from pending_video_tasks
                     const { data: projMeta } = await supabase
                       .from('movie_projects')
-                      .select('pending_video_tasks')
+                      .select('pending_video_tasks, video_engine')
                       .eq('id', reqProjectId)
                       .maybeSingle();
                     const pendingMeta = (projMeta?.pending_video_tasks || {}) as Record<string, any>;
                     const totalClips = pendingMeta.clipCount || 3;
+                    const persistedEngine = (projMeta?.video_engine as 'kling' | 'seedance' | 'veo' | null) || 'kling';
                     
                     console.log(`[CheckStatus] 🔗 Triggering continue-production: clip ${shotIndex + 1}/${totalClips}`);
+                    console.log(`[CheckStatus] 🎬 Forwarding videoEngine=${persistedEngine} to continue-production`);
                     
                     const continueResponse = await fetch(`${supabaseUrl}/functions/v1/continue-production`, {
                       method: 'POST',
@@ -265,6 +267,9 @@ serve(async (req) => {
                           lastFrameUrl: lastFrameUrl || null,
                         },
                         totalClips,
+                        pipelineContext: {
+                          videoEngine: persistedEngine,
+                        },
                       }),
                     });
                     

@@ -892,6 +892,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          idempotency_key: string | null
           project_id: string | null
           stripe_payment_id: string | null
           transaction_type: string
@@ -903,6 +904,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          idempotency_key?: string | null
           project_id?: string | null
           stripe_payment_id?: string | null
           transaction_type: string
@@ -914,6 +916,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          idempotency_key?: string | null
           project_id?: string | null
           stripe_payment_id?: string | null
           transaction_type?: string
@@ -4939,16 +4942,28 @@ export type Database = {
         Returns: string
       }
       deactivate_account: { Args: { p_reason?: string }; Returns: boolean }
-      deduct_credits: {
-        Args: {
-          p_amount: number
-          p_clip_duration?: number
-          p_description: string
-          p_project_id?: string
-          p_user_id: string
-        }
-        Returns: boolean
-      }
+      deduct_credits:
+        | {
+            Args: {
+              p_amount: number
+              p_clip_duration?: number
+              p_description: string
+              p_project_id?: string
+              p_user_id: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              p_amount: number
+              p_clip_duration?: number
+              p_description: string
+              p_idempotency_key?: string
+              p_project_id?: string
+              p_user_id: string
+            }
+            Returns: boolean
+          }
       detect_credit_anomaly: {
         Args: { p_amount: number; p_user_id: string }
         Returns: boolean
@@ -5072,6 +5087,16 @@ export type Database = {
       }
       reactivate_account: { Args: never; Returns: boolean }
       redeem_referral_code: { Args: { p_code: string }; Returns: Json }
+      refund_credits: {
+        Args: {
+          p_amount: number
+          p_description: string
+          p_idempotency_key?: string
+          p_project_id?: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       refund_production_credits:
         | {
             Args: { p_project_id: string; p_reason: string; p_shot_id: string }

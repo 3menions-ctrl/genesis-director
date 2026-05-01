@@ -6186,9 +6186,31 @@ async function executePipelineInBackground(
       .eq('id', projectId);
     
     console.log(`[Hollywood] Pipeline completed successfully!`);
-    
-    // Notify user their video is ready
+
+    // ─── PARTIAL FAILURE REFUND ───
+    // Pipeline finished, but some clips may have failed. Refund the credits
+    // for those clips so users only pay for what they actually received.
     const completedClipCount = state.production?.clipResults?.filter(c => c.status === 'completed').length || 0;
+    const failedClipCount = state.production?.clipResults?.filter(c => c.status === 'failed').length || 0;
+    const expectedClipCount = state.clipCount || (completedClipCount + failedClipCount);
+    const missingClipCount = Math.max(0, expectedClipCount - completedClipCount);
+    if (missingClipCount > 0 && !request.skipCreditDeduction && state.totalCredits && expectedClipCount > 0) {
+      const perClipCredits = Math.floor(state.totalCredits / expectedClipCount);
+      const refundAmount = perClipCredits * missingClipCount;
+      if (refundAmount > 0) {
+        console.log(`[Hollywood] Partial refund: ${missingClipCount} missing clips × ${perClipCredits} = ${refundAmount} credits`);
+        const { error: refundErr } = await supabase.rpc('refund_credits', {
+          p_user_id: request.userId,
+          p_amount: refundAmount,
+          p_description: `Partial refund: ${missingClipCount}/${expectedClipCount} clips not delivered`,
+          p_project_id: projectId,
+          p_idempotency_key: `hollywood-partial:${projectId}`,
+        });
+        if (refundErr) console.error('[Hollywood] Partial refund failed:', refundErr);
+      }
+    }
+
+    // Notify user their video is ready
     await notifyVideoComplete(supabase, request.userId, projectId, request.projectName, {
       clipCount: completedClipCount,
       videoUrl: state.finalVideoUrl,

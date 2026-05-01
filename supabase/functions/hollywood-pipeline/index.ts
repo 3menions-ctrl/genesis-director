@@ -6488,22 +6488,23 @@ serve(async (req) => {
 
       // DEDUCT CREDITS UPFRONT - this ensures users are charged when pipeline starts
       console.log(`[Hollywood] Deducting ${totalCredits} credits from user ${request.userId}`);
-      const { error: deductError } = await supabase.rpc('deduct_credits', {
+      const { data: deductOk, error: deductError } = await supabase.rpc('deduct_credits', {
         p_user_id: request.userId,
         p_amount: totalCredits,
         p_description: `Video generation: ${clipCount} clips × ${clipDuration}s`,
-        p_project_id: null, // Will be set after project creation
+        p_project_id: request.projectId ?? null, // Link to project if known
         p_clip_duration: clipCount * clipDuration,
+        p_idempotency_key: request.projectId ? `hollywood:${request.projectId}` : null,
       });
 
-      if (deductError) {
-        console.error('[Hollywood] Credit deduction failed:', deductError);
+      if (deductError || deductOk !== true) {
+        console.error('[Hollywood] Credit deduction failed:', deductError, 'ok=', deductOk);
         return new Response(
           JSON.stringify({
             success: false,
-            error: 'Failed to deduct credits. Please try again.',
+            error: deductError ? 'Failed to deduct credits. Please try again.' : 'Insufficient credits at deduction time.',
           }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: deductError ? 500 : 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       console.log(`[Hollywood] Successfully deducted ${totalCredits} credits`);

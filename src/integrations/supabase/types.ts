@@ -2459,6 +2459,7 @@ export type Database = {
           updated_at: string
           user_id: string
           video_clips: string[] | null
+          video_engine: string | null
           video_url: string | null
           voice_audio_url: string | null
         }
@@ -2506,6 +2507,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           video_clips?: string[] | null
+          video_engine?: string | null
           video_url?: string | null
           voice_audio_url?: string | null
         }
@@ -2553,6 +2555,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           video_clips?: string[] | null
+          video_engine?: string | null
           video_url?: string | null
           voice_audio_url?: string | null
         }

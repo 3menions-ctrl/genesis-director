@@ -711,10 +711,12 @@ serve(async (req) => {
     // here in avatar mode but is routed to Seedance, force-fallback to Kling V3
     // so dialogue is preserved. This prevents silent avatar clips.
     let videoEngine = rawVideoEngine;
+    console.log(`[SingleClip] 🎬 ENGINE RECEIVED: rawVideoEngine=${rawVideoEngine}, isAvatarMode=${isAvatarModeFlag}, projectId=${projectId}`);
     if (videoEngine === 'seedance' && isAvatarModeFlag) {
       console.warn(`[SingleClip] ⚠️ Avatar mode + Seedance detected — forcing Kling V3 (Seedance has no lip-sync)`);
       videoEngine = 'kling';
     }
+    console.log(`[SingleClip] 🎬 ENGINE FINAL: ${videoEngine} → routing to ${videoEngine === 'seedance' ? 'bytedance/seedance-2.0' : 'kwaivgi/kling-v3-video'}`);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // CONTENT SAFETY CHECK - Final defense layer at clip generation

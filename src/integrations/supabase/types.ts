@@ -4942,28 +4942,17 @@ export type Database = {
         Returns: string
       }
       deactivate_account: { Args: { p_reason?: string }; Returns: boolean }
-      deduct_credits:
-        | {
-            Args: {
-              p_amount: number
-              p_clip_duration?: number
-              p_description: string
-              p_project_id?: string
-              p_user_id: string
-            }
-            Returns: boolean
-          }
-        | {
-            Args: {
-              p_amount: number
-              p_clip_duration?: number
-              p_description: string
-              p_idempotency_key?: string
-              p_project_id?: string
-              p_user_id: string
-            }
-            Returns: boolean
-          }
+      deduct_credits: {
+        Args: {
+          p_amount: number
+          p_clip_duration?: number
+          p_description: string
+          p_idempotency_key?: string
+          p_project_id?: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       detect_credit_anomaly: {
         Args: { p_amount: number; p_user_id: string }
         Returns: boolean

@@ -355,6 +355,7 @@ serve(async (req) => {
           aspect_ratio: aspectRatio,
           status: requiresLocalCreditDeduction ? 'pending_payment' : 'generating', // Hold status if we need to charge
           mode: mode,
+          video_engine: videoEngine || 'kling', // PERSIST ENGINE — auditable
           source_image_url: imageUrl || null,
           source_video_url: videoUrl || null,
           avatar_voice_id: voiceId || null,
@@ -381,6 +382,7 @@ serve(async (req) => {
         .from('movie_projects')
         .update({
           mode: mode,
+          video_engine: videoEngine || 'kling', // PERSIST ENGINE — auditable
           source_image_url: imageUrl || null,
           source_video_url: videoUrl || null,
           avatar_voice_id: voiceId || null,

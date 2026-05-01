@@ -326,6 +326,9 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
       (creationConfig as any).avatarName = selectedAvatar.name;
     }
 
+    // Visible audit trail: log the engine the user actually launched with.
+    console.log(`[CreationHub] 🎬 Launching generation with engine=${videoEngine} (mode=${creationConfig.mode}, model=${engineInfo.model})`);
+
     onStartCreation(creationConfig);
   };
 

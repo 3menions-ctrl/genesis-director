@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft, Download, Loader2, FolderOpen, Check, Save, X, Monitor, Film,
@@ -69,6 +69,10 @@ export function EditorChrome({
   const [autoLoadDone, setAutoLoadDone] = useState(false);
 
   const { state: timelineState, dispatch, undo, redo } = useCustomTimeline();
+
+  // Track sessions we've just created via save, so the load-effect doesn't
+  // immediately re-hydrate (and clobber) the in-memory timeline.
+  const justSavedSessionIds = useRef<Set<string>>(new Set());
 
   const renderer = useBrowserRenderer?.({
     width: 1920,
@@ -158,6 +162,7 @@ export function EditorChrome({
           .single();
         if (err) throw err;
         if (data?.id) {
+          justSavedSessionIds.current.add(data.id);
           setSearchParams({ session: data.id }, { replace: true });
         }
       }
@@ -178,6 +183,12 @@ export function EditorChrome({
   // ─── Load session ───
   useEffect(() => {
     if (!user || !sessionId) return;
+    // Skip reload for sessions we just created via Save — the in-memory
+    // timeline is already authoritative and reloading would clobber edits.
+    if (justSavedSessionIds.current.has(sessionId)) {
+      justSavedSessionIds.current.delete(sessionId);
+      return;
+    }
     let cancelled = false;
 
     (async () => {

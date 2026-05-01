@@ -326,7 +326,7 @@ serve(async (req: Request) => {
       console.log(`[ContinueProduction] Loading pipeline context from DB (reason: ${!context ? 'no context' : !context.referenceImageUrl ? 'no refImage' : !context.identityBible ? 'no idBible' : 'no pendingVideoTasks'})...`);
       const { data: projectData } = await supabase
         .from('movie_projects')
-        .select('pro_features_data, generated_script, scene_images, pending_video_tasks')
+        .select('pro_features_data, generated_script, scene_images, pending_video_tasks, video_engine')
         .eq('id', projectId)
         .maybeSingle();
 
@@ -347,6 +347,13 @@ serve(async (req: Request) => {
         if (context.isAvatarMode === undefined && (pendingTasks.isAvatarMode || pendingTasks.type === 'avatar_async')) {
           context.isAvatarMode = true;
           console.log(`[ContinueProduction] ✓ Recovered isAvatarMode=true from pending_video_tasks`);
+        }
+        // 🎬 ENGINE RECOVERY (bulletproof): always prefer the persisted video_engine
+        // column. This guarantees retry/watchdog/check-status paths can never
+        // silently downgrade Seedance → Kling because they forgot to forward it.
+        if (!context.videoEngine && projectData.video_engine) {
+          context.videoEngine = projectData.video_engine as 'kling' | 'seedance' | 'veo';
+          console.log(`[ContinueProduction] 🎬 Recovered videoEngine=${context.videoEngine} from movie_projects.video_engine`);
         }
         if (!context.videoEngine && pendingTasks.type === 'avatar_async') {
           context.videoEngine = 'kling';

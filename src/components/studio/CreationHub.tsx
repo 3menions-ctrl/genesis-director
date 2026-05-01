@@ -68,7 +68,10 @@ const ASPECT_RATIOS = [
   { id: '1:1',  icon: Square,              label: 'Square' },
 ];
 
-const CLIP_DURATIONS = [5, 10, 15];
+const CLIP_DURATIONS_KLING = [5, 10, 15];
+// Seedance 2.0 hard-clamps duration to 2–12s — never expose 15s, the API
+// silently truncates and we'd be charging the extended tier for short output.
+const CLIP_DURATIONS_SEEDANCE = [5, 10, 12];
 
 const GENRE_OPTIONS = [
   { value: 'cinematic',     label: 'Cinematic' },
@@ -228,6 +231,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   // (note: legacy 'veo' is a backward-compat alias that also routes to Kling V3).
   const videoEngine: 'kling' | 'seedance' = activeMode.engine;
   const engineInfo = ENGINE_INFO[videoEngine];
+  const clipDurationOptions = videoEngine === 'seedance' ? CLIP_DURATIONS_SEEDANCE : CLIP_DURATIONS_KLING;
 
   const estimatedDuration = clipCount * effectiveDuration;
   const estMin = Math.floor(estimatedDuration / 60);

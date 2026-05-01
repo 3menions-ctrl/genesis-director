@@ -236,7 +236,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   // If user selected Seedance while a Kling-only duration (e.g. 15s) is active,
   // snap down to the closest legal Seedance value (≤12s) so we never over-bill
   // the extended tier for a model that will hard-truncate the output.
-  React.useEffect(() => {
+  useEffect(() => {
     if (!clipDurationOptions.includes(clipDuration)) {
       const safest = [...clipDurationOptions].reverse().find(d => d <= clipDuration) ?? clipDurationOptions[0];
       setClipDuration(safest);

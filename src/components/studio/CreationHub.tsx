@@ -68,7 +68,10 @@ const ASPECT_RATIOS = [
   { id: '1:1',  icon: Square,              label: 'Square' },
 ];
 
-const CLIP_DURATIONS = [5, 10, 15];
+const CLIP_DURATIONS_KLING = [5, 10, 15];
+// Seedance 2.0 hard-clamps duration to 2–12s — never expose 15s, the API
+// silently truncates and we'd be charging the extended tier for short output.
+const CLIP_DURATIONS_SEEDANCE = [5, 10, 12];
 
 const GENRE_OPTIONS = [
   { value: 'cinematic',     label: 'Cinematic' },
@@ -228,6 +231,17 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   // (note: legacy 'veo' is a backward-compat alias that also routes to Kling V3).
   const videoEngine: 'kling' | 'seedance' = activeMode.engine;
   const engineInfo = ENGINE_INFO[videoEngine];
+  const clipDurationOptions = videoEngine === 'seedance' ? CLIP_DURATIONS_SEEDANCE : CLIP_DURATIONS_KLING;
+
+  // If user selected Seedance while a Kling-only duration (e.g. 15s) is active,
+  // snap down to the closest legal Seedance value (≤12s) so we never over-bill
+  // the extended tier for a model that will hard-truncate the output.
+  useEffect(() => {
+    if (!clipDurationOptions.includes(clipDuration)) {
+      const safest = [...clipDurationOptions].reverse().find(d => d <= clipDuration) ?? clipDurationOptions[0];
+      setClipDuration(safest);
+    }
+  }, [videoEngine]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const estimatedDuration = clipCount * effectiveDuration;
   const estMin = Math.floor(estimatedDuration / 60);
@@ -672,8 +686,9 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                       icon={Clock}
                       label={`${clipDuration}s`}
                       onClick={() => {
-                        const idx = CLIP_DURATIONS.indexOf(clipDuration);
-                        setClipDuration(CLIP_DURATIONS[(idx + 1) % CLIP_DURATIONS.length]);
+                        const idx = clipDurationOptions.indexOf(clipDuration);
+                        const next = clipDurationOptions[(idx + 1) % clipDurationOptions.length];
+                        setClipDuration(next);
                       }}
                       title="Per-clip duration"
                     />

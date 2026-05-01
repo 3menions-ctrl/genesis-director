@@ -2,10 +2,13 @@
 // Consistent across frontend and backend
 
 /**
- * Credit Pricing (SINGLE SOURCE OF TRUTH) — Kling V3 (kwaivgi/kling-v3-video)
+ * Credit Pricing (SINGLE SOURCE OF TRUTH)
  *
- * REAL COST: $3.38 per 10s clip via Replicate/Kling V3
- * TARGET: Minimum 48% profit margin on every clip
+ * Engines & verified Replicate cost (as of audit):
+ *   • Kling V3 (kwaivgi/kling-v3-video): ~$0.338/sec  → 10s = $3.38
+ *   • Seedance 2.0 1080p (bytedance/seedance-2.0): $0.45/sec → 10s = $4.50, 12s = $5.40
+ *
+ * TARGET: ≥30% gross margin on every clip
  *
  * Standard (T2V / I2V):
  *   - 10s clip: 50 credits ($5.00) — real cost $3.38, margin 32%
@@ -15,9 +18,15 @@
  *   - 10s clip: 60 credits ($6.00) — real cost ~$4.00, margin 33%
  *   - 15s clip: 90 credits ($9.00) — real cost ~$6.00, margin 33%
  *
+ * Seedance 2.0 (premium tier — 1080p hyperreal motion, max 12s/clip):
+ *   - 10s clip: 65 credits ($6.50) — real cost $4.50, margin 31%
+ *   - 12s clip (extended): 95 credits ($9.50) — real cost $5.40, margin 43%
+ *
  * Stripe: 1 credit = $0.10 (10 credits = $1)
  *
- * CLIP DURATION: User-selectable (5, 10, 15s via Kling V3)
+ * CLIP DURATION:
+ *   • Kling V3: 5, 10, 15s
+ *   • Seedance 2.0: 5, 10, 12s (model hard-clamps >12s)
  * CLIP COUNT: User-selectable (1-20 clips)
  */
 
@@ -68,6 +77,9 @@ export const CREDIT_SYSTEM = {
 
   // Clip duration options (Kling V3: 3–15 seconds)
   CLIP_DURATIONS: [5, 10, 15] as const,
+  // Seedance 2.0 hard-clamps duration to 2–12s; expose only legal options.
+  SEEDANCE_CLIP_DURATIONS: [5, 10, 12] as const,
+  SEEDANCE_MAX_CLIP_DURATION: 12,
   DEFAULT_CLIP_DURATION: 10,
   DEFAULT_AVATAR_CLIP_DURATION: 10,
   MIN_CLIP_DURATION: 3,

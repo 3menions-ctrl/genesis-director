@@ -269,12 +269,23 @@ serve(async (req) => {
         });
       }
 
-      // Deduct credits
-      await supabase.rpc("deduct_credits", {
+      // Deduct credits — STRICTLY assert success before proceeding (no free generation)
+      const { data: deductOk, error: deductErr } = await supabase.rpc("deduct_credits", {
         p_user_id: auth.userId,
         p_amount: creditsRequired,
         p_description: `Editor clip generation (${duration}s)`,
       });
+      if (deductErr || deductOk !== true) {
+        console.error("[editor-generate-clip] Credit deduction failed:", deductErr, "ok=", deductOk);
+        return new Response(JSON.stringify({
+          error: deductErr ? "Failed to deduct credits" : "Insufficient credits",
+          required: creditsRequired,
+          available: profile?.credits_balance || 0,
+        }), {
+          status: deductErr ? 500 : 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       // Build Seedance input — MAX QUALITY profile
       // duration MUST be integer 5 or 10 for Seedance-1-Pro
@@ -321,33 +332,14 @@ serve(async (req) => {
       if (!replicateRes.ok) {
         const errText = await replicateRes.text();
         console.error("[editor-generate-clip] Replicate error:", errText);
-        // Refund on failure — use deduct_credits with NEGATIVE amount for proper ledger entry.
-        // The legacy `increment_credits` RPC does not exist and silently failed before this fix
-        // (users were not refunded). This restores the balance and creates an audit row.
-        const { error: refundErr } = await supabase.rpc("deduct_credits", {
+        // Refund on failure via the dedicated refund_credits RPC (single source of truth).
+        const { error: refundErr } = await supabase.rpc("refund_credits", {
           p_user_id: auth.userId,
-          p_amount: -creditsRequired,
+          p_amount: creditsRequired,
           p_description: `Editor clip refund: Replicate error`,
         });
         if (refundErr) {
           console.error("[editor-generate-clip] Refund RPC failed:", refundErr);
-          // Fallback: direct balance + ledger entry (service-role only)
-          const { data: cp } = await supabase
-            .from("profiles")
-            .select("credits_balance")
-            .eq("id", auth.userId)
-            .maybeSingle();
-          if (cp) {
-            await supabase.from("profiles")
-              .update({ credits_balance: cp.credits_balance + creditsRequired })
-              .eq("id", auth.userId);
-            await supabase.from("credit_transactions").insert({
-              user_id: auth.userId,
-              amount: creditsRequired,
-              transaction_type: "refund",
-              description: "Editor clip refund: Replicate error (fallback)",
-            });
-          }
         }
         return new Response(JSON.stringify({ error: "Failed to start generation" }), {
           status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },

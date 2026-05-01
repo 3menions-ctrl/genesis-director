@@ -280,8 +280,12 @@ export function AdminSystemConfig() {
           <CardTitle className="text-base flex items-center gap-2">
             <Activity className="w-5 h-5" />
             System Status
+            {statusLoading && <RefreshCw className="w-3 h-3 animate-spin text-muted-foreground" />}
           </CardTitle>
-          <CardDescription>Current status of system components</CardDescription>
+          <CardDescription>
+            Live status from the last 60 minutes of API activity
+            {statusUpdatedAt && ` · updated ${statusUpdatedAt.toLocaleTimeString()}`}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -233,6 +233,16 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
   const engineInfo = ENGINE_INFO[videoEngine];
   const clipDurationOptions = videoEngine === 'seedance' ? CLIP_DURATIONS_SEEDANCE : CLIP_DURATIONS_KLING;
 
+  // If user selected Seedance while a Kling-only duration (e.g. 15s) is active,
+  // snap down to the closest legal Seedance value (≤12s) so we never over-bill
+  // the extended tier for a model that will hard-truncate the output.
+  React.useEffect(() => {
+    if (!clipDurationOptions.includes(clipDuration)) {
+      const safest = [...clipDurationOptions].reverse().find(d => d <= clipDuration) ?? clipDurationOptions[0];
+      setClipDuration(safest);
+    }
+  }, [videoEngine]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const estimatedDuration = clipCount * effectiveDuration;
   const estMin = Math.floor(estimatedDuration / 60);
   const estSec = estimatedDuration % 60;

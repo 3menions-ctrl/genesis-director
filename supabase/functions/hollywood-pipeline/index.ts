@@ -6186,9 +6186,31 @@ async function executePipelineInBackground(
       .eq('id', projectId);
     
     console.log(`[Hollywood] Pipeline completed successfully!`);
-    
-    // Notify user their video is ready
+
+    // ─── PARTIAL FAILURE REFUND ───
+    // Pipeline finished, but some clips may have failed. Refund the credits
+    // for those clips so users only pay for what they actually received.
     const completedClipCount = state.production?.clipResults?.filter(c => c.status === 'completed').length || 0;
+    const failedClipCount = state.production?.clipResults?.filter(c => c.status === 'failed').length || 0;
+    const expectedClipCount = state.clipCount || (completedClipCount + failedClipCount);
+    const missingClipCount = Math.max(0, expectedClipCount - completedClipCount);
+    if (missingClipCount > 0 && !request.skipCreditDeduction && state.totalCredits && expectedClipCount > 0) {
+      const perClipCredits = Math.floor(state.totalCredits / expectedClipCount);
+      const refundAmount = perClipCredits * missingClipCount;
+      if (refundAmount > 0) {
+        console.log(`[Hollywood] Partial refund: ${missingClipCount} missing clips × ${perClipCredits} = ${refundAmount} credits`);
+        const { error: refundErr } = await supabase.rpc('refund_credits', {
+          p_user_id: request.userId,
+          p_amount: refundAmount,
+          p_description: `Partial refund: ${missingClipCount}/${expectedClipCount} clips not delivered`,
+          p_project_id: projectId,
+          p_idempotency_key: `hollywood-partial:${projectId}`,
+        });
+        if (refundErr) console.error('[Hollywood] Partial refund failed:', refundErr);
+      }
+    }
+
+    // Notify user their video is ready
     await notifyVideoComplete(supabase, request.userId, projectId, request.projectName, {
       clipCount: completedClipCount,
       videoUrl: state.finalVideoUrl,
@@ -6488,22 +6510,23 @@ serve(async (req) => {
 
       // DEDUCT CREDITS UPFRONT - this ensures users are charged when pipeline starts
       console.log(`[Hollywood] Deducting ${totalCredits} credits from user ${request.userId}`);
-      const { error: deductError } = await supabase.rpc('deduct_credits', {
+      const { data: deductOk, error: deductError } = await supabase.rpc('deduct_credits', {
         p_user_id: request.userId,
         p_amount: totalCredits,
         p_description: `Video generation: ${clipCount} clips × ${clipDuration}s`,
-        p_project_id: null, // Will be set after project creation
+        p_project_id: request.projectId ?? null, // Link to project if known
         p_clip_duration: clipCount * clipDuration,
+        p_idempotency_key: request.projectId ? `hollywood:${request.projectId}` : null,
       });
 
-      if (deductError) {
-        console.error('[Hollywood] Credit deduction failed:', deductError);
+      if (deductError || deductOk !== true) {
+        console.error('[Hollywood] Credit deduction failed:', deductError, 'ok=', deductOk);
         return new Response(
           JSON.stringify({
             success: false,
-            error: 'Failed to deduct credits. Please try again.',
+            error: deductError ? 'Failed to deduct credits. Please try again.' : 'Insufficient credits at deduction time.',
           }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: deductError ? 500 : 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       console.log(`[Hollywood] Successfully deducted ${totalCredits} credits`);

@@ -447,23 +447,24 @@ serve(async (req) => {
       
       // DEDUCT CREDITS
       console.log(`[ModeRouter] Deducting ${totalCredits} credits from user ${userId} for project ${projectId}`);
-      const { error: deductError } = await supabase.rpc('deduct_credits', {
+      const { data: deductOk, error: deductError } = await supabase.rpc('deduct_credits', {
         p_user_id: userId,
         p_amount: totalCredits,
         p_description: `Video generation: ${clipCount} clips × ${clipDuration}s`,
         p_project_id: projectId, // Link directly to project!
         p_clip_duration: clipCount * clipDuration,
+        p_idempotency_key: `mode-router:${projectId}`,
       });
-      
-      if (deductError) {
-        console.error('[ModeRouter] Credit deduction failed:', deductError);
+
+      if (deductError || deductOk !== true) {
+        console.error('[ModeRouter] Credit deduction failed:', deductError, 'ok=', deductOk);
         await supabase.from('movie_projects').update({ status: 'payment_failed', last_error: 'Credit deduction failed' }).eq('id', projectId);
         return new Response(
           JSON.stringify({
             success: false,
-            error: 'Failed to deduct credits. Please try again.',
+            error: deductError ? 'Failed to deduct credits. Please try again.' : 'Insufficient credits at deduction time.',
           }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: deductError ? 500 : 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       

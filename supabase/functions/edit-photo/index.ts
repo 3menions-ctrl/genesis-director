@@ -117,11 +117,24 @@ Deno.serve(async (req) => {
         );
       }
 
-      await supabase.rpc('deduct_credits', {
+      const { data: deductOk, error: deductErr } = await supabase.rpc('deduct_credits', {
         p_user_id: auth.userId,
         p_amount: creditsCost,
         p_description: `Photo edit: ${editInstruction?.substring(0, 50)}...`,
       });
+      if (deductErr || deductOk !== true) {
+        console.error('[edit-photo] Credit deduction failed:', deductErr, 'ok=', deductOk);
+        if (editId) {
+          await supabase.from('photo_edits').update({
+            status: 'failed',
+            error_message: deductErr ? 'Credit deduction error' : 'Insufficient credits',
+          }).eq('id', editId);
+        }
+        return new Response(
+          JSON.stringify({ error: deductErr ? 'Failed to deduct credits' : 'Insufficient credits', required: creditsCost, available: profile?.credits_balance || 0 }),
+          { status: deductErr ? 500 : 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Update edit status to processing
@@ -192,40 +205,15 @@ Deno.serve(async (req) => {
         }).eq('id', editId);
       }
 
-      // FIX #6: Use deduct_credits with negative amount pattern for proper refund tracking
-      // increment_credits logs as 'system_grant' which makes refunds invisible in ledger
+      // Refund via the dedicated refund_credits RPC (single source of truth)
       if (creditsCost > 0) {
-        // Use proper refund logic via RPC if available, or transaction-like update
-        const { error: refundError } = await supabase.rpc('refund_production_credits', {
+        const { error: refundError } = await supabase.rpc('refund_credits', {
           p_user_id: auth.userId,
-          p_project_id: editId || '00000000-0000-0000-0000-000000000000', // Dummy UUID if no editId
-          p_shot_id: 'photo_edit_refund',
-          p_reason: 'AI gateway error'
+          p_amount: creditsCost,
+          p_description: `Photo edit refund: AI gateway error`,
         });
-
-        // Fallback to manual credit restoration if RPC missing or fails (legacy support)
         if (refundError) {
-          console.warn('[edit-photo] Refund RPC failed, falling back to manual restore:', refundError);
-          await supabase.from('credit_transactions').insert({
-            user_id: auth.userId,
-            amount: creditsCost,
-            transaction_type: 'refund',
-            description: `Photo edit refund: AI gateway error`,
-          });
-          
-          // Direct balance update (service_role has permission)
-          const { data: currentProfile } = await supabase
-            .from('profiles')
-            .select('credits_balance')
-            .eq('id', auth.userId)
-            .maybeSingle();
-            
-          if (currentProfile) {
-            await supabase
-              .from('profiles')
-              .update({ credits_balance: currentProfile.credits_balance + creditsCost })
-              .eq('id', auth.userId);
-          }
+          console.error('[edit-photo] Refund RPC failed:', refundError);
         }
       }
 
@@ -247,23 +235,12 @@ Deno.serve(async (req) => {
         }).eq('id', editId);
       }
       if (creditsCost > 0) {
-        await supabase.from('credit_transactions').insert({
-          user_id: auth.userId,
-          amount: creditsCost,
-          transaction_type: 'refund',
-          description: `Photo edit refund: No edited image returned`,
+        const { error: refundError } = await supabase.rpc('refund_credits', {
+          p_user_id: auth.userId,
+          p_amount: creditsCost,
+          p_description: `Photo edit refund: No edited image returned`,
         });
-        const { data: currentProfile } = await supabase
-          .from('profiles')
-          .select('credits_balance')
-          .eq('id', auth.userId)
-          .maybeSingle();
-        if (currentProfile) {
-          await supabase
-            .from('profiles')
-            .update({ credits_balance: currentProfile.credits_balance + creditsCost })
-            .eq('id', auth.userId);
-        }
+        if (refundError) console.error('[edit-photo] Refund RPC failed:', refundError);
       }
       return new Response(
         JSON.stringify({ error: 'No edited image returned' }),

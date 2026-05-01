@@ -247,17 +247,17 @@ serve(async (req) => {
         );
       }
 
-      // Deduct credits
-      const { error: deductError } = await supabase.rpc("deduct_credits", {
+      // Deduct credits — STRICTLY assert success (prevents silent free generation)
+      const { data: deductOk, error: deductError } = await supabase.rpc("deduct_credits", {
         p_user_id: userId,
         p_amount: IDENTITY_EXTRACTION_CREDITS,
         p_description: "Scene Identity Extraction — Character & Environment DNA Analysis",
         p_project_id: projectId || null,
       });
 
-      if (deductError) {
-        console.error("[extract-scene-identity] Credit deduction failed:", deductError);
-        throw new Error("Failed to charge credits for identity extraction");
+      if (deductError || deductOk !== true) {
+        console.error("[extract-scene-identity] Credit deduction failed:", deductError, "ok=", deductOk);
+        throw new Error(deductError ? "Failed to charge credits for identity extraction" : "Insufficient credits at deduction time");
       }
 
       creditsCharged = IDENTITY_EXTRACTION_CREDITS;

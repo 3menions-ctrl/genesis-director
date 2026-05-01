@@ -676,8 +676,9 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
                       icon={Clock}
                       label={`${clipDuration}s`}
                       onClick={() => {
-                        const idx = CLIP_DURATIONS.indexOf(clipDuration);
-                        setClipDuration(CLIP_DURATIONS[(idx + 1) % CLIP_DURATIONS.length]);
+                        const idx = clipDurationOptions.indexOf(clipDuration);
+                        const next = clipDurationOptions[(idx + 1) % clipDurationOptions.length];
+                        setClipDuration(next);
                       }}
                       title="Per-clip duration"
                     />

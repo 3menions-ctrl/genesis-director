@@ -396,16 +396,24 @@ serve(async (req) => {
 
     // CREDIT DEDUCTION - Now happens AFTER project creation
     if (requiresLocalCreditDeduction) {
-      // Calculate total credits needed — Kling V3 tiered pricing
+      // Engine-aware tiered pricing (MUST mirror src/lib/creditSystem.ts)
+      // Kling V3 standard: 50/75 cr  | Avatar (Kling+audio): 60/90 cr
+      // Seedance 2.0 1080p: 65/95 cr  (real cost $4.50/$5.40 → 31-43% margin)
       const isAvatar = mode === 'avatar';
+      const isSeedance = videoEngine === 'seedance';
       const isExtendedDuration = clipDuration > 10;
-      const creditsPerClip = isAvatar
-        ? (isExtendedDuration ? 90 : 60)
-        : (isExtendedDuration ? 75 : 50);
-      
+      let creditsPerClip: number;
+      if (isSeedance) {
+        creditsPerClip = isExtendedDuration ? 95 : 65;
+      } else if (isAvatar) {
+        creditsPerClip = isExtendedDuration ? 90 : 60;
+      } else {
+        creditsPerClip = isExtendedDuration ? 75 : 50;
+      }
+
       let totalCredits = clipCount * creditsPerClip;
-      
-      console.log(`[ModeRouter] Credit check for ${mode}: ${clipCount} clips × ${clipDuration}s = ${totalCredits} credits required`);
+
+      console.log(`[ModeRouter] Credit check engine=${videoEngine} mode=${mode} avatar=${isAvatar}: ${clipCount} clips × ${clipDuration}s @ ${creditsPerClip}cr = ${totalCredits} credits required`);
       
       // Check if user has enough credits
       const { data: profile, error: profileError } = await supabase

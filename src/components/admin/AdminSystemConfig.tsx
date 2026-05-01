@@ -81,6 +81,8 @@ export function AdminSystemConfig() {
     storage: 'operational',
     database: 'operational',
   });
+  const [statusLoading, setStatusLoading] = useState(true);
+  const [statusUpdatedAt, setStatusUpdatedAt] = useState<Date | null>(null);
   
   const [saving, setSaving] = useState(false);
   const [loadingConfig, setLoadingConfig] = useState(true);
@@ -119,6 +121,75 @@ export function AdminSystemConfig() {
       }
     };
     loadConfig();
+  }, []);
+
+  // Compute REAL service health from api_cost_logs (last 60 minutes).
+  // Mirrors AdminPipelineMonitor logic so admin sees true uptime, not hardcoded values.
+  useEffect(() => {
+    let cancelled = false;
+    const computeStatus = async () => {
+      setStatusLoading(true);
+      const sinceIso = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+      // Database health = whether this query itself succeeds
+      let databaseStatus: SystemStatus['database'] = 'operational';
+      let veoApi: SystemStatus['veoApi'] = 'operational';
+      let stitcher: SystemStatus['stitcher'] = 'operational';
+      let storage: SystemStatus['storage'] = 'operational';
+
+      const classify = (total: number, failed: number): 'operational' | 'degraded' | 'down' => {
+        if (total === 0) return 'operational'; // no traffic = treat as healthy
+        const successRate = ((total - failed) / total) * 100;
+        if (successRate < 50) return 'down';
+        if (successRate < 95) return 'degraded';
+        return 'operational';
+      };
+
+      try {
+        const { data, error } = await supabase
+          .from('api_cost_logs')
+          .select('service, status')
+          .gte('created_at', sinceIso);
+
+        if (error) {
+          databaseStatus = 'degraded';
+        } else {
+          const buckets: Record<string, { total: number; failed: number }> = {
+            video: { total: 0, failed: 0 },
+            stitch: { total: 0, failed: 0 },
+            storage: { total: 0, failed: 0 },
+          };
+          (data || []).forEach((row: any) => {
+            const svc = String(row.service || '').toLowerCase();
+            // map service names to our 3 buckets
+            let bucket: keyof typeof buckets | null = null;
+            if (svc.includes('kling') || svc.includes('veo') || svc.includes('replicate') || svc === 'video') bucket = 'video';
+            else if (svc.includes('stitch') || svc.includes('ffmpeg')) bucket = 'stitch';
+            else if (svc.includes('storage') || svc.includes('upload')) bucket = 'storage';
+            if (!bucket) return;
+            buckets[bucket].total += 1;
+            if (row.status === 'failed' || row.status === 'error') buckets[bucket].failed += 1;
+          });
+          veoApi = classify(buckets.video.total, buckets.video.failed);
+          stitcher = classify(buckets.stitch.total, buckets.stitch.failed);
+          storage = classify(buckets.storage.total, buckets.storage.failed);
+        }
+      } catch {
+        databaseStatus = 'down';
+      }
+
+      if (cancelled) return;
+      setSystemStatus({ veoApi, stitcher, storage, database: databaseStatus });
+      setStatusUpdatedAt(new Date());
+      setStatusLoading(false);
+    };
+
+    computeStatus();
+    const interval = setInterval(computeStatus, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, []);
 
   const toggleFeatureFlag = (flagId: string) => {
@@ -209,8 +280,12 @@ export function AdminSystemConfig() {
           <CardTitle className="text-base flex items-center gap-2">
             <Activity className="w-5 h-5" />
             System Status
+            {statusLoading && <RefreshCw className="w-3 h-3 animate-spin text-muted-foreground" />}
           </CardTitle>
-          <CardDescription>Current status of system components</CardDescription>
+          <CardDescription>
+            Live status from the last 60 minutes of API activity
+            {statusUpdatedAt && ` · updated ${statusUpdatedAt.toLocaleTimeString()}`}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

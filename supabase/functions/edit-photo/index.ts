@@ -216,16 +216,6 @@ Deno.serve(async (req) => {
           console.error('[edit-photo] Refund RPC failed:', refundError);
         }
       }
-            .maybeSingle();
-            
-          if (currentProfile) {
-            await supabase
-              .from('profiles')
-              .update({ credits_balance: currentProfile.credits_balance + creditsCost })
-              .eq('id', auth.userId);
-          }
-        }
-      }
 
       return new Response(
         JSON.stringify({ error: errorMsg }),
@@ -245,23 +235,12 @@ Deno.serve(async (req) => {
         }).eq('id', editId);
       }
       if (creditsCost > 0) {
-        await supabase.from('credit_transactions').insert({
-          user_id: auth.userId,
-          amount: creditsCost,
-          transaction_type: 'refund',
-          description: `Photo edit refund: No edited image returned`,
+        const { error: refundError } = await supabase.rpc('refund_credits', {
+          p_user_id: auth.userId,
+          p_amount: creditsCost,
+          p_description: `Photo edit refund: No edited image returned`,
         });
-        const { data: currentProfile } = await supabase
-          .from('profiles')
-          .select('credits_balance')
-          .eq('id', auth.userId)
-          .maybeSingle();
-        if (currentProfile) {
-          await supabase
-            .from('profiles')
-            .update({ credits_balance: currentProfile.credits_balance + creditsCost })
-            .eq('id', auth.userId);
-        }
+        if (refundError) console.error('[edit-photo] Refund RPC failed:', refundError);
       }
       return new Response(
         JSON.stringify({ error: 'No edited image returned' }),

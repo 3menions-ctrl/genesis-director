@@ -1,5 +1,5 @@
-import { memo, useEffect, useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { memo, useEffect, useRef, useState, useCallback } from 'react';
+import { motion, useScroll, useTransform, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
 import hoppyVideo from '@/assets/landing-hoppy-intro.mp4.asset.json';
 import corporateVideo from '@/assets/landing-immersive-hero.mp4.asset.json';
 import seedanceVideo from '@/assets/seedance-avatar-test.mp4.asset.json';
@@ -31,43 +31,78 @@ type Tile = {
   className: string;
   delay: number;
   parallax?: number;
+  kenBurns?: 'in' | 'out' | 'left' | 'right';
 };
 
-// Asymmetric editorial mosaic — varied aspect ratios, NO labels
-const TILES: Tile[] = [
-  // Row 1
-  { src: corporateVideo.url, poster: poster1, className: 'col-span-12 md:col-span-7 row-span-2 aspect-[16/10]', delay: 0, parallax: -30 },
-  { src: avatarWave.url, poster: poster3, className: 'col-span-6 md:col-span-5 aspect-[4/5]', delay: 0.08, parallax: 20 },
-  // Row 2 (right column under avatar wave)
-  { src: GALLERY.beautifulDay, poster: poster2, className: 'col-span-6 md:col-span-5 aspect-[4/3]', delay: 0.16, parallax: -10 },
-  // Row 3
-  { src: hoppyVideo.url, poster: poster4, className: 'col-span-6 md:col-span-3 aspect-square', delay: 0.24, parallax: 15 },
-  { src: GALLERY.sunsetDreams, poster: poster5, className: 'col-span-6 md:col-span-4 aspect-[4/3]', delay: 0.30, parallax: -20 },
-  { src: GALLERY.snowy, poster: poster1, className: 'col-span-12 md:col-span-5 aspect-[16/10]', delay: 0.36, parallax: 25 },
-  // Row 4
-  { src: seedanceVideo.url, poster: poster3, className: 'col-span-6 md:col-span-4 aspect-[3/4]', delay: 0.42, parallax: -15 },
-  { src: GALLERY.fiery, poster: poster2, className: 'col-span-6 md:col-span-4 aspect-[3/4]', delay: 0.48, parallax: 20 },
-  { src: seedanceClip.url, poster: poster4, className: 'col-span-12 md:col-span-4 aspect-[9/16]', delay: 0.54, parallax: -25 },
-  // Row 5
-  { src: GALLERY.chocolate, poster: poster5, className: 'col-span-6 md:col-span-5 aspect-[16/10]', delay: 0.60, parallax: 15 },
-  { src: GALLERY.editing, poster: poster1, className: 'col-span-6 md:col-span-3 aspect-square', delay: 0.66, parallax: -10 },
-  { src: GALLERY.legacy, poster: poster3, className: 'col-span-12 md:col-span-4 aspect-[4/5]', delay: 0.72, parallax: 30 },
+const POSTERS = [poster1, poster2, poster3, poster4, poster5];
+
+// ── Featured spotlight reel — auto-rotates every 6s ──────────────────────────
+const SPOTLIGHT: { src: string; poster: string }[] = [
+  { src: corporateVideo.url, poster: poster1 },
+  { src: avatarWave.url, poster: poster3 },
+  { src: GALLERY.beautifulDay, poster: poster2 },
+  { src: GALLERY.sunsetDreams, poster: poster5 },
+  { src: GALLERY.enchanted, poster: poster4 },
 ];
 
-const VideoTile = memo(function VideoTile({ tile }: { tile: Tile }) {
+// ── Marquee strip — endless horizontal scroller ──────────────────────────────
+const MARQUEE: { src: string; poster: string }[] = [
+  { src: GALLERY.fiery, poster: poster1 },
+  { src: GALLERY.chocolate, poster: poster2 },
+  { src: GALLERY.silentVigil, poster: poster3 },
+  { src: GALLERY.legacy, poster: poster4 },
+  { src: GALLERY.zombie, poster: poster5 },
+  { src: GALLERY.editing, poster: poster1 },
+];
+
+// ── Editorial mosaic — magazine-grade asymmetric layout, NO labels ───────────
+const TILES: Tile[] = [
+  { src: GALLERY.snowy, poster: poster1, className: 'col-span-12 md:col-span-8 row-span-2 aspect-[16/10]', delay: 0, parallax: -28, kenBurns: 'in' },
+  { src: hoppyVideo.url, poster: poster4, className: 'col-span-6 md:col-span-4 aspect-[4/5]', delay: 0.08, parallax: 22, kenBurns: 'left' },
+  { src: GALLERY.beautifulDay, poster: poster2, className: 'col-span-6 md:col-span-4 aspect-[4/5]', delay: 0.16, parallax: -16, kenBurns: 'right' },
+  { src: seedanceVideo.url, poster: poster3, className: 'col-span-6 md:col-span-3 aspect-square', delay: 0.20, parallax: 14, kenBurns: 'out' },
+  { src: GALLERY.sunsetDreams, poster: poster5, className: 'col-span-6 md:col-span-5 aspect-[16/10]', delay: 0.26, parallax: -22, kenBurns: 'in' },
+  { src: GALLERY.fiery, poster: poster2, className: 'col-span-6 md:col-span-4 aspect-[3/4]', delay: 0.32, parallax: 20, kenBurns: 'left' },
+  { src: seedanceClip.url, poster: poster4, className: 'col-span-6 md:col-span-4 aspect-[9/16]', delay: 0.38, parallax: -24, kenBurns: 'in' },
+  { src: GALLERY.chocolate, poster: poster5, className: 'col-span-12 md:col-span-4 aspect-[16/10]', delay: 0.44, parallax: 18, kenBurns: 'right' },
+  { src: GALLERY.silentVigil, poster: poster1, className: 'col-span-6 md:col-span-3 aspect-square', delay: 0.50, parallax: -12, kenBurns: 'out' },
+  { src: GALLERY.legacy, poster: poster3, className: 'col-span-6 md:col-span-5 aspect-[4/3]', delay: 0.56, parallax: 16, kenBurns: 'in' },
+  { src: GALLERY.editing, poster: poster1, className: 'col-span-12 md:col-span-4 aspect-[4/5]', delay: 0.62, parallax: -20, kenBurns: 'left' },
+];
+
+const KEN_BURNS: Record<NonNullable<Tile['kenBurns']>, string> = {
+  in: 'kenburns-in',
+  out: 'kenburns-out',
+  left: 'kenburns-left',
+  right: 'kenburns-right',
+};
+
+// ── Single intelligent video tile ────────────────────────────────────────────
+const VideoTile = memo(function VideoTile({ tile, index }: { tile: Tile; index: number }) {
   const ref = useRef<HTMLVideoElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: wrapRef, offset: ['start end', 'end start'] });
   const y = useTransform(scrollYProgress, [0, 1], [tile.parallax ? -tile.parallax : 0, tile.parallax || 0]);
 
+  // Magnetic cursor sheen
+  const mx = useMotionValue(0.5);
+  const my = useMotionValue(0.5);
+  const sx = useSpring(mx, { stiffness: 120, damping: 18 });
+  const sy = useSpring(my, { stiffness: 120, damping: 18 });
+  const sheenX = useTransform(sx, (v) => `${v * 100}%`);
+  const sheenY = useTransform(sy, (v) => `${v * 100}%`);
+
+  const onMove = useCallback((e: React.MouseEvent) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    mx.set((e.clientX - r.left) / r.width);
+    my.set((e.clientY - r.top) / r.height);
+  }, [mx, my]);
+
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     const io = new IntersectionObserver(
-      ([e]) => {
-        if (e.isIntersecting) el.play().catch(() => undefined);
-        else el.pause();
-      },
+      ([e]) => { if (e.isIntersecting) el.play().catch(() => undefined); else el.pause(); },
       { threshold: 0.15 },
     );
     io.observe(el);
@@ -77,15 +112,17 @@ const VideoTile = memo(function VideoTile({ tile }: { tile: Tile }) {
   return (
     <motion.div
       ref={wrapRef}
-      initial={{ opacity: 0, y: 50, scale: 0.95 }}
-      whileInView={{ opacity: 1, y: 0, scale: 1 }}
-      viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 1, delay: tile.delay, ease: [0.16, 1, 0.3, 1] }}
-      className={`relative group rounded-[18px] md:rounded-[24px] overflow-hidden ${tile.className}`}
+      onMouseMove={onMove}
+      initial={{ opacity: 0, y: 60, scale: 0.94, filter: 'blur(12px)' }}
+      whileInView={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+      viewport={{ once: true, margin: '-80px' }}
+      transition={{ duration: 1.1, delay: tile.delay, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ scale: 1.015 }}
+      className={`relative group rounded-[20px] md:rounded-[28px] overflow-hidden ${tile.className}`}
       style={{
         border: '1px solid hsla(0,0%,100%,0.08)',
         boxShadow:
-          '0 1px 0 hsla(0,0%,100%,0.10) inset, 0 30px 80px -25px rgba(0,0,0,0.85), 0 0 60px -25px hsla(212,100%,50%,0.20)',
+          '0 1px 0 hsla(0,0%,100%,0.10) inset, 0 40px 100px -30px rgba(0,0,0,0.9), 0 0 80px -30px hsla(212,100%,50%,0.25)',
       }}
     >
       <motion.div style={{ y }} className="absolute inset-0">
@@ -97,28 +134,169 @@ const VideoTile = memo(function VideoTile({ tile }: { tile: Tile }) {
           loop
           playsInline
           preload="metadata"
-          className="absolute inset-0 w-full h-full object-cover scale-[1.08] group-hover:scale-[1.12] transition-transform duration-[1200ms] ease-out"
+          className={`absolute inset-0 w-full h-full object-cover ${tile.kenBurns ? KEN_BURNS[tile.kenBurns] : ''} group-hover:scale-[1.12] transition-transform duration-[1400ms] ease-out`}
         />
       </motion.div>
-      {/* Subtle hover sheen */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+
+      {/* Magnetic cursor sheen */}
+      <motion.div
+        className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 mix-blend-overlay"
         style={{
-          background:
-            'linear-gradient(135deg, transparent 35%, hsla(0,0%,100%,0.06) 50%, transparent 65%)',
+          background: useTransform([sheenX, sheenY], ([x, y]) =>
+            `radial-gradient(380px circle at ${x} ${y}, hsla(0,0%,100%,0.22), transparent 55%)`),
         }}
       />
+
+      {/* Index marker — Vol. 0X */}
+      <div className="pointer-events-none absolute top-3 left-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+        <span
+          className="text-[10px] tracking-[0.4em] uppercase text-white/55 tabular-nums"
+          style={{ fontFamily: "'Fraunces', serif", fontStyle: 'italic' }}
+        >
+          № {String(index + 1).padStart(2, '0')}
+        </span>
+      </div>
+
       {/* Top hairline */}
-      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
-      {/* Subtle vignette */}
+      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+      {/* Vignette */}
       <div
         className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.35) 100%)',
-        }}
+        style={{ background: 'radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.45) 100%)' }}
       />
     </motion.div>
+  );
+});
+
+// ── Featured spotlight — auto-cycling primary stage ──────────────────────────
+const SpotlightStage = memo(function SpotlightStage() {
+  const [active, setActive] = useState(0);
+  const intervalRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    intervalRef.current = window.setInterval(() => {
+      setActive((i) => (i + 1) % SPOTLIGHT.length);
+    }, 6500);
+    return () => { if (intervalRef.current) window.clearInterval(intervalRef.current); };
+  }, []);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 40 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-100px' }}
+      transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+      className="relative col-span-12 aspect-[21/9] md:aspect-[21/8] rounded-[24px] md:rounded-[32px] overflow-hidden"
+      style={{
+        border: '1px solid hsla(0,0%,100%,0.10)',
+        boxShadow:
+          '0 1px 0 hsla(0,0%,100%,0.12) inset, 0 60px 140px -40px rgba(0,0,0,0.95), 0 0 120px -40px hsla(212,100%,50%,0.30)',
+      }}
+    >
+      <AnimatePresence mode="popLayout">
+        <motion.video
+          key={active}
+          src={SPOTLIGHT[active].src}
+          poster={SPOTLIGHT[active].poster}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          initial={{ opacity: 0, scale: 1.08 }}
+          animate={{ opacity: 1, scale: 1.02 }}
+          exit={{ opacity: 0, scale: 1.05 }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      </AnimatePresence>
+
+      {/* Cinematic letterbox + gradient grade */}
+      <div className="pointer-events-none absolute inset-0" style={{
+        background: 'linear-gradient(180deg, rgba(0,0,0,0.45) 0%, transparent 25%, transparent 70%, rgba(0,0,0,0.65) 100%)',
+      }} />
+
+      {/* Top metadata bar */}
+      <div className="absolute top-0 inset-x-0 flex items-center justify-between px-6 md:px-10 py-5">
+        <div className="flex items-center gap-3">
+          <motion.span
+            animate={{ opacity: [1, 0.35, 1] }}
+            transition={{ duration: 1.6, repeat: Infinity }}
+            className="w-1.5 h-1.5 rounded-full bg-[#FF3B30]"
+          />
+          <span className="text-[10px] tracking-[0.4em] uppercase text-white/70">Now Playing</span>
+        </div>
+        <span
+          className="text-[10px] tracking-[0.4em] uppercase text-white/50 tabular-nums"
+          style={{ fontFamily: "'Fraunces', serif", fontStyle: 'italic' }}
+        >
+          {String(active + 1).padStart(2, '0')} / {String(SPOTLIGHT.length).padStart(2, '0')}
+        </span>
+      </div>
+
+      {/* Bottom progress bar (per-clip timer) */}
+      <div className="absolute bottom-0 inset-x-0 px-6 md:px-10 pb-6">
+        <div className="flex gap-1.5">
+          {SPOTLIGHT.map((_, i) => (
+            <div key={i} className="flex-1 h-px bg-white/15 overflow-hidden">
+              <motion.div
+                key={`${i}-${active}`}
+                className="h-full bg-white/85"
+                initial={{ width: i < active ? '100%' : '0%' }}
+                animate={{ width: i === active ? '100%' : i < active ? '100%' : '0%' }}
+                transition={{ duration: i === active ? 6.5 : 0, ease: 'linear' }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Edge hairlines */}
+      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-10 bottom-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+    </motion.div>
+  );
+});
+
+// ── Endless horizontal marquee strip ─────────────────────────────────────────
+const MarqueeStrip = memo(function MarqueeStrip() {
+  const items = [...MARQUEE, ...MARQUEE]; // duplicate for seamless loop
+  return (
+    <div className="relative overflow-hidden py-2" style={{
+      maskImage: 'linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)',
+      WebkitMaskImage: 'linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)',
+    }}>
+      <motion.div
+        className="flex gap-4"
+        animate={{ x: ['0%', '-50%'] }}
+        transition={{ duration: 60, ease: 'linear', repeat: Infinity }}
+      >
+        {items.map((m, i) => (
+          <div
+            key={i}
+            className="relative flex-shrink-0 w-[280px] md:w-[360px] aspect-[16/10] rounded-[16px] overflow-hidden"
+            style={{
+              border: '1px solid hsla(0,0%,100%,0.08)',
+              boxShadow: '0 20px 60px -20px rgba(0,0,0,0.85)',
+            }}
+          >
+            <video
+              src={m.src}
+              poster={m.poster}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              className="absolute inset-0 w-full h-full object-cover scale-[1.05]"
+            />
+            <div className="absolute inset-0 pointer-events-none" style={{
+              background: 'radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.4) 100%)',
+            }} />
+          </div>
+        ))}
+      </motion.div>
+    </div>
   );
 });
 
@@ -219,12 +397,34 @@ export const CinematicMosaic = memo(function CinematicMosaic() {
           </motion.div>
         </motion.div>
 
-        {/* Mosaic grid — clean, no labels */}
+        {/* ── Featured spotlight stage ── */}
+        <div className="grid grid-cols-12 gap-3 md:gap-4 mb-6 md:mb-8">
+          <SpotlightStage />
+        </div>
+
+        {/* ── Endless marquee strip ── */}
+        <div className="mb-8 md:mb-12">
+          <MarqueeStrip />
+        </div>
+
+        {/* ── Editorial mosaic — magazine-grade asymmetry ── */}
         <div className="grid grid-cols-12 gap-3 md:gap-4 auto-rows-[minmax(120px,auto)]">
           {TILES.map((tile, i) => (
-            <VideoTile key={i} tile={tile} />
+            <VideoTile key={i} tile={tile} index={i} />
           ))}
         </div>
+
+        {/* Ken Burns keyframes (scoped via global tag) */}
+        <style>{`
+          @keyframes kb-in    { 0% { transform: scale(1.04) translate(0,0); } 100% { transform: scale(1.18) translate(-1.5%, -1.5%); } }
+          @keyframes kb-out   { 0% { transform: scale(1.18) translate(-1%, -1%); } 100% { transform: scale(1.04) translate(0,0); } }
+          @keyframes kb-left  { 0% { transform: scale(1.14) translate(2%, 0); }  100% { transform: scale(1.14) translate(-2%, 0); } }
+          @keyframes kb-right { 0% { transform: scale(1.14) translate(-2%, 0); } 100% { transform: scale(1.14) translate(2%, 0); } }
+          .kenburns-in    { animation: kb-in    24s ease-in-out infinite alternate; }
+          .kenburns-out   { animation: kb-out   24s ease-in-out infinite alternate; }
+          .kenburns-left  { animation: kb-left  28s ease-in-out infinite alternate; }
+          .kenburns-right { animation: kb-right 28s ease-in-out infinite alternate; }
+        `}</style>
 
         {/* Floating frame counter */}
         <motion.div

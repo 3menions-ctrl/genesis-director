@@ -6,9 +6,9 @@ import Hls from 'hls.js';
 export const HOPPY_INTRO_EVENT = 'hoppy:open-intro';
 
 // Official Hoppy "Immersive Landing Video" — registered in gallery_showcase
-const HLS_URL =
+export const HOPPY_HLS_URL =
   'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/temp-frames/hls_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_1771087015077.m3u8';
-const MP4_URL =
+export const HOPPY_MP4_URL =
   'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_clip1_lipsync_1771086006879.mp4';
 
 export const HoppyImmersiveIntro = memo(function HoppyImmersiveIntro() {
@@ -71,7 +71,7 @@ export const HoppyImmersiveIntro = memo(function HoppyImmersiveIntro() {
     const useNativeHls = video.canPlayType('application/vnd.apple.mpegurl');
 
     const attachMp4 = () => {
-      video.src = MP4_URL;
+      video.src = HOPPY_MP4_URL;
       video.load();
       video.addEventListener(
         'loadedmetadata',
@@ -92,7 +92,7 @@ export const HoppyImmersiveIntro = memo(function HoppyImmersiveIntro() {
 
     if (useNativeHls) {
       // Safari / iOS — native HLS
-      video.src = HLS_URL;
+      video.src = HOPPY_HLS_URL;
       video.addEventListener(
         'loadedmetadata',
         () => {
@@ -112,7 +112,7 @@ export const HoppyImmersiveIntro = memo(function HoppyImmersiveIntro() {
     } else if (Hls.isSupported()) {
       const hls = new Hls({ enableWorker: true, lowLatencyMode: false });
       hlsRef.current = hls;
-      hls.loadSource(HLS_URL);
+      hls.loadSource(HOPPY_HLS_URL);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setReady(true);

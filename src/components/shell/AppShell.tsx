@@ -19,6 +19,7 @@ import { NotificationBell } from '@/components/social/NotificationBell';
 import { useNavigationWithLoading } from '@/components/navigation';
 import logoImage from '@/assets/apex-studio-logo.png';
 import { CinemaBackdrop } from '@/components/ui/CinemaBackdrop';
+import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher';
 
 interface NavItem {
   label: string;
@@ -168,6 +169,9 @@ export function AppShell({ children }: AppShellProps) {
               <X className="w-3.5 h-3.5" strokeWidth={1.5} />
             </button>
           </div>
+
+          {/* Workspace switcher */}
+          <WorkspaceSwitcher collapsed={collapsed} />
 
           {/* Create CTA */}
           <div className={cn('px-3 pt-1 pb-4', collapsed && 'lg:px-2')}>

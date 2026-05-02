@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Volume2, VolumeX, Play } from 'lucide-react';
+import { Volume2, VolumeX, Play, Sparkles, ArrowRight } from 'lucide-react';
 import Hls from 'hls.js';
 import { HOPPY_HLS_URL, HOPPY_MP4_URL } from './HoppyImmersiveIntro';
 
@@ -18,7 +18,14 @@ import { HOPPY_HLS_URL, HOPPY_MP4_URL } from './HoppyImmersiveIntro';
  * than IntersectionObserver — bulletproof under fast scrolling, momentum
  * scrolling, or anchor-jumps.
  */
-export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSection() {
+interface Props {
+  /** Called when the user clicks the finale "Get started" CTA. */
+  onGetStarted?: () => void;
+}
+
+export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSection({
+  onGetStarted,
+}: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -26,6 +33,7 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
   const [ready, setReady] = useState(false);
   const [active, setActive] = useState(false);
   const [showTapHint, setShowTapHint] = useState(false);
+  const [ended, setEnded] = useState(false);
 
   // Attach video source once on mount
   useEffect(() => {
@@ -33,7 +41,11 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
     if (!video) return;
 
     const onReady = () => setReady(true);
+    const onEnded = () => setEnded(true);
+    const onPlay = () => setEnded(false);
     video.addEventListener('loadedmetadata', onReady, { once: true });
+    video.addEventListener('ended', onEnded);
+    video.addEventListener('play', onPlay);
 
     const useNativeHls = video.canPlayType('application/vnd.apple.mpegurl');
     if (useNativeHls) {
@@ -57,6 +69,8 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
 
     return () => {
       video.removeEventListener('loadedmetadata', onReady);
+      video.removeEventListener('ended', onEnded);
+      video.removeEventListener('play', onPlay);
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
@@ -110,6 +124,14 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
     const v = videoRef.current;
     if (!v) return;
     setShowTapHint(false);
+    v.play().catch(() => undefined);
+  };
+
+  const replay = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.currentTime = 0;
+    setEnded(false);
     v.play().catch(() => undefined);
   };
 
@@ -198,6 +220,94 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
               {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
             </motion.button>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Finale overlay — when the immersive cut ends, blur the entire page
+          and present a single, oversized "Get started" CTA. */}
+      <AnimatePresence>
+        {ended && (
+          <motion.div
+            key="finale"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed inset-0 z-[80] flex flex-col items-center justify-center px-6"
+            style={{
+              backdropFilter: 'blur(28px) saturate(140%)',
+              WebkitBackdropFilter: 'blur(28px) saturate(140%)',
+              background:
+                'radial-gradient(60% 70% at 50% 45%, rgba(10,132,255,0.18), rgba(0,0,0,0.78) 70%)',
+            }}
+            role="dialog"
+            aria-label="Get started with Apex Studio"
+          >
+            {/* Eyebrow */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.1 }}
+              className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/[0.06] border border-white/[0.12] backdrop-blur-2xl mb-10"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-[#0A84FF] shadow-[0_0_12px_rgba(10,132,255,0.8)]" />
+              <span className="text-[10.5px] font-medium text-white/75 tracking-[0.32em] uppercase">
+                That was made with Apex Studio
+              </span>
+            </motion.div>
+
+            {/* Headline */}
+            <motion.h2
+              initial={{ opacity: 0, y: 24, filter: 'blur(10px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              transition={{ duration: 0.9, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="text-white text-center font-bold tracking-[-0.04em] leading-[0.95] text-[3rem] sm:text-7xl md:text-[6rem] max-w-5xl"
+              style={{ fontFamily: "'Sora', system-ui, sans-serif" }}
+            >
+              Now make{' '}
+              <span
+                className="italic font-light bg-gradient-to-br from-white via-[#9DCBFF] to-[#0A84FF] bg-clip-text text-transparent"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
+                yours.
+              </span>
+            </motion.h2>
+
+            {/* Sub */}
+            <motion.p
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.35 }}
+              className="mt-8 max-w-lg text-center text-white/70 text-[16px] md:text-[18px] font-light leading-[1.6]"
+              style={{ fontFamily: "'Instrument Sans', sans-serif" }}
+            >
+              Free to start. No credit card. Your first cut takes minutes.
+            </motion.p>
+
+            {/* Oversized CTA */}
+            <motion.button
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              onClick={onGetStarted}
+              className="group mt-12 inline-flex items-center gap-3 h-20 px-14 rounded-full bg-white text-black text-lg font-medium tracking-tight shadow-[0_30px_90px_-20px_rgba(255,255,255,0.45),0_0_120px_-30px_rgba(10,132,255,0.7)] transition-all duration-300 hover:scale-[1.03] hover:bg-white/95"
+            >
+              <Sparkles className="w-5 h-5" />
+              Get started
+              <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1.5" />
+            </motion.button>
+
+            {/* Replay — quiet secondary */}
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.8 }}
+              onClick={replay}
+              className="mt-8 text-[12px] tracking-[0.3em] uppercase text-white/45 hover:text-white/80 transition-colors"
+            >
+              Replay the film
+            </motion.button>
+          </motion.div>
         )}
       </AnimatePresence>
     </>

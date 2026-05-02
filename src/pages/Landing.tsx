@@ -180,7 +180,7 @@ export default function Landing() {
           activates once the user scrolls past the hero. Mounted OUTSIDE the
           foreground column so its `position: fixed` layer escapes the z-10
           stacking context and sits beneath all landing content. */}
-      <HoppyImmersiveScrollSection />
+      <HoppyImmersiveScrollSection onGetStarted={handleStart} />
 
       {/* Foreground content column — stacks above the fixed video layer */}
       <div className="relative z-10">

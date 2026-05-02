@@ -2,6 +2,7 @@ import { memo, useEffect, useRef, useState } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Sparkles, Play } from 'lucide-react';
+import heroImage from '@/assets/landing-immersive-hero.jpg';
 import corporateVideo from '@/assets/landing-immersive-hero.mp4.asset.json';
 import { HOPPY_INTRO_EVENT } from './HoppyImmersiveIntro';
 

@@ -71,7 +71,7 @@ export const HoppyImmersiveIntro = memo(function HoppyImmersiveIntro() {
     const useNativeHls = video.canPlayType('application/vnd.apple.mpegurl');
 
     const attachMp4 = () => {
-      video.src = MP4_URL;
+      video.src = HOPPY_MP4_URL;
       video.load();
       video.addEventListener(
         'loadedmetadata',
@@ -92,7 +92,7 @@ export const HoppyImmersiveIntro = memo(function HoppyImmersiveIntro() {
 
     if (useNativeHls) {
       // Safari / iOS — native HLS
-      video.src = HLS_URL;
+      video.src = HOPPY_HLS_URL;
       video.addEventListener(
         'loadedmetadata',
         () => {
@@ -112,7 +112,7 @@ export const HoppyImmersiveIntro = memo(function HoppyImmersiveIntro() {
     } else if (Hls.isSupported()) {
       const hls = new Hls({ enableWorker: true, lowLatencyMode: false });
       hlsRef.current = hls;
-      hls.loadSource(HLS_URL);
+      hls.loadSource(HOPPY_HLS_URL);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setReady(true);

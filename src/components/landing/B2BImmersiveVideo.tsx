@@ -25,22 +25,34 @@ export const B2BImmersiveVideo = memo(function B2BImmersiveVideo() {
   }, []);
 
   return (
-    <section className="relative z-10 py-28 px-6">
+    <section className="relative z-10 py-36 px-6">
+      {/* Section ambient backdrop */}
+      <div
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          background:
+            'radial-gradient(50% 50% at 50% 50%, hsla(212,100%,50%,0.06), transparent 70%)',
+        }}
+      />
       <div className="max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-12"
+          className="text-center mb-16"
         >
-          <p className="text-[11px] font-medium text-[#0A84FF] tracking-[0.22em] uppercase mb-4">
-            See it in motion
-          </p>
-          <h2 className="font-display text-4xl md:text-6xl font-bold text-white tracking-tight leading-[1.05] max-w-3xl mx-auto">
-            A studio at your fingertips.
+          <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl mb-6">
+            <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
+            <p className="text-[10px] font-medium text-white/55 tracking-[0.32em] uppercase">
+              See it in motion
+            </p>
+          </div>
+          <h2 className="font-display text-5xl md:text-7xl font-bold text-white tracking-[-0.03em] leading-[0.98] max-w-4xl mx-auto">
+            A studio
+            <span className="bg-gradient-to-br from-white via-white/70 to-[#0A84FF] bg-clip-text text-transparent italic font-light"> at your fingertips.</span>
           </h2>
-          <p className="mt-5 text-white/55 max-w-xl mx-auto text-lg font-light leading-relaxed">
+          <p className="mt-7 text-white/50 max-w-lg mx-auto text-[17px] font-light leading-[1.7]">
             Brief, generate, review and ship — every step happens inside one
             cinematic workspace.
           </p>

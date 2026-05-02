@@ -93,9 +93,9 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Instrument Sans', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Fraunces', 'Georgia', 'Times New Roman', 'serif'],
         mono: ['JetBrains Mono', 'monospace'],
-        display: ['Sora', 'system-ui', 'sans-serif'],
+        display: ['Fraunces', 'Georgia', 'Times New Roman', 'serif'],
       },
       borderRadius: {
         lg: "var(--radius)",

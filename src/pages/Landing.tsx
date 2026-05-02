@@ -256,29 +256,91 @@ export default function Landing() {
       {/* Social Proof Ticker — suspend when overlay active */}
       <SocialProofTicker suspended={showExamples || isImmersive} />
 
-      {/* Seedance 2.0 — Now Powered By section */}
-      <section className="relative z-10 py-24 px-6 scroll-reveal">
-        <div className="max-w-5xl mx-auto">
-          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#0A84FF]/15 via-[#0A84FF]/5 to-transparent backdrop-blur-xl p-12 md:p-20">
+      {/* Seedance 2.0 — flagship engine ad section */}
+      <section className="relative z-10 py-28 px-6 scroll-reveal">
+        <div className="max-w-6xl mx-auto">
+          <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#0A84FF]/20 via-[#0A84FF]/5 to-transparent backdrop-blur-xl p-10 md:p-16">
             {/* Glow accents */}
-            <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-[#0A84FF]/20 blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-[#0A84FF]/10 blur-3xl pointer-events-none" />
+            <div className="absolute -top-40 -right-40 w-[28rem] h-[28rem] rounded-full bg-[#0A84FF]/25 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-40 -left-40 w-[28rem] h-[28rem] rounded-full bg-[#0A84FF]/15 blur-3xl pointer-events-none" />
+            <div
+              aria-hidden
+              className="absolute inset-0 opacity-[0.04] pointer-events-none mix-blend-screen"
+              style={{
+                backgroundImage:
+                  'linear-gradient(hsl(0 0% 100% / 0.6) 1px, transparent 1px), linear-gradient(90deg, hsl(0 0% 100% / 0.6) 1px, transparent 1px)',
+                backgroundSize: '48px 48px',
+              }}
+            />
 
-            <div className="relative flex flex-col items-center text-center gap-6">
+            <div className="relative flex flex-col items-center text-center gap-7">
               <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0A84FF]/15 border border-[#0A84FF]/30 text-[#0A84FF] text-[11px] font-semibold tracking-[0.18em] uppercase">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#0A84FF] animate-pulse" />
-                New Engine
+                Flagship Engine · Now Live
               </span>
 
               <h2 className="font-display text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight leading-[1.05]">
-                Now powered by{' '}
+                Built on{' '}
                 <span className="bg-gradient-to-r from-white via-[#0A84FF] to-white bg-clip-text text-transparent">
                   Seedance 2.0
                 </span>
               </h2>
 
-              <p className="max-w-2xl text-base md:text-lg text-white/60 font-light leading-relaxed">
-                The next-generation cinematic engine — sharper motion, richer audio, and unmatched continuity across every frame.
+              <p className="max-w-3xl text-lg md:text-xl text-white/70 font-light leading-relaxed">
+                The most cinematic generative video engine ever shipped to a creator app. Lens-aware
+                cinematography, physics-grade motion, and frame-perfect continuity — wired directly into
+                the Apex pipeline so every prompt renders like it was shot on set.
+              </p>
+
+              {/* Spec strip */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 w-full max-w-3xl mt-2">
+                {[
+                  { k: '1080p', l: '24fps cinema' },
+                  { k: '15s', l: 'Per-clip length' },
+                  { k: 'Native', l: 'Synced audio' },
+                  { k: '∞', l: 'End-frame chains' },
+                ].map((s) => (
+                  <div
+                    key={s.l}
+                    className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur px-4 py-4"
+                  >
+                    <div className="text-2xl md:text-3xl font-display font-bold text-white">{s.k}</div>
+                    <div className="text-[11px] tracking-[0.16em] uppercase text-white/40 mt-1">{s.l}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pillars */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mt-6 text-left">
+                {[
+                  {
+                    t: 'Cinematographer-grade Direction',
+                    d: 'Honors lens specs, apertures, named camera moves and lighting cues — every prompt rendered like a blocking sheet, not a stock clip.',
+                  },
+                  {
+                    t: 'Physics-Grade Motion',
+                    d: 'Inertia, secondary motion and weight feel real. No more floaty AI drift — bodies, fabric and props move like they obey gravity.',
+                  },
+                  {
+                    t: 'Frame-Perfect Continuity',
+                    d: 'End-frame chaining locks every cut to the next, so multi-clip scenes flow as one cohesive shot — characters, lighting and world all hold.',
+                  },
+                ].map((p) => (
+                  <div
+                    key={p.t}
+                    className="rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] transition-colors duration-300 p-5"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#0A84FF]" />
+                      <h3 className="text-sm font-semibold text-white tracking-wide">{p.t}</h3>
+                    </div>
+                    <p className="text-sm text-white/55 leading-relaxed font-light">{p.d}</p>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-xs text-white/30 tracking-[0.2em] uppercase mt-4">
+                One prompt · Cinema-grade output · Powered by Seedance 2.0
               </p>
             </div>
           </div>

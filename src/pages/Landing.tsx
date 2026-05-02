@@ -21,6 +21,7 @@ import { B2BSecurityBar } from '@/components/landing/B2BSecurityBar';
 import { HoppyImmersiveIntro } from '@/components/landing/HoppyImmersiveIntro';
 import { IdleEnterOverlay } from '@/components/landing/IdleEnterOverlay';
 import { SeedanceSection } from '@/components/landing/SeedanceSection';
+import { motion } from 'framer-motion';
 
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 const FAQSection = lazy(() => import('@/components/landing/FAQSection'));
@@ -71,12 +72,26 @@ export default function Landing() {
 
   // Premium section divider — generous breathing room with a hairline glow
   const Divider = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
-    const h = size === 'lg' ? 'h-40 md:h-56' : size === 'sm' ? 'h-16 md:h-24' : 'h-28 md:h-40';
+    const h = size === 'lg' ? 'h-56 md:h-80' : size === 'sm' ? 'h-24 md:h-32' : 'h-40 md:h-56';
     return (
-      <div aria-hidden className={`relative ${h} w-full`}>
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[40%] max-w-[480px] h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
-      </div>
+      <motion.div
+        aria-hidden
+        initial={{ opacity: 0, scaleX: 0.4 }}
+        whileInView={{ opacity: 1, scaleX: 1 }}
+        viewport={{ once: true, margin: '-10%' }}
+        transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+        className={`relative ${h} w-full origin-center`}
+      >
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[52%] max-w-[640px] h-px bg-gradient-to-r from-transparent via-white/[0.10] to-transparent" />
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#0A84FF] shadow-[0_0_24px_6px_hsl(212_100%_52%/0.45)]" />
+      </motion.div>
     );
+  };
+
+  // Editorial spacing wrapper — generous vertical rhythm around every section
+  const Spaced = ({ children, size = 'md' }: { children: React.ReactNode; size?: 'sm' | 'md' | 'lg' }) => {
+    const py = size === 'lg' ? 'py-20 md:py-32' : size === 'sm' ? 'py-8 md:py-14' : 'py-14 md:py-24';
+    return <div className={`relative ${py}`}>{children}</div>;
   };
 
   return (
@@ -94,79 +109,99 @@ export default function Landing() {
         </Suspense>
       </ErrorBoundaryWrapper>
 
+      {/* Ambient aurora — subtle blue glow that drifts across the page */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
+        <motion.div
+          animate={{ x: ['-10%', '10%', '-10%'], y: ['-5%', '5%', '-5%'] }}
+          transition={{ duration: 28, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute -top-1/4 left-1/4 w-[60vw] h-[60vw] rounded-full bg-[#0A84FF]/[0.08] blur-[140px]"
+        />
+        <motion.div
+          animate={{ x: ['8%', '-8%', '8%'], y: ['4%', '-4%', '4%'] }}
+          transition={{ duration: 34, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute top-1/2 right-0 w-[50vw] h-[50vw] rounded-full bg-[#5AC8FA]/[0.05] blur-[160px]"
+        />
+      </div>
+
       <LandingNav onScrollToSection={scrollToSection} onNavigate={handleNavigate} />
 
       {/* Hero — extra top breathing room from sticky nav */}
-      <div className="pt-10 md:pt-14"><B2BHero onPrimary={handleStart} onSecondary={handleSales} /></div>
+      <div className="pt-16 md:pt-24"><B2BHero onPrimary={handleStart} onSecondary={handleSales} /></div>
 
       <Divider size="sm" />
-      <B2BLogoBar />
+      <Spaced size="sm"><B2BLogoBar /></Spaced>
       <Divider size="lg" />
 
       {/* Seedance 2.0 — epic generation engine reveal */}
-      <SeedanceSection onCta={handleStart} />
+      <Spaced size="lg"><SeedanceSection onCta={handleStart} /></Spaced>
       <Divider size="lg" />
 
       {/* Cinematic video mosaic — multi-format showcase */}
-      <CinematicMosaic />
+      <Spaced><CinematicMosaic /></Spaced>
       <Divider size="md" />
 
       {/* Scroll-driven cinematic backdrop — premium imagery crossfade */}
-      <ScrollBackdrop />
+      <Spaced size="lg"><ScrollBackdrop /></Spaced>
       <Divider size="lg" />
 
-      <B2BUseCases />
+      <Spaced><B2BUseCases /></Spaced>
       <Divider size="md" />
 
-      <B2BGlassFeatures />
+      <Spaced><B2BGlassFeatures /></Spaced>
       <Divider size="md" />
 
-      <B2BComparison />
+      <Spaced><B2BComparison /></Spaced>
       <Divider size="md" />
 
-      <B2BWorkflow />
+      <Spaced><B2BWorkflow /></Spaced>
       <Divider size="md" />
 
-      <B2BPlatformPillars />
+      <Spaced><B2BPlatformPillars /></Spaced>
       <Divider size="md" />
 
-      <B2BROISection />
+      <Spaced><B2BROISection /></Spaced>
       <Divider size="md" />
 
-      <B2BTestimonials />
+      <Spaced><B2BTestimonials /></Spaced>
       <Divider size="md" />
 
-      <B2BSecurityBar />
+      <Spaced size="sm"><B2BSecurityBar /></Spaced>
       <Divider size="lg" />
 
       {/* Pricing anchor — keep simple, link to /pricing */}
-      <section id="pricing" className="relative z-10 py-32 md:py-40 px-6">
-        <div className="max-w-3xl mx-auto text-center">
+      <section id="pricing" className="relative z-10 py-40 md:py-56 px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-15%' }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="max-w-3xl mx-auto text-center"
+        >
           <p className="text-[11px] font-medium text-[#0A84FF] tracking-[0.22em] uppercase mb-4">
             Pricing
           </p>
-          <h2 className="font-display text-4xl md:text-6xl font-bold text-white tracking-tight mb-6 leading-[1.04]">
+          <h2 className="font-display text-5xl md:text-7xl font-bold text-white tracking-tight mb-8 leading-[1.02]">
             Pay only for what you ship.
           </h2>
-          <p className="text-white/55 text-lg font-light leading-relaxed mb-10 max-w-xl mx-auto">
+          <p className="text-white/55 text-lg md:text-xl font-light leading-relaxed mb-12 max-w-xl mx-auto">
             $0.10 per credit. No seats, no minimums. Add credits as your team
             scales — or talk to us about volume contracts.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={() => navigate('/pricing')}
-              className="h-13 px-8 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90 transition-all hover:scale-[1.02]"
+              className="h-14 px-10 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90 transition-all hover:scale-[1.04] shadow-[0_20px_60px_-20px_rgba(255,255,255,0.4)]"
             >
               See pricing
             </button>
             <button
               onClick={handleSales}
-              className="h-13 px-8 text-sm font-medium rounded-full text-white/70 hover:text-white hover:bg-white/[0.06] transition-all"
+              className="h-14 px-10 text-sm font-medium rounded-full text-white/70 hover:text-white hover:bg-white/[0.06] transition-all"
             >
               Volume & enterprise
             </button>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       <Divider size="md" />
@@ -175,7 +210,7 @@ export default function Landing() {
       <div id="faq">
         <ErrorBoundaryWrapper fallback={<SectionLoader />}>
           <Suspense fallback={<SectionLoader />}>
-            <FAQSection />
+            <Spaced><FAQSection /></Spaced>
           </Suspense>
         </ErrorBoundaryWrapper>
       </div>
@@ -183,7 +218,7 @@ export default function Landing() {
       <Divider size="lg" />
 
       {/* Final CTA */}
-      <B2BFinalCTA onPrimary={handleStart} onSecondary={handleSales} />
+      <Spaced size="lg"><B2BFinalCTA onPrimary={handleStart} onSecondary={handleSales} /></Spaced>
 
       <Divider size="md" />
 

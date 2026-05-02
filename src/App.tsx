@@ -451,6 +451,7 @@ const App = () => {
                 {/* Command Palette (Cmd+K) */}
                 <CommandPalette />
               </StudioProvider>
+              </WorkspaceProvider>
             </AuthProvider>
             </NavigationBridge>
             </NavigationGuardProvider>

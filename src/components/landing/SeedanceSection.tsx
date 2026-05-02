@@ -30,22 +30,22 @@ export const SeedanceSection = memo(function SeedanceSection({
       style={{ minHeight: '120vh' }}
       aria-label="Introducing Seedance 2.0"
     >
-      {/* Backdrop layer */}
+      {/* Backdrop layer — fully transparent so the page background image shows.
+          Only soft blue glows + faint grid sit on top of the image. */}
       <motion.div
         aria-hidden
         style={{ y: reduce ? 0 : yBg }}
-        className="absolute inset-0 -z-10"
+        className="absolute inset-0 -z-10 pointer-events-none"
       >
         <div
           className="absolute inset-0"
           style={{
             background:
-              'radial-gradient(ellipse at 50% 30%, hsla(212,100%,40%,0.32), transparent 55%), radial-gradient(ellipse at 50% 100%, hsla(195,100%,55%,0.18), transparent 60%), #000',
+              'radial-gradient(ellipse at 50% 30%, hsla(212,100%,55%,0.18), transparent 60%), radial-gradient(ellipse at 50% 100%, hsla(195,100%,65%,0.10), transparent 65%)',
           }}
         />
-        {/* Faint grid */}
         <div
-          className="absolute inset-0 opacity-[0.18]"
+          className="absolute inset-0 opacity-[0.10]"
           style={{
             backgroundImage:
               'linear-gradient(hsla(0,0%,100%,0.06) 1px, transparent 1px), linear-gradient(90deg, hsla(0,0%,100%,0.06) 1px, transparent 1px)',
@@ -104,15 +104,31 @@ export const SeedanceSection = memo(function SeedanceSection({
       {/* Content */}
       <motion.div
         style={{ opacity }}
-        className="relative max-w-7xl mx-auto px-6 md:px-10 pt-32 pb-40 text-center"
+        className="relative max-w-6xl mx-auto px-6 md:px-10 pt-32 pb-40 text-center"
       >
+        {/* Glass container holding the entire reveal */}
+        <div
+          className="relative rounded-[36px] px-6 md:px-14 py-16 md:py-24 overflow-hidden"
+          style={{
+            background:
+              'linear-gradient(180deg, hsla(220,14%,8%,0.28), hsla(220,14%,4%,0.18))',
+            backdropFilter: 'blur(40px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+            border: '1px solid hsla(0,0%,100%,0.08)',
+            boxShadow:
+              'inset 0 1px 0 hsla(0,0%,100%,0.08), 0 60px 120px -40px rgba(0,0,0,0.7), 0 0 120px -30px hsla(212,100%,55%,0.25)',
+          }}
+        >
+          {/* Top shine line */}
+          <div className="pointer-events-none absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+
         {/* Eyebrow */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-20%' }}
           transition={{ duration: 0.7 }}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/12 bg-white/[0.04] backdrop-blur-md"
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/12 bg-white/[0.04] backdrop-blur-2xl"
         >
           <span
             className="relative flex w-1.5 h-1.5"
@@ -193,7 +209,7 @@ export const SeedanceSection = memo(function SeedanceSection({
           whileInView="show"
           viewport={{ once: true, margin: '-15%' }}
           variants={{ hidden: {}, show: { transition: { staggerChildren: 0.12, delayChildren: 0.4 } } }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-px mt-20 max-w-5xl mx-auto rounded-2xl overflow-hidden border border-white/10 bg-white/[0.02] backdrop-blur"
+          className="grid grid-cols-2 md:grid-cols-4 gap-px mt-20 max-w-5xl mx-auto rounded-2xl overflow-hidden border border-white/10 bg-white/[0.03] backdrop-blur-2xl"
         >
           <Stat icon={Zap} kicker="Render time" value="3.4s" copy="per cinematic second" />
           <Stat icon={Film} kicker="Native resolution" value="4K" copy="HDR · 24/30/60 fps" />
@@ -227,14 +243,15 @@ export const SeedanceSection = memo(function SeedanceSection({
             See it in motion
           </a>
         </motion.div>
+        </div>
       </motion.div>
 
       {/* Bottom marquee */}
       <div
-        className="relative border-y border-white/[0.06] py-5 overflow-hidden"
+        className="relative border-y border-white/[0.06] py-5 overflow-hidden backdrop-blur-2xl"
         style={{
           background:
-            'linear-gradient(90deg, rgba(0,0,0,0.85), rgba(10,132,255,0.08), rgba(0,0,0,0.85))',
+            'linear-gradient(90deg, hsla(220,14%,4%,0.25), hsla(212,100%,50%,0.06), hsla(220,14%,4%,0.25))',
         }}
       >
         <motion.div
@@ -290,7 +307,7 @@ function Stat({
         hidden: { opacity: 0, y: 14 },
         show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } },
       }}
-      className="relative px-6 py-8 text-left bg-black/40 backdrop-blur"
+      className="relative px-6 py-8 text-left bg-white/[0.02] backdrop-blur-2xl"
     >
       <Icon className="w-4 h-4 text-[#9DCBFF] mb-4" />
       <p className="text-[10px] tracking-[0.28em] uppercase text-white/40 font-medium mb-2">

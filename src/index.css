@@ -2,6 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   Landing Page — Maximum Glassmorphism Override
+   Forces every text-bearing container to be transparent glass.
+   Scoped to .landing-glass-scope so it never leaks elsewhere.
+   ============================================================ */
+.landing-glass-scope [class*="bg-white/"],
+.landing-glass-scope [class*="bg-black/"],
+.landing-glass-scope [class*="bg-card"],
+.landing-glass-scope [class*="bg-background"],
+.landing-glass-scope [class*="bg-muted"],
+.landing-glass-scope [class*="bg-secondary"],
+.landing-glass-scope [class*="bg-popover"],
+.landing-glass-scope [class*="bg-zinc"],
+.landing-glass-scope [class*="bg-neutral"],
+.landing-glass-scope [class*="bg-slate"],
+.landing-glass-scope [class*="bg-gray"] {
+  background-color: hsla(220, 14%, 8%, 0.18) !important;
+  backdrop-filter: blur(28px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
+  border-color: hsla(0, 0%, 100%, 0.08);
+}
+
+/* Preserve interactive primary buttons (white/black solid CTAs stay punchy) */
+.landing-glass-scope button[class*="bg-white"]:not([class*="bg-white/"]),
+.landing-glass-scope a[class*="bg-white"]:not([class*="bg-white/"]),
+.landing-glass-scope button[class*="bg-black"]:not([class*="bg-black/"]),
+.landing-glass-scope a[class*="bg-black"]:not([class*="bg-black/"]) {
+  background-color: revert !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Keep the page root + abstract background fully opaque */
+.landing-glass-scope.landing-glass-scope {
+  background-color: #000 !important;
+}
+
+/* Keep video / image / canvas elements untouched */
+.landing-glass-scope video,
+.landing-glass-scope img,
+.landing-glass-scope canvas {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Subtle inner glow ring for any container that gets the glass treatment */
+.landing-glass-scope [class*="rounded-"][class*="bg-white/"],
+.landing-glass-scope [class*="rounded-"][class*="bg-black/"] {
+  box-shadow:
+    inset 0 1px 0 hsla(0, 0%, 100%, 0.06),
+    0 8px 32px -12px hsla(0, 0%, 0%, 0.6);
+}
+
 /* Safe area insets for notched devices */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .pb-safe {

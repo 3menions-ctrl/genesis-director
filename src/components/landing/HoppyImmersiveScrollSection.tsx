@@ -6,24 +6,26 @@ import { HOPPY_HLS_URL, HOPPY_MP4_URL } from './HoppyImmersiveIntro';
 
 /**
  * HoppyImmersiveScrollSection
- * A scroll-anchored cinematic moment that pins the full Hoppy demo video to
- * the viewport once the user scrolls to it, plays the entire video edge-to-edge,
- * then releases scroll when the video ends (or when the user scrolls past).
+ * Renders a single fixed full-viewport video that fades in once the user
+ * scrolls past the hero, plays the entire demo, and stays pinned as a
+ * cinematic backdrop while subsequent landing-page sections scroll on top.
  *
- * Implementation notes:
- * - Uses a tall outer wrapper so the user can scroll past after viewing.
- * - Inner container is `position: sticky; height: 100vh` for a stable pin.
- * - Video preloads metadata, autoplays muted on first viewport entry,
- *   and unmutes on user click (browser autoplay policy compliant).
- * - HLS via hls.js, falling back to MP4 for unsupported browsers.
+ * Architecture:
+ * - A tall sentinel (`triggerRef`) lives in the normal document flow right
+ *   after the hero. Once it enters the viewport, the fixed video activates.
+ * - The video itself is `position: fixed; inset: 0` with a low z-index so
+ *   landing content above it remains interactive.
+ * - A scrim layer is applied on top of the video (still under content) so
+ *   foreground typography remains readable.
  */
 export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSection() {
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const [muted, setMuted] = useState(true);
   const [ready, setReady] = useState(false);
-  const [inView, setInView] = useState(false);
+  const [active, setActive] = useState(false);
   const [showTapHint, setShowTapHint] = useState(false);
 
   // Attach video source once on mount
@@ -63,25 +65,25 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
     };
   }, []);
 
-  // Observe viewport entry — play when visible, pause when not
+  // Activate the fixed video as soon as the trigger sentinel enters the viewport.
+  // Once activated, it stays active for the rest of the session — content above
+  // simply scrolls over it.
   useEffect(() => {
-    const wrapper = wrapperRef.current;
+    const trigger = triggerRef.current;
     const video = videoRef.current;
-    if (!wrapper || !video) return;
+    if (!trigger || !video) return;
 
     const io = new IntersectionObserver(
       ([entry]) => {
-        const visible = entry.isIntersecting && entry.intersectionRatio > 0.5;
-        setInView(visible);
-        if (visible) {
+        if (entry.isIntersecting) {
+          setActive(true);
           video.play().catch(() => setShowTapHint(true));
-        } else {
-          video.pause();
+          io.disconnect();
         }
       },
-      { threshold: [0, 0.5, 1] },
+      { threshold: 0.1 },
     );
-    io.observe(wrapper);
+    io.observe(trigger);
     return () => io.disconnect();
   }, []);
 
@@ -102,122 +104,97 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
   };
 
   return (
-    <section
-      ref={wrapperRef}
-      aria-label="Apex-Studio immersive demo"
-      className="relative w-full bg-black"
-      // Tall wrapper so the sticky container has scroll room. ~150vh gives
-      // a comfortable lead-in/lead-out without trapping the user.
-      style={{ height: '180vh' }}
-    >
-      <div className="sticky top-0 h-screen w-full overflow-hidden">
-        {/* The video — fills the viewport */}
+    <>
+      {/* Sentinel — sits in normal flow right after the hero. When it enters
+          the viewport, the fixed video below activates. Zero-height so it
+          doesn't add visual space. */}
+      <div ref={triggerRef} aria-hidden className="relative w-full h-px" />
+
+      {/* Fixed full-viewport video layer — sits behind all subsequent content */}
+      <div
+        ref={wrapperRef}
+        aria-hidden={!active}
+        className="fixed inset-0 z-0 pointer-events-none"
+        style={{
+          opacity: active ? 1 : 0,
+          transition: 'opacity 900ms cubic-bezier(0.16, 1, 0.3, 1)',
+        }}
+      >
         <video
           ref={videoRef}
           playsInline
           muted={muted}
           preload="metadata"
           onClick={handleTap}
-          className="absolute inset-0 w-full h-full object-cover bg-black"
+          className="absolute inset-0 w-full h-full object-cover bg-black pointer-events-auto"
         />
 
-        {/* Cinematic vignette */}
+        {/* Scrim — keeps foreground content readable. Stronger at edges. */}
         <div
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              'radial-gradient(120% 80% at 50% 50%, transparent 35%, rgba(0,0,0,0.45) 80%, rgba(0,0,0,0.85) 100%)',
+              'linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.35) 35%, rgba(0,0,0,0.55) 100%)',
           }}
         />
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(120% 80% at 50% 50%, transparent 30%, rgba(0,0,0,0.55) 90%)',
+          }}
+        />
+      </div>
 
-        {/* Top fade — blends into preceding section */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black to-transparent" />
-        {/* Bottom fade — blends into following section */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black to-transparent" />
-
-        {/* Loading state */}
-        <AnimatePresence>
-          {!ready && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 flex items-center justify-center"
-            >
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-8 h-8 border-2 border-white/15 border-t-white rounded-full animate-spin" />
-                <p className="text-[10.5px] tracking-[0.32em] uppercase text-white/45">
+      {/* Floating controls — fixed in the corner, only visible once active */}
+      <AnimatePresence>
+        {active && (
+          <>
+            {/* Loading indicator */}
+            {!ready && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[5] flex flex-col items-center gap-3 pointer-events-none"
+              >
+                <div className="w-7 h-7 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                <p className="text-[10px] tracking-[0.32em] uppercase text-white/55">
                   Loading immersive cut
                 </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </motion.div>
+            )}
 
-        {/* Tap-to-play hint when autoplay is blocked */}
-        <AnimatePresence>
-          {showTapHint && (
+            {/* Tap-to-play fallback */}
+            {showTapHint && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                onClick={handleTap}
+                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[5] w-20 h-20 rounded-full bg-white/15 border border-white/25 flex items-center justify-center text-white"
+                aria-label="Play video"
+              >
+                <Play className="w-7 h-7 ml-1 fill-white" />
+              </motion.button>
+            )}
+
+            {/* Mute toggle — fixed bottom-right, above content */}
             <motion.button
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              onClick={handleTap}
-              className="absolute inset-0 m-auto w-20 h-20 rounded-full bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center text-white"
-              aria-label="Play video"
-            >
-              <Play className="w-7 h-7 ml-1 fill-white" />
-            </motion.button>
-          )}
-        </AnimatePresence>
-
-        {/* Eyebrow chip — only visible while in view */}
-        <AnimatePresence>
-          {inView && ready && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute top-8 left-1/2 -translate-x-1/2 inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/[0.06] border border-white/[0.12] backdrop-blur-xl"
+              transition={{ duration: 0.5, delay: 0.4 }}
+              onClick={toggleMute}
+              aria-label={muted ? 'Unmute' : 'Mute'}
+              className="fixed bottom-6 right-6 z-[60] w-11 h-11 inline-flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-white/90 hover:bg-black/80 transition-colors shadow-[0_10px_40px_-10px_rgba(0,0,0,0.6)]"
             >
-              <span className="w-1 h-1 rounded-full bg-[#0A84FF] shadow-[0_0_10px_2px_hsla(212,100%,50%,0.7)]" />
-              <span className="text-[10.5px] font-medium text-white/75 tracking-[0.32em] uppercase">
-                Apex-Studio · The Full Cut
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Mute / unmute control */}
-        <button
-          onClick={toggleMute}
-          aria-label={muted ? 'Unmute' : 'Mute'}
-          className="absolute bottom-8 right-8 w-12 h-12 inline-flex items-center justify-center rounded-full bg-black/55 backdrop-blur-md border border-white/15 text-white/90 hover:bg-black/75 transition-colors"
-        >
-          {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-        </button>
-
-        {/* Scroll cue — drifts gently while in view */}
-        <AnimatePresence>
-          {inView && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
-              className="absolute bottom-8 left-8 flex flex-col gap-1.5 text-white/40"
-            >
-              <span className="text-[9px] tracking-[0.4em] uppercase">Keep Scrolling</span>
-              <motion.span
-                animate={{ scaleX: [0, 1, 0] }}
-                transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-                className="block h-px w-16 bg-gradient-to-r from-white/60 to-transparent origin-left"
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </section>
+              {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </motion.button>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 });
 

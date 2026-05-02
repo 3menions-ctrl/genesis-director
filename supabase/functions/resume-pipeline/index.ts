@@ -285,7 +285,14 @@ serve(async (req) => {
       resumeFromClipIndex, // Tell pipeline which clip to start from
       // Pass existing assets to avoid regeneration
       existingAssets: pendingTasks.assets,
+      // 🛡️ ENGINE LOCK: forward persisted engine so resume cannot decay
+      // a Seedance project to Kling (or vice versa). hollywood-pipeline
+      // also re-validates this against the DB as a second safety net.
+      videoEngine: (project as any).video_engine || 'kling',
+      isAvatarMode: (pendingTasks as any).config?.isAvatarMode === true,
     };
+
+    console.log(`[ResumePipeline] 🎬 Engine forwarded: videoEngine="${(project as any).video_engine || 'kling'}"`);
 
     console.log("[ResumePipeline] Calling hollywood-pipeline with resume config:", resumeFrom);
 

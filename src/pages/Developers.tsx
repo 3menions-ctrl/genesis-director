@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -50,6 +49,12 @@ export default function Developers() {
   };
 
   useEffect(() => { if (user) refresh(); }, [user]);
+  useEffect(() => {
+    document.title = 'Developers — Apex Studio API';
+    const meta = document.querySelector('meta[name="description"]');
+    const desc = "Generate API keys, monitor usage, and integrate Apex Studio's video pipeline into your stack.";
+    if (meta) meta.setAttribute('content', desc);
+  }, []);
 
   const createKey = async () => {
     if (!newKeyName.trim()) { toast.error('Name your key'); return; }
@@ -85,10 +90,6 @@ export default function Developers() {
 
   return (
     <>
-      <Helmet>
-        <title>Developers — Apex Studio API</title>
-        <meta name="description" content="Generate API keys, monitor usage, and integrate Apex Studio's video generation pipeline into your stack." />
-      </Helmet>
       <div className="mx-auto w-full max-w-6xl px-6 py-12">
         {/* Hero */}
         <header className="mb-12">

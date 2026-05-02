@@ -20,6 +20,7 @@ import { B2BComparison } from '@/components/landing/B2BComparison';
 import { B2BSecurityBar } from '@/components/landing/B2BSecurityBar';
 import { HoppyImmersiveIntro } from '@/components/landing/HoppyImmersiveIntro';
 import { SeedanceBanner } from '@/components/landing/SeedanceBanner';
+import { IdleEnterOverlay } from '@/components/landing/IdleEnterOverlay';
 
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 const FAQSection = lazy(() => import('@/components/landing/FAQSection'));
@@ -72,6 +73,9 @@ export default function Landing() {
     <div className="min-h-screen bg-black overflow-hidden relative">
       {/* Idle-triggered immersive intro */}
       <HoppyImmersiveIntro />
+
+      {/* 30s-idle Enter chooser (Business vs Enterprise) */}
+      <IdleEnterOverlay />
 
       {/* Top announcement banner */}
       <SeedanceBanner onLearnMore={() => scrollToSection('pricing')} />

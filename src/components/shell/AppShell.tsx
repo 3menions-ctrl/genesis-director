@@ -1,7 +1,7 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { NavLink, useLocation, Link } from 'react-router-dom';
 import {
-  Film, Sparkles, Users, Scissors, Layers, GraduationCap,
+  Film, Sparkles, Scissors, Layers, GraduationCap,
   User as UserIcon, Settings as SettingsIcon, HelpCircle, Shield, LogOut,
   Zap, ChevronDown, Menu, X, PanelLeftClose, PanelLeft,
 } from 'lucide-react';
@@ -38,7 +38,6 @@ const PRIMARY_NAV: NavItem[] = [
   { label: 'Avatars',   to: '/avatars',        icon: UserIcon,      hue: 215 },
   { label: 'Templates', to: '/templates',      icon: Layers,        hue: 215 },
   { label: 'Training',  to: '/training-video', icon: GraduationCap, hue: 215 },
-  { label: 'Creators',  to: '/creators',       icon: Users,         hue: 215 },
 ];
 
 interface AppShellProps {

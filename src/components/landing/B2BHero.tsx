@@ -219,11 +219,12 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
         <span>Pay-as-you-go credits</span>
       </motion.div>
 
-      {/* Hero device — premium glass preview */}
+      {/* Hero device — premium glass preview with scroll parallax */}
       <motion.div
         initial={{ opacity: 0, y: 60, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 1, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
+        style={{ y: deviceY, scale: deviceScale }}
         className="relative mt-24 w-full max-w-6xl"
       >
         <div

@@ -183,15 +183,15 @@ export default function Landing() {
 
       <LandingNav onScrollToSection={scrollToSection} onNavigate={handleNavigate} />
 
-      {/* Immersive scroll-locked full-video moment — single fixed video that
-          activates once the user scrolls past the hero. All landing content
-          below sits above it (z-10) and scrolls over it as a backdrop. */}
-      <HoppyImmersiveScrollSection />
-
       {/* Foreground content column — stacks above the fixed video layer */}
       <div className="relative z-10">
       {/* Hero — extra top breathing room from sticky nav */}
       <div className="pt-16 md:pt-24"><B2BHero onPrimary={handleStart} onSecondary={handleSales} /></div>
+
+      {/* Immersive scroll-locked full-video moment — single fixed video that
+          activates once the user scrolls past the hero. All content below
+          sits above it and scrolls over it as a backdrop. */}
+      <HoppyImmersiveScrollSection />
 
       <Divider size="sm" />
       {/* Audience tracks — Personal · Business · Enterprise */}

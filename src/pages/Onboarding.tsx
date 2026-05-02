@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useSafeNavigation } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
@@ -7,150 +8,111 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Film, User, Sparkles, ArrowRight, ArrowLeft, Check,
-  Video, Users, Building2, Rocket, Palette, GraduationCap, Loader2, Globe
+import {
+  User, Sparkles, ArrowRight, ArrowLeft, Check,
+  Building2, Rocket, Palette, Loader2, Users, Mail, Plus, X,
+  Megaphone, ShoppingBag, Globe, Film, BarChart3, Users2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import { Logo } from '@/components/ui/Logo';
 import landingAbstractBg from '@/assets/landing-abstract-bg.jpg';
-import authHeroImage from '@/assets/auth-hero-mittens.png';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
-// ─── Floating Particles ─────────────────────────────────────────────
-function FloatingParticles() {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {Array.from({ length: 18 }).map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute rounded-full"
-          style={{
-            width: Math.random() * 3 + 1,
-            height: Math.random() * 3 + 1,
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            background: i % 3 === 0 
-              ? 'hsl(263, 70%, 58%)' 
-              : i % 3 === 1 
-                ? 'hsl(195, 90%, 50%)' 
-                : 'rgba(255,255,255,0.4)',
-          }}
-          animate={{
-            y: [0, -30 - Math.random() * 40, 0],
-            opacity: [0, 0.7, 0],
-            scale: [0.5, 1.2, 0.5],
-          }}
-          transition={{
-            duration: 4 + Math.random() * 6,
-            repeat: Infinity,
-            delay: Math.random() * 5,
-            ease: 'easeInOut',
-          }}
-        />
-      ))}
-    </div>
-  );
-}
+// ─────────────────────────────────────────────────────────────────────
+// Static config
+// ─────────────────────────────────────────────────────────────────────
 
-// ─── Animated Orb ───────────────────────────────────────────────────
-function AnimatedOrb({ className, delay = 0 }: { className?: string; delay?: number }) {
-  return (
-    <motion.div
-      className={cn("absolute rounded-full blur-[120px] pointer-events-none", className)}
-      animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.25, 0.15] }}
-      transition={{ duration: 8, repeat: Infinity, delay, ease: 'easeInOut' }}
-    />
-  );
-}
+const TEAM_SIZES = [
+  { id: '1',     label: 'Just me' },
+  { id: '2-10',  label: '2–10' },
+  { id: '11-50', label: '11–50' },
+  { id: '51-200',label: '51–200' },
+  { id: '200+',  label: '200+' },
+];
 
-const COUNTRIES = [
-  { code: 'US', name: 'United States' },
-  { code: 'GB', name: 'United Kingdom' },
-  { code: 'CA', name: 'Canada' },
-  { code: 'AU', name: 'Australia' },
-  { code: 'DE', name: 'Germany' },
-  { code: 'FR', name: 'France' },
-  { code: 'IN', name: 'India' },
-  { code: 'NG', name: 'Nigeria' },
-  { code: 'GH', name: 'Ghana' },
-  { code: 'KE', name: 'Kenya' },
-  { code: 'ZA', name: 'South Africa' },
-  { code: 'BR', name: 'Brazil' },
-  { code: 'MX', name: 'Mexico' },
-  { code: 'JP', name: 'Japan' },
-  { code: 'KR', name: 'South Korea' },
-  { code: 'SG', name: 'Singapore' },
-  { code: 'AE', name: 'United Arab Emirates' },
-  { code: 'NL', name: 'Netherlands' },
-  { code: 'ES', name: 'Spain' },
-  { code: 'IT', name: 'Italy' },
-  { code: 'PH', name: 'Philippines' },
-  { code: 'ID', name: 'Indonesia' },
-  { code: 'PK', name: 'Pakistan' },
-  { code: 'EG', name: 'Egypt' },
-  { code: 'OTHER', name: 'Other' },
-].sort((a, b) => a.name.localeCompare(b.name));
+const INDUSTRIES = [
+  'SaaS / Technology', 'E-commerce / DTC', 'Marketing Agency',
+  'Media & Entertainment', 'Education', 'Finance', 'Healthcare',
+  'Real Estate', 'Other',
+];
 
 const USE_CASES = [
-  { id: 'content_creator', label: 'Content Creator', icon: Video, description: 'YouTube, TikTok, Social Media' },
-  { id: 'marketer', label: 'Marketing', icon: Rocket, description: 'Ads, Promos, Brand Content' },
-  { id: 'filmmaker', label: 'Filmmaker', icon: Film, description: 'Short Films, Documentaries' },
-  { id: 'business', label: 'Business', icon: Building2, description: 'Training, Presentations' },
-  { id: 'creative', label: 'Creative Agency', icon: Palette, description: 'Client Projects' },
-  { id: 'student', label: 'Student', icon: GraduationCap, description: 'Learning, Projects' },
+  { id: 'paid_ads',    label: 'Performance Ads',  icon: Megaphone,  desc: 'Meta, TikTok, YouTube creative at scale' },
+  { id: 'launches',    label: 'Product Launches', icon: ShoppingBag,desc: 'Hero films, social cuts, lifecycle' },
+  { id: 'localization',label: 'Localization',     icon: Globe,      desc: 'Multilingual ads from one source' },
+  { id: 'sales',       label: 'Sales Outreach',   icon: Users2,     desc: 'Personalized prospect videos' },
+  { id: 'brand',       label: 'Brand Storytelling', icon: Film,     desc: 'Cinematic explainers and case studies' },
+  { id: 'social',      label: 'Always-on Social', icon: BarChart3,  desc: 'Weekly content engine' },
 ];
 
-const ACCOUNT_TYPES = [
-  { id: 'individual', label: 'Individual', icon: User, description: 'Personal projects and solo creation' },
-  { id: 'team', label: 'Team', icon: Users, description: 'Collaborate with team members' },
-  { id: 'agency', label: 'Agency / Studio', icon: Building2, description: 'Client work and production' },
+const BRAND_PRESETS = [
+  { primary: '#0A84FF', accent: '#0EA5E9', label: 'Apple Blue' },
+  { primary: '#7C3AED', accent: '#EC4899', label: 'Vibrant' },
+  { primary: '#10B981', accent: '#84CC16', label: 'Nature' },
+  { primary: '#F59E0B', accent: '#EF4444', label: 'Bold' },
+  { primary: '#1E293B', accent: '#64748B', label: 'Mono' },
+  { primary: '#F43F5E', accent: '#A855F7', label: 'Sunset' },
 ];
 
-const sanitizeText = (text: string): string => {
-  return text.replace(/[<>]/g, '').replace(/javascript:/gi, '').replace(/on\w+=/gi, '').trim();
-};
+const STEPS = [
+  { title: 'Tell us about you',     subtitle: 'Your name and role',           badge: 'Profile',   icon: User },
+  { title: 'Create your workspace', subtitle: 'Set up your team workspace',   badge: 'Workspace', icon: Building2 },
+  { title: 'Brand basics',          subtitle: 'Lock your colors from day one', badge: 'Brand',    icon: Palette },
+  { title: 'Primary use case',      subtitle: 'What will your team ship?',     badge: 'Focus',    icon: Rocket },
+  { title: 'Invite your team',      subtitle: 'Bring producers and reviewers', badge: 'Team',     icon: Users },
+];
 
-const onboardingSchema = z.object({
+const sanitizeText = (text: string): string =>
+  text.replace(/[<>]/g, '').replace(/javascript:/gi, '').replace(/on\w+=/gi, '').trim();
+
+const profileSchema = z.object({
   fullName: z.string().trim().min(2, 'Name must be at least 2 characters').max(100, 'Name is too long')
     .regex(/^[a-zA-Z\s\-'.]+$/, 'Name contains invalid characters'),
-  role: z.string().min(1, 'Please select your role'),
-  useCase: z.string().min(1, 'Please select how you plan to use the app'),
-  company: z.string().max(100, 'Company name is too long')
-    .regex(/^[a-zA-Z0-9\s\-'.&]*$/, 'Company name contains invalid characters').optional(),
+  jobTitle: z.string().trim().max(80, 'Title is too long').optional(),
 });
 
-const STEP_CONFIG = [
-  { title: "What's your name?", subtitle: "Let's personalize your experience", badge: 'Profile setup', icon: User },
-  { title: "How will you use Apex?", subtitle: "Select your account type", badge: 'Account type', icon: Users },
-  { title: "What will you create?", subtitle: "Choose your primary use case", badge: 'Your focus', icon: Sparkles },
-];
+const workspaceSchema = z.object({
+  workspaceName: z.string().trim().min(2, 'Workspace name must be at least 2 characters').max(60, 'Too long')
+    .regex(/^[a-zA-Z0-9\s\-'.&]+$/, 'Invalid characters'),
+  industry: z.string().min(1, 'Please pick an industry'),
+  teamSize: z.string().min(1, 'Please pick a team size'),
+});
+
+const emailSchema = z.string().trim().toLowerCase().email('Invalid email').max(255);
+
+// ─────────────────────────────────────────────────────────────────────
+// Component
+// ─────────────────────────────────────────────────────────────────────
 
 export default function Onboarding() {
   const { user, refreshProfile, loading: authLoading, isSessionVerified } = useAuth();
+  const { refresh: refreshWorkspaces, switchOrg } = useWorkspace();
   const { navigate } = useSafeNavigation();
+
   const [step, setStep] = useState(1);
+  const [direction, setDirection] = useState(1);
   const [loading, setLoading] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
-  const [direction, setDirection] = useState(1);
-  
-  const [formData, setFormData] = useState({
+
+  const [form, setForm] = useState({
     fullName: '',
-    role: '',
+    jobTitle: '',
+    workspaceName: '',
+    industry: '',
+    teamSize: '',
+    brandPrimary: '#0A84FF',
+    brandAccent: '#0EA5E9',
     useCase: '',
-    company: '',
-    country: '',
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [invites, setInvites] = useState<{ email: string; role: 'admin' | 'producer' | 'reviewer' }[]>([
+    { email: '', role: 'producer' },
+  ]);
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [createdOrgId, setCreatedOrgId] = useState<string | null>(null);
+
+  // ─── Auth gate ─────────────────────────────────────────────────────
   useEffect(() => {
     if (authLoading || !isSessionVerified) return;
     if (!user) {
@@ -161,494 +123,655 @@ export default function Onboarding() {
     setSessionChecked(true);
   }, [user, authLoading, isSessionVerified, navigate]);
 
-  const handleNext = useCallback(() => {
+  // ─── Step navigation ───────────────────────────────────────────────
+  const validateStep = useCallback((): boolean => {
     if (step === 1) {
-      const result = onboardingSchema.pick({ fullName: true }).safeParse({ fullName: formData.fullName });
-      if (!result.success) {
-        setErrors({ fullName: result.error.errors[0].message });
-        return;
+      const r = profileSchema.safeParse({ fullName: form.fullName, jobTitle: form.jobTitle });
+      if (!r.success) {
+        setErrors({ [r.error.errors[0].path[0] as string]: r.error.errors[0].message });
+        return false;
       }
-    } else if (step === 2) {
-      if (!formData.role) {
-        setErrors({ role: 'Please select your role' });
-        return;
+    }
+    if (step === 2) {
+      const r = workspaceSchema.safeParse({
+        workspaceName: form.workspaceName,
+        industry: form.industry,
+        teamSize: form.teamSize,
+      });
+      if (!r.success) {
+        const errs: Record<string, string> = {};
+        r.error.errors.forEach(e => { if (e.path[0]) errs[e.path[0] as string] = e.message; });
+        setErrors(errs);
+        return false;
       }
+    }
+    if (step === 4 && !form.useCase) {
+      setErrors({ useCase: 'Please pick a primary use case' });
+      return false;
     }
     setErrors({});
+    return true;
+  }, [step, form]);
+
+  const handleNext = useCallback(() => {
+    if (!validateStep()) return;
     setDirection(1);
-    setStep(step + 1);
-  }, [step, formData.fullName, formData.role]);
+    setStep(s => s + 1);
+  }, [validateStep]);
 
   const handleBack = () => {
-    if (step > 1) { setDirection(-1); setStep(step - 1); }
+    if (step > 1) { setDirection(-1); setStep(s => s - 1); }
   };
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && !loading) {
-        if (step < 3) handleNext();
-        else if (formData.useCase) handleComplete();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [step, formData, loading, handleNext]);
-
-  const handleComplete = async () => {
-    const result = onboardingSchema.safeParse(formData);
-    if (!result.success) {
-      const newErrors: Record<string, string> = {};
-      result.error.errors.forEach(err => { if (err.path[0]) newErrors[err.path[0] as string] = err.message; });
-      setErrors(newErrors);
-      return;
+  // ─── Workspace creation (between step 4 and 5) ─────────────────────
+  const createWorkspace = async (): Promise<string | null> => {
+    if (!user) return null;
+    const slug = `${form.workspaceName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}-${Math.random().toString(36).slice(2, 7)}`;
+    const { data, error } = await supabase
+      .from('organizations')
+      .insert({
+        name: sanitizeText(form.workspaceName),
+        slug,
+        industry: form.industry,
+        team_size: form.teamSize,
+        brand_primary_color: form.brandPrimary,
+        brand_accent_color: form.brandAccent,
+        created_by: user.id,
+      })
+      .select('id')
+      .single();
+    if (error) {
+      toast.error(`Could not create workspace: ${error.message}`);
+      return null;
     }
-    if (!user) { toast.error('Session expired.'); navigate('/auth', { replace: true }); return; }
+    return data.id;
+  };
 
+  const sendInvites = async (orgId: string) => {
+    const valid = invites.filter(i => i.email.trim() && emailSchema.safeParse(i.email).success);
+    if (!valid.length || !user) return;
+    const rows = valid.map(i => ({
+      organization_id: orgId,
+      email: i.email.trim().toLowerCase(),
+      role: i.role,
+      invited_by: user.id,
+    }));
+    const { error } = await supabase.from('organization_invites').insert(rows);
+    if (error) {
+      toast.error(`Some invites failed: ${error.message}`);
+    } else if (rows.length > 0) {
+      toast.success(`Sent ${rows.length} invite${rows.length > 1 ? 's' : ''}`);
+    }
+  };
+
+  // ─── Final commit ──────────────────────────────────────────────────
+  const handleComplete = async (skipInvites = false) => {
+    if (!validateStep()) return;
+    if (!user) { toast.error('Session expired.'); navigate('/auth', { replace: true }); return; }
     setLoading(true);
     try {
-      const sanitizedData = {
-        full_name: sanitizeText(formData.fullName),
-        display_name: sanitizeText(formData.fullName).split(' ')[0],
-        role: formData.role,
-        use_case: formData.useCase,
-        company: formData.company ? sanitizeText(formData.company) : null,
-        country: formData.country || null,
+      // 1. Save profile
+      const sanitized = {
+        full_name: sanitizeText(form.fullName),
+        display_name: sanitizeText(form.fullName).split(' ')[0],
+        job_title: form.jobTitle ? sanitizeText(form.jobTitle) : null,
+        company: sanitizeText(form.workspaceName),
+        use_case: form.useCase,
         onboarding_completed: true,
       };
-      const { error } = await supabase.from('profiles').update(sanitizedData).eq('id', user.id);
-      if (error) throw error;
+      const { error: pErr } = await supabase.from('profiles').update(sanitized).eq('id', user.id);
+      if (pErr) console.error('[Onboarding] profile update warn:', pErr);
+
+      // 2. Create workspace if not already
+      let orgId = createdOrgId;
+      if (!orgId) {
+        orgId = await createWorkspace();
+        if (!orgId) { setLoading(false); return; }
+        setCreatedOrgId(orgId);
+        // Mark workspace onboarding done
+        await supabase
+          .from('organizations')
+          .update({ onboarding_completed: true })
+          .eq('id', orgId);
+      }
+
+      // 3. Send invites
+      if (!skipInvites) {
+        await sendInvites(orgId);
+      }
+
+      // 4. Refresh contexts and route
       await refreshProfile();
-      toast.success('Welcome to Apex Studio!');
+      await refreshWorkspaces();
+      switchOrg(orgId);
+
+      toast.success('Workspace ready');
       const next = new URLSearchParams(window.location.search).get('next');
       navigate(next || '/create', { replace: true });
     } catch (err) {
-      console.error('Error saving onboarding:', err);
-      toast.error('Failed to save your information');
+      console.error('[Onboarding] completion error:', err);
+      toast.error('Failed to finish setup. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Onboarding is mandatory — no skip option
-
+  // ─── Loading state ─────────────────────────────────────────────────
   if (authLoading || !isSessionVerified || !sessionChecked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[hsl(250,15%,3%)]">
+      <div className="min-h-screen flex items-center justify-center bg-[hsl(220,14%,2%)]">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4">
           <Logo size="xl" />
-          <p className="text-white/60 text-sm">Setting up your studio...</p>
-          <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <p className="text-white/60 text-sm">Setting up your workspace…</p>
+          <div className="w-6 h-6 border-2 border-[#0A84FF]/30 border-t-[#0A84FF] rounded-full animate-spin" />
         </motion.div>
       </div>
     );
   }
 
   const slideVariants = {
-    enter: (d: number) => ({ x: d > 0 ? 50 : -50, opacity: 0 }),
+    enter: (d: number) => ({ x: d > 0 ? 40 : -40, opacity: 0 }),
     center: { x: 0, opacity: 1 },
-    exit: (d: number) => ({ x: d > 0 ? -50 : 50, opacity: 0 }),
+    exit: (d: number) => ({ x: d > 0 ? -40 : 40, opacity: 0 }),
   };
 
-  const currentStep = STEP_CONFIG[step - 1];
+  const currentStep = STEPS[step - 1];
+  const totalSteps = STEPS.length;
+  const isLast = step === totalSteps;
 
+  // ─── Render ────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex relative overflow-hidden">
-      {/* Deep cinematic background */}
-      <div className="fixed inset-0 bg-[hsl(250,15%,3%)]" />
-      <div 
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+    <div className="min-h-screen flex relative overflow-hidden bg-[hsl(220,14%,2%)] text-white">
+      {/* Background */}
+      <div
+        className="fixed inset-0 bg-cover bg-center opacity-[0.12] pointer-events-none"
         style={{ backgroundImage: `url(${landingAbstractBg})` }}
       />
-      
-      {/* Animated orbs */}
-      <AnimatedOrb className="w-[700px] h-[700px] bg-primary/20 top-[-200px] left-[10%]" />
-      <AnimatedOrb className="w-[500px] h-[500px] bg-accent/15 bottom-[-100px] right-[15%]" delay={3} />
-      
-      {/* Grid overlay */}
-      <div 
-        className="fixed inset-0 pointer-events-none opacity-[0.03]"
+      <div className="fixed inset-0 pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse at top, rgba(10,132,255,0.08), transparent 60%)' }}
+      />
+      <div className="fixed inset-0 pointer-events-none opacity-[0.025]"
         style={{
           backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
           backgroundSize: '60px 60px',
         }}
       />
-      
-      {/* Vignette */}
-      <div className="fixed inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.7) 100%)' }}
-      />
 
-      {/* Left Side - Hero Image */}
-      <div className="hidden lg:flex lg:w-1/2 relative z-10 items-center justify-center overflow-hidden">
-        <div className="absolute inset-0">
-          <motion.img 
-            src={authHeroImage}
-            alt="Apex Studio"
-            className="w-full h-full object-cover object-center"
-            initial={{ scale: 1.1, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-[hsl(250,15%,3%)]" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[hsl(250,15%,3%)]/80 via-transparent to-[hsl(250,15%,3%)]/60" />
-          <div className="absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-black/50 to-transparent" />
-          <div className="absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t from-black/50 to-transparent" />
-        </div>
-        
-        <FloatingParticles />
-        
-        <div className="relative z-10 p-12 xl:p-16 w-full h-full flex flex-col justify-between">
-          <motion.div 
-            className="flex items-center gap-3"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Logo size="xl" showText textClassName="text-2xl font-display font-bold drop-shadow-lg" />
-          </motion.div>
-          
-          <div className="space-y-8">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-            >
-              <h2 className="text-5xl xl:text-7xl font-display font-bold text-white leading-[1.05] tracking-tight">
-                Almost<br />
-                <span className="bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] animate-[shimmer-bg_4s_ease-in-out_infinite] bg-clip-text text-transparent">
-                  there.
-                </span>
-              </h2>
-            </motion.div>
-            
-            <motion.p 
-              className="text-lg text-white/40 max-w-md leading-relaxed"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.7 }}
-            >
-              Tell us a bit about yourself so we can personalize your creative studio experience.
-            </motion.p>
+      {/* Left rail — step list */}
+      <div className="hidden lg:flex lg:w-[420px] xl:w-[480px] flex-col justify-between p-12 xl:p-14 relative z-10 border-r border-white/[0.04]">
+        <Logo size="lg" showText textClassName="text-xl font-display font-bold" />
 
-            {/* Step indicators on the hero side */}
-            <div className="space-y-3 max-w-xs">
-              {STEP_CONFIG.map((s, i) => (
-                <motion.div 
-                  key={i} 
+        <div className="space-y-6">
+          <div>
+            <p className="text-[11px] font-medium text-[#0A84FF] tracking-[0.22em] uppercase mb-3">
+              Workspace setup
+            </p>
+            <h2 className="font-display text-4xl xl:text-5xl font-bold text-white leading-[1.05] tracking-tight">
+              Let's get<br/>your team<br/>shipping.
+            </h2>
+            <p className="mt-5 text-white/45 text-sm max-w-sm leading-relaxed">
+              Five quick steps. You'll have a branded workspace and invitations
+              out before your coffee gets cold.
+            </p>
+          </div>
+
+          <div className="space-y-2 max-w-sm pt-4">
+            {STEPS.map((s, i) => {
+              const stepNum = i + 1;
+              const done = step > stepNum;
+              const active = step === stepNum;
+              return (
+                <div
+                  key={s.title}
                   className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-500",
-                    step > i + 1
-                      ? "bg-emerald-500/10 border border-emerald-500/20"
-                      : step === i + 1
-                        ? "bg-white/[0.08] border border-white/[0.15] shadow-[0_0_20px_rgba(124,58,237,0.1)]"
-                        : "bg-white/[0.02] border border-white/[0.04]"
+                    'flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-300',
+                    done
+                      ? 'border-emerald-500/15 bg-emerald-500/[0.04]'
+                      : active
+                        ? 'border-[#0A84FF]/30 bg-[#0A84FF]/[0.06]'
+                        : 'border-white/[0.04] bg-white/[0.01]'
                   )}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.8 + i * 0.1 }}
                 >
                   <div className={cn(
-                    "w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 transition-all duration-500",
-                    step > i + 1
-                      ? "bg-emerald-500/20 text-emerald-400"
-                      : step === i + 1
-                        ? "bg-gradient-to-br from-primary/30 to-accent/20 text-primary shadow-[0_0_15px_rgba(124,58,237,0.2)]"
-                        : "bg-white/[0.03] text-white/20"
+                    'w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold shrink-0 transition-all',
+                    done ? 'bg-emerald-500/15 text-emerald-400'
+                      : active ? 'bg-[#0A84FF]/15 text-[#0A84FF]'
+                      : 'bg-white/[0.03] text-white/25'
                   )}>
-                    {step > i + 1 ? <Check className="w-4 h-4" /> : <s.icon className="w-4 h-4" />}
+                    {done ? <Check className="w-4 h-4" /> : <s.icon className="w-4 h-4" />}
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className={cn(
-                      "text-sm font-medium transition-colors duration-500",
-                      step > i + 1 ? "text-emerald-400/80" : step === i + 1 ? "text-white" : "text-white/20"
-                    )}>
-                      {s.title}
-                    </p>
+                      'text-sm font-medium transition-colors truncate',
+                      done ? 'text-emerald-400/80' : active ? 'text-white' : 'text-white/30'
+                    )}>{s.title}</p>
                     <p className={cn(
-                      "text-[11px] transition-colors duration-500",
-                      step > i + 1 ? "text-emerald-400/40" : step === i + 1 ? "text-white/35" : "text-white/10"
-                    )}>
-                      {s.subtitle}
-                    </p>
+                      'text-[11px] transition-colors truncate',
+                      done ? 'text-emerald-400/40' : active ? 'text-white/40' : 'text-white/15'
+                    )}>{s.subtitle}</p>
                   </div>
-                </motion.div>
-              ))}
-            </div>
+                </div>
+              );
+            })}
           </div>
         </div>
+
+        <p className="text-[11px] text-white/20 tracking-wide">
+          Need help? <a href="/contact" className="text-white/40 hover:text-white underline underline-offset-2">Contact sales</a>
+        </p>
       </div>
 
-      {/* Right Side - Form */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 relative z-10">
-        <FloatingParticles />
-        
-        <motion.div 
-          className="w-full max-w-[500px] relative"
-          initial={{ opacity: 0, y: 40 }}
+      {/* Right pane — form */}
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 relative z-10 overflow-y-auto">
+        <motion.div
+          className="w-full max-w-[560px] relative"
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         >
-          {/* Mobile Logo */}
+          {/* Mobile header */}
           <div className="lg:hidden text-center mb-8">
-            <div className="inline-flex items-center justify-center mb-4">
-              <Logo size="xl" />
-            </div>
-            <h1 className="text-xl font-display font-bold text-white/90">Apex Studio</h1>
+            <Logo size="lg" />
           </div>
 
-          {/* Progress bar */}
+          {/* Progress */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs text-white/25 font-medium">Step {step} of 3</span>
+              <span className="text-xs text-white/30 font-medium">Step {step} of {totalSteps}</span>
+              <span className="text-xs text-[#0A84FF]/80 font-medium">{currentStep.badge}</span>
             </div>
-            <div className="h-1.5 rounded-full bg-white/[0.04] overflow-hidden relative">
+            <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
               <motion.div
-                className="h-full rounded-full relative overflow-hidden"
-                style={{ background: 'linear-gradient(90deg, hsl(263, 70%, 58%), hsl(195, 90%, 50%))' }}
+                className="h-full rounded-full bg-gradient-to-r from-[#0A84FF] to-[#0EA5E9]"
                 initial={false}
-                animate={{ width: `${(step / 3) * 100}%` }}
-                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              >
-                {/* Shimmer on progress bar */}
-                <div className="absolute inset-0 animate-[shimmer-bg_2s_ease-in-out_infinite]"
-                  style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)', backgroundSize: '200% 100%' }}
-                />
-              </motion.div>
-            </div>
-          </div>
-
-          {/* Glass container with animated border */}
-          <div className="relative rounded-[28px] overflow-hidden">
-            {/* Animated gradient border */}
-            <div className="absolute inset-0 rounded-[28px] p-[1px] overflow-hidden">
-              <div 
-                className="absolute inset-[-100%] animate-[spin_8s_linear_infinite]"
-                style={{ background: 'conic-gradient(from 0deg, transparent, hsl(263, 70%, 58%), transparent, hsl(195, 90%, 50%), transparent)' }}
+                animate={{ width: `${(step / totalSteps) * 100}%` }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
               />
             </div>
-            
-            {/* Inner container */}
-            <div className="relative rounded-[27px] m-[1px] bg-[hsl(250,15%,5%)]/95 backdrop-blur-2xl overflow-hidden">
-              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[300px] h-[200px] bg-primary/5 blur-[80px] rounded-full" />
-              
-              <div className="relative p-8 sm:p-10">
-                {/* Header */}
-                <div className="mb-8">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={step}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -12 }}
-                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                    >
-                      <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-gradient-to-r from-primary/15 to-accent/10 border border-primary/20 mb-5">
-                        <motion.div 
-                          className="w-1.5 h-1.5 rounded-full bg-primary"
-                          animate={{ scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }}
-                          transition={{ duration: 2, repeat: Infinity }}
-                        />
-                        <span className="text-xs font-medium bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                          {currentStep.badge}
-                        </span>
-                      </div>
-                      <h2 className="text-2xl sm:text-3xl font-display font-bold text-white mb-2 tracking-tight">
-                        {currentStep.title}
-                      </h2>
-                      <p className="text-white/35 text-sm">{currentStep.subtitle}</p>
-                    </motion.div>
-                  </AnimatePresence>
-                  
-                  {user?.email && (
-                    <p className="text-xs text-white/15 mt-3">{user.email}</p>
-                  )}
-                </div>
+          </div>
 
-                {/* Step Content */}
-                <AnimatePresence mode="wait" custom={direction}>
-                  <motion.div
-                    key={step}
-                    custom={direction}
-                    variants={slideVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    transition={{ duration: 0.35, ease: 'easeInOut' }}
-                  >
-                    {/* Step 1: Name */}
-                    {step === 1 && (
-                      <div className="space-y-5">
-                        <div className="space-y-2">
-                          <Label htmlFor="fullName" className="text-white/60 text-xs font-medium uppercase tracking-wider">
-                            Full name
-                          </Label>
-                          <div className="relative group">
-                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25 group-focus-within:text-primary transition-colors duration-300" />
-                            <Input
-                              id="fullName"
-                              type="text"
-                              placeholder="John Smith"
-                              value={formData.fullName}
-                              onChange={(e) => { setFormData({ ...formData, fullName: e.target.value }); if (errors.fullName) setErrors({}); }}
-                              className={cn(
-                                "h-13 pl-11 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20",
-                                "focus:border-primary/50 focus:ring-2 focus:ring-primary/15 focus:bg-white/[0.05]",
-                                "rounded-xl transition-all duration-300 hover:border-white/[0.12] hover:bg-white/[0.04]",
-                                errors.fullName && "border-destructive/50"
-                              )}
-                              maxLength={100}
-                              autoFocus
-                            />
-                          </div>
-                          {errors.fullName && <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="text-destructive text-xs">{errors.fullName}</motion.p>}
-                        </div>
+          {/* Card */}
+          <div className="rounded-3xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-2xl p-7 sm:p-9">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`hdr-${step}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+                className="mb-7"
+              >
+                <h2 className="text-2xl sm:text-3xl font-display font-bold text-white tracking-tight mb-1.5">
+                  {currentStep.title}
+                </h2>
+                <p className="text-white/40 text-sm">{currentStep.subtitle}</p>
+              </motion.div>
+            </AnimatePresence>
 
-                        <div className="space-y-2">
-                          <Label htmlFor="company" className="text-white/60 text-xs font-medium uppercase tracking-wider">
-                            Company <span className="text-white/20 normal-case">(optional)</span>
-                          </Label>
-                          <div className="relative group">
-                            <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25 group-focus-within:text-primary transition-colors duration-300" />
-                            <Input
-                              id="company"
-                              type="text"
-                              placeholder="Acme Studios"
-                              value={formData.company}
-                              onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                              className="h-13 pl-11 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20 focus:border-primary/50 focus:ring-2 focus:ring-primary/15 focus:bg-white/[0.05] rounded-xl transition-all duration-300 hover:border-white/[0.12] hover:bg-white/[0.04]"
-                              maxLength={100}
-                            />
-                          </div>
-                        </div>
+            <AnimatePresence mode="wait" custom={direction}>
+              <motion.div
+                key={step}
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+              >
+                {/* ─── STEP 1: Profile ─── */}
+                {step === 1 && (
+                  <div className="space-y-5">
+                    <FieldText
+                      id="fullName" label="Full name" icon={User}
+                      placeholder="Jane Cooper" value={form.fullName}
+                      onChange={v => { setForm({ ...form, fullName: v }); if (errors.fullName) setErrors({}); }}
+                      error={errors.fullName} autoFocus maxLength={100}
+                    />
+                    <FieldText
+                      id="jobTitle" label="Job title" icon={Building2} optional
+                      placeholder="Head of Marketing" value={form.jobTitle}
+                      onChange={v => setForm({ ...form, jobTitle: v })}
+                      maxLength={80}
+                    />
+                  </div>
+                )}
 
-                        <div className="space-y-2">
-                          <Label htmlFor="country" className="text-white/60 text-xs font-medium uppercase tracking-wider flex items-center gap-2">
-                            <Globe className="w-3.5 h-3.5 text-white/25" />
-                            Country <span className="text-white/20 normal-case">(optional)</span>
-                          </Label>
-                          <Select value={formData.country} onValueChange={(value) => setFormData({ ...formData, country: value })}>
-                            <SelectTrigger className="h-13 bg-white/[0.03] border-white/[0.06] text-white focus:border-primary/50 focus:ring-2 focus:ring-primary/15 rounded-xl transition-all hover:border-white/[0.12] hover:bg-white/[0.04]">
-                              <SelectValue placeholder="Select your country" />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-60">
-                              {COUNTRIES.map((c) => (
-                                <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    )}
+                {/* ─── STEP 2: Workspace ─── */}
+                {step === 2 && (
+                  <div className="space-y-5">
+                    <FieldText
+                      id="workspaceName" label="Workspace name" icon={Building2}
+                      placeholder="Acme Marketing"
+                      hint="This is what your team will see in the app."
+                      value={form.workspaceName}
+                      onChange={v => { setForm({ ...form, workspaceName: v }); if (errors.workspaceName) setErrors({}); }}
+                      error={errors.workspaceName} autoFocus maxLength={60}
+                    />
 
-                    {/* Step 2: Account Type */}
-                    {step === 2 && (
-                      <div className="space-y-3">
-                        {ACCOUNT_TYPES.map((accountType, index) => (
-                          <motion.button
-                            key={accountType.id}
-                            initial={{ opacity: 0, y: 12 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.08 }}
-                            onClick={() => { setFormData({ ...formData, role: accountType.id }); setErrors({}); }}
+                    <div className="space-y-2">
+                      <Label className="text-white/55 text-xs font-medium uppercase tracking-wider">Industry</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {INDUSTRIES.map(ind => (
+                          <button
+                            key={ind} type="button"
+                            onClick={() => { setForm({ ...form, industry: ind }); setErrors(e => ({ ...e, industry: '' })); }}
                             className={cn(
-                              "w-full flex items-center gap-4 p-5 rounded-2xl border transition-all duration-300 text-left group",
-                              formData.role === accountType.id
-                                ? "border-primary/40 bg-primary/[0.08] shadow-[0_0_20px_rgba(124,58,237,0.1)]"
-                                : "border-white/[0.05] hover:border-white/[0.1] hover:bg-white/[0.02]"
+                              'px-3.5 py-2.5 rounded-xl text-xs font-medium text-left transition-all border',
+                              form.industry === ind
+                                ? 'bg-[#0A84FF]/10 border-[#0A84FF]/40 text-white'
+                                : 'bg-white/[0.02] border-white/[0.05] text-white/55 hover:bg-white/[0.04] hover:text-white/80'
                             )}
-                          >
-                            <div className={cn(
-                              "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0",
-                              formData.role === accountType.id 
-                                ? "bg-gradient-to-br from-primary to-primary/80 text-white shadow-lg shadow-primary/25" 
-                                : "bg-white/[0.04] text-white/30 group-hover:bg-white/[0.06] group-hover:text-white/50"
-                            )}>
-                              <accountType.icon className="w-5 h-5" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-white text-sm">{accountType.label}</p>
-                              <p className="text-xs text-white/30 truncate">{accountType.description}</p>
-                            </div>
-                            {formData.role === accountType.id && (
-                              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300 }} className="shrink-0">
-                                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                                  <Check className="w-3.5 h-3.5 text-primary" />
-                                </div>
-                              </motion.div>
-                            )}
-                          </motion.button>
+                          >{ind}</button>
                         ))}
-                        {errors.role && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-destructive text-xs">{errors.role}</motion.p>}
                       </div>
-                    )}
+                      {errors.industry && <p className="text-destructive text-xs">{errors.industry}</p>}
+                    </div>
 
-                    {/* Step 3: Use Case */}
-                    {step === 3 && (
-                      <div className="grid grid-cols-2 gap-3">
-                        {USE_CASES.map((useCase, index) => (
-                          <motion.button
-                            key={useCase.id}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: index * 0.05, type: 'spring', stiffness: 200 }}
-                            onClick={() => { setFormData({ ...formData, useCase: useCase.id }); setErrors({}); }}
+                    <div className="space-y-2">
+                      <Label className="text-white/55 text-xs font-medium uppercase tracking-wider">Team size</Label>
+                      <div className="grid grid-cols-5 gap-2">
+                        {TEAM_SIZES.map(t => (
+                          <button
+                            key={t.id} type="button"
+                            onClick={() => { setForm({ ...form, teamSize: t.id }); setErrors(e => ({ ...e, teamSize: '' })); }}
                             className={cn(
-                              "flex flex-col items-center gap-3 p-5 rounded-2xl border transition-all duration-300 text-center group",
-                              formData.useCase === useCase.id
-                                ? "border-primary/40 bg-primary/[0.08] shadow-[0_0_20px_rgba(124,58,237,0.1)]"
-                                : "border-white/[0.05] hover:border-white/[0.1] hover:bg-white/[0.02]"
+                              'px-2 py-2.5 rounded-xl text-xs font-medium text-center transition-all border',
+                              form.teamSize === t.id
+                                ? 'bg-[#0A84FF]/10 border-[#0A84FF]/40 text-white'
+                                : 'bg-white/[0.02] border-white/[0.05] text-white/55 hover:bg-white/[0.04]'
+                            )}
+                          >{t.label}</button>
+                        ))}
+                      </div>
+                      {errors.teamSize && <p className="text-destructive text-xs">{errors.teamSize}</p>}
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── STEP 3: Brand ─── */}
+                {step === 3 && (
+                  <div className="space-y-6">
+                    <p className="text-white/40 text-sm leading-relaxed">
+                      Pick brand colors so every video your workspace renders feels on-brand from the first generation. You can fine-tune this later in settings.
+                    </p>
+
+                    <div className="space-y-3">
+                      <Label className="text-white/55 text-xs font-medium uppercase tracking-wider">Quick palettes</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {BRAND_PRESETS.map(p => {
+                          const active = form.brandPrimary === p.primary && form.brandAccent === p.accent;
+                          return (
+                            <button
+                              key={p.label} type="button"
+                              onClick={() => setForm({ ...form, brandPrimary: p.primary, brandAccent: p.accent })}
+                              className={cn(
+                                'group rounded-xl p-3 border text-left transition-all',
+                                active ? 'border-white/30 bg-white/[0.05]' : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]'
+                              )}
+                            >
+                              <div className="flex gap-1.5 mb-2">
+                                <div className="w-6 h-6 rounded-md" style={{ background: p.primary }} />
+                                <div className="w-6 h-6 rounded-md" style={{ background: p.accent }} />
+                              </div>
+                              <p className="text-[11px] font-medium text-white/60">{p.label}</p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <ColorField
+                        label="Primary"
+                        value={form.brandPrimary}
+                        onChange={v => setForm({ ...form, brandPrimary: v })}
+                      />
+                      <ColorField
+                        label="Accent"
+                        value={form.brandAccent}
+                        onChange={v => setForm({ ...form, brandAccent: v })}
+                      />
+                    </div>
+
+                    {/* Live preview */}
+                    <div className="rounded-2xl border border-white/[0.06] p-5 bg-white/[0.02]">
+                      <p className="text-[11px] font-medium text-white/35 uppercase tracking-[0.18em] mb-3">Preview</p>
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-12 h-12 rounded-xl shadow-lg shrink-0"
+                          style={{ background: `linear-gradient(135deg, ${form.brandPrimary}, ${form.brandAccent})` }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-semibold tracking-tight truncate">{form.workspaceName || 'Your Workspace'}</p>
+                          <p className="text-xs text-white/45 truncate">Renders will use these colors as accents.</p>
+                        </div>
+                        <button
+                          type="button"
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium text-white shrink-0"
+                          style={{ background: form.brandPrimary }}
+                        >
+                          Render
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── STEP 4: Use case ─── */}
+                {step === 4 && (
+                  <div className="space-y-3">
+                    <p className="text-white/40 text-sm">
+                      We'll tune templates and starter prompts to match.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {USE_CASES.map(uc => {
+                        const active = form.useCase === uc.id;
+                        return (
+                          <button
+                            key={uc.id} type="button"
+                            onClick={() => { setForm({ ...form, useCase: uc.id }); setErrors({}); }}
+                            className={cn(
+                              'flex flex-col items-start gap-2 p-4 rounded-xl border text-left transition-all',
+                              active
+                                ? 'border-[#0A84FF]/40 bg-[#0A84FF]/[0.07]'
+                                : 'border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1]'
                             )}
                           >
                             <div className={cn(
-                              "w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300",
-                              formData.useCase === useCase.id 
-                                ? "bg-gradient-to-br from-primary to-primary/80 text-white shadow-lg shadow-primary/25" 
-                                : "bg-white/[0.04] text-white/30 group-hover:bg-white/[0.06] group-hover:text-white/50"
+                              'w-9 h-9 rounded-lg flex items-center justify-center transition-all',
+                              active ? 'bg-[#0A84FF]/20 text-[#0A84FF]' : 'bg-white/[0.04] text-white/40'
                             )}>
-                              <useCase.icon className="w-5 h-5" />
+                              <uc.icon className="w-4 h-4" />
                             </div>
                             <div>
-                              <p className="font-semibold text-white text-sm">{useCase.label}</p>
-                              <p className="text-white/25 text-[11px] leading-tight mt-0.5">{useCase.description}</p>
+                              <p className="font-semibold text-white text-sm">{uc.label}</p>
+                              <p className="text-[11px] text-white/35 leading-tight mt-0.5">{uc.desc}</p>
                             </div>
-                          </motion.button>
-                        ))}
-                        {errors.useCase && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-destructive text-xs col-span-2">{errors.useCase}</motion.p>}
-                      </div>
-                    )}
-                  </motion.div>
-                </AnimatePresence>
-
-                {/* Actions */}
-                <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/[0.04]">
-                  <div>
-                    {step > 1 && (
-                      <Button onClick={handleBack} variant="ghost" size="sm"
-                        className="gap-1.5 text-white/30 hover:text-white hover:bg-white/[0.04]">
-                        <ArrowLeft className="w-4 h-4" /> Back
-                      </Button>
-                    )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {errors.useCase && <p className="text-destructive text-xs">{errors.useCase}</p>}
                   </div>
+                )}
 
-                  {step < 3 ? (
-                    <Button onClick={handleNext}
-                      className="h-12 px-8 bg-gradient-to-r from-white to-white/95 text-black hover:from-white/95 hover:to-white/90 rounded-xl font-semibold text-sm gap-2 shadow-[0_0_25px_rgba(255,255,255,0.08)] hover:shadow-[0_0_35px_rgba(255,255,255,0.12)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300">
-                      Continue <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  ) : (
-                    <Button onClick={handleComplete} disabled={loading || !formData.useCase}
-                      className="h-12 px-8 bg-gradient-to-r from-primary to-primary/90 text-white hover:from-primary/90 hover:to-primary/80 rounded-xl font-semibold text-sm gap-2 shadow-[0_0_25px_rgba(124,58,237,0.2)] hover:shadow-[0_0_35px_rgba(124,58,237,0.35)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300">
-                      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-4 h-4" /> Get Started</>}
-                    </Button>
-                  )}
-                </div>
+                {/* ─── STEP 5: Invites ─── */}
+                {step === 5 && (
+                  <div className="space-y-5">
+                    <p className="text-white/40 text-sm leading-relaxed">
+                      Invite teammates to your <span className="text-white/70 font-medium">{form.workspaceName}</span> workspace. They'll get an email link to join. You can always do this later.
+                    </p>
+
+                    <div className="space-y-2.5">
+                      {invites.map((inv, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <div className="relative flex-1">
+                            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
+                            <Input
+                              type="email"
+                              placeholder="teammate@company.com"
+                              value={inv.email}
+                              onChange={e => {
+                                const next = [...invites];
+                                next[idx] = { ...next[idx], email: e.target.value };
+                                setInvites(next);
+                              }}
+                              className="h-11 pl-10 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/25 rounded-xl focus:border-[#0A84FF]/50 focus:ring-2 focus:ring-[#0A84FF]/15"
+                              maxLength={255}
+                            />
+                          </div>
+                          <select
+                            value={inv.role}
+                            onChange={e => {
+                              const next = [...invites];
+                              next[idx] = { ...next[idx], role: e.target.value as 'admin' | 'producer' | 'reviewer' };
+                              setInvites(next);
+                            }}
+                            className="h-11 px-3 bg-white/[0.03] border border-white/[0.06] text-white text-sm rounded-xl focus:outline-none focus:border-[#0A84FF]/50 cursor-pointer"
+                          >
+                            <option value="admin">Admin</option>
+                            <option value="producer">Producer</option>
+                            <option value="reviewer">Reviewer</option>
+                          </select>
+                          {invites.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => setInvites(invites.filter((_, i) => i !== idx))}
+                              className="w-9 h-9 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-white/40 hover:text-white hover:bg-white/[0.06]"
+                              aria-label="Remove invite row"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+
+                      <button
+                        type="button"
+                        onClick={() => setInvites([...invites, { email: '', role: 'producer' }])}
+                        className="flex items-center gap-2 text-xs text-white/45 hover:text-white pt-1"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Add another
+                      </button>
+                    </div>
+
+                    <div className="rounded-xl border border-white/[0.05] bg-white/[0.02] p-4 text-[11px] text-white/45 leading-relaxed">
+                      <span className="text-white/70 font-medium">Roles:</span> Admins manage the workspace and brand. Producers generate and edit videos. Reviewers comment and approve.
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Actions */}
+            <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/[0.04]">
+              <div>
+                {step > 1 && (
+                  <Button onClick={handleBack} variant="ghost" size="sm"
+                    className="gap-1.5 text-white/40 hover:text-white hover:bg-white/[0.04]">
+                    <ArrowLeft className="w-4 h-4" /> Back
+                  </Button>
+                )}
               </div>
+
+              {!isLast ? (
+                <Button onClick={handleNext}
+                  className="h-11 px-7 bg-white text-black hover:bg-white/90 rounded-xl font-semibold text-sm gap-2 transition-all">
+                  Continue <ArrowRight className="w-4 h-4" />
+                </Button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => handleComplete(true)} variant="ghost" size="sm"
+                    disabled={loading}
+                    className="text-white/45 hover:text-white hover:bg-white/[0.04]"
+                  >
+                    Skip invites
+                  </Button>
+                  <Button
+                    onClick={() => handleComplete(false)} disabled={loading}
+                    className="h-11 px-7 bg-[#0A84FF] text-white hover:bg-[#0A84FF]/90 rounded-xl font-semibold text-sm gap-2 transition-all"
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-4 h-4" /> Finish setup</>}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
-          <p className="text-center text-[11px] text-white/10 mt-5">Press Enter to continue</p>
+          <p className="text-center text-[11px] text-white/15 mt-5">
+            Press Enter to continue
+          </p>
         </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────
+
+interface FieldTextProps {
+  id: string;
+  label: string;
+  icon: typeof User;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  hint?: string;
+  error?: string;
+  optional?: boolean;
+  autoFocus?: boolean;
+  maxLength?: number;
+}
+
+function FieldText({ id, label, icon: Icon, value, onChange, placeholder, hint, error, optional, autoFocus, maxLength }: FieldTextProps) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id} className="text-white/55 text-xs font-medium uppercase tracking-wider">
+        {label} {optional && <span className="text-white/20 normal-case">(optional)</span>}
+      </Label>
+      <div className="relative group">
+        <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25 group-focus-within:text-[#0A84FF] transition-colors" />
+        <Input
+          id={id}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          maxLength={maxLength}
+          autoFocus={autoFocus}
+          className={cn(
+            'h-12 pl-10 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/25',
+            'focus:border-[#0A84FF]/50 focus:ring-2 focus:ring-[#0A84FF]/15 focus:bg-white/[0.05]',
+            'rounded-xl transition-all duration-300 hover:border-white/[0.12]',
+            error && 'border-destructive/60'
+          )}
+        />
+      </div>
+      {hint && !error && <p className="text-[11px] text-white/30">{hint}</p>}
+      {error && <p className="text-destructive text-xs">{error}</p>}
+    </div>
+  );
+}
+
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-white/55 text-xs font-medium uppercase tracking-wider">{label}</Label>
+      <div className="flex items-center gap-2 h-12 px-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-8 h-8 rounded-lg border border-white/10 cursor-pointer bg-transparent"
+        />
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          maxLength={7}
+          className="h-9 bg-transparent border-0 text-white text-sm font-mono px-2 focus:ring-0 focus:outline-none"
+        />
       </div>
     </div>
   );

@@ -177,13 +177,13 @@ export const HoppyImmersiveIntro = memo(function HoppyImmersiveIntro() {
           aria-modal="true"
           aria-label="Hoppy immersive intro"
         >
-          {/* Letterboxed video — fits entire frame on any aspect ratio */}
+          {/* Fullscreen video — fills entire viewport */}
           <video
             ref={videoRef}
             playsInline
             controls={false}
-            className="relative z-[1] max-w-full max-h-full w-auto h-auto object-contain bg-black cursor-pointer"
-            style={{ maxWidth: '100vw', maxHeight: '100vh' }}
+            className="absolute inset-0 z-[1] w-full h-full object-cover bg-black cursor-pointer"
+            style={{ width: '100vw', height: '100vh' }}
             onClick={() => {
               const v = videoRef.current;
               if (v && v.paused) v.play().catch(() => undefined);

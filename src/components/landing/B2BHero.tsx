@@ -1,8 +1,10 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Sparkles, Star } from 'lucide-react';
+import { ArrowRight, Sparkles, Star, Play } from 'lucide-react';
 import heroImage from '@/assets/landing-immersive-hero.jpg';
+import corporateVideo from '@/assets/landing-immersive-hero.mp4.asset.json';
+import { HOPPY_INTRO_EVENT } from './HoppyImmersiveIntro';
 
 interface Props {
   onPrimary: () => void;
@@ -10,8 +12,35 @@ interface Props {
 }
 
 export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) {
+  const openHoppy = () => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(HOPPY_INTRO_EVENT));
+    }
+  };
   return (
     <section className="relative z-10 min-h-[92vh] flex flex-col items-center justify-center px-6 pt-32 pb-12 overflow-hidden">
+      {/* Background corporate video loop */}
+      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <video
+          src={corporateVideo.url}
+          poster={heroImage}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          className="absolute inset-0 w-full h-full object-cover opacity-[0.28]"
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(80% 60% at 50% 40%, transparent 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.95) 100%)',
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black" />
+      </div>
+
       {/* Ambient glow */}
       <div
         className="pointer-events-none absolute inset-x-0 -top-32 h-[600px] opacity-80"
@@ -81,6 +110,17 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
           className="h-14 px-8 text-base font-medium rounded-full text-white/70 hover:text-white hover:bg-white/[0.06]"
         >
           Talk to sales
+        </Button>
+        <Button
+          onClick={openHoppy}
+          variant="ghost"
+          size="lg"
+          className="group h-14 px-7 text-base font-medium rounded-full text-white/85 border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] backdrop-blur-md"
+        >
+          <span className="flex items-center justify-center w-7 h-7 mr-2 rounded-full bg-[#0A84FF]/90 text-white transition-transform group-hover:scale-105">
+            <Play className="w-3.5 h-3.5 ml-0.5 fill-white" />
+          </span>
+          Watch intro
         </Button>
       </motion.div>
 

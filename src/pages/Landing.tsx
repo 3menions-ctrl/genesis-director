@@ -14,6 +14,7 @@ import { B2BROISection } from '@/components/landing/B2BROISection';
 import { B2BFinalCTA } from '@/components/landing/B2BFinalCTA';
 import { B2BGlassFeatures, B2BWorkflow } from '@/components/landing/B2BGlassFeatures';
 import { CinematicMosaic } from '@/components/landing/CinematicMosaic';
+import { ScrollBackdrop } from '@/components/landing/ScrollBackdrop';
 import { B2BTestimonials } from '@/components/landing/B2BTestimonials';
 import { B2BComparison } from '@/components/landing/B2BComparison';
 import { B2BSecurityBar } from '@/components/landing/B2BSecurityBar';
@@ -88,6 +89,9 @@ export default function Landing() {
 
       {/* Cinematic video mosaic — multi-format showcase */}
       <CinematicMosaic />
+
+      {/* Scroll-driven cinematic backdrop — premium imagery crossfade */}
+      <ScrollBackdrop />
 
       {/* Use cases */}
       <B2BUseCases />

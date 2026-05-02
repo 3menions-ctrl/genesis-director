@@ -706,17 +706,42 @@ serve(async (req) => {
       throw new Error("projectId and prompt are required");
     }
 
-    // ═══ ENGINE SELECTION ═══
-    // Both Kling V3 and Seedance 2.0 are supported for avatar mode.
-    //   • Kling V3 avatar  → native lip-synced dialogue (audio embedded by model)
-    //   • Seedance 2.0 avatar → silent visuals from start image; TTS dialogue is
-    //     overlaid in post via the existing voice_audio_url pipeline.
-    const videoEngine = rawVideoEngine;
+    // ═══ ENGINE SELECTION — BULLETPROOF, DB IS SOURCE OF TRUTH ═══
+    // Why: hollywood-pipeline / continue-production / watchdog / resume-pipeline
+    // can re-invoke this function across many hops. Any caller that forgets
+    // to forward `videoEngine` would silently decay the project to Kling
+    // (the body default), causing a Seedance project to flip mid-generation.
+    //
+    // Rule: the project's persisted `movie_projects.video_engine` ALWAYS wins.
+    // The body param is only a hint and can never override the DB lock.
+    let videoEngine: 'kling' | 'veo' | 'seedance' = rawVideoEngine;
+    try {
+      const { data: projRow } = await supabase
+        .from('movie_projects')
+        .select('video_engine')
+        .eq('id', projectId)
+        .maybeSingle();
+      const persistedEngine = (projRow?.video_engine as 'kling' | 'veo' | 'seedance' | null) || null;
+      if (persistedEngine) {
+        if (persistedEngine !== rawVideoEngine) {
+          console.warn(
+            `[SingleClip] 🛡️ ENGINE LOCK ENFORCED: body videoEngine="${rawVideoEngine}" overridden by persisted video_engine="${persistedEngine}" (project ${projectId}). Preventing decay.`
+          );
+        }
+        videoEngine = persistedEngine;
+      } else {
+        console.warn(
+          `[SingleClip] ⚠️ No persisted video_engine for project ${projectId} — using body value "${rawVideoEngine}". This should not happen for projects created via mode-router.`
+        );
+      }
+    } catch (engineLookupErr) {
+      console.warn(`[SingleClip] ⚠️ Engine lookup failed (using body value "${rawVideoEngine}"):`, engineLookupErr);
+    }
     console.log(`[SingleClip] 🎬 ENGINE RECEIVED: rawVideoEngine=${rawVideoEngine}, isAvatarMode=${isAvatarModeFlag}, projectId=${projectId}`);
     if (videoEngine === 'seedance' && isAvatarModeFlag) {
       console.log(`[SingleClip] 🎭 Avatar mode + Seedance: visuals via Seedance, TTS audio overlaid in post-stitch`);
     }
-    console.log(`[SingleClip] 🎬 ENGINE FINAL: ${videoEngine} → routing to ${videoEngine === 'seedance' ? 'bytedance/seedance-2.0' : 'kwaivgi/kling-v3-video'}`);
+    console.log(`[SingleClip] 🎬 ENGINE FINAL (DB-locked): ${videoEngine} → routing to ${videoEngine === 'seedance' ? 'bytedance/seedance-2.0' : 'kwaivgi/kling-v3-video'}`);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // CONTENT SAFETY CHECK - Final defense layer at clip generation

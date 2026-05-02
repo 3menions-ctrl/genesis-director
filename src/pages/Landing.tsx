@@ -20,6 +20,7 @@ import { B2BTestimonials } from '@/components/landing/B2BTestimonials';
 import { B2BComparison } from '@/components/landing/B2BComparison';
 import { B2BSecurityBar } from '@/components/landing/B2BSecurityBar';
 import { HoppyImmersiveIntro } from '@/components/landing/HoppyImmersiveIntro';
+import { HoppyImmersiveScrollSection } from '@/components/landing/HoppyImmersiveScrollSection';
 import { IdleEnterOverlay } from '@/components/landing/IdleEnterOverlay';
 import { SeedanceSection } from '@/components/landing/SeedanceSection';
 import { motion } from 'framer-motion';
@@ -184,6 +185,9 @@ export default function Landing() {
 
       {/* Hero — extra top breathing room from sticky nav */}
       <div className="pt-16 md:pt-24"><B2BHero onPrimary={handleStart} onSecondary={handleSales} /></div>
+
+      {/* Immersive scroll-locked full-video moment — plays the entire demo edge-to-edge */}
+      <HoppyImmersiveScrollSection />
 
       <Divider size="sm" />
       {/* Audience tracks — Personal · Business · Enterprise */}

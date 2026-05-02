@@ -69,7 +69,7 @@ const VIOLENCE_TERMS = new Set([
   'torture', 'torturing', 'tortured',
   'mutilate', 'mutilation', 'mutilated',
   'eviscerate', 'disembowel',
-  'suicide', 'self-harm', 'self harm', 'selfharm', 'cutting',
+  'suicide', 'self-harm', 'self harm', 'selfharm',
 ]);
 
 /**

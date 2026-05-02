@@ -110,11 +110,12 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
           doesn't add visual space. */}
       <div ref={triggerRef} aria-hidden className="relative w-full h-px" />
 
-      {/* Fixed full-viewport video layer — sits behind all subsequent content */}
+      {/* Fixed full-viewport video layer — sits above background ambient layers
+          (z-0, z-[1]) but below all foreground content (z-10+). */}
       <div
         ref={wrapperRef}
         aria-hidden={!active}
-        className="fixed inset-0 z-0 pointer-events-none"
+        className="fixed inset-0 z-[2] pointer-events-none"
         style={{
           opacity: active ? 1 : 0,
           transition: 'opacity 900ms cubic-bezier(0.16, 1, 0.3, 1)',

@@ -1220,6 +1220,7 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
       model: "gpt-4o",
       generationTimeMs,
       usage: data.usage,
+      targetEngine,
     });
 
   } catch (error) {

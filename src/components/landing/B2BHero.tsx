@@ -1,8 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Sparkles, Play } from 'lucide-react';
-import { HOPPY_INTRO_EVENT } from './HoppyImmersiveIntro';
+import { ArrowRight, Sparkles } from 'lucide-react';
 
 interface Props {
   onPrimary: () => void;
@@ -19,11 +18,6 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
     return () => clearInterval(id);
   }, []);
 
-  const openHoppy = () => {
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent(HOPPY_INTRO_EVENT));
-    }
-  };
   return (
     <section ref={sectionRef} className="relative z-10 min-h-[100vh] flex flex-col items-center justify-center px-6 pt-36 pb-20 overflow-hidden">
       {/* Floating ambient orbs — cinematic key + fill */}
@@ -154,15 +148,12 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
           <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
         </Button>
         <Button
-          onClick={openHoppy}
+          onClick={onSecondary}
           variant="ghost"
           size="lg"
-          className="group h-14 pl-3 pr-7 text-[15px] font-medium rounded-full text-white/90 border border-white/[0.12] bg-white/[0.04] hover:bg-white/[0.08] backdrop-blur-2xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)]"
+          className="h-14 px-7 text-[15px] font-medium rounded-full text-white/55 hover:text-white hover:bg-white/[0.04]"
         >
-          <span className="flex items-center justify-center w-9 h-9 mr-2.5 rounded-full bg-gradient-to-br from-[#0A84FF] to-[#0651AA] text-white shadow-[0_4px_16px_rgba(10,132,255,0.5)] transition-transform group-hover:scale-110">
-            <Play className="w-3.5 h-3.5 ml-0.5 fill-white" />
-          </span>
-          Watch 60-sec demo
+          Talk to sales
         </Button>
       </motion.div>
 

@@ -1,10 +1,8 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Sparkles, Star, Play } from 'lucide-react';
-import heroImage from '@/assets/landing-immersive-hero.jpg';
+import { ArrowRight, Sparkles, Play } from 'lucide-react';
 import corporateVideo from '@/assets/landing-immersive-hero.mp4.asset.json';
-import hoppyVideo from '@/assets/landing-hoppy-intro.mp4.asset.json';
 import { HOPPY_INTRO_EVENT } from './HoppyImmersiveIntro';
 
 interface Props {
@@ -17,8 +15,6 @@ const ROTATING_WORDS = ['ads', 'launch films', 'social cuts', 'product reels'];
 export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end start'] });
-  const deviceY = useTransform(scrollYProgress, [0, 1], [0, -120]);
-  const deviceScale = useTransform(scrollYProgress, [0, 1], [1, 0.92]);
   const bgY = useTransform(scrollYProgress, [0, 1], [0, 200]);
   const bgOpacity = useTransform(scrollYProgress, [0, 1], [1, 0.3]);
 

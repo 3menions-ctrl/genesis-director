@@ -15,7 +15,6 @@ import { B2BROISection } from '@/components/landing/B2BROISection';
 import { B2BFinalCTA } from '@/components/landing/B2BFinalCTA';
 import { B2BGlassFeatures, B2BWorkflow } from '@/components/landing/B2BGlassFeatures';
 import { CinematicMosaic } from '@/components/landing/CinematicMosaic';
-import { ScrollBackdrop } from '@/components/landing/ScrollBackdrop';
 import { B2BTestimonials } from '@/components/landing/B2BTestimonials';
 import { B2BComparison } from '@/components/landing/B2BComparison';
 import { B2BSecurityBar } from '@/components/landing/B2BSecurityBar';
@@ -209,29 +208,25 @@ export default function Landing() {
       <Chapter n="02" kicker="In Motion"><CinematicMosaic /></Chapter>
       <Divider size="md" />
 
-      {/* Scroll-driven cinematic backdrop — premium imagery crossfade */}
-      <Chapter n="03" kicker="Frame by Frame" size="lg"><ScrollBackdrop /></Chapter>
-      <Divider size="lg" />
-
-      <Chapter n="04" kicker="Use Cases"><B2BUseCases /></Chapter>
+      <Chapter n="03" kicker="Use Cases"><B2BUseCases /></Chapter>
       <Divider size="md" />
 
-      <Chapter n="05" kicker="The Platform"><B2BGlassFeatures /></Chapter>
+      <Chapter n="04" kicker="The Platform"><B2BGlassFeatures /></Chapter>
       <Divider size="md" />
 
-      <Chapter n="06" kicker="The Difference"><B2BComparison /></Chapter>
+      <Chapter n="05" kicker="The Difference"><B2BComparison /></Chapter>
       <Divider size="md" />
 
-      <Chapter n="07" kicker="The Workflow"><B2BWorkflow /></Chapter>
+      <Chapter n="06" kicker="The Workflow"><B2BWorkflow /></Chapter>
       <Divider size="md" />
 
-      <Chapter n="08" kicker="Built In"><B2BPlatformPillars /></Chapter>
+      <Chapter n="07" kicker="Built In"><B2BPlatformPillars /></Chapter>
       <Divider size="md" />
 
-      <Chapter n="09" kicker="The Return"><B2BROISection /></Chapter>
+      <Chapter n="08" kicker="The Return"><B2BROISection /></Chapter>
       <Divider size="md" />
 
-      <Chapter n="10" kicker="In Their Words"><B2BTestimonials /></Chapter>
+      <Chapter n="09" kicker="In Their Words"><B2BTestimonials /></Chapter>
       <Divider size="md" />
 
       <Spaced size="sm"><B2BSecurityBar /></Spaced>

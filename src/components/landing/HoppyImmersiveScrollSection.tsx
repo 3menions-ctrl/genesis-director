@@ -135,14 +135,14 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              'linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.35) 35%, rgba(0,0,0,0.55) 100%)',
+              'linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.25) 35%, rgba(0,0,0,0.45) 100%)',
           }}
         />
         <div
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              'radial-gradient(120% 80% at 50% 50%, transparent 30%, rgba(0,0,0,0.55) 90%)',
+              'radial-gradient(120% 80% at 50% 50%, transparent 35%, rgba(0,0,0,0.45) 95%)',
           }}
         />
       </div>

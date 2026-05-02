@@ -706,15 +706,15 @@ serve(async (req) => {
       throw new Error("projectId and prompt are required");
     }
 
-    // ═══ SEEDANCE SAFETY GUARD ═══
-    // Seedance 2.0 has NO native lip-sync / dialogue audio. If a request reaches
-    // here in avatar mode but is routed to Seedance, force-fallback to Kling V3
-    // so dialogue is preserved. This prevents silent avatar clips.
-    let videoEngine = rawVideoEngine;
+    // ═══ ENGINE SELECTION ═══
+    // Both Kling V3 and Seedance 2.0 are supported for avatar mode.
+    //   • Kling V3 avatar  → native lip-synced dialogue (audio embedded by model)
+    //   • Seedance 2.0 avatar → silent visuals from start image; TTS dialogue is
+    //     overlaid in post via the existing voice_audio_url pipeline.
+    const videoEngine = rawVideoEngine;
     console.log(`[SingleClip] 🎬 ENGINE RECEIVED: rawVideoEngine=${rawVideoEngine}, isAvatarMode=${isAvatarModeFlag}, projectId=${projectId}`);
     if (videoEngine === 'seedance' && isAvatarModeFlag) {
-      console.warn(`[SingleClip] ⚠️ Avatar mode + Seedance detected — forcing Kling V3 (Seedance has no lip-sync)`);
-      videoEngine = 'kling';
+      console.log(`[SingleClip] 🎭 Avatar mode + Seedance: visuals via Seedance, TTS audio overlaid in post-stitch`);
     }
     console.log(`[SingleClip] 🎬 ENGINE FINAL: ${videoEngine} → routing to ${videoEngine === 'seedance' ? 'bytedance/seedance-2.0' : 'kwaivgi/kling-v3-video'}`);
 

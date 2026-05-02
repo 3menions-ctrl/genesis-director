@@ -1,8 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Sparkles, Play } from 'lucide-react';
-import { HOPPY_INTRO_EVENT } from './HoppyImmersiveIntro';
+import { ArrowRight, Sparkles } from 'lucide-react';
 
 interface Props {
   onPrimary: () => void;
@@ -19,11 +18,6 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
     return () => clearInterval(id);
   }, []);
 
-  const openHoppy = () => {
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent(HOPPY_INTRO_EVENT));
-    }
-  };
   return (
     <section ref={sectionRef} className="relative z-10 min-h-[100vh] flex flex-col items-center justify-center px-6 pt-36 pb-20 overflow-hidden">
       {/* Floating ambient orbs — cinematic key + fill */}

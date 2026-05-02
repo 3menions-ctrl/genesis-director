@@ -94,6 +94,62 @@ export default function Landing() {
     return <div className={`relative ${py}`}>{children}</div>;
   };
 
+  // Editorial chapter frame — adds a premium "magazine spread" feel with
+  // a numbered margin, eyebrow kicker, and faint vertical rail.
+  const Chapter = ({
+    n,
+    kicker,
+    children,
+    size = 'md',
+  }: {
+    n: string;
+    kicker: string;
+    children: React.ReactNode;
+    size?: 'sm' | 'md' | 'lg';
+  }) => {
+    const py = size === 'lg' ? 'py-24 md:py-40' : size === 'sm' ? 'py-12 md:py-20' : 'py-16 md:py-28';
+    return (
+      <section className={`relative ${py}`}>
+        {/* Vertical hairline rail — anchors the chapter to the page grid */}
+        <div
+          aria-hidden
+          className="hidden lg:block absolute left-10 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/[0.06] to-transparent"
+        />
+        {/* Floating chapter marker */}
+        <motion.div
+          initial={{ opacity: 0, x: -12 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true, margin: '-15%' }}
+          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+          className="hidden lg:flex absolute left-6 top-12 flex-col items-start gap-3 select-none"
+        >
+          <span
+            className="text-[10px] font-medium text-white/35 tracking-[0.4em] uppercase"
+            style={{ fontFamily: "'Instrument Sans', sans-serif" }}
+          >
+            {n}
+          </span>
+          <span className="block w-px h-10 bg-gradient-to-b from-[#0A84FF]/60 to-transparent" />
+          <span
+            className="text-[10px] font-medium text-[#0A84FF]/70 tracking-[0.32em] uppercase rotate-180"
+            style={{ writingMode: 'vertical-rl', fontFamily: "'Instrument Sans', sans-serif" }}
+          >
+            {kicker}
+          </span>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-10%' }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+        >
+          {children}
+        </motion.div>
+      </section>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-black overflow-hidden relative">
       {/* Idle-triggered immersive intro */}

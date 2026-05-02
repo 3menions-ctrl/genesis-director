@@ -39,6 +39,7 @@ const Settings = lazy(() => import("./pages/Settings"));
 const WorkspaceSettings = lazy(() => import("./pages/WorkspaceSettings"));
 const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
 const DeactivateAccount = lazy(() => import("./pages/DeactivateAccount"));
+const Developers = lazy(() => import("./pages/Developers"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 // Legacy Admin removed — replaced by Refine admin
 const RefineAdminLayout = lazy(() => import("./refine/AdminLayout").then(m => ({ default: m.RefineAdminLayout })));
@@ -263,6 +264,13 @@ const App = () => {
                   <RouteContainer fallbackMessage="Loading workspace...">
                     <ProtectedRoute>
                       <AppShell><WorkspaceSettings /></AppShell>
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/developers" element={
+                  <RouteContainer fallbackMessage="Loading developer portal...">
+                    <ProtectedRoute>
+                      <AppShell><Developers /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />

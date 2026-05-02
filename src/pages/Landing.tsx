@@ -7,17 +7,10 @@ import { useGatekeeperLoading, getGatekeeperMessage, GATEKEEPER_PRESETS } from '
 
 import { LandingNav } from '@/components/landing/LandingNav';
 import { B2BHero } from '@/components/landing/B2BHero';
-import { B2BLogoBar } from '@/components/landing/B2BLogoBar';
 import { AudienceSegments } from '@/components/landing/AudienceSegments';
-import { B2BUseCases } from '@/components/landing/B2BUseCases';
-import { B2BPlatformPillars } from '@/components/landing/B2BPlatformPillars';
-import { B2BROISection } from '@/components/landing/B2BROISection';
 import { B2BFinalCTA } from '@/components/landing/B2BFinalCTA';
-import { B2BGlassFeatures, B2BWorkflow } from '@/components/landing/B2BGlassFeatures';
+import { B2BWorkflow } from '@/components/landing/B2BGlassFeatures';
 import { CinematicMosaic } from '@/components/landing/CinematicMosaic';
-import { B2BTestimonials } from '@/components/landing/B2BTestimonials';
-import { B2BComparison } from '@/components/landing/B2BComparison';
-import { B2BSecurityBar } from '@/components/landing/B2BSecurityBar';
 import { HoppyImmersiveIntro } from '@/components/landing/HoppyImmersiveIntro';
 import { HoppyImmersiveScrollSection } from '@/components/landing/HoppyImmersiveScrollSection';
 import { IdleEnterOverlay } from '@/components/landing/IdleEnterOverlay';
@@ -194,43 +187,26 @@ export default function Landing() {
       {/* Hero — extra top breathing room from sticky nav */}
       <div className="pt-16 md:pt-24"><B2BHero onPrimary={handleStart} onSecondary={handleSales} /></div>
 
-      <Divider size="sm" />
-      {/* Audience tracks — Personal · Business · Enterprise */}
-      <Spaced size="md"><AudienceSegments onStart={handleStart} /></Spaced>
-      <Divider size="md" />
-      <Spaced size="sm"><B2BLogoBar /></Spaced>
       <Divider size="lg" />
 
-      {/* Seedance 2.0 — epic generation engine reveal */}
-      <Chapter n="01" kicker="The Engine" size="lg"><SeedanceSection onCta={handleStart} /></Chapter>
+      {/* For everyone — Personal · Business · Enterprise tracks */}
+      <Chapter n="01" kicker="For Everyone" size="md">
+        <AudienceSegments onStart={handleStart} />
+      </Chapter>
       <Divider size="lg" />
 
-      {/* Cinematic video mosaic — multi-format showcase */}
+      {/* In Motion — multi-format cinematic mosaic (proof) */}
       <Chapter n="02" kicker="In Motion"><CinematicMosaic /></Chapter>
-      <Divider size="md" />
+      <Divider size="lg" />
 
-      <Chapter n="03" kicker="Use Cases"><B2BUseCases /></Chapter>
-      <Divider size="md" />
+      {/* The Engine — generation engine reveal (the "wow") */}
+      <Chapter n="03" kicker="The Engine" size="lg">
+        <SeedanceSection onCta={handleStart} />
+      </Chapter>
+      <Divider size="lg" />
 
-      <Chapter n="04" kicker="The Platform"><B2BGlassFeatures /></Chapter>
-      <Divider size="md" />
-
-      <Chapter n="05" kicker="The Difference"><B2BComparison /></Chapter>
-      <Divider size="md" />
-
-      <Chapter n="06" kicker="The Workflow"><B2BWorkflow /></Chapter>
-      <Divider size="md" />
-
-      <Chapter n="07" kicker="Built In"><B2BPlatformPillars /></Chapter>
-      <Divider size="md" />
-
-      <Chapter n="08" kicker="The Return"><B2BROISection /></Chapter>
-      <Divider size="md" />
-
-      <Chapter n="09" kicker="In Their Words"><B2BTestimonials /></Chapter>
-      <Divider size="md" />
-
-      <Spaced size="sm"><B2BSecurityBar /></Spaced>
+      {/* The Workflow — prompt → film, in plain language */}
+      <Chapter n="04" kicker="The Workflow"><B2BWorkflow /></Chapter>
       <Divider size="lg" />
 
       {/* Pricing anchor — keep simple, link to /pricing */}
@@ -254,7 +230,7 @@ export default function Landing() {
           <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-2xl mb-8">
             <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
             <span className="text-[10.5px] font-medium text-white/65 tracking-[0.28em] uppercase">
-              Pricing · Chapter 10
+              Pricing · Chapter 05
             </span>
           </div>
           <h2 className="font-display text-5xl md:text-7xl font-bold text-white tracking-[-0.035em] mb-8 leading-[1.02]">

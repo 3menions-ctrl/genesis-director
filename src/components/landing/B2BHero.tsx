@@ -164,14 +164,6 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
           </span>
           Watch 60-sec demo
         </Button>
-        <Button
-          onClick={onSecondary}
-          variant="ghost"
-          size="lg"
-          className="h-14 px-7 text-[15px] font-medium rounded-full text-white/55 hover:text-white hover:bg-white/[0.04]"
-        >
-          Talk to sales
-        </Button>
       </motion.div>
 
       <motion.div

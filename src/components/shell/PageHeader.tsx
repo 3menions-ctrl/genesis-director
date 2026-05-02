@@ -24,20 +24,20 @@ export function PageHeader({
   toolbar,
 }: PageHeaderProps) {
   return (
-    <header className={cn('mb-10 sm:mb-14 animate-fade-in', className)}>
+    <header className={cn('mb-10 sm:mb-14 animate-fade-in spotlight-wash', className)}>
       <div className="flex items-end justify-between gap-6 flex-wrap">
         <div className="min-w-0">
-          {eyebrow && <div className="text-eyebrow mb-3">{eyebrow}</div>}
-          <h1 className="text-display">{title}</h1>
+          {eyebrow && <div className="text-eyebrow-rule mb-4">{eyebrow}</div>}
+          <h1 className="text-display-luxe">{title}</h1>
           {subtitle && (
-            <p className="text-body-muted mt-3 max-w-xl">{subtitle}</p>
+            <p className="text-body-muted mt-4 max-w-xl">{subtitle}</p>
           )}
         </div>
         {actions && (
           <div className="flex items-center gap-2 shrink-0">{actions}</div>
         )}
       </div>
-      <div className="hairline mt-8" />
+      <div className="hairline-luxe mt-9" />
       {toolbar && <div className="mt-6">{toolbar}</div>}
     </header>
   );

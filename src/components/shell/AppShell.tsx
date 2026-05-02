@@ -151,8 +151,8 @@ export function AppShell({ children }: AppShellProps) {
               </div>
               {!collapsed && (
                 <div className="flex flex-col min-w-0 lg:flex">
-                  <span className="text-[14px] font-medium text-white/95 tracking-[-0.025em] leading-none font-display truncate">
-                    Apex<span className="text-[hsl(var(--primary))]">·</span>Studio
+                  <span className="text-[15px] font-semibold text-white/95 tracking-[-0.03em] leading-none font-display truncate">
+                    Apex<span className="display-serif text-white/85 mx-[2px] text-[16px]">·</span><span className="display-serif text-white/85 text-[15px]">Studio</span>
                   </span>
                   <span className="text-[9px] font-light uppercase tracking-[0.22em] text-white/30 mt-[4px]">
                     Creative Suite
@@ -468,7 +468,7 @@ export function AppShell({ children }: AppShellProps) {
         <div className="flex flex-1 min-w-0 flex-col min-h-screen lg:h-screen lg:overflow-hidden overflow-x-hidden">
           {/* Top bar */}
           <header
-            className="sticky top-0 z-30 h-[56px] shrink-0 flex items-center gap-2 px-3 sm:px-5 border-b border-white/[0.04]"
+            className="sticky top-0 z-30 h-[56px] shrink-0 flex items-center gap-2 px-3 sm:px-5 border-b border-white/[0.04] relative"
             style={{
               background:
                 'linear-gradient(180deg, hsla(220, 14%, 3%, 0.55) 0%, hsla(220, 14%, 3%, 0.15) 100%)',
@@ -476,6 +476,24 @@ export function AppShell({ children }: AppShellProps) {
               WebkitBackdropFilter: 'blur(40px) saturate(180%)',
             }}
           >
+            {/* Top-edge platinum shine — jewelry-box detail */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-px"
+              style={{
+                background:
+                  'linear-gradient(90deg, transparent 0%, hsla(0,0%,100%,0.10) 30%, hsla(212,100%,68%,0.18) 50%, hsla(0,0%,100%,0.10) 70%, transparent 100%)',
+              }}
+            />
+            {/* Soft underglow under the bar */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-12 -bottom-px h-px opacity-60"
+              style={{
+                background:
+                  'linear-gradient(90deg, transparent, hsla(212,100%,60%,0.20), transparent)',
+              }}
+            />
             {/* Mobile menu */}
             <button
               onClick={() => setMobileOpen(true)}

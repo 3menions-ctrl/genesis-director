@@ -296,7 +296,7 @@ export default function Landing() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 w-full max-w-3xl mt-2">
                 {[
                   { k: '1080p', l: '24fps cinema' },
-                  { k: '15s', l: 'Per-clip length' },
+                  { k: '12s', l: 'Per-clip length' },
                   { k: 'Native', l: 'Synced audio' },
                   { k: '∞', l: 'End-frame chains' },
                 ].map((s) => (

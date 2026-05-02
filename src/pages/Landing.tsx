@@ -17,6 +17,7 @@ import { B2BImmersiveVideo } from '@/components/landing/B2BImmersiveVideo';
 import { B2BTestimonials } from '@/components/landing/B2BTestimonials';
 import { B2BComparison } from '@/components/landing/B2BComparison';
 import { B2BSecurityBar } from '@/components/landing/B2BSecurityBar';
+import { HoppyImmersiveIntro } from '@/components/landing/HoppyImmersiveIntro';
 
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 const FAQSection = lazy(() => import('@/components/landing/FAQSection'));
@@ -67,6 +68,9 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-black overflow-hidden relative">
+      {/* Idle-triggered immersive intro */}
+      <HoppyImmersiveIntro />
+
       {/* Abstract Background */}
       <ErrorBoundaryWrapper fallback={<BackgroundFallback />}>
         <Suspense fallback={<BackgroundFallback />}>

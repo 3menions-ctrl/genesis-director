@@ -6,9 +6,9 @@ import Hls from 'hls.js';
 export const HOPPY_INTRO_EVENT = 'hoppy:open-intro';
 
 // Official Hoppy "Immersive Landing Video" — registered in gallery_showcase
-const HLS_URL =
+export const HOPPY_HLS_URL =
   'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/temp-frames/hls_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_1771087015077.m3u8';
-const MP4_URL =
+export const HOPPY_MP4_URL =
   'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/avatar-videos/e7cb67eb-85e5-4ca3-b85c-e5a17051b07c/avatar_e7cb67eb-85e5-4ca3-b85c-e5a17051b07c_clip1_lipsync_1771086006879.mp4';
 
 export const HoppyImmersiveIntro = memo(function HoppyImmersiveIntro() {

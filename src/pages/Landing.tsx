@@ -13,7 +13,7 @@ import { B2BPlatformPillars } from '@/components/landing/B2BPlatformPillars';
 import { B2BROISection } from '@/components/landing/B2BROISection';
 import { B2BFinalCTA } from '@/components/landing/B2BFinalCTA';
 import { B2BGlassFeatures, B2BWorkflow } from '@/components/landing/B2BGlassFeatures';
-import { B2BImmersiveVideo } from '@/components/landing/B2BImmersiveVideo';
+import { CinematicMosaic } from '@/components/landing/CinematicMosaic';
 import { B2BTestimonials } from '@/components/landing/B2BTestimonials';
 import { B2BComparison } from '@/components/landing/B2BComparison';
 import { B2BSecurityBar } from '@/components/landing/B2BSecurityBar';
@@ -86,8 +86,8 @@ export default function Landing() {
       {/* Trust bar */}
       <B2BLogoBar />
 
-      {/* Immersive video — see it in motion */}
-      <B2BImmersiveVideo />
+      {/* Cinematic video mosaic — multi-format showcase */}
+      <CinematicMosaic />
 
       {/* Use cases */}
       <B2BUseCases />

@@ -1070,6 +1070,87 @@ export type Database = {
           },
         ]
       }
+      enterprise_leads: {
+        Row: {
+          brand_color_primary: string | null
+          brand_color_secondary: string | null
+          brand_font: string | null
+          brand_logo_url: string | null
+          brand_notes: string | null
+          company_name: string
+          company_size: string | null
+          created_at: string
+          data_residency: string | null
+          email: string
+          expected_videos_per_month: string | null
+          id: string
+          industry: string | null
+          nda_requested: boolean
+          needs_dpa: boolean
+          needs_sso: boolean
+          primary_use_case: string | null
+          role: string | null
+          security_questionnaire_requested: boolean
+          status: string
+          target_launch_date: string | null
+          updated_at: string
+          user_id: string | null
+          website: string | null
+        }
+        Insert: {
+          brand_color_primary?: string | null
+          brand_color_secondary?: string | null
+          brand_font?: string | null
+          brand_logo_url?: string | null
+          brand_notes?: string | null
+          company_name: string
+          company_size?: string | null
+          created_at?: string
+          data_residency?: string | null
+          email: string
+          expected_videos_per_month?: string | null
+          id?: string
+          industry?: string | null
+          nda_requested?: boolean
+          needs_dpa?: boolean
+          needs_sso?: boolean
+          primary_use_case?: string | null
+          role?: string | null
+          security_questionnaire_requested?: boolean
+          status?: string
+          target_launch_date?: string | null
+          updated_at?: string
+          user_id?: string | null
+          website?: string | null
+        }
+        Update: {
+          brand_color_primary?: string | null
+          brand_color_secondary?: string | null
+          brand_font?: string | null
+          brand_logo_url?: string | null
+          brand_notes?: string | null
+          company_name?: string
+          company_size?: string | null
+          created_at?: string
+          data_residency?: string | null
+          email?: string
+          expected_videos_per_month?: string | null
+          id?: string
+          industry?: string | null
+          nda_requested?: boolean
+          needs_dpa?: boolean
+          needs_sso?: boolean
+          primary_use_case?: string | null
+          role?: string | null
+          security_questionnaire_requested?: boolean
+          status?: string
+          target_launch_date?: string | null
+          updated_at?: string
+          user_id?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       gallery_showcase: {
         Row: {
           category: string

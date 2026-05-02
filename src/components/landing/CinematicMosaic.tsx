@@ -397,12 +397,34 @@ export const CinematicMosaic = memo(function CinematicMosaic() {
           </motion.div>
         </motion.div>
 
-        {/* Mosaic grid — clean, no labels */}
+        {/* ── Featured spotlight stage ── */}
+        <div className="grid grid-cols-12 gap-3 md:gap-4 mb-6 md:mb-8">
+          <SpotlightStage />
+        </div>
+
+        {/* ── Endless marquee strip ── */}
+        <div className="mb-8 md:mb-12">
+          <MarqueeStrip />
+        </div>
+
+        {/* ── Editorial mosaic — magazine-grade asymmetry ── */}
         <div className="grid grid-cols-12 gap-3 md:gap-4 auto-rows-[minmax(120px,auto)]">
           {TILES.map((tile, i) => (
-            <VideoTile key={i} tile={tile} />
+            <VideoTile key={i} tile={tile} index={i} />
           ))}
         </div>
+
+        {/* Ken Burns keyframes (scoped via global tag) */}
+        <style>{`
+          @keyframes kb-in    { 0% { transform: scale(1.04) translate(0,0); } 100% { transform: scale(1.18) translate(-1.5%, -1.5%); } }
+          @keyframes kb-out   { 0% { transform: scale(1.18) translate(-1%, -1%); } 100% { transform: scale(1.04) translate(0,0); } }
+          @keyframes kb-left  { 0% { transform: scale(1.14) translate(2%, 0); }  100% { transform: scale(1.14) translate(-2%, 0); } }
+          @keyframes kb-right { 0% { transform: scale(1.14) translate(-2%, 0); } 100% { transform: scale(1.14) translate(2%, 0); } }
+          .kenburns-in    { animation: kb-in    24s ease-in-out infinite alternate; }
+          .kenburns-out   { animation: kb-out   24s ease-in-out infinite alternate; }
+          .kenburns-left  { animation: kb-left  28s ease-in-out infinite alternate; }
+          .kenburns-right { animation: kb-right 28s ease-in-out infinite alternate; }
+        `}</style>
 
         {/* Floating frame counter */}
         <motion.div

@@ -3,7 +3,7 @@ import { NavLink, useLocation, Link } from 'react-router-dom';
 import {
   Film, Sparkles, Scissors, Layers, GraduationCap,
   User as UserIcon, Settings as SettingsIcon, HelpCircle, Shield, LogOut,
-  Zap, ChevronDown, Menu, X, PanelLeftClose, PanelLeft,
+  Zap, ChevronDown, Menu, X, PanelLeftClose, PanelLeft, ArrowRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -337,6 +337,82 @@ export function AppShell({ children }: AppShellProps) {
               </>
             )}
           </nav>
+
+          {/* Seedance 2.0 promo — collapses to a glowing pill on icon rail */}
+          {!collapsed ? (
+            <div className="px-3 pb-2">
+              <NavLink
+                to="/?ref=sidebar#seedance"
+                className="group relative block overflow-hidden rounded-2xl p-3.5 transition-all duration-500 hover:scale-[1.015]"
+                style={{
+                  background:
+                    'linear-gradient(135deg, hsla(212,100%,50%,0.18) 0%, hsla(195,100%,55%,0.10) 55%, hsla(220,14%,8%,0.4) 100%)',
+                  border: '1px solid hsla(212,100%,60%,0.22)',
+                  backdropFilter: 'blur(18px) saturate(170%)',
+                  WebkitBackdropFilter: 'blur(18px) saturate(170%)',
+                  boxShadow:
+                    'inset 0 1px 0 hsla(0,0%,100%,0.10), 0 16px 40px -20px hsla(212,100%,55%,0.55)',
+                }}
+              >
+                {/* Drifting glow */}
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute -top-8 -right-6 w-24 h-24 rounded-full opacity-70 blur-2xl transition-opacity duration-700 group-hover:opacity-100"
+                  style={{ background: 'radial-gradient(circle, hsla(195,100%,65%,0.55), transparent 70%)' }}
+                />
+                <div className="relative flex items-center gap-2 mb-2">
+                  <span className="relative flex w-1.5 h-1.5">
+                    <span className="absolute inset-0 rounded-full animate-ping bg-[#0A84FF] opacity-70" />
+                    <span className="relative w-1.5 h-1.5 rounded-full bg-[#0A84FF]" />
+                  </span>
+                  <span className="text-[9px] font-medium tracking-[0.32em] uppercase text-white/65">
+                    Now Live
+                  </span>
+                </div>
+                <div
+                  className="relative font-display text-[18px] leading-none font-bold tracking-tight"
+                  style={{
+                    background: 'linear-gradient(180deg,#fff 0%,#9DCBFF 60%,#0A84FF 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
+                >
+                  Seedance <span style={{ fontStyle: 'italic', fontWeight: 300 }}>2.0</span>
+                </div>
+                <p className="relative text-[11px] text-white/55 font-light leading-snug mt-1.5">
+                  4× faster cinematic motion. Try the new engine.
+                </p>
+                <div className="relative mt-2.5 inline-flex items-center gap-1 text-[10.5px] font-medium text-[#9DCBFF] tracking-wide">
+                  Explore
+                  <ArrowRight className="w-3 h-3 transition-transform duration-300 group-hover:translate-x-0.5" strokeWidth={2} />
+                </div>
+              </NavLink>
+            </div>
+          ) : (
+            <div className="px-3 pb-2 hidden lg:flex justify-center">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <NavLink
+                    to="/?ref=sidebar#seedance"
+                    aria-label="Seedance 2.0"
+                    className="relative w-10 h-10 rounded-full flex items-center justify-center transition-transform hover:scale-110"
+                    style={{
+                      background: 'linear-gradient(135deg, hsla(212,100%,55%,0.35), hsla(195,100%,60%,0.18))',
+                      border: '1px solid hsla(212,100%,65%,0.35)',
+                      boxShadow: '0 0 18px hsla(212,100%,55%,0.55), inset 0 1px 0 hsla(0,0%,100%,0.18)',
+                    }}
+                  >
+                    <Sparkles className="w-4 h-4 text-white" strokeWidth={1.8} />
+                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#0A84FF] ring-2 ring-black animate-pulse" />
+                  </NavLink>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={8} className="bg-card/95 border-white/10">
+                  <div className="text-[12px] font-medium">Seedance 2.0 · Now Live</div>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          )}
 
           {/* Sidebar footer: credits + collapse */}
           <div className={cn('px-3 pb-3 pt-3 space-y-1.5 bg-gradient-to-t from-black/40 to-transparent')}>

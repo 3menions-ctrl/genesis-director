@@ -3154,6 +3154,7 @@ export type Database = {
       profiles: {
         Row: {
           account_tier: string
+          account_type: string | null
           auto_recharge_enabled: boolean | null
           avatar_url: string | null
           company: string | null
@@ -3181,6 +3182,7 @@ export type Database = {
         }
         Insert: {
           account_tier?: string
+          account_type?: string | null
           auto_recharge_enabled?: boolean | null
           avatar_url?: string | null
           company?: string | null
@@ -3208,6 +3210,7 @@ export type Database = {
         }
         Update: {
           account_tier?: string
+          account_type?: string | null
           auto_recharge_enabled?: boolean | null
           avatar_url?: string | null
           company?: string | null
@@ -3504,6 +3507,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sales_inquiries: {
+        Row: {
+          company_name: string
+          company_size: string | null
+          created_at: string
+          estimated_seats: number | null
+          estimated_videos_per_month: string | null
+          full_name: string
+          id: string
+          message: string | null
+          source: string | null
+          status: string
+          tier_interest: string
+          updated_at: string
+          use_case: string | null
+          user_id: string | null
+          work_email: string
+        }
+        Insert: {
+          company_name: string
+          company_size?: string | null
+          created_at?: string
+          estimated_seats?: number | null
+          estimated_videos_per_month?: string | null
+          full_name: string
+          id?: string
+          message?: string | null
+          source?: string | null
+          status?: string
+          tier_interest?: string
+          updated_at?: string
+          use_case?: string | null
+          user_id?: string | null
+          work_email: string
+        }
+        Update: {
+          company_name?: string
+          company_size?: string | null
+          created_at?: string
+          estimated_seats?: number | null
+          estimated_videos_per_month?: string | null
+          full_name?: string
+          id?: string
+          message?: string | null
+          source?: string | null
+          status?: string
+          tier_interest?: string
+          updated_at?: string
+          use_case?: string | null
+          user_id?: string | null
+          work_email?: string
+        }
+        Relationships: []
       }
       script_templates: {
         Row: {

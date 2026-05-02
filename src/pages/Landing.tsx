@@ -8,6 +8,7 @@ import { useGatekeeperLoading, getGatekeeperMessage, GATEKEEPER_PRESETS } from '
 import { LandingNav } from '@/components/landing/LandingNav';
 import { B2BHero } from '@/components/landing/B2BHero';
 import { B2BLogoBar } from '@/components/landing/B2BLogoBar';
+import { AudienceSegments } from '@/components/landing/AudienceSegments';
 import { B2BUseCases } from '@/components/landing/B2BUseCases';
 import { B2BPlatformPillars } from '@/components/landing/B2BPlatformPillars';
 import { B2BROISection } from '@/components/landing/B2BROISection';
@@ -185,6 +186,9 @@ export default function Landing() {
       <div className="pt-16 md:pt-24"><B2BHero onPrimary={handleStart} onSecondary={handleSales} /></div>
 
       <Divider size="sm" />
+      {/* Audience tracks — Personal · Business · Enterprise */}
+      <Spaced size="md"><AudienceSegments onStart={handleStart} /></Spaced>
+      <Divider size="md" />
       <Spaced size="sm"><B2BLogoBar /></Spaced>
       <Divider size="lg" />
 

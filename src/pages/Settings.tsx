@@ -133,7 +133,7 @@ const SettingsContent = memo(function SettingsContent() {
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[hsl(var(--primary))]" />
             </span>
             <span className="text-[11px] uppercase tracking-[0.28em] text-white/50 font-medium">
-              Apex Studio · Settings
+              Apex-Studio · Settings
             </span>
           </div>
 

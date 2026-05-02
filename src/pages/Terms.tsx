@@ -54,7 +54,7 @@ const Terms = () => {
             <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">1. Acceptance of Terms</h2>
               <p>
-                By accessing and using Apex Studio ("Service"), operated by Apex-studio LLC, a Missouri 
+                By accessing and using Apex-Studio ("Service"), operated by Apex-studio LLC, a Missouri 
                 limited liability company ("Company," "we," "our," or "us"), you accept and agree to be 
                 bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you must 
                 not access or use the Service.
@@ -64,7 +64,7 @@ const Terms = () => {
             <section className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
               <h2 className="text-xl font-semibold text-white mb-4">2. Description of Service</h2>
               <p className="mb-4">
-                Apex Studio is a software-as-a-service (SaaS) platform that provides AI-powered video 
+                Apex-Studio is a software-as-a-service (SaaS) platform that provides AI-powered video 
                 generation tools allowing users to create, edit, and produce video content using artificial 
                 intelligence technology. The Service includes script generation, scene creation, video 
                 synthesis, and related features accessible via subscription or credit-based access.

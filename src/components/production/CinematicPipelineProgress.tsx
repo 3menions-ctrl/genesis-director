@@ -1,7 +1,7 @@
 /**
  * CinematicPipelineProgress
  *
- * Aesthetic: APEX Studios brand system — mirrors CinemaLoader.
+ * Aesthetic: Apex-Studio brand system — mirrors CinemaLoader.
  * Deep blue-undertone base with conic aurora · luminous hairlines ·
  * concentric halo around percentage · cinematic blue progress bar.
  */

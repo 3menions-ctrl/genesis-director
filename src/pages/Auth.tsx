@@ -334,7 +334,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
           <div className="absolute inset-0">
             <motion.img 
               src={authHeroImage}
-              alt="Apex Studio"
+              alt="Apex-Studio"
               className="w-full h-full object-cover object-center"
               initial={{ scale: 1.1, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -369,7 +369,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
               >
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-md mb-6">
                   <span className="w-1 h-1 rounded-full bg-[hsl(212,100%,55%)] shadow-[0_0_8px_hsl(212,100%,55%)]" />
-                  <span className="text-[10px] font-medium tracking-[0.18em] uppercase text-white/60">Apex Studio Pro</span>
+                  <span className="text-[10px] font-medium tracking-[0.18em] uppercase text-white/60">Apex-Studio Pro</span>
                 </div>
                 <h2 className="text-5xl xl:text-7xl font-display font-semibold text-white leading-[0.98] tracking-[-0.035em]">
                   Create.<br />
@@ -446,7 +446,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
               >
                 <Logo size="xl" />
               </motion.div>
-              <h1 className="text-xl font-display font-semibold tracking-[-0.01em] text-white/90">Apex Studio</h1>
+              <h1 className="text-xl font-display font-semibold tracking-[-0.01em] text-white/90">Apex-Studio</h1>
             </div>
 
             {/* Glass card — Apple-clean, hairline ring, deep shadow */}

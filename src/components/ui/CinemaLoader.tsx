@@ -255,7 +255,7 @@ export const CinemaLoader = memo(forwardRef<HTMLDivElement, CinemaLoaderProps>(
                 className="text-white/85 text-[11px] font-medium tracking-[0.45em] uppercase"
                 style={{ fontFamily: 'Sora, system-ui, sans-serif' }}
               >
-                Apex Studio
+                Apex-Studio
               </p>
               <div
                 className="h-px w-10"

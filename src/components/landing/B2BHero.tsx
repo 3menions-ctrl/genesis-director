@@ -104,7 +104,7 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
           <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-[#0A84FF]" />
         </span>
         <span className="text-[10.5px] font-medium text-white/65 tracking-[0.28em] uppercase">
-          Apex Studio · AI Video for Brand Teams
+          Apex-Studio · AI Video for Brand Teams
         </span>
       </motion.div>
 
@@ -254,7 +254,7 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
         >
           <img
             src={heroImage}
-            alt="Apex Studio workspace preview"
+            alt="Apex-Studio workspace preview"
             width={1920}
             height={1080}
             className="w-full h-auto block"

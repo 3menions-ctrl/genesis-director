@@ -147,7 +147,7 @@ export function AppShell({ children }: AppShellProps) {
               <div className="relative shrink-0">
                 <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-[hsl(var(--primary)/0.35)] to-[hsl(var(--accent)/0.15)] opacity-0 group-hover:opacity-100 blur-md transition-opacity duration-500" />
                 <div className="relative w-9 h-9 rounded-2xl bg-gradient-to-br from-white/[0.07] to-white/[0.015] flex items-center justify-center overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.4),inset_0_1px_0_hsla(0,0%,100%,0.06)]">
-                  <img src={logoImage} alt="Apex Studio" className="w-[22px] h-[22px] object-contain opacity-90 group-hover:scale-105 transition-transform duration-300" />
+                  <img src={logoImage} alt="Apex-Studio" className="w-[22px] h-[22px] object-contain opacity-90 group-hover:scale-105 transition-transform duration-300" />
                 </div>
               </div>
               {!collapsed && (

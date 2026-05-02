@@ -34,7 +34,7 @@ const HELP_CATEGORIES = [
         content: `
 ## Create Your First AI Video
 
-Welcome to Apex Studio! This guide walks you through creating your first AI-generated video in minutes.
+Welcome to Apex-Studio! This guide walks you through creating your first AI-generated video in minutes.
 
 ### Step 1: Choose Your Creation Mode
 
@@ -88,7 +88,7 @@ Once complete, download your video or share directly. Options include:
         content: `
 ## Understanding Credits
 
-Credits power all video generation on Apex Studio.
+Credits power all video generation on Apex-Studio.
 
 ### Credit Pricing
 
@@ -136,7 +136,7 @@ Credits power all video generation on Apex Studio.
         content: `
 ## Workspace Overview
 
-Master the Apex Studio interface for maximum productivity.
+Master the Apex-Studio interface for maximum productivity.
 
 ### Main Navigation
 
@@ -760,7 +760,7 @@ Public videos appear in:
         content: `
 ## Credit Pricing & Packages
 
-Apex Studio uses a credit-based system (no subscriptions).
+Apex-Studio uses a credit-based system (no subscriptions).
 
 ### Credit Value
 
@@ -980,7 +980,7 @@ We're fully GDPR compliant. Contact **cole@apex-studio.com** for data requests.
 
 ### How It Works
 
-Apex Studio uses advanced AI services to transform your text and images into video:
+Apex-Studio uses advanced AI services to transform your text and images into video:
 
 1. **Your input** (text/image) is processed
 2. **AI models** interpret your description
@@ -1365,7 +1365,7 @@ export default function HelpCenter() {
             <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
               <span className="text-sm font-bold text-black">A</span>
             </div>
-            <span className="text-base font-semibold text-white tracking-tight">Apex Studio</span>
+            <span className="text-base font-semibold text-white tracking-tight">Apex-Studio</span>
           </Link>
         </div>
       </nav>
@@ -1403,7 +1403,7 @@ export default function HelpCenter() {
                   
                   <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Help Center</h1>
                   <p className="text-lg text-white/40 max-w-2xl mx-auto mb-8">
-                    Find answers, learn best practices, and get the most out of Apex Studio
+                    Find answers, learn best practices, and get the most out of Apex-Studio
                   </p>
 
                   {/* Search */}

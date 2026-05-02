@@ -362,7 +362,7 @@ function CreateContentInner() {
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
             </span>
             <span className="text-[11px] uppercase tracking-[0.28em] text-white/50 font-medium">
-              Apex Studio · Live
+              Apex-Studio · Live
             </span>
           </div>
 

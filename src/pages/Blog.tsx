@@ -89,8 +89,8 @@ As these tools become more accessible and powerful, they're democratizing video 
   {
     id: '2',
     slug: 'apex-studio-small-business-solution',
-    title: 'Why Apex Studio is the Perfect Video AI Solution for Small Businesses',
-    excerpt: 'Learn how small businesses are leveraging Apex Studio to create professional video content without the traditional costs and complexity of video production.',
+    title: 'Why Apex-Studio is the Perfect Video AI Solution for Small Businesses',
+    excerpt: 'Learn how small businesses are leveraging Apex-Studio to create professional video content without the traditional costs and complexity of video production.',
     image: smallBusinessVideo,
     author: 'Marketing Team',
     date: 'January 10, 2026',
@@ -104,23 +104,23 @@ For small businesses, video marketing has always presented a frustrating paradox
 
 Hiring a professional video production team typically costs anywhere from $1,000 to $10,000 for a single short video. Add in the time required for planning, shooting, editing, and revisions, and you're looking at weeks of effort for a single piece of content. For a small business trying to maintain a consistent content calendar, this model simply doesn't scale.
 
-## Enter Apex Studio: A Game-Changer for Small Business Video
+## Enter Apex-Studio: A Game-Changer for Small Business Video
 
-Apex Studio was built specifically to solve this problem. By harnessing the power of advanced AI video generation, we've created a platform that allows anyone to produce professional-quality video content in minutes, not weeks, and at a fraction of traditional costs.
+Apex-Studio was built specifically to solve this problem. By harnessing the power of advanced AI video generation, we've created a platform that allows anyone to produce professional-quality video content in minutes, not weeks, and at a fraction of traditional costs.
 
 ### Cost Efficiency That Makes Sense
 
-With Apex Studio, small businesses can create unlimited video concepts and only pay for the content they actually produce. Our credit-based system means you're never locked into expensive monthly contracts or left paying for features you don't use. A single video that might cost $5,000 from a production company can be created for a fraction of that price.
+With Apex-Studio, small businesses can create unlimited video concepts and only pay for the content they actually produce. Our credit-based system means you're never locked into expensive monthly contracts or left paying for features you don't use. A single video that might cost $5,000 from a production company can be created for a fraction of that price.
 
 ### No Technical Skills Required
 
-Perhaps the biggest barrier to video production for small businesses isn't cost—it's expertise. Understanding cameras, lighting, editing software, and post-production workflows requires years of training. Apex Studio eliminates this barrier entirely. If you can describe what you want in plain English, you can create professional video content.
+Perhaps the biggest barrier to video production for small businesses isn't cost—it's expertise. Understanding cameras, lighting, editing software, and post-production workflows requires years of training. Apex-Studio eliminates this barrier entirely. If you can describe what you want in plain English, you can create professional video content.
 
 Simply input your topic, select a style, and let our AI handle everything from script generation to final video production. The system understands cinematic principles, pacing, and visual storytelling, applying professional-grade techniques automatically.
 
 ### Speed to Market
 
-In today's fast-paced digital landscape, timing matters. A trending topic or timely opportunity can come and go before a traditional video production cycle is complete. With Apex Studio, you can go from idea to finished video in minutes. This agility allows small businesses to:
+In today's fast-paced digital landscape, timing matters. A trending topic or timely opportunity can come and go before a traditional video production cycle is complete. With Apex-Studio, you can go from idea to finished video in minutes. This agility allows small businesses to:
 
 - Respond quickly to industry trends
 - Create timely promotional content for sales and events
@@ -129,7 +129,7 @@ In today's fast-paced digital landscape, timing matters. A trending topic or tim
 
 ## Real Results for Real Businesses
 
-Small businesses using Apex Studio are seeing remarkable results:
+Small businesses using Apex-Studio are seeing remarkable results:
 
 **Local Restaurants**: Creating weekly specials videos that drive foot traffic and social engagement
 
@@ -150,7 +150,7 @@ The mathematics of AI video production are compelling for small businesses:
 
 ## Getting Started is Simple
 
-Apex Studio offers a straightforward path to professional video content:
+Apex-Studio offers a straightforward path to professional video content:
 
 1. Sign up for a free account
 2. Describe your video concept

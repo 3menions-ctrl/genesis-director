@@ -84,20 +84,43 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
       </motion.div>
 
       <motion.h1
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.1 }}
-        className="font-display text-[2.75rem] sm:text-6xl md:text-7xl lg:text-[7.25rem] font-bold text-white text-center tracking-[-0.035em] leading-[0.96] max-w-6xl"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8, delay: 0.1 }}
+        className="text-white text-center max-w-6xl"
+        style={{ fontFamily: "'Sora', system-ui, sans-serif" }}
       >
-        Ship a month of
-        <br />
-        <span className="relative inline-block">
-          <span className="bg-gradient-to-br from-white via-[#7DD3FC] to-[#0A84FF] bg-clip-text text-transparent italic font-light pr-2">
+        <motion.span
+          initial={{ opacity: 0, y: 24, filter: 'blur(12px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          transition={{ duration: 0.9, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+          className="block text-[2.5rem] sm:text-6xl md:text-7xl lg:text-[6.75rem] font-bold tracking-[-0.04em] leading-[0.95]"
+        >
+          Ship a month of
+        </motion.span>
+        <motion.span
+          initial={{ opacity: 0, y: 24, filter: 'blur(12px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          transition={{ duration: 1.1, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          className="block text-[3.25rem] sm:text-7xl md:text-8xl lg:text-[8.5rem] font-light tracking-[-0.045em] leading-[0.92] my-1"
+          style={{
+            fontFamily: "'Fraunces', 'Sora', serif",
+            fontStyle: 'italic',
+            fontVariationSettings: "'opsz' 144, 'SOFT' 50",
+          }}
+        >
+          <span className="bg-gradient-to-br from-white via-[#9DCBFF] to-[#0A84FF] bg-clip-text text-transparent">
             ad&nbsp;creative
           </span>
-        </span>
-        <br />
-        in an afternoon.
+        </motion.span>
+        <motion.span
+          initial={{ opacity: 0, y: 24, filter: 'blur(12px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          transition={{ duration: 0.9, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
+          className="block text-[2.5rem] sm:text-6xl md:text-7xl lg:text-[6.75rem] font-bold tracking-[-0.04em] leading-[0.95]"
+        >
+          in an afternoon.
+        </motion.span>
       </motion.h1>
 
       {/* Premium subhead — narrower, refined */}

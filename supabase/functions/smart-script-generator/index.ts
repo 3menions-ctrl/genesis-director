@@ -110,6 +110,12 @@ interface SmartScriptRequest {
   multiCharacterMode?: boolean;
   characterCast?: CharacterCast[];
   sceneType?: 'monologue' | 'dialogue' | 'group' | 'interview' | 'narrative';
+
+  // ENGINE TARGETING — tailors prompt structure & vocabulary to the underlying model
+  // 'kling'    → Kling V3 (entertainment-first, action-dense, dialogue-aware)
+  // 'seedance' → Seedance 2.0 1080p (physics-grade motion, end-frame chaining, lens-aware)
+  // 'veo'      → Veo (reserved)
+  videoEngine?: 'kling' | 'veo' | 'seedance';
 }
 
 interface SceneClip {

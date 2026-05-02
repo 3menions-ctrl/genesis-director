@@ -3010,6 +3010,7 @@ export type Database = {
           has_seen_welcome_offer: boolean | null
           has_seen_welcome_video: boolean | null
           id: string
+          job_title: string | null
           notification_settings: Json | null
           onboarding_completed: boolean | null
           preferences: Json | null
@@ -3036,6 +3037,7 @@ export type Database = {
           has_seen_welcome_offer?: boolean | null
           has_seen_welcome_video?: boolean | null
           id: string
+          job_title?: string | null
           notification_settings?: Json | null
           onboarding_completed?: boolean | null
           preferences?: Json | null
@@ -3062,6 +3064,7 @@ export type Database = {
           has_seen_welcome_offer?: boolean | null
           has_seen_welcome_video?: boolean | null
           id?: string
+          job_title?: string | null
           notification_settings?: Json | null
           onboarding_completed?: boolean | null
           preferences?: Json | null

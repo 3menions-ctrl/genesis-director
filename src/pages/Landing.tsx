@@ -13,6 +13,10 @@ import { B2BPlatformPillars } from '@/components/landing/B2BPlatformPillars';
 import { B2BROISection } from '@/components/landing/B2BROISection';
 import { B2BFinalCTA } from '@/components/landing/B2BFinalCTA';
 import { B2BGlassFeatures, B2BWorkflow } from '@/components/landing/B2BGlassFeatures';
+import { B2BImmersiveVideo } from '@/components/landing/B2BImmersiveVideo';
+import { B2BTestimonials } from '@/components/landing/B2BTestimonials';
+import { B2BComparison } from '@/components/landing/B2BComparison';
+import { B2BSecurityBar } from '@/components/landing/B2BSecurityBar';
 
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 const FAQSection = lazy(() => import('@/components/landing/FAQSection'));
@@ -78,11 +82,17 @@ export default function Landing() {
       {/* Trust bar */}
       <B2BLogoBar />
 
+      {/* Immersive video — see it in motion */}
+      <B2BImmersiveVideo />
+
       {/* Use cases */}
       <B2BUseCases />
 
       {/* Premium glassmorphic feature grid */}
       <B2BGlassFeatures />
+
+      {/* The shift — old way vs. Apex */}
+      <B2BComparison />
 
       {/* Workflow */}
       <B2BWorkflow />
@@ -92,6 +102,12 @@ export default function Landing() {
 
       {/* ROI strip */}
       <B2BROISection />
+
+      {/* Social proof — testimonials */}
+      <B2BTestimonials />
+
+      {/* Enterprise security */}
+      <B2BSecurityBar />
 
       {/* Pricing anchor — keep simple, link to /pricing */}
       <section id="pricing" className="relative z-10 py-20 px-6">

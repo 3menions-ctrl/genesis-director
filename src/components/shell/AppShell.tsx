@@ -1,7 +1,7 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { NavLink, useLocation, Link } from 'react-router-dom';
 import {
-  Film, Sparkles, Users, Scissors, Layers, GraduationCap,
+  Film, Sparkles, Scissors, Layers, GraduationCap,
   User as UserIcon, Settings as SettingsIcon, HelpCircle, Shield, LogOut,
   Zap, ChevronDown, Menu, X, PanelLeftClose, PanelLeft,
 } from 'lucide-react';

@@ -2435,6 +2435,7 @@ export type Database = {
           mood: string | null
           movie_intro_style: string | null
           music_url: string | null
+          organization_id: string | null
           parent_project_id: string | null
           pending_video_tasks: Json | null
           pipeline_context_snapshot: Json | null
@@ -2483,6 +2484,7 @@ export type Database = {
           mood?: string | null
           movie_intro_style?: string | null
           music_url?: string | null
+          organization_id?: string | null
           parent_project_id?: string | null
           pending_video_tasks?: Json | null
           pipeline_context_snapshot?: Json | null
@@ -2531,6 +2533,7 @@ export type Database = {
           mood?: string | null
           movie_intro_style?: string | null
           music_url?: string | null
+          organization_id?: string | null
           parent_project_id?: string | null
           pending_video_tasks?: Json | null
           pipeline_context_snapshot?: Json | null
@@ -2560,6 +2563,13 @@ export type Database = {
           voice_audio_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "movie_projects_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "movie_projects_parent_project_id_fkey"
             columns: ["parent_project_id"]
@@ -2613,6 +2623,139 @@ export type Database = {
           title?: string
           type?: Database["public"]["Enums"]["notification_type"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      organization_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          organization_id: string
+          role: Database["public"]["Enums"]["org_role"]
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          organization_id: string
+          role?: Database["public"]["Enums"]["org_role"]
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          organization_id?: string
+          role?: Database["public"]["Enums"]["org_role"]
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_invites_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_members: {
+        Row: {
+          created_at: string
+          id: string
+          invited_by: string | null
+          joined_at: string
+          organization_id: string
+          role: Database["public"]["Enums"]["org_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          organization_id: string
+          role?: Database["public"]["Enums"]["org_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          organization_id?: string
+          role?: Database["public"]["Enums"]["org_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          created_by: string
+          credits_balance: number
+          id: string
+          industry: string | null
+          logo_url: string | null
+          name: string
+          plan: string
+          slug: string
+          total_credits_purchased: number
+          total_credits_used: number
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          credits_balance?: number
+          id?: string
+          industry?: string | null
+          logo_url?: string | null
+          name: string
+          plan?: string
+          slug: string
+          total_credits_purchased?: number
+          total_credits_used?: number
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          credits_balance?: number
+          id?: string
+          industry?: string | null
+          logo_url?: string | null
+          name?: string
+          plan?: string
+          slug?: string
+          total_credits_purchased?: number
+          total_credits_used?: number
+          updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -4762,6 +4905,7 @@ export type Database = {
       }
     }
     Functions: {
+      accept_organization_invite: { Args: { p_token: string }; Returns: Json }
       acquire_generation_lock: {
         Args: { p_clip_index: number; p_lock_id?: string; p_project_id: string }
         Returns: Json
@@ -5013,7 +5157,19 @@ export type Database = {
         Args: { p_universe_id: string; p_user_id: string }
         Returns: Database["public"]["Enums"]["universe_role"]
       }
+      get_user_org_role: {
+        Args: { p_org_id: string; p_user_id: string }
+        Returns: Database["public"]["Enums"]["org_role"]
+      }
       get_user_tier_limits: { Args: { p_user_id: string }; Returns: Json }
+      has_org_permission: {
+        Args: {
+          p_min_role: Database["public"]["Enums"]["org_role"]
+          p_org_id: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -5035,6 +5191,10 @@ export type Database = {
         Returns: boolean
       }
       is_email_banned: { Args: { p_email: string }; Returns: boolean }
+      is_org_member: {
+        Args: { p_org_id: string; p_user_id: string }
+        Returns: boolean
+      }
       is_universe_member: {
         Args: { p_universe_id: string; p_user_id: string }
         Returns: boolean
@@ -5184,6 +5344,7 @@ export type Database = {
         | "video_started"
         | "video_failed"
         | "low_credits"
+      org_role: "owner" | "admin" | "producer" | "reviewer" | "viewer"
       story_structure:
         | "three_act"
         | "hero_journey"
@@ -5349,6 +5510,7 @@ export const Constants = {
         "video_failed",
         "low_credits",
       ],
+      org_role: ["owner", "admin", "producer", "reviewer", "viewer"],
       story_structure: [
         "three_act",
         "hero_journey",

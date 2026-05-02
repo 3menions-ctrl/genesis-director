@@ -223,66 +223,6 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
         <span>$0.10 per credit</span>
       </motion.div>
 
-      {/* Hero device — premium glass preview with the same 60-sec demo video */}
-      <motion.div
-        initial={{ opacity: 0, y: 60, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 1, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
-        style={{ y: deviceY, scale: deviceScale }}
-        className="relative mt-24 w-full max-w-6xl"
-      >
-        <div
-          className="pointer-events-none absolute -inset-12 rounded-[3rem] opacity-90"
-          style={{
-            background:
-              'radial-gradient(60% 50% at 50% 30%, hsla(212, 100%, 50%, 0.35), transparent 70%)',
-            filter: 'blur(40px)',
-          }}
-        />
-        <div className="pointer-events-none absolute -top-px inset-x-20 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent z-10" />
-        <div
-          className="relative rounded-[28px] overflow-hidden backdrop-blur-2xl"
-          style={{
-            border: '1px solid hsla(0,0%,100%,0.10)',
-            boxShadow:
-              '0 1px 0 hsla(0,0%,100%,0.12) inset, 0 80px 160px -40px rgba(0,0,0,0.95), 0 0 120px -30px hsla(212,100%,50%,0.3)',
-          }}
-        >
-          <video
-            src={HOPPY_MP4_URL}
-            poster={heroImage}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            aria-label="Apex-Studio in motion — silent demo"
-            className="w-full h-auto block"
-          />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black to-transparent" />
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 1.1 }}
-          className="hidden md:flex absolute -bottom-6 left-1/2 -translate-x-1/2 items-center gap-3 px-6 py-3.5 rounded-full border border-white/[0.12] bg-black/60 backdrop-blur-2xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9),0_0_60px_-20px_rgba(10,132,255,0.4)]"
-        >
-          <div className="flex -space-x-2">
-            {['from-[#0A84FF] to-blue-700','from-white/80 to-white/30','from-[#7DD3FC] to-[#0A84FF]'].map((g, i) => (
-              <div key={i} className={`w-7 h-7 rounded-full bg-gradient-to-br ${g} border-2 border-black ring-1 ring-white/10`} />
-            ))}
-          </div>
-          <span className="w-px h-5 bg-white/15" />
-          <div className="flex items-center gap-1">
-            {[1,2,3,4,5].map(i => <Star key={i} className="w-3 h-3 fill-[#FFD60A] text-[#FFD60A]" />)}
-          </div>
-          <span className="text-[12px] text-white/80 font-medium tracking-tight">
-            Loved by 1,000+ marketing teams
-          </span>
-        </motion.div>
-      </motion.div>
-
       {/* Scroll cue */}
       <motion.div
         initial={{ opacity: 0 }}

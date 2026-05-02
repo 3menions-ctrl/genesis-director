@@ -19,8 +19,8 @@ import { B2BTestimonials } from '@/components/landing/B2BTestimonials';
 import { B2BComparison } from '@/components/landing/B2BComparison';
 import { B2BSecurityBar } from '@/components/landing/B2BSecurityBar';
 import { HoppyImmersiveIntro } from '@/components/landing/HoppyImmersiveIntro';
-import { SeedanceBanner } from '@/components/landing/SeedanceBanner';
 import { IdleEnterOverlay } from '@/components/landing/IdleEnterOverlay';
+import { SeedanceSection } from '@/components/landing/SeedanceSection';
 
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 const FAQSection = lazy(() => import('@/components/landing/FAQSection'));
@@ -77,9 +77,6 @@ export default function Landing() {
       {/* 30s-idle Enter chooser (Business vs Enterprise) */}
       <IdleEnterOverlay />
 
-      {/* Top announcement banner */}
-      <SeedanceBanner onLearnMore={() => scrollToSection('pricing')} />
-
       {/* Abstract Background */}
       <ErrorBoundaryWrapper fallback={<BackgroundFallback />}>
         <Suspense fallback={<BackgroundFallback />}>
@@ -94,6 +91,9 @@ export default function Landing() {
 
       {/* Trust bar */}
       <B2BLogoBar />
+
+      {/* Seedance 2.0 — epic generation engine reveal */}
+      <SeedanceSection onCta={handleStart} />
 
       {/* Cinematic video mosaic — multi-format showcase */}
       <CinematicMosaic />

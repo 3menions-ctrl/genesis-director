@@ -971,11 +971,17 @@ serve(async (req) => {
     // ═══════════════════════════════════════════════════════════════════════════
     const isAvatarMode = !!isAvatarModeFlag; // Explicit flag from pipeline, NOT from videoEngine
     const hasStartImage = !!validatedStartImage;
-    const engineLabel = isAvatarMode
-      ? `Kling V3 Avatar (I2V + native audio, ${hasStartImage ? 'frame-chained' : 'scene image'})`
-      : hasStartImage
-        ? "Kling V3 I2V (image-to-video, no native audio)"
-        : "Kling V3 T2V (text-to-video, no native audio)";
+    const engineLabel = videoEngine === 'seedance'
+      ? (isAvatarMode
+          ? `Seedance 2.0 Avatar (I2V from start image, TTS audio overlaid post-stitch)`
+          : hasStartImage
+            ? `Seedance 2.0 I2V (image-to-video, no native audio)`
+            : `Seedance 2.0 T2V (text-to-video, no native audio)`)
+      : (isAvatarMode
+          ? `Kling V3 Avatar (I2V + native lip-sync, ${hasStartImage ? 'frame-chained' : 'scene image'})`
+          : hasStartImage
+            ? "Kling V3 I2V (image-to-video, no native audio)"
+            : "Kling V3 T2V (text-to-video, no native audio)");
     console.log(`[SingleClip] ══ ENGINE: ${engineLabel} (videoEngine="${videoEngine}", isAvatarMode=${isAvatarMode}, hasStartImage=${hasStartImage}) ══`);
     
     // Avatar mode: enable native audio for lip-sync. I2V/T2V: no native audio

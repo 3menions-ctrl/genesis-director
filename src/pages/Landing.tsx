@@ -37,6 +37,87 @@ const SectionLoader = () => (
 
 const BackgroundFallback = () => <div className="fixed inset-0 bg-black" />;
 
+// Premium section divider — generous breathing room with a hairline glow.
+// Defined at module scope so it isn't re-created on every Landing render
+// (which was triggering "Function components cannot be given refs" warnings
+// when framer-motion's whileInView attached its ref).
+const Divider = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
+  const h = size === 'lg' ? 'h-56 md:h-80' : size === 'sm' ? 'h-24 md:h-32' : 'h-40 md:h-56';
+  return (
+    <motion.div
+      aria-hidden
+      initial={{ opacity: 0, scaleX: 0.4 }}
+      whileInView={{ opacity: 1, scaleX: 1 }}
+      viewport={{ once: true, margin: '-10%' }}
+      transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+      className={`relative ${h} w-full origin-center`}
+    >
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[52%] max-w-[640px] h-px bg-gradient-to-r from-transparent via-white/[0.10] to-transparent" />
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#0A84FF] shadow-[0_0_24px_6px_hsl(212_100%_52%/0.45)]" />
+    </motion.div>
+  );
+};
+
+// Editorial spacing wrapper — generous vertical rhythm around every section.
+const Spaced = ({ children, size = 'md' }: { children: React.ReactNode; size?: 'sm' | 'md' | 'lg' }) => {
+  const py = size === 'lg' ? 'py-20 md:py-32' : size === 'sm' ? 'py-8 md:py-14' : 'py-14 md:py-24';
+  return <div className={`relative ${py}`}>{children}</div>;
+};
+
+// Editorial chapter frame — adds a premium "magazine spread" feel with
+// a numbered margin, eyebrow kicker, and faint vertical rail.
+const Chapter = ({
+  n,
+  kicker,
+  children,
+  size = 'md',
+}: {
+  n: string;
+  kicker: string;
+  children: React.ReactNode;
+  size?: 'sm' | 'md' | 'lg';
+}) => {
+  const py = size === 'lg' ? 'py-24 md:py-40' : size === 'sm' ? 'py-12 md:py-20' : 'py-16 md:py-28';
+  return (
+    <section className={`relative ${py}`}>
+      <div
+        aria-hidden
+        className="hidden lg:block absolute left-10 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/[0.06] to-transparent"
+      />
+      <motion.div
+        initial={{ opacity: 0, x: -12 }}
+        whileInView={{ opacity: 1, x: 0 }}
+        viewport={{ once: true, margin: '-15%' }}
+        transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+        className="hidden lg:flex absolute left-6 top-12 flex-col items-start gap-3 select-none"
+      >
+        <span
+          className="text-[10px] font-medium text-white/35 tracking-[0.4em] uppercase"
+          style={{ fontFamily: "'Instrument Sans', sans-serif" }}
+        >
+          {n}
+        </span>
+        <span className="block w-px h-10 bg-gradient-to-b from-[#0A84FF]/60 to-transparent" />
+        <span
+          className="text-[10px] font-medium text-[#0A84FF]/70 tracking-[0.32em] uppercase rotate-180"
+          style={{ writingMode: 'vertical-rl', fontFamily: "'Instrument Sans', sans-serif" }}
+        >
+          {kicker}
+        </span>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-10%' }}
+        transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+      >
+        {children}
+      </motion.div>
+    </section>
+  );
+};
+
 export default function Landing() {
   const { user, loading: authLoading } = useAuth();
   const { navigate } = useSafeNavigation();
@@ -71,86 +152,6 @@ export default function Landing() {
       />
     );
   }
-
-  // Premium section divider — generous breathing room with a hairline glow
-  const Divider = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
-    const h = size === 'lg' ? 'h-56 md:h-80' : size === 'sm' ? 'h-24 md:h-32' : 'h-40 md:h-56';
-    return (
-      <motion.div
-        aria-hidden
-        initial={{ opacity: 0, scaleX: 0.4 }}
-        whileInView={{ opacity: 1, scaleX: 1 }}
-        viewport={{ once: true, margin: '-10%' }}
-        transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
-        className={`relative ${h} w-full origin-center`}
-      >
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[52%] max-w-[640px] h-px bg-gradient-to-r from-transparent via-white/[0.10] to-transparent" />
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#0A84FF] shadow-[0_0_24px_6px_hsl(212_100%_52%/0.45)]" />
-      </motion.div>
-    );
-  };
-
-  // Editorial spacing wrapper — generous vertical rhythm around every section
-  const Spaced = ({ children, size = 'md' }: { children: React.ReactNode; size?: 'sm' | 'md' | 'lg' }) => {
-    const py = size === 'lg' ? 'py-20 md:py-32' : size === 'sm' ? 'py-8 md:py-14' : 'py-14 md:py-24';
-    return <div className={`relative ${py}`}>{children}</div>;
-  };
-
-  // Editorial chapter frame — adds a premium "magazine spread" feel with
-  // a numbered margin, eyebrow kicker, and faint vertical rail.
-  const Chapter = ({
-    n,
-    kicker,
-    children,
-    size = 'md',
-  }: {
-    n: string;
-    kicker: string;
-    children: React.ReactNode;
-    size?: 'sm' | 'md' | 'lg';
-  }) => {
-    const py = size === 'lg' ? 'py-24 md:py-40' : size === 'sm' ? 'py-12 md:py-20' : 'py-16 md:py-28';
-    return (
-      <section className={`relative ${py}`}>
-        {/* Vertical hairline rail — anchors the chapter to the page grid */}
-        <div
-          aria-hidden
-          className="hidden lg:block absolute left-10 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/[0.06] to-transparent"
-        />
-        {/* Floating chapter marker */}
-        <motion.div
-          initial={{ opacity: 0, x: -12 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true, margin: '-15%' }}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          className="hidden lg:flex absolute left-6 top-12 flex-col items-start gap-3 select-none"
-        >
-          <span
-            className="text-[10px] font-medium text-white/35 tracking-[0.4em] uppercase"
-            style={{ fontFamily: "'Instrument Sans', sans-serif" }}
-          >
-            {n}
-          </span>
-          <span className="block w-px h-10 bg-gradient-to-b from-[#0A84FF]/60 to-transparent" />
-          <span
-            className="text-[10px] font-medium text-[#0A84FF]/70 tracking-[0.32em] uppercase rotate-180"
-            style={{ writingMode: 'vertical-rl', fontFamily: "'Instrument Sans', sans-serif" }}
-          >
-            {kicker}
-          </span>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-10%' }}
-          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-        >
-          {children}
-        </motion.div>
-      </section>
-    );
-  };
 
   return (
     <div className="landing-glass-scope min-h-screen overflow-hidden relative">

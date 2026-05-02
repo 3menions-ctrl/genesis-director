@@ -205,11 +205,8 @@ const App = () => {
                     <AdaptiveShell><Press /></AdaptiveShell>
                   </RouteContainer>
                 } />
-                <Route path="/gallery" element={
-                  <RouteContainer fallbackMessage="Loading gallery...">
-                    <AdaptiveShell><Gallery /></AdaptiveShell>
-                  </RouteContainer>
-                } />
+                {/* Consumer gallery sunset → redirect to projects (auth) or landing */}
+                <Route path="/gallery" element={<Navigate to="/projects" replace />} />
                 <Route path="/pricing" element={
                   <RouteContainer>
                     <AdaptiveShell><Pricing /></AdaptiveShell>
@@ -354,18 +351,10 @@ const App = () => {
                   </RouteContainer>
                 } />
                 
-                {/* Social Hub - Creators & Profiles */}
-                <Route path="/creators" element={
-                  <RouteContainer fallbackMessage="Loading creators...">
-                    <AppShell><Creators /></AppShell>
-                  </RouteContainer>
-                } />
-                <Route path="/user/:userId" element={
-                  <RouteContainer fallbackMessage="Loading profile...">
-                    <AppShell><UserProfile /></AppShell>
-                  </RouteContainer>
-                } />
-                <Route path="/social" element={<Navigate to="/creators" replace />} />
+                {/* Consumer social hub sunset — redirect to projects */}
+                <Route path="/creators" element={<Navigate to="/projects" replace />} />
+                <Route path="/user/:userId" element={<Navigate to="/projects" replace />} />
+                <Route path="/social" element={<Navigate to="/projects" replace />} />
                 
                 {/* Chat route removed */}
                 

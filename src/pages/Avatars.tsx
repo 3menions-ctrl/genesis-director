@@ -117,6 +117,10 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   const [enableMusic] = useState(false); // Music disabled globally - low quality
   const [enableDualAvatar, setEnableDualAvatar] = useState(false);
   const [cinematicMode, setCinematicMode] = useState<CinematicModeConfig>(DEFAULT_CINEMATIC_CONFIG);
+  // Video engine for avatar generation:
+  //   • 'kling'    → Kling V3 with native lip-sync (default, best dialogue accuracy)
+  //   • 'seedance' → Seedance 2.0 hyperreal motion + TTS audio overlaid in post
+  const [videoEngine, setVideoEngine] = useState<'kling' | 'seedance'>('kling');
   
   // ========== ACCURATE CLIP COUNT - Auto-calculated from script ==========
   // Uses 2.5 words/second speaking rate and 10-second avatar clips (Kling V3, 3-15s)

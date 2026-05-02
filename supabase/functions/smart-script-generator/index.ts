@@ -700,7 +700,7 @@ OUTPUT FORMAT (strict JSON):
       "interactionType": "solo|dialogue|group"` : ''}
     }
   ]
-}`);
+}`;
 
     // Build user prompt
     let userPrompt: string;

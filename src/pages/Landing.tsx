@@ -253,7 +253,7 @@ export default function Landing() {
           <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-2xl mb-8">
             <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
             <span className="text-[10.5px] font-medium text-white/65 tracking-[0.28em] uppercase">
-              Pricing · Chapter 11
+              Pricing · Chapter 10
             </span>
           </div>
           <h2 className="font-display text-5xl md:text-7xl font-bold text-white tracking-[-0.035em] mb-8 leading-[1.02]">

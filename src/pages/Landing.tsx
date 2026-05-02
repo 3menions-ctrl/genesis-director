@@ -21,7 +21,7 @@ import { B2BSecurityBar } from '@/components/landing/B2BSecurityBar';
 import { HoppyImmersiveIntro } from '@/components/landing/HoppyImmersiveIntro';
 import { IdleEnterOverlay } from '@/components/landing/IdleEnterOverlay';
 import { SeedanceSection } from '@/components/landing/SeedanceSection';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 const FAQSection = lazy(() => import('@/components/landing/FAQSection'));

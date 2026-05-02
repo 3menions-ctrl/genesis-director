@@ -1,5 +1,5 @@
-import { memo } from 'react';
-import { motion } from 'framer-motion';
+import { memo, useEffect, useRef, useState } from 'react';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Sparkles, Star, Play } from 'lucide-react';
 import heroImage from '@/assets/landing-immersive-hero.jpg';
@@ -11,16 +11,31 @@ interface Props {
   onSecondary: () => void;
 }
 
+const ROTATING_WORDS = ['ad creative', 'launch films', 'social cuts', 'product reels'];
+
 export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) {
+  const sectionRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end start'] });
+  const deviceY = useTransform(scrollYProgress, [0, 1], [0, -120]);
+  const deviceScale = useTransform(scrollYProgress, [0, 1], [1, 0.92]);
+  const bgY = useTransform(scrollYProgress, [0, 1], [0, 200]);
+  const bgOpacity = useTransform(scrollYProgress, [0, 1], [1, 0.3]);
+
+  const [wordIndex, setWordIndex] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setWordIndex((i) => (i + 1) % ROTATING_WORDS.length), 2800);
+    return () => clearInterval(id);
+  }, []);
+
   const openHoppy = () => {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent(HOPPY_INTRO_EVENT));
     }
   };
   return (
-    <section className="relative z-10 min-h-[100vh] flex flex-col items-center justify-center px-6 pt-36 pb-20 overflow-hidden">
-      {/* Background corporate video loop */}
-      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+    <section ref={sectionRef} className="relative z-10 min-h-[100vh] flex flex-col items-center justify-center px-6 pt-36 pb-20 overflow-hidden">
+      {/* Background corporate video loop with parallax */}
+      <motion.div style={{ y: bgY, opacity: bgOpacity }} className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <video
           src={corporateVideo.url}
           poster={heroImage}
@@ -47,10 +62,15 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black" />
-      </div>
+      </motion.div>
 
-      {/* Dual ambient glow — cinematic key + fill */}
-      <div
+      {/* Floating ambient orbs — cinematic key + fill */}
+      <motion.div
+        animate={{
+          x: [0, 40, -20, 0],
+          y: [0, -30, 20, 0],
+        }}
+        transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
         className="pointer-events-none absolute -top-40 left-1/4 -translate-x-1/2 w-[700px] h-[700px] opacity-70"
         style={{
           background:
@@ -58,7 +78,12 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
           filter: 'blur(40px)',
         }}
       />
-      <div
+      <motion.div
+        animate={{
+          x: [0, -50, 30, 0],
+          y: [0, 40, -20, 0],
+        }}
+        transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
         className="pointer-events-none absolute top-20 right-1/4 translate-x-1/2 w-[500px] h-[500px] opacity-60"
         style={{
           background:
@@ -98,20 +123,30 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
         >
           Ship a month of
         </motion.span>
+        {/* Rotating editorial word */}
         <motion.span
-          initial={{ opacity: 0, y: 24, filter: 'blur(12px)' }}
-          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.1, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="block text-[3.25rem] sm:text-7xl md:text-8xl lg:text-[8.5rem] font-light tracking-[-0.045em] leading-[0.92] my-1"
+          className="relative block text-[3.25rem] sm:text-7xl md:text-8xl lg:text-[8.5rem] font-light tracking-[-0.045em] leading-[0.92] my-1 h-[1.05em] overflow-hidden"
           style={{
             fontFamily: "'Fraunces', 'Sora', serif",
             fontStyle: 'italic',
             fontVariationSettings: "'opsz' 144, 'SOFT' 50",
           }}
         >
-          <span className="bg-gradient-to-br from-white via-[#9DCBFF] to-[#0A84FF] bg-clip-text text-transparent">
-            ad&nbsp;creative
-          </span>
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={wordIndex}
+              initial={{ y: '100%', opacity: 0, filter: 'blur(8px)' }}
+              animate={{ y: '0%', opacity: 1, filter: 'blur(0px)' }}
+              exit={{ y: '-100%', opacity: 0, filter: 'blur(8px)' }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white via-[#9DCBFF] to-[#0A84FF] bg-clip-text text-transparent whitespace-nowrap"
+            >
+              {ROTATING_WORDS[wordIndex]}
+            </motion.span>
+          </AnimatePresence>
         </motion.span>
         <motion.span
           initial={{ opacity: 0, y: 24, filter: 'blur(12px)' }}
@@ -128,11 +163,18 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, delay: 0.2 }}
-        className="mt-10 max-w-xl text-center text-[17px] md:text-lg text-white/55 font-light leading-[1.7] tracking-[0.005em]"
+        className="mt-12 max-w-xl text-center text-[17px] md:text-[19px] text-white/60 font-light leading-[1.65] tracking-[-0.005em]"
+        style={{ fontFamily: "'Instrument Sans', sans-serif" }}
       >
-        The AI video platform for marketing teams who refuse to compromise.
-        On-brand cinema at the speed of a creative brief — with workspace
-        controls, locked brand kits and approvals built in.
+        The AI video platform for marketing teams who refuse to
+        compromise.{' '}
+        <span
+          className="text-white/85 italic"
+          style={{ fontFamily: "'Fraunces', serif", fontVariationSettings: "'opsz' 32" }}
+        >
+          On-brand cinema
+        </span>{' '}
+        at the speed of a creative brief.
       </motion.p>
 
       <motion.div
@@ -184,11 +226,12 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
         <span>Pay-as-you-go credits</span>
       </motion.div>
 
-      {/* Hero device — premium glass preview */}
+      {/* Hero device — premium glass preview with scroll parallax */}
       <motion.div
         initial={{ opacity: 0, y: 60, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 1, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
+        style={{ y: deviceY, scale: deviceScale }}
         className="relative mt-24 w-full max-w-6xl"
       >
         <div

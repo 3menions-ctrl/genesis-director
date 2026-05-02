@@ -2222,9 +2222,9 @@ img, a, button {
   /* Italic serif accent — pair inside .text-display-luxe to evoke
      editorial mastheads (Vanity Fair / Apollo). */
   .display-serif {
-    font-family: 'Instrument Serif', 'Times New Roman', serif;
+    font-family: 'Fraunces', 'Times New Roman', serif;
     font-style: italic;
-    font-weight: 400;
+    font-weight: 300;
     letter-spacing: -0.015em;
   }
 

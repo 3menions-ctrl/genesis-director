@@ -34,9 +34,9 @@
   -webkit-backdrop-filter: none !important;
 }
 
-/* Keep the page root + abstract background fully opaque */
+/* Page root must be transparent so the fixed background image shows through */
 .landing-glass-scope.landing-glass-scope {
-  background-color: #000 !important;
+  background-color: transparent !important;
 }
 
 /* Keep video / image / canvas elements untouched */

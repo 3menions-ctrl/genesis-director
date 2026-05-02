@@ -2713,6 +2713,8 @@ export type Database = {
       }
       organizations: {
         Row: {
+          brand_accent_color: string | null
+          brand_primary_color: string | null
           created_at: string
           created_by: string
           credits_balance: number
@@ -2720,14 +2722,18 @@ export type Database = {
           industry: string | null
           logo_url: string | null
           name: string
+          onboarding_completed: boolean
           plan: string
           slug: string
+          team_size: string | null
           total_credits_purchased: number
           total_credits_used: number
           updated_at: string
           website: string | null
         }
         Insert: {
+          brand_accent_color?: string | null
+          brand_primary_color?: string | null
           created_at?: string
           created_by: string
           credits_balance?: number
@@ -2735,14 +2741,18 @@ export type Database = {
           industry?: string | null
           logo_url?: string | null
           name: string
+          onboarding_completed?: boolean
           plan?: string
           slug: string
+          team_size?: string | null
           total_credits_purchased?: number
           total_credits_used?: number
           updated_at?: string
           website?: string | null
         }
         Update: {
+          brand_accent_color?: string | null
+          brand_primary_color?: string | null
           created_at?: string
           created_by?: string
           credits_balance?: number
@@ -2750,8 +2760,10 @@ export type Database = {
           industry?: string | null
           logo_url?: string | null
           name?: string
+          onboarding_completed?: boolean
           plan?: string
           slug?: string
+          team_size?: string | null
           total_credits_purchased?: number
           total_credits_used?: number
           updated_at?: string

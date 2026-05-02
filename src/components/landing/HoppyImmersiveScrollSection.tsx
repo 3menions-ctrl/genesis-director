@@ -6,21 +6,20 @@ import { HOPPY_HLS_URL, HOPPY_MP4_URL } from './HoppyImmersiveIntro';
 
 /**
  * HoppyImmersiveScrollSection
- * Renders a single fixed full-viewport video that fades in once the user
- * scrolls past the hero, plays the entire demo, and stays pinned as a
- * cinematic backdrop while subsequent landing-page sections scroll on top.
+ * Single fixed full-viewport video that fades in once the user scrolls past
+ * the hero, plays the entire demo, and stays pinned as a cinematic backdrop
+ * while every landing-page section scrolls on top.
  *
- * Architecture:
- * - A tall sentinel (`triggerRef`) lives in the normal document flow right
- *   after the hero. Once it enters the viewport, the fixed video activates.
- * - The video itself is `position: fixed; inset: 0` with a low z-index so
- *   landing content above it remains interactive.
- * - A scrim layer is applied on top of the video (still under content) so
- *   foreground typography remains readable.
+ * MUST be mounted OUTSIDE any `position: relative; z-index: …` parent so its
+ * `position: fixed` layer escapes that stacking context and remains visually
+ * beneath the foreground content column.
+ *
+ * Activation is driven by a passive `scroll` listener (rAF-throttled) rather
+ * than IntersectionObserver — bulletproof under fast scrolling, momentum
+ * scrolling, or anchor-jumps.
  */
 export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSection() {
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const [muted, setMuted] = useState(true);
@@ -65,26 +64,37 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
     };
   }, []);
 
-  // Activate the fixed video as soon as the trigger sentinel enters the viewport.
-  // Once activated, it stays active for the rest of the session — content above
-  // simply scrolls over it.
+  // Activate the fixed video the moment the user scrolls past the hero.
+  // Uses a passive, rAF-throttled scroll listener so it stays responsive
+  // even during fast / momentum scrolling. Once active it stays active.
   useEffect(() => {
-    const trigger = triggerRef.current;
     const video = videoRef.current;
-    if (!trigger || !video) return;
+    if (!video) return;
 
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setActive(true);
-          video.play().catch(() => setShowTapHint(true));
-          io.disconnect();
-        }
-      },
-      { threshold: 0.1 },
-    );
-    io.observe(trigger);
-    return () => io.disconnect();
+    let ticking = false;
+    let activated = false;
+    const THRESHOLD = 220; // px past top of page
+
+    const check = () => {
+      ticking = false;
+      if (activated) return;
+      if (window.scrollY > THRESHOLD) {
+        activated = true;
+        setActive(true);
+        video.play().catch(() => setShowTapHint(true));
+        window.removeEventListener('scroll', onScroll);
+      }
+    };
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(check);
+    };
+
+    // Run once in case the user lands mid-page (anchor / refresh).
+    check();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   const toggleMute = () => {
@@ -105,13 +115,9 @@ export const HoppyImmersiveScrollSection = memo(function HoppyImmersiveScrollSec
 
   return (
     <>
-      {/* Sentinel — sits in normal flow right after the hero. When it enters
-          the viewport, the fixed video below activates. Zero-height so it
-          doesn't add visual space. */}
-      <div ref={triggerRef} aria-hidden className="relative w-full h-px" />
-
-      {/* Fixed full-viewport video layer — sits above background ambient layers
-          (z-0, z-[1]) but below all foreground content (z-10+). */}
+      {/* Fixed full-viewport video layer — sits above background ambient
+          layers (z-0, z-[1]) but BELOW all foreground content (z-10+).
+          Must be mounted at the page root, outside any z-indexed parent. */}
       <div
         ref={wrapperRef}
         aria-hidden={!active}

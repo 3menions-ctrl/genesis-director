@@ -423,22 +423,17 @@ export function EditorChrome({
           setProjects(projectList);
           setProjectsLoaded(true);
 
-          const allClips: EditorClip[] = [];
-          const loaded = new Set<string>();
-
-          for (const project of projectList) {
-            if (cancelled) break;
-            const { clips } = await loadProjectClips(project.id);
-            allClips.push(...clips);
-            loaded.add(project.id);
-          }
+          // Single-shot fetch: load every completed clip in ONE round trip
+          // (replaces the previous N+1 per-project loop).
+          const allClips = await loadAllUserClips();
+          const loaded = new Set(allClips.map(c => c.projectId));
 
           if (!cancelled) {
             setAvailableClips(allClips);
             setLoadedProjectIds(loaded);
             setMediaCounts({ videos: allClips.length, images: 0 });
             if (allClips.length > 0) {
-              toast.success(`Loaded ${allClips.length} clips from ${loaded.size} project${loaded.size !== 1 ? "s" : ""}`);
+              toast.success(`Loaded ${allClips.length} clip${allClips.length !== 1 ? "s" : ""} from ${loaded.size} project${loaded.size !== 1 ? "s" : ""}`);
             }
           }
         }
@@ -450,7 +445,7 @@ export function EditorChrome({
     })();
 
     return () => { cancelled = true; };
-  }, [user, autoLoadDone, listProjects, loadProjectClips, projectParam]);
+  }, [user, autoLoadDone, listProjects, loadProjectClips, loadAllUserClips, projectParam]);
 
   // ─── Keyboard shortcuts ───
   useEffect(() => {

@@ -64,7 +64,7 @@ export function EditorChrome({
   const [isRenamingSession, setIsRenamingSession] = useState(false);
   const [renameValue, setRenameValue] = useState("");
 
-  const { listProjects, loadProjectClips, loading: clipsLoading } = useEditorClips();
+  const { listProjects, loadProjectClips, loadAllUserClips, loading: clipsLoading } = useEditorClips();
   const { submitStitch, isStitching, progress: stitchProgress, reset: resetStitch } = useEditorStitch();
   const [autoLoadDone, setAutoLoadDone] = useState(false);
 

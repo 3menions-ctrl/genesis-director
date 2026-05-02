@@ -254,3 +254,9 @@ verify_jwt = false
 
 [functions.landing-demo-chat]
 verify_jwt = false
+
+[functions.api-v1]
+verify_jwt = false
+
+[functions.api-keys-manage]
+verify_jwt = false

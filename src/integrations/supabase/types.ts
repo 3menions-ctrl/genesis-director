@@ -321,6 +321,83 @@ export type Database = {
           },
         ]
       }
+      api_keys: {
+        Row: {
+          created_at: string
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          revoked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          revoked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          revoked_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      api_usage_logs: {
+        Row: {
+          api_key_id: string | null
+          created_at: string
+          credits_charged: number
+          endpoint: string
+          error_message: string | null
+          id: string
+          request_id: string | null
+          status_code: number
+          user_id: string
+        }
+        Insert: {
+          api_key_id?: string | null
+          created_at?: string
+          credits_charged?: number
+          endpoint: string
+          error_message?: string | null
+          id?: string
+          request_id?: string | null
+          status_code: number
+          user_id: string
+        }
+        Update: {
+          api_key_id?: string | null
+          created_at?: string
+          credits_charged?: number
+          endpoint?: string
+          error_message?: string | null
+          id?: string
+          request_id?: string | null
+          status_code?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_usage_logs_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       avatar_templates: {
         Row: {
           age_range: string | null
@@ -5199,6 +5276,13 @@ export type Database = {
       detect_credit_anomaly: {
         Args: { p_amount: number; p_user_id: string }
         Returns: boolean
+      }
+      find_api_key_owner: {
+        Args: { p_key_hash: string }
+        Returns: {
+          api_key_id: string
+          owner_user_id: string
+        }[]
       }
       get_admin_profit_dashboard: {
         Args: never

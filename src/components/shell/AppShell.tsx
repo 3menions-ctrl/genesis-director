@@ -3,7 +3,7 @@ import { NavLink, useLocation, Link } from 'react-router-dom';
 import {
   Film, Sparkles, Scissors, Layers, GraduationCap,
   User as UserIcon, Settings as SettingsIcon, HelpCircle, Shield, LogOut,
-  Zap, ChevronDown, Menu, X, PanelLeftClose, PanelLeft, ArrowRight,
+  Zap, ChevronDown, Menu, X, PanelLeftClose, PanelLeft, ArrowRight, Code2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,6 +38,7 @@ const PRIMARY_NAV: NavItem[] = [
   { label: 'Avatars',   to: '/avatars',        icon: UserIcon,      hue: 215 },
   { label: 'Templates', to: '/templates',      icon: Layers,        hue: 215 },
   { label: 'Training',  to: '/training-video', icon: GraduationCap, hue: 215 },
+  { label: 'Developers',to: '/developers',     icon: Code2,         hue: 215, match: (p) => p.startsWith('/developers') },
 ];
 
 interface AppShellProps {

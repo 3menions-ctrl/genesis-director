@@ -119,7 +119,9 @@ const SUGGESTIVE_PHRASES = [
 ];
 
 /**
- * VIOLENCE & GORE - Separate category but still blocked
+ * GRAPHIC VIOLENCE, GORE & SELF-HARM - Separate category but still blocked.
+ * Avoid broad action words here; cinematic prompts often use terms like
+ * "cutting through the air" for camera/action language.
  */
 const VIOLENCE_TERMS = [
   'gore', 'gory', 'gruesome',
@@ -127,7 +129,7 @@ const VIOLENCE_TERMS = [
   'torture', 'torturing', 'tortured',
   'mutilate', 'mutilation', 'mutilated',
   'eviscerate', 'disembowel',
-  'suicide', 'self-harm', 'cutting',
+  'suicide', 'self-harm', 'self harm', 'selfharm',
 ];
 
 /**

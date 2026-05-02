@@ -6415,7 +6415,41 @@ serve(async (req) => {
     if (!request.userId) {
       throw new Error("userId is required - authenticate or provide userId");
     }
-    
+
+    // ═══ ENGINE LOCK — BULLETPROOF, DB IS SOURCE OF TRUTH ═══
+    // For ANY existing project (i.e., projectId is set, including resumes,
+    // watchdog re-invokes, and second-stage runs), the persisted
+    // `movie_projects.video_engine` overrides whatever the body says.
+    // This prevents Seedance projects from silently decaying to Kling
+    // when an upstream caller (resume-pipeline, watchdog) forgets to
+    // forward the engine. If no project exists yet (first run), the
+    // body value is honored and will be persisted by mode-router.
+    if ((request as any).projectId) {
+      try {
+        const { data: engineRow } = await supabase
+          .from('movie_projects')
+          .select('video_engine')
+          .eq('id', (request as any).projectId)
+          .maybeSingle();
+        const persistedEngine = (engineRow?.video_engine as 'kling' | 'veo' | 'seedance' | null) || null;
+        if (persistedEngine) {
+          const incoming = (request as any).videoEngine;
+          if (incoming && incoming !== persistedEngine) {
+            console.warn(
+              `[Hollywood] 🛡️ ENGINE LOCK ENFORCED: body videoEngine="${incoming}" overridden by persisted video_engine="${persistedEngine}" (project ${(request as any).projectId}). Preventing decay.`
+            );
+          } else if (!incoming) {
+            console.log(
+              `[Hollywood] 🛡️ ENGINE LOCK: body had no videoEngine — using persisted video_engine="${persistedEngine}" for project ${(request as any).projectId}.`
+            );
+          }
+          (request as any).videoEngine = persistedEngine;
+        }
+      } catch (engineLookupErr) {
+        console.warn(`[Hollywood] ⚠️ Engine lookup failed for project ${(request as any).projectId}:`, engineLookupErr);
+      }
+    }
+
     // For resume requests, we need approvedScript instead of concept/manualPrompts
     const isResuming = !!request.resumeFrom && !!request.approvedScript;
     

@@ -113,7 +113,7 @@ export default function Landing() {
   }, [navigate]);
 
   const handleTransitionComplete = useCallback(() => {
-    navigate('/gallery', { state: { fromAnimation: true } });
+    navigate('/auth?mode=signup', { state: { fromAnimation: true } });
   }, [navigate]);
 
   const handleEnterStudio = useCallback(() => {

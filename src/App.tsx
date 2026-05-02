@@ -189,7 +189,7 @@ const App = () => {
                     <AdaptiveShell><Contact /></AdaptiveShell>
                   </RouteContainer>
                 } />
-                <Route path="/discover" element={<Navigate to="/creators" replace />} />
+                <Route path="/discover" element={<Navigate to="/projects" replace />} />
                 <Route path="/help" element={
                   <RouteContainer>
                     <AdaptiveShell><HelpCenter /></AdaptiveShell>

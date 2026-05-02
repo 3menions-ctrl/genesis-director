@@ -151,7 +151,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-black overflow-hidden relative">
+    <div className="landing-glass-scope min-h-screen bg-black overflow-hidden relative">
       {/* Idle-triggered immersive intro */}
       <HoppyImmersiveIntro />
 

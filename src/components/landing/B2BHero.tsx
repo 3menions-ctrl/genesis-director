@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Sparkles, Star, Play } from 'lucide-react';
 import heroImage from '@/assets/landing-immersive-hero.jpg';
 import corporateVideo from '@/assets/landing-immersive-hero.mp4.asset.json';
+import hoppyVideo from '@/assets/landing-hoppy-intro.mp4.asset.json';
 import { HOPPY_INTRO_EVENT } from './HoppyImmersiveIntro';
 
 interface Props {
@@ -251,11 +252,15 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
               '0 1px 0 hsla(0,0%,100%,0.12) inset, 0 80px 160px -40px rgba(0,0,0,0.95), 0 0 120px -30px hsla(212,100%,50%,0.3)',
           }}
         >
-          <img
-            src={heroImage}
-            alt="Apex-Studio workspace preview"
-            width={1920}
-            height={1080}
+          <video
+            src={hoppyVideo.url}
+            poster={heroImage}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            aria-label="Hoppy intro — Apex-Studio in motion"
             className="w-full h-auto block"
           />
           {/* Bottom fade into page */}

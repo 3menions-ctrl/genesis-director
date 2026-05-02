@@ -75,6 +75,7 @@ const VideoEditorPage = lazy(() => import("./pages/VideoEditor"));
 
 const WidgetLanding = lazy(() => import("./pages/WidgetLanding"));
 const WidgetEmbed = lazy(() => import("./pages/WidgetEmbed"));
+const EnterpriseOnboarding = lazy(() => import("./pages/EnterpriseOnboarding"));
 
 // Route change tracker component
 function RouteChangeTracker() {
@@ -184,6 +185,11 @@ const App = () => {
                 <Route path="/contact" element={
                   <RouteContainer>
                     <AdaptiveShell><Contact /></AdaptiveShell>
+                  </RouteContainer>
+                } />
+                <Route path="/enterprise/onboarding" element={
+                  <RouteContainer fallbackMessage="Preparing your enterprise studio...">
+                    <EnterpriseOnboarding />
                   </RouteContainer>
                 } />
                 <Route path="/discover" element={<Navigate to="/projects" replace />} />

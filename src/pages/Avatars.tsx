@@ -205,7 +205,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   
   // ========== Computed Values ==========
   const userCredits = useMemo(() => profile?.credits_balance ?? 0, [profile?.credits_balance]);
-  const estimatedCredits = useMemo(() => calculateCreditsRequired(clipCount, clipDuration, 'kling'), [clipCount, clipDuration]);
+  const estimatedCredits = useMemo(() => calculateCreditsRequired(clipCount, clipDuration, videoEngine), [clipCount, clipDuration, videoEngine]);
   const hasInsufficientCredits = useMemo(() => userCredits < estimatedCredits, [userCredits, estimatedCredits]);
   const estimatedDuration = useMemo(() => clipCount * clipDuration, [clipCount, clipDuration]);
   const hasActiveFilters = useMemo(() => 
@@ -353,6 +353,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
           sceneDescription: sceneDescription.trim() || undefined,
           cinematicMode: cinematicMode.enabled ? cinematicMode : undefined,
           enableDualAvatar,
+          videoEngine,
         },
       });
       
@@ -387,7 +388,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         showUserFriendlyError(error, { navigate });
       }
     }
-  }, [user, selectedAvatar, prompt, sceneDescription, aspectRatio, clipCount, clipDuration, enableMusic, enableDualAvatar, cinematicMode, navigate, emergencyNavigate, buildCharacterBible]);
+  }, [user, selectedAvatar, prompt, sceneDescription, aspectRatio, clipCount, clipDuration, enableMusic, enableDualAvatar, cinematicMode, videoEngine, navigate, emergencyNavigate, buildCharacterBible]);
   
   const handleClearFilters = useCallback(() => {
     setGenderFilter('all');
@@ -443,6 +444,8 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     onEnableDualAvatarChange: setEnableDualAvatar,
     cinematicMode,
     onCinematicModeChange: setCinematicMode,
+    videoEngine,
+    onVideoEngineChange: setVideoEngine,
     estimatedDuration,
     estimatedCredits,
     userCredits,

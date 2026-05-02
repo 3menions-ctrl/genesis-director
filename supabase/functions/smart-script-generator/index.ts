@@ -1159,9 +1159,9 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
     // in the prompt that reaches Kling V3, regardless of how the pipeline assembles it.
     // The block is structured so Kling reads it first (highest attention weight).
     // =====================================================
-    const isVeoMode = request.mode === 'text-to-video' || request.mode === 'image-to-video';
-    
-    if (isVeoMode) {
+    const shouldInjectDNA = request.mode === 'text-to-video' || request.mode === 'image-to-video';
+
+    if (shouldInjectDNA) {
       const lockedChar = lockFields.characterDescription;
       const lockedEnv  = forcedLocation;
       const lockedLight = forcedLighting;
@@ -1171,7 +1171,12 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
 
       normalizedClips.forEach((clip) => {
         const dnaParts: string[] = [];
-        
+
+        // Seedance reads technical directives — inject them at the very top, highest weight.
+        if (isSeedance) {
+          dnaParts.push(`[SEEDANCE_DIRECTIVES — TARGET ENGINE: Seedance 2.0 1080p 24fps. Honor all named camera moves, lens specs, aperture cues, and end-frame locks. Render with photographic 35mm film grain. Maintain physics-grade motion: inertia, gravity, follow-through, secondary motion on hair/fabric/particulate.]`);
+        }
+
         if (lockedChar && lockedChar.length > 10) {
           dnaParts.push(`[CHARACTER_ANCHOR — SAME IN EVERY CLIP: ${lockedChar.substring(0, 220)}]`);
         }
@@ -1184,13 +1189,13 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
         if (masterDNA && masterDNA.length > 10) {
           dnaParts.push(`[SCENE_DNA: ${masterDNA.substring(0, 280)}]`);
         }
-        
+
         if (dnaParts.length > 0) {
           clip.description = dnaParts.join('\n') + '\n\n' + clip.description;
         }
       });
-      
-      console.log(`[SmartScript] ✓ Kling V3 continuity DNA injected into ${normalizedClips.length} clip descriptions (mode: ${request.mode})`);
+
+      console.log(`[SmartScript] ✓ ${isSeedance ? 'Seedance 2.0' : 'Kling V3'} continuity DNA injected into ${normalizedClips.length} clip descriptions (mode: ${request.mode})`);
     }
 
     const totalDuration = normalizedClips.reduce((sum, clip) => sum + clip.durationSeconds, 0);

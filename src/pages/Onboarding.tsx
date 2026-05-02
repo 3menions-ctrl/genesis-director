@@ -103,6 +103,7 @@ export default function Onboarding() {
     brandPrimary: '#0A84FF',
     brandAccent: '#0EA5E9',
     useCase: '',
+    accountType: 'personal' as 'personal' | 'business' | 'enterprise',
   });
 
   const [invites, setInvites] = useState<{ email: string; role: 'admin' | 'producer' | 'reviewer' }[]>([
@@ -218,6 +219,7 @@ export default function Onboarding() {
         company: sanitizeText(form.workspaceName),
         use_case: form.useCase,
         onboarding_completed: true,
+        account_type: form.accountType,
       };
       const { error: pErr } = await supabase.from('profiles').update(sanitized).eq('id', user.id);
       if (pErr) console.error('[Onboarding] profile update warn:', pErr);

@@ -182,7 +182,7 @@ export default function Press() {
               <div className="absolute inset-0 bg-primary/20 rounded-xl blur-lg group-hover:blur-xl transition-all" />
               <Logo size="lg" className="relative" />
             </div>
-            <span className="font-bold text-xl">Apex Studio</span>
+            <span className="font-bold text-xl">Apex-Studio</span>
           </Link>
           <nav className="hidden md:flex items-center gap-6">
             <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">Home</Link>
@@ -226,7 +226,7 @@ export default function Press() {
             </h1>
             
             <p className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-3xl mx-auto leading-relaxed">
-              Apex Studio is a video creation platform that uses AI to help transform 
+              Apex-Studio is a video creation platform that uses AI to help transform 
               scripts and ideas into video content. Generate clips, add narration, 
               and assemble complete videos.
             </p>
@@ -284,14 +284,14 @@ export default function Press() {
               <div className="relative">
                 <h2 className="text-2xl md:text-3xl font-medium leading-relaxed mb-8 text-center">
                   "We're building tools that make video creation more accessible. 
-                  Apex Studio combines multiple AI technologies into a single platform 
+                  Apex-Studio combines multiple AI technologies into a single platform 
                   designed to help creators produce video content more efficiently."
                 </h2>
                 <div className="text-center">
                   <div className="inline-flex items-center gap-3">
-                    <img src="/apex-studio-logo.png" alt="Apex Studio" className="w-12 h-12 object-contain" />
+                    <img src="/apex-studio-logo.png" alt="Apex-Studio" className="w-12 h-12 object-contain" />
                     <div className="text-left">
-                      <div className="font-semibold">Apex Studio</div>
+                      <div className="font-semibold">Apex-Studio</div>
                       <div className="text-sm text-muted-foreground">apex-studio.ai</div>
                     </div>
                   </div>
@@ -319,7 +319,7 @@ export default function Press() {
               What We Offer
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Key features of the Apex Studio video creation platform
+              Key features of the Apex-Studio video creation platform
             </p>
           </motion.div>
 
@@ -433,7 +433,7 @@ export default function Press() {
               Who It's For
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Apex Studio is designed for a variety of video creation needs
+              Apex-Studio is designed for a variety of video creation needs
             </p>
           </motion.div>
 
@@ -554,7 +554,7 @@ export default function Press() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <Logo className="w-6 h-6" />
-              <span className="text-sm text-muted-foreground">© 2026 Apex Studio. All rights reserved.</span>
+              <span className="text-sm text-muted-foreground">© 2026 Apex-Studio. All rights reserved.</span>
             </div>
             <div className="flex items-center gap-6 text-sm">
               <Link to="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">Privacy</Link>

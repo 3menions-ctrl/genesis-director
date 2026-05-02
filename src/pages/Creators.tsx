@@ -306,7 +306,7 @@ export default function Creators() {
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[hsl(var(--primary))]" />
               </span>
               <span className="text-[10px] uppercase tracking-[0.28em] text-white/55 font-medium">
-                Apex Studio · Creators
+                Apex-Studio · Creators
               </span>
             </div>
 

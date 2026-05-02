@@ -1,7 +1,7 @@
 /**
  * SpecializedModeProgress
  *
- * Aesthetic: APEX Studios brand system — mirrors CinemaLoader and
+ * Aesthetic: Apex-Studio brand system — mirrors CinemaLoader and
  * CinematicPipelineProgress. Deep blue-undertone base with conic aurora,
  * concentric halo around percentage, luminous hairlines and cinematic blue
  * progress bar. Used for Avatar, Motion Transfer, and Style Transfer modes.

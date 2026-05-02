@@ -53,7 +53,7 @@ export const B2BComparison = memo(function B2BComparison() {
           <div className="grid grid-cols-[1.4fr_1fr_1fr] gap-3 px-6 md:px-10 py-5 border-b border-white/[0.06] text-[10px] uppercase tracking-[0.2em] text-white/35 font-medium">
             <div />
             <div className="text-center">The old way</div>
-            <div className="text-center text-[#0A84FF]">With Apex Studio</div>
+            <div className="text-center text-[#0A84FF]">With Apex-Studio</div>
           </div>
 
           {ROWS.map((row, i) => (

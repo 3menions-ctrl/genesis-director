@@ -42,7 +42,7 @@ import { Logo } from '@/components/ui/Logo';
 describe('Logo', () => {
   it('renders img with alt text', () => {
     render(<Logo />);
-    expect(screen.getByAltText('Apex Studio')).toBeInTheDocument();
+    expect(screen.getByAltText('Apex-Studio')).toBeInTheDocument();
   });
 
   it('shows text when showText=true', () => {
@@ -270,7 +270,7 @@ describe('LandingNav', () => {
 
   it('renders Logo with text', () => {
     render(withRouter(<LandingNav onScrollToSection={mockScroll} onNavigate={mockNav} />));
-    expect(screen.getByAltText('Apex Studio')).toBeInTheDocument();
+    expect(screen.getByAltText('Apex-Studio')).toBeInTheDocument();
   });
 });
 

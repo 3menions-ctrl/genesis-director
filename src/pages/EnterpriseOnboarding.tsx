@@ -430,7 +430,7 @@ function CompanyStep({ value, onChange, errors }: any) {
       <StepHeader icon={Building2} kicker="Step 2" title="Tell us about your company" copy="Helps us assign the right success manager and tier." />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <Field label="Company name" error={errors.company_name}>
-          <input className={inputCls} value={value.company_name} onChange={e => onChange({ ...value, company_name: e.target.value })} placeholder="Apex Studios" />
+          <input className={inputCls} value={value.company_name} onChange={e => onChange({ ...value, company_name: e.target.value })} placeholder="Apex-Studio" />
         </Field>
         <Field label="Your role">
           <input className={inputCls} value={value.role} onChange={e => onChange({ ...value, role: e.target.value })} placeholder="Head of Creative" />

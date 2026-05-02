@@ -50,9 +50,9 @@ export default function Developers() {
 
   useEffect(() => { if (user) refresh(); }, [user]);
   useEffect(() => {
-    document.title = 'Developers — Apex Studio API';
+    document.title = 'Developers — Apex-Studio API';
     const meta = document.querySelector('meta[name="description"]');
-    const desc = "Generate API keys, monitor usage, and integrate Apex Studio's video pipeline into your stack.";
+    const desc = "Generate API keys, monitor usage, and integrate Apex-Studio's video pipeline into your stack.";
     if (meta) meta.setAttribute('content', desc);
   }, []);
 
@@ -97,7 +97,7 @@ export default function Developers() {
             <Code2 className="w-3.5 h-3.5" /> Developers
           </div>
           <h1 className="mt-3 text-5xl font-semibold tracking-tight text-white">
-            Apex Studio API
+            Apex-Studio API
           </h1>
           <p className="mt-3 max-w-2xl text-[15px] text-white/55 leading-relaxed">
             Generate cinematic video, avatars, and edited photos directly from your app.

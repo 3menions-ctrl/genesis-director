@@ -22,7 +22,7 @@ export const Logo = memo(forwardRef<HTMLDivElement, LogoProps>(
       <div ref={ref} className={cn("flex items-center gap-2", className)}>
         <img 
           src={logoImage} 
-          alt="Apex Studio" 
+          alt="Apex-Studio" 
           className={cn(sizeMap[size], "object-contain")}
         />
         {showText && (

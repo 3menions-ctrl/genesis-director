@@ -662,7 +662,7 @@ export function EditorChrome({
             <h2 className="text-sm font-semibold text-foreground">Desktop Required</h2>
           </div>
           <p className="text-xs text-muted-foreground/70 max-w-[280px]">
-            Apex Studio requires a desktop browser for the best editing experience.
+            Apex-Studio requires a desktop browser for the best editing experience.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => navigate("/projects")}>
@@ -750,7 +750,7 @@ export function EditorChrome({
               <TooltipContent side="bottom" className="text-[10px]">Back to Projects</TooltipContent>
             </Tooltip>
 
-            {/* Apex Studio Pro wordmark */}
+            {/* Apex-Studio Pro wordmark */}
             <div className="flex items-center gap-2 pl-1 pr-2 select-none">
               <div
                 className="relative w-5 h-5 rounded-[6px] flex items-center justify-center shrink-0"

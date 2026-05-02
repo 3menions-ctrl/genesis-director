@@ -11,7 +11,7 @@ interface Props {
   onSecondary: () => void;
 }
 
-const ROTATING_WORDS = ['ad creative', 'launch films', 'social cuts', 'product reels'];
+const ROTATING_WORDS = ['ads', 'launch films', 'social cuts', 'product reels'];
 
 export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
@@ -104,7 +104,7 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
           <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-[#0A84FF]" />
         </span>
         <span className="text-[10.5px] font-medium text-white/65 tracking-[0.28em] uppercase">
-          Apex-Studio · AI Video for Brand Teams
+          Apex-Studio · AI Video, Made Cinematic
         </span>
       </motion.div>
 
@@ -121,7 +121,7 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
           transition={{ duration: 0.9, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
           className="block text-[2.5rem] sm:text-6xl md:text-7xl lg:text-[6.75rem] font-bold tracking-[-0.04em] leading-[0.95]"
         >
-          Ship a month of
+          A month of
         </motion.span>
         {/* Rotating editorial word */}
         <motion.span
@@ -154,7 +154,7 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
           transition={{ duration: 0.9, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
           className="block text-[2.5rem] sm:text-6xl md:text-7xl lg:text-[6.75rem] font-bold tracking-[-0.04em] leading-[0.95]"
         >
-          in an afternoon.
+          shipped this afternoon.
         </motion.span>
       </motion.h1>
 
@@ -166,15 +166,14 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
         className="mt-12 max-w-xl text-center text-[17px] md:text-[19px] text-white/60 font-light leading-[1.65] tracking-[-0.005em]"
         style={{ fontFamily: "'Instrument Sans', sans-serif" }}
       >
-        The AI video platform for marketing teams who refuse to
-        compromise.{' '}
+        Type a prompt. Get{' '}
         <span
           className="text-white/85 italic"
           style={{ fontFamily: "'Fraunces', serif", fontVariationSettings: "'opsz' 32" }}
         >
-          On-brand cinema
+          on-brand cinema
         </span>{' '}
-        at the speed of a creative brief.
+        in minutes — no crew, no edit suite, no contracts.
       </motion.p>
 
       <motion.div
@@ -189,7 +188,7 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
           className="group h-14 px-8 text-[15px] font-medium rounded-full bg-white text-black hover:bg-white/95 shadow-[0_20px_60px_-15px_rgba(255,255,255,0.4),0_0_80px_-20px_rgba(10,132,255,0.5)] transition-all duration-300 hover:scale-[1.02]"
         >
           <Sparkles className="w-4 h-4 mr-2" />
-          Start free workspace
+          Create your first video
           <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
         </Button>
         <Button
@@ -201,7 +200,7 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
           <span className="flex items-center justify-center w-9 h-9 mr-2.5 rounded-full bg-gradient-to-br from-[#0A84FF] to-[#0651AA] text-white shadow-[0_4px_16px_rgba(10,132,255,0.5)] transition-transform group-hover:scale-110">
             <Play className="w-3.5 h-3.5 ml-0.5 fill-white" />
           </span>
-          Watch the film
+          Watch 60-sec demo
         </Button>
         <Button
           onClick={onSecondary}
@@ -219,11 +218,11 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
         transition={{ duration: 0.6, delay: 0.5 }}
         className="relative mt-8 flex flex-wrap items-center justify-center gap-5 text-[11px] text-white/35 tracking-[0.15em] uppercase"
       >
+        <span>Free to start</span>
+        <span className="w-1 h-1 rounded-full bg-white/20" />
         <span>No credit card</span>
         <span className="w-1 h-1 rounded-full bg-white/20" />
-        <span>SSO available</span>
-        <span className="w-1 h-1 rounded-full bg-white/20" />
-        <span>Pay-as-you-go credits</span>
+        <span>$0.10 per credit</span>
       </motion.div>
 
       {/* Hero device — premium glass preview with scroll parallax */}

@@ -1,94 +1,34 @@
-import { useState, useEffect, useCallback, memo, forwardRef, useRef } from 'react';
-import { lazy, Suspense } from 'react';
+import { useEffect, useCallback, lazy, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSafeNavigation, useRouteCleanup } from '@/lib/navigation';
+import { useSafeNavigation } from '@/lib/navigation';
 import { ErrorBoundaryWrapper } from '@/components/ui/error-boundary';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
 import { useGatekeeperLoading, getGatekeeperMessage, GATEKEEPER_PRESETS } from '@/hooks/useGatekeeperLoading';
-import { useScrollReveal } from '@/hooks/useScrollReveal';
 
-// Extracted landing components
 import { LandingNav } from '@/components/landing/LandingNav';
-import { HeroSection } from '@/components/landing/HeroSection';
-import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
-import { PricingSection, ImmersiveVideoBackground, LetsGoCTA, INACTIVITY_TIMEOUT_MS } from '@/components/landing/PricingSection';
-import { AvatarCTASection } from '@/components/landing/AvatarCTASection';
-import { SocialProofTicker } from '@/components/landing/SocialProofTicker';
-import { PromptResultShowcase } from '@/components/landing/PromptResultShowcase';
+import { B2BHero } from '@/components/landing/B2BHero';
+import { B2BLogoBar } from '@/components/landing/B2BLogoBar';
+import { B2BUseCases } from '@/components/landing/B2BUseCases';
+import { B2BPlatformPillars } from '@/components/landing/B2BPlatformPillars';
+import { B2BROISection } from '@/components/landing/B2BROISection';
+import { B2BFinalCTA } from '@/components/landing/B2BFinalCTA';
 
-
-// Lazy load heavy components
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
-const ExamplesGallery = lazy(() => import('@/components/landing/ExamplesGallery'));
 const FAQSection = lazy(() => import('@/components/landing/FAQSection'));
 const Footer = lazy(() => import('@/components/landing/Footer'));
-const FeaturesShowcase = lazy(() => import('@/components/landing/FeaturesShowcase'));
-const CinematicTransition = lazy(() => import('@/components/landing/CinematicTransition'));
 
-// Loading fallbacks
-const SectionLoader = memo(forwardRef<HTMLDivElement, Record<string, never>>(
-  function SectionLoader(_, ref) {
-    return (
-      <div ref={ref} className="py-24 flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-      </div>
-    );
-  }
-));
-SectionLoader.displayName = 'SectionLoader';
+const SectionLoader = () => (
+  <div className="py-24 flex items-center justify-center">
+    <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+  </div>
+);
 
-const MinimalFallback = memo(forwardRef<HTMLDivElement, Record<string, never>>(
-  function MinimalFallback(_, ref) {
-    return (
-      <div ref={ref} className="py-24 flex items-center justify-center">
-        <div className="text-center text-white/30">
-          <div className="w-8 h-8 mx-auto mb-2 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
-          <p className="text-sm">Loading section...</p>
-        </div>
-      </div>
-    );
-  }
-));
-MinimalFallback.displayName = 'MinimalFallback';
+const BackgroundFallback = () => <div className="fixed inset-0 bg-black" />;
 
-const BackgroundFallback = memo(forwardRef<HTMLDivElement, Record<string, never>>(
-  function BackgroundFallback(_, ref) {
-    return <div ref={ref} className="fixed inset-0 bg-black" />;
-  }
-));
-BackgroundFallback.displayName = 'BackgroundFallback';
-
-// Main Landing Component
 export default function Landing() {
   const { user, loading: authLoading } = useAuth();
   const { navigate } = useSafeNavigation();
-  
-  const [showExamples, setShowExamples] = useState(false);
-  const [showCinematicTransition, setShowCinematicTransition] = useState(false);
-  const [isImmersive, setIsImmersive] = useState(false);
-  const [showImmersiveCTA, setShowImmersiveCTA] = useState(false);
-  const signUpButtonRef = useRef<HTMLButtonElement>(null);
-  const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Use STATE (not just a ref) so the inactivity useEffect re-runs when this changes.
-  // A ref-only approach means React never re-runs the effect after handleExitImmersive
-  // resets the ref, because ref mutations don't trigger dependency array checks.
-  const [hasAutoTriggered, setHasAutoTriggered] = useState(false);
 
-  // CRITICAL: Clean up all timers and media state BEFORE navigation starts
-  // This prevents inactivity timers from firing after we've left the page,
-  // and ensures immersive video streams are stopped before new page mounts
-  useRouteCleanup(() => {
-    if (inactivityTimerRef.current) {
-      clearTimeout(inactivityTimerRef.current);
-      inactivityTimerRef.current = null;
-    }
-    // hasAutoTriggered is state, not a ref — resetting it here would cause a state update
-    // during cleanup which is harmless but unnecessary. Timer clearance is enough.
-    setIsImmersive(false);
-    setShowExamples(false);
-  }, []);
-
-  // Gatekeeper for clean fade-in
   const { isLoading, progress, phase } = useGatekeeperLoading({
     ...GATEKEEPER_PRESETS.landing,
     authLoading,
@@ -96,109 +36,18 @@ export default function Landing() {
     dataSuccess: true,
   });
 
-  // Redirect authenticated users
   useEffect(() => {
-    if (user) {
-      navigate('/projects');
-    }
+    if (user) navigate('/projects');
   }, [user, navigate]);
 
-  // Navigation handlers
   const scrollToSection = useCallback((target: string) => {
     document.getElementById(target)?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
-  const handleNavigate = useCallback((path: string) => {
-    navigate(path);
-  }, [navigate]);
+  const handleNavigate = useCallback((path: string) => navigate(path), [navigate]);
+  const handleStart = useCallback(() => navigate('/auth?mode=signup'), [navigate]);
+  const handleSales = useCallback(() => navigate('/contact?topic=sales'), [navigate]);
 
-  const handleTransitionComplete = useCallback(() => {
-    navigate('/auth?mode=signup', { state: { fromAnimation: true } });
-  }, [navigate]);
-
-  const handleEnterStudio = useCallback(() => {
-    setShowCinematicTransition(true);
-  }, []);
-
-  const handleExamplesChange = useCallback((open: boolean) => {
-    setShowExamples(open);
-  }, []);
-
-  // Immersive video handlers
-  const handleEnterImmersive = useCallback(() => {
-    setHasAutoTriggered(true);
-    setIsImmersive(true);
-    setShowImmersiveCTA(false);
-  }, []);
-
-  const handleExitImmersive = useCallback(() => {
-    setIsImmersive(false);
-    setShowImmersiveCTA(false);
-    // setState (not ref) so the inactivity useEffect re-runs and restarts the timer
-    setHasAutoTriggered(false);
-  }, []);
-
-  const handleImmersiveVideoEnded = useCallback(() => {
-    setIsImmersive(false);
-    setShowImmersiveCTA(true);
-    // Keep hasAutoTriggered = true so the inactivity timer does NOT re-arm
-    // and create an infinite loop of the video re-launching.
-  }, []);
-
-  // Inactivity detection — auto-enter immersive after idle.
-  // Only disabled on actual mobile/tablet devices (small screens) to prevent
-  // Safari mobile crashes from loading a full HLS stream. Touchscreen laptops
-  // are fine — the real issue was iOS Safari, not touch support in general.
-  const isMobileDevice = typeof window !== 'undefined' && (
-    /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) && window.innerWidth < 1024
-  );
-  
-  useEffect(() => {
-    if (isImmersive || hasAutoTriggered || showExamples || isMobileDevice) return;
-
-    const startTimer = () => {
-      if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
-      inactivityTimerRef.current = setTimeout(() => {
-        setHasAutoTriggered(true);
-        setIsImmersive(true);
-      }, INACTIVITY_TIMEOUT_MS);
-    };
-
-    // Only reset on DELIBERATE interactions — NOT mousemove/scroll which fire
-    // continuously and would make the timer nearly impossible to reach.
-    const handleActivity = () => startTimer();
-    const events = ['mousedown', 'keydown', 'touchstart', 'click'];
-    events.forEach(e => window.addEventListener(e, handleActivity, { passive: true }));
-    startTimer();
-
-    return () => {
-      if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
-      events.forEach(e => window.removeEventListener(e, handleActivity));
-    };
-  }, [isImmersive, hasAutoTriggered, showExamples, isMobileDevice]);
-
-  // Scroll reveal observer for landing sections — skip when overlay is active
-  useEffect(() => {
-    if (isLoading || showExamples || isImmersive) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('revealed');
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.1, rootMargin: '0px 0px -60px 0px' }
-    );
-
-    const els = document.querySelectorAll('.scroll-reveal');
-    els.forEach(el => observer.observe(el));
-    return () => observer.disconnect();
-  }, [isLoading, showExamples, isImmersive]);
-
-  // Show CinemaLoader while gatekeeper is active
   if (isLoading) {
     return (
       <CinemaLoader
@@ -213,24 +62,6 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-black overflow-hidden relative">
-      {/* Immersive fullscreen video — lives at top level so it works from any scroll position */}
-      {isImmersive && (
-        <ImmersiveVideoBackground 
-          onClose={handleExitImmersive} 
-          onVideoEnded={handleImmersiveVideoEnded}
-        />
-      )}
-      {showImmersiveCTA && <LetsGoCTA onNavigate={handleNavigate} />}
-      {/* Cinematic Transition - lazy loaded to reduce landing bundle */}
-      {showCinematicTransition && (
-        <Suspense fallback={<div className="fixed inset-0 z-[99999] bg-black" />}>
-          <CinematicTransition 
-            isActive={showCinematicTransition} 
-            onComplete={handleTransitionComplete} 
-          />
-        </Suspense>
-      )}
-
       {/* Abstract Background */}
       <ErrorBoundaryWrapper fallback={<BackgroundFallback />}>
         <Suspense fallback={<BackgroundFallback />}>
@@ -238,154 +69,64 @@ export default function Landing() {
         </Suspense>
       </ErrorBoundaryWrapper>
 
-      {/* Navigation */}
-      <LandingNav 
-        onScrollToSection={scrollToSection} 
-        onNavigate={handleNavigate} 
-        signUpButtonRef={signUpButtonRef}
-      />
+      <LandingNav onScrollToSection={scrollToSection} onNavigate={handleNavigate} />
 
-      {/* Hero Section */}
-      <HeroSection onEnterStudio={handleEnterStudio} />
+      {/* Hero */}
+      <B2BHero onPrimary={handleStart} onSecondary={handleSales} />
 
-      {/* Prompt → Result Showcase — suspend video when gallery or immersive active */}
-      <div className="relative z-10 -mt-20 pb-12 px-6">
-        <PromptResultShowcase suspended={showExamples || isImmersive} />
-      </div>
+      {/* Trust bar */}
+      <B2BLogoBar />
 
-      {/* Social Proof Ticker — suspend when overlay active */}
-      <SocialProofTicker suspended={showExamples || isImmersive} />
+      {/* Use cases */}
+      <B2BUseCases />
 
-      {/* Seedance 2.0 — flagship engine ad section */}
-      <section className="relative z-10 py-28 px-6 scroll-reveal">
-        <div className="max-w-6xl mx-auto">
-          <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#0A84FF]/20 via-[#0A84FF]/5 to-transparent backdrop-blur-xl p-10 md:p-16">
-            {/* Glow accents */}
-            <div className="absolute -top-40 -right-40 w-[28rem] h-[28rem] rounded-full bg-[#0A84FF]/25 blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-40 -left-40 w-[28rem] h-[28rem] rounded-full bg-[#0A84FF]/15 blur-3xl pointer-events-none" />
-            <div
-              aria-hidden
-              className="absolute inset-0 opacity-[0.04] pointer-events-none mix-blend-screen"
-              style={{
-                backgroundImage:
-                  'linear-gradient(hsl(0 0% 100% / 0.6) 1px, transparent 1px), linear-gradient(90deg, hsl(0 0% 100% / 0.6) 1px, transparent 1px)',
-                backgroundSize: '48px 48px',
-              }}
-            />
+      {/* Platform pillars */}
+      <B2BPlatformPillars />
 
-            <div className="relative flex flex-col items-center text-center gap-7">
-              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0A84FF]/15 border border-[#0A84FF]/30 text-[#0A84FF] text-[11px] font-semibold tracking-[0.18em] uppercase">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#0A84FF] animate-pulse" />
-                Flagship Engine · Now Live
-              </span>
+      {/* ROI strip */}
+      <B2BROISection />
 
-              <h2 className="font-display text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight leading-[1.05]">
-                Built on{' '}
-                <span className="bg-gradient-to-r from-white via-[#0A84FF] to-white bg-clip-text text-transparent">
-                  Seedance 2.0
-                </span>
-              </h2>
-
-              <p className="max-w-3xl text-lg md:text-xl text-white/70 font-light leading-relaxed">
-                The most cinematic generative video engine ever shipped to a creator app. Lens-aware
-                cinematography, physics-grade motion, and frame-perfect continuity — wired directly into
-                the Apex pipeline so every prompt renders like it was shot on set.
-              </p>
-
-              {/* Spec strip */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 w-full max-w-3xl mt-2">
-                {[
-                  { k: '1080p', l: '24fps cinema' },
-                  { k: '12s', l: 'Per-clip length' },
-                  { k: 'Native', l: 'Synced audio' },
-                  { k: '∞', l: 'End-frame chains' },
-                ].map((s) => (
-                  <div
-                    key={s.l}
-                    className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur px-4 py-4"
-                  >
-                    <div className="text-2xl md:text-3xl font-display font-bold text-white">{s.k}</div>
-                    <div className="text-[11px] tracking-[0.16em] uppercase text-white/40 mt-1">{s.l}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Pillars */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mt-6 text-left">
-                {[
-                  {
-                    t: 'Cinematographer-grade Direction',
-                    d: 'Honors lens specs, apertures, named camera moves and lighting cues — every prompt rendered like a blocking sheet, not a stock clip.',
-                  },
-                  {
-                    t: 'Physics-Grade Motion',
-                    d: 'Inertia, secondary motion and weight feel real. No more floaty AI drift — bodies, fabric and props move like they obey gravity.',
-                  },
-                  {
-                    t: 'Frame-Perfect Continuity',
-                    d: 'End-frame chaining locks every cut to the next, so multi-clip scenes flow as one cohesive shot — characters, lighting and world all hold.',
-                  },
-                ].map((p) => (
-                  <div
-                    key={p.t}
-                    className="rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] transition-colors duration-300 p-5"
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#0A84FF]" />
-                      <h3 className="text-sm font-semibold text-white tracking-wide">{p.t}</h3>
-                    </div>
-                    <p className="text-sm text-white/55 leading-relaxed font-light">{p.d}</p>
-                  </div>
-                ))}
-              </div>
-
-              <p className="text-xs text-white/30 tracking-[0.2em] uppercase mt-4">
-                One prompt · Cinema-grade output · Powered by Seedance 2.0
-              </p>
-            </div>
+      {/* Pricing anchor — keep simple, link to /pricing */}
+      <section id="pricing" className="relative z-10 py-20 px-6">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="text-[11px] font-medium text-[#0A84FF] tracking-[0.22em] uppercase mb-4">
+            Pricing
+          </p>
+          <h2 className="font-display text-4xl md:text-5xl font-bold text-white tracking-tight mb-4">
+            Pay only for what you ship.
+          </h2>
+          <p className="text-white/55 text-lg font-light leading-relaxed mb-8">
+            $0.10 per credit. No seats, no minimums. Add credits as your team
+            scales — or talk to us about volume contracts.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={() => navigate('/pricing')}
+              className="h-12 px-7 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90 transition-all"
+            >
+              See pricing
+            </button>
+            <button
+              onClick={handleSales}
+              className="h-12 px-7 text-sm font-medium rounded-full text-white/70 hover:text-white hover:bg-white/[0.06] transition-all"
+            >
+              Volume & enterprise
+            </button>
           </div>
         </div>
       </section>
 
-      {/* How it Works — scroll reveal */}
-      <div className="scroll-reveal">
-        <HowItWorksSection />
-      </div>
-
-      {/* Features Showcase — scroll reveal */}
-      <div className="scroll-reveal" data-section="features" style={{ animationDelay: '100ms' }}>
-        <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
-          <Suspense fallback={<SectionLoader />}>
-            <FeaturesShowcase />
-          </Suspense>
-        </ErrorBoundaryWrapper>
-      </div>
-
-      {/* Pricing CTA — scroll reveal */}
-      <div className="scroll-reveal" data-section="pricing" style={{ animationDelay: '200ms' }}>
-        <PricingSection onNavigate={handleNavigate} isImmersive={isImmersive} onEnterImmersive={handleEnterImmersive} suppressVideo={showExamples || isImmersive} />
-      </div>
-
       {/* FAQ */}
-      <div id="faq" className="scroll-reveal">
-        <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
+      <div id="faq">
+        <ErrorBoundaryWrapper fallback={<SectionLoader />}>
           <Suspense fallback={<SectionLoader />}>
             <FAQSection />
           </Suspense>
         </ErrorBoundaryWrapper>
       </div>
 
-      {/* Avatar CTA — scroll reveal */}
-      <div className="scroll-reveal">
-        <AvatarCTASection onNavigate={handleNavigate} />
-      </div>
-
-      {/* Examples Gallery */}
-      <ErrorBoundaryWrapper fallback={null}>
-        <Suspense fallback={null}>
-          <ExamplesGallery open={showExamples} onOpenChange={handleExamplesChange} />
-        </Suspense>
-      </ErrorBoundaryWrapper>
+      {/* Final CTA */}
+      <B2BFinalCTA onPrimary={handleStart} onSecondary={handleSales} />
 
       {/* Footer */}
       <ErrorBoundaryWrapper fallback={<footer className="py-12 bg-black" />}>
@@ -393,7 +134,6 @@ export default function Landing() {
           <Footer />
         </Suspense>
       </ErrorBoundaryWrapper>
-
     </div>
   );
 }

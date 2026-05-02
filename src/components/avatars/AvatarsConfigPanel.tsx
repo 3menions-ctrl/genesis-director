@@ -53,6 +53,8 @@ interface AvatarsConfigPanelProps {
   onEnableDualAvatarChange: (enabled: boolean) => void;
   cinematicMode: CinematicModeConfig;
   onCinematicModeChange: (config: CinematicModeConfig) => void;
+  videoEngine: 'kling' | 'seedance';
+  onVideoEngineChange: (engine: 'kling' | 'seedance') => void;
   estimatedDuration: number;
   estimatedCredits: number;
   userCredits: number;
@@ -82,6 +84,8 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
   onEnableDualAvatarChange,
   cinematicMode,
   onCinematicModeChange,
+  videoEngine,
+  onVideoEngineChange,
   estimatedDuration,
   estimatedCredits,
   userCredits,

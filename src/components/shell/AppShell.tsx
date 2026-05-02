@@ -153,7 +153,7 @@ export function AppShell({ children }: AppShellProps) {
               {!collapsed && (
                 <div className="flex flex-col min-w-0 lg:flex">
                   <span className="text-[15px] font-semibold text-white/95 tracking-[-0.03em] leading-none font-display truncate">
-                    Apex<span className="display-serif text-white/85 mx-[2px] text-[16px]">·</span><span className="display-serif text-white/85 text-[15px]">Studio</span>
+                    Apex<span className="display-serif text-white/85 mx-[1px] text-[15px]">-</span><span className="display-serif text-white/85 text-[15px]">Studio</span>
                   </span>
                   <span className="text-[9px] font-light uppercase tracking-[0.22em] text-white/30 mt-[4px]">
                     Creative Suite

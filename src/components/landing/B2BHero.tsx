@@ -1,9 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react';
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Sparkles, Play } from 'lucide-react';
-import heroImage from '@/assets/landing-immersive-hero.jpg';
-import corporateVideo from '@/assets/landing-immersive-hero.mp4.asset.json';
 import { HOPPY_INTRO_EVENT } from './HoppyImmersiveIntro';
 
 interface Props {
@@ -15,10 +13,6 @@ const ROTATING_WORDS = ['ads', 'launch films', 'social cuts', 'product reels'];
 
 export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end start'] });
-  const bgY = useTransform(scrollYProgress, [0, 1], [0, 200]);
-  const bgOpacity = useTransform(scrollYProgress, [0, 1], [1, 0.3]);
-
   const [wordIndex, setWordIndex] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setWordIndex((i) => (i + 1) % ROTATING_WORDS.length), 2800);
@@ -32,36 +26,6 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
   };
   return (
     <section ref={sectionRef} className="relative z-10 min-h-[100vh] flex flex-col items-center justify-center px-6 pt-36 pb-20 overflow-hidden">
-      {/* Background corporate video loop with parallax */}
-      <motion.div style={{ y: bgY, opacity: bgOpacity }} className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-        <video
-          src={corporateVideo.url}
-          poster={heroImage}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          className="absolute inset-0 w-full h-full object-cover opacity-[0.32] scale-[1.04]"
-        />
-        {/* Film grain overlay */}
-        <div
-          className="absolute inset-0 opacity-[0.04] mix-blend-overlay"
-          style={{
-            backgroundImage:
-              "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>\")",
-          }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              'radial-gradient(80% 60% at 50% 40%, transparent 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.95) 100%)',
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black" />
-      </motion.div>
-
       {/* Floating ambient orbs — cinematic key + fill */}
       <motion.div
         animate={{

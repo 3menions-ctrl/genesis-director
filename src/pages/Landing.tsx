@@ -94,6 +94,62 @@ export default function Landing() {
     return <div className={`relative ${py}`}>{children}</div>;
   };
 
+  // Editorial chapter frame — adds a premium "magazine spread" feel with
+  // a numbered margin, eyebrow kicker, and faint vertical rail.
+  const Chapter = ({
+    n,
+    kicker,
+    children,
+    size = 'md',
+  }: {
+    n: string;
+    kicker: string;
+    children: React.ReactNode;
+    size?: 'sm' | 'md' | 'lg';
+  }) => {
+    const py = size === 'lg' ? 'py-24 md:py-40' : size === 'sm' ? 'py-12 md:py-20' : 'py-16 md:py-28';
+    return (
+      <section className={`relative ${py}`}>
+        {/* Vertical hairline rail — anchors the chapter to the page grid */}
+        <div
+          aria-hidden
+          className="hidden lg:block absolute left-10 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/[0.06] to-transparent"
+        />
+        {/* Floating chapter marker */}
+        <motion.div
+          initial={{ opacity: 0, x: -12 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true, margin: '-15%' }}
+          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+          className="hidden lg:flex absolute left-6 top-12 flex-col items-start gap-3 select-none"
+        >
+          <span
+            className="text-[10px] font-medium text-white/35 tracking-[0.4em] uppercase"
+            style={{ fontFamily: "'Instrument Sans', sans-serif" }}
+          >
+            {n}
+          </span>
+          <span className="block w-px h-10 bg-gradient-to-b from-[#0A84FF]/60 to-transparent" />
+          <span
+            className="text-[10px] font-medium text-[#0A84FF]/70 tracking-[0.32em] uppercase rotate-180"
+            style={{ writingMode: 'vertical-rl', fontFamily: "'Instrument Sans', sans-serif" }}
+          >
+            {kicker}
+          </span>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-10%' }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+        >
+          {children}
+        </motion.div>
+      </section>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-black overflow-hidden relative">
       {/* Idle-triggered immersive intro */}
@@ -133,36 +189,36 @@ export default function Landing() {
       <Divider size="lg" />
 
       {/* Seedance 2.0 — epic generation engine reveal */}
-      <Spaced size="lg"><SeedanceSection onCta={handleStart} /></Spaced>
+      <Chapter n="01" kicker="The Engine" size="lg"><SeedanceSection onCta={handleStart} /></Chapter>
       <Divider size="lg" />
 
       {/* Cinematic video mosaic — multi-format showcase */}
-      <Spaced><CinematicMosaic /></Spaced>
+      <Chapter n="02" kicker="In Motion"><CinematicMosaic /></Chapter>
       <Divider size="md" />
 
       {/* Scroll-driven cinematic backdrop — premium imagery crossfade */}
-      <Spaced size="lg"><ScrollBackdrop /></Spaced>
+      <Chapter n="03" kicker="Frame by Frame" size="lg"><ScrollBackdrop /></Chapter>
       <Divider size="lg" />
 
-      <Spaced><B2BUseCases /></Spaced>
+      <Chapter n="04" kicker="Use Cases"><B2BUseCases /></Chapter>
       <Divider size="md" />
 
-      <Spaced><B2BGlassFeatures /></Spaced>
+      <Chapter n="05" kicker="The Platform"><B2BGlassFeatures /></Chapter>
       <Divider size="md" />
 
-      <Spaced><B2BComparison /></Spaced>
+      <Chapter n="06" kicker="The Difference"><B2BComparison /></Chapter>
       <Divider size="md" />
 
-      <Spaced><B2BWorkflow /></Spaced>
+      <Chapter n="07" kicker="The Workflow"><B2BWorkflow /></Chapter>
       <Divider size="md" />
 
-      <Spaced><B2BPlatformPillars /></Spaced>
+      <Chapter n="08" kicker="Built In"><B2BPlatformPillars /></Chapter>
       <Divider size="md" />
 
-      <Spaced><B2BROISection /></Spaced>
+      <Chapter n="09" kicker="The Return"><B2BROISection /></Chapter>
       <Divider size="md" />
 
-      <Spaced><B2BTestimonials /></Spaced>
+      <Chapter n="10" kicker="In Their Words"><B2BTestimonials /></Chapter>
       <Divider size="md" />
 
       <Spaced size="sm"><B2BSecurityBar /></Spaced>
@@ -170,6 +226,15 @@ export default function Landing() {
 
       {/* Pricing anchor — keep simple, link to /pricing */}
       <section id="pricing" className="relative z-10 py-40 md:py-56 px-6">
+        {/* Subtle radial spotlight behind pricing */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10"
+          style={{
+            background:
+              'radial-gradient(50% 60% at 50% 40%, hsla(212,100%,50%,0.10), transparent 70%)',
+          }}
+        />
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -177,11 +242,20 @@ export default function Landing() {
           transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
           className="max-w-3xl mx-auto text-center"
         >
-          <p className="text-[11px] font-medium text-[#0A84FF] tracking-[0.22em] uppercase mb-4">
-            Pricing
-          </p>
-          <h2 className="font-display text-5xl md:text-7xl font-bold text-white tracking-tight mb-8 leading-[1.02]">
-            Pay only for what you ship.
+          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-2xl mb-8">
+            <span className="w-1 h-1 rounded-full bg-[#0A84FF]" />
+            <span className="text-[10.5px] font-medium text-white/65 tracking-[0.28em] uppercase">
+              Pricing · Chapter 11
+            </span>
+          </div>
+          <h2 className="font-display text-5xl md:text-7xl font-bold text-white tracking-[-0.035em] mb-8 leading-[1.02]">
+            Pay only for{' '}
+            <span
+              className="italic font-light bg-gradient-to-br from-white via-[#9DCBFF] to-[#0A84FF] bg-clip-text text-transparent"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              what you ship.
+            </span>
           </h2>
           <p className="text-white/55 text-lg md:text-xl font-light leading-relaxed mb-12 max-w-xl mx-auto">
             $0.10 per credit. No seats, no minimums. Add credits as your team

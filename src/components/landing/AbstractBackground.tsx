@@ -88,14 +88,15 @@ const AbstractBackground = memo(forwardRef<HTMLDivElement, AbstractBackgroundPro
           </div>
         )}
 
-        {/* Darker overlay */}
-        <div className="absolute inset-0 bg-black/50" />
-        
-        {/* Vignette */}
-        <div 
+        {/* Soft tint — keeps the image clear & vivid, only a whisper of darkness */}
+        <div className="absolute inset-0 bg-black/15 pointer-events-none" />
+
+        {/* Edge vignette — barely there, preserves image clarity */}
+        <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.5) 100%)',
+            background:
+              'radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.35) 100%)',
           }}
         />
         

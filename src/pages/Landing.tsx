@@ -183,10 +183,14 @@ export default function Landing() {
 
       <LandingNav onScrollToSection={scrollToSection} onNavigate={handleNavigate} />
 
+      {/* Foreground content column — stacks above the fixed video layer */}
+      <div className="relative z-10">
       {/* Hero — extra top breathing room from sticky nav */}
       <div className="pt-16 md:pt-24"><B2BHero onPrimary={handleStart} onSecondary={handleSales} /></div>
 
-      {/* Immersive scroll-locked full-video moment — plays the entire demo edge-to-edge */}
+      {/* Immersive scroll-locked full-video moment — single fixed video that
+          activates once the user scrolls past the hero. All content below
+          sits above it and scrolls over it as a backdrop. */}
       <HoppyImmersiveScrollSection />
 
       <Divider size="sm" />
@@ -310,6 +314,7 @@ export default function Landing() {
           <Footer />
         </Suspense>
       </ErrorBoundaryWrapper>
+      </div>
     </div>
   );
 }

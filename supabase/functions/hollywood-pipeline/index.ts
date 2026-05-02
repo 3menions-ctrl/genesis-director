@@ -1364,6 +1364,8 @@ async function runPreProduction(
         preserveUserContent: request.preserveUserContent,
         // SCENE IDENTITY: Pass comprehensive extraction data for character/environment aware scripting
         sceneIdentityContext,
+        // ENGINE TARGET: Tailors scripting style (Seedance vs Kling) for max quality
+        videoEngine: request.videoEngine || 'kling',
       });
       
       if (scriptResult.shots || scriptResult.clips) {

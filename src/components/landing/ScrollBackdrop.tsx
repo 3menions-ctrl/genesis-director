@@ -40,9 +40,9 @@ export const ScrollBackdrop = memo(function ScrollBackdrop() {
   });
 
   return (
-    <div ref={ref} className="relative w-full" style={{ height: '300vh' }}>
+    <div ref={ref} className="relative w-full" style={{ height: '180vh' }}>
       {/* Pinned cinematic stage */}
-      <div className="sticky top-0 h-screen w-full overflow-hidden">
+      <div className="sticky top-0 h-screen w-full overflow-hidden bg-black">
         <motion.div style={{ y, scale }} className="absolute inset-0">
           {FRAMES.map((src, i) => (
             <motion.div
@@ -63,20 +63,28 @@ export const ScrollBackdrop = memo(function ScrollBackdrop() {
           ))}
         </motion.div>
 
-        {/* Top + bottom fade for seamless blend with surrounding sections */}
+        {/* Generous top/bottom fade so it blends seamlessly into adjacent sections */}
         <div
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              'linear-gradient(180deg, #000 0%, transparent 18%, transparent 82%, #000 100%)',
+              'linear-gradient(180deg, #000 0%, rgba(0,0,0,0.55) 14%, transparent 32%, transparent 68%, rgba(0,0,0,0.55) 86%, #000 100%)',
           }}
         />
-        {/* Vignette */}
+        {/* Cinematic vignette */}
         <div
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.55) 100%)',
+              'radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.65) 100%)',
+          }}
+        />
+        {/* Subtle blue ambient wash to harmonize with the rest of the page */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(60% 40% at 50% 50%, hsla(212,100%,50%,0.06), transparent 70%)',
           }}
         />
         {/* Film grain hairline */}

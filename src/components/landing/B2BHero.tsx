@@ -8,7 +8,7 @@ interface Props {
   onSecondary: () => void;
 }
 
-const ROTATING_WORDS = ['ads', 'launch films', 'social cuts', 'product reels'];
+const ROTATING_WORDS = ['the film', 'the campaign', 'the launch', 'the moment'];
 
 export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
@@ -60,7 +60,7 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
           <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-[#0A84FF]" />
         </span>
         <span className="text-[10.5px] font-medium text-white/65 tracking-[0.28em] uppercase">
-          Apex-Studio · AI Video, Made Cinematic
+          Apex Studio · The Cinema Engine
         </span>
       </motion.div>
 
@@ -77,7 +77,7 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
           transition={{ duration: 0.9, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
           className="block text-[2.5rem] sm:text-6xl md:text-7xl lg:text-[6.75rem] font-bold tracking-[-0.04em] leading-[0.95]"
         >
-          A month of
+          Cinema,
         </motion.span>
         {/* Rotating editorial word */}
         <motion.span
@@ -110,7 +110,7 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
           transition={{ duration: 0.9, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
           className="block text-[2.5rem] sm:text-6xl md:text-7xl lg:text-[6.75rem] font-bold tracking-[-0.04em] leading-[0.95]"
         >
-          shipped this afternoon.
+          on command.
         </motion.span>
       </motion.h1>
 
@@ -122,14 +122,14 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
         className="mt-12 max-w-xl text-center text-[17px] md:text-[19px] text-white/60 font-light leading-[1.65] tracking-[-0.005em]"
         style={{ fontFamily: "'Instrument Sans', sans-serif" }}
       >
-        Type a prompt. Get{' '}
+        One prompt becomes a{' '}
         <span
           className="text-white/85 italic"
           style={{ fontFamily: "'Fraunces', serif", fontVariationSettings: "'opsz' 32" }}
         >
-          on-brand cinema
-        </span>{' '}
-        in minutes — no crew, no edit suite, no contracts.
+          finished film
+        </span>
+        . No crew. No edit bay. No compromise.
       </motion.p>
 
       <motion.div

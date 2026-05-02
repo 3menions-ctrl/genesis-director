@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { StudioProvider } from "@/contexts/StudioContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppLoader } from "@/components/ui/app-loader";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
@@ -35,6 +36,8 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Settings = lazy(() => import("./pages/Settings"));
+const WorkspaceSettings = lazy(() => import("./pages/WorkspaceSettings"));
+const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
 const DeactivateAccount = lazy(() => import("./pages/DeactivateAccount"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 // Legacy Admin removed — replaced by Refine admin
@@ -140,6 +143,7 @@ const App = () => {
             <NavigationGuardProvider>
             <NavigationBridge>
             <AuthProvider>
+              <WorkspaceProvider>
               <StudioProvider>
                 {/* Global Loading Overlay for smooth transitions */}
                 <GlobalLoadingOverlay />
@@ -253,6 +257,18 @@ const App = () => {
                     <ProtectedRoute>
                       <AppShell><DeactivateAccount /></AppShell>
                     </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/settings/workspace" element={
+                  <RouteContainer fallbackMessage="Loading workspace...">
+                    <ProtectedRoute>
+                      <AppShell><WorkspaceSettings /></AppShell>
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/invite/:token" element={
+                  <RouteContainer fallbackMessage="Joining workspace...">
+                    <AcceptInvite />
                   </RouteContainer>
                 } />
                 
@@ -435,6 +451,7 @@ const App = () => {
                 {/* Command Palette (Cmd+K) */}
                 <CommandPalette />
               </StudioProvider>
+              </WorkspaceProvider>
             </AuthProvider>
             </NavigationBridge>
             </NavigationGuardProvider>

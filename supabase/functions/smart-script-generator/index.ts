@@ -912,7 +912,7 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
       }
     }
 
-    console.log("[SmartScript] 🎬 Calling GPT-4o for entertainment-first scene breakdown...");
+    console.log(`[SmartScript] 🎬 Calling GPT-4o for ${isSeedance ? 'Seedance 2.0 cinematic-grade' : 'Kling V3 entertainment-first'} scene breakdown...`);
 
     // GPT-4o for maximum cinematographic intelligence and creative richness
     const response = await fetchWithRetry(
@@ -929,8 +929,11 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
           ],
-          max_tokens: calculateMaxTokens(clipCount, 500, 3000, 6000), // Lean but sufficient for action-dense descriptions
-          temperature: 0.8, // Higher creativity for entertainment value
+          // Seedance scripts are denser (150-220w/clip with structured sections) — give more headroom.
+          max_tokens: isSeedance
+            ? calculateMaxTokens(clipCount, 800, 4500, 9000)
+            : calculateMaxTokens(clipCount, 500, 3000, 6000),
+          temperature: isSeedance ? 0.75 : 0.8, // Slightly tighter for technical precision
           response_format: { type: "json_object" }, // Enforce JSON for reliability
         }),
       },

@@ -166,5 +166,61 @@ export function useEditorClips() {
     }
   }, [user]);
 
-  return { listProjects, loadProjectClips, loading, error };
+  /**
+   * Load EVERY completed clip for the current user in a single round trip.
+   * Used by the editor's premium media gallery so creators see their entire
+   * archive without picking a project first.
+   */
+  const loadAllUserClips = useCallback(async (): Promise<EditorClip[]> => {
+    if (!user) return [];
+    setLoading(true);
+    setError(null);
+    try {
+      // 1) All completed clips in one query
+      const { data: rows, error: cErr } = await supabase
+        .from("video_clips")
+        .select("id, project_id, shot_index, video_url, last_frame_url, duration_seconds, prompt, created_at")
+        .eq("user_id", user.id)
+        .eq("status", "completed")
+        .not("video_url", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (cErr) throw cErr;
+
+      const projectIds = [...new Set((rows || []).map(r => r.project_id))];
+      if (projectIds.length === 0) return [];
+
+      // 2) Resolve project titles in one query
+      const { data: projects } = await supabase
+        .from("movie_projects")
+        .select("id, title, updated_at")
+        .in("id", projectIds);
+
+      const titleMap = new Map<string, string>();
+      const updatedMap = new Map<string, string>();
+      for (const p of projects || []) {
+        titleMap.set(p.id, p.title || "Untitled");
+        if (p.updated_at) updatedMap.set(p.id, p.updated_at);
+      }
+
+      return (rows || []).map(c => ({
+        id: c.id,
+        projectId: c.project_id,
+        projectTitle: titleMap.get(c.project_id) || "Untitled",
+        shotIndex: c.shot_index,
+        videoUrl: c.video_url!,
+        thumbnailUrl: c.last_frame_url,
+        durationSeconds: c.duration_seconds,
+        prompt: c.prompt,
+      }));
+    } catch (err: any) {
+      console.error("Failed to load all clips:", err);
+      setError(err.message || "Failed to load clips");
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  return { listProjects, loadProjectClips, loadAllUserClips, loading, error };
 }

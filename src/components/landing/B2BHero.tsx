@@ -163,11 +163,18 @@ export const B2BHero = memo(function B2BHero({ onPrimary, onSecondary }: Props) 
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, delay: 0.2 }}
-        className="mt-10 max-w-xl text-center text-[17px] md:text-lg text-white/55 font-light leading-[1.7] tracking-[0.005em]"
+        className="mt-12 max-w-xl text-center text-[17px] md:text-[19px] text-white/60 font-light leading-[1.65] tracking-[-0.005em]"
+        style={{ fontFamily: "'Instrument Sans', sans-serif" }}
       >
-        The AI video platform for marketing teams who refuse to compromise.
-        On-brand cinema at the speed of a creative brief — with workspace
-        controls, locked brand kits and approvals built in.
+        The AI video platform for marketing teams who refuse to
+        compromise.{' '}
+        <span
+          className="text-white/85 italic"
+          style={{ fontFamily: "'Fraunces', serif", fontVariationSettings: "'opsz' 32" }}
+        >
+          On-brand cinema
+        </span>{' '}
+        at the speed of a creative brief.
       </motion.p>
 
       <motion.div

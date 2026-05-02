@@ -38,7 +38,6 @@ const PRIMARY_NAV: NavItem[] = [
   { label: 'Avatars',   to: '/avatars',        icon: UserIcon,      hue: 215 },
   { label: 'Templates', to: '/templates',      icon: Layers,        hue: 215 },
   { label: 'Training',  to: '/training-video', icon: GraduationCap, hue: 215 },
-  { label: 'Creators',  to: '/creators',       icon: Users,         hue: 215 },
 ];
 
 interface AppShellProps {

@@ -53,6 +53,8 @@ interface AvatarsConfigPanelProps {
   onEnableDualAvatarChange: (enabled: boolean) => void;
   cinematicMode: CinematicModeConfig;
   onCinematicModeChange: (config: CinematicModeConfig) => void;
+  videoEngine: 'kling' | 'seedance';
+  onVideoEngineChange: (engine: 'kling' | 'seedance') => void;
   estimatedDuration: number;
   estimatedCredits: number;
   userCredits: number;
@@ -82,6 +84,8 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
   onEnableDualAvatarChange,
   cinematicMode,
   onCinematicModeChange,
+  videoEngine,
+  onVideoEngineChange,
   estimatedDuration,
   estimatedCredits,
   userCredits,
@@ -375,6 +379,46 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                   <TooltipContent side="top" className="max-w-xs">
                     <p className="font-medium">Dual Avatar Mode</p>
                     <p className="text-xs text-muted-foreground">AI auto-picks a second character for dialogue scenes</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {/* Video Engine Selector — Kling V3 (lip-sync) or Seedance 2.0 (hyperreal motion) */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div
+                      className="flex items-center gap-1 px-1 py-1 rounded-full transition-all"
+                      style={{
+                        background: 'hsla(0,0%,100%,0.025)',
+                        boxShadow: 'inset 0 0 0 1px hsla(0,0%,100%,0.05)',
+                      }}
+                    >
+                      <span className="text-[10px] text-white/55 font-light uppercase tracking-[0.18em] px-2">Engine</span>
+                      {(['kling', 'seedance'] as const).map((eng) => (
+                        <button
+                          key={eng}
+                          onClick={() => onVideoEngineChange(eng)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-full text-[10px] font-medium uppercase tracking-[0.16em] transition-all",
+                            videoEngine === eng ? "text-white" : "text-white/45 hover:text-white/75"
+                          )}
+                          style={videoEngine === eng ? {
+                            background: 'linear-gradient(135deg, hsl(215,100%,55%), hsl(215,100%,48%))',
+                            boxShadow: 'inset 0 1px 0 hsla(0,0%,100%,0.25), 0 0 12px hsla(215,100%,55%,0.4)',
+                          } : undefined}
+                        >
+                          {eng === 'kling' ? 'Kling V3' : 'Seedance'}
+                        </button>
+                      ))}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p className="font-medium">Video Engine</p>
+                    <p className="text-xs text-muted-foreground">
+                      <strong>Kling V3:</strong> native lip-sync — mouth matches dialogue.<br/>
+                      <strong>Seedance 2.0:</strong> hyperreal motion. Dialogue audio is overlaid in post (no native lip-sync).
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

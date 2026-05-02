@@ -1122,6 +1122,9 @@ async function handleCinematicMode(params: {
       genre,
       mood,
       videoEngine, // CRITICAL: Forward engine selection to hollywood-pipeline (all Kling V3)
+      // CRITICAL: Avatar mode flag survives the hop so generate-single-clip
+      // applies avatar-specific routing (start image, dialogue, audio overlay).
+      isAvatarMode: mode === 'avatar',
       // Breakout template parameters - for platform UI shattering effect
       // The first clip will use breakoutStartImageUrl as the starting frame,
       // with the avatar appearing inside the social media interface

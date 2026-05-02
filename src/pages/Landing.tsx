@@ -1,4 +1,4 @@
-import { useEffect, useCallback, lazy, Suspense } from 'react';
+import { useEffect, useCallback, lazy, Suspense, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSafeNavigation } from '@/lib/navigation';
 import { ErrorBoundaryWrapper } from '@/components/ui/error-boundary';
@@ -15,6 +15,7 @@ import { HoppyImmersiveIntro } from '@/components/landing/HoppyImmersiveIntro';
 import { HoppyImmersiveScrollSection } from '@/components/landing/HoppyImmersiveScrollSection';
 import { IdleEnterOverlay } from '@/components/landing/IdleEnterOverlay';
 import { SeedanceSection } from '@/components/landing/SeedanceSection';
+import { CategoryChooserOverlay, type AudienceCategory } from '@/components/landing/CategoryChooserOverlay';
 import { motion } from 'framer-motion';
 
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
@@ -130,7 +131,18 @@ export default function Landing() {
   }, []);
 
   const handleNavigate = useCallback((path: string) => navigate(path), [navigate]);
-  const handleStart = useCallback(() => navigate('/auth?mode=signup'), [navigate]);
+  const [chooserOpen, setChooserOpen] = useState(false);
+  const handleStart = useCallback(() => setChooserOpen(true), []);
+  const handleSelectCategory = useCallback(
+    (category: AudienceCategory) => {
+      try {
+        localStorage.setItem('apex.audience', category);
+      } catch {}
+      setChooserOpen(false);
+      navigate(`/auth?mode=signup&audience=${category}`);
+    },
+    [navigate],
+  );
   const handleSales = useCallback(() => navigate('/contact?topic=sales'), [navigate]);
 
   if (isLoading) {
@@ -288,6 +300,13 @@ export default function Landing() {
         </Suspense>
       </ErrorBoundaryWrapper>
       </div>
+
+      {/* Category chooser — appears after any "Get started" CTA */}
+      <CategoryChooserOverlay
+        open={chooserOpen}
+        onClose={() => setChooserOpen(false)}
+        onSelect={handleSelectCategory}
+      />
     </div>
   );
 }

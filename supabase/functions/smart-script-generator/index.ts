@@ -110,6 +110,12 @@ interface SmartScriptRequest {
   multiCharacterMode?: boolean;
   characterCast?: CharacterCast[];
   sceneType?: 'monologue' | 'dialogue' | 'group' | 'interview' | 'narrative';
+
+  // ENGINE TARGETING — tailors prompt structure & vocabulary to the underlying model
+  // 'kling'    → Kling V3 (entertainment-first, action-dense, dialogue-aware)
+  // 'seedance' → Seedance 2.0 1080p (physics-grade motion, end-frame chaining, lens-aware)
+  // 'veo'      → Veo (reserved)
+  videoEngine?: 'kling' | 'veo' | 'seedance';
 }
 
 interface SceneClip {
@@ -451,7 +457,149 @@ ${si.allNegatives.slice(0, 10).map((n: string) => `• ${n}`).join('\n')}` : ''}
 [01:30-03:30] ACTION: Primary motion/event.
 [03:30-05:00] RESOLVE: Final state for next clip.`;
 
-    const systemPrompt = `You are a visionary filmmaker — Villeneuve's eye, Spielberg's heart, Fincher's precision. Create ${clipCount} clips (${clipDuration}s each, ${targetSeconds}s total) for Kling V3.
+    // ═══════════════════════════════════════════════════════════════════
+    // ENGINE-AWARE SCRIPTING — Seedance 2.0 vs Kling V3
+    // Each model has VERY different prompt sensitivities:
+    //   • Kling V3   → entertainment/action-dense, dialogue-aware, ignores lens specs
+    //   • Seedance 2.0 → physics-grade motion, lens & camera vocabulary IS interpreted,
+    //                    end-frame chaining critical, native 1080p 24fps cinematic
+    // ═══════════════════════════════════════════════════════════════════
+    const targetEngine: 'kling' | 'veo' | 'seedance' = request.videoEngine || 'kling';
+    const isSeedance = targetEngine === 'seedance';
+    console.log(`[SmartScript] 🎯 ENGINE TARGET: ${targetEngine} ${isSeedance ? '(Seedance 2.0 cinematic mode)' : '(Kling V3 entertainment mode)'}`);
+
+    const systemPrompt = isSeedance ? `You are a master cinematographer writing for SEEDANCE 2.0 (Bytedance) — a physics-grade, 1080p, 24fps cinematic video model that REWARDS technical precision and PUNISHES vague description.
+
+Create ${clipCount} clips (${clipDuration}s each, ${targetSeconds}s total). Every clip must be of EPIC CINEMATIC PROPORTIONS — the kind of shot that wins at Cannes, that opens a Villeneuve film, that lives rent-free in the audience's head.
+
+━━━ WHY SEEDANCE IS DIFFERENT (READ CAREFULLY) ━━━
+Unlike other models, Seedance 2.0:
+✅ READS lens specs ("85mm anamorphic", "24mm wide", "macro lens") and applies them
+✅ READS camera movement vocabulary ("dolly in", "crane up", "Steadicam orbit", "whip pan", "rack focus")
+✅ READS aperture/DOF cues ("f/1.4 shallow depth", "deep focus f/11", "focus pull from foreground to background")
+✅ READS motion physics ("inertia", "momentum carry-through", "secondary motion", "weight transfer")
+✅ EXCELS at end-frame chaining — the LAST FRAME of each clip MUST be describable as a still image
+✅ HONORS frame-rate cues ("slow-motion 120fps ramp", "real-time", "time-lapse", "speed ramp")
+✅ DELIVERS native 1080p 24fps with photographic grain — write for FILM, not video
+❌ Does NOT respond well to dialogue/lip-sync — keep dialogue field minimal, focus on VISUAL story
+❌ Does NOT need "intimate" or generic mood adjectives — give it CONCRETE physics instead
+
+━━━ BANNED CONTENT (will break the pipeline) ━━━
+Never use: "intimate moment", "in bed together", "making love", "having sex", "passionate kiss", "seductive", "sensual", "provocative", "lingerie", "topless", "aroused"
+Replace with: emotional connection, heartfelt exchange, tender moment, confident stance, elegant attire
+
+━━━ THE SEEDANCE FORMULA — EPIC PROPORTIONS, CINEMATIC PRECISION ━━━
+
+Every clip description is a CINEMATOGRAPHER'S BLOCKING SHEET, not a paragraph. Structure:
+
+1. SHOT SPEC (one sentence, opens the description):
+   • Lens: 24mm/35mm/50mm/85mm/100mm macro/anamorphic
+   • Aperture: f/1.4 (shallow), f/2.8 (portrait), f/8 (deep), f/11 (epic landscape)
+   • Format: shot on 35mm film grain / digital cinema / IMAX 65mm
+   • Frame rate cue if relevant: "captured at 48fps for slow-motion ramp"
+
+2. CAMERA CHOREOGRAPHY (one sentence, named movement):
+   • Named move: "Steadicam push-in", "crane descent", "dolly orbit clockwise", "drone reveal pull-back", "whip pan left to right", "rack focus from hand to face"
+   • Speed: "slow 4-second push", "rapid 1-second whip", "glacial dolly"
+   • End point: where the camera lands at the final frame
+
+3. SUBJECT BLOCKING & PHYSICS (3–5 sentences of LIVING motion):
+   • Specific body mechanics: "weight shifts to left foot", "shoulder drops as breath releases", "hand opens — fingers uncurl one at a time"
+   • Secondary motion: hair lift, fabric drape, dust kick-up, water displacement, smoke curl
+   • Inertia & momentum: how mass moves, how it stops, how follow-through carries
+   • Micro-expression: blink, jaw tension, breath visible, pupil dilation
+
+4. ENVIRONMENT IN MOTION (2–3 sentences — the world is alive):
+   • Atmospheric particulate (dust, snow, embers, mist, rain) with direction and density
+   • Light behavior: how it bounces, refracts, scatters through medium
+   • Background life: leaves trembling, water rippling, cloth lifting, flames flickering at exact rates
+
+5. END-FRAME LOCK (one sentence — CRITICAL for Seedance chaining):
+   • Describe the EXACT still image at frame ${clipDuration * 24} (the final frame)
+   • This frame becomes the start frame of the next clip — must be photographable
+
+6. AUDIO BED (one line each):
+   • SFX: foley-specific sounds tied to on-screen action
+   • AMB: layered atmosphere with directionality
+   • SCORE: emotional musical direction with instrumentation hint
+
+━━━ HERO-LEVEL EXAMPLES (study these — Seedance grade) ━━━
+
+EXAMPLE A — INTIMATE PORTRAIT:
+"Shot on 85mm anamorphic at f/1.4, 35mm film grain, captured 24fps. Slow 6-second Steadicam push-in from medium-wide to tight close-up, ending with her left eye perfectly center-frame. She turns her head 30 degrees toward the unseen window — chin lifts first, then shoulders rotate, hair (shoulder-length, dark amber) lifts and resettles with gravity's delay. A single breath escapes; the visible exhale catches the cold blue rim light from camera-left, dispersing as warm-cool gradient mist over 1.2 seconds. Background: amber tungsten practical bokeh, octagonal aperture blades visible, soft-focused into watercolor. Dust motes drift down-screen at 3 inches per second through a single shaft of god-light. Final frame: her eye is in razor-sharp focus, eyelashes catching rim light, a single tear pooling at the lower lid but not yet falling — the catchlight forms a perfect crescent. SFX: subtle breath, fabric whisper. AMB: distant rain on glass at -18dB. SCORE: solo cello, low register, sustained Bb."
+
+EXAMPLE B — KINETIC ACTION:
+"Shot on 24mm wide at f/5.6, deep focus, IMAX-style 65mm digital. Aggressive 2-second handheld whip-pan left-to-right tracking him as he sprints across the rain-soaked rooftop, ending locked-off at extreme low angle. His body lean: 18-degree forward pitch, arms pumping in opposed rhythm, each footstrike sending a crown-shaped sheet of water 4 feet upward and outward. Coat tails snap 90 degrees behind him with audible flap. Rain falls in silver diagonal sheets at 35 degrees, lit from behind by a single 10K HMI casting hard rim separation. Lightning flash mid-clip: 1/24th second of pure white wash, then return to noir blue-black. Steam vents to his right exhale at exactly the moment he passes — pressure-driven, not decorative. Final frame: he is mid-air leaping the gap between buildings, body in arched silhouette against a lightning-fractured sky, water suspended in droplets around him as if gravity has paused. SFX: heavy footfall splash, coat snap, wind shear. AMB: city-wide thunderstorm with directional thunder rumble. SCORE: pulsing 808 sub, taiko hits on each footstep."
+
+EXAMPLE C — EPIC ESTABLISHING:
+"Shot on 14mm ultra-wide at f/11, anamorphic flares, 70mm film stock. 8-second drone-style crane ascent starting at ground level (pebbles, boots, dust) rising vertically to 200ft revealing the full landscape. The valley unfolds: a black basalt cathedral carved by glacier, golden-hour sun grazing the eastern ridge at 12 degrees above horizon, casting 800-foot shadows that move visibly across the valley floor as the camera rises. A river of silver mercury winds through the center, catching light in liquid sequins. Three figures — tiny, scale-defining — stand on the cliff edge stage-right, coats flapping in unison. Sky: cumulus stratus stack, lit from below in coral and rose, with the highest cloud catching pure white-gold. As the camera rises, the horizon line sinks, revealing more world — a second valley, a distant ocean, a curve of earth. Final frame: the three figures are pinpoints, the entire valley visible, sun about to break the ridge into lens flare starburst. SFX: wind grows from -30dB to -12dB as altitude rises. AMB: high-altitude air, distant raven call. SCORE: 90-piece orchestra entering at the 6-second mark, swelling brass."
+
+${referenceImageContext}
+${sceneIdentityBlock}
+
+━━━ STRUCTURE: EXACTLY ${clipCount} CLIPS — EPIC ARC ━━━
+
+• Clip 1: COLD OPEN — A single image of such specificity it stops the scroll. Begin in motion.
+• Middle clips: ESCALATION ARC — Each clip raises one of: scale, intimacy, stakes, beauty, tension. Vary lens/movement/scale on every cut.
+• Final clip: PAYOFF FRAME — The shot the trailer ends on. Earned. Inevitable. Unforgettable.
+
+EVERY clip MUST follow Seedance structure:
+1. Shot Spec → 2. Camera Choreography → 3. Subject Blocking & Physics → 4. Environment in Motion → 5. End-Frame Lock → 6. Audio Bed
+2. Be 150-220 words — DENSER than Kling because Seedance reads detail
+3. Every camera movement is NAMED with speed and end-point
+4. Every motion has PHYSICS (inertia, gravity, friction, follow-through)
+5. End-Frame Lock is MANDATORY — describes the still that opens the next clip
+6. NO two consecutive clips share lens, movement type, AND scale — vary at least two
+
+CHARACTER/ENVIRONMENT CONSISTENCY (Seedance is strict):
+• Define character appearance with PHOTOGRAPHIC precision in clip 1, repeat verbatim every clip
+• Same location anchored by named landmarks — repeat in every clip's environment description
+• Lighting source, direction, and color temperature stated in EVERY clip
+${isImageToVideo ? '\n• The uploaded photograph is the visual ground truth. Clip 1 unfreezes that exact frame in real-time motion. Every clip remains chained to this person, this geography, this light source.' : ''}
+${voiceDisabled ? '\n🔇 SILENT MODE: dialogue field = "" for ALL clips. Pure visual cinema (Seedance excels here).' : '\n🎤 DIALOGUE: Keep brief — Seedance does not lip-sync. Treat dialogue as voiceover only.'}
+${mustPreserveContent ? '\n🎤 USER TEXT: Use the user\'s exact narration/dialogue VERBATIM in the dialogue field as voiceover. Do not paraphrase.' : ''}
+
+${isMultiCharacter ? `
+🎭 MULTI-CHARACTER SCENE (${characterCast.length} characters):
+${characterCast.map((c) => `${c.name} (${c.role}): ${c.appearance.substring(0, 100)}`).join('\n')}
+Scene type: ${sceneType}. State each character's exact spatial position relative to camera in every clip.
+` : ''}
+
+OUTPUT FORMAT (strict JSON):
+{
+  "clips": [
+    {
+      "index": 0,
+      "title": "Evocative 3-5 word title",
+      "description": "FULL Seedance-structured description (150-220 words) covering: Shot Spec → Camera Choreography → Subject Blocking & Physics → Environment in Motion → End-Frame Lock → Audio Bed",
+      "durationSeconds": ${clipDuration},
+      "actionPhase": "establish|initiate|develop|escalate|peak|settle",
+      "previousAction": "",
+      "currentAction": "Specific physical action with named body mechanics",
+      "nextAction": "What happens next — feeds the next clip's opening",
+      "characterDescription": "Photographic-precision character appearance — identical in all clips",
+      "locationDescription": "Named landmarks + atmosphere — identical in all clips",
+      "lightingDescription": "Source, direction, color temperature, quality — identical in all clips",
+      "cameraScale": "extreme-wide|wide|medium-wide|medium|medium-close|close-up|extreme-close-up",
+      "cameraAngle": "eye-level|low-angle|high-angle|dutch-angle|birds-eye|worms-eye",
+      "movementType": "static|dolly-in|dolly-out|tracking|crane-up|crane-down|orbit|steadicam|handheld|whip-pan|rack-focus|drone-reveal",
+      "motionDirection": "Direction, speed, end-point of movement",
+      "lensSpec": "Lens focal length + aperture (e.g. '85mm anamorphic at f/1.4')",
+      "endFrameLock": "Exact description of the final frame as a photographic still",
+      "transitionHint": "How this clip's end frame becomes the next clip's start frame",
+      "sfxDirection": "Foley-specific sound effects tied to on-screen action",
+      "ambientDirection": "Layered atmospheric audio with directionality",
+      "musicDirection": "Score direction with instrumentation",
+      "dialogue": "${voiceDisabled ? '' : "Brief voiceover line (Seedance does not lip-sync)"}",
+      "mood": "Emotional tone"${isMultiCharacter ? `,
+      "charactersInScene": ["names"],
+      "focusCharacter": "primary character",
+      "characterActions": {"Name": "specific physical action"},
+      "characterDialogue": {"Name": "voiceover line"},
+      "interactionType": "solo|dialogue|group"` : ''}
+    }
+  ]
+}` : `You are a visionary filmmaker — Villeneuve's eye, Spielberg's heart, Fincher's precision. Create ${clipCount} clips (${clipDuration}s each, ${targetSeconds}s total) for Kling V3.
 
 YOUR MANDATE: Every clip must be a painting that MOVES. The kind of shot that makes someone stop scrolling and whisper "how is this real." Ruthlessly cinematic. Zero filler.
 
@@ -764,7 +912,7 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
       }
     }
 
-    console.log("[SmartScript] 🎬 Calling GPT-4o for entertainment-first scene breakdown...");
+    console.log(`[SmartScript] 🎬 Calling GPT-4o for ${isSeedance ? 'Seedance 2.0 cinematic-grade' : 'Kling V3 entertainment-first'} scene breakdown...`);
 
     // GPT-4o for maximum cinematographic intelligence and creative richness
     const response = await fetchWithRetry(
@@ -781,8 +929,11 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
           ],
-          max_tokens: calculateMaxTokens(clipCount, 500, 3000, 6000), // Lean but sufficient for action-dense descriptions
-          temperature: 0.8, // Higher creativity for entertainment value
+          // Seedance scripts are denser (150-220w/clip with structured sections) — give more headroom.
+          max_tokens: isSeedance
+            ? calculateMaxTokens(clipCount, 800, 4500, 9000)
+            : calculateMaxTokens(clipCount, 500, 3000, 6000),
+          temperature: isSeedance ? 0.75 : 0.8, // Slightly tighter for technical precision
           response_format: { type: "json_object" }, // Enforce JSON for reliability
         }),
       },
@@ -1008,9 +1159,9 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
     // in the prompt that reaches Kling V3, regardless of how the pipeline assembles it.
     // The block is structured so Kling reads it first (highest attention weight).
     // =====================================================
-    const isVeoMode = request.mode === 'text-to-video' || request.mode === 'image-to-video';
-    
-    if (isVeoMode) {
+    const shouldInjectDNA = request.mode === 'text-to-video' || request.mode === 'image-to-video';
+
+    if (shouldInjectDNA) {
       const lockedChar = lockFields.characterDescription;
       const lockedEnv  = forcedLocation;
       const lockedLight = forcedLighting;
@@ -1020,7 +1171,12 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
 
       normalizedClips.forEach((clip) => {
         const dnaParts: string[] = [];
-        
+
+        // Seedance reads technical directives — inject them at the very top, highest weight.
+        if (isSeedance) {
+          dnaParts.push(`[SEEDANCE_DIRECTIVES — TARGET ENGINE: Seedance 2.0 1080p 24fps. Honor all named camera moves, lens specs, aperture cues, and end-frame locks. Render with photographic 35mm film grain. Maintain physics-grade motion: inertia, gravity, follow-through, secondary motion on hair/fabric/particulate.]`);
+        }
+
         if (lockedChar && lockedChar.length > 10) {
           dnaParts.push(`[CHARACTER_ANCHOR — SAME IN EVERY CLIP: ${lockedChar.substring(0, 220)}]`);
         }
@@ -1033,13 +1189,13 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
         if (masterDNA && masterDNA.length > 10) {
           dnaParts.push(`[SCENE_DNA: ${masterDNA.substring(0, 280)}]`);
         }
-        
+
         if (dnaParts.length > 0) {
           clip.description = dnaParts.join('\n') + '\n\n' + clip.description;
         }
       });
-      
-      console.log(`[SmartScript] ✓ Kling V3 continuity DNA injected into ${normalizedClips.length} clip descriptions (mode: ${request.mode})`);
+
+      console.log(`[SmartScript] ✓ ${isSeedance ? 'Seedance 2.0' : 'Kling V3'} continuity DNA injected into ${normalizedClips.length} clip descriptions (mode: ${request.mode})`);
     }
 
     const totalDuration = normalizedClips.reduce((sum, clip) => sum + clip.durationSeconds, 0);
@@ -1064,6 +1220,7 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
       model: "gpt-4o",
       generationTimeMs,
       usage: data.usage,
+      targetEngine,
     });
 
   } catch (error) {

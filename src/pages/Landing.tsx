@@ -12,6 +12,7 @@ import { B2BUseCases } from '@/components/landing/B2BUseCases';
 import { B2BPlatformPillars } from '@/components/landing/B2BPlatformPillars';
 import { B2BROISection } from '@/components/landing/B2BROISection';
 import { B2BFinalCTA } from '@/components/landing/B2BFinalCTA';
+import { B2BGlassFeatures, B2BWorkflow } from '@/components/landing/B2BGlassFeatures';
 
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 const FAQSection = lazy(() => import('@/components/landing/FAQSection'));
@@ -79,6 +80,12 @@ export default function Landing() {
 
       {/* Use cases */}
       <B2BUseCases />
+
+      {/* Premium glassmorphic feature grid */}
+      <B2BGlassFeatures />
+
+      {/* Workflow */}
+      <B2BWorkflow />
 
       {/* Platform pillars */}
       <B2BPlatformPillars />

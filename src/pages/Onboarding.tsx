@@ -390,8 +390,24 @@ export default function Onboarding() {
             </div>
           </div>
 
-          {/* Card */}
-          <div className="rounded-3xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-2xl p-7 sm:p-9">
+          {/* Card — premium glass */}
+          <div
+            className="relative rounded-[28px] p-7 sm:p-9 overflow-hidden"
+            style={{
+              background:
+                'linear-gradient(180deg, hsla(220, 14%, 7%, 0.72) 0%, hsla(220, 14%, 3%, 0.92) 100%)',
+              backdropFilter: 'blur(28px)',
+              WebkitBackdropFilter: 'blur(28px)',
+              border: '1px solid hsla(0,0%,100%,0.07)',
+              boxShadow:
+                '0 1px 0 hsla(0,0%,100%,0.06) inset, 0 40px 100px -30px rgba(0,0,0,0.75), 0 0 80px -30px hsla(212, 100%, 50%, 0.18)',
+            }}
+          >
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent pointer-events-none" />
+            <div
+              className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 w-[420px] h-[200px] rounded-full"
+              style={{ background: 'radial-gradient(closest-side, hsla(212,100%,55%,0.22), transparent 70%)' }}
+            />
             <AnimatePresence mode="wait">
               <motion.div
                 key={`hdr-${step}`}

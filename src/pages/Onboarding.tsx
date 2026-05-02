@@ -439,6 +439,37 @@ export default function Onboarding() {
                 {/* ─── STEP 1: Profile ─── */}
                 {step === 1 && (
                   <div className="space-y-5">
+                    <div className="space-y-2">
+                      <Label className="text-white/55 text-xs font-medium uppercase tracking-wider">
+                        I'll use Apex-Studio for
+                      </Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {([
+                          { id: 'personal', label: 'Personal', sub: 'Solo creator' },
+                          { id: 'business', label: 'Business', sub: 'Team / brand' },
+                          { id: 'enterprise', label: 'Enterprise', sub: 'Org-wide' },
+                        ] as const).map(opt => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setForm({ ...form, accountType: opt.id })}
+                            className={cn(
+                              'group flex flex-col items-start gap-0.5 px-3.5 py-3 rounded-xl text-left transition-all border',
+                              form.accountType === opt.id
+                                ? 'bg-[#0A84FF]/10 border-[#0A84FF]/40 text-white'
+                                : 'bg-white/[0.02] border-white/[0.05] text-white/55 hover:bg-white/[0.04] hover:text-white/80'
+                            )}
+                          >
+                            <span className="text-sm font-medium">{opt.label}</span>
+                            <span className="text-[10.5px] text-white/40 group-hover:text-white/55">{opt.sub}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-[11px] text-white/30">
+                        We'll tailor the workspace defaults. You can change this later in settings.
+                      </p>
+                    </div>
+
                     <FieldText
                       id="fullName" label="Full name" icon={User}
                       placeholder="Jane Cooper" value={form.fullName}

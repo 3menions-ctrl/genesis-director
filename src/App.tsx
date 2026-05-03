@@ -14,7 +14,6 @@ import { AppLoader } from "@/components/ui/app-loader";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 // WorldChatButton removed - now a dedicated page
 import { WelcomeVideoModal } from "@/components/welcome/WelcomeVideoModal";
-import { WelcomeOfferModal } from "@/components/welcome/WelcomeOfferModal";
 import { GlobalStabilityBoundary } from "@/components/stability/GlobalStabilityBoundary";
 import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";

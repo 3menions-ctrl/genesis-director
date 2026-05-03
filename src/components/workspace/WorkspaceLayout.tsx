@@ -76,11 +76,11 @@ const COLLAPSE_KEY = 'apex.workspaceRailCollapsed';
 
 /**
  * Workspace shell — Operations Command Center.
- * Intentionally distinct from the personal Pro-Dark canonical shell:
- *   • warm graphite ground (hsl 35,10%,4%) instead of cool blue-black
- *   • amber/copper accent (hsl 28,90%,60%) instead of #0A84FF blue
- *   • square edges, dense data layout, mono labels, no glow rails
- *   • editorial "ops console" voice (modules, telemetry, ORG ID)
+ * Pro-Dark canonical palette (hsl 220,14%,*) + single blue accent
+ * (hsl 215,100%,60%, matches AppShell). Square edges, dense data
+ * layout, mono labels, editorial "ops console" voice.
+ * Used as the SOLE shell for every /workspace/* route — do NOT
+ * wrap workspace pages in <AppShell> as well.
  */
 export function WorkspaceLayout({ children }: { children: ReactNode }) {
   const { currentOrg, hasPermission, loading, organizations, switchOrg } = useWorkspace();
@@ -339,22 +339,6 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(220,8%,55%)]">
             <span className="w-1.5 h-1.5 rounded-full bg-[hsl(140,70%,50%)] animate-pulse" />
             All systems nominal
-          </div>
-        </div>
-
-        {/* Masthead */}
-        <div className="border-b border-[hsl(220,14%,12%)]">
-          <div className="px-6 lg:px-10 py-8">
-            <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-[hsl(220,8%,45%)] mb-2">
-              ORG · {currentOrg.id.slice(0, 8).toUpperCase()}
-            </div>
-            <h1 className="font-display text-[32px] sm:text-[42px] leading-[1.04] font-light tracking-tight">
-              {currentOrg.name}
-              <span className="text-[hsl(215,100%,60%)]">.</span>
-            </h1>
-            <p className="text-[13px] text-[hsl(220,8%,55%)] mt-2 font-light max-w-xl">
-              Operations console for {currentOrg.name}. Provision seats, govern brand, audit spend.
-            </p>
           </div>
         </div>
 

@@ -703,23 +703,51 @@ function ChipGrid({
   return (
     <div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {options.map(({ id, label, Icon }) => {
+        {options.map(({ id, label, Icon }, i) => {
           const active = selected.includes(id);
           return (
-            <button
+            <motion.button
               key={id}
               onClick={() => onToggle(id)}
+              initial={{ opacity: 0, y: 18, filter: 'blur(6px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              transition={{ duration: 0.45, delay: 0.05 + i * 0.05, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={{ y: -4, scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
               className={cn(
-                'group relative h-28 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all',
+                'group relative h-28 rounded-2xl border flex flex-col items-center justify-center gap-2 overflow-hidden',
                 active
-                  ? 'border-[#0A84FF]/55 bg-[#0A84FF]/[0.08] shadow-[0_0_30px_-8px_hsla(212,100%,55%,0.4)]'
-                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/15'
+                  ? 'border-[#0A84FF]/60 bg-[#0A84FF]/[0.10] shadow-[0_0_40px_-8px_hsla(212,100%,55%,0.5)]'
+                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]'
               )}
             >
-              {Icon && <Icon className={cn('w-5 h-5 transition', active ? 'text-[#9DCBFF]' : 'text-white/55')} />}
-              <span className="text-sm font-medium">{label}</span>
-              {active && <Check className="absolute top-2.5 right-2.5 w-3.5 h-3.5 text-[#9DCBFF]" />}
-            </button>
+              {/* Ambient corner glow on active */}
+              {active && (
+                <motion.div aria-hidden className="absolute -top-10 -left-10 w-32 h-32 rounded-full pointer-events-none"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  style={{ background: 'radial-gradient(circle, hsla(212,100%,60%,0.35), transparent 70%)' }} />
+              )}
+              {/* Hover sheen */}
+              <span aria-hidden className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-[1100ms] ease-out pointer-events-none"
+                style={{ background: 'linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.08) 50%, transparent 70%)' }} />
+              {Icon && <Icon className={cn('w-5 h-5 transition-all duration-300', active ? 'text-[#9DCBFF] scale-110' : 'text-white/55 group-hover:text-white/80')} />}
+              <span className="text-sm font-medium relative">{label}</span>
+              <AnimatePresence>
+                {active && (
+                  <motion.span
+                    key="check"
+                    initial={{ scale: 0, rotate: -45 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    exit={{ scale: 0 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                    className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full flex items-center justify-center"
+                    style={{ background: 'linear-gradient(135deg, #0A84FF, #5AC8FA)' }}
+                  >
+                    <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
           );
         })}
       </div>
@@ -741,25 +769,51 @@ function RadioGrid({
   return (
     <div>
       <div className={cn('grid gap-3', compact ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2')}>
-        {options.map(({ id, label, desc }) => {
+        {options.map(({ id, label, desc }, i) => {
           const active = selected === id;
           return (
-            <button
+            <motion.button
               key={id}
               onClick={() => onSelect(id)}
+              initial={{ opacity: 0, y: 16, filter: 'blur(6px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              transition={{ duration: 0.45, delay: 0.04 + i * 0.04, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={{ y: -3, scale: 1.015 }}
+              whileTap={{ scale: 0.98 }}
               className={cn(
-                'text-left p-4 md:p-5 rounded-2xl border transition-all',
+                'group relative text-left p-4 md:p-5 rounded-2xl border overflow-hidden',
                 active
-                  ? 'border-[#0A84FF]/55 bg-[#0A84FF]/[0.08] shadow-[0_0_30px_-8px_hsla(212,100%,55%,0.4)]'
-                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/15'
+                  ? 'border-[#0A84FF]/60 bg-[#0A84FF]/[0.10] shadow-[0_0_40px_-8px_hsla(212,100%,55%,0.5)]'
+                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]'
               )}
             >
-              <div className="flex items-center justify-between">
+              {active && (
+                <motion.div aria-hidden className="absolute -top-8 -right-8 w-28 h-28 rounded-full pointer-events-none"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  style={{ background: 'radial-gradient(circle, hsla(212,100%,60%,0.3), transparent 70%)' }} />
+              )}
+              <span aria-hidden className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-[1100ms] ease-out pointer-events-none"
+                style={{ background: 'linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.06) 50%, transparent 70%)' }} />
+              <div className="relative flex items-center justify-between">
                 <p className="text-sm font-semibold">{label}</p>
-                {active && <Check className="w-4 h-4 text-[#9DCBFF]" />}
+                <AnimatePresence>
+                  {active && (
+                    <motion.span
+                      key="check"
+                      initial={{ scale: 0, rotate: -45 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      exit={{ scale: 0 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                      className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                      style={{ background: 'linear-gradient(135deg, #0A84FF, #5AC8FA)' }}
+                    >
+                      <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </div>
-              {desc && <p className="text-xs text-white/45 mt-1">{desc}</p>}
-            </button>
+              {desc && <p className="relative text-xs text-white/45 mt-1">{desc}</p>}
+            </motion.button>
           );
         })}
       </div>

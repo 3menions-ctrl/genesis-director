@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, ChevronsUpDown, Plus, Building2, Settings as SettingsIcon, Users, Palette, CreditCard, BarChart3 } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus, Building2, Settings as SettingsIcon, Users, Palette, CreditCard, BarChart3, Layers } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { cn } from '@/lib/utils';
@@ -130,6 +130,13 @@ export function WorkspaceSwitcher({ collapsed }: Props) {
               Workspace admin
             </DropdownMenuLabel>
             <DropdownMenuItem
+              onClick={() => navigate('/workspace')}
+              className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer"
+            >
+              <Building2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+              Overview
+            </DropdownMenuItem>
+            <DropdownMenuItem
               onClick={() => navigate('/workspace/team')}
               className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer"
             >
@@ -142,6 +149,13 @@ export function WorkspaceSwitcher({ collapsed }: Props) {
             >
               <Palette className="w-3.5 h-3.5" strokeWidth={1.5} />
               Brand kit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => navigate('/workspace/assets')}
+              className="text-[12.5px] text-white/65 hover:text-white focus:text-white focus:bg-white/[0.06] rounded-xl py-2 px-3 gap-2.5 cursor-pointer"
+            >
+              <Layers className="w-3.5 h-3.5" strokeWidth={1.5} />
+              Brand assets
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => navigate('/workspace/billing')}

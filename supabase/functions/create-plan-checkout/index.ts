@@ -26,6 +26,13 @@ const PLAN_CATALOG: Record<
   biz_studio_pack:      { kind: "credits", credits: 5500,  label: "Business Studio" },
   biz_brand_pack:       { kind: "credits", credits: 12000, label: "Business Brand" },
   biz_agency_pack:      { kind: "credits", credits: 32000, label: "Business Agency+" },
+  // Business team subscriptions (seat-based plans)
+  business_starter_monthly: { kind: "subscription", credits: 1000,  label: "Business Starter" },
+  business_starter_yearly:  { kind: "subscription", credits: 12000, label: "Business Starter (annual)" },
+  business_growth_monthly:  { kind: "subscription", credits: 5000,  label: "Business Growth" },
+  business_growth_yearly:   { kind: "subscription", credits: 60000, label: "Business Growth (annual)" },
+  business_scale_monthly:   { kind: "subscription", credits: 20000, label: "Business Scale" },
+  business_scale_yearly:    { kind: "subscription", credits: 240000,label: "Business Scale (annual)" },
   // Personal credit packs (mirror of create-credit-checkout for unified onboarding)
   credits_mini:    { kind: "credits", credits: 90,   label: "Mini" },
   credits_starter: { kind: "credits", credits: 370,  label: "Starter" },

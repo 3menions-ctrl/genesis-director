@@ -43,6 +43,8 @@ const WorkspaceTeam = lazy(() => import("./pages/workspace/WorkspaceTeam"));
 const WorkspaceBrand = lazy(() => import("./pages/workspace/WorkspaceBrand"));
 const WorkspaceBilling = lazy(() => import("./pages/workspace/WorkspaceBilling"));
 const WorkspaceAnalytics = lazy(() => import("./pages/workspace/WorkspaceAnalytics"));
+const WorkspaceOverview = lazy(() => import("./pages/workspace/WorkspaceOverview"));
+const WorkspaceAssets = lazy(() => import("./pages/workspace/WorkspaceAssets"));
 const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
 const DeactivateAccount = lazy(() => import("./pages/DeactivateAccount"));
 const Developers = lazy(() => import("./pages/Developers"));
@@ -292,7 +294,7 @@ const App = () => {
                 <Route path="/workspace" element={
                   <RouteContainer fallbackMessage="Loading workspace...">
                     <ProtectedRoute>
-                      <AppShell><Navigate to="/workspace/team" replace /></AppShell>
+                      <AppShell><WorkspaceOverview /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />
@@ -307,6 +309,13 @@ const App = () => {
                   <RouteContainer fallbackMessage="Loading brand kit...">
                     <ProtectedRoute>
                       <AppShell><WorkspaceBrand /></AppShell>
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/workspace/assets" element={
+                  <RouteContainer fallbackMessage="Loading assets...">
+                    <ProtectedRoute>
+                      <AppShell><WorkspaceAssets /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />

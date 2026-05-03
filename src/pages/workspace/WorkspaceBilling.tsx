@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { CreditCard, Receipt, Save, Loader2, Users, ExternalLink, Crown, ArrowUpRight } from 'lucide-react';
+import { CreditCard, Receipt, Save, Loader2, Users, ExternalLink, Crown, ArrowUpRight, Check, Sparkles } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -7,10 +7,59 @@ import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
+import { getStripe, getStripeEnvironment } from '@/lib/stripe';
+import { cn } from '@/lib/utils';
 
 const SEAT_LIMITS: Record<string, number> = {
   starter: 1, pro: 1, studio: 5, business: 15, enterprise: 999,
+  business_starter: 5, business_growth: 15, business_scale: 50,
 };
+
+type Cycle = 'monthly' | 'yearly';
+
+interface BusinessPlan {
+  id: string;
+  name: string;
+  blurb: string;
+  monthly: { price: number; priceId: string };
+  yearly:  { price: number; priceId: string };
+  seats: number;
+  credits: number;
+  popular?: boolean;
+  features: string[];
+}
+
+const BUSINESS_PLANS: BusinessPlan[] = [
+  {
+    id: 'business_starter',
+    name: 'Business Starter',
+    blurb: 'Small teams getting started.',
+    monthly: { price: 99,  priceId: 'business_starter_monthly' },
+    yearly:  { price: 990, priceId: 'business_starter_yearly'  },
+    seats: 5, credits: 1000,
+    features: ['5 seats', '1,000 monthly credits', 'Shared brand kit', 'Priority email support'],
+  },
+  {
+    id: 'business_growth',
+    name: 'Business Growth',
+    blurb: 'Growing creative teams.',
+    monthly: { price: 299,  priceId: 'business_growth_monthly' },
+    yearly:  { price: 2990, priceId: 'business_growth_yearly'  },
+    seats: 15, credits: 5000, popular: true,
+    features: ['15 seats', '5,000 monthly credits', 'Brand kit + asset library', 'Team analytics', 'Priority Slack support'],
+  },
+  {
+    id: 'business_scale',
+    name: 'Business Scale',
+    blurb: 'Studios and agencies at scale.',
+    monthly: { price: 999,  priceId: 'business_scale_monthly' },
+    yearly:  { price: 9990, priceId: 'business_scale_yearly'  },
+    seats: 50, credits: 20000,
+    features: ['50 seats', '20,000 monthly credits', 'Dedicated success manager', 'SSO available', 'Custom contracts'],
+  },
+];
 
 export default function WorkspaceBilling() {
   const { currentOrg, hasPermission, refresh } = useWorkspace();
@@ -24,6 +73,11 @@ export default function WorkspaceBilling() {
   const [memberCount, setMemberCount] = useState(0);
   const [creditsBalance, setCreditsBalance] = useState(0);
   const [recentTxns, setRecentTxns] = useState<Array<{ id: string; amount: number; transaction_type: string; description: string | null; created_at: string }>>([]);
+  const [planOpen, setPlanOpen] = useState(false);
+  const [cycle, setCycle] = useState<Cycle>('monthly');
+  const [checkoutPriceId, setCheckoutPriceId] = useState<string | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [loadingCheckout, setLoadingCheckout] = useState(false);
 
   const seatLimit = useMemo(() => SEAT_LIMITS[currentOrg?.plan ?? 'starter'] ?? 1, [currentOrg?.plan]);
 
@@ -82,6 +136,28 @@ export default function WorkspaceBilling() {
     void refresh();
   };
 
+  const startCheckout = async (priceId: string) => {
+    setCheckoutPriceId(priceId);
+    setClientSecret(null);
+    setLoadingCheckout(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-plan-checkout', {
+        body: {
+          priceId,
+          environment: getStripeEnvironment(),
+          returnUrl: `${window.location.origin}/workspace/billing?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+        },
+      });
+      if (error || !data?.clientSecret) throw new Error(error?.message || 'Failed to start checkout');
+      setClientSecret(data.clientSecret);
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Failed to start checkout');
+      setCheckoutPriceId(null);
+    } finally {
+      setLoadingCheckout(false);
+    }
+  };
+
   return (
     <WorkspaceLayout>
       <div className="space-y-7">
@@ -91,7 +167,7 @@ export default function WorkspaceBilling() {
             label="Current plan"
             value={(currentOrg?.plan ?? 'starter').toUpperCase()}
             icon={Crown}
-            cta={canEdit ? { label: 'Upgrade', onClick: () => navigate('/pricing') } : undefined}
+            cta={canEdit ? { label: 'Change plan', onClick: () => setPlanOpen(true) } : undefined}
           />
           <Stat
             label="Seats"
@@ -106,6 +182,80 @@ export default function WorkspaceBilling() {
             cta={canEdit ? { label: 'Top up', onClick: () => navigate('/pricing?tab=credits') } : undefined}
           />
         </section>
+
+        {/* Business plans inline picker */}
+        {canEdit && (
+          <section className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-6">
+            <div className="flex items-center justify-between gap-4 flex-wrap mb-5">
+              <div>
+                <h3 className="text-[15px] font-medium text-white/95 inline-flex items-center gap-2">
+                  <Sparkles className="w-3.5 h-3.5 text-[#9DCBFF]" /> Business plans
+                </h3>
+                <p className="text-[12px] text-white/45 mt-1">Choose a tier built for teams. Upgrade or downgrade any time.</p>
+              </div>
+              <div className="inline-flex rounded-full border border-white/[0.08] bg-white/[0.02] p-1">
+                {(['monthly', 'yearly'] as const).map(c => (
+                  <button
+                    key={c}
+                    onClick={() => setCycle(c)}
+                    className={cn(
+                      'px-3 py-1 text-[11px] uppercase tracking-[0.16em] rounded-full transition',
+                      cycle === c ? 'bg-[#0A84FF] text-white' : 'text-white/55 hover:text-white'
+                    )}
+                  >
+                    {c}{c === 'yearly' && <span className="ml-1 text-[#5AC8FA]">−16%</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {BUSINESS_PLANS.map(p => {
+                const tier = cycle === 'monthly' ? p.monthly : p.yearly;
+                const isCurrent = currentOrg?.plan === p.id;
+                return (
+                  <div key={p.id} className={cn(
+                    'rounded-2xl border p-5 flex flex-col',
+                    p.popular ? 'border-[#0A84FF]/40 bg-[#0A84FF]/[0.04]' : 'border-white/[0.06] bg-white/[0.02]'
+                  )}>
+                    {p.popular && (
+                      <div className="text-[9px] uppercase tracking-[0.22em] text-[#9DCBFF] font-medium mb-2">Most popular</div>
+                    )}
+                    <div className="text-[15px] font-medium text-white/95">{p.name}</div>
+                    <div className="text-[12px] text-white/45 mb-4">{p.blurb}</div>
+                    <div className="flex items-baseline gap-1.5 mb-4">
+                      <span className="font-display text-[28px] font-light text-white">${tier.price}</span>
+                      <span className="text-[11px] text-white/45">/{cycle === 'monthly' ? 'mo' : 'yr'}</span>
+                    </div>
+                    <ul className="space-y-1.5 mb-5 flex-1">
+                      {p.features.map(f => (
+                        <li key={f} className="text-[12px] text-white/65 inline-flex items-start gap-2">
+                          <Check className="w-3 h-3 text-[#5AC8FA] mt-1 flex-shrink-0" strokeWidth={2.5} /> {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <Button
+                      onClick={() => startCheckout(tier.priceId)}
+                      disabled={isCurrent}
+                      className={cn(
+                        'w-full rounded-full',
+                        isCurrent
+                          ? 'bg-white/[0.05] text-white/50 cursor-not-allowed hover:bg-white/[0.05]'
+                          : p.popular
+                            ? 'bg-[#0A84FF] hover:bg-[#0A84FF]/90 text-white'
+                            : 'bg-white text-black hover:bg-white/90'
+                      )}
+                    >
+                      {isCurrent ? 'Current plan' : 'Upgrade'}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-white/35 mt-4">
+              Need more seats or custom contracts? <button onClick={() => navigate('/pricing#enterprise')} className="text-[#9DCBFF] hover:text-white underline-offset-4 hover:underline">Talk to sales</button>.
+            </p>
+          </section>
+        )}
 
         {/* Billing details */}
         <section className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-6">
@@ -178,6 +328,45 @@ export default function WorkspaceBilling() {
           )}
         </section>
       </div>
+
+      {/* Embedded checkout dialog */}
+      <Dialog open={!!checkoutPriceId} onOpenChange={(o) => { if (!o) { setCheckoutPriceId(null); setClientSecret(null); } }}>
+        <DialogContent className="max-w-2xl bg-[hsl(220,14%,3%)] border-white/[0.08] p-0 overflow-hidden">
+          <DialogTitle className="sr-only">Checkout</DialogTitle>
+          {loadingCheckout || !clientSecret ? (
+            <div className="h-[480px] flex items-center justify-center">
+              <Loader2 className="w-6 h-6 text-[#9DCBFF] animate-spin" />
+            </div>
+          ) : (
+            <div className="bg-white">
+              <EmbeddedCheckoutProvider stripe={getStripe()} options={{ fetchClientSecret: async () => clientSecret }}>
+                <EmbeddedCheckout />
+              </EmbeddedCheckoutProvider>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Plan picker fallback (link-based) — opens the inline plans section */}
+      {planOpen && (
+        <Dialog open={planOpen} onOpenChange={setPlanOpen}>
+          <DialogContent className="max-w-md bg-[hsl(220,14%,3%)] border-white/[0.08]">
+            <DialogTitle className="text-white text-base">Change plan</DialogTitle>
+            <p className="text-[13px] text-white/55 mt-2">
+              Pick a Business plan from the section below — Starter, Growth, or Scale.
+              Need a personal credit pack? Visit pricing.
+            </p>
+            <div className="flex gap-2 mt-4">
+              <Button variant="outline" onClick={() => { setPlanOpen(false); navigate('/pricing'); }} className="flex-1">
+                See all pricing
+              </Button>
+              <Button onClick={() => setPlanOpen(false)} className="flex-1 bg-[#0A84FF] hover:bg-[#0A84FF]/90">
+                Got it
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </WorkspaceLayout>
   );
 }

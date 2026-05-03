@@ -122,6 +122,43 @@ serve(async (req) => {
       throw new Error("OPENAI_API_KEY is not configured");
     }
 
+    // ═══ BRAND KIT INJECTION ═══
+    // If the request includes an organizationId, fetch the org's brand kit
+    // (colors, voice, primary use case) and weave it into the system prompt
+    // so generated scripts reflect the team's brand identity.
+    let brandKitGuidance = "";
+    try {
+      const orgId = (requestData as any)?.organizationId as string | undefined;
+      if (orgId && typeof orgId === "string") {
+        const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
+        const sb = createClient(
+          Deno.env.get("SUPABASE_URL") ?? "",
+          Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+          { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
+        );
+        const { data: org } = await sb
+          .from("organizations")
+          .select("name, brand_voice, brand_colors, brand_primary_color, brand_accent_color, primary_use_case")
+          .eq("id", orgId)
+          .maybeSingle();
+        if (org) {
+          const palette = (org.brand_colors && org.brand_colors.length > 0
+            ? org.brand_colors
+            : [org.brand_primary_color, org.brand_accent_color].filter(Boolean)
+          ).slice(0, 5).join(", ");
+          const lines: string[] = [];
+          lines.push(`\n═══ BRAND KIT — ${org.name} ═══`);
+          if (org.brand_voice) lines.push(`Brand voice: ${org.brand_voice} — every line of narration must read in this tone.`);
+          if (palette)         lines.push(`Brand palette: ${palette}. Weave these colors into lighting, wardrobe, set dressing where natural — never force them.`);
+          if (org.primary_use_case) lines.push(`Primary use case: ${org.primary_use_case}. Frame the piece for this context.`);
+          lines.push(`This is a branded piece for a workspace. Stay on-brand without naming the brand explicitly in dialogue.`);
+          brandKitGuidance = lines.join("\n");
+        }
+      }
+    } catch (e) {
+      console.warn("[generate-script] brand kit fetch failed (non-fatal):", e);
+    }
+
     let systemPrompt: string;
     let userPrompt: string;
     
@@ -335,7 +372,7 @@ Write the script now:`;
         body: JSON.stringify({
           model: "gpt-4o-mini",
           messages: [
-            { role: "system", content: systemPrompt },
+            { role: "system", content: systemPrompt + (brandKitGuidance || "") },
             { role: "user", content: userPrompt },
           ],
           max_tokens: calculateMaxTokens(clipCount, 120),

@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Users, Palette, CreditCard, BarChart3, Building2, ShieldCheck, Lock } from 'lucide-react';
+import { Users, Palette, CreditCard, BarChart3, Building2, ShieldCheck, Lock, LayoutDashboard, Layers } from 'lucide-react';
 import { useWorkspace, type OrgRole } from '@/contexts/WorkspaceContext';
 import { cn } from '@/lib/utils';
 
@@ -13,8 +13,10 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
+  { to: '/workspace',           label: 'Overview',  Icon: LayoutDashboard, minRole: 'viewer',  description: 'Workspace at a glance' },
   { to: '/workspace/team',      label: 'Team',      Icon: Users,       minRole: 'viewer',  description: 'Members, invites, roles' },
   { to: '/workspace/brand',     label: 'Brand kit', Icon: Palette,     minRole: 'producer',description: 'Colors, voice, logo' },
+  { to: '/workspace/assets',    label: 'Assets',    Icon: Layers,      minRole: 'viewer',  description: 'Logos, fonts, references' },
   { to: '/workspace/billing',   label: 'Billing',   Icon: CreditCard,  minRole: 'admin',   description: 'Invoices, VAT, payment' },
   { to: '/workspace/analytics', label: 'Analytics', Icon: BarChart3,   minRole: 'admin',   description: 'Usage by member' },
 ];
@@ -76,7 +78,8 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
         <nav className="space-y-1 lg:sticky lg:top-6 self-start">
           {NAV.map(({ to, label, Icon, minRole, description }) => {
             const allowed = hasPermission(minRole);
-            const active = pathname.startsWith(to);
+            // Exact match for /workspace overview; prefix match for nested pages.
+            const active = to === '/workspace' ? pathname === '/workspace' : pathname.startsWith(to);
             return (
               <NavLink
                 key={to}

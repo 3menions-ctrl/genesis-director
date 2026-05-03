@@ -337,7 +337,7 @@ export default function StartOnboarding() {
     }
     if (currentStep === 'verify') {
       if (user) return true;
-      if (otpCode.length !== 6) { setErrors({ otp: 'Enter the 6-digit code' }); return false; }
+      if (otpCode.length < 6 || otpCode.length > 8) { setErrors({ otp: 'Enter the verification code from your email' }); return false; }
     }
     if (currentStep === 'scale' && !form.expected_volume) {
       setErrors({ expected_volume: 'Pick an expected volume' }); return false;
@@ -1175,10 +1175,10 @@ export default function StartOnboarding() {
                   ) : (
                     <>
                       <p className="text-sm text-white/55">
-                        Enter the 6-digit code we sent to <span className="text-white">{form.email}</span>.
+                        Enter the verification code we sent to <span className="text-white">{form.email}</span>.
                       </p>
-                      <div className="flex gap-2 justify-start">
-                        {Array.from({ length: 6 }).map((_, i) => (
+                      <div className="flex gap-1.5 justify-start">
+                        {Array.from({ length: 8 }).map((_, i) => (
                           <input
                             key={i}
                             id={`apex-otp-${i}`}
@@ -1188,9 +1188,9 @@ export default function StartOnboarding() {
                             value={otpCode[i] || ''}
                             onChange={(e) => {
                               const v = e.target.value.replace(/\D/g, '').slice(0, 1);
-                              const next = (otpCode.substring(0, i) + v + otpCode.substring(i + 1)).slice(0, 6);
+                              const next = (otpCode.substring(0, i) + v + otpCode.substring(i + 1)).slice(0, 8);
                               setOtpCode(next);
-                              if (v && i < 5) document.getElementById(`apex-otp-${i + 1}`)?.focus();
+                              if (v && i < 7) document.getElementById(`apex-otp-${i + 1}`)?.focus();
                             }}
                             onKeyDown={(e) => {
                               if (e.key === 'Backspace' && !otpCode[i] && i > 0) {
@@ -1198,16 +1198,16 @@ export default function StartOnboarding() {
                               }
                             }}
                             onPaste={(e) => {
-                              const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+                              const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 8);
                               if (pasted.length >= 1) {
                                 e.preventDefault();
                                 setOtpCode(pasted);
-                                const focusIdx = Math.min(pasted.length, 5);
+                                const focusIdx = Math.min(pasted.length, 7);
                                 document.getElementById(`apex-otp-${focusIdx}`)?.focus();
                               }
                             }}
                             className={cn(
-                              'w-12 h-14 text-center text-xl font-semibold rounded-xl tabular-nums',
+                              'w-10 h-14 text-center text-lg font-semibold rounded-xl tabular-nums',
                               'bg-white/[0.035] border border-white/10 text-white outline-none',
                               'focus:border-[hsla(212,100%,60%,0.6)] focus:bg-white/[0.05] transition-all',
                               otpCode[i] && 'border-[hsla(212,100%,55%,0.45)] shadow-[0_0_18px_-6px_hsla(212,100%,55%,0.5)]',

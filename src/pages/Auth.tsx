@@ -564,12 +564,12 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                           animate={{ opacity: 1 }}
                           transition={{ delay: 0.4 }}
                         >
-                          <p className="text-white/45 mb-1 text-[13px]">We sent a 6-digit code to</p>
+                          <p className="text-white/45 mb-1 text-[13px]">We sent a verification code to</p>
                           <p className="text-white font-medium text-[13px] mb-6 tracking-tight">{pendingEmailConfirmation}</p>
                           
                           {/* OTP Input */}
-                          <div className="flex justify-center gap-2.5 mb-6">
-                            {Array.from({ length: 6 }).map((_, i) => (
+                          <div className="flex justify-center gap-1.5 mb-6">
+                            {Array.from({ length: 8 }).map((_, i) => (
                               <input
                                 key={i}
                                 id={`otp-${i}`}
@@ -582,10 +582,10 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                                   if (!val && e.target.value) return;
                                   const newOtp = otpCode.split('');
                                   newOtp[i] = val;
-                                  const joined = newOtp.join('').slice(0, 6);
+                                  const joined = newOtp.join('').slice(0, 8);
                                   setOtpCode(joined);
                                   // Auto-focus next input
-                                  if (val && i < 5) {
+                                  if (val && i < 7) {
                                     document.getElementById(`otp-${i + 1}`)?.focus();
                                   }
                                 }}
@@ -596,13 +596,13 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                                 }}
                                 onPaste={(e) => {
                                   e.preventDefault();
-                                  const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+                                  const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 8);
                                   setOtpCode(pasted);
-                                  const focusIdx = Math.min(pasted.length, 5);
+                                  const focusIdx = Math.min(pasted.length, 7);
                                   document.getElementById(`otp-${focusIdx}`)?.focus();
                                 }}
                                 className={cn(
-                                  'w-12 h-14 text-center text-xl font-semibold text-white rounded-xl tabular-nums',
+                                  'w-10 h-14 text-center text-lg font-semibold text-white rounded-xl tabular-nums',
                                   'bg-white/[0.035] border border-white/[0.08]',
                                   'focus:border-[hsl(212,100%,55%)]/60 focus:ring-2 focus:ring-[hsl(212,100%,55%)]/20 focus:bg-white/[0.06]',
                                   'outline-none transition-all duration-200',
@@ -628,8 +628,8 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                         <div className="space-y-3">
                           <Button
                             onClick={async () => {
-                              if (otpCode.length !== 6) {
-                                toast.error('Please enter the full 6-digit code');
+                              if (otpCode.length < 6 || otpCode.length > 8) {
+                                toast.error('Please enter the full verification code');
                                 return;
                               }
                               setVerifyingOtp(true);
@@ -657,7 +657,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                                 setVerifyingOtp(false);
                               }
                             }}
-                            disabled={verifyingOtp || otpCode.length !== 6}
+                            disabled={verifyingOtp || otpCode.length < 6}
                             className="w-full h-12 rounded-2xl font-semibold text-[13px] tracking-tight text-black bg-white hover:bg-white/90 transition-all duration-300 hover:scale-[1.005] active:scale-[0.995] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-[0_1px_0_hsla(0,0%,100%,0.6)_inset,0_10px_30px_-10px_hsla(0,0%,100%,0.35)]"
                           >
                             {verifyingOtp ? (

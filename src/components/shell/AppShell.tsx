@@ -16,6 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { SignOutDialog } from '@/components/auth/SignOutDialog';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 import { NotificationBell } from '@/components/social/NotificationBell';
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import { useNavigationWithLoading } from '@/components/navigation';
 import logoImage from '@/assets/apex-studio-logo.png';
 import { CinemaBackdrop } from '@/components/ui/CinemaBackdrop';
@@ -507,6 +508,9 @@ export function AppShell({ children }: AppShellProps) {
 
             {/* Spacer */}
             <div className="flex-1" />
+
+            {/* Language switcher */}
+            <LanguageSwitcher size="sm" variant="ghost" showLabel={false} className="text-white/55 hover:text-white" />
 
             {/* Notifications */}
             <NotificationBell />

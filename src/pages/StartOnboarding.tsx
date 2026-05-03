@@ -272,8 +272,76 @@ export default function StartOnboarding() {
     return true;
   }, [currentStep, form]);
 
-  const next = () => {
+  // Holds the persisted intent token after we save the wizard data
+  const [intentToken, setIntentToken] = useState<string | null>(null);
+
+  const next = async () => {
     if (!validate()) return;
+
+    // Step: account → persist intent + create account, then advance to verify
+    if (currentStep === 'account') {
+      if (user) {
+        // Already authenticated (e.g. via OAuth in this same step). Skip verify.
+        await persistIntentAndConsume();
+        await routeAfterAuth();
+        return;
+      }
+      setSubmitting(true);
+      try {
+        const token = await ensureIntentPersisted();
+        if (!token) return;
+        const { error } = await signUp(form.email.trim(), form.password);
+        if (error) {
+          if (/already.*registered/i.test(error.message)) {
+            // Try sign-in instead
+            const { error: siErr } = await signIn(form.email.trim(), form.password);
+            if (siErr) {
+              toast.error('That email is already registered — wrong password?');
+              return;
+            }
+            await persistIntentAndConsume();
+            await routeAfterAuth();
+            return;
+          }
+          toast.error(error.message || 'Could not create your account.');
+          return;
+        }
+        toast.success('Check your email — we sent a 6-digit code.');
+        setDirection(1);
+        setStepIdx(i => i + 1);
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    // Step: verify → confirm OTP, consume intent, route
+    if (currentStep === 'verify') {
+      if (user) {
+        await persistIntentAndConsume();
+        await routeAfterAuth();
+        return;
+      }
+      setSubmitting(true);
+      try {
+        const { error } = await supabase.auth.verifyOtp({
+          email: form.email.trim(),
+          token: otpCode,
+          type: 'signup',
+        });
+        if (error) {
+          toast.error(error.message || 'Invalid code.');
+          return;
+        }
+        toast.success('Email verified.');
+        await persistIntentAndConsume();
+        await routeAfterAuth();
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
     if (isLast) { void finish(); return; }
     setDirection(1);
     setStepIdx(i => i + 1);
@@ -287,7 +355,61 @@ export default function StartOnboarding() {
     setStepIdx(i => i - 1);
   };
 
-  /* ── Finish: persist intent and route to signup ────────────────── */
+  /* ── Persist wizard intent (idempotent — only inserts once) ───── */
+  const ensureIntentPersisted = async (): Promise<string | null> => {
+    if (intentToken) return intentToken;
+    const token = `int_${crypto.randomUUID()}`;
+    const payload = {
+      intent_token: token,
+      account_type: accountType,
+      selected_plan_id: form.selected_plan_id || null,
+      selected_plan_kind: (form.selected_plan_kind || null) as PlanKind | null,
+      goals: form.goals.length ? form.goals : null,
+      experience_level: form.style || null,
+      company_name: form.company_name || null,
+      team_size: form.team_size || null,
+      industry: form.industry || null,
+      job_role: form.job_role || null,
+      expected_volume: form.expected_volume || null,
+      needs_sso: form.needs_sso,
+      needs_sla: form.needs_sla,
+      needs_api: form.needs_api,
+      contact_email: form.contact_email || null,
+      contact_phone: form.contact_phone || null,
+      display_name: form.display_name || null,
+    };
+    const { error } = await supabase.from('onboarding_intents').insert(payload);
+    if (error) {
+      console.error('[start] intent persist', error);
+      toast.error('Could not save your choices. Please try again.');
+      return null;
+    }
+    try { sessionStorage.setItem('apex.intent_token', token); } catch {}
+    try { localStorage.setItem('apex.audience', accountType); } catch {}
+    setIntentToken(token);
+    return token;
+  };
+
+  const persistIntentAndConsume = async () => {
+    const token = await ensureIntentPersisted();
+    if (!token) return;
+    try {
+      await supabase.rpc('consume_onboarding_intent', { _token: token });
+    } catch (e) {
+      console.warn('[start] consume_onboarding_intent', e);
+    }
+  };
+
+  const routeAfterAuth = async () => {
+    const target = form.selected_plan_kind === 'contact'
+      ? '/projects'
+      : form.selected_plan_id
+        ? `/welcome/checkout?plan=${form.selected_plan_id}`
+        : '/create';
+    navigate(target, { replace: true });
+  };
+
+  /* ── Finish: enterprise lead-capture path (no account creation) ── */
   const finish = async () => {
     setSubmitting(true);
     try {

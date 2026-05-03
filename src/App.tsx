@@ -39,6 +39,8 @@ const StartOnboarding = lazy(() => import("./pages/StartOnboarding"));
 const WelcomeCheckout = lazy(() => import("./pages/WelcomeCheckout"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Settings = lazy(() => import("./pages/Settings"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 const WorkspaceSettings = lazy(() => import("./pages/WorkspaceSettings"));
 const WorkspaceTeam = lazy(() => import("./pages/workspace/WorkspaceTeam"));
 const WorkspaceBrand = lazy(() => import("./pages/workspace/WorkspaceBrand"));
@@ -193,6 +195,11 @@ const App = () => {
                     <Privacy />
                   </RouteContainer>
                 } />
+                <Route path="/unsubscribe" element={
+                  <RouteContainer fallbackMessage="Loading…">
+                    <Unsubscribe />
+                  </RouteContainer>
+                } />
                 <Route path="/contact" element={
                   <RouteContainer>
                     <AdaptiveShell><Contact /></AdaptiveShell>
@@ -251,6 +258,13 @@ const App = () => {
                   <RouteContainer fallbackMessage="Preparing checkout…">
                     <ProtectedRoute>
                       <WelcomeCheckout />
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/notifications" element={
+                  <RouteContainer fallbackMessage="Loading inbox…">
+                    <ProtectedRoute>
+                      <AppShell><Notifications /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />

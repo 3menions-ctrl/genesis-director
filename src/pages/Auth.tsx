@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, ShieldCheck, Zap, KeyRound, Star } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, ShieldCheck, Zap, KeyRound, Star, Apple } from 'lucide-react';
 import { z } from 'zod';
 import { PasswordStrength } from '@/components/ui/password-strength';
 import { WelcomeBackDialog } from '@/components/auth/WelcomeBackDialog';
@@ -107,7 +107,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
   }, [ref]);
 
   const { navigate } = useSafeNavigation();
-  const { user, profile, loading: authLoading, signIn, signUp } = useAuth();
+  const { user, profile, loading: authLoading, signIn, signUp, signInWithGoogle, signInWithApple } = useAuth();
   
   const [searchParams] = useState(() => new URLSearchParams(window.location.search));
   const fromCreate = searchParams.get('from') === 'create';
@@ -130,6 +130,22 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
   const [otpCode, setOtpCode] = useState('');
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [resendingOtp, setResendingOtp] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<null | 'google' | 'apple'>(null);
+
+  const handleOAuth = useCallback(async (provider: 'google' | 'apple') => {
+    setOauthLoading(provider);
+    try {
+      const { error } = provider === 'google' ? await signInWithGoogle() : await signInWithApple();
+      if (error) {
+        toast.error(`${provider === 'google' ? 'Google' : 'Apple'} sign-in failed. Please try again.`);
+        setOauthLoading(null);
+      }
+      // On success the browser redirects to provider; loading state stays until navigation
+    } catch {
+      toast.error('Sign-in failed. Please try again.');
+      setOauthLoading(null);
+    }
+  }, [signInWithGoogle, signInWithApple]);
 
   const trackSignup = useCallback(async (userId: string) => {
     try {

@@ -372,7 +372,7 @@ Write the script now:`;
         body: JSON.stringify({
           model: "gpt-4o-mini",
           messages: [
-            { role: "system", content: systemPrompt },
+            { role: "system", content: systemPrompt + (brandKitGuidance || "") },
             { role: "user", content: userPrompt },
           ],
           max_tokens: calculateMaxTokens(clipCount, 120),

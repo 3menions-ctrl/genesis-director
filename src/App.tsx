@@ -226,6 +226,11 @@ const App = () => {
                     <EnterpriseOnboarding />
                   </RouteContainer>
                 } />
+                <Route path="/enterprise/coming-soon" element={
+                  <RouteContainer fallbackMessage="Loading…">
+                    <EnterpriseComingSoon />
+                  </RouteContainer>
+                } />
                 <Route path="/discover" element={<Navigate to="/projects" replace />} />
                 <Route path="/help" element={
                   <RouteContainer>

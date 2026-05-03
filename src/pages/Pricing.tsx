@@ -1,8 +1,10 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { lazy, Suspense, useEffect, useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Check, ArrowRight, Sparkles, Shield, Clock, Zap, Crown, Building2,
-  Star, Infinity as InfinityIcon, Film, Wand2, Gem,
+  Star, Infinity as InfinityIcon, Film, Wand2, Gem, User, Briefcase,
+  Repeat, HeadphonesIcon, Lock, Users, Globe, Cpu, FileCheck2, Phone,
+  ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -13,6 +15,8 @@ import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 
+type Segment = 'personal' | 'business' | 'enterprise' | 'subscription';
+
 interface CreditPackage {
   name: string;
   icon: React.ReactNode;
@@ -22,13 +26,22 @@ interface CreditPackage {
   clips: string;
   features: string[];
   popular?: boolean;
+  /** Optional segment override (defaults to 'personal' when undefined) */
+  segment?: Segment;
+  /** Recurring interval for subscription tier (display only) */
+  interval?: 'month' | 'year';
+  /** Override CTA label */
+  ctaLabel?: string;
+  /** Treat CTA as contact-sales instead of credit purchase */
+  contactSales?: boolean;
   /** % savings vs. base $0.10/credit, computed for display */
   savingsPct?: number;
 }
 
 const BASE_RATE = 0.10; // $ / credit
 
-function buildPackages(): CreditPackage[] {
+/** Personal — pay-as-you-go credit packs */
+function buildPersonal(): CreditPackage[] {
   const list: Omit<CreditPackage, 'savingsPct'>[] = [
     {
       name: 'Mini',
@@ -83,11 +96,197 @@ function buildPackages(): CreditPackage[] {
   return list.map((p) => {
     const baseline = p.credits * BASE_RATE;
     const savings = baseline > p.price ? Math.round(((baseline - p.price) / baseline) * 100) : 0;
-    return { ...p, savingsPct: savings };
+    return { ...p, segment: 'personal', savingsPct: savings };
   });
 }
 
-const PACKAGES = buildPackages();
+/** Business — bigger packs, team features, account management */
+function buildBusiness(): CreditPackage[] {
+  const list: Omit<CreditPackage, 'savingsPct'>[] = [
+    {
+      name: 'Studio',
+      icon: <Briefcase className="w-4 h-4" />,
+      tagline: 'Small teams shipping campaigns',
+      price: 499,
+      credits: 5500,
+      clips: '~550',
+      features: [
+        '4K HDR export',
+        'Up to 5 seats',
+        'Priority render queue',
+        'Brand kit & presets',
+        'Account manager',
+      ],
+    },
+    {
+      name: 'Brand',
+      icon: <Crown className="w-4 h-4" />,
+      tagline: 'In-house teams running content engines',
+      price: 999,
+      credits: 12000,
+      clips: '~1.2k',
+      features: [
+        '4K HDR + ProRes export',
+        'Up to 15 seats',
+        'Top-tier render queue',
+        'Multi-character dialogue',
+        'API access · Webhooks',
+        'Priority Slack support',
+      ],
+      popular: true,
+    },
+    {
+      name: 'Agency+',
+      icon: <Building2 className="w-4 h-4" />,
+      tagline: 'Studios producing at scale',
+      price: 2499,
+      credits: 32000,
+      clips: '~3.2k',
+      features: [
+        '4K HDR + ProRes export',
+        'Unlimited seats',
+        'Dedicated render lane',
+        'White-glove onboarding',
+        'Dedicated success manager',
+        'SAML SSO available',
+      ],
+    },
+  ];
+  return list.map((p) => {
+    const baseline = p.credits * BASE_RATE;
+    const savings = baseline > p.price ? Math.round(((baseline - p.price) / baseline) * 100) : 0;
+    return { ...p, segment: 'business', savingsPct: savings };
+  });
+}
+
+/** Subscription — recurring monthly credit grants */
+function buildSubscription(): CreditPackage[] {
+  const list: Omit<CreditPackage, 'savingsPct'>[] = [
+    {
+      name: 'Indie',
+      icon: <Repeat className="w-4 h-4" />,
+      tagline: 'For solo creators with steady output',
+      price: 19,
+      credits: 220,
+      clips: '~22 / mo',
+      interval: 'month',
+      features: [
+        '1080p HD export',
+        'All cinematic engines',
+        'Credits roll over 1 month',
+        'Email support',
+      ],
+    },
+    {
+      name: 'Pro',
+      icon: <Crown className="w-4 h-4" />,
+      tagline: 'Most loved by working creators',
+      price: 49,
+      credits: 600,
+      clips: '~60 / mo',
+      interval: 'month',
+      features: [
+        '4K Ultra HD (2160p)',
+        'Priority render queue',
+        'Multi-character dialogue',
+        'Brand kit',
+        'Priority support',
+      ],
+      popular: true,
+    },
+    {
+      name: 'Studio',
+      icon: <Building2 className="w-4 h-4" />,
+      tagline: 'For teams that ship every week',
+      price: 149,
+      credits: 2000,
+      clips: '~200 / mo',
+      interval: 'month',
+      features: [
+        '4K HDR + ProRes export',
+        'Up to 5 seats',
+        'Top-tier render queue',
+        'API access · Webhooks',
+        'Account manager',
+      ],
+    },
+  ];
+  return list.map((p) => {
+    const baseline = p.credits * BASE_RATE;
+    const savings = baseline > p.price ? Math.round(((baseline - p.price) / baseline) * 100) : 0;
+    return { ...p, segment: 'subscription', savingsPct: savings, ctaLabel: 'Start subscription' };
+  });
+}
+
+/** Enterprise — single tier + custom contracts */
+function buildEnterprise(): CreditPackage[] {
+  return [
+    {
+      name: 'Scale',
+      icon: <Users className="w-4 h-4" />,
+      tagline: 'Volume contracts for content teams',
+      price: 4999,
+      credits: 75000,
+      clips: '~7.5k',
+      features: [
+        'Custom credit volume',
+        'Unlimited seats · SAML SSO',
+        'Dedicated infra & render lanes',
+        'Custom data retention',
+        '99.9% uptime SLA',
+        'Named CSM · 24/7 priority',
+      ],
+      segment: 'enterprise',
+      contactSales: true,
+      ctaLabel: 'Talk to sales',
+    },
+    {
+      name: 'Custom',
+      icon: <Cpu className="w-4 h-4" />,
+      tagline: 'Bespoke pipelines & private models',
+      price: 0,
+      credits: 0,
+      clips: 'Unlimited',
+      features: [
+        'Private model fine-tuning',
+        'On-prem / VPC deployment',
+        'Bespoke production pipelines',
+        'MSA · DPA · custom SLAs',
+        'Solutions architect included',
+        'Quarterly business reviews',
+      ],
+      segment: 'enterprise',
+      contactSales: true,
+      popular: true,
+      ctaLabel: 'Request a quote',
+    },
+    {
+      name: 'Government',
+      icon: <Lock className="w-4 h-4" />,
+      tagline: 'Compliance-grade deployments',
+      price: 0,
+      credits: 0,
+      clips: 'On request',
+      features: [
+        'Region-locked data residency',
+        'SOC 2 · ISO 27001 evidence',
+        'PII redaction & audit logs',
+        'Air-gapped deployments',
+        'Dedicated security review',
+      ],
+      segment: 'enterprise',
+      contactSales: true,
+      ctaLabel: 'Contact us',
+    },
+  ];
+}
+
+const SEGMENT_PACKAGES: Record<Segment, CreditPackage[]> = {
+  personal: buildPersonal(),
+  business: buildBusiness(),
+  subscription: buildSubscription(),
+  enterprise: buildEnterprise(),
+};
 
 const TRUST_POINTS = [
   { icon: <Shield className="w-3.5 h-3.5" />, text: 'Secure via Stripe' },
@@ -96,14 +295,98 @@ const TRUST_POINTS = [
   { icon: <Star className="w-3.5 h-3.5" />, text: 'Zero-waste guarantee' },
 ];
 
+const SEGMENT_META: Record<Segment, {
+  label: string;
+  icon: React.ReactNode;
+  kicker: string;
+  headline: string;
+  highlight: string;
+  blurb: string;
+}> = {
+  personal: {
+    label: 'Personal',
+    icon: <User className="w-3.5 h-3.5" />,
+    kicker: 'For Creators',
+    headline: 'Pay only for',
+    highlight: 'what you ship.',
+    blurb: 'Top up credits when you need them. No subscriptions, no expirations, no waste.',
+  },
+  business: {
+    label: 'Business',
+    icon: <Briefcase className="w-3.5 h-3.5" />,
+    kicker: 'For Teams',
+    headline: 'A studio that scales',
+    highlight: 'with your roadmap.',
+    blurb: 'Seats, brand controls, and account management for content teams shipping every week.',
+  },
+  subscription: {
+    label: 'Subscription',
+    icon: <Repeat className="w-3.5 h-3.5" />,
+    kicker: 'Predictable billing',
+    headline: 'Steady credits,',
+    highlight: 'every month.',
+    blurb: 'Lock in monthly volume and save versus pay-as-you-go. Cancel or change tier anytime.',
+  },
+  enterprise: {
+    label: 'Enterprise',
+    icon: <Building2 className="w-3.5 h-3.5" />,
+    kicker: 'For Organizations',
+    headline: 'Built for security,',
+    highlight: 'scale, and SLAs.',
+    blurb: 'Custom contracts, SSO, dedicated infrastructure and white-glove onboarding for global teams.',
+  },
+};
+
+/** Feature matrix — what's included across the four tracks */
+const MATRIX_ROWS: { label: string; values: Record<Segment, string | boolean> }[] = [
+  { label: 'Pricing model', values: { personal: 'Pay-as-you-go', business: 'Volume packs', subscription: 'Monthly billing', enterprise: 'Custom contract' } },
+  { label: 'Resolution', values: { personal: 'Up to 4K', business: 'Up to 4K HDR + ProRes', subscription: 'Up to 4K', enterprise: 'Custom · Master files' } },
+  { label: 'Render priority', values: { personal: 'Standard', business: 'Top-tier', subscription: 'Priority', enterprise: 'Dedicated lane' } },
+  { label: 'Seats', values: { personal: '1', business: 'Up to unlimited', subscription: 'Up to 5', enterprise: 'Unlimited + SSO' } },
+  { label: 'API access', values: { personal: false, business: true, subscription: true, enterprise: true } },
+  { label: 'Brand kit', values: { personal: false, business: true, subscription: true, enterprise: true } },
+  { label: 'SAML SSO', values: { personal: false, business: 'Optional', subscription: false, enterprise: true } },
+  { label: 'SOC 2 evidence', values: { personal: false, business: 'On request', subscription: false, enterprise: true } },
+  { label: 'Account manager', values: { personal: false, business: true, subscription: 'Pro & up', enterprise: 'Named CSM' } },
+  { label: 'Support SLA', values: { personal: 'Email', business: 'Priority Slack', subscription: 'Priority email', enterprise: '24/7 · 99.9%' } },
+];
+
+const FAQS: { q: string; a: string }[] = [
+  {
+    q: 'How do credits work?',
+    a: '1 credit = $0.10. Most finished clips cost ~10 credits depending on duration, resolution and engine. Personal credits never expire.',
+  },
+  {
+    q: 'Can I switch between subscription and pay-as-you-go?',
+    a: 'Yes. You can run both at once — your subscription tops up monthly, and one-time packs stack on top whenever you need a burst of capacity.',
+  },
+  {
+    q: 'What happens to unused subscription credits?',
+    a: 'Subscription credits roll over for one billing cycle. One-time credit packs (Personal & Business) never expire.',
+  },
+  {
+    q: 'Do you offer team seats?',
+    a: 'Business plans include 5–unlimited seats with brand kits and shared assets. Enterprise adds SAML SSO and granular role management.',
+  },
+  {
+    q: 'How does Enterprise pricing work?',
+    a: 'Enterprise contracts are custom — talk to sales for volume discounts, dedicated infrastructure, on-prem / VPC deployment, and bespoke SLAs.',
+  },
+  {
+    q: 'Is my payment secure?',
+    a: 'All payments are processed by Stripe. We never see or store card numbers. Refund disputes are handled per Stripe policy.',
+  },
+];
+
 /**
  * CreditDial — animated luminous ring showing credit volume.
  * Pro-Dark, blue accent, conic-gradient progress against deep glass core.
  */
 function CreditDial({ credits, clips, popular }: { credits: number; clips: string; popular?: boolean }) {
-  // Map credits (90..2500) onto a 0..1 fill ratio (logarithmic for elegance)
-  const min = Math.log(90), max = Math.log(2500);
-  const ratio = Math.min(1, Math.max(0.18, (Math.log(credits) - min) / (max - min)));
+  // Map credits (90..75000) onto a 0..1 fill ratio (logarithmic for elegance)
+  const min = Math.log(90), max = Math.log(75000);
+  const safe = Math.max(credits, 90);
+  const ratio = Math.min(1, Math.max(0.18, (Math.log(safe) - min) / (max - min)));
   const deg = Math.round(ratio * 360);
 
   return (
@@ -152,7 +435,7 @@ function CreditDial({ credits, clips, popular }: { credits: number; clips: strin
       {/* Content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="font-display font-semibold text-white text-[28px] tabular-nums tracking-tight leading-none">
-          {credits >= 1000 ? `${(credits / 1000).toFixed(credits % 1000 === 0 ? 0 : 1)}k` : credits}
+          {credits === 0 ? '∞' : credits >= 1000 ? `${(credits / 1000).toFixed(credits % 1000 === 0 ? 0 : 1)}k` : credits}
         </span>
         <span className="mt-1 text-[9px] uppercase tracking-[0.28em] text-white/40 font-medium">credits</span>
         <div className="w-7 h-px bg-white/[0.08] my-2" />
@@ -171,7 +454,8 @@ function PricingCard({
   index: number;
   onPurchase: (pkg: CreditPackage) => void;
 }) {
-  const { navigate } = useSafeNavigation();
+  const isContact = !!pkg.contactSales;
+  const isCustom = pkg.price === 0;
 
   return (
     <motion.div
@@ -257,7 +541,15 @@ function PricingCard({
           >
             {pkg.icon}
           </div>
-          {pkg.savingsPct && pkg.savingsPct > 0 ? (
+          {isContact ? (
+            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/65 inline-flex items-center gap-1 px-2 py-1 rounded-full border border-white/[0.10] bg-white/[0.04]">
+              Custom contract
+            </div>
+          ) : pkg.interval ? (
+            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[hsl(var(--primary))] inline-flex items-center gap-1 px-2 py-1 rounded-full border border-[hsl(var(--primary)/0.25)] bg-[hsl(var(--primary)/0.08)]">
+              Monthly
+            </div>
+          ) : pkg.savingsPct && pkg.savingsPct > 0 ? (
             <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[hsl(var(--success))] inline-flex items-center gap-1 px-2 py-1 rounded-full border border-[hsl(var(--success)/0.25)] bg-[hsl(var(--success)/0.08)]">
               Save {pkg.savingsPct}%
             </div>
@@ -269,33 +561,58 @@ function PricingCard({
         </div>
 
         {/* Title */}
-        <h3 className="font-display font-semibold text-white text-[22px] tracking-tight leading-none mb-6">
+        <h3 className="font-display font-semibold text-white text-[22px] tracking-tight leading-none mb-2">
           {pkg.name}
         </h3>
+        <p className="text-[12px] text-white/45 mb-6 leading-relaxed">{pkg.tagline}</p>
 
         {/* Price */}
         <div className="flex items-baseline gap-2 mb-7">
-          <span className="text-[11px] text-white/35 font-medium">$</span>
-          <span className="font-display font-semibold text-white text-[52px] leading-none tabular-nums tracking-[-0.03em]">
-            {pkg.price}
-          </span>
-          <span className="text-[11px] text-white/30 ml-1">one-time</span>
+          {isCustom ? (
+            <span className="font-display font-semibold text-white text-[42px] leading-none tracking-[-0.03em]">
+              Custom
+            </span>
+          ) : (
+            <>
+              <span className="text-[11px] text-white/35 font-medium">$</span>
+              <span className="font-display font-semibold text-white text-[52px] leading-none tabular-nums tracking-[-0.03em]">
+                {pkg.price.toLocaleString()}
+              </span>
+              <span className="text-[11px] text-white/30 ml-1">
+                {pkg.interval ? `/ ${pkg.interval}` : 'one-time'}
+              </span>
+            </>
+          )}
         </div>
 
         {/* Credit Dial */}
-        <div className="mb-7">
-          <CreditDial credits={pkg.credits} clips={pkg.clips} popular={pkg.popular} />
-        </div>
+        {!isCustom && (
+          <div className="mb-7">
+            <CreditDial credits={pkg.credits} clips={pkg.clips} popular={pkg.popular} />
+          </div>
+        )}
 
         {/* Per-credit micro-rate */}
-        <div className="mb-6 flex items-center justify-center gap-1.5 text-[10px] text-white/35">
-          <Wand2 className="w-3 h-3" />
-          <span className="tabular-nums">${(pkg.price / pkg.credits).toFixed(3)}</span>
-          <span>/ credit</span>
-        </div>
+        {!isCustom && pkg.credits > 0 && (
+          <div className="mb-6 flex items-center justify-center gap-1.5 text-[10px] text-white/35">
+            <Wand2 className="w-3 h-3" />
+            <span className="tabular-nums">${(pkg.price / pkg.credits).toFixed(3)}</span>
+            <span>/ credit{pkg.interval ? ` · ${pkg.clips}` : ''}</span>
+          </div>
+        )}
 
         {/* Hairline divider */}
         <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent mb-7" />
+
+        {/* Feature list */}
+        <ul className="space-y-2.5 mb-7 min-h-[148px]">
+          {pkg.features.map((f) => (
+            <li key={f} className="flex items-start gap-2.5 text-[12.5px] text-white/65 leading-snug">
+              <Check className={cn('w-3.5 h-3.5 mt-[3px] shrink-0', pkg.popular ? 'text-[hsl(var(--primary))]' : 'text-white/35')} />
+              <span>{f}</span>
+            </li>
+          ))}
+        </ul>
 
         {/* CTA */}
         <Button
@@ -314,7 +631,7 @@ function PricingCard({
             style={{ background: 'linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.18), transparent)' }}
           />
           <span className="relative inline-flex items-center justify-center gap-1.5">
-            Get {pkg.credits >= 1000 ? `${pkg.credits.toLocaleString()}` : pkg.credits} credits
+            {pkg.ctaLabel ?? `Get ${pkg.credits >= 1000 ? pkg.credits.toLocaleString() : pkg.credits} credits`}
             <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-0.5" />
           </span>
         </Button>
@@ -323,13 +640,58 @@ function PricingCard({
   );
 }
 
+function MatrixCell({ value }: { value: string | boolean }) {
+  if (value === true) return <Check className="w-4 h-4 text-[hsl(var(--primary))] mx-auto" />;
+  if (value === false) return <span className="text-white/20">—</span>;
+  return <span className="text-[12px] text-white/70">{value}</span>;
+}
+
+function FaqItem({ q, a, defaultOpen = false }: { q: string; a: string; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <button
+      type="button"
+      onClick={() => setOpen((v) => !v)}
+      className="w-full text-left rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.12] transition-all px-5 py-4"
+    >
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-[14px] font-medium text-white/85">{q}</span>
+        <ChevronDown
+          className={cn('w-4 h-4 text-white/45 transition-transform shrink-0', open && 'rotate-180')}
+        />
+      </div>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.p
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="text-[13px] text-white/55 leading-relaxed overflow-hidden"
+          >
+            {a}
+          </motion.p>
+        )}
+      </AnimatePresence>
+    </button>
+  );
+}
+
 export default function Pricing() {
   const { navigate } = useSafeNavigation();
   const { user } = useAuth();
   const [showBuyModal, setShowBuyModal] = useState(false);
+  const [segment, setSegment] = useState<Segment>('personal');
+
+  const meta = SEGMENT_META[segment];
+  const packages = useMemo(() => SEGMENT_PACKAGES[segment], [segment]);
 
   const handlePurchase = (pkg: CreditPackage) => {
     const slug = (pkg.name || '').toLowerCase();
+    if (pkg.contactSales) {
+      navigate(`/contact?topic=sales&plan=${slug}`);
+      return;
+    }
     if (user) {
       // Authed: open the in-page checkout modal directly.
       setShowBuyModal(true);
@@ -405,20 +767,17 @@ export default function Pricing() {
       {/* Hero */}
       <section className="relative z-10 pt-24 pb-2 px-6">
         <div className="max-w-3xl mx-auto text-center">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+          <motion.div key={segment} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             {/* Status pill */}
             <div className="inline-flex items-center gap-2 h-7 pl-2 pr-3 rounded-full border border-white/[0.07] bg-white/[0.03] backdrop-blur-md mb-7">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-[hsl(var(--success))] opacity-70 animate-ping" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[hsl(var(--success))]" />
-              </span>
+              <span className="text-[hsl(var(--primary))]">{meta.icon}</span>
               <span className="text-[10px] uppercase tracking-[0.22em] text-white/55 font-medium">
-                Pricing · Live
+                {meta.kicker}
               </span>
             </div>
 
             <h1 className="font-display font-semibold tracking-[-0.03em] text-[44px] sm:text-[64px] leading-[1.02] text-white">
-              Pricing as{' '}
+              {meta.headline}{' '}
               <span
                 className="bg-clip-text text-transparent"
                 style={{
@@ -426,12 +785,11 @@ export default function Pricing() {
                     'linear-gradient(110deg, hsl(var(--foreground)) 0%, hsl(var(--primary)) 55%, hsl(var(--foreground)) 100%)',
                 }}
               >
-                cinematic
-              </span>{' '}
-              as your stories.
+                {meta.highlight}
+              </span>
             </h1>
-            <p className="text-[15px] text-white/45 mt-5 max-w-lg mx-auto leading-relaxed">
-              Pay only for what you create. <span className="text-white/70 tabular-nums">1 credit = $0.10</span> · roughly 10 credits per finished clip. Buy more, save more — no subscriptions, no expirations.
+            <p className="text-[15px] text-white/50 mt-5 max-w-xl mx-auto leading-relaxed">
+              {meta.blurb} <span className="text-white/70 tabular-nums">1 credit = $0.10</span>.
             </p>
 
             {/* Diagnostic ticker — signature */}
@@ -447,15 +805,56 @@ export default function Pricing() {
               ))}
             </div>
           </motion.div>
+
+          {/* Segment switcher */}
+          <div className="mt-10 flex justify-center">
+            <div
+              role="tablist"
+              aria-label="Pricing audience"
+              className="inline-flex items-center gap-1 p-1 rounded-full border border-white/[0.07] bg-white/[0.03] backdrop-blur-xl"
+            >
+              {(Object.keys(SEGMENT_META) as Segment[]).map((seg) => {
+                const m = SEGMENT_META[seg];
+                const active = segment === seg;
+                return (
+                  <button
+                    key={seg}
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setSegment(seg)}
+                    className={cn(
+                      'relative h-9 px-4 sm:px-5 inline-flex items-center gap-2 rounded-full text-[12px] font-medium tracking-tight transition-all',
+                      active
+                        ? 'text-black bg-white shadow-[0_8px_24px_-8px_hsla(0,0%,100%,0.35),inset_0_1px_0_hsla(0,0%,100%,0.6)]'
+                        : 'text-white/55 hover:text-white/85',
+                    )}
+                  >
+                    <span className={cn(active ? 'text-black/70' : 'text-[hsl(var(--primary))]')}>
+                      {m.icon}
+                    </span>
+                    {m.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Cards */}
       <section className="relative z-10 pt-14 pb-10 px-6">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
-          {PACKAGES.map((pkg, i) => (
-            <PricingCard key={pkg.name} pkg={pkg} index={i} onPurchase={handlePurchase} />
-          ))}
+        <div
+          className={cn(
+            'max-w-6xl mx-auto grid grid-cols-1 gap-6 items-start',
+            packages.length === 4 && 'sm:grid-cols-2 lg:grid-cols-4',
+            packages.length === 3 && 'sm:grid-cols-2 lg:grid-cols-3',
+          )}
+        >
+          <AnimatePresence mode="wait">
+            {packages.map((pkg, i) => (
+              <PricingCard key={`${segment}-${pkg.name}`} pkg={pkg} index={i} onPurchase={handlePurchase} />
+            ))}
+          </AnimatePresence>
         </div>
       </section>
 
@@ -468,6 +867,105 @@ export default function Pricing() {
                 <span className="text-[hsl(var(--primary))]">{p.icon}</span>
                 <span className="text-[12px] font-medium">{p.text}</span>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Comparison matrix */}
+      <section className="relative z-10 py-20 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 h-7 px-3 rounded-full border border-white/[0.07] bg-white/[0.03] backdrop-blur-md mb-5">
+              <FileCheck2 className="w-3.5 h-3.5 text-[hsl(var(--primary))]" />
+              <span className="text-[10px] uppercase tracking-[0.22em] text-white/55 font-medium">Compare</span>
+            </div>
+            <h2 className="font-display font-semibold tracking-[-0.03em] text-[32px] md:text-[44px] leading-tight text-white">
+              Every tier, side by side.
+            </h2>
+            <p className="text-white/45 mt-3 text-[14px]">Find the track that fits — switch anytime.</p>
+          </div>
+
+          <div className="rounded-3xl border border-white/[0.06] bg-white/[0.015] backdrop-blur-md overflow-hidden">
+            <div className="grid grid-cols-5 text-[11px] uppercase tracking-[0.18em] text-white/45 px-5 py-4 border-b border-white/[0.06] bg-white/[0.02]">
+              <div className="font-medium">Feature</div>
+              {(Object.keys(SEGMENT_META) as Segment[]).map((seg) => (
+                <div key={seg} className="text-center font-medium text-white/65">
+                  {SEGMENT_META[seg].label}
+                </div>
+              ))}
+            </div>
+            <div className="divide-y divide-white/[0.04]">
+              {MATRIX_ROWS.map((row) => (
+                <div key={row.label} className="grid grid-cols-5 items-center px-5 py-3.5 hover:bg-white/[0.02] transition-colors">
+                  <div className="text-[13px] text-white/70 font-medium">{row.label}</div>
+                  {(Object.keys(SEGMENT_META) as Segment[]).map((seg) => (
+                    <div key={seg} className="text-center">
+                      <MatrixCell value={row.values[seg]} />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Enterprise contact strip */}
+      <section className="relative z-10 py-14 px-6">
+        <div className="max-w-5xl mx-auto rounded-3xl border border-[hsl(var(--primary)/0.18)] bg-gradient-to-br from-[hsl(220_14%_5%/0.85)] to-[hsl(220_14%_2%/0.95)] backdrop-blur-2xl px-8 md:px-12 py-10 md:py-12 relative overflow-hidden">
+          <div
+            aria-hidden
+            className="absolute -top-32 -right-24 w-96 h-96 rounded-full blur-3xl opacity-60"
+            style={{ background: 'radial-gradient(closest-side, hsl(var(--primary) / 0.28), transparent 70%)' }}
+          />
+          <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+            <div className="max-w-xl">
+              <div className="inline-flex items-center gap-2 h-7 px-3 rounded-full border border-white/[0.08] bg-white/[0.04] mb-4">
+                <Globe className="w-3.5 h-3.5 text-[hsl(var(--primary))]" />
+                <span className="text-[10px] uppercase tracking-[0.22em] text-white/65 font-medium">Enterprise</span>
+              </div>
+              <h3 className="font-display font-semibold text-white text-[26px] md:text-[34px] tracking-[-0.025em] leading-tight">
+                Need volume, SSO and a contract?
+              </h3>
+              <p className="text-white/55 mt-3 text-[14px] leading-relaxed">
+                Talk to sales for custom credit volumes, dedicated infrastructure, security review, MSAs and DPAs — typically priced from $50k/year.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-stretch gap-3 shrink-0">
+              <Button
+                onClick={() => navigate('/contact?topic=sales')}
+                className="h-12 px-6 rounded-full text-[13px] font-semibold text-black bg-white hover:bg-white/90 shadow-[0_12px_40px_-12px_hsla(0,0%,100%,0.35),inset_0_1px_0_hsla(0,0%,100%,0.6)]"
+              >
+                <Phone className="w-4 h-4 mr-2" />
+                Talk to sales
+              </Button>
+              <Button
+                onClick={() => setSegment('enterprise')}
+                className="h-12 px-6 rounded-full text-[13px] font-medium text-white/85 bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.10]"
+              >
+                See enterprise tiers
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="relative z-10 py-20 px-6">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 h-7 px-3 rounded-full border border-white/[0.07] bg-white/[0.03] backdrop-blur-md mb-5">
+              <HeadphonesIcon className="w-3.5 h-3.5 text-[hsl(var(--primary))]" />
+              <span className="text-[10px] uppercase tracking-[0.22em] text-white/55 font-medium">FAQ</span>
+            </div>
+            <h2 className="font-display font-semibold tracking-[-0.03em] text-[32px] md:text-[44px] leading-tight text-white">
+              Questions, answered.
+            </h2>
+          </div>
+          <div className="space-y-3">
+            {FAQS.map((f, i) => (
+              <FaqItem key={f.q} q={f.q} a={f.a} defaultOpen={i === 0} />
             ))}
           </div>
         </div>

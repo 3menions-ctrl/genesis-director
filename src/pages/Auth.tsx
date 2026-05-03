@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, ShieldCheck, Zap, KeyRound, Star, Apple } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, ShieldCheck, Zap, KeyRound, Star, Apple, Building2 } from 'lucide-react';
 import { z } from 'zod';
 import { PasswordStrength } from '@/components/ui/password-strength';
 import { WelcomeBackDialog } from '@/components/auth/WelcomeBackDialog';
@@ -141,6 +141,24 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [resendingOtp, setResendingOtp] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<null | 'google' | 'apple'>(null);
+  const [demoLoading, setDemoLoading] = useState(false);
+
+  const handleDemoBusinessLogin = useCallback(async () => {
+    setDemoLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('demo-business-login', { body: {} });
+      if (error || !data?.ok) {
+        throw new Error(data?.error || error?.message || 'Demo provisioning failed');
+      }
+      const { error: signInErr } = await signIn(data.email, data.password);
+      if (signInErr) throw signInErr;
+      toast.success('Signed in to demo business workspace');
+    } catch (err) {
+      console.error('[Auth] demo business login failed', err);
+      toast.error('Could not start the demo. Please try again.');
+      setDemoLoading(false);
+    }
+  }, [signIn]);
 
   const handleOAuth = useCallback(async (provider: 'google' | 'apple') => {
     setOauthLoading(provider);

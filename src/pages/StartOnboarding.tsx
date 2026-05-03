@@ -768,12 +768,192 @@ export default function StartOnboarding() {
                 />
               )}
 
+              {/* Use case (Business) */}
+              {currentStep === 'biz_usecase' && (
+                <ChipGrid
+                  options={BUSINESS_USE_CASES.map(u => ({ id: u.id, label: u.label, desc: u.desc, Icon: u.Icon }))}
+                  selected={form.primary_use_case ? [form.primary_use_case] : []}
+                  onToggle={(id) => setForm(f => ({ ...f, primary_use_case: f.primary_use_case === id ? '' : id }))}
+                  error={errors.primary_use_case}
+                />
+              )}
+
+              {/* Volume (Business) */}
+              {currentStep === 'volume' && (
+                <RadioGrid
+                  options={BUSINESS_VOLUME}
+                  selected={form.monthly_volume}
+                  onSelect={(id) => setForm(f => ({ ...f, monthly_volume: id }))}
+                  error={errors.monthly_volume}
+                />
+              )}
+
+              {/* Brand kit (Business) */}
+              {currentStep === 'brand' && (
+                <div className="space-y-7">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/55 mb-3 inline-flex items-center gap-2">
+                      <Palette className="w-3.5 h-3.5 text-[#9DCBFF]" /> Brand colors (optional)
+                    </p>
+                    <div className="flex flex-wrap gap-2.5">
+                      {PRESET_BRAND_COLORS.map(c => {
+                        const active = form.brand_colors.includes(c);
+                        return (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => setForm(f => ({
+                              ...f,
+                              brand_colors: active ? f.brand_colors.filter(x => x !== c) : [...f.brand_colors, c].slice(0, 5),
+                            }))}
+                            className={cn(
+                              'w-10 h-10 rounded-full transition-all border-2',
+                              active ? 'border-white scale-110 shadow-[0_0_20px_-4px_hsla(212,100%,55%,0.6)]' : 'border-white/20 hover:border-white/40',
+                            )}
+                            style={{ background: c }}
+                            aria-label={`Brand color ${c}`}
+                          />
+                        );
+                      })}
+                    </div>
+                    <p className="text-[11px] text-white/35 mt-2">Pick up to 5 — we'll bias generated content toward your palette.</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/55 mb-3">Brand voice</p>
+                    <RadioGrid
+                      options={BRAND_VOICES}
+                      selected={form.brand_voice}
+                      onSelect={(id) => setForm(f => ({ ...f, brand_voice: id }))}
+                      error={errors.brand_voice}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Integrations (Business) */}
+              {currentStep === 'integrations' && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {BUSINESS_INTEGRATIONS.map(i => {
+                      const active = form.integrations_needed.includes(i.id);
+                      return (
+                        <button
+                          key={i.id}
+                          type="button"
+                          onClick={() => setForm(f => ({
+                            ...f,
+                            integrations_needed: active
+                              ? f.integrations_needed.filter(x => x !== i.id)
+                              : [...f.integrations_needed, i.id],
+                          }))}
+                          className={cn(
+                            'h-14 px-4 rounded-xl text-sm font-medium transition-all border inline-flex items-center justify-center gap-2',
+                            active
+                              ? 'border-[#0A84FF]/55 bg-[#0A84FF]/[0.10] text-white shadow-[0_0_24px_-8px_hsla(212,100%,55%,0.5)]'
+                              : 'border-white/[0.08] bg-white/[0.02] text-white/75 hover:border-white/15 hover:text-white',
+                          )}
+                        >
+                          {active && <Check className="w-3.5 h-3.5 text-[#9DCBFF]" />}
+                          {i.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[11px] text-white/35 inline-flex items-center gap-1.5"><Plug className="w-3 h-3" /> Optional — helps us prioritize your roadmap.</p>
+                </div>
+              )}
+
+              {/* Invite team (Business — after account creation) */}
+              {currentStep === 'invite' && (
+                <div className="space-y-4">
+                  <Field label="Add teammates by email">
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35 pointer-events-none" />
+                        <input
+                          type="email"
+                          placeholder="teammate@company.com"
+                          value={form.invite_input}
+                          onChange={(e) => setForm(f => ({ ...f, invite_input: e.target.value }))}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const v = form.invite_input.trim().toLowerCase();
+                              if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) && !form.invited_emails.includes(v)) {
+                                setForm(f => ({ ...f, invited_emails: [...f.invited_emails, v], invite_input: '' }));
+                              }
+                            }
+                          }}
+                          className={cn(inputCls, 'pl-10')}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const v = form.invite_input.trim().toLowerCase();
+                          if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) && !form.invited_emails.includes(v)) {
+                            setForm(f => ({ ...f, invited_emails: [...f.invited_emails, v], invite_input: '' }));
+                          }
+                        }}
+                        className="h-12 px-5 rounded-xl bg-white/[0.06] border border-white/10 text-sm font-medium hover:bg-white/[0.10] transition"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </Field>
+                  {form.invited_emails.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {form.invited_emails.map(em => (
+                        <span key={em} className="inline-flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-full bg-white/[0.05] border border-white/10 text-xs">
+                          {em}
+                          <button
+                            type="button"
+                            onClick={() => setForm(f => ({ ...f, invited_emails: f.invited_emails.filter(x => x !== em) }))}
+                            className="w-5 h-5 inline-flex items-center justify-center rounded-full hover:bg-white/[0.10]"
+                            aria-label={`Remove ${em}`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-[11px] text-white/35 inline-flex items-center gap-1.5">
+                    <Users className="w-3 h-3" /> Invites are sent after billing. Skip to do this later.
+                  </p>
+                </div>
+              )}
+
               {/* Billing summary (Business) */}
               {currentStep === 'billing' && (
-                <BillingSummary
-                  audience={accountType}
-                  plan={plans.find(p => p.id === form.selected_plan_id)}
-                />
+                <div className="space-y-5">
+                  <BillingSummary
+                    audience={accountType}
+                    plan={plans.find(p => p.id === form.selected_plan_id)}
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <Field label="Billing email (optional)">
+                      <div className="relative">
+                        <Receipt className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35 pointer-events-none" />
+                        <input
+                          type="email"
+                          placeholder="ap@company.com"
+                          value={form.billing_email}
+                          onChange={(e) => setForm(f => ({ ...f, billing_email: e.target.value }))}
+                          className={cn(inputCls, 'pl-10')}
+                        />
+                      </div>
+                    </Field>
+                    <Field label="VAT / Tax ID (optional)">
+                      <input
+                        placeholder="EU123456789"
+                        value={form.vat_id}
+                        onChange={(e) => setForm(f => ({ ...f, vat_id: e.target.value }))}
+                        className={inputCls}
+                      />
+                    </Field>
+                  </div>
+                </div>
               )}
 
               {/* Scale (Enterprise) */}

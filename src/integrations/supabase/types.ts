@@ -632,6 +632,13 @@ export type Database = {
             foreignKeyName: "brand_kits_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "brand_kits_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -1490,6 +1497,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "enterprise_provisioning_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
           {
             foreignKeyName: "enterprise_provisioning_organization_id_fkey"
             columns: ["organization_id"]
@@ -3003,6 +3017,13 @@ export type Database = {
             foreignKeyName: "movie_projects_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "movie_projects_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -3164,6 +3185,62 @@ export type Database = {
         }
         Relationships: []
       }
+      org_credit_refills: {
+        Row: {
+          created_at: string
+          credits_added: number
+          id: string
+          organization_id: string
+          refill_period: string
+          subscription_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          credits_added: number
+          id?: string
+          organization_id: string
+          refill_period: string
+          subscription_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          credits_added?: number
+          id?: string
+          organization_id?: string
+          refill_period?: string
+          subscription_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_credit_refills_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "org_credit_refills_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_credit_refills_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "org_credit_refills_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_plan_features: {
         Row: {
           api_access: boolean
@@ -3242,6 +3319,13 @@ export type Database = {
             foreignKeyName: "org_seats_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "org_seats_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -3295,6 +3379,13 @@ export type Database = {
             foreignKeyName: "org_shared_assets_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "org_shared_assets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -3338,6 +3429,13 @@ export type Database = {
           uploaded_by?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "organization_brand_assets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
           {
             foreignKeyName: "organization_brand_assets_organization_id_fkey"
             columns: ["organization_id"]
@@ -3389,6 +3487,13 @@ export type Database = {
             foreignKeyName: "organization_invites_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "organization_invites_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -3423,6 +3528,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
           {
             foreignKeyName: "organization_members_organization_id_fkey"
             columns: ["organization_id"]
@@ -4315,6 +4427,13 @@ export type Database = {
             foreignKeyName: "sso_domain_mappings_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "sso_domain_mappings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -4483,6 +4602,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_billing_summary"
+            referencedColumns: ["organization_id"]
+          },
           {
             foreignKeyName: "subscriptions_organization_id_fkey"
             columns: ["organization_id"]
@@ -5801,6 +5927,23 @@ export type Database = {
         }
         Relationships: []
       }
+      org_billing_summary: {
+        Row: {
+          active_seats: number | null
+          billed_seats: number | null
+          cancel_pending: boolean | null
+          environment: string | null
+          max_seats: number | null
+          monthly_credit_allowance: number | null
+          organization_id: string | null
+          organization_name: string | null
+          plan: string | null
+          renews_at: string | null
+          subscription_id: string | null
+          subscription_status: string | null
+        }
+        Relationships: []
+      }
       profiles_public: {
         Row: {
           avatar_url: string | null
@@ -6287,6 +6430,7 @@ export type Database = {
         Args: { p_email: string; p_ip?: string; p_success: boolean }
         Returns: undefined
       }
+      monthly_org_credit_refill: { Args: never; Returns: Json }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -6299,6 +6443,10 @@ export type Database = {
       persist_pipeline_context: {
         Args: { p_context: Json; p_project_id: string }
         Returns: boolean
+      }
+      provision_enterprise_org: {
+        Args: { p_owner_user_id: string; p_provisioning_id: string }
+        Returns: Json
       }
       reactivate_account: { Args: never; Returns: boolean }
       read_email_batch: {
@@ -6338,8 +6486,13 @@ export type Database = {
         Args: { p_lock_id: string; p_project_id: string }
         Returns: boolean
       }
+      resolve_sso_for_email: { Args: { p_email: string }; Returns: Json }
       revoke_org_seat: {
         Args: { p_org_id: string; p_user_id: string }
+        Returns: Json
+      }
+      set_org_plan: {
+        Args: { p_org_id: string; p_plan: string }
         Returns: Json
       }
       update_generation_checkpoint: {

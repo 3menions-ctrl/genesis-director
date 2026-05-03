@@ -147,7 +147,7 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
       {mobileOpen && (
         <button
           aria-label="Close menu"
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden animate-in fade-in"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden animate-in fade-in"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -212,7 +212,7 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
             )}
           </Link>
           <button
-            className="ml-auto lg:hidden w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/[0.06] text-white/45 hover:text-white/80 transition-colors duration-200"
+            className="ml-auto md:hidden w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/[0.06] text-white/45 hover:text-white/80 transition-colors duration-200"
             onClick={() => setMobileOpen(false)}
             aria-label="Close sidebar"
           >
@@ -428,7 +428,7 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
             <button
               onClick={() => setCollapsed(c => !c)}
               title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              className="hidden lg:flex w-9 h-9 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.06] text-white/55 hover:text-white/95 transition-colors"
+              className="hidden md:flex w-9 h-9 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.06] text-white/55 hover:text-white/95 transition-colors"
             >
               {collapsed
                 ? <PanelLeftOpen className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -452,7 +452,7 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden w-8 h-8 -ml-2 flex items-center justify-center rounded-full hover:bg-white/[0.06] text-white/60 hover:text-white transition-colors"
+              className="md:hidden w-8 h-8 -ml-2 flex items-center justify-center rounded-full hover:bg-white/[0.06] text-white/60 hover:text-white transition-colors"
               aria-label="Open menu"
             >
               <Menu className="w-4 h-4" strokeWidth={1.5} />

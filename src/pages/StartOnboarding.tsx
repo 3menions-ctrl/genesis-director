@@ -78,8 +78,8 @@ const ENTERPRISE_PLAN: Plan = {
  * Step definitions per audience
  * ──────────────────────────────────────────────────────────────────── */
 
-const PERSONAL_STEPS = ['goals', 'usecase', 'profile', 'plan', 'account', 'verify'] as const;
-const BUSINESS_STEPS = ['company', 'team', 'role', 'plan', 'billing', 'account', 'verify'] as const;
+const PERSONAL_STEPS = ['goals', 'usecase', 'profile', 'account', 'verify', 'plan'] as const;
+const BUSINESS_STEPS = ['company', 'team', 'role', 'account', 'verify', 'plan', 'billing'] as const;
 const ENTERPRISE_STEPS = ['company', 'scale', 'needs', 'contact'] as const;
 
 type StepKey =

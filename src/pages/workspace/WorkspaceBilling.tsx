@@ -19,7 +19,19 @@ const SEAT_LIMITS: Record<string, number> = {
 
 type Cycle = 'monthly' | 'yearly';
 
-const BUSINESS_PLANS = [
+interface BusinessPlan {
+  id: string;
+  name: string;
+  blurb: string;
+  monthly: { price: number; priceId: string };
+  yearly:  { price: number; priceId: string };
+  seats: number;
+  credits: number;
+  popular?: boolean;
+  features: string[];
+}
+
+const BUSINESS_PLANS: BusinessPlan[] = [
   {
     id: 'business_starter',
     name: 'Business Starter',
@@ -47,7 +59,7 @@ const BUSINESS_PLANS = [
     seats: 50, credits: 20000,
     features: ['50 seats', '20,000 monthly credits', 'Dedicated success manager', 'SSO available', 'Custom contracts'],
   },
-] as const;
+];
 
 export default function WorkspaceBilling() {
   const { currentOrg, hasPermission, refresh } = useWorkspace();

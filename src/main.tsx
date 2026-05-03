@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import { toast } from "sonner";
 import App from "./App.tsx";
 import "./index.css";
+// Initialize i18n (must run before any component renders)
+import "./i18n";
 // Console shield — must be imported early to intercept all logs
 import { installConsoleShield } from "./lib/consoleShield";
 import { stabilityMonitor, shouldSuppressError } from "./lib/stabilityMonitor";

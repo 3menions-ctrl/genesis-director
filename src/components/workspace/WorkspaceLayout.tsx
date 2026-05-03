@@ -77,6 +77,9 @@ const NAV_GROUPS: NavGroup[] = [
 
 const COLLAPSE_KEY = 'apex.workspaceRailCollapsed';
 const ACCENT_HUE = 215; // canonical blue accent — matches AppShell
+// Locked to canonical regular-user shell spec: 236 / 72 px
+const RAIL_EXPANDED = 'lg:w-[236px]';
+const RAIL_COLLAPSED = 'lg:w-[72px]';
 
 /**
  * Workspace shell — Premium Operations console.
@@ -130,7 +133,7 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  const railWidth = collapsed ? 'lg:w-[72px]' : 'lg:w-[256px]';
+  const railWidth = collapsed ? RAIL_COLLAPSED : RAIL_EXPANDED;
   const orgInitials = currentOrg.name.split(/\s+/).map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
   const tint = (a: number) => `hsla(${ACCENT_HUE}, 90%, 62%, ${a})`;
 
@@ -152,13 +155,12 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
       {/* ── Premium glass rail ───────────────────────────────── */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex flex-col w-[280px]',
+          'fixed inset-y-0 left-0 z-50 flex flex-col w-[260px]',
           '-translate-x-full transition-transform duration-300 ease-out',
           mobileOpen && 'translate-x-0',
-          'lg:static lg:translate-x-0 lg:shrink-0 lg:sticky lg:top-0',
-          'lg:h-screen lg:p-0',
+          'md:static md:translate-x-0 md:shrink-0 md:sticky md:top-0',
+          'md:h-screen md:p-0 md:border-r md:border-white/[0.06]',
           'lg:transition-[width] lg:duration-300 lg:ease-out',
-          'lg:border-r lg:border-white/[0.06]',
           railWidth,
         )}
         style={{

@@ -113,6 +113,13 @@ export default function Onboarding() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [createdOrgId, setCreatedOrgId] = useState<string | null>(null);
 
+  // True while we're attempting to consume a pre-signup intent (from /start).
+  // While true, we MUST NOT render the legacy 5-step wizard — otherwise the
+  // user briefly sees a second onboarding flow before being redirected.
+  const [intentResolving, setIntentResolving] = useState<boolean>(() => {
+    try { return !!sessionStorage.getItem('apex.intent_token'); } catch { return false; }
+  });
+
   // ─── Auth gate ─────────────────────────────────────────────────────
   useEffect(() => {
     if (authLoading || !isSessionVerified) return;
@@ -138,9 +145,18 @@ export default function Onboarding() {
     (async () => {
       try {
         const { data, error } = await supabase.rpc('consume_onboarding_intent', { _token: token });
-        if (error) { console.warn('[Onboarding] intent consume failed', error); return; }
+        if (error) {
+          console.warn('[Onboarding] intent consume failed', error);
+          try { sessionStorage.removeItem('apex.intent_token'); } catch {}
+          setIntentResolving(false);
+          return;
+        }
         const result = data as { ok: boolean; plan_id?: string; plan_kind?: string } | null;
-        if (!result?.ok) return;
+        if (!result?.ok) {
+          try { sessionStorage.removeItem('apex.intent_token'); } catch {}
+          setIntentResolving(false);
+          return;
+        }
         try { sessionStorage.removeItem('apex.intent_token'); } catch {}
         await refreshProfile();
         const next = new URLSearchParams(window.location.search).get('next');
@@ -152,6 +168,7 @@ export default function Onboarding() {
         }
       } catch (e) {
         console.warn('[Onboarding] intent consume threw', e);
+        setIntentResolving(false);
       }
     })();
   }, [sessionChecked, user, navigate, refreshProfile]);
@@ -291,7 +308,7 @@ export default function Onboarding() {
   };
 
   // ─── Loading state ─────────────────────────────────────────────────
-  if (authLoading || !isSessionVerified || !sessionChecked) {
+  if (authLoading || !isSessionVerified || !sessionChecked || intentResolving) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[hsl(220,14%,2%)]">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4">

@@ -530,6 +530,31 @@ export default function StartOnboarding() {
       // Consume intent then go straight to checkout.
       await persistIntentAndConsume();
 
+      // Business: send teammate invites entered on the 'invite' step (best-effort).
+      if (accountType === 'business' && form.invited_emails.length > 0 && user) {
+        try {
+          // Find user's primary org
+          const { data: orgs } = await supabase
+            .from('organizations')
+            .select('id')
+            .eq('created_by', user.id)
+            .order('created_at', { ascending: true })
+            .limit(1);
+          const orgId = orgs?.[0]?.id;
+          if (orgId) {
+            const inviteRows = form.invited_emails.map(email => ({
+              organization_id: orgId,
+              email,
+              role: 'producer' as const,
+              invited_by: user.id,
+              token: `inv_${crypto.randomUUID()}`,
+              expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+            }));
+            await supabase.from('organization_invites').insert(inviteRows);
+          }
+        } catch (e) { console.warn('[start] team invites', e); }
+      }
+
       const target = form.selected_plan_kind === 'contact'
         ? '/projects'
         : form.selected_plan_id

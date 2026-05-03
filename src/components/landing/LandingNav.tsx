@@ -7,11 +7,12 @@ const SCROLL_ITEMS = ['Features', 'Pricing', 'FAQ'] as const;
 interface NavigationProps {
   onScrollToSection: (target: string) => void;
   onNavigate: (path: string) => void;
+  onGetStarted?: () => void;
   signUpButtonRef?: React.RefObject<HTMLButtonElement>;
 }
 
 export const LandingNav = memo(forwardRef<HTMLElement, NavigationProps>(
-  function LandingNav({ onScrollToSection, onNavigate, signUpButtonRef }, ref) {
+  function LandingNav({ onScrollToSection, onNavigate, onGetStarted, signUpButtonRef }, ref) {
     return (
       <nav
         ref={ref}
@@ -43,7 +44,7 @@ export const LandingNav = memo(forwardRef<HTMLElement, NavigationProps>(
             </Button>
             <Button
               ref={signUpButtonRef}
-              onClick={() => onNavigate('/auth?mode=signup')}
+              onClick={() => (onGetStarted ? onGetStarted() : onNavigate('/auth?mode=signup'))}
               className="h-8 px-5 text-[13px] font-semibold rounded-lg bg-white text-black hover:bg-white/90 shadow-[0_0_20px_rgba(255,255,255,0.08)] transition-all duration-300"
             >
               Get Started

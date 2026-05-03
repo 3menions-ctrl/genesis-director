@@ -5,13 +5,16 @@ import { z } from 'zod';
 import {
   User, Briefcase, Building2, ArrowRight, ArrowLeft, Check, Sparkles,
   Film, Megaphone, Wand2, Crown, Gem,
-  Loader2, X, Cpu, ShieldCheck,
+  Loader2, X, Cpu, ShieldCheck, Star, Quote,
 } from 'lucide-react';
 import { useSafeNavigation } from '@/lib/navigation';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/utils';
+import heroPersonal from '@/assets/onboarding/hero-personal.jpg';
+import heroBusiness from '@/assets/onboarding/hero-business.jpg';
+import heroEnterprise from '@/assets/onboarding/hero-enterprise.jpg';
 
 type AccountType = 'personal' | 'business' | 'enterprise';
 type PlanKind = 'credits' | 'subscription' | 'contact';

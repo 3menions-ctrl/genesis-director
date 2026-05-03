@@ -3,10 +3,9 @@
  * Used by every page under src/pages/workspace/* to maintain a coherent,
  * dense, telemetry-driven aesthetic distinct from the personal Pro-Dark shell.
  *
- * Design tokens (inline; do NOT promote to global CSS):
- *   ground hsl(220,14%,4%) · surface hsl(35,12%,5-7%) · border hsl(35,12%,12-16%)
- *   text 92/72/55/40% · accent hsl(215,100%,60%) amber/copper · nominal hsl(140,70%,50%)
- *   square edges (rounded-sm max), JetBrains Mono uppercase labels.
+ * Design tokens align with canonical Pro-Dark + blue (hue 215). All surfaces
+ * use rounded-2xl glass gradients; mono labels are JetBrains Mono uppercase.
+ * No amber/copper/graphite residue — this set was migrated to canonical blue.
  */
 import { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';

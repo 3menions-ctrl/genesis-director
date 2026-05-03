@@ -42,13 +42,36 @@ export default function WorkspaceOverview() {
     try {
       const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
       const sb: any = supabase;
-      const m    = await sb.from('organization_members').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id);
-      const inv  = await sb.from('organization_invites').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id).eq('status', 'pending');
-      const proj = await sb.from('movie_projects').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id);
-      const ass  = await sb.from('organization_brand_assets').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id);
-      const org  = await sb.from('organizations').select('brand_colors, brand_primary_color, brand_accent_color').eq('id', currentOrg.id).maybeSingle();
-      const txn  = await sb.from('credit_transactions').select('amount').eq('user_id', currentOrg.created_by).eq('transaction_type', 'consumption').gte('created_at', since);
-      const used = (txn.data ?? []).reduce((s: number, t: any) => s + Math.abs(t.amount ?? 0), 0);
+
+      // Resolve every member of the org so burn can be computed pool-wide,
+      // not just for the founder. (Pre-fix this query used currentOrg.created_by,
+      // which silently reported the founder's *personal* spend.)
+      const memberRowsP = sb.from('organization_members').select('user_id').eq('organization_id', currentOrg.id);
+
+      const [m, inv, proj, ass, org, memberRows] = await Promise.all([
+        sb.from('organization_members').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id),
+        sb.from('organization_invites').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id).eq('status', 'pending'),
+        sb.from('movie_projects').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id),
+        sb.from('organization_brand_assets').select('id', { count: 'exact', head: true }).eq('organization_id', currentOrg.id),
+        sb.from('organizations').select('brand_colors, brand_primary_color, brand_accent_color').eq('id', currentOrg.id).maybeSingle(),
+        memberRowsP,
+      ]);
+      const memberIds: string[] = (memberRows.data ?? []).map((r: any) => r.user_id).filter(Boolean);
+      let used = 0;
+      if (memberIds.length > 0) {
+        const txn = await sb.from('credit_transactions')
+          .select('amount, project_id')
+          .in('user_id', memberIds)
+          .eq('transaction_type', 'consumption')
+          .gte('created_at', since);
+        // Filter to org projects to avoid counting member's personal spend
+        const projRows = await sb.from('movie_projects').select('id').eq('organization_id', currentOrg.id);
+        const orgProjectIds = new Set((projRows.data ?? []).map((p: any) => p.id));
+        used = (txn.data ?? []).reduce((s: number, t: any) => {
+          if (!t.project_id || orgProjectIds.has(t.project_id)) return s + Math.abs(t.amount ?? 0);
+          return s;
+        }, 0);
+      }
       const palette = (org.data?.brand_colors && org.data.brand_colors.length > 0)
         ? org.data.brand_colors
         : [org.data?.brand_primary_color, org.data?.brand_accent_color].filter(Boolean) as string[];

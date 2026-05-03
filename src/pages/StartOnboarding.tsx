@@ -460,6 +460,14 @@ export default function StartOnboarding() {
       contact_email: form.contact_email || null,
       contact_phone: form.contact_phone || null,
       display_name: form.display_name || null,
+      primary_use_case: form.primary_use_case || null,
+      monthly_volume: form.monthly_volume || null,
+      brand_colors: form.brand_colors.length ? form.brand_colors : null,
+      brand_voice: form.brand_voice || null,
+      integrations_needed: form.integrations_needed.length ? form.integrations_needed : null,
+      billing_email: form.billing_email || null,
+      vat_id: form.vat_id || null,
+      invited_emails: form.invited_emails.length ? form.invited_emails : null,
     };
     const { error } = await supabase.from('onboarding_intents').insert(payload);
     if (error) {

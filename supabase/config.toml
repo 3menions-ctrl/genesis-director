@@ -181,3 +181,12 @@ project_id = "ahlikyhgcqvrdvbtkghh"
     verify_jwt = false
   [functions.visual-debugger]
     verify_jwt = false
+
+  [functions.create-portal-session]
+    verify_jwt = false
+
+  [functions.sync-org-seats]
+    verify_jwt = false
+
+  [functions.monthly-credit-refill]
+    verify_jwt = false

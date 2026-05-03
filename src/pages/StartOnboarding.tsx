@@ -270,7 +270,7 @@ export default function StartOnboarding() {
       }
     }
     return true;
-  }, [currentStep, form]);
+  }, [currentStep, form, user, otpCode]);
 
   // Holds the persisted intent token after we save the wizard data
   const [intentToken, setIntentToken] = useState<string | null>(null);

@@ -1,11 +1,15 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { CreditCard, Receipt, Save, Loader2, Users, ExternalLink, Crown, ArrowUpRight, Check, Sparkles } from 'lucide-react';
+import {
+  CreditCard, Receipt, Save, Loader2, Users, ExternalLink,
+  Crown, Check, Sparkles,
+} from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import {
+  Surface, Section, MetricCard, Field, CmdButton, DataInput, Pill,
+} from '@/components/workspace/command-ui';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
@@ -34,7 +38,7 @@ interface BusinessPlan {
 const BUSINESS_PLANS: BusinessPlan[] = [
   {
     id: 'business_starter',
-    name: 'Business Starter',
+    name: 'STARTER',
     blurb: 'Small teams getting started.',
     monthly: { price: 99,  priceId: 'business_starter_monthly' },
     yearly:  { price: 990, priceId: 'business_starter_yearly'  },
@@ -43,16 +47,16 @@ const BUSINESS_PLANS: BusinessPlan[] = [
   },
   {
     id: 'business_growth',
-    name: 'Business Growth',
+    name: 'GROWTH',
     blurb: 'Growing creative teams.',
     monthly: { price: 299,  priceId: 'business_growth_monthly' },
     yearly:  { price: 2990, priceId: 'business_growth_yearly'  },
     seats: 15, credits: 5000, popular: true,
-    features: ['15 seats', '5,000 monthly credits', 'Brand kit + asset library', 'Team analytics', 'Priority Slack support'],
+    features: ['15 seats', '5,000 monthly credits', 'Brand kit + asset library', 'Team telemetry', 'Priority Slack support'],
   },
   {
     id: 'business_scale',
-    name: 'Business Scale',
+    name: 'SCALE',
     blurb: 'Studios and agencies at scale.',
     monthly: { price: 999,  priceId: 'business_scale_monthly' },
     yearly:  { price: 9990, priceId: 'business_scale_yearly'  },
@@ -73,7 +77,6 @@ export default function WorkspaceBilling() {
   const [memberCount, setMemberCount] = useState(0);
   const [creditsBalance, setCreditsBalance] = useState(0);
   const [recentTxns, setRecentTxns] = useState<Array<{ id: string; amount: number; transaction_type: string; description: string | null; created_at: string }>>([]);
-  const [planOpen, setPlanOpen] = useState(false);
   const [cycle, setCycle] = useState<Cycle>('monthly');
   const [checkoutPriceId, setCheckoutPriceId] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -95,8 +98,6 @@ export default function WorkspaceBilling() {
           .from('organization_members')
           .select('id', { count: 'exact', head: true })
           .eq('organization_id', currentOrg.id),
-        // Recent credit transactions for the org owner — proxy for billing history
-        // until we wire org-level invoices to Stripe.
         supabase
           .from('credit_transactions')
           .select('id, amount, transaction_type, description, created_at')
@@ -132,7 +133,7 @@ export default function WorkspaceBilling() {
       .eq('id', currentOrg.id);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success('Billing details saved');
+    toast.success('Billing details committed');
     void refresh();
   };
 
@@ -160,123 +161,132 @@ export default function WorkspaceBilling() {
 
   return (
     <WorkspaceLayout>
-      <div className="space-y-7">
-        {/* Plan + seats summary */}
+      <div className="space-y-6">
+        {/* ── Account summary ───────────────────────────────── */}
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Stat
-            label="Current plan"
-            value={(currentOrg?.plan ?? 'starter').toUpperCase()}
+          <MetricCard
             icon={Crown}
-            cta={canEdit ? { label: 'Change plan', onClick: () => setPlanOpen(true) } : undefined}
+            label="Active plan"
+            value={(currentOrg?.plan ?? 'starter').toUpperCase().replace('_', ' ')}
+            sub="BUSINESS TIER"
           />
-          <Stat
+          <MetricCard
+            icon={Users}
             label="Seats"
             value={loading ? '—' : `${memberCount} / ${seatLimit}`}
-            icon={Users}
+            sub={memberCount >= seatLimit ? 'AT CAPACITY' : 'AVAILABLE'}
             warn={memberCount >= seatLimit}
           />
-          <Stat
-            label="Credits balance"
-            value={loading ? '—' : creditsBalance.toLocaleString()}
+          <MetricCard
             icon={CreditCard}
+            label="Credit reserve"
+            value={loading ? '—' : creditsBalance.toLocaleString()}
+            sub="WORKSPACE POOL"
+            accent
             cta={canEdit ? { label: 'Top up', onClick: () => navigate('/pricing?tab=credits') } : undefined}
           />
         </section>
 
-        {/* Business plans inline picker */}
+        {/* ── Plan picker ───────────────────────────────────── */}
         {canEdit && (
-          <section className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-6">
-            <div className="flex items-center justify-between gap-4 flex-wrap mb-5">
-              <div>
-                <h3 className="text-[15px] font-medium text-white/95 inline-flex items-center gap-2">
-                  <Sparkles className="w-3.5 h-3.5 text-[#9DCBFF]" /> Business plans
-                </h3>
-                <p className="text-[12px] text-white/45 mt-1">Choose a tier built for teams. Upgrade or downgrade any time.</p>
-              </div>
-              <div className="inline-flex rounded-full border border-white/[0.08] bg-white/[0.02] p-1">
+          <Section
+            icon={Sparkles}
+            label="Subscription tier"
+            sublabel="Provision seats and monthly credit allotment. Upgrade or downgrade any time."
+            action={
+              <div className="inline-flex border border-[hsl(35,12%,16%)] bg-[hsl(35,12%,7%)]">
                 {(['monthly', 'yearly'] as const).map(c => (
                   <button
                     key={c}
                     onClick={() => setCycle(c)}
                     className={cn(
-                      'px-3 py-1 text-[11px] uppercase tracking-[0.16em] rounded-full transition',
-                      cycle === c ? 'bg-[#0A84FF] text-white' : 'text-white/55 hover:text-white'
+                      'px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.20em] transition-colors',
+                      cycle === c
+                        ? 'bg-[hsl(28,90%,55%)] text-[hsl(35,12%,4%)]'
+                        : 'text-[hsl(35,8%,55%)] hover:text-[hsl(35,12%,92%)]'
                     )}
                   >
-                    {c}{c === 'yearly' && <span className="ml-1 text-[#5AC8FA]">−16%</span>}
+                    {c}{c === 'yearly' && <span className="ml-1.5 text-[hsl(28,90%,72%)]">−16%</span>}
                   </button>
                 ))}
               </div>
-            </div>
+            }
+          >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {BUSINESS_PLANS.map(p => {
                 const tier = cycle === 'monthly' ? p.monthly : p.yearly;
                 const isCurrent = currentOrg?.plan === p.id;
                 return (
                   <div key={p.id} className={cn(
-                    'rounded-2xl border p-5 flex flex-col',
-                    p.popular ? 'border-[#0A84FF]/40 bg-[#0A84FF]/[0.04]' : 'border-white/[0.06] bg-white/[0.02]'
+                    'relative border p-5 flex flex-col bg-[hsl(35,12%,5%)]',
+                    p.popular ? 'border-[hsl(28,90%,55%)]' : 'border-[hsl(35,12%,16%)]',
                   )}>
                     {p.popular && (
-                      <div className="text-[9px] uppercase tracking-[0.22em] text-[#9DCBFF] font-medium mb-2">Most popular</div>
+                      <span className="absolute top-0 right-0 px-2 py-0.5 bg-[hsl(28,90%,55%)] text-[hsl(35,12%,4%)] font-mono text-[9px] uppercase tracking-[0.22em]">
+                        RECOMMENDED
+                      </span>
                     )}
-                    <div className="text-[15px] font-medium text-white/95">{p.name}</div>
-                    <div className="text-[12px] text-white/45 mb-4">{p.blurb}</div>
-                    <div className="flex items-baseline gap-1.5 mb-4">
-                      <span className="font-display text-[28px] font-light text-white">${tier.price}</span>
-                      <span className="text-[11px] text-white/45">/{cycle === 'monthly' ? 'mo' : 'yr'}</span>
+                    <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-[hsl(35,12%,98%)]">
+                      {p.name}
                     </div>
-                    <ul className="space-y-1.5 mb-5 flex-1">
+                    <div className="text-[12px] text-[hsl(35,8%,55%)] mt-1 mb-5 font-light">{p.blurb}</div>
+                    <div className="flex items-baseline gap-1.5 mb-5 pb-4 border-b border-[hsl(35,12%,12%)]">
+                      <span className="font-display text-[34px] font-light text-[hsl(35,12%,98%)] tabular-nums">
+                        ${tier.price}
+                      </span>
+                      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(35,8%,55%)]">
+                        /{cycle === 'monthly' ? 'MO' : 'YR'}
+                      </span>
+                    </div>
+                    <ul className="space-y-2 mb-5 flex-1">
                       {p.features.map(f => (
-                        <li key={f} className="text-[12px] text-white/65 inline-flex items-start gap-2">
-                          <Check className="w-3 h-3 text-[#5AC8FA] mt-1 flex-shrink-0" strokeWidth={2.5} /> {f}
+                        <li key={f} className="text-[12px] text-[hsl(35,12%,82%)] inline-flex items-start gap-2">
+                          <Check className="w-3 h-3 text-[hsl(28,90%,62%)] mt-1 flex-shrink-0" strokeWidth={2.5} /> {f}
                         </li>
                       ))}
                     </ul>
-                    <Button
+                    <CmdButton
                       onClick={() => startCheckout(tier.priceId)}
                       disabled={isCurrent}
-                      className={cn(
-                        'w-full rounded-full',
-                        isCurrent
-                          ? 'bg-white/[0.05] text-white/50 cursor-not-allowed hover:bg-white/[0.05]'
-                          : p.popular
-                            ? 'bg-[#0A84FF] hover:bg-[#0A84FF]/90 text-white'
-                            : 'bg-white text-black hover:bg-white/90'
-                      )}
+                      variant={p.popular ? 'primary' : 'ghost'}
+                      className="w-full"
                     >
-                      {isCurrent ? 'Current plan' : 'Upgrade'}
-                    </Button>
+                      {isCurrent ? 'ACTIVE' : 'PROVISION'}
+                    </CmdButton>
                   </div>
                 );
               })}
             </div>
-            <p className="text-[11px] text-white/35 mt-4">
-              Need more seats or custom contracts? <button onClick={() => navigate('/pricing#enterprise')} className="text-[#9DCBFF] hover:text-white underline-offset-4 hover:underline">Talk to sales</button>.
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(35,8%,55%)] mt-5">
+              Need more seats or custom contracts?{' '}
+              <button
+                onClick={() => navigate('/pricing#enterprise')}
+                className="text-[hsl(28,90%,62%)] hover:text-[hsl(28,90%,72%)] underline-offset-4 hover:underline"
+              >
+                CONTACT ENTERPRISE →
+              </button>
             </p>
-          </section>
+          </Section>
         )}
 
-        {/* Billing details */}
-        <section className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-6">
-          <h3 className="text-[15px] font-medium text-white/95 mb-1">Billing details</h3>
-          <p className="text-[12px] text-white/45 mb-5">Used on every invoice for this workspace.</p>
+        {/* ── Invoice details ───────────────────────────────── */}
+        <Section
+          icon={Receipt}
+          label="Invoice details"
+          sublabel="Imprinted on every invoice for this workspace."
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <Field label="Billing email" hint="Where invoices and receipts are sent.">
-              <div className="relative">
-                <Receipt className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35 pointer-events-none" />
-                <Input
-                  type="email"
-                  placeholder="ap@company.com"
-                  value={billingEmail}
-                  disabled={!canEdit}
-                  onChange={(e) => setBillingEmail(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
+              <DataInput
+                type="email"
+                placeholder="ap@company.com"
+                value={billingEmail}
+                disabled={!canEdit}
+                onChange={(e) => setBillingEmail(e.target.value)}
+              />
             </Field>
             <Field label="VAT / Tax ID" hint="Shown on invoices for reverse-charge handling.">
-              <Input
+              <DataInput
                 placeholder="EU123456789"
                 value={vatId}
                 disabled={!canEdit}
@@ -285,57 +295,74 @@ export default function WorkspaceBilling() {
             </Field>
           </div>
           {canEdit && (
-            <div className="mt-5">
-              <Button onClick={save} disabled={saving} className="bg-[#0A84FF] hover:bg-[#0A84FF]/90">
-                {saving ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-2" />}
-                Save details
-              </Button>
+            <div className="mt-5 pt-4 border-t border-[hsl(35,12%,12%)]">
+              <CmdButton onClick={save} disabled={saving}>
+                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                Commit details
+              </CmdButton>
             </div>
           )}
-        </section>
+        </Section>
 
-        {/* Recent activity */}
-        <section className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-[15px] font-medium text-white/95">Recent billing activity</h3>
-              <p className="text-[12px] text-white/45">Top-ups, plan changes and credits granted.</p>
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/settings?tab=billing')} className="text-white/55">
-              Full history <ExternalLink className="w-3 h-3 ml-1.5" />
-            </Button>
-          </div>
+        {/* ── Activity ledger ───────────────────────────────── */}
+        <Section
+          icon={Receipt}
+          label="Activity ledger"
+          sublabel="Top-ups, plan changes, credits granted."
+          action={
+            <button
+              onClick={() => navigate('/settings?tab=billing')}
+              className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(28,90%,62%)] hover:text-[hsl(28,90%,72%)] inline-flex items-center gap-1.5"
+            >
+              FULL HISTORY <ExternalLink className="w-3 h-3" />
+            </button>
+          }
+        >
           {loading ? (
             <div className="space-y-2">
-              {[0, 1, 2].map(i => <div key={i} className="h-10 bg-white/[0.02] rounded-lg animate-pulse" />)}
+              {[0, 1, 2].map(i => <div key={i} className="h-10 bg-[hsl(35,12%,7%)] animate-pulse" />)}
             </div>
           ) : recentTxns.length === 0 ? (
-            <p className="text-[12px] text-white/35 py-6 text-center">No billing activity yet.</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[hsl(35,8%,55%)] py-6 text-center">
+              No activity recorded.
+            </p>
           ) : (
-            <ul className="divide-y divide-white/[0.04]">
+            <ul className="divide-y divide-[hsl(35,12%,12%)]">
               {recentTxns.map(t => (
-                <li key={t.id} className="flex items-center justify-between py-3">
-                  <div className="min-w-0">
-                    <div className="text-[13px] text-white/85 truncate">{t.description ?? t.transaction_type}</div>
-                    <div className="text-[11px] text-white/40">{new Date(t.created_at).toLocaleString()}</div>
+                <li key={t.id} className="flex items-center justify-between py-3 px-2">
+                  <div className="min-w-0 flex items-center gap-3">
+                    <Pill tone={t.amount > 0 ? 'good' : 'neutral'}>
+                      {t.transaction_type.toUpperCase()}
+                    </Pill>
+                    <div className="min-w-0">
+                      <div className="text-[13px] text-[hsl(35,12%,82%)] truncate">
+                        {t.description ?? t.transaction_type}
+                      </div>
+                      <div className="font-mono text-[10px] text-[hsl(35,8%,45%)] uppercase tracking-[0.16em]">
+                        {new Date(t.created_at).toLocaleString()}
+                      </div>
+                    </div>
                   </div>
-                  <div className={t.amount > 0 ? 'text-[13px] font-medium text-[#5AC8FA]' : 'text-[13px] font-medium text-white/65'}>
-                    {t.amount > 0 ? `+${t.amount}` : t.amount} credits
+                  <div className={cn(
+                    'font-mono text-[13px] tabular-nums',
+                    t.amount > 0 ? 'text-[hsl(140,70%,65%)]' : 'text-[hsl(35,12%,72%)]',
+                  )}>
+                    {t.amount > 0 ? `+${t.amount}` : t.amount}
                   </div>
                 </li>
               ))}
             </ul>
           )}
-        </section>
+        </Section>
       </div>
 
-      {/* Embedded checkout dialog */}
+      {/* ── Embedded checkout ─────────────────────────────── */}
       <Dialog open={!!checkoutPriceId} onOpenChange={(o) => { if (!o) { setCheckoutPriceId(null); setClientSecret(null); } }}>
-        <DialogContent className="max-w-2xl bg-[hsl(220,14%,3%)] border-white/[0.08] p-0 overflow-hidden">
-          <DialogTitle className="sr-only">Checkout</DialogTitle>
+        <DialogContent className="max-w-2xl bg-[hsl(35,10%,4%)] border border-[hsl(35,12%,16%)] p-0 overflow-hidden">
+          <DialogTitle className="sr-only">Provision plan</DialogTitle>
           {loadingCheckout || !clientSecret ? (
             <div className="h-[480px] flex items-center justify-center">
-              <Loader2 className="w-6 h-6 text-[#9DCBFF] animate-spin" />
+              <Loader2 className="w-6 h-6 text-[hsl(28,90%,62%)] animate-spin" />
             </div>
           ) : (
             <div className="bg-white">
@@ -346,63 +373,6 @@ export default function WorkspaceBilling() {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Plan picker fallback (link-based) — opens the inline plans section */}
-      {planOpen && (
-        <Dialog open={planOpen} onOpenChange={setPlanOpen}>
-          <DialogContent className="max-w-md bg-[hsl(220,14%,3%)] border-white/[0.08]">
-            <DialogTitle className="text-white text-base">Change plan</DialogTitle>
-            <p className="text-[13px] text-white/55 mt-2">
-              Pick a Business plan from the section below — Starter, Growth, or Scale.
-              Need a personal credit pack? Visit pricing.
-            </p>
-            <div className="flex gap-2 mt-4">
-              <Button variant="outline" onClick={() => { setPlanOpen(false); navigate('/pricing'); }} className="flex-1">
-                See all pricing
-              </Button>
-              <Button onClick={() => setPlanOpen(false)} className="flex-1 bg-[#0A84FF] hover:bg-[#0A84FF]/90">
-                Got it
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
     </WorkspaceLayout>
-  );
-}
-
-function Stat({ label, value, icon: Icon, cta, warn }: {
-  label: string; value: string; icon: typeof CreditCard;
-  cta?: { label: string; onClick: () => void };
-  warn?: boolean;
-}) {
-  return (
-    <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-5">
-      <div className="flex items-center justify-between">
-        <div className="text-[10px] uppercase tracking-[0.22em] text-white/40">{label}</div>
-        <Icon className="w-3.5 h-3.5 text-[#9DCBFF]" strokeWidth={1.5} />
-      </div>
-      <div className={warn ? 'mt-2 text-2xl font-display font-light text-[#FF9F0A]' : 'mt-2 text-2xl font-display font-light text-white'}>
-        {value}
-      </div>
-      {cta && (
-        <button
-          onClick={cta.onClick}
-          className="mt-3 inline-flex items-center gap-1 text-[11px] text-[#9DCBFF] hover:text-white transition"
-        >
-          {cta.label} <ArrowUpRight className="w-3 h-3" />
-        </button>
-      )}
-    </div>
-  );
-}
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="text-[11px] uppercase tracking-[0.18em] text-white/55 font-medium">{label}</span>
-      {children}
-      {hint && <span className="block text-[11px] text-white/35 mt-1.5">{hint}</span>}
-    </label>
   );
 }

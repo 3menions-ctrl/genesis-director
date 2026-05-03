@@ -50,7 +50,7 @@ export const SignupEmail = ({
           ) with this code:
         </Text>
         {token ? <Text style={code}>{token}</Text> : null}
-        <Text style={text}>Enter this 6-digit code in Apex Studio to finish creating your account.</Text>
+        <Text style={text}>Enter this code in Apex Studio to finish creating your account. The code expires in 10 minutes.</Text>
         <Button style={button} href={confirmationUrl}>
           Open Apex Studio
         </Button>

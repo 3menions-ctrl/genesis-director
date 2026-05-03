@@ -5362,6 +5362,19 @@ export type Database = {
           target_type: string
         }[]
       }
+      admin_get_email_log: {
+        Args: { _email_filter?: string; _limit?: number }
+        Returns: {
+          created_at: string
+          error_message: string
+          id: string
+          message_id: string
+          metadata: Json
+          recipient_email: string
+          status: string
+          template_name: string
+        }[]
+      }
       admin_list_projects: {
         Args: {
           p_limit?: number

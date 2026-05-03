@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { z } from 'zod';
 import {
   User, Briefcase, Building2, ArrowRight, ArrowLeft, Check, Sparkles,
@@ -373,36 +373,67 @@ export default function StartOnboarding() {
             </div>
           </div>
 
-          {/* Stepper rail */}
+          {/* Stepper rail with traveling shimmer on the active segment */}
           <div className="flex items-center gap-1.5 mb-8">
-            {steps.map((s, i) => (
-              <div key={s} className="flex-1 h-[3px] rounded-full overflow-hidden bg-white/[0.06]">
-                <motion.div
-                  className="h-full origin-left"
-                  style={{ background: i <= stepIdx ? 'linear-gradient(90deg, #0A84FF, #5AC8FA)' : 'transparent' }}
-                  initial={false}
-                  animate={{ scaleX: i <= stepIdx ? 1 : 0 }}
-                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                />
-              </div>
-            ))}
+            {steps.map((s, i) => {
+              const filled = i <= stepIdx;
+              const active = i === stepIdx;
+              return (
+                <div key={s} className="relative flex-1 h-[3px] rounded-full overflow-hidden bg-white/[0.06]">
+                  <motion.div
+                    className="h-full origin-left"
+                    style={{ background: filled ? 'linear-gradient(90deg, #0A84FF, #5AC8FA)' : 'transparent' }}
+                    initial={false}
+                    animate={{ scaleX: filled ? 1 : 0 }}
+                    transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                  />
+                  {active && (
+                    <motion.div
+                      aria-hidden
+                      className="absolute inset-y-0 w-10 -translate-x-full"
+                      style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.95), transparent)', filter: 'blur(2px)' }}
+                      animate={{ x: ['-40px', '180px'] }}
+                      transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {/* Step header */}
-          <div className="mb-8">
+          <div className="mb-8 min-h-[120px]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={`header-${accountType}-${currentStep}`}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                initial={{ opacity: 0, y: 18, filter: 'blur(10px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -10, filter: 'blur(8px)' }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               >
-                <p className="text-[10px] tracking-[0.32em] uppercase text-[#9DCBFF] font-medium mb-3">
+                <motion.p
+                  className="text-[10px] tracking-[0.32em] uppercase text-[#9DCBFF] font-medium mb-3 inline-flex items-center gap-2"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
+                >
+                  <motion.span
+                    className="w-1 h-1 rounded-full bg-[#5AC8FA]"
+                    animate={{ opacity: [0.3, 1, 0.3], scale: [1, 1.4, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
                   {STEP_META[currentStep].label}
-                </p>
+                </motion.p>
                 <h1 className="font-display text-[32px] md:text-[44px] leading-[1.05] font-bold tracking-tight">
-                  {STEP_META[currentStep].copy}
+                  {STEP_META[currentStep].copy.split(' ').map((word, i) => (
+                    <motion.span
+                      key={`${currentStep}-${i}`}
+                      className="inline-block mr-[0.25em]"
+                      initial={{ opacity: 0, y: 18, filter: 'blur(8px)' }}
+                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                      transition={{ duration: 0.6, delay: 0.08 + i * 0.05, ease: [0.16, 1, 0.3, 1] }}
+                    >
+                      {word}
+                    </motion.span>
+                  ))}
                 </h1>
               </motion.div>
             </AnimatePresence>
@@ -414,10 +445,10 @@ export default function StartOnboarding() {
             <motion.div
               key={`${accountType}-${currentStep}`}
               custom={direction}
-              initial={{ opacity: 0, x: direction > 0 ? 30 : -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: direction > 0 ? -30 : 30 }}
-              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              initial={{ opacity: 0, x: direction > 0 ? 40 : -40, filter: 'blur(8px)' }}
+              animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, x: direction > 0 ? -40 : 40, filter: 'blur(8px)' }}
+              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
             >
               {/* Goals (Personal) */}
               {currentStep === 'goals' && (
@@ -589,28 +620,47 @@ export default function StartOnboarding() {
 
           {/* Footer nav */}
           <div className="flex items-center justify-between gap-3 mt-12 pt-8 border-t border-white/[0.06]">
-            <button
+            <motion.button
+              whileHover={{ x: -3 }}
+              whileTap={{ scale: 0.97 }}
               onClick={back}
               disabled={submitting}
-              className="inline-flex items-center gap-1.5 h-11 px-4 text-sm text-white/65 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors"
+              className="group inline-flex items-center gap-2 h-11 px-4 text-sm text-white/55 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors"
             >
-              <ArrowLeft className="w-4 h-4" /> Back
-            </button>
-            <button
+              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" /> Back
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 22 }}
               onClick={next}
               disabled={submitting}
-              className="group relative inline-flex items-center gap-2 h-12 px-7 rounded-full text-sm font-semibold text-white transition-all disabled:opacity-60 hover:scale-[1.02] active:scale-[0.98]"
+              className="group relative inline-flex items-center gap-2 h-12 px-7 rounded-full text-sm font-semibold text-white overflow-hidden disabled:opacity-60"
               style={{
                 background: 'linear-gradient(90deg, #0A84FF, #5AC8FA)',
-                boxShadow: '0 0 32px hsla(212,100%,55%,0.45)',
+                boxShadow: '0 10px 40px -8px hsla(212,100%,55%,0.55), 0 0 0 1px hsla(212,100%,75%,0.25) inset',
               }}
             >
-              {submitting
-                ? <Loader2 className="w-4 h-4 animate-spin" />
-                : isLast
-                  ? (accountType === 'enterprise' ? <>Submit <ArrowRight className="w-4 h-4" /></> : <>Continue to signup <ArrowRight className="w-4 h-4" /></>)
-                  : <>Continue <ArrowRight className="w-4 h-4" /></>}
-            </button>
+              {/* Traveling sheen */}
+              <motion.span
+                aria-hidden
+                className="absolute inset-y-0 w-16 -translate-x-full pointer-events-none"
+                style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent)' }}
+                animate={{ x: ['-80px', '320px'] }}
+                transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+              />
+              {/* Glow halo on hover */}
+              <span aria-hidden className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{ boxShadow: '0 0 60px hsla(195,100%,70%,0.7)' }} />
+              <span className="relative inline-flex items-center gap-2">
+                {submitting
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : isLast
+                    ? (accountType === 'enterprise' ? <>Submit <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></> : <>Continue to signup <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>)
+                    : <>Continue <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>}
+              </span>
+            </motion.button>
           </div>
 
           {/* Trust microcopy */}
@@ -653,23 +703,51 @@ function ChipGrid({
   return (
     <div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {options.map(({ id, label, Icon }) => {
+        {options.map(({ id, label, Icon }, i) => {
           const active = selected.includes(id);
           return (
-            <button
+            <motion.button
               key={id}
               onClick={() => onToggle(id)}
+              initial={{ opacity: 0, y: 18, filter: 'blur(6px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              transition={{ duration: 0.45, delay: 0.05 + i * 0.05, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={{ y: -4, scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
               className={cn(
-                'group relative h-28 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all',
+                'group relative h-28 rounded-2xl border flex flex-col items-center justify-center gap-2 overflow-hidden',
                 active
-                  ? 'border-[#0A84FF]/55 bg-[#0A84FF]/[0.08] shadow-[0_0_30px_-8px_hsla(212,100%,55%,0.4)]'
-                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/15'
+                  ? 'border-[#0A84FF]/60 bg-[#0A84FF]/[0.10] shadow-[0_0_40px_-8px_hsla(212,100%,55%,0.5)]'
+                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]'
               )}
             >
-              {Icon && <Icon className={cn('w-5 h-5 transition', active ? 'text-[#9DCBFF]' : 'text-white/55')} />}
-              <span className="text-sm font-medium">{label}</span>
-              {active && <Check className="absolute top-2.5 right-2.5 w-3.5 h-3.5 text-[#9DCBFF]" />}
-            </button>
+              {/* Ambient corner glow on active */}
+              {active && (
+                <motion.div aria-hidden className="absolute -top-10 -left-10 w-32 h-32 rounded-full pointer-events-none"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  style={{ background: 'radial-gradient(circle, hsla(212,100%,60%,0.35), transparent 70%)' }} />
+              )}
+              {/* Hover sheen */}
+              <span aria-hidden className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-[1100ms] ease-out pointer-events-none"
+                style={{ background: 'linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.08) 50%, transparent 70%)' }} />
+              {Icon && <Icon className={cn('w-5 h-5 transition-all duration-300', active ? 'text-[#9DCBFF] scale-110' : 'text-white/55 group-hover:text-white/80')} />}
+              <span className="text-sm font-medium relative">{label}</span>
+              <AnimatePresence>
+                {active && (
+                  <motion.span
+                    key="check"
+                    initial={{ scale: 0, rotate: -45 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    exit={{ scale: 0 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                    className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full flex items-center justify-center"
+                    style={{ background: 'linear-gradient(135deg, #0A84FF, #5AC8FA)' }}
+                  >
+                    <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
           );
         })}
       </div>
@@ -691,25 +769,51 @@ function RadioGrid({
   return (
     <div>
       <div className={cn('grid gap-3', compact ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2')}>
-        {options.map(({ id, label, desc }) => {
+        {options.map(({ id, label, desc }, i) => {
           const active = selected === id;
           return (
-            <button
+            <motion.button
               key={id}
               onClick={() => onSelect(id)}
+              initial={{ opacity: 0, y: 16, filter: 'blur(6px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              transition={{ duration: 0.45, delay: 0.04 + i * 0.04, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={{ y: -3, scale: 1.015 }}
+              whileTap={{ scale: 0.98 }}
               className={cn(
-                'text-left p-4 md:p-5 rounded-2xl border transition-all',
+                'group relative text-left p-4 md:p-5 rounded-2xl border overflow-hidden',
                 active
-                  ? 'border-[#0A84FF]/55 bg-[#0A84FF]/[0.08] shadow-[0_0_30px_-8px_hsla(212,100%,55%,0.4)]'
-                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/15'
+                  ? 'border-[#0A84FF]/60 bg-[#0A84FF]/[0.10] shadow-[0_0_40px_-8px_hsla(212,100%,55%,0.5)]'
+                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]'
               )}
             >
-              <div className="flex items-center justify-between">
+              {active && (
+                <motion.div aria-hidden className="absolute -top-8 -right-8 w-28 h-28 rounded-full pointer-events-none"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  style={{ background: 'radial-gradient(circle, hsla(212,100%,60%,0.3), transparent 70%)' }} />
+              )}
+              <span aria-hidden className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-[1100ms] ease-out pointer-events-none"
+                style={{ background: 'linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.06) 50%, transparent 70%)' }} />
+              <div className="relative flex items-center justify-between">
                 <p className="text-sm font-semibold">{label}</p>
-                {active && <Check className="w-4 h-4 text-[#9DCBFF]" />}
+                <AnimatePresence>
+                  {active && (
+                    <motion.span
+                      key="check"
+                      initial={{ scale: 0, rotate: -45 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      exit={{ scale: 0 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                      className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                      style={{ background: 'linear-gradient(135deg, #0A84FF, #5AC8FA)' }}
+                    >
+                      <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </div>
-              {desc && <p className="text-xs text-white/45 mt-1">{desc}</p>}
-            </button>
+              {desc && <p className="relative text-xs text-white/45 mt-1">{desc}</p>}
+            </motion.button>
           );
         })}
       </div>
@@ -729,55 +833,100 @@ function PlanGrid({
   return (
     <div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {plans.map((p) => {
+        {plans.map((p, i) => {
           const active = selectedId === p.id;
           return (
-            <button
+            <motion.button
               key={p.id}
               onClick={() => onSelect(p)}
+              initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              transition={{ duration: 0.55, delay: 0.06 + i * 0.07, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={{ y: -6, scale: 1.015 }}
+              whileTap={{ scale: 0.985 }}
               className={cn(
-                'relative text-left rounded-2xl p-6 border transition-all overflow-hidden',
+                'group relative text-left rounded-2xl p-6 border overflow-hidden',
                 active
-                  ? 'border-[#0A84FF]/55 bg-[#0A84FF]/[0.08] shadow-[0_0_36px_-10px_hsla(212,100%,55%,0.5)]'
-                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/15'
+                  ? 'border-[#0A84FF]/65 bg-[#0A84FF]/[0.10] shadow-[0_20px_60px_-12px_hsla(212,100%,55%,0.55)]'
+                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]'
               )}
             >
-              {p.popular && (
-                <div className="absolute top-4 right-4 px-2 py-0.5 rounded-full text-[9px] uppercase tracking-[0.18em] bg-white text-black font-semibold">
-                  Popular
-                </div>
+              {/* Active radiant aura */}
+              {active && (
+                <motion.div
+                  aria-hidden
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  className="absolute -inset-px rounded-2xl pointer-events-none"
+                  style={{ background: 'radial-gradient(ellipse at top left, hsla(212,100%,60%,0.22), transparent 60%)' }}
+                />
               )}
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/[0.04] border border-white/[0.08]">
-                  <p.Icon className="w-4 h-4 text-[#9DCBFF]" />
-                </div>
+              {/* Hover sheen */}
+              <span aria-hidden className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-[1300ms] ease-out pointer-events-none"
+                style={{ background: 'linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.07) 50%, transparent 70%)' }} />
+              {p.popular && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+                  className="absolute top-4 right-4 px-2.5 py-1 rounded-full text-[9px] uppercase tracking-[0.18em] bg-white text-black font-semibold shadow-[0_0_18px_rgba(255,255,255,0.4)]"
+                >
+                  ★ Popular
+                </motion.div>
+              )}
+              <div className="relative flex items-center gap-3 mb-4">
+                <motion.div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/[0.04] border border-white/[0.08]"
+                  animate={active ? { scale: [1, 1.08, 1], rotate: [0, 4, 0] } : {}}
+                  transition={{ duration: 0.6 }}
+                >
+                  <p.Icon className={cn('w-4 h-4 transition-colors', active ? 'text-[#9DCBFF]' : 'text-white/55 group-hover:text-white/80')} />
+                </motion.div>
                 <div>
                   <p className="text-sm font-semibold">{p.name}</p>
                   <p className="text-[11px] text-white/45">{p.tagline}</p>
                 </div>
               </div>
-              <div className="flex items-baseline gap-1.5 mb-4">
+              <div className="relative flex items-baseline gap-1.5 mb-4">
                 {p.kind === 'contact' ? (
                   <span className="text-2xl font-display font-bold">Talk to sales</span>
                 ) : (
                   <>
-                    <span className="text-3xl font-display font-bold">${p.price}</span>
+                    <span className="text-3xl font-display font-bold tracking-tight">${p.price}</span>
                     {p.interval && <span className="text-xs text-white/45">/ {p.interval}</span>}
                     {p.credits && <span className="text-xs text-white/35 ml-2">· {p.credits.toLocaleString()} credits</span>}
                   </>
                 )}
               </div>
-              <ul className="space-y-1.5">
-                {p.features.slice(0, 4).map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-[12px] text-white/65">
+              <ul className="relative space-y-1.5">
+                {p.features.slice(0, 4).map((f, fi) => (
+                  <motion.li
+                    key={f}
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 + i * 0.07 + fi * 0.04 }}
+                    className="flex items-start gap-2 text-[12px] text-white/65"
+                  >
                     <Check className="w-3 h-3 mt-1 text-[#9DCBFF] shrink-0" /> {f}
-                  </li>
+                  </motion.li>
                 ))}
               </ul>
               {active && (
-                <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-[#0A84FF] to-[#5AC8FA]" />
+                <motion.div
+                  layoutId="plan-bar"
+                  className="absolute inset-x-0 bottom-0 h-[3px]"
+                  style={{ background: 'linear-gradient(90deg, #0A84FF, #5AC8FA)' }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
               )}
-            </button>
+              {active && (
+                <motion.span
+                  initial={{ scale: 0 }} animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                  className="absolute top-4 left-4 w-6 h-6 rounded-full flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, #0A84FF, #5AC8FA)', boxShadow: '0 0 16px hsla(212,100%,60%,0.6)' }}
+                >
+                  <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                </motion.span>
+              )}
+            </motion.button>
           );
         })}
       </div>

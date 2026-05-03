@@ -236,6 +236,16 @@ export default function StartOnboarding() {
     contact_phone: '',
     email: '',
     password: '',
+    // Business-only
+    primary_use_case: '',
+    monthly_volume: '',
+    brand_colors: [] as string[],
+    brand_voice: '',
+    integrations_needed: [] as string[],
+    billing_email: '',
+    vat_id: '',
+    invited_emails: [] as string[],
+    invite_input: '',
   });
 
   const steps = useMemo<readonly StepKey[]>(() => {

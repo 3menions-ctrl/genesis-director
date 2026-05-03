@@ -39,6 +39,10 @@ const WelcomeCheckout = lazy(() => import("./pages/WelcomeCheckout"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Settings = lazy(() => import("./pages/Settings"));
 const WorkspaceSettings = lazy(() => import("./pages/WorkspaceSettings"));
+const WorkspaceTeam = lazy(() => import("./pages/workspace/WorkspaceTeam"));
+const WorkspaceBrand = lazy(() => import("./pages/workspace/WorkspaceBrand"));
+const WorkspaceBilling = lazy(() => import("./pages/workspace/WorkspaceBilling"));
+const WorkspaceAnalytics = lazy(() => import("./pages/workspace/WorkspaceAnalytics"));
 const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
 const DeactivateAccount = lazy(() => import("./pages/DeactivateAccount"));
 const Developers = lazy(() => import("./pages/Developers"));
@@ -281,6 +285,42 @@ const App = () => {
                   <RouteContainer fallbackMessage="Loading workspace...">
                     <ProtectedRoute>
                       <AppShell><WorkspaceSettings /></AppShell>
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                {/* Business workspace admin hub — separate from app /admin */}
+                <Route path="/workspace" element={
+                  <RouteContainer fallbackMessage="Loading workspace...">
+                    <ProtectedRoute>
+                      <AppShell><Navigate to="/workspace/team" replace /></AppShell>
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/workspace/team" element={
+                  <RouteContainer fallbackMessage="Loading team...">
+                    <ProtectedRoute>
+                      <AppShell><WorkspaceTeam /></AppShell>
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/workspace/brand" element={
+                  <RouteContainer fallbackMessage="Loading brand kit...">
+                    <ProtectedRoute>
+                      <AppShell><WorkspaceBrand /></AppShell>
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/workspace/billing" element={
+                  <RouteContainer fallbackMessage="Loading billing...">
+                    <ProtectedRoute>
+                      <AppShell><WorkspaceBilling /></AppShell>
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/workspace/analytics" element={
+                  <RouteContainer fallbackMessage="Loading analytics...">
+                    <ProtectedRoute>
+                      <AppShell><WorkspaceAnalytics /></AppShell>
                     </ProtectedRoute>
                   </RouteContainer>
                 } />

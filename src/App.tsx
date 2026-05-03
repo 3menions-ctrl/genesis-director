@@ -34,6 +34,8 @@ const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
+const StartOnboarding = lazy(() => import("./pages/StartOnboarding"));
+const WelcomeCheckout = lazy(() => import("./pages/WelcomeCheckout"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Settings = lazy(() => import("./pages/Settings"));
 const WorkspaceSettings = lazy(() => import("./pages/WorkspaceSettings"));
@@ -227,6 +229,20 @@ const App = () => {
                   <RouteContainer fallbackMessage="Setting up your experience...">
                     <ProtectedRoute>
                       <Onboarding />
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                {/* Pre-signup wizard — public, no auth required */}
+                <Route path="/start" element={
+                  <RouteContainer fallbackMessage="Loading…">
+                    <StartOnboarding />
+                  </RouteContainer>
+                } />
+                {/* Post-signup checkout handoff */}
+                <Route path="/welcome/checkout" element={
+                  <RouteContainer fallbackMessage="Preparing checkout…">
+                    <ProtectedRoute>
+                      <WelcomeCheckout />
                     </ProtectedRoute>
                   </RouteContainer>
                 } />

@@ -4,6 +4,9 @@ import {
   Users, Palette, CreditCard, BarChart3, Building2, Lock,
   LayoutDashboard, Layers, ArrowLeft, Command, Check,
   ChevronsUpDown, PanelLeftClose, PanelLeftOpen, Coins, Plus,
+  Film, UserSquare2, LayoutTemplate, CheckCircle2, ShieldCheck,
+  ScrollText, FileSpreadsheet, Plug, KeyRound, Bell, Settings,
+  Shield, AlertOctagon,
 } from 'lucide-react';
 import { useWorkspace, type OrgRole } from '@/contexts/WorkspaceContext';
 import { cn } from '@/lib/utils';
@@ -26,7 +29,10 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Operate',
     items: [
       { to: '/workspace',        label: 'Overview', Icon: LayoutDashboard, minRole: 'viewer',   description: 'Operational snapshot' },
+      { to: '/workspace/projects',  label: 'Projects',  Icon: Film,           minRole: 'viewer',   description: 'All productions' },
       { to: '/workspace/assets', label: 'Assets',   Icon: Layers,          minRole: 'viewer',   description: 'Shared library' },
+      { to: '/workspace/avatars',   label: 'Avatars',   Icon: UserSquare2,    minRole: 'viewer',   description: 'Brand cast' },
+      { to: '/workspace/templates', label: 'Templates', Icon: LayoutTemplate, minRole: 'producer', description: 'Reusable layouts' },
     ],
   },
   {
@@ -34,13 +40,34 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: '/workspace/team',  label: 'Team',  Icon: Users,   minRole: 'viewer',   description: 'Roster & access' },
       { to: '/workspace/brand', label: 'Brand', Icon: Palette, minRole: 'producer', description: 'Identity & voice' },
+      { to: '/workspace/approvals',   label: 'Approvals',   Icon: CheckCircle2, minRole: 'reviewer', description: 'Sign-off queue' },
+      { to: '/workspace/permissions', label: 'Permissions', Icon: ShieldCheck,  minRole: 'admin',    description: 'Role matrix' },
+      { to: '/workspace/audit',       label: 'Audit log',   Icon: ScrollText,   minRole: 'admin',    description: 'Activity trail' },
     ],
   },
   {
     label: 'Optimize',
     items: [
       { to: '/workspace/billing',   label: 'Billing',   Icon: CreditCard, minRole: 'admin', description: 'Plan & invoices' },
+      { to: '/workspace/credits',   label: 'Credits',   Icon: Coins,           minRole: 'admin', description: 'Pool & top-ups' },
       { to: '/workspace/analytics', label: 'Telemetry', Icon: BarChart3,  minRole: 'admin', description: 'Usage by member' },
+      { to: '/workspace/reports',   label: 'Reports',   Icon: FileSpreadsheet, minRole: 'admin', description: 'Export summaries' },
+    ],
+  },
+  {
+    label: 'Extend',
+    items: [
+      { to: '/workspace/integrations',  label: 'Integrations',  Icon: Plug,    minRole: 'admin', description: 'Slack, Drive, Zapier' },
+      { to: '/workspace/api',           label: 'API & hooks',   Icon: KeyRound, minRole: 'admin', description: 'Programmatic access' },
+      { to: '/workspace/notifications', label: 'Notifications', Icon: Bell,    minRole: 'admin', description: 'Routing rules' },
+    ],
+  },
+  {
+    label: 'Settings',
+    items: [
+      { to: '/workspace/general',  label: 'General',  Icon: Settings,     minRole: 'admin', description: 'Workspace profile' },
+      { to: '/workspace/security', label: 'Security', Icon: Shield,       minRole: 'admin', description: 'SSO & policies' },
+      { to: '/workspace/danger',   label: 'Danger',   Icon: AlertOctagon, minRole: 'owner', description: 'Destructive actions' },
     ],
   },
 ];

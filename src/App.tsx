@@ -48,6 +48,20 @@ const WorkspaceBilling = lazy(() => import("./pages/workspace/WorkspaceBilling")
 const WorkspaceAnalytics = lazy(() => import("./pages/workspace/WorkspaceAnalytics"));
 const WorkspaceOverview = lazy(() => import("./pages/workspace/WorkspaceOverview"));
 const WorkspaceAssets = lazy(() => import("./pages/workspace/WorkspaceAssets"));
+const WorkspaceProjects = lazy(() => import("./pages/workspace/WorkspaceProjects"));
+const WorkspaceAvatars = lazy(() => import("./pages/workspace/WorkspaceAvatars"));
+const WorkspaceTemplates = lazy(() => import("./pages/workspace/WorkspaceTemplates"));
+const WorkspaceApprovals = lazy(() => import("./pages/workspace/WorkspaceApprovals"));
+const WorkspacePermissions = lazy(() => import("./pages/workspace/WorkspacePermissions"));
+const WorkspaceAuditLog = lazy(() => import("./pages/workspace/WorkspaceAuditLog"));
+const WorkspaceCredits = lazy(() => import("./pages/workspace/WorkspaceCredits"));
+const WorkspaceReports = lazy(() => import("./pages/workspace/WorkspaceReports"));
+const WorkspaceIntegrations = lazy(() => import("./pages/workspace/WorkspaceIntegrations"));
+const WorkspaceApi = lazy(() => import("./pages/workspace/WorkspaceApi"));
+const WorkspaceNotifications = lazy(() => import("./pages/workspace/WorkspaceNotifications"));
+const WorkspaceGeneral = lazy(() => import("./pages/workspace/WorkspaceGeneral"));
+const WorkspaceSecurity = lazy(() => import("./pages/workspace/WorkspaceSecurity"));
+const WorkspaceDanger = lazy(() => import("./pages/workspace/WorkspaceDanger"));
 const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
 const DeactivateAccount = lazy(() => import("./pages/DeactivateAccount"));
 const Developers = lazy(() => import("./pages/Developers"));
@@ -348,6 +362,31 @@ const App = () => {
                     </RequireAccountType>
                   </RouteContainer>
                 } />
+                {/* New workspace pages */}
+                {([
+                  ['projects',      WorkspaceProjects],
+                  ['avatars',       WorkspaceAvatars],
+                  ['templates',     WorkspaceTemplates],
+                  ['approvals',     WorkspaceApprovals],
+                  ['permissions',   WorkspacePermissions],
+                  ['audit',         WorkspaceAuditLog],
+                  ['credits',       WorkspaceCredits],
+                  ['reports',       WorkspaceReports],
+                  ['integrations',  WorkspaceIntegrations],
+                  ['api',           WorkspaceApi],
+                  ['notifications', WorkspaceNotifications],
+                  ['general',       WorkspaceGeneral],
+                  ['security',      WorkspaceSecurity],
+                  ['danger',        WorkspaceDanger],
+                ] as const).map(([slug, Comp]) => (
+                  <Route key={slug} path={`/workspace/${slug}`} element={
+                    <RouteContainer fallbackMessage="Loading workspace…">
+                      <RequireAccountType allow={["business","enterprise","admin"]}>
+                        <AppShell><Comp /></AppShell>
+                      </RequireAccountType>
+                    </RouteContainer>
+                  } />
+                ))}
                 <Route path="/developers" element={
                   <RouteContainer fallbackMessage="Loading developer portal...">
                     <ProtectedRoute>

@@ -186,7 +186,7 @@ export default function Landing() {
         />
       </div>
 
-      <LandingNav onScrollToSection={scrollToSection} onNavigate={handleNavigate} />
+      <LandingNav onScrollToSection={scrollToSection} onNavigate={handleNavigate} onGetStarted={handleStart} />
 
       {/* Immersive scroll-locked full-video moment — single fixed video that
           activates once the user scrolls past the hero. Mounted OUTSIDE the

@@ -363,28 +363,13 @@ export default function StartOnboarding() {
             </p>
           </div>
 
-          {/* Audience switcher */}
+          {/* Selected audience badge (read-only — type was chosen on the previous screen) */}
           <div className="flex justify-start mb-8">
-            <div className="inline-flex items-center gap-1 p-1 rounded-full border border-white/10 bg-white/[0.03] backdrop-blur">
-              {(['personal','business','enterprise'] as AccountType[]).map(t => {
-                const active = accountType === t;
-                const Icon = t === 'personal' ? User : t === 'business' ? Briefcase : Building2;
-                return (
-                  <button
-                    key={t}
-                    onClick={() => setAccountType(t)}
-                    className={cn(
-                      'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[11px] uppercase tracking-[0.18em] font-medium transition-all',
-                      active
-                        ? 'bg-white text-black shadow-[0_8px_30px_-8px_rgba(255,255,255,0.5)]'
-                        : 'text-white/55 hover:text-white'
-                    )}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    {t}
-                  </button>
-                );
-              })}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/[0.03] backdrop-blur text-[11px] uppercase tracking-[0.18em] font-medium text-white/75">
+              {accountType === 'personal' && <User className="w-3.5 h-3.5 text-[#9DCBFF]" />}
+              {accountType === 'business' && <Briefcase className="w-3.5 h-3.5 text-[#9DCBFF]" />}
+              {accountType === 'enterprise' && <Building2 className="w-3.5 h-3.5 text-[#9DCBFF]" />}
+              {accountType}
             </div>
           </div>
 

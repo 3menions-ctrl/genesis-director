@@ -264,7 +264,7 @@ const App = () => {
                 <Route path="/notifications" element={
                   <RouteContainer fallbackMessage="Loading inbox…">
                     <ProtectedRoute>
-                      <AppShell><Notifications /></AppShell>
+                      <Notifications />
                     </ProtectedRoute>
                   </RouteContainer>
                 } />

@@ -78,7 +78,8 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
         <nav className="space-y-1 lg:sticky lg:top-6 self-start">
           {NAV.map(({ to, label, Icon, minRole, description }) => {
             const allowed = hasPermission(minRole);
-            const active = pathname.startsWith(to);
+            // Exact match for /workspace overview; prefix match for nested pages.
+            const active = to === '/workspace' ? pathname === '/workspace' : pathname.startsWith(to);
             return (
               <NavLink
                 key={to}

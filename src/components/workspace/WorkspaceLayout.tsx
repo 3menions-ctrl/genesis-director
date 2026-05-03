@@ -273,31 +273,6 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
 
         {/* Footer: credits + studio + collapse */}
         <div className="border-t border-[hsl(220,14%,12%)] p-3 space-y-2">
-          {!collapsed ? (
-            <NavLink
-              to="/workspace/billing"
-              className="flex items-center justify-between gap-2 px-2.5 py-2 border border-[hsl(220,14%,14%)] bg-[hsl(220,14%,6%)] hover:border-[hsl(215,80%,30%)] transition-colors"
-              title="Workspace credits"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <Coins className="w-3.5 h-3.5 text-[hsl(215,100%,62%)]" strokeWidth={1.5} />
-                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(220,8%,55%)]">
-                  Credits
-                </div>
-              </div>
-              <div className="font-mono text-[12px] text-[hsl(220,14%,96%)] tabular-nums">
-                {credits.toLocaleString()}
-              </div>
-            </NavLink>
-          ) : (
-            <NavLink
-              to="/workspace/billing"
-              title={`Credits: ${credits.toLocaleString()}`}
-              className="flex items-center justify-center py-2 border border-[hsl(220,14%,14%)] bg-[hsl(220,14%,6%)] hover:border-[hsl(215,80%,30%)] transition-colors"
-            >
-              <Coins className="w-3.5 h-3.5 text-[hsl(215,100%,62%)]" strokeWidth={1.5} />
-            </NavLink>
-          )}
           <div className="flex items-center gap-1">
             <NavLink
               to="/projects"

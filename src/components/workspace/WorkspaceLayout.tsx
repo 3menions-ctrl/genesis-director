@@ -2,7 +2,7 @@ import { ReactNode, useState, useEffect } from 'react';
 import { NavLink, useLocation, Link } from 'react-router-dom';
 import {
   Users, Palette, CreditCard, BarChart3, Building2, Lock,
-  LayoutDashboard, Layers, ArrowLeft, Command, Check,
+  LayoutDashboard, Layers, ArrowLeft, Check,
   ChevronsUpDown, PanelLeftClose, PanelLeftOpen, Coins, Plus,
   Film, UserSquare2, LayoutTemplate, CheckCircle2, ShieldCheck,
   ScrollText, FileSpreadsheet, Plug, KeyRound, Bell, Settings,

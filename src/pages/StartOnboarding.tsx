@@ -603,7 +603,7 @@ export default function StartOnboarding() {
           </AnimatePresence>
 
           {/* Footer nav */}
-          <div className="flex items-center justify-between gap-3 mt-10 pt-8 border-t border-white/[0.06]">
+          <div className="flex items-center justify-between gap-3 mt-12 pt-8 border-t border-white/[0.06]">
             <button
               onClick={back}
               disabled={submitting}
@@ -614,7 +614,7 @@ export default function StartOnboarding() {
             <button
               onClick={next}
               disabled={submitting}
-              className="inline-flex items-center gap-2 h-12 px-7 rounded-full text-sm font-semibold text-white transition-all disabled:opacity-60"
+              className="group relative inline-flex items-center gap-2 h-12 px-7 rounded-full text-sm font-semibold text-white transition-all disabled:opacity-60 hover:scale-[1.02] active:scale-[0.98]"
               style={{
                 background: 'linear-gradient(90deg, #0A84FF, #5AC8FA)',
                 boxShadow: '0 0 32px hsla(212,100%,55%,0.45)',
@@ -627,12 +627,13 @@ export default function StartOnboarding() {
                   : <>Continue <ArrowRight className="w-4 h-4" /></>}
             </button>
           </div>
-        </div>
 
-        {/* Trust microcopy */}
-        <p className="text-center text-[11px] text-white/30 mt-8">
-          You're not creating an account yet. We'll only ask for credentials at the end.
-        </p>
+          {/* Trust microcopy */}
+          <p className="text-[11px] text-white/30 mt-6">
+            You're not creating an account yet — we'll only ask for credentials at the very end.
+          </p>
+          </div>
+        </div>
       </div>
     </div>
   );

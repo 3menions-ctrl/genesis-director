@@ -304,6 +304,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             has_seen_welcome_video: false,
             has_seen_welcome_offer: false,
             security_version: null,
+            account_type: 'personal',
+            account_tier: 'free',
           });
           setIsAdmin(false);
         }

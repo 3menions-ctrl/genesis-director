@@ -20,14 +20,31 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const admin = createClient(url, serviceKey, { auth: { persistSession: false } })
 
-    // 1. Ensure auth user exists (idempotent)
+    // 1. Ensure auth user exists (idempotent). Look up by email via profiles first
+    //    (we can't query auth.users directly with the JS client).
     let userId: string | null = null
-    const { data: existing } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 })
-    const found = existing?.users?.find((u) => u.email?.toLowerCase() === DEMO_EMAIL)
-    if (found) {
-      userId = found.id
-      // Reset password so the published demo always works
-      await admin.auth.admin.updateUserById(userId, { password: DEMO_PASSWORD, email_confirm: true })
+    const { data: profileRow } = await admin
+      .from('profiles')
+      .select('id')
+      .ilike('email', DEMO_EMAIL)
+      .maybeSingle()
+    if (profileRow?.id) {
+      userId = profileRow.id
+    } else {
+      // Fall back to scanning auth.users pages
+      for (let page = 1; page <= 20 && !userId; page++) {
+        const { data: list } = await admin.auth.admin.listUsers({ page, perPage: 1000 })
+        const hit = list?.users?.find((u) => u.email?.toLowerCase() === DEMO_EMAIL)
+        if (hit) userId = hit.id
+        if (!list?.users?.length || list.users.length < 1000) break
+      }
+    }
+
+    if (userId) {
+      await admin.auth.admin.updateUserById(userId, {
+        password: DEMO_PASSWORD,
+        email_confirm: true,
+      })
     } else {
       const { data: created, error: createErr } = await admin.auth.admin.createUser({
         email: DEMO_EMAIL,

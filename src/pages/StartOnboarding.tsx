@@ -14,6 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/utils';
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import heroPersonal from '@/assets/onboarding/hero-personal.jpg';
 import heroBusiness from '@/assets/onboarding/hero-business.jpg';
 import heroEnterprise from '@/assets/onboarding/hero-enterprise.jpg';
@@ -604,6 +605,16 @@ export default function StartOnboarding() {
       >
         <X className="w-5 h-5" />
       </button>
+
+      {/* Language switcher */}
+      <div className="fixed top-6 right-20 z-30">
+        <LanguageSwitcher
+          variant="ghost"
+          size="sm"
+          showLabel
+          className="h-10 px-3 text-white/65 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] backdrop-blur-xl rounded-full"
+        />
+      </div>
 
       <div className="grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] min-h-screen">
         {/* ─────────── LEFT — Cinematic poster pane ─────────── */}

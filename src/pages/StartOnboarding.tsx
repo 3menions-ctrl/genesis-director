@@ -78,8 +78,11 @@ const ENTERPRISE_PLAN: Plan = {
  * Step definitions per audience
  * ──────────────────────────────────────────────────────────────────── */
 
-const PERSONAL_STEPS = ['goals', 'usecase', 'profile', 'account', 'verify', 'plan'] as const;
-const BUSINESS_STEPS = ['company', 'team', 'role', 'account', 'verify', 'plan', 'billing'] as const;
+// Billing/checkout is ALWAYS the final step. Account creation (incl. Google/Apple)
+// happens AFTER the user has completed all questionnaire + plan selection — this
+// preserves the full onboarding flow and lands users on billing as the last action.
+const PERSONAL_STEPS = ['goals', 'usecase', 'profile', 'plan', 'account', 'verify'] as const;
+const BUSINESS_STEPS = ['company', 'team', 'role', 'plan', 'account', 'verify', 'billing'] as const;
 const ENTERPRISE_STEPS = ['company', 'scale', 'needs', 'contact'] as const;
 
 type StepKey =

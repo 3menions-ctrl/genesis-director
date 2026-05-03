@@ -32,9 +32,10 @@ export const CommandPalette = memo(function CommandPalette() {
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const { navigate } = useSafeNavigation();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const isBusiness = profile?.account_type === 'business' || profile?.account_type === 'enterprise';
 
-  const commands: CommandItem[] = [
+  const allCommands: CommandItem[] = [
     { id: 'create', label: 'Create a video', description: 'Start a new production', icon: <Plus className="w-4 h-4" />, action: () => navigate('/create'), category: 'Create', keywords: ['new', 'video', 'generate', 'make'] },
     { id: 'projects', label: 'My Projects', description: 'View all your films', icon: <Film className="w-4 h-4" />, action: () => navigate('/projects'), category: 'Navigate', keywords: ['projects', 'films', 'my'] },
     { id: 'explore', label: 'Explore AI Films', description: 'Discover community creations', icon: <Compass className="w-4 h-4" />, action: () => navigate('/creators'), category: 'Navigate', keywords: ['explore', 'discover', 'gallery', 'community'] },
@@ -44,6 +45,13 @@ export const CommandPalette = memo(function CommandPalette() {
     { id: 'settings', label: 'Settings', description: 'Account preferences', icon: <Settings className="w-4 h-4" />, action: () => navigate('/settings'), category: 'Account', keywords: ['settings', 'preferences', 'account'] },
     { id: 'profile', label: 'My Profile', description: 'View your creator profile', icon: <User className="w-4 h-4" />, action: () => navigate('/profile'), category: 'Account', keywords: ['profile', 'me'] },
   ];
+  // Business accounts have no personal profile/settings — route them to the workspace instead.
+  const commands: CommandItem[] = isBusiness
+    ? [
+        ...allCommands.filter(c => c.id !== 'profile' && c.id !== 'settings'),
+        { id: 'workspace', label: 'Workspace', description: 'Open the workspace command center', icon: <Settings className="w-4 h-4" />, action: () => navigate('/workspace/general'), category: 'Account', keywords: ['workspace', 'org', 'team', 'settings'] },
+      ]
+    : allCommands;
 
   const filtered = query.trim()
     ? commands.filter(cmd => {

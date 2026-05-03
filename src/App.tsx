@@ -572,8 +572,6 @@ const App = () => {
                 </Routes>
                 {/* Diagnostics - Admin console only */}
                 <AdminOnlyDiagnostics />
-                {/* Welcome Offer Modal - shows Mini pack to new users */}
-                <WelcomeOfferModal />
                 {/* Welcome Video Modal - shows once for new users */}
                 <WelcomeVideoModal />
                 {/* Command Palette (Cmd+K) */}

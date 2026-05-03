@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, ShieldCheck, Zap, KeyRound, Star } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, ShieldCheck, Zap, KeyRound, Star, Apple } from 'lucide-react';
 import { z } from 'zod';
 import { PasswordStrength } from '@/components/ui/password-strength';
 import { WelcomeBackDialog } from '@/components/auth/WelcomeBackDialog';
@@ -107,7 +107,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
   }, [ref]);
 
   const { navigate } = useSafeNavigation();
-  const { user, profile, loading: authLoading, signIn, signUp } = useAuth();
+  const { user, profile, loading: authLoading, signIn, signUp, signInWithGoogle, signInWithApple } = useAuth();
   
   const [searchParams] = useState(() => new URLSearchParams(window.location.search));
   const fromCreate = searchParams.get('from') === 'create';
@@ -130,6 +130,22 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
   const [otpCode, setOtpCode] = useState('');
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [resendingOtp, setResendingOtp] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<null | 'google' | 'apple'>(null);
+
+  const handleOAuth = useCallback(async (provider: 'google' | 'apple') => {
+    setOauthLoading(provider);
+    try {
+      const { error } = provider === 'google' ? await signInWithGoogle() : await signInWithApple();
+      if (error) {
+        toast.error(`${provider === 'google' ? 'Google' : 'Apple'} sign-in failed. Please try again.`);
+        setOauthLoading(null);
+      }
+      // On success the browser redirects to provider; loading state stays until navigation
+    } catch {
+      toast.error('Sign-in failed. Please try again.');
+      setOauthLoading(null);
+    }
+  }, [signInWithGoogle, signInWithApple]);
 
   const trackSignup = useCallback(async (userId: string) => {
     try {
@@ -874,6 +890,58 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
                             )}
                           </Button>
                         </form>
+
+                        {/* Divider */}
+                        <div className="relative my-6">
+                          <div className="absolute inset-0 flex items-center">
+                            <div className="w-full h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+                          </div>
+                          <div className="relative flex justify-center">
+                            <span className="px-3 text-[10px] font-medium tracking-[0.2em] uppercase text-white/35 bg-[hsl(220,14%,3.5%)]">
+                              or continue with
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Social sign-in */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            type="button"
+                            disabled={!!oauthLoading || loading}
+                            onClick={() => handleOAuth('google')}
+                            className={cn(
+                              'h-12 rounded-xl flex items-center justify-center gap-2.5 text-[13px] font-medium text-white',
+                              'bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.14]',
+                              'transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed',
+                            )}
+                          >
+                            {oauthLoading === 'google' ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden>
+                                <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.24 1.4-1.65 4.1-5.5 4.1-3.31 0-6-2.74-6-6.1S8.69 6 12 6c1.88 0 3.14.8 3.86 1.49l2.64-2.55C16.84 3.42 14.65 2.5 12 2.5 6.76 2.5 2.5 6.76 2.5 12S6.76 21.5 12 21.5c6.93 0 9.5-4.86 9.5-7.4 0-.5-.05-.88-.12-1.27H12z" />
+                              </svg>
+                            )}
+                            Google
+                          </button>
+                          <button
+                            type="button"
+                            disabled={!!oauthLoading || loading}
+                            onClick={() => handleOAuth('apple')}
+                            className={cn(
+                              'h-12 rounded-xl flex items-center justify-center gap-2.5 text-[13px] font-medium text-white',
+                              'bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.14]',
+                              'transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed',
+                            )}
+                          >
+                            {oauthLoading === 'apple' ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Apple className="w-4 h-4 fill-white" />
+                            )}
+                            Apple
+                          </button>
+                        </div>
 
                         {/* Toggle Mode */}
                         <p className="text-center text-[13px] text-white/40 mt-7">

@@ -78,8 +78,8 @@ const ENTERPRISE_PLAN: Plan = {
  * Step definitions per audience
  * ──────────────────────────────────────────────────────────────────── */
 
-const PERSONAL_STEPS = ['goals', 'usecase', 'profile', 'plan', 'account', 'verify'] as const;
-const BUSINESS_STEPS = ['company', 'team', 'role', 'plan', 'billing', 'account', 'verify'] as const;
+const PERSONAL_STEPS = ['goals', 'usecase', 'profile', 'account', 'verify', 'plan'] as const;
+const BUSINESS_STEPS = ['company', 'team', 'role', 'account', 'verify', 'plan', 'billing'] as const;
 const ENTERPRISE_STEPS = ['company', 'scale', 'needs', 'contact'] as const;
 
 type StepKey =
@@ -281,9 +281,10 @@ export default function StartOnboarding() {
     // Step: account → persist intent + create account, then advance to verify
     if (currentStep === 'account') {
       if (user) {
-        // Already authenticated (e.g. via OAuth in this same step). Skip verify.
+        // Already authenticated (e.g. via OAuth). Skip verify and go to plan selection.
         await persistIntentAndConsume();
-        await routeAfterAuth();
+        setDirection(1);
+        setStepIdx(i => Math.min(i + 2, steps.length - 1));
         return;
       }
       setSubmitting(true);
@@ -299,8 +300,10 @@ export default function StartOnboarding() {
               toast.error('That email is already registered — wrong password?');
               return;
             }
+            // Existing account signed in — skip OTP and proceed to plan selection.
             await persistIntentAndConsume();
-            await routeAfterAuth();
+            setDirection(1);
+            setStepIdx(i => Math.min(i + 2, steps.length - 1));
             return;
           }
           toast.error(error.message || 'Could not create your account.');
@@ -315,11 +318,12 @@ export default function StartOnboarding() {
       return;
     }
 
-    // Step: verify → confirm OTP, consume intent, route
+    // Step: verify → confirm OTP, consume intent, advance to plan selection
     if (currentStep === 'verify') {
       if (user) {
         await persistIntentAndConsume();
-        await routeAfterAuth();
+        setDirection(1);
+        setStepIdx(i => i + 1);
         return;
       }
       setSubmitting(true);
@@ -335,7 +339,8 @@ export default function StartOnboarding() {
         }
         toast.success('Email verified.');
         await persistIntentAndConsume();
-        await routeAfterAuth();
+        setDirection(1);
+        setStepIdx(i => i + 1);
       } finally {
         setSubmitting(false);
       }
@@ -409,38 +414,14 @@ export default function StartOnboarding() {
     navigate(target, { replace: true });
   };
 
-  /* ── Finish: enterprise lead-capture path (no account creation) ── */
+  /* ── Finish: final plan/billing step → checkout (or enterprise lead capture) ── */
   const finish = async () => {
     setSubmitting(true);
     try {
-      const token = `int_${crypto.randomUUID()}`;
-      const payload = {
-        intent_token: token,
-        account_type: accountType,
-        selected_plan_id: form.selected_plan_id || null,
-        selected_plan_kind: (form.selected_plan_kind || null) as PlanKind | null,
-        goals: form.goals.length ? form.goals : null,
-        experience_level: form.style || null,
-        company_name: form.company_name || null,
-        team_size: form.team_size || null,
-        industry: form.industry || null,
-        job_role: form.job_role || null,
-        expected_volume: form.expected_volume || null,
-        needs_sso: form.needs_sso,
-        needs_sla: form.needs_sla,
-        needs_api: form.needs_api,
-        contact_email: form.contact_email || null,
-        contact_phone: form.contact_phone || null,
-        display_name: form.display_name || null,
-      };
+      const token = await ensureIntentPersisted();
+      if (!token) return;
 
-      const { error } = await supabase.from('onboarding_intents').insert(payload);
-      if (error) throw error;
-
-      try { sessionStorage.setItem('apex.intent_token', token); } catch {}
-      try { localStorage.setItem('apex.audience', accountType); } catch {}
-
-      // Route differently per audience
+      // Enterprise: lead-capture path, no account, no checkout
       if (accountType === 'enterprise') {
         // Lead-capture: insert basic enterprise lead (best-effort)
         try {
@@ -459,13 +440,23 @@ export default function StartOnboarding() {
         return;
       }
 
-      const next = form.selected_plan_kind === 'contact'
+      // Personal / Business — user is already authenticated at this point.
+      // Consume intent then go straight to checkout.
+      await persistIntentAndConsume();
+
+      const target = form.selected_plan_kind === 'contact'
         ? '/projects'
         : form.selected_plan_id
           ? `/welcome/checkout?plan=${form.selected_plan_id}`
           : '/create';
 
-      navigate(`/auth?mode=signup&intent=${token}&audience=${accountType}&next=${encodeURIComponent(next)}`);
+      // Safety net: if for any reason the user isn't authenticated, fall back to /auth.
+      if (!user) {
+        navigate(`/auth?mode=signup&intent=${token}&audience=${accountType}&next=${encodeURIComponent(target)}`);
+        return;
+      }
+
+      navigate(target, { replace: true });
     } catch (e: any) {
       console.error('[start] finish', e);
       toast.error(e?.message ?? 'Could not save your choices.');
@@ -983,7 +974,9 @@ export default function StartOnboarding() {
                     : currentStep === 'verify'
                       ? <>{user ? 'Continue' : 'Verify & continue'} <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>
                       : isLast
-                        ? (accountType === 'enterprise' ? <>Submit <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></> : <>Continue <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>)
+                        ? (accountType === 'enterprise'
+                            ? <>Submit <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>
+                            : <>Continue to checkout <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>)
                         : <>Continue <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>}
               </span>
             </motion.button>
@@ -993,7 +986,9 @@ export default function StartOnboarding() {
           <p className="text-[11px] text-white/30 mt-6">
             {currentStep === 'account' || currentStep === 'verify'
               ? 'Your details are encrypted in transit. We never share your email.'
-              : 'You\u2019ll create your account in a moment — your choices are saved automatically.'}
+              : currentStep === 'plan' || currentStep === 'billing'
+                ? 'You won\u2019t be charged until you confirm payment in the next step.'
+                : 'Your choices are saved as you go — you\u2019ll create your account before any payment.'}
           </p>
           </div>
         </div>

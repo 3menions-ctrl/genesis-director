@@ -620,28 +620,47 @@ export default function StartOnboarding() {
 
           {/* Footer nav */}
           <div className="flex items-center justify-between gap-3 mt-12 pt-8 border-t border-white/[0.06]">
-            <button
+            <motion.button
+              whileHover={{ x: -3 }}
+              whileTap={{ scale: 0.97 }}
               onClick={back}
               disabled={submitting}
-              className="inline-flex items-center gap-1.5 h-11 px-4 text-sm text-white/65 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors"
+              className="group inline-flex items-center gap-2 h-11 px-4 text-sm text-white/55 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors"
             >
-              <ArrowLeft className="w-4 h-4" /> Back
-            </button>
-            <button
+              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" /> Back
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 22 }}
               onClick={next}
               disabled={submitting}
-              className="group relative inline-flex items-center gap-2 h-12 px-7 rounded-full text-sm font-semibold text-white transition-all disabled:opacity-60 hover:scale-[1.02] active:scale-[0.98]"
+              className="group relative inline-flex items-center gap-2 h-12 px-7 rounded-full text-sm font-semibold text-white overflow-hidden disabled:opacity-60"
               style={{
                 background: 'linear-gradient(90deg, #0A84FF, #5AC8FA)',
-                boxShadow: '0 0 32px hsla(212,100%,55%,0.45)',
+                boxShadow: '0 10px 40px -8px hsla(212,100%,55%,0.55), 0 0 0 1px hsla(212,100%,75%,0.25) inset',
               }}
             >
-              {submitting
-                ? <Loader2 className="w-4 h-4 animate-spin" />
-                : isLast
-                  ? (accountType === 'enterprise' ? <>Submit <ArrowRight className="w-4 h-4" /></> : <>Continue to signup <ArrowRight className="w-4 h-4" /></>)
-                  : <>Continue <ArrowRight className="w-4 h-4" /></>}
-            </button>
+              {/* Traveling sheen */}
+              <motion.span
+                aria-hidden
+                className="absolute inset-y-0 w-16 -translate-x-full pointer-events-none"
+                style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent)' }}
+                animate={{ x: ['-80px', '320px'] }}
+                transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+              />
+              {/* Glow halo on hover */}
+              <span aria-hidden className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{ boxShadow: '0 0 60px hsla(195,100%,70%,0.7)' }} />
+              <span className="relative inline-flex items-center gap-2">
+                {submitting
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : isLast
+                    ? (accountType === 'enterprise' ? <>Submit <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></> : <>Continue to signup <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>)
+                    : <>Continue <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" /></>}
+              </span>
+            </motion.button>
           </div>
 
           {/* Trust microcopy */}

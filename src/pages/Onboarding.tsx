@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import { Logo } from '@/components/ui/Logo';
 import landingAbstractBg from '@/assets/landing-abstract-bg.jpg';
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 
 // ─────────────────────────────────────────────────────────────────────
 // Static config
@@ -352,6 +353,15 @@ export default function Onboarding() {
         className="fixed inset-0 bg-cover bg-center opacity-[0.12] pointer-events-none"
         style={{ backgroundImage: `url(${landingAbstractBg})` }}
       />
+      {/* Language switcher */}
+      <div className="fixed top-5 right-5 z-50">
+        <LanguageSwitcher
+          variant="ghost"
+          size="sm"
+          showLabel
+          className="h-9 px-3 text-white/65 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] backdrop-blur-xl rounded-full"
+        />
+      </div>
       <div className="fixed inset-0 pointer-events-none"
         style={{ background: 'radial-gradient(ellipse at top, rgba(10,132,255,0.08), transparent 60%)' }}
       />

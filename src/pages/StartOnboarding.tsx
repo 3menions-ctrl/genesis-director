@@ -155,12 +155,16 @@ const contactSchema = z.object({
 export default function StartOnboarding() {
   const { navigate } = useSafeNavigation();
   const [params] = useSearchParams();
+  const { user, signUp, signIn, signInWithGoogle, signInWithApple } = useAuth();
   const initialType = (params.get('type') as AccountType) || 'personal';
   const [accountType, setAccountType] = useState<AccountType>(initialType);
   const [stepIdx, setStepIdx] = useState(0);
   const [direction, setDirection] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [resending, setResending] = useState(false);
 
   // Form state (single bag — not all fields used per audience)
   const [form, setForm] = useState({
@@ -179,6 +183,8 @@ export default function StartOnboarding() {
     needs_api: false,
     contact_email: '',
     contact_phone: '',
+    email: '',
+    password: '',
   });
 
   const steps = useMemo<readonly StepKey[]>(() => {

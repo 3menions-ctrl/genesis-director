@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, ChevronsUpDown, Plus, Building2, Settings as SettingsIcon, Users, Palette, CreditCard, BarChart3 } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus, Building2, Settings as SettingsIcon, Users, Palette, CreditCard, BarChart3, Layers } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { cn } from '@/lib/utils';

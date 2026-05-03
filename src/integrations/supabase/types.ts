@@ -6245,6 +6245,15 @@ export type Database = {
         Args: { p_intent_token: string }
         Returns: Json
       }
+      consume_org_credits: {
+        Args: {
+          p_amount: number
+          p_metadata?: Json
+          p_org_id: string
+          p_reason?: string
+        }
+        Returns: Json
+      }
       create_group_conversation: {
         Args: { p_member_ids: string[]; p_name: string }
         Returns: string
@@ -6495,6 +6504,15 @@ export type Database = {
         Args: { p_org_id: string; p_plan: string }
         Returns: Json
       }
+      topup_org_credits: {
+        Args: {
+          p_amount: number
+          p_metadata?: Json
+          p_org_id: string
+          p_source?: string
+        }
+        Returns: Json
+      }
       update_generation_checkpoint: {
         Args: {
           p_failed_shots?: Json
@@ -6572,6 +6590,10 @@ export type Database = {
         | "video_started"
         | "video_failed"
         | "low_credits"
+        | "org_member_joined"
+        | "org_welcome"
+        | "org_role_changed"
+        | "org_credits_low"
       org_role:
         | "owner"
         | "admin"
@@ -6743,6 +6765,10 @@ export const Constants = {
         "video_started",
         "video_failed",
         "low_credits",
+        "org_member_joined",
+        "org_welcome",
+        "org_role_changed",
+        "org_credits_low",
       ],
       org_role: ["owner", "admin", "producer", "editor", "reviewer", "viewer"],
       story_structure: [

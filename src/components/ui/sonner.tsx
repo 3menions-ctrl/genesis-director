@@ -1,6 +1,6 @@
 import { useTheme } from "next-themes";
 import { Toaster as Sonner, toast } from "sonner";
-import { CheckCircle2, XCircle, AlertTriangle, Info, Loader2, Sparkles, ArrowRight } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, Info, Loader2, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { forwardRef } from "react";
 
@@ -11,88 +11,116 @@ interface AnimatedIconProps {
   glowColor: string;
 }
 
-// Animated icon wrapper with pulse effect
+// Refined luminous icon — single soft pulse, no rotation jitter.
 const AnimatedIcon = forwardRef<HTMLDivElement, AnimatedIconProps>(({ children, glowColor }, ref) => (
   <motion.div
     ref={ref}
-    initial={{ scale: 0, rotate: -180 }}
-    animate={{ scale: 1, rotate: 0 }}
-    transition={{ type: "spring", stiffness: 500, damping: 20 }}
-    className="relative"
+    initial={{ scale: 0.6, opacity: 0 }}
+    animate={{ scale: 1, opacity: 1 }}
+    transition={{ type: "spring", stiffness: 380, damping: 22 }}
+    className="relative flex items-center justify-center w-8 h-8 rounded-full"
+    style={{ background: `radial-gradient(circle at center, ${glowColor} 0%, transparent 70%)` }}
   >
-    <motion.div
+    <motion.span
+      aria-hidden
       className="absolute inset-0 rounded-full"
-      style={{ backgroundColor: glowColor }}
-      animate={{ 
-        scale: [1, 1.8, 1.8],
-        opacity: [0.5, 0, 0]
-      }}
-      transition={{ 
-        duration: 1.5,
-        repeat: Infinity,
-        ease: "easeOut"
-      }}
+      style={{ boxShadow: `0 0 0 1px ${glowColor}` }}
+      animate={{ scale: [1, 1.6], opacity: [0.55, 0] }}
+      transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut" }}
     />
     {children}
   </motion.div>
 ));
 
-AnimatedIcon.displayName = 'AnimatedIcon';
+AnimatedIcon.displayName = "AnimatedIcon";
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme();
 
+  // Canonical Pro-Dark surface — locked tier-shared design (no purple).
+  const SHELL =
+    "group toast pointer-events-auto " +
+    "group-[.toaster]:rounded-2xl group-[.toaster]:px-6 group-[.toaster]:py-5 group-[.toaster]:gap-4 " +
+    "group-[.toaster]:backdrop-blur-2xl " +
+    "group-[.toaster]:bg-[hsl(220,14%,3%)/0.94] " +
+    "group-[.toaster]:border group-[.toaster]:border-white/[0.06] " +
+    "group-[.toaster]:min-w-[380px] group-[.toaster]:max-w-[520px] " +
+    "group-[.toaster]:shadow-[0_30px_80px_-20px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.02),inset_0_1px_0_rgba(255,255,255,0.04)]";
+
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
-      className="toaster group"
-      position="bottom-center"
-      gap={12}
+      className="toaster group font-display"
+      position="top-center"
+      gap={14}
+      offset={28}
+      visibleToasts={3}
       toastOptions={{
-        duration: 5000,
+        duration: 4500,
         classNames: {
-          toast:
-            "group toast group-[.toaster]:rounded-2xl group-[.toaster]:px-5 group-[.toaster]:py-4 group-[.toaster]:gap-4 group-[.toaster]:animate-in group-[.toaster]:slide-in-from-bottom-5 group-[.toaster]:fade-in-0 group-[.toaster]:duration-300 group-[.toaster]:backdrop-blur-2xl group-[.toaster]:border group-[.toaster]:bg-[hsl(250,15%,6%)/0.97] group-[.toaster]:border-white/[0.08] group-[.toaster]:min-w-[360px] group-[.toaster]:max-w-[480px]",
-          description: "group-[.toast]:text-white/50 group-[.toast]:text-sm group-[.toast]:leading-relaxed",
-          actionButton: "group-[.toast]:bg-[hsl(263,70%,58%)] group-[.toast]:text-white group-[.toast]:rounded-full group-[.toast]:font-medium group-[.toast]:px-5 group-[.toast]:py-2 group-[.toast]:text-xs group-[.toast]:tracking-wide group-[.toast]:uppercase group-[.toast]:hover:bg-[hsl(263,70%,65%)] group-[.toast]:transition-all group-[.toast]:duration-200 group-[.toast]:shadow-[0_0_20px_rgba(124,58,237,0.3)]",
-          cancelButton: "group-[.toast]:bg-white/[0.06] group-[.toast]:text-white/70 group-[.toast]:rounded-full group-[.toast]:border group-[.toast]:border-white/[0.08] group-[.toast]:hover:bg-white/10 group-[.toast]:transition-all group-[.toast]:duration-200",
-          success: "group-[.toaster]:bg-[hsl(250,15%,6%)/0.97] group-[.toaster]:border-emerald-500/25 group-[.toaster]:shadow-[0_0_40px_rgba(16,185,129,0.12),0_0_80px_rgba(16,185,129,0.04),0_20px_40px_-12px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(16,185,129,0.1)] group-[.toaster]:text-white",
-          error: "group-[.toaster]:bg-[hsl(250,15%,6%)/0.97] group-[.toaster]:border-red-500/25 group-[.toaster]:shadow-[0_0_40px_rgba(239,68,68,0.12),0_0_80px_rgba(239,68,68,0.04),0_20px_40px_-12px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(239,68,68,0.1)] group-[.toaster]:text-white",
-          warning: "group-[.toaster]:bg-[hsl(250,15%,6%)/0.97] group-[.toaster]:border-amber-500/25 group-[.toaster]:shadow-[0_0_40px_rgba(245,158,11,0.12),0_0_80px_rgba(245,158,11,0.04),0_20px_40px_-12px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(245,158,11,0.1)] group-[.toaster]:text-white",
-          info: "group-[.toaster]:bg-[hsl(250,15%,6%)/0.97] group-[.toaster]:border-[hsl(263,70%,58%)]/20 group-[.toaster]:shadow-[0_0_40px_rgba(124,58,237,0.08),0_20px_40px_-12px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(124,58,237,0.08)] group-[.toaster]:text-white",
-          loading: "group-[.toaster]:bg-[hsl(250,15%,6%)/0.97] group-[.toaster]:border-white/[0.08] group-[.toaster]:shadow-[0_20px_40px_-12px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.05)] group-[.toaster]:text-white",
-          title: "group-[.toast]:text-white group-[.toast]:font-semibold group-[.toast]:tracking-tight group-[.toast]:text-[14px]",
-          icon: "group-[.toast]:[&>svg]:h-5 group-[.toast]:[&>svg]:w-5",
-          closeButton: "group-[.toast]:bg-white/[0.03] group-[.toast]:border-white/[0.06] group-[.toast]:text-white/40 group-[.toast]:hover:bg-white/[0.08] group-[.toast]:hover:text-white/70 group-[.toast]:transition-all group-[.toast]:rounded-full",
+          toast: SHELL,
+          title:
+            "group-[.toast]:font-display group-[.toast]:text-white group-[.toast]:font-semibold " +
+            "group-[.toast]:tracking-[-0.01em] group-[.toast]:text-[15px] group-[.toast]:leading-snug",
+          description:
+            "group-[.toast]:text-white/55 group-[.toast]:text-[13px] group-[.toast]:leading-relaxed group-[.toast]:mt-0.5",
+          actionButton:
+            "group-[.toast]:bg-[#0A84FF] group-[.toast]:text-white group-[.toast]:rounded-full " +
+            "group-[.toast]:font-medium group-[.toast]:px-4 group-[.toast]:py-1.5 group-[.toast]:text-[12px] " +
+            "group-[.toast]:tracking-wide group-[.toast]:hover:bg-[#0A84FF]/90 " +
+            "group-[.toast]:transition-all group-[.toast]:duration-200 " +
+            "group-[.toast]:shadow-[0_0_24px_rgba(10,132,255,0.35)]",
+          cancelButton:
+            "group-[.toast]:bg-white/[0.05] group-[.toast]:text-white/70 group-[.toast]:rounded-full " +
+            "group-[.toast]:border group-[.toast]:border-white/[0.08] group-[.toast]:hover:bg-white/10 " +
+            "group-[.toast]:transition-all group-[.toast]:duration-200",
+          closeButton:
+            "group-[.toast]:bg-transparent group-[.toast]:border-0 " +
+            "group-[.toast]:text-white/30 group-[.toast]:hover:text-white/80 group-[.toast]:transition-colors",
+          icon: "group-[.toast]:[&>div]:h-8 group-[.toast]:[&>div]:w-8",
+          success:
+            SHELL + " group-[.toaster]:!border-emerald-400/25 " +
+            "group-[.toaster]:shadow-[0_0_60px_rgba(16,185,129,0.18),0_0_120px_rgba(16,185,129,0.06),0_30px_80px_-20px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(16,185,129,0.10)]",
+          error:
+            SHELL + " group-[.toaster]:!border-rose-400/25 " +
+            "group-[.toaster]:shadow-[0_0_60px_rgba(244,63,94,0.18),0_0_120px_rgba(244,63,94,0.06),0_30px_80px_-20px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(244,63,94,0.10)]",
+          warning:
+            SHELL + " group-[.toaster]:!border-amber-400/25 " +
+            "group-[.toaster]:shadow-[0_0_60px_rgba(245,158,11,0.18),0_0_120px_rgba(245,158,11,0.06),0_30px_80px_-20px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(245,158,11,0.10)]",
+          info:
+            SHELL + " group-[.toaster]:!border-[#0A84FF]/30 " +
+            "group-[.toaster]:shadow-[0_0_60px_rgba(10,132,255,0.18),0_0_120px_rgba(10,132,255,0.06),0_30px_80px_-20px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(10,132,255,0.10)]",
+          loading: SHELL,
         },
       }}
       icons={{
         success: (
-          <AnimatedIcon glowColor="rgba(16, 185, 129, 0.3)">
-            <CheckCircle2 className="h-5 w-5 text-emerald-400" style={{ filter: 'drop-shadow(0 0 8px rgba(16, 185, 129, 0.5))' }} />
+          <AnimatedIcon glowColor="rgba(16, 185, 129, 0.45)">
+            <CheckCircle2 className="h-[18px] w-[18px] text-emerald-300" style={{ filter: "drop-shadow(0 0 10px rgba(16,185,129,0.55))" }} />
           </AnimatedIcon>
         ),
         error: (
-          <AnimatedIcon glowColor="rgba(239, 68, 68, 0.3)">
-            <XCircle className="h-5 w-5 text-red-400" style={{ filter: 'drop-shadow(0 0 8px rgba(239, 68, 68, 0.5))' }} />
+          <AnimatedIcon glowColor="rgba(244, 63, 94, 0.45)">
+            <XCircle className="h-[18px] w-[18px] text-rose-300" style={{ filter: "drop-shadow(0 0 10px rgba(244,63,94,0.55))" }} />
           </AnimatedIcon>
         ),
         warning: (
-          <AnimatedIcon glowColor="rgba(245, 158, 11, 0.3)">
-            <AlertTriangle className="h-5 w-5 text-amber-400" style={{ filter: 'drop-shadow(0 0 8px rgba(245, 158, 11, 0.5))' }} />
+          <AnimatedIcon glowColor="rgba(245, 158, 11, 0.45)">
+            <AlertTriangle className="h-[18px] w-[18px] text-amber-300" style={{ filter: "drop-shadow(0 0 10px rgba(245,158,11,0.55))" }} />
           </AnimatedIcon>
         ),
         info: (
-          <AnimatedIcon glowColor="rgba(124, 58, 237, 0.3)">
-            <Info className="h-5 w-5 text-[hsl(263,70%,68%)]" style={{ filter: 'drop-shadow(0 0 6px rgba(124, 58, 237, 0.4))' }} />
+          <AnimatedIcon glowColor="rgba(10, 132, 255, 0.45)">
+            <Info className="h-[18px] w-[18px] text-[#5AB0FF]" style={{ filter: "drop-shadow(0 0 10px rgba(10,132,255,0.55))" }} />
           </AnimatedIcon>
         ),
         loading: (
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="flex items-center justify-center w-8 h-8"
           >
-            <Loader2 className="h-5 w-5 text-[hsl(263,70%,58%)]" style={{ filter: 'drop-shadow(0 0 4px rgba(124, 58, 237, 0.3))' }} />
+            <Loader2 className="h-[18px] w-[18px] text-[#5AB0FF]" style={{ filter: "drop-shadow(0 0 8px rgba(10,132,255,0.45))" }} />
           </motion.div>
         ),
       }}
@@ -101,38 +129,35 @@ const Toaster = ({ ...props }: ToasterProps) => {
   );
 };
 
-// Premium toast helper matching Studio Dark aesthetic
+// Premium toast helper — Pro-Dark + blue accent (matches locked design).
 const premiumToast = {
-  success: (message: string, options?: Parameters<typeof toast.success>[1]) => 
+  success: (message: string, options?: Parameters<typeof toast.success>[1]) =>
     toast.success(message, { ...options }),
-  error: (message: string, options?: Parameters<typeof toast.error>[1]) => 
+  error: (message: string, options?: Parameters<typeof toast.error>[1]) =>
     toast.error(message, { ...options }),
-  warning: (message: string, options?: Parameters<typeof toast.warning>[1]) => 
+  warning: (message: string, options?: Parameters<typeof toast.warning>[1]) =>
     toast.warning(message, { ...options }),
-  info: (message: string, options?: Parameters<typeof toast.info>[1]) => 
+  info: (message: string, options?: Parameters<typeof toast.info>[1]) =>
     toast.info(message, { ...options }),
-  loading: (message: string, options?: Parameters<typeof toast.loading>[1]) => 
+  loading: (message: string, options?: Parameters<typeof toast.loading>[1]) =>
     toast.loading(message, { ...options }),
-  epic: (message: string, description?: string) => 
+  epic: (message: string, description?: string) =>
     toast(message, {
       description,
-      duration: 7000,
+      duration: 6500,
       icon: (
         <motion.div
-          animate={{ 
-            rotate: [0, 15, -15, 0],
-            scale: [1, 1.15, 1]
-          }}
-          transition={{ 
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
+          animate={{ rotate: [0, 12, -12, 0], scale: [1, 1.12, 1] }}
+          transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+          className="flex items-center justify-center w-8 h-8 rounded-full"
+          style={{ background: "radial-gradient(circle at center, rgba(10,132,255,0.45) 0%, transparent 70%)" }}
         >
-          <Sparkles className="h-5 w-5 text-[hsl(263,70%,68%)]" style={{ filter: 'drop-shadow(0 0 10px rgba(124, 58, 237, 0.6))' }} />
+          <Sparkles className="h-[18px] w-[18px] text-[#5AB0FF]" style={{ filter: "drop-shadow(0 0 12px rgba(10,132,255,0.7))" }} />
         </motion.div>
       ),
-      className: "bg-[hsl(250,15%,6%)/0.97] border-[hsl(263,70%,58%)]/30 shadow-[0_0_60px_rgba(124,58,237,0.15),0_0_120px_rgba(124,58,237,0.05),0_20px_40px_-12px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(124,58,237,0.12)] text-white",
+      className:
+        "font-display backdrop-blur-2xl bg-[hsl(220,14%,3%)/0.94] border border-[#0A84FF]/30 text-white " +
+        "shadow-[0_0_80px_rgba(10,132,255,0.22),0_0_160px_rgba(10,132,255,0.08),0_30px_80px_-20px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(10,132,255,0.14)]",
     }),
   promise: toast.promise,
   dismiss: toast.dismiss,
